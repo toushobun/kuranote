@@ -1,5 +1,5 @@
 name: Feature
-about: 新功能・功能改善相关 Issue
+description: 新功能・功能改善相关 Issue
 title: "feat: "
 labels: ["feature"]
 body:
@@ -22,8 +22,8 @@ body:
     id: branch
     attributes:
       label: Branch 命名
-      description: 创建分支时请使用 feature/#issue_number_xxx 格式。
-      placeholder: feature/#302_new_bill_can_change_account
+      description: 创建分支时请使用 feature/issue_number_xxx 格式。
+      placeholder: feature/302_new_bill_can_change_account
     validations:
       required: false
   - type: textarea
