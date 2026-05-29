@@ -1,0 +1,36 @@
+name: Fix
+about: Bug 修正・问题修复相关 Issue
+title: "【fix: 】"
+labels: ["fix"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题内容
+      description: 请用中文说明发生了什么问题。
+      placeholder: 例如：账单保存后账户余额显示异常。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+      description: 正常情况下应该是什么样？
+    validations:
+      required: false
+  - type: textarea
+    id: tasks
+    attributes:
+      label: TODO
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+    validations:
+      required: false
