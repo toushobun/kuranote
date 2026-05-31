@@ -17,7 +17,7 @@ npm run dev
 
 浏览器打开：
 
-```bash
+```text
 http://localhost:3000
 ```
 
@@ -25,7 +25,7 @@ http://localhost:3000
 
 请参考 .env.example 创建 .env.local。
 
-```bash
+```text
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
