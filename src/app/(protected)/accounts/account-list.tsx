@@ -4,6 +4,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { archiveAccount } from "./actions";
 import { AccountEditForm } from "./account-edit-form";
 import { ArchiveAccountButton } from "./archive-account-button";
 import { formatAmount, getAccountTypeLabel, type AccountRow } from "./types";
