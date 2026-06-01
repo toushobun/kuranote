@@ -48,9 +48,9 @@ export function AccountForm({ defaultCurrency }: AccountFormProps) {
         <TextField
           defaultValue="0"
           fullWidth
-          inputProps={{ step: "0.01" }}
           label="初始余额"
           name="initialBalance"
+          slotProps={{ htmlInput: { step: "0.01" } }}
           type="number"
         />
 
@@ -58,10 +58,10 @@ export function AccountForm({ defaultCurrency }: AccountFormProps) {
           defaultValue={defaultCurrency}
           fullWidth
           helperText="MVP 阶段默认使用当前账本的基础货币。"
-          inputProps={{ maxLength: 3 }}
           label="货币"
           name="currency"
           required
+          slotProps={{ htmlInput: { maxLength: 3 } }}
         />
 
         <TextField
