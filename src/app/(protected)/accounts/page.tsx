@@ -15,14 +15,14 @@ type AccountsPageProps = {
 };
 
 const errorMessages: Record<string, string> = {
-  account_required: "未指定账户。",
+  account_invalid: "账户指定不正确。",
   archive_failed: "账户归档失败。",
-  create_failed: "账户新增失败。请确认账户名称是否重复。",
+  create_failed: "账户新增失败。请确认账户名称是否重复，或稍后重试。",
+  update_failed: "账户更新失败。请确认账户名称是否重复，或稍后重试。",
   currency_invalid: "货币必须是 3 位大写字母，例如 JPY。",
   initial_balance_invalid: "初始余额必须是数字。",
   name_required: "请输入账户名称。",
   type_invalid: "账户类型不正确。",
-  update_failed: "账户更新失败。请确认账户名称是否重复。",
 };
 
 export default async function AccountsPage({

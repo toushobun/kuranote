@@ -10,6 +10,13 @@ import { accountTypeOptions, type AccountType } from "./types";
 
 const accountTypeValues = accountTypeOptions.map((option) => option.value);
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string) {
+  return uuidPattern.test(value);
+}
+
 function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -119,8 +126,8 @@ export async function updateAccount(formData: FormData) {
     currentLedger.baseCurrency,
   );
 
-  if (accountId.length === 0) {
-    redirect("/accounts?error=account_required");
+  if (!isUuid(accountId)) {
+    redirect("/accounts?error=account_invalid");
   }
 
   if (name.length === 0) {
@@ -160,8 +167,8 @@ export async function archiveAccount(formData: FormData) {
   const { currentLedger, userId } = await getCurrentUserAndLedger();
   const accountId = getText(formData, "accountId");
 
-  if (accountId.length === 0) {
-    redirect("/accounts?error=account_required");
+  if (!isUuid(accountId)) {
+    redirect("/accounts?error=account_invalid");
   }
 
   const supabase = await createClient();
