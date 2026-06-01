@@ -13,6 +13,7 @@ export type AccountRow = {
   name: string;
   type: AccountType;
   currency: string;
+  // Supabase numeric may be returned as string to avoid precision loss.
   initial_balance: number | string;
   current_balance: number | string;
   sort_order: number;
@@ -30,7 +31,7 @@ export function formatAmount(amount: number | string, currency: string) {
     return `${amount} ${currency}`;
   }
 
-  return new Intl.NumberFormat("ja-JP", {
+  return new Intl.NumberFormat(undefined, {
     currency,
     style: "currency",
   }).format(numberAmount);
