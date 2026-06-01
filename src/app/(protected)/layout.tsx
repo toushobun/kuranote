@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
 

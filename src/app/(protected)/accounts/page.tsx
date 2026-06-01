@@ -1,4 +1,4 @@
-﻿import Paper from "@mui/material/Paper";
+import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
 import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
