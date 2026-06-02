@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -33,6 +35,10 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
     "typescript": "^5",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "storybook": "^10.4.2",
+    "@storybook/nextjs-vite": "^10.4.2",
+    "vite": "^8.0.16",
+    "eslint-plugin-storybook": "^10.4.2"
   }
 }

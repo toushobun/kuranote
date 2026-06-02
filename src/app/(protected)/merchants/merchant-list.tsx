@@ -8,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import { archiveMerchant, archiveMerchantAlias } from "./actions";
 import { MerchantAliasForm } from "./merchant-alias-form";
 import { MerchantEditForm } from "./merchant-edit-form";
@@ -26,17 +27,7 @@ export function MerchantList({
 }: MerchantListProps) {
   if (merchants.length === 0) {
     return (
-      <Paper
-        elevation={0}
-        sx={{ mt: 4, p: 3, border: "1px dashed", borderColor: "divider" }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          还没有商家
-        </Typography>
-        <Typography color="text.secondary" sx={{ mt: 1 }}>
-          请先新增一个常用商家。
-        </Typography>
-      </Paper>
+      <EmptyState title="还没有商家" description="请先新增一个常用商家。" />
     );
   }
 
