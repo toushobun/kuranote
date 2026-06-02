@@ -27,3 +27,6 @@ yarn-error.log*
 
 *storybook.log
 storybook-static
+
+# Next.js generated type entry
+next-env.d.ts
