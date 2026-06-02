@@ -3,41 +3,41 @@ import { describe, expect, it } from "vitest";
 import { getMerchantInitial, normalizeSearchText } from "./types";
 
 describe("getMerchantInitial", () => {
-  it("returns an uppercase initial for English merchant names", () => {
+  it("英文商家名返回大写首字母", () => {
     expect(getMerchantInitial("amazon")).toBe("A");
   });
 
-  it("returns the first character for Chinese merchant names", () => {
+  it("中文商家名返回第一个字符", () => {
     expect(getMerchantInitial("罗森")).toBe("罗");
   });
 
-  it("returns the first character for Japanese merchant names", () => {
+  it("日文商家名返回第一个字符", () => {
     expect(getMerchantInitial("スギ薬局")).toBe("ス");
   });
 
-  it("returns a fallback for empty names", () => {
+  it("空字符串返回 fallback", () => {
     expect(getMerchantInitial("")).toBe("?");
   });
 
-  it("trims surrounding whitespace before taking the initial", () => {
+  it("取首字母前会去掉前后空格", () => {
     expect(getMerchantInitial("  life")).toBe("L");
   });
 });
 
 describe("normalizeSearchText", () => {
-  it("trims surrounding whitespace", () => {
+  it("会去掉前后空格", () => {
     expect(normalizeSearchText("  LIFE  ")).toBe("life");
   });
 
-  it("normalizes English text to lowercase", () => {
+  it("会将英文文本转为小写", () => {
     expect(normalizeSearchText("Amazon")).toBe("amazon");
   });
 
-  it("keeps Chinese text searchable as-is", () => {
+  it("中文文本保持原样用于搜索", () => {
     expect(normalizeSearchText(" 来福 ")).toBe("来福");
   });
 
-  it("keeps Japanese text searchable as-is", () => {
+  it("日文文本保持原样用于搜索", () => {
     expect(normalizeSearchText(" ライフ ")).toBe("ライフ");
   });
 });

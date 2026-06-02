@@ -3,23 +3,23 @@ import { describe, expect, it } from "vitest";
 import { formatAmount } from "./types";
 
 describe("formatAmount", () => {
-  it("formats number input with the requested currency", () => {
+  it("可以按指定货币格式化 number 输入", () => {
     expect(formatAmount(1200, "JPY")).toBe("¥1,200");
   });
 
-  it("formats numeric string input with the requested currency", () => {
+  it("可以按指定货币格式化数字字符串输入", () => {
     expect(formatAmount("1234.5", "USD")).toBe("$1,234.50");
   });
 
-  it("falls back for invalid amount input", () => {
+  it("金额输入无效时使用 fallback 文案", () => {
     expect(formatAmount("not-a-number", "JPY")).toBe("not-a-number JPY");
   });
 
-  it("falls back for null amount input", () => {
+  it("金额输入为 null 时使用 fallback 文案", () => {
     expect(formatAmount(null, "JPY")).toBe("null JPY");
   });
 
-  it("falls back when Intl cannot format the currency", () => {
+  it("Intl 无法格式化货币时使用 fallback 文案", () => {
     expect(formatAmount(1200, "INVALID")).toBe("1200 INVALID");
   });
 });
