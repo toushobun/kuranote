@@ -143,17 +143,18 @@ UchiLog 的目标是做一个适合日常使用的家庭记账应用。
 ### 工程化
 
 - GitHub Actions CI
-- Pull Request 时自动执行检查
-- main 分支更新时自动执行检查
-- Type check
-- Format check
-- Lint
-- Test
-- Build
-- Storybook build
-- Prettier
-- Vitest
-- Storybook
+  - Pull Request 时自动执行检查
+  - main 分支更新时自动执行检查
+  - Type check
+  - Format check
+  - Lint
+  - Test
+  - Build
+  - Storybook build
+- 本地开发工具
+  - Prettier
+  - Vitest
+  - Storybook
 
 ## 开发路线
 
@@ -283,13 +284,13 @@ npm run dev
 http://localhost:3000
 ```
 
-### 启动 Storybook
+### 启动 Storybook 并确认组件展示
 
 ```bash
 npm run storybook
 ```
 
-打开：
+打开 Storybook：
 
 ```text
 http://localhost:6006
@@ -333,7 +334,7 @@ npm run test
 npm run build
 ```
 
-### 启动 Storybook
+### 启动 Storybook 开发服务器
 
 ```bash
 npm run storybook
