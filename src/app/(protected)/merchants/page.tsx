@@ -7,7 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 
 import { MerchantForm } from "./merchant-form";
 import { MerchantList } from "./merchant-list";
-import { normalizeSearchText, type MerchantAliasRow, type MerchantRow } from "./types";
+import {
+  normalizeSearchText,
+  type MerchantAliasRow,
+  type MerchantRow,
+} from "./types";
 
 type MerchantsPageProps = {
   searchParams: Promise<{
@@ -58,7 +62,9 @@ function filterMerchantsByKeyword(merchants: MerchantRow[], keyword: string) {
   }
 
   return merchants.filter((merchant) => {
-    const matchedByName = normalizeSearchText(merchant.name).includes(normalizedKeyword);
+    const matchedByName = normalizeSearchText(merchant.name).includes(
+      normalizedKeyword,
+    );
     const matchedByAlias = merchant.aliases.some((alias) =>
       normalizeSearchText(alias.alias).includes(normalizedKeyword),
     );
@@ -111,7 +117,10 @@ export default async function MerchantsPage({
   }
 
   const merchants = filterMerchantsByKeyword(
-    attachAliases(merchantsWithoutAliases, (aliasData ?? []) as MerchantAliasRow[]),
+    attachAliases(
+      merchantsWithoutAliases,
+      (aliasData ?? []) as MerchantAliasRow[],
+    ),
     keyword,
   );
 
@@ -131,7 +140,8 @@ export default async function MerchantsPage({
         当前账本：{currentLedger.name}
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
-        管理常用商家、商家网址、备注和别名。UchiLog 会以商家为主轴，再结合分类进行统计。
+        管理常用商家、商家网址、备注和别名。UchiLog
+        会以商家为主轴，再结合分类进行统计。
       </Typography>
 
       {errorMessage ? (
