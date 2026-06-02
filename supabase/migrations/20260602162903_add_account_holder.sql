@@ -34,8 +34,8 @@ before update on public.account_holder
 for each row
 execute function public.set_updated_at();
 
-create index account_holder_account_id_idx
-on public.account_holder (account_id);
+create index account_holder_account_ledger_idx
+on public.account_holder (account_id, ledger_id);
 
 create index account_holder_ledger_id_idx
 on public.account_holder (ledger_id);
@@ -44,7 +44,7 @@ create index account_holder_user_id_idx
 on public.account_holder (user_id);
 
 -- account_holder 的 user_id 必须是同一账本内 active 成员
-create or replace function public.validate_account_holder_active_member()
+create function public.validate_account_holder_active_member()
 returns trigger
 language plpgsql
 as $$
