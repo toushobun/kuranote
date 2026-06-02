@@ -7,7 +7,7 @@ import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
 import { createClient } from "@/lib/supabase/server";
 
 const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 function isUuid(value: string) {
   return uuidPattern.test(value);
@@ -17,6 +17,7 @@ function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+// null 表示空输入，undefined 表示非法输入。
 function parseOptionalText(value: string, maxLength: number) {
   if (value.length === 0) {
     return null;
