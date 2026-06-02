@@ -1,4 +1,6 @@
+import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
@@ -16,6 +18,7 @@ import {
 type MerchantsPageProps = {
   searchParams: Promise<{
     error?: string;
+    merchantId?: string;
     q?: string;
   }>;
 };
@@ -28,9 +31,10 @@ const errorMessages: Record<string, string> = {
   alias_too_long: "商家别名不能超过 100 个字符。",
   archive_failed: "商家归档失败。",
   create_failed: "商家新增失败。请确认商家名称是否重复，或稍后重试。",
-  locale_invalid: "语言标记长度必须为 2 到 20 个字符。",
+  locale_invalid: "语言标记格式不正确。",
   merchant_invalid: "商家指定不正确。",
   name_required: "请输入商家名称。",
+  name_too_long: "商家名称不能超过 100 个字符。",
   note_too_long: "备注不能超过 1000 个字符。",
   update_failed: "商家更新失败。请确认商家名称是否重复，或稍后重试。",
   website_url_invalid: "商家网址必须以 http:// 或 https:// 开头。",
@@ -82,6 +86,7 @@ export default async function MerchantsPage({
   const errorMessage = params.error
     ? (errorMessages[params.error] ?? null)
     : null;
+  const errorMerchantId = params.merchantId ?? null;
   const supabase = await createClient();
 
   const { data: merchantData, error: merchantError } = await supabase
@@ -105,7 +110,7 @@ export default async function MerchantsPage({
   const { data: aliasData, error: aliasError } = merchantIds.length
     ? await supabase
         .from("merchant_alias")
-        .select("id, merchant_id, alias, locale, note, sort_order, created_at")
+        .select("id, merchant_id, alias, locale, sort_order, created_at")
         .in("merchant_id", merchantIds)
         .eq("is_archived", false)
         .order("sort_order", { ascending: true })
@@ -144,7 +149,7 @@ export default async function MerchantsPage({
         会以商家为主轴，再结合分类进行统计。
       </Typography>
 
-      {errorMessage ? (
+      {errorMessage && !errorMerchantId ? (
         <Typography color="error" role="alert" sx={{ mt: 3 }}>
           {errorMessage}
         </Typography>
@@ -155,18 +160,27 @@ export default async function MerchantsPage({
         elevation={0}
         sx={{ mt: 4, p: 3, border: "1px solid", borderColor: "divider" }}
       >
-        <TextField
-          defaultValue={keyword}
-          fullWidth
-          helperText="同时匹配商家主名称和别名。"
-          label="搜索商家"
-          name="q"
-          placeholder="例如：LIFE、来福、スギ"
-        />
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            defaultValue={keyword}
+            fullWidth
+            helperText="同时匹配商家主名称和别名。"
+            label="搜索商家"
+            name="q"
+            placeholder="例如：LIFE、来福、スギ"
+          />
+          <Button sx={{ alignSelf: "flex-start" }} type="submit" variant="outlined">
+            搜索
+          </Button>
+        </Stack>
       </Paper>
 
       <MerchantForm />
-      <MerchantList merchants={merchants} />
+      <MerchantList
+        errorMerchantId={errorMerchantId}
+        errorMessage={errorMessage}
+        merchants={merchants}
+      />
     </Paper>
   );
 }
