@@ -9,6 +9,10 @@ import { createClient } from "@/lib/supabase/server";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
+type OptionalTextResult =
+  | { ok: true; value: string | null }
+  | { ok: false };
+
 function isUuid(value: string) {
   return uuidPattern.test(value);
 }
@@ -17,17 +21,19 @@ function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-// null 表示空输入，undefined 表示非法输入。
-function parseOptionalText(value: string, maxLength: number) {
+function parseOptionalText(
+  value: string,
+  maxLength: number,
+): OptionalTextResult {
   if (value.length === 0) {
-    return null;
+    return { ok: true, value: null };
   }
 
   if (value.length > maxLength) {
-    return undefined;
+    return { ok: false };
   }
 
-  return value;
+  return { ok: true, value };
 }
 
 function parseWebsiteUrl(value: string) {
@@ -35,11 +41,17 @@ function parseWebsiteUrl(value: string) {
     return null;
   }
 
-  if (!/^https?:\/\//.test(value)) {
+  try {
+    const url = new URL(value);
+
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname) {
+      return undefined;
+    }
+
+    return value;
+  } catch {
     return undefined;
   }
-
-  return value;
 }
 
 function parseLocale(value: string) {
@@ -98,7 +110,7 @@ export async function createMerchant(formData: FormData) {
     redirect("/merchants?error=website_url_invalid");
   }
 
-  if (note === undefined) {
+  if (!note.ok) {
     redirect("/merchants?error=note_too_long");
   }
 
@@ -107,7 +119,7 @@ export async function createMerchant(formData: FormData) {
     ledger_id: currentLedger.id,
     name,
     website_url: websiteUrl,
-    note,
+    note: note.value,
     sort_order: 0,
     created_by: userId,
     updated_by: userId,
@@ -140,7 +152,7 @@ export async function updateMerchant(formData: FormData) {
     redirect("/merchants?error=website_url_invalid");
   }
 
-  if (note === undefined) {
+  if (!note.ok) {
     redirect("/merchants?error=note_too_long");
   }
 
@@ -151,7 +163,7 @@ export async function updateMerchant(formData: FormData) {
       {
         name,
         website_url: websiteUrl,
-        note,
+        note: note.value,
         updated_by: userId,
       },
       { count: "exact" },
