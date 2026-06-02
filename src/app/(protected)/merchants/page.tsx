@@ -169,7 +169,11 @@ export default async function MerchantsPage({
             name="q"
             placeholder="例如：LIFE、来福、スギ"
           />
-          <Button sx={{ alignSelf: "flex-start" }} type="submit" variant="outlined">
+          <Button
+            sx={{ alignSelf: "flex-start" }}
+            type="submit"
+            variant="outlined"
+          >
             搜索
           </Button>
         </Stack>

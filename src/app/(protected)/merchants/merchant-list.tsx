@@ -126,7 +126,11 @@ export function MerchantList({
             </Typography>
 
             {merchant.aliases.length > 0 ? (
-              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ mt: 1, flexWrap: "wrap" }}
+              >
                 {merchant.aliases.map((alias) => (
                   <Stack
                     key={alias.id}

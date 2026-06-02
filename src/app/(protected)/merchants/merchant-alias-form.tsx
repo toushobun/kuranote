@@ -21,7 +21,7 @@ export function MerchantAliasForm({ merchantId }: MerchantAliasFormProps) {
       <TextField
         autoComplete="off"
         fullWidth
-        inputProps={{ maxLength: 100 }}
+        slotProps={{ htmlInput: { maxLength: 100 } }}
         label="新增别名"
         name="alias"
         placeholder="例如：来福、LIFE、スギ"
@@ -33,7 +33,7 @@ export function MerchantAliasForm({ merchantId }: MerchantAliasFormProps) {
         autoComplete="off"
         fullWidth
         helperText="可选，例如 ja、zh-Hans、en"
-        inputProps={{ maxLength: 20 }}
+        slotProps={{ htmlInput: { maxLength: 20 } }}
         label="语言标记"
         name="locale"
         placeholder="ja"
