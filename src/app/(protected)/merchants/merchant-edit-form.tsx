@@ -17,6 +17,7 @@ export function MerchantEditForm({ merchant }: MerchantEditFormProps) {
       <TextField
         defaultValue={merchant.name}
         fullWidth
+        inputProps={{ maxLength: 100 }}
         label="商家名称"
         name="name"
         required
@@ -35,6 +36,7 @@ export function MerchantEditForm({ merchant }: MerchantEditFormProps) {
       <TextField
         defaultValue={merchant.note ?? ""}
         fullWidth
+        inputProps={{ maxLength: 1000 }}
         label="备注"
         minRows={3}
         multiline
