@@ -10,7 +10,12 @@ type MerchantAliasFormProps = {
 
 export function MerchantAliasForm({ merchantId }: MerchantAliasFormProps) {
   return (
-    <Stack component="form" action={createMerchantAlias} spacing={1.5} sx={{ mt: 2 }}>
+    <Stack
+      component="form"
+      action={createMerchantAlias}
+      spacing={1.5}
+      sx={{ mt: 2 }}
+    >
       <input name="merchantId" type="hidden" value={merchantId} />
 
       <TextField
