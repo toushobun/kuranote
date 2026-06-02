@@ -30,6 +30,7 @@ export function MerchantForm() {
         <TextField
           autoComplete="off"
           fullWidth
+          inputProps={{ maxLength: 100 }}
           label="商家名称"
           name="name"
           placeholder="例如：LIFE、スギ薬局、Amazon"
@@ -48,6 +49,7 @@ export function MerchantForm() {
 
         <TextField
           fullWidth
+          inputProps={{ maxLength: 1000 }}
           label="备注"
           minRows={3}
           multiline
