@@ -35,7 +35,6 @@ values
 on conflict (account_id, user_id) do update
 set
     role = excluded.role,
-    share_ratio = excluded.share_ratio,
     updated_by = excluded.updated_by,
     updated_at = now();
 
