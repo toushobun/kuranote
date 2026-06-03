@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AccountForm } from "accounts/AccountForm";
 import { AccountList } from "accounts/AccountList";
 
-import { archiveAccount } from "./actions";
+import { archiveAccount, createAccount, updateAccount } from "./actions";
 import type { AccountHolderRole, AccountHolderRow, AccountRow } from "./types";
 
 type AccountsPageProps = {
@@ -170,8 +170,15 @@ export default async function AccountsPage({
         </Typography>
       ) : null}
 
-      <AccountForm defaultCurrency={currentLedger.baseCurrency} />
-      <AccountList accounts={accounts} archiveAccountAction={archiveAccount} />
+      <AccountForm
+        createAccountAction={createAccount}
+        defaultCurrency={currentLedger.baseCurrency}
+      />
+      <AccountList
+        accounts={accounts}
+        archiveAccountAction={archiveAccount}
+        updateAccountAction={updateAccount}
+      />
     </Paper>
   );
 }

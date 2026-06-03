@@ -1,7 +1,6 @@
 import Stack from "@mui/material/Stack";
 
 import { EmptyState } from "@/components/ui/EmptyState";
-
 import { type AccountRow } from "accounts-route/types";
 
 import { AccountCard } from "./AccountCard";
@@ -11,11 +10,13 @@ import { ArchiveAccountButton } from "./ArchiveAccountButton";
 type AccountListProps = {
   accounts: AccountRow[];
   archiveAccountAction: (formData: FormData) => void | Promise<void>;
+  updateAccountAction: (formData: FormData) => void | Promise<void>;
 };
 
 export function AccountList({
   accounts,
   archiveAccountAction,
+  updateAccountAction,
 }: AccountListProps) {
   if (accounts.length === 0) {
     return <EmptyState title="还没有账户" description="请先新增一个账户。" />;
@@ -42,7 +43,12 @@ export function AccountList({
               <ArchiveAccountButton />
             </Stack>
           }
-          footer={<AccountEditForm account={account} />}
+          footer={
+            <AccountEditForm
+              account={account}
+              updateAccountAction={updateAccountAction}
+            />
+          }
         />
       ))}
     </Stack>
