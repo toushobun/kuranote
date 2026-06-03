@@ -1,8 +1,8 @@
 import Stack from "@mui/material/Stack";
 
-import { archiveAccount } from "@/app/(protected)/accounts/actions";
-import { type AccountRow } from "@/app/(protected)/accounts/types";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { archiveAccount } from "accounts/actions";
+import { type AccountRow } from "accounts/types";
 
 import { AccountCard } from "./AccountCard";
 import { AccountEditForm } from "./AccountEditForm";
