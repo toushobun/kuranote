@@ -3,8 +3,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
-import { updateAccount } from "accounts/actions";
-import { accountTypeOptions, type AccountRow } from "accounts/types";
+import { updateAccount } from "account-page/actions";
+import { accountTypeOptions, type AccountRow } from "account-page/types";
 
 type AccountEditFormProps = {
   account: AccountRow;
