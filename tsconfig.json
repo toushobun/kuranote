@@ -20,10 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "accounts/*": [
-        "./src/components/accounts/*",
-        "./src/app/(protected)/accounts/*"
-      ]
+      "accounts/*": ["./src/components/accounts/*"],
+      "account-page/*": ["./src/app/(protected)/accounts/*"]
     }
   },
   "include": [
