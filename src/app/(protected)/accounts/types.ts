@@ -8,6 +8,18 @@ export const accountTypeOptions = [
 
 export type AccountType = (typeof accountTypeOptions)[number]["value"];
 
+export type AccountHolderRole = "owner" | "co_owner";
+
+export type AccountHolderRow = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  email: string | null;
+  role: AccountHolderRole;
+  // Supabase numeric may be returned as string to avoid precision loss.
+  share_ratio: number | string | null;
+};
+
 export type AccountRow = {
   id: string;
   name: string;
@@ -18,6 +30,7 @@ export type AccountRow = {
   current_balance: number | string;
   sort_order: number;
   created_at: string;
+  holders: AccountHolderRow[];
 };
 
 export function getAccountTypeLabel(type: string) {
