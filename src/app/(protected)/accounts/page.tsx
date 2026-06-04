@@ -1,6 +1,6 @@
-import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
+import { GlassCard } from "@/components/ui/GlassCard";
 import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -279,12 +279,9 @@ export default async function AccountsPage({
   });
 
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         p: { xs: 4, sm: 5 },
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -314,6 +311,6 @@ export default async function AccountsPage({
         holderOptions={holderOptions}
         updateAccountAction={updateAccount}
       />
-    </Paper>
+    </GlassCard>
   );
 }

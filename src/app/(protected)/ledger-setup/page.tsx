@@ -1,10 +1,10 @@
 import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
 
+import { GlassCard } from "@/components/ui/GlassCard";
 import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
 
 import { createLedger } from "./actions";
@@ -44,12 +44,9 @@ export default async function LedgerSetupPage({
   const errorMessage = getErrorMessage(params.error);
 
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         p: { xs: 4, sm: 5 },
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -90,6 +87,6 @@ export default async function LedgerSetupPage({
           创建账本
         </Button>
       </Stack>
-    </Paper>
+    </GlassCard>
   );
 }

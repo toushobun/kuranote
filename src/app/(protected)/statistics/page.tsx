@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
 
-export default async function CategoriesPage() {
+export default async function StatisticsPage() {
   const currentLedger = await getCurrentLedgerOrRedirect();
 
   return (
@@ -13,13 +13,13 @@ export default async function CategoriesPage() {
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-        分类
+        统计
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
         当前账本：{currentLedger.name}
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
-        分类列表和新增功能将在后续 Issue 中实现。
+        收支统计将在后续 Issue 中实现。
       </Typography>
     </GlassCard>
   );

@@ -1,20 +1,18 @@
 import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+
+import { GlassCard } from "@/components/ui/GlassCard";
 
 import { createMerchant } from "./actions";
 
 export function MerchantForm() {
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         mt: 4,
         p: 3,
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>
@@ -61,6 +59,6 @@ export function MerchantForm() {
           新增商家
         </Button>
       </Stack>
-    </Paper>
+    </GlassCard>
   );
 }

@@ -10,7 +10,8 @@ body {
 }
 
 body {
-  background: #f7f8f5;
+  background: var(--user-theme-page-bg);
+  transition: background 0.5s ease;
 }
 
 * {
