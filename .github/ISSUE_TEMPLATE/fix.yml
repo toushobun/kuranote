@@ -1,7 +1,7 @@
 name: Fix
 description: Bug 修正・问题修复相关 Issue
 title: "fix: "
-labels: ["fix"]
+labels: ["bug"]
 body:
   - type: textarea
     id: problem
