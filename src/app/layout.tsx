@@ -17,7 +17,7 @@ type RootLayoutProps = {
   children: ReactNode;
 };
 
-export default async function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="zh-CN"

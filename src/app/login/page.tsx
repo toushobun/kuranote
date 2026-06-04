@@ -4,7 +4,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "lib/supabase/server";
 
 import { LoginForm } from "./login-form";
 

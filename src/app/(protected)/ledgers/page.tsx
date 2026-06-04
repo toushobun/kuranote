@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
 
 import { GlassCard } from "ui/GlassCard";
-import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 
 export default async function LedgersPage() {
   const { ledgers, currentLedger } = await getCurrentLedgerContext();

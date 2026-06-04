@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 
 import { GlassCard } from "ui/GlassCard";
 import { UserThemePicker } from "ui/UserThemePicker";
-import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 
 export default async function SettingsPage() {
   const currentLedger = await getCurrentLedgerOrRedirect();

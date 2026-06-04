@@ -1,8 +1,8 @@
 import Typography from "@mui/material/Typography";
 
 import { GlassCard } from "ui/GlassCard";
-import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { createClient } from "lib/supabase/server";
 import {
   getFallbackThemeColorKey,
   getStableFallbackThemeColorKey,

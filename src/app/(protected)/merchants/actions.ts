@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { createClient } from "lib/supabase/server";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
