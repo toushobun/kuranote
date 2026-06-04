@@ -5,11 +5,17 @@ import { GlassCard } from "ui/GlassCard";
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 
+import { createTransaction } from "../actions";
 import type {
   TransactionAccountOption,
-  TransactionCategoryOption,
   TransactionMerchantOption,
 } from "../types";
+
+type NewTransactionPageProps = {
+  searchParams: Promise<{
+    error?: string;
+  }>;
+};
 
 type CategoryRow = {
   id: string;
@@ -18,8 +24,24 @@ type CategoryRow = {
   parent_id: string | null;
 };
 
-export default async function NewTransactionPage() {
+const errorMessages: Record<string, string> = {
+  account_invalid: "账户指定不正确。",
+  amount_invalid: "金额必须为正数，且最多两位小数。",
+  category_invalid: "分类指定不正确。",
+  create_failed: "新增记账失败。请稍后重试。",
+  date_invalid: "发生时间不正确。",
+  merchant_invalid: "商家指定不正确。",
+  type_invalid: "记账类型不正确。",
+};
+
+export default async function NewTransactionPage({
+  searchParams,
+}: NewTransactionPageProps) {
   const currentLedger = await getCurrentLedgerOrRedirect();
+  const params = await searchParams;
+  const errorMessage = params.error
+    ? (errorMessages[params.error] ?? null)
+    : null;
   const supabase = await createClient();
 
   const [accountResult, categoryResult, merchantResult] = await Promise.all([
@@ -87,12 +109,14 @@ export default async function NewTransactionPage() {
         当前账本：{currentLedger.name}
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
-        先录入一笔最基础的收入或支出。保存处理将在下一步接入。
+        录入一笔最基础的收入或支出。余额联动将在后续单独实现。
       </Typography>
 
       <TransactionForm
+        action={createTransaction}
         accountOptions={accountOptions}
         categoryOptions={categoryOptions}
+        errorMessage={errorMessage}
         merchantOptions={merchantOptions}
       />
     </GlassCard>

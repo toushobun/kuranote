@@ -35,8 +35,12 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const pathname = usePathname();
+  const isCreateTransactionPage =
+    pathname === "/transactions/new" ||
+    pathname.startsWith("/transactions/new/");
   const isBottomNavSelected = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+    !isCreateTransactionPage &&
+    (pathname === href || pathname.startsWith(`${href}/`));
 
   return (
     <UserThemeProvider storageScope={email}>
@@ -203,15 +207,15 @@ export function AppShell({
                 href="/transactions/new"
                 variant="text"
                 sx={{
+                  alignItems: "center",
                   bgcolor: "transparent",
                   background: "var(--user-theme-fab-bg)",
                   borderRadius: "50%",
                   boxShadow: "0 4px 16px var(--user-theme-fab-shadow)",
                   color: "#fff",
-                  fontSize: 28,
-                  fontWeight: 500,
+                  display: "inline-flex",
                   height: 48,
-                  lineHeight: 1,
+                  justifyContent: "center",
                   minWidth: 0,
                   p: 0,
                   width: 48,
@@ -222,7 +226,32 @@ export function AppShell({
                   },
                 }}
               >
-                +
+                <Box
+                  aria-hidden="true"
+                  component="span"
+                  sx={{
+                    height: 20,
+                    position: "relative",
+                    width: 20,
+                    "&::before, &::after": {
+                      bgcolor: "currentColor",
+                      borderRadius: 999,
+                      content: '""',
+                      left: "50%",
+                      position: "absolute",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                    },
+                    "&::before": {
+                      height: 3,
+                      width: 20,
+                    },
+                    "&::after": {
+                      height: 20,
+                      width: 3,
+                    },
+                  }}
+                />
               </Button>
               <BottomNavButton
                 href={navItems[2].href}

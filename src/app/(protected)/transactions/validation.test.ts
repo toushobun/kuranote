@@ -101,9 +101,17 @@ describe("validateTransactionForm", () => {
     expect(result).toEqual({ ok: false, error: "date_invalid" });
   });
 
-  it("时区偏移不合法时校验失败", () => {
+  it("时区偏移格式不合法时校验失败", () => {
     const result = validateTransactionForm(
       createFormData({ timeZoneOffsetMinutes: "abc" }),
+    );
+
+    expect(result).toEqual({ ok: false, error: "date_invalid" });
+  });
+
+  it("时区偏移超出范围时校验失败", () => {
+    const result = validateTransactionForm(
+      createFormData({ timeZoneOffsetMinutes: "841" }),
     );
 
     expect(result).toEqual({ ok: false, error: "date_invalid" });
