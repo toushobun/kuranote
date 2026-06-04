@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -56,11 +56,9 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
-
-  useEffect(() => {
-    setTimeZoneOffsetMinutes(String(new Date().getTimezoneOffset()));
-  }, []);
+  const [timeZoneOffsetMinutes] = useState(() =>
+    String(new Date().getTimezoneOffset()),
+  );
 
   const filteredCategoryOptions = useMemo(
     () => categoryOptions.filter((category) => category.type === selectedType),
