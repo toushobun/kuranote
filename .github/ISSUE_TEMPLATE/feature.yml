@@ -1,7 +1,7 @@
 name: Feature
 description: 新功能・功能改善相关 Issue
 title: "feat: "
-labels: ["feature"]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: summary
