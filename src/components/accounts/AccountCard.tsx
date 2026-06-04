@@ -1,11 +1,11 @@
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
-import { themeColorTokens } from "@/theme/themeColorTokens";
+import { GlassCard } from "ui/GlassCard";
+import { themeColorTokens } from "theme/themeColorTokens";
 
 import {
   formatAmount,
@@ -37,10 +37,7 @@ export function AccountCard({
   footer,
 }: AccountCardProps) {
   return (
-    <Paper
-      elevation={0}
-      sx={{ p: 3, border: "1px solid", borderColor: "divider" }}
-    >
+    <GlassCard sx={{ p: 3 }}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -109,6 +106,6 @@ export function AccountCard({
           {footer}
         </>
       ) : null}
-    </Paper>
+    </GlassCard>
   );
 }

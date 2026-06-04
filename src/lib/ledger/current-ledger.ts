@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "lib/supabase/server";
 
 export type CurrentLedger = {
   id: string;

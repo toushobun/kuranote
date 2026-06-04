@@ -4,11 +4,11 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "ui/EmptyState";
+import { GlassCard } from "ui/GlassCard";
 import { archiveMerchant, archiveMerchantAlias } from "./actions";
 import { MerchantAliasForm } from "./merchant-alias-form";
 import { MerchantEditForm } from "./merchant-edit-form";
@@ -38,13 +38,13 @@ export function MerchantList({
           errorMerchantId === merchant.id ? errorMessage : null;
 
         return (
-          <Paper
+          <GlassCard
             key={merchant.id}
-            elevation={0}
             sx={{
               p: 3,
-              border: "1px solid",
-              borderColor: merchantErrorMessage ? "error.main" : "divider",
+              borderColor: merchantErrorMessage
+                ? "error.main"
+                : "var(--user-theme-card-border)",
             }}
           >
             {merchantErrorMessage ? (
@@ -154,7 +154,7 @@ export function MerchantList({
 
             <Divider sx={{ my: 3 }} />
             <MerchantEditForm merchant={merchant} />
-          </Paper>
+          </GlassCard>
         );
       })}
     </Stack>

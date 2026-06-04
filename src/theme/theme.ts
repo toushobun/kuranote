@@ -4,10 +4,10 @@ export const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#2e7d32",
+      main: "#7c3aed",
     },
     background: {
-      default: "#f7f8f5",
+      default: "#f0ebff",
     },
   },
   typography: {
@@ -20,6 +20,6 @@ export const theme = createTheme({
     ].join(","),
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
 });

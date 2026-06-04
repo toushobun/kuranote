@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { createClient } from "lib/supabase/server";
 
 import { accountTypeOptions, type AccountType } from "./types";
 

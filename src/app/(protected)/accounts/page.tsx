@@ -1,14 +1,14 @@
-import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
-import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
-import { createClient } from "@/lib/supabase/server";
+import { GlassCard } from "ui/GlassCard";
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { createClient } from "lib/supabase/server";
 import {
   getFallbackThemeColorKey,
   getStableFallbackThemeColorKey,
   isThemeColorKey,
   type ThemeColorKey,
-} from "@/theme/themeColorTokens";
+} from "theme/themeColorTokens";
 
 import { AccountForm } from "accounts/AccountForm";
 import { AccountList } from "accounts/AccountList";
@@ -279,12 +279,9 @@ export default async function AccountsPage({
   });
 
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         p: { xs: 4, sm: 5 },
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -314,6 +311,6 @@ export default async function AccountsPage({
         holderOptions={holderOptions}
         updateAccountAction={updateAccount}
       />
-    </Paper>
+    </GlassCard>
   );
 }

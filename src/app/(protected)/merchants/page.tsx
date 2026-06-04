@@ -1,11 +1,11 @@
 import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { getCurrentLedgerOrRedirect } from "@/lib/ledger/current-ledger";
-import { createClient } from "@/lib/supabase/server";
+import { GlassCard } from "ui/GlassCard";
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { createClient } from "lib/supabase/server";
 
 import { MerchantForm } from "./merchant-form";
 import { MerchantList } from "./merchant-list";
@@ -129,12 +129,9 @@ export default async function MerchantsPage({
   );
 
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         p: { xs: 4, sm: 5 },
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -154,11 +151,7 @@ export default async function MerchantsPage({
         </Typography>
       ) : null}
 
-      <Paper
-        component="form"
-        elevation={0}
-        sx={{ mt: 4, p: 3, border: "1px solid", borderColor: "divider" }}
-      >
+      <GlassCard component="form" sx={{ mt: 4, p: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <TextField
             defaultValue={keyword}
@@ -176,7 +169,7 @@ export default async function MerchantsPage({
             搜索
           </Button>
         </Stack>
-      </Paper>
+      </GlassCard>
 
       <MerchantForm />
       <MerchantList
@@ -184,6 +177,6 @@ export default async function MerchantsPage({
         errorMessage={errorMessage}
         merchants={merchants}
       />
-    </Paper>
+    </GlassCard>
   );
 }

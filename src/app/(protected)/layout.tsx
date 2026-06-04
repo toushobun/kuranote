@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { createUserThemeInitScript } from "theme/userThemeInitScript";
 
 import { AppShell } from "./app-shell";
 
@@ -14,8 +15,15 @@ export default async function ProtectedLayout({
   const { email, currentLedger } = await getCurrentLedgerContext();
 
   return (
-    <AppShell currentLedgerName={currentLedger?.name ?? null} email={email}>
-      {children}
-    </AppShell>
+    <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: createUserThemeInitScript(email),
+        }}
+      />
+      <AppShell currentLedgerName={currentLedger?.name ?? null} email={email}>
+        {children}
+      </AppShell>
+    </>
   );
 }

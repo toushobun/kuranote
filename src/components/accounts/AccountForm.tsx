@@ -1,9 +1,10 @@
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+
+import { GlassCard } from "ui/GlassCard";
 
 import {
   accountTypeOptions,
@@ -24,13 +25,10 @@ export function AccountForm({
   holderOptions,
 }: AccountFormProps) {
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         mt: 4,
         p: 3,
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>
@@ -92,6 +90,6 @@ export function AccountForm({
           新增账户
         </Button>
       </Stack>
-    </Paper>
+    </GlassCard>
   );
 }

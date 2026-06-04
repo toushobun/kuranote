@@ -2,11 +2,11 @@ import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
-import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
 
-import { getCurrentLedgerContext } from "@/lib/ledger/current-ledger";
+import { GlassCard } from "ui/GlassCard";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 
 export default async function LedgersPage() {
   const { ledgers, currentLedger } = await getCurrentLedgerContext();
@@ -16,12 +16,9 @@ export default async function LedgersPage() {
   }
 
   return (
-    <Paper
-      elevation={0}
+    <GlassCard
       sx={{
         p: { xs: 4, sm: 5 },
-        border: "1px solid",
-        borderColor: "divider",
       }}
     >
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -55,6 +52,6 @@ export default async function LedgersPage() {
       <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">
         多账本切换和成员管理将在后续版本中完善。
       </Typography>
-    </Paper>
+    </GlassCard>
   );
 }
