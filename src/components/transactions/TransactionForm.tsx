@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -27,7 +27,7 @@ function padDatePart(value: number) {
   return String(value).padStart(2, "0");
 }
 
-function now() {
+function getNowDateTimeLocalValue() {
   const current = new Date();
 
   return [
@@ -54,11 +54,22 @@ export function TransactionForm({
   categoryOptions,
   merchantOptions,
 }: TransactionFormProps) {
+  const transactionAtInputRef = useRef<HTMLInputElement>(null);
+  const timeZoneOffsetInputRef = useRef<HTMLInputElement>(null);
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [timeZoneOffsetMinutes] = useState(() =>
-    String(new Date().getTimezoneOffset()),
-  );
+
+  useEffect(() => {
+    if (transactionAtInputRef.current) {
+      transactionAtInputRef.current.value = getNowDateTimeLocalValue();
+    }
+
+    if (timeZoneOffsetInputRef.current) {
+      timeZoneOffsetInputRef.current.value = String(
+        new Date().getTimezoneOffset(),
+      );
+    }
+  }, []);
 
   const filteredCategoryOptions = useMemo(
     () => categoryOptions.filter((category) => category.type === selectedType),
@@ -73,10 +84,9 @@ export function TransactionForm({
 
       <Stack component="form" spacing={2.5} sx={{ mt: 3 }}>
         <input
+          ref={timeZoneOffsetInputRef}
           name="timeZoneOffsetMinutes"
-          readOnly
           type="hidden"
-          value={timeZoneOffsetMinutes}
         />
 
         <TextField
@@ -99,8 +109,8 @@ export function TransactionForm({
         </TextField>
 
         <TextField
-          defaultValue={now()}
           fullWidth
+          inputRef={transactionAtInputRef}
           label="发生时间"
           name="transactionAt"
           required
