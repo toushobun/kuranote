@@ -76,7 +76,9 @@ function getMonthBounds(month: string) {
 
 function shiftMonth(month: string, delta: number) {
   const [yearText, monthText] = month.split("-");
-  const date = new Date(Date.UTC(Number(yearText), Number(monthText) - 1 + delta, 1));
+  const date = new Date(
+    Date.UTC(Number(yearText), Number(monthText) - 1 + delta, 1),
+  );
   const year = date.getUTCFullYear();
   const monthValue = String(date.getUTCMonth() + 1).padStart(2, "0");
 
@@ -110,7 +112,11 @@ function createSummary(currency: string): TransactionAmountSummary {
   };
 }
 
-function addAmount(summary: TransactionAmountSummary, type: TransactionType, amount: string) {
+function addAmount(
+  summary: TransactionAmountSummary,
+  type: TransactionType,
+  amount: string,
+) {
   const value = Number(amount);
 
   if (!Number.isFinite(value)) {

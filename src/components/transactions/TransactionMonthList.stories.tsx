@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { TransactionListItem, TransactionMonthView } from "transactions-route/types";
+import type {
+  TransactionListItem,
+  TransactionMonthView,
+} from "transactions-route/types";
 
 import { TransactionMonthList } from "./TransactionMonthList";
 

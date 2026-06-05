@@ -3,7 +3,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TransactionListItem, TransactionMonthView } from "transactions-route/types";
+import type {
+  TransactionListItem,
+  TransactionMonthView,
+} from "transactions-route/types";
 
 import { TransactionMonthList } from "./TransactionMonthList";
 

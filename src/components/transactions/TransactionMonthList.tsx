@@ -46,13 +46,7 @@ function getMerchantInitial(name: string | null) {
   return name?.trim().charAt(0).toUpperCase() || "记";
 }
 
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <Stack spacing={0.5} sx={{ minWidth: 0 }}>
       <Typography color="text.secondary" variant="body2">
@@ -179,7 +173,8 @@ export function TransactionMonthList({
                   {group.label}
                 </Typography>
                 <Typography color="text.secondary" variant="body2">
-                  当日 {formatAmount(group.summary.balance, group.summary.currency)}
+                  当日{" "}
+                  {formatAmount(group.summary.balance, group.summary.currency)}
                 </Typography>
               </Stack>
 

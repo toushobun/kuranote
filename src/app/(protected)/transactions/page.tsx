@@ -66,7 +66,9 @@ export default async function TransactionsPage({
         <Typography sx={{ fontWeight: 700 }} variant="h6">
           {monthView.monthLabel}
         </Typography>
-        <Button href={`/transactions?month=${monthView.nextMonth}`}>下一月</Button>
+        <Button href={`/transactions?month=${monthView.nextMonth}`}>
+          下一月
+        </Button>
       </Stack>
 
       {errorMessage ? (
@@ -75,7 +77,10 @@ export default async function TransactionsPage({
         </Typography>
       ) : null}
 
-      <TransactionMonthList monthView={monthView} voidAction={voidTransaction} />
+      <TransactionMonthList
+        monthView={monthView}
+        voidAction={voidTransaction}
+      />
     </GlassCard>
   );
 }
