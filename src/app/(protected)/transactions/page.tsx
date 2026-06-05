@@ -6,6 +6,7 @@ import { TransactionList } from "transactions/TransactionList";
 import { GlassCard } from "ui/GlassCard";
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 
+import { voidTransaction } from "./actions";
 import { loadTransactionListPage } from "./list-actions";
 
 export default async function TransactionsPage() {
@@ -43,6 +44,7 @@ export default async function TransactionsPage() {
       <TransactionList
         initialPage={initialPage}
         loadMoreAction={loadTransactionListPage}
+        voidAction={voidTransaction}
       />
     </GlassCard>
   );
