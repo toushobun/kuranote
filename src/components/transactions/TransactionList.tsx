@@ -19,7 +19,7 @@ import type {
 type TransactionListProps = {
   initialPage: TransactionListPage;
   loadMoreAction: (offset: number) => Promise<TransactionListPage>;
-  voidAction: (formData: FormData) => void;
+  voidAction?: (formData: FormData) => void;
 };
 
 function formatAmount(amount: string, currency: string) {
@@ -46,7 +46,7 @@ function TransactionListRow({
   voidAction,
 }: {
   item: TransactionListItem;
-  voidAction: (formData: FormData) => void;
+  voidAction?: (formData: FormData) => void;
 }) {
   return (
     <Stack spacing={1.2} sx={{ py: 2 }}>
@@ -101,20 +101,22 @@ function TransactionListRow({
             )}`}
           </Typography>
 
-          <Stack
-            action={voidAction}
-            component="form"
-            onSubmit={(event) => {
-              if (!window.confirm("この記録を取り消しますか？")) {
-                event.preventDefault();
-              }
-            }}
-          >
-            <input name="transactionRecordId" type="hidden" value={item.id} />
-            <Button color="error" size="small" type="submit" variant="text">
-              撤销
-            </Button>
-          </Stack>
+          {voidAction ? (
+            <Stack
+              action={voidAction}
+              component="form"
+              onSubmit={(event) => {
+                if (!window.confirm("この記録を取り消しますか？")) {
+                  event.preventDefault();
+                }
+              }}
+            >
+              <input name="transactionRecordId" type="hidden" value={item.id} />
+              <Button color="error" size="small" type="submit" variant="text">
+                撤销
+              </Button>
+            </Stack>
+          ) : null}
         </Stack>
       </Stack>
 
