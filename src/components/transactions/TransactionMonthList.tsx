@@ -277,7 +277,10 @@ export function TransactionMonthList({
               </Typography>
               <Typography
                 sx={{
-                  color: Number(group.summary.balance) >= 0 ? incomeColor : expenseColor,
+                  color:
+                    Number(group.summary.balance) >= 0
+                      ? incomeColor
+                      : expenseColor,
                   fontSize: 13,
                   fontWeight: 800,
                   whiteSpace: "nowrap",
@@ -287,7 +290,10 @@ export function TransactionMonthList({
               </Typography>
             </Stack>
 
-            <Stack divider={<Divider flexItem sx={{ ml: 7.2 }} />} sx={{ px: 1.6 }}>
+            <Stack
+              divider={<Divider flexItem sx={{ ml: 7.2 }} />}
+              sx={{ px: 1.6 }}
+            >
               {group.items.map((item) => (
                 <TransactionRow
                   item={item}
