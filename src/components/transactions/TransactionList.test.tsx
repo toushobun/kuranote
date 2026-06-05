@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -24,6 +24,7 @@ class MockIntersectionObserver {
 }
 
 const originalIntersectionObserver = globalThis.IntersectionObserver;
+const originalConfirm = window.confirm;
 
 vi.mock("transactions/TransactionDateTime", () => ({
   TransactionDateTime: ({ value }: { value: string }) => <span>{value}</span>,
@@ -33,11 +34,13 @@ beforeEach(() => {
   intersectionCallback = null;
   globalThis.IntersectionObserver =
     MockIntersectionObserver as unknown as typeof IntersectionObserver;
+  window.confirm = vi.fn(() => true);
 });
 
 afterEach(() => {
   cleanup();
   globalThis.IntersectionObserver = originalIntersectionObserver;
+  window.confirm = originalConfirm;
 });
 
 function createItem(
@@ -96,6 +99,55 @@ describe("TransactionList", () => {
     expect(screen.getByText("-1,234 JPY")).toBeTruthy();
     expect(screen.getByText("测试备注")).toBeTruthy();
     expect(screen.getByText("已显示全部记录。")).toBeTruthy();
+  });
+
+  it("未传入撤销 action 时不显示撤销按钮", () => {
+    render(
+      <TransactionList
+        initialPage={createPage([createItem()], null)}
+        loadMoreAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
+  });
+
+  it("传入撤销 action 时显示撤销按钮并提交表单", () => {
+    const voidAction = vi.fn();
+
+    render(
+      <TransactionList
+        initialPage={createPage([createItem()], null)}
+        loadMoreAction={vi.fn()}
+        voidAction={voidAction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+
+    expect(window.confirm).toHaveBeenCalledWith("この記録を取り消しますか？");
+    expect(voidAction).toHaveBeenCalledTimes(1);
+    expect(voidAction.mock.calls[0]?.[0].get("transactionRecordId")).toBe(
+      "00000000-0000-4000-8000-000000009001",
+    );
+  });
+
+  it("取消确认时不提交撤销表单", () => {
+    const voidAction = vi.fn();
+    window.confirm = vi.fn(() => false);
+
+    render(
+      <TransactionList
+        initialPage={createPage([createItem()], null)}
+        loadMoreAction={vi.fn()}
+        voidAction={voidAction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+
+    expect(window.confirm).toHaveBeenCalledWith("この記録を取り消しますか？");
+    expect(voidAction).not.toHaveBeenCalled();
   });
 
   it("滚动到底部附近时读取下一页", async () => {
