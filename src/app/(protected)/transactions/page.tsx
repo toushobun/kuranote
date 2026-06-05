@@ -2,15 +2,18 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionList } from "transactions/TransactionList";
+import { TransactionMonthList } from "transactions/TransactionMonthList";
 import { GlassCard } from "ui/GlassCard";
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 
 import { voidTransaction } from "./actions";
-import { loadTransactionListPage } from "./list-actions";
+import { loadTransactionMonthView } from "./list-actions";
 
 type TransactionsPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    month?: string;
+  }>;
 };
 
 const errorMessages: Record<string, string> = {
@@ -26,7 +29,7 @@ export default async function TransactionsPage({
   const errorMessage = params.error
     ? (errorMessages[params.error] ?? null)
     : null;
-  const initialPage = await loadTransactionListPage();
+  const monthView = await loadTransactionMonthView(params.month);
 
   return (
     <GlassCard sx={{ p: { xs: 4, sm: 5 } }}>
@@ -37,13 +40,13 @@ export default async function TransactionsPage({
       >
         <Stack sx={{ flex: 1 }}>
           <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-            记账
+            明细
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 2 }}>
             当前账本：{currentLedger.name}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 2 }}>
-            初始读取最近 20 条记录，向下滚动时自动继续读取。
+            按月份查看收入、支出和每日明细。
           </Typography>
         </Stack>
 
@@ -52,17 +55,27 @@ export default async function TransactionsPage({
         </Button>
       </Stack>
 
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{ alignItems: "center", justifyContent: "space-between", mt: 4 }}
+      >
+        <Button href={`/transactions?month=${monthView.previousMonth}`}>
+          上一月
+        </Button>
+        <Typography sx={{ fontWeight: 700 }} variant="h6">
+          {monthView.monthLabel}
+        </Typography>
+        <Button href={`/transactions?month=${monthView.nextMonth}`}>下一月</Button>
+      </Stack>
+
       {errorMessage ? (
         <Typography color="error" sx={{ mt: 3 }}>
           {errorMessage}
         </Typography>
       ) : null}
 
-      <TransactionList
-        initialPage={initialPage}
-        loadMoreAction={loadTransactionListPage}
-        voidAction={voidTransaction}
-      />
+      <TransactionMonthList monthView={monthView} voidAction={voidTransaction} />
     </GlassCard>
   );
 }
