@@ -274,7 +274,7 @@ export async function loadTransactionMonthView(
 
   const records = (recordData ?? []) as TransactionRecordRow[];
   const items = await loadTransactionItems(records);
-  const currency = currentLedger.base_currency;
+  const currency = currentLedger.baseCurrency;
   const monthSummary = createSummary(currency);
   const groupByDate = new Map<string, TransactionDateGroup>();
 
