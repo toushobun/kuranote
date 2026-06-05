@@ -101,7 +101,7 @@ describe("createTransaction", () => {
 
   it("输入值合法时通过 RPC 创建记账并跳转到列表页", async () => {
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions",
+      /^NEXT_REDIRECT:\/transactions$/,
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
@@ -123,7 +123,7 @@ describe("createTransaction", () => {
   it("未指定商家时向 RPC 传入 null 并保存", async () => {
     await expect(
       createTransaction(createValidFormData({ merchantId: "" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions");
+    ).rejects.toThrow(/^NEXT_REDIRECT:\/transactions$/);
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "create_transaction",
@@ -166,7 +166,7 @@ describe("voidTransaction", () => {
 
   it("输入值合法时通过 RPC 撤销记账并回到列表页", async () => {
     await expect(voidTransaction(createVoidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions",
+      /^NEXT_REDIRECT:\/transactions$/,
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("void_transaction", {
