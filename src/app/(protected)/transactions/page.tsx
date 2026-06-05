@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -21,6 +22,9 @@ const errorMessages: Record<string, string> = {
   void_invalid: "撤销对象不正确。",
 };
 
+const primaryPurple = "#6d4bb3";
+const palePurple = "#f0e9fb";
+
 export default async function TransactionsPage({
   searchParams,
 }: TransactionsPageProps) {
@@ -32,55 +36,97 @@ export default async function TransactionsPage({
   const monthView = await loadTransactionMonthView(params.month);
 
   return (
-    <GlassCard sx={{ p: { xs: 4, sm: 5 } }}>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        sx={{ alignItems: { xs: "flex-start", sm: "center" } }}
-      >
-        <Stack sx={{ flex: 1 }}>
-          <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-            明细
-          </Typography>
-          <Typography color="text.secondary" sx={{ mt: 2 }}>
-            当前账本：{currentLedger.name}
-          </Typography>
-          <Typography color="text.secondary" sx={{ mt: 2 }}>
-            按月份查看收入、支出和每日明细。
-          </Typography>
+    <GlassCard
+      sx={{
+        bgcolor: "#fbf8ff",
+        maxWidth: 430,
+        mx: "auto",
+        p: { xs: 2, sm: 3 },
+      }}
+    >
+      <Stack spacing={2.2}>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <Stack spacing={0.4} sx={{ minWidth: 0 }}>
+            <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
+              明细
+            </Typography>
+            <Typography color="text.secondary" noWrap variant="caption">
+              当前账本：{currentLedger.name}
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Button
+              href="/transactions/new"
+              size="small"
+              sx={{
+                bgcolor: primaryPurple,
+                borderRadius: 999,
+                color: "white",
+                minWidth: 0,
+                px: 1.4,
+                "&:hover": { bgcolor: primaryPurple },
+              }}
+              variant="contained"
+            >
+              +
+            </Button>
+            <Box
+              aria-label="筛选"
+              component="span"
+              sx={{
+                color: "text.primary",
+                fontSize: 22,
+                fontWeight: 900,
+                lineHeight: 1,
+              }}
+            >
+              ≡
+            </Box>
+          </Stack>
         </Stack>
 
-        <Button href="/transactions/new" variant="contained">
-          新增记录
-        </Button>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: "center",
+            bgcolor: palePurple,
+            borderRadius: 999,
+            color: "text.secondary",
+            height: 44,
+            justifyContent: "space-between",
+            px: 1.3,
+          }}
+        >
+          <Button
+            href={`/transactions?month=${monthView.previousMonth}`}
+            size="small"
+            sx={{ color: "text.secondary", minWidth: 40 }}
+          >
+            &lt;
+          </Button>
+          <Typography sx={{ fontWeight: 800 }}>{monthView.monthLabel}</Typography>
+          <Button
+            href={`/transactions?month=${monthView.nextMonth}`}
+            size="small"
+            sx={{ color: "text.secondary", minWidth: 40 }}
+          >
+            &gt;
+          </Button>
+        </Stack>
+
+        {errorMessage ? (
+          <Typography color="error" sx={{ fontWeight: 700 }} variant="body2">
+            {errorMessage}
+          </Typography>
+        ) : null}
       </Stack>
 
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ alignItems: "center", justifyContent: "space-between", mt: 4 }}
-      >
-        <Button href={`/transactions?month=${monthView.previousMonth}`}>
-          上一月
-        </Button>
-        <Typography sx={{ fontWeight: 700 }} variant="h6">
-          {monthView.monthLabel}
-        </Typography>
-        <Button href={`/transactions?month=${monthView.nextMonth}`}>
-          下一月
-        </Button>
-      </Stack>
-
-      {errorMessage ? (
-        <Typography color="error" sx={{ mt: 3 }}>
-          {errorMessage}
-        </Typography>
-      ) : null}
-
-      <TransactionMonthList
-        monthView={monthView}
-        voidAction={voidTransaction}
-      />
+      <TransactionMonthList monthView={monthView} voidAction={voidTransaction} />
     </GlassCard>
   );
 }
