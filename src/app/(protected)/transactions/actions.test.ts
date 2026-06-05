@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTransaction } from "./actions";
+import { createTransaction, voidTransaction } from "./actions";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -35,6 +35,7 @@ const userId = "00000000-0000-4000-8000-000000000031";
 const accountId = "00000000-0000-4000-8000-000000000045";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
+const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 
 function createValidFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -55,27 +56,38 @@ function createValidFormData(overrides: Record<string, string> = {}) {
   return formData;
 }
 
+function createVoidFormData(value = transactionRecordId) {
+  const formData = new FormData();
+
+  formData.set("transactionRecordId", value);
+
+  return formData;
+}
+
+function setupActionMocks() {
+  mocks.getCurrentLedgerContext.mockResolvedValue({
+    currentLedger: {
+      id: ledgerId,
+      name: "家庭账本",
+      base_currency: "JPY",
+    },
+    userId,
+  });
+
+  mocks.createClient.mockResolvedValue({
+    rpc: mocks.rpc,
+  });
+
+  mocks.rpc.mockResolvedValue({
+    data: transactionRecordId,
+    error: null,
+  });
+}
+
 describe("createTransaction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mocks.getCurrentLedgerContext.mockResolvedValue({
-      currentLedger: {
-        id: ledgerId,
-        name: "家庭账本",
-        base_currency: "JPY",
-      },
-      userId,
-    });
-
-    mocks.createClient.mockResolvedValue({
-      rpc: mocks.rpc,
-    });
-
-    mocks.rpc.mockResolvedValue({
-      data: "00000000-0000-4000-8000-000000009999",
-      error: null,
-    });
+    setupActionMocks();
   });
 
   it("输入值不合法时带错误参数跳回新增页面", async () => {
@@ -89,7 +101,7 @@ describe("createTransaction", () => {
 
   it("输入值合法时通过 RPC 创建记账并跳转到列表页", async () => {
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions",
+      /^NEXT_REDIRECT:\/transactions$/,
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
@@ -111,7 +123,7 @@ describe("createTransaction", () => {
   it("未指定商家时向 RPC 传入 null 并保存", async () => {
     await expect(
       createTransaction(createValidFormData({ merchantId: "" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions");
+    ).rejects.toThrow(/^NEXT_REDIRECT:\/transactions$/);
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "create_transaction",
@@ -131,6 +143,51 @@ describe("createTransaction", () => {
 
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/transactions/new?error=create_failed",
+    );
+
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("voidTransaction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupActionMocks();
+  });
+
+  it("transactionRecordId 不合法时带错误参数跳回列表页", async () => {
+    await expect(
+      voidTransaction(createVoidFormData("invalid-id")),
+    ).rejects.toThrow("NEXT_REDIRECT:/transactions?error=void_invalid");
+
+    expect(mocks.getCurrentLedgerContext).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("输入值合法时通过 RPC 撤销记账并回到列表页", async () => {
+    await expect(voidTransaction(createVoidFormData())).rejects.toThrow(
+      /^NEXT_REDIRECT:\/transactions$/,
+    );
+
+    expect(mocks.rpc).toHaveBeenCalledWith("void_transaction", {
+      p_ledger_id: ledgerId,
+      p_transaction_record_id: transactionRecordId,
+    });
+
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/transactions");
+  });
+
+  it("RPC 失败时带错误参数跳回列表页", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        message: "void failed",
+      },
+    });
+
+    await expect(voidTransaction(createVoidFormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?error=void_failed",
     );
 
     expect(mocks.revalidatePath).not.toHaveBeenCalled();

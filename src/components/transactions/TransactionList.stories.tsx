@@ -46,6 +46,13 @@ async function loadMoreAction(offset: number): Promise<TransactionListPage> {
   };
 }
 
+function voidAction(formData: FormData) {
+  const transactionRecordId = formData.get("transactionRecordId");
+
+  // Storybook 中只确认表单状态，不执行真实撤销。
+  console.info("void transaction", transactionRecordId);
+}
+
 const meta = {
   title: "Transactions/TransactionList",
   component: TransactionList,
@@ -60,6 +67,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const WithVoidAction: Story = {
+  args: {
+    voidAction,
+  },
+};
 
 export const Empty: Story = {
   args: {
