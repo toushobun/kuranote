@@ -47,6 +47,7 @@ export async function createTransaction(formData: FormData) {
     redirect("/transactions/new?error=create_failed");
   }
 
+  revalidatePath("/accounts");
   revalidatePath("/transactions");
   revalidatePath("/transactions/new");
   redirect("/transactions");

@@ -162,4 +162,25 @@ set
     updated_by = excluded.updated_by,
     updated_at = excluded.updated_at;
 
+-- Keep local account balances consistent with the seeded transaction items.
+with account_balance_deltas as (
+    select
+        a.id as account_id,
+        (a.initial_balance + coalesce(sum(ti.balance_delta), 0)::numeric(14,2)) - a.current_balance as balance_delta
+    from public.account a
+    left join public.transaction_item ti
+        on ti.account_id = a.id
+       and ti.ledger_id = a.ledger_id
+    where a.ledger_id = '00000000-0000-4000-8000-000000000032'
+    group by a.id, a.initial_balance, a.current_balance
+)
+select public.apply_account_balance_delta(
+    '00000000-0000-4000-8000-000000000032',
+    account_id,
+    balance_delta,
+    '00000000-0000-4000-8000-000000000031'
+)
+from account_balance_deltas
+where balance_delta <> 0;
+
 commit;
