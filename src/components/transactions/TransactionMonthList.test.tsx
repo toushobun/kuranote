@@ -76,22 +76,23 @@ describe("TransactionMonthList", () => {
     render(<TransactionMonthList monthView={createMonthView()} />);
 
     expect(screen.getByText("收入")).toBeTruthy();
-    expect(screen.getByText("100,000 JPY")).toBeTruthy();
+    expect(screen.getByText("100,000")).toBeTruthy();
     expect(screen.getByText("支出")).toBeTruthy();
-    expect(screen.getAllByText("1,234 JPY").length).toBeGreaterThan(0);
+    expect(screen.getByText("1,234")).toBeTruthy();
     expect(screen.getByText("结余")).toBeTruthy();
-    expect(screen.getByText("98,766 JPY")).toBeTruthy();
+    expect(screen.getByText("98,766")).toBeTruthy();
     expect(screen.getByText("05/29 周五")).toBeTruthy();
-    expect(screen.getByText("当日 -1,234 JPY")).toBeTruthy();
+    expect(screen.getByText("-1,234")).toBeTruthy();
   });
 
   it("显示交易行内容", () => {
     render(<TransactionMonthList monthView={createMonthView()} />);
 
     expect(screen.getByText("便利店")).toBeTruthy();
-    expect(screen.getByText(/餐饮 · 日元现金/)).toBeTruthy();
+    expect(screen.getByText("餐饮")).toBeTruthy();
+    expect(screen.getByText(/日元现金/)).toBeTruthy();
     expect(screen.getByText("测试备注")).toBeTruthy();
-    expect(screen.getByText("-1,234 JPY")).toBeTruthy();
+    expect(screen.getByText("-1,234")).toBeTruthy();
   });
 
   it("没有记录时显示空状态", () => {

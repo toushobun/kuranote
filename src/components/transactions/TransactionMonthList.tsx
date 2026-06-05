@@ -24,27 +24,41 @@ const primaryPurple = "#6d4bb3";
 const palePurple = "#f4efff";
 const borderPurple = "#e5dcf6";
 
-function formatAmount(amount: string, currency: string) {
+function formatNumber(amount: string) {
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) {
-    return currency ? `${amount} ${currency}` : amount;
-  }
+  if (!Number.isFinite(value)) return amount;
 
-  const formattedAmount = new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatSignedNumber(amount: string) {
+  const value = Number(amount);
+
+  if (!Number.isFinite(value)) return amount;
+
+  const abs = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(Math.abs(value));
+
+  return value >= 0 ? `+${abs}` : `-${abs}`;
+}
+
+function formatRowAmount(type: "expense" | "income", amount: string) {
+  const value = Number(amount);
+
+  if (!Number.isFinite(value)) return amount;
+
+  const formatted = new Intl.NumberFormat(undefined, {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(value);
 
-  return currency ? `${formattedAmount} ${currency}` : formattedAmount;
-}
-
-function formatSignedAmount(
-  type: "expense" | "income",
-  amount: string,
-  currency: string,
-) {
-  return `${type === "expense" ? "-" : "+"}${formatAmount(amount, currency)}`;
+  return `${type === "expense" ? "-" : "+"}${formatted}`;
 }
 
 function getMerchantInitial(name: string | null) {
@@ -65,14 +79,7 @@ function SummaryItem({
   color?: string;
 }) {
   return (
-    <Stack
-      spacing={0.4}
-      sx={{
-        alignItems: "center",
-        flex: 1,
-        minWidth: 0,
-      }}
-    >
+    <Stack spacing={0.4} sx={{ alignItems: "center", flex: 1, minWidth: 0 }}>
       <Typography color="text.secondary" variant="caption">
         {label}
       </Typography>
@@ -110,17 +117,14 @@ function MonthSummary({ summary }: { summary: TransactionAmountSummary }) {
         <SummaryItem
           color={incomeColor}
           label="收入"
-          value={formatAmount(summary.income, summary.currency)}
+          value={formatNumber(summary.income)}
         />
         <SummaryItem
           color={expenseColor}
           label="支出"
-          value={formatAmount(summary.expense, summary.currency)}
+          value={formatNumber(summary.expense)}
         />
-        <SummaryItem
-          label="结余"
-          value={formatAmount(summary.balance, summary.currency)}
-        />
+        <SummaryItem label="结余" value={formatNumber(summary.balance)} />
       </Stack>
     </Box>
   );
@@ -135,17 +139,16 @@ function TransactionRow({
 }) {
   const merchantName = item.merchant_name ?? "未指定商家";
   const amountColor = getAmountColor(item.type);
+  const time = new Date(item.transaction_at).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <Stack
       direction="row"
       spacing={1.5}
-      sx={{
-        alignItems: "center",
-        bgcolor: "background.paper",
-        px: 0,
-        py: 1.4,
-      }}
+      sx={{ alignItems: "center", py: 1.4 }}
     >
       <Avatar
         alt={merchantName}
@@ -162,19 +165,15 @@ function TransactionRow({
         {getMerchantInitial(item.merchant_name)}
       </Avatar>
 
-      <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          noWrap
-          sx={{ fontSize: 15, fontWeight: 800, lineHeight: 1.25 }}
-        >
+      <Stack spacing={0.15} sx={{ flex: 1, minWidth: 0 }}>
+        <Typography noWrap sx={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3 }}>
           {merchantName}
         </Typography>
         <Typography color="text.secondary" noWrap variant="caption">
-          {item.category_name ?? "未分类"} · {item.account_name} ·{" "}
-          {new Date(item.transaction_at).toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {item.category_name ?? "未分类"}
+        </Typography>
+        <Typography color="text.secondary" noWrap variant="caption">
+          {item.account_name} · {time}
         </Typography>
         {item.note ? (
           <Typography color="text.secondary" noWrap variant="caption">
@@ -183,7 +182,7 @@ function TransactionRow({
         ) : null}
       </Stack>
 
-      <Stack spacing={0.2} sx={{ alignItems: "flex-end", minWidth: 86 }}>
+      <Stack spacing={0.2} sx={{ alignItems: "flex-end", minWidth: 72 }}>
         <Typography
           sx={{
             color: amountColor,
@@ -193,7 +192,7 @@ function TransactionRow({
             whiteSpace: "nowrap",
           }}
         >
-          {formatSignedAmount(item.type, item.amount, item.account_currency)}
+          {formatRowAmount(item.type, item.amount)}
         </Typography>
         {voidAction ? (
           <form
@@ -286,8 +285,7 @@ export function TransactionMonthList({
                   whiteSpace: "nowrap",
                 }}
               >
-                当日{" "}
-                {formatAmount(group.summary.balance, group.summary.currency)}
+                {formatSignedNumber(group.summary.balance)}
               </Typography>
             </Stack>
 

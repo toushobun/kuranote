@@ -5,7 +5,6 @@ import Typography from "@mui/material/Typography";
 
 import { TransactionMonthList } from "transactions/TransactionMonthList";
 import { GlassCard } from "ui/GlassCard";
-import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 
 import { voidTransaction } from "./actions";
 import { loadTransactionMonthView } from "./list-actions";
@@ -22,13 +21,11 @@ const errorMessages: Record<string, string> = {
   void_invalid: "撤销对象不正确。",
 };
 
-const primaryPurple = "#6d4bb3";
 const palePurple = "#f0e9fb";
 
 export default async function TransactionsPage({
   searchParams,
 }: TransactionsPageProps) {
-  const currentLedger = await getCurrentLedgerOrRedirect();
   const params = await searchParams;
   const errorMessage = params.error
     ? (errorMessages[params.error] ?? null)
@@ -47,47 +44,24 @@ export default async function TransactionsPage({
       <Stack spacing={2.2}>
         <Stack
           direction="row"
-          spacing={2}
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
-          <Stack spacing={0.4} sx={{ minWidth: 0 }}>
-            <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
-              明细
-            </Typography>
-            <Typography color="text.secondary" noWrap variant="caption">
-              当前账本：{currentLedger.name}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <Button
-              href="/transactions/new"
-              size="small"
-              sx={{
-                bgcolor: primaryPurple,
-                borderRadius: 999,
-                color: "white",
-                minWidth: 0,
-                px: 1.4,
-                "&:hover": { bgcolor: primaryPurple },
-              }}
-              variant="contained"
-            >
-              +
-            </Button>
-            <Box
-              aria-label="筛选"
-              component="span"
-              sx={{
-                color: "text.primary",
-                fontSize: 22,
-                fontWeight: 900,
-                lineHeight: 1,
-              }}
-            >
-              ≡
-            </Box>
-          </Stack>
+          <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
+            明细
+          </Typography>
+          <Box
+            aria-label="筛选"
+            component="span"
+            sx={{
+              color: "text.primary",
+              cursor: "pointer",
+              fontSize: 22,
+              fontWeight: 900,
+              lineHeight: 1,
+            }}
+          >
+            ≡
+          </Box>
         </Stack>
 
         <Stack
