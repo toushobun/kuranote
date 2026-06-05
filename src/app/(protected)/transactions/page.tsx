@@ -18,15 +18,23 @@ const errorMessages: Record<string, string> = {
   void_invalid: "撤销对象不正确。",
 };
 
-export default async function TransactionsPage({ searchParams }: TransactionsPageProps) {
+export default async function TransactionsPage({
+  searchParams,
+}: TransactionsPageProps) {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const params = await searchParams;
-  const errorMessage = params.error ? (errorMessages[params.error] ?? null) : null;
+  const errorMessage = params.error
+    ? (errorMessages[params.error] ?? null)
+    : null;
   const initialPage = await loadTransactionListPage();
 
   return (
     <GlassCard sx={{ p: { xs: 4, sm: 5 } }}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ alignItems: { xs: "flex-start", sm: "center" } }}
+      >
         <Stack sx={{ flex: 1 }}>
           <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
             记账
@@ -50,7 +58,11 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
         </Typography>
       ) : null}
 
-      <TransactionList initialPage={initialPage} loadMoreAction={loadTransactionListPage} voidAction={voidTransaction} />
+      <TransactionList
+        initialPage={initialPage}
+        loadMoreAction={loadTransactionListPage}
+        voidAction={voidTransaction}
+      />
     </GlassCard>
   );
 }
