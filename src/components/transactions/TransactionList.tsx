@@ -93,7 +93,10 @@ function TransactionListRow({
           </Typography>
         </Stack>
 
-        <Stack spacing={1} sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}>
+        <Stack
+          spacing={1}
+          sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
+        >
           <Typography component="p" sx={{ fontWeight: 700 }} variant="h6">
             {`${item.type === "expense" ? "-" : "+"}${formatAmount(
               item.amount,
@@ -198,7 +201,11 @@ export function TransactionList({
     <Stack sx={{ mt: 4 }}>
       <Stack divider={<Divider flexItem />} spacing={0}>
         {items.map((item) => (
-          <TransactionListRow item={item} key={item.id} voidAction={voidAction} />
+          <TransactionListRow
+            item={item}
+            key={item.id}
+            voidAction={voidAction}
+          />
         ))}
       </Stack>
 

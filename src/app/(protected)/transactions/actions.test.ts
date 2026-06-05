@@ -156,9 +156,9 @@ describe("voidTransaction", () => {
   });
 
   it("transactionRecordId 不合法时带错误参数跳回列表页", async () => {
-    await expect(voidTransaction(createVoidFormData("invalid-id"))).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions?error=void_invalid",
-    );
+    await expect(
+      voidTransaction(createVoidFormData("invalid-id")),
+    ).rejects.toThrow("NEXT_REDIRECT:/transactions?error=void_invalid");
 
     expect(mocks.getCurrentLedgerContext).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
