@@ -5,6 +5,8 @@ import { GlassCard } from "ui/GlassCard";
 import { UserThemePicker } from "ui/UserThemePicker";
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 
+import { SettingsAccountsEntry } from "./SettingsAccountsEntry";
+
 export default async function SettingsPage() {
   const currentLedger = await getCurrentLedgerOrRedirect();
 
@@ -22,6 +24,8 @@ export default async function SettingsPage() {
           当前账本：{currentLedger.name}
         </Typography>
       </GlassCard>
+
+      <SettingsAccountsEntry />
 
       <GlassCard
         sx={{

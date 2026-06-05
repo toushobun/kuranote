@@ -1,0 +1,61 @@
+// @vitest-environment jsdom
+
+import { cleanup, render, within } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("lib/ledger/current-ledger", () => ({
+  getCurrentLedgerOrRedirect: vi.fn(),
+}));
+
+vi.mock("ui/UserThemePicker", () => ({
+  UserThemePicker: (): ReactNode => <div data-testid="user-theme-picker" />,
+}));
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("SettingsPage", () => {
+  beforeEach(async () => {
+    const { getCurrentLedgerOrRedirect } =
+      await import("lib/ledger/current-ledger");
+    vi.mocked(getCurrentLedgerOrRedirect).mockResolvedValue({
+      id: "ledger-1",
+      name: "家庭账本",
+      baseCurrency: "JPY",
+    });
+  });
+
+  it("显示当前账本名称", async () => {
+    const { default: SettingsPage } = await import("./page");
+    const { container } = render(await SettingsPage());
+
+    expect(within(container).getByText("当前账本：家庭账本")).toBeTruthy();
+  });
+
+  it("账户管理区域显示标题和说明文字", async () => {
+    const { default: SettingsPage } = await import("./page");
+    const { container } = render(await SettingsPage());
+
+    expect(
+      within(container).getByRole("heading", { name: "账户管理" }),
+    ).toBeTruthy();
+    expect(
+      within(container).getByText(
+        "管理当前账本的现金、银行卡、信用卡等账户，并可继续新增账户。",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("打开账户管理按钮链接到账户管理页面", async () => {
+    const { default: SettingsPage } = await import("./page");
+    const { container } = render(await SettingsPage());
+
+    expect(
+      within(container)
+        .getByRole("link", { name: "打开账户管理" })
+        .getAttribute("href"),
+    ).toBe("/accounts");
+  });
+});
