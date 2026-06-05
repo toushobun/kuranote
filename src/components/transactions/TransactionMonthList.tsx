@@ -286,7 +286,8 @@ export function TransactionMonthList({
                   whiteSpace: "nowrap",
                 }}
               >
-                当日 {formatAmount(group.summary.balance, group.summary.currency)}
+                当日{" "}
+                {formatAmount(group.summary.balance, group.summary.currency)}
               </Typography>
             </Stack>
 
