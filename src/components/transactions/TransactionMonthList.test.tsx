@@ -45,6 +45,7 @@ function createItem(
     note: "测试备注",
     transaction_at: "2026-05-29T03:20:10.000Z",
     type: "expense",
+    recorder_name: null,
     ...overrides,
   };
 }

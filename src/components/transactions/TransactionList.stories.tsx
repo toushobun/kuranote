@@ -9,17 +9,25 @@ import { TransactionList } from "./TransactionList";
 
 function createItem(index: number): TransactionListItem {
   const isExpense = index % 5 !== 0;
+  const amount = String(isExpense ? 500 + index * 37 : 260000);
 
   return {
     account_currency: "JPY",
     account_name: index % 2 === 0 ? "日元现金" : "📘 Debit",
-    amount: String(isExpense ? 500 + index * 37 : 260000),
-    category_name: isExpense ? "餐饮" : "工资",
+    amount,
+    categoryItems: [
+      {
+        amount,
+        categoryName: isExpense ? "餐饮" : "工资",
+        parentCategoryName: isExpense ? "饮食" : null,
+      },
+    ],
     created_at: new Date(Date.UTC(2026, 5, 5, 3, 0, index)).toISOString(),
     id: `00000000-0000-4000-8000-${String(900000 + index).padStart(12, "0")}`,
     merchant_icon_url: null,
     merchant_name: isExpense ? "便利店" : "共達",
     note: `Storybook 模拟记录 #${index}`,
+    recorder_name: index % 3 === 0 ? "淞文" : null,
     transaction_at: new Date(
       Date.UTC(2026, 5, 5 - index, 3, 0, 0),
     ).toISOString(),
