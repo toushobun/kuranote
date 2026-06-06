@@ -387,6 +387,7 @@ export function TransactionMonthList({
   const [nextOffset, setNextOffset] = useState(monthView.nextOffset);
   const [isPending, startTransition] = useTransition();
   const isLoadingRef = useRef(false);
+  const loadMoreRef = useRef<() => void>(() => {});
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   if (prevMonthView !== monthView) {
@@ -421,13 +422,17 @@ export function TransactionMonthList({
   }, [isPending, loadMoreAction, nextOffset]);
 
   useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
+
+  useEffect(() => {
     const sentinel = sentinelRef.current;
 
     if (!sentinel || nextOffset === null) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) loadMore();
+        if (entry?.isIntersecting) loadMoreRef.current();
       },
       { rootMargin: "0px 0px 75% 0px" },
     );
@@ -435,7 +440,7 @@ export function TransactionMonthList({
     observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [loadMore, nextOffset]);
+  }, [nextOffset]);
 
   if (groups.length === 0) {
     return (

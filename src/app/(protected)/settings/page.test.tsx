@@ -8,6 +8,12 @@ vi.mock("lib/ledger/current-ledger", () => ({
   getCurrentLedgerContext: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
+}));
+
 vi.mock("ui/UserThemePicker", () => ({
   UserThemePicker: (): ReactNode => <div data-testid="user-theme-picker" />,
 }));
@@ -68,5 +74,24 @@ describe("SettingsPage", () => {
         .getByRole("link", { name: "打开账户管理" })
         .getAttribute("href"),
     ).toBe("/accounts");
+  });
+
+  it("没有当前账本时跳转到账本初始化页面", async () => {
+    const { getCurrentLedgerContext } =
+      await import("lib/ledger/current-ledger");
+    const emptyLedgerContext: Awaited<
+      ReturnType<typeof getCurrentLedgerContext>
+    > = {
+      userId: "user-1",
+      email: "test@example.com",
+      ledgers: [],
+      currentLedger: null,
+    };
+
+    vi.mocked(getCurrentLedgerContext).mockResolvedValue(emptyLedgerContext);
+
+    const { default: SettingsPage } = await import("./page");
+
+    await expect(SettingsPage()).rejects.toThrow("NEXT_REDIRECT:/ledger-setup");
   });
 });

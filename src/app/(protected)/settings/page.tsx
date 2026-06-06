@@ -3,6 +3,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { GlassCard } from "ui/GlassCard";
 import { UserThemePicker } from "ui/UserThemePicker";
@@ -14,7 +15,9 @@ import { SettingsAccountsEntry } from "./SettingsAccountsEntry";
 export default async function SettingsPage() {
   const { email, currentLedger } = await getCurrentLedgerContext();
 
-  if (!currentLedger) return null;
+  if (!currentLedger) {
+    redirect("/ledger-setup");
+  }
 
   return (
     <Stack spacing={3}>
