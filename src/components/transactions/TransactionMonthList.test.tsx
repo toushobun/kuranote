@@ -67,6 +67,7 @@ function createMonthView(
       expense: "1234",
       income: "100000",
     },
+    nextOffset: null,
     ...overrides,
   };
 }

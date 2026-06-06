@@ -58,6 +58,12 @@ export type TransactionMonthView = {
   nextMonth: string;
   summary: TransactionAmountSummary;
   groups: TransactionDateGroup[];
+  nextOffset: number | null;
+};
+
+export type TransactionMonthPage = {
+  groups: TransactionDateGroup[];
+  nextOffset: number | null;
 };
 
 export type TransactionListPage = {

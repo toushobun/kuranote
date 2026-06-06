@@ -74,6 +74,7 @@ const monthView: TransactionMonthView = {
     expense: "4520",
     income: "260000",
   },
+  nextOffset: null,
 };
 
 const emptyMonthView: TransactionMonthView = {

@@ -1,21 +1,27 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import type {
   TransactionAmountSummary,
+  TransactionDateGroup,
   TransactionListItem,
+  TransactionMonthPage,
   TransactionMonthView,
 } from "transactions-route/types";
 
 type TransactionMonthListProps = {
   monthView: TransactionMonthView;
   voidAction?: (formData: FormData) => void;
+  loadMoreAction?: (offset: number) => Promise<TransactionMonthPage>;
 };
 
 const incomeColor = "#d64b4b";
@@ -103,7 +109,7 @@ function MonthSummary({ summary }: { summary: TransactionAmountSummary }) {
       sx={{
         bgcolor: "background.paper",
         border: `1px solid ${borderPurple}`,
-        borderRadius: 3,
+        borderRadius: 1,
         boxShadow: "0 10px 24px rgba(77, 55, 120, 0.06)",
         mt: 1.5,
         overflow: "hidden",
@@ -154,6 +160,7 @@ function TransactionRow({
           color: primaryPurple,
           fontSize: 18,
           fontWeight: 800,
+          flexShrink: 0,
           height: 42,
           width: 42,
         }}
@@ -161,27 +168,28 @@ function TransactionRow({
         {getMerchantInitial(item.merchant_name)}
       </Avatar>
 
-      <Stack spacing={0.15} sx={{ flex: 1, minWidth: 0 }}>
+      <Stack spacing={0.3} sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           noWrap
-          sx={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3 }}
+          sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3 }}
         >
           {merchantName}
         </Typography>
-        <Typography color="text.secondary" noWrap variant="caption">
+        <Typography
+          noWrap
+          sx={{ fontSize: 11, lineHeight: 1.4 }}
+        >
           {item.category_name ?? "未分类"}
         </Typography>
-        <Typography color="text.secondary" noWrap variant="caption">
+        <Typography
+          noWrap
+          sx={{ fontSize: 11, lineHeight: 1.4, opacity: 0.45 }}
+        >
           {item.account_name} · {time}
         </Typography>
-        {item.note ? (
-          <Typography color="text.secondary" noWrap variant="caption">
-            {item.note}
-          </Typography>
-        ) : null}
       </Stack>
 
-      <Stack spacing={0.2} sx={{ alignItems: "flex-end", minWidth: 72 }}>
+      <Stack spacing={0.2} sx={{ alignItems: "flex-end", flexShrink: 0 }}>
         <Typography
           sx={{
             color: amountColor,
@@ -197,7 +205,7 @@ function TransactionRow({
           <form
             action={voidAction}
             onSubmit={(event) => {
-              if (!window.confirm("确定要撤销这条记录吗？")) {
+              if (!window.confirm("确定要删除这条记录吗？")) {
                 event.preventDefault();
               }
             }}
@@ -210,7 +218,7 @@ function TransactionRow({
               type="submit"
               variant="text"
             >
-              撤销
+              删除
             </Button>
           </form>
         ) : null}
@@ -219,11 +227,152 @@ function TransactionRow({
   );
 }
 
+function mergeGroups(
+  existing: TransactionDateGroup[],
+  incoming: TransactionDateGroup[],
+): TransactionDateGroup[] {
+  const map = new Map(existing.map((g) => [g.date, g]));
+
+  for (const group of incoming) {
+    const prev = map.get(group.date);
+
+    if (prev) {
+      map.set(group.date, {
+        ...prev,
+        items: [...prev.items, ...group.items],
+        summary: {
+          currency: prev.summary.currency,
+          income: String(Number(prev.summary.income) + Number(group.summary.income)),
+          expense: String(Number(prev.summary.expense) + Number(group.summary.expense)),
+          balance: String(Number(prev.summary.balance) + Number(group.summary.balance)),
+        },
+      });
+    } else {
+      map.set(group.date, group);
+    }
+  }
+
+  return [...map.values()];
+}
+
+function GroupList({
+  groups,
+  voidAction,
+}: {
+  groups: TransactionDateGroup[];
+  voidAction?: (formData: FormData) => void;
+}) {
+  return (
+    <Stack
+      sx={{
+        left: { xs: "50%", sm: "auto" },
+        overflow: "hidden",
+        position: { xs: "relative", sm: "static" },
+        transform: { xs: "translateX(-50%)", sm: "none" },
+        width: { xs: "100vw", sm: "auto" },
+      }}
+    >
+      {groups.map((group, groupIndex) => (
+        <Box key={group.date}>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 1.6,
+              py: 0.8,
+            }}
+          >
+            <Typography
+              color="text.secondary"
+              sx={{ fontSize: 13, fontWeight: 800 }}
+            >
+              {group.label}
+            </Typography>
+            <Typography
+              sx={{
+                color:
+                  Number(group.summary.balance) >= 0
+                    ? incomeColor
+                    : expenseColor,
+                fontSize: 13,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {formatSignedNumber(group.summary.balance)}
+            </Typography>
+          </Stack>
+
+          <Stack
+            divider={<Divider flexItem sx={{ ml: 7.2 }} />}
+            sx={{
+              bgcolor: "background.paper",
+              boxShadow: "0 10px 24px rgba(77, 55, 120, 0.05)",
+              overflow: "hidden",
+              px: 1.6,
+            }}
+          >
+            {group.items.map((item) => (
+              <TransactionRow
+                item={item}
+                key={item.id}
+                voidAction={voidAction}
+              />
+            ))}
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
 export function TransactionMonthList({
   monthView,
   voidAction,
+  loadMoreAction,
 }: TransactionMonthListProps) {
-  if (monthView.groups.length === 0) {
+  const [prevMonthView, setPrevMonthView] = useState(monthView);
+  const [groups, setGroups] = useState(monthView.groups);
+  const [nextOffset, setNextOffset] = useState(monthView.nextOffset);
+  const [isPending, startTransition] = useTransition();
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  if (prevMonthView !== monthView) {
+    setPrevMonthView(monthView);
+    setGroups(monthView.groups);
+    setNextOffset(monthView.nextOffset);
+  }
+
+  const loadMore = useCallback(() => {
+    if (nextOffset === null || isPending || !loadMoreAction) return;
+
+    startTransition(async () => {
+      const page = await loadMoreAction(nextOffset);
+      setGroups((prev) => mergeGroups(prev, page.groups));
+      setNextOffset(page.nextOffset);
+    });
+  }, [isPending, loadMoreAction, nextOffset]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+
+    if (!sentinel || nextOffset === null) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) loadMore();
+      },
+      { rootMargin: "0px 0px 75% 0px" },
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [loadMore, nextOffset]);
+
+  if (groups.length === 0) {
     return (
       <Stack spacing={2.5} sx={{ mt: 1.5 }}>
         <MonthSummary summary={monthView.summary} />
@@ -246,65 +395,21 @@ export function TransactionMonthList({
     <Stack spacing={2} sx={{ mt: 1.5 }}>
       <MonthSummary summary={monthView.summary} />
 
-      <Stack
-        sx={{
-          bgcolor: "background.paper",
-          borderRadius: 3,
-          boxShadow: "0 10px 24px rgba(77, 55, 120, 0.05)",
-          overflow: "hidden",
-        }}
-      >
-        {monthView.groups.map((group, groupIndex) => (
-          <Box key={group.date}>
-            <Stack
-              direction="row"
-              spacing={2}
-              sx={{
-                alignItems: "center",
-                bgcolor: palePurple,
-                justifyContent: "space-between",
-                px: 1.6,
-                py: 0.7,
-              }}
-            >
-              <Typography
-                color="text.secondary"
-                sx={{ fontSize: 13, fontWeight: 800 }}
-              >
-                {group.label}
-              </Typography>
-              <Typography
-                sx={{
-                  color:
-                    Number(group.summary.balance) >= 0
-                      ? incomeColor
-                      : expenseColor,
-                  fontSize: 13,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {formatSignedNumber(group.summary.balance)}
-              </Typography>
-            </Stack>
+      <GroupList groups={groups} voidAction={voidAction} />
 
-            <Stack
-              divider={<Divider flexItem sx={{ ml: 7.2 }} />}
-              sx={{ px: 1.6 }}
-            >
-              {group.items.map((item) => (
-                <TransactionRow
-                  item={item}
-                  key={item.id}
-                  voidAction={voidAction}
-                />
-              ))}
-            </Stack>
-
-            {groupIndex < monthView.groups.length - 1 ? <Divider /> : null}
-          </Box>
-        ))}
-      </Stack>
+      {nextOffset !== null ? (
+        <Stack ref={sentinelRef} sx={{ alignItems: "center", py: 2 }}>
+          {isPending ? <CircularProgress size={24} /> : null}
+        </Stack>
+      ) : (
+        <Typography
+          color="text.secondary"
+          sx={{ pb: 2, textAlign: "center" }}
+          variant="caption"
+        >
+          已显示全部记录
+        </Typography>
+      )}
     </Stack>
   );
 }

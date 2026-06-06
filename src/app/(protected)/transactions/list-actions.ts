@@ -8,11 +8,13 @@ import type {
   TransactionDateGroup,
   TransactionListItem,
   TransactionListPage,
+  TransactionMonthPage,
   TransactionMonthView,
   TransactionType,
 } from "./types";
 
 const transactionListPageSize = 20;
+const monthPageSize = 20;
 const weekDayLabels = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
 type TransactionRecordRow = {
@@ -248,39 +250,13 @@ async function loadTransactionItems(records: TransactionRecordRow[]) {
   });
 }
 
-export async function loadTransactionMonthView(
-  month?: string | null,
-): Promise<TransactionMonthView> {
-  const currentLedger = await getCurrentLedgerOrRedirect();
-  const supabase = await createClient();
-  const normalizedMonth = normalizeMonth(month);
-  const { startIso, endIso } = getMonthBounds(normalizedMonth);
-
-  const { data: recordData, error: recordError } = await supabase
-    .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_at")
-    .eq("ledger_id", currentLedger.id)
-    .eq("status", "active")
-    .in("type", ["expense", "income"])
-    .gte("transaction_at", startIso)
-    .lt("transaction_at", endIso)
-    .order("transaction_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
-
-  if (recordError) {
-    throw new Error("Failed to load transaction records");
-  }
-
-  const records = (recordData ?? []) as TransactionRecordRow[];
-  const items = await loadTransactionItems(records);
-  const currency = currentLedger.baseCurrency;
-  const monthSummary = createSummary(currency);
+function groupItems(
+  items: TransactionListItem[],
+  currency: string,
+): TransactionDateGroup[] {
   const groupByDate = new Map<string, TransactionDateGroup>();
 
   for (const item of items) {
-    addAmount(monthSummary, item.type, item.amount);
-
     const dateKey = formatDateKey(item.transaction_at);
     const group = groupByDate.get(dateKey) ?? {
       date: dateKey,
@@ -294,13 +270,101 @@ export async function loadTransactionMonthView(
     groupByDate.set(dateKey, group);
   }
 
+  return [...groupByDate.values()];
+}
+
+export async function loadTransactionMonthView(
+  month?: string | null,
+): Promise<TransactionMonthView> {
+  const currentLedger = await getCurrentLedgerOrRedirect();
+  const supabase = await createClient();
+  const normalizedMonth = normalizeMonth(month);
+  const { startIso, endIso } = getMonthBounds(normalizedMonth);
+
+  // Load all records for summary calculation
+  const { data: allRecordData, error: allRecordError } = await supabase
+    .from("transaction_record")
+    .select("id, type, transaction_at, merchant_id, note, created_at")
+    .eq("ledger_id", currentLedger.id)
+    .eq("status", "active")
+    .in("type", ["expense", "income"])
+    .gte("transaction_at", startIso)
+    .lt("transaction_at", endIso)
+    .order("transaction_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  if (allRecordError) {
+    throw new Error("Failed to load transaction records");
+  }
+
+  const allRecords = (allRecordData ?? []) as TransactionRecordRow[];
+  const pageRecords = allRecords.slice(0, monthPageSize);
+  const hasMore = allRecords.length > monthPageSize;
+
+  const [allItems, pageItems] = await Promise.all([
+    loadTransactionItems(allRecords),
+    pageRecords.length === allRecords.length
+      ? Promise.resolve(null)
+      : loadTransactionItems(pageRecords),
+  ]);
+
+  const currency = currentLedger.baseCurrency;
+  const monthSummary = createSummary(currency);
+
+  for (const item of allItems) {
+    addAmount(monthSummary, item.type, item.amount);
+  }
+
+  const displayItems = pageItems ?? allItems;
+
   return {
-    groups: [...groupByDate.values()],
+    groups: groupItems(displayItems, currency),
     month: normalizedMonth,
     monthLabel: formatMonthLabel(normalizedMonth),
     nextMonth: shiftMonth(normalizedMonth, 1),
     previousMonth: shiftMonth(normalizedMonth, -1),
     summary: monthSummary,
+    nextOffset: hasMore ? monthPageSize : null,
+  };
+}
+
+export async function loadTransactionMonthPage(
+  month: string,
+  offset: number,
+): Promise<TransactionMonthPage> {
+  const currentLedger = await getCurrentLedgerOrRedirect();
+  const supabase = await createClient();
+  const normalizedMonth = normalizeMonth(month);
+  const { startIso, endIso } = getMonthBounds(normalizedMonth);
+  const safeOffset = Math.max(0, offset);
+
+  const { data: recordData, error: recordError } = await supabase
+    .from("transaction_record")
+    .select("id, type, transaction_at, merchant_id, note, created_at")
+    .eq("ledger_id", currentLedger.id)
+    .eq("status", "active")
+    .in("type", ["expense", "income"])
+    .gte("transaction_at", startIso)
+    .lt("transaction_at", endIso)
+    .order("transaction_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(safeOffset, safeOffset + monthPageSize);
+
+  if (recordError) {
+    throw new Error("Failed to load transaction records");
+  }
+
+  const fetched = (recordData ?? []) as TransactionRecordRow[];
+  const records = fetched.slice(0, monthPageSize);
+  const hasMore = fetched.length > monthPageSize;
+  const items = await loadTransactionItems(records);
+  const currency = currentLedger.baseCurrency;
+
+  return {
+    groups: groupItems(items, currency),
+    nextOffset: hasMore ? safeOffset + monthPageSize : null,
   };
 }
 

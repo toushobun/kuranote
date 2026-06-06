@@ -21,7 +21,7 @@ export default async function ProtectedLayout({
           __html: createUserThemeInitScript(email),
         }}
       />
-      <AppShell currentLedgerName={currentLedger?.name ?? null} email={email}>
+      <AppShell email={email}>
         {children}
       </AppShell>
     </>
