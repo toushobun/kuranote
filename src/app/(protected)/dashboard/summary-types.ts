@@ -11,6 +11,8 @@ export type DashboardAccountSummary = {
   currency: string;
 };
 
+import type { CategorySummaryItem } from "transactions/TransactionRow";
+
 export type DashboardRecentTransaction = {
   id: string;
   type: "expense" | "income";
@@ -18,9 +20,10 @@ export type DashboardRecentTransaction = {
   amount: string;
   account_name: string;
   account_currency: string;
-  category_name: string | null;
+  categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
+  note: string | null;
 };
 
 export type DashboardPeriodExpense = {

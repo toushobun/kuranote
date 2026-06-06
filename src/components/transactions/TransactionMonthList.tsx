@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { TransactionRow } from "transactions/TransactionRow";
 import type {
   TransactionAmountSummary,
   TransactionDateGroup,
@@ -26,8 +25,6 @@ type TransactionMonthListProps = {
 
 const incomeColor = "#d64b4b";
 const expenseColor = "#3f7f46";
-const primaryPurple = "#6d4bb3";
-const avatarBackground = "#f4efff";
 const borderPurple = "#e5dcf6";
 
 function formatNumber(amount: string) {
@@ -52,27 +49,6 @@ function formatSignedNumber(amount: string) {
   }).format(Math.abs(value));
 
   return value >= 0 ? `+${abs}` : `-${abs}`;
-}
-
-function formatRowAmount(type: "expense" | "income", amount: string) {
-  const value = Number(amount);
-
-  if (!Number.isFinite(value)) return amount;
-
-  const formatted = new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(value);
-
-  return `${type === "expense" ? "-" : "+"}${formatted}`;
-}
-
-function getMerchantInitial(name: string | null) {
-  return name?.trim().charAt(0).toUpperCase() || "记";
-}
-
-function getAmountColor(type: "expense" | "income") {
-  return type === "income" ? incomeColor : expenseColor;
 }
 
 function createEmptySummary(currency: string): TransactionAmountSummary {
@@ -161,102 +137,6 @@ function MonthSummary({ summary }: { summary: TransactionAmountSummary }) {
         <SummaryItem label="结余" value={formatNumber(summary.balance)} />
       </Stack>
     </Box>
-  );
-}
-
-function TransactionRow({
-  item,
-  voidAction,
-}: {
-  item: TransactionListItem;
-  voidAction?: (formData: FormData) => void;
-}) {
-  const merchantName = item.merchant_name ?? "未指定商家";
-  const amountColor = getAmountColor(item.type);
-  const time = new Date(item.transaction_at).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return (
-    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1.4 }}>
-      <Avatar
-        alt={merchantName}
-        src={item.merchant_icon_url ?? undefined}
-        sx={{
-          bgcolor: avatarBackground,
-          color: primaryPurple,
-          fontSize: 18,
-          fontWeight: 800,
-          flexShrink: 0,
-          height: 42,
-          width: 42,
-        }}
-      >
-        {getMerchantInitial(item.merchant_name)}
-      </Avatar>
-
-      <Stack spacing={0.3} sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          noWrap
-          sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3 }}
-        >
-          {merchantName}
-        </Typography>
-        <Typography noWrap sx={{ fontSize: 11, lineHeight: 1.4 }}>
-          {item.category_name ?? "未分类"}
-        </Typography>
-        <Typography
-          noWrap
-          sx={{ fontSize: 11, lineHeight: 1.4, opacity: 0.45 }}
-        >
-          {item.account_name} · {time}
-        </Typography>
-        {item.note ? (
-          <Typography
-            noWrap
-            sx={{ fontSize: 11, lineHeight: 1.4, opacity: 0.55 }}
-          >
-            {item.note}
-          </Typography>
-        ) : null}
-      </Stack>
-
-      <Stack spacing={0.2} sx={{ alignItems: "flex-end", flexShrink: 0 }}>
-        <Typography
-          sx={{
-            color: amountColor,
-            fontSize: 15,
-            fontWeight: 900,
-            lineHeight: 1.2,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {formatRowAmount(item.type, item.amount)}
-        </Typography>
-        {voidAction ? (
-          <form
-            action={voidAction}
-            onSubmit={(event) => {
-              if (!window.confirm("确定要撤销这条记录吗？")) {
-                event.preventDefault();
-              }
-            }}
-          >
-            <input name="transactionRecordId" type="hidden" value={item.id} />
-            <Button
-              color="error"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, py: 0, typography: "caption" }}
-              type="submit"
-              variant="text"
-            >
-              撤销
-            </Button>
-          </form>
-        ) : null}
-      </Stack>
-    </Stack>
   );
 }
 
@@ -367,6 +247,10 @@ function GroupList({
               <TransactionRow
                 item={item}
                 key={item.id}
+                showAccount
+                showTime
+                showNote
+                showRecorder
                 voidAction={voidAction}
               />
             ))}

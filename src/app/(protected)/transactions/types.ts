@@ -23,6 +23,10 @@ export type TransactionMerchantOption = {
   icon_url: string | null;
 };
 
+export type { CategorySummaryItem } from "transactions/TransactionRow";
+
+import type { CategorySummaryItem } from "transactions/TransactionRow";
+
 export type TransactionListItem = {
   id: string;
   type: TransactionType;
@@ -30,10 +34,11 @@ export type TransactionListItem = {
   amount: string;
   account_name: string;
   account_currency: string;
-  category_name: string | null;
+  categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
   note: string | null;
+  recorder_name: string | null;
   created_at: string;
 };
 

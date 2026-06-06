@@ -24,7 +24,7 @@ type ItemRow = {
 };
 
 type AccountRow = { id: string; name: string; currency: string };
-type CategoryRow = { id: string; name: string };
+type CategoryRow = { id: string; name: string; parent_id: string | null };
 type MerchantRow = { id: string; name: string; icon_url: string | null };
 
 function getCurrentMonthBounds() {
@@ -91,7 +91,13 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   if (itemError) throw new Error("Failed to load dashboard items");
 
   const items = (itemData ?? []) as ItemRow[];
-  const itemByRecordId = new Map(items.map((i) => [i.transaction_record_id, i]));
+
+  const itemsByRecordId = new Map<string, ItemRow[]>();
+  for (const item of items) {
+    const arr = itemsByRecordId.get(item.transaction_record_id) ?? [];
+    arr.push(item);
+    itemsByRecordId.set(item.transaction_record_id, arr);
+  }
 
   // Month summary + today/week stats
   const monthSummary = {
@@ -109,24 +115,23 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const weekExpense = { expense: "0", currency: currentLedger.baseCurrency, count: 0 };
 
   for (const record of records) {
-    const item = itemByRecordId.get(record.id);
-    if (!item) continue;
-    const value = Number(item.amount);
-    if (!Number.isFinite(value)) continue;
+    const recordItems = itemsByRecordId.get(record.id) ?? [];
+    const total = recordItems.reduce((sum, i) => sum + Number(i.amount), 0);
+    if (!Number.isFinite(total) || total === 0) continue;
 
     if (record.type === "income") {
-      monthSummary.income = String(Number(monthSummary.income) + value);
-      monthSummary.balance = String(Number(monthSummary.balance) + value);
+      monthSummary.income = String(Number(monthSummary.income) + total);
+      monthSummary.balance = String(Number(monthSummary.balance) + total);
     } else {
-      monthSummary.expense = String(Number(monthSummary.expense) + value);
-      monthSummary.balance = String(Number(monthSummary.balance) - value);
+      monthSummary.expense = String(Number(monthSummary.expense) + total);
+      monthSummary.balance = String(Number(monthSummary.balance) - total);
       const recordAt = new Date(record.transaction_at);
       if (recordAt >= weekStart) {
-        weekExpense.expense = String(Number(weekExpense.expense) + value);
+        weekExpense.expense = String(Number(weekExpense.expense) + total);
         weekExpense.count += 1;
       }
       if (recordAt >= todayStart) {
-        todayExpense.expense = String(Number(todayExpense.expense) + value);
+        todayExpense.expense = String(Number(todayExpense.expense) + total);
         todayExpense.count += 1;
       }
     }
@@ -134,25 +139,20 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
 
   // Fetch related data for the 5 most recent records
   const recentRecords = records.slice(0, 5);
-  const recentItems = recentRecords
-    .map((r) => itemByRecordId.get(r.id))
-    .filter((i): i is ItemRow => i !== undefined);
-
-  const accountIds = [...new Set(recentItems.map((i) => i.account_id))];
-  const categoryIds = [
-    ...new Set(recentItems.map((i) => i.category_id).filter((id): id is string => id !== null)),
+  const recentAccountIds = [
+    ...new Set(
+      recentRecords.flatMap((r) => (itemsByRecordId.get(r.id) ?? []).map((i) => i.account_id)),
+    ),
   ];
   const merchantIds = [
     ...new Set(recentRecords.map((r) => r.merchant_id).filter((id): id is string => id !== null)),
   ];
 
   const [accountResult, categoryResult, merchantResult] = await Promise.all([
-    accountIds.length > 0
-      ? supabase.from("account").select("id, name, currency").eq("ledger_id", currentLedger.id).in("id", accountIds)
+    recentAccountIds.length > 0
+      ? supabase.from("account").select("id, name, currency").eq("ledger_id", currentLedger.id).in("id", recentAccountIds)
       : Promise.resolve({ data: [], error: null }),
-    categoryIds.length > 0
-      ? supabase.from("category").select("id, name").eq("ledger_id", currentLedger.id).in("id", categoryIds)
-      : Promise.resolve({ data: [], error: null }),
+    supabase.from("category").select("id, name, parent_id").eq("ledger_id", currentLedger.id),
     merchantIds.length > 0
       ? supabase.from("merchant").select("id, name, icon_url").eq("ledger_id", currentLedger.id).in("id", merchantIds)
       : Promise.resolve({ data: [], error: null }),
@@ -167,19 +167,34 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const merchantById = new Map(((merchantResult.data ?? []) as MerchantRow[]).map((m) => [m.id, m]));
 
   const recentTransactions = recentRecords.map((record) => {
-    const item = itemByRecordId.get(record.id);
-    const account = item ? accountById.get(item.account_id) : undefined;
-    const category = item?.category_id ? categoryById.get(item.category_id) : undefined;
+    const recordItems = itemsByRecordId.get(record.id) ?? [];
+    const firstItem = recordItems[0];
+    const account = firstItem ? accountById.get(firstItem.account_id) : undefined;
     const merchant = record.merchant_id ? merchantById.get(record.merchant_id) : undefined;
+
+    const totalAmount = recordItems.reduce((sum, i) => sum + Number(i.amount), 0);
+
+    const categoryItems = recordItems
+      .filter((i) => i.category_id !== null)
+      .map((i) => {
+        const cat = categoryById.get(i.category_id!);
+        const parent = cat?.parent_id ? categoryById.get(cat.parent_id) : undefined;
+        return {
+          categoryName: cat?.name ?? "",
+          parentCategoryName: parent?.name ?? null,
+          amount: i.amount,
+        };
+      });
 
     return {
       account_currency: account?.currency ?? currentLedger.baseCurrency,
       account_name: account?.name ?? "未知账户",
-      amount: item?.amount ?? "0",
-      category_name: category?.name ?? null,
+      amount: String(totalAmount),
+      categoryItems,
       id: record.id,
       merchant_icon_url: merchant?.icon_url ?? null,
       merchant_name: merchant?.name ?? null,
+      note: record.note ?? null,
       transaction_at: record.transaction_at,
       type: record.type,
     };

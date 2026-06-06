@@ -65,8 +65,19 @@ function TransactionListRow({
               label={item.type === "expense" ? "支出" : "收入"}
               size="small"
             />
-            {item.category_name ? (
-              <Chip label={item.category_name} size="small" />
+            {item.categoryItems.length > 0 ? (
+              <Chip
+                label={(() => {
+                  const top = item.categoryItems.reduce((a, b) =>
+                    Number(a.amount) >= Number(b.amount) ? a : b,
+                  );
+                  const label = top.parentCategoryName
+                    ? `${top.parentCategoryName}·${top.categoryName}`
+                    : top.categoryName;
+                  return item.categoryItems.length >= 2 ? `${label}等` : label;
+                })()}
+                size="small"
+              />
             ) : null}
             {item.merchant_name ? (
               <Chip

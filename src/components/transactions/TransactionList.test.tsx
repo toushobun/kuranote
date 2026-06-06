@@ -57,7 +57,7 @@ function createItem(
     account_currency: "JPY",
     account_name: "日元现金",
     amount: "1234",
-    category_name: "餐饮",
+    categoryItems: [{ categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" }],
     created_at: "2026-06-05T03:20:10.000Z",
     id: "00000000-0000-4000-8000-000000009001",
     merchant_icon_url: null,
@@ -100,7 +100,7 @@ describe("TransactionList", () => {
     );
 
     expect(screen.getByText("支出")).toBeTruthy();
-    expect(screen.getByText("餐饮")).toBeTruthy();
+    expect(screen.getByText("饮食·餐饮")).toBeTruthy();
     expect(screen.getByText("便利店")).toBeTruthy();
     expect(screen.getByText("账户：日元现金")).toBeTruthy();
     expect(screen.getByText("-1,234 JPY")).toBeTruthy();

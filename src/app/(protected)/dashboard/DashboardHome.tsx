@@ -1,20 +1,16 @@
 "use client";
 
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type {
-  DashboardRecentTransaction,
-  DashboardViewData,
-} from "./summary-types";
+import { TransactionRow } from "transactions/TransactionRow";
+import type { DashboardViewData } from "./summary-types";
 
 const incomeColor = "#d64b4b";
 const expenseColor = "#3f7f46";
 const primaryPurple = "#6d4bb3";
-const avatarBackground = "#f4efff";
 const summaryCardBg = "#e8e0f8";
 
 function formatNumber(amount: string) {
@@ -26,70 +22,6 @@ function formatNumber(amount: string) {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(value);
-}
-
-function getMerchantInitial(name: string | null) {
-  return name?.trim().charAt(0).toUpperCase() || "记";
-}
-
-function RecentTransactionRow({ item }: { item: DashboardRecentTransaction }) {
-  const merchantName = item.merchant_name ?? "未指定商家";
-  const amountColor = item.type === "income" ? incomeColor : expenseColor;
-  const time = new Date(item.transaction_at).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const signedAmount = `${item.type === "expense" ? "-" : "+"}${formatNumber(item.amount)}`;
-
-  return (
-    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1.4 }}>
-      <Avatar
-        alt={merchantName}
-        src={item.merchant_icon_url ?? undefined}
-        sx={{
-          bgcolor: avatarBackground,
-          color: primaryPurple,
-          flexShrink: 0,
-          fontSize: 18,
-          fontWeight: 800,
-          height: 42,
-          width: 42,
-        }}
-      >
-        {getMerchantInitial(item.merchant_name)}
-      </Avatar>
-
-      <Stack spacing={0.3} sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          noWrap
-          sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3 }}
-        >
-          {merchantName}
-        </Typography>
-        <Typography noWrap sx={{ fontSize: 11, lineHeight: 1.4 }}>
-          {item.category_name ?? "未分类"}
-        </Typography>
-        <Typography
-          noWrap
-          sx={{ fontSize: 11, lineHeight: 1.4, opacity: 0.45 }}
-        >
-          {item.account_name} · {time}
-        </Typography>
-      </Stack>
-
-      <Typography
-        sx={{
-          color: amountColor,
-          fontSize: 15,
-          fontWeight: 900,
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {signedAmount}
-      </Typography>
-    </Stack>
-  );
 }
 
 function PeriodExpenseCard({
@@ -241,7 +173,13 @@ export function DashboardHome({ data }: { data: DashboardViewData }) {
           {recentTransactions.length > 0 ? (
             <Stack divider={<Divider flexItem sx={{ ml: 7.2 }} />} spacing={0}>
               {recentTransactions.map((item) => (
-                <RecentTransactionRow item={item} key={item.id} />
+                <TransactionRow
+                  item={item}
+                  key={item.id}
+                  showAccount
+                  showTime
+                  showNote
+                />
               ))}
             </Stack>
           ) : (
