@@ -184,6 +184,14 @@ function TransactionRow({
         >
           {item.account_name} · {time}
         </Typography>
+        {item.note ? (
+          <Typography
+            noWrap
+            sx={{ fontSize: 11, lineHeight: 1.4, opacity: 0.55 }}
+          >
+            {item.note}
+          </Typography>
+        ) : null}
       </Stack>
 
       <Stack spacing={0.2} sx={{ alignItems: "flex-end", flexShrink: 0 }}>
@@ -202,7 +210,7 @@ function TransactionRow({
           <form
             action={voidAction}
             onSubmit={(event) => {
-              if (!window.confirm("确定要删除这条记录吗？")) {
+              if (!window.confirm("确定要撤销这条记录吗？")) {
                 event.preventDefault();
               }
             }}
@@ -215,7 +223,7 @@ function TransactionRow({
               type="submit"
               variant="text"
             >
-              删除
+              撤销
             </Button>
           </form>
         ) : null}
@@ -275,7 +283,7 @@ function GroupList({
         width: { xs: "100vw", sm: "auto" },
       }}
     >
-      {groups.map((group, groupIndex) => (
+      {groups.map((group) => (
         <Box key={group.date}>
           <Stack
             direction="row"

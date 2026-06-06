@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("lib/ledger/current-ledger", () => ({
-  getCurrentLedgerOrRedirect: vi.fn(),
+  getCurrentLedgerContext: vi.fn(),
 }));
 
 vi.mock("ui/UserThemePicker", () => ({
@@ -18,12 +18,23 @@ afterEach(() => {
 
 describe("SettingsPage", () => {
   beforeEach(async () => {
-    const { getCurrentLedgerOrRedirect } =
+    const { getCurrentLedgerContext } =
       await import("lib/ledger/current-ledger");
-    vi.mocked(getCurrentLedgerOrRedirect).mockResolvedValue({
-      id: "ledger-1",
-      name: "家庭账本",
-      baseCurrency: "JPY",
+    vi.mocked(getCurrentLedgerContext).mockResolvedValue({
+      userId: "user-1",
+      email: "test@example.com",
+      ledgers: [
+        {
+          id: "ledger-1",
+          name: "家庭账本",
+          baseCurrency: "JPY",
+        },
+      ],
+      currentLedger: {
+        id: "ledger-1",
+        name: "家庭账本",
+        baseCurrency: "JPY",
+      },
     });
   });
 

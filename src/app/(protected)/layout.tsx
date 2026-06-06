@@ -12,7 +12,7 @@ type ProtectedLayoutProps = {
 export default async function ProtectedLayout({
   children,
 }: ProtectedLayoutProps) {
-  const { email, currentLedger } = await getCurrentLedgerContext();
+  const { email } = await getCurrentLedgerContext();
 
   return (
     <>
