@@ -1,6 +1,9 @@
 "use server";
 
-import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import {
+  getCurrentLedgerOrRedirect,
+  type CurrentLedger,
+} from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 
 import type {
@@ -57,8 +60,8 @@ function normalizeMonth(month?: string | null) {
   }
 
   const current = new Date();
-  const year = current.getFullYear();
-  const monthValue = String(current.getMonth() + 1).padStart(2, "0");
+  const year = current.getUTCFullYear();
+  const monthValue = String(current.getUTCMonth() + 1).padStart(2, "0");
 
   return `${year}-${monthValue}`;
 }
@@ -135,8 +138,10 @@ function addAmount(
   summary.balance = String(Number(summary.balance) - value);
 }
 
-async function loadTransactionItems(records: TransactionRecordRow[]) {
-  const currentLedger = await getCurrentLedgerOrRedirect();
+async function loadTransactionItems(
+  records: TransactionRecordRow[],
+  currentLedger: CurrentLedger,
+) {
   const supabase = await createClient();
   const recordIds = records.map((record) => record.id);
 
@@ -302,12 +307,7 @@ export async function loadTransactionMonthView(
   const pageRecords = allRecords.slice(0, monthPageSize);
   const hasMore = allRecords.length > monthPageSize;
 
-  const [allItems, pageItems] = await Promise.all([
-    loadTransactionItems(allRecords),
-    pageRecords.length === allRecords.length
-      ? Promise.resolve(null)
-      : loadTransactionItems(pageRecords),
-  ]);
+  const allItems = await loadTransactionItems(allRecords, currentLedger);
 
   const currency = currentLedger.baseCurrency;
   const monthSummary = createSummary(currency);
@@ -316,7 +316,7 @@ export async function loadTransactionMonthView(
     addAmount(monthSummary, item.type, item.amount);
   }
 
-  const displayItems = pageItems ?? allItems;
+  const displayItems = allItems.slice(0, pageRecords.length);
 
   return {
     groups: groupItems(displayItems, currency),
@@ -359,7 +359,7 @@ export async function loadTransactionMonthPage(
   const fetched = (recordData ?? []) as TransactionRecordRow[];
   const records = fetched.slice(0, monthPageSize);
   const hasMore = fetched.length > monthPageSize;
-  const items = await loadTransactionItems(records);
+  const items = await loadTransactionItems(records, currentLedger);
   const currency = currentLedger.baseCurrency;
 
   return {
@@ -395,7 +395,7 @@ export async function loadTransactionListPage(
   const hasNextPage = fetchedRecords.length > transactionListPageSize;
 
   return {
-    items: await loadTransactionItems(records),
+    items: await loadTransactionItems(records, currentLedger),
     nextOffset: hasNextPage ? safeOffset + transactionListPageSize : null,
   };
 }

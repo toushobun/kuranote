@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -19,6 +25,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.confirm = originalConfirm;
+  vi.unstubAllGlobals();
 });
 
 function createItem(
@@ -131,5 +138,60 @@ describe("TransactionMonthList", () => {
     expect(voidAction.mock.calls[0]?.[0].get("transactionRecordId")).toBe(
       "00000000-0000-4000-8000-000000009001",
     );
+  });
+
+  it("加载更多时合并同一天的日期分组", async () => {
+    const loadMoreAction = vi.fn(async () => ({
+      groups: [
+        {
+          date: "2026-05-29",
+          items: [
+            createItem({
+              amount: "2000",
+              id: "00000000-0000-4000-8000-000000009002",
+              merchant_name: "超市",
+              note: null,
+            }),
+          ],
+          label: "05/29 周五",
+          summary: {
+            balance: "-2000",
+            currency: "JPY",
+            expense: "2000",
+            income: "0",
+          },
+        },
+      ],
+      nextOffset: null,
+    }));
+
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private readonly callback: IntersectionObserverCallback) {}
+
+        observe() {
+          this.callback(
+            [{ isIntersecting: true } as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver,
+          );
+        }
+
+        disconnect() {}
+      },
+    );
+
+    render(
+      <TransactionMonthList
+        monthView={createMonthView({ nextOffset: 20 })}
+        loadMoreAction={loadMoreAction}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("超市")).toBeTruthy());
+
+    expect(loadMoreAction).toHaveBeenCalledWith(20);
+    expect(screen.getAllByText("05/29 周五")).toHaveLength(1);
+    expect(screen.getByText("-3,234")).toBeTruthy();
   });
 });
