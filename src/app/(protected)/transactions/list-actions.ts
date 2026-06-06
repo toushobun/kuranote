@@ -190,32 +190,33 @@ async function loadTransactionItems(
     ),
   ];
 
-  const [accountResult, categoryResult, merchantResult, recorderResult] = await Promise.all([
-    accountIds.length > 0
-      ? supabase
-          .from("account")
-          .select("id, name, currency")
-          .eq("ledger_id", currentLedger.id)
-          .in("id", accountIds)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from("category")
-      .select("id, name, parent_id")
-      .eq("ledger_id", currentLedger.id),
-    merchantIds.length > 0
-      ? supabase
-          .from("merchant")
-          .select("id, name, icon_url")
-          .eq("ledger_id", currentLedger.id)
-          .in("id", merchantIds)
-      : Promise.resolve({ data: [], error: null }),
-    recorderIds.length > 0
-      ? supabase
-          .from("app_user")
-          .select("id, display_name")
-          .in("id", recorderIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const [accountResult, categoryResult, merchantResult, recorderResult] =
+    await Promise.all([
+      accountIds.length > 0
+        ? supabase
+            .from("account")
+            .select("id, name, currency")
+            .eq("ledger_id", currentLedger.id)
+            .in("id", accountIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("category")
+        .select("id, name, parent_id")
+        .eq("ledger_id", currentLedger.id),
+      merchantIds.length > 0
+        ? supabase
+            .from("merchant")
+            .select("id, name, icon_url")
+            .eq("ledger_id", currentLedger.id)
+            .in("id", merchantIds)
+        : Promise.resolve({ data: [], error: null }),
+      recorderIds.length > 0
+        ? supabase
+            .from("app_user")
+            .select("id, display_name")
+            .in("id", recorderIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   if (accountResult.error) {
     throw new Error("Failed to load transaction accounts");
@@ -261,7 +262,9 @@ async function loadTransactionItems(
   return records.map((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
     const firstItem = recordItems[0];
-    const account = firstItem ? accountById.get(firstItem.account_id) : undefined;
+    const account = firstItem
+      ? accountById.get(firstItem.account_id)
+      : undefined;
     const merchant = record.merchant_id
       ? merchantById.get(record.merchant_id)
       : undefined;
@@ -278,7 +281,9 @@ async function loadTransactionItems(
       .filter((i) => i.category_id !== null)
       .map((i) => {
         const cat = categoryById.get(i.category_id!);
-        const parent = cat?.parent_id ? categoryById.get(cat.parent_id) : undefined;
+        const parent = cat?.parent_id
+          ? categoryById.get(cat.parent_id)
+          : undefined;
         return {
           categoryName: cat?.name ?? "",
           parentCategoryName: parent?.name ?? null,
@@ -337,7 +342,9 @@ export async function loadTransactionMonthView(
   // Load all records for summary calculation
   const { data: allRecordData, error: allRecordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_by, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])
@@ -389,7 +396,9 @@ export async function loadTransactionMonthPage(
 
   const { data: recordData, error: recordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_by, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])
@@ -425,7 +434,9 @@ export async function loadTransactionListPage(
 
   const { data: recordData, error: recordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_by, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])

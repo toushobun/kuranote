@@ -133,9 +133,11 @@ export function TransactionRow({
           {merchantName}
         </Typography>
 
-        {(getCategoryLabel(item.categoryItems) || (showNote && item.note)) ? (
+        {getCategoryLabel(item.categoryItems) || (showNote && item.note) ? (
           <Typography noWrap sx={{ fontSize: 11, lineHeight: 1.4 }}>
-            {[getCategoryLabel(item.categoryItems), showNote ? item.note : null].filter(Boolean).join(" · ")}
+            {[getCategoryLabel(item.categoryItems), showNote ? item.note : null]
+              .filter(Boolean)
+              .join(" · ")}
           </Typography>
         ) : null}
 
@@ -147,7 +149,6 @@ export function TransactionRow({
             {accountTimeLine}
           </Typography>
         ) : null}
-
       </Stack>
 
       <Stack spacing={0.2} sx={{ alignItems: "flex-end", flexShrink: 0 }}>

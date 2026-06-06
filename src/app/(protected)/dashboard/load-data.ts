@@ -111,8 +111,16 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const weekStart = new Date(todayStart);
   weekStart.setDate(todayStart.getDate() - ((todayStart.getDay() + 6) % 7));
 
-  const todayExpense = { expense: "0", currency: currentLedger.baseCurrency, count: 0 };
-  const weekExpense = { expense: "0", currency: currentLedger.baseCurrency, count: 0 };
+  const todayExpense = {
+    expense: "0",
+    currency: currentLedger.baseCurrency,
+    count: 0,
+  };
+  const weekExpense = {
+    expense: "0",
+    currency: currentLedger.baseCurrency,
+    count: 0,
+  };
 
   for (const record of records) {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
@@ -141,20 +149,37 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const recentRecords = records.slice(0, 5);
   const recentAccountIds = [
     ...new Set(
-      recentRecords.flatMap((r) => (itemsByRecordId.get(r.id) ?? []).map((i) => i.account_id)),
+      recentRecords.flatMap((r) =>
+        (itemsByRecordId.get(r.id) ?? []).map((i) => i.account_id),
+      ),
     ),
   ];
   const merchantIds = [
-    ...new Set(recentRecords.map((r) => r.merchant_id).filter((id): id is string => id !== null)),
+    ...new Set(
+      recentRecords
+        .map((r) => r.merchant_id)
+        .filter((id): id is string => id !== null),
+    ),
   ];
 
   const [accountResult, categoryResult, merchantResult] = await Promise.all([
     recentAccountIds.length > 0
-      ? supabase.from("account").select("id, name, currency").eq("ledger_id", currentLedger.id).in("id", recentAccountIds)
+      ? supabase
+          .from("account")
+          .select("id, name, currency")
+          .eq("ledger_id", currentLedger.id)
+          .in("id", recentAccountIds)
       : Promise.resolve({ data: [], error: null }),
-    supabase.from("category").select("id, name, parent_id").eq("ledger_id", currentLedger.id),
+    supabase
+      .from("category")
+      .select("id, name, parent_id")
+      .eq("ledger_id", currentLedger.id),
     merchantIds.length > 0
-      ? supabase.from("merchant").select("id, name, icon_url").eq("ledger_id", currentLedger.id).in("id", merchantIds)
+      ? supabase
+          .from("merchant")
+          .select("id, name, icon_url")
+          .eq("ledger_id", currentLedger.id)
+          .in("id", merchantIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -162,23 +187,38 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   if (categoryResult.error) throw new Error("Failed to load recent categories");
   if (merchantResult.error) throw new Error("Failed to load recent merchants");
 
-  const accountById = new Map(((accountResult.data ?? []) as AccountRow[]).map((a) => [a.id, a]));
-  const categoryById = new Map(((categoryResult.data ?? []) as CategoryRow[]).map((c) => [c.id, c]));
-  const merchantById = new Map(((merchantResult.data ?? []) as MerchantRow[]).map((m) => [m.id, m]));
+  const accountById = new Map(
+    ((accountResult.data ?? []) as AccountRow[]).map((a) => [a.id, a]),
+  );
+  const categoryById = new Map(
+    ((categoryResult.data ?? []) as CategoryRow[]).map((c) => [c.id, c]),
+  );
+  const merchantById = new Map(
+    ((merchantResult.data ?? []) as MerchantRow[]).map((m) => [m.id, m]),
+  );
 
   const recentTransactions = recentRecords.map((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
     const firstItem = recordItems[0];
-    const account = firstItem ? accountById.get(firstItem.account_id) : undefined;
-    const merchant = record.merchant_id ? merchantById.get(record.merchant_id) : undefined;
+    const account = firstItem
+      ? accountById.get(firstItem.account_id)
+      : undefined;
+    const merchant = record.merchant_id
+      ? merchantById.get(record.merchant_id)
+      : undefined;
 
-    const totalAmount = recordItems.reduce((sum, i) => sum + Number(i.amount), 0);
+    const totalAmount = recordItems.reduce(
+      (sum, i) => sum + Number(i.amount),
+      0,
+    );
 
     const categoryItems = recordItems
       .filter((i) => i.category_id !== null)
       .map((i) => {
         const cat = categoryById.get(i.category_id!);
-        const parent = cat?.parent_id ? categoryById.get(cat.parent_id) : undefined;
+        const parent = cat?.parent_id
+          ? categoryById.get(cat.parent_id)
+          : undefined;
         return {
           categoryName: cat?.name ?? "",
           parentCategoryName: parent?.name ?? null,

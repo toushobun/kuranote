@@ -7,10 +7,19 @@ const meta = {
   component: DashboardHome,
   args: {
     data: {
-      accountSummary: { accountCount: 2, currency: "JPY", totalBalance: "350000" },
+      accountSummary: {
+        accountCount: 2,
+        currency: "JPY",
+        totalBalance: "350000",
+      },
       ledgerName: "家庭账本",
       monthLabel: "2026年6月",
-      monthSummary: { balance: "180000", currency: "JPY", expense: "80000", income: "260000" },
+      monthSummary: {
+        balance: "180000",
+        currency: "JPY",
+        expense: "80000",
+        income: "260000",
+      },
       recentTransactions: [],
       todayExpense: { expense: "331", currency: "JPY", count: 2 },
       weekExpense: { expense: "2840", currency: "JPY", count: 8 },

@@ -35,7 +35,9 @@ function createItem(
     account_currency: "JPY",
     account_name: "日元现金",
     amount: "1234",
-    categoryItems: [{ categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" }],
+    categoryItems: [
+      { categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" },
+    ],
     created_at: "2026-05-29T03:20:10.000Z",
     id: "00000000-0000-4000-8000-000000009001",
     merchant_icon_url: null,
