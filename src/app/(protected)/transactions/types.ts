@@ -1,3 +1,6 @@
+import type { CategorySummaryItem } from "transactions/TransactionRow";
+export type { CategorySummaryItem } from "transactions/TransactionRow";
+
 export const transactionTypeOptions = [
   { label: "支出", value: "expense" },
   { label: "收入", value: "income" },
@@ -30,10 +33,11 @@ export type TransactionListItem = {
   amount: string;
   account_name: string;
   account_currency: string;
-  category_name: string | null;
+  categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
   note: string | null;
+  recorder_name: string | null;
   created_at: string;
 };
 

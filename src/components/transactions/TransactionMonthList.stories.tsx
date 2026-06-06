@@ -12,17 +12,25 @@ function createItem(
   overrides: Partial<TransactionListItem> = {},
 ): TransactionListItem {
   const isExpense = index % 4 !== 0;
+  const amount = String(isExpense ? 800 + index * 120 : 120000);
 
   return {
     account_currency: "JPY",
     account_name: index % 2 === 0 ? "日元现金" : "📘 Debit",
-    amount: String(isExpense ? 800 + index * 120 : 120000),
-    category_name: isExpense ? "餐饮" : "工资",
+    amount,
+    categoryItems: [
+      {
+        amount,
+        categoryName: isExpense ? "餐饮" : "工资",
+        parentCategoryName: isExpense ? "饮食" : null,
+      },
+    ],
     created_at: new Date(Date.UTC(2026, 4, 29, 3, 0, index)).toISOString(),
     id: `00000000-0000-4000-8000-${String(910000 + index).padStart(12, "0")}`,
     merchant_icon_url: null,
     merchant_name: isExpense ? "便利店" : "共達",
     note: index % 3 === 0 ? `Storybook 月度记录 #${index}` : null,
+    recorder_name: null,
     transaction_at: new Date(
       Date.UTC(2026, 4, index <= 3 ? 29 : 28, 3 + index, 15, 0),
     ).toISOString(),
@@ -49,7 +57,13 @@ const monthView: TransactionMonthView = {
       items: [
         createItem(4, {
           amount: "260000",
-          category_name: "工资",
+          categoryItems: [
+            {
+              amount: "260000",
+              categoryName: "工资",
+              parentCategoryName: null,
+            },
+          ],
           merchant_name: "共達",
           type: "income",
         }),

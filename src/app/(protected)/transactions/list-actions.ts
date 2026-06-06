@@ -26,7 +26,13 @@ type TransactionRecordRow = {
   transaction_at: string;
   merchant_id: string | null;
   note: string | null;
+  created_by: string | null;
   created_at: string;
+};
+
+type AppUserRow = {
+  id: string;
+  display_name: string;
 };
 
 type TransactionItemRow = {
@@ -46,6 +52,7 @@ type AccountRow = {
 type CategoryRow = {
   id: string;
   name: string;
+  parent_id: string | null;
 };
 
 type MerchantRow = {
@@ -175,30 +182,41 @@ async function loadTransactionItems(
         .filter((merchantId): merchantId is string => merchantId !== null),
     ),
   ];
+  const recorderIds = [
+    ...new Set(
+      records
+        .map((record) => record.created_by)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
 
-  const [accountResult, categoryResult, merchantResult] = await Promise.all([
-    accountIds.length > 0
-      ? supabase
-          .from("account")
-          .select("id, name, currency")
-          .eq("ledger_id", currentLedger.id)
-          .in("id", accountIds)
-      : Promise.resolve({ data: [], error: null }),
-    categoryIds.length > 0
-      ? supabase
-          .from("category")
-          .select("id, name")
-          .eq("ledger_id", currentLedger.id)
-          .in("id", categoryIds)
-      : Promise.resolve({ data: [], error: null }),
-    merchantIds.length > 0
-      ? supabase
-          .from("merchant")
-          .select("id, name, icon_url")
-          .eq("ledger_id", currentLedger.id)
-          .in("id", merchantIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const [accountResult, categoryResult, merchantResult, recorderResult] =
+    await Promise.all([
+      accountIds.length > 0
+        ? supabase
+            .from("account")
+            .select("id, name, currency")
+            .eq("ledger_id", currentLedger.id)
+            .in("id", accountIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("category")
+        .select("id, name, parent_id")
+        .eq("ledger_id", currentLedger.id),
+      merchantIds.length > 0
+        ? supabase
+            .from("merchant")
+            .select("id, name, icon_url")
+            .eq("ledger_id", currentLedger.id)
+            .in("id", merchantIds)
+        : Promise.resolve({ data: [], error: null }),
+      recorderIds.length > 0
+        ? supabase
+            .from("app_user")
+            .select("id, display_name")
+            .in("id", recorderIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   if (accountResult.error) {
     throw new Error("Failed to load transaction accounts");
@@ -212,9 +230,14 @@ async function loadTransactionItems(
     throw new Error("Failed to load transaction merchants");
   }
 
+  if (recorderResult.error) {
+    throw new Error("Failed to load transaction recorders");
+  }
+
   const accounts = (accountResult.data ?? []) as AccountRow[];
   const categories = (categoryResult.data ?? []) as CategoryRow[];
   const merchants = (merchantResult.data ?? []) as MerchantRow[];
+  const recorders = (recorderResult.data ?? []) as AppUserRow[];
 
   const accountById = new Map(
     accounts.map((account) => [account.id, account] as const),
@@ -225,30 +248,63 @@ async function loadTransactionItems(
   const merchantById = new Map(
     merchants.map((merchant) => [merchant.id, merchant] as const),
   );
-  const itemByRecordId = new Map(
-    items.map((item) => [item.transaction_record_id, item] as const),
+  const recorderById = new Map(
+    recorders.map((user) => [user.id, user] as const),
   );
 
+  const itemsByRecordId = new Map<string, TransactionItemRow[]>();
+  for (const item of items) {
+    const arr = itemsByRecordId.get(item.transaction_record_id) ?? [];
+    arr.push(item);
+    itemsByRecordId.set(item.transaction_record_id, arr);
+  }
+
   return records.map((record) => {
-    const item = itemByRecordId.get(record.id);
-    const account = item ? accountById.get(item.account_id) : undefined;
-    const category = item?.category_id
-      ? categoryById.get(item.category_id)
+    const recordItems = itemsByRecordId.get(record.id) ?? [];
+    const firstItem = recordItems[0];
+    const account = firstItem
+      ? accountById.get(firstItem.account_id)
       : undefined;
     const merchant = record.merchant_id
       ? merchantById.get(record.merchant_id)
       : undefined;
+    const recorder = record.created_by
+      ? recorderById.get(record.created_by)
+      : undefined;
+
+    const totalAmount = recordItems.reduce(
+      (sum, i) => sum + Number(i.amount),
+      0,
+    );
+
+    const categoryItems = recordItems.flatMap((i) => {
+      if (i.category_id === null) return [];
+
+      const cat = categoryById.get(i.category_id);
+      const parent = cat?.parent_id
+        ? categoryById.get(cat.parent_id)
+        : undefined;
+
+      return [
+        {
+          categoryName: cat?.name ?? "",
+          parentCategoryName: parent?.name ?? null,
+          amount: i.amount,
+        },
+      ];
+    });
 
     return {
       account_currency: account?.currency ?? "",
       account_name: account?.name ?? "未知账户",
-      amount: item?.amount ?? "",
-      category_name: category?.name ?? null,
+      amount: String(totalAmount),
+      categoryItems,
       created_at: record.created_at,
       id: record.id,
       merchant_icon_url: merchant?.icon_url ?? null,
       merchant_name: merchant?.name ?? null,
-      note: record.note ?? item?.note ?? null,
+      note: record.note ?? firstItem?.note ?? null,
+      recorder_name: recorder?.display_name ?? null,
       transaction_at: record.transaction_at,
       type: record.type,
     };
@@ -289,7 +345,9 @@ export async function loadTransactionMonthView(
   // Load all records for summary calculation
   const { data: allRecordData, error: allRecordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])
@@ -341,7 +399,9 @@ export async function loadTransactionMonthPage(
 
   const { data: recordData, error: recordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])
@@ -377,7 +437,9 @@ export async function loadTransactionListPage(
 
   const { data: recordData, error: recordError } = await supabase
     .from("transaction_record")
-    .select("id, type, transaction_at, merchant_id, note, created_at")
+    .select(
+      "id, type, transaction_at, merchant_id, note, created_by, created_at",
+    )
     .eq("ledger_id", currentLedger.id)
     .eq("status", "active")
     .in("type", ["expense", "income"])
