@@ -1,11 +1,11 @@
+import type { CategorySummaryItem } from "transactions/TransactionRow";
+
 export type DashboardAmountSummary = {
   income: string;
   expense: string;
   balance: string;
   currency: string;
 };
-
-import type { CategorySummaryItem } from "transactions/TransactionRow";
 
 export type DashboardRecentTransaction = {
   id: string;
