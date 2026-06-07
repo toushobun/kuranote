@@ -89,6 +89,7 @@ export default defineConfig({
         "./src/components/templates/root",
         import.meta.url,
       ).pathname,
+      config: new URL("./src/config", import.meta.url).pathname,
       "settings-page": new URL(
         "./src/components/pages/settings",
         import.meta.url,
@@ -139,6 +140,14 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "node",
+    environment: "jsdom",
+    deps: {
+      optimizer: {
+        web: {
+          // MUI はファイル数が多く変換コストが高いため事前バンドルする
+          include: ["@mui/material", "@mui/icons-material", "@mui/system"],
+        },
+      },
+    },
   },
 });

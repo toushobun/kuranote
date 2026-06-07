@@ -1,5 +1,5 @@
 import { HomePage } from "home-page/Home";
 
-export default function Home() {
+export default function RootPage() {
   return <HomePage />;
 }

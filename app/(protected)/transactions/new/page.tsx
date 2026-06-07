@@ -1,15 +1,11 @@
 import { NewTransactionPage } from "transactions-page/NewTransaction";
 import { getNewTransactionErrorMessage } from "utils/pageErrors";
 
-type NewTransactionPageProps = {
-  searchParams: Promise<{
-    error?: string;
-  }>;
-};
-
-export default async function NewTransactionRoute({
+export default async function NewTransactionPage_Route({
   searchParams,
-}: NewTransactionPageProps) {
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const params = await searchParams;
 
   return (

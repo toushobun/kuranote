@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";

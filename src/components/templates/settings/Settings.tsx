@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
+import { routePaths } from "config/paths";
 import { SettingsAccountsEntry } from "settings-components/SettingsAccountsEntry";
 import { UserThemePicker } from "theme-components/UserThemePicker";
 import { PageCard } from "ui-molecules/PageCard";
@@ -27,7 +28,10 @@ export function SettingsTemplate({
           sx={{ alignItems: "flex-start", justifyContent: "space-between" }}
         >
           <Box>
-            <Link href="/dashboard" style={{ textDecoration: "none" }}>
+            <Link
+              href={routePaths.dashboard}
+              style={{ textDecoration: "none" }}
+            >
               <Typography
                 variant="h4"
                 sx={{
@@ -41,7 +45,7 @@ export function SettingsTemplate({
                 UchiLog
               </Typography>
             </Link>
-            <Link href="/ledgers" style={{ textDecoration: "none" }}>
+            <Link href={routePaths.ledgers} style={{ textDecoration: "none" }}>
               <Typography
                 color="text.secondary"
                 variant="body2"

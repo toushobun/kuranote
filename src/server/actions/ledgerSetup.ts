@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "lib/supabase/server";
+import { ledgerSetupErrorHref, routePaths } from "config/paths";
 
 export async function createLedger(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -12,11 +13,11 @@ export async function createLedger(formData: FormData) {
     .toUpperCase();
 
   if (name.length === 0) {
-    redirect("/ledger-setup?error=name_required");
+    redirect(ledgerSetupErrorHref("name_required"));
   }
 
   if (!/^[A-Z]{3}$/.test(baseCurrency)) {
-    redirect("/ledger-setup?error=currency_invalid");
+    redirect(ledgerSetupErrorHref("currency_invalid"));
   }
 
   const supabase = await createClient();
@@ -26,10 +27,10 @@ export async function createLedger(formData: FormData) {
   });
 
   if (error) {
-    redirect("/ledger-setup?error=create_failed");
+    redirect(ledgerSetupErrorHref("create_failed"));
   }
 
   revalidatePath("/", "layout");
 
-  redirect("/dashboard");
+  redirect(routePaths.dashboard);
 }

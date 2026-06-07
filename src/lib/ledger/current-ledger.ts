@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { createClient } from "lib/supabase/server";
+import { routePaths } from "config/paths";
 
 export type CurrentLedger = {
   id: string;
@@ -44,13 +45,13 @@ export const getCurrentLedgerContext = cache(
     const { data, error } = await supabase.auth.getClaims();
 
     if (error || !data?.claims) {
-      redirect("/login");
+      redirect(routePaths.login);
     }
 
     const userId = data.claims.sub;
 
     if (typeof userId !== "string" || userId.length === 0) {
-      redirect("/login");
+      redirect(routePaths.login);
     }
 
     const email =
@@ -88,7 +89,7 @@ export async function getCurrentLedgerOrRedirect() {
   const context = await getCurrentLedgerContext();
 
   if (!context.currentLedger) {
-    redirect("/ledger-setup");
+    redirect(routePaths.ledgerSetup);
   }
 
   return context.currentLedger;

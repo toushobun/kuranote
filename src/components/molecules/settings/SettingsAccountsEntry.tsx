@@ -2,6 +2,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { routePaths } from "config/paths";
 import { GlassCard } from "ui/GlassCard";
 
 export function SettingsAccountsEntry() {
@@ -28,7 +29,7 @@ export function SettingsAccountsEntry() {
           </Typography>
         </Stack>
 
-        <Button href="/accounts" variant="contained">
+        <Button href={routePaths.accounts} variant="contained">
           打开账户管理
         </Button>
       </Stack>

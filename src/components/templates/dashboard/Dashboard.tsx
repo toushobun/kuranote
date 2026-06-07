@@ -10,6 +10,7 @@ import {
   transactionExpenseColor,
   transactionIncomeColor,
 } from "theme/transactionColors";
+import { routePaths } from "config/paths";
 import { TransactionRow } from "transactions/TransactionRow";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
@@ -112,7 +113,7 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
             最近记录
           </Typography>
           <a
-            href="/transactions"
+            href={routePaths.transactions}
             style={{
               color: primaryPurple,
               fontSize: 13,

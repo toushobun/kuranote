@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 
 import { cleanup, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";

@@ -2,21 +2,18 @@ import { redirect } from "next/navigation";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { LedgerSetupPage } from "ledger-setup-page/LedgerSetup";
+import { routePaths } from "config/paths";
 import { getLedgerSetupErrorMessage } from "utils/pageErrors";
-
-type LedgerSetupRouteProps = {
-  searchParams: Promise<{
-    error?: string;
-  }>;
-};
 
 export default async function LedgerSetupRoute({
   searchParams,
-}: LedgerSetupRouteProps) {
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { currentLedger } = await getCurrentLedgerContext();
 
   if (currentLedger) {
-    redirect("/dashboard");
+    redirect(routePaths.dashboard);
   }
 
   const params = await searchParams;

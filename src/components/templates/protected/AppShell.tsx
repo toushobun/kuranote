@@ -10,14 +10,8 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { BottomNavButton } from "navigation-molecules/BottomNavButton";
+import { bottomNavigationRoutes, routePaths } from "config/paths";
 import { UserThemeProvider } from "theme/UserThemeProvider";
-
-const navItems = [
-  { label: "首页", href: "/dashboard" },
-  { label: "明细", href: "/transactions" },
-  { label: "统计", href: "/statistics" },
-  { label: "设置", href: "/settings" },
-];
 
 type AppShellProps = {
   children: ReactNode;
@@ -27,8 +21,8 @@ type AppShellProps = {
 export function AppShell({ children, email }: AppShellProps) {
   const pathname = usePathname();
   const isCreateTransactionPage =
-    pathname === "/transactions/new" ||
-    pathname.startsWith("/transactions/new/");
+    pathname === routePaths.transactionsNew ||
+    pathname.startsWith(`${routePaths.transactionsNew}/`);
   const isBottomNavSelected = (href: string) =>
     !isCreateTransactionPage &&
     (pathname === href || pathname.startsWith(`${href}/`));
@@ -105,19 +99,19 @@ export function AppShell({ children, email }: AppShellProps) {
               }}
             >
               <BottomNavButton
-                href={navItems[0].href}
-                label={navItems[0].label}
-                selected={isBottomNavSelected(navItems[0].href)}
+                href={bottomNavigationRoutes[0].href}
+                label={bottomNavigationRoutes[0].label}
+                selected={isBottomNavSelected(bottomNavigationRoutes[0].href)}
               />
               <BottomNavButton
-                href={navItems[1].href}
-                label={navItems[1].label}
-                selected={isBottomNavSelected(navItems[1].href)}
+                href={bottomNavigationRoutes[1].href}
+                label={bottomNavigationRoutes[1].label}
+                selected={isBottomNavSelected(bottomNavigationRoutes[1].href)}
               />
               <Button
                 aria-label="新增记录"
                 component={Link}
-                href="/transactions/new"
+                href={routePaths.transactionsNew}
                 variant="text"
                 sx={{
                   alignItems: "center",
@@ -167,14 +161,14 @@ export function AppShell({ children, email }: AppShellProps) {
                 />
               </Button>
               <BottomNavButton
-                href={navItems[2].href}
-                label={navItems[2].label}
-                selected={isBottomNavSelected(navItems[2].href)}
+                href={bottomNavigationRoutes[2].href}
+                label={bottomNavigationRoutes[2].label}
+                selected={isBottomNavSelected(bottomNavigationRoutes[2].href)}
               />
               <BottomNavButton
-                href={navItems[3].href}
-                label={navItems[3].label}
-                selected={isBottomNavSelected(navItems[3].href)}
+                href={bottomNavigationRoutes[3].href}
+                label={bottomNavigationRoutes[3].label}
+                selected={isBottomNavSelected(bottomNavigationRoutes[3].href)}
               />
             </Stack>
           </Container>

@@ -44,6 +44,7 @@
       "providers/*": ["./src/components/providers/*"],
       "protected-template/*": ["./src/components/templates/protected/*"],
       "root-template/*": ["./src/components/templates/root/*"],
+      "config/*": ["./src/config/*"],
       "settings-page/*": ["./src/components/pages/settings/*"],
       "settings-template/*": ["./src/components/templates/settings/*"],
       "server/*": ["./src/server/*"],

@@ -2,6 +2,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { transactionsMonthHref } from "config/paths";
 import { TransactionMonthList } from "transactions/TransactionMonthList";
 import type {
   TransactionMonthPage,
@@ -44,7 +45,7 @@ export function TransactionsTemplate({
         }}
       >
         <Button
-          href={`/transactions?month=${monthView.previousMonth}`}
+          href={transactionsMonthHref(monthView.previousMonth)}
           size="small"
           sx={{ color: "text.secondary", minWidth: 40 }}
         >
@@ -52,7 +53,7 @@ export function TransactionsTemplate({
         </Button>
         <Typography sx={{ fontWeight: 800 }}>{monthView.monthLabel}</Typography>
         <Button
-          href={`/transactions?month=${monthView.nextMonth}`}
+          href={transactionsMonthHref(monthView.nextMonth)}
           size="small"
           sx={{ color: "text.secondary", minWidth: 40 }}
         >

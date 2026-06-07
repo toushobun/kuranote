@@ -2,7 +2,6 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import type { CSSProperties, ReactNode } from "react";
 
 import { AppProviders } from "providers/AppProviders";
-import { createLastUserThemeInitScript } from "theme/userThemeInitScript";
 import { defaultUserThemeCssVariables } from "theme/userThemeCssVariables";
 
 type RootLayoutShellProps = {
@@ -17,11 +16,6 @@ export function RootLayoutShell({ children }: RootLayoutShellProps) {
       suppressHydrationWarning
     >
       <body>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: createLastUserThemeInitScript(),
-          }}
-        />
         <AppRouterCacheProvider>
           <AppProviders>{children}</AppProviders>
         </AppRouterCacheProvider>

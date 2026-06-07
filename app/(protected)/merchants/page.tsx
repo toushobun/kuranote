@@ -1,17 +1,11 @@
 import { MerchantsHome } from "merchants-page/Merchants";
 import { getMerchantErrorMessage } from "utils/pageErrors";
 
-type MerchantsPageProps = {
-  searchParams: Promise<{
-    error?: string;
-    merchantId?: string;
-    q?: string;
-  }>;
-};
-
 export default async function MerchantsPage({
   searchParams,
-}: MerchantsPageProps) {
+}: {
+  searchParams: Promise<{ error?: string; merchantId?: string; q?: string }>;
+}) {
   const params = await searchParams;
 
   return (

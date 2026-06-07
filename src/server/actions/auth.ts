@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "lib/supabase/server";
+import { routePaths } from "config/paths";
 import type { LoginActionState } from "types/auth";
 
 export async function login(
@@ -31,5 +32,5 @@ export async function login(
     };
   }
 
-  redirect("/dashboard");
+  redirect(routePaths.dashboard);
 }
