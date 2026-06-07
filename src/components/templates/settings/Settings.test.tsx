@@ -4,7 +4,7 @@ import { cleanup, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SettingsPage } from "./SettingsPage";
+import { SettingsTemplate } from "./Settings";
 
 vi.mock("theme-components/UserThemePicker", () => ({
   UserThemePicker: (): ReactNode => <div data-testid="user-theme-picker" />,
@@ -14,10 +14,10 @@ afterEach(() => {
   cleanup();
 });
 
-describe("SettingsPage", () => {
+describe("SettingsTemplate", () => {
   it("显示当前账本名称", () => {
     const { container } = render(
-      <SettingsPage currentLedgerName="家庭账本" email="test@example.com" />,
+      <SettingsTemplate currentLedgerName="家庭账本" email="test@example.com" />,
     );
 
     expect(within(container).getByText("当前账本：家庭账本")).toBeTruthy();
@@ -25,7 +25,7 @@ describe("SettingsPage", () => {
 
   it("账户管理区域显示标题和说明文字", () => {
     const { container } = render(
-      <SettingsPage currentLedgerName="家庭账本" email="test@example.com" />,
+      <SettingsTemplate currentLedgerName="家庭账本" email="test@example.com" />,
     );
 
     expect(
@@ -40,7 +40,7 @@ describe("SettingsPage", () => {
 
   it("打开账户管理按钮链接到账户管理页面", () => {
     const { container } = render(
-      <SettingsPage currentLedgerName="家庭账本" email="test@example.com" />,
+      <SettingsTemplate currentLedgerName="家庭账本" email="test@example.com" />,
     );
 
     expect(

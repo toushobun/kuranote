@@ -5,16 +5,20 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { SettingsAccountsEntry } from "settings-components/SettingsAccountsEntry";
-import { logout } from "server/actions/session";
 import { UserThemePicker } from "theme-components/UserThemePicker";
 import { PageCard } from "ui-molecules/PageCard";
 
-type SettingsPageProps = {
+type SettingsTemplateProps = {
   currentLedgerName: string;
   email: string;
+  logoutAction: (formData: FormData) => void | Promise<void>;
 };
 
-export function SettingsPage({ currentLedgerName, email }: SettingsPageProps) {
+export function SettingsTemplate({
+  currentLedgerName,
+  email,
+  logoutAction,
+}: SettingsTemplateProps) {
   return (
     <Stack spacing={3}>
       <PageCard>
@@ -50,7 +54,7 @@ export function SettingsPage({ currentLedgerName, email }: SettingsPageProps) {
               {email}
             </Typography>
           </Box>
-          <form action={logout}>
+          <form action={logoutAction}>
             <Button
               type="submit"
               variant="outlined"

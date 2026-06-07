@@ -5,31 +5,36 @@ import Typography from "@mui/material/Typography";
 
 import { MerchantForm } from "merchants/MerchantForm";
 import { MerchantList } from "merchants/MerchantList";
-import {
-  archiveMerchant,
-  archiveMerchantAlias,
-  createMerchant,
-  createMerchantAlias,
-  updateMerchant,
-} from "server/actions/merchants";
 import type { MerchantRow } from "types/merchants";
 import { PageCard } from "ui-molecules/PageCard";
 
-type MerchantsHomeProps = {
+type MerchantAction = (formData: FormData) => void | Promise<void>;
+
+type MerchantsTemplateProps = {
+  archiveMerchantAction: MerchantAction;
+  archiveMerchantAliasAction: MerchantAction;
+  createMerchantAction: MerchantAction;
+  createMerchantAliasAction: MerchantAction;
   errorMerchantId: string | null;
   errorMessage: string | null;
   keyword: string;
   ledgerName: string;
   merchants: MerchantRow[];
+  updateMerchantAction: MerchantAction;
 };
 
-export function MerchantsHome({
+export function MerchantsTemplate({
+  archiveMerchantAction,
+  archiveMerchantAliasAction,
+  createMerchantAction,
+  createMerchantAliasAction,
   errorMerchantId,
   errorMessage,
   keyword,
   ledgerName,
   merchants,
-}: MerchantsHomeProps) {
+  updateMerchantAction,
+}: MerchantsTemplateProps) {
   return (
     <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -69,15 +74,15 @@ export function MerchantsHome({
         </Stack>
       </PageCard>
 
-      <MerchantForm action={createMerchant} />
+      <MerchantForm action={createMerchantAction} />
       <MerchantList
-        archiveAliasAction={archiveMerchantAlias}
-        archiveMerchantAction={archiveMerchant}
-        createAliasAction={createMerchantAlias}
+        archiveAliasAction={archiveMerchantAliasAction}
+        archiveMerchantAction={archiveMerchantAction}
+        createAliasAction={createMerchantAliasAction}
         errorMerchantId={errorMerchantId}
         errorMessage={errorMessage}
         merchants={merchants}
-        updateMerchantAction={updateMerchant}
+        updateMerchantAction={updateMerchantAction}
       />
     </PageCard>
   );

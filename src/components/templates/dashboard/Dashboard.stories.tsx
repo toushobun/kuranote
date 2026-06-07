@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { DashboardHome } from "./DashboardHome";
+import { DashboardTemplate } from "./Dashboard";
 
 const meta = {
-  title: "Pages/Dashboard/DashboardHome",
-  component: DashboardHome,
+  title: "Templates/Dashboard/DashboardTemplate",
+  component: DashboardTemplate,
   args: {
     data: {
       ledgerName: "家庭账本",
@@ -20,7 +20,7 @@ const meta = {
       weekExpense: { expense: "2840", currency: "JPY", recordCount: 8 },
     },
   },
-} satisfies Meta<typeof DashboardHome>;
+} satisfies Meta<typeof DashboardTemplate>;
 
 export default meta;
 

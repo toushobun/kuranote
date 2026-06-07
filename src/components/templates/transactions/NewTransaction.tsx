@@ -1,6 +1,5 @@
 import Typography from "@mui/material/Typography";
 
-import { createTransaction } from "server/actions/transactions";
 import { TransactionForm } from "transactions/TransactionForm";
 import type {
   TransactionAccountOption,
@@ -9,21 +8,23 @@ import type {
 } from "types/transactions";
 import { PageCard } from "ui-molecules/PageCard";
 
-type NewTransactionPageProps = {
+type NewTransactionTemplateProps = {
   accountOptions: TransactionAccountOption[];
+  action: (formData: FormData) => void | Promise<void>;
   categoryOptions: TransactionCategoryOption[];
   errorMessage: string | null;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
 };
 
-export function NewTransactionPage({
+export function NewTransactionTemplate({
   accountOptions,
+  action,
   categoryOptions,
   errorMessage,
   ledgerName,
   merchantOptions,
-}: NewTransactionPageProps) {
+}: NewTransactionTemplateProps) {
   return (
     <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -37,7 +38,7 @@ export function NewTransactionPage({
       </Typography>
 
       <TransactionForm
-        action={createTransaction}
+        action={action}
         accountOptions={accountOptions}
         categoryOptions={categoryOptions}
         errorMessage={errorMessage}

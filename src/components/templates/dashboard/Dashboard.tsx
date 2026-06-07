@@ -17,7 +17,7 @@ import { formatNumber } from "utils/transactions";
 const primaryPurple = "#6d4bb3";
 const summaryCardBg = "#e8e0f8";
 
-export function DashboardHome({ data }: { data: DashboardViewData }) {
+export function DashboardTemplate({ data }: { data: DashboardViewData }) {
   const {
     monthLabel,
     monthSummary,

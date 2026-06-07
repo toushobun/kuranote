@@ -1,8 +1,5 @@
-import { CategoriesPage as CategoriesPageView } from "categories-page/CategoriesPage";
-import { loadCategoriesView } from "server/loaders/categories";
+import { CategoriesPage } from "categories-page/Categories";
 
-export default async function CategoriesPage() {
-  const view = await loadCategoriesView();
-
-  return <CategoriesPageView {...view} />;
+export default function CategoriesRoute() {
+  return <CategoriesPage />;
 }

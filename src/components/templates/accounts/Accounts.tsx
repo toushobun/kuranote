@@ -2,29 +2,32 @@ import Typography from "@mui/material/Typography";
 
 import { AccountForm } from "accounts/AccountForm";
 import { AccountList } from "accounts/AccountList";
-import {
-  archiveAccount,
-  createAccount,
-  updateAccount,
-} from "server/actions/accounts";
 import type { AccountHolderOption, AccountRow } from "types/accounts";
 import { PageCard } from "ui-molecules/PageCard";
 
-type AccountsHomeProps = {
+type ServerAction = (formData: FormData) => void | Promise<void>;
+
+type AccountsTemplateProps = {
   accounts: AccountRow[];
+  archiveAccountAction: ServerAction;
   baseCurrency: string;
+  createAccountAction: ServerAction;
   errorMessage: string | null;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
+  updateAccountAction: ServerAction;
 };
 
-export function AccountsHome({
+export function AccountsTemplate({
   accounts,
+  archiveAccountAction,
   baseCurrency,
+  createAccountAction,
   errorMessage,
   holderOptions,
   ledgerName,
-}: AccountsHomeProps) {
+  updateAccountAction,
+}: AccountsTemplateProps) {
   return (
     <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -44,15 +47,15 @@ export function AccountsHome({
       ) : null}
 
       <AccountForm
-        createAccountAction={createAccount}
+        createAccountAction={createAccountAction}
         defaultCurrency={baseCurrency}
         holderOptions={holderOptions}
       />
       <AccountList
         accounts={accounts}
-        archiveAccountAction={archiveAccount}
+        archiveAccountAction={archiveAccountAction}
         holderOptions={holderOptions}
-        updateAccountAction={updateAccount}
+        updateAccountAction={updateAccountAction}
       />
     </PageCard>
   );

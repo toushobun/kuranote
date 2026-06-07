@@ -4,9 +4,12 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
 import { LoginForm } from "auth/LoginForm";
-import { login } from "server/actions/auth";
 
-export function LoginPage() {
+type LoginTemplateProps = {
+  action: Parameters<typeof LoginForm>[0]["action"];
+};
+
+export function LoginTemplate({ action }: LoginTemplateProps) {
   return (
     <Box
       component="main"
@@ -33,7 +36,7 @@ export function LoginPage() {
             登录后开始使用记账功能
           </Typography>
 
-          <LoginForm action={login} />
+          <LoginForm action={action} />
         </Paper>
       </Container>
     </Box>

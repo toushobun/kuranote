@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { DashboardHome } from "./DashboardHome";
+import { DashboardTemplate } from "./Dashboard";
 
 const data = {
   ledgerName: "家庭账本",
@@ -19,9 +19,9 @@ const data = {
   weekExpense: { expense: "2840", currency: "JPY", recordCount: 8 },
 };
 
-describe("DashboardHome", () => {
+describe("DashboardTemplate", () => {
   it("显示首页摘要", () => {
-    render(<DashboardHome data={data} />);
+    render(<DashboardTemplate data={data} />);
 
     expect(screen.getByText("2026年6月")).toBeTruthy();
     expect(screen.getByText("结余")).toBeTruthy();

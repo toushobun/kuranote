@@ -1,8 +1,5 @@
-import { LoginPage as LoginPageView } from "login-page/LoginPage";
-import { loadLoginView } from "server/loaders/login";
+import { LoginPage } from "login-page/Login";
 
-export default async function LoginPage() {
-  await loadLoginView();
-
-  return <LoginPageView />;
+export default function LoginRoute() {
+  return <LoginPage />;
 }

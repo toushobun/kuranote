@@ -1,8 +1,5 @@
-import { loadSettingsView } from "server/loaders/settings";
-import { SettingsPage as SettingsPageView } from "settings-page/SettingsPage";
+import { SettingsPage } from "settings-page/Settings";
 
-export default async function SettingsPage() {
-  const view = await loadSettingsView();
-
-  return <SettingsPageView {...view} />;
+export default function SettingsRoute() {
+  return <SettingsPage />;
 }

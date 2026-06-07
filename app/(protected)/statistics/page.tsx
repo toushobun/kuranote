@@ -1,8 +1,5 @@
-import { StatisticsPage as StatisticsPageView } from "statistics-page/StatisticsPage";
-import { loadStatisticsView } from "server/loaders/statistics";
+import { StatisticsPage } from "statistics-page/Statistics";
 
-export default async function StatisticsPage() {
-  const view = await loadStatisticsView();
-
-  return <StatisticsPageView {...view} />;
+export default function StatisticsRoute() {
+  return <StatisticsPage />;
 }

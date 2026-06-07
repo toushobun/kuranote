@@ -1,18 +1,18 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { LedgerSetupPage as LedgerSetupPageView } from "ledger-setup-page/LedgerSetupPage";
+import { LedgerSetupPage } from "ledger-setup-page/LedgerSetup";
 import { getLedgerSetupErrorMessage } from "utils/pageErrors";
 
-type LedgerSetupPageProps = {
+type LedgerSetupRouteProps = {
   searchParams: Promise<{
     error?: string;
   }>;
 };
 
-export default async function LedgerSetupPage({
+export default async function LedgerSetupRoute({
   searchParams,
-}: LedgerSetupPageProps) {
+}: LedgerSetupRouteProps) {
   const { currentLedger } = await getCurrentLedgerContext();
 
   if (currentLedger) {
@@ -22,7 +22,7 @@ export default async function LedgerSetupPage({
   const params = await searchParams;
 
   return (
-    <LedgerSetupPageView
+    <LedgerSetupPage
       errorMessage={getLedgerSetupErrorMessage(params.error)}
     />
   );

@@ -1,8 +1,5 @@
-import { LedgersPage as LedgersPageView } from "ledgers-page/LedgersPage";
-import { loadLedgersView } from "server/loaders/ledgers";
+import { LedgersPage } from "ledgers-page/Ledgers";
 
-export default async function LedgersPage() {
-  const view = await loadLedgersView();
-
-  return <LedgersPageView {...view} />;
+export default function LedgersRoute() {
+  return <LedgersPage />;
 }

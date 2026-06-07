@@ -1,5 +1,4 @@
-import { loadNewTransactionView } from "server/loaders/newTransaction";
-import { NewTransactionPage as NewTransactionPageView } from "transactions-page/NewTransactionPage";
+import { NewTransactionPage } from "transactions-page/NewTransaction";
 import { getNewTransactionErrorMessage } from "utils/pageErrors";
 
 type NewTransactionPageProps = {
@@ -8,16 +7,14 @@ type NewTransactionPageProps = {
   }>;
 };
 
-export default async function NewTransactionPage({
+export default async function NewTransactionRoute({
   searchParams,
 }: NewTransactionPageProps) {
   const params = await searchParams;
-  const view = await loadNewTransactionView();
 
   return (
-    <NewTransactionPageView
+    <NewTransactionPage
       errorMessage={getNewTransactionErrorMessage(params.error)}
-      {...view}
     />
   );
 }

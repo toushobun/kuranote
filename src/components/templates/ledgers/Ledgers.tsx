@@ -7,12 +7,12 @@ import Typography from "@mui/material/Typography";
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import { PageCard } from "ui-molecules/PageCard";
 
-type LedgersPageProps = {
+type LedgersTemplateProps = {
   currentLedgerId: string;
   ledgers: CurrentLedger[];
 };
 
-export function LedgersPage({ currentLedgerId, ledgers }: LedgersPageProps) {
+export function LedgersTemplate({ currentLedgerId, ledgers }: LedgersTemplateProps) {
   return (
     <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>

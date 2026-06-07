@@ -8,7 +8,7 @@ import type {
   TransactionMonthView,
 } from "types/transactions";
 
-type TransactionsHomeProps = {
+type TransactionsTemplateProps = {
   errorMessage: string | null;
   loadMoreAction: (offset: number) => Promise<TransactionMonthPage>;
   monthView: TransactionMonthView;
@@ -17,12 +17,12 @@ type TransactionsHomeProps = {
 
 const monthNavigationBackground = "#f4efff";
 
-export function TransactionsHome({
+export function TransactionsTemplate({
   errorMessage,
   loadMoreAction,
   monthView,
   voidAction,
-}: TransactionsHomeProps) {
+}: TransactionsTemplateProps) {
   return (
     <Stack spacing={2.2}>
       <Stack direction="row" sx={{ alignItems: "center" }}>

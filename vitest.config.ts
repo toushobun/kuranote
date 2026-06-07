@@ -10,10 +10,18 @@ export default defineConfig({
         "./src/components/pages/accounts",
         import.meta.url,
       ).pathname,
+      "accounts-template": new URL(
+        "./src/components/templates/accounts",
+        import.meta.url,
+      ).pathname,
       auth: new URL("./src/components/organisms/auth", import.meta.url)
         .pathname,
       "categories-page": new URL(
         "./src/components/pages/categories",
+        import.meta.url,
+      ).pathname,
+      "categories-template": new URL(
+        "./src/components/templates/categories",
         import.meta.url,
       ).pathname,
       "dashboard-molecules": new URL(
@@ -24,16 +32,30 @@ export default defineConfig({
         "./src/components/pages/dashboard",
         import.meta.url,
       ).pathname,
+      "dashboard-template": new URL(
+        "./src/components/templates/dashboard",
+        import.meta.url,
+      ).pathname,
       "home-page": new URL("./src/components/pages/home", import.meta.url)
+        .pathname,
+      "home-template": new URL("./src/components/templates/home", import.meta.url)
         .pathname,
       "ledger-setup-page": new URL(
         "./src/components/pages/ledger-setup",
         import.meta.url,
       ).pathname,
+      "ledger-setup-template": new URL(
+        "./src/components/templates/ledger-setup",
+        import.meta.url,
+      ).pathname,
       "ledgers-page": new URL("./src/components/pages/ledgers", import.meta.url)
+        .pathname,
+      "ledgers-template": new URL("./src/components/templates/ledgers", import.meta.url)
         .pathname,
       lib: new URL("./src/lib", import.meta.url).pathname,
       "login-page": new URL("./src/components/pages/login", import.meta.url)
+        .pathname,
+      "login-template": new URL("./src/components/templates/login", import.meta.url)
         .pathname,
       merchants: new URL(
         "./src/components/organisms/merchants",
@@ -41,6 +63,10 @@ export default defineConfig({
       ).pathname,
       "merchants-page": new URL(
         "./src/components/pages/merchants",
+        import.meta.url,
+      ).pathname,
+      "merchants-template": new URL(
+        "./src/components/templates/merchants",
         import.meta.url,
       ).pathname,
       "navigation-molecules": new URL(
@@ -61,6 +87,10 @@ export default defineConfig({
         "./src/components/pages/settings",
         import.meta.url,
       ).pathname,
+      "settings-template": new URL(
+        "./src/components/templates/settings",
+        import.meta.url,
+      ).pathname,
       server: new URL("./src/server", import.meta.url).pathname,
       "settings-components": new URL(
         "./src/components/molecules/settings",
@@ -68,6 +98,10 @@ export default defineConfig({
       ).pathname,
       "statistics-page": new URL(
         "./src/components/pages/statistics",
+        import.meta.url,
+      ).pathname,
+      "statistics-template": new URL(
+        "./src/components/templates/statistics",
         import.meta.url,
       ).pathname,
       theme: new URL("./src/theme", import.meta.url).pathname,
@@ -87,6 +121,10 @@ export default defineConfig({
       ).pathname,
       "transactions-page": new URL(
         "./src/components/pages/transactions",
+        import.meta.url,
+      ).pathname,
+      "transactions-template": new URL(
+        "./src/components/templates/transactions",
         import.meta.url,
       ).pathname,
       ui: new URL("./src/components/atoms/ui", import.meta.url).pathname,
