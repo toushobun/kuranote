@@ -9,7 +9,9 @@ const expenseItem = {
   amount: "1234",
   account_name: "日元现金",
   account_currency: "JPY",
-  categoryItems: [{ categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" }],
+  categoryItems: [
+    { categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" },
+  ],
   merchant_name: "便利店",
   merchant_icon_url: null,
   note: "测试备注",
@@ -22,7 +24,9 @@ const incomeItem = {
   id: "00000000-0000-4000-8000-000000009002",
   type: "income" as const,
   amount: "120000",
-  categoryItems: [{ categoryName: "工资", parentCategoryName: null, amount: "120000" }],
+  categoryItems: [
+    { categoryName: "工资", parentCategoryName: null, amount: "120000" },
+  ],
   merchant_name: "共達",
   note: null,
 };

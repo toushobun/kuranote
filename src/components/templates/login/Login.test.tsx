@@ -38,9 +38,7 @@ describe("LoginTemplate", () => {
       <LoginTemplate action={vi.fn(async () => ({}))} />,
     );
 
-    expect(
-      within(container).getByText("登录后开始使用记账功能"),
-    ).toBeTruthy();
+    expect(within(container).getByText("登录后开始使用记账功能")).toBeTruthy();
   });
 
   it("渲染登录表单", () => {

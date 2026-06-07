@@ -3,17 +3,37 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { NewTransactionTemplate } from "./NewTransaction";
 
 const accountOptions = [
-  { id: "00000000-0000-4000-8000-000000000045", name: "日元现金", currency: "JPY" },
-  { id: "00000000-0000-4000-8000-000000000046", name: "三井住友银行", currency: "JPY" },
+  {
+    id: "00000000-0000-4000-8000-000000000045",
+    name: "日元现金",
+    currency: "JPY",
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000046",
+    name: "三井住友银行",
+    currency: "JPY",
+  },
 ];
 
 const categoryOptions = [
-  { id: "00000000-0000-4000-8000-000000005072", name: "餐饮", type: "expense" as const },
-  { id: "00000000-0000-4000-8000-000000005073", name: "工资", type: "income" as const },
+  {
+    id: "00000000-0000-4000-8000-000000005072",
+    name: "餐饮",
+    type: "expense" as const,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000005073",
+    name: "工资",
+    type: "income" as const,
+  },
 ];
 
 const merchantOptions = [
-  { id: "00000000-0000-4000-8000-000000001001", name: "便利店", icon_url: null },
+  {
+    id: "00000000-0000-4000-8000-000000001001",
+    name: "便利店",
+    icon_url: null,
+  },
 ];
 
 const meta = {

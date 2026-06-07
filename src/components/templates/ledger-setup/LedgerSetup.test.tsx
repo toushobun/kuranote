@@ -31,7 +31,9 @@ describe("LedgerSetupTemplate", () => {
   it("账本名称输入框默认值为家庭账本", () => {
     const { container } = render(<LedgerSetupTemplate {...baseProps} />);
 
-    const input = within(container).getByLabelText(/账本名称/) as HTMLInputElement;
+    const input = within(container).getByLabelText(
+      /账本名称/,
+    ) as HTMLInputElement;
 
     expect(input.value).toBe("家庭账本");
   });

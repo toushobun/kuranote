@@ -37,9 +37,9 @@ describe("BottomNavButton", () => {
       <BottomNavButton href="/dashboard" label="仪表盘" selected={false} />,
     );
 
-    expect(
-      within(container).getByRole("link").getAttribute("href"),
-    ).toBe("/dashboard");
+    expect(within(container).getByRole("link").getAttribute("href")).toBe(
+      "/dashboard",
+    );
   });
 
   it("选中状态时 aria-current 为 page", () => {

@@ -8,7 +8,12 @@ const groups: TransactionDateGroup[] = [
   {
     date: "2026-06-05",
     label: "06/05 周五",
-    summary: { currency: "JPY", income: "0", expense: "3120", balance: "-3120" },
+    summary: {
+      currency: "JPY",
+      income: "0",
+      expense: "3120",
+      balance: "-3120",
+    },
     items: [
       {
         id: "00000000-0000-4000-8000-000000009001",
@@ -17,7 +22,9 @@ const groups: TransactionDateGroup[] = [
         amount: "1200",
         account_name: "日元现金",
         account_currency: "JPY",
-        categoryItems: [{ categoryName: "餐饮", parentCategoryName: "饮食", amount: "1200" }],
+        categoryItems: [
+          { categoryName: "餐饮", parentCategoryName: "饮食", amount: "1200" },
+        ],
         merchant_name: "便利店",
         merchant_icon_url: null,
         note: null,

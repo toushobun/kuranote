@@ -10,7 +10,10 @@ afterEach(() => {
 describe("EmptyState", () => {
   it("显示标题文字", () => {
     const { container } = render(
-      <EmptyState title="还没有账户" description="点击下方按钮新增第一个账户。" />,
+      <EmptyState
+        title="还没有账户"
+        description="点击下方按钮新增第一个账户。"
+      />,
     );
 
     expect(within(container).getByText("还没有账户")).toBeTruthy();
@@ -18,7 +21,10 @@ describe("EmptyState", () => {
 
   it("显示描述文字", () => {
     const { container } = render(
-      <EmptyState title="还没有账户" description="点击下方按钮新增第一个账户。" />,
+      <EmptyState
+        title="还没有账户"
+        description="点击下方按钮新增第一个账户。"
+      />,
     );
 
     expect(

@@ -11,7 +11,12 @@ describe("TransactionSummaryBar", () => {
   it("显示收入标签", () => {
     const { container } = render(
       <TransactionSummaryBar
-        summary={{ currency: "JPY", income: "260000", expense: "80000", balance: "180000" }}
+        summary={{
+          currency: "JPY",
+          income: "260000",
+          expense: "80000",
+          balance: "180000",
+        }}
       />,
     );
 
@@ -21,7 +26,12 @@ describe("TransactionSummaryBar", () => {
   it("显示支出标签", () => {
     const { container } = render(
       <TransactionSummaryBar
-        summary={{ currency: "JPY", income: "260000", expense: "80000", balance: "180000" }}
+        summary={{
+          currency: "JPY",
+          income: "260000",
+          expense: "80000",
+          balance: "180000",
+        }}
       />,
     );
 
@@ -31,7 +41,12 @@ describe("TransactionSummaryBar", () => {
   it("显示结余标签", () => {
     const { container } = render(
       <TransactionSummaryBar
-        summary={{ currency: "JPY", income: "260000", expense: "80000", balance: "180000" }}
+        summary={{
+          currency: "JPY",
+          income: "260000",
+          expense: "80000",
+          balance: "180000",
+        }}
       />,
     );
 
@@ -41,7 +56,12 @@ describe("TransactionSummaryBar", () => {
   it("显示格式化后的收入金额", () => {
     const { container } = render(
       <TransactionSummaryBar
-        summary={{ currency: "JPY", income: "260000", expense: "80000", balance: "180000" }}
+        summary={{
+          currency: "JPY",
+          income: "260000",
+          expense: "80000",
+          balance: "180000",
+        }}
       />,
     );
 
@@ -51,7 +71,12 @@ describe("TransactionSummaryBar", () => {
   it("显示格式化后的支出金额", () => {
     const { container } = render(
       <TransactionSummaryBar
-        summary={{ currency: "JPY", income: "260000", expense: "80000", balance: "180000" }}
+        summary={{
+          currency: "JPY",
+          income: "260000",
+          expense: "80000",
+          balance: "180000",
+        }}
       />,
     );
 

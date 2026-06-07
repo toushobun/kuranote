@@ -26,9 +26,7 @@ describe("CategoriesTemplate", () => {
     const { container } = render(<CategoriesTemplate ledgerName="家庭账本" />);
 
     expect(
-      within(container).getByText(
-        "分类列表和新增功能将在后续 Issue 中实现。",
-      ),
+      within(container).getByText("分类列表和新增功能将在后续 Issue 中实现。"),
     ).toBeTruthy();
   });
 });

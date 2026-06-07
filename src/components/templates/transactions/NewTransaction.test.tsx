@@ -11,9 +11,7 @@ vi.mock("transactions/TransactionForm", () => ({
     errorMessage: string | null;
   }): ReactNode => (
     <div data-testid="transaction-form">
-      {errorMessage ? (
-        <div role="alert">{errorMessage}</div>
-      ) : null}
+      {errorMessage ? <div role="alert">{errorMessage}</div> : null}
     </div>
   ),
 }));

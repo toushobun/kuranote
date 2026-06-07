@@ -70,6 +70,8 @@ describe("AccountCard", () => {
       />,
     );
 
-    expect(within(container).getByRole("button", { name: "编辑" })).toBeTruthy();
+    expect(
+      within(container).getByRole("button", { name: "编辑" }),
+    ).toBeTruthy();
   });
 });

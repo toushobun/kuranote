@@ -22,11 +22,18 @@ afterEach(() => {
   cleanup();
 });
 
-function makeGroup(overrides?: Partial<TransactionDateGroup>): TransactionDateGroup {
+function makeGroup(
+  overrides?: Partial<TransactionDateGroup>,
+): TransactionDateGroup {
   return {
     date: "2026-06-05",
     label: "06/05 周五",
-    summary: { currency: "JPY", income: "0", expense: "1200", balance: "-1200" },
+    summary: {
+      currency: "JPY",
+      income: "0",
+      expense: "1200",
+      balance: "-1200",
+    },
     items: [
       {
         id: "00000000-0000-4000-8000-000000009001",
@@ -35,7 +42,9 @@ function makeGroup(overrides?: Partial<TransactionDateGroup>): TransactionDateGr
         amount: "1200",
         account_name: "日元现金",
         account_currency: "JPY",
-        categoryItems: [{ categoryName: "餐饮", parentCategoryName: null, amount: "1200" }],
+        categoryItems: [
+          { categoryName: "餐饮", parentCategoryName: null, amount: "1200" },
+        ],
         merchant_name: "便利店",
         merchant_icon_url: null,
         note: null,
@@ -61,7 +70,9 @@ describe("TransactionGroupList", () => {
       <TransactionGroupList groups={[makeGroup()]} />,
     );
 
-    expect(within(container).getByTestId("row-00000000-0000-4000-8000-000000009001")).toBeTruthy();
+    expect(
+      within(container).getByTestId("row-00000000-0000-4000-8000-000000009001"),
+    ).toBeTruthy();
   });
 
   it("显示多个分组", () => {

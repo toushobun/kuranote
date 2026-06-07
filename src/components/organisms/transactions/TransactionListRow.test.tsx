@@ -67,7 +67,9 @@ describe("TransactionListRow", () => {
 
   it("收入金额显示正号格式", () => {
     render(
-      <TransactionListRow item={createItem({ type: "income", amount: "120000" })} />,
+      <TransactionListRow
+        item={createItem({ type: "income", amount: "120000" })}
+      />,
     );
 
     expect(screen.getByText("+120,000 JPY")).toBeTruthy();

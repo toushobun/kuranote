@@ -7,15 +7,11 @@ import type { MerchantRow } from "types/merchants";
 import { MerchantList } from "./MerchantList";
 
 vi.mock("merchants/MerchantAliasForm", () => ({
-  MerchantAliasForm: (): ReactNode => (
-    <div data-testid="merchant-alias-form" />
-  ),
+  MerchantAliasForm: (): ReactNode => <div data-testid="merchant-alias-form" />,
 }));
 
 vi.mock("merchants/MerchantEditForm", () => ({
-  MerchantEditForm: (): ReactNode => (
-    <div data-testid="merchant-edit-form" />
-  ),
+  MerchantEditForm: (): ReactNode => <div data-testid="merchant-edit-form" />,
 }));
 
 afterEach(() => {
