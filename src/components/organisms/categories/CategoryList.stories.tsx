@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { CategoriesTemplate } from "./Categories";
+import { CategoryList } from "./CategoryList";
 
 const categories = [
   {
@@ -11,6 +11,14 @@ const categories = [
         name: "外食",
         parent_id: "expense-food",
         sort_order: 10,
+        type: "expense" as const,
+      },
+      {
+        created_at: "2026-01-01T00:00:00.000Z",
+        id: "expense-child-cafe",
+        name: "咖啡",
+        parent_id: "expense-food",
+        sort_order: 20,
         type: "expense" as const,
       },
     ],
@@ -42,27 +50,20 @@ const categories = [
 ];
 
 const meta = {
-  title: "Templates/Categories/CategoriesTemplate",
-  component: CategoriesTemplate,
+  title: "Organisms/Categories/CategoryList",
+  component: CategoryList,
   args: {
     archiveCategoryAction: async () => {},
     categories,
-    createCategoryAction: async () => {},
     errorCategoryId: null,
     errorMessage: null,
-    ledgerName: "家庭账本",
-    parentOptions: categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      type: category.type,
-    })),
     updateCategoryAction: async () => {},
   },
-} satisfies Meta<typeof CategoriesTemplate>;
+} satisfies Meta<typeof CategoryList>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "分类页面",
+  name: "分类列表",
 };

@@ -25,6 +25,7 @@
       "accounts-page/*": ["./src/components/pages/accounts/*"],
       "accounts-template/*": ["./src/components/templates/accounts/*"],
       "auth/*": ["./src/components/organisms/auth/*"],
+      "categories/*": ["./src/components/organisms/categories/*"],
       "categories-page/*": ["./src/components/pages/categories/*"],
       "categories-template/*": ["./src/components/templates/categories/*"],
       "dashboard-molecules/*": ["./src/components/molecules/dashboard/*"],

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { SettingsAccountsEntry } from "settings-components/SettingsAccountsEntry";
+import { SettingsCategoriesEntry } from "settings-components/SettingsCategoriesEntry";
 import { UserThemePicker } from "theme-components/UserThemePicker";
 import { PageCard } from "ui-molecules/PageCard";
 
@@ -79,6 +80,7 @@ export function SettingsTemplate({
       </PageCard>
 
       <SettingsAccountsEntry />
+      <SettingsCategoriesEntry />
 
       <PageCard sx={{ p: { xs: 3, sm: 4 } }}>
         <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>

@@ -10,6 +10,17 @@ const accountErrorMessages: Record<string, string> = {
   update_failed: "账户更新失败。请确认账户名称是否重复，或稍后重试。",
 };
 
+const categoryErrorMessages: Record<string, string> = {
+  archive_failed: "分类归档失败。",
+  category_invalid: "分类指定不正确。",
+  create_failed: "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+  name_required: "请输入分类名称。",
+  name_too_long: "分类名称不能超过 100 个字符。",
+  parent_invalid: "大分类指定不正确。",
+  type_invalid: "分类类型不正确。",
+  update_failed: "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+};
+
 const ledgerSetupErrorMessages: Record<string, string> = {
   create_failed: "账本创建失败，请稍后重试。",
   currency_invalid: "基础货币必须是 3 位大写字母，例如 JPY。",
@@ -53,6 +64,10 @@ function getPageErrorMessage(messages: Record<string, string>, error?: string) {
 
 export function getAccountErrorMessage(error?: string) {
   return getPageErrorMessage(accountErrorMessages, error);
+}
+
+export function getCategoryErrorMessage(error?: string) {
+  return getPageErrorMessage(categoryErrorMessages, error);
 }
 
 export function getLedgerSetupErrorMessage(error?: string) {

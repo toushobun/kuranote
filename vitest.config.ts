@@ -20,6 +20,10 @@ export default defineConfig({
       ).pathname,
       auth: new URL("./src/components/organisms/auth", import.meta.url)
         .pathname,
+      categories: new URL(
+        "./src/components/organisms/categories",
+        import.meta.url,
+      ).pathname,
       "categories-page": new URL(
         "./src/components/pages/categories",
         import.meta.url,

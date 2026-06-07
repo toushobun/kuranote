@@ -33,7 +33,7 @@ export async function loadNewTransactionView() {
       .not("parent_id", "is", null)
       .order("type", { ascending: true })
       .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
+      .order("name", { ascending: true }),
 
     supabase
       .from("merchant")

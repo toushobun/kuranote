@@ -56,6 +56,10 @@ export function accountsErrorHref(error: string) {
   return routeWithQuery(routePaths.accounts, { error });
 }
 
+export function categoriesErrorHref(error: string, categoryId?: string | null) {
+  return routeWithQuery(routePaths.categories, { error, categoryId });
+}
+
 export function ledgerSetupErrorHref(error: string) {
   return routeWithQuery(routePaths.ledgerSetup, { error });
 }
