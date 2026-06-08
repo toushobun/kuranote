@@ -173,7 +173,6 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   );
 
   return {
-    ledgerName: currentLedger.name,
     monthLabel,
     monthSummary,
     todayExpense,

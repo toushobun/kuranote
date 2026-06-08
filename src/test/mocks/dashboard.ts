@@ -40,7 +40,6 @@ export function createDashboardViewData(
   overrides: Partial<DashboardViewData> = {},
 ): DashboardViewData {
   return {
-    ledgerName: "家庭账本",
     monthLabel: "2026年6月",
     monthSummary: createDashboardAmountSummary(),
     recentTransactions: [],

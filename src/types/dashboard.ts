@@ -27,7 +27,6 @@ export type DashboardPeriodExpense = {
 };
 
 export type DashboardViewData = {
-  ledgerName: string;
   monthLabel: string;
   monthSummary: DashboardAmountSummary;
   recentTransactions: DashboardRecentTransaction[];
