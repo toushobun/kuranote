@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
 import { transactionAccentColor } from "theme/transactionColors";
-import { TransactionRow } from "transactions-molecules/TransactionRow";
+import { TransactionRow } from "molecules/transactions/TransactionRow";
 import type { DashboardRecentTransaction } from "types/dashboard";
 
 type DashboardRecentTransactionsProps = {

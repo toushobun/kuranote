@@ -1,5 +1,5 @@
 import { createLedger } from "server/actions/ledgerSetup";
-import { LedgerSetupTemplate } from "ledger-setup-template/LedgerSetup";
+import { LedgerSetupTemplate } from "templates/ledger-setup/LedgerSetup";
 
 type LedgerSetupPageProps = {
   errorMessage: string | null;

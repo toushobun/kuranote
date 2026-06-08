@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AppShell } from "protected-template/AppShell";
+import { AppShell } from "templates/protected/AppShell";
 import { createUserThemeInitScript } from "theme/userThemeInitScript";
 
 type ProtectedLayoutShellProps = {

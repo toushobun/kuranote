@@ -1,4 +1,4 @@
-import { HomePage } from "home-page/Home";
+import { HomePage } from "pages/home/Home";
 
 export default function RootPage() {
   return <HomePage />;

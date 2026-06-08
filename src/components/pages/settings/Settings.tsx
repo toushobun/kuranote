@@ -1,6 +1,6 @@
 import { logout } from "server/actions/session";
 import { loadSettingsView } from "server/loaders/settings";
-import { SettingsTemplate } from "settings-template/Settings";
+import { SettingsTemplate } from "templates/settings/Settings";
 
 export async function SettingsPage() {
   const view = await loadSettingsView();

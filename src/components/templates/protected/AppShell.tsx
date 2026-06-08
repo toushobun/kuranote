@@ -5,7 +5,7 @@ import Container from "@mui/material/Container";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { BottomNavigationBar } from "navigation/BottomNavigationBar";
+import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 type AppShellProps = {

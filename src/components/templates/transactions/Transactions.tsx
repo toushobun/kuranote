@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 
 import { transactionsMonthHref } from "config/paths";
 import { transactionMonthNavigationBackgroundColor } from "theme/transactionColors";
-import { TransactionMonthList } from "transactions/TransactionMonthList";
+import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import type {
   TransactionMonthPage,
   TransactionMonthView,

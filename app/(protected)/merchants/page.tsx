@@ -1,4 +1,4 @@
-import { MerchantsHome } from "merchants-page/Merchants";
+import { MerchantsHome } from "pages/merchants/Merchants";
 import { getMerchantErrorMessage } from "utils/pageErrors";
 
 export default async function MerchantsPage({

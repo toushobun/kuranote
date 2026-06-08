@@ -6,7 +6,7 @@ import type { AccountRow } from "types/accounts";
 
 import { AccountList } from "./AccountList";
 
-vi.mock("accounts-molecules/ArchiveAccountButton", () => ({
+vi.mock("molecules/accounts/ArchiveAccountButton", () => ({
   ArchiveAccountButton: (): ReactNode => (
     <button type="submit">归档账户</button>
   ),

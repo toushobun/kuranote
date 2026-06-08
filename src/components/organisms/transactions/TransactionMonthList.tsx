@@ -7,8 +7,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionGroupList } from "transactions/TransactionGroupList";
-import { TransactionSummaryBar } from "transactions-molecules/TransactionSummaryBar";
+import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
+import { TransactionSummaryBar } from "molecules/transactions/TransactionSummaryBar";
 import type {
   TransactionMonthPage,
   TransactionMonthView,

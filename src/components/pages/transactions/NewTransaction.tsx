@@ -1,6 +1,6 @@
 import { createTransaction } from "server/actions/transactions";
 import { loadNewTransactionView } from "server/loaders/newTransaction";
-import { NewTransactionTemplate } from "transactions-template/NewTransaction";
+import { NewTransactionTemplate } from "templates/transactions/NewTransaction";
 
 type NewTransactionPageProps = {
   errorMessage: string | null;

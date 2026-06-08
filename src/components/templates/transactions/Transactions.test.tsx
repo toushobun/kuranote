@@ -6,7 +6,7 @@ import type { TransactionMonthView } from "types/transactions";
 
 import { TransactionsTemplate } from "./Transactions";
 
-vi.mock("transactions/TransactionMonthList", () => ({
+vi.mock("organisms/transactions/TransactionMonthList", () => ({
   TransactionMonthList: ({
     monthView,
   }: {

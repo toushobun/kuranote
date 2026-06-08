@@ -1,6 +1,6 @@
 import Typography from "@mui/material/Typography";
 
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 
 type EmptyStateProps = {
   title: string;

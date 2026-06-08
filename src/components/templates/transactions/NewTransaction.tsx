@@ -1,12 +1,12 @@
 import Typography from "@mui/material/Typography";
 
-import { TransactionForm } from "transactions/TransactionForm";
+import { TransactionForm } from "organisms/transactions/TransactionForm";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import { PagePanel } from "ui-organisms/PagePanel";
+import { PageCard } from "molecules/ui/PageCard";
 
 type NewTransactionTemplateProps = {
   accountOptions: TransactionAccountOption[];
@@ -26,7 +26,7 @@ export function NewTransactionTemplate({
   merchantOptions,
 }: NewTransactionTemplateProps) {
   return (
-    <PagePanel>
+    <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
         新增记录
       </Typography>
@@ -44,6 +44,6 @@ export function NewTransactionTemplate({
         errorMessage={errorMessage}
         merchantOptions={merchantOptions}
       />
-    </PagePanel>
+    </PageCard>
   );
 }

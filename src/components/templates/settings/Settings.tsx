@@ -1,8 +1,8 @@
 import Stack from "@mui/material/Stack";
 
-import { SettingsManagementEntries } from "settings/SettingsManagementEntries";
-import { SettingsOverviewCard } from "settings/SettingsOverviewCard";
-import { SettingsThemeSection } from "settings/SettingsThemeSection";
+import { SettingsManagementEntries } from "organisms/settings/SettingsManagementEntries";
+import { SettingsOverviewCard } from "organisms/settings/SettingsOverviewCard";
+import { SettingsThemeSection } from "organisms/settings/SettingsThemeSection";
 
 type SettingsTemplateProps = {
   currentLedgerName: string;

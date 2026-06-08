@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
-import { PagePanel } from "ui-organisms/PagePanel";
+import { PageCard } from "molecules/ui/PageCard";
 
 type SettingsOverviewCardProps = {
   currentLedgerName: string;
@@ -19,7 +19,7 @@ export function SettingsOverviewCard({
   logoutAction,
 }: SettingsOverviewCardProps) {
   return (
-    <PagePanel>
+    <PageCard>
       <Stack
         direction="row"
         sx={{ alignItems: "flex-start", justifyContent: "space-between" }}
@@ -66,6 +66,6 @@ export function SettingsOverviewCard({
       <Typography component="h1" variant="h5" sx={{ fontWeight: 700, mt: 3 }}>
         设置
       </Typography>
-    </PagePanel>
+    </PageCard>
   );
 }

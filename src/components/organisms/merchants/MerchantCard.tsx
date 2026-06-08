@@ -7,10 +7,10 @@ import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { MerchantAliasForm } from "merchants/MerchantAliasForm";
-import { MerchantEditForm } from "merchants/MerchantEditForm";
+import { MerchantAliasForm } from "organisms/merchants/MerchantAliasForm";
+import { MerchantEditForm } from "organisms/merchants/MerchantEditForm";
 import type { MerchantRow } from "types/merchants";
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 import { getMerchantInitial } from "utils/merchants";
 
 import type { MerchantAction } from "./types";

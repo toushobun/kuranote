@@ -1,4 +1,4 @@
-import { TransactionsHome } from "transactions-page/Transactions";
+import { TransactionsHome } from "pages/transactions/Transactions";
 import { getTransactionErrorMessage } from "utils/pageErrors";
 
 export default async function TransactionsPage({

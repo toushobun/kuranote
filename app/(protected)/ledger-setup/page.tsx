@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { LedgerSetupPage } from "ledger-setup-page/LedgerSetup";
+import { LedgerSetupPage } from "pages/ledger-setup/LedgerSetup";
 import { routePaths } from "config/paths";
 import { getLedgerSetupErrorMessage } from "utils/pageErrors";
 

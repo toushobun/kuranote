@@ -4,7 +4,7 @@ import {
   updateCategory,
 } from "server/actions/categories";
 import { loadCategoriesView } from "server/loaders/categories";
-import { CategoriesTemplate } from "categories-template/Categories";
+import { CategoriesTemplate } from "templates/categories/Categories";
 
 type CategoriesPageProps = {
   errorCategoryId: string | null;

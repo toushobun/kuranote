@@ -1,8 +1,8 @@
 import Stack from "@mui/material/Stack";
 
-import { AccountCard } from "accounts-molecules/AccountCard";
-import { ArchiveAccountButton } from "accounts-molecules/ArchiveAccountButton";
-import { EmptyState } from "ui-molecules/EmptyState";
+import { AccountCard } from "molecules/accounts/AccountCard";
+import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
+import { EmptyState } from "molecules/ui/EmptyState";
 import type { AccountHolderOption, AccountRow } from "types/accounts";
 
 import { AccountEditForm } from "./AccountEditForm";

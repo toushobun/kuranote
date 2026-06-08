@@ -1,7 +1,7 @@
 import Stack from "@mui/material/Stack";
 
-import { SettingsAccountsEntry } from "settings-components/SettingsAccountsEntry";
-import { SettingsCategoriesEntry } from "settings-components/SettingsCategoriesEntry";
+import { SettingsAccountsEntry } from "molecules/settings/SettingsAccountsEntry";
+import { SettingsCategoriesEntry } from "molecules/settings/SettingsCategoriesEntry";
 
 export function SettingsManagementEntries() {
   return (

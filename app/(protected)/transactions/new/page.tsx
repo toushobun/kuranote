@@ -1,4 +1,4 @@
-import { NewTransactionPage } from "transactions-page/NewTransaction";
+import { NewTransactionPage } from "pages/transactions/NewTransaction";
 import { getNewTransactionErrorMessage } from "utils/pageErrors";
 
 export default async function TransactionsNewPage({

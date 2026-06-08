@@ -8,7 +8,7 @@ import Stack from "@mui/material/Stack";
 import Link from "next/link";
 
 import { bottomNavigationRoutes, routePaths } from "config/paths";
-import { BottomNavButton } from "navigation-molecules/BottomNavButton";
+import { BottomNavButton } from "molecules/navigation/BottomNavButton";
 
 type BottomNavigationBarProps = {
   pathname: string;

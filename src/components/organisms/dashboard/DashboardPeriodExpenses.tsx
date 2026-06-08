@@ -1,6 +1,6 @@
 import Stack from "@mui/material/Stack";
 
-import { PeriodExpenseCard } from "dashboard-molecules/PeriodExpenseCard";
+import { PeriodExpenseCard } from "molecules/dashboard/PeriodExpenseCard";
 
 type DashboardPeriodExpensesProps = {
   todayExpense: {

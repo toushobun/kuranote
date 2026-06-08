@@ -1,4 +1,4 @@
-import { AccountsTemplate } from "accounts-template/Accounts";
+import { AccountsTemplate } from "templates/accounts/Accounts";
 import {
   archiveAccount,
   createAccount,

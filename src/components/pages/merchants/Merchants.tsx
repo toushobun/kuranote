@@ -1,4 +1,4 @@
-import { MerchantsTemplate } from "merchants-template/Merchants";
+import { MerchantsTemplate } from "templates/merchants/Merchants";
 import {
   archiveMerchant,
   archiveMerchantAlias,

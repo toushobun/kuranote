@@ -1,4 +1,4 @@
-import { AccountsHome } from "accounts-page/Accounts";
+import { AccountsHome } from "pages/accounts/Accounts";
 import { getAccountErrorMessage } from "utils/pageErrors";
 
 export default async function AccountsPage({

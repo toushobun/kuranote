@@ -13,7 +13,7 @@ import {
   categoryTypeOptions,
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 
 type CategoryFormProps = {
   createCategoryAction: CategoryAction;

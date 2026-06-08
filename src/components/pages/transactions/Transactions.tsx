@@ -3,7 +3,7 @@ import {
   loadTransactionMonthView,
 } from "server/loaders/transactions";
 import { voidTransaction } from "server/actions/transactions";
-import { TransactionsTemplate } from "transactions-template/Transactions";
+import { TransactionsTemplate } from "templates/transactions/Transactions";
 
 type TransactionsHomeProps = {
   errorMessage: string | null;

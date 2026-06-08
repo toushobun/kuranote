@@ -9,11 +9,11 @@ import {
 
 import { MerchantCard } from "./MerchantCard";
 
-vi.mock("merchants/MerchantAliasForm", () => ({
+vi.mock("organisms/merchants/MerchantAliasForm", () => ({
   MerchantAliasForm: (): ReactNode => <div data-testid="merchant-alias-form" />,
 }));
 
-vi.mock("merchants/MerchantEditForm", () => ({
+vi.mock("organisms/merchants/MerchantEditForm", () => ({
   MerchantEditForm: (): ReactNode => <div data-testid="merchant-edit-form" />,
 }));
 

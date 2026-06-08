@@ -4,8 +4,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { AccountHolderCheckboxGroup } from "accounts-molecules/AccountHolderCheckboxGroup";
-import { GlassCard } from "ui/GlassCard";
+import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
+import { GlassCard } from "atoms/ui/GlassCard";
 
 import { accountTypeOptions, type AccountHolderOption } from "types/accounts";
 

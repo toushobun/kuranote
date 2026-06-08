@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 
 type MerchantFormProps = {
   action: (formData: FormData) => void | Promise<void>;

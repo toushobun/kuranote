@@ -1,4 +1,4 @@
-import { DashboardTemplate } from "dashboard-template/Dashboard";
+import { DashboardTemplate } from "templates/dashboard/Dashboard";
 import { loadDashboardView } from "server/loaders/dashboard";
 
 export async function DashboardHome() {

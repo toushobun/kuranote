@@ -1,9 +1,9 @@
 import Typography from "@mui/material/Typography";
 
-import { AccountForm } from "accounts/AccountForm";
-import { AccountList } from "accounts/AccountList";
+import { AccountForm } from "organisms/accounts/AccountForm";
+import { AccountList } from "organisms/accounts/AccountList";
 import type { AccountHolderOption, AccountRow } from "types/accounts";
-import { PagePanel } from "ui-organisms/PagePanel";
+import { PageCard } from "molecules/ui/PageCard";
 
 type ServerAction = (formData: FormData) => void | Promise<void>;
 
@@ -29,7 +29,7 @@ export function AccountsTemplate({
   updateAccountAction,
 }: AccountsTemplateProps) {
   return (
-    <PagePanel>
+    <PageCard>
       <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
         账户
       </Typography>
@@ -57,6 +57,6 @@ export function AccountsTemplate({
         holderOptions={holderOptions}
         updateAccountAction={updateAccountAction}
       />
-    </PagePanel>
+    </PageCard>
   );
 }

@@ -94,7 +94,9 @@ describe("createTransaction", () => {
   it("输入值不合法时带错误参数跳回新增页面", async () => {
     await expect(
       createTransaction(createValidFormData({ amount: "0" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions/new?error=amount_invalid");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/organisms/transactions/new?error=amount_invalid",
+    );
 
     expect(mocks.getCurrentLedgerContext).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
@@ -118,7 +120,9 @@ describe("createTransaction", () => {
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/transactions");
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/transactions/new");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/organisms/transactions/new",
+    );
   });
 
   it("未指定商家时向 RPC 传入 null 并保存", async () => {
@@ -143,7 +147,7 @@ describe("createTransaction", () => {
     });
 
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions/new?error=create_failed",
+      "NEXT_REDIRECT:/organisms/transactions/new?error=create_failed",
     );
 
     expect(mocks.revalidatePath).not.toHaveBeenCalled();

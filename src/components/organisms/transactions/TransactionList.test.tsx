@@ -31,7 +31,7 @@ class MockIntersectionObserver {
 const originalIntersectionObserver = globalThis.IntersectionObserver;
 const originalConfirm = window.confirm;
 
-vi.mock("transactions-atoms/TransactionDateTime", () => ({
+vi.mock("atoms/transactions/TransactionDateTime", () => ({
   TransactionDateTime: ({ value }: { value: string }) => <span>{value}</span>,
 }));
 

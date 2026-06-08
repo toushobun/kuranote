@@ -53,8 +53,8 @@ describe("AppShell", () => {
     ).toBe("page");
   });
 
-  it("/transactions/new 时明细导航不是选中状态", () => {
-    mockedPathname = "/transactions/new";
+  it("/organisms/transactions/new 时明细导航不是选中状态", () => {
+    mockedPathname = "/organisms/transactions/new";
     const { container } = renderAppShell();
 
     expect(
@@ -69,6 +69,6 @@ describe("AppShell", () => {
 
     expect(
       within(container).getByLabelText("新增记录").getAttribute("href"),
-    ).toBe("/transactions/new");
+    ).toBe("/organisms/transactions/new");
   });
 });

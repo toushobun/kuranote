@@ -1,4 +1,4 @@
-import { LedgersPage } from "ledgers-page/Ledgers";
+import { LedgersPage } from "pages/ledgers/Ledgers";
 
 export default function LedgersRoute() {
   return <LedgersPage />;

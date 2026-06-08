@@ -1,14 +1,14 @@
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { CategoryForm } from "categories/CategoryForm";
-import { CategoryList } from "categories/CategoryList";
+import { CategoryForm } from "organisms/categories/CategoryForm";
+import { CategoryList } from "organisms/categories/CategoryList";
 import type {
   CategoryAction,
   CategoryParentOption,
   CategoryTreeItem,
 } from "types/categories";
-import { PagePanel } from "ui-organisms/PagePanel";
+import { PageCard } from "molecules/ui/PageCard";
 
 type CategoriesTemplateProps = {
   archiveCategoryAction: CategoryAction;
@@ -33,7 +33,7 @@ export function CategoriesTemplate({
 }: CategoriesTemplateProps) {
   return (
     <Stack spacing={3}>
-      <PagePanel>
+      <PageCard>
         <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
           分类
         </Typography>
@@ -61,7 +61,7 @@ export function CategoriesTemplate({
           errorMessage={errorMessage}
           updateCategoryAction={updateCategoryAction}
         />
-      </PagePanel>
+      </PageCard>
     </Stack>
   );
 }

@@ -1,7 +1,7 @@
 import Stack from "@mui/material/Stack";
 
 import type { MerchantRow } from "types/merchants";
-import { EmptyState } from "ui-molecules/EmptyState";
+import { EmptyState } from "molecules/ui/EmptyState";
 
 import { MerchantCard } from "./MerchantCard";
 import type { MerchantAction } from "./types";

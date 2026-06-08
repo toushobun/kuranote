@@ -3,7 +3,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
-import { AccountHolderCheckboxGroup } from "accounts-molecules/AccountHolderCheckboxGroup";
+import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
 import {
   accountTypeOptions,
   type AccountHolderOption,

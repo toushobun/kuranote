@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 
 export function SettingsAccountsEntry() {
   return (

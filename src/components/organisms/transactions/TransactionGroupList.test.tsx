@@ -6,7 +6,7 @@ import type { TransactionDateGroup } from "types/transactions";
 
 import { TransactionGroupList } from "./TransactionGroupList";
 
-vi.mock("transactions-molecules/TransactionRow", () => ({
+vi.mock("molecules/transactions/TransactionRow", () => ({
   TransactionRow: ({
     item,
   }: {

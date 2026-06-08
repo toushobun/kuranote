@@ -2,9 +2,9 @@
 
 import Stack from "@mui/material/Stack";
 
-import { DashboardMonthSummaryCard } from "dashboard/DashboardMonthSummaryCard";
-import { DashboardPeriodExpenses } from "dashboard/DashboardPeriodExpenses";
-import { DashboardRecentTransactions } from "dashboard/DashboardRecentTransactions";
+import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
+import { DashboardPeriodExpenses } from "organisms/dashboard/DashboardPeriodExpenses";
+import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
 import type { DashboardViewData } from "types/dashboard";
 
 export function DashboardTemplate({ data }: { data: DashboardViewData }) {

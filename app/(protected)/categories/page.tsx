@@ -1,4 +1,4 @@
-import { CategoriesPage } from "categories-page/Categories";
+import { CategoriesPage } from "pages/categories/Categories";
 import { getCategoryErrorMessage } from "utils/pageErrors";
 
 export default async function CategoriesRoute({

@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
 import { themeColorTokens } from "theme/themeColorTokens";
 
 import type { AccountHolderRow, AccountType } from "types/accounts";
