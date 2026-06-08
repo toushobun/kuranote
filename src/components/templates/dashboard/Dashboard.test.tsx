@@ -13,5 +13,7 @@ describe("DashboardTemplate", () => {
     expect(screen.getByText("结余")).toBeTruthy();
     expect(screen.getByText("最近记录")).toBeTruthy();
     expect(screen.getByText("本月还没有记账记录。")).toBeTruthy();
+    expect(screen.getByText("今日支出")).toBeTruthy();
+    expect(screen.getByText("本周支出")).toBeTruthy();
   });
 });

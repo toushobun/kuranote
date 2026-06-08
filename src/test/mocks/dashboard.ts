@@ -55,8 +55,8 @@ export function createDashboardViewData(
     monthLabel: "2026年6月",
     monthSummary: createDashboardAmountSummary(),
     recentTransactions: [],
-    todayExpense: { expense: "331", currency: "JPY", recordCount: 2 },
-    weekExpense: { expense: "2840", currency: "JPY", recordCount: 8 },
+    todayExpense: createDashboardPeriodExpense(),
+    weekExpense: createDashboardPeriodExpense({ expense: "2840", recordCount: 8 }),
     ...overrides,
   };
 }
