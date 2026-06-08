@@ -3,14 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MerchantsTemplate } from "./Merchants";
 
-vi.mock("server/actions/merchants", () => ({
-  archiveMerchant: vi.fn(),
-  archiveMerchantAlias: vi.fn(),
-  createMerchant: vi.fn(),
-  createMerchantAlias: vi.fn(),
-  updateMerchant: vi.fn(),
-}));
-
 afterEach(() => {
   cleanup();
 });

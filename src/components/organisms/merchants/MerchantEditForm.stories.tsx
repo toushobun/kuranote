@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { createMerchantRow } from "@/test/mocks/merchants";
+
 import { MerchantEditForm } from "./MerchantEditForm";
 
 const meta = {
@@ -7,16 +9,7 @@ const meta = {
   component: MerchantEditForm,
   args: {
     action: async () => {},
-    merchant: {
-      id: "00000000-0000-4000-8000-000000001001",
-      name: "LIFE超市",
-      website_url: "https://www.lifecorp.jp",
-      icon_url: null,
-      note: "常去的超市",
-      sort_order: 1,
-      created_at: "2026-01-01T00:00:00.000Z",
-      aliases: [],
-    },
+    merchant: createMerchantRow({ note: "常去的超市" }),
   },
 } satisfies Meta<typeof MerchantEditForm>;
 
@@ -30,15 +23,12 @@ export const Default: Story = {
 export const WithoutOptionalFields: Story = {
   name: "编辑商家（仅必填项）",
   args: {
-    merchant: {
+    merchant: createMerchantRow({
       id: "00000000-0000-4000-8000-000000001002",
       name: "Amazon",
-      website_url: null,
-      icon_url: null,
       note: null,
       sort_order: 2,
-      created_at: "2026-01-01T00:00:00.000Z",
-      aliases: [],
-    },
+      website_url: null,
+    }),
   },
 };
