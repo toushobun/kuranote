@@ -105,7 +105,9 @@ describe("CategoryList", () => {
       />,
     );
 
-    fireEvent.click(within(container).getAllByRole("button", { name: "归档" })[0]);
+    fireEvent.click(
+      within(container).getAllByRole("button", { name: "归档" })[0],
+    );
 
     expect(archiveCategoryAction).toHaveBeenCalledTimes(1);
   });

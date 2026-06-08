@@ -64,8 +64,12 @@ describe("CategoryForm", () => {
     expect(within(container).queryByText("餐饮")).toBeTruthy();
     expect(within(container).queryByText("收入")).toBeNull();
 
-    fireEvent.mouseDown(within(container).getByRole("combobox", { name: "分类类型" }));
-    fireEvent.click(within(document.body).getByRole("option", { name: "收入" }));
+    fireEvent.mouseDown(
+      within(container).getByRole("combobox", { name: "分类类型" }),
+    );
+    fireEvent.click(
+      within(document.body).getByRole("option", { name: "收入" }),
+    );
 
     expect(within(container).queryByText("餐饮")).toBeNull();
     expect(within(container).queryByText("收入")).toBeTruthy();
