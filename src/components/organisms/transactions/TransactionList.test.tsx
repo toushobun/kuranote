@@ -8,7 +8,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TransactionListItem, TransactionListPage } from "types/transactions";
+import type {
+  TransactionListItem,
+  TransactionListPage,
+} from "types/transactions";
 
 import { createTransactionListItem } from "@/test/mocks/transactions";
 

@@ -9,7 +9,10 @@ const meta = {
   component: DashboardPeriodExpenses,
   args: {
     todayExpense: createDashboardPeriodExpense(),
-    weekExpense: createDashboardPeriodExpense({ expense: "2840", recordCount: 8 }),
+    weekExpense: createDashboardPeriodExpense({
+      expense: "2840",
+      recordCount: 8,
+    }),
   },
 } satisfies Meta<typeof DashboardPeriodExpenses>;
 
