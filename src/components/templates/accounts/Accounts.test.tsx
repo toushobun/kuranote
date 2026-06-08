@@ -3,12 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AccountsTemplate } from "./Accounts";
 
-vi.mock("server/actions/accounts", () => ({
-  archiveAccount: vi.fn(),
-  createAccount: vi.fn(),
-  updateAccount: vi.fn(),
-}));
-
 afterEach(() => {
   cleanup();
 });

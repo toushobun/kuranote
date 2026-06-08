@@ -6,8 +6,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import type { CategoryAction, CategoryTreeItem } from "types/categories";
-import { GlassCard } from "ui/GlassCard";
-import { EmptyState } from "ui-molecules/EmptyState";
+import { GlassCard } from "atoms/ui/GlassCard";
+import { EmptyState } from "molecules/ui/EmptyState";
 
 type CategoryListProps = {
   archiveCategoryAction: CategoryAction;

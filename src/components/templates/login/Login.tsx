@@ -3,7 +3,7 @@ import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
-import { LoginForm } from "auth/LoginForm";
+import { LoginForm } from "organisms/auth/LoginForm";
 
 type LoginTemplateProps = {
   action: Parameters<typeof LoginForm>[0]["action"];

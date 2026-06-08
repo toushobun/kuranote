@@ -3,10 +3,11 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { PageCard } from "ui-molecules/PageCard";
+import { PageCard } from "molecules/ui/PageCard";
+import type { ServerAction } from "types/actions";
 
 type LedgerSetupTemplateProps = {
-  createLedgerAction: (formData: FormData) => void | Promise<void>;
+  createLedgerAction: ServerAction;
   errorMessage: string | null;
 };
 

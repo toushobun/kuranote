@@ -1,14 +1,14 @@
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { CategoryForm } from "categories/CategoryForm";
-import { CategoryList } from "categories/CategoryList";
+import { CategoryForm } from "organisms/categories/CategoryForm";
+import { CategoryList } from "organisms/categories/CategoryList";
 import type {
   CategoryAction,
   CategoryParentOption,
   CategoryTreeItem,
 } from "types/categories";
-import { PageCard } from "ui-molecules/PageCard";
+import { PageCard } from "molecules/ui/PageCard";
 
 type CategoriesTemplateProps = {
   archiveCategoryAction: CategoryAction;

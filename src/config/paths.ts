@@ -16,12 +16,16 @@ export const routePaths = {
 export type AppRouteKey = keyof typeof routePaths;
 export type AppRoutePath = (typeof routePaths)[AppRouteKey];
 
-export const bottomNavigationRoutes = [
-  { href: routePaths.dashboard, label: "首页" },
-  { href: routePaths.transactions, label: "明细" },
-  { href: routePaths.statistics, label: "统计" },
-  { href: routePaths.settings, label: "设置" },
-] as const;
+export const bottomNavigationRouteGroups = {
+  left: [
+    { href: routePaths.dashboard, label: "首页" },
+    { href: routePaths.transactions, label: "明细" },
+  ],
+  right: [
+    { href: routePaths.statistics, label: "统计" },
+    { href: routePaths.settings, label: "设置" },
+  ],
+} as const;
 
 export function routeWithQuery(
   path: AppRoutePath,

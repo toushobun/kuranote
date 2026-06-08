@@ -2,7 +2,7 @@ import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 
-import { UserThemePicker } from "theme-components/UserThemePicker";
+import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { UserThemeProvider } from "./UserThemeProvider";
 import { createUserThemeInitScript } from "./userThemeInitScript";
 import { getUserThemeStorageKey } from "./userThemeStorage";

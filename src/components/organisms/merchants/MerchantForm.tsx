@@ -3,10 +3,11 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { GlassCard } from "ui/GlassCard";
+import { GlassCard } from "atoms/ui/GlassCard";
+import type { ServerAction } from "types/actions";
 
 type MerchantFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: ServerAction;
 };
 
 export function MerchantForm({ action }: MerchantFormProps) {

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { NewTransactionTemplate } from "./NewTransaction";
 
-vi.mock("transactions/TransactionForm", () => ({
+vi.mock("organisms/transactions/TransactionForm", () => ({
   TransactionForm: ({
     errorMessage,
   }: {

@@ -5,7 +5,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import { PageCard } from "ui-molecules/PageCard";
+import { PageCard } from "molecules/ui/PageCard";
 
 type LedgersTemplateProps = {
   currentLedgerId: string;

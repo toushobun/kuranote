@@ -7,69 +7,21 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionGroupList } from "transactions/TransactionGroupList";
-import { TransactionSummaryBar } from "transactions-molecules/TransactionSummaryBar";
+import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
+import { TransactionSummaryBar } from "molecules/transactions/TransactionSummaryBar";
+import type { ServerAction } from "types/actions";
 import type {
-  TransactionDateGroup,
   TransactionMonthPage,
   TransactionMonthView,
 } from "types/transactions";
-import {
-  addTransactionAmount,
-  createTransactionAmountSummary,
-} from "utils/transactions";
+
+import { mergeTransactionDateGroups } from "./transactionMonthListUtils";
 
 type TransactionMonthListProps = {
   loadMoreAction?: (offset: number) => Promise<TransactionMonthPage>;
   monthView: TransactionMonthView;
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
-
-function mergeGroups(
-  existing: TransactionDateGroup[],
-  incoming: TransactionDateGroup[],
-): TransactionDateGroup[] {
-  const map = new Map(existing.map((g) => [g.date, g]));
-
-  for (const group of incoming) {
-    const prev = map.get(group.date);
-
-    if (prev) {
-      const existingItemIds = new Set(prev.items.map((item) => item.id));
-      const newItems = group.items.filter(
-        (item) => !existingItemIds.has(item.id),
-      );
-      const addedSummary = createTransactionAmountSummary(
-        prev.summary.currency,
-      );
-
-      for (const item of newItems) {
-        addTransactionAmount(addedSummary, item.type, item.amount);
-      }
-
-      map.set(group.date, {
-        ...prev,
-        items: [...prev.items, ...newItems],
-        summary: {
-          balance: String(
-            Number(prev.summary.balance) + Number(addedSummary.balance),
-          ),
-          currency: prev.summary.currency,
-          expense: String(
-            Number(prev.summary.expense) + Number(addedSummary.expense),
-          ),
-          income: String(
-            Number(prev.summary.income) + Number(addedSummary.income),
-          ),
-        },
-      });
-    } else {
-      map.set(group.date, group);
-    }
-  }
-
-  return [...map.values()];
-}
 
 export function TransactionMonthList({
   loadMoreAction,
@@ -108,7 +60,7 @@ export function TransactionMonthList({
     startTransition(async () => {
       try {
         const page = await loadMoreAction(nextOffset);
-        setGroups((prev) => mergeGroups(prev, page.groups));
+        setGroups((prev) => mergeTransactionDateGroups(prev, page.groups));
         setNextOffset(page.nextOffset);
       } finally {
         isLoadingRef.current = false;

@@ -3,24 +3,23 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { MerchantForm } from "merchants/MerchantForm";
-import { MerchantList } from "merchants/MerchantList";
+import { MerchantForm } from "organisms/merchants/MerchantForm";
+import { MerchantList } from "organisms/merchants/MerchantList";
+import type { ServerAction } from "types/actions";
 import type { MerchantRow } from "types/merchants";
-import { PageCard } from "ui-molecules/PageCard";
-
-type MerchantAction = (formData: FormData) => void | Promise<void>;
+import { PageCard } from "molecules/ui/PageCard";
 
 type MerchantsTemplateProps = {
-  archiveMerchantAction: MerchantAction;
-  archiveMerchantAliasAction: MerchantAction;
-  createMerchantAction: MerchantAction;
-  createMerchantAliasAction: MerchantAction;
+  archiveMerchantAction: ServerAction;
+  archiveMerchantAliasAction: ServerAction;
+  createMerchantAction: ServerAction;
+  createMerchantAliasAction: ServerAction;
   errorMerchantId: string | null;
   errorMessage: string | null;
   keyword: string;
   ledgerName: string;
   merchants: MerchantRow[];
-  updateMerchantAction: MerchantAction;
+  updateMerchantAction: ServerAction;
 };
 
 export function MerchantsTemplate({

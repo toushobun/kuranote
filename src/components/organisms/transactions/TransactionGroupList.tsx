@@ -3,17 +3,18 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionRow } from "transactions-molecules/TransactionRow";
+import { TransactionRow } from "molecules/transactions/TransactionRow";
 import {
   transactionExpenseColor,
   transactionIncomeColor,
 } from "theme/transactionColors";
+import type { ServerAction } from "types/actions";
 import type { TransactionDateGroup } from "types/transactions";
 import { formatSignedNumber } from "utils/transactions";
 
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionGroupList({

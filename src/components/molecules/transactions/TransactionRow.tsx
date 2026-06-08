@@ -12,6 +12,7 @@ import {
   transactionExpenseColor,
   transactionIncomeColor,
 } from "theme/transactionColors";
+import type { ServerAction } from "types/actions";
 import type { TransactionRowItem } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
 import {
@@ -26,7 +27,7 @@ export type TransactionRowProps = {
   showRecorder?: boolean;
   showTime?: boolean;
   showType?: boolean;
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionRow({

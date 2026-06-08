@@ -6,7 +6,8 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionDateTime } from "transactions-atoms/TransactionDateTime";
+import { TransactionDateTime } from "atoms/transactions/TransactionDateTime";
+import type { ServerAction } from "types/actions";
 import type { TransactionListItem } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
 import {
@@ -16,7 +17,7 @@ import {
 
 type TransactionListRowProps = {
   item: TransactionListItem;
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionListRow({

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginTemplate } from "./Login";
 
-vi.mock("auth/LoginForm", () => ({
+vi.mock("organisms/auth/LoginForm", () => ({
   LoginForm: ({ action }: { action: unknown }): ReactNode => (
     <form
       data-testid="login-form"

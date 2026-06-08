@@ -1,11 +1,10 @@
 import Typography from "@mui/material/Typography";
 
-import { AccountForm } from "accounts/AccountForm";
-import { AccountList } from "accounts/AccountList";
+import { AccountForm } from "organisms/accounts/AccountForm";
+import { AccountList } from "organisms/accounts/AccountList";
 import type { AccountHolderOption, AccountRow } from "types/accounts";
-import { PageCard } from "ui-molecules/PageCard";
-
-type ServerAction = (formData: FormData) => void | Promise<void>;
+import type { ServerAction } from "types/actions";
+import { PageCard } from "molecules/ui/PageCard";
 
 type AccountsTemplateProps = {
   accounts: AccountRow[];

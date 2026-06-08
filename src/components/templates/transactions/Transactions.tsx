@@ -4,17 +4,18 @@ import Typography from "@mui/material/Typography";
 
 import { transactionsMonthHref } from "config/paths";
 import { transactionMonthNavigationBackgroundColor } from "theme/transactionColors";
-import { TransactionMonthList } from "transactions/TransactionMonthList";
+import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import type {
   TransactionMonthPage,
   TransactionMonthView,
 } from "types/transactions";
+import type { ServerAction } from "types/actions";
 
 type TransactionsTemplateProps = {
   errorMessage: string | null;
   loadMoreAction: (offset: number) => Promise<TransactionMonthPage>;
   monthView: TransactionMonthView;
-  voidAction: (formData: FormData) => void | Promise<void>;
+  voidAction: ServerAction;
 };
 
 export function TransactionsTemplate({

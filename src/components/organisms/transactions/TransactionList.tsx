@@ -8,13 +8,14 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionListRow } from "transactions/TransactionListRow";
+import { TransactionListRow } from "organisms/transactions/TransactionListRow";
+import type { ServerAction } from "types/actions";
 import type { TransactionListPage } from "types/transactions";
 
 type TransactionListProps = {
   initialPage: TransactionListPage;
   loadMoreAction: (offset: number) => Promise<TransactionListPage>;
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionList({

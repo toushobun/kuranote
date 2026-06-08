@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
 
-import { RootLayoutShell } from "root-template/RootLayoutShell";
+import { RootLayoutShell } from "templates/root/RootLayoutShell";
 import { createLastUserThemeInitScript } from "theme/userThemeInitScript";
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 import Typography from "@mui/material/Typography";
 
-import { PageCard } from "ui-molecules/PageCard";
+import { PageCard } from "molecules/ui/PageCard";
 
 type StatisticsTemplateProps = {
   ledgerName: string;

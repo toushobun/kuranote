@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsTemplate } from "./Settings";
 
-vi.mock("theme-components/UserThemePicker", () => ({
+vi.mock("molecules/theme/UserThemePicker", () => ({
   UserThemePicker: (): ReactNode => <div data-testid="user-theme-picker" />,
 }));
 

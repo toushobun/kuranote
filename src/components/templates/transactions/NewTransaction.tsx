@@ -1,12 +1,12 @@
 import Typography from "@mui/material/Typography";
 
-import { TransactionForm } from "transactions/TransactionForm";
+import { TransactionForm } from "organisms/transactions/TransactionForm";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import { PageCard } from "ui-molecules/PageCard";
+import { PageCard } from "molecules/ui/PageCard";
 
 type NewTransactionTemplateProps = {
   accountOptions: TransactionAccountOption[];
