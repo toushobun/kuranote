@@ -27,11 +27,6 @@ export const bottomNavigationRouteGroups = {
   ],
 } as const;
 
-export const bottomNavigationRoutes = [
-  ...bottomNavigationRouteGroups.left,
-  ...bottomNavigationRouteGroups.right,
-] as const;
-
 export function routeWithQuery(
   path: AppRoutePath,
   params: Record<string, string | null | undefined>,
