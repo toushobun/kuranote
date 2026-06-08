@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { transactionsMonthHref } from "config/paths";
-import { transactionSoftBackgroundColor } from "theme/transactionColors";
+import { transactionMonthNavigationBackgroundColor } from "theme/transactionColors";
 import { TransactionMonthList } from "transactions/TransactionMonthList";
 import type {
   TransactionMonthPage,
@@ -35,7 +35,7 @@ export function TransactionsTemplate({
         direction="row"
         sx={{
           alignItems: "center",
-          bgcolor: transactionSoftBackgroundColor,
+          bgcolor: transactionMonthNavigationBackgroundColor,
           borderRadius: 999,
           color: "text.secondary",
           height: 44,

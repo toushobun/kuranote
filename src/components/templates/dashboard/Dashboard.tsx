@@ -7,9 +7,9 @@ import Typography from "@mui/material/Typography";
 
 import { PeriodExpenseCard } from "dashboard-molecules/PeriodExpenseCard";
 import {
+  transactionAccentColor,
   transactionExpenseColor,
   transactionIncomeColor,
-  transactionPrimaryColor,
   transactionSummaryBackgroundColor,
 } from "theme/transactionColors";
 import { routePaths } from "config/paths";
@@ -37,7 +37,7 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
       >
         <Typography
           sx={{
-            color: transactionPrimaryColor,
+            color: transactionAccentColor,
             fontSize: 13,
             fontWeight: 700,
             mb: 0.8,
@@ -119,7 +119,7 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
           <a
             href={routePaths.transactions}
             style={{
-              color: transactionPrimaryColor,
+              color: transactionAccentColor,
               fontSize: 13,
               fontWeight: 700,
               textDecoration: "none",
