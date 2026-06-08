@@ -6,9 +6,8 @@ import Typography from "@mui/material/Typography";
 import { MerchantForm } from "organisms/merchants/MerchantForm";
 import { MerchantList } from "organisms/merchants/MerchantList";
 import type { MerchantRow } from "types/merchants";
+import type { MerchantAction } from "organisms/merchants/types";
 import { PageCard } from "molecules/ui/PageCard";
-
-type MerchantAction = (formData: FormData) => void | Promise<void>;
 
 type MerchantsTemplateProps = {
   archiveMerchantAction: MerchantAction;

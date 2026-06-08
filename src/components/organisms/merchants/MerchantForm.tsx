@@ -4,9 +4,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { GlassCard } from "atoms/ui/GlassCard";
+import type { MerchantAction } from "./types";
 
 type MerchantFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: MerchantAction;
 };
 
 export function MerchantForm({ action }: MerchantFormProps) {

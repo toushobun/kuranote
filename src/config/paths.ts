@@ -10,7 +10,7 @@ export const routePaths = {
   settings: "/settings",
   statistics: "/statistics",
   transactions: "/transactions",
-  transactionsNew: "/organisms/transactions/new",
+  transactionsNew: "/transactions/new",
 } as const;
 
 export type AppRouteKey = keyof typeof routePaths;
