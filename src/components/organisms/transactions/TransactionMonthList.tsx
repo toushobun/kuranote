@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
 import { TransactionSummaryBar } from "molecules/transactions/TransactionSummaryBar";
+import type { ServerAction } from "types/actions";
 import type {
   TransactionMonthPage,
   TransactionMonthView,
@@ -19,7 +20,7 @@ import { mergeTransactionDateGroups } from "./transactionMonthListUtils";
 type TransactionMonthListProps = {
   loadMoreAction?: (offset: number) => Promise<TransactionMonthPage>;
   monthView: TransactionMonthView;
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionMonthList({

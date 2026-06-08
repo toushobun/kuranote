@@ -8,12 +8,13 @@ import {
   transactionExpenseColor,
   transactionIncomeColor,
 } from "theme/transactionColors";
+import type { ServerAction } from "types/actions";
 import type { TransactionDateGroup } from "types/transactions";
 import { formatSignedNumber } from "utils/transactions";
 
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
-  voidAction?: (formData: FormData) => void;
+  voidAction?: ServerAction;
 };
 
 export function TransactionGroupList({
