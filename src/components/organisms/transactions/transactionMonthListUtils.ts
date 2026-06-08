@@ -22,6 +22,11 @@ export function mergeTransactionDateGroups(
     const newItems = group.items.filter(
       (item) => !existingItemIds.has(item.id),
     );
+
+    if (newItems.length === 0) {
+      continue;
+    }
+
     const addedSummary = createTransactionAmountSummary(prev.summary.currency);
 
     for (const item of newItems) {

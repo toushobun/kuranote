@@ -15,6 +15,8 @@ type BottomNavigationBarProps = {
 };
 
 export function BottomNavigationBar({ pathname }: BottomNavigationBarProps) {
+  const primaryRoutes = bottomNavigationRoutes.slice(0, 2);
+  const secondaryRoutes = bottomNavigationRoutes.slice(2);
   const isCreateTransactionPage =
     pathname === routePaths.transactionsNew ||
     pathname.startsWith(`${routePaths.transactionsNew}/`);
@@ -50,16 +52,14 @@ export function BottomNavigationBar({ pathname }: BottomNavigationBarProps) {
             py: 0.75,
           }}
         >
-          <BottomNavButton
-            href={bottomNavigationRoutes[0].href}
-            label={bottomNavigationRoutes[0].label}
-            selected={isBottomNavSelected(bottomNavigationRoutes[0].href)}
-          />
-          <BottomNavButton
-            href={bottomNavigationRoutes[1].href}
-            label={bottomNavigationRoutes[1].label}
-            selected={isBottomNavSelected(bottomNavigationRoutes[1].href)}
-          />
+          {primaryRoutes.map((route) => (
+            <BottomNavButton
+              href={route.href}
+              key={route.href}
+              label={route.label}
+              selected={isBottomNavSelected(route.href)}
+            />
+          ))}
           <Button
             aria-label="新增记录"
             component={Link}
@@ -112,16 +112,14 @@ export function BottomNavigationBar({ pathname }: BottomNavigationBarProps) {
               }}
             />
           </Button>
-          <BottomNavButton
-            href={bottomNavigationRoutes[2].href}
-            label={bottomNavigationRoutes[2].label}
-            selected={isBottomNavSelected(bottomNavigationRoutes[2].href)}
-          />
-          <BottomNavButton
-            href={bottomNavigationRoutes[3].href}
-            label={bottomNavigationRoutes[3].label}
-            selected={isBottomNavSelected(bottomNavigationRoutes[3].href)}
-          />
+          {secondaryRoutes.map((route) => (
+            <BottomNavButton
+              href={route.href}
+              key={route.href}
+              label={route.label}
+              selected={isBottomNavSelected(route.href)}
+            />
+          ))}
         </Stack>
       </Container>
     </Paper>

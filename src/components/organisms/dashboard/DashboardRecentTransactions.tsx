@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { transactionAccentColor } from "theme/transactionColors";
@@ -26,7 +27,7 @@ export function DashboardRecentTransactions({
         }}
       >
         <Typography sx={{ fontSize: 15, fontWeight: 900 }}>最近记录</Typography>
-        <a
+        <Link
           href={routePaths.transactions}
           style={{
             color: transactionAccentColor,
@@ -36,7 +37,7 @@ export function DashboardRecentTransactions({
           }}
         >
           全部 →
-        </a>
+        </Link>
       </Stack>
 
       <Box
