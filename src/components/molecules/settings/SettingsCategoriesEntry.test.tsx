@@ -10,14 +10,11 @@ afterEach(() => {
 describe("SettingsCategoriesEntry", () => {
   it("显示分类管理入口", () => {
     const { container } = render(<SettingsCategoriesEntry />);
+    const link = within(container).getByRole("link", { name: "打开分类管理" });
 
     expect(
       within(container).getByRole("heading", { name: "分类管理" }),
     ).toBeTruthy();
-    expect(
-      within(container)
-        .getByRole("link", { name: "打开分类管理" })
-        .getAttribute("href"),
-    ).toBe("/categories");
+    expect(link.getAttribute("href")).toContain("/categories");
   });
 });

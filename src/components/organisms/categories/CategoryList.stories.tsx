@@ -67,3 +67,18 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   name: "分类列表",
 };
+
+export const Empty: Story = {
+  name: "空状态",
+  args: {
+    categories: [],
+  },
+};
+
+export const WithError: Story = {
+  name: "带错误提示",
+  args: {
+    errorCategoryId: "expense-food",
+    errorMessage: "分类归档失败。",
+  },
+};

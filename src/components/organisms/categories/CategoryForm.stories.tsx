@@ -21,3 +21,10 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   name: "新增分类表单",
 };
+
+export const EmptyParentOptions: Story = {
+  name: "没有上级分类候选",
+  args: {
+    parentOptions: [],
+  },
+};

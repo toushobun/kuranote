@@ -5,11 +5,9 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import type { CategoryTreeItem } from "types/categories";
+import type { CategoryAction, CategoryTreeItem } from "types/categories";
 import { GlassCard } from "ui/GlassCard";
 import { EmptyState } from "ui-molecules/EmptyState";
-
-type CategoryAction = (formData: FormData) => void | Promise<void>;
 
 type CategoryListProps = {
   archiveCategoryAction: CategoryAction;

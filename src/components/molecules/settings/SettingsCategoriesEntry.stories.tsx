@@ -4,6 +4,9 @@ import { SettingsCategoriesEntry } from "./SettingsCategoriesEntry";
 
 const meta: Meta<typeof SettingsCategoriesEntry> = {
   component: SettingsCategoriesEntry,
+  parameters: {
+    layout: "centered",
+  },
   title: "Molecules/Settings/CategoriesEntry",
 };
 

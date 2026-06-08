@@ -1,4 +1,4 @@
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CategoryList } from "./CategoryList";
@@ -60,6 +60,23 @@ describe("CategoryList", () => {
     expect(within(container).getByDisplayValue("工资")).toBeTruthy();
   });
 
+  it("没有分类时显示空状态", () => {
+    const { container } = render(
+      <CategoryList
+        archiveCategoryAction={vi.fn(async () => {})}
+        categories={[]}
+        errorCategoryId={null}
+        errorMessage={null}
+        updateCategoryAction={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(within(container).getByText("还没有分类")).toBeTruthy();
+    expect(
+      within(container).getByText("先新增一个大分类，再在它下面新增小分类。"),
+    ).toBeTruthy();
+  });
+
   it("显示指定分类的错误信息", () => {
     const { container } = render(
       <CategoryList
@@ -74,5 +91,22 @@ describe("CategoryList", () => {
     expect(within(container).getByRole("alert").textContent).toBe(
       "分类更新失败。",
     );
+  });
+
+  it("点击归档按钮时提交对应分类", () => {
+    const archiveCategoryAction = vi.fn(async () => {});
+    const { container } = render(
+      <CategoryList
+        archiveCategoryAction={archiveCategoryAction}
+        categories={categories}
+        errorCategoryId={null}
+        errorMessage={null}
+        updateCategoryAction={vi.fn(async () => {})}
+      />,
+    );
+
+    fireEvent.click(within(container).getAllByRole("button", { name: "归档" })[0]);
+
+    expect(archiveCategoryAction).toHaveBeenCalledTimes(1);
   });
 });

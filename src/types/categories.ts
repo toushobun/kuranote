@@ -8,6 +8,8 @@ export const categoryTypeOptions = [
   value: TransactionType;
 }>;
 
+export type CategoryAction = (formData: FormData) => void | Promise<void>;
+
 export type CategoryRow = {
   id: string;
   name: string;
