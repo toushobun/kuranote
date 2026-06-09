@@ -3,9 +3,10 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import type { ReactNode } from "react";
 
 import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
-import { GlassCard } from "atoms/ui/GlassCard";
+import { FormActions } from "molecules/ui/FormActions";
 
 import type { ServerAction } from "types/actions";
 import { accountTypeOptions, type AccountHolderOption } from "types/accounts";
@@ -14,30 +15,22 @@ type AccountFormProps = {
   createAccountAction: ServerAction;
   defaultCurrency: string;
   holderOptions: AccountHolderOption[];
+  title?: ReactNode;
 };
 
 export function AccountForm({
   createAccountAction,
   defaultCurrency,
   holderOptions,
+  title = "新增账户",
 }: AccountFormProps) {
   return (
-    <GlassCard
-      sx={{
-        mt: 4,
-        p: 3,
-      }}
-    >
+    <Stack spacing={3}>
       <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>
-        新增账户
+        {title}
       </Typography>
 
-      <Stack
-        component="form"
-        action={createAccountAction}
-        spacing={2.5}
-        sx={{ mt: 3 }}
-      >
+      <Stack component="form" action={createAccountAction} spacing={2.5}>
         <TextField
           autoComplete="off"
           fullWidth
@@ -83,10 +76,12 @@ export function AccountForm({
 
         <AccountHolderCheckboxGroup holderOptions={holderOptions} />
 
-        <Button type="submit" variant="contained">
-          新增账户
-        </Button>
+        <FormActions>
+          <Button type="submit" variant="contained">
+            新增账户
+          </Button>
+        </FormActions>
       </Stack>
-    </GlassCard>
+    </Stack>
   );
 }
