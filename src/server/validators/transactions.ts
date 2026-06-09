@@ -201,7 +201,3 @@ export function validateVoidTransactionForm(
 
   return valid({ transactionRecordId: transactionRecordIdResult.value });
 }
-
-export function getBalanceDelta(type: TransactionType, amount: number) {
-  return type === "expense" ? -amount : amount;
-}
