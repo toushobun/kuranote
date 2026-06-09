@@ -1,8 +1,5 @@
 import { createClient } from "lib/supabase/server";
-
-type ServiceOk = { ok: true };
-type ServiceError = { ok: false; error: string };
-type ServiceResult = ServiceOk | ServiceError;
+import type { ServiceResult } from "server/services/serviceResult";
 
 export type CreateMerchantParams = {
   ledgerId: string;
