@@ -1,10 +1,13 @@
-import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
 
 import { AccountForm } from "organisms/accounts/AccountForm";
 import { AccountList } from "organisms/accounts/AccountList";
 import type { AccountHolderOption, AccountRow } from "types/accounts";
 import type { ServerAction } from "types/actions";
-import { PageCard } from "molecules/ui/PageCard";
+import { ErrorState } from "molecules/ui/ErrorState";
+import { SectionCard } from "molecules/ui/SectionCard";
+import { PageHeader } from "templates/layout/PageHeader";
+import { PageShell } from "templates/layout/PageShell";
 
 type AccountsTemplateProps = {
   accounts: AccountRow[];
@@ -28,34 +31,33 @@ export function AccountsTemplate({
   updateAccountAction,
 }: AccountsTemplateProps) {
   return (
-    <PageCard>
-      <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-        账户
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        当前账本：{ledgerName}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        管理现金、银行账户、信用卡、电子钱包等账户。
-      </Typography>
-
-      {errorMessage ? (
-        <Typography color="error" role="alert" sx={{ mt: 3 }}>
-          {errorMessage}
-        </Typography>
-      ) : null}
-
-      <AccountForm
-        createAccountAction={createAccountAction}
-        defaultCurrency={baseCurrency}
-        holderOptions={holderOptions}
+    <PageShell>
+      <PageHeader
+        title="账户"
+        subtitle={
+          <Stack spacing={0.5}>
+            <span>当前账本：{ledgerName}</span>
+            <span>管理现金、银行账户、信用卡、电子钱包等账户。</span>
+          </Stack>
+        }
       />
+
+      {errorMessage ? <ErrorState title="账户操作失败" description={errorMessage} /> : null}
+
+      <SectionCard>
+        <AccountForm
+          createAccountAction={createAccountAction}
+          defaultCurrency={baseCurrency}
+          holderOptions={holderOptions}
+        />
+      </SectionCard>
+
       <AccountList
         accounts={accounts}
         archiveAccountAction={archiveAccountAction}
         holderOptions={holderOptions}
         updateAccountAction={updateAccountAction}
       />
-    </PageCard>
+    </PageShell>
   );
 }

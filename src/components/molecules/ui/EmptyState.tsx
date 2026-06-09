@@ -1,21 +1,24 @@
 import Typography from "@mui/material/Typography";
+import type { ReactNode } from "react";
 
-import { GlassCard } from "atoms/ui/GlassCard";
+import { SectionCard } from "molecules/ui/SectionCard";
 
 type EmptyStateProps = {
-  title: string;
-  description: string;
+  action?: ReactNode;
+  description: ReactNode;
+  title: ReactNode;
 };
 
-export function EmptyState({ title, description }: EmptyStateProps) {
+export function EmptyState({ action, description, title }: EmptyStateProps) {
   return (
-    <GlassCard sx={{ mt: 4, p: 3, borderStyle: "dashed" }}>
+    <SectionCard sx={{ borderStyle: "dashed", textAlign: "center" }}>
       <Typography variant="h6" sx={{ fontWeight: 700 }}>
         {title}
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 1 }}>
         {description}
       </Typography>
-    </GlassCard>
+      {action ? <div>{action}</div> : null}
+    </SectionCard>
   );
 }
