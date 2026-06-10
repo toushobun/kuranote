@@ -1,4 +1,4 @@
-import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
 
 import { TransactionForm } from "organisms/transactions/TransactionForm";
 import type {
@@ -6,7 +6,8 @@ import type {
   TransactionCategoryOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import { PageCard } from "molecules/ui/PageCard";
+import { PageHeader } from "templates/layout/PageHeader";
+import { PageShell } from "templates/layout/PageShell";
 
 type NewTransactionTemplateProps = {
   accountOptions: TransactionAccountOption[];
@@ -26,16 +27,16 @@ export function NewTransactionTemplate({
   merchantOptions,
 }: NewTransactionTemplateProps) {
   return (
-    <PageCard>
-      <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-        新增记录
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        当前账本：{ledgerName}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        录入一笔最基础的收入或支出。余额联动将在后续单独实现。
-      </Typography>
+    <PageShell>
+      <PageHeader
+        title="新增记录"
+        subtitle={
+          <Stack spacing={0.5}>
+            <span>当前账本：{ledgerName}</span>
+            <span>录入一笔最基础的收入或支出。余额联动将在后续单独实现。</span>
+          </Stack>
+        }
+      />
 
       <TransactionForm
         action={action}
@@ -44,6 +45,6 @@ export function NewTransactionTemplate({
         errorMessage={errorMessage}
         merchantOptions={merchantOptions}
       />
-    </PageCard>
+    </PageShell>
   );
 }

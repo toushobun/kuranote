@@ -60,8 +60,10 @@ describe("MerchantsTemplate", () => {
       />,
     );
 
-    expect(within(container).getByRole("alert")).toBeTruthy();
-    expect(within(container).getByText("商家新增失败。")).toBeTruthy();
+    const alert = within(container).getByRole("alert");
+
+    expect(alert.textContent).toContain("商家操作失败");
+    expect(alert.textContent).toContain("商家新增失败。");
   });
 
   it("指定了 errorMerchantId 时不显示全局错误提示", () => {

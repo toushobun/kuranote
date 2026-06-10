@@ -1,6 +1,8 @@
 import Typography from "@mui/material/Typography";
 
-import { PageCard } from "molecules/ui/PageCard";
+import { SectionCard } from "molecules/ui/SectionCard";
+import { PageHeader } from "templates/layout/PageHeader";
+import { PageShell } from "templates/layout/PageShell";
 
 type StatisticsTemplateProps = {
   ledgerName: string;
@@ -8,16 +10,14 @@ type StatisticsTemplateProps = {
 
 export function StatisticsTemplate({ ledgerName }: StatisticsTemplateProps) {
   return (
-    <PageCard>
-      <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-        统计
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        当前账本：{ledgerName}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        收支统计将在后续 Issue 中实现。
-      </Typography>
-    </PageCard>
+    <PageShell>
+      <PageHeader title="统计" subtitle={`当前账本：${ledgerName}`} />
+
+      <SectionCard>
+        <Typography color="text.secondary">
+          收支统计将在后续 Issue 中实现。
+        </Typography>
+      </SectionCard>
+    </PageShell>
   );
 }
