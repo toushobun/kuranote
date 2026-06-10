@@ -1,3 +1,7 @@
+import {
+  appDateTimeLocale,
+  serverFallbackTimeZone,
+} from "config/dateTime";
 import type {
   CategorySummaryItem,
   TransactionAmountSummary,
@@ -189,12 +193,15 @@ export function formatTransactionAt(value: string) {
   }).format(new Date(value));
 }
 
-export function formatTransactionTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
+export function formatTransactionTime(
+  value: string,
+  options: { timeZone?: string } = {},
+) {
+  return new Intl.DateTimeFormat(appDateTimeLocale, {
     hour: "2-digit",
     hour12: false,
     minute: "2-digit",
-    timeZone: "Asia/Tokyo",
+    timeZone: options.timeZone ?? serverFallbackTimeZone,
   }).format(new Date(value));
 }
 

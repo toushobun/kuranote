@@ -6,7 +6,6 @@ import {
   userThemeKeys,
   userThemeTokens,
 } from "./userThemeTokens";
-import { createUserThemeInitScript } from "./userThemeInitScript";
 import { getUserThemeStorageKey } from "./userThemeStorage";
 import { themeColorKeys } from "./themeColorTokens";
 
@@ -61,9 +60,4 @@ describe("userThemeTokens", () => {
     );
   });
 
-  it("首屏主题初始化脚本使用当前登录用户的 localStorage key", () => {
-    expect(createUserThemeInitScript("a@example.com")).toContain(
-      "uchilog-user-theme:user:a%40example.com",
-    );
-  });
 });

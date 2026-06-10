@@ -5,7 +5,9 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useSyncExternalStore } from "react";
 
+import { serverFallbackTimeZone } from "config/dateTime";
 import {
   transactionAccentColor,
   transactionAvatarBackgroundColor,
@@ -43,7 +45,12 @@ export function TransactionRow({
   const merchantName = item.merchant_name ?? "未指定商家";
   const amountColor =
     item.type === "income" ? transactionIncomeColor : transactionExpenseColor;
-  const time = formatTransactionTime(item.transaction_at);
+  const timeZone = useSyncExternalStore(
+    subscribeToTimeZone,
+    getBrowserTimeZone,
+    getServerTimeZone,
+  );
+  const time = formatTransactionTime(item.transaction_at, { timeZone });
   const signedAmount = formatTransactionRowAmount(item.type, item.amount);
   const categoryLabel = getCategoryLabel(item.categoryItems);
 
@@ -145,4 +152,16 @@ export function TransactionRow({
       </Stack>
     </Stack>
   );
+}
+
+function subscribeToTimeZone() {
+  return () => {};
+}
+
+function getBrowserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function getServerTimeZone() {
+  return serverFallbackTimeZone;
 }

@@ -165,6 +165,11 @@ describe("transactions utils", () => {
 
   it("格式化交易行时间为稳定的 24 小时制", () => {
     expect(formatTransactionTime("2026-06-10T01:02:03.000Z")).toBe("10:02");
+    expect(
+      formatTransactionTime("2026-06-10T01:02:03.000Z", {
+        timeZone: "Asia/Shanghai",
+      }),
+    ).toBe("09:02");
   });
 
   it("按日期分组交易并生成日别汇总", () => {
