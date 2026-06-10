@@ -11,6 +11,7 @@ import {
   formatNumber,
   formatPlainAmount,
   formatSignedNumber,
+  formatTransactionAt,
   formatTransactionRowAmount,
   getCategoryLabel,
   getCurrentMonthRange,
@@ -146,6 +147,21 @@ describe("transactions utils", () => {
     expect(formatDateLabel("2026-06-10")).toBe("06/10 周三");
   });
 
+  it("格式化交易发生时间", () => {
+    const value = "2026-06-10T01:02:03.000Z";
+    const expected = new Intl.DateTimeFormat(undefined, {
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+      minute: "2-digit",
+      month: "2-digit",
+      second: "2-digit",
+      year: "numeric",
+    }).format(new Date(value));
+
+    expect(formatTransactionAt(value)).toBe(expected);
+  });
+
   it("按日期分组交易并生成日别汇总", () => {
     const groups = groupTransactionItemsByDate(
       [
@@ -197,8 +213,8 @@ describe("transactions utils", () => {
     });
   });
 
-  it("生成当前月份范围和 datetime-local 当前值", () => {
-    vi.setSystemTime(new Date(2026, 5, 10, 9, 8, 7));
+  it("根据 UTC 当前时间生成当前月份范围", () => {
+    vi.setSystemTime(new Date("2026-06-10T09:08:07.000Z"));
 
     expect(getCurrentMonthRange()).toEqual({
       endIso: "2026-07-01T00:00:00.000Z",
@@ -206,6 +222,11 @@ describe("transactions utils", () => {
       monthLabel: "2026年6月",
       startIso: "2026-06-01T00:00:00.000Z",
     });
+  });
+
+  it("根据本地当前时间生成 datetime-local 当前值", () => {
+    vi.setSystemTime(new Date(2026, 5, 10, 9, 8, 7));
+
     expect(getNowDateTimeLocalValue()).toBe("2026-06-10T09:08:07");
   });
 });
