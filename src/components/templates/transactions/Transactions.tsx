@@ -7,14 +7,14 @@ import { transactionMonthNavigationBackgroundColor } from "theme/transactionColo
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import type {
   TransactionMonthPage,
-  TransactionMonthView,
+  TransactionMonthViewData,
 } from "types/transactions";
 import type { ServerAction } from "types/actions";
 
 type TransactionsTemplateProps = {
   errorMessage: string | null;
   loadMoreAction: (offset: number) => Promise<TransactionMonthPage>;
-  monthView: TransactionMonthView;
+  monthView: TransactionMonthViewData;
   voidAction: ServerAction;
 };
 

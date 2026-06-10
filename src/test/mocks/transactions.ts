@@ -2,7 +2,7 @@ import type {
   TransactionAmountSummary,
   TransactionDateGroup,
   TransactionListItem,
-  TransactionMonthView,
+  TransactionMonthViewData,
 } from "types/transactions";
 
 export function createTransactionListItem(
@@ -65,8 +65,8 @@ export function createTransactionDateGroup({
 }
 
 export function createTransactionMonthView(
-  overrides: Partial<TransactionMonthView> = {},
-): TransactionMonthView {
+  overrides: Partial<TransactionMonthViewData> = {},
+): TransactionMonthViewData {
   return {
     groups: [createTransactionDateGroup()],
     month: "2026-05",

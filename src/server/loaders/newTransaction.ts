@@ -1,16 +1,10 @@
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
+import type { CategoryOptionDbRow } from "server/db-types";
 import type {
   TransactionAccountOption,
   TransactionMerchantOption,
 } from "types/transactions";
-
-type CategoryRow = {
-  id: string;
-  name: string;
-  parent_id: string | null;
-  type: "expense" | "income";
-};
 
 export async function loadNewTransactionView() {
   const currentLedger = await getCurrentLedgerOrRedirect();
@@ -58,13 +52,13 @@ export async function loadNewTransactionView() {
 
   const accountOptions = (accountResult.data ??
     []) as TransactionAccountOption[];
-  const categoryOptions = ((categoryResult.data ?? []) as CategoryRow[]).map(
-    (category) => ({
-      id: category.id,
-      name: category.name,
-      type: category.type,
-    }),
-  );
+  const categoryOptions = (
+    (categoryResult.data ?? []) as CategoryOptionDbRow[]
+  ).map((category) => ({
+    id: category.id,
+    name: category.name,
+    type: category.type,
+  }));
   const merchantOptions = (merchantResult.data ??
     []) as TransactionMerchantOption[];
 
