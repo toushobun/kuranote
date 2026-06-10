@@ -10,6 +10,7 @@ describe("formData utils", () => {
     });
 
     it("非 UUID 字符串返回 false", () => {
+      expect(isUuid("")).toBe(false);
       expect(isUuid("00000000-0000-4000-7000-000000000001")).toBe(false);
       expect(isUuid("00000000000040008000000000000001")).toBe(false);
       expect(isUuid("not-a-uuid")).toBe(false);
