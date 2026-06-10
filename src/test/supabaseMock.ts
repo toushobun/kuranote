@@ -3,7 +3,7 @@ import { vi, type Mock } from "vitest";
 export type SupabaseMockResponse = {
   count?: number | null;
   data?: unknown;
-  error: unknown;
+  error: unknown | null;
 };
 
 type QueryMethodName =
@@ -68,9 +68,7 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
     onfulfilled?:
       | ((value: SupabaseMockResponse) => TResult1 | PromiseLike<TResult1>)
       | null,
-    onrejected?:
-      | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
-      | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ) => Promise.resolve(record.response).then(onfulfilled, onrejected);
 
   return query;
