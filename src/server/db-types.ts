@@ -1,6 +1,6 @@
 import type { TransactionType } from "types/transactions";
 
-export type TransactionRecordRow = {
+export type TransactionRecordDbRow = {
   id: string;
   type: TransactionType;
   transaction_at: string;
@@ -10,7 +10,7 @@ export type TransactionRecordRow = {
   created_at: string;
 };
 
-export type TransactionItemRow = {
+export type TransactionItemDbRow = {
   transaction_record_id: string;
   account_id: string;
   category_id: string | null;
@@ -18,25 +18,29 @@ export type TransactionItemRow = {
   note?: string | null;
 };
 
-export type AccountRow = {
+export type AccountOptionDbRow = {
   id: string;
   name: string;
   currency: string;
 };
 
-export type CategoryRow = {
+export type CategorySummaryDbRow = {
   id: string;
   name: string;
   parent_id: string | null;
 };
 
-export type MerchantRow = {
+export type CategoryOptionDbRow = CategorySummaryDbRow & {
+  type: TransactionType;
+};
+
+export type MerchantSummaryDbRow = {
   id: string;
   name: string;
   icon_url: string | null;
 };
 
-export type AppUserRow = {
+export type AppUserSummaryDbRow = {
   id: string;
   display_name: string;
 };

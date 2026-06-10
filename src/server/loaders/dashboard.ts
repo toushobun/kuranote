@@ -4,10 +4,10 @@ import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 
 import type {
-  AccountRow,
-  MerchantRow,
-  TransactionItemRow,
-  TransactionRecordRow,
+  AccountOptionDbRow,
+  MerchantSummaryDbRow,
+  TransactionItemDbRow,
+  TransactionRecordDbRow,
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { getDashboardDateRange } from "server/loaders/dashboardDateRange";
@@ -46,7 +46,7 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
 
   if (recordError) throw new Error("Failed to load dashboard records");
 
-  const records = (recordData ?? []) as TransactionRecordRow[];
+  const records = (recordData ?? []) as TransactionRecordDbRow[];
   const recordIds = records.map((record) => record.id);
   const { data: itemData, error: itemError } =
     recordIds.length > 0
@@ -59,8 +59,8 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
 
   if (itemError) throw new Error("Failed to load dashboard items");
 
-  const items = (itemData ?? []) as TransactionItemRow[];
-  const itemsByRecordId = new Map<string, TransactionItemRow[]>();
+  const items = (itemData ?? []) as TransactionItemDbRow[];
+  const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
 
   for (const item of items) {
     const recordItems = itemsByRecordId.get(item.transaction_record_id) ?? [];
@@ -150,8 +150,8 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   if (accountResult.error) throw new Error("Failed to load recent accounts");
   if (merchantResult.error) throw new Error("Failed to load recent merchants");
 
-  const accounts = (accountResult.data ?? []) as AccountRow[];
-  const merchants = (merchantResult.data ?? []) as MerchantRow[];
+  const accounts = (accountResult.data ?? []) as AccountOptionDbRow[];
+  const merchants = (merchantResult.data ?? []) as MerchantSummaryDbRow[];
   const accountById = new Map(
     accounts.map((account) => [account.id, account] as const),
   );

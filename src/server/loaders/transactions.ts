@@ -7,11 +7,11 @@ import {
 import { createClient } from "lib/supabase/server";
 
 import type {
-  AccountRow,
-  AppUserRow,
-  MerchantRow,
-  TransactionItemRow,
-  TransactionRecordRow,
+  AccountOptionDbRow,
+  AppUserSummaryDbRow,
+  MerchantSummaryDbRow,
+  TransactionItemDbRow,
+  TransactionRecordDbRow,
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
@@ -19,7 +19,7 @@ import type {
   TransactionListItem,
   TransactionListPage,
   TransactionMonthPage,
-  TransactionMonthView,
+  TransactionMonthViewData,
 } from "types/transactions";
 import {
   addTransactionAmount,
@@ -35,7 +35,7 @@ const transactionListPageSize = 20;
 const monthPageSize = 20;
 
 async function loadTransactionItems(
-  records: TransactionRecordRow[],
+  records: TransactionRecordDbRow[],
   currentLedger: CurrentLedger,
 ) {
   const supabase = await createClient();
@@ -55,7 +55,7 @@ async function loadTransactionItems(
     throw new Error("Failed to load transaction items");
   }
 
-  const items = (itemData ?? []) as TransactionItemRow[];
+  const items = (itemData ?? []) as TransactionItemDbRow[];
   const accountIds = [...new Set(items.map((item) => item.account_id))];
   const categoryIds = items
     .map((item) => item.category_id)
@@ -112,9 +112,9 @@ async function loadTransactionItems(
     throw new Error("Failed to load transaction recorders");
   }
 
-  const accounts = (accountResult.data ?? []) as AccountRow[];
-  const merchants = (merchantResult.data ?? []) as MerchantRow[];
-  const recorders = (recorderResult.data ?? []) as AppUserRow[];
+  const accounts = (accountResult.data ?? []) as AccountOptionDbRow[];
+  const merchants = (merchantResult.data ?? []) as MerchantSummaryDbRow[];
+  const recorders = (recorderResult.data ?? []) as AppUserSummaryDbRow[];
   const accountById = new Map(
     accounts.map((account) => [account.id, account] as const),
   );
@@ -127,7 +127,7 @@ async function loadTransactionItems(
   const recorderById = new Map(
     recorders.map((user) => [user.id, user] as const),
   );
-  const itemsByRecordId = new Map<string, TransactionItemRow[]>();
+  const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
 
   for (const item of items) {
     const recordItems = itemsByRecordId.get(item.transaction_record_id) ?? [];
@@ -150,7 +150,7 @@ async function loadTransactionItems(
 
 export async function loadTransactionMonthView(
   month?: string | null,
-): Promise<TransactionMonthView> {
+): Promise<TransactionMonthViewData> {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const supabase = await createClient();
   const normalizedMonth = normalizeMonth(month);
@@ -174,7 +174,7 @@ export async function loadTransactionMonthView(
     throw new Error("Failed to load transaction records");
   }
 
-  const allRecords = (allRecordData ?? []) as TransactionRecordRow[];
+  const allRecords = (allRecordData ?? []) as TransactionRecordDbRow[];
   const pageRecords = allRecords.slice(0, monthPageSize);
   const hasMore = allRecords.length > monthPageSize;
   const allItems = await loadTransactionItems(allRecords, currentLedger);
@@ -227,7 +227,7 @@ export async function loadTransactionMonthPage(
     throw new Error("Failed to load transaction records");
   }
 
-  const fetched = (recordData ?? []) as TransactionRecordRow[];
+  const fetched = (recordData ?? []) as TransactionRecordDbRow[];
   const records = fetched.slice(0, monthPageSize);
   const hasMore = fetched.length > monthPageSize;
   const items = await loadTransactionItems(records, currentLedger);
@@ -263,7 +263,7 @@ export async function loadTransactionListPage(
     throw new Error("Failed to load transaction records");
   }
 
-  const fetchedRecords = (recordData ?? []) as TransactionRecordRow[];
+  const fetchedRecords = (recordData ?? []) as TransactionRecordDbRow[];
   const records = fetchedRecords.slice(0, transactionListPageSize);
   const hasNextPage = fetchedRecords.length > transactionListPageSize;
 

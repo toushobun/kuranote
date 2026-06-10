@@ -1,10 +1,10 @@
 import type {
-  AccountRow,
-  AppUserRow,
-  CategoryRow,
-  MerchantRow,
-  TransactionItemRow,
-  TransactionRecordRow,
+  AccountOptionDbRow,
+  AppUserSummaryDbRow,
+  CategorySummaryDbRow,
+  MerchantSummaryDbRow,
+  TransactionItemDbRow,
+  TransactionRecordDbRow,
 } from "server/db-types";
 import type { TransactionListItem } from "types/transactions";
 
@@ -17,13 +17,13 @@ export function buildTransactionListItem({
   recorderById,
   recordItems,
 }: {
-  accountById: Map<string, AccountRow>;
-  categoryById: Map<string, CategoryRow>;
+  accountById: Map<string, AccountOptionDbRow>;
+  categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
-  merchantById: Map<string, MerchantRow>;
-  record: TransactionRecordRow;
-  recorderById?: Map<string, AppUserRow>;
-  recordItems: TransactionItemRow[];
+  merchantById: Map<string, MerchantSummaryDbRow>;
+  record: TransactionRecordDbRow;
+  recorderById?: Map<string, AppUserSummaryDbRow>;
+  recordItems: TransactionItemDbRow[];
 }): TransactionListItem {
   const firstItem = recordItems[0];
   const account = firstItem ? accountById.get(firstItem.account_id) : undefined;

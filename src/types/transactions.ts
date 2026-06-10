@@ -63,7 +63,7 @@ export type TransactionDateGroup = {
   items: TransactionListItem[];
 };
 
-export type TransactionMonthView = {
+export type TransactionMonthViewData = {
   month: string;
   monthLabel: string;
   previousMonth: string;
@@ -72,6 +72,8 @@ export type TransactionMonthView = {
   groups: TransactionDateGroup[];
   nextOffset: number | null;
 };
+
+export type TransactionMonthView = TransactionMonthViewData;
 
 export type TransactionMonthPage = {
   groups: TransactionDateGroup[];

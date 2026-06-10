@@ -1,6 +1,6 @@
 import { createClient } from "lib/supabase/server";
 
-import type { CategoryRow } from "server/db-types";
+import type { CategorySummaryDbRow } from "server/db-types";
 
 export async function loadCategoriesByIdsWithParents(
   categoryIds: string[],
@@ -10,7 +10,7 @@ export async function loadCategoriesByIdsWithParents(
   const uniqueCategoryIds = [...new Set(categoryIds)];
 
   if (uniqueCategoryIds.length === 0) {
-    return [] as CategoryRow[];
+    return [] as CategorySummaryDbRow[];
   }
 
   const { data: categoryData, error: categoryError } = await supabase
@@ -23,7 +23,7 @@ export async function loadCategoriesByIdsWithParents(
     throw new Error("Failed to load transaction categories");
   }
 
-  const categories = (categoryData ?? []) as CategoryRow[];
+  const categories = (categoryData ?? []) as CategorySummaryDbRow[];
   const parentCategoryIds = [
     ...new Set(
       categories
@@ -47,5 +47,8 @@ export async function loadCategoriesByIdsWithParents(
     throw new Error("Failed to load transaction parent categories");
   }
 
-  return [...categories, ...((parentCategoryData ?? []) as CategoryRow[])];
+  return [
+    ...categories,
+    ...((parentCategoryData ?? []) as CategorySummaryDbRow[]),
+  ];
 }
