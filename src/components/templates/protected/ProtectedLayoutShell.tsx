@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { AppShell } from "templates/protected/AppShell";
@@ -14,7 +15,9 @@ export function ProtectedLayoutShell({
 }: ProtectedLayoutShellProps) {
   return (
     <>
-      <script
+      <Script
+        id="user-theme-init"
+        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
           __html: createUserThemeInitScript(email),
         }}
