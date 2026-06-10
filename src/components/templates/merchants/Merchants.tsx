@@ -1,13 +1,15 @@
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 
+import { ErrorState } from "molecules/ui/ErrorState";
+import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantForm } from "organisms/merchants/MerchantForm";
 import { MerchantList } from "organisms/merchants/MerchantList";
+import { PageHeader } from "templates/layout/PageHeader";
+import { PageShell } from "templates/layout/PageShell";
 import type { ServerAction } from "types/actions";
 import type { MerchantRow } from "types/merchants";
-import { PageCard } from "molecules/ui/PageCard";
 
 type MerchantsTemplateProps = {
   archiveMerchantAction: ServerAction;
@@ -35,25 +37,25 @@ export function MerchantsTemplate({
   updateMerchantAction,
 }: MerchantsTemplateProps) {
   return (
-    <PageCard>
-      <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
-        商家
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        当前账本：{ledgerName}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mt: 2 }}>
-        管理常用商家、商家网址、备注和别名。UchiLog
-        会以商家为主轴，再结合分类进行统计。
-      </Typography>
+    <PageShell>
+      <PageHeader
+        title="商家"
+        subtitle={
+          <Stack spacing={0.5}>
+            <span>当前账本：{ledgerName}</span>
+            <span>
+              管理常用商家、商家网址、备注和别名。UchiLog
+              会以商家为主轴，再结合分类进行统计。
+            </span>
+          </Stack>
+        }
+      />
 
       {errorMessage && !errorMerchantId ? (
-        <Typography color="error" role="alert" sx={{ mt: 3 }}>
-          {errorMessage}
-        </Typography>
+        <ErrorState title="商家操作失败" description={errorMessage} />
       ) : null}
 
-      <PageCard component="form" sx={{ mt: 4, p: 3 }}>
+      <SectionCard component="form" sx={{ p: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <TextField
             defaultValue={keyword}
@@ -71,7 +73,7 @@ export function MerchantsTemplate({
             搜索
           </Button>
         </Stack>
-      </PageCard>
+      </SectionCard>
 
       <MerchantForm action={createMerchantAction} />
       <MerchantList
@@ -83,6 +85,6 @@ export function MerchantsTemplate({
         merchants={merchants}
         updateMerchantAction={updateMerchantAction}
       />
-    </PageCard>
+    </PageShell>
   );
 }

@@ -64,8 +64,9 @@ describe("CategoriesTemplate", () => {
       <CategoriesTemplate {...baseProps} errorMessage="请输入分类名称。" />,
     );
 
-    expect(within(container).getByRole("alert").textContent).toBe(
-      "请输入分类名称。",
-    );
+    const alert = within(container).getByRole("alert");
+
+    expect(alert.textContent).toContain("分类操作失败");
+    expect(alert.textContent).toContain("请输入分类名称。");
   });
 });

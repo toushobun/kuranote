@@ -19,10 +19,13 @@ const baseProps = {
 };
 
 describe("SettingsTemplate", () => {
-  it("显示当前账本名称", () => {
+  it("显示设置页面标题和当前账本名称", () => {
     const { container } = render(<SettingsTemplate {...baseProps} />);
 
-    expect(within(container).getByText("当前账本：家庭账本")).toBeTruthy();
+    expect(
+      within(container).getByRole("heading", { name: "设置" }),
+    ).toBeTruthy();
+    expect(within(container).getAllByText("当前账本：家庭账本").length).toBe(1);
   });
 
   it("账户管理区域显示标题和说明文字", () => {
