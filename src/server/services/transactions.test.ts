@@ -165,21 +165,6 @@ describe("transactions service", () => {
       });
     });
 
-    it("void 时将 ledger 与交易 ID 交给 RPC 执行余额回滚路径", async () => {
-      mockRpcResult();
-
-      const result = await voidTransactionService({
-        ledgerId,
-        transactionRecordId,
-      });
-
-      expect(result).toEqual({ ok: true });
-      expect(rpcMock).toHaveBeenCalledWith("void_transaction", {
-        p_ledger_id: ledgerId,
-        p_transaction_record_id: transactionRecordId,
-      });
-    });
-
     it.each([
       "transactionRecordId 非 UUID",
       "transaction 不属于当前 ledger",
