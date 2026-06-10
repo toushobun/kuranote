@@ -135,6 +135,27 @@ describe("merchant services", () => {
     });
   });
 
+  it("更新商家数据库错误时返回 update_failed", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ error: { message: "update error" } }],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      updateMerchantService({
+        ledgerId,
+        merchantId,
+        name: "ライフ",
+        note: null,
+        siteUrl: null,
+        userId,
+      }),
+    ).resolves.toEqual({
+      error: merchantErrorCodes.updateFailed,
+      ok: false,
+    });
+  });
+
   it("归档商家成功时只归档当前账本中的未归档商家", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -165,6 +186,20 @@ describe("merchant services", () => {
 
   it("归档商家没有命中当前账本记录时返回 archive_failed", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 0 }] });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      archiveMerchantService({ ledgerId, merchantId, userId }),
+    ).resolves.toEqual({
+      error: merchantErrorCodes.archiveFailed,
+      ok: false,
+    });
+  });
+
+  it("归档商家数据库错误时返回 archive_failed", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ error: { message: "archive error" } }],
+    });
     mocks.createClient.mockResolvedValue(supabase.client);
 
     await expect(
