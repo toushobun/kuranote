@@ -33,5 +33,11 @@ export default defineConfig({
         },
       },
     },
+    server: {
+      deps: {
+        // react-transition-group 在 Node 侧的 ESM 目录导入不受支持，强制内联以 CJS 形式变换。
+        inline: [/react-transition-group/, /@mui\/material/],
+      },
+    },
   },
 });
