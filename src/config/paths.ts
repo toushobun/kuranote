@@ -44,6 +44,10 @@ export function routeWithQuery(
   return query ? `${path}?${query}` : path;
 }
 
+export function statisticsMonthHref(month: string) {
+  return routeWithQuery(routePaths.statistics, { month });
+}
+
 export function transactionsMonthHref(month: string) {
   return routeWithQuery(routePaths.transactions, { month });
 }
