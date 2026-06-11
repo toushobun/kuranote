@@ -24,7 +24,6 @@ export async function loadNewTransactionView() {
       .select("id, name, type, parent_id")
       .eq("ledger_id", currentLedger.id)
       .eq("is_archived", false)
-      .not("parent_id", "is", null)
       .order("type", { ascending: true })
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
@@ -52,13 +51,8 @@ export async function loadNewTransactionView() {
 
   const accountOptions = (accountResult.data ??
     []) as TransactionAccountOption[];
-  const categoryOptions = (
-    (categoryResult.data ?? []) as CategoryOptionDbRow[]
-  ).map((category) => ({
-    id: category.id,
-    name: category.name,
-    type: category.type,
-  }));
+  const categoryRows = (categoryResult.data ?? []) as CategoryOptionDbRow[];
+  const categoryOptions = buildCategoryOptions(categoryRows);
   const merchantOptions = (merchantResult.data ??
     []) as TransactionMerchantOption[];
 
@@ -68,4 +62,21 @@ export async function loadNewTransactionView() {
     ledgerName: currentLedger.name,
     merchantOptions,
   };
+}
+
+export function buildCategoryOptions(rows: CategoryOptionDbRow[]) {
+  const parentNameById = new Map(
+    rows
+      .filter((row) => row.parent_id === null)
+      .map((row) => [row.id, row.name]),
+  );
+  return rows
+    .filter((row) => row.parent_id !== null)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      parentId: row.parent_id,
+      parentName: parentNameById.get(row.parent_id!) ?? null,
+      type: row.type,
+    }));
 }
