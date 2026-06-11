@@ -262,6 +262,17 @@ describe("TransactionForm", () => {
     expect(within(container).getByText("合计 -331")).toBeTruthy();
   });
 
+  it("小数明细合计正确舍入显示，不出现浮点精度问题", () => {
+    const { container } = renderForm();
+
+    openSheet(container);
+    addItemViaSheet("餐饮", "0.10");
+    addItemViaSheet("日用品", "0.20");
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+
+    expect(within(container).getByText("合计 -0.3")).toBeTruthy();
+  });
+
   it("允许同一个小分类重复追加为多条明细", () => {
     const { container } = renderForm();
 
