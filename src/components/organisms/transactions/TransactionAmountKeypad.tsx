@@ -18,6 +18,7 @@ import {
   type AmountKeypadKey,
   type AmountKeypadState,
 } from "utils/transactionAmountInput";
+import { transactionFormValidationMessages } from "utils/transactionMessages";
 
 type TransactionAmountKeypadProps = {
   currency?: string;
@@ -122,12 +123,14 @@ export function TransactionAmountKeypad({
     setState(withExternalValue(result.state, value));
 
     if (!result.ok) {
-      setErrorMessage("请输入有效金额。");
+      setErrorMessage(transactionFormValidationMessages.amountInvalid);
       return;
     }
 
     setErrorMessage(null);
-    onChange(result.value);
+    if (result.value !== previewValue) {
+      onChange(result.value);
+    }
     onConfirm(result.value);
   }
 

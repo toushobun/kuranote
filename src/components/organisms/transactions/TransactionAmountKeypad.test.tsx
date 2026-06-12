@@ -3,6 +3,8 @@ import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { transactionFormValidationMessages } from "utils/transactionMessages";
+
 import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
 
 afterEach(() => {
@@ -46,6 +48,7 @@ describe("TransactionAmountKeypad", () => {
     fireEvent.click(screen.getByRole("button", { name: "确认" }));
 
     expect(handleChange).toHaveBeenLastCalledWith("12");
+    expect(handleChange).toHaveBeenCalledTimes(2);
     expect(handleConfirm).toHaveBeenCalledWith("12");
   });
 
@@ -221,7 +224,9 @@ describe("TransactionAmountKeypad", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "确认" }));
 
-    expect(screen.queryByText("请输入有效金额。")).toBeNull();
+    expect(
+      screen.queryByText(transactionFormValidationMessages.amountInvalid),
+    ).toBeNull();
     expect(handleChange).toHaveBeenCalledWith("0");
     expect(handleConfirm).toHaveBeenCalledWith("0");
   });
@@ -275,6 +280,8 @@ describe("TransactionAmountKeypad", () => {
     );
     expect(screen.getByText("66 - 99")).toBeTruthy();
     expect(screen.queryByText("66 - -33")).toBeNull();
-    expect(screen.getByText("请输入有效金额。")).toBeTruthy();
+    expect(
+      screen.getByText(transactionFormValidationMessages.amountInvalid),
+    ).toBeTruthy();
   });
 });

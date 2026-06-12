@@ -30,6 +30,7 @@ import {
   type TransactionType,
 } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
+import { transactionFormValidationMessages } from "utils/transactionMessages";
 import { getNowDateTimeLocalValue } from "utils/transactions";
 
 type TransactionFormProps = {
@@ -214,8 +215,10 @@ export function TransactionForm({
 
   function handlePickerAdd() {
     const errors: typeof pickerErrors = {};
-    if (!pickerCategoryId) errors.category = "请选择一个小分类。";
-    if (!isValidMoneyText(pickerAmount)) errors.amount = "请输入有效金额。";
+    if (!pickerCategoryId)
+      errors.category = transactionFormValidationMessages.categoryRequired;
+    if (!isValidMoneyText(pickerAmount))
+      errors.amount = transactionFormValidationMessages.amountInvalid;
 
     if (Object.keys(errors).length > 0) {
       setPickerErrors(errors);
@@ -230,9 +233,12 @@ export function TransactionForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const errors: typeof fieldErrors = {};
-    if (!selectedMerchantId) errors.merchant = "请选择商家。";
-    if (!selectedAccountId) errors.account = "请选择账户。";
-    if (!hasValidItems) errors.items = "请至少添加一条明细。";
+    if (!selectedMerchantId)
+      errors.merchant = transactionFormValidationMessages.merchantRequired;
+    if (!selectedAccountId)
+      errors.account = transactionFormValidationMessages.accountRequired;
+    if (!hasValidItems)
+      errors.items = transactionFormValidationMessages.itemsRequired;
 
     if (Object.keys(errors).length > 0) {
       event.preventDefault();

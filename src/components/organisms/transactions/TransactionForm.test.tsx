@@ -9,6 +9,10 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
+import {
+  newTransactionPageErrorMessages,
+  transactionFormValidationMessages,
+} from "utils/transactionMessages";
 
 import { TransactionForm } from "./TransactionForm";
 
@@ -142,9 +146,11 @@ describe("TransactionForm", () => {
   });
 
   it("传入错误信息时显示 Alert", () => {
-    renderForm({ errorMessage: "金额不能为负数，且最多两位小数。" });
+    renderForm({ errorMessage: newTransactionPageErrorMessages.amountInvalid });
 
-    expect(screen.getByText("金额不能为负数，且最多两位小数。")).toBeTruthy();
+    expect(
+      screen.getByText(newTransactionPageErrorMessages.amountInvalid),
+    ).toBeTruthy();
   });
 
   it("账户选项中显示币种", () => {
@@ -203,14 +209,18 @@ describe("TransactionForm", () => {
       target: { value: "100" },
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
-    expect(screen.queryByText("请选择一个小分类。")).toBeNull();
+    expect(
+      screen.queryByText(transactionFormValidationMessages.categoryRequired),
+    ).toBeNull();
 
     // 追加后 Drawer 还在，picker 已清空；不选分类直接填金额再追加
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "50" },
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
-    expect(screen.getByText("请选择一个小分类。")).toBeTruthy();
+    expect(
+      screen.getByText(transactionFormValidationMessages.categoryRequired),
+    ).toBeTruthy();
   });
 
   it("未选小分类时点击追加显示错误提示", () => {
@@ -222,7 +232,9 @@ describe("TransactionForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
 
-    expect(screen.getByText("请选择一个小分类。")).toBeTruthy();
+    expect(
+      screen.getByText(transactionFormValidationMessages.categoryRequired),
+    ).toBeTruthy();
   });
 
   it("打开添加明细时金额默认是 0，并可直接追加 0 元明细", () => {
@@ -237,7 +249,9 @@ describe("TransactionForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
 
-    expect(screen.queryByText("请输入有效金额。")).toBeNull();
+    expect(
+      screen.queryByText(transactionFormValidationMessages.amountInvalid),
+    ).toBeNull();
     expect(screen.getByText("已选明细")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "金额" })).toHaveProperty(
       "value",

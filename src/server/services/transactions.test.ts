@@ -215,6 +215,21 @@ describe("transactions service", () => {
       });
     });
 
+    it("多明细或 0 元明细的交易由 void_transaction RPC 统一撤销", async () => {
+      mockRpcResult();
+
+      const result = await voidTransactionService({
+        ledgerId,
+        transactionRecordId,
+      });
+
+      expect(result).toEqual({ ok: true });
+      expect(rpcMock).toHaveBeenCalledWith("void_transaction", {
+        p_ledger_id: ledgerId,
+        p_transaction_record_id: transactionRecordId,
+      });
+    });
+
     it.each([
       "transactionRecordId 非 UUID",
       "transaction 不属于当前 ledger",

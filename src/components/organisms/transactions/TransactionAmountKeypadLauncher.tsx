@@ -75,7 +75,7 @@ export function TransactionAmountKeypadLauncher() {
   }
 
   function handleConfirm(nextValue: string) {
-    handleChange(nextValue);
+    setValue(nextValue);
     closeKeypad();
   }
 

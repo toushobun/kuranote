@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createTransactionMonthView } from "@/test/mocks/transactions";
+import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
 import { TransactionsTemplate } from "./Transactions";
 
@@ -74,10 +75,12 @@ describe("TransactionsTemplate", () => {
   });
 
   it("传入错误信息时显示错误提示", () => {
-    const { container } = renderPage("记录删除失败。请稍后重试。");
+    const { container } = renderPage(
+      transactionListPageErrorMessages.voidFailed,
+    );
 
     expect(
-      within(container).getByText("记录删除失败。请稍后重试。"),
+      within(container).getByText(transactionListPageErrorMessages.voidFailed),
     ).toBeTruthy();
   });
 
@@ -85,7 +88,9 @@ describe("TransactionsTemplate", () => {
     const { container } = renderPage();
 
     expect(
-      within(container).queryByText("记录删除失败。请稍后重试。"),
+      within(container).queryByText(
+        transactionListPageErrorMessages.voidFailed,
+      ),
     ).toBeNull();
   });
 });

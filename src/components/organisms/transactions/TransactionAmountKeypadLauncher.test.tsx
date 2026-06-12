@@ -56,6 +56,23 @@ describe("TransactionAmountKeypadLauncher", () => {
     );
   });
 
+  it("确认时不重复写入已经同步过的金额", () => {
+    renderAmountInput();
+
+    const input = screen.getByRole("textbox");
+    const inputValues: string[] = [];
+    input.addEventListener("input", () => {
+      inputValues.push((input as HTMLInputElement).value);
+    });
+
+    fireEvent.focusIn(input);
+    fireEvent.click(screen.getByRole("button", { name: "1" }));
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+
+    expect(inputValues).toEqual(["1", "12"]);
+  });
+
   it("不会仅因 placeholder 为 0 就响应普通输入框", () => {
     render(
       <div>

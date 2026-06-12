@@ -5,6 +5,7 @@ import type {
   TransactionMonthPage,
   TransactionMonthView,
 } from "types/transactions";
+import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
 import { TransactionsTemplate } from "./Transactions";
 
@@ -116,6 +117,6 @@ export const Empty: Story = {
 export const WithError: Story = {
   name: "含错误提示",
   args: {
-    errorMessage: "记录删除失败。请稍后重试。",
+    errorMessage: transactionListPageErrorMessages.voidFailed,
   },
 };
