@@ -93,7 +93,7 @@ describe("createTransaction", () => {
 
   it("输入值不合法时认证后带错误参数跳回新增页面", async () => {
     await expect(
-      createTransaction(createValidFormData({ itemAmount: "0" })),
+      createTransaction(createValidFormData({ itemAmount: "-1" })),
     ).rejects.toThrow("NEXT_REDIRECT:/transactions/new?error=amount_invalid");
 
     expect(mocks.getCurrentLedgerContext).toHaveBeenCalledTimes(1);

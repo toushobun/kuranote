@@ -1,0 +1,105 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+import Drawer from "@mui/material/Drawer";
+
+import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
+
+function setInputValue(input: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
+
+  valueSetter?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function isAmountInput(target: EventTarget | null): target is HTMLInputElement {
+  return (
+    target instanceof HTMLInputElement &&
+    target.type === "text" &&
+    target.dataset.amountInput === "true"
+  );
+}
+
+function releaseFocusIgnoreAfterNextPaint(callback: () => void) {
+  if (typeof window.requestAnimationFrame !== "function") {
+    window.setTimeout(callback, 0);
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(callback);
+  });
+}
+
+export function TransactionAmountKeypadLauncher() {
+  const ignoreFocusRef = useRef(false);
+  const [activeInput, setActiveInput] = useState<HTMLInputElement | null>(null);
+  const [currency, setCurrency] = useState<string | undefined>();
+  const [value, setValue] = useState("");
+
+  useEffect(() => {
+    function handleFocusIn(event: FocusEvent) {
+      if (ignoreFocusRef.current) return;
+      if (!isAmountInput(event.target)) return;
+
+      setActiveInput(event.target);
+      setCurrency(event.target.dataset.amountCurrency || undefined);
+      setValue(event.target.value);
+    }
+
+    document.addEventListener("focusin", handleFocusIn);
+
+    return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, []);
+
+  function closeKeypad() {
+    ignoreFocusRef.current = true;
+    activeInput?.blur();
+    setActiveInput(null);
+    setCurrency(undefined);
+    releaseFocusIgnoreAfterNextPaint(() => {
+      ignoreFocusRef.current = false;
+    });
+  }
+
+  function handleChange(nextValue: string) {
+    setValue(nextValue);
+    if (activeInput) setInputValue(activeInput, nextValue);
+  }
+
+  function handleConfirm(nextValue: string) {
+    handleChange(nextValue);
+    closeKeypad();
+  }
+
+  return (
+    <Drawer
+      anchor="bottom"
+      open={!!activeInput}
+      onClose={closeKeypad}
+      ModalProps={{ disableRestoreFocus: true }}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "18px 18px 0 0",
+            p: 1.5,
+          },
+        },
+      }}
+    >
+      <TransactionAmountKeypad
+        currency={currency}
+        value={value}
+        onChange={handleChange}
+        onConfirm={handleConfirm}
+      />
+    </Drawer>
+  );
+}

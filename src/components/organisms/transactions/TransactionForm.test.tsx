@@ -142,9 +142,9 @@ describe("TransactionForm", () => {
   });
 
   it("传入错误信息时显示 Alert", () => {
-    renderForm({ errorMessage: "金额必须为正数，且最多两位小数。" });
+    renderForm({ errorMessage: "金额不能为负数，且最多两位小数。" });
 
-    expect(screen.getByText("金额必须为正数，且最多两位小数。")).toBeTruthy();
+    expect(screen.getByText("金额不能为负数，且最多两位小数。")).toBeTruthy();
   });
 
   it("账户选项中显示币种", () => {
@@ -203,14 +203,14 @@ describe("TransactionForm", () => {
       target: { value: "100" },
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
-    expect(screen.queryByText("请至少选择一个小分类。")).toBeNull();
+    expect(screen.queryByText("请选择一个小分类。")).toBeNull();
 
     // 追加后 Drawer 还在，picker 已清空；不选分类直接填金额再追加
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "50" },
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
-    expect(screen.getByText("请至少选择一个小分类。")).toBeTruthy();
+    expect(screen.getByText("请选择一个小分类。")).toBeTruthy();
   });
 
   it("未选小分类时点击追加显示错误提示", () => {
@@ -222,7 +222,7 @@ describe("TransactionForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
 
-    expect(screen.getByText("请至少选择一个小分类。")).toBeTruthy();
+    expect(screen.getByText("请选择一个小分类。")).toBeTruthy();
   });
 
   it("未填金额时点击追加显示错误提示", () => {
@@ -271,6 +271,17 @@ describe("TransactionForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
 
     expect(within(container).getByText("合计 -0.3")).toBeTruthy();
+  });
+
+  it("允许追加 0 元明细，并显示 0 合计", () => {
+    const { container } = renderForm();
+
+    openSheet(container);
+    addItemViaSheet("餐饮", "0");
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+
+    expect(within(container).getByText("食材/调料 / 餐饮")).toBeTruthy();
+    expect(within(container).getByText("合计 0")).toBeTruthy();
   });
 
   it("允许同一个小分类重复追加为多条明细", () => {

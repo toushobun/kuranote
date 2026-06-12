@@ -61,10 +61,20 @@ describe("validateTransactionForm", () => {
     expect(result).toEqual({ ok: false, error: "amount_invalid" });
   });
 
-  it("金额为 0 时校验失败", () => {
+  it("金额为 0 时校验通过", () => {
     const result = validateTransactionForm(createFormData({ itemAmount: "0" }));
 
-    expect(result).toEqual({ ok: false, error: "amount_invalid" });
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        accountId,
+        items: [{ amount: 0, categoryId }],
+        merchantId,
+        note: "测试记录",
+        transactionAt: "2026-06-04T01:30:05.000Z",
+        type: "expense",
+      },
+    });
   });
 
   it("金额为负数时校验失败", () => {

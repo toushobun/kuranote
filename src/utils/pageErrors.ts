@@ -73,7 +73,7 @@ const newTransactionErrorMessages: Partial<
   Record<NewTransactionErrorCode, string>
 > = {
   [transactionErrorCodes.accountInvalid]: "账户指定不正确。",
-  [transactionErrorCodes.amountInvalid]: "金额必须为正数，且最多两位小数。",
+  [transactionErrorCodes.amountInvalid]: "金额不能为负数，且最多两位小数。",
   [transactionErrorCodes.categoryInvalid]: "分类指定不正确。",
   [transactionErrorCodes.createFailed]: "新增记账失败。请稍后重试。",
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",

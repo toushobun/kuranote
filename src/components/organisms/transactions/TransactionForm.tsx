@@ -143,20 +143,20 @@ export function TransactionForm({
     category: categoryById.get(item.categoryId),
   }));
   const totalAmount = items.reduce((sum, item) => {
-    if (!isPositiveMoneyText(item.amount)) return sum;
+    if (!isValidMoneyText(item.amount)) return sum;
 
     return sum + Number(item.amount);
   }, 0);
   const hasValidItems =
-    totalAmount > 0 &&
+    items.length > 0 &&
     items.every(
-      (item) => item.categoryId.length > 0 && isPositiveMoneyText(item.amount),
+      (item) => item.categoryId.length > 0 && isValidMoneyText(item.amount),
     );
   const isSubmitDisabled =
     accountOptions.length === 0 || filteredCategoryOptions.length === 0;
   const signedTotalAmount =
-    totalAmount > 0
-      ? `${selectedType === "expense" ? "-" : "+"}${parseFloat(totalAmount.toFixed(2))}`
+    items.length > 0
+      ? formatSignedAmount(selectedType, totalAmount)
       : "未填写金额";
 
   function addItem(categoryId: string, amount: string) {
@@ -214,8 +214,8 @@ export function TransactionForm({
 
   function handlePickerAdd() {
     const errors: typeof pickerErrors = {};
-    if (!pickerCategoryId) errors.category = "请至少选择一个小分类。";
-    if (!isPositiveMoneyText(pickerAmount)) errors.amount = "请输入有效金额。";
+    if (!pickerCategoryId) errors.category = "请选择一个小分类。";
+    if (!isValidMoneyText(pickerAmount)) errors.amount = "请输入有效金额。";
 
     if (Object.keys(errors).length > 0) {
       setPickerErrors(errors);
@@ -464,6 +464,9 @@ export function TransactionForm({
                         size="small"
                         slotProps={{
                           htmlInput: {
+                            "data-amount-currency":
+                              selectedAccount?.currency ?? "",
+                            "data-amount-input": "true",
                             inputMode: "decimal",
                             sx: { textAlign: "right" },
                           },
@@ -819,7 +822,13 @@ export function TransactionForm({
                     }}
                     placeholder="0"
                     size="small"
-                    slotProps={{ htmlInput: { inputMode: "decimal" } }}
+                    slotProps={{
+                      htmlInput: {
+                        "data-amount-currency": selectedAccount?.currency ?? "",
+                        "data-amount-input": "true",
+                        inputMode: "decimal",
+                      },
+                    }}
                     sx={{ flex: 1 }}
                     type="text"
                     value={pickerAmount}
@@ -908,12 +917,20 @@ function formatCategoryName(category: TransactionCategoryOption) {
     : category.name;
 }
 
-function isPositiveMoneyText(value: string) {
+function formatSignedAmount(type: TransactionType, amount: number) {
+  const normalizedAmount = parseFloat(amount.toFixed(2));
+
+  if (normalizedAmount === 0) return "0";
+
+  return `${type === "expense" ? "-" : "+"}${normalizedAmount}`;
+}
+
+function isValidMoneyText(value: string) {
   if (!/^\d+(\.\d{1,2})?$/.test(value.trim())) return false;
 
   const amount = Number(value);
 
-  return Number.isFinite(amount) && amount > 0;
+  return Number.isFinite(amount) && amount >= 0;
 }
 
 function SummaryRow({

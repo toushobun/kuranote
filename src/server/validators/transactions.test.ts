@@ -52,9 +52,25 @@ describe("transaction validators", () => {
     if (result.ok) expect(result.value.type).toBe("income");
   });
 
-  it("拒绝非法金额", () => {
+  it("允许 0 元明细", () => {
     expect(
       validateTransactionForm(createFormData({ itemAmount: "0" })),
+    ).toEqual({
+      ok: true,
+      value: {
+        accountId,
+        items: [{ amount: 0, categoryId }],
+        merchantId,
+        note: "测试记录",
+        transactionAt: "2026-06-04T01:30:05.000Z",
+        type: "expense",
+      },
+    });
+  });
+
+  it("拒绝非法金额", () => {
+    expect(
+      validateTransactionForm(createFormData({ itemAmount: "-1" })),
     ).toEqual({
       error: "amount_invalid",
       ok: false,

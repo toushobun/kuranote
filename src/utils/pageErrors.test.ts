@@ -57,7 +57,7 @@ describe("pageErrors", () => {
   it("使用统一错误码映射交易错误提示", () => {
     expect(
       getNewTransactionErrorMessage(transactionErrorCodes.amountInvalid),
-    ).toBe("金额必须为正数，且最多两位小数。");
+    ).toBe("金额不能为负数，且最多两位小数。");
     expect(getTransactionErrorMessage(transactionErrorCodes.voidInvalid)).toBe(
       "删除对象不正确。",
     );
