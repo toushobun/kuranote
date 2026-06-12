@@ -93,7 +93,7 @@ describe("createTransaction", () => {
 
   it("输入值不合法时认证后带错误参数跳回新增页面", async () => {
     await expect(
-      createTransaction(createValidFormData({ itemAmount: "0" })),
+      createTransaction(createValidFormData({ itemAmount: "-1" })),
     ).rejects.toThrow("NEXT_REDIRECT:/transactions/new?error=amount_invalid");
 
     expect(mocks.getCurrentLedgerContext).toHaveBeenCalledTimes(1);
@@ -131,6 +131,22 @@ describe("createTransaction", () => {
         p_merchant_id: null,
       }),
     );
+  });
+
+  it("0 元明细也可以保存", async () => {
+    await expect(
+      createTransaction(createValidFormData({ itemAmount: "0" })),
+    ).rejects.toThrow(/^NEXT_REDIRECT:\/transactions$/);
+
+    expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
+      p_account_id: accountId,
+      p_items: [{ amount: 0, categoryId }],
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+      p_note: "测试记录",
+      p_transaction_at: "2026-06-04T01:30:05.000Z",
+      p_type: "expense",
+    });
   });
 
   it("RPC 失败时带错误参数跳回新增页面", async () => {

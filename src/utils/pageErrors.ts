@@ -15,6 +15,10 @@ import {
   type NewTransactionErrorCode,
   type TransactionListErrorCode,
 } from "server/errors/transactions";
+import {
+  newTransactionPageErrorMessages,
+  transactionListPageErrorMessages,
+} from "utils/transactionMessages";
 
 const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
@@ -72,18 +76,27 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
 const newTransactionErrorMessages: Partial<
   Record<NewTransactionErrorCode, string>
 > = {
-  [transactionErrorCodes.accountInvalid]: "账户指定不正确。",
-  [transactionErrorCodes.amountInvalid]: "金额必须为正数，且最多两位小数。",
-  [transactionErrorCodes.categoryInvalid]: "分类指定不正确。",
-  [transactionErrorCodes.createFailed]: "新增记账失败。请稍后重试。",
-  [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
-  [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
-  [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
+  [transactionErrorCodes.accountInvalid]:
+    newTransactionPageErrorMessages.accountInvalid,
+  [transactionErrorCodes.amountInvalid]:
+    newTransactionPageErrorMessages.amountInvalid,
+  [transactionErrorCodes.categoryInvalid]:
+    newTransactionPageErrorMessages.categoryInvalid,
+  [transactionErrorCodes.createFailed]:
+    newTransactionPageErrorMessages.createFailed,
+  [transactionErrorCodes.dateInvalid]:
+    newTransactionPageErrorMessages.dateInvalid,
+  [transactionErrorCodes.merchantInvalid]:
+    newTransactionPageErrorMessages.merchantInvalid,
+  [transactionErrorCodes.typeInvalid]:
+    newTransactionPageErrorMessages.typeInvalid,
 };
 
 const transactionErrorMessages: Record<TransactionListErrorCode, string> = {
-  [transactionErrorCodes.voidFailed]: "记录删除失败。请稍后重试。",
-  [transactionErrorCodes.voidInvalid]: "删除对象不正确。",
+  [transactionErrorCodes.voidFailed]:
+    transactionListPageErrorMessages.voidFailed,
+  [transactionErrorCodes.voidInvalid]:
+    transactionListPageErrorMessages.voidInvalid,
 };
 
 function getPageErrorMessage<TError extends string>(

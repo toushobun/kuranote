@@ -13,6 +13,10 @@ import {
   getNewTransactionErrorMessage,
   getTransactionErrorMessage,
 } from "./pageErrors";
+import {
+  newTransactionPageErrorMessages,
+  transactionListPageErrorMessages,
+} from "./transactionMessages";
 
 describe("pageErrors", () => {
   it("使用统一错误码映射账户错误提示", () => {
@@ -57,9 +61,9 @@ describe("pageErrors", () => {
   it("使用统一错误码映射交易错误提示", () => {
     expect(
       getNewTransactionErrorMessage(transactionErrorCodes.amountInvalid),
-    ).toBe("金额必须为正数，且最多两位小数。");
+    ).toBe(newTransactionPageErrorMessages.amountInvalid);
     expect(getTransactionErrorMessage(transactionErrorCodes.voidInvalid)).toBe(
-      "删除对象不正确。",
+      transactionListPageErrorMessages.voidInvalid,
     );
   });
 

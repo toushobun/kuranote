@@ -127,7 +127,7 @@ function parseTransactionItems(
 
     const amountResult = parseMoneyAmount(amountValues[index], {
       allowNegative: false,
-      allowZero: false,
+      allowZero: true,
       error: transactionErrorCodes.amountInvalid,
     });
 

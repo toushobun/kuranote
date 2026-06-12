@@ -143,6 +143,31 @@ describe("transactions service", () => {
       });
     });
 
+    it("允许 0 元明细进入 create_transaction RPC", async () => {
+      mockRpcResult();
+
+      const result = await createTransactionService({
+        accountId,
+        items: [{ amount: 0, categoryId }],
+        ledgerId,
+        merchantId,
+        note: "零元记录",
+        transactionAt,
+        type: "expense",
+      });
+
+      expect(result).toEqual({ ok: true });
+      expect(rpcMock).toHaveBeenCalledWith("create_transaction", {
+        p_account_id: accountId,
+        p_items: [{ amount: 0, categoryId }],
+        p_ledger_id: ledgerId,
+        p_merchant_id: merchantId,
+        p_note: "零元记录",
+        p_transaction_at: transactionAt,
+        p_type: "expense",
+      });
+    });
+
     it.each([
       "ledger 不匹配",
       "account 不属于当前 ledger",
@@ -184,6 +209,21 @@ describe("transactions service", () => {
 
       expect(result).toEqual({ ok: true });
       expect(createClientMock).toHaveBeenCalledTimes(1);
+      expect(rpcMock).toHaveBeenCalledWith("void_transaction", {
+        p_ledger_id: ledgerId,
+        p_transaction_record_id: transactionRecordId,
+      });
+    });
+
+    it("多明细或 0 元明细的交易由 void_transaction RPC 统一撤销", async () => {
+      mockRpcResult();
+
+      const result = await voidTransactionService({
+        ledgerId,
+        transactionRecordId,
+      });
+
+      expect(result).toEqual({ ok: true });
       expect(rpcMock).toHaveBeenCalledWith("void_transaction", {
         p_ledger_id: ledgerId,
         p_transaction_record_id: transactionRecordId,

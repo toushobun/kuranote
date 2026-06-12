@@ -1,5 +1,5 @@
--- 支持一笔 transaction_record 下创建多条 transaction_item。
--- 不修改表结构，仅新增 create_transaction 的多明细重载。
+-- 已执行过旧版 create_transaction RPC 的环境不会重新应用被修改的历史 migration。
+-- 这里显式重新发布 RPC，确保多明细中 0 元明细可保存。
 
 create or replace function public.create_transaction(
     p_ledger_id uuid,
