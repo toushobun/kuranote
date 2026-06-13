@@ -39,7 +39,7 @@ export type TransactionRowProps = {
 export function TransactionRow({
   item,
   showAccount = false,
-  showEdit,
+  showEdit = false,
   showNote = false,
   showRecorder = false,
   showTime = false,
@@ -57,7 +57,6 @@ export function TransactionRow({
   const time = formatTransactionTime(item.transaction_at, { timeZone });
   const signedAmount = formatTransactionRowAmount(item.type, item.amount);
   const categoryLabel = getCategoryLabel(item.categoryItems);
-  const canEdit = showEdit ?? false;
 
   const accountTimeLine = [
     showAccount ? item.account_name : null,
@@ -133,9 +132,9 @@ export function TransactionRow({
           {signedAmount}
         </Typography>
 
-        {canEdit || voidAction ? (
+        {showEdit || voidAction ? (
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-            {canEdit ? (
+            {showEdit ? (
               <Button
                 component={Link}
                 href={transactionEditHref(item.id)}

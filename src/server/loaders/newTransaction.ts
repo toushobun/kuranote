@@ -12,6 +12,9 @@ import type {
   TransactionMerchantOption,
 } from "types/transactions";
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function loadNewTransactionView() {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const supabase = await createClient();
@@ -24,6 +27,10 @@ export async function loadNewTransactionView() {
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {
+  if (!uuidPattern.test(transactionRecordId)) {
+    notFound();
+  }
+
   const currentLedger = await getCurrentLedgerOrRedirect();
   const supabase = await createClient();
   const [options, recordResult, itemResult] = await Promise.all([
@@ -61,6 +68,7 @@ export async function loadEditTransactionView(transactionRecordId: string) {
     notFound();
   }
 
+  // 当前编辑范围内，一笔支出 / 收入记录的所有明细共享同一个账户。
   const accountId = items[0]?.account_id ?? "";
 
   return {

@@ -264,7 +264,16 @@ describe("buildCategoryOptions", () => {
 });
 
 describe("loadEditTransactionView", () => {
-  it("既存記録を編集フォームの初期値に変換する", async () => {
+  it("editId 不是 UUID 时调用 notFound", async () => {
+    await expect(loadEditTransactionView("invalid-id")).rejects.toThrow(
+      "NEXT_NOT_FOUND",
+    );
+    expect(mocks.notFound).toHaveBeenCalledTimes(1);
+    expect(mocks.getCurrentLedgerOrRedirect).not.toHaveBeenCalled();
+    expect(mocks.createClient).not.toHaveBeenCalled();
+  });
+
+  it("将既有记录转换为编辑表单初始值", async () => {
     setupEditViewData();
 
     await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
@@ -304,7 +313,7 @@ describe("loadEditTransactionView", () => {
     );
   });
 
-  it("0 円の明細を編集フォームの初期値に変換する", async () => {
+  it("将 0 元明细转换为编辑表单初始值", async () => {
     setupEditViewData({
       transaction_item: {
         data: [
@@ -341,7 +350,7 @@ describe("loadEditTransactionView", () => {
     ]);
   });
 
-  it("対象レコードが存在しない場合は notFound を呼ぶ", async () => {
+  it("ledger 过滤后查不到目标记录时调用 notFound", async () => {
     setupEditViewData({
       transaction_record: { data: [], error: null },
     });

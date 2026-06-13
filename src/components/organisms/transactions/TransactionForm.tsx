@@ -1027,19 +1027,14 @@ function formatDateTimeLocalInputValue(value: string) {
 
   if (Number.isNaN(date.getTime())) return value;
 
-  return [
-    date.getFullYear(),
-    "-",
-    padDatePart(date.getMonth() + 1),
-    "-",
-    padDatePart(date.getDate()),
-    "T",
-    padDatePart(date.getHours()),
-    ":",
-    padDatePart(date.getMinutes()),
-    ":",
-    padDatePart(date.getSeconds()),
-  ].join("");
+  const year = date.getFullYear();
+  const month = padDatePart(date.getMonth() + 1);
+  const day = padDatePart(date.getDate());
+  const hours = padDatePart(date.getHours());
+  const minutes = padDatePart(date.getMinutes());
+  const seconds = padDatePart(date.getSeconds());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 function formatSignedAmount(type: TransactionType, amount: number) {

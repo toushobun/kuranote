@@ -8,7 +8,7 @@ create or replace function public.update_transaction(
     p_transaction_at timestamptz,
     p_items jsonb,
     p_account_id uuid,
-    p_merchant_id uuid default null,
+    p_merchant_id uuid,
     p_note text default null
 )
 returns uuid
@@ -55,7 +55,7 @@ begin
         raise exception 'account_invalid' using errcode = '22023';
     end if;
 
-    if p_merchant_id is not null and not exists (
+    if p_merchant_id is null or not exists (
         select 1 from public.merchant m
         where m.id = p_merchant_id
           and m.ledger_id = p_ledger_id
