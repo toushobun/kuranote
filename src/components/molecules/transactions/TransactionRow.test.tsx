@@ -121,6 +121,24 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} voidAction={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: "撤销" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "编辑" })).toBeNull();
+  });
+
+  it("showEdit 为 true 时显示编辑入口", () => {
+    render(<TransactionRow item={createItem()} showEdit />);
+
+    expect(
+      screen.getByRole("link", { name: "编辑" }).getAttribute("href"),
+    ).toBe("/transactions/new?editId=00000000-0000-4000-8000-000000009001");
+  });
+
+  it("showEdit 和撤销 action 同时传入时显示两个操作", () => {
+    render(
+      <TransactionRow item={createItem()} showEdit voidAction={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("link", { name: "编辑" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "撤销" })).toBeTruthy();
   });
 
   it("确认后提交撤销表单并传递记录 id", () => {
