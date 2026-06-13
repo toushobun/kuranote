@@ -19,7 +19,7 @@ describe("void_transaction RPC migration", () => {
     ).not.toBeNull();
 
     const loopMatch = functionMatch![0].match(
-      /for\s+v_item\s+in\s+([\s\S]*?)\s+loop\s+([\s\S]*?)\s+end\s+loop;/,
+      /for\s+v_item\s+in\s+([\s\S]*?)\s+loop\s+([\s\S]*?)\s+end\s+loop;/i,
     );
     expect(
       loopMatch,
