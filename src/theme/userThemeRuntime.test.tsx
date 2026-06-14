@@ -4,7 +4,10 @@ import { renderToString } from "react-dom/server";
 
 import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { UserThemeProvider } from "./UserThemeProvider";
-import { getUserThemeStorageKey, userThemeCookieName } from "./userThemeStorage";
+import {
+  getUserThemeStorageKey,
+  userThemeCookieName,
+} from "./userThemeStorage";
 
 describe("user theme runtime", () => {
   beforeEach(() => {
