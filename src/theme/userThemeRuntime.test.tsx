@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 
 import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { UserThemeProvider } from "./UserThemeProvider";
-import { getUserThemeStorageKey } from "./userThemeStorage";
+import { getUserThemeStorageKey, userThemeCookieName } from "./userThemeStorage";
 
 describe("user theme runtime", () => {
   beforeEach(() => {
@@ -34,6 +34,9 @@ describe("user theme runtime", () => {
     );
 
     expect(document.documentElement.dataset.userTheme).toBe("jade_morning_dew");
+    expect(document.cookie).toContain(
+      `${userThemeCookieName}=jade_morning_dew`,
+    );
 
     unmount();
 
@@ -42,6 +45,7 @@ describe("user theme runtime", () => {
     });
 
     expect(document.documentElement.dataset.userTheme).toBe("lavender_dream");
+    expect(document.cookie).not.toContain(userThemeCookieName);
     expect(
       document.documentElement.style.getPropertyValue("--user-theme-page-bg"),
     ).toContain("#b8f0e0");
