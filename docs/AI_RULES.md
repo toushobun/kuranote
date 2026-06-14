@@ -27,6 +27,7 @@
 
 - Issue 标题使用 `type: 中文说明` 格式，例如 `fix: 修复账户错误`。
 - Issue 正文默认使用中文。
+- 新建 Issue 时必须加上对应 label，例如 `enhancement`、`bug`、`refactor`、`test`、`documentation`、`chore`。
 - Issue 正文格式必须参考 `.github/ISSUE_TEMPLATE/` 下对应类型的模板：
   - 新功能 / 功能改善使用 `.github/ISSUE_TEMPLATE/feature.yml`。
   - Bug 修正 / 问题修复使用 `.github/ISSUE_TEMPLATE/fix.yml`。
@@ -49,6 +50,13 @@
 ## PR 正文规则
 
 创建 PR 时，正文必须遵循 `.github/PULL_REQUEST_TEMPLATE/pull_request_template.md`。
+
+PR merge 后需要回收相关状态：
+
+- 确认对应 Issue / PR 中相关 TODO checkbox 已勾选。
+- 更新对应 Issue 的状态、说明或后续事项。
+- 如 PR 描述中有未完成事项、Storybook / 测试说明或 follow-up，merge 后同步更新。
+- 确认关联关系正确，例如 PR 正文包含 `Closes #N` 或在 Issue 中补充对应 PR 链接。
 
 ## 当前前端骨架方针
 
