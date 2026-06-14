@@ -1,18 +1,35 @@
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
+import { cookies } from "next/headers";
 import type { CSSProperties, ReactNode } from "react";
 
 import { AppProviders } from "providers/AppProviders";
-import { defaultUserThemeCssVariables } from "theme/userThemeCssVariables";
+import {
+  defaultUserThemeCssVariables,
+  getUserThemeCssVariables,
+} from "theme/userThemeCssVariables";
+import { userThemeCookieName } from "theme/userThemeStorage";
+import { defaultUserThemeKey, isUserThemeKey } from "theme/userThemeTokens";
 
 type RootLayoutShellProps = {
   children: ReactNode;
 };
 
-export function RootLayoutShell({ children }: RootLayoutShellProps) {
+export async function RootLayoutShell({ children }: RootLayoutShellProps) {
+  const cookieStore = await cookies();
+  const themeCookieValue = cookieStore.get(userThemeCookieName)?.value;
+  const themeKey =
+    themeCookieValue && isUserThemeKey(themeCookieValue)
+      ? themeCookieValue
+      : null;
+  const cssVariables = themeKey
+    ? getUserThemeCssVariables(themeKey)
+    : defaultUserThemeCssVariables;
+
   return (
     <html
       lang="zh-CN"
-      style={defaultUserThemeCssVariables as CSSProperties}
+      data-user-theme={themeKey ?? defaultUserThemeKey}
+      style={cssVariables as CSSProperties}
       suppressHydrationWarning
     >
       <body>
