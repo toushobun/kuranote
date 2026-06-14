@@ -5,6 +5,8 @@ import Typography from "@mui/material/Typography";
 import { routePaths } from "config/paths";
 import { GlassCard } from "atoms/ui/GlassCard";
 
+import { settingsEntryButtonSx } from "./settingsEntryButtonSx";
+
 export function SettingsCategoriesEntry() {
   return (
     <GlassCard sx={{ p: { xs: 3, sm: 4 } }}>
@@ -25,7 +27,11 @@ export function SettingsCategoriesEntry() {
           </Typography>
         </Stack>
 
-        <Button href={routePaths.categories} variant="contained">
+        <Button
+          href={routePaths.categories}
+          sx={settingsEntryButtonSx}
+          variant="contained"
+        >
           打开分类管理
         </Button>
       </Stack>

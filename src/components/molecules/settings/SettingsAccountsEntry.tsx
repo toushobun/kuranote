@@ -5,6 +5,8 @@ import Typography from "@mui/material/Typography";
 import { routePaths } from "config/paths";
 import { GlassCard } from "atoms/ui/GlassCard";
 
+import { settingsEntryButtonSx } from "./settingsEntryButtonSx";
+
 export function SettingsAccountsEntry() {
   return (
     <GlassCard
@@ -29,7 +31,11 @@ export function SettingsAccountsEntry() {
           </Typography>
         </Stack>
 
-        <Button href={routePaths.accounts} variant="contained">
+        <Button
+          href={routePaths.accounts}
+          sx={settingsEntryButtonSx}
+          variant="contained"
+        >
           打开账户管理
         </Button>
       </Stack>

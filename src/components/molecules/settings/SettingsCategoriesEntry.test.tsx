@@ -17,4 +17,12 @@ describe("SettingsCategoriesEntry", () => {
     ).toBeTruthy();
     expect(link.getAttribute("href")).toContain("/categories");
   });
+
+  it("打开分类管理按钮保持 contained 按钮样式", () => {
+    const { container } = render(<SettingsCategoriesEntry />);
+
+    const link = within(container).getByRole("link", { name: "打开分类管理" });
+
+    expect(link.className).toContain("MuiButton-contained");
+  });
 });
