@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createTransactionDateGroup } from "@/test/mocks/transactions";
+import type { TransactionRowProps } from "molecules/transactions/TransactionRow";
 
 import { TransactionGroupList } from "./TransactionGroupList";
 
@@ -10,10 +11,7 @@ vi.mock("molecules/transactions/TransactionRow", () => ({
   TransactionRow: ({
     item,
     showEdit,
-  }: {
-    item: { id: string; merchant_name: string | null };
-    showEdit?: boolean;
-  }): ReactNode => (
+  }: TransactionRowProps): ReactNode => (
     <div
       data-show-edit={showEdit ? "true" : "false"}
       data-testid={`row-${item.id}`}
