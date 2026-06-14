@@ -41,9 +41,9 @@ describe("getUserThemeCssVariables", () => {
     expect(getUserThemeCssVariables("amber_sun")["--user-theme-fab-text"]).toBe(
       "#78350f",
     );
-    expect(getUserThemeCssVariables("lemon_gold")["--user-theme-fab-text"]).toBe(
-      "#713f12",
-    );
+    expect(
+      getUserThemeCssVariables("lemon_gold")["--user-theme-fab-text"],
+    ).toBe("#713f12");
     expect(
       getUserThemeCssVariables("white_porcelain")["--user-theme-fab-text"],
     ).toBe("#1e293b");
