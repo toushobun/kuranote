@@ -19,6 +19,7 @@ build
 # local AI tool files
 .claude/
 .cursor/
+.codegraph/
 
 # macOS
 .DS_Store
