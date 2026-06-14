@@ -8,10 +8,7 @@ import type { TransactionRowProps } from "molecules/transactions/TransactionRow"
 import { TransactionGroupList } from "./TransactionGroupList";
 
 vi.mock("molecules/transactions/TransactionRow", () => ({
-  TransactionRow: ({
-    item,
-    showEdit,
-  }: TransactionRowProps): ReactNode => (
+  TransactionRow: ({ item, showEdit }: TransactionRowProps): ReactNode => (
     <div
       data-show-edit={showEdit ? "true" : "false"}
       data-testid={`row-${item.id}`}
