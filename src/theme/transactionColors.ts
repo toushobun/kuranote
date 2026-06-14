@@ -1,7 +1,10 @@
 export const transactionIncomeColor = "#d64b4b";
 export const transactionExpenseColor = "#3f7f46";
-export const transactionAccentColor = "#6d4bb3";
-export const transactionSummaryBackgroundColor = "#e8e0f8";
-export const transactionAvatarBackgroundColor = "#f4efff";
-export const transactionMonthNavigationBackgroundColor = "#f4efff";
-export const transactionBorderColor = "#e5dcf6";
+export const transactionAccentColor = "var(--user-theme-tx-accent)";
+export const transactionSummaryBackgroundColor =
+  "var(--user-theme-tx-summary-bg)";
+export const transactionAvatarBackgroundColor =
+  "var(--user-theme-tx-avatar-bg)";
+export const transactionMonthNavigationBackgroundColor =
+  "var(--user-theme-tx-nav-bg)";
+export const transactionBorderColor = "var(--user-theme-tx-border)";

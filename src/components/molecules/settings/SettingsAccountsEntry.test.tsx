@@ -23,4 +23,12 @@ describe("SettingsAccountsEntry", () => {
 
     expect(link.getAttribute("href")).toBe("/accounts");
   });
+
+  it("打开账户管理按钮保持 contained 按钮样式", () => {
+    const { container } = render(<SettingsAccountsEntry />);
+
+    const link = within(container).getByRole("link", { name: "打开账户管理" });
+
+    expect(link.className).toContain("MuiButton-contained");
+  });
 });
