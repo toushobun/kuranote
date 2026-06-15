@@ -4,11 +4,12 @@ on:
   pull_request:
     branches:
       - main
-    types: [ready_for_review]
+    types: [ready_for_review, synchronize]
 
 jobs:
   deploy-preview:
     name: Deploy Preview
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
