@@ -12,7 +12,8 @@
     "format:check": "prettier . --check",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "vercel:ignore-build": "node scripts/vercel-ignore-build.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
