@@ -20,6 +20,8 @@ export default defineConfig({
       theme: new URL("./src/theme", import.meta.url).pathname,
       types: new URL("./src/types", import.meta.url).pathname,
       utils: new URL("./src/utils", import.meta.url).pathname,
+      "server-only": new URL("./src/test/serverOnly.ts", import.meta.url)
+        .pathname,
     },
   },
   test: {
