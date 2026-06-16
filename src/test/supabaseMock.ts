@@ -8,6 +8,8 @@ export type SupabaseMockResponse = {
 
 type QueryMethodName =
   | "eq"
+  | "gt"
+  | "gte"
   | "in"
   | "insert"
   | "is"
@@ -55,6 +57,8 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
   query.insert = vi.fn((...args: unknown[]) => addCall("insert", args));
   query.update = vi.fn((...args: unknown[]) => addCall("update", args));
   query.eq = vi.fn((...args: unknown[]) => addCall("eq", args));
+  query.gt = vi.fn((...args: unknown[]) => addCall("gt", args));
+  query.gte = vi.fn((...args: unknown[]) => addCall("gte", args));
   query.is = vi.fn((...args: unknown[]) => addCall("is", args));
   query.order = vi.fn((...args: unknown[]) => addCall("order", args));
   query.limit = vi.fn((...args: unknown[]) => addCall("limit", args));
