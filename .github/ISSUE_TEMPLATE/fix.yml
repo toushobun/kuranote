@@ -12,18 +12,21 @@ body:
     validations:
       required: true
   - type: textarea
+    id: steps
+    attributes:
+      label: 再现步骤
+      description: 如何复现该问题？
+      placeholder: |
+        1. 打开账单页面
+        2. 点击保存
+        3. 查看账户余额
+    validations:
+      required: false
+  - type: textarea
     id: expected
     attributes:
       label: 期望结果
       description: 正常情况下应该是什么样？
-    validations:
-      required: false
-  - type: textarea
-    id: branch
-    attributes:
-      label: Branch 命名
-      description: 创建分支时请使用 fix/issue_number_xxx 格式。
-      placeholder: fix/192_account_error
     validations:
       required: false
   - type: textarea

@@ -27,14 +27,6 @@ body:
     validations:
       required: false
   - type: textarea
-    id: branch
-    attributes:
-      label: Branch 命名
-      description: 创建分支时请使用 refactor/issue_number_xxx 格式。
-      placeholder: refactor/302_transaction_form_structure
-    validations:
-      required: false
-  - type: textarea
     id: tasks
     attributes:
       label: TODO
