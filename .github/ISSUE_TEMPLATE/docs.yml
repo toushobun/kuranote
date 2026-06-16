@@ -27,14 +27,6 @@ body:
     validations:
       required: false
   - type: textarea
-    id: branch
-    attributes:
-      label: Branch 命名
-      description: 创建分支时请使用 docs/issue_number_xxx 格式。
-      placeholder: docs/302_update_deploy_notes
-    validations:
-      required: false
-  - type: textarea
     id: tasks
     attributes:
       label: TODO

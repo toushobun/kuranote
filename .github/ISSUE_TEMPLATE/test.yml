@@ -41,14 +41,6 @@ body:
     validations:
       required: false
   - type: textarea
-    id: branch
-    attributes:
-      label: Branch 命名
-      description: 创建分支时请使用 test/issue_number_xxx 格式。
-      placeholder: test/302_testing_library_assertions
-    validations:
-      required: false
-  - type: textarea
     id: acceptance
     attributes:
       label: 验收标准
