@@ -48,4 +48,14 @@ describe("LoginTemplate", () => {
 
     expect(within(container).getByTestId("login-form")).toBeTruthy();
   });
+
+  it("显示前往注册页的链接", () => {
+    const { container } = render(
+      <LoginTemplate action={vi.fn(async () => ({}))} />,
+    );
+
+    expect(
+      within(container).getByRole("link", { name: "注册" }),
+    ).toHaveAttribute("href", "/register");
+  });
 });

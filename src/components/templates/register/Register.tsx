@@ -4,14 +4,20 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
-import { LoginForm } from "organisms/auth/LoginForm";
+import { RegisterForm } from "organisms/auth/RegisterForm";
 import { routePaths } from "config/paths";
 
-type LoginTemplateProps = {
-  action: Parameters<typeof LoginForm>[0]["action"];
+type RegisterTemplateProps = {
+  action: Parameters<typeof RegisterForm>[0]["action"];
+  validateEmailFormatAction: Parameters<
+    typeof RegisterForm
+  >[0]["validateEmailFormatAction"];
 };
 
-export function LoginTemplate({ action }: LoginTemplateProps) {
+export function RegisterTemplate({
+  action,
+  validateEmailFormatAction,
+}: RegisterTemplateProps) {
   return (
     <Box
       component="main"
@@ -35,16 +41,19 @@ export function LoginTemplate({ action }: LoginTemplateProps) {
             UchiLog
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
-            登录后开始使用记账功能
+            创建账号后开始使用记账功能
           </Typography>
 
-          <LoginForm action={action} />
+          <RegisterForm
+            action={action}
+            validateEmailFormatAction={validateEmailFormatAction}
+          />
 
           <Typography
             color="text.secondary"
             sx={{ mt: 3, textAlign: "center" }}
           >
-            还没有账号？ <Link href={routePaths.register}>注册</Link>
+            已有账号？ <Link href={routePaths.login}>登录</Link>
           </Typography>
         </Paper>
       </Container>
