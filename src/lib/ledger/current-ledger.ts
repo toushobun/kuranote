@@ -24,17 +24,15 @@ type LedgerRow = {
 };
 
 type LedgerMemberRow = {
-  // Supabase 的外键 select 在 TypeScript 推断上可能表现为数组。
-  // 运行时这里通常是单个 ledger 对象或 null，但为了兼容推断结果，保留数组防御处理。
-  ledger: LedgerRow | LedgerRow[] | null;
+  ledger_id: string | null;
 };
 
-function normalizeLedger(ledger: LedgerRow | LedgerRow[] | null) {
-  if (Array.isArray(ledger)) {
-    return ledger[0] ?? null;
-  }
-
-  return ledger;
+function toCurrentLedger(ledger: LedgerRow): CurrentLedger {
+  return {
+    id: ledger.id,
+    name: ledger.name,
+    baseCurrency: ledger.base_currency,
+  };
 }
 
 export const getCurrentLedgerContext = cache(
@@ -57,24 +55,55 @@ export const getCurrentLedgerContext = cache(
     const email =
       typeof data.claims.email === "string" ? data.claims.email : "登录用户";
 
-    const { data: memberRows, error: ledgerError } = await supabase
+    const { data: memberRows, error: memberError } = await supabase
       .from("ledger_member")
-      .select("ledger:ledger_id(id, name, base_currency)")
+      .select("ledger_id")
       .eq("user_id", userId)
       .eq("status", "active");
 
+    if (memberError) {
+      console.error("Failed to load current ledger members.", memberError);
+      throw new Error(
+        `Failed to load current ledger members: ${memberError.message}`,
+      );
+    }
+
+    const ledgerIds = ((memberRows ?? []) as LedgerMemberRow[])
+      .map((row) => row.ledger_id)
+      .filter(
+        (ledgerId): ledgerId is string =>
+          typeof ledgerId === "string" && ledgerId.length > 0,
+      );
+
+    if (ledgerIds.length === 0) {
+      return {
+        userId,
+        email,
+        ledgers: [],
+        currentLedger: null,
+      };
+    }
+
+    const { data: ledgerRows, error: ledgerError } = await supabase
+      .from("ledger")
+      .select("id, name, base_currency")
+      .in("id", ledgerIds);
+
     if (ledgerError) {
+      console.error("Failed to load current ledgers.", ledgerError);
       throw new Error(`Failed to load current ledgers: ${ledgerError.message}`);
     }
 
-    const ledgers = ((memberRows ?? []) as LedgerMemberRow[])
-      .map((row) => normalizeLedger(row.ledger))
-      .filter((ledger): ledger is LedgerRow => ledger !== null)
-      .map((ledger) => ({
-        id: ledger.id,
-        name: ledger.name,
-        baseCurrency: ledger.base_currency,
-      }));
+    const ledgerById = new Map(
+      ((ledgerRows ?? []) as LedgerRow[]).map((ledger) => [
+        ledger.id,
+        toCurrentLedger(ledger),
+      ]),
+    );
+
+    const ledgers = ledgerIds
+      .map((ledgerId) => ledgerById.get(ledgerId))
+      .filter((ledger): ledger is CurrentLedger => ledger !== undefined);
 
     return {
       userId,
