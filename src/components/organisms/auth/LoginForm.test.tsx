@@ -7,7 +7,7 @@ afterEach(() => {
   cleanup();
 });
 
-const pwdFieldType = "password";
+const passwordFieldType = "password";
 
 describe("LoginForm", () => {
   it("显示邮箱和密码输入框", () => {
@@ -33,7 +33,7 @@ describe("LoginForm", () => {
     render(<LoginForm action={vi.fn(async () => ({}))} />);
 
     expect(screen.getByLabelText(/密码/).getAttribute("type")).toBe(
-      pwdFieldType,
+      passwordFieldType,
     );
   });
 
