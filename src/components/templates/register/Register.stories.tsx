@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { createMockTurnstileAdapter } from "organisms/auth/mockTurnstile";
-
 import { RegisterTemplate } from "./Register";
 
 async function requestOtpAction() {
@@ -45,12 +43,5 @@ export const OtpRequestLimited: Story = {
   name: "获取验证码限流",
   args: {
     requestOtpAction: requestOtpLimitedAction,
-  },
-};
-
-export const WithMockTurnstile: Story = {
-  name: "含 Mock Turnstile",
-  args: {
-    turnstileAdapter: createMockTurnstileAdapter(),
   },
 };
