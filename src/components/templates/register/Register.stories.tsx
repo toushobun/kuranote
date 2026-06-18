@@ -1,31 +1,36 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { createMockTurnstileAdapter } from "organisms/auth/mockTurnstile";
+
 import { RegisterTemplate } from "./Register";
 
-async function defaultAction() {
-  return {};
-}
-
-async function validateEmailFormatAction() {
+async function requestOtpAction() {
   return {
-    success: "该邮箱格式可以使用。",
+    status: "success" as const,
+    success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
   };
 }
 
-async function errorAction() {
-  return { error: "注册失败，请确认邮箱和密码后再试。" };
+async function submitOtpAction() {
+  return {};
 }
 
-async function successAction() {
-  return { success: "注册申请已提交。请查收确认邮件后再登录。" };
+async function requestOtpLimitedAction() {
+  return {
+    error: "验证码发送过于频繁，请稍后再试",
+    resetTurnstile: true,
+    retryAfterSeconds: 3,
+    status: "rate_limited" as const,
+  };
 }
 
 const meta = {
   title: "Templates/Register/RegisterTemplate",
   component: RegisterTemplate,
   args: {
-    action: defaultAction,
-    validateEmailFormatAction,
+    requestOtpAction,
+    submitOtpAction,
+    turnstileSiteKey: "test-site-key",
   },
 } satisfies Meta<typeof RegisterTemplate>;
 
@@ -36,16 +41,16 @@ export const Default: Story = {
   name: "注册页面",
 };
 
-export const WithError: Story = {
-  name: "含错误提示",
+export const OtpRequestLimited: Story = {
+  name: "获取验证码限流",
   args: {
-    action: errorAction,
+    requestOtpAction: requestOtpLimitedAction,
   },
 };
 
-export const WithSuccess: Story = {
-  name: "含成功提示",
+export const WithMockTurnstile: Story = {
+  name: "含 Mock Turnstile",
   args: {
-    action: successAction,
+    turnstileAdapter: createMockTurnstileAdapter(),
   },
 };
