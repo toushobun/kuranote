@@ -7,7 +7,7 @@ afterEach(() => {
   cleanup();
 });
 
-const pwdFieldType = "pass" + "word";
+const pwdFieldType = "password";
 
 describe("LoginForm", () => {
   it("显示邮箱和密码输入框", () => {
