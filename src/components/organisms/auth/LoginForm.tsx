@@ -17,7 +17,7 @@ type LoginFormProps = {
 };
 
 const initialState: LoginActionState = {};
-const pwdFieldName = "pass" + "word";
+const pwdFieldName = "password";
 const shrinkInputLabelSlotProps = {
   inputLabel: {
     shrink: true,
