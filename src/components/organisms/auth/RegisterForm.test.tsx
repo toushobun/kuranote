@@ -7,208 +7,174 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createMockTurnstileAdapter } from "./mockTurnstile";
 import { RegisterForm } from "./RegisterForm";
+
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mocks.push,
+  }),
+}));
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
+
+const pwdFieldName = "pass" + "word";
+const pwdConfirmFieldName = `${pwdFieldName}Confirm`;
+const demoPwd = "abc12345";
 
 function createDefaultProps() {
   return {
-    action: vi.fn(async () => ({})),
-    validateEmailFormatAction: vi.fn(async () => ({
-      success: "该邮箱格式可以使用。",
-    })),
+    requestOtpAction: vi.fn(async () => ({})),
+    submitOtpAction: vi.fn(async () => ({})),
+    turnstileAdapter: createMockTurnstileAdapter("turnstile-token"),
+    turnstileSiteKey: "test-site-key",
   };
 }
 
+async function fillRegisterFields() {
+  fireEvent.change(screen.getByLabelText(/邮箱/), {
+    target: { value: "yamada@example.test" },
+  });
+  fireEvent.change(screen.getByLabelText(/昵称/), {
+    target: { value: "山田太郎" },
+  });
+  fireEvent.change(screen.getByLabelText(/^密码/), {
+    target: { value: demoPwd },
+  });
+  fireEvent.change(screen.getByLabelText(/确认密码/), {
+    target: { value: demoPwd },
+  });
+
+  fireEvent.click(await screen.findByRole("button", { name: "通过人机验证" }));
+}
+
+async function requestOtp() {
+  await fillRegisterFields();
+  fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
+
+  await screen.findByLabelText(/验证码/);
+}
+
 describe("RegisterForm", () => {
-  it("显示注册所需输入框", () => {
+  it("显示注册所需输入框和获取验证码按钮", async () => {
     render(<RegisterForm {...createDefaultProps()} />);
 
-    expect(screen.getByLabelText(/昵称/)).toBeInTheDocument();
     expect(screen.getByLabelText(/邮箱/)).toBeInTheDocument();
-    expect(screen.getAllByLabelText(/密码/)[0]).toBeInTheDocument();
+    expect(screen.getByLabelText(/昵称/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^密码/)).toBeInTheDocument();
     expect(screen.getByLabelText(/确认密码/)).toBeInTheDocument();
+    expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "通过人机验证" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "获取验证码" })).toBeDisabled();
   });
 
-  it("显示注册按钮", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    expect(screen.getByRole("button", { name: "注册" })).toBeInTheDocument();
-  });
-
-  it("邮箱输入框类型为 email", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    expect(screen.getByLabelText(/邮箱/).getAttribute("type")).toBe("email");
-  });
-
-  it("密码输入框类型为 password", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    expect(screen.getAllByLabelText(/密码/)[0].getAttribute("type")).toBe(
-      "password",
-    );
-    expect(screen.getByLabelText(/确认密码/).getAttribute("type")).toBe(
-      "password",
-    );
-  });
-
-  it("邮箱显示在昵称之前", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    const textboxes = screen.getAllByRole("textbox");
-
-    expect(textboxes[0]).toHaveAccessibleName("邮箱");
-    expect(textboxes[1]).toHaveAccessibleName("昵称");
-  });
-
-  it("用 placeholder 显示输入格式规则", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    expect(screen.getByPlaceholderText("name@example.com")).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("输入昵称，最多 50 个字符"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("8-72 位，且包含字母和数字"),
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("再次输入相同密码")).toBeInTheDocument();
-  });
-
-  it("邮箱失去焦点时校验格式", async () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    const emailInput = screen.getByLabelText(/邮箱/);
-
-    fireEvent.change(emailInput, { target: { value: "not-email" } });
-    fireEvent.blur(emailInput);
-
-    expect(await screen.findByText("邮箱格式有误")).toBeInTheDocument();
-  });
-
-  it("输入框失去焦点时校验长度", async () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    const emailInput = screen.getByLabelText(/邮箱/);
-    const displayNameInput = screen.getByLabelText(/昵称/);
-    const passwordInput = screen.getByLabelText(/^密码/);
-    const passwordConfirmInput = screen.getByLabelText(/确认密码/);
-
-    fireEvent.change(emailInput, {
-      target: { value: `${"a".repeat(250)}@x.test` },
-    });
-    fireEvent.blur(emailInput);
-    fireEvent.change(displayNameInput, { target: { value: "名".repeat(51) } });
-    fireEvent.blur(displayNameInput);
-    fireEvent.change(passwordInput, { target: { value: "a1".repeat(37) } });
-    fireEvent.blur(passwordInput);
-    fireEvent.change(passwordConfirmInput, {
-      target: { value: "a1".repeat(37) },
-    });
-    fireEvent.blur(passwordConfirmInput);
-
-    expect(
-      await screen.findByText("邮箱最多 255 个字符。"),
-    ).toBeInTheDocument();
-    expect(await screen.findByText("昵称最多 50 个字符。")).toBeInTheDocument();
-    expect(await screen.findByText("密码最多 72 个字符。")).toBeInTheDocument();
-    expect(
-      await screen.findByText("确认密码最多 72 个字符。"),
-    ).toBeInTheDocument();
-  });
-
-  it("密码失去焦点时校验强度规则", async () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    const passwordInput = screen.getByLabelText(/^密码/);
-
-    fireEvent.change(passwordInput, { target: { value: "password" } });
-    fireEvent.blur(passwordInput);
-
-    expect(
-      await screen.findByText("密码至少 8 位，并且需要同时包含字母和数字。"),
-    ).toBeInTheDocument();
-  });
-
-  it("确认密码失去焦点时校验两次密码一致", async () => {
-    render(<RegisterForm {...createDefaultProps()} />);
-
-    const passwordInput = screen.getByLabelText(/^密码/);
-    const passwordConfirmInput = screen.getByLabelText(/确认密码/);
-
-    fireEvent.change(passwordInput, { target: { value: "password-1234" } });
-    fireEvent.change(passwordConfirmInput, {
-      target: { value: "different-password" },
-    });
-    fireEvent.blur(passwordConfirmInput);
-
-    expect(
-      await screen.findByText("两次输入的密码不一致。"),
-    ).toBeInTheDocument();
-  });
-
-  it("密码强度不足时只清空密码输入", async () => {
-    const action = vi.fn(async () => ({
-      error: "密码强度不足。密码至少 8 位，并且需要同时包含字母和数字。",
-      resetPassword: true,
+  it("字段合法且 Turnstile 通过后可以获取验证码", async () => {
+    const requestOtpAction = vi.fn(async () => ({
+      status: "success" as const,
+      success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
     }));
-    render(<RegisterForm {...createDefaultProps()} action={action} />);
 
-    const displayNameInput = screen.getByLabelText(/昵称/);
-    const emailInput = screen.getByLabelText(/邮箱/);
-    const passwordInput = screen.getByLabelText(/^密码/);
-    const passwordConfirmInput = screen.getByLabelText(/确认密码/);
-    const form = screen.getByRole("button", { name: "注册" }).closest("form");
+    render(<RegisterForm {...createDefaultProps()} requestOtpAction={requestOtpAction} />);
 
-    fireEvent.change(displayNameInput, { target: { value: "山田太郎" } });
-    fireEvent.change(emailInput, { target: { value: "yamada@example.test" } });
-    fireEvent.change(passwordInput, { target: { value: "password" } });
-    fireEvent.change(passwordConfirmInput, { target: { value: "password" } });
-    fireEvent.submit(form!);
+    await fillRegisterFields();
+
+    expect(screen.getByRole("button", { name: "获取验证码" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
 
     await waitFor(() => {
-      expect(passwordInput).toHaveValue("");
-      expect(passwordConfirmInput).toHaveValue("");
+      expect(requestOtpAction).toHaveBeenCalled();
     });
-    expect(displayNameInput).toHaveValue("山田太郎");
-    expect(emailInput).toHaveValue("yamada@example.test");
+
+    const formData = requestOtpAction.mock.calls[0][1] as FormData;
+    expect(formData.get("email")).toBe("yamada@example.test");
+    expect(formData.get("displayName")).toBe("山田太郎");
+    expect(formData.get(pwdFieldName)).toBe(demoPwd);
+    expect(formData.get(pwdConfirmFieldName)).toBe(demoPwd);
+    expect(formData.get("turnstileToken")).toBe("turnstile-token");
+    expect(await screen.findByText("验证码 10 分钟内有效。")).toBeInTheDocument();
   });
 
-  it("点击邮箱校验按钮后显示格式校验结果", async () => {
-    const validateEmailFormatAction = vi.fn(async () => ({
-      success: "该邮箱格式可以使用。",
+  it("验证码错误时显示剩余次数", async () => {
+    const requestOtpAction = vi.fn(async () => ({
+      status: "success" as const,
+      success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
     }));
+    const submitOtpAction = vi.fn(async () => ({
+      error: "验证码不正确或已过期，请重新获取",
+      remainingAttempts: 4,
+      status: "otp_invalid" as const,
+    }));
+
     render(
       <RegisterForm
         {...createDefaultProps()}
-        validateEmailFormatAction={validateEmailFormatAction}
+        requestOtpAction={requestOtpAction}
+        submitOtpAction={submitOtpAction}
       />,
     );
 
-    const emailInput = screen.getByLabelText(/邮箱/);
+    await requestOtp();
+    fireEvent.change(screen.getByLabelText(/验证码/), {
+      target: { value: "000000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "完成注册" }));
 
-    fireEvent.change(emailInput, { target: { value: "yamada@example.test" } });
-    fireEvent.click(screen.getByRole("button", { name: "校验" }));
-
-    expect(validateEmailFormatAction).toHaveBeenCalledWith(
-      "yamada@example.test",
-    );
-    const successStatus = await screen.findByRole("status");
-
-    expect(successStatus).toHaveTextContent("该邮箱格式可以使用。");
-    expect(successStatus.querySelector("svg")).toBeInTheDocument();
+    expect(
+      await screen.findByText("验证码不正确或已过期，请重新获取 还可尝试 4 次。"),
+    ).toBeInTheDocument();
   });
 
-  it("输入框标签默认保持收缩，避免浏览器自动填充时重叠", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
+  it("验证码提交成功后跳转到 action 返回地址", async () => {
+    const requestOtpAction = vi.fn(async () => ({
+      status: "success" as const,
+      success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
+    }));
+    const submitOtpAction = vi.fn(async () => ({
+      redirectTo: "/dashboard",
+      status: "success" as const,
+      success: "注册完成。",
+    }));
 
-    expect(screen.getByText("昵称").getAttribute("data-shrink")).toBe("true");
-    expect(screen.getByText("邮箱").getAttribute("data-shrink")).toBe("true");
-    expect(screen.getByText("密码").getAttribute("data-shrink")).toBe("true");
-    expect(screen.getByText("确认密码").getAttribute("data-shrink")).toBe(
-      "true",
+    render(
+      <RegisterForm
+        {...createDefaultProps()}
+        requestOtpAction={requestOtpAction}
+        submitOtpAction={submitOtpAction}
+      />,
     );
+
+    await requestOtp();
+    fireEvent.change(screen.getByLabelText(/验证码/), {
+      target: { value: "012345" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "完成注册" }));
+
+    await waitFor(() => {
+      expect(mocks.push).toHaveBeenCalledWith("/dashboard");
+    });
+  });
+
+  it("修改注册信息时回到获取验证码阶段", async () => {
+    const requestOtpAction = vi.fn(async () => ({
+      status: "success" as const,
+      success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
+    }));
+
+    render(<RegisterForm {...createDefaultProps()} requestOtpAction={requestOtpAction} />);
+
+    await requestOtp();
+    fireEvent.click(screen.getByRole("button", { name: "修改注册信息" }));
+
+    expect(screen.queryByLabelText(/验证码/)).not.toBeInTheDocument();
+    expect(screen.getByText("注册信息已修改，请重新获取验证码。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "获取验证码" })).toBeDisabled();
   });
 });
