@@ -81,10 +81,8 @@ jobs:
   deploy:
     name: Deploy to Vercel Production
     needs: migrate
-    # migration 检查成功后执行；无 migration 变更时 migrate job 仍为 success。
-    if: >-
-      always() &&
-      (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    # 无 migration 变更时只跳过 Supabase 相关 step，migrate job 仍为 success。
+    if: always() && needs.migrate.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
