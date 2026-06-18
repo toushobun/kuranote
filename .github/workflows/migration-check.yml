@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+    # paths 未命中时不会创建 workflow，因此不要将 Migration check 设为全局 required check。
     paths:
       - "supabase/migrations/**"
     types: [opened, synchronize, reopened, ready_for_review]
