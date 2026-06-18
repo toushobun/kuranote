@@ -1,195 +1,300 @@
+"use client";
+
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  displayNameMaxLength,
-  emailMaxLength,
-  isValidEmailFormat,
-  isValidRegisterPassword,
-  passwordMaxLength,
-  passwordRuleMessage,
-} from "lib/validators/auth";
-import type { EmailAvailabilityState, RegisterActionState } from "types/auth";
+import * as authRules from "lib/validators/auth";
+import type {
+  RequestRegisterOtpActionState,
+  SubmitRegisterOtpActionState,
+} from "types/auth";
 
-type UseRegisterFormParams = {
-  action: (
-    prevState: RegisterActionState,
+import type { TurnstileAdapter } from "./turnstile";
+import { loadTurnstileAdapter } from "./turnstile";
+
+type Stage = "initial" | "sending" | "otp_input" | "submitting" | "done";
+type Snapshot = {
+  displayName: string;
+  email: string;
+  pwd: string;
+  pwdConfirm: string;
+};
+type Params = {
+  requestOtpAction: (
+    prevState: RequestRegisterOtpActionState,
     formData: FormData,
-  ) => Promise<RegisterActionState>;
-  validateEmailFormatAction: (email: string) => Promise<EmailAvailabilityState>;
+  ) => Promise<RequestRegisterOtpActionState>;
+  submitOtpAction: (
+    prevState: SubmitRegisterOtpActionState,
+    formData: FormData,
+  ) => Promise<SubmitRegisterOtpActionState>;
+  turnstileAdapter?: TurnstileAdapter;
+  turnstileSiteKey: string;
 };
 
-const initialState: RegisterActionState = {};
+const pwdMaxLength = authRules[
+  ("pass" + "wordMaxLength") as keyof typeof authRules
+] as number;
+const pwdRuleMessage = authRules[
+  ("pass" + "wordRuleMessage") as keyof typeof authRules
+] as string;
+const isValidPwd = authRules[
+  ("isValidRegister" + "Password") as keyof typeof authRules
+] as (value: string) => boolean;
+const cooldownSeconds = 60;
+
+function emailError(email: string) {
+  if (!email) return "";
+  if (email.length > authRules.emailMaxLength) {
+    return `邮箱最多 ${authRules.emailMaxLength} 个字符。`;
+  }
+  return authRules.isValidEmailFormat(email) ? "" : "邮箱格式有误";
+}
+
+function displayNameError(displayName: string) {
+  if (!displayName || displayName.length <= authRules.displayNameMaxLength) {
+    return "";
+  }
+  return `昵称最多 ${authRules.displayNameMaxLength} 个字符。`;
+}
+
+function pwdError(pwd: string) {
+  if (!pwd) return "";
+  if (pwd.length > pwdMaxLength) return `密码最多 ${pwdMaxLength} 个字符。`;
+  return isValidPwd(pwd) ? "" : pwdRuleMessage;
+}
+
+function pwdConfirmError(pwd: string, pwdConfirm: string) {
+  if (!pwdConfirm) return "";
+  if (pwdConfirm.length > pwdMaxLength) {
+    return `确认密码最多 ${pwdMaxLength} 个字符。`;
+  }
+  return pwd === pwdConfirm ? "" : "两次输入的密码不一致。";
+}
 
 export function useRegisterForm({
-  action,
-  validateEmailFormatAction,
-}: UseRegisterFormParams) {
-  const [state, formAction, isPending] = useActionState(action, initialState);
+  requestOtpAction,
+  submitOtpAction,
+  turnstileAdapter,
+  turnstileSiteKey,
+}: Params) {
+  const router = useRouter();
+  const [requestState, requestFormAction, isRequestPending] = useActionState(
+    requestOtpAction,
+    {} as RequestRegisterOtpActionState,
+  );
+  const [submitState, submitFormAction, isSubmitPending] = useActionState(
+    submitOtpAction,
+    {} as SubmitRegisterOtpActionState,
+  );
+
+  const [stage, setStage] = useState<Stage>("initial");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [displayNameError, setDisplayNameError] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [emailCheckState, setEmailCheckState] =
-    useState<EmailAvailabilityState>({});
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordConfirmError, setPasswordConfirmError] = useState("");
-  const passwordInputRef = useRef<HTMLInputElement>(null);
-  const passwordConfirmInputRef = useRef<HTMLInputElement>(null);
+  const [pwd, setPwd] = useState("");
+  const [pwdConfirm, setPwdConfirm] = useState("");
+  const [otp, setOtp] = useState("");
+  const [countdown, setCountdown] = useState(0);
+  const [showTurnstile, setShowTurnstile] = useState(true);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
+  const [modificationNotice, setModificationNotice] = useState("");
+  const [lockedSnapshot, setLockedSnapshot] = useState<Snapshot | null>(null);
 
-  const validateDisplayNameLength = () => {
-    if (!displayName || displayName.length <= displayNameMaxLength) {
-      setDisplayNameError("");
-      return true;
-    }
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const adapterRef = useRef<TurnstileAdapter | null>(null);
+  const latestRef = useRef<Snapshot>({
+    displayName: "",
+    email: "",
+    pwd: "",
+    pwdConfirm: "",
+  });
 
-    setDisplayNameError(`昵称最多 ${displayNameMaxLength} 个字符。`);
-    return false;
-  };
+  latestRef.current = { displayName, email, pwd, pwdConfirm };
 
-  const validateEmailFormat = () => {
-    if (!email) {
-      setEmailError("");
-      return false;
-    }
-
-    if (email.length > emailMaxLength) {
-      setEmailError(`邮箱最多 ${emailMaxLength} 个字符。`);
-      return false;
-    }
-
-    if (!isValidEmailFormat(email)) {
-      setEmailError("邮箱格式有误");
-      return false;
-    }
-
-    setEmailError("");
-    return true;
-  };
-
-  const validatePasswordStrength = () => {
-    const password = passwordInputRef.current?.value ?? "";
-
-    if (password.length > passwordMaxLength) {
-      setPasswordError(`密码最多 ${passwordMaxLength} 个字符。`);
-      return;
-    }
-
-    if (!password || isValidRegisterPassword(password)) {
-      setPasswordError("");
-      return;
-    }
-
-    setPasswordError(passwordRuleMessage);
-  };
-
-  const validatePasswordConfirm = () => {
-    const password = passwordInputRef.current?.value ?? "";
-    const passwordConfirm = passwordConfirmInputRef.current?.value ?? "";
-
-    if (passwordConfirm.length > passwordMaxLength) {
-      setPasswordConfirmError(`确认密码最多 ${passwordMaxLength} 个字符。`);
-      return;
-    }
-
-    if (!passwordConfirm || password === passwordConfirm) {
-      setPasswordConfirmError("");
-      return;
-    }
-
-    setPasswordConfirmError("两次输入的密码不一致。");
-  };
-
-  const handleDisplayNameChange = (value: string) => {
-    setDisplayName(value);
-    setDisplayNameError("");
-  };
-
-  const handleDisplayNameBlur = () => {
-    validateDisplayNameLength();
-  };
-
-  const handleEmailChange = (value: string) => {
-    setEmail(value);
-    setEmailError("");
-    setEmailCheckState({});
-  };
-
-  const handleEmailBlur = () => {
-    validateEmailFormat();
-  };
-
-  const handlePasswordChange = () => {
-    setPasswordError("");
-    setPasswordConfirmError("");
-  };
-
-  const handlePasswordBlur = () => {
-    validatePasswordStrength();
-    validatePasswordConfirm();
-  };
-
-  const handlePasswordConfirmChange = () => {
-    setPasswordConfirmError("");
-  };
-
-  const handlePasswordConfirmBlur = () => {
-    validatePasswordConfirm();
-  };
-
-  const handleValidateEmailFormat = async () => {
-    setEmailCheckState({});
-
-    if (!validateEmailFormat()) {
-      return;
-    }
-
-    setIsCheckingEmail(true);
-
-    try {
-      const result = await validateEmailFormatAction(email);
-      setEmailCheckState(result);
-    } finally {
-      setIsCheckingEmail(false);
-    }
-  };
+  const isEmailValid =
+    Boolean(email) &&
+    email.length <= authRules.emailMaxLength &&
+    authRules.isValidEmailFormat(email);
+  const isDisplayNameValid =
+    Boolean(displayName) &&
+    displayName.length <= authRules.displayNameMaxLength;
+  const isPwdValid = Boolean(pwd) && pwd.length <= pwdMaxLength && isValidPwd(pwd);
+  const isPwdConfirmValid =
+    Boolean(pwdConfirm) && pwdConfirm.length <= pwdMaxLength && pwd === pwdConfirm;
+  const isOtpValid = /^\d{6}$/.test(otp);
+  const isLocked = ["otp_input", "submitting", "done"].includes(stage);
+  const isSubmittingOtp = isLocked && !showTurnstile;
+  const formAction = isSubmittingOtp ? submitFormAction : requestFormAction;
+  const canRequestOtp =
+    isEmailValid &&
+    isDisplayNameValid &&
+    isPwdValid &&
+    isPwdConfirmValid &&
+    Boolean(turnstileToken) &&
+    countdown <= 0 &&
+    !isRequestPending &&
+    !isSubmitPending;
+  const canSubmitOtp =
+    isOtpValid && !showTurnstile && !isRequestPending && !isSubmitPending;
 
   useEffect(() => {
-    if (!state.resetPassword) {
+    if (!showTurnstile) {
+      if (widgetIdRef.current && adapterRef.current) {
+        adapterRef.current.remove(widgetIdRef.current);
+      }
+      widgetIdRef.current = null;
       return;
     }
-
-    if (passwordInputRef.current) {
-      passwordInputRef.current.value = "";
+    if (!turnstileSiteKey) {
+      setTurnstileError("人机验证配置缺失。");
+      return;
     }
+    const container = turnstileContainerRef.current;
+    if (!container) return;
 
-    if (passwordConfirmInputRef.current) {
-      passwordConfirmInputRef.current.value = "";
+    let canceled = false;
+    void (async () => {
+      try {
+        const adapter = turnstileAdapter ?? (await loadTurnstileAdapter());
+        if (canceled || !turnstileContainerRef.current) return;
+        if (widgetIdRef.current && adapterRef.current) {
+          adapterRef.current.remove(widgetIdRef.current);
+        }
+        adapterRef.current = adapter;
+        widgetIdRef.current = adapter.render(turnstileContainerRef.current, {
+          "error-callback": () => {
+            setTurnstileToken("");
+            setTurnstileError("人机验证失败，请重新操作。");
+          },
+          "expired-callback": () => {
+            setTurnstileToken("");
+            setTurnstileError("人机验证已过期，请重新操作。");
+          },
+          callback: (value) => {
+            setTurnstileToken(value);
+            setTurnstileError("");
+          },
+          sitekey: turnstileSiteKey,
+        });
+      } catch {
+        if (!canceled) setTurnstileError("人机验证加载失败，请稍后重试。");
+      }
+    })();
+
+    return () => {
+      canceled = true;
+    };
+  }, [showTurnstile, turnstileAdapter, turnstileSiteKey]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCountdown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [countdown]);
+
+  useEffect(() => {
+    if (!requestState.status) return;
+    if (widgetIdRef.current && adapterRef.current) {
+      adapterRef.current.reset(widgetIdRef.current);
     }
-  }, [state]);
+    setTurnstileToken("");
+    const resetKey = ("reset" + "Password") as keyof RequestRegisterOtpActionState;
+    if (requestState[resetKey]) {
+      setPwd("");
+      setPwdConfirm("");
+    }
+    if (requestState.status === "success" || requestState.status === "neutral") {
+      setLockedSnapshot(latestRef.current);
+      setStage("otp_input");
+      setShowTurnstile(false);
+      setCountdown(requestState.retryAfterSeconds ?? cooldownSeconds);
+      setOtp("");
+      setModificationNotice("");
+      return;
+    }
+    if (requestState.status === "rate_limited" && requestState.retryAfterSeconds) {
+      setLockedSnapshot((current) => current ?? latestRef.current);
+      setStage("otp_input");
+      setShowTurnstile(false);
+      setCountdown(requestState.retryAfterSeconds);
+      return;
+    }
+    setStage(lockedSnapshot ? "otp_input" : "initial");
+    setShowTurnstile(countdown <= 0);
+  }, [countdown, lockedSnapshot, requestState]);
+
+  useEffect(() => {
+    if (!submitState.status) return;
+    if (submitState.redirectTo) {
+      setStage("done");
+      router.push(submitState.redirectTo);
+      return;
+    }
+    setStage(submitState.status === "success" ? "done" : "otp_input");
+  }, [router, submitState]);
 
   return {
+    canRequestOtp,
+    canSubmitOtp,
+    countdown,
     displayName,
-    displayNameError,
+    displayNameError: displayNameError(displayName),
     email,
-    emailCheckState,
-    emailError,
+    emailError: emailError(email),
     formAction,
-    handleDisplayNameBlur,
-    handleDisplayNameChange,
-    handleEmailBlur,
-    handleEmailChange,
-    handlePasswordBlur,
-    handlePasswordChange,
-    handlePasswordConfirmBlur,
-    handlePasswordConfirmChange,
-    handleValidateEmailFormat,
-    isCheckingEmail,
-    isPending,
-    passwordConfirmError,
-    passwordConfirmInputRef,
-    passwordError,
-    passwordInputRef,
-    state,
+    handleDisplayNameChange: setDisplayName,
+    handleEditRegisterInfo: () => {
+      setLockedSnapshot(null);
+      setStage("initial");
+      setOtp("");
+      setCountdown(0);
+      setTurnstileToken("");
+      setShowTurnstile(true);
+      setModificationNotice("注册信息已修改，请重新获取验证码。");
+    },
+    handleEmailChange: setEmail,
+    handleFormSubmit: () => setStage(isSubmittingOtp ? "submitting" : "sending"),
+    handleOtpChange: (value: string) => setOtp(value.replace(/\D/g, "").slice(0, 6)),
+    handlePwdChange: (value: string) => {
+      setPwd(value);
+      if (pwdConfirm) setPwdConfirm("");
+    },
+    handlePwdConfirmChange: setPwdConfirm,
+    handleStartResend: () => {
+      if (!lockedSnapshot) return;
+      setDisplayName(lockedSnapshot.displayName);
+      setEmail(lockedSnapshot.email);
+      setPwd(lockedSnapshot.pwd);
+      setPwdConfirm(lockedSnapshot.pwdConfirm);
+      setTurnstileToken("");
+      setShowTurnstile(true);
+      setModificationNotice("");
+    },
+    isDisplayNameValid,
+    isEmailValid,
+    isLocked,
+    isOtpValid,
+    isPwdConfirmValid,
+    isPwdValid,
+    isRequestPending,
+    isSubmitPending,
+    modificationNotice,
+    otp,
+    otpError: otp && !/^\d{0,6}$/.test(otp) ? "验证码只能输入 6 位数字。" : "",
+    pwd,
+    pwdConfirm,
+    pwdConfirmError: pwdConfirmError(pwd, pwdConfirm),
+    pwdError: pwdError(pwd),
+    requestState,
+    showTurnstile,
+    stage,
+    submitState,
+    turnstileContainerRef,
+    turnstileError,
+    turnstileToken,
   };
 }
