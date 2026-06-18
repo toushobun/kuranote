@@ -4,7 +4,7 @@ import { userEvent, within } from "storybook/test";
 import { createMockTurnstileAdapter } from "./mockTurnstile";
 import { RegisterForm } from "./RegisterForm";
 
-const demoPwd = "abc12345";
+const demoPassword = "abc12345";
 
 async function requestOtpAction() {
   return {
@@ -50,8 +50,8 @@ export const OtpInput: Story = {
 
     await userEvent.type(canvas.getByLabelText(/邮箱/), "new@example.test");
     await userEvent.type(canvas.getByLabelText(/昵称/), "山田太郎");
-    await userEvent.type(canvas.getByLabelText(/^密码/), demoPwd);
-    await userEvent.type(canvas.getByLabelText(/确认密码/), demoPwd);
+    await userEvent.type(canvas.getByLabelText(/^密码/), demoPassword);
+    await userEvent.type(canvas.getByLabelText(/确认密码/), demoPassword);
     await userEvent.click(canvas.getByRole("button", { name: "通过人机验证" }));
     await userEvent.click(canvas.getByRole("button", { name: "获取验证码" }));
   },
