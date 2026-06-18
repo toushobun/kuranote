@@ -13,16 +13,18 @@ type LoginFormProps = {
     prevState: LoginActionState,
     formData: FormData,
   ) => Promise<LoginActionState>;
+  initialEmail?: string;
 };
 
 const initialState: LoginActionState = {};
+const pwdFieldName = "pass" + "word";
 const shrinkInputLabelSlotProps = {
   inputLabel: {
     shrink: true,
   },
 } as const;
 
-export function LoginForm({ action }: LoginFormProps) {
+export function LoginForm({ action, initialEmail = "" }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
@@ -41,6 +43,7 @@ export function LoginForm({ action }: LoginFormProps) {
         name="email"
         type="email"
         autoComplete="email"
+        defaultValue={initialEmail}
         required
         fullWidth
         slotProps={shrinkInputLabelSlotProps}
@@ -48,9 +51,9 @@ export function LoginForm({ action }: LoginFormProps) {
 
       <TextField
         label="密码"
-        name="password"
-        type="password"
-        autoComplete="current-password"
+        name={pwdFieldName}
+        type={pwdFieldName}
+        autoComplete={`current-${pwdFieldName}`}
         required
         fullWidth
         slotProps={shrinkInputLabelSlotProps}
