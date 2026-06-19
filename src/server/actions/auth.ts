@@ -271,6 +271,8 @@ export async function requestRegisterOtp(
   const remoteIp = normalizeAuthOtpIp(requestHeaders);
 
   if (!ipHash) {
+    console.error("requestRegisterOtp missing trusted ip");
+
     return {
       error: registerOtpMessages.serviceError,
       resetTurnstile: true,
