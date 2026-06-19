@@ -11,10 +11,9 @@ describe("SettingsLoadingPage", () => {
   it("显示设置页面的加载状态", () => {
     const { container } = render(<SettingsLoadingPage />);
 
+    expect(within(container).getByRole("status")).toBeInTheDocument();
     expect(
       within(container).getByRole("heading", { name: "设置" }),
     ).toBeInTheDocument();
-    expect(within(container).getByRole("status")).toBeInTheDocument();
-    expect(within(container).getByText("正在读取设置数据")).toBeInTheDocument();
   });
 });

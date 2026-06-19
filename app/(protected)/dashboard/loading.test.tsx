@@ -12,5 +12,6 @@ describe("DashboardLoadingPage", () => {
     const { container } = render(<DashboardLoadingPage />);
 
     expect(within(container).getByRole("status")).toBeInTheDocument();
+    expect(within(container).getByText("最近记录")).toBeInTheDocument();
   });
 });
