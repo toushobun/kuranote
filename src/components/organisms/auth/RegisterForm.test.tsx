@@ -190,9 +190,7 @@ describe("RegisterForm", () => {
     const otpField = await screen.findByLabelText(/验证码/);
     fireEvent.change(otpField, { target: { value: "123" } });
 
-    expect(
-      screen.queryByText("请输入 6 位数字验证码"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("请输入 6 位数字验证码")).not.toBeInTheDocument();
 
     fireEvent.blur(otpField);
 
