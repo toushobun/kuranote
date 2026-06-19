@@ -64,7 +64,7 @@ describe("RegisterForm", () => {
     expect(screen.getByLabelText(/确认密码/)).toBeInTheDocument();
   });
 
-  it("实时显示字段校验错误", () => {
+  it("字段失焦后才显示校验错误", () => {
     render(<RegisterForm {...createDefaultProps()} />);
 
     fireEvent.change(screen.getByLabelText(/邮箱/), {
@@ -74,16 +74,26 @@ describe("RegisterForm", () => {
       target: { value: "password" },
     });
 
-    expect(screen.getByText("邮箱格式有误")).toBeInTheDocument();
+    expect(screen.queryByText("邮箱格式有误")).not.toBeInTheDocument();
     expect(
       screen.queryByText("密码至少 8 位，并且需要同时包含字母和数字。"),
     ).not.toBeInTheDocument();
 
+    fireEvent.blur(screen.getByLabelText(/邮箱/));
     fireEvent.blur(screen.getByLabelText(/^密码/));
 
+    expect(screen.getByText("邮箱格式有误")).toBeInTheDocument();
     expect(
       screen.getByText("密码至少 8 位，并且需要同时包含字母和数字。"),
     ).toBeInTheDocument();
+  });
+
+  it("输入格式正确时不常态显示成功提示", async () => {
+    render(<RegisterForm {...createDefaultProps()} />);
+
+    await fillRegisterFields();
+
+    expect(screen.queryByText("格式已通过")).not.toBeInTheDocument();
   });
 
   it("Turnstile 失败时显示重试入口", async () => {
@@ -168,6 +178,25 @@ describe("RegisterForm", () => {
       expect(screen.getByLabelText(/^密码/)).toHaveValue("");
       expect(screen.getByLabelText(/确认密码/)).toHaveValue("");
     });
+  });
+
+  it("验证码失焦后才显示格式错误", async () => {
+    const props = createDefaultProps();
+    props.requestOtpAction.mockResolvedValue({ status: "success" });
+    render(<RegisterForm {...props} />);
+
+    await fillRegisterFields();
+    fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
+    const otpField = await screen.findByLabelText(/验证码/);
+    fireEvent.change(otpField, { target: { value: "123" } });
+
+    expect(
+      screen.queryByText("请输入 6 位数字验证码"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.blur(otpField);
+
+    expect(screen.getByText("请输入 6 位数字验证码")).toBeInTheDocument();
   });
 
   it("提交验证码时调用提交 action 并显示剩余次数", async () => {
