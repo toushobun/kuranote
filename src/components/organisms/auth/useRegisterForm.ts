@@ -17,6 +17,7 @@ import {
   passwordRuleMessage,
 } from "lib/validators/auth";
 import type {
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
@@ -43,6 +44,9 @@ type RegisterSnapshot = {
 };
 
 type UseRegisterFormParams = {
+  checkEmailAvailabilityAction: (
+    email: string,
+  ) => Promise<RegisterEmailAvailabilityState>;
   requestOtpAction: (
     prevState: RequestRegisterOtpActionState,
     formData: FormData,
@@ -141,6 +145,7 @@ function isSafeRedirectPath(redirectTo: string) {
 }
 
 export function useRegisterForm({
+  checkEmailAvailabilityAction,
   requestOtpAction,
   submitOtpAction,
   turnstileSiteKey,
@@ -159,6 +164,9 @@ export function useRegisterForm({
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isDisplayNameTouched, setIsDisplayNameTouched] = useState(false);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const [emailAvailabilityError, setEmailAvailabilityError] = useState("");
+  const [isEmailAvailabilityPending, setIsEmailAvailabilityPending] =
+    useState(false);
   const [isPasswordTouched, setIsPasswordTouched] = useState(false);
   const [isPasswordConfirmTouched, setIsPasswordConfirmTouched] =
     useState(false);
@@ -177,6 +185,7 @@ export function useRegisterForm({
   const turnstileWidgetIdRef = useRef<string | null>(null);
   const turnstileWaitIntervalIdRef = useRef<number | null>(null);
   const turnstileLoadTimeoutIdRef = useRef<number | null>(null);
+  const emailAvailabilityRequestIdRef = useRef(0);
 
   const resetTurnstile = useCallback(() => {
     setTurnstileToken("");
@@ -213,7 +222,7 @@ export function useRegisterForm({
         setCooldownSeconds(result.retryAfterSeconds);
       }
 
-      if (result.status === "success" || result.status === "neutral") {
+      if (result.status === "success") {
         setLockedSnapshot(snapshot);
         setPassword("");
         setPasswordConfirm("");
@@ -321,6 +330,47 @@ export function useRegisterForm({
   const isSubmitOtpLocked =
     submitOtpState.status === "too_many_attempts" ||
     submitOtpState.remainingAttempts === 0;
+
+  const handleEmailChange = useCallback((value: string) => {
+    emailAvailabilityRequestIdRef.current += 1;
+    setEmail(value);
+    setEmailAvailabilityError("");
+    setIsEmailAvailabilityPending(false);
+  }, []);
+
+  const handleEmailBlur = useCallback(async () => {
+    setIsEmailTouched(true);
+
+    if (!email || getEmailError(email)) {
+      return;
+    }
+
+    const requestId = emailAvailabilityRequestIdRef.current + 1;
+    emailAvailabilityRequestIdRef.current = requestId;
+    setIsEmailAvailabilityPending(true);
+
+    try {
+      const result = await checkEmailAvailabilityAction(email);
+
+      if (emailAvailabilityRequestIdRef.current === requestId) {
+        setEmailAvailabilityError(
+          result.available
+            ? ""
+            : result.error || registerFormMessages.messages.emailCheckFailed,
+        );
+      }
+    } catch {
+      if (emailAvailabilityRequestIdRef.current === requestId) {
+        setEmailAvailabilityError(
+          registerFormMessages.messages.emailCheckFailed,
+        );
+      }
+    } finally {
+      if (emailAvailabilityRequestIdRef.current === requestId) {
+        setIsEmailAvailabilityPending(false);
+      }
+    }
+  }, [checkEmailAvailabilityAction, email]);
 
   useEffect(() => {
     const redirectTo = submitOtpState.redirectTo;
@@ -494,11 +544,7 @@ export function useRegisterForm({
       const result = await requestOtpAction(requestOtpInitialState, formData);
       setManualRequestOtpState(result);
       applyRequestOtpResult(result, snapshot);
-      if (
-        result.status !== "success" &&
-        result.status !== "neutral" &&
-        !result.resetPassword
-      ) {
+      if (result.status !== "success" && !result.resetPassword) {
         setPhase("otp_input");
       }
     } finally {
@@ -564,6 +610,8 @@ export function useRegisterForm({
       Boolean(turnstileToken) &&
       cooldownSeconds <= 0 &&
       isEmailValid &&
+      !emailAvailabilityError &&
+      !isEmailAvailabilityPending &&
       isDisplayNameValid &&
       isPasswordValid &&
       isPasswordConfirmValid &&
@@ -588,12 +636,13 @@ export function useRegisterForm({
     displayName,
     displayNameError,
     email,
-    emailError,
+    emailError: emailError || emailAvailabilityError,
+    handleEmailChange,
     handleModifyRegisterInfo,
     handleOtpCodeChange,
     handleOtpCodeBlur: () => setIsOtpCodeTouched(true),
     handleDisplayNameBlur: () => setIsDisplayNameTouched(true),
-    handleEmailBlur: () => setIsEmailTouched(true),
+    handleEmailBlur,
     handlePasswordBlur: () => setIsPasswordTouched(true),
     handlePasswordConfirmBlur: () => setIsPasswordConfirmTouched(true),
     handlePrepareResend,
@@ -615,7 +664,6 @@ export function useRegisterForm({
     requestOtpState,
     requestValues,
     setDisplayName,
-    setEmail,
     setPassword,
     setPasswordConfirm,
     shouldShowTurnstile,

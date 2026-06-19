@@ -7,6 +7,7 @@ export const registerFormMessages = {
     passwordConfirm: "确认密码",
   },
   messages: {
+    emailCheckFailed: "暂时无法确认邮箱是否可用，请稍后再试。",
     modifyRequired: "注册信息已修改，请重新获取验证码",
     redirecting: "注册完成，正在跳转...",
     submitOtpLocked: "验证码尝试次数已用尽，请重新获取验证码。",

@@ -23,10 +23,12 @@ import {
   hashAuthOtpIp,
   normalizeAuthOtpIp,
 } from "server/auth/otpHash";
+import { isRegisterEmailAvailable } from "server/auth/registerEmailAvailability";
 import { verifyTurnstileToken } from "server/auth/turnstile";
 import type {
   LoginActionState,
   RegisterActionState,
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
@@ -52,6 +54,35 @@ const registerOtpMessages = {
 
 const maxRegisterOtpVerifyFailures = 5;
 const registerOtpCooldownSeconds = 60;
+
+export async function checkRegisterEmailAvailability(
+  email: unknown,
+): Promise<RegisterEmailAvailabilityState> {
+  if (typeof email !== "string") {
+    return { available: false };
+  }
+
+  const trimmedEmail = email.trim();
+
+  if (
+    !trimmedEmail ||
+    trimmedEmail.length > emailMaxLength ||
+    !isValidEmailFormat(trimmedEmail)
+  ) {
+    return { available: false };
+  }
+
+  try {
+    const available = await isRegisterEmailAvailable(trimmedEmail);
+
+    return available
+      ? { available: true }
+      : { available: false, error: registerErrorMessages.duplicateEmail };
+  } catch (error) {
+    console.error("checkRegisterEmailAvailability failed", error);
+    return { available: false, error: registerOtpMessages.serviceError };
+  }
+}
 
 function validateRegisterFields({
   displayName,
@@ -302,6 +333,18 @@ export async function requestRegisterOtp(
       };
     }
 
+    if (!isResend) {
+      const emailAvailability = await checkRegisterEmailAvailability(email);
+
+      if (!emailAvailability.available) {
+        return {
+          error: emailAvailability.error ?? registerOtpMessages.serviceError,
+          resetTurnstile: true,
+          status: "email_unavailable",
+        };
+      }
+    }
+
     const turnstilePassed = await verifyTurnstileToken({
       remoteIp,
       token: turnstileToken,
@@ -367,10 +410,9 @@ export async function requestRegisterOtp(
 
     if (code === "user_already_exists") {
       return {
+        error: registerErrorMessages.duplicateEmail,
         resetTurnstile: true,
-        retryAfterSeconds: registerOtpCooldownSeconds,
-        status: "neutral",
-        success: registerOtpMessages.success,
+        status: "email_unavailable",
       };
     }
 

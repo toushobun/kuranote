@@ -7,11 +7,15 @@ import Typography from "@mui/material/Typography";
 import { routePaths } from "config/paths";
 import { RegisterForm } from "organisms/auth/RegisterForm";
 import type {
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
 
 type RegisterTemplateProps = {
+  checkEmailAvailabilityAction: (
+    email: string,
+  ) => Promise<RegisterEmailAvailabilityState>;
   requestOtpAction: (
     prevState: RequestRegisterOtpActionState,
     formData: FormData,
@@ -24,6 +28,7 @@ type RegisterTemplateProps = {
 };
 
 export function RegisterTemplate({
+  checkEmailAvailabilityAction,
   requestOtpAction,
   submitOtpAction,
   turnstileSiteKey,
@@ -55,6 +60,7 @@ export function RegisterTemplate({
           </Typography>
 
           <RegisterForm
+            checkEmailAvailabilityAction={checkEmailAvailabilityAction}
             requestOtpAction={requestOtpAction}
             submitOtpAction={submitOtpAction}
             turnstileSiteKey={turnstileSiteKey}
