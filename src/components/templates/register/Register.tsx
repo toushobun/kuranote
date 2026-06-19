@@ -4,19 +4,34 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
-import { RegisterForm } from "organisms/auth/RegisterForm";
 import { routePaths } from "config/paths";
+import { RegisterForm } from "organisms/auth/RegisterForm";
+import type {
+  RegisterEmailAvailabilityState,
+  RequestRegisterOtpActionState,
+  SubmitRegisterOtpActionState,
+} from "types/auth";
 
 type RegisterTemplateProps = {
-  action: Parameters<typeof RegisterForm>[0]["action"];
-  validateEmailFormatAction: Parameters<
-    typeof RegisterForm
-  >[0]["validateEmailFormatAction"];
+  checkEmailAvailabilityAction: (
+    email: string,
+  ) => Promise<RegisterEmailAvailabilityState>;
+  requestOtpAction: (
+    prevState: RequestRegisterOtpActionState,
+    formData: FormData,
+  ) => Promise<RequestRegisterOtpActionState>;
+  submitOtpAction: (
+    prevState: SubmitRegisterOtpActionState,
+    formData: FormData,
+  ) => Promise<SubmitRegisterOtpActionState>;
+  turnstileSiteKey: string;
 };
 
 export function RegisterTemplate({
-  action,
-  validateEmailFormatAction,
+  checkEmailAvailabilityAction,
+  requestOtpAction,
+  submitOtpAction,
+  turnstileSiteKey,
 }: RegisterTemplateProps) {
   return (
     <Box
@@ -45,8 +60,10 @@ export function RegisterTemplate({
           </Typography>
 
           <RegisterForm
-            action={action}
-            validateEmailFormatAction={validateEmailFormatAction}
+            checkEmailAvailabilityAction={checkEmailAvailabilityAction}
+            requestOtpAction={requestOtpAction}
+            submitOtpAction={submitOtpAction}
+            turnstileSiteKey={turnstileSiteKey}
           />
 
           <Typography
