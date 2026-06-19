@@ -238,23 +238,27 @@ describe("requestRegisterOtp", () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    mocks.headers.mockResolvedValue(new Headers());
 
-    const result = await requestRegisterOtp(
-      {},
-      createRequestRegisterOtpFormData(),
-    );
+    try {
+      mocks.headers.mockResolvedValue(new Headers());
 
-    expect(consoleError).toHaveBeenCalledWith(
-      "requestRegisterOtp missing trusted ip",
-    );
-    expect(result).toEqual({
-      error: "服务异常，请稍后再试",
-      resetTurnstile: true,
-      status: "unknown_error",
-    });
-    expect(mocks.checkAuthOtpSendRateLimit).not.toHaveBeenCalled();
-    consoleError.mockRestore();
+      const result = await requestRegisterOtp(
+        {},
+        createRequestRegisterOtpFormData(),
+      );
+
+      expect(consoleError).toHaveBeenCalledWith(
+        "requestRegisterOtp missing trusted ip",
+      );
+      expect(result).toEqual({
+        error: "服务异常，请稍后再试",
+        resetTurnstile: true,
+        status: "unknown_error",
+      });
+      expect(mocks.checkAuthOtpSendRateLimit).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("signUp 成功时写入 send success", async () => {
