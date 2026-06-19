@@ -379,7 +379,9 @@ export async function requestRegisterOtp(
       resetTurnstile: true,
       status: "unknown_error",
     };
-  } catch {
+  } catch (error) {
+    console.error("requestRegisterOtp failed", error);
+
     return {
       error: registerOtpMessages.serviceError,
       resetTurnstile: true,
