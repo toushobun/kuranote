@@ -408,6 +408,34 @@ describe("requestRegisterOtp", () => {
       }),
     );
   });
+
+  it("未分类异常时输出固定错误 tag", async () => {
+    const unexpectedError = new Error("unexpected");
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      mocks.checkAuthOtpSendRateLimit.mockRejectedValue(unexpectedError);
+
+      const result = await requestRegisterOtp(
+        {},
+        createRequestRegisterOtpFormData(),
+      );
+
+      expect(consoleError).toHaveBeenCalledWith(
+        "requestRegisterOtp failed",
+        unexpectedError,
+      );
+      expect(result).toEqual({
+        error: "服务异常，请稍后再试",
+        resetTurnstile: true,
+        status: "unknown_error",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });
 
 describe("submitRegisterOtp", () => {
