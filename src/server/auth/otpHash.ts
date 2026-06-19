@@ -42,6 +42,26 @@ export function normalizeAuthOtpIp(headers: AuthOtpHeaders) {
     return realIp;
   }
 
+  const vercelProxiedFor = headers.get("x-vercel-proxied-for")?.trim();
+
+  if (vercelProxiedFor && vercelProxiedFor.length > 0) {
+    return vercelProxiedFor;
+  }
+
+  const forwarded = headers.get("forwarded");
+  const forwardedIp = forwarded
+    ?.split(",")
+    .flatMap((value) => value.split(";"))
+    .map((value) => value.trim())
+    .find((value) => value.toLowerCase().startsWith("for="))
+    ?.slice(4)
+    .trim()
+    .replace(/^"(.*)"$/, "$1");
+
+  if (forwardedIp && forwardedIp.length > 0) {
+    return forwardedIp;
+  }
+
   return process.env.NODE_ENV === "development" ? "127.0.0.1" : null;
 }
 

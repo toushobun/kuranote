@@ -61,6 +61,22 @@ describe("auth OTP hash", () => {
     expect(normalizeAuthOtpIp(headers)).toBe("198.51.100.20");
   });
 
+  it("没有更高优先级的 header 时使用 x-vercel-proxied-for", () => {
+    const headers = new Headers({
+      "x-vercel-proxied-for": " 192.0.2.40 ",
+    });
+
+    expect(normalizeAuthOtpIp(headers)).toBe("192.0.2.40");
+  });
+
+  it("从 forwarded header 读取 for 值", () => {
+    const headers = new Headers({
+      forwarded: 'for="192.0.2.50";proto=https',
+    });
+
+    expect(normalizeAuthOtpIp(headers)).toBe("192.0.2.50");
+  });
+
   it("开发环境没有可用 IP 时使用本地 fallback", () => {
     vi.stubEnv("NODE_ENV", "development");
     const headers = new Headers();
@@ -74,8 +90,10 @@ describe("auth OTP hash", () => {
     (nodeEnv) => {
       vi.stubEnv("NODE_ENV", nodeEnv);
       const headers = new Headers({
+        forwarded: "proto=https",
         "x-forwarded-for": " , ",
         "x-real-ip": " ",
+        "x-vercel-proxied-for": " ",
       });
 
       expect(normalizeAuthOtpIp(headers)).toBeNull();

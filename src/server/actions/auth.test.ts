@@ -234,6 +234,29 @@ describe("requestRegisterOtp", () => {
     expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
+  it("无法识别可信 IP 时记录固定错误 tag", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.headers.mockResolvedValue(new Headers());
+
+    const result = await requestRegisterOtp(
+      {},
+      createRequestRegisterOtpFormData(),
+    );
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "requestRegisterOtp missing trusted ip",
+    );
+    expect(result).toEqual({
+      error: "服务异常，请稍后再试",
+      resetTurnstile: true,
+      status: "unknown_error",
+    });
+    expect(mocks.checkAuthOtpSendRateLimit).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it("signUp 成功时写入 send success", async () => {
     const result = await requestRegisterOtp(
       {},
