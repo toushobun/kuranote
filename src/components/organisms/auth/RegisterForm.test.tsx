@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTestSiteKey } from "config/turnstile";
+import type { RegisterEmailAvailabilityState } from "types/auth";
 
 import { installMockTurnstile } from "./mockTurnstile";
 import { RegisterForm } from "./RegisterForm";
@@ -29,6 +30,11 @@ afterEach(() => {
 
 function createDefaultProps() {
   return {
+    checkEmailAvailabilityAction: vi.fn(
+      async (): Promise<RegisterEmailAvailabilityState> => ({
+        available: true,
+      }),
+    ),
     requestOtpAction: vi.fn(async () => ({})),
     submitOtpAction: vi.fn(async () => ({})),
     turnstileSiteKey: turnstileTestSiteKey,
@@ -65,7 +71,8 @@ describe("RegisterForm", () => {
   });
 
   it("字段失焦后才显示校验错误", () => {
-    render(<RegisterForm {...createDefaultProps()} />);
+    const props = createDefaultProps();
+    render(<RegisterForm {...props} />);
 
     fireEvent.change(screen.getByLabelText(/邮箱/), {
       target: { value: "not-email" },
@@ -86,6 +93,50 @@ describe("RegisterForm", () => {
     expect(
       screen.getByText("密码至少 8 位，并且需要同时包含字母和数字。"),
     ).toBeInTheDocument();
+    expect(props.checkEmailAvailabilityAction).not.toHaveBeenCalled();
+  });
+
+  it("邮箱失焦后提示已使用并禁用获取验证码", async () => {
+    const props = createDefaultProps();
+    props.checkEmailAvailabilityAction.mockResolvedValue({
+      available: false,
+      error: "这个邮箱已经注册过了，请直接登录或换一个邮箱。",
+    });
+    render(<RegisterForm {...props} />);
+
+    await fillRegisterFields();
+    fireEvent.blur(screen.getByLabelText(/邮箱/));
+
+    expect(
+      await screen.findByText("这个邮箱已经注册过了，请直接登录或换一个邮箱。"),
+    ).toBeInTheDocument();
+    expect(props.checkEmailAvailabilityAction).toHaveBeenCalledWith(
+      "yamada@example.test",
+    );
+    expect(screen.getByRole("button", { name: "获取验证码" })).toBeDisabled();
+  });
+
+  it("修改邮箱后清除旧的已使用检查结果", async () => {
+    const props = createDefaultProps();
+    props.checkEmailAvailabilityAction.mockResolvedValue({
+      available: false,
+      error: "这个邮箱已经注册过了，请直接登录或换一个邮箱。",
+    });
+    render(<RegisterForm {...props} />);
+
+    await fillRegisterFields();
+    fireEvent.blur(screen.getByLabelText(/邮箱/));
+    expect(
+      await screen.findByText("这个邮箱已经注册过了，请直接登录或换一个邮箱。"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/邮箱/), {
+      target: { value: "new@example.test" },
+    });
+
+    expect(
+      screen.queryByText("这个邮箱已经注册过了，请直接登录或换一个邮箱。"),
+    ).not.toBeInTheDocument();
   });
 
   it("输入格式正确时不常态显示成功提示", async () => {
@@ -231,6 +282,9 @@ describe("RegisterForm", () => {
     await fillRegisterFields();
     fireEvent.blur(screen.getByLabelText(/邮箱/));
     fireEvent.blur(screen.getByLabelText(/昵称/));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "获取验证码" })).toBeEnabled();
+    });
     fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
 
     const modifyButton = await screen.findByRole("button", {
@@ -267,6 +321,9 @@ describe("RegisterForm", () => {
     await fillRegisterFields();
     fireEvent.blur(screen.getByLabelText(/邮箱/));
     fireEvent.blur(screen.getByLabelText(/昵称/));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "获取验证码" })).toBeEnabled();
+    });
     fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
     fireEvent.click(
       await screen.findByRole("button", { name: "重新发送验证码" }),

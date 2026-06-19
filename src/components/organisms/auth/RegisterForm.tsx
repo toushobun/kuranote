@@ -7,6 +7,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import type {
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
@@ -15,6 +16,9 @@ import { registerFormMessages } from "./registerFormMessages";
 import { useRegisterForm } from "./useRegisterForm";
 
 type RegisterFormProps = {
+  checkEmailAvailabilityAction: (
+    email: string,
+  ) => Promise<RegisterEmailAvailabilityState>;
   requestOtpAction: (
     prevState: RequestRegisterOtpActionState,
     formData: FormData,
@@ -54,6 +58,7 @@ export function RegisterForm(props: RegisterFormProps) {
     email,
     emailError,
     handleDisplayNameBlur,
+    handleEmailChange,
     handleEmailBlur,
     handleModifyRegisterInfo,
     handleOtpCodeBlur,
@@ -77,7 +82,6 @@ export function RegisterForm(props: RegisterFormProps) {
     requestOtpFormAction,
     requestValues,
     setDisplayName,
-    setEmail,
     setPassword,
     setPasswordConfirm,
     shouldShowTurnstile,
@@ -121,7 +125,7 @@ export function RegisterForm(props: RegisterFormProps) {
             error={Boolean(emailError)}
             helperText={emailError || undefined}
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => handleEmailChange(event.target.value)}
             onBlur={handleEmailBlur}
             required
             fullWidth

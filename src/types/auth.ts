@@ -9,6 +9,10 @@ export type RegisterActionState = BaseActionState & {
 
 export type LoginActionState = Pick<BaseActionState, "error">;
 
+export type RegisterEmailAvailabilityState = Pick<BaseActionState, "error"> & {
+  available: boolean;
+};
+
 export type RequestRegisterOtpActionState = BaseActionState & {
   retryAfterSeconds?: number;
   resetPassword?: boolean;
@@ -19,7 +23,7 @@ export type RequestRegisterOtpActionState = BaseActionState & {
     | "rate_limited"
     | "turnstile_failed"
     | "send_rate_limited"
-    | "neutral"
+    | "email_unavailable"
     | "unknown_error";
 };
 

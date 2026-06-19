@@ -17,16 +17,19 @@ import {
   countAuthOtpVerifyFailuresSinceLastSend,
   recordAuthOtpAttempt,
   checkAuthOtpSendRateLimit,
+  checkRegisterEmailAvailabilityRateLimit,
 } from "server/auth/otpAttempts";
 import {
   hashAuthOtpEmail,
   hashAuthOtpIp,
   normalizeAuthOtpIp,
 } from "server/auth/otpHash";
+import { isRegisterEmailAvailable } from "server/auth/registerEmailAvailability";
 import { verifyTurnstileToken } from "server/auth/turnstile";
 import type {
   LoginActionState,
   RegisterActionState,
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
@@ -38,6 +41,7 @@ const registerErrorMessages = {
   signupDisabled: "当前暂时无法开放新用户注册，请稍后再试。",
   rateLimited: "注册请求太频繁了，请稍等一会儿再试。",
   fallback: "注册失败，请确认邮箱和密码后再试。",
+  emailCheckRateLimited: "邮箱检查过于频繁，请稍后再试。",
 } as const;
 
 const registerOtpMessages = {
@@ -52,6 +56,80 @@ const registerOtpMessages = {
 
 const maxRegisterOtpVerifyFailures = 5;
 const registerOtpCooldownSeconds = 60;
+
+export async function checkRegisterEmailAvailability(
+  email: unknown,
+): Promise<RegisterEmailAvailabilityState> {
+  if (typeof email !== "string") {
+    return { available: false };
+  }
+
+  const trimmedEmail = email.trim();
+
+  if (
+    !trimmedEmail ||
+    trimmedEmail.length > emailMaxLength ||
+    !isValidEmailFormat(trimmedEmail)
+  ) {
+    return { available: false };
+  }
+
+  const requestHeaders = await headers();
+  const ipHash = hashAuthOtpIp(requestHeaders);
+
+  if (!ipHash) {
+    return { available: false, error: registerOtpMessages.serviceError };
+  }
+
+  const emailHash = hashAuthOtpEmail(trimmedEmail);
+
+  try {
+    const rateLimit = await checkRegisterEmailAvailabilityRateLimit({ ipHash });
+
+    if (!rateLimit.allowed) {
+      return {
+        available: false,
+        error: registerErrorMessages.emailCheckRateLimited,
+      };
+    }
+
+    try {
+      const availability = await loadRegisterEmailAvailability(trimmedEmail);
+
+      await recordAuthOtpAttempt({
+        attempt_type: "availability_check",
+        email_hash: emailHash,
+        ip_hash: ipHash,
+        purpose: "signup",
+        result: "success",
+      });
+
+      return availability;
+    } catch (error) {
+      await recordAuthOtpAttempt({
+        attempt_type: "availability_check",
+        email_hash: emailHash,
+        ip_hash: ipHash,
+        purpose: "signup",
+        result: "failed",
+      }).catch(() => {});
+      throw error;
+    }
+  } catch (error) {
+    console.error("checkRegisterEmailAvailability failed", error);
+    return { available: false, error: registerOtpMessages.serviceError };
+  }
+}
+
+async function loadRegisterEmailAvailability(
+  email: string,
+): Promise<RegisterEmailAvailabilityState> {
+  const available = await isRegisterEmailAvailable(email);
+
+  return available
+    ? { available: true }
+    : { available: false, error: registerErrorMessages.duplicateEmail };
+}
 
 function validateRegisterFields({
   displayName,
@@ -315,6 +393,18 @@ export async function requestRegisterOtp(
       };
     }
 
+    if (!isResend) {
+      const emailAvailability = await loadRegisterEmailAvailability(email);
+
+      if (!emailAvailability.available) {
+        return {
+          error: emailAvailability.error ?? registerOtpMessages.serviceError,
+          resetTurnstile: true,
+          status: "email_unavailable",
+        };
+      }
+    }
+
     const supabase = await createClient();
     const { error } = isResend
       ? await supabase.auth.resend({
@@ -367,10 +457,9 @@ export async function requestRegisterOtp(
 
     if (code === "user_already_exists") {
       return {
+        error: registerErrorMessages.duplicateEmail,
         resetTurnstile: true,
-        retryAfterSeconds: registerOtpCooldownSeconds,
-        status: "neutral",
-        success: registerOtpMessages.success,
+        status: "email_unavailable",
       };
     }
 

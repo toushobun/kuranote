@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { turnstileTestSiteKey } from "config/turnstile";
 import { installTurnstileTestDouble } from "organisms/auth/turnstileTestDouble";
 import type {
+  RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
 } from "types/auth";
@@ -11,6 +12,10 @@ import { RegisterTemplate } from "./Register";
 
 async function defaultRequestOtpAction(): Promise<RequestRegisterOtpActionState> {
   return {};
+}
+
+async function defaultCheckEmailAvailabilityAction(): Promise<RegisterEmailAvailabilityState> {
+  return { available: true };
 }
 
 async function defaultSubmitOtpAction(): Promise<SubmitRegisterOtpActionState> {
@@ -38,6 +43,7 @@ const meta = {
     },
   ],
   args: {
+    checkEmailAvailabilityAction: defaultCheckEmailAvailabilityAction,
     requestOtpAction: defaultRequestOtpAction,
     submitOtpAction: defaultSubmitOtpAction,
     turnstileSiteKey: turnstileTestSiteKey,

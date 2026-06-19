@@ -1,5 +1,9 @@
 import { turnstileTestSiteKey } from "config/turnstile";
-import { requestRegisterOtp, submitRegisterOtp } from "server/actions/auth";
+import {
+  checkRegisterEmailAvailability,
+  requestRegisterOtp,
+  submitRegisterOtp,
+} from "server/actions/auth";
 import { redirectIfAuthenticated } from "server/loaders/login";
 import { RegisterTemplate } from "templates/register/Register";
 
@@ -19,6 +23,7 @@ export default async function RegisterRoute() {
 
   return (
     <RegisterTemplate
+      checkEmailAvailabilityAction={checkRegisterEmailAvailability}
       requestOtpAction={requestRegisterOtp}
       submitOtpAction={submitRegisterOtp}
       turnstileSiteKey={turnstileSiteKey}
