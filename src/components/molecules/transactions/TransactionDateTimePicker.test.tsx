@@ -1,15 +1,29 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
+
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TransactionDateTimePicker } from "./TransactionDateTimePicker";
 
+const originalScrollEndDescriptor = Object.getOwnPropertyDescriptor(
+  window,
+  "onscrollend",
+);
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  restoreScrollEndSupport();
 });
 
 function renderPicker(
-  props: Partial<React.ComponentProps<typeof TransactionDateTimePicker>> = {},
+  props: Partial<ComponentProps<typeof TransactionDateTimePicker>> = {},
 ) {
   const onDateChange = vi.fn();
   const onTimeChange = vi.fn();
@@ -65,6 +79,35 @@ function scrollPickerOption(name: string) {
   });
 
   fireEvent.scroll(container);
+
+  return container;
+}
+
+function finishPickerScroll() {
+  act(() => {
+    vi.advanceTimersByTime(150);
+  });
+}
+
+function setScrollEndSupport(supported: boolean) {
+  if (!supported) {
+    Reflect.deleteProperty(window, "onscrollend");
+    return;
+  }
+
+  Object.defineProperty(window, "onscrollend", {
+    configurable: true,
+    value: null,
+  });
+}
+
+function restoreScrollEndSupport() {
+  if (originalScrollEndDescriptor) {
+    Object.defineProperty(window, "onscrollend", originalScrollEndDescriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(window, "onscrollend");
 }
 
 describe("TransactionDateTimePicker", () => {
@@ -107,12 +150,16 @@ describe("TransactionDateTimePicker", () => {
   });
 
   it("点击月份标题可手动选择年月", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(false);
     renderPicker();
 
     fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
     fireEvent.click(screen.getByRole("button", { name: "手动选择年月" }));
     scrollPickerOption("选择 2028 年");
+    finishPickerScroll();
     scrollPickerOption("选择 9 月");
+    finishPickerScroll();
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
 
     expect(
@@ -120,16 +167,113 @@ describe("TransactionDateTimePicker", () => {
     ).toHaveTextContent("2028年9月");
   }, 15000); // 年份列有 101 个选项，jsdom 逐一 Object.defineProperty 耗时较长
 
-  it("点击时间后可滑动选择小时分钟", () => {
+  it("滚动结束后才更新小时分钟", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(false);
     const { onTimeChange } = renderPicker();
 
     fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
     fireEvent.click(screen.getByRole("button", { name: "选择时刻" }));
     scrollPickerOption("选择 18 时");
-    scrollPickerOption("选择 45 分");
+
+    expect(onTimeChange).not.toHaveBeenCalled();
+
+    finishPickerScroll();
 
     expect(onTimeChange).toHaveBeenCalledWith("18:10:33");
+
+    scrollPickerOption("选择 45 分");
+
+    expect(onTimeChange).toHaveBeenCalledTimes(1);
+
+    finishPickerScroll();
+
     expect(onTimeChange).toHaveBeenCalledWith("13:45:33");
+  });
+
+  it("支持 scrollend 事件结束后更新时刻", () => {
+    setScrollEndSupport(true);
+    const { onTimeChange } = renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择时刻" }));
+    const container = scrollPickerOption("选择 18 时");
+
+    expect(onTimeChange).not.toHaveBeenCalled();
+
+    fireEvent(container, new Event("scrollend"));
+
+    expect(onTimeChange).toHaveBeenCalledWith("18:10:33");
+  });
+
+  it("点击选项后忽略程序滚动的中间事件", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(false);
+    const { onTimeChange } = renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择时刻" }));
+
+    const option = screen.getByRole("button", { name: "选择 18 时" });
+    const container = option.parentElement;
+
+    if (!container) {
+      throw new Error("小时列容器不存在");
+    }
+
+    fireEvent.click(option);
+    fireEvent.scroll(container);
+    finishPickerScroll();
+
+    expect(onTimeChange).toHaveBeenCalledTimes(1);
+    expect(onTimeChange).toHaveBeenCalledWith("18:10:33");
+  });
+
+  it("scrollend 路径下点击选项后程序滚动锁内触发的 scrollend 不重复更新", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(true);
+    const { onTimeChange } = renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择时刻" }));
+
+    const option = screen.getByRole("button", { name: "选择 18 时" });
+    const container = option.parentElement;
+
+    if (!container) {
+      throw new Error("小时列容器不存在");
+    }
+
+    fireEvent.click(option);
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    fireEvent(container, new Event("scrollend"));
+
+    expect(onTimeChange).toHaveBeenCalledTimes(1);
+    expect(onTimeChange).toHaveBeenCalledWith("18:10:33");
+  });
+
+  it("scrollend 路径下程序滚动锁过期后不会吞掉用户滚动", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(true);
+    const { onTimeChange } = renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择时刻" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "选择 18 时" }));
+
+    act(() => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const container = scrollPickerOption("选择 20 时");
+    fireEvent(container, new Event("scrollend"));
+
+    expect(onTimeChange).toHaveBeenCalledWith("20:10:33");
   });
 
   it("日期与时刻面板可同时显示", () => {
