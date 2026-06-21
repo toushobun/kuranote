@@ -57,7 +57,9 @@ const slideMonthFromRight = keyframes`
 
 const COLLAPSE_TIMEOUT = 280;
 const PROGRAMMATIC_PICKER_SCROLL_LOCK_MS = 500;
+const PICKER_SCROLL_END_FALLBACK_MS = 150;
 const programmaticPickerScrollLocks = new WeakMap<Element, number>();
+const pendingProgrammaticScrollEnds = new WeakSet<Element>();
 
 export function TransactionDateTimePicker({
   date,
@@ -140,6 +142,7 @@ export function TransactionDateTimePicker({
     setPickerMonth(visibleMonth.getMonth());
     setMonthPickerOpen((current) => !current);
   }
+
   function confirmMonthPicker() {
     setMonthSlide((current) => ({ direction: 0, key: current.key + 1 }));
     setVisibleMonth(new Date(pickerYear, pickerMonth, 1));
@@ -162,6 +165,7 @@ export function TransactionDateTimePicker({
       setTimePickerOpen(false);
     }
   }
+
   function handleTimeRowClick() {
     setMonthPickerOpen(false);
 
@@ -172,6 +176,7 @@ export function TransactionDateTimePicker({
       setCalendarExpanded(false);
     }
   }
+
   function handleTimePartChange(hour: number, minute: number, second: number) {
     onTimeChange(`${pad(hour)}:${pad(minute)}:${pad(second)}`);
   }
@@ -251,12 +256,7 @@ export function TransactionDateTimePicker({
             </Button>
           </Stack>
 
-          <Box
-            sx={{
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
+          <Box sx={{ overflow: "hidden", position: "relative" }}>
             <Stack>
               {/* 日期 行 */}
               <DateSettingRow
@@ -307,7 +307,6 @@ export function TransactionDateTimePicker({
                 <MonthPicker
                   month={pickerMonth}
                   monthRef={selectedMonthRef}
-                  onBack={() => setMonthPickerOpen(false)}
                   onMonthChange={setPickerMonth}
                   onSubmit={confirmMonthPicker}
                   onYearChange={setPickerYear}
@@ -316,6 +315,7 @@ export function TransactionDateTimePicker({
                   yearRef={selectedYearRef}
                 />
               </Box>
+
               {/* 日历展开区 */}
               <Collapse in={calendarExpanded} timeout={COLLAPSE_TIMEOUT}>
                 <Box
@@ -348,12 +348,14 @@ export function TransactionDateTimePicker({
                   </Box>
                 </Box>
               </Collapse>
+
               {/* 时刻 行 */}
               <TimeSettingRow
                 expanded={timePickerOpen}
                 onTimeClick={handleTimeRowClick}
                 time={formatTimeDisplay(time)}
               />
+
               {/* 时间列展开区 */}
               <Collapse
                 in={timePickerOpen}
@@ -454,7 +456,7 @@ export function TransactionDateTimePicker({
                     {Array.from({ length: 60 }, (_, option) => (
                       <Button
                         key={option}
-                        aria-label={`\u9009\u62e9 ${option} \u79d2`}
+                        aria-label={`选择 ${option} 秒`}
                         data-picker-value={option}
                         onClick={(event) => {
                           scrollPickerOptionIntoView(event.currentTarget);
@@ -737,7 +739,6 @@ function TimeSettingRow({
 function MonthPicker({
   month,
   monthRef,
-  onBack,
   onMonthChange,
   onSubmit,
   onYearChange,
@@ -747,7 +748,6 @@ function MonthPicker({
 }: {
   month: number;
   monthRef: React.RefObject<HTMLButtonElement | null>;
-  onBack: () => void;
   onMonthChange: (value: number) => void;
   onSubmit: () => void;
   onYearChange: (value: number) => void;
@@ -757,22 +757,6 @@ function MonthPicker({
 }) {
   return (
     <Stack sx={{ flex: 1, minHeight: 0 }}>
-      <Button
-        aria-label={messages.closeMonthPicker}
-        endIcon={<KeyboardArrowUpIcon />}
-        onClick={onBack}
-        type="button"
-        variant="text"
-        sx={{
-          color: `var(--user-theme-action-text, ${designTokens.color.brand.main})`,
-          flexShrink: 0,
-          fontSize: 16,
-          minHeight: 36,
-          py: 0.5,
-        }}
-      >
-        {year}年{month + 1}月
-      </Button>
       <Stack
         direction="row"
         sx={{
@@ -862,6 +846,10 @@ function PickerColumn({
   onChange: (value: number) => void;
   overlay?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollEndTimerRef = useRef<number | null>(null);
+  const supportsScrollEnd =
+    typeof window !== "undefined" && "onscrollend" in window;
   const childCount = React.Children.count(children);
   const syncAnimation = useMemo(
     () => keyframes`
@@ -869,6 +857,32 @@ function PickerColumn({
       to { transform: translateY(${-(childCount - 1) * 40}px); }
     `,
     [childCount],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !supportsScrollEnd) return;
+
+    const handleScrollEnd = () => {
+      if (pendingProgrammaticScrollEnds.has(container)) {
+        pendingProgrammaticScrollEnds.delete(container);
+        if (isPickerScrollLocked(container)) return;
+      }
+      handlePickerScrollEnd(container, onChange);
+    };
+
+    container.addEventListener("scrollend", handleScrollEnd);
+
+    return () => {
+      container.removeEventListener("scrollend", handleScrollEnd);
+    };
+  }, [onChange, supportsScrollEnd]);
+
+  useEffect(
+    () => () => {
+      clearPickerScrollEndTimer(scrollEndTimerRef);
+    },
+    [],
   );
 
   const boldChildren = React.Children.map(children, (child) => {
@@ -897,8 +911,14 @@ function PickerColumn({
   return (
     <Box sx={{ flex: 1 }}>
       <Stack
+        ref={containerRef}
         onScroll={(event) => {
-          handlePickerScroll(event.currentTarget, onChange);
+          handlePickerScroll(
+            event.currentTarget,
+            onChange,
+            scrollEndTimerRef,
+            supportsScrollEnd,
+          );
         }}
         sx={{
           height: "100%",
@@ -1001,6 +1021,7 @@ function scrollPickerOptionIntoView(option: HTMLButtonElement) {
     container,
     Date.now() + PROGRAMMATIC_PICKER_SCROLL_LOCK_MS,
   );
+  pendingProgrammaticScrollEnds.add(container);
 
   if (typeof container.scrollTo === "function") {
     container.scrollTo({
@@ -1016,11 +1037,24 @@ function scrollPickerOptionIntoView(option: HTMLButtonElement) {
 function handlePickerScroll(
   container: HTMLDivElement,
   onChange: (value: number) => void,
+  scrollEndTimerRef: React.MutableRefObject<number | null>,
+  supportsScrollEnd: boolean,
 ) {
-  const lockedUntil = programmaticPickerScrollLocks.get(container) ?? 0;
+  if (isPickerScrollLocked(container)) return;
+  if (supportsScrollEnd) return;
 
-  if (lockedUntil > Date.now()) return;
-  if (lockedUntil > 0) programmaticPickerScrollLocks.delete(container);
+  clearPickerScrollEndTimer(scrollEndTimerRef);
+  scrollEndTimerRef.current = window.setTimeout(() => {
+    scrollEndTimerRef.current = null;
+    handlePickerScrollEnd(container, onChange);
+  }, PICKER_SCROLL_END_FALLBACK_MS);
+}
+
+function handlePickerScrollEnd(
+  container: HTMLDivElement,
+  onChange: (value: number) => void,
+) {
+  if (isPickerScrollLocked(container)) return;
 
   const center = container.scrollTop + container.clientHeight / 2;
   const options = Array.from(
@@ -1042,6 +1076,23 @@ function handlePickerScroll(
   const value = Number(nearestOption?.dataset.pickerValue);
 
   if (Number.isInteger(value)) onChange(value);
+}
+
+function isPickerScrollLocked(container: HTMLDivElement) {
+  const lockedUntil = programmaticPickerScrollLocks.get(container) ?? 0;
+
+  if (lockedUntil > Date.now()) return true;
+  if (lockedUntil > 0) programmaticPickerScrollLocks.delete(container);
+  return false;
+}
+
+function clearPickerScrollEndTimer(
+  scrollEndTimerRef: React.MutableRefObject<number | null>,
+) {
+  if (scrollEndTimerRef.current === null) return;
+
+  window.clearTimeout(scrollEndTimerRef.current);
+  scrollEndTimerRef.current = null;
 }
 
 function buildCalendarDays(visibleMonth: Date): (CalendarDay | null)[] {

@@ -6,7 +6,6 @@ export const transactionDateTimePickerMessages = {
   close: "完成",
   dateLabel: "日期",
   fieldLabel: "时间",
-  closeMonthPicker: "关闭年月选择",
   monthPickerLabel: "手动选择年月",
   nextMonth: "下个月",
   openPicker: "选择记账时间",
