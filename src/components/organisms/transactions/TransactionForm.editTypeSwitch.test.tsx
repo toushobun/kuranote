@@ -112,7 +112,9 @@ function createInitialValues(
 }
 
 function getHiddenInput(container: HTMLElement, name: string) {
-  const input = container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+  const input = container.querySelector<HTMLInputElement>(
+    `input[name="${name}"]`,
+  );
 
   if (!input) throw new Error(`${name} hidden input 不存在`);
 
@@ -191,7 +193,9 @@ describe("TransactionForm 编辑类型切换", () => {
     fireEvent.click(within(container).getByRole("button", { name: "收入" }));
     openSheet(container);
 
-    expect(screen.getByRole("button", { name: "固定收入" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "固定收入" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "工资" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
 
@@ -208,7 +212,9 @@ describe("TransactionForm 编辑类型切换", () => {
     fireEvent.click(within(container).getByRole("button", { name: "支出" }));
     openSheet(container);
 
-    expect(screen.getByRole("button", { name: "食材/调料" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "食材/调料" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "工资" })).toBeNull();
 
