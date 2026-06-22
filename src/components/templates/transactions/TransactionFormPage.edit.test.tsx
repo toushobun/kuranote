@@ -83,14 +83,12 @@ describe("EditTransactionTemplate", () => {
   it("普通支出编辑页渲染支出 / 收入切换", () => {
     const { container } = render(<EditTransactionTemplate {...createProps()} />);
 
-    expect(within(container).getByRole("button", { name: "支出" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(within(container).getByRole("button", { name: "收入" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(
+      within(container).getByRole("button", { name: "支出" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(container).getByRole("button", { name: "收入" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("普通收入编辑页渲染支出 / 收入切换", () => {
@@ -98,14 +96,12 @@ describe("EditTransactionTemplate", () => {
       <EditTransactionTemplate {...createProps("income")} />,
     );
 
-    expect(within(container).getByRole("button", { name: "支出" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-    expect(within(container).getByRole("button", { name: "收入" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(
+      within(container).getByRole("button", { name: "支出" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(container).getByRole("button", { name: "收入" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("普通编辑页不显示转账 tab", () => {
