@@ -107,7 +107,11 @@ describe("EditTransactionTemplate", () => {
   it("普通编辑页不显示转账 tab", () => {
     const { container } = render(<EditTransactionTemplate {...createProps()} />);
 
-    expect(within(container).queryByRole("button", { name: "转账" })).toBeNull();
-    expect(within(container).getByTestId("transaction-form")).toBeInTheDocument();
+    expect(
+      within(container).queryByRole("button", { name: "转账" }),
+    ).toBeNull();
+    expect(
+      within(container).getByTestId("transaction-form"),
+    ).toBeInTheDocument();
   });
 });
