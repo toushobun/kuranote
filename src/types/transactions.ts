@@ -4,6 +4,8 @@ export const transactionTypeOptions = [
 ] as const;
 
 export type TransactionType = (typeof transactionTypeOptions)[number]["value"];
+export type TransactionRecordType = TransactionType | "transfer";
+export type TransactionCategoryType = TransactionType;
 
 export type CategorySummaryItem = {
   categoryName: string;
@@ -36,7 +38,7 @@ export type TransactionCategoryOption = {
   name: string;
   parentId: string | null;
   parentName: string | null;
-  type: TransactionType;
+  type: TransactionCategoryType;
 };
 
 export type TransactionMerchantOption = {
