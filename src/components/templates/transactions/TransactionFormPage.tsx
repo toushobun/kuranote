@@ -329,7 +329,7 @@ function findTransferTargetAccountId(
 }
 
 const editTransactionInnerTypeNavigationHiddenSx = {
-  "& form > .MuiStack-root > .MuiToggleButtonGroup-root": {
+  "& [aria-label='类型']": {
     display: "none",
   },
 };
