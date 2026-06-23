@@ -23,22 +23,28 @@ export default async function TransactionEditPage({
   if (view.initialValues.type === "transfer") {
     return (
       <EditTransferTransactionTemplate
+        accountOptions={view.accountOptions}
         action={saveEditTransaction}
+        categoryOptions={view.categoryOptions}
         errorMessage={errorMessage}
-        {...view}
+        initialValues={view.initialValues}
+        ledgerName={view.ledgerName}
+        merchantOptions={view.merchantOptions}
+        tagOptions={view.tagOptions}
       />
     );
   }
 
-  if (!("categoryOptions" in view)) {
-    throw new Error("Unexpected view type");
-  }
-
   return (
     <EditTransactionTemplate
+      accountOptions={view.accountOptions}
       action={saveEditTransaction}
+      categoryOptions={view.categoryOptions}
       errorMessage={errorMessage}
-      {...view}
+      initialValues={view.initialValues}
+      ledgerName={view.ledgerName}
+      merchantOptions={view.merchantOptions}
+      tagOptions={view.tagOptions}
     />
   );
 }
