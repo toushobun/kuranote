@@ -1,7 +1,4 @@
-import {
-  updateTransaction,
-  updateTransferTransaction,
-} from "server/actions/transactions";
+import { saveEditTransaction } from "server/actions/transactions";
 import { loadEditTransactionView } from "server/loaders/transactionForm";
 import {
   EditTransactionTemplate,
@@ -26,11 +23,9 @@ export default async function TransactionEditPage({
   if (view.initialValues.type === "transfer") {
     return (
       <EditTransferTransactionTemplate
-        action={updateTransferTransaction}
+        action={saveEditTransaction}
         errorMessage={errorMessage}
-        initialValues={view.initialValues}
-        accountOptions={view.accountOptions}
-        ledgerName={view.ledgerName}
+        {...view}
       />
     );
   }
@@ -41,7 +36,7 @@ export default async function TransactionEditPage({
 
   return (
     <EditTransactionTemplate
-      action={updateTransaction}
+      action={saveEditTransaction}
       errorMessage={errorMessage}
       {...view}
     />
