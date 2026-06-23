@@ -11,14 +11,12 @@ vi.mock("organisms/transactions/TransactionForm", () => ({
     initialValues: { type: "expense" | "income" };
   }): ReactNode => (
     <form>
-      <div className="MuiStack-root">
-        <div className="MuiToggleButtonGroup-root">
-          <button aria-pressed={initialValues.type === "expense"}>支出</button>
-          <button aria-pressed={initialValues.type === "income"}>收入</button>
-        </div>
-        <div data-testid="transaction-form">
-          <input name="type" type="hidden" value={initialValues.type} />
-        </div>
+      <div aria-label="类型" role="group">
+        <button aria-pressed={initialValues.type === "expense"}>支出</button>
+        <button aria-pressed={initialValues.type === "income"}>收入</button>
+      </div>
+      <div data-testid="transaction-form">
+        <input name="type" type="hidden" value={initialValues.type} />
       </div>
     </form>
   ),
