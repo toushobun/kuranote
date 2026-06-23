@@ -167,20 +167,43 @@ export async function convertTransactionTypeService(
   params: ConvertTransactionTypeParams,
 ): Promise<ServiceResult<TransactionServiceErrorCode>> {
   const supabase = await createClient();
-  const isTransferTarget = params.targetType === "transfer";
+
+  if (params.targetType === "transfer") {
+    const { error } = await supabase.rpc("convert_transaction_type", {
+      p_account_id: null,
+      p_from_account_id: params.accountId,
+      p_items: null,
+      p_ledger_id: params.ledgerId,
+      p_merchant_id: null,
+      p_note: params.note,
+      p_tag_names: [],
+      p_target_type: "transfer",
+      p_to_account_id: params.transferTargetAccountId,
+      p_transaction_at: params.transactionAt,
+      p_transaction_record_id: params.transactionRecordId,
+      p_transfer_amount: params.transferAmount,
+    });
+
+    if (error) {
+      return { ok: false, error: transactionErrorCodes.updateFailed };
+    }
+
+    return { ok: true };
+  }
+
   const { error } = await supabase.rpc("convert_transaction_type", {
-    p_account_id: isTransferTarget ? null : params.accountId,
-    p_from_account_id: isTransferTarget ? params.accountId : null,
-    p_items: isTransferTarget ? null : params.items,
+    p_account_id: params.accountId,
+    p_from_account_id: null,
+    p_items: params.items,
     p_ledger_id: params.ledgerId,
-    p_merchant_id: isTransferTarget ? null : params.merchantId,
+    p_merchant_id: params.merchantId,
     p_note: params.note,
-    p_tag_names: isTransferTarget ? [] : params.tagNames,
+    p_tag_names: params.tagNames,
     p_target_type: params.targetType,
-    p_to_account_id: isTransferTarget ? params.transferTargetAccountId : null,
+    p_to_account_id: null,
     p_transaction_at: params.transactionAt,
     p_transaction_record_id: params.transactionRecordId,
-    p_transfer_amount: isTransferTarget ? params.transferAmount : null,
+    p_transfer_amount: null,
   });
 
   if (error) {
