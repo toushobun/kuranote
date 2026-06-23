@@ -42,6 +42,11 @@ const merchantOptions = [
     name: "便利店",
     icon_url: null,
   },
+  {
+    id: "00000000-0000-4000-8000-000000001002",
+    name: "共達",
+    icon_url: null,
+  },
 ];
 
 const tagOptions = [
@@ -118,6 +123,30 @@ export const EditExpenseConvert: Story = {
         transactionAt: "2026-06-05T03:20:10.000Z",
         transactionRecordId: "00000000-0000-4000-8000-000000009001",
         type: "expense",
+      }}
+    />
+  ),
+};
+
+export const EditIncomeConvert: Story = {
+  name: "编辑收入：可切换到转账",
+  render: () => (
+    <EditTransactionTemplate
+      {...baseArgs}
+      initialValues={{
+        accountId: "00000000-0000-4000-8000-000000000046",
+        items: [
+          {
+            amount: "260000",
+            categoryId: "00000000-0000-4000-8000-000000005073",
+          },
+        ],
+        merchantId: "00000000-0000-4000-8000-000000001002",
+        note: "收入交易编辑示例",
+        tagNames: ["公司"],
+        transactionAt: "2026-06-05T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009002",
+        type: "income",
       }}
     />
   ),
