@@ -32,7 +32,7 @@ export function TransactionTagSection({
   suggestedTagOptions,
   tagsFieldRef,
 }: TransactionTagSectionProps) {
-  function handleNewTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  function handleNewTagKeyDown(event: KeyboardEvent) {
     if (event.key !== "Enter") return;
 
     event.preventDefault();
