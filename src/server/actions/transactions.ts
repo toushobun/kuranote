@@ -14,6 +14,7 @@ import {
 import { isUuid } from "utils/formData";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import {
+  convertTransactionTypeService,
   createTransactionService,
   createTransferTransactionService,
   updateTransactionService,
@@ -21,6 +22,7 @@ import {
   voidTransactionService,
 } from "server/services/transactions";
 import {
+  validateConvertTransactionTypeForm,
   validateTransactionForm,
   validateUpdateTransactionForm,
   validateUpdateTransferTransactionForm,
@@ -154,6 +156,58 @@ export async function updateTransferTransaction(formData: FormData) {
     transferAmount: values.transferAmount,
     transferTargetAccountId: values.transferTargetAccountId,
   });
+
+  if (!result.ok) {
+    redirect(
+      editTransactionErrorHref(values.transactionRecordId, result.error),
+    );
+  }
+
+  revalidatePath(routePaths.accounts);
+  revalidatePath(routePaths.transactions);
+  revalidatePath(transactionEditPagePath, "page");
+  redirect(transactionMonthRedirectHref(values.transactionAt));
+}
+
+export async function convertTransactionType(formData: FormData) {
+  const { currentLedger } = await requireCurrentUserAndLedger();
+  const validation = validateConvertTransactionTypeForm(formData);
+  const rawTransactionRecordId = String(
+    formData.get("transactionRecordId") ?? "",
+  ).trim();
+
+  if (!validation.ok) {
+    redirect(
+      isUuid(rawTransactionRecordId)
+        ? editTransactionErrorHref(rawTransactionRecordId, validation.error)
+        : transactionsErrorHref(validation.error),
+    );
+  }
+
+  const values = validation.value;
+  const result =
+    values.targetType === "transfer"
+      ? await convertTransactionTypeService({
+          accountId: values.accountId,
+          ledgerId: currentLedger.id,
+          note: values.note,
+          targetType: "transfer",
+          transactionAt: values.transactionAt,
+          transactionRecordId: values.transactionRecordId,
+          transferAmount: values.transferAmount,
+          transferTargetAccountId: values.transferTargetAccountId,
+        })
+      : await convertTransactionTypeService({
+          accountId: values.accountId,
+          items: values.items,
+          ledgerId: currentLedger.id,
+          merchantId: values.merchantId,
+          note: values.note,
+          tagNames: values.tagNames,
+          targetType: values.targetType,
+          transactionAt: values.transactionAt,
+          transactionRecordId: values.transactionRecordId,
+        });
 
   if (!result.ok) {
     redirect(
