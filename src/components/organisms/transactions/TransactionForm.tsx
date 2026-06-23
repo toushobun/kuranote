@@ -149,6 +149,12 @@ export function TransactionForm({
     if (!initialValues && initialType) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 新增页外层 tab 切换时同步内部类型，编辑页有 initialValues 时忽略。
       setSelectedType(initialType);
+      setIsSheetOpen(false);
+      setPickerCategoryId("");
+      setPickerAmount("");
+      setPickerErrors({});
+      setSelectedCategoryGroupId("");
+      setFieldErrors((prev) => ({ ...prev, items: undefined }));
     }
   }, [initialType, initialValues]);
 

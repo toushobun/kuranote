@@ -51,8 +51,11 @@ export function TransactionRow({
   const merchantName = isTransfer
     ? "账户周转"
     : (item.merchant_name ?? "未指定商家");
-  const amountColor =
-    item.type === "income" ? transactionIncomeColor : transactionExpenseColor;
+  const amountColor = isTransfer
+    ? transactionAccentColor
+    : item.type === "income"
+      ? transactionIncomeColor
+      : transactionExpenseColor;
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
     getBrowserTimeZone,
