@@ -76,7 +76,10 @@ function NewTransactionFormView({
     initialType ?? "expense",
   );
   const typeNavigation = (
-    <TransactionTypeNavigation activeType={activeType} onChange={setActiveType} />
+    <TransactionTypeNavigation
+      activeType={activeType}
+      onChange={setActiveType}
+    />
   );
 
   return (
@@ -123,7 +126,10 @@ export function EditTransferTransactionTemplate({
       ? "edit-transfer-transaction-form"
       : "edit-transaction-form";
   const typeNavigation = (
-    <TransactionTypeNavigation activeType={activeType} onChange={setActiveType} />
+    <TransactionTypeNavigation
+      activeType={activeType}
+      onChange={setActiveType}
+    />
   );
 
   return (
@@ -194,7 +200,10 @@ export function EditTransactionTemplate({
       ? "edit-transfer-transaction-form"
       : "edit-transaction-form";
   const typeNavigation = (
-    <TransactionTypeNavigation activeType={activeType} onChange={setActiveType} />
+    <TransactionTypeNavigation
+      activeType={activeType}
+      onChange={setActiveType}
+    />
   );
 
   return (
