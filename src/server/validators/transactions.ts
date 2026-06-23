@@ -7,6 +7,7 @@ import {
 } from "server/errors/transactions";
 import {
   transactionTypeOptions,
+  type TransactionRecordType,
   type TransactionType,
 } from "types/transactions";
 import { getFormText } from "utils/formData";
@@ -32,6 +33,7 @@ const createTransactionTypeValues = [
   ...transactionTypeValues,
   "transfer",
 ] as const;
+const transactionRecordTypeValues = ["expense", "income", "transfer"] as const;
 
 export type TransactionFormValues = {
   type: TransactionType;
@@ -68,6 +70,22 @@ export type UpdateTransactionValues = TransactionFormValues & {
 export type UpdateTransferTransactionValues = TransferTransactionFormValues & {
   transactionRecordId: string;
 };
+
+export type ConvertTransactionToTransferValues = TransferTransactionFormValues & {
+  sourceType: TransactionRecordType;
+  targetType: "transfer";
+  transactionRecordId: string;
+};
+
+export type ConvertTransactionToNormalValues = TransactionFormValues & {
+  sourceType: TransactionRecordType;
+  targetType: TransactionType;
+  transactionRecordId: string;
+};
+
+export type ConvertTransactionTypeValues =
+  | ConvertTransactionToTransferValues
+  | ConvertTransactionToNormalValues;
 
 export type VoidTransactionValues = {
   transactionRecordId: string;
@@ -409,6 +427,81 @@ export function validateUpdateTransferTransactionForm(
 
   return valid({
     ...formResult.value,
+    transactionRecordId: transactionRecordIdResult.value,
+  });
+}
+
+export function validateConvertTransactionTypeForm(
+  formData: FormData,
+): ValidationResult<
+  ConvertTransactionTypeValues,
+  UpdateTransactionValidationErrorCode
+> {
+  const transactionRecordIdResult = parseRequiredUuidField(
+    formData,
+    "transactionRecordId",
+    transactionErrorCodes.updateInvalid,
+  );
+
+  if (!transactionRecordIdResult.ok) {
+    return transactionRecordIdResult;
+  }
+
+  const sourceTypeResult = parseEnumValue(
+    getFormText(formData, "sourceType"),
+    transactionRecordTypeValues,
+    transactionErrorCodes.updateInvalid,
+  );
+
+  if (!sourceTypeResult.ok) {
+    return sourceTypeResult;
+  }
+
+  const targetTypeResult = parseEnumValue(
+    getFormText(formData, "targetType") || getFormText(formData, "type"),
+    transactionRecordTypeValues,
+    transactionErrorCodes.updateInvalid,
+  );
+
+  if (!targetTypeResult.ok) {
+    return targetTypeResult;
+  }
+
+  if (sourceTypeResult.value === targetTypeResult.value) {
+    return invalid(transactionErrorCodes.updateInvalid);
+  }
+
+  const formResult = validateTransactionForm(formData);
+
+  if (!formResult.ok) {
+    return formResult;
+  }
+
+  if (targetTypeResult.value === "transfer") {
+    if (formResult.value.type !== "transfer") {
+      return invalid(transactionErrorCodes.updateInvalid);
+    }
+
+    return valid({
+      ...formResult.value,
+      sourceType: sourceTypeResult.value,
+      targetType: "transfer",
+      transactionRecordId: transactionRecordIdResult.value,
+    });
+  }
+
+  if (formResult.value.type === "transfer") {
+    return invalid(transactionErrorCodes.updateInvalid);
+  }
+
+  if (formResult.value.type !== targetTypeResult.value) {
+    return invalid(transactionErrorCodes.updateInvalid);
+  }
+
+  return valid({
+    ...formResult.value,
+    sourceType: sourceTypeResult.value,
+    targetType: targetTypeResult.value,
     transactionRecordId: transactionRecordIdResult.value,
   });
 }
