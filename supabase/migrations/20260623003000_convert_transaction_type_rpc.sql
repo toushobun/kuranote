@@ -39,6 +39,8 @@ declare
     v_normal_account public.account;
     v_locked_account public.account;
     v_item_count integer := 0;
+    v_type_item_count integer := 0;
+    v_account_item_count integer := 0;
     v_transfer_item_count integer := 0;
     v_category_null_item_count integer := 0;
     v_positive_item_count integer := 0;
@@ -134,14 +136,19 @@ begin
     else
         select
             count(*)::integer,
-            count(*) filter (where ti.account_id is not null)::integer
-        into v_item_count, v_transfer_item_count
+            count(*) filter (where ti.stat_type = v_record.type)::integer,
+            count(*) filter (
+                where ti.stat_type = v_record.type
+                  and ti.account_id is not null
+            )::integer
+        into v_item_count, v_type_item_count, v_account_item_count
         from public.transaction_item ti
         where ti.transaction_record_id = p_transaction_record_id
-          and ti.ledger_id = p_ledger_id
-          and ti.stat_type = v_record.type;
+          and ti.ledger_id = p_ledger_id;
 
-        if v_item_count = 0 or v_item_count <> v_transfer_item_count then
+        if v_item_count = 0
+            or v_item_count <> v_type_item_count
+            or v_item_count <> v_account_item_count then
             raise exception 'transaction_items_invalid' using errcode = '22023';
         end if;
     end if;
