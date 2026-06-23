@@ -70,7 +70,12 @@ const monthView: TransactionMonthView = {
   groups: [
     {
       date: "2026-06-05",
-      items: [createItem(1), createTransferItem(1), createItem(2), createItem(3)],
+      items: [
+        createItem(1),
+        createTransferItem(1),
+        createItem(2),
+        createItem(3),
+      ],
       label: "06/05 周五",
       summary: {
         balance: "-3120",
