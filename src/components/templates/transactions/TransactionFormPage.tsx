@@ -320,9 +320,5 @@ function findTransferTargetAccountId(
       account.id !== accountId && account.currency === sourceAccount?.currency,
   );
 
-  return (
-    sameCurrencyAccount?.id ??
-    accountOptions.find((account) => account.id !== accountId)?.id ??
-    ""
-  );
+  return sameCurrencyAccount?.id ?? "";
 }
