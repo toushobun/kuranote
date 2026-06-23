@@ -32,6 +32,7 @@ describe("EditTransferTransactionTemplate", () => {
           },
         ]}
         action={vi.fn(async () => undefined)}
+        categoryOptions={[]}
         errorMessage={null}
         initialValues={{
           accountId: "00000000-0000-4000-8000-000000000045",
@@ -43,6 +44,8 @@ describe("EditTransferTransactionTemplate", () => {
           type: "transfer",
         }}
         ledgerName="家庭账本"
+        merchantOptions={[]}
+        tagOptions={[]}
       />,
     );
 
@@ -50,10 +53,13 @@ describe("EditTransferTransactionTemplate", () => {
       within(container).getByTestId("transfer-transaction-form"),
     ).toBeInTheDocument();
     expect(
-      within(container).queryByRole("button", { name: "支出" }),
-    ).toBeNull();
+      within(container).getByRole("button", { name: "支出" }),
+    ).toBeInTheDocument();
     expect(
-      within(container).queryByRole("button", { name: "收入" }),
-    ).toBeNull();
+      within(container).getByRole("button", { name: "收入" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toBeInTheDocument();
   });
 });

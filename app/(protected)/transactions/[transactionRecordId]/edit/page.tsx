@@ -1,7 +1,4 @@
-import {
-  updateTransaction,
-  updateTransferTransaction,
-} from "server/actions/transactions";
+import { saveEditTransaction } from "server/actions/transactions";
 import { loadEditTransactionView } from "server/loaders/transactionForm";
 import {
   EditTransactionTemplate,
@@ -22,28 +19,33 @@ export default async function TransactionEditPage({
   ]);
   const view = await loadEditTransactionView(transactionRecordId);
   const errorMessage = getEditTransactionErrorMessage(query.error);
+  const initialValues = view.initialValues;
 
-  if (view.initialValues.type === "transfer") {
+  if (initialValues.type === "transfer") {
     return (
       <EditTransferTransactionTemplate
-        action={updateTransferTransaction}
-        errorMessage={errorMessage}
-        initialValues={view.initialValues}
         accountOptions={view.accountOptions}
+        action={saveEditTransaction}
+        categoryOptions={view.categoryOptions}
+        errorMessage={errorMessage}
+        initialValues={initialValues}
         ledgerName={view.ledgerName}
+        merchantOptions={view.merchantOptions}
+        tagOptions={view.tagOptions}
       />
     );
   }
 
-  if (!("categoryOptions" in view)) {
-    throw new Error("Unexpected view type");
-  }
-
   return (
     <EditTransactionTemplate
-      action={updateTransaction}
+      accountOptions={view.accountOptions}
+      action={saveEditTransaction}
+      categoryOptions={view.categoryOptions}
       errorMessage={errorMessage}
-      {...view}
+      initialValues={initialValues}
+      ledgerName={view.ledgerName}
+      merchantOptions={view.merchantOptions}
+      tagOptions={view.tagOptions}
     />
   );
 }

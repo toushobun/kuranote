@@ -14,6 +14,7 @@ import {
 import { isUuid } from "utils/formData";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import {
+  convertTransactionTypeService,
   createTransactionService,
   createTransferTransactionService,
   updateTransactionService,
@@ -21,6 +22,7 @@ import {
   voidTransactionService,
 } from "server/services/transactions";
 import {
+  validateConvertTransactionTypeForm,
   validateTransactionForm,
   validateUpdateTransactionForm,
   validateUpdateTransferTransactionForm,
@@ -40,6 +42,26 @@ function newTransactionValidationErrorHref(error: string, formData: FormData) {
     error,
     isRawTransferType(formData) ? "transfer" : null,
   );
+}
+
+function rawTransactionRecordId(formData: FormData) {
+  return String(formData.get("transactionRecordId") ?? "").trim();
+}
+
+function rawTargetType(formData: FormData) {
+  return String(
+    formData.get("targetType") ?? formData.get("type") ?? "",
+  ).trim();
+}
+
+function isTransactionRecordType(value: string) {
+  return value === "expense" || value === "income" || value === "transfer";
+}
+
+function revalidateEditTransactionPaths() {
+  revalidatePath(routePaths.accounts);
+  revalidatePath(routePaths.transactions);
+  revalidatePath(transactionEditPagePath, "page");
 }
 
 export async function createTransaction(formData: FormData) {
@@ -90,14 +112,12 @@ export async function createTransaction(formData: FormData) {
 export async function updateTransaction(formData: FormData) {
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateUpdateTransactionForm(formData);
-  const rawTransactionRecordId = String(
-    formData.get("transactionRecordId") ?? "",
-  ).trim();
+  const transactionRecordId = rawTransactionRecordId(formData);
 
   if (!validation.ok) {
     redirect(
-      rawTransactionRecordId
-        ? editTransactionErrorHref(rawTransactionRecordId, validation.error)
+      transactionRecordId
+        ? editTransactionErrorHref(transactionRecordId, validation.error)
         : transactionsErrorHref(validation.error),
     );
   }
@@ -122,23 +142,19 @@ export async function updateTransaction(formData: FormData) {
     );
   }
 
-  revalidatePath(routePaths.accounts);
-  revalidatePath(routePaths.transactions);
-  revalidatePath(transactionEditPagePath, "page");
+  revalidateEditTransactionPaths();
   redirect(transactionMonthRedirectHref(values.transactionAt));
 }
 
 export async function updateTransferTransaction(formData: FormData) {
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateUpdateTransferTransactionForm(formData);
-  const rawTransactionRecordId = String(
-    formData.get("transactionRecordId") ?? "",
-  ).trim();
+  const transactionRecordId = rawTransactionRecordId(formData);
 
   if (!validation.ok) {
     redirect(
-      isUuid(rawTransactionRecordId)
-        ? editTransactionErrorHref(rawTransactionRecordId, validation.error)
+      isUuid(transactionRecordId)
+        ? editTransactionErrorHref(transactionRecordId, validation.error)
         : transactionsErrorHref(validation.error),
     );
   }
@@ -161,10 +177,88 @@ export async function updateTransferTransaction(formData: FormData) {
     );
   }
 
-  revalidatePath(routePaths.accounts);
-  revalidatePath(routePaths.transactions);
-  revalidatePath(transactionEditPagePath, "page");
+  revalidateEditTransactionPaths();
   redirect(transactionMonthRedirectHref(values.transactionAt));
+}
+
+export async function convertTransactionType(formData: FormData) {
+  const { currentLedger } = await requireCurrentUserAndLedger();
+  const validation = validateConvertTransactionTypeForm(formData);
+  const transactionRecordId = rawTransactionRecordId(formData);
+
+  if (!validation.ok) {
+    redirect(
+      isUuid(transactionRecordId)
+        ? editTransactionErrorHref(transactionRecordId, validation.error)
+        : transactionsErrorHref(validation.error),
+    );
+  }
+
+  const values = validation.value;
+  const result =
+    values.targetType === "transfer"
+      ? await convertTransactionTypeService({
+          accountId: values.accountId,
+          ledgerId: currentLedger.id,
+          note: values.note,
+          targetType: "transfer",
+          transactionAt: values.transactionAt,
+          transactionRecordId: values.transactionRecordId,
+          transferAmount: values.transferAmount,
+          transferTargetAccountId: values.transferTargetAccountId,
+        })
+      : await convertTransactionTypeService({
+          accountId: values.accountId,
+          items: values.items,
+          ledgerId: currentLedger.id,
+          merchantId: values.merchantId,
+          note: values.note,
+          tagNames: values.tagNames,
+          targetType: values.targetType,
+          transactionAt: values.transactionAt,
+          transactionRecordId: values.transactionRecordId,
+        });
+
+  if (!result.ok) {
+    redirect(
+      editTransactionErrorHref(values.transactionRecordId, result.error),
+    );
+  }
+
+  revalidateEditTransactionPaths();
+  redirect(transactionMonthRedirectHref(values.transactionAt));
+}
+
+export async function saveEditTransaction(formData: FormData) {
+  await requireCurrentUserAndLedger();
+  const sourceType = String(formData.get("sourceType") ?? "").trim();
+  const targetType = rawTargetType(formData);
+
+  if (
+    !isTransactionRecordType(sourceType) ||
+    !isTransactionRecordType(targetType)
+  ) {
+    const transactionRecordId = rawTransactionRecordId(formData);
+    redirect(
+      isUuid(transactionRecordId)
+        ? editTransactionErrorHref(transactionRecordId, "update_invalid")
+        : transactionsErrorHref("update_invalid"),
+    );
+  }
+
+  if (sourceType === targetType) {
+    if (targetType === "transfer") {
+      return updateTransferTransaction(formData);
+    }
+
+    return updateTransaction(formData);
+  }
+
+  if (sourceType !== "transfer" && targetType !== "transfer") {
+    return updateTransaction(formData);
+  }
+
+  return convertTransactionType(formData);
 }
 
 export async function voidTransaction(formData: FormData) {
