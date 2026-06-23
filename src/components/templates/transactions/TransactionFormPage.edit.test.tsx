@@ -22,7 +22,11 @@ vi.mock("organisms/transactions/TransactionForm", () => ({
 }));
 
 vi.mock("molecules/transactions/TransactionTypeNavigation", () => ({
-  TransactionTypeNavigation: ({ activeType }: { activeType: string }): ReactNode => (
+  TransactionTypeNavigation: ({
+    activeType,
+  }: {
+    activeType: string;
+  }): ReactNode => (
     <div aria-label="类型" role="group">
       <button aria-pressed={activeType === "expense"}>支出</button>
       <button aria-pressed={activeType === "income"}>收入</button>
