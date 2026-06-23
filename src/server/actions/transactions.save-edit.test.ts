@@ -176,14 +176,14 @@ describe("saveEditTransaction", () => {
     );
   });
 
-  it("sourceType が非法值时 redirect 到编辑页并带 update_invalid", async () => {
+  it("sourceType 为非法值时 redirect 到编辑页并带 update_invalid", async () => {
     await expect(
       saveEditTransaction(createNormalEditFormData({ sourceType: "invalid" })),
     ).rejects.toThrow(
       `NEXT_REDIRECT:/transactions/${transactionRecordId}/edit?error=update_invalid`,
     );
 
-    expect(mocks.getCurrentLedgerContext).not.toHaveBeenCalled();
+    expect(mocks.getCurrentLedgerContext).toHaveBeenCalledTimes(1);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
@@ -195,7 +195,7 @@ describe("saveEditTransaction", () => {
       "NEXT_REDIRECT:/transactions?error=update_invalid",
     );
 
-    expect(mocks.getCurrentLedgerContext).not.toHaveBeenCalled();
+    expect(mocks.getCurrentLedgerContext).toHaveBeenCalledTimes(1);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

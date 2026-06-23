@@ -230,6 +230,7 @@ export async function convertTransactionType(formData: FormData) {
 }
 
 export async function saveEditTransaction(formData: FormData) {
+  await requireCurrentUserAndLedger();
   const sourceType = String(formData.get("sourceType") ?? "").trim();
   const targetType = rawTargetType(formData);
 
