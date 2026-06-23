@@ -37,6 +37,25 @@ function createItem(index: number): TransactionListItem {
   };
 }
 
+function createTransferItem(index: number): TransactionListItem {
+  return {
+    account_currency: "JPY",
+    account_name: "日元现金 → 三井住友银行",
+    amount: "5000",
+    categoryItems: [],
+    created_at: new Date(Date.UTC(2026, 5, 5, 3, 30, index)).toISOString(),
+    id: `00000000-0000-4000-8000-${String(930000 + index).padStart(12, "0")}`,
+    merchant_icon_url: null,
+    merchant_name: null,
+    note: "生活费转入储蓄账户",
+    recorder_name: null,
+    transaction_at: new Date(
+      Date.UTC(2026, 5, 5, 3 + index, 30, 0),
+    ).toISOString(),
+    type: "transfer",
+  };
+}
+
 const monthView: TransactionMonthView = {
   month: "2026-06",
   monthLabel: "2026年6月",
@@ -51,7 +70,7 @@ const monthView: TransactionMonthView = {
   groups: [
     {
       date: "2026-06-05",
-      items: [createItem(1), createItem(2), createItem(3)],
+      items: [createItem(1), createTransferItem(1), createItem(2), createItem(3)],
       label: "06/05 周五",
       summary: {
         balance: "-3120",
@@ -104,7 +123,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "记账明细页",
+  name: "记账明细页：支出收入转账",
 };
 
 export const Empty: Story = {
