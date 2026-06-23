@@ -281,7 +281,7 @@ function createNormalInitialValuesFromTransfer(
 
   return {
     accountId: initialValues.accountId,
-    items: [{ amount: initialValues.transferAmount, categoryId: "" }],
+    items: [],
     merchantId: "",
     note: initialValues.note,
     tagNames: [],
