@@ -18,6 +18,7 @@ import type {
   TransactionMerchantOption,
   TransactionRecordType,
   TransactionTagOption,
+  TransactionType,
 } from "types/transactions";
 import { PageShell } from "templates/layout/PageShell";
 
@@ -39,12 +40,11 @@ type EditTransactionTemplateProps = Omit<
   initialValues: TransactionFormInitialValues;
 };
 
-type EditTransferTransactionTemplateProps = {
-  accountOptions: TransactionAccountOption[];
-  action: (formData: FormData) => Promise<void>;
-  errorMessage: string | null;
+type EditTransferTransactionTemplateProps = Omit<
+  TransactionFormTemplateProps,
+  "initialType"
+> & {
   initialValues: TransferEditInitialValues;
-  ledgerName: string;
 };
 
 export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
@@ -102,20 +102,66 @@ function NewTransactionFormView({
 export function EditTransferTransactionTemplate({
   accountOptions,
   action,
+  categoryOptions,
   errorMessage,
   initialValues,
   ledgerName,
+  merchantOptions,
+  tagOptions,
 }: EditTransferTransactionTemplateProps) {
+  const [activeType, setActiveType] = useState<TransactionRecordType>("transfer");
+  const formId =
+    activeType === "transfer"
+      ? "edit-transfer-transaction-form"
+      : "edit-transaction-form";
+
   return (
     <PageShell>
-      <TransferTransactionForm
-        action={action}
-        accountOptions={accountOptions}
-        errorMessage={errorMessage}
-        initialValues={initialValues}
-        ledgerName={ledgerName}
-        title="编辑转账"
-      />
+      <Stack spacing={2}>
+        <TransactionTypeNavigation
+          activeType={activeType}
+          onChange={setActiveType}
+        />
+        {activeType === "transfer" ? (
+          <TransferTransactionForm
+            action={action}
+            accountOptions={accountOptions}
+            errorMessage={errorMessage}
+            formId={formId}
+            initialValues={initialValues}
+            ledgerName={ledgerName}
+            sourceType="transfer"
+            title="编辑转账"
+          />
+        ) : (
+          <>
+            <input
+              form={formId}
+              name="sourceType"
+              readOnly
+              type="hidden"
+              value="transfer"
+            />
+            <TransactionForm
+              key={activeType}
+              action={action}
+              accountOptions={accountOptions}
+              categoryOptions={categoryOptions}
+              errorMessage={errorMessage}
+              formId={formId}
+              initialValues={createNormalInitialValuesFromTransfer(
+                initialValues,
+                activeType,
+              )}
+              ledgerName={ledgerName}
+              merchantOptions={merchantOptions}
+              submitLabel="保存修改"
+              tagOptions={tagOptions}
+              title="编辑记账"
+            />
+          </>
+        )}
+      </Stack>
       <TransactionAmountKeypadLauncher />
     </PageShell>
   );
@@ -131,22 +177,146 @@ export function EditTransactionTemplate({
   merchantOptions,
   tagOptions,
 }: EditTransactionTemplateProps) {
+  const [activeType, setActiveType] = useState<TransactionRecordType>(
+    initialValues.type,
+  );
+  const formId =
+    activeType === "transfer"
+      ? "edit-transfer-transaction-form"
+      : "edit-transaction-form";
+
   return (
     <PageShell>
-      <TransactionForm
-        action={action}
-        accountOptions={accountOptions}
-        categoryOptions={categoryOptions}
-        errorMessage={errorMessage}
-        formId="edit-transaction-form"
-        initialValues={initialValues}
-        ledgerName={ledgerName}
-        merchantOptions={merchantOptions}
-        submitLabel="保存修改"
-        tagOptions={tagOptions}
-        title="编辑记账"
-      />
+      <Stack spacing={2}>
+        <TransactionTypeNavigation
+          activeType={activeType}
+          onChange={setActiveType}
+        />
+        {activeType === "transfer" ? (
+          <TransferTransactionForm
+            action={action}
+            accountOptions={accountOptions}
+            errorMessage={errorMessage}
+            formId={formId}
+            initialValues={createTransferInitialValuesFromNormal(
+              initialValues,
+              accountOptions,
+            )}
+            ledgerName={ledgerName}
+            sourceType={initialValues.type}
+            title="编辑转账"
+          />
+        ) : (
+          <>
+            <input
+              form={formId}
+              name="sourceType"
+              readOnly
+              type="hidden"
+              value={initialValues.type}
+            />
+            <TransactionForm
+              key={activeType}
+              action={action}
+              accountOptions={accountOptions}
+              categoryOptions={categoryOptions}
+              errorMessage={errorMessage}
+              formId={formId}
+              initialValues={createNormalInitialValuesFromNormal(
+                initialValues,
+                activeType,
+              )}
+              ledgerName={ledgerName}
+              merchantOptions={merchantOptions}
+              submitLabel="保存修改"
+              tagOptions={tagOptions}
+              title="编辑记账"
+            />
+          </>
+        )}
+      </Stack>
       <TransactionAmountKeypadLauncher />
     </PageShell>
+  );
+}
+
+function createNormalInitialValuesFromNormal(
+  initialValues: TransactionFormInitialValues,
+  targetType: TransactionRecordType,
+): TransactionFormInitialValues {
+  if (targetType === "transfer") return initialValues;
+  if (targetType === initialValues.type) return initialValues;
+
+  return {
+    ...initialValues,
+    items: [],
+    type: targetType,
+  };
+}
+
+function createTransferInitialValuesFromNormal(
+  initialValues: TransactionFormInitialValues,
+  accountOptions: TransactionAccountOption[],
+): TransferEditInitialValues {
+  return {
+    accountId: initialValues.accountId,
+    note: initialValues.note,
+    transactionAt: initialValues.transactionAt,
+    transactionRecordId: initialValues.transactionRecordId ?? "",
+    transferAmount: totalAmountText(initialValues.items),
+    transferTargetAccountId: findTransferTargetAccountId(
+      accountOptions,
+      initialValues.accountId,
+    ),
+    type: "transfer",
+  };
+}
+
+function createNormalInitialValuesFromTransfer(
+  initialValues: TransferEditInitialValues,
+  targetType: TransactionRecordType,
+): TransactionFormInitialValues {
+  const normalType: TransactionType = targetType === "income" ? "income" : "expense";
+
+  return {
+    accountId: initialValues.accountId,
+    items: [{ amount: initialValues.transferAmount, categoryId: "" }],
+    merchantId: "",
+    note: initialValues.note,
+    tagNames: [],
+    transactionAt: initialValues.transactionAt,
+    transactionRecordId: initialValues.transactionRecordId,
+    type: normalType,
+  };
+}
+
+function totalAmountText(items: TransactionFormInitialValues["items"]) {
+  const total = items.reduce((sum, item) => {
+    const amount = Number(item.amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+
+  if (total <= 0) return "";
+
+  return total
+    .toFixed(2)
+    .replace(/\.00$/, "")
+    .replace(/(\.\d)0$/, "$1");
+}
+
+function findTransferTargetAccountId(
+  accountOptions: TransactionAccountOption[],
+  accountId: string,
+) {
+  const sourceAccount = accountOptions.find((account) => account.id === accountId);
+  const sameCurrencyAccount = accountOptions.find(
+    (account) =>
+      account.id !== accountId && account.currency === sourceAccount?.currency,
+  );
+
+  return (
+    sameCurrencyAccount?.id ??
+    accountOptions.find((account) => account.id !== accountId)?.id ??
+    ""
   );
 }
