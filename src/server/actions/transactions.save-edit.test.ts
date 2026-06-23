@@ -164,9 +164,7 @@ describe("saveEditTransaction", () => {
 
   it("transfer → expense 时调用 convert_transaction_type", async () => {
     await expect(
-      saveEditTransaction(
-        createNormalEditFormData({ sourceType: "transfer" }),
-      ),
+      saveEditTransaction(createNormalEditFormData({ sourceType: "transfer" })),
     ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
 
     expect(mocks.rpc).toHaveBeenCalledWith(
@@ -180,9 +178,7 @@ describe("saveEditTransaction", () => {
 
   it("sourceType が非法值时 redirect 到编辑页并带 update_invalid", async () => {
     await expect(
-      saveEditTransaction(
-        createNormalEditFormData({ sourceType: "invalid" }),
-      ),
+      saveEditTransaction(createNormalEditFormData({ sourceType: "invalid" })),
     ).rejects.toThrow(
       `NEXT_REDIRECT:/transactions/${transactionRecordId}/edit?error=update_invalid`,
     );

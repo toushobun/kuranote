@@ -87,9 +87,7 @@ describe("validateConvertTransactionTypeForm", () => {
   });
 
   it("转账 → 普通交易 校验通过并返回正确参数", () => {
-    expect(
-      validateConvertTransactionTypeForm(createNormalFormData()),
-    ).toEqual({
+    expect(validateConvertTransactionTypeForm(createNormalFormData())).toEqual({
       ok: true,
       value: {
         accountId,
