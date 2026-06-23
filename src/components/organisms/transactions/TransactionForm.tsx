@@ -2,22 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
-import CloseIcon from "@mui/icons-material/Close";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import Drawer from "@mui/material/Drawer";
-import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import Typography from "@mui/material/Typography";
 import {
   maxTransactionTagCount,
   maxTransactionTagNameLength,
@@ -25,7 +17,6 @@ import {
 import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
-import { designTokens } from "theme/theme";
 import {
   transactionTypeOptions,
   type TransactionAccountOption,
@@ -44,21 +35,23 @@ import {
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
-export type TransactionFormInitialValues = {
-  accountId: string;
-  items: TransactionFormInitialItem[];
-  merchantId: string;
-  note: string;
-  tagNames: string[];
-  transactionAt: string;
-  transactionRecordId?: string;
-  type: TransactionType;
-};
+import { TransactionItemPickerDrawer } from "./TransactionItemPickerDrawer";
+import { TransactionItemsSection } from "./TransactionItemsSection";
+import type {
+  TransactionFieldErrors,
+  TransactionFormInitialValues,
+  TransactionFormItem,
+  TransactionItemSummary,
+  TransactionPickerErrors,
+} from "./TransactionForm.types";
+import {
+  buildCategoryPickerGroups,
+  isValidMoneyText,
+} from "./TransactionForm.utils";
+import { TransactionSummarySection } from "./TransactionSummarySection";
+import { TransactionTagSection } from "./TransactionTagSection";
 
-type TransactionFormInitialItem = {
-  amount: string;
-  categoryId: string;
-};
+export type { TransactionFormInitialValues } from "./TransactionForm.types";
 
 type TransactionFormProps = {
   action: (formData: FormData) => Promise<void>;
@@ -74,18 +67,6 @@ type TransactionFormProps = {
   submitLabel?: string;
   tagOptions: TransactionTagOption[];
   title?: string;
-};
-
-type TransactionFormItem = {
-  amount: string;
-  categoryId: string;
-  id: number;
-};
-
-type CategoryPickerGroup = {
-  categories: TransactionCategoryOption[];
-  id: string;
-  name: string;
 };
 
 const emptyItemsByType: Record<TransactionType, TransactionFormItem[]> = {
@@ -123,12 +104,7 @@ export function TransactionForm({
   const [selectedMerchantId, setSelectedMerchantId] = useState(
     initialValues?.merchantId ?? "",
   );
-  const [fieldErrors, setFieldErrors] = useState<{
-    account?: string;
-    items?: string;
-    merchant?: string;
-    tags?: string;
-  }>({});
+  const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() => createInitialItemsByType(initialValues));
@@ -136,10 +112,7 @@ export function TransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
-  const [pickerErrors, setPickerErrors] = useState<{
-    category?: string;
-    amount?: string;
-  }>({});
+  const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
   const [selectedTagNames, setSelectedTagNames] = useState<string[]>(
     initialValues?.tagNames ?? [],
   );
@@ -203,7 +176,7 @@ export function TransactionForm({
   const suggestedTagOptions = tagOptions.filter(
     (tag) => !hasTagName(selectedTagNames, tag.name),
   );
-  const itemSummaries = items.map((item) => ({
+  const itemSummaries: TransactionItemSummary[] = items.map((item) => ({
     ...item,
     category: categoryById.get(item.categoryId),
   }));
@@ -356,8 +329,15 @@ export function TransactionForm({
     }
   }
 
+  function handlePickerAmountChange(amount: string) {
+    setPickerAmount(amount);
+    if (pickerErrors.amount) {
+      setPickerErrors((prev) => ({ ...prev, amount: undefined }));
+    }
+  }
+
   function handlePickerAdd() {
-    const errors: typeof pickerErrors = {};
+    const errors: TransactionPickerErrors = {};
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
@@ -382,7 +362,7 @@ export function TransactionForm({
       return;
     }
 
-    const errors: typeof fieldErrors = {};
+    const errors: TransactionFieldErrors = {};
     const tagError = getSelectedTagError(selectedTagNames);
 
     if (!selectedMerchantId) {
@@ -549,203 +529,34 @@ export function TransactionForm({
           ))}
         </TextField>
 
-        <Paper ref={itemsFieldRef} variant="outlined" sx={{ p: 2 }}>
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              消费明细
-            </Typography>
+        <TransactionItemsSection
+          fieldError={fieldErrors.items}
+          hasCategoryOptions={filteredCategoryOptions.length > 0}
+          itemsFieldRef={itemsFieldRef}
+          itemSummaries={itemSummaries}
+          onOpenSheet={openSheet}
+          onRemoveItem={removeItem}
+          onUpdateItem={updateItem}
+          selectedAccountCurrency={selectedAccount?.currency}
+          signedTotalAmount={signedTotalAmount}
+        />
 
-            {items.length === 0 ? (
-              <Typography
-                color={fieldErrors.items ? "error" : "text.secondary"}
-                variant="body2"
-                sx={{ py: 0.5 }}
-              >
-                {fieldErrors.items ?? "请点击下方按钮添加明细。"}
-              </Typography>
-            ) : (
-              items.map((item, index) => {
-                const category = categoryById.get(item.categoryId);
-                const categoryLabel = category
-                  ? formatCategoryName(category)
-                  : "请选择分类";
-
-                return (
-                  <Paper key={item.id} elevation={0} sx={subtlePaperSx}>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "center", minHeight: 48 }}
-                    >
-                      <input
-                        name="itemCategoryId"
-                        type="hidden"
-                        value={item.categoryId}
-                      />
-                      <Typography noWrap sx={{ flex: 1, fontWeight: 700 }}>
-                        {categoryLabel}
-                      </Typography>
-                      <TextField
-                        hiddenLabel
-                        name="itemAmount"
-                        onChange={(event) =>
-                          updateItem(item.id, { amount: event.target.value })
-                        }
-                        placeholder="0"
-                        size="small"
-                        slotProps={{
-                          htmlInput: {
-                            "aria-label": `明细 ${index + 1} 金额`,
-                            "data-amount-currency":
-                              selectedAccount?.currency ?? "",
-                            "data-amount-input": "true",
-                            inputMode: "decimal",
-                            sx: { textAlign: "right" },
-                          },
-                          input: {
-                            disableUnderline: true,
-                          },
-                        }}
-                        type="text"
-                        value={item.amount}
-                        variant="standard"
-                        sx={amountFieldSx}
-                      />
-                      <IconButton
-                        aria-label={`删除明细 ${index + 1}`}
-                        onClick={() => removeItem(item.id)}
-                        size="small"
-                        sx={smallIconButtonSx}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </Paper>
-                );
-              })
-            )}
-
-            <Button
-              aria-label="添加明细"
-              disabled={filteredCategoryOptions.length === 0}
-              onClick={openSheet}
-              type="button"
-              variant="text"
-              sx={addItemButtonSx}
-            >
-              + 添加一项明细
-            </Button>
-
-            {items.length > 0 ? (
-              <Box sx={summaryBoxSx}>
-                <Typography sx={{ fontWeight: 700 }}>
-                  共 {items.length} 项
-                </Typography>
-                <Typography
-                  sx={{
-                    color: "var(--user-theme-action-text)",
-                    fontWeight: 800,
-                  }}
-                >
-                  合计 {signedTotalAmount}
-                </Typography>
-              </Box>
-            ) : null}
-          </Stack>
-        </Paper>
-
-        <Paper ref={tagsFieldRef} variant="outlined" sx={{ p: 2 }}>
-          <Stack spacing={1.5}>
-            <Stack spacing={0.5}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                标签（选填）
-              </Typography>
-              <Typography color="text.secondary" variant="body2">
-                可从既有标签选择，也可以直接输入新标签。
-              </Typography>
-            </Stack>
-
-            {selectedTagNames.length > 0 ? (
-              <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-                {selectedTagNames.map((tagName) => (
-                  <Chip
-                    key={tagName}
-                    label={tagName}
-                    onDelete={() => removeTag(tagName)}
-                    size="small"
-                    sx={{ borderRadius: 999, fontWeight: 700 }}
-                  />
-                ))}
-              </Stack>
-            ) : (
-              <Typography color="text.secondary" variant="body2">
-                还没有选择标签。
-              </Typography>
-            )}
-
-            {suggestedTagOptions.length > 0 ? (
-              <Stack spacing={0.75}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  已有标签
-                </Typography>
-                <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-                  {suggestedTagOptions.map((tag) => (
-                    <Chip
-                      key={tag.id}
-                      label={tag.name}
-                      onClick={() => addTag(tag.name)}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        borderColor: tag.color ?? undefined,
-                        borderRadius: 999,
-                        color: tag.color ?? designTokens.color.brand.main,
-                        fontWeight: 700,
-                      }}
-                    />
-                  ))}
-                </Stack>
-              </Stack>
-            ) : null}
-
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "flex-start" }}
-            >
-              <TextField
-                error={!!fieldErrors.tags}
-                fullWidth
-                helperText={
-                  fieldErrors.tags ?? transactionTagValidationMessages.hint
-                }
-                label="新增标签"
-                onChange={(event) => {
-                  setNewTagName(event.target.value);
-                  if (fieldErrors.tags) {
-                    setFieldErrors((prev) => ({ ...prev, tags: undefined }));
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-
-                  cancelDefaultEvent(event);
-                  addTag(newTagName);
-                }}
-                size="small"
-                value={newTagName}
-              />
-              <Button
-                onClick={() => addTag(newTagName)}
-                type="button"
-                variant="outlined"
-                sx={tagAddButtonSx}
-              >
-                追加
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
+        <TransactionTagSection
+          fieldError={fieldErrors.tags}
+          helperText={fieldErrors.tags ?? transactionTagValidationMessages.hint}
+          newTagName={newTagName}
+          onAddTag={addTag}
+          onNewTagNameChange={(tagName) => {
+            setNewTagName(tagName);
+            if (fieldErrors.tags) {
+              setFieldErrors((prev) => ({ ...prev, tags: undefined }));
+            }
+          }}
+          onRemoveTag={removeTag}
+          selectedTagNames={selectedTagNames}
+          suggestedTagOptions={suggestedTagOptions}
+          tagsFieldRef={tagsFieldRef}
+        />
 
         <TextField
           defaultValue={initialValues?.note ?? ""}
@@ -764,46 +575,15 @@ export function TransactionForm({
           time={transactionTime}
         />
 
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              保存前汇总
-            </Typography>
-            <SummaryRow
-              label="商家"
-              value={selectedMerchant?.name ?? "未选择"}
-            />
-            <SummaryRow
-              label="账户"
-              value={
-                selectedAccount
-                  ? `${selectedAccount.name}（${selectedAccount.currency}）`
-                  : "未选择"
-              }
-            />
-            {itemSummaries.map((item, index) => (
-              <SummaryRow
-                key={item.id}
-                label={`明细 ${index + 1}`}
-                value={`${item.category ? formatCategoryName(item.category) : "未选择分类"} / ${item.amount || "未填写金额"}`}
-              />
-            ))}
-            <SummaryRow
-              label="标签"
-              value={
-                selectedTagNames.length > 0
-                  ? selectedTagNames.join("、")
-                  : "未选择"
-              }
-            />
-            <SummaryRow
-              label="时间"
-              value={formatSummaryDateTime(transactionDate, transactionTime)}
-            />
-            <Divider />
-            <SummaryRow label="合计金额" value={signedTotalAmount} strong />
-          </Stack>
-        </Paper>
+        <TransactionSummarySection
+          itemSummaries={itemSummaries}
+          selectedAccount={selectedAccount}
+          selectedMerchant={selectedMerchant}
+          selectedTagNames={selectedTagNames}
+          signedTotalAmount={signedTotalAmount}
+          transactionDate={transactionDate}
+          transactionTime={transactionTime}
+        />
 
         <Button
           disabled={isSubmitDisabled}
@@ -821,219 +601,24 @@ export function TransactionForm({
         </Button>
       </Stack>
 
-      <Drawer
-        anchor="bottom"
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={filteredCategoryOptions}
+        itemSummaries={itemSummaries}
+        onAmountChange={handlePickerAmountChange}
+        onCategoryToggle={handlePickerCategoryToggle}
         onClose={closeSheet}
+        onGroupSelect={handlePickerGroupSelect}
+        onPickerAdd={handlePickerAdd}
+        onRemoveItem={removeItem}
         open={isSheetOpen}
-        slotProps={{ paper: { sx: drawerPaperSx } }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexShrink: 0,
-            justifyContent: "center",
-            pt: 1.5,
-          }}
-        >
-          <Box
-            sx={{ bgcolor: "divider", borderRadius: 99, height: 4, width: 40 }}
-          />
-        </Box>
-
-        <Typography
-          variant="h6"
-          sx={{ flexShrink: 0, fontWeight: 700, px: 2, py: 1.5 }}
-        >
-          添加明细
-        </Typography>
-
-        <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
-          {itemSummaries.length > 0 ? (
-            <>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                已选明细
-              </Typography>
-              <Stack spacing={0.75} sx={{ mb: 2 }}>
-                {itemSummaries.map((item) => (
-                  <Paper
-                    key={item.id}
-                    variant="outlined"
-                    sx={{ px: 1.5, py: 1 }}
-                  >
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "center" }}
-                    >
-                      <Typography noWrap sx={{ flex: 1, fontSize: 14 }}>
-                        {item.category
-                          ? formatCategoryName(item.category)
-                          : "未选择分类"}
-                      </Typography>
-                      <Typography sx={{ fontSize: 14, fontWeight: 700 }}>
-                        {item.amount || "—"}
-                      </Typography>
-                      <IconButton
-                        aria-label={`从已选中删除 ${item.category?.name ?? ""}`}
-                        onClick={() => removeItem(item.id)}
-                        size="small"
-                        sx={sheetItemIconButtonSx}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </Paper>
-                ))}
-              </Stack>
-              <Divider sx={{ mb: 2 }} />
-            </>
-          ) : null}
-
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-            选择分类
-          </Typography>
-          {filteredCategoryOptions.length === 0 ? (
-            <Typography color="text.secondary">
-              请先新增{selectedType === "expense" ? "支出" : "收入"}小分类。
-            </Typography>
-          ) : (
-            <Stack direction="row" sx={{ minHeight: 180 }}>
-              <Box sx={categoryGroupListSx}>
-                {categoryGroups.map((group) => {
-                  const isSelected = selectedCategoryGroup?.id === group.id;
-
-                  return (
-                    <Button
-                      key={group.id}
-                      fullWidth
-                      onClick={() => handlePickerGroupSelect(group.id)}
-                      type="button"
-                      sx={{
-                        borderLeft: "3px solid",
-                        borderColor: isSelected
-                          ? "var(--user-theme-action-text)"
-                          : "transparent",
-                        borderRadius: 0,
-                        color: isSelected
-                          ? "var(--user-theme-action-text)"
-                          : "text.secondary",
-                        fontWeight: isSelected ? 700 : 400,
-                        justifyContent: "flex-start",
-                        pl: 1.5,
-                        py: 1.25,
-                        textTransform: "none",
-                      }}
-                    >
-                      {group.name}
-                    </Button>
-                  );
-                })}
-              </Box>
-
-              <Stack
-                spacing={1.5}
-                sx={{ flex: 1, minWidth: 0, pl: 2, pt: 0.5 }}
-              >
-                <Stack spacing={0.5}>
-                  <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-                    {selectedCategoryGroup?.categories.map((category) => {
-                      const isSelected = pickerCategoryId === category.id;
-
-                      return (
-                        <Chip
-                          key={category.id}
-                          label={category.name}
-                          onClick={() =>
-                            handlePickerCategoryToggle(category.id)
-                          }
-                          variant={isSelected ? "outlined" : "filled"}
-                          sx={
-                            isSelected
-                              ? {
-                                  borderColor: "var(--user-theme-action-text)",
-                                  color: "var(--user-theme-action-text)",
-                                }
-                              : {}
-                          }
-                        />
-                      );
-                    })}
-                  </Stack>
-                  {pickerErrors.category ? (
-                    <Typography color="error" variant="caption">
-                      {pickerErrors.category}
-                    </Typography>
-                  ) : null}
-                </Stack>
-
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ alignItems: "flex-start" }}
-                >
-                  <TextField
-                    error={!!pickerErrors.amount}
-                    helperText={pickerErrors.amount}
-                    label="金额"
-                    onChange={(event) => {
-                      setPickerAmount(event.target.value);
-                      if (pickerErrors.amount) {
-                        setPickerErrors((prev) => ({
-                          ...prev,
-                          amount: undefined,
-                        }));
-                      }
-                    }}
-                    placeholder="0"
-                    size="small"
-                    slotProps={{
-                      htmlInput: {
-                        "data-amount-currency": selectedAccount?.currency ?? "",
-                        "data-amount-input": "true",
-                        inputMode: "decimal",
-                      },
-                    }}
-                    sx={{ flex: 1 }}
-                    type="text"
-                    value={pickerAmount}
-                  />
-                  <Button
-                    onClick={handlePickerAdd}
-                    type="button"
-                    variant="contained"
-                    sx={drawerAddButtonSx}
-                  >
-                    追加
-                  </Button>
-                </Stack>
-              </Stack>
-            </Stack>
-          )}
-        </Box>
-
-        <Box sx={drawerFooterSx}>
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              fullWidth
-              onClick={closeSheet}
-              type="button"
-              variant="outlined"
-              sx={drawerCancelButtonSx}
-            >
-              取消
-            </Button>
-            <Button
-              fullWidth
-              onClick={closeSheet}
-              type="button"
-              variant="contained"
-              sx={drawerDoneButtonSx}
-            >
-              完成
-            </Button>
-          </Stack>
-        </Box>
-      </Drawer>
+        pickerAmount={pickerAmount}
+        pickerCategoryId={pickerCategoryId}
+        pickerErrors={pickerErrors}
+        selectedAccountCurrency={selectedAccount?.currency}
+        selectedCategoryGroup={selectedCategoryGroup}
+        selectedType={selectedType}
+      />
     </form>
   );
 }
@@ -1053,30 +638,8 @@ function createInitialItemsByType(
   return itemsByType;
 }
 
-function buildCategoryPickerGroups(categories: TransactionCategoryOption[]) {
-  return categories.reduce<CategoryPickerGroup[]>((groups, category) => {
-    const groupId = category.parentId ?? "";
-    const groupName = category.parentName ?? category.name;
-    const group = groups.find((currentGroup) => currentGroup.id === groupId);
-
-    if (group) {
-      group.categories.push(category);
-      return groups;
-    }
-
-    groups.push({ categories: [category], id: groupId, name: groupName });
-    return groups;
-  }, []);
-}
-
 function cancelDefaultEvent(event: { preventDefault(): void }) {
   event.preventDefault();
-}
-
-function formatCategoryName(category: TransactionCategoryOption) {
-  return category.parentName
-    ? `${category.parentName} / ${category.name}`
-    : category.name;
 }
 
 function formatSignedAmount(type: TransactionType, amount: number) {
@@ -1124,14 +687,6 @@ function hasTagName(tagNames: string[], tagName: string) {
   );
 }
 
-function isValidMoneyText(value: string) {
-  if (!/^\d+(\.\d{1,2})?$/.test(value.trim())) return false;
-
-  const amount = Number(value);
-
-  return Number.isFinite(amount) && amount >= 0;
-}
-
 const selectedToggleButtonGroupSx = {
   "& .MuiToggleButton-root.Mui-selected": {
     backgroundColor: "var(--user-theme-bottom-nav-active-bg)",
@@ -1141,138 +696,3 @@ const selectedToggleButtonGroupSx = {
     backgroundColor: "var(--user-theme-bottom-nav-active-bg)",
   },
 };
-
-const subtlePaperSx = {
-  bgcolor: designTokens.color.background.subtle,
-  borderRadius: 2,
-  px: 1.5,
-  py: 1,
-};
-
-const amountFieldSx = {
-  width: 96,
-  "& .MuiInputBase-root": {
-    bgcolor: "transparent",
-    fontSize: "1.25rem",
-    fontWeight: 800,
-  },
-};
-
-const smallIconButtonSx = {
-  color: "text.secondary",
-  height: 40,
-  width: 40,
-};
-
-const sheetItemIconButtonSx = {
-  ...smallIconButtonSx,
-  borderRadius: 1,
-};
-
-const addItemButtonSx = {
-  border: "2px dashed",
-  borderColor: "var(--user-theme-action-text)",
-  borderRadius: 2,
-  color: "var(--user-theme-action-text)",
-  minHeight: 48,
-};
-
-const summaryBoxSx = {
-  bgcolor: designTokens.color.background.subtle,
-  borderRadius: 2,
-  display: "flex",
-  justifyContent: "space-between",
-  px: 2,
-  py: 1.25,
-};
-
-const tagAddButtonSx = {
-  borderColor: designTokens.color.brand.main,
-  color: designTokens.color.brand.main,
-  flexShrink: 0,
-  height: 40,
-};
-
-const drawerPaperSx = {
-  borderRadius: "16px 16px 0 0",
-  display: "flex",
-  flexDirection: "column",
-  maxHeight: "85vh",
-  overflow: "hidden",
-};
-
-const categoryGroupListSx = {
-  borderColor: "divider",
-  borderRight: 1,
-  flexShrink: 0,
-  width: 112,
-};
-
-const fabButtonBaseSx = {
-  background: "var(--user-theme-fab-bg)",
-  color: "white",
-};
-
-const drawerAddButtonSx = {
-  ...fabButtonBaseSx,
-  flexShrink: 0,
-  height: 40,
-};
-
-const drawerFooterSx = {
-  borderColor: "divider",
-  borderTop: 1,
-  flexShrink: 0,
-  p: 2,
-  pt: 1.5,
-};
-
-const drawerCancelButtonSx = {
-  borderColor: "var(--user-theme-action-text)",
-  color: "var(--user-theme-action-text)",
-  "&:hover": { borderColor: "var(--user-theme-action-text)" },
-};
-
-const drawerDoneButtonSx = {
-  ...fabButtonBaseSx,
-  "&:hover": { background: "var(--user-theme-fab-bg)" },
-};
-
-function formatSummaryDateTime(date: string, time: string) {
-  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  if (!dateMatch) return "\u672a\u9009\u62e9";
-
-  const dateLabel = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
-  const timeMatch = /^(\d{2}):(\d{2})(?::(\d{2}))?/.exec(time);
-  if (!timeMatch) return "未选择";
-
-  return `${dateLabel} ${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3] ?? "00"}`;
-}
-
-function SummaryRow({
-  label,
-  strong = false,
-  value,
-}: {
-  label: string;
-  strong?: boolean;
-  value: string;
-}) {
-  return (
-    <Stack
-      direction="row"
-      spacing={2}
-      sx={{ alignItems: "center", justifyContent: "space-between" }}
-    >
-      <Typography color="text.secondary" variant="body2">
-        {label}
-      </Typography>
-      <Typography
-        sx={{ fontWeight: strong ? 700 : 500, textAlign: "right" }}
-        variant={strong ? "subtitle1" : "body2"}
-      >
-        {value}
-      </Typography>
-    </Stack>
-  );
-}
