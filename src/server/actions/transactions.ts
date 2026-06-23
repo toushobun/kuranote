@@ -242,17 +242,17 @@ export async function saveEditTransaction(formData: FormData) {
 
   if (sourceType === targetType) {
     if (targetType === "transfer") {
-      await updateTransferTransaction(formData);
-    } else {
-      await updateTransaction(formData);
+      return updateTransferTransaction(formData);
     }
+
+    return updateTransaction(formData);
   }
 
   if (sourceType !== "transfer" && targetType !== "transfer") {
-    await updateTransaction(formData);
+    return updateTransaction(formData);
   }
 
-  await convertTransactionType(formData);
+  return convertTransactionType(formData);
 }
 
 export async function voidTransaction(formData: FormData) {
