@@ -39,7 +39,10 @@ export function DynamicMuiThemeProvider({
 }: DynamicMuiThemeProviderProps) {
   const { themeKey } = useUserTheme();
 
-  const dynamicTheme = useMemo(() => createDynamicMuiTheme(themeKey), [themeKey]);
+  const dynamicTheme = useMemo(
+    () => createDynamicMuiTheme(themeKey),
+    [themeKey],
+  );
 
   return <ThemeProvider theme={dynamicTheme}>{children}</ThemeProvider>;
 }
