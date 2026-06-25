@@ -5,12 +5,12 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import FormHelperText from "@mui/material/FormHelperText";
 import IconButton from "@mui/material/IconButton";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState, type KeyboardEvent, type RefObject } from "react";
 
+import { SectionCard } from "molecules/ui/SectionCard";
 import type { TransactionTagOption } from "types/transactions";
 
 type TransactionTagSectionProps = {
@@ -55,11 +55,11 @@ export function TransactionTagSection({
   }
 
   return (
-    <Paper ref={tagsFieldRef} variant="outlined" sx={tagPaperSx}>
+    <SectionCard ref={tagsFieldRef} sx={tagCardSx}>
       <Stack spacing={1.5}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <LocalOfferRoundedIcon sx={titleIconSx} />
-          <Typography color="text.secondary" variant="subtitle1" sx={titleSx}>
+          <Typography variant="subtitle1" sx={titleSx}>
             标签（整体）
           </Typography>
         </Stack>
@@ -134,18 +134,30 @@ export function TransactionTagSection({
           </FormHelperText>
         ) : null}
       </Stack>
-    </Paper>
+    </SectionCard>
   );
 }
 
-const selectedTagColors = [
-  { bg: "#fff0f5", border: "#ff4f86", color: "#e11d61" },
-  { bg: "#ecfdf5", border: "#4ac19b", color: "#1f8a70" },
-  { bg: "#eef6ff", border: "#62a5ee", color: "#2878c8" },
-];
+const selectedTagStyles = [
+  {
+    bg: "var(--user-theme-badge-bg)",
+    border: "var(--user-theme-field-card-selected-border)",
+    color: "var(--user-theme-action-text)",
+  },
+  {
+    bg: "var(--user-theme-negative-bg)",
+    border: "var(--user-theme-negative-amount)",
+    color: "var(--user-theme-negative-amount)",
+  },
+  {
+    bg: "var(--user-theme-transfer-bg)",
+    border: "var(--user-theme-tx-accent)",
+    color: "var(--user-theme-tx-accent)",
+  },
+] as const;
 
 function getSelectedTagSx(index: number) {
-  const color = selectedTagColors[index % selectedTagColors.length];
+  const color = selectedTagStyles[index % selectedTagStyles.length];
 
   return {
     bgcolor: color.bg,
@@ -163,7 +175,7 @@ function getSelectedTagSx(index: number) {
 }
 
 function getSuggestedTagSx(index: number, tagColor: string | null) {
-  const fallbackColor = selectedTagColors[index % selectedTagColors.length];
+  const fallbackColor = selectedTagStyles[index % selectedTagStyles.length];
 
   return {
     borderColor: tagColor ?? fallbackColor.border,
@@ -176,20 +188,18 @@ function getSuggestedTagSx(index: number, tagColor: string | null) {
   };
 }
 
-const tagPaperSx = {
-  bgcolor: "rgba(255, 253, 248, 0.94)",
-  borderColor: "rgba(133, 77, 14, 0.12)",
+const tagCardSx = {
   borderRadius: 2.5,
   p: 2.5,
 };
 
 const titleIconSx = {
-  color: "#f3c27c",
+  color: "var(--user-theme-action-text)",
   fontSize: "1.25rem",
 };
 
 const titleSx = {
-  color: "rgba(74, 47, 27, 0.56)",
+  color: "text.secondary",
   fontSize: "1.05rem",
   fontWeight: 800,
 };
@@ -207,20 +217,20 @@ const tagInlineInputSx = {
 };
 
 const tagConfirmButtonSx = {
-  color: "#22c55e",
+  color: "success.main",
   p: 0.25,
 };
 
 const tagCancelButtonSx = {
-  color: "rgba(74, 47, 27, 0.36)",
+  color: "text.secondary",
   p: 0.25,
 };
 
 const tagAddButtonSx = {
-  bgcolor: "rgba(74, 47, 27, 0.12)",
+  bgcolor: "var(--user-theme-badge-bg)",
   borderColor: "transparent",
   borderRadius: 999,
-  color: "rgba(74, 47, 27, 0.72)",
+  color: "var(--user-theme-badge-color)",
   flexShrink: 0,
   fontSize: "0.95rem",
   fontWeight: 900,

@@ -1,8 +1,8 @@
 import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { SectionCard } from "molecules/ui/SectionCard";
 import type {
   TransactionAccountOption,
   TransactionMerchantOption,
@@ -34,7 +34,7 @@ export function TransactionSummarySection({
   transactionTime,
 }: TransactionSummarySectionProps) {
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <SectionCard sx={{ p: 2 }}>
       <Stack spacing={1.5}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           保存前汇总
@@ -68,7 +68,7 @@ export function TransactionSummarySection({
         <Divider />
         <SummaryRow label="合计金额" value={signedTotalAmount} strong />
       </Stack>
-    </Paper>
+    </SectionCard>
   );
 }
 
