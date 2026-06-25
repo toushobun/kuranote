@@ -103,5 +103,7 @@ export function DashboardMonthSummaryCard({
 }
 
 function getAccountIcon(type: string) {
-  return accountIconMap[type as keyof typeof accountIconMap] ?? accountIconMap.bank;
+  return (
+    accountIconMap[type as keyof typeof accountIconMap] ?? accountIconMap.bank
+  );
 }
