@@ -275,7 +275,7 @@ export function TransactionDateTimePicker({
                 sx={{
                   bgcolor: "background.paper",
                   bottom: 0,
-                  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
+                  boxShadow: "var(--user-theme-card-shadow)",
                   clipPath: monthPickerOpen
                     ? "inset(0 0 0 0)"
                     : "inset(0 0 100% 0)",

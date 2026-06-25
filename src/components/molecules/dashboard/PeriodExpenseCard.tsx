@@ -1,7 +1,6 @@
-import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
-import { transactionExpenseColor } from "theme/transactionColors";
+import { SectionCard } from "molecules/ui/SectionCard";
 import { formatNumber } from "utils/transactions";
 
 type PeriodExpenseCardProps = {
@@ -16,11 +15,9 @@ export function PeriodExpenseCard({
   recordCount,
 }: PeriodExpenseCardProps) {
   return (
-    <Box
+    <SectionCard
       sx={{
-        bgcolor: "background.paper",
         borderRadius: 1,
-        boxShadow: "0 10px 24px rgba(77, 55, 120, 0.06)",
         flex: 1,
         p: 1.8,
       }}
@@ -30,7 +27,7 @@ export function PeriodExpenseCard({
       </Typography>
       <Typography
         sx={{
-          color: transactionExpenseColor,
+          color: "var(--user-theme-negative-amount)",
           fontSize: 20,
           fontWeight: 900,
           lineHeight: 1.2,
@@ -43,6 +40,6 @@ export function PeriodExpenseCard({
           共 {recordCount} 笔记录
         </Typography>
       ) : null}
-    </Box>
+    </SectionCard>
   );
 }
