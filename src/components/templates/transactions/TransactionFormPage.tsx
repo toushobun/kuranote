@@ -300,7 +300,9 @@ function NewTransactionTypeNavigation({
       ariaLabel="记账类型"
       items={transactionTypeTabs}
       value={activeType}
-      onChange={(value) => onChange(value as NewTransactionTypeTab)}
+      onChange={(value) => {
+        if (value === "normal" || value === "transfer") onChange(value);
+      }}
     />
   );
 }
