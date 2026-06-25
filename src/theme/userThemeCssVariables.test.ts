@@ -74,9 +74,9 @@ describe("getUserThemeCssVariables", () => {
   it("输出默认主题交易类型背景语义色变量", () => {
     const themeVars = getUserThemeCssVariables("amberWarmth");
 
-    expect(themeVars["--user-theme-income-bg"]).toBe("#E2F7EC");
-    expect(themeVars["--user-theme-transfer-bg"]).toBe("#E5F0FF");
-    expect(themeVars["--user-theme-negative-bg"]).toBe("#FFE7ED");
+    expect(themeVars["--user-theme-income-bg"]).toBe("#E8F5F0");
+    expect(themeVars["--user-theme-transfer-bg"]).toBe("#E4F0FA");
+    expect(themeVars["--user-theme-negative-bg"]).toBe("#FDE8EE");
   });
 
   it("所有主题均输出首页金额相关变量", () => {
