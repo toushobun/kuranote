@@ -12,8 +12,6 @@ import { useSyncExternalStore } from "react";
 
 import { serverFallbackTimeZone } from "config/dateTime";
 import { transactionEditHref } from "config/paths";
-import { TransactionBusinessBadge } from "organisms/transactions/TransactionBusinessBadge";
-import type { TransactionBusinessBadgeStatus } from "organisms/transactions/transactionBusinessBadgeConfig";
 import type { ServerAction } from "types/actions";
 import type {
   CategorySummaryItem,
@@ -260,11 +258,15 @@ export function TransactionRow({
                     {formatCategoryBreakdownLabel(category)}
                   </Typography>
                   {category.specialLabel ? (
-                    <TransactionBusinessBadge
+                    <Chip
                       label={category.specialLabel}
                       size="small"
-                      status={getBusinessBadgeStatus(category.specialTone)}
-                      sx={{ fontSize: 10, height: 20 }}
+                      sx={{
+                        ...getSpecialStatusStyle(category.specialTone),
+                        fontSize: 10,
+                        fontWeight: 900,
+                        height: 20,
+                      }}
                     />
                   ) : null}
                 </Stack>
@@ -341,14 +343,36 @@ function formatCategoryBreakdownLabel(category: CategorySummaryItem) {
     : category.categoryName;
 }
 
-function getBusinessBadgeStatus(
+// TODO: 待报销 / 待退款等特殊标签后续需要从每条明细的数据结构中正式提供，
+// 当前仅用于 Storybook 假数据验证样式。
+function getSpecialStatusStyle(
   tone: ReceiptCategoryItem["specialTone"] = "orange",
-): TransactionBusinessBadgeStatus {
-  if (tone === "blue") return "pendingRefund";
-  if (tone === "pink") return "excluded";
-  if (tone === "teal") return "reimbursed";
+) {
+  if (tone === "blue") {
+    return {
+      bgcolor: "var(--user-theme-business-refund-bg)",
+      color: "var(--user-theme-business-refund-text)",
+    };
+  }
 
-  return "pendingReimbursement";
+  if (tone === "pink") {
+    return {
+      bgcolor: "var(--user-theme-business-excluded-bg)",
+      color: "var(--user-theme-business-excluded-text)",
+    };
+  }
+
+  if (tone === "teal") {
+    return {
+      bgcolor: "var(--user-theme-business-completed-bg)",
+      color: "var(--user-theme-business-completed-text)",
+    };
+  }
+
+  return {
+    bgcolor: "var(--user-theme-business-pending-bg)",
+    color: "var(--user-theme-business-pending-text)",
+  };
 }
 
 function getTypeLabel(type: TransactionRowItem["type"]) {
