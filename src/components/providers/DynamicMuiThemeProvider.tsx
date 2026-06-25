@@ -6,10 +6,7 @@ import { useMemo } from "react";
 
 import { theme as baseTheme } from "theme/theme";
 import { useUserTheme } from "theme/UserThemeProvider";
-import {
-  type UserThemeKey,
-  userThemeTokens,
-} from "theme/userThemeTokens";
+import { type UserThemeKey, userThemeTokens } from "theme/userThemeTokens";
 
 type DynamicMuiThemeProviderProps = {
   children: ReactNode;
@@ -42,10 +39,7 @@ export function DynamicMuiThemeProvider({
 }: DynamicMuiThemeProviderProps) {
   const { themeKey } = useUserTheme();
 
-  const dynamicTheme = useMemo(
-    () => createDynamicMuiTheme(themeKey),
-    [themeKey],
-  );
+  const dynamicTheme = useMemo(() => createDynamicMuiTheme(themeKey), [themeKey]);
 
   return <ThemeProvider theme={dynamicTheme}>{children}</ThemeProvider>;
 }
