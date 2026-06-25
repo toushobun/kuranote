@@ -9,26 +9,22 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { routePaths } from "config/paths";
-import {
-  receiptAccentColor,
-  receiptCardBorder,
-  receiptExpenseColor,
-  receiptIncomeColor,
-  receiptPageBackground,
-  receiptTextColor,
-} from "theme/receiptColors";
+import { IconBadge } from "atoms/ui/IconBadge";
+import { SectionCard } from "molecules/ui/SectionCard";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
 
-const homeBackground = receiptPageBackground;
-const homeCardBorder = receiptCardBorder;
-const homeText = receiptTextColor;
-const incomeColor = receiptIncomeColor;
-const expenseColor = receiptExpenseColor;
-const balanceColor = "#8b5e34";
+const incomeColor = "var(--user-theme-income-amount)";
+const expenseColor = "var(--user-theme-expense-amount)";
+const balanceColor = "var(--user-theme-stat-value-1)";
+const primaryText = "var(--user-theme-balance-text)";
+const secondaryText = "var(--user-theme-secondary-text)";
+const actionText = "var(--user-theme-action-text)";
+const inactiveActionText = "var(--user-theme-bottom-nav-inactive)";
+const activeIconBackground = "var(--user-theme-bottom-nav-active-bg)";
+const inactiveIconBackground = "var(--user-theme-segment-bg)";
 
 type QuickAction = {
   href?: string;
@@ -44,10 +40,11 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
   return (
     <Box
       sx={{
-        bgcolor: homeBackground,
-        boxShadow: `0 0 0 100vmax ${homeBackground}`,
+        bgcolor: "background.default",
+        boxShadow: (theme) =>
+          `0 0 0 100vmax ${theme.palette.background.default}`,
         clipPath: "inset(0 -100vmax)",
-        color: homeText,
+        color: "text.primary",
         minHeight: "100dvh",
         mx: { xs: -2, sm: 0 },
         px: { xs: 2, sm: 3 },
@@ -105,10 +102,10 @@ function DashboardGreetingPanel() {
       >
         KuraNote
       </Typography>
-      <Typography sx={{ color: homeText, fontSize: 15, fontWeight: 800 }}>
+      <Typography sx={{ color: primaryText, fontSize: 15, fontWeight: 800 }}>
         早呀，今天也好好记录 🌼
       </Typography>
-      <Typography sx={{ color: "rgba(74, 47, 27, 0.58)", fontSize: 12 }}>
+      <Typography sx={{ color: secondaryText, fontSize: 12 }}>
         每一张小票，都是生活的脚本
       </Typography>
     </Stack>
@@ -161,12 +158,9 @@ function DashboardSummaryPill({
   value: string;
 }) {
   return (
-    <Box
+    <SectionCard
       sx={{
-        bgcolor: "rgba(255, 255, 255, 0.86)",
-        border: `1px solid ${homeCardBorder}`,
         borderRadius: 1.25,
-        boxShadow: "0 6px 14px rgba(120, 53, 15, 0.04)",
         minWidth: 0,
         px: { xs: 0.8, sm: 1.2 },
         py: 1.05,
@@ -183,14 +177,13 @@ function DashboardSummaryPill({
         {/* TODO: 暂时以日元固定显示，后续需根据 currency 字段使用 formatAmount */}
         ¥ {formatNumber(value)}
       </Typography>
-    </Box>
+    </SectionCard>
   );
 }
 
 function DashboardQuickActions() {
   const actions: QuickAction[] = [
     {
-      // href: routePaths.transactionsNew,
       icon: <ReceiptLongRoundedIcon fontSize="small" />,
       id: "quick-entry",
       label: "快速记账",
@@ -223,39 +216,36 @@ function DashboardQuickActions() {
       {actions.map((action) => {
         const isActive = Boolean(action.href);
         const content = (
-          <Stack
-            spacing={0.7}
+          <SectionCard
             sx={{
-              alignItems: "center",
-              bgcolor: "rgba(255, 255, 255, 0.74)",
-              border: `1px solid ${homeCardBorder}`,
               borderRadius: 1.25,
-              color: isActive ? receiptAccentColor : "rgba(74, 47, 27, 0.45)",
+              color: isActive ? actionText : inactiveActionText,
               minHeight: 68,
               px: 0.7,
               py: 1,
               textAlign: "center",
             }}
           >
-            <Box
-              sx={{
-                alignItems: "center",
-                bgcolor: isActive
-                  ? "rgba(254, 243, 199, 0.9)"
-                  : "rgba(244, 229, 210, 0.72)",
-                borderRadius: 1,
-                display: "inline-flex",
-                height: 28,
-                justifyContent: "center",
-                width: 28,
-              }}
-            >
-              {action.icon}
-            </Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 800 }}>
-              {action.label}
-            </Typography>
-          </Stack>
+            <Stack spacing={0.7} sx={{ alignItems: "center" }}>
+              <IconBadge
+                size="sm"
+                sx={{
+                  backgroundColor: isActive
+                    ? activeIconBackground
+                    : inactiveIconBackground,
+                  borderRadius: 1,
+                  color: isActive ? actionText : secondaryText,
+                  height: 28,
+                  width: 28,
+                }}
+              >
+                {action.icon}
+              </IconBadge>
+              <Typography sx={{ fontSize: 11, fontWeight: 800 }}>
+                {action.label}
+              </Typography>
+            </Stack>
+          </SectionCard>
         );
 
         return action.href ? (
