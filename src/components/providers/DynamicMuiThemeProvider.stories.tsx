@@ -56,8 +56,9 @@ function DynamicMuiOverlayPreview({
         <Stack spacing={1.5}>
           <Typography variant="h6">{token.name}</Typography>
           <Typography color="text.secondary" variant="body2">
-            这个 story 用于确认动态 MUI theme 下的全局弹层背景仍保持基础
-            paper，不跟随用户主题 card token。
+            这个 story 用于确认 overlay 组件（Dialog / Drawer / Menu /
+            Popover）的背景已通过 styleOverrides 固定为基础 paper，并与
+            background.paper（用户主题 card）保持区分。
           </Typography>
           <Button variant="contained">主题主色按钮</Button>
         </Stack>
