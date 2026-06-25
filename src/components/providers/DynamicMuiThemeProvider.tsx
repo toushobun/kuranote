@@ -14,6 +14,7 @@ type DynamicMuiThemeProviderProps = {
 
 export function createDynamicMuiTheme(themeKey: UserThemeKey) {
   const token = userThemeTokens[themeKey];
+  const overlayPaperBackground = baseTheme.palette.background.paper;
 
   return createTheme(baseTheme, {
     palette: {
@@ -24,12 +25,43 @@ export function createDynamicMuiTheme(themeKey: UserThemeKey) {
       },
       background: {
         default: token.palette.page,
+        paper: token.palette.card,
       },
       text: {
         primary: token.palette.text,
         secondary: token.palette.textMuted,
       },
       divider: token.palette.divider,
+    },
+    components: {
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: overlayPaperBackground,
+          },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: overlayPaperBackground,
+          },
+        },
+      },
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: overlayPaperBackground,
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: overlayPaperBackground,
+          },
+        },
+      },
     },
   });
 }
