@@ -23,6 +23,7 @@ import {
   userThemeKeys,
   userThemeTokens,
 } from "theme/userThemeTokens";
+import { theme as baseTheme } from "theme/theme";
 
 type OverlayKind = "dialog" | "drawer" | "menu" | "popover";
 
@@ -60,12 +61,63 @@ function DynamicMuiOverlayPreview({
             Popover）的背景已通过 styleOverrides 固定为基础 paper，并与
             background.paper（用户主题 card）保持区分。
           </Typography>
+          <PaperStrategyPreview tokenCard={token.palette.card} />
           <Button variant="contained">主题主色按钮</Button>
         </Stack>
 
         <OverlaySurface overlay={overlay} />
       </Box>
     </ThemeProvider>
+  );
+}
+
+function PaperStrategyPreview({ tokenCard }: { tokenCard: string }) {
+  const overlayPaper = baseTheme.palette.background.paper;
+
+  return (
+    <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
+      <SurfaceSwatch
+        label="普通 Paper / Card"
+        value={tokenCard}
+        description="background.paper"
+      />
+      <SurfaceSwatch
+        label="浮层 overlay"
+        value={overlayPaper}
+        description="base paper"
+      />
+    </Stack>
+  );
+}
+
+function SurfaceSwatch({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <Stack
+      spacing={0.5}
+      sx={{
+        bgcolor: value,
+        border: 1,
+        borderColor: "divider",
+        borderRadius: 2,
+        minWidth: 160,
+        p: 1.25,
+      }}
+    >
+      <Typography sx={{ fontWeight: "fontWeightBold" }} variant="caption">
+        {label}
+      </Typography>
+      <Typography color="text.secondary" variant="caption">
+        {description} / {value}
+      </Typography>
+    </Stack>
   );
 }
 

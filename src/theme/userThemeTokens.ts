@@ -85,7 +85,7 @@ type BaseKuraThemeToken = {
   name: string;
   palette: Omit<
     KuraThemePalette,
-    "cardElevated" | "divider" | "accentSoft" | "shadow"
+    "card" | "cardElevated" | "divider" | "accentSoft" | "shadow"
   >;
 };
 
@@ -117,7 +117,6 @@ const baseThemeTokens = {
       pageGradientTo: "#FDF8F0",
       surface: "#FFFDF8",
       surfaceAlt: "#F7EFE5",
-      card: "#FFFDF8",
       border: "rgba(200, 185, 168, 0.45)",
       text: "#3D2E22",
       textMuted: "#7A6A5E",
@@ -136,7 +135,6 @@ const baseThemeTokens = {
       pageGradientTo: "#FBF8FF",
       surface: "#FFFDFE",
       surfaceAlt: "#F1ECFA",
-      card: "#FFFDFE",
       border: "rgba(185, 171, 210, 0.42)",
       text: "#362C3F",
       textMuted: "#756981",
@@ -155,7 +153,6 @@ const baseThemeTokens = {
       pageGradientTo: "#F6FCF9",
       surface: "#FFFDF8",
       surfaceAlt: "#E4F3EC",
-      card: "#FFFDF8",
       border: "rgba(165, 195, 181, 0.42)",
       text: "#263A32",
       textMuted: "#637A70",
@@ -174,7 +171,6 @@ const baseThemeTokens = {
       pageGradientTo: "#FFF8FA",
       surface: "#FFFDFE",
       surfaceAlt: "#FCECF2",
-      card: "#FFFDFE",
       border: "rgba(214, 174, 187, 0.42)",
       text: "#402D35",
       textMuted: "#806A72",
@@ -193,7 +189,6 @@ const baseThemeTokens = {
       pageGradientTo: "#F6FAFE",
       surface: "#FFFDF8",
       surfaceAlt: "#EAF2FA",
-      card: "#FFFDF8",
       border: "rgba(164, 187, 210, 0.42)",
       text: "#263544",
       textMuted: "#627384",
@@ -212,7 +207,6 @@ const baseThemeTokens = {
       pageGradientTo: "#FFF8F5",
       surface: "#FFFDF8",
       surfaceAlt: "#FCE8E2",
-      card: "#FFFDF8",
       border: "rgba(218, 174, 160, 0.42)",
       text: "#402A24",
       textMuted: "#80665F",
@@ -241,9 +235,11 @@ function createKuraThemeToken(
   baseToken: BaseKuraThemeToken,
 ): KuraThemeToken {
   const { palette } = baseToken;
+  const card = palette.surface;
   const fullPalette: KuraThemePalette = {
     ...palette,
-    cardElevated: palette.card,
+    card,
+    cardElevated: card,
     divider: palette.border,
     accentSoft: palette.accentPale,
     shadow: createAlphaColor(palette.text, 0.08),
@@ -261,11 +257,11 @@ function createKuraThemeToken(
       buttonSecondaryBg: palette.accentPale,
       buttonSecondaryText: palette.accentDeep,
       segmentBg: palette.surfaceAlt,
-      segmentSelectedBg: palette.card,
+      segmentSelectedBg: fullPalette.card,
       segmentSelectedText: palette.accent,
       iconBadgeBg: palette.accentPale,
       iconBadgeText: palette.accentDeep,
-      receiptBg: palette.card,
+      receiptBg: fullPalette.card,
       receiptTearBg: palette.page,
     },
     illustration: {

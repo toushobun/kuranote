@@ -77,6 +77,7 @@ describe("userThemeTokens", () => {
     userThemeKeys.forEach((themeKey) => {
       const token = userThemeTokens[themeKey];
 
+      expect(token.palette.card).toBe(token.palette.surface);
       expect(token.palette.cardElevated).toBe(token.palette.card);
       expect(token.palette.divider).toBe(token.palette.border);
       expect(token.palette.accentSoft).toBe(token.palette.accentPale);

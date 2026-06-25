@@ -25,6 +25,7 @@ export function createDynamicMuiTheme(themeKey: UserThemeKey) {
       },
       background: {
         default: token.palette.page,
+        // 普通 MUI Paper / Card 跟随用户主题 card；浮层组件在下方单独固定为 base paper。
         paper: token.palette.card,
       },
       text: {

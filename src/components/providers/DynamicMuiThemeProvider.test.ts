@@ -16,7 +16,9 @@ describe("createDynamicMuiTheme", () => {
       const token = userThemeTokens[themeKey];
       const dynamicTheme = createDynamicMuiTheme(themeKey);
 
+      // card 由 surface 派生，保留两条断言用于固定 MUI paper 的语义契约。
       expect(dynamicTheme.palette.background.paper).toBe(token.palette.card);
+      expect(dynamicTheme.palette.background.paper).toBe(token.palette.surface);
     });
   });
 
