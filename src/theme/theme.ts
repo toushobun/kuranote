@@ -33,6 +33,9 @@ export const designTokens = {
     md: 16,
     lg: 24,
   },
+  opacity: {
+    disabled: 0.56,
+  },
   shadow: {
     card: "0 12px 32px rgba(61, 46, 34, 0.08)",
     dialog: "0 24px 64px rgba(61, 46, 34, 0.16)",

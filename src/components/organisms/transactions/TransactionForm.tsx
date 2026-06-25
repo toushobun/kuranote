@@ -28,6 +28,7 @@ import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { IconBadge } from "atoms/ui/IconBadge";
+import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
@@ -789,6 +790,7 @@ const selectionPrimarySx = {
 };
 
 const selectionSelectSx = {
+  ...outlinedInputTokenSx,
   "& .MuiInputLabel-root": {
     clip: "rect(0 0 0 0)",
     height: 1,
@@ -799,20 +801,9 @@ const selectionSelectSx = {
     width: 1,
   },
   "& .MuiOutlinedInput-root": {
-    bgcolor: "var(--user-theme-card-bg)",
-    borderRadius: 1.5,
+    ...outlinedInputTokenSx["& .MuiOutlinedInput-root"],
     minHeight: 54,
     pr: 4.5,
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-card-border)",
-  },
-  "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-field-card-selected-border)",
-  },
-  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-field-card-selected-border)",
-    borderWidth: 1,
   },
   "& .MuiSelect-icon": {
     color: "text.secondary",

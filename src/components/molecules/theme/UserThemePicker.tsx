@@ -63,15 +63,13 @@ export function UserThemePicker() {
               role="option"
               sx={{
                 alignItems: "center",
-                bgcolor: "rgba(255, 255, 255, 0.62)",
+                bgcolor: "var(--user-theme-card-bg)",
                 border: "2px solid",
                 borderColor: selected
                   ? "var(--user-theme-bottom-nav-active)"
                   : "transparent",
                 borderRadius: 999,
-                boxShadow: selected
-                  ? "0 3px 14px rgba(0, 0, 0, 0.18)"
-                  : "0 2px 8px rgba(0, 0, 0, 0.08)",
+                boxShadow: "var(--user-theme-card-shadow)",
                 color: selected ? "text.primary" : "text.secondary",
                 display: "inline-flex",
                 flexShrink: 0,

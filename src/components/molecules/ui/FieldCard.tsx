@@ -72,7 +72,7 @@ export function FieldCard({
             : "var(--user-theme-card-border)",
           borderRadius: `${designTokens.radius.md}px`,
           boxShadow: selected ? "var(--user-theme-card-shadow)" : "none",
-          opacity: disabled ? 0.56 : 1,
+          opacity: disabled ? designTokens.opacity.disabled : 1,
           overflow: "hidden",
         },
         ...(Array.isArray(sx) ? sx : [sx]),

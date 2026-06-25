@@ -8,6 +8,7 @@ import {
   userThemeKeys,
   userThemeTokens,
 } from "./userThemeTokens";
+import { designTokens } from "./theme";
 
 function KuraThemeTokensPreview() {
   return <ThemePaletteList />;
@@ -54,13 +55,15 @@ function ColorChip({ label, value }: { label: string; value: string }) {
       <Box
         sx={{
           bgcolor: value,
-          border: "1px solid rgba(0, 0, 0, 0.12)",
-          borderRadius: 1.5,
+          border: "1px solid var(--user-theme-card-border)",
+          borderRadius: `${designTokens.radius.sm}px`,
           height: 32,
         }}
       />
-      <Typography sx={{ fontSize: 11, fontWeight: 700 }}>{label}</Typography>
-      <Typography color="text.secondary" sx={{ fontSize: 10 }}>
+      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+        {label}
+      </Typography>
+      <Typography color="text.secondary" variant="caption">
         {value}
       </Typography>
     </Stack>
@@ -80,7 +83,7 @@ function ThemePaletteList() {
             sx={{
               background: createPageGradient(token),
               border: `1px solid ${token.palette.border}`,
-              borderRadius: 3,
+              borderRadius: `${designTokens.radius.lg}px`,
               boxShadow: `0 10px 24px ${token.palette.shadow}`,
               p: 2,
             }}

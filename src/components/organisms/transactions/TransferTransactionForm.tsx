@@ -20,6 +20,7 @@ import Typography from "@mui/material/Typography";
 import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
+import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
 import { SectionCard } from "molecules/ui/SectionCard";
 import type { TransferEditInitialValues } from "server/loaders/transactionForm";
 import type {
@@ -432,19 +433,4 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const transferFieldSx = {
-  "& .MuiOutlinedInput-root": {
-    bgcolor: "var(--user-theme-card-bg)",
-    borderRadius: 1.5,
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-card-border)",
-  },
-  "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-field-card-selected-border)",
-  },
-  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-    borderColor: "var(--user-theme-field-card-selected-border)",
-    borderWidth: 1,
-  },
-};
+const transferFieldSx = outlinedInputTokenSx;

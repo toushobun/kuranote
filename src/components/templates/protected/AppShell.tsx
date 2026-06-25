@@ -25,10 +25,11 @@ export function AppShell({ children, email }: AppShellProps) {
             position: "relative",
             "&::before": {
               background:
-                "radial-gradient(circle, rgba(255,255,255,0.38) 0%, transparent 70%)",
+                "radial-gradient(circle, var(--user-theme-card-bg) 0%, transparent 70%)",
               borderRadius: "50%",
               content: '""',
               height: 260,
+              opacity: 0.38,
               pointerEvents: "none",
               position: "fixed",
               right: -88,
@@ -38,12 +39,13 @@ export function AppShell({ children, email }: AppShellProps) {
             },
             "&::after": {
               background:
-                "radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%)",
+                "radial-gradient(circle, var(--user-theme-card-bg) 0%, transparent 70%)",
               borderRadius: "50%",
               bottom: 96,
               content: '""',
               height: 220,
               left: -90,
+              opacity: 0.25,
               pointerEvents: "none",
               position: "fixed",
               width: 220,

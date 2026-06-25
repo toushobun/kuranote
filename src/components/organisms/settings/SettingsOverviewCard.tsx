@@ -55,7 +55,7 @@ export function SettingsOverviewCard({
             variant="outlined"
             size="small"
             sx={{
-              borderColor: "rgba(0, 0, 0, 0.2)",
+              borderColor: "var(--user-theme-card-border)",
               color: "text.secondary",
               whiteSpace: "nowrap",
             }}
