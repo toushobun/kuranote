@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { userThemeKeys } from "./userThemeTokens";
 import { getUserThemeCssVariables } from "./userThemeCssVariables";
 
 describe("getUserThemeCssVariables", () => {
@@ -61,5 +62,25 @@ describe("getUserThemeCssVariables", () => {
     expect(themeVars["--user-theme-receipt-tear-bg"]).toBe("#FDF8F0");
     expect(themeVars["--user-theme-business-pending-bg"]).toBe("#FFF3D6");
     expect(themeVars["--user-theme-business-completed-text"]).toBe("#2F855A");
+  });
+
+  it("输出默认主题首页金额语义色变量", () => {
+    const themeVars = getUserThemeCssVariables("amberWarmth");
+
+    expect(themeVars["--user-theme-income-amount"]).toBe("#42A87A");
+    expect(themeVars["--user-theme-negative-amount"]).toBe("#E8547A");
+  });
+
+  it("所有主题均输出首页金额相关变量", () => {
+    userThemeKeys.forEach((themeKey) => {
+      const themeVars = getUserThemeCssVariables(themeKey);
+
+      expect(themeVars["--user-theme-income-amount"]).toEqual(
+        expect.any(String),
+      );
+      expect(themeVars["--user-theme-negative-amount"]).toEqual(
+        expect.any(String),
+      );
+    });
   });
 });
