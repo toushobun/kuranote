@@ -36,6 +36,14 @@ async function successRequestOtpAction(): Promise<RequestRegisterOtpActionState>
 const meta = {
   title: "Templates/Register/RegisterTemplate",
   component: RegisterTemplate,
+  parameters: {
+    nextjs: {
+      appDirectory: true,
+      navigation: {
+        pathname: "/register",
+      },
+    },
+  },
   decorators: [
     (Story) => {
       installTurnstileTestDouble();
