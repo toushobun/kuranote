@@ -54,7 +54,7 @@ function BottomNavigationOverlapDemo() {
       }}
     >
       <Stack spacing={2} sx={{ maxWidth: 360 }}>
-        <Typography fontWeight={800} variant="h6">
+        <Typography sx={{ fontWeight: 800 }} variant="h6">
           底部导航避让确认
         </Typography>
         <TextField
