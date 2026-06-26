@@ -1,6 +1,5 @@
 "use client";
 
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
@@ -13,7 +12,6 @@ import { bottomNavigationRouteGroups, routePaths } from "config/paths";
 import { BottomNavButton } from "molecules/navigation/BottomNavButton";
 
 const transactionEditPathPattern = /^\/transactions\/[^/]+\/edit$/;
-const quickRecordFilterId = "quick-record-remove-white";
 
 const bottomNavigationIconNames = {
   [routePaths.dashboard]: "home",
@@ -28,38 +26,13 @@ const bottomNavigationIconSx = {
 
 const quickRecordIconSx = {
   bottom: 6,
-  filter: `url(#${quickRecordFilterId})`,
+  clipPath:
+    "polygon(28% 0, 72% 0, 72% 12%, 88% 18%, 92% 42%, 86% 82%, 74% 100%, 26% 100%, 14% 82%, 8% 42%, 12% 18%, 28% 12%)",
+  mixBlendMode: "darken",
   left: "50%",
   pointerEvents: "none",
   position: "absolute",
   transform: "translateX(-50%)",
-} as const;
-
-const quickRecordPlusSx = {
-  height: 20,
-  left: "50%",
-  pointerEvents: "none",
-  position: "absolute",
-  top: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 20,
-  "&::before, &::after": {
-    bgcolor: "#fff",
-    borderRadius: 999,
-    content: "\"\"",
-    left: "50%",
-    position: "absolute",
-    top: "50%",
-    transform: "translate(-50%, -50%)",
-  },
-  "&::before": {
-    height: 3,
-    width: 20,
-  },
-  "&::after": {
-    height: 20,
-    width: 3,
-  },
 } as const;
 
 export function BottomNavigationBar() {
@@ -89,14 +62,6 @@ export function BottomNavigationBar() {
         zIndex: 1100,
       }}
     >
-      <svg aria-hidden="true" focusable="false" height="0" width="0">
-        <filter id={quickRecordFilterId}>
-          <feColorMatrix
-            type="matrix"
-            values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 -1 -1 -1 0 2.92"
-          />
-        </filter>
-      </svg>
       <Container maxWidth="md">
         <Stack
           component="nav"
@@ -163,7 +128,6 @@ export function BottomNavigationBar() {
               size={70}
               sx={quickRecordIconSx}
             />
-            <Box aria-hidden="true" component="span" sx={quickRecordPlusSx} />
           </Button>
           {bottomNavigationRouteGroups.right.map((route) => (
             <BottomNavButton
