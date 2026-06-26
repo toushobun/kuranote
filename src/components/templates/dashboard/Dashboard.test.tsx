@@ -27,7 +27,9 @@ describe("DashboardTemplate", () => {
       <DashboardTemplate data={createDashboardViewData()} />,
     );
 
-    expect(screen.getByTestId("dashboard-hero-illustration")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("dashboard-hero-illustration"),
+    ).toBeInTheDocument();
     expect(container.querySelectorAll("img")).toHaveLength(0);
   });
 

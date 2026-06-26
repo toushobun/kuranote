@@ -233,7 +233,10 @@ function DashboardWelcomeHero() {
             早呀，今天也好好记录
           </Typography>
           <WbSunnyRoundedIcon
-            sx={{ color: "warning.main", fontSize: heroLayout.greetingFontSize }}
+            sx={{
+              color: "warning.main",
+              fontSize: heroLayout.greetingFontSize,
+            }}
           />
         </Box>
         <Typography
