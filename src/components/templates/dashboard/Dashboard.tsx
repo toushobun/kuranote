@@ -184,7 +184,7 @@ function DashboardSummaryPill({
 function DashboardQuickActions() {
   const actions: QuickAction[] = [
     {
-      icon: <KuraIcon name="quickRecord" size="sm" />,
+      icon: <KuraIcon decorative name="quickRecord" size="sm" />,
       id: "quick-entry",
       label: "快速记账",
     },
