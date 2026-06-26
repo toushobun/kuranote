@@ -1,14 +1,13 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { SxProps, Theme } from "@mui/material/styles";
 
 import { statisticsMonthHref } from "config/paths";
 import { MonthNavButton } from "molecules/navigation/MonthNavButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { designTokens } from "theme/theme";
 import type { StatisticsRankItem, StatisticsViewData } from "types/statistics";
 import { formatPlainAmount } from "utils/transactions";
 
@@ -28,95 +27,91 @@ export function StatisticsTemplate({
   const totalExpense = Number(summary.expense);
 
   return (
-    <Box sx={statisticsPageSx}>
-      <PageShell>
-        <Stack spacing={2}>
-          <PageHeader
-            title="统计"
-            subtitle={
-              <Stack spacing={0.5}>
-                <span>当前账本：{ledgerName}</span>
-                <Typography color="text.secondary" variant="body2">
-                  按月份整理收支、分类和商家，让家庭账本一眼看清。
-                </Typography>
-              </Stack>
-            }
-          />
+    <Stack spacing={2} sx={pageContentSx}>
+      <PageHeader
+        title="统计"
+        subtitle={
+          <Stack spacing={0.5}>
+            <span>当前账本：{ledgerName}</span>
+            <Typography color="text.secondary" variant="body2">
+              按月份整理收支、分类和商家，让家庭账本一眼看清。
+            </Typography>
+          </Stack>
+        }
+      />
 
-          <SectionCard sx={summarySectionSx}>
-            <Stack
-              direction="row"
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
+      <SectionCard sx={summarySectionSx}>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <MonthNavButton href={statisticsMonthHref(previousMonth)}>
+            ‹ 上个月
+          </MonthNavButton>
+          <Stack spacing={0.2} sx={{ alignItems: "center", minWidth: 0 }}>
+            <Typography
+              component="p"
+              sx={{ fontWeight: 900, lineHeight: 1.2 }}
+              variant="h6"
             >
-              <MonthNavButton href={statisticsMonthHref(previousMonth)}>
-                ‹ 上个月
-              </MonthNavButton>
-              <Stack spacing={0.2} sx={{ alignItems: "center", minWidth: 0 }}>
-                <Typography
-                  component="p"
-                  sx={{ fontWeight: 900, lineHeight: 1.2 }}
-                  variant="h6"
-                >
-                  {monthLabel}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  月度收支概览
-                </Typography>
-              </Stack>
-              <MonthNavButton href={statisticsMonthHref(nextMonth)}>
-                下个月 ›
-              </MonthNavButton>
-            </Stack>
-
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1.5}
-              sx={{ mt: 2 }}
-            >
-              <SummaryCard
-                amount={formatPlainAmount(summary.income, summary.currency)}
-                label="本月收入"
-                tone="income"
-              />
-              <SummaryCard
-                amount={formatPlainAmount(summary.expense, summary.currency)}
-                label="本月支出"
-                tone="expense"
-              />
-              <SummaryCard
-                amount={formatPlainAmount(summary.balance, summary.currency)}
-                label="本月净收支"
-                tone="balance"
-              />
-            </Stack>
-          </SectionCard>
-
-          {hasRankingData ? (
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-              <RankingSection
-                currency={summary.currency}
-                emptyDescription="这个月还没有分类支出记录。"
-                items={categoryExpenseRanking}
-                title="分类支出汇总"
-                totalExpense={totalExpense}
-              />
-              <RankingSection
-                currency={summary.currency}
-                emptyDescription="这个月还没有支出记录。"
-                items={merchantExpenseRanking}
-                title="商家支出排行"
-                totalExpense={totalExpense}
-              />
-            </Stack>
-          ) : (
-            <EmptyState
-              description="这个月还没有可以统计的收入或支出。"
-              title="暂无统计数据"
-            />
-          )}
+              {monthLabel}
+            </Typography>
+            <Typography color="text.secondary" variant="caption">
+              月度收支概览
+            </Typography>
+          </Stack>
+          <MonthNavButton href={statisticsMonthHref(nextMonth)}>
+            下个月 ›
+          </MonthNavButton>
         </Stack>
-      </PageShell>
-    </Box>
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          sx={{ mt: 2 }}
+        >
+          <SummaryCard
+            amount={formatPlainAmount(summary.income, summary.currency)}
+            label="本月收入"
+            tone="income"
+          />
+          <SummaryCard
+            amount={formatPlainAmount(summary.expense, summary.currency)}
+            label="本月支出"
+            tone="expense"
+          />
+          <SummaryCard
+            amount={formatPlainAmount(summary.balance, summary.currency)}
+            label="本月净收支"
+            tone="balance"
+          />
+        </Stack>
+      </SectionCard>
+
+      {hasRankingData ? (
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <RankingSection
+            currency={summary.currency}
+            emptyDescription="这个月还没有分类支出记录。"
+            items={categoryExpenseRanking}
+            title="分类支出汇总"
+            totalExpense={totalExpense}
+          />
+          <RankingSection
+            currency={summary.currency}
+            emptyDescription="这个月还没有支出记录。"
+            items={merchantExpenseRanking}
+            title="商家支出排行"
+            totalExpense={totalExpense}
+          />
+        </Stack>
+      ) : (
+        <EmptyState
+          description="这个月还没有可以统计的收入或支出。"
+          title="暂无统计数据"
+        />
+      )}
+    </Stack>
   );
 }
 
@@ -270,10 +265,15 @@ function calculatePercentage(amount: string, totalExpense: number) {
   return Math.min(100, Math.round((value / totalExpense) * 100));
 }
 
-const statisticsPageSx: SxProps<Theme> = {
-  bgcolor: "background.default",
-  color: "text.primary",
-  minHeight: "100dvh",
+const pageContentSx = {
+  px: {
+    xs: designTokens.spacing.page.mobile,
+    sm: designTokens.spacing.page.desktop,
+  },
+  py: {
+    xs: designTokens.spacing.page.mobile,
+    sm: designTokens.spacing.page.desktop,
+  },
 };
 
 const summarySectionSx = {

@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 
 import { IconBadge } from "atoms/ui/IconBadge";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
 import { designTokens } from "theme/theme";
@@ -30,10 +31,10 @@ const inactiveIconBackground = "var(--user-theme-segment-bg)";
 
 const heroLayout = {
   backgroundHeight: { xs: 238, sm: 270 },
-  containerBorderRadius: { xs: 2.5, sm: 3 },
+  containerBorderRadius: { xs: 0, sm: 3 },
   containerPadding: { xs: 1, sm: 1.2 },
   greetingFontSize: { xs: 15, sm: 17 },
-  greetingPaddingLeft: { xs: 1, sm: 1.2 },
+  greetingPaddingLeft: { xs: 4.4, sm: 3.6 },
   greetingSpacing: 1.4,
   overlayOpacity: 0.5,
   overlayWidth: "55%",
@@ -58,36 +59,22 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
     data;
 
   return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        boxShadow: (theme) =>
-          `0 0 0 100vmax ${theme.palette.background.default}`,
-        clipPath: "inset(0 -100vmax)",
-        color: "text.primary",
-        minHeight: "100dvh",
-        mx: { xs: -2, sm: 0 },
-        px: { xs: 2, sm: 3 },
-        py: { xs: 2.5, sm: 3 },
-      }}
-    >
-      <DashboardContentFrame>
-        <DashboardHeroPanel
-          balance={monthSummary.balance}
-          expense={monthSummary.expense}
-          income={monthSummary.income}
-        />
+    <DashboardContentFrame>
+      <DashboardHeroPanel
+        balance={monthSummary.balance}
+        expense={monthSummary.expense}
+        income={monthSummary.income}
+      />
 
-        <DashboardMonthSummaryCard
-          accounts={accountSummaries}
-          monthLabel={monthLabel}
-        />
+      <DashboardMonthSummaryCard
+        accounts={accountSummaries}
+        monthLabel={monthLabel}
+      />
 
-        <DashboardQuickActions />
+      <DashboardQuickActions />
 
-        <DashboardRecentTransactions transactions={recentTransactions} />
-      </DashboardContentFrame>
-    </Box>
+      <DashboardRecentTransactions transactions={recentTransactions} />
+    </DashboardContentFrame>
   );
 }
 
@@ -95,13 +82,22 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
   return (
     <SectionCard
       component="section"
+      data-testid="dashboard-fullscreen-frame"
       sx={{
         background: "var(--user-theme-page-bg)",
         borderRadius: heroLayout.containerBorderRadius,
+        boxShadow: { xs: "none", sm: "var(--user-theme-card-shadow)" },
+        mb: bottomNavigationLayout.shellPaddingBottomOffset,
+        minHeight: "100dvh",
+        mx: { xs: -2, sm: "calc(50% - 50vw)" },
+        // AppShell Container 的 py: 4，此处用负 margin 抵消使首页内容从顶部开始。
+        mt: -4,
         overflow: "hidden",
         px: heroLayout.containerPadding,
-        py: heroLayout.containerPadding,
+        pb: bottomNavigationLayout.dashboardContentPaddingBottom,
+        pt: heroLayout.containerPadding,
         position: "relative",
+        width: { xs: "calc(100% + 32px)", sm: "100vw" },
       }}
     >
       <DashboardHeroBackground />
@@ -141,14 +137,14 @@ function DashboardHeroBackground() {
       sx={{
         height: heroLayout.backgroundHeight,
         left: 0,
-        maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
+        maskImage: "linear-gradient(to bottom, black 68%, transparent 100%)",
         overflow: "hidden",
         pointerEvents: "none",
         position: "absolute",
         right: 0,
         top: 0,
         WebkitMaskImage:
-          "linear-gradient(to bottom, black 55%, transparent 100%)",
+          "linear-gradient(to bottom, black 68%, transparent 100%)",
         zIndex: 0,
       }}
     >
@@ -156,9 +152,9 @@ function DashboardHeroBackground() {
         data-testid="dashboard-hero-illustration"
         sx={{
           backgroundImage: "var(--user-theme-dashboard-hero-image)",
-          backgroundPosition: "center center",
+          backgroundPosition: { xs: "center top", sm: "center center" },
           backgroundRepeat: "no-repeat",
-          backgroundSize: "contain",
+          backgroundSize: "cover",
           bottom: 0,
           left: 0,
           pointerEvents: "none",
@@ -270,6 +266,7 @@ function DashboardIncomeExpenseSummary({
         display: "grid",
         gap: 0.7,
         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        mt: { xs: 1.8, sm: 2 },
       }}
     >
       <DashboardSummaryPill

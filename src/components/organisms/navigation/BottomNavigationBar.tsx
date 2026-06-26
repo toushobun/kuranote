@@ -11,6 +11,8 @@ import { KuraIcon, type KuraIconName } from "atoms/icons";
 import { bottomNavigationRouteGroups, routePaths } from "config/paths";
 import { BottomNavButton } from "molecules/navigation/BottomNavButton";
 
+import { bottomNavigationLayout } from "./bottomNavigationLayout";
+
 const transactionEditPathPattern = /^\/transactions\/[^/]+\/edit$/;
 
 const bottomNavigationIconNames = {
@@ -49,10 +51,11 @@ export function BottomNavigationBar() {
         boxShadow: "0 -8px 24px var(--user-theme-fab-shadow)",
         left: 0,
         overflow: "visible",
+        pb: bottomNavigationLayout.safeAreaPaddingBottom,
         position: "fixed",
         right: 0,
         WebkitBackdropFilter: "blur(20px)",
-        zIndex: 1100,
+        zIndex: bottomNavigationLayout.navigationZIndex,
       }}
     >
       <Container maxWidth="md">
