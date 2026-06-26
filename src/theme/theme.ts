@@ -1,5 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 
+import { appZIndex } from "./zIndex";
+
 const fontFamily = [
   "system-ui",
   "-apple-system",
@@ -129,6 +131,11 @@ export const theme = createTheme({
     "0 92px 208px rgba(61, 46, 34, 0.52)",
     "0 96px 216px rgba(61, 46, 34, 0.54)",
   ],
+  zIndex: {
+    modal: appZIndex.dialog,
+    snackbar: appZIndex.snackbar,
+    tooltip: appZIndex.tooltip,
+  },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
@@ -170,6 +177,14 @@ export const theme = createTheme({
         root: {
           borderRadius: designTokens.radius.md,
           backgroundColor: designTokens.color.background.paper,
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        root: {
+          // 普通下拉菜单需低于固定底部导航；Dialog 内下拉场景后续需要单独处理层级。
+          zIndex: appZIndex.dropdown,
         },
       },
     },

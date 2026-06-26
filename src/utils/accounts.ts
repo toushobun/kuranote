@@ -15,6 +15,9 @@ import {
   type ThemeColorKey,
 } from "theme/themeColorTokens";
 
+// 服务端和客户端默认 locale 可能不同，固定 locale 以避免金额文本 hydration mismatch。
+const defaultAmountDisplayLocale = "ja-JP";
+
 export function getAccountTypeLabel(type: string) {
   return (
     accountTypeOptions.find((option) => option.value === type)?.label ?? "其他"
@@ -43,7 +46,7 @@ export function formatAmount(amount: number | string | null, currency: string) {
   }
 
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(defaultAmountDisplayLocale, {
       currency,
       style: "currency",
     })

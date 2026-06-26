@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import type { ReactNode } from "react";
 
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
 import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar";
 import { UserThemeProvider } from "theme/UserThemeProvider";
@@ -19,9 +20,9 @@ export function AppShell({ children, email }: AppShellProps) {
       <DynamicMuiThemeProvider>
         <Box
           sx={{
-            minHeight: "100vh",
+            minHeight: "100dvh",
             overflowX: "hidden",
-            pb: 10,
+            pb: bottomNavigationLayout.shellPaddingBottom,
             position: "relative",
             "&::before": {
               background:
