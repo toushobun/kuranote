@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 import Drawer from "@mui/material/Drawer";
 
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+
 import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
+
+export const amountKeypadDrawerPaperSx = {
+  borderRadius: "18px 18px 0 0",
+  bottom: bottomNavigationLayout.shellPaddingBottom,
+  p: 1.5,
+} as const;
 
 function setInputValue(input: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(
@@ -87,10 +95,7 @@ export function TransactionAmountKeypadLauncher() {
       ModalProps={{ disableRestoreFocus: true }}
       slotProps={{
         paper: {
-          sx: {
-            borderRadius: "18px 18px 0 0",
-            p: 1.5,
-          },
+          sx: amountKeypadDrawerPaperSx,
         },
       }}
     >
