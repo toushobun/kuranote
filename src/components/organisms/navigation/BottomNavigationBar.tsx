@@ -1,6 +1,5 @@
 "use client";
 
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
@@ -8,10 +7,26 @@ import Stack from "@mui/material/Stack";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { KuraIcon, type KuraIconName } from "atoms/icons";
 import { bottomNavigationRouteGroups, routePaths } from "config/paths";
 import { BottomNavButton } from "molecules/navigation/BottomNavButton";
 
 const transactionEditPathPattern = /^\/transactions\/[^/]+\/edit$/;
+
+const bottomNavigationIconNames = {
+  [routePaths.dashboard]: "home",
+  [routePaths.settings]: "settings",
+  [routePaths.statistics]: "statistics",
+  [routePaths.transactions]: "transactions",
+} as const satisfies Record<string, KuraIconName>;
+
+const quickRecordIconSx = {
+  bottom: "6px",
+  left: "50%",
+  pointerEvents: "none",
+  position: "absolute",
+  transform: "translateX(-50%)",
+} as const;
 
 export function BottomNavigationBar() {
   const pathname = usePathname();
@@ -33,6 +48,7 @@ export function BottomNavigationBar() {
         bottom: 0,
         boxShadow: "0 -8px 24px var(--user-theme-fab-shadow)",
         left: 0,
+        overflow: "visible",
         position: "fixed",
         right: 0,
         WebkitBackdropFilter: "blur(20px)",
@@ -47,12 +63,20 @@ export function BottomNavigationBar() {
             alignItems: "center",
             justifyContent: "space-around",
             minHeight: 64,
+            overflow: "visible",
             py: 0.75,
           }}
         >
           {bottomNavigationRouteGroups.left.map((route) => (
             <BottomNavButton
               href={route.href}
+              icon={
+                <KuraIcon
+                  decorative
+                  name={bottomNavigationIconNames[route.href]}
+                  size="sm"
+                />
+              }
               key={route.href}
               label={route.label}
               selected={isBottomNavSelected(route.href)}
@@ -61,58 +85,52 @@ export function BottomNavigationBar() {
           <Button
             aria-label="新增记录"
             component={Link}
+            disableFocusRipple
+            disableRipple
             href={routePaths.transactionsNew}
             variant="text"
             sx={{
+              WebkitTapHighlightColor: "transparent",
               alignItems: "center",
-              background: "var(--user-theme-fab-bg)",
               bgcolor: "transparent",
-              borderRadius: "50%",
-              boxShadow: "0 4px 16px var(--user-theme-fab-shadow)",
-              color: "var(--user-theme-fab-text)",
+              borderRadius: 0,
+              boxShadow: "none",
               display: "inline-flex",
-              height: 48,
+              height: 56,
               justifyContent: "center",
               minWidth: 0,
+              overflow: "visible",
               p: 0,
-              width: 48,
-              "&:hover": {
-                background: "var(--user-theme-fab-bg)",
+              position: "relative",
+              width: 56,
+              "& .MuiTouchRipple-root": {
+                display: "none",
+              },
+              "&:active, &:focus, &:focus-visible, &:hover": {
                 bgcolor: "transparent",
-                filter: "brightness(1.06)",
+                boxShadow: "none",
+                filter: "brightness(1.04)",
+                outline: "none",
               },
             }}
           >
-            <Box
-              aria-hidden="true"
-              component="span"
-              sx={{
-                height: 20,
-                position: "relative",
-                width: 20,
-                "&::before, &::after": {
-                  bgcolor: "currentColor",
-                  borderRadius: 999,
-                  content: '""',
-                  left: "50%",
-                  position: "absolute",
-                  top: "50%",
-                  transform: "translate(-50%, -50%)",
-                },
-                "&::before": {
-                  height: 3,
-                  width: 20,
-                },
-                "&::after": {
-                  height: 20,
-                  width: 3,
-                },
-              }}
+            <KuraIcon
+              decorative
+              name="quickRecord"
+              size={70}
+              sx={quickRecordIconSx}
             />
           </Button>
           {bottomNavigationRouteGroups.right.map((route) => (
             <BottomNavButton
               href={route.href}
+              icon={
+                <KuraIcon
+                  decorative
+                  name={bottomNavigationIconNames[route.href]}
+                  size="sm"
+                />
+              }
               key={route.href}
               label={route.label}
               selected={isBottomNavSelected(route.href)}
