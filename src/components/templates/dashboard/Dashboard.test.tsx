@@ -30,6 +30,7 @@ describe("DashboardTemplate", () => {
       'img[src="/assets/kura-icons/quick-record.png"]',
     );
 
+    expect(quickRecordIcon).toBeInTheDocument();
     expect(quickRecordIcon).toHaveAttribute("alt", "");
     expect(quickRecordIcon).toHaveAttribute("aria-hidden", "true");
   });
