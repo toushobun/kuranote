@@ -5,9 +5,17 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { createTheme } from "@mui/material/styles";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TransactionAmountKeypadLauncher } from "./TransactionAmountKeypadLauncher";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
+
+import {
+  amountKeypadDrawerPaperSx,
+  amountKeypadDrawerSx,
+  TransactionAmountKeypadLauncher,
+} from "./TransactionAmountKeypadLauncher";
 
 function renderAmountInput(currency?: string) {
   render(
@@ -71,6 +79,23 @@ describe("TransactionAmountKeypadLauncher", () => {
     fireEvent.click(screen.getByRole("button", { name: "确认" }));
 
     expect(inputValues).toEqual(["1", "12"]);
+  });
+
+  it("抽屉层级位于底部导航和 snackbar 之间并保持面板贴底", () => {
+    expect(amountKeypadDrawerSx.zIndex).toBe(appZIndex.bottomSheet);
+    expect(amountKeypadDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
+    );
+    expect(amountKeypadDrawerSx.zIndex).toBeLessThan(appZIndex.snackbar);
+    expect("bottom" in amountKeypadDrawerPaperSx).toBe(false);
+  });
+
+  it("抽屉内部会用 spacing scale 为 safe-area 预留底部内边距", () => {
+    const theme = createTheme();
+
+    expect(amountKeypadDrawerPaperSx.pb(theme)).toBe(
+      `calc(${theme.spacing(1.5)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
+    );
   });
 
   it("不会仅因 placeholder 为 0 就响应普通输入框", () => {

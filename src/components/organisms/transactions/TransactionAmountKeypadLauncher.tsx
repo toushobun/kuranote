@@ -3,8 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 
 import Drawer from "@mui/material/Drawer";
+import type { Theme } from "@mui/material/styles";
+
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
 
 import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
+
+export const amountKeypadDrawerSx = {
+  zIndex: appZIndex.bottomSheet,
+};
+
+export const amountKeypadDrawerPaperSx = {
+  borderRadius: "18px 18px 0 0",
+  px: 1.5,
+  pt: 1.5,
+  pb: (theme: Theme) =>
+    `calc(${theme.spacing(1.5)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
+};
 
 function setInputValue(input: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(
@@ -85,12 +101,10 @@ export function TransactionAmountKeypadLauncher() {
       open={!!activeInput}
       onClose={closeKeypad}
       ModalProps={{ disableRestoreFocus: true }}
+      sx={amountKeypadDrawerSx}
       slotProps={{
         paper: {
-          sx: {
-            borderRadius: "18px 18px 0 0",
-            p: 1.5,
-          },
+          sx: amountKeypadDrawerPaperSx,
         },
       }}
     >
