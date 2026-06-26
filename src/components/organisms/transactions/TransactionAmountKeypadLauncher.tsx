@@ -12,7 +12,7 @@ export const amountKeypadDrawerPaperSx = {
   borderRadius: "18px 18px 0 0",
   bottom: bottomNavigationLayout.shellPaddingBottom,
   p: 1.5,
-} as const;
+};
 
 function setInputValue(input: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(
