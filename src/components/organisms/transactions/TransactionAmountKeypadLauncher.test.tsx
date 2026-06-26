@@ -8,9 +8,11 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
 
 import {
   amountKeypadDrawerPaperSx,
+  amountKeypadDrawerSx,
   TransactionAmountKeypadLauncher,
 } from "./TransactionAmountKeypadLauncher";
 
@@ -78,10 +80,12 @@ describe("TransactionAmountKeypadLauncher", () => {
     expect(inputValues).toEqual(["1", "12"]);
   });
 
-  it("抽屉底部预留底部导航和 safe-area 空间", () => {
-    expect(amountKeypadDrawerPaperSx.bottom).toBe(
-      bottomNavigationLayout.shellPaddingBottom,
+  it("抽屉层级高于底部导航并保持面板贴底", () => {
+    expect(amountKeypadDrawerSx.zIndex).toBe(appZIndex.dialog);
+    expect(amountKeypadDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
     );
+    expect(amountKeypadDrawerPaperSx).not.toHaveProperty("bottom");
   });
 
   it("不会仅因 placeholder 为 0 就响应普通输入框", () => {
