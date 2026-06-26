@@ -20,6 +20,10 @@ const bottomNavigationIconNames = {
   [routePaths.transactions]: "transactions",
 } as const satisfies Record<string, KuraIconName>;
 
+const bottomNavigationIconSx = {
+  mixBlendMode: "multiply",
+} as const;
+
 export function BottomNavigationBar() {
   const pathname = usePathname();
   const isTransactionFormPage =
@@ -65,6 +69,7 @@ export function BottomNavigationBar() {
                   decorative
                   name={bottomNavigationIconNames[route.href]}
                   size="sm"
+                  sx={bottomNavigationIconSx}
                 />
               }
               key={route.href}
@@ -79,25 +84,22 @@ export function BottomNavigationBar() {
             variant="text"
             sx={{
               alignItems: "center",
-              background: "var(--user-theme-fab-bg)",
               bgcolor: "transparent",
-              borderRadius: "50%",
-              boxShadow: "0 4px 16px var(--user-theme-fab-shadow)",
-              color: "var(--user-theme-fab-text)",
+              borderRadius: 0,
+              boxShadow: "none",
               display: "inline-flex",
-              height: 48,
+              height: 56,
               justifyContent: "center",
               minWidth: 0,
               p: 0,
-              width: 48,
+              width: 56,
               "&:hover": {
-                background: "var(--user-theme-fab-bg)",
                 bgcolor: "transparent",
                 filter: "brightness(1.06)",
               },
             }}
           >
-            <KuraIcon decorative name="quickRecord" size={32} />
+            <KuraIcon decorative name="quickRecord" size={48} />
           </Button>
           {bottomNavigationRouteGroups.right.map((route) => (
             <BottomNavButton
@@ -107,6 +109,7 @@ export function BottomNavigationBar() {
                   decorative
                   name={bottomNavigationIconNames[route.href]}
                   size="sm"
+                  sx={bottomNavigationIconSx}
                 />
               }
               key={route.href}
