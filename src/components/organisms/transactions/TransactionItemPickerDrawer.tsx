@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { alpha, type Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -292,7 +292,7 @@ export const itemPickerDrawerPaperSx = {
 
 const categoryGroupListSx = {
   borderRight: 1,
-  borderColor: (theme: Theme) => alpha(theme.palette.text.primary, 0.12),
+  borderColor: "var(--user-theme-card-border)",
   flexShrink: 0,
   width: 112,
 };
@@ -310,7 +310,7 @@ const drawerAddButtonSx = {
 
 export const drawerFooterSx = {
   borderTop: 1,
-  borderColor: (theme: Theme) => alpha(theme.palette.text.primary, 0.12),
+  borderColor: "var(--user-theme-card-border)",
   flexShrink: 0,
   px: 2,
   pt: 1.5,
