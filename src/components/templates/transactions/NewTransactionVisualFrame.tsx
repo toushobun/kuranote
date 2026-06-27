@@ -17,6 +17,7 @@ export function NewTransactionVisualFrame({
   return (
     <Box
       data-full-bleed={fullBleed ? "true" : "false"}
+      data-testid="new-transaction-visual-frame"
       sx={[
         newTransactionVisualFrameScopeSx,
         fullBleed ? newTransactionVisualFrameFullBleedSx : null,
