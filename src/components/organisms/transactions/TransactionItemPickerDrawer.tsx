@@ -8,8 +8,11 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import type { Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
 import type { TransactionCategoryOption } from "types/transactions";
 
 import type {
@@ -64,7 +67,8 @@ export function TransactionItemPickerDrawer({
       anchor="bottom"
       onClose={onClose}
       open={open}
-      slotProps={{ paper: { sx: drawerPaperSx } }}
+      sx={itemPickerDrawerSx}
+      slotProps={{ paper: { sx: itemPickerDrawerPaperSx } }}
     >
       <Box
         sx={{
@@ -86,7 +90,16 @@ export function TransactionItemPickerDrawer({
         添加明细
       </Typography>
 
-      <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          overflowY: "auto",
+          overscrollBehaviorY: "none",
+          px: 2,
+        }}
+      >
         {itemSummaries.length > 0 ? (
           <>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
@@ -130,7 +143,10 @@ export function TransactionItemPickerDrawer({
         {filteredCategoryOptions.length === 0 ? (
           <Typography color="text.secondary">请先新增分类。</Typography>
         ) : (
-          <Stack direction="row" sx={{ minHeight: 180 }}>
+          <Stack
+            direction="row"
+            sx={{ flexGrow: 1, flexShrink: 0, minHeight: 180 }}
+          >
             <Box sx={categoryGroupListSx}>
               {categoryGroups.map((group) => {
                 const isSelected = activeCategoryGroup?.id === group.id;
@@ -262,7 +278,11 @@ const sheetItemIconButtonSx = {
   borderRadius: 1,
 };
 
-const drawerPaperSx = {
+export const itemPickerDrawerSx = {
+  zIndex: appZIndex.bottomSheet,
+};
+
+export const itemPickerDrawerPaperSx = {
   borderRadius: "16px 16px 0 0",
   display: "flex",
   flexDirection: "column",
@@ -271,8 +291,8 @@ const drawerPaperSx = {
 };
 
 const categoryGroupListSx = {
-  borderColor: "divider",
   borderRight: 1,
+  borderColor: "var(--user-theme-card-border)",
   flexShrink: 0,
   width: 112,
 };
@@ -288,12 +308,14 @@ const drawerAddButtonSx = {
   height: 40,
 };
 
-const drawerFooterSx = {
-  borderColor: "divider",
+export const drawerFooterSx = {
   borderTop: 1,
+  borderColor: "var(--user-theme-card-border)",
   flexShrink: 0,
-  p: 2,
+  px: 2,
   pt: 1.5,
+  pb: (theme: Theme) =>
+    `calc(${theme.spacing(2)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
 };
 
 const drawerCancelButtonSx = {

@@ -5,16 +5,24 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { createTheme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
 import {
   newTransactionPageErrorMessages,
   transactionFormValidationMessages,
 } from "utils/transactionMessages";
 import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 
+import {
+  drawerFooterSx,
+  itemPickerDrawerPaperSx,
+  itemPickerDrawerSx,
+} from "./TransactionItemPickerDrawer";
 import { TransactionForm } from "./TransactionForm";
 
 vi.mock("next/link", () => ({
@@ -261,6 +269,21 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("button", { name: "固定收入" }),
     ).toBeInTheDocument();
+  });
+
+  it("添加明细弹框层级高于底部导航并为 safe-area 预留底部空间", () => {
+    const theme = createTheme();
+
+    expect(itemPickerDrawerSx.zIndex).toBe(appZIndex.bottomSheet);
+    expect(itemPickerDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
+    );
+    expect(itemPickerDrawerSx.zIndex).toBeLessThan(appZIndex.snackbar);
+    // 防止未来通过 paper bottom offset 避让底部导航，导致弹框和导航之间出现空隙。
+    expect("bottom" in itemPickerDrawerPaperSx).toBe(false);
+    expect(drawerFooterSx.pb(theme)).toBe(
+      `calc(${theme.spacing(2)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
+    );
   });
 
   it("切换大分类后右侧显示对应的小分类", () => {
