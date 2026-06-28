@@ -1,7 +1,7 @@
 export const typographyFontFamilies = {
   brand: [
     '"LXGW WenKai"',
-    '"霞鹜文楷"',
+    '"\u971e\u9e5c\u6587\u6977"',
     '"Klee One"',
     '"Noto Serif SC"',
     "serif",
@@ -40,6 +40,12 @@ export const typographyStyles = {
     fontWeight: 400,
     letterSpacing: "0.01em",
     lineHeight: 1.6,
+  },
+  bodyRelaxed: {
+    fontFamily: typographyFontFamilies.body,
+    fontWeight: 400,
+    letterSpacing: "0.01em",
+    lineHeight: 1.7,
   },
   formLabel: {
     fontFamily: typographyFontFamilies.body,
