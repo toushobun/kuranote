@@ -24,6 +24,7 @@ import type {
   TransactionPickerErrors,
 } from "./TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
+import { getCurrencySymbol } from "./TransactionForm.utils";
 
 type TransactionItemPickerDrawerProps = {
   categoryGroups: CategoryPickerGroup[];
@@ -43,8 +44,6 @@ type TransactionItemPickerDrawerProps = {
   selectedCategoryGroup?: CategoryPickerGroup;
 };
 
-const specialMarkers = ["待报销", "待退款", "不计入支出"];
-
 export function TransactionItemPickerDrawer({
   categoryGroups,
   editingItemId = null,
@@ -63,6 +62,7 @@ export function TransactionItemPickerDrawer({
   selectedCategoryGroup,
 }: TransactionItemPickerDrawerProps) {
   const [searchText, setSearchText] = useState("");
+  const amountCurrencySymbol = getCurrencySymbol(selectedAccountCurrency);
   const displayedGroups = useMemo(() => {
     if (!searchText.trim()) return categoryGroups;
 
@@ -274,7 +274,9 @@ export function TransactionItemPickerDrawer({
                   },
                   input: {
                     startAdornment: (
-                      <InputAdornment position="start">¥</InputAdornment>
+                      <InputAdornment position="start">
+                        {amountCurrencySymbol}
+                      </InputAdornment>
                     ),
                   },
                 }}
@@ -282,19 +284,6 @@ export function TransactionItemPickerDrawer({
                 type="text"
                 value={pickerAmount}
               />
-            </Stack>
-
-            <SectionLabel>特殊标记</SectionLabel>
-            <Stack direction="row" sx={specialMarkerListSx}>
-              {specialMarkers.map((marker, index) => (
-                <Chip
-                  key={marker}
-                  label={marker}
-                  size="small"
-                  sx={specialMarkerChipSx(index < 2)}
-                  variant="outlined"
-                />
-              ))}
             </Stack>
           </>
         )}
@@ -481,15 +470,6 @@ const fieldLabelSx = { fontWeight: 800, minWidth: 44, pt: 1 };
 const amountFieldSx = {
   "& .MuiOutlinedInput-root": { borderRadius: 2 },
 };
-
-const specialMarkerListSx = { flexWrap: "wrap", gap: 0.75 };
-
-const specialMarkerChipSx = (accented: boolean) => ({
-  bgcolor: accented ? "action.hover" : "background.paper",
-  borderColor: accented ? "primary.main" : "divider",
-  color: accented ? "primary.main" : "text.secondary",
-  fontWeight: 700,
-});
 
 export const drawerFooterSx = {
   bgcolor: "background.paper",
