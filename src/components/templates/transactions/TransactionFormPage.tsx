@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -10,6 +12,12 @@ import {
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -17,6 +25,7 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
+import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext";
 import {
   TransactionForm,
   type TransactionFormInitialValues,
@@ -264,17 +273,35 @@ function NewTransactionFormView({
   );
 }
 
-function TransactionPageTopBar({ title }: { title: string }) {
+function TransactionPageTopBar({
+  hasUnsavedChanges = false,
+  onClose,
+  title,
+}: {
+  hasUnsavedChanges?: boolean;
+  onClose?: () => void;
+  title: string;
+}) {
   return (
     <Box sx={newTransactionTopBarSx}>
-      <IconButton
-        aria-label="关闭"
-        component={Link}
-        href={routePaths.transactions}
-        sx={newTransactionCloseButtonSx}
-      >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+      {hasUnsavedChanges && onClose ? (
+        <IconButton
+          aria-label="关闭"
+          onClick={onClose}
+          sx={newTransactionCloseButtonSx}
+        >
+          <ArrowBackRoundedIcon />
+        </IconButton>
+      ) : (
+        <IconButton
+          aria-label="关闭"
+          component={Link}
+          href={routePaths.transactions}
+          sx={newTransactionCloseButtonSx}
+        >
+          <ArrowBackRoundedIcon />
+        </IconButton>
+      )}
       <Typography component="h1" variant="h5" sx={newTransactionTitleSx}>
         {title}
       </Typography>
@@ -342,6 +369,8 @@ function EditTransactionShell({
   panels,
   setActiveType,
 }: EditTransactionShellProps) {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
   const lastNormalTypeRef = useRef<TransactionType>(
     activeType !== "transfer" ? activeType : "expense",
   );
@@ -353,14 +382,47 @@ function EditTransactionShell({
   const outerTab: "normal" | "transfer" =
     activeType === "transfer" ? "transfer" : "normal";
 
+  const markDirty = useCallback(() => setHasUnsavedChanges(true), []);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   function handleOuterTabChange(tab: "normal" | "transfer") {
+    markDirty();
     setActiveType(tab === "transfer" ? "transfer" : lastNormalTypeRef.current);
   }
 
+  function handleSaveAndExit() {
+    setIsExitDialogOpen(false);
+    document
+      .getElementById(`edit-${activeType}-transaction-form`)
+      ?.closest("form")
+      ?.requestSubmit();
+  }
+
   return (
-    <>
-      <Stack spacing={0}>
-        <TransactionPageTopBar title="编辑记账" />
+    <EditTransactionDirtyProvider onDirty={markDirty}>
+      <Stack
+        onChangeCapture={markDirty}
+        onSubmit={(event) => {
+          if (!event.defaultPrevented) setHasUnsavedChanges(false);
+        }}
+        spacing={0}
+      >
+        <TransactionPageTopBar
+          hasUnsavedChanges={hasUnsavedChanges}
+          onClose={() => setIsExitDialogOpen(true)}
+          title="编辑记账"
+        />
         <NewTransactionTypeNavigation
           activeType={outerTab}
           onChange={handleOuterTabChange}
@@ -368,7 +430,28 @@ function EditTransactionShell({
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
       </Stack>
       <TransactionAmountKeypadLauncher />
-    </>
+      <Dialog
+        aria-labelledby="unsaved-transaction-dialog-title"
+        onClose={() => setIsExitDialogOpen(false)}
+        open={isExitDialogOpen}
+      >
+        <DialogTitle id="unsaved-transaction-dialog-title">
+          尚未保存
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>修正的内容尚未保存，是否保存？</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsExitDialogOpen(false)}>继续编辑</Button>
+          <Button component={Link} href={routePaths.transactions} color="error">
+            放弃修改
+          </Button>
+          <Button onClick={handleSaveAndExit} variant="contained">
+            保存
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </EditTransactionDirtyProvider>
   );
 }
 

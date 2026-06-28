@@ -27,8 +27,6 @@ import {
 import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
-import { IconBadge } from "atoms/ui/IconBadge";
-import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
@@ -47,6 +45,7 @@ import {
 } from "utils/transactions";
 
 import { TransactionItemPickerDrawer } from "./TransactionItemPickerDrawer";
+import { useEditTransactionDirty } from "./EditTransactionDirtyContext";
 import { TransactionItemsSection } from "./TransactionItemsSection";
 import type {
   TransactionFieldErrors,
@@ -67,6 +66,10 @@ import {
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
 import { TransactionSummarySection } from "./TransactionSummarySection";
+import {
+  TransactionSelectionValue,
+  transactionSelectionSelectSx,
+} from "./TransactionSelectionValue";
 import { TransactionTagSection } from "./TransactionTagSection";
 
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
@@ -108,6 +111,7 @@ export function TransactionForm({
   title = "新增记账",
   typeNavigation,
 }: TransactionFormProps) {
+  const markEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
   const merchantFieldRef = useRef<HTMLDivElement>(null);
   const accountFieldRef = useRef<HTMLDivElement>(null);
@@ -252,6 +256,7 @@ export function TransactionForm({
       : "未填写金额";
 
   function addItem(categoryId: string, amount: string) {
+    markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const itemId = nextItemIdRef.current;
     nextItemIdRef.current += 1;
@@ -271,6 +276,7 @@ export function TransactionForm({
     itemId: number,
     values: Partial<Omit<TransactionFormItem, "id">>,
   ) {
+    markEditDirty?.();
     setItemsByType((current) => ({
       expense: current.expense.map((item) =>
         item.id === itemId ? { ...item, ...values } : item,
@@ -282,6 +288,7 @@ export function TransactionForm({
   }
 
   function replaceItem(itemId: number, categoryId: string, amount: string) {
+    markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
 
     setItemsByType((current) => {
@@ -304,6 +311,7 @@ export function TransactionForm({
   }
 
   function removeItem(itemId: number) {
+    markEditDirty?.();
     setItemsByType((current) => ({
       expense: current.expense.filter((item) => item.id !== itemId),
       income: current.income.filter((item) => item.id !== itemId),
@@ -331,6 +339,8 @@ export function TransactionForm({
       return;
     }
 
+    markEditDirty?.();
+
     setSelectedTagNames((currentTagNames) => [
       ...currentTagNames,
       normalizedTagName,
@@ -342,6 +352,7 @@ export function TransactionForm({
   }
 
   function removeTag(tagName: string) {
+    markEditDirty?.();
     setSelectedTagNames((currentTagNames) =>
       currentTagNames.filter(
         (currentTagName) =>
@@ -390,7 +401,6 @@ export function TransactionForm({
   function handlePickerGroupSelect(groupId: string) {
     setSelectedCategoryGroupId(groupId);
     setPickerCategoryId("");
-    setPickerAmount("");
     setPickerErrors({});
   }
 
@@ -530,6 +540,7 @@ export function TransactionForm({
             label="商家"
             name="merchantId"
             onChange={(event) => {
+              markEditDirty?.();
               setSelectedMerchantId(event.target.value);
               if (fieldErrors.merchant) {
                 setFieldErrors((prev) => ({ ...prev, merchant: undefined }));
@@ -541,19 +552,16 @@ export function TransactionForm({
                 displayEmpty: true,
                 IconComponent: KeyboardArrowRightRoundedIcon,
                 renderValue: () => (
-                  <SelectionValue
-                    icon={
-                      <SelectionIcon tone="orange">
-                        <StorefrontRoundedIcon fontSize="small" />
-                      </SelectionIcon>
-                    }
+                  <TransactionSelectionValue
+                    icon={<StorefrontRoundedIcon fontSize="small" />}
                     text={selectedMerchant?.name ?? "选择商家"}
+                    tone="merchant"
                   />
                 ),
               },
             }}
             value={selectedMerchantId}
-            sx={selectionSelectSx}
+            sx={transactionSelectionSelectSx}
           >
             <MenuItem disabled value="">
               请选择商家
@@ -592,6 +600,7 @@ export function TransactionForm({
             label="账户"
             name="accountId"
             onChange={(event) => {
+              markEditDirty?.();
               setSelectedAccountId(event.target.value);
               if (fieldErrors.account) {
                 setFieldErrors((prev) => ({ ...prev, account: undefined }));
@@ -603,23 +612,20 @@ export function TransactionForm({
                 displayEmpty: true,
                 IconComponent: KeyboardArrowRightRoundedIcon,
                 renderValue: () => (
-                  <SelectionValue
-                    icon={
-                      <SelectionIcon tone="blue">
-                        <AccountBalanceWalletRoundedIcon fontSize="small" />
-                      </SelectionIcon>
-                    }
+                  <TransactionSelectionValue
+                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
                     text={
                       selectedAccount
                         ? `${selectedAccount.name}（${selectedAccount.currency}）`
                         : "选择账户"
                     }
+                    tone="account"
                   />
                 ),
               },
             }}
             value={selectedAccountId}
-            sx={selectionSelectSx}
+            sx={transactionSelectionSelectSx}
           >
             <MenuItem disabled value="">
               请选择账户
@@ -670,6 +676,7 @@ export function TransactionForm({
             hiddenLabel
             multiline
             name="note"
+            onChange={() => markEditDirty?.()}
             placeholder="记录这次生活的小片段…"
             rows={1}
             size="small"
@@ -679,8 +686,14 @@ export function TransactionForm({
 
         <TransactionDateTimePicker
           date={transactionDate}
-          onDateChange={setTransactionDate}
-          onTimeChange={setTransactionTime}
+          onDateChange={(date) => {
+            markEditDirty?.();
+            setTransactionDate(date);
+          }}
+          onTimeChange={(time) => {
+            markEditDirty?.();
+            setTransactionTime(time);
+          }}
           time={transactionTime}
         />
 
@@ -731,34 +744,6 @@ function SectionTitle({ children }: { children: ReactNode }) {
     <Typography variant="subtitle1" sx={sectionTitleSx}>
       {children}
     </Typography>
-  );
-}
-
-function SelectionValue({ icon, text }: { icon: ReactNode; text: string }) {
-  return (
-    <Stack direction="row" spacing={1.25} sx={selectionValueSx}>
-      {icon}
-      <Typography noWrap sx={selectionPrimarySx}>
-        {text}
-      </Typography>
-    </Stack>
-  );
-}
-
-function SelectionIcon({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: "blue" | "orange";
-}) {
-  return (
-    <IconBadge
-      size="sm"
-      sx={tone === "orange" ? merchantSelectionIconSx : accountSelectionIconSx}
-    >
-      {children}
-    </IconBadge>
   );
 }
 
@@ -832,58 +817,3 @@ function hasTagName(tagNames: string[], tagName: string) {
 const selectionFieldGroupSx = transactionFieldGroupSx;
 
 const sectionTitleSx = transactionSectionTitleSx;
-
-const selectionValueSx = {
-  alignItems: "center",
-  minWidth: 0,
-};
-
-const selectionPrimarySx = {
-  color: "text.primary",
-  fontSize: "1rem",
-  fontWeight: 900,
-  minWidth: 0,
-};
-
-const selectionSelectSx = {
-  ...outlinedInputTokenSx,
-  "& .MuiInputLabel-root": {
-    clip: "rect(0 0 0 0)",
-    height: 1,
-    m: -1,
-    overflow: "hidden",
-    p: 0,
-    position: "absolute",
-    width: 1,
-  },
-  "& .MuiOutlinedInput-root": {
-    ...outlinedInputTokenSx["& .MuiOutlinedInput-root"],
-    borderRadius: 1.25,
-    minHeight: 50,
-    pr: 4.5,
-  },
-  "& .MuiSelect-icon": {
-    color: "text.secondary",
-    fontSize: "1.8rem",
-    right: 10,
-  },
-  "& .MuiSelect-select": {
-    alignItems: "center",
-    display: "flex",
-    minHeight: "50px !important",
-    py: 0,
-  },
-  "& legend": {
-    display: "none",
-  },
-};
-
-const merchantSelectionIconSx = {
-  bgcolor: "var(--user-theme-badge-bg)",
-  color: "var(--user-theme-action-text)",
-};
-
-const accountSelectionIconSx = {
-  bgcolor: "var(--user-theme-transfer-bg)",
-  color: "var(--user-theme-tx-accent)",
-};

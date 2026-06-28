@@ -8,10 +8,13 @@ import {
   type ReactNode,
 } from "react";
 
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -42,6 +45,11 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "./TransactionForm.styles";
+import { useEditTransactionDirty } from "./EditTransactionDirtyContext";
+import {
+  TransactionSelectionValue,
+  transactionSelectionSelectSx,
+} from "./TransactionSelectionValue";
 
 const maxNoteLength = 2000;
 
@@ -80,6 +88,7 @@ export function TransferTransactionForm({
   title = "新增记账",
   typeNavigation,
 }: TransferTransactionFormProps) {
+  const markEditDirty = useEditTransactionDirty();
   const [selectedAccountId, setSelectedAccountId] = useState(
     initialValues?.accountId ?? "",
   );
@@ -248,13 +257,32 @@ export function TransferTransactionForm({
             label="转出账户"
             name="accountId"
             onChange={(e) => {
+              markEditDirty?.();
               setSelectedAccountId(e.target.value);
               if (fieldErrors.accountId) {
                 setFieldErrors((prev) => ({ ...prev, accountId: undefined }));
               }
             }}
             select
-            sx={transferSelectFieldSx}
+            slotProps={{
+              select: {
+                displayEmpty: true,
+                IconComponent: KeyboardArrowRightRoundedIcon,
+                renderValue: () => (
+                  <TransactionSelectionValue
+                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
+                    iconLabel="转出账户"
+                    text={
+                      sourceAccount
+                        ? `${sourceAccount.name}（${sourceAccount.currency}）`
+                        : "选择转出账户"
+                    }
+                    tone="outgoing"
+                  />
+                ),
+              },
+            }}
+            sx={transactionSelectionSelectSx}
             value={selectedAccountId}
           >
             <MenuItem disabled value="">
@@ -278,6 +306,7 @@ export function TransferTransactionForm({
             label="转入账户"
             name="transferTargetAccountId"
             onChange={(e) => {
+              markEditDirty?.();
               setSelectedTargetAccountId(e.target.value);
               if (fieldErrors.targetAccountId) {
                 setFieldErrors((prev) => ({
@@ -287,7 +316,25 @@ export function TransferTransactionForm({
               }
             }}
             select
-            sx={transferSelectFieldSx}
+            slotProps={{
+              select: {
+                displayEmpty: true,
+                IconComponent: KeyboardArrowRightRoundedIcon,
+                renderValue: () => (
+                  <TransactionSelectionValue
+                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
+                    iconLabel="转入账户"
+                    text={
+                      targetAccount
+                        ? `${targetAccount.name}（${targetAccount.currency}）`
+                        : "选择转入账户"
+                    }
+                    tone="incoming"
+                  />
+                ),
+              },
+            }}
+            sx={transactionSelectionSelectSx}
             value={selectedTargetAccountId}
           >
             <MenuItem disabled value="">
@@ -310,6 +357,7 @@ export function TransferTransactionForm({
             hiddenLabel
             name="transferAmount"
             onChange={(e) => {
+              markEditDirty?.();
               setTransferAmount(e.target.value);
               if (fieldErrors.transferAmount) {
                 setFieldErrors((prev) => ({
@@ -326,6 +374,11 @@ export function TransferTransactionForm({
                 "data-amount-input": "true",
                 inputMode: "decimal" as const,
               },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">￥</InputAdornment>
+                ),
+              },
             }}
             sx={transferAmountFieldSx}
             type="text"
@@ -335,8 +388,14 @@ export function TransferTransactionForm({
 
         <TransactionDateTimePicker
           date={transactionDate}
-          onDateChange={setTransactionDate}
-          onTimeChange={setTransactionTime}
+          onDateChange={(date) => {
+            markEditDirty?.();
+            setTransactionDate(date);
+          }}
+          onTimeChange={(time) => {
+            markEditDirty?.();
+            setTransactionTime(time);
+          }}
           time={transactionTime}
         />
 
@@ -353,7 +412,10 @@ export function TransferTransactionForm({
             hiddenLabel
             multiline
             name="note"
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => {
+              markEditDirty?.();
+              setNote(e.target.value);
+            }}
             placeholder="记录这次转账的用途…"
             rows={1}
             slotProps={{ htmlInput: { "aria-label": "备注（选填）" } }}
@@ -390,7 +452,7 @@ export function TransferTransactionForm({
             <Divider />
             <SummaryRow
               label="转账金额"
-              value={transferAmount || "未填写金额"}
+              value={transferAmount ? `￥ ${transferAmount}` : "未填写金额"}
               strong
             />
           </Stack>
@@ -456,24 +518,6 @@ function SummaryRow({
     </Stack>
   );
 }
-
-const transferSelectFieldSx = {
-  ...outlinedInputTokenSx,
-  "& .MuiInputLabel-root": {
-    clip: "rect(0 0 0 0)",
-    height: 1,
-    m: -1,
-    overflow: "hidden",
-    p: 0,
-    position: "absolute",
-    width: 1,
-  },
-  "& .MuiOutlinedInput-root": {
-    ...outlinedInputTokenSx["& .MuiOutlinedInput-root"],
-    minHeight: 50,
-  },
-  "& legend": { display: "none" },
-};
 
 const transferAmountFieldSx = {
   ...outlinedInputTokenSx,

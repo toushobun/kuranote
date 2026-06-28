@@ -272,6 +272,19 @@ describe("TransactionForm", () => {
       screen.getByRole("button", { name: "固定收入" }),
     ).toBeInTheDocument();
     expect(
+      within(screen.getByRole("button", { name: "食材/调料" })).getByTestId(
+        "DragIndicatorRoundedIcon",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加大分类" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "添加小分类" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(
       screen.getByRole("textbox", { name: "搜索小分类" }),
     ).toBeInTheDocument();
     expect(screen.getByText("特殊标记")).toBeInTheDocument();
@@ -292,6 +305,25 @@ describe("TransactionForm", () => {
     expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "电车" }));
     expect(screen.getByText("已选：交通出行 > 电车")).toBeInTheDocument();
+  });
+
+  it("可使用完整拼音和拼音首字母搜索小分类", () => {
+    const { container } = renderForm();
+
+    openSheet(container);
+    const searchInput = screen.getByRole("textbox", { name: "搜索小分类" });
+    fireEvent.change(searchInput, { target: { value: "canyin" } });
+    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "电车" })).toBeNull();
+
+    fireEvent.change(searchInput, { target: { value: "dc" } });
+    expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "清空搜索" }));
+    expect(searchInput).toHaveValue("");
+    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "清空搜索" })).toBeNull();
   });
 
   it("添加明细弹框层级高于底部导航并为 safe-area 预留底部空间", () => {
@@ -317,6 +349,26 @@ describe("TransactionForm", () => {
 
     expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
+    expect(
+      screen.getByText("已选：交通出行 > 请选择小分类"),
+    ).toBeInTheDocument();
+  });
+
+  it("切换大分类和小分类时保留已输入金额", () => {
+    const { container } = renderForm();
+
+    openSheet(container);
+    const amountInput = screen.getByRole("textbox", { name: "金额" });
+    fireEvent.change(amountInput, { target: { value: "286" } });
+    fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
+    fireEvent.click(screen.getByRole("button", { name: "日用品" }));
+
+    expect(amountInput).toHaveValue("286");
+
+    fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
+    fireEvent.click(screen.getByRole("button", { name: "电车" }));
+
+    expect(amountInput).toHaveValue("286");
   });
 
   it("追加明细后合计同步更新", () => {

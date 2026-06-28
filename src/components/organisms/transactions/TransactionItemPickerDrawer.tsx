@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 
 import CloseIcon from "@mui/icons-material/Close";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -10,7 +12,7 @@ import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import type { Theme } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -21,6 +23,7 @@ import type {
   CategoryPickerGroup,
   TransactionPickerErrors,
 } from "./TransactionForm.types";
+import { matchesCategorySearch } from "./TransactionCategorySearch";
 
 type TransactionItemPickerDrawerProps = {
   categoryGroups: CategoryPickerGroup[];
@@ -60,21 +63,20 @@ export function TransactionItemPickerDrawer({
   selectedCategoryGroup,
 }: TransactionItemPickerDrawerProps) {
   const [searchText, setSearchText] = useState("");
-  const normalizedSearchText = searchText.trim().toLocaleLowerCase();
   const displayedGroups = useMemo(() => {
-    if (!normalizedSearchText) return categoryGroups;
+    if (!searchText.trim()) return categoryGroups;
 
     return categoryGroups
       .map((group) => ({
         ...group,
         categories: group.categories.filter(
           (category) =>
-            group.name.toLocaleLowerCase().includes(normalizedSearchText) ||
-            category.name.toLocaleLowerCase().includes(normalizedSearchText),
+            matchesCategorySearch(group.name, searchText) ||
+            matchesCategorySearch(category.name, searchText),
         ),
       }))
       .filter((group) => group.categories.length > 0);
-  }, [categoryGroups, normalizedSearchText]);
+  }, [categoryGroups, searchText]);
   const activeCategoryGroup =
     displayedGroups.find((group) => group.id === selectedCategoryGroup?.id) ??
     displayedGroups[0];
@@ -83,7 +85,9 @@ export function TransactionItemPickerDrawer({
     .find((category) => category.id === pickerCategoryId);
   const selectedPath = selectedCategory
     ? `${selectedCategory.parentName ?? activeCategoryGroup?.name ?? ""} > ${selectedCategory.name}`
-    : "请选择分类";
+    : activeCategoryGroup
+      ? `${activeCategoryGroup.name} > 请选择小分类`
+      : "请选择分类";
   const quickCategories = categoryGroups
     .flatMap((group) =>
       group.categories.map((category) => ({ category, group })),
@@ -140,6 +144,18 @@ export function TransactionItemPickerDrawer({
           slotProps={{
             htmlInput: { "aria-label": "搜索小分类" },
             input: {
+              endAdornment: searchText ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="清空搜索"
+                    edge="end"
+                    onClick={() => setSearchText("")}
+                    size="small"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchRoundedIcon color="action" fontSize="small" />
@@ -195,10 +211,12 @@ export function TransactionItemPickerDrawer({
                         type="button"
                         sx={categoryOptionSx(isSelected)}
                       >
+                        <DragIndicatorRoundedIcon sx={categoryDragHandleSx} />
                         {group.name}
                       </Button>
                     );
                   })}
+                  <CategoryAddButton>添加大分类</CategoryAddButton>
                 </Stack>
 
                 <Stack sx={categoryColumnSx}>
@@ -209,9 +227,11 @@ export function TransactionItemPickerDrawer({
                       type="button"
                       sx={categoryOptionSx(pickerCategoryId === category.id)}
                     >
+                      <DragIndicatorRoundedIcon sx={categoryDragHandleSx} />
                       {category.name}
                     </Button>
                   ))}
+                  <CategoryAddButton>添加小分类</CategoryAddButton>
                 </Stack>
               </Stack>
             )}
@@ -227,7 +247,9 @@ export function TransactionItemPickerDrawer({
             </Typography>
 
             <Stack direction="row" spacing={1} sx={amountRowSx}>
-              <Typography sx={fieldLabelSx}>金额</Typography>
+              <Typography sx={fieldLabelSx} variant="body2">
+                金额
+              </Typography>
               <TextField
                 error={!!pickerErrors.amount}
                 fullWidth
@@ -304,6 +326,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CategoryAddButton({ children }: { children: React.ReactNode }) {
+  return (
+    <Button
+      aria-disabled="true"
+      startIcon={<AddRoundedIcon fontSize="small" />}
+      sx={categoryAddButtonSx}
+      tabIndex={-1}
+      type="button"
+    >
+      {children}
+    </Button>
+  );
+}
+
 export const itemPickerDrawerSx = { zIndex: appZIndex.bottomSheet };
 
 export const itemPickerDrawerPaperSx = {
@@ -370,19 +406,25 @@ const categoryColumnsSx = { minHeight: 184 };
 const categoryColumnSx = {
   border: 1,
   borderColor: "divider",
-  borderRadius: 2,
+  borderRadius: 0.75,
   flex: 1,
   minWidth: 0,
   overflow: "hidden",
   py: 0.25,
 };
 
-const categoryOptionSx = (selected: boolean) => ({
-  bgcolor: selected ? "action.hover" : "transparent",
+const categoryOptionSx = (selected: boolean) => (theme: Theme) => ({
+  bgcolor: selected
+    ? `var(--user-theme-field-card-selected-bg, ${alpha(theme.palette.primary.main, 0.12)})`
+    : "transparent",
   border: selected ? 1 : 0,
-  borderColor: selected ? "primary.main" : "transparent",
-  borderRadius: 1.5,
-  color: selected ? "primary.main" : "text.primary",
+  borderColor: selected
+    ? `var(--user-theme-field-card-selected-border, ${theme.palette.primary.main})`
+    : "transparent",
+  borderRadius: 0.75,
+  color: selected
+    ? `var(--user-theme-action-text, ${theme.palette.primary.main})`
+    : theme.palette.text.primary,
   fontWeight: selected ? 800 : 500,
   justifyContent: "flex-start",
   minHeight: 30,
@@ -391,6 +433,26 @@ const categoryOptionSx = (selected: boolean) => ({
   py: 0.25,
   textTransform: "none",
 });
+
+const categoryDragHandleSx = {
+  color: "text.disabled",
+  flexShrink: 0,
+  fontSize: "1.125rem",
+  mr: 0.75,
+};
+
+const categoryAddButtonSx = {
+  borderRadius: 0,
+  borderTop: 1,
+  borderColor: "divider",
+  color: "primary.main",
+  flexShrink: 0,
+  justifyContent: "flex-start",
+  minHeight: 36,
+  mt: "auto",
+  px: 1.5,
+  textTransform: "none",
+};
 
 const emptySearchSx = {
   alignItems: "center",
