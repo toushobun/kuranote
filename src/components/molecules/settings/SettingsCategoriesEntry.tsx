@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
+import { typographyStyles } from "theme/typographyTokens";
 
 import { settingsEntryButtonSx } from "./settingsEntryButtonSx";
 
@@ -19,10 +20,10 @@ export function SettingsCategoriesEntry() {
         }}
       >
         <Stack spacing={1}>
-          <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>
+          <Typography component="h2" variant="h6" sx={settingsTitleSx}>
             分类管理
           </Typography>
-          <Typography color="text.secondary">
+          <Typography color="text.secondary" sx={settingsDescriptionSx}>
             管理支出和收入分类，并为记账表单维护可选择的小分类。
           </Typography>
         </Stack>
@@ -38,3 +39,11 @@ export function SettingsCategoriesEntry() {
     </SoftCard>
   );
 }
+
+const settingsTitleSx = {
+  ...typographyStyles.cardTitle,
+};
+
+const settingsDescriptionSx = {
+  ...typographyStyles.settingEntry,
+};
