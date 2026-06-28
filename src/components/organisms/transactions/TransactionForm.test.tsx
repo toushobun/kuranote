@@ -132,19 +132,21 @@ function openSheet(container: HTMLElement) {
 }
 
 function clickSheetAddButton() {
-  const buttons = screen.getAllByRole("button", { name: "追加" });
-  const button = buttons.at(-1);
-
-  if (!button) throw new Error("明细追加按钮不存在");
-
-  fireEvent.click(button);
+  fireEvent.click(screen.getByRole("button", { name: "确定" }));
 }
 
 function openTagInput(container: HTMLElement) {
   fireEvent.click(within(container).getByRole("button", { name: "追加" }));
 }
 
-function addItemViaSheet(categoryName: string, amount: string) {
+function addItemViaSheet(
+  container: HTMLElement,
+  categoryName: string,
+  amount: string,
+) {
+  if (!screen.queryByRole("heading", { name: "添加明细" })) {
+    openSheet(container);
+  }
   fireEvent.click(screen.getByRole("button", { name: categoryName }));
   fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
     target: { value: amount },
@@ -269,6 +271,27 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("button", { name: "固定收入" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "搜索小分类" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("特殊标记")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
+  });
+
+  it("搜索小分类后同步筛选父子分类并可选中", () => {
+    const { container } = renderForm();
+
+    openSheet(container);
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
+      target: { value: "电车" },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "交通出行" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "电车" }));
+    expect(screen.getByText("已选：交通出行 > 电车")).toBeInTheDocument();
   });
 
   it("添加明细弹框层级高于底部导航并为 safe-area 预留底部空间", () => {
@@ -300,9 +323,8 @@ describe("TransactionForm", () => {
     const { container } = renderForm();
 
     openSheet(container);
-    addItemViaSheet("餐饮", "286");
-    addItemViaSheet("日用品", "45");
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    addItemViaSheet(container, "餐饮", "286");
+    addItemViaSheet(container, "日用品", "45");
 
     expect(within(container).getByText("消费明细（2）")).toBeInTheDocument();
     expect(within(container).getByText("本次合计")).toBeInTheDocument();
@@ -313,8 +335,7 @@ describe("TransactionForm", () => {
     const { container } = renderForm();
 
     openSheet(container);
-    addItemViaSheet("餐饮", "286");
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    addItemViaSheet(container, "餐饮", "286");
 
     const editCategoryButton = container.querySelector<HTMLButtonElement>(
       'button[aria-label="编辑明细 1 分类"]',
@@ -330,8 +351,7 @@ describe("TransactionForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "320" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "更新" }));
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
 
     expect(within(container).getByText("消费明细（1）")).toBeInTheDocument();
     expect(
@@ -350,8 +370,7 @@ describe("TransactionForm", () => {
     fireEvent.click(screen.getByText("日元现金（JPY）"));
     openSheet(container);
     fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
-    addItemViaSheet("工资", "68.9");
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    addItemViaSheet(container, "工资", "68.9");
 
     expect(
       container.querySelector('button[aria-label="编辑明细 1 金额"]'),
@@ -381,8 +400,7 @@ describe("TransactionForm", () => {
     fireEvent.mouseDown(getCombobox(container, "账户"));
     fireEvent.click(screen.getByText("日元现金（JPY）"));
     openSheet(container);
-    addItemViaSheet("餐饮", "1200");
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    addItemViaSheet(container, "餐饮", "1200");
 
     expect(within(container).getByText("保存前汇总")).toBeInTheDocument();
     expect(within(container).getAllByText("便利店")).toHaveLength(2);

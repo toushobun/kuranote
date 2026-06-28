@@ -419,7 +419,7 @@ export function TransactionForm({
 
     if (Object.keys(errors).length > 0) {
       setPickerErrors(errors);
-      return;
+      return false;
     }
 
     setPickerErrors({});
@@ -431,6 +431,7 @@ export function TransactionForm({
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
+    return true;
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -707,7 +708,6 @@ export function TransactionForm({
       <TransactionItemPickerDrawer
         categoryGroups={categoryGroups}
         filteredCategoryOptions={allNormalCategoryOptions}
-        itemSummaries={itemSummaries}
         editingItemId={editingItemId}
         onAmountChange={handlePickerAmountChange}
         onCategoryToggle={handlePickerCategoryToggle}

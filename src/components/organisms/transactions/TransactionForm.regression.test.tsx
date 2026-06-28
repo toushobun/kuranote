@@ -80,14 +80,17 @@ function openSheet(container: HTMLElement) {
 }
 
 function clickSheetAddButton() {
-  const button = screen.getAllByRole("button", { name: "追加" }).at(-1);
-
-  if (!button) throw new Error("明细追加按钮不存在");
-
-  fireEvent.click(button);
+  fireEvent.click(screen.getByRole("button", { name: "确定" }));
 }
 
-function addItemViaSheet(categoryName: string, amount: string) {
+function addItemViaSheet(
+  container: HTMLElement,
+  categoryName: string,
+  amount: string,
+) {
+  if (!screen.queryByRole("heading", { name: "添加明细" })) {
+    openSheet(container);
+  }
   fireEvent.click(screen.getByRole("button", { name: categoryName }));
   fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
     target: { value: amount },
@@ -100,9 +103,8 @@ describe("TransactionForm regression", () => {
     const { container } = renderForm();
 
     openSheet(container);
-    addItemViaSheet("餐饮", "0.10");
-    addItemViaSheet("日用品", "0.20");
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    addItemViaSheet(container, "餐饮", "0.10");
+    addItemViaSheet(container, "日用品", "0.20");
 
     expect(within(container).getByText("合计 - 0.3")).toBeInTheDocument();
   });
@@ -125,10 +127,8 @@ describe("TransactionForm regression", () => {
     expect(
       screen.queryByText(transactionFormValidationMessages.amountInvalid),
     ).toBeNull();
-    expect(screen.getByText("已选明细")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "金额" })).toHaveProperty(
-      "value",
-      "",
+    expect(container.querySelector('input[name="itemAmount"]')).toHaveValue(
+      "0",
     );
   });
 
