@@ -47,6 +47,10 @@ import {
 } from "./TransactionForm.styles";
 import { useEditTransactionDirty } from "./EditTransactionDirtyContext";
 import {
+  formatSignedCurrencyAmount,
+  getCurrencySymbol,
+} from "./TransactionForm.utils";
+import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
 } from "./TransactionSelectionValue";
@@ -128,6 +132,7 @@ export function TransferTransactionForm({
   const targetAccount = accountOptions.find(
     (a) => a.id === selectedTargetAccountId,
   );
+  const transferCurrencySymbol = getCurrencySymbol(sourceAccount?.currency);
 
   const hasTooFewAccounts = accountOptions.length < 2;
   const isSameAccount =
@@ -376,7 +381,9 @@ export function TransferTransactionForm({
               },
               input: {
                 startAdornment: (
-                  <InputAdornment position="start">¥</InputAdornment>
+                  <InputAdornment position="start">
+                    {transferCurrencySymbol}
+                  </InputAdornment>
                 ),
               },
             }}
@@ -452,7 +459,14 @@ export function TransferTransactionForm({
             <Divider />
             <SummaryRow
               label="转账金额"
-              value={transferAmount ? `¥ ${transferAmount}` : "未填写金额"}
+              value={
+                transferAmount
+                  ? formatSignedCurrencyAmount(
+                      transferAmount,
+                      sourceAccount?.currency,
+                    )
+                  : "未填写金额"
+              }
               strong
             />
           </Stack>
