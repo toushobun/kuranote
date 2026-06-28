@@ -287,7 +287,7 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("textbox", { name: "搜索小分类" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("特殊标记")).toBeInTheDocument();
+    expect(screen.queryByText("特殊标记")).toBeNull();
     expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
   });
 
