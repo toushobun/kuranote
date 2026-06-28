@@ -1,4 +1,7 @@
+import { typographyStyles } from "theme/typographyTokens";
+
 export const settingsEntryButtonSx = {
+  ...typographyStyles.button,
   "&:not(.Mui-disabled)": {
     background: "var(--user-theme-fab-bg)",
     color: "var(--user-theme-fab-text)",

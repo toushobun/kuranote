@@ -15,7 +15,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
-import { designTokens } from "theme/theme";
+import { typographyStyles } from "theme/typographyTokens";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
 
@@ -194,15 +194,12 @@ function DashboardWelcomeHero() {
       <Typography
         component="p"
         sx={{
+          ...typographyStyles.brandTitle,
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
           backgroundImage: "var(--user-theme-title-gradient)",
           color: "transparent",
-          fontFamily: designTokens.typography.serifFontFamily,
           fontSize: heroLayout.titleFontSize,
-          fontWeight: 700,
-          letterSpacing: -0.5,
-          lineHeight: 1.1,
           textShadow: "none",
         }}
       >
@@ -219,10 +216,9 @@ function DashboardWelcomeHero() {
         <Box sx={{ alignItems: "center", display: "flex", gap: 0.5 }}>
           <Typography
             sx={{
+              ...typographyStyles.cardTitle,
               color: primaryText,
               fontSize: heroLayout.greetingFontSize,
-              fontWeight: 900,
-              lineHeight: 1.35,
               textShadow: "0 1px 8px var(--user-theme-card-bg)",
             }}
           >
@@ -237,10 +233,9 @@ function DashboardWelcomeHero() {
         </Box>
         <Typography
           sx={{
+            ...typographyStyles.body,
             color: secondaryText,
             fontSize: heroLayout.subtitleFontSize,
-            fontWeight: 600,
-            lineHeight: 1.45,
             textShadow: "0 1px 8px var(--user-theme-card-bg)",
           }}
         >
@@ -307,12 +302,18 @@ function DashboardSummaryPill({
         textAlign: "center",
       }}
     >
-      <Typography sx={{ color, fontSize: 11, fontWeight: 900, mb: 0.3 }}>
+      <Typography
+        sx={{ ...typographyStyles.chipBadge, color, fontSize: 11, mb: 0.3 }}
+      >
         {label}
       </Typography>
       <Typography
         noWrap
-        sx={{ color, fontSize: { xs: 14, sm: 18 }, fontWeight: 900 }}
+        sx={{
+          ...typographyStyles.amount,
+          color,
+          fontSize: { xs: 14, sm: 18 },
+        }}
       >
         {/* TODO: 暂时以日元固定显示，后续需根据 currency 字段使用 formatAmount */}
         ¥ {formatNumber(value)}
@@ -381,7 +382,7 @@ function DashboardQuickActions() {
               >
                 {action.icon}
               </IconBadge>
-              <Typography sx={{ fontSize: 11, fontWeight: 800 }}>
+              <Typography sx={{ ...typographyStyles.button, fontSize: 11 }}>
                 {action.label}
               </Typography>
             </Stack>
