@@ -413,11 +413,14 @@ function EditTransactionShell({
   }
 
   function handleSaveAndExit() {
-    setIsExitDialogOpen(false);
-    document
+    const form = document
       .getElementById(`edit-${activeType}-transaction-form`)
-      ?.closest("form")
-      ?.requestSubmit();
+      ?.closest("form");
+
+    if (!(form instanceof HTMLFormElement)) return;
+
+    setIsExitDialogOpen(false);
+    form.requestSubmit();
   }
 
   return (
