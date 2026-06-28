@@ -169,6 +169,20 @@ export const theme = createTheme({
         },
       },
     },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          ...typographyStyles.chipBadge,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          ...typographyStyles.formLabel,
+        },
+      },
+    },
     MuiTextField: {
       defaultProps: {
         variant: "outlined",
