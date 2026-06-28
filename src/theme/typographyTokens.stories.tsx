@@ -60,6 +60,11 @@ const typographyItems = [
     style: typographyStyles.body,
   },
   {
+    label: "正文说明 / 宽松行高",
+    sample: "每一张小票，都是生活的线索。",
+    style: typographyStyles.bodyRelaxed,
+  },
+  {
     label: "表单 Label",
     sample: "请选择分类",
     style: typographyStyles.formLabel,
