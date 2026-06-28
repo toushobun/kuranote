@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 
-import { typographyFontFamilies } from "theme/typographyTokens";
-
 type KuraIconImageOptions = {
   borderRadius: number;
   fontSize: number;
@@ -40,7 +38,7 @@ export function createKuraIconImageResponse({
           borderRadius,
           color: pwaIconColors.text,
           display: "flex",
-          fontFamily: typographyFontFamilies.brand,
+          fontFamily: "serif",
           fontSize,
           fontWeight: 800,
           height: markSize,
