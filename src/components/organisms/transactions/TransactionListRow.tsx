@@ -7,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { TransactionDateTime } from "atoms/transactions/TransactionDateTime";
+import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 import type { TransactionListItem } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
@@ -85,7 +86,11 @@ export function TransactionListRow({
           spacing={1}
           sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
         >
-          <Typography component="p" sx={{ fontWeight: 700 }} variant="h6">
+          <Typography
+            component="p"
+            sx={{ ...typographyStyles.amount }}
+            variant="h6"
+          >
             {formatTransactionRowAmount(
               item.type,
               item.amount,

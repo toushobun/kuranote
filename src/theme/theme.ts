@@ -1,14 +1,9 @@
 import { createTheme } from "@mui/material/styles";
 
+import { typographyFontFamilies, typographyStyles } from "./typographyTokens";
 import { appZIndex } from "./zIndex";
 
-const fontFamily = [
-  "system-ui",
-  "-apple-system",
-  "BlinkMacSystemFont",
-  '"Segoe UI"',
-  "sans-serif",
-].join(",");
+const fontFamily = typographyFontFamilies.body;
 
 export const designTokens = {
   color: {
@@ -39,7 +34,9 @@ export const designTokens = {
     disabled: 0.56,
   },
   typography: {
-    serifFontFamily: "'Georgia', 'Noto Serif SC', serif",
+    fontFamily: typographyFontFamilies,
+    serifFontFamily: typographyFontFamilies.brand,
+    style: typographyStyles,
   },
   shadow: {
     card: "0 12px 32px rgba(61, 46, 34, 0.08)",
@@ -90,14 +87,17 @@ export const theme = createTheme({
       letterSpacing: "-0.02em",
     },
     body1: {
-      lineHeight: 1.7,
+      ...typographyStyles.bodyRelaxed,
     },
     body2: {
-      lineHeight: 1.6,
+      ...typographyStyles.body,
     },
     button: {
-      fontWeight: 700,
-      textTransform: "none",
+      ...typographyStyles.button,
+    },
+    caption: {
+      ...typographyStyles.chipBadge,
+      fontSize: "0.75rem",
     },
   },
   spacing: 8,
@@ -167,6 +167,20 @@ export const theme = createTheme({
         },
       },
     },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          ...typographyStyles.chipBadge,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          ...typographyStyles.formLabel,
+        },
+      },
+    },
     MuiTextField: {
       defaultProps: {
         variant: "outlined",
@@ -183,7 +197,6 @@ export const theme = createTheme({
     MuiPopover: {
       styleOverrides: {
         root: {
-          // 普通下拉菜单需低于固定底部导航；Dialog 内下拉场景后续需要单独处理层级。
           zIndex: appZIndex.dropdown,
         },
       },
