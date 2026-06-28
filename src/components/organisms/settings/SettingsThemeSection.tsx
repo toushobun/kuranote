@@ -23,7 +23,7 @@ const settingsTitleSx = {
 };
 
 const settingsDescriptionSx = {
-  ...typographyStyles.settingEntry,
+  ...typographyStyles.listText,
   mb: 3,
   mt: 1,
 };
