@@ -3,10 +3,7 @@ import type {
   TransactionRecordStorageType,
 } from "types/transactions";
 
-export type TransactionItemStatType =
-  | TransactionCategoryType
-  | "expense_offset"
-  | "transfer";
+export type TransactionItemStatType = TransactionCategoryType | "transfer";
 
 export type TransactionRecordDbRow = {
   id: string;
