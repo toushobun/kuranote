@@ -76,9 +76,11 @@ export function buildStatisticsViewData({
 
     if (!record || record.type === "transfer") continue;
 
-    const category = item.category_id
-      ? categoryById.get(item.category_id)
-      : null;
+    const categoryId = item.category_id;
+
+    if (!categoryId) continue;
+
+    const category = categoryById.get(categoryId);
 
     if (!category) continue;
 
@@ -100,7 +102,7 @@ export function buildStatisticsViewData({
 
     addRankingAmount(
       categoryRankingById,
-      item.category_id,
+      categoryId,
       getCategoryDisplayName(category, categoryById),
       item.amount,
       record.id,
