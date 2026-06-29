@@ -15,7 +15,6 @@ import type {
 } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
 import {
-  formatNumber,
   formatTransactionRowAmount,
   formatTransactionTime,
 } from "utils/transactions";
@@ -239,14 +238,6 @@ function formatRowAmount(item: TransactionRowItem) {
     amountValue === 0
   ) {
     return "0";
-  }
-
-  if (
-    item.type !== "transfer" &&
-    Number.isFinite(amountValue) &&
-    amountValue < 0
-  ) {
-    return `-${formatNumber(String(Math.abs(amountValue)))}`;
   }
 
   return formatTransactionRowAmount(item.type, item.amount);
