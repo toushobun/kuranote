@@ -317,21 +317,28 @@ function resolveNormalTransactionDisplayType(
   const categoryTypeById = new Map(
     categoryOptions.map((category) => [category.id, category.type] as const),
   );
-  const netAmount = items.reduce((sum, item) => {
+  let expenseTotal = 0;
+  let incomeTotal = 0;
+
+  for (const item of items) {
     const amount = Number(item.amount);
 
-    if (!Number.isFinite(amount)) return sum;
+    if (!Number.isFinite(amount)) continue;
 
     const categoryType = item.category_id
       ? categoryTypeById.get(item.category_id)
       : undefined;
 
-    if (categoryType === "income") return sum + amount;
-    if (categoryType === "expense") return sum - amount;
-    return sum;
-  }, 0);
+    if (categoryType === "income") {
+      incomeTotal += amount;
+    } else if (categoryType === "expense") {
+      expenseTotal += amount;
+    }
+  }
 
-  return netAmount > 0 ? "income" : "expense";
+  if (incomeTotal > expenseTotal) return "income";
+  if (expenseTotal > incomeTotal) return "expense";
+  return "income";
 }
 
 function formatEditableAmount(amount: string) {
