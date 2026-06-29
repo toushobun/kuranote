@@ -355,7 +355,7 @@ begin
         raise exception 'account_invalid' using errcode = '22023';
     end if;
 
-    if p_merchant_id is null or not exists (
+    if p_merchant_id is not null and not exists (
         select 1 from public.merchant m
         where m.id = p_merchant_id
           and m.ledger_id = p_ledger_id
@@ -799,6 +799,10 @@ begin
               and c.is_archived = false
               and c.parent_id is not null
               and c.type in ('expense', 'income');
+
+            if v_item_category_type is null then
+                raise exception 'category_invalid' using errcode = '22023';
+            end if;
 
             v_balance_delta := case
                 when v_item_category_type = 'expense' then -v_item_amount
