@@ -51,8 +51,6 @@ type RankingAccumulator = {
   transactionIds: Set<string>;
 };
 
-const noCategoryId = "__no_category__";
-
 export function buildStatisticsViewData({
   categories,
   currency,
@@ -102,8 +100,8 @@ export function buildStatisticsViewData({
 
     addRankingAmount(
       categoryRankingById,
-      item.category_id ?? noCategoryId,
-      category ? getCategoryDisplayName(category, categoryById) : "未指定分类",
+      item.category_id,
+      getCategoryDisplayName(category, categoryById),
       item.amount,
       record.id,
     );
