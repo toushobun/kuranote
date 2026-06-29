@@ -6,7 +6,10 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
-import type { TransactionCategoryType, TransactionListItem } from "types/transactions";
+import type {
+  TransactionCategoryType,
+  TransactionListItem,
+} from "types/transactions";
 
 export function buildTransactionListItem({
   accountById,

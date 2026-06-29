@@ -28,7 +28,9 @@ describe("普通记账 normal 类型后端规则", () => {
     expect(migration).toContain("select c.type");
     expect(migration).toContain("v_item_category_type");
     expect(migration).toContain("when v_item_category_type = 'expense'");
-    expect(migration).toContain("drop index if exists public.transaction_item_stat_type_idx");
+    expect(migration).toContain(
+      "drop index if exists public.transaction_item_stat_type_idx",
+    );
     expect(migration).toContain("alter column stat_type drop not null");
   });
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { CategorySummaryDbRow } from "server/db-types";
+
 import { buildTransactionListItem } from "./buildTransactionListItem";
 
 const baseRecord = {
@@ -29,7 +31,7 @@ const accountById = new Map([
   [accountA.id, accountA],
   [accountB.id, accountB],
 ]);
-const categoryById = new Map([
+const categoryById = new Map<string, CategorySummaryDbRow>([
   [categoryA.id, categoryA],
   [categoryB.id, categoryB],
 ]);
