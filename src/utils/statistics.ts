@@ -1,5 +1,8 @@
 import type { StatisticsRankItem, StatisticsViewData } from "types/statistics";
-import type { TransactionRecordType } from "types/transactions";
+import type {
+  TransactionCategoryType,
+  TransactionRecordStorageType,
+} from "types/transactions";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,
@@ -10,7 +13,7 @@ import {
 type StatisticsRecordInput = {
   id: string;
   merchant_id: string | null;
-  type: TransactionRecordType;
+  type: TransactionRecordStorageType;
 };
 
 type StatisticsItemInput = {
@@ -28,6 +31,7 @@ type StatisticsCategoryInput = {
   id: string;
   name: string;
   parent_id: string | null;
+  type: TransactionCategoryType;
 };
 
 type BuildStatisticsViewDataParams = {
@@ -72,11 +76,17 @@ export function buildStatisticsViewData({
   for (const item of items) {
     const record = recordById.get(item.transaction_record_id);
 
-    if (!record) continue;
+    if (!record || record.type === "transfer") continue;
 
-    addTransactionAmount(summary, record.type, item.amount);
+    const category = item.category_id
+      ? categoryById.get(item.category_id)
+      : null;
 
-    if (record.type !== "expense") continue;
+    if (!category) continue;
+
+    addTransactionAmount(summary, category.type, item.amount);
+
+    if (category.type !== "expense") continue;
 
     const merchantId = record.merchant_id;
 
@@ -90,9 +100,6 @@ export function buildStatisticsViewData({
       );
     }
 
-    const category = item.category_id
-      ? categoryById.get(item.category_id)
-      : null;
     addRankingAmount(
       categoryRankingById,
       item.category_id ?? noCategoryId,
