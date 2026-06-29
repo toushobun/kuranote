@@ -129,7 +129,11 @@ export function buildTransactionGroupSummaryPage({
 
     if (groupBy === "tag") {
       const recordTags = tagAssignmentsByRecordId.get(record.id) ?? [
-        { tagId: "untagged", tagName: "无标签", transactionRecordId: record.id },
+        {
+          tagId: "untagged",
+          tagName: "无标签",
+          transactionRecordId: record.id,
+        },
       ];
 
       for (const tag of recordTags) {
@@ -217,7 +221,9 @@ export function buildTransactionGroupSummaryPage({
       transactionCount: group.recordIds.size,
     })),
     nextOffset:
-      safeOffset + pageSize < sortedGroups.length ? safeOffset + pageSize : null,
+      safeOffset + pageSize < sortedGroups.length
+        ? safeOffset + pageSize
+        : null,
   };
 }
 
