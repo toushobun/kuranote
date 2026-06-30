@@ -1,13 +1,11 @@
 import type {
   TransactionCategoryType,
-  TransactionRecordType,
+  TransactionRecordStorageType,
 } from "types/transactions";
-
-export type TransactionItemStatType = TransactionRecordType | "expense_offset";
 
 export type TransactionRecordDbRow = {
   id: string;
-  type: TransactionRecordType;
+  type: TransactionRecordStorageType;
   transaction_at: string;
   merchant_id: string | null;
   note: string | null;
@@ -19,7 +17,6 @@ export type TransactionItemDbRow = {
   transaction_record_id: string;
   account_id: string;
   category_id: string | null;
-  stat_type?: TransactionItemStatType;
   amount: string;
   balance_delta?: string;
   note?: string | null;
@@ -45,11 +42,10 @@ export type CategorySummaryDbRow = {
   id: string;
   name: string;
   parent_id: string | null;
-};
-
-export type CategoryOptionDbRow = CategorySummaryDbRow & {
   type: TransactionCategoryType;
 };
+
+export type CategoryOptionDbRow = CategorySummaryDbRow;
 
 export type MerchantSummaryDbRow = {
   id: string;

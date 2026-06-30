@@ -4,14 +4,16 @@ export const transactionTypeOptions = [
 ] as const;
 
 export type TransactionType = (typeof transactionTypeOptions)[number]["value"];
+export type TransactionRecordStorageType = "normal" | "transfer";
 export type TransactionRecordType = TransactionType | "transfer";
-// 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的交易记录类型区分。
+// 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的展示类型区分。
 export type TransactionCategoryType = TransactionType;
 
 export type CategorySummaryItem = {
   categoryName: string;
   parentCategoryName: string | null;
   amount: string;
+  categoryType?: TransactionCategoryType;
 };
 
 export type TransactionRowItem = {
@@ -120,5 +122,14 @@ export type TransactionGroupSummaryItem = {
 export type TransactionGroupPage = {
   groupBy: TransactionGroupBy;
   groups: TransactionGroupSummaryItem[];
+  nextOffset: number | null;
+};
+
+export type TransactionTimeGroupViewData = {
+  groupBy: "month";
+  groups: TransactionGroupSummaryItem[];
+  initialDateGroupsByGroupId: Record<string, TransactionDateGroup[]>;
+  initialExpandedGroupId: string | null;
+  initialNextItemOffsetByGroupId: Record<string, number | null>;
   nextOffset: number | null;
 };

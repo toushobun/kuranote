@@ -6,7 +6,10 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
-import type { TransactionListItem } from "types/transactions";
+import type {
+  TransactionCategoryType,
+  TransactionListItem,
+} from "types/transactions";
 
 export function buildTransactionListItem({
   accountById,
@@ -47,10 +50,8 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
-  const totalAmount = recordItems.reduce(
-    (sum, item) => sum + Number(item.amount),
-    0,
-  );
+  const normalAmountSummary = getNormalAmountSummary(recordItems, categoryById);
+  const displayType = getDisplayTransactionType(normalAmountSummary);
 
   const categoryItems = recordItems.flatMap((item) => {
     if (item.category_id === null) return [];
@@ -64,6 +65,7 @@ export function buildTransactionListItem({
       {
         amount: item.amount,
         categoryName: category?.name ?? "",
+        categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
       },
     ];
@@ -72,7 +74,7 @@ export function buildTransactionListItem({
   return {
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
-    amount: String(totalAmount),
+    amount: String(Math.abs(normalAmountSummary.netAmount)),
     categoryItems,
     created_at: record.created_at,
     id: record.id,
@@ -82,7 +84,7 @@ export function buildTransactionListItem({
     recorder_name: recorder?.display_name ?? null,
     tagNames: tagNamesByRecordId?.get(record.id) ?? [],
     transaction_at: record.transaction_at,
-    type: record.type,
+    type: displayType,
   };
 }
 
@@ -143,4 +145,48 @@ function buildTransferListItem({
     transaction_at: record.transaction_at,
     type: "transfer",
   };
+}
+
+function getNormalAmountSummary(
+  items: TransactionItemDbRow[],
+  categoryById: Map<string, CategorySummaryDbRow>,
+) {
+  let expenseTotal = 0;
+  let incomeTotal = 0;
+
+  for (const item of items) {
+    const amount = Number(item.amount);
+
+    if (!Number.isFinite(amount)) continue;
+
+    const categoryType = item.category_id
+      ? categoryById.get(item.category_id)?.type
+      : undefined;
+
+    if (categoryType === "income") {
+      incomeTotal += amount;
+    } else if (categoryType === "expense") {
+      expenseTotal += amount;
+    }
+  }
+
+  return {
+    expenseTotal,
+    incomeTotal,
+    netAmount: incomeTotal - expenseTotal,
+  };
+}
+
+function getDisplayTransactionType({
+  expenseTotal,
+  incomeTotal,
+  netAmount,
+}: {
+  expenseTotal: number;
+  incomeTotal: number;
+  netAmount: number;
+}): TransactionCategoryType {
+  if (netAmount > 0) return "income";
+  if (netAmount < 0) return "expense";
+  return incomeTotal >= expenseTotal ? "income" : "expense";
 }

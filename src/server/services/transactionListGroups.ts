@@ -1,3 +1,4 @@
+import { serverFallbackTimeZone } from "config/dateTime";
 import type {
   AccountOptionDbRow,
   AppUserSummaryDbRow,
@@ -91,7 +92,7 @@ export function buildTransactionGroupSummaryPage({
         label: timeGroup.label,
         transactionAt: record.transaction_at,
       });
-      addRecordToGroup(group, record, recordItems);
+      addRecordToGroup(group, record, recordItems, categoryById);
       continue;
     }
 
@@ -107,7 +108,7 @@ export function buildTransactionGroupSummaryPage({
           : "未知商家",
         transactionAt: record.transaction_at,
       });
-      addRecordToGroup(group, record, recordItems);
+      addRecordToGroup(group, record, recordItems, categoryById);
       continue;
     }
 
@@ -123,7 +124,7 @@ export function buildTransactionGroupSummaryPage({
           : "未知成员",
         transactionAt: record.transaction_at,
       });
-      addRecordToGroup(group, record, recordItems);
+      addRecordToGroup(group, record, recordItems, categoryById);
       continue;
     }
 
@@ -145,7 +146,7 @@ export function buildTransactionGroupSummaryPage({
           label: tag.tagName,
           transactionAt: record.transaction_at,
         });
-        addRecordToGroup(group, record, recordItems);
+        addRecordToGroup(group, record, recordItems, categoryById);
       }
       continue;
     }
@@ -160,7 +161,7 @@ export function buildTransactionGroupSummaryPage({
           label: accountById.get(item.account_id)?.name ?? "未知账户",
           transactionAt: record.transaction_at,
         });
-        addItemToGroup(group, record, item);
+        addItemToGroup(group, record, item, categoryById);
         continue;
       }
 
@@ -180,7 +181,7 @@ export function buildTransactionGroupSummaryPage({
           label: parent?.name ?? "未知大分类",
           transactionAt: record.transaction_at,
         });
-        addItemToGroup(group, record, item);
+        addItemToGroup(group, record, item, categoryById);
         continue;
       }
 
@@ -197,7 +198,7 @@ export function buildTransactionGroupSummaryPage({
           label: category?.name ?? "未知小分类",
           transactionAt: record.transaction_at,
         });
-        addItemToGroup(group, record, item);
+        addItemToGroup(group, record, item, categoryById);
       }
     }
   }
@@ -293,21 +294,26 @@ function addRecordToGroup(
   group: MutableGroup,
   record: TransactionRecordDbRow,
   items: TransactionItemDbRow[],
+  categoryById: Map<string, CategorySummaryDbRow>,
 ) {
   group.recordIds.add(record.id);
 
   if (record.type === "transfer") return;
 
-  addSignedAmount(group.summary, calculateRecordNetAmount(record, items));
+  addSignedAmount(group.summary, calculateRecordNetAmount(items, categoryById));
 }
 
 function addItemToGroup(
   group: MutableGroup,
   record: TransactionRecordDbRow,
   item: TransactionItemDbRow,
+  categoryById: Map<string, CategorySummaryDbRow>,
 ) {
   group.recordIds.add(record.id);
-  addSignedAmount(group.summary, getSignedItemAmount(record, item));
+
+  if (record.type === "transfer") return;
+
+  addSignedAmount(group.summary, getSignedItemAmount(item, categoryById));
 }
 
 function createSummary(currency: string): TransactionAmountSummary {
@@ -320,29 +326,31 @@ function createSummary(currency: string): TransactionAmountSummary {
 }
 
 function calculateRecordNetAmount(
-  record: TransactionRecordDbRow,
   items: TransactionItemDbRow[],
+  categoryById: Map<string, CategorySummaryDbRow>,
 ) {
   return items.reduce(
-    (sum, item) => sum + getSignedItemAmount(record, item),
+    (sum, item) => sum + getSignedItemAmount(item, categoryById),
     0,
   );
 }
 
 function getSignedItemAmount(
-  record: TransactionRecordDbRow,
   item: TransactionItemDbRow,
+  categoryById: Map<string, CategorySummaryDbRow>,
 ) {
   const amount = Number(item.amount);
 
   if (!Number.isFinite(amount)) return 0;
 
-  const statType = item.stat_type ?? record.type;
+  const categoryType = item.category_id
+    ? categoryById.get(item.category_id)?.type
+    : undefined;
 
-  if (statType === "transfer") return 0;
-  if (statType === "income" || statType === "expense_offset") return amount;
+  if (categoryType === "income") return amount;
+  if (categoryType === "expense") return -amount;
 
-  return -amount;
+  return 0;
 }
 
 function addSignedAmount(summary: TransactionAmountSummary, amount: number) {
@@ -372,10 +380,11 @@ function getTimeGroupInfo(
   groupBy: (typeof timeGroupByValues)[number],
   transactionAt: string,
 ) {
-  const date = new Date(transactionAt);
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
+  const dateKey = getDateKeyInTimeZone(transactionAt, serverFallbackTimeZone);
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
 
   if (groupBy === "year") {
     return { key: String(year), label: `${year}年` };
@@ -392,36 +401,42 @@ function getTimeGroupInfo(
   }
 
   if (groupBy === "week") {
-    const start = getUtcWeekStart(date);
+    const weekStartKey = getWeekStartDateKey(dateKey);
+    const [wy, wm, wd] = weekStartKey.split("-").map(Number);
     return {
-      key: formatDateKey(start),
-      label: `${start.getUTCFullYear()}年${start.getUTCMonth() + 1}月${start.getUTCDate()}日周`,
+      key: weekStartKey,
+      label: `${wy}年${wm}月${wd}日周`,
     };
   }
 
   return {
-    key: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
-      2,
-      "0",
-    )}`,
+    key: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
     label: `${year}年${month}月${day}日`,
   };
 }
 
-function getUtcWeekStart(date: Date) {
-  const start = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
-  const day = start.getUTCDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  start.setUTCDate(start.getUTCDate() + mondayOffset);
+function getDateKeyInTimeZone(isoString: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(new Date(isoString));
 
-  return start;
+  const get = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-function formatDateKey(date: Date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(date.getUTCDate()).padStart(2, "0")}`;
+function getWeekStartDateKey(dateKey: string): string {
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const date = new Date(
+    Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)),
+  );
+  const day = date.getUTCDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const start = new Date(date.getTime() + mondayOffset * 86400000);
+
+  return `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}-${String(start.getUTCDate()).padStart(2, "0")}`;
 }

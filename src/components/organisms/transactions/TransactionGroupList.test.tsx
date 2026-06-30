@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { cleanup, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -11,11 +11,8 @@ import type { TransactionRowProps } from "molecules/transactions/TransactionRow"
 import { TransactionGroupList } from "./TransactionGroupList";
 
 vi.mock("molecules/transactions/TransactionRow", () => ({
-  TransactionRow: ({ item, showEdit }: TransactionRowProps): ReactNode => (
-    <div
-      data-show-edit={showEdit ? "true" : "false"}
-      data-testid={`row-${item.id}`}
-    >
+  TransactionRow: ({ item }: TransactionRowProps): ReactNode => (
+    <div data-testid={`row-${item.id}`}>
       {item.merchant_name ?? "未指定商家"}
     </div>
   ),
@@ -27,7 +24,7 @@ afterEach(() => {
 
 const defaultGroup = createTransactionDateGroup({
   date: "2026-06-05",
-  label: "06/05 周五",
+  label: "5日（周五）",
 });
 
 describe("TransactionGroupList", () => {
@@ -36,7 +33,7 @@ describe("TransactionGroupList", () => {
       <TransactionGroupList groups={[defaultGroup]} />,
     );
 
-    expect(within(container).getByText("06/05 周五")).toBeInTheDocument();
+    expect(within(container).getByText("5日（周五）")).toBeInTheDocument();
   });
 
   it("显示分组内的记账记录", () => {
@@ -49,34 +46,34 @@ describe("TransactionGroupList", () => {
     ).toBeInTheDocument();
   });
 
-  it("点击记账记录后显示编辑和删除入口", () => {
+  it("记账记录本身直接链接到编辑页且不显示编辑按钮", () => {
     const { container } = render(
-      <TransactionGroupList groups={[defaultGroup]} voidAction={vi.fn()} />,
-    );
-
-    fireEvent.click(
-      within(container).getByTestId("row-00000000-0000-4000-8000-000000009001"),
+      <TransactionGroupList groups={[defaultGroup]} />,
     );
 
     expect(
-      within(container).getByRole("link", { name: "编辑" }),
-    ).toBeInTheDocument();
+      within(container).getByRole("link", { name: "便利店" }),
+    ).toHaveAttribute(
+      "href",
+      "/transactions/00000000-0000-4000-8000-000000009001/edit",
+    );
+    expect(within(container).queryByRole("link", { name: "编辑" })).toBeNull();
     expect(
-      within(container).getByRole("button", { name: "删除" }),
-    ).toBeInTheDocument();
+      within(container).queryByRole("button", { name: "删除" }),
+    ).toBeNull();
   });
 
   it("显示多个分组", () => {
     const group2 = createTransactionDateGroup({
       date: "2026-06-01",
-      label: "06/01 周一",
+      label: "1日（周一）",
     });
     const { container } = render(
       <TransactionGroupList groups={[defaultGroup, group2]} />,
     );
 
-    expect(within(container).getByText("06/05 周五")).toBeInTheDocument();
-    expect(within(container).getByText("06/01 周一")).toBeInTheDocument();
+    expect(within(container).getByText("5日（周五）")).toBeInTheDocument();
+    expect(within(container).getByText("1日（周一）")).toBeInTheDocument();
   });
 
   it("显示分组支出汇总", () => {
