@@ -4,7 +4,13 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { TransactionBusinessBadge } from "./TransactionBusinessBadge";
 import type { TransactionBusinessBadgeStatus } from "./transactionBusinessBadgeConfig";
 
-const badgeStatuses: TransactionBusinessBadgeStatus[] = ["business", "excluded"];
+const badgeStatuses: TransactionBusinessBadgeStatus[] = [
+  "pendingReimbursement",
+  "pendingRefund",
+  "reimbursed",
+  "refunded",
+  "excluded",
+];
 
 function TransactionBusinessBadgePreview() {
   return (
@@ -33,7 +39,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   name: "默认状态",
   args: {
-    status: "business",
+    status: "pendingReimbursement",
   },
   render: () => <TransactionBusinessBadgePreview />,
 };
@@ -41,7 +47,7 @@ export const Default: Story = {
 export const CustomLabel: Story = {
   name: "自定义文案",
   args: {
-    label: "业务记录",
-    status: "business",
+    label: "公司报销中",
+    status: "pendingReimbursement",
   },
 };
