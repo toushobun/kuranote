@@ -11,6 +11,7 @@ import type {
   TransactionGroupBy,
   TransactionGroupPage,
 } from "types/transactions";
+import { getDateKeyInTimeZone } from "utils/transactions";
 
 export type TransactionGroupTagAssignment = {
   tagId: string;
@@ -413,19 +414,6 @@ function getTimeGroupInfo(
     key: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
     label: `${year}年${month}月${day}日`,
   };
-}
-
-function getDateKeyInTimeZone(isoString: string, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone,
-    year: "numeric",
-  }).formatToParts(new Date(isoString));
-
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-
-  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function getWeekStartDateKey(dateKey: string): string {

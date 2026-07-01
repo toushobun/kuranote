@@ -109,7 +109,7 @@ export function normalizeMonth(month?: string | null) {
     return month;
   }
 
-  return getDateInTimeZone(
+  return getDateKeyInTimeZone(
     new Date().toISOString(),
     serverFallbackTimeZone,
   ).slice(0, 7);
@@ -144,7 +144,7 @@ export function formatMonthLabel(month: string) {
 }
 
 export function formatDateKey(value: string) {
-  return getDateInTimeZone(value, serverFallbackTimeZone);
+  return getDateKeyInTimeZone(value, serverFallbackTimeZone);
 }
 
 export function formatDateLabel(dateKey: string) {
@@ -345,7 +345,10 @@ function padDatePart(value: number) {
   return String(value).padStart(2, "0");
 }
 
-function getDateInTimeZone(isoString: string, timeZone: string): string {
+export function getDateKeyInTimeZone(
+  isoString: string,
+  timeZone: string,
+): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import type { TransactionDateGroup } from "types/transactions";
+import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 type TransactionGroupListProps = {
@@ -105,34 +106,35 @@ export function TransactionGroupList({
   );
 }
 
-// TODO: 暂时以日元固定显示 ¥，后续需根据 summary.currency 字段使用 formatAmount
 function getGroupSummaryText(group: TransactionDateGroup) {
   const expense = Number(group.summary.expense);
   const income = Number(group.summary.income);
+  const currencySymbol = getCurrencySymbol(group.summary.currency);
 
   if (income > 0 && expense > 0) {
-    return `收入 ¥${formatNumber(group.summary.income)} / 支出 ¥${formatNumber(
+    return `收入 ${currencySymbol}${formatNumber(group.summary.income)} / 支出 ${currencySymbol}${formatNumber(
       group.summary.expense,
-    )} / 合计 ${formatSignedYen(group.summary.balance)}`;
+    )} / 合计 ${formatSignedAmount(group.summary.balance, currencySymbol)}`;
   }
 
   if (expense > 0) {
-    return `支出 ¥${formatNumber(group.summary.expense)}`;
+    return `支出 ${currencySymbol}${formatNumber(group.summary.expense)}`;
   }
 
   if (income > 0) {
-    return `收入 ¥${formatNumber(group.summary.income)}`;
+    return `收入 ${currencySymbol}${formatNumber(group.summary.income)}`;
   }
 
-  return `合计 ${formatSignedYen(group.summary.balance)}`;
+  return `合计 ${formatSignedAmount(group.summary.balance, currencySymbol)}`;
 }
 
-function formatSignedYen(amount: string) {
+function formatSignedAmount(amount: string, currencySymbol: string) {
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) return `¥${formatNumber(amount)}`;
-  if (value === 0) return "¥0";
+  if (!Number.isFinite(value))
+    return `${currencySymbol}${formatNumber(amount)}`;
+  if (value === 0) return `${currencySymbol}0`;
 
   const sign = value > 0 ? "+" : "-";
-  return `${sign}¥${formatNumber(String(Math.abs(value)))}`;
+  return `${sign}${currencySymbol}${formatNumber(String(Math.abs(value)))}`;
 }

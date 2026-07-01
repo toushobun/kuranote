@@ -18,6 +18,7 @@ import type {
   TransactionMonthPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
+import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 import { mergeTransactionDateGroups } from "./transactionMonthListUtils";
@@ -236,18 +237,27 @@ function TransactionMonthListContent({
                       label="结余"
                       labelColor="text.secondary"
                       labelFontWeight={400}
-                      value={formatSignedYen(group.summary.balance)}
+                      value={formatSignedSummaryAmount(
+                        group.summary.balance,
+                        group.summary.currency,
+                      )}
                     />
                     <Stack direction="row" spacing={0.8} sx={{ minWidth: 0 }}>
                       <SummaryLine
                         label="收入"
                         labelColor="var(--user-theme-income-amount)"
-                        value={formatUnsignedYen(group.summary.income)}
+                        value={formatUnsignedSummaryAmount(
+                          group.summary.income,
+                          group.summary.currency,
+                        )}
                       />
                       <SummaryLine
                         label="支出"
                         labelColor="var(--user-theme-negative-amount)"
-                        value={formatUnsignedYen(group.summary.expense)}
+                        value={formatUnsignedSummaryAmount(
+                          group.summary.expense,
+                          group.summary.currency,
+                        )}
                       />
                     </Stack>
                   </Stack>
@@ -498,21 +508,24 @@ function omitRecordKey<T>(record: Record<string, T>, key: string) {
   );
 }
 
-// TODO: 暂时以日元固定显示 ¥，后续需根据 summary.currency 字段使用 formatAmount
-function formatUnsignedYen(amount: string) {
+function formatUnsignedSummaryAmount(amount: string, currency: string) {
+  const currencySymbol = getCurrencySymbol(currency);
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) return `¥${formatNumber(amount)}`;
+  if (!Number.isFinite(value))
+    return `${currencySymbol}${formatNumber(amount)}`;
 
-  return `¥${formatNumber(String(Math.abs(value)))}`;
+  return `${currencySymbol}${formatNumber(String(Math.abs(value)))}`;
 }
 
-function formatSignedYen(amount: string) {
+function formatSignedSummaryAmount(amount: string, currency: string) {
+  const currencySymbol = getCurrencySymbol(currency);
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) return `¥${formatNumber(amount)}`;
-  if (value === 0) return "¥0";
+  if (!Number.isFinite(value))
+    return `${currencySymbol}${formatNumber(amount)}`;
+  if (value === 0) return `${currencySymbol}0`;
 
   const sign = value < 0 ? "-" : "";
-  return `${sign}¥${formatNumber(String(Math.abs(value)))}`;
+  return `${sign}${currencySymbol}${formatNumber(String(Math.abs(value)))}`;
 }
