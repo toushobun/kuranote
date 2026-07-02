@@ -1,8 +1,8 @@
 import Stack from "@mui/material/Stack";
 
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import type { ServerAction } from "types/actions";
 import type { MerchantRow } from "types/merchants";
-import { EmptyState } from "molecules/ui/EmptyState";
 
 import { MerchantCard } from "./MerchantCard";
 
@@ -27,7 +27,12 @@ export function MerchantList({
 }: MerchantListProps) {
   if (merchants.length === 0) {
     return (
-      <EmptyState title="还没有商家" description="请先新增一个常用商家。" />
+      <ResultFeedback
+        surface="card"
+        variant="empty"
+        title="还没有商家"
+        message="请先新增一个常用商家。"
+      />
     );
   }
 
