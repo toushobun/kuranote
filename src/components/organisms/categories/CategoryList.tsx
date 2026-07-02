@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { EmptyState } from "molecules/ui/EmptyState";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import type { CategoryAction, CategoryTreeItem } from "types/categories";
 
 type CategoryListProps = {
@@ -80,9 +80,11 @@ export function CategoryList({
 }: CategoryListProps) {
   if (categories.length === 0) {
     return (
-      <EmptyState
+      <ResultFeedback
+        surface="card"
+        variant="empty"
         title="还没有分类"
-        description="先新增一个大分类，再在它下面新增小分类。"
+        message="先新增一个大分类，再在它下面新增小分类。"
       />
     );
   }
