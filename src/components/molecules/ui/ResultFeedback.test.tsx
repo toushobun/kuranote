@@ -23,7 +23,9 @@ describe("ResultFeedback", () => {
     expect(within(container).getByText("保存完成")).toBeInTheDocument();
     expect(within(container).getByText("记录已经保存。")).toBeInTheDocument();
 
-    fireEvent.click(within(container).getByRole("button", { name: "返回列表" }));
+    fireEvent.click(
+      within(container).getByRole("button", { name: "返回列表" }),
+    );
 
     expect(handleAction).toHaveBeenCalledTimes(1);
   });
