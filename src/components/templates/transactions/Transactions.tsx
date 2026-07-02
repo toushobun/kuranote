@@ -7,8 +7,10 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useState } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import { designTokens } from "theme/theme";
@@ -50,6 +52,7 @@ type TransactionsTemplateProps = {
     filters: TransactionFilters,
   ) => Promise<TransactionTimeGroupViewData>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
+  showSaveSuccess?: boolean;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -62,8 +65,10 @@ export function TransactionsTemplate({
   loadGroupItemsAction,
   loadGroupViewAction,
   loadMoreGroupsAction,
+  showSaveSuccess = false,
   timeGroupView,
 }: TransactionsTemplateProps) {
+  const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(showSaveSuccess);
   const {
     activeFilterChips,
     appliedFilterKey,
@@ -97,6 +102,18 @@ export function TransactionsTemplate({
     loadMoreGroupsAction,
     timeGroupView,
   });
+
+  function closeSaveSuccessDialog() {
+    setIsSaveSuccessOpen(false);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("result");
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }
 
   return (
     <Stack spacing={2.2} sx={pageContentSx}>
@@ -192,6 +209,12 @@ export function TransactionsTemplate({
         onReset={resetDraftFilters}
         open={isFilterOpen}
       />
+      <SuccessFeedbackDialog
+        description={saveSuccessDialogText.description}
+        onClose={closeSaveSuccessDialog}
+        open={isSaveSuccessOpen}
+        title={saveSuccessDialogText.title}
+      />
     </Stack>
   );
 }
@@ -203,6 +226,11 @@ const emptyFilterOptions: TransactionFilterOptions = {
   merchants: [],
   tags: [],
 };
+
+const saveSuccessDialogText = {
+  description: "这条记录的修改已经保存。",
+  title: "保存成功",
+} as const;
 
 const pageContentSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",

@@ -4,7 +4,17 @@ import {
   editTransactionErrorHref,
   transactionEditHref,
   transactionEditPagePath,
+  transactionResultValues,
+  transactionsMonthHref,
 } from "./paths";
+
+describe("transaction list paths", () => {
+  it("生成带保存结果的月份列表路由", () => {
+    expect(
+      transactionsMonthHref("2026-06", transactionResultValues.updated),
+    ).toBe("/transactions?month=2026-06&result=updated");
+  });
+});
 
 describe("transaction edit paths", () => {
   it("生成编辑记账专用路由", () => {

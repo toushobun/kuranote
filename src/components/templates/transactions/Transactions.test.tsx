@@ -37,6 +37,7 @@ vi.mock("organisms/transactions/TransactionMonthList", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.replaceState(null, "", "/");
 });
 
 const summary = {
@@ -124,12 +125,14 @@ function buildEmptyGroupView(
 function renderPage({
   errorMessage = null,
   loadGroupViewAction,
+  showSaveSuccess = false,
 }: {
   errorMessage?: string | null;
   loadGroupViewAction?: (
     groupBy: TransactionGroupBy,
     filters: TransactionFilters,
   ) => Promise<TransactionTimeGroupViewData>;
+  showSaveSuccess?: boolean;
 } = {}) {
   return render(
     <TransactionsTemplate
@@ -138,6 +141,7 @@ function renderPage({
       loadGroupItemsAction={loadGroupItemsAction}
       loadGroupViewAction={loadGroupViewAction}
       loadMoreGroupsAction={loadMoreGroupsAction}
+      showSaveSuccess={showSaveSuccess}
       timeGroupView={timeGroupView}
     />,
   );
@@ -180,6 +184,25 @@ describe("TransactionsTemplate", () => {
     expect(
       within(container).getByTestId("transaction-month-list"),
     ).toHaveTextContent("2026年6月");
+  });
+
+  it("保存修改成功后显示反馈弹框并清除结果参数", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/transactions?month=2026-06&result=updated",
+    );
+    renderPage({ showSaveSuccess: true });
+
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("保存成功");
+    expect(screen.getByText("这条记录的修改已经保存。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "返回明细" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(window.location.search).toBe("?month=2026-06");
   });
 
   it("传入错误信息时显示整页错误状态", () => {

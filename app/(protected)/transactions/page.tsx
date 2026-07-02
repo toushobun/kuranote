@@ -7,6 +7,7 @@ import {
   loadTransactionFilterOptions,
 } from "server/loaders/transactionStep4Groups";
 import { TransactionsTemplate } from "templates/transactions/Transactions";
+import { transactionResultValues } from "config/paths";
 import type {
   TransactionFilterOptions,
   TransactionTimeGroupViewData,
@@ -16,7 +17,7 @@ import { getTransactionErrorMessage } from "utils/pageErrors";
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; result?: string }>;
 }) {
   const params = await searchParams;
   const queryErrorMessage = getTransactionErrorMessage(params.error);
@@ -41,6 +42,7 @@ export default async function TransactionsPage({
       loadFilteredGroupItemsAction={loadStep4TransactionGroupItems}
       loadFilteredGroupsAction={loadStep4TransactionGroupPage}
       loadGroupViewAction={loadStep4TransactionGroupView}
+      showSaveSuccess={params.result === transactionResultValues.updated}
       timeGroupView={timeGroupView}
     />
   );

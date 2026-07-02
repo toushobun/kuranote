@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { CSSProperties } from "react";
 
+import { UserThemeProvider } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 import type {
@@ -369,6 +370,13 @@ function createThemePreviewStyle(themeKey: (typeof userThemeKeys)[number]) {
 const meta = {
   title: "Templates/Transactions/TransactionsTemplate",
   component: TransactionsTemplate,
+  decorators: [
+    (Story) => (
+      <UserThemeProvider storageScope="storybook-transactions">
+        <Story />
+      </UserThemeProvider>
+    ),
+  ],
   args: {
     errorMessage: null,
     loadGroupItemsAction,
@@ -402,6 +410,13 @@ export const WithError: Story = {
   name: "首屏加载失败",
   args: {
     errorMessage: transactionListPageErrorMessages.voidFailed,
+  },
+};
+
+export const SaveSuccess: Story = {
+  name: "保存修改成功",
+  args: {
+    showSaveSuccess: true,
   },
 };
 

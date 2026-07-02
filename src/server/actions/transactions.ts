@@ -8,6 +8,7 @@ import {
   newTransactionErrorHref,
   routePaths,
   transactionEditPagePath,
+  transactionResultValues,
   transactionsErrorHref,
   transactionsMonthHref,
 } from "config/paths";
@@ -31,6 +32,13 @@ import {
 
 function transactionMonthRedirectHref(transactionAt: string) {
   return transactionsMonthHref(transactionAt.slice(0, 7));
+}
+
+function transactionUpdatedRedirectHref(transactionAt: string) {
+  return transactionsMonthHref(
+    transactionAt.slice(0, 7),
+    transactionResultValues.updated,
+  );
 }
 
 function isRawTransferType(formData: FormData) {
@@ -143,7 +151,7 @@ export async function updateTransaction(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function updateTransferTransaction(formData: FormData) {
@@ -178,7 +186,7 @@ export async function updateTransferTransaction(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function convertTransactionType(formData: FormData) {
@@ -226,7 +234,7 @@ export async function convertTransactionType(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function saveEditTransaction(formData: FormData) {
