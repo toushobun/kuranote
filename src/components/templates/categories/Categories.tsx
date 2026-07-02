@@ -1,6 +1,6 @@
 import Stack from "@mui/material/Stack";
 
-import { ErrorState } from "molecules/ui/ErrorState";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import { CategoryForm } from "organisms/categories/CategoryForm";
 import { CategoryList } from "organisms/categories/CategoryList";
 import { PageHeader } from "templates/layout/PageHeader";
@@ -47,7 +47,12 @@ export function CategoriesTemplate({
       />
 
       {errorMessage && !errorCategoryId ? (
-        <ErrorState title="分类操作失败" description={errorMessage} />
+        <ResultFeedback
+          message={errorMessage}
+          surface="card"
+          title="分类操作失败"
+          variant="error"
+        />
       ) : null}
 
       <CategoryForm
