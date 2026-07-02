@@ -18,6 +18,14 @@ import { ResultFeedback } from "molecules/ui/ResultFeedback";
 />;
 ```
 
+### Design reference
+
+#272 的设计图需要参考，但不参考其中 No.2 筛选图。
+
+组件默认构成保持为：插图区域 → 标题 → 说明文 → 操作按钮。
+
+PC 端保持中央对齐和最大宽度限制。移动端保持纵向堆叠和充足留白。
+
 ### Variants
 
 - `success`：操作完成。
