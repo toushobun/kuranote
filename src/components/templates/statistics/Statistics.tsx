@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 
 import { statisticsMonthHref } from "config/paths";
 import { MonthNavButton } from "molecules/navigation/MonthNavButton";
-import { EmptyState } from "molecules/ui/EmptyState";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { designTokens } from "theme/theme";
@@ -106,9 +106,11 @@ export function StatisticsTemplate({
           />
         </Stack>
       ) : (
-        <EmptyState
-          description="这个月还没有可以统计的收入或支出。"
+        <ResultFeedback
+          message="这个月还没有可以统计的收入或支出。"
+          surface="card"
           title="暂无统计数据"
+          variant="empty"
         />
       )}
     </Stack>
