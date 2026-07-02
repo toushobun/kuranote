@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { EmptyState } from "molecules/ui/EmptyState";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import { designTokens } from "theme/theme";
@@ -132,7 +132,7 @@ export function TransactionsTemplate({
       {displayLoading ? (
         <TransactionsSkeleton />
       ) : errorMessage ? (
-        <EmptyState
+        <ResultFeedback
           action={
             <Button
               onClick={() => globalThis.location.reload()}
@@ -151,8 +151,10 @@ export function TransactionsTemplate({
               重新读取
             </Button>
           }
-          description={errorMessage}
+          message={errorMessage}
+          surface="card"
           title="明细读取失败"
+          variant="error"
         />
       ) : (
         <>
@@ -165,7 +167,11 @@ export function TransactionsTemplate({
             />
           ) : null}
           {showFilterEmptyState ? (
-            <EmptyState title="没有找到符合条件的流水。" />
+            <ResultFeedback
+              surface="card"
+              title="没有找到符合条件的流水。"
+              variant="empty"
+            />
           ) : (
             <TransactionMonthList
               key={`${groupView.groupBy}:${appliedFilterKey}:${groupView.groups
