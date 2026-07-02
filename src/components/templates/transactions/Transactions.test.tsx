@@ -236,6 +236,8 @@ describe("TransactionsTemplate", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
 
+    expect(screen.queryByText("保存成功")).toBeNull();
+
     await waitFor(() => {
       expect(screen.queryByRole("status")).toBeNull();
     });

@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
@@ -71,15 +71,17 @@ export function TransactionsTemplate({
   saveResult = null,
   timeGroupView,
 }: TransactionsTemplateProps) {
-  const [activeSaveResult, setActiveSaveResult] = useState(saveResult);
-  const initialSaveResultRef = useRef(activeSaveResult);
+  const [activeSaveResult] = useState(saveResult);
+  const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
+    saveResult !== null,
+  );
   const router = useRouter();
 
   useEffect(() => {
-    if (initialSaveResultRef.current) {
+    if (activeSaveResult) {
       window.scrollTo({ top: 0 });
     }
-  }, []);
+  }, [activeSaveResult]);
   const {
     activeFilterChips,
     appliedFilterKey,
@@ -115,7 +117,7 @@ export function TransactionsTemplate({
   });
 
   function closeSaveSuccessDialog() {
-    setActiveSaveResult(null);
+    setIsSaveSuccessOpen(false);
 
     const url = new URL(window.location.href);
     url.searchParams.delete("result");
@@ -125,7 +127,7 @@ export function TransactionsTemplate({
   }
 
   const saveSuccessDialogText =
-    saveSuccessDialogTextByResult[activeSaveResult ?? "updated"];
+    saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
 
   return (
     <Stack spacing={2.2} sx={pageContentSx}>
@@ -224,7 +226,7 @@ export function TransactionsTemplate({
       <SuccessFeedbackDialog
         description={saveSuccessDialogText.description}
         onClose={closeSaveSuccessDialog}
-        open={activeSaveResult !== null}
+        open={isSaveSuccessOpen}
         title={saveSuccessDialogText.title}
       />
     </Stack>
