@@ -2,9 +2,9 @@ import Stack from "@mui/material/Stack";
 
 import { AccountCard } from "molecules/accounts/AccountCard";
 import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
-import { EmptyState } from "molecules/ui/EmptyState";
-import type { AccountHolderOption, AccountRow } from "types/accounts";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import type { ServerAction } from "types/actions";
+import type { AccountHolderOption, AccountRow } from "types/accounts";
 
 import { AccountEditForm } from "./AccountEditForm";
 
@@ -22,7 +22,14 @@ export function AccountList({
   updateAccountAction,
 }: AccountListProps) {
   if (accounts.length === 0) {
-    return <EmptyState title="还没有账户" description="请先新增一个账户。" />;
+    return (
+      <ResultFeedback
+        surface="card"
+        variant="empty"
+        title="还没有账户"
+        message="请先新增一个账户。"
+      />
+    );
   }
 
   return (
