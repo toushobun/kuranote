@@ -2,7 +2,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
-import { ErrorState } from "molecules/ui/ErrorState";
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantForm } from "organisms/merchants/MerchantForm";
 import { MerchantList } from "organisms/merchants/MerchantList";
@@ -52,7 +52,12 @@ export function MerchantsTemplate({
       />
 
       {errorMessage && !errorMerchantId ? (
-        <ErrorState title="商家操作失败" description={errorMessage} />
+        <ResultFeedback
+          message={errorMessage}
+          surface="card"
+          title="商家操作失败"
+          variant="error"
+        />
       ) : null}
 
       <SectionCard component="form" sx={{ p: 3 }}>
@@ -63,7 +68,7 @@ export function MerchantsTemplate({
             helperText="同时匹配商家主名称和别名。"
             label="搜索商家"
             name="q"
-            placeholder="例如：LIFE、来福、スギ"
+            placeholder="例如：LIFE、来福、杉"
           />
           <Button
             sx={{ alignSelf: "flex-start" }}
