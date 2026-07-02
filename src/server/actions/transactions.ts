@@ -8,6 +8,7 @@ import {
   newTransactionErrorHref,
   routePaths,
   transactionEditPagePath,
+  transactionResultValues,
   transactionsErrorHref,
   transactionsMonthHref,
 } from "config/paths";
@@ -29,8 +30,18 @@ import {
   validateVoidTransactionForm,
 } from "server/validators/transactions";
 
-function transactionMonthRedirectHref(transactionAt: string) {
-  return transactionsMonthHref(transactionAt.slice(0, 7));
+function transactionCreatedRedirectHref(transactionAt: string) {
+  return transactionsMonthHref(
+    transactionAt.slice(0, 7),
+    transactionResultValues.created,
+  );
+}
+
+function transactionUpdatedRedirectHref(transactionAt: string) {
+  return transactionsMonthHref(
+    transactionAt.slice(0, 7),
+    transactionResultValues.updated,
+  );
 }
 
 function isRawTransferType(formData: FormData) {
@@ -106,7 +117,7 @@ export async function createTransaction(formData: FormData) {
   revalidatePath(routePaths.accounts);
   revalidatePath(routePaths.transactions);
   revalidatePath(routePaths.transactionsNew);
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionCreatedRedirectHref(values.transactionAt));
 }
 
 export async function updateTransaction(formData: FormData) {
@@ -143,7 +154,7 @@ export async function updateTransaction(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function updateTransferTransaction(formData: FormData) {
@@ -178,7 +189,7 @@ export async function updateTransferTransaction(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function convertTransactionType(formData: FormData) {
@@ -226,7 +237,7 @@ export async function convertTransactionType(formData: FormData) {
   }
 
   revalidateEditTransactionPaths();
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionUpdatedRedirectHref(values.transactionAt));
 }
 
 export async function saveEditTransaction(formData: FormData) {

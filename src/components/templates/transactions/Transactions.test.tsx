@@ -20,7 +20,20 @@ import type {
 import { defaultTransactionFilters } from "types/transactions";
 import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
-import { TransactionsTemplate } from "./Transactions";
+import {
+  TransactionsTemplate,
+  type TransactionSaveResult,
+} from "./Transactions";
+
+const { routerReplaceMock } = vi.hoisted(() => ({
+  routerReplaceMock: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: routerReplaceMock,
+  }),
+}));
 
 vi.mock("organisms/transactions/TransactionMonthList", () => ({
   TransactionMonthList: ({
@@ -37,6 +50,7 @@ vi.mock("organisms/transactions/TransactionMonthList", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.replaceState(null, "", "/");
 });
 
 const summary = {
@@ -124,12 +138,14 @@ function buildEmptyGroupView(
 function renderPage({
   errorMessage = null,
   loadGroupViewAction,
+  saveResult = null,
 }: {
   errorMessage?: string | null;
   loadGroupViewAction?: (
     groupBy: TransactionGroupBy,
     filters: TransactionFilters,
   ) => Promise<TransactionTimeGroupViewData>;
+  saveResult?: TransactionSaveResult | null;
 } = {}) {
   return render(
     <TransactionsTemplate
@@ -138,6 +154,7 @@ function renderPage({
       loadGroupItemsAction={loadGroupItemsAction}
       loadGroupViewAction={loadGroupViewAction}
       loadMoreGroupsAction={loadMoreGroupsAction}
+      saveResult={saveResult}
       timeGroupView={timeGroupView}
     />,
   );
@@ -180,6 +197,56 @@ describe("TransactionsTemplate", () => {
     expect(
       within(container).getByTestId("transaction-month-list"),
     ).toHaveTextContent("2026年6月");
+  });
+
+  it("保存修改成功后显示反馈弹框并清除结果参数", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/transactions?month=2026-06&result=updated",
+    );
+    renderPage({ saveResult: "updated" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+    expect(screen.getByText("这条记录的修改已经保存。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+    expect(routerReplaceMock).toHaveBeenCalledWith(
+      "/transactions?month=2026-06",
+      {
+        scroll: false,
+      },
+    );
+  });
+
+  it("新增记账成功后显示记账成功反馈弹框并清除结果参数", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/transactions?month=2026-06&result=created",
+    );
+    renderPage({ saveResult: "created" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("记账成功");
+    expect(screen.getByText("这笔记账已经保存。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+
+    expect(screen.queryByText("保存成功")).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+    expect(routerReplaceMock).toHaveBeenCalledWith(
+      "/transactions?month=2026-06",
+      {
+        scroll: false,
+      },
+    );
   });
 
   it("传入错误信息时显示整页错误状态", () => {

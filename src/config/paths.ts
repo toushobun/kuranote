@@ -22,6 +22,14 @@ export type AppRoutePath = (typeof routePaths)[AppRouteKey];
 export const transactionEditPagePath =
   "/transactions/[transactionRecordId]/edit";
 
+export const transactionResultValues = {
+  created: "created",
+  updated: "updated",
+} as const;
+
+type TransactionResultValue =
+  (typeof transactionResultValues)[keyof typeof transactionResultValues];
+
 export const bottomNavigationRouteGroups = {
   left: [
     { href: routePaths.dashboard, label: "首页" },
@@ -53,8 +61,11 @@ export function statisticsMonthHref(month: string) {
   return routeWithQuery(routePaths.statistics, { month });
 }
 
-export function transactionsMonthHref(month: string) {
-  return routeWithQuery(routePaths.transactions, { month });
+export function transactionsMonthHref(
+  month: string,
+  result?: TransactionResultValue,
+) {
+  return routeWithQuery(routePaths.transactions, { month, result });
 }
 
 export function transactionEditHref(transactionRecordId: string) {

@@ -84,7 +84,9 @@ describe("updateTransferTransaction", () => {
   it("成功时调用 update_transfer_transaction RPC 并跳转到发生月份", async () => {
     await expect(
       updateTransferTransaction(createValidTransferUpdateFormData()),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith("update_transfer_transaction", {
       p_amount: 5000,

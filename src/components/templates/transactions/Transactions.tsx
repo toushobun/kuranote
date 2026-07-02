@@ -7,8 +7,11 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
 import { designTokens } from "theme/theme";
@@ -25,6 +28,8 @@ import { TransactionFilterDialog } from "./TransactionFilterDialog";
 import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary";
 import { TransactionsSkeleton } from "./TransactionsSkeleton";
 import { useTransactions } from "./useTransactions";
+
+export type TransactionSaveResult = "created" | "updated";
 
 type TransactionsTemplateProps = {
   errorMessage: string | null;
@@ -50,6 +55,7 @@ type TransactionsTemplateProps = {
     filters: TransactionFilters,
   ) => Promise<TransactionTimeGroupViewData>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
+  saveResult?: TransactionSaveResult | null;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -62,8 +68,20 @@ export function TransactionsTemplate({
   loadGroupItemsAction,
   loadGroupViewAction,
   loadMoreGroupsAction,
+  saveResult = null,
   timeGroupView,
 }: TransactionsTemplateProps) {
+  const [activeSaveResult] = useState(saveResult);
+  const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
+    saveResult !== null,
+  );
+  const router = useRouter();
+
+  useEffect(() => {
+    if (activeSaveResult) {
+      window.scrollTo({ top: 0 });
+    }
+  }, [activeSaveResult]);
   const {
     activeFilterChips,
     appliedFilterKey,
@@ -97,6 +115,19 @@ export function TransactionsTemplate({
     loadMoreGroupsAction,
     timeGroupView,
   });
+
+  function closeSaveSuccessDialog() {
+    setIsSaveSuccessOpen(false);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("result");
+    router.replace(`${url.pathname}${url.search}${url.hash}`, {
+      scroll: false,
+    });
+  }
+
+  const saveSuccessDialogText =
+    saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
 
   return (
     <Stack spacing={2.2} sx={pageContentSx}>
@@ -192,6 +223,12 @@ export function TransactionsTemplate({
         onReset={resetDraftFilters}
         open={isFilterOpen}
       />
+      <SuccessFeedbackDialog
+        description={saveSuccessDialogText.description}
+        onClose={closeSaveSuccessDialog}
+        open={isSaveSuccessOpen}
+        title={saveSuccessDialogText.title}
+      />
     </Stack>
   );
 }
@@ -202,6 +239,20 @@ const emptyFilterOptions: TransactionFilterOptions = {
   members: [],
   merchants: [],
   tags: [],
+};
+
+const saveSuccessDialogTextByResult: Record<
+  TransactionSaveResult,
+  { description: string; title: string }
+> = {
+  created: {
+    description: "这笔记账已经保存。",
+    title: "记账成功",
+  },
+  updated: {
+    description: "这条记录的修改已经保存。",
+    title: "保存成功",
+  },
 };
 
 const pageContentSx = {

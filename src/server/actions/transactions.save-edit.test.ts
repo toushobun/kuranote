@@ -109,7 +109,9 @@ describe("saveEditTransaction", () => {
   it("sourceType = targetType = expense 时调用 update_transaction", async () => {
     await expect(
       saveEditTransaction(createNormalEditFormData()),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "update_transaction",
@@ -120,7 +122,9 @@ describe("saveEditTransaction", () => {
   it("sourceType = targetType = transfer 时调用 update_transfer_transaction", async () => {
     await expect(
       saveEditTransaction(createTransferEditFormData()),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "update_transfer_transaction",
@@ -136,7 +140,9 @@ describe("saveEditTransaction", () => {
       saveEditTransaction(
         createNormalEditFormData({ sourceType: "expense", type: "income" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "update_transaction",
@@ -153,7 +159,9 @@ describe("saveEditTransaction", () => {
       saveEditTransaction(
         createTransferEditFormData({ sourceType: "expense" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "convert_transaction_type",
@@ -168,7 +176,9 @@ describe("saveEditTransaction", () => {
   it("transfer → expense 时调用 convert_transaction_type", async () => {
     await expect(
       saveEditTransaction(createNormalEditFormData({ sourceType: "transfer" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "convert_transaction_type",
@@ -237,7 +247,9 @@ describe("convertTransactionType", () => {
       convertTransactionType(
         createTransferEditFormData({ sourceType: "expense" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "convert_transaction_type",
@@ -263,7 +275,9 @@ describe("convertTransactionType", () => {
       convertTransactionType(
         createNormalEditFormData({ sourceType: "transfer" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "convert_transaction_type",
