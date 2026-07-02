@@ -1,3 +1,4 @@
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -78,5 +79,16 @@ describe("ResultFeedback", () => {
     expect(
       within(container).queryByRole("button", { name: "默认操作" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("支持替换默认图标", () => {
+    const { container } = render(
+      <ResultFeedback
+        title="保存完成"
+        icon={<CheckCircleOutlineRoundedIcon titleAccess="自定义成功图标" />}
+      />,
+    );
+
+    expect(within(container).getByTitle("自定义成功图标")).toBeInTheDocument();
   });
 });
