@@ -86,48 +86,60 @@ function ResultFeedbackIllustration({
       aria-hidden="true"
       sx={{
         display: "grid",
-        height: 92,
+        minHeight: 132,
         placeItems: "center",
         position: "relative",
-        width: 112,
+        width: "100%",
       }}
     >
       <Box
         sx={{
           backgroundColor: tone.surface,
-          border: "1px solid var(--user-theme-card-border)",
-          borderRadius: "999px",
-          height: 64,
+          borderRadius: `${designTokens.radius.lg * 2}px`,
+          bottom: 14,
+          height: 84,
+          left: "50%",
           position: "absolute",
-          transform: "rotate(-6deg)",
-          width: 92,
-        }}
-      />
-      <Box
-        sx={{
-          backgroundColor: tone.surface,
-          border: "1px solid var(--user-theme-card-border)",
-          borderRadius: "50%",
-          height: 18,
-          position: "absolute",
-          right: 12,
-          top: 8,
-          width: 18,
+          transform: "translateX(-50%)",
+          width: { xs: 188, sm: 220 },
         }}
       />
       <Box
         sx={{
           backgroundColor: "var(--user-theme-card-bg)",
           border: "1px solid var(--user-theme-card-border)",
-          borderRadius: `${designTokens.radius.lg}px`,
+          borderRadius: "50%",
+          bottom: 28,
+          height: 16,
+          left: "24%",
+          position: "absolute",
+          width: 16,
+        }}
+      />
+      <Box
+        sx={{
+          backgroundColor: "var(--user-theme-card-bg)",
+          border: "1px solid var(--user-theme-card-border)",
+          borderRadius: "50%",
+          height: 22,
+          position: "absolute",
+          right: "24%",
+          top: 28,
+          width: 22,
+        }}
+      />
+      <Box
+        sx={{
+          backgroundColor: "var(--user-theme-card-bg)",
+          border: "1px solid var(--user-theme-card-border)",
+          borderRadius: "50%",
           boxShadow: "var(--user-theme-card-shadow)",
           color: tone.accent,
           display: "grid",
-          height: 64,
+          height: 80,
           placeItems: "center",
           position: "relative",
-          transform: "rotate(3deg)",
-          width: 64,
+          width: 80,
         }}
       >
         {icon ?? <DefaultResultIcon variant={variant} />}
@@ -154,7 +166,7 @@ export function ResultFeedback({
       <Button
         onClick={onAction}
         variant={actionVariant}
-        sx={{ minWidth: 120, px: 3 }}
+        sx={{ minWidth: 128, px: 3 }}
       >
         {actionLabel}
       </Button>
@@ -169,15 +181,15 @@ export function ResultFeedback({
         {
           mx: "auto",
           px: { xs: 2, sm: 3 },
-          py: { xs: 4, sm: 5 },
+          py: { xs: 5, sm: 6 },
           textAlign: "center",
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 430,
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Stack spacing={2} sx={{ alignItems: "center" }}>
+      <Stack spacing={2.25} sx={{ alignItems: "center" }}>
         <ResultFeedbackIllustration icon={icon} tone={tone} variant={variant} />
         <Stack spacing={1} sx={{ alignItems: "center" }}>
           <Typography
@@ -196,6 +208,7 @@ export function ResultFeedback({
               variant="body2"
               sx={{
                 color: "var(--user-theme-section-text)",
+                lineHeight: 1.8,
                 maxWidth: 320,
               }}
             >
