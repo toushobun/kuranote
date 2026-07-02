@@ -115,6 +115,8 @@ describe("ResultFeedback", () => {
     expect(
       within(container).getByTestId("custom-illustration"),
     ).toBeInTheDocument();
-    expect(within(container).queryByTestId("custom-icon")).not.toBeInTheDocument();
+    expect(
+      within(container).queryByTestId("custom-icon"),
+    ).not.toBeInTheDocument();
   });
 });
