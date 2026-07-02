@@ -11,9 +11,9 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
-import { EmptyState } from "./EmptyState";
 import { FieldCard } from "./FieldCard";
 import { ReceiptCard } from "./ReceiptCard";
+import { ResultFeedback } from "./ResultFeedback";
 import { SectionCard } from "./SectionCard";
 import { SegmentTabs, type SegmentTabItem } from "./SegmentTabs";
 
@@ -140,9 +140,11 @@ export const Empty: Story = {
   name: "空状态",
   render: () => (
     <ThemePreview themeKey="amberWarmth">
-      <EmptyState
+      <ResultFeedback
+        surface="card"
+        variant="empty"
         title="还没有记录"
-        description="开始记录第一笔家庭生活账。"
+        message="开始记录第一笔家庭生活账。"
         illustration={
           <IconBadge label="空状态图标" size="lg">
             <ReceiptLongRoundedIcon />
