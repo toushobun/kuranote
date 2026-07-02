@@ -11,7 +11,10 @@ import type { ReactNode } from "react";
 
 import { designTokens } from "theme/theme";
 
+import { SectionCard } from "./SectionCard";
+
 export type ResultFeedbackVariant = "success" | "error" | "empty" | "info";
+export type ResultFeedbackSurface = "plain" | "card";
 
 type ResultFeedbackTone = {
   accent: string;
@@ -25,8 +28,10 @@ export type ResultFeedbackProps = {
   actionLabel?: ReactNode;
   actionVariant?: ButtonProps["variant"];
   icon?: ReactNode;
+  illustration?: ReactNode;
   message?: ReactNode;
   onAction?: ButtonProps["onClick"];
+  surface?: ResultFeedbackSurface;
   sx?: SxProps<Theme>;
   title: ReactNode;
   variant?: ResultFeedbackVariant;
@@ -74,13 +79,19 @@ function DefaultResultIcon({ variant }: { variant: ResultFeedbackVariant }) {
 
 function ResultFeedbackIllustration({
   icon,
+  illustration,
   tone,
   variant,
 }: {
   icon?: ReactNode;
+  illustration?: ReactNode;
   tone: ResultFeedbackTone;
   variant: ResultFeedbackVariant;
 }) {
+  if (illustration) {
+    return <Box aria-hidden="true">{illustration}</Box>;
+  }
+
   return (
     <Box
       aria-hidden="true"
@@ -153,8 +164,10 @@ export function ResultFeedback({
   actionLabel,
   actionVariant = "outlined",
   icon,
+  illustration,
   message,
   onAction,
+  surface = "plain",
   sx,
   title,
   variant = "info",
@@ -172,52 +185,84 @@ export function ResultFeedback({
       </Button>
     ) : null);
 
+  const content = (
+    <Stack spacing={2.25} sx={{ alignItems: "center", mx: "auto", maxWidth: 430 }}>
+      <ResultFeedbackIllustration
+        icon={icon}
+        illustration={illustration}
+        tone={tone}
+        variant={variant}
+      />
+      <Stack spacing={1} sx={{ alignItems: "center" }}>
+        <Typography
+          variant="h6"
+          sx={{
+            color: "var(--user-theme-balance-text)",
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {title}
+        </Typography>
+        {message ? (
+          <Typography
+            component="div"
+            variant="body2"
+            sx={{
+              color: "var(--user-theme-section-text)",
+              lineHeight: 1.8,
+              maxWidth: 320,
+            }}
+          >
+            {message}
+          </Typography>
+        ) : null}
+      </Stack>
+      {feedbackAction ? <Box sx={{ pt: 0.5 }}>{feedbackAction}</Box> : null}
+    </Stack>
+  );
+
+  const sharedSx = {
+    textAlign: "center",
+    width: "100%",
+  } as const;
+
+  if (surface === "card") {
+    return (
+      <SectionCard
+        aria-live={tone.ariaLive}
+        data-variant={variant}
+        role={tone.role}
+        sx={[
+          sharedSx,
+          {
+            py: { xs: 4, sm: 5 },
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
+      >
+        {content}
+      </SectionCard>
+    );
+  }
+
   return (
     <Box
       aria-live={tone.ariaLive}
       data-variant={variant}
       role={tone.role}
       sx={[
+        sharedSx,
         {
           mx: "auto",
           px: { xs: 2, sm: 3 },
           py: { xs: 5, sm: 6 },
-          textAlign: "center",
-          width: "100%",
           maxWidth: 430,
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Stack spacing={2.25} sx={{ alignItems: "center" }}>
-        <ResultFeedbackIllustration icon={icon} tone={tone} variant={variant} />
-        <Stack spacing={1} sx={{ alignItems: "center" }}>
-          <Typography
-            variant="h6"
-            sx={{
-              color: "var(--user-theme-balance-text)",
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {title}
-          </Typography>
-          {message ? (
-            <Typography
-              component="div"
-              variant="body2"
-              sx={{
-                color: "var(--user-theme-section-text)",
-                lineHeight: 1.8,
-                maxWidth: 320,
-              }}
-            >
-              {message}
-            </Typography>
-          ) : null}
-        </Stack>
-        {feedbackAction ? <Box sx={{ pt: 0.5 }}>{feedbackAction}</Box> : null}
-      </Stack>
+      {content}
     </Box>
   );
 }
