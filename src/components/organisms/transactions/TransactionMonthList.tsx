@@ -529,8 +529,7 @@ function formatUnsignedSummaryAmount(amount: string, currency: string) {
   const currencySymbol = getCurrencySymbol(currency);
   const value = Number(amount);
 
-  if (!Number.isFinite(value))
-    return `${currencySymbol}${formatNumber(amount)}`;
+  if (!Number.isFinite(value)) return `${currencySymbol}${formatNumber(amount)}`;
 
   return `${currencySymbol}${formatNumber(String(Math.abs(value)))}`;
 }
@@ -539,8 +538,7 @@ function formatSignedSummaryAmount(amount: string, currency: string) {
   const currencySymbol = getCurrencySymbol(currency);
   const value = Number(amount);
 
-  if (!Number.isFinite(value))
-    return `${currencySymbol}${formatNumber(amount)}`;
+  if (!Number.isFinite(value)) return `${currencySymbol}${formatNumber(amount)}`;
   if (value === 0) return `${currencySymbol}0`;
 
   const sign = value < 0 ? "-" : "";
