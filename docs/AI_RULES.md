@@ -136,7 +136,7 @@ PR merge 后需要回收相关状态：
 - 新增或修改 `.tsx` 组件时，原则上需要补充 Vitest 组件测试。
 - 可复用 UI 组件需要补充 Storybook。
 - 新 UI 优先复用 MUI 和现有组件，不要重复造基础组件。
-- 页面基础结构优先复用 Theme、PageShell、PageHeader、SectionCard、EmptyState、LoadingState、ErrorState。
+- 页面基础结构优先复用 Theme、PageShell、PageHeader、SectionCard、ResultFeedback、LoadingState。
 - 同类 UI 结构出现 2 次以上时，必须优先抽象为可复用组件，禁止复制粘贴维护相似 UI。
 - 复用优先级：MUI 原生组件 → 项目通用组件 → 业务模块组件 → 页面内局部组件。
 
@@ -153,7 +153,7 @@ PR merge 后需要回收相关状态：
 不适用场景（不拆 hook）：
 
 - 纯展示组件、简单 layout 组件
-- EmptyState / LoadingState / ErrorState 等状态组件
+- ResultFeedback / LoadingState 等状态组件
 - 没有复杂逻辑的小组件
 
 ## Storybook 豁免条件
