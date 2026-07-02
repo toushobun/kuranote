@@ -1,9 +1,12 @@
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { SectionCard } from "./SectionCard";
+import { IconBadge } from "atoms/ui/IconBadge";
+
 import { ResultFeedback } from "./ResultFeedback";
+import { SectionCard } from "./SectionCard";
 
 const meta = {
   title: "Molecules/UI/ResultFeedback",
@@ -56,6 +59,36 @@ export const Info: Story = {
   },
 };
 
+export const CardSurface: Story = {
+  name: "卡片外壳：替代旧 EmptyState / ErrorState",
+  args: {
+    surface: "card",
+    variant: "empty",
+    title: "还没有记录",
+    message: "开始记录第一笔家庭生活账。",
+    actionLabel: "新增记录",
+    actionVariant: "contained",
+  },
+};
+
+export const WithCustomIllustration: Story = {
+  name: "完整插图",
+  render: () => (
+    <ResultFeedback
+      surface="card"
+      variant="empty"
+      title="还没有记录"
+      message="完整插图会替换默认插图区。"
+      illustration={
+        <IconBadge label="空状态图标" size="lg">
+          <ReceiptLongRoundedIcon />
+        </IconBadge>
+      }
+      action={<Button variant="contained">新增记录</Button>}
+    />
+  ),
+};
+
 export const WithCustomAction: Story = {
   name: "自定义操作",
   render: () => (
@@ -74,7 +107,7 @@ export const WithCustomAction: Story = {
 };
 
 export const EmbeddedInSection: Story = {
-  name: "卡片内嵌入",
+  name: "已有卡片内嵌入",
   render: () => (
     <SectionCard>
       <ResultFeedback
