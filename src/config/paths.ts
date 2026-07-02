@@ -23,6 +23,7 @@ export const transactionEditPagePath =
   "/transactions/[transactionRecordId]/edit";
 
 export const transactionResultValues = {
+  created: "created",
   updated: "updated",
 } as const;
 

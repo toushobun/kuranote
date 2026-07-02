@@ -30,8 +30,11 @@ import {
   validateVoidTransactionForm,
 } from "server/validators/transactions";
 
-function transactionMonthRedirectHref(transactionAt: string) {
-  return transactionsMonthHref(transactionAt.slice(0, 7));
+function transactionCreatedRedirectHref(transactionAt: string) {
+  return transactionsMonthHref(
+    transactionAt.slice(0, 7),
+    transactionResultValues.created,
+  );
 }
 
 function transactionUpdatedRedirectHref(transactionAt: string) {
@@ -114,7 +117,7 @@ export async function createTransaction(formData: FormData) {
   revalidatePath(routePaths.accounts);
   revalidatePath(routePaths.transactions);
   revalidatePath(routePaths.transactionsNew);
-  redirect(transactionMonthRedirectHref(values.transactionAt));
+  redirect(transactionCreatedRedirectHref(values.transactionAt));
 }
 
 export async function updateTransaction(formData: FormData) {

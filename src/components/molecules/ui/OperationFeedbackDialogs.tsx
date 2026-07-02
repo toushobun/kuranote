@@ -1,18 +1,20 @@
 "use client";
 
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button, { type ButtonProps } from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
+import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import { useId, type ReactNode } from "react";
 
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { useUserTheme } from "theme/UserThemeProvider";
 import type { UserThemeKey } from "theme/userThemeTokens";
 
@@ -51,75 +53,43 @@ function FeedbackDialog({
   title,
   tone,
 }: FeedbackDialogProps & { tone: FeedbackTone }) {
-  const titleId = useId();
-  const descriptionId = useId();
   const isError = tone === "error";
 
   return (
-    <Dialog
-      aria-describedby={description ? descriptionId : undefined}
-      aria-labelledby={titleId}
-      fullWidth
-      maxWidth="xs"
+    <Snackbar
+      anchorOrigin={{ horizontal: "center", vertical: "bottom" }}
+      autoHideDuration={3000}
       onClose={onClose}
       open={open}
-      sx={feedbackDialogSx}
-      slotProps={{
-        paper: {
-          sx: {
-            ...feedbackPaperSx,
-            ...(isError && {
-              border: "1.5px solid",
-              borderColor: "error.main",
-            }),
-          },
-        },
-      }}
+      sx={feedbackSnackbarSx}
     >
-      <DialogContent sx={feedbackContentSx}>
-        <Box
-          aria-hidden="true"
-          sx={{
-            ...feedbackIconSx,
-            bgcolor: isError
-              ? "var(--user-theme-negative-bg)"
-              : "var(--user-theme-income-bg)",
-            color: isError
-              ? "var(--user-theme-negative-amount)"
-              : "var(--user-theme-income-amount)",
-          }}
-        >
-          {isError ? (
+      <Alert
+        closeText="关闭"
+        icon={
+          isError ? (
             <ErrorOutlineRoundedIcon sx={{ fontSize: 24 }} />
           ) : (
             <CheckCircleOutlineRoundedIcon sx={{ fontSize: 24 }} />
-          )}
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <DialogTitle component="h2" id={titleId} sx={dialogTitleSx}>
-            {title}
-          </DialogTitle>
-          {description ? (
-            <Typography
-              color="text.secondary"
-              component="div"
-              id={descriptionId}
-              sx={dialogDescriptionSx}
-            >
-              {description}
-            </Typography>
-          ) : null}
-        </Box>
-        <IconButton
-          aria-label="关闭"
-          onClick={onClose}
-          size="small"
-          sx={{ alignSelf: "flex-start", color: "text.secondary", ml: 0.5 }}
-        >
-          <CloseRoundedIcon fontSize="small" />
-        </IconButton>
-      </DialogContent>
-    </Dialog>
+          )
+        }
+        onClose={onClose}
+        role={isError ? "alert" : "status"}
+        severity={isError ? "error" : "success"}
+        sx={feedbackAlertSx(isError)}
+        variant="standard"
+      >
+        <AlertTitle sx={dialogTitleSx}>{title}</AlertTitle>
+        {description ? (
+          <Typography
+            color="text.secondary"
+            component="p"
+            sx={dialogDescriptionSx}
+          >
+            {description}
+          </Typography>
+        ) : null}
+      </Alert>
+    </Snackbar>
   );
 }
 
@@ -210,33 +180,61 @@ export function ConfirmationDialog({
   );
 }
 
-const feedbackDialogSx = {
-  "& .MuiDialog-container": {
-    alignItems: "flex-end",
-    pb: 2,
-  },
+const feedbackToastOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 12px)`;
+
+const feedbackSnackbarSx = {
+  bottom: { xs: feedbackToastOffset, sm: feedbackToastOffset },
 };
 
-const feedbackPaperSx = {
-  borderRadius: 3,
-  mx: 2,
-  width: "calc(100% - 32px)",
-};
+function feedbackAlertSx(isError: boolean) {
+  return {
+    alignItems: "center",
+    bgcolor: "background.paper",
+    border: "1.5px solid",
+    borderColor: isError ? "error.main" : "transparent",
+    borderRadius: 2,
+    boxShadow: 6,
+    color: "text.primary",
+    maxWidth: 444,
+    px: 2,
+    py: 1.75,
+    width: "100%",
+    "& .MuiAlert-icon": {
+      alignItems: "center",
+      bgcolor: isError
+        ? "var(--user-theme-negative-bg)"
+        : "var(--user-theme-income-bg)",
+      borderRadius: "50%",
+      color: isError
+        ? "var(--user-theme-negative-amount)"
+        : "var(--user-theme-income-amount)",
+      display: "flex",
+      flexShrink: 0,
+      height: 44,
+      justifyContent: "center",
+      mr: 1.5,
+      p: 0,
+      width: 44,
+    },
+    "& .MuiAlert-message": {
+      flex: 1,
+      minWidth: 0,
+      p: 0,
+    },
+    "& .MuiAlert-action": {
+      alignItems: "flex-start",
+      color: "text.secondary",
+      mt: 0,
+      pl: 0.5,
+      pt: 0,
+    },
+  };
+}
 
 const dialogPaperSx = {
   borderRadius: 4,
   mx: 1.5,
   width: "calc(100% - 24px)",
-};
-
-const feedbackContentSx = {
-  alignItems: "center",
-  display: "flex",
-  flexDirection: "row",
-  gap: 1.5,
-  px: 2,
-  py: 1.75,
-  "&:last-child": { pb: 1.75 },
 };
 
 const confirmationContentSx = {
@@ -249,16 +247,6 @@ const confirmationContentSx = {
   textAlign: "center",
 };
 
-const feedbackIconSx = {
-  alignItems: "center",
-  borderRadius: "50%",
-  display: "flex",
-  flexShrink: 0,
-  height: 44,
-  justifyContent: "center",
-  width: 44,
-};
-
 const confirmationIllustrationSx = {
   height: { xs: 132, sm: 152 },
   objectFit: "contain",
@@ -269,7 +257,8 @@ const dialogTitleSx = {
   color: "text.primary",
   fontSize: 14,
   fontWeight: 700,
-  p: 0,
+  mb: 0,
+  mt: 0,
 };
 
 const dialogDescriptionSx = {

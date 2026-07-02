@@ -416,7 +416,14 @@ export const WithError: Story = {
 export const SaveSuccess: Story = {
   name: "保存修改成功",
   args: {
-    showSaveSuccess: true,
+    saveResult: "updated",
+  },
+};
+
+export const CreateSuccess: Story = {
+  name: "新增记账成功",
+  args: {
+    saveResult: "created",
   },
 };
 

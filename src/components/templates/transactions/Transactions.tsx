@@ -7,7 +7,8 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
@@ -27,6 +28,8 @@ import { TransactionFilterDialog } from "./TransactionFilterDialog";
 import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary";
 import { TransactionsSkeleton } from "./TransactionsSkeleton";
 import { useTransactions } from "./useTransactions";
+
+export type TransactionSaveResult = "created" | "updated";
 
 type TransactionsTemplateProps = {
   errorMessage: string | null;
@@ -52,7 +55,7 @@ type TransactionsTemplateProps = {
     filters: TransactionFilters,
   ) => Promise<TransactionTimeGroupViewData>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
-  showSaveSuccess?: boolean;
+  saveResult?: TransactionSaveResult | null;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -65,10 +68,18 @@ export function TransactionsTemplate({
   loadGroupItemsAction,
   loadGroupViewAction,
   loadMoreGroupsAction,
-  showSaveSuccess = false,
+  saveResult = null,
   timeGroupView,
 }: TransactionsTemplateProps) {
-  const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(showSaveSuccess);
+  const [activeSaveResult, setActiveSaveResult] = useState(saveResult);
+  const initialSaveResultRef = useRef(activeSaveResult);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialSaveResultRef.current) {
+      window.scrollTo({ top: 0 });
+    }
+  }, []);
   const {
     activeFilterChips,
     appliedFilterKey,
@@ -104,16 +115,17 @@ export function TransactionsTemplate({
   });
 
   function closeSaveSuccessDialog() {
-    setIsSaveSuccessOpen(false);
+    setActiveSaveResult(null);
 
     const url = new URL(window.location.href);
     url.searchParams.delete("result");
-    window.history.replaceState(
-      null,
-      "",
-      `${url.pathname}${url.search}${url.hash}`,
-    );
+    router.replace(`${url.pathname}${url.search}${url.hash}`, {
+      scroll: false,
+    });
   }
+
+  const saveSuccessDialogText =
+    saveSuccessDialogTextByResult[activeSaveResult ?? "updated"];
 
   return (
     <Stack spacing={2.2} sx={pageContentSx}>
@@ -212,7 +224,7 @@ export function TransactionsTemplate({
       <SuccessFeedbackDialog
         description={saveSuccessDialogText.description}
         onClose={closeSaveSuccessDialog}
-        open={isSaveSuccessOpen}
+        open={activeSaveResult !== null}
         title={saveSuccessDialogText.title}
       />
     </Stack>
@@ -227,10 +239,19 @@ const emptyFilterOptions: TransactionFilterOptions = {
   tags: [],
 };
 
-const saveSuccessDialogText = {
-  description: "这条记录的修改已经保存。",
-  title: "保存成功",
-} as const;
+const saveSuccessDialogTextByResult: Record<
+  TransactionSaveResult,
+  { description: string; title: string }
+> = {
+  created: {
+    description: "这笔记账已经保存。",
+    title: "记账成功",
+  },
+  updated: {
+    description: "这条记录的修改已经保存。",
+    title: "保存成功",
+  },
+};
 
 const pageContentSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",

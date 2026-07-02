@@ -14,6 +14,12 @@ describe("transaction list paths", () => {
       transactionsMonthHref("2026-06", transactionResultValues.updated),
     ).toBe("/transactions?month=2026-06&result=updated");
   });
+
+  it("生成带记账成功结果的月份列表路由", () => {
+    expect(
+      transactionsMonthHref("2026-06", transactionResultValues.created),
+    ).toBe("/transactions?month=2026-06&result=created");
+  });
 });
 
 describe("transaction edit paths", () => {

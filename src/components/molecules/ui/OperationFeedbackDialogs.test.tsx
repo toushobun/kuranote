@@ -40,12 +40,34 @@ describe("SuccessFeedbackDialog", () => {
       />,
     );
 
-    expect(screen.getByRole("dialog")).toHaveAccessibleName("保存成功");
+    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
     expect(screen.getByText("这条记录已经保存。")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("3 秒后自动触发关闭回调", () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+
+    render(
+      <SuccessFeedbackDialog
+        description="这条记录已经保存。"
+        onClose={onClose}
+        open
+        title="保存成功"
+      />,
+    );
+
+    vi.advanceTimersByTime(2999);
+    expect(onClose).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
   });
 });
 
@@ -62,7 +84,7 @@ describe("FailureFeedbackDialog", () => {
       />,
     );
 
-    expect(screen.getByRole("dialog")).toHaveAccessibleName("保存失败");
+    expect(screen.getByRole("alert")).toHaveTextContent("保存失败");
     expect(screen.getByText("请稍后再试。")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));

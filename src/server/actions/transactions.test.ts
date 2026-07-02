@@ -110,7 +110,7 @@ describe("createTransaction", () => {
 
   it("输入值合法时通过 RPC 创建记账并跳转到发生月份的列表页", async () => {
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions?month=2026-06",
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
@@ -140,7 +140,9 @@ describe("createTransaction", () => {
   it("0 元明细也可以保存", async () => {
     await expect(
       createTransaction(createValidFormData({ itemAmount: "0" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,

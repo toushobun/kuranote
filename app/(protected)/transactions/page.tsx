@@ -6,13 +6,24 @@ import {
   loadStep4TransactionGroupView,
   loadTransactionFilterOptions,
 } from "server/loaders/transactionStep4Groups";
-import { TransactionsTemplate } from "templates/transactions/Transactions";
+import {
+  TransactionsTemplate,
+  type TransactionSaveResult,
+} from "templates/transactions/Transactions";
 import { transactionResultValues } from "config/paths";
 import type {
   TransactionFilterOptions,
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { getTransactionErrorMessage } from "utils/pageErrors";
+
+function getTransactionSaveResult(
+  result: string | undefined,
+): TransactionSaveResult | null {
+  if (result === transactionResultValues.created) return "created";
+  if (result === transactionResultValues.updated) return "updated";
+  return null;
+}
 
 export default async function TransactionsPage({
   searchParams,
@@ -42,7 +53,7 @@ export default async function TransactionsPage({
       loadFilteredGroupItemsAction={loadStep4TransactionGroupItems}
       loadFilteredGroupsAction={loadStep4TransactionGroupPage}
       loadGroupViewAction={loadStep4TransactionGroupView}
-      showSaveSuccess={params.result === transactionResultValues.updated}
+      saveResult={getTransactionSaveResult(params.result)}
       timeGroupView={timeGroupView}
     />
   );
