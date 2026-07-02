@@ -64,6 +64,17 @@ describe("ResultFeedback", () => {
     );
   });
 
+  it("支持卡片外壳", () => {
+    const { container } = render(
+      <ResultFeedback surface="card" variant="empty" title="还没有内容" />,
+    );
+
+    expect(within(container).getByRole("status")).toHaveAttribute(
+      "data-variant",
+      "empty",
+    );
+  });
+
   it("优先渲染自定义 action slot", () => {
     const { container } = render(
       <ResultFeedback
@@ -85,10 +96,25 @@ describe("ResultFeedback", () => {
     const { container } = render(
       <ResultFeedback
         title="保存完成"
-        icon={<CheckCircleOutlineRoundedIcon titleAccess="自定义成功图标" />}
+        icon={<CheckCircleOutlineRoundedIcon data-testid="custom-icon" />}
       />,
     );
 
-    expect(within(container).getByTitle("自定义成功图标")).toBeInTheDocument();
+    expect(within(container).getByTestId("custom-icon")).toBeInTheDocument();
+  });
+
+  it("完整插图优先于图标", () => {
+    const { container } = render(
+      <ResultFeedback
+        title="还没有记录"
+        icon={<CheckCircleOutlineRoundedIcon data-testid="custom-icon" />}
+        illustration={<div data-testid="custom-illustration" />}
+      />,
+    );
+
+    expect(
+      within(container).getByTestId("custom-illustration"),
+    ).toBeInTheDocument();
+    expect(within(container).queryByTestId("custom-icon")).not.toBeInTheDocument();
   });
 });
