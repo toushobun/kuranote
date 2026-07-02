@@ -47,7 +47,11 @@ function CategoryEditForm({
         size="small"
         slotProps={{ htmlInput: { maxLength: 100 } }}
       />
-      <Button type="submit" variant="outlined" sx={{ whiteSpace: "nowrap" }}>
+      <Button
+        type="submit"
+        variant="outlined"
+        sx={{ whiteSpace: "nowrap" }}
+      >
         保存
       </Button>
     </Stack>
@@ -123,7 +127,11 @@ export function CategoryList({
                     }}
                   >
                     {categoryErrorMessage ? (
-                      <Typography color="error" role="alert" sx={{ mb: 2 }}>
+                      <Typography
+                        color="error"
+                        role="alert"
+                        sx={{ mb: 2 }}
+                      >
                         {categoryErrorMessage}
                       </Typography>
                     ) : null}
