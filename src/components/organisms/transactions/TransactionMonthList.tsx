@@ -10,8 +10,8 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { ResultFeedback } from "molecules/ui/ResultFeedback";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
-import { EmptyState } from "molecules/ui/EmptyState";
 import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,
@@ -162,7 +162,13 @@ function TransactionMonthListContent({
   }, [isGroupPending, loadMoreGroupsAction, nextGroupOffset]);
 
   if (groups.length === 0) {
-    return <EmptyState title="还没有记账记录。" />;
+    return (
+      <ResultFeedback
+        surface="card"
+        title="还没有记账记录。"
+        variant="empty"
+      />
+    );
   }
 
   return (
@@ -296,7 +302,12 @@ function TransactionMonthListContent({
                         showSummary={false}
                       />
                     ) : (
-                      <EmptyState title="这个分组下还没有流水。" />
+                      <ResultFeedback
+                        surface="card"
+                        sx={{ py: 2 }}
+                        title="这个分组下还没有流水。"
+                        variant="empty"
+                      />
                     )
                   ) : null}
 
