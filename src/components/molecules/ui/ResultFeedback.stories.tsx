@@ -18,7 +18,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Success: Story = {
-  name: "成功",
+  name: "成功：参考设计图 No.2 以外的结果反馈布局",
   args: {
     variant: "success",
     title: "保存完成",
@@ -28,7 +28,7 @@ export const Success: Story = {
 };
 
 export const Empty: Story = {
-  name: "空结果",
+  name: "空结果：参考设计图 No.2 以外的结果反馈布局",
   args: {
     variant: "empty",
     title: "没有找到相关记录",
@@ -38,7 +38,7 @@ export const Empty: Story = {
 };
 
 export const Error: Story = {
-  name: "错误",
+  name: "错误：参考设计图 No.2 以外的结果反馈布局",
   args: {
     variant: "error",
     title: "操作没有完成",
@@ -48,7 +48,7 @@ export const Error: Story = {
 };
 
 export const Info: Story = {
-  name: "通知",
+  name: "通知：参考设计图 No.2 以外的结果反馈布局",
   args: {
     variant: "info",
     title: "正在确认内容",
