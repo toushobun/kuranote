@@ -186,7 +186,7 @@ export function ResultFeedback({
     ) : null);
 
   const content = (
-    <Stack spacing={2.25} sx={{ alignItems: "center", mx: "auto", maxWidth: 430 }}>
+    <Stack spacing={2.25} sx={{ alignItems: "center" }}>
       <ResultFeedbackIllustration
         icon={icon}
         illustration={illustration}
