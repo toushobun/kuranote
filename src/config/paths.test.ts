@@ -22,6 +22,12 @@ describe("transaction list paths", () => {
     ).toBe("/transactions?month=2026-06&result=created");
   });
 
+  it("生成带删除成功结果的列表路由", () => {
+    expect(transactionsMonthHref("", transactionResultValues.deleted)).toBe(
+      "/transactions?result=deleted",
+    );
+  });
+
   it("生成明细搜索路由", () => {
     expect(transactionsSearchHref("便利店 午餐")).toBe(
       "/transactions/search?q=%E4%BE%BF%E5%88%A9%E5%BA%97+%E5%8D%88%E9%A4%90",
