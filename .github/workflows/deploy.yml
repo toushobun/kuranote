@@ -53,9 +53,9 @@ jobs:
         run: supabase migration list --linked
 
       - name: Apply migrations
-        # Always run db push before production deploy.
-        # If a previous migration failed, a later code-only commit must retry pending migrations
-        # instead of deploying a schema-incompatible application version.
+        # 生产部署前始终执行 db push。
+        # 如果上一次 migration 失败，后续纯代码提交也必须重试待应用的 migration，
+        # 避免部署出与生产 DB schema 不兼容的应用版本。
         run: supabase db push
 
       - name: Show migration status after push
