@@ -85,6 +85,7 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
       data-testid="dashboard-fullscreen-frame"
       sx={{
         background: "var(--user-theme-page-bg)",
+        border: 0,
         borderRadius: heroLayout.containerBorderRadius,
         boxShadow: "none",
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
