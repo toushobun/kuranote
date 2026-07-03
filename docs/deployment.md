@@ -22,7 +22,7 @@ PR merge 到 main 后，GitHub Actions 依次执行 Supabase migration → Verce
 5. Install Command 使用默认 `npm install` 或 `npm ci`。
 6. Output Directory 保持 Next.js 默认值。
 7. 在 Vercel Project Settings 中配置当前 Supabase project 的公开连接信息。
-8. **在 Vercel Project Settings → Git 中关闭自动部署**（Auto-Deploy 或 Git Integration）。部署由 GitHub Actions 的 `deploy.yml` 统一管理，保留 Vercel Git Integration 会导致每次 push 触发双重部署。
+8. 自动 Git 部署由仓库根目录 `vercel.json` 的 `git.deploymentEnabled: false` 关闭。生产部署只允许通过 GitHub Actions 的 `.github/workflows/deploy.yml` 执行，避免 Vercel Git Integration 绕过 Supabase migration。
 
 当前阶段只需配置 Production 的 Supabase 公开连接信息。变量名以 `.env.example` 为准。
 
@@ -120,7 +120,7 @@ npx supabase db push
 
 ## Supabase migration 应用方式
 
-migration 通过 GitHub Actions 的 `deploy.yml` 在 CI 全部通过后自动执行，无需手动触发。
+migration 通过 GitHub Actions 的 `deploy.yml` 自动执行。生产部署不得依赖 Vercel Git 自动部署。
 
 workflow 文件：
 
@@ -128,21 +128,27 @@ workflow 文件：
 .github/workflows/deploy.yml
 ```
 
+触发方式：
+
+1. push 到 `main`。
+2. 在 GitHub Actions 页面手动执行 `workflow_dispatch`。
+
 执行顺序：
 
-1. CI（`ci.yml`）全部通过
-2. `deploy.yml` 启动（由 `workflow_run` 触发）
-3. 检测本次提交是否包含 `supabase/migrations/` 变更
-   - 有变更：执行 `supabase db push`，成功后进行 Vercel 生产部署
-   - 无变更：跳过 migration，直接进行 Vercel 生产部署
+1. Checkout 当前提交。
+2. 连接 `SUPABASE_PROJECT_REF` 指向的 Supabase project。
+3. 显示当前远程 migration 状态。
+4. 执行 `supabase db push`。
+5. 再次显示远程 migration 状态。
+6. migration 成功后，使用 Vercel CLI 执行 Production build / deploy。
 
 原则：
 
-- deploy.yml 只在 CI 全部通过后启动，CI 失败时不触发部署。
-- migration 只在 `supabase/migrations/` 有实际变更时执行，无变更时跳过。
-- 执行前确认 migration 变更对现有数据是否安全。
-- 执行后在 Supabase Dashboard 确认 migration 状态。
-- migration 失败时 Vercel 部署不会触发，需要修复后手动触发 `deploy.yml`。
+- 每次生产部署前都执行 `supabase db push`，不再只依赖当前提交是否包含 `supabase/migrations/` diff。
+- 这样可以覆盖「上一次 migration 失败，下一次提交没有 migration diff」的场景，避免应用代码先部署、生产 DB 仍停在旧 schema。
+- `migrate` job 失败时，`deploy` job 不会执行。
+- `vercel.json` 已关闭 Vercel Git 自动部署，避免绕过 `migrate` job。
+- 执行后在 Supabase Dashboard 或 SQL Editor 确认 migration 状态。
 
 ## 推荐验证顺序
 
@@ -150,7 +156,7 @@ workflow 文件：
 
 1. 开发中持续 push，CI 自动运行（Stage 1: format-check / type-check / lint 并行 → Stage 2: test → Stage 3: build / storybook-build 并行）。
 2. CI 全部通过后发起 Review，确认无问题后 merge。
-3. merge 后 CI 在 main 上再次运行，通过后 `deploy.yml` 自动启动（跳过 migration，直接 Vercel 部署）。
+3. merge 到 main 后，`deploy.yml` 自动启动，并在生产部署前执行 `supabase db push`。
 4. 打开 Vercel Production URL，验证登录、Dashboard、记账相关页面。
 
 ### 包含 migration 的 PR
@@ -158,8 +164,8 @@ workflow 文件：
 1. 开发中持续 push，CI 自动运行。
 2. Review `supabase/migrations/` 变更，确认对现有数据安全。
 3. CI 全部通过后 merge。
-4. merge 后 CI 在 main 上通过后，`deploy.yml` 自动启动，执行 migration → Vercel 部署。
-5. 在 Supabase Dashboard 确认 migration 状态。
+4. merge 到 main 后，`deploy.yml` 自动启动，执行 Supabase migration → Vercel Production 部署。
+5. 在 Supabase Dashboard 或 SQL Editor 确认 migration 状态。
 6. 打开 Vercel Production URL，验证主要页面。
 
 ## 排查要点
@@ -171,7 +177,7 @@ workflow 文件：
 - Vercel 使用 Node.js 20 或以上。
 - `npm run build` 在 GitHub Actions CI 中通过。
 - Vercel 公开连接信息已经配置并重新部署。
-- Vercel Project Settings → Git 的自动部署已关闭，避免干扰 `deploy.yml`。
+- `vercel.json` 中 `git.deploymentEnabled` 保持为 `false`，不要重新启用 Vercel Git 自动部署。
 
 ### 页面可以打开但 Supabase 请求失败
 
@@ -189,6 +195,19 @@ workflow 文件：
 - Supabase project ref 指向当前唯一的 Supabase project。
 - Supabase migration 文件没有重复创建对象。
 - migration 失败后 Vercel 部署不会触发，需要修复问题后重新触发 `deploy.yml`（可在 GitHub Actions 页面手动触发）。
+
+### 生产应用和 DB schema 不一致
+
+先确认：
+
+```sql
+select version
+from supabase_migrations.schema_migrations
+order by version desc
+limit 20;
+```
+
+如果生产应用已经部署到新代码，但缺少对应 migration，优先手动触发 `deploy.yml`，让 `supabase db push` 补齐远程 migration。不要直接修改业务查询兼容旧 schema，除非正在做明确的回滚方案。
 
 ## 不包含范围
 
