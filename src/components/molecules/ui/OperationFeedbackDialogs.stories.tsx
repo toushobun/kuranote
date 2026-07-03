@@ -1,5 +1,5 @@
-import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import Box from "@mui/material/Box";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import {
