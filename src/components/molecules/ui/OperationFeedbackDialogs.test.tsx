@@ -7,12 +7,14 @@ import { getUserThemeStorageKey } from "theme/userThemeStorage";
 
 import {
   ConfirmationDialog,
+  DeleteConfirmationDialog,
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "./OperationFeedbackDialogs";
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
@@ -66,8 +68,6 @@ describe("SuccessFeedbackDialog", () => {
 
     vi.advanceTimersByTime(1);
     expect(onClose).toHaveBeenCalledTimes(1);
-
-    vi.useRealTimers();
   });
 });
 
@@ -98,9 +98,63 @@ describe("ConfirmationDialog", () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
 
-    renderWithUserTheme(
+    render(
       <ConfirmationDialog
-        confirmLabel="删除"
+        confirmLabel="继续"
+        description="确认后会继续处理。"
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+        open
+        title="继续这个操作？"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("通用确认弹框默认不显示删除插图", () => {
+    render(
+      <ConfirmationDialog
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+        open
+        title="继续操作？"
+      />,
+    );
+
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("支持替换插图和按钮文案", () => {
+    render(
+      <ConfirmationDialog
+        cancelLabel="返回"
+        confirmLabel="继续"
+        illustration={<div data-testid="custom-illustration" />}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+        open
+        title="继续操作？"
+      />,
+    );
+
+    expect(screen.getByTestId("custom-illustration")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续" })).toBeInTheDocument();
+  });
+});
+
+describe("DeleteConfirmationDialog", () => {
+  it("显示取消与删除按钮并触发各自回调", () => {
+    const onCancel = vi.fn();
+    const onConfirm = vi.fn();
+
+    renderWithUserTheme(
+      <DeleteConfirmationDialog
         description="删除后无法恢复。"
         onCancel={onCancel}
         onConfirm={onConfirm}
@@ -124,7 +178,7 @@ describe("ConfirmationDialog", () => {
     document.documentElement.dataset.userTheme = "deepSeaStarlight";
 
     renderWithUserTheme(
-      <ConfirmationDialog
+      <DeleteConfirmationDialog
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
         open
@@ -136,23 +190,5 @@ describe("ConfirmationDialog", () => {
       "src",
       "/assets/kura-delete-confirm/delete_illustration_deep_sea.png",
     );
-  });
-
-  it("支持替换默认插图和按钮文案", () => {
-    renderWithUserTheme(
-      <ConfirmationDialog
-        cancelLabel="返回"
-        confirmLabel="继续"
-        illustration={<div data-testid="custom-illustration" />}
-        onCancel={vi.fn()}
-        onConfirm={vi.fn()}
-        open
-        title="继续操作？"
-      />,
-    );
-
-    expect(screen.getByTestId("custom-illustration")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "继续" })).toBeInTheDocument();
   });
 });
