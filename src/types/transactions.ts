@@ -146,6 +146,10 @@ export type TransactionListPage = {
   nextOffset: number | null;
 };
 
+export type TransactionSearchPage = TransactionListPage & {
+  totalCount: number;
+};
+
 export type TransactionGroupSummaryItem = {
   id: string;
   key: string;

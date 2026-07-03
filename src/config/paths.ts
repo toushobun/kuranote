@@ -14,6 +14,7 @@ export const routePaths = {
   statistics: "/statistics",
   transactions: "/transactions",
   transactionsNew: "/transactions/new",
+  transactionsSearch: "/transactions/search",
 } as const;
 
 export type AppRouteKey = keyof typeof routePaths;
@@ -68,10 +69,22 @@ export function transactionsMonthHref(
   return routeWithQuery(routePaths.transactions, { month, result });
 }
 
-export function transactionEditHref(transactionRecordId: string) {
-  return `${routePaths.transactions}/${encodeURIComponent(
+export function transactionsSearchHref(query: string) {
+  return routeWithQuery(routePaths.transactionsSearch, { q: query });
+}
+
+export function transactionEditHref(
+  transactionRecordId: string,
+  returnTo?: string | null,
+) {
+  const editPath = `${routePaths.transactions}/${encodeURIComponent(
     transactionRecordId,
   )}/edit`;
+
+  if (!returnTo) return editPath;
+
+  const searchParams = new URLSearchParams({ returnTo });
+  return `${editPath}?${searchParams.toString()}`;
 }
 
 export function transactionsErrorHref(error: string) {
@@ -88,8 +101,13 @@ export function newTransactionErrorHref(
 export function editTransactionErrorHref(
   transactionRecordId: string,
   error: string,
+  returnTo?: string | null,
 ) {
   const searchParams = new URLSearchParams({ error });
+
+  if (returnTo) {
+    searchParams.set("returnTo", returnTo);
+  }
 
   return `${transactionEditHref(transactionRecordId)}?${searchParams.toString()}`;
 }

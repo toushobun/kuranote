@@ -10,14 +10,15 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
 import { EmptyState } from "molecules/ui/EmptyState";
+import { TransactionGroupList } from "organisms/transactions/TransactionGroupList";
 import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,
   TransactionMonthPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
+import { mergeUniqueById } from "utils/collections";
 import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
@@ -151,7 +152,7 @@ function TransactionMonthListContent({
     startGroupTransition(async () => {
       try {
         const page = await loadMoreGroupsAction(offset);
-        setGroups((prev) => mergeTransactionGroups(prev, page.groups));
+        setGroups((prev) => mergeUniqueById(prev, page.groups));
         setNextGroupOffset(page.nextOffset);
       } catch {
         setGroupLoadError("更多分组读取失败。");
@@ -495,17 +496,6 @@ function getTimeGroupViewResetKey(timeGroupView: TransactionTimeGroupViewData) {
     timeGroupView.initialExpandedGroupId ?? "none",
     timeGroupView.groups.map((group) => group.id).join("|"),
   ].join(":");
-}
-
-function mergeTransactionGroups(
-  existing: TransactionGroupSummaryItem[],
-  incoming: TransactionGroupSummaryItem[],
-) {
-  const existingIds = new Set(existing.map((group) => group.id));
-  return [
-    ...existing,
-    ...incoming.filter((group) => !existingIds.has(group.id)),
-  ];
 }
 
 function omitRecordKey<T>(record: Record<string, T>, key: string) {
