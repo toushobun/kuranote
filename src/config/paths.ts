@@ -70,6 +70,10 @@ export function transactionsMonthHref(
   return routeWithQuery(routePaths.transactions, { month, result });
 }
 
+export function transactionsResultHref(result: TransactionResultValue) {
+  return routeWithQuery(routePaths.transactions, { result });
+}
+
 export function transactionsSearchHref(query: string) {
   return routeWithQuery(routePaths.transactionsSearch, { q: query });
 }
