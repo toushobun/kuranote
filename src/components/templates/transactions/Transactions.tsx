@@ -15,7 +15,6 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
-import { designTokens } from "theme/theme";
 import type {
   TransactionFilterOptions,
   TransactionFilters,
@@ -135,7 +134,7 @@ export function TransactionsTemplate({
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
 
   return (
-    <Stack spacing={2.2} sx={pageContentSx}>
+    <Stack spacing={2.2}>
       <Stack
         direction="row"
         sx={{ alignItems: "center", justifyContent: "space-between" }}
@@ -270,26 +269,6 @@ const saveSuccessDialogTextByResult: Record<
 };
 
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 40px)`;
-
-const pageContentSx = {
-  bgcolor: "var(--user-theme-tx-page-bg)",
-  mb: bottomNavigationLayout.shellPaddingBottomOffset,
-  minHeight: "100dvh",
-  mt: -4,
-  mx: {
-    xs: -designTokens.spacing.page.mobile,
-    sm: -designTokens.spacing.page.desktop,
-  },
-  px: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  pb: bottomNavigationLayout.shellPaddingBottom,
-  pt: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-};
 
 const headerActionSx = {
   color: "text.primary",
