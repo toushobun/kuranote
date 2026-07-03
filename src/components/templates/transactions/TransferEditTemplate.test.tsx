@@ -8,7 +8,17 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { UserThemeProvider } from "theme/UserThemeProvider";
+
 import { EditTransferTransactionTemplate } from "./TransactionFormPage";
+
+const storageScope = "edit-transfer-template-test";
+
+function renderWithTheme(ui: ReactNode) {
+  return render(
+    <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
+  );
+}
 
 vi.mock("organisms/transactions/TransactionForm", () => ({
   TransactionForm: ({
@@ -86,7 +96,7 @@ afterEach(() => {
 });
 
 function renderTemplate() {
-  return render(
+  return renderWithTheme(
     <EditTransferTransactionTemplate
       accountOptions={[
         {

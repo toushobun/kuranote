@@ -9,8 +9,17 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { EditTransactionTemplate } from "./TransactionFormPage";
+
+const storageScope = "edit-transaction-template-test";
+
+function renderWithTheme(ui: ReactNode) {
+  return render(
+    <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
+  );
+}
 
 vi.mock("organisms/transactions/TransactionForm", () => ({
   TransactionForm: ({
@@ -146,7 +155,7 @@ function createProps(type: "expense" | "income" = "expense") {
 
 describe("EditTransactionTemplate", () => {
   it("普通编辑页默认显示编辑记账标题", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -156,7 +165,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通支出编辑页渲染收支 / 转账切换，并激活支出面板", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -172,7 +181,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通收入编辑页渲染收支 / 转账切换，并激活收入面板", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps("income")} />,
     );
 
@@ -188,7 +197,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通编辑页显示转账切换 tab", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -204,7 +213,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("点击转账 tab 后激活转账编辑面板，并保持编辑记账标题", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -222,7 +231,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通编辑切换类型后保留已挂载表单输入状态", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -241,7 +250,7 @@ describe("EditTransactionTemplate", () => {
     const requestSubmit = vi
       .spyOn(HTMLFormElement.prototype, "requestSubmit")
       .mockImplementation(() => undefined);
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -265,7 +274,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("内容修改后退出时提示保存、放弃或继续编辑", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -292,7 +301,7 @@ describe("EditTransactionTemplate", () => {
     const requestSubmit = vi
       .spyOn(HTMLFormElement.prototype, "requestSubmit")
       .mockImplementation(() => undefined);
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
