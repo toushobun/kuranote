@@ -65,6 +65,7 @@ type KuraThemeComponent = {
 };
 
 type KuraThemeIllustration = {
+  assetSuffix: string;
   mascotAccent: string;
   accessory: string;
   decoration: string;
@@ -82,6 +83,7 @@ export type KuraThemeToken = {
 };
 
 type BaseKuraThemeToken = {
+  illustrationAssetSuffix: string;
   name: string;
   palette: Omit<
     KuraThemePalette,
@@ -110,6 +112,7 @@ const semanticTokens = {
 
 const baseThemeTokens = {
   amberWarmth: {
+    illustrationAssetSuffix: "amber_warmth",
     name: "琥珀暖阳",
     palette: {
       page: "#FDF8F0",
@@ -128,6 +131,7 @@ const baseThemeTokens = {
     },
   },
   lavenderDream: {
+    illustrationAssetSuffix: "lavender_dream",
     name: "薰衣草梦境",
     palette: {
       page: "#FBF8FF",
@@ -146,6 +150,7 @@ const baseThemeTokens = {
     },
   },
   emeraldMorning: {
+    illustrationAssetSuffix: "emerald_morning",
     name: "翡翠晨露",
     palette: {
       page: "#F6FCF9",
@@ -164,6 +169,7 @@ const baseThemeTokens = {
     },
   },
   sakuraStory: {
+    illustrationAssetSuffix: "sakura_story",
     name: "粉樱物语",
     palette: {
       page: "#FFF8FA",
@@ -182,6 +188,7 @@ const baseThemeTokens = {
     },
   },
   deepSeaStarlight: {
+    illustrationAssetSuffix: "deep_sea",
     name: "深海星光",
     palette: {
       page: "#F6FAFE",
@@ -200,6 +207,7 @@ const baseThemeTokens = {
     },
   },
   flameRed: {
+    illustrationAssetSuffix: "crimson_flame",
     name: "烈焰赤红",
     palette: {
       page: "#FFF8F5",
@@ -265,6 +273,7 @@ function createKuraThemeToken(
       receiptTearBg: palette.page,
     },
     illustration: {
+      assetSuffix: baseToken.illustrationAssetSuffix,
       mascotAccent: palette.accent,
       accessory: palette.accentLight,
       decoration: palette.accentPale,

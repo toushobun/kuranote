@@ -10,6 +10,7 @@ import type {
   TransactionGroupBy,
   TransactionGroupPage,
 } from "types/transactions";
+import { paginateItems } from "utils/collections";
 
 import {
   addSignedAmount,
@@ -65,7 +66,6 @@ export function buildTransactionGroupSummaryPage({
   recorders,
   tagAssignments,
 }: BuildTransactionGroupSummaryPageParams): TransactionGroupPage {
-  const safeOffset = Math.max(0, offset);
   const itemsByRecordId = groupItemsByRecordId(items);
   const accountById = new Map(accounts.map((account) => [account.id, account]));
   const categoryById = new Map(
@@ -155,21 +155,18 @@ export function buildTransactionGroupSummaryPage({
 
     return a.label.localeCompare(b.label, "zh-Hans-CN");
   });
-  const pageGroups = sortedGroups.slice(safeOffset, safeOffset + pageSize);
+  const groupPage = paginateItems(sortedGroups, offset, pageSize);
 
   return {
     groupBy,
-    groups: pageGroups.map((group) => ({
+    groups: groupPage.items.map((group) => ({
       id: group.id,
       key: group.key,
       label: group.label,
       summary: normalizeSummary(group.summary),
       transactionCount: group.recordIds.size,
     })),
-    nextOffset:
-      safeOffset + pageSize < sortedGroups.length
-        ? safeOffset + pageSize
-        : null,
+    nextOffset: groupPage.nextOffset,
   };
 }
 

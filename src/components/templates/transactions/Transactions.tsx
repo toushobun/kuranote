@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { routePaths } from "config/paths";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -126,6 +127,10 @@ export function TransactionsTemplate({
     });
   }
 
+  function openSearchPage() {
+    router.push(routePaths.transactionsSearch);
+  }
+
   const saveSuccessDialogText =
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
 
@@ -140,7 +145,11 @@ export function TransactionsTemplate({
         </Typography>
 
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-          <IconButton aria-label="搜索" sx={headerActionSx}>
+          <IconButton
+            aria-label="搜索"
+            onClick={openSearchPage}
+            sx={headerActionSx}
+          >
             <SearchRoundedIcon />
           </IconButton>
           <IconButton

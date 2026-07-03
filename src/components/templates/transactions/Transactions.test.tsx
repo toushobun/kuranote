@@ -25,12 +25,14 @@ import {
   type TransactionSaveResult,
 } from "./Transactions";
 
-const { routerReplaceMock } = vi.hoisted(() => ({
+const { routerPushMock, routerReplaceMock } = vi.hoisted(() => ({
+  routerPushMock: vi.fn(),
   routerReplaceMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
+    push: routerPushMock,
     replace: routerReplaceMock,
   }),
 }));
@@ -189,6 +191,14 @@ describe("TransactionsTemplate", () => {
     expect(
       within(container).getByRole("button", { name: "筛选" }),
     ).toBeInTheDocument();
+  });
+
+  it("点击搜索入口进入搜索页", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+
+    expect(routerPushMock).toHaveBeenCalledWith("/transactions/search");
   });
 
   it("向时间分组列表传递当前分组", () => {
