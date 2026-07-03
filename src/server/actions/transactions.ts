@@ -45,10 +45,6 @@ function transactionUpdatedRedirectHref(transactionAt: string) {
   );
 }
 
-function transactionDeletedRedirectHref() {
-  return transactionsResultHref(transactionResultValues.deleted);
-}
-
 function isRawTransferType(formData: FormData) {
   return String(formData.get("type") ?? "").trim() === "transfer";
 }
@@ -296,5 +292,5 @@ export async function voidTransaction(formData: FormData) {
 
   revalidatePath(routePaths.accounts);
   revalidatePath(routePaths.transactions);
-  redirect(transactionDeletedRedirectHref());
+  redirect(transactionsResultHref(transactionResultValues.deleted));
 }
