@@ -9,8 +9,17 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { EditTransactionTemplate } from "./TransactionFormPage";
+
+const storageScope = "edit-transaction-template-test";
+
+function renderWithTheme(ui: ReactNode) {
+  return render(
+    <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
+  );
+}
 
 vi.mock("organisms/transactions/TransactionForm", () => ({
   TransactionForm: ({
@@ -121,6 +130,7 @@ function createProps(type: "expense" | "income" = "expense") {
     accountOptions,
     action: vi.fn(async () => undefined),
     categoryOptions,
+    deleteAction: vi.fn(async () => undefined),
     errorMessage: null,
     initialValues: {
       accountId: accountOptions[0].id,
@@ -145,7 +155,7 @@ function createProps(type: "expense" | "income" = "expense") {
 
 describe("EditTransactionTemplate", () => {
   it("普通编辑页默认显示编辑记账标题", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -155,7 +165,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通支出编辑页渲染收支 / 转账切换，并激活支出面板", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -171,7 +181,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通收入编辑页渲染收支 / 转账切换，并激活收入面板", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps("income")} />,
     );
 
@@ -187,7 +197,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通编辑页显示转账切换 tab", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -203,7 +213,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("点击转账 tab 后激活转账编辑面板，并保持编辑记账标题", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -221,7 +231,7 @@ describe("EditTransactionTemplate", () => {
   });
 
   it("普通编辑切换类型后保留已挂载表单输入状态", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -236,8 +246,35 @@ describe("EditTransactionTemplate", () => {
     );
   });
 
+  it("普通编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
+    });
+    expect(deleteButton).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toHaveAttribute("form", "edit-expense-transaction-form");
+
+    fireEvent.click(deleteButton);
+
+    const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+    expect(
+      within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+
   it("内容修改后退出时提示保存、放弃或继续编辑", () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 
@@ -264,7 +301,7 @@ describe("EditTransactionTemplate", () => {
     const requestSubmit = vi
       .spyOn(HTMLFormElement.prototype, "requestSubmit")
       .mockImplementation(() => undefined);
-    const { container } = render(
+    const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
     );
 

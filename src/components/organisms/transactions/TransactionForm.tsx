@@ -82,6 +82,7 @@ type TransactionFormProps = {
   errorMessage?: string | null;
   formId?: string;
   hideHeader?: boolean;
+  hideSubmitButton?: boolean;
   initialType?: TransactionType;
   initialValues?: TransactionFormInitialValues;
   ledgerName?: string;
@@ -101,6 +102,7 @@ export function TransactionForm({
   errorMessage,
   formId = "new-transaction-form",
   hideHeader = false,
+  hideSubmitButton = false,
   initialType,
   initialValues,
   ledgerName,
@@ -719,15 +721,17 @@ export function TransactionForm({
           transactionTime={transactionTime}
         />
 
-        <Button
-          disabled={isSubmitDisabled}
-          size="large"
-          type="submit"
-          variant="contained"
-          sx={transactionSubmitButtonSx}
-        >
-          {submitLabel}
-        </Button>
+        {hideSubmitButton ? null : (
+          <Button
+            disabled={isSubmitDisabled}
+            size="large"
+            type="submit"
+            variant="contained"
+            sx={transactionSubmitButtonSx}
+          >
+            {submitLabel}
+          </Button>
+        )}
       </Stack>
 
       <TransactionItemPickerDrawer

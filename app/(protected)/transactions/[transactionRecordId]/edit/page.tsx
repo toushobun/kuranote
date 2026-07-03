@@ -1,4 +1,7 @@
-import { saveEditTransaction } from "server/actions/transactions";
+import {
+  saveEditTransaction,
+  voidTransaction,
+} from "server/actions/transactions";
 import { loadEditTransactionView } from "server/loaders/transactionForm";
 import {
   EditTransactionTemplate,
@@ -29,6 +32,7 @@ export default async function TransactionEditPage({
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
           categoryOptions={view.categoryOptions}
+          deleteAction={voidTransaction}
           errorMessage={errorMessage}
           initialValues={initialValues}
           ledgerName={view.ledgerName}
@@ -45,6 +49,7 @@ export default async function TransactionEditPage({
         accountOptions={view.accountOptions}
         action={saveEditTransaction}
         categoryOptions={view.categoryOptions}
+        deleteAction={voidTransaction}
         errorMessage={errorMessage}
         initialValues={initialValues}
         ledgerName={view.ledgerName}
