@@ -11,6 +11,7 @@ import {
   transactionResultValues,
   transactionsErrorHref,
   transactionsMonthHref,
+  transactionsResultHref,
 } from "config/paths";
 import { isUuid } from "utils/formData";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
@@ -45,7 +46,7 @@ function transactionUpdatedRedirectHref(transactionAt: string) {
 }
 
 function transactionDeletedRedirectHref() {
-  return transactionsMonthHref("", transactionResultValues.deleted);
+  return transactionsResultHref(transactionResultValues.deleted);
 }
 
 function isRawTransferType(formData: FormData) {
