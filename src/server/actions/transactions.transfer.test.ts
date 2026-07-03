@@ -81,7 +81,9 @@ describe("createTransferTransaction", () => {
   it("输入值合法时通过 RPC 创建转账并跳转到发生月份的列表页", async () => {
     await expect(
       createTransaction(createValidTransferFormData()),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transfer_transaction", {
       p_amount: 1234,

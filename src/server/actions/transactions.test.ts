@@ -110,7 +110,7 @@ describe("createTransaction", () => {
 
   it("输入值合法时通过 RPC 创建记账并跳转到发生月份的列表页", async () => {
     await expect(createTransaction(createValidFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions?month=2026-06",
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
@@ -140,7 +140,9 @@ describe("createTransaction", () => {
   it("0 元明细也可以保存", async () => {
     await expect(
       createTransaction(createValidFormData({ itemAmount: "0" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
@@ -190,7 +192,9 @@ describe("updateTransaction", () => {
   it("输入值合法时通过 RPC 更新记账并跳转到发生月份的列表页", async () => {
     await expect(
       updateTransaction(createValidUpdateFormData()),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith("update_transaction", {
       p_account_id: accountId,
@@ -225,7 +229,9 @@ describe("updateTransaction", () => {
   it("从支出改为收入后，也跳转到发生月份以刷新收入汇总", async () => {
     await expect(
       updateTransaction(createValidUpdateFormData({ type: "income" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?month=2026-06");
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "update_transaction",
