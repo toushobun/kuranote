@@ -21,6 +21,7 @@ function getTransactionSaveResult(
   result: string | undefined,
 ): TransactionSaveResult | null {
   if (result === transactionResultValues.created) return "created";
+  if (result === transactionResultValues.deleted) return "deleted";
   if (result === transactionResultValues.updated) return "updated";
   return null;
 }
