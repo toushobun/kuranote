@@ -14,13 +14,13 @@ import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import { useId, type ReactNode } from "react";
 
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { useUserTheme } from "theme/UserThemeProvider";
 import type { UserThemeKey } from "theme/userThemeTokens";
 
 const dialogText = {
   cancel: "取消",
   confirm: "确认",
+  delete: "删除",
 } as const;
 
 const deleteIllustrationByTheme = {
@@ -38,6 +38,7 @@ const deleteIllustrationByTheme = {
 } satisfies Record<UserThemeKey, string>;
 
 export type FeedbackDialogProps = {
+  bottomOffset?: string;
   description?: ReactNode;
   onClose: () => void;
   open: boolean;
@@ -47,6 +48,7 @@ export type FeedbackDialogProps = {
 type FeedbackTone = "error" | "success";
 
 function FeedbackDialog({
+  bottomOffset,
   description,
   onClose,
   open,
@@ -61,7 +63,7 @@ function FeedbackDialog({
       autoHideDuration={3000}
       onClose={onClose}
       open={open}
-      sx={feedbackSnackbarSx}
+      sx={feedbackSnackbarSx(bottomOffset)}
     >
       <Alert
         closeText="关闭"
@@ -124,10 +126,8 @@ export function ConfirmationDialog({
   open,
   title,
 }: ConfirmationDialogProps) {
-  const { themeKey } = useUserTheme();
   const titleId = useId();
   const descriptionId = useId();
-  const illustrationSrc = deleteIllustrationByTheme[themeKey];
 
   return (
     <Dialog
@@ -140,15 +140,7 @@ export function ConfirmationDialog({
       slotProps={{ paper: { sx: dialogPaperSx } }}
     >
       <DialogContent sx={confirmationContentSx}>
-        {illustration ?? (
-          <Box
-            alt=""
-            aria-hidden="true"
-            component="img"
-            src={illustrationSrc}
-            sx={confirmationIllustrationSx}
-          />
-        )}
+        {illustration}
         <DialogTitle component="h2" id={titleId} sx={confirmationTitleSx}>
           {title}
         </DialogTitle>
@@ -180,11 +172,51 @@ export function ConfirmationDialog({
   );
 }
 
-const feedbackToastOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 12px)`;
-
-const feedbackSnackbarSx = {
-  bottom: { xs: feedbackToastOffset, sm: feedbackToastOffset },
+export type DeleteConfirmationDialogProps = Omit<
+  ConfirmationDialogProps,
+  "confirmColor" | "confirmLabel" | "illustration"
+> & {
+  confirmColor?: ButtonProps["color"];
+  confirmLabel?: ReactNode;
+  illustration?: ReactNode;
 };
+
+export function DeleteConfirmationDialog({
+  confirmColor = "error",
+  confirmLabel = dialogText.delete,
+  illustration,
+  ...props
+}: DeleteConfirmationDialogProps) {
+  const { themeKey } = useUserTheme();
+  const illustrationSrc = deleteIllustrationByTheme[themeKey];
+
+  return (
+    <ConfirmationDialog
+      {...props}
+      confirmColor={confirmColor}
+      confirmLabel={confirmLabel}
+      illustration={
+        illustration ?? (
+          <Box
+            alt=""
+            aria-hidden="true"
+            component="img"
+            src={illustrationSrc}
+            sx={confirmationIllustrationSx}
+          />
+        )
+      }
+    />
+  );
+}
+
+function feedbackSnackbarSx(bottomOffset?: string) {
+  if (!bottomOffset) return undefined;
+
+  return {
+    bottom: { xs: bottomOffset, sm: bottomOffset },
+  };
+}
 
 function feedbackAlertSx(isError: boolean) {
   return {
