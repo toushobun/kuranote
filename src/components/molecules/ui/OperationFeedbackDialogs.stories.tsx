@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import Box from "@mui/material/Box";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import {
   ConfirmationDialog,
+  DeleteConfirmationDialog,
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "./OperationFeedbackDialogs";
@@ -48,9 +50,7 @@ export const Failure: Story = {
 export const DeleteConfirmation: Story = {
   name: "删除确认",
   render: () => (
-    <ConfirmationDialog
-      confirmColor="error"
-      confirmLabel="删除"
+    <DeleteConfirmationDialog
       description="删除后无法恢复。"
       onCancel={() => undefined}
       onConfirm={() => undefined}
@@ -68,9 +68,15 @@ export const CustomConfirmation: Story = {
       confirmLabel="继续"
       description="确认后会进入下一步。"
       illustration={
-        <div aria-hidden="true" style={{ fontSize: 72 }}>
-          🐾
-        </div>
+        <Box
+          aria-hidden="true"
+          sx={{
+            bgcolor: "var(--user-theme-badge-bg)",
+            borderRadius: "50%",
+            height: 72,
+            width: 72,
+          }}
+        />
       }
       onCancel={() => undefined}
       onConfirm={() => undefined}
