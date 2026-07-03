@@ -6,6 +6,7 @@ import {
   transactionEditPagePath,
   transactionResultValues,
   transactionsMonthHref,
+  transactionsResultHref,
   transactionsSearchHref,
 } from "./paths";
 
@@ -23,7 +24,7 @@ describe("transaction list paths", () => {
   });
 
   it("生成带删除成功结果的列表路由", () => {
-    expect(transactionsMonthHref("", transactionResultValues.deleted)).toBe(
+    expect(transactionsResultHref(transactionResultValues.deleted)).toBe(
       "/transactions?result=deleted",
     );
   });
