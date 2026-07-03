@@ -11,6 +11,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Snackbar from "@mui/material/Snackbar";
+import type { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useId, type ReactNode } from "react";
 
@@ -210,12 +211,11 @@ export function DeleteConfirmationDialog({
   );
 }
 
-function feedbackSnackbarSx(bottomOffset?: string) {
-  if (!bottomOffset) return undefined;
-
-  return {
-    bottom: { xs: bottomOffset, sm: bottomOffset },
-  };
+function feedbackSnackbarSx(bottomOffset?: string): SxProps<Theme> {
+  return (theme) => ({
+    ...(bottomOffset ? { bottom: bottomOffset } : {}),
+    zIndex: theme.zIndex.modal - 1,
+  });
 }
 
 function feedbackAlertSx(isError: boolean) {
