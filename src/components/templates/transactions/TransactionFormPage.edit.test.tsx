@@ -121,6 +121,7 @@ function createProps(type: "expense" | "income" = "expense") {
     accountOptions,
     action: vi.fn(async () => undefined),
     categoryOptions,
+    deleteAction: vi.fn(async () => undefined),
     errorMessage: null,
     initialValues: {
       accountId: accountOptions[0].id,
@@ -234,6 +235,33 @@ describe("EditTransactionTemplate", () => {
     expect(within(container).getByLabelText("支出编辑临时输入")).toHaveValue(
       "保留普通编辑输入",
     );
+  });
+
+  it("普通编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = render(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
+    });
+    expect(deleteButton).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toHaveAttribute("form", "edit-expense-transaction-form");
+
+    fireEvent.click(deleteButton);
+
+    const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+    expect(
+      within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
   });
 
   it("内容修改后退出时提示保存、放弃或继续编辑", () => {

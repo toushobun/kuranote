@@ -117,6 +117,7 @@ export const EditExpenseConvert: Story = {
   render: () => (
     <EditTransactionTemplate
       {...baseArgs}
+      deleteAction={noopAction}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000045",
         items: [
@@ -141,6 +142,7 @@ export const EditIncomeConvert: Story = {
   render: () => (
     <EditTransactionTemplate
       {...baseArgs}
+      deleteAction={noopAction}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000046",
         items: [
@@ -165,6 +167,7 @@ export const EditTransferConvert: Story = {
   render: () => (
     <EditTransferTransactionTemplate
       {...baseArgs}
+      deleteAction={noopAction}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000045",
         note: "转账编辑示例",

@@ -97,6 +97,7 @@ function renderTemplate() {
       ]}
       action={vi.fn(async () => undefined)}
       categoryOptions={[]}
+      deleteAction={vi.fn(async () => undefined)}
       errorMessage={null}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000045",
@@ -169,6 +170,31 @@ describe("EditTransferTransactionTemplate", () => {
     expect(within(container).getByLabelText("转账转换临时输入")).toHaveValue(
       "保留转账编辑输入",
     );
+  });
+
+  it("转账编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = renderTemplate();
+
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
+    });
+    expect(deleteButton).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toHaveAttribute("form", "edit-transfer-transaction-form");
+
+    fireEvent.click(deleteButton);
+
+    const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+    expect(
+      within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
   });
 
   it("转账内容修改后退出时显示未保存提示", () => {

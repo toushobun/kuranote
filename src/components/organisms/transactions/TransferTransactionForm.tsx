@@ -69,6 +69,7 @@ type TransferTransactionFormProps = {
   errorMessage?: string | null;
   formId?: string;
   hideHeader?: boolean;
+  hideSubmitButton?: boolean;
   initialValues?: TransferEditInitialValues;
   ledgerName?: string;
   onSubmitDisabledChange?: (disabled: boolean) => void;
@@ -84,6 +85,7 @@ export function TransferTransactionForm({
   errorMessage,
   formId,
   hideHeader = false,
+  hideSubmitButton = false,
   initialValues,
   ledgerName,
   onSubmitDisabledChange,
@@ -472,15 +474,17 @@ export function TransferTransactionForm({
           </Stack>
         </Box>
 
-        <Button
-          disabled={isSubmitDisabled}
-          size="large"
-          type="submit"
-          variant="contained"
-          sx={transactionSubmitButtonSx}
-        >
-          {effectiveSubmitLabel}
-        </Button>
+        {hideSubmitButton ? null : (
+          <Button
+            disabled={isSubmitDisabled}
+            size="large"
+            type="submit"
+            variant="contained"
+            sx={transactionSubmitButtonSx}
+          >
+            {effectiveSubmitLabel}
+          </Button>
+        )}
       </Stack>
     </form>
   );

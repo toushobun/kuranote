@@ -24,15 +24,17 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
+import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { SegmentTabs } from "molecules/ui/SegmentTabs";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext";
 import {
   TransactionForm,
   type TransactionFormInitialValues,
 } from "organisms/transactions/TransactionForm";
+import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm.styles";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm";
 import type { TransferEditInitialValues } from "server/loaders/transactionForm";
-import { SegmentTabs } from "molecules/ui/SegmentTabs";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
@@ -57,6 +59,7 @@ type EditTransactionTemplateProps = Omit<
   TransactionFormTemplateProps,
   "initialType"
 > & {
+  deleteAction: (formData: FormData) => Promise<void>;
   initialValues: TransactionFormInitialValues;
 };
 
@@ -64,6 +67,7 @@ type EditTransferTransactionTemplateProps = Omit<
   TransactionFormTemplateProps,
   "initialType"
 > & {
+  deleteAction: (formData: FormData) => Promise<void>;
   initialValues: TransferEditInitialValues;
 };
 
@@ -77,6 +81,22 @@ const transactionTypeTabs = [
   { label: "收支", value: "normal" },
   { label: "转账", value: "transfer" },
 ] as const;
+
+const deleteTransactionFormId = "delete-transaction-form";
+
+function editTransactionFormId(type: TransactionRecordType) {
+  return `edit-${type}-transaction-form`;
+}
+
+function requireEditTransactionRecordId(
+  transactionRecordId: string | undefined,
+) {
+  if (!transactionRecordId) {
+    throw new Error("transactionRecordId is required for edit transaction.");
+  }
+
+  return transactionRecordId;
+}
 
 type TransactionTypeSlidePanelsProps = {
   activeType: TransactionRecordType;
@@ -369,17 +389,24 @@ const newTransactionTitleSx = {
 
 type EditTransactionShellProps = {
   activeType: TransactionRecordType;
+  deleteAction: (formData: FormData) => Promise<void>;
   panels: Record<TransactionRecordType, ReactNode>;
   setActiveType: (type: TransactionRecordType) => void;
+  submitDisabledByType: Record<TransactionRecordType, boolean>;
+  transactionRecordId: string;
 };
 
 function EditTransactionShell({
   activeType,
+  deleteAction,
   panels,
   setActiveType,
+  submitDisabledByType,
+  transactionRecordId,
 }: EditTransactionShellProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const lastNormalTypeRef = useRef<TransactionType>(
     activeType !== "transfer" ? activeType : "expense",
   );
@@ -414,12 +441,20 @@ function EditTransactionShell({
 
   function handleSaveAndExit() {
     const form = document
-      .getElementById(`edit-${activeType}-transaction-form`)
+      .getElementById(editTransactionFormId(activeType))
       ?.closest("form");
 
     if (!(form instanceof HTMLFormElement)) return;
 
     setIsExitDialogOpen(false);
+    form.requestSubmit();
+  }
+
+  function handleConfirmDelete() {
+    const form = document.getElementById(deleteTransactionFormId);
+    if (!(form instanceof HTMLFormElement)) return;
+
+    setIsDeleteDialogOpen(false);
     form.requestSubmit();
   }
 
@@ -442,7 +477,36 @@ function EditTransactionShell({
           onChange={handleOuterTabChange}
         />
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
+        <Box sx={editTransactionActionBarSx}>
+          <Button
+            color="error"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            size="large"
+            variant="outlined"
+            sx={editTransactionDeleteButtonSx}
+          >
+            删除
+          </Button>
+          <Button
+            disabled={submitDisabledByType[activeType]}
+            form={editTransactionFormId(activeType)}
+            size="large"
+            type="submit"
+            variant="contained"
+            sx={transactionSubmitButtonSx}
+          >
+            保存修改
+          </Button>
+        </Box>
       </Stack>
+      <form action={deleteAction} id={deleteTransactionFormId}>
+        <input
+          name="transactionRecordId"
+          readOnly
+          type="hidden"
+          value={transactionRecordId}
+        />
+      </form>
       <TransactionAmountKeypadLauncher />
       <Dialog
         aria-labelledby="unsaved-transaction-dialog-title"
@@ -465,14 +529,36 @@ function EditTransactionShell({
           </Button>
         </DialogActions>
       </Dialog>
+      <DeleteConfirmationDialog
+        description="删除后这笔记账会从明细页移除，是否继续？"
+        onCancel={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        open={isDeleteDialogOpen}
+        title="删除记账？"
+      />
     </EditTransactionDirtyProvider>
   );
 }
+
+const editTransactionActionBarSx = {
+  display: "grid",
+  gap: 1.25,
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2fr)",
+  mt: 0.25,
+};
+
+const editTransactionDeleteButtonSx = {
+  borderRadius: 1.75,
+  fontSize: "1rem",
+  fontWeight: 800,
+  minHeight: 48,
+};
 
 export function EditTransferTransactionTemplate({
   accountOptions,
   action,
   categoryOptions,
+  deleteAction,
   errorMessage,
   initialValues,
   merchantOptions,
@@ -480,13 +566,16 @@ export function EditTransferTransactionTemplate({
 }: EditTransferTransactionTemplateProps) {
   const [activeType, setActiveType] =
     useState<TransactionRecordType>("transfer");
+  const [submitDisabledByType, setSubmitDisabledByType] = useState<
+    Record<TransactionRecordType, boolean>
+  >({ expense: true, income: true, transfer: true });
 
   const panels = useMemo(
     () => ({
       expense: (
         <>
           <input
-            form="edit-expense-transaction-form"
+            form={editTransactionFormId("expense")}
             name="sourceType"
             readOnly
             type="hidden"
@@ -497,13 +586,20 @@ export function EditTransferTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={errorMessage}
-            formId="edit-expense-transaction-form"
+            formId={editTransactionFormId("expense")}
             hideHeader
+            hideSubmitButton
             initialValues={createNormalInitialValuesFromTransfer(
               initialValues,
               "expense",
             )}
             merchantOptions={merchantOptions}
+            onSubmitDisabledChange={(disabled) =>
+              setSubmitDisabledByType((prev) => ({
+                ...prev,
+                expense: disabled,
+              }))
+            }
             submitLabel="保存修改"
             tagOptions={tagOptions}
           />
@@ -512,7 +608,7 @@ export function EditTransferTransactionTemplate({
       income: (
         <>
           <input
-            form="edit-income-transaction-form"
+            form={editTransactionFormId("income")}
             name="sourceType"
             readOnly
             type="hidden"
@@ -523,13 +619,17 @@ export function EditTransferTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={errorMessage}
-            formId="edit-income-transaction-form"
+            formId={editTransactionFormId("income")}
             hideHeader
+            hideSubmitButton
             initialValues={createNormalInitialValuesFromTransfer(
               initialValues,
               "income",
             )}
             merchantOptions={merchantOptions}
+            onSubmitDisabledChange={(disabled) =>
+              setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
+            }
             submitLabel="保存修改"
             tagOptions={tagOptions}
           />
@@ -540,9 +640,13 @@ export function EditTransferTransactionTemplate({
           action={action}
           accountOptions={accountOptions}
           errorMessage={errorMessage}
-          formId="edit-transfer-transaction-form"
+          formId={editTransactionFormId("transfer")}
           hideHeader
+          hideSubmitButton
           initialValues={initialValues}
+          onSubmitDisabledChange={(disabled) =>
+            setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
+          }
           sourceType="transfer"
         />
       ),
@@ -561,8 +665,13 @@ export function EditTransferTransactionTemplate({
   return (
     <EditTransactionShell
       activeType={activeType}
+      deleteAction={deleteAction}
       panels={panels}
       setActiveType={setActiveType}
+      submitDisabledByType={submitDisabledByType}
+      transactionRecordId={requireEditTransactionRecordId(
+        initialValues.transactionRecordId,
+      )}
     />
   );
 }
@@ -571,6 +680,7 @@ export function EditTransactionTemplate({
   accountOptions,
   action,
   categoryOptions,
+  deleteAction,
   errorMessage,
   initialValues,
   merchantOptions,
@@ -579,13 +689,16 @@ export function EditTransactionTemplate({
   const [activeType, setActiveType] = useState<TransactionRecordType>(
     initialValues.type,
   );
+  const [submitDisabledByType, setSubmitDisabledByType] = useState<
+    Record<TransactionRecordType, boolean>
+  >({ expense: true, income: true, transfer: true });
 
   const panels = useMemo(
     () => ({
       expense: (
         <>
           <input
-            form="edit-expense-transaction-form"
+            form={editTransactionFormId("expense")}
             name="sourceType"
             readOnly
             type="hidden"
@@ -596,13 +709,20 @@ export function EditTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={errorMessage}
-            formId="edit-expense-transaction-form"
+            formId={editTransactionFormId("expense")}
             hideHeader
+            hideSubmitButton
             initialValues={createNormalInitialValuesFromNormal(
               initialValues,
               "expense",
             )}
             merchantOptions={merchantOptions}
+            onSubmitDisabledChange={(disabled) =>
+              setSubmitDisabledByType((prev) => ({
+                ...prev,
+                expense: disabled,
+              }))
+            }
             submitLabel="保存修改"
             tagOptions={tagOptions}
           />
@@ -611,7 +731,7 @@ export function EditTransactionTemplate({
       income: (
         <>
           <input
-            form="edit-income-transaction-form"
+            form={editTransactionFormId("income")}
             name="sourceType"
             readOnly
             type="hidden"
@@ -622,13 +742,17 @@ export function EditTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={errorMessage}
-            formId="edit-income-transaction-form"
+            formId={editTransactionFormId("income")}
             hideHeader
+            hideSubmitButton
             initialValues={createNormalInitialValuesFromNormal(
               initialValues,
               "income",
             )}
             merchantOptions={merchantOptions}
+            onSubmitDisabledChange={(disabled) =>
+              setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
+            }
             submitLabel="保存修改"
             tagOptions={tagOptions}
           />
@@ -639,12 +763,16 @@ export function EditTransactionTemplate({
           action={action}
           accountOptions={accountOptions}
           errorMessage={errorMessage}
-          formId="edit-transfer-transaction-form"
+          formId={editTransactionFormId("transfer")}
           hideHeader
+          hideSubmitButton
           initialValues={createTransferInitialValuesFromNormal(
             initialValues,
             accountOptions,
           )}
+          onSubmitDisabledChange={(disabled) =>
+            setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
+          }
           sourceType={initialValues.type}
         />
       ),
@@ -663,8 +791,13 @@ export function EditTransactionTemplate({
   return (
     <EditTransactionShell
       activeType={activeType}
+      deleteAction={deleteAction}
       panels={panels}
       setActiveType={setActiveType}
+      submitDisabledByType={submitDisabledByType}
+      transactionRecordId={requireEditTransactionRecordId(
+        initialValues.transactionRecordId,
+      )}
     />
   );
 }
@@ -690,7 +823,9 @@ function createTransferInitialValuesFromNormal(
     accountId: initialValues.accountId,
     note: initialValues.note,
     transactionAt: initialValues.transactionAt,
-    transactionRecordId: initialValues.transactionRecordId ?? "",
+    transactionRecordId: requireEditTransactionRecordId(
+      initialValues.transactionRecordId,
+    ),
     transferAmount: totalAmountText(initialValues.items),
     transferTargetAccountId: findTransferTargetAccountId(
       accountOptions,
