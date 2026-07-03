@@ -6,6 +6,7 @@ import {
   transactionEditPagePath,
   transactionResultValues,
   transactionsMonthHref,
+  transactionsResultHref,
   transactionsSearchHref,
 } from "./paths";
 
@@ -20,6 +21,12 @@ describe("transaction list paths", () => {
     expect(
       transactionsMonthHref("2026-06", transactionResultValues.created),
     ).toBe("/transactions?month=2026-06&result=created");
+  });
+
+  it("生成带删除成功结果的列表路由", () => {
+    expect(transactionsResultHref(transactionResultValues.deleted)).toBe(
+      "/transactions?result=deleted",
+    );
   });
 
   it("生成明细搜索路由", () => {

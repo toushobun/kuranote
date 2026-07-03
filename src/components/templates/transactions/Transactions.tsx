@@ -30,7 +30,7 @@ import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary
 import { TransactionsSkeleton } from "./TransactionsSkeleton";
 import { useTransactions } from "./useTransactions";
 
-export type TransactionSaveResult = "created" | "updated";
+export type TransactionSaveResult = "created" | "deleted" | "updated";
 
 type TransactionsTemplateProps = {
   errorMessage: string | null;
@@ -259,13 +259,17 @@ const saveSuccessDialogTextByResult: Record<
     description: "这笔记账已经保存。",
     title: "记账成功",
   },
+  deleted: {
+    description: "这笔记账已经删除。",
+    title: "删除成功",
+  },
   updated: {
     description: "这条记录的修改已经保存。",
     title: "保存成功",
   },
 };
 
-const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 12px)`;
+const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 40px)`;
 
 const pageContentSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",

@@ -25,6 +25,7 @@ export const transactionEditPagePath =
 
 export const transactionResultValues = {
   created: "created",
+  deleted: "deleted",
   updated: "updated",
 } as const;
 
@@ -67,6 +68,10 @@ export function transactionsMonthHref(
   result?: TransactionResultValue,
 ) {
   return routeWithQuery(routePaths.transactions, { month, result });
+}
+
+export function transactionsResultHref(result: TransactionResultValue) {
+  return routeWithQuery(routePaths.transactions, { result });
 }
 
 export function transactionsSearchHref(query: string) {

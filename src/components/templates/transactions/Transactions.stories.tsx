@@ -427,6 +427,13 @@ export const CreateSuccess: Story = {
   },
 };
 
+export const DeleteSuccess: Story = {
+  name: "删除记账成功",
+  args: {
+    saveResult: "deleted",
+  },
+};
+
 export const MultiTheme: Story = {
   name: "六主题预览",
   render: (args) => (

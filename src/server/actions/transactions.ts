@@ -11,6 +11,7 @@ import {
   transactionResultValues,
   transactionsErrorHref,
   transactionsMonthHref,
+  transactionsResultHref,
 } from "config/paths";
 import { isUuid } from "utils/formData";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
@@ -291,5 +292,5 @@ export async function voidTransaction(formData: FormData) {
 
   revalidatePath(routePaths.accounts);
   revalidatePath(routePaths.transactions);
-  redirect(routePaths.transactions);
+  redirect(transactionsResultHref(transactionResultValues.deleted));
 }

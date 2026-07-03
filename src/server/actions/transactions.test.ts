@@ -285,9 +285,9 @@ describe("voidTransaction", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
-  it("输入值合法时通过 RPC 删除记账并回到列表页", async () => {
+  it("输入值合法时通过 RPC 删除记账并回到列表页显示删除成功结果", async () => {
     await expect(voidTransaction(createVoidFormData())).rejects.toThrow(
-      /^NEXT_REDIRECT:\/transactions$/,
+      /^NEXT_REDIRECT:\/transactions\?result=deleted$/,
     );
 
     expect(mocks.rpc).toHaveBeenCalledWith("void_transaction", {

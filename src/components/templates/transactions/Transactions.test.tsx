@@ -259,6 +259,23 @@ describe("TransactionsTemplate", () => {
     );
   });
 
+  it("删除记账成功后显示删除成功反馈弹框并清除结果参数", async () => {
+    window.history.replaceState(null, "", "/transactions?result=deleted");
+    renderPage({ saveResult: "deleted" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("删除成功");
+    expect(screen.getByText("这笔记账已经删除。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+    expect(routerReplaceMock).toHaveBeenCalledWith("/transactions", {
+      scroll: false,
+    });
+  });
+
   it("传入错误信息时显示整页错误状态", () => {
     const { container } = renderPage({
       errorMessage: transactionListPageErrorMessages.voidFailed,
