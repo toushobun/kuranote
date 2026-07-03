@@ -25,6 +25,7 @@ export const transactionEditPagePath =
 
 export const transactionResultValues = {
   created: "created",
+  deleted: "deleted",
   updated: "updated",
 } as const;
 
