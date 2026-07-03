@@ -223,7 +223,7 @@ function feedbackAlertSx(isError: boolean) {
     alignItems: "center",
     bgcolor: "background.paper",
     border: "1.5px solid",
-    borderColor: isError ? "error.main" : "transparent",
+    borderColor: isError ? "error.main" : "divider",
     borderRadius: 2,
     boxShadow: 6,
     color: "text.primary",
