@@ -31,6 +31,8 @@ const inactiveIconBackground = "var(--user-theme-segment-bg)";
 
 const heroLayout = {
   backgroundHeight: { xs: 238, sm: 270 },
+  containerBorderRadius: { xs: 0, sm: 0 },
+  containerPadding: { xs: 1, sm: 1.2 },
   greetingFontSize: { xs: 15, sm: 17 },
   greetingPaddingLeft: { xs: 4.4, sm: 3.6 },
   greetingSpacing: 1.4,
@@ -78,20 +80,30 @@ export function DashboardTemplate({ data }: { data: DashboardViewData }) {
 
 function DashboardContentFrame({ children }: { children: ReactNode }) {
   return (
-    <Box
+    <SectionCard
       component="section"
       data-testid="dashboard-fullscreen-frame"
       sx={{
+        background: "var(--user-theme-page-bg)",
+        borderRadius: heroLayout.containerBorderRadius,
+        boxShadow: "none",
+        mb: bottomNavigationLayout.shellPaddingBottomOffset,
+        minHeight: "100dvh",
+        mx: { xs: -2, sm: "calc(50% - 50vw)" },
+        mt: -4,
         overflow: "hidden",
+        px: heroLayout.containerPadding,
         pb: bottomNavigationLayout.dashboardContentPaddingBottom,
+        pt: heroLayout.containerPadding,
         position: "relative",
+        width: { xs: "calc(100% + 32px)", sm: "100vw" },
       }}
     >
       <DashboardHeroBackground />
       <Stack spacing={1.8} sx={{ position: "relative", zIndex: 2 }}>
         {children}
       </Stack>
-    </Box>
+    </SectionCard>
   );
 }
 
