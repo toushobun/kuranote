@@ -25,7 +25,10 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
-import { SegmentTabs } from "molecules/ui/SegmentTabs";
+import {
+  TransactionTypeNavigation,
+  type TransactionTypeNavigationValue,
+} from "molecules/transactions/TransactionTypeNavigation";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext";
 import {
@@ -76,11 +79,6 @@ const transactionTypeOrder: readonly TransactionRecordType[] = [
   "income",
   "transfer",
 ];
-
-const transactionTypeTabs = [
-  { label: "收支", value: "normal" },
-  { label: "转账", value: "transfer" },
-] as const;
 
 const deleteTransactionFormId = "delete-transaction-form";
 
@@ -224,7 +222,7 @@ function NewTransactionFormView({
     }
   }, [activeType]);
 
-  function handleNewTypeChange(type: NewTransactionTypeTab) {
+  function handleNewTypeChange(type: TransactionTypeNavigationValue) {
     if (type === "normal") {
       setActiveType(lastNormalTypeRef.current);
       return;
@@ -293,7 +291,7 @@ function NewTransactionFormView({
   return (
     <Stack spacing={0}>
       <TransactionPageTopBar title="记一笔" />
-      <NewTransactionTypeNavigation
+      <TransactionTypeNavigation
         activeType={activeType === "transfer" ? "transfer" : "normal"}
         onChange={handleNewTypeChange}
       />
@@ -336,29 +334,6 @@ function TransactionPageTopBar({
       </Typography>
       <Box aria-hidden sx={{ width: 40 }} />
     </Box>
-  );
-}
-
-type NewTransactionTypeTab = "normal" | "transfer";
-
-type NewTransactionTypeNavigationProps = {
-  activeType: NewTransactionTypeTab;
-  onChange: (type: NewTransactionTypeTab) => void;
-};
-
-function NewTransactionTypeNavigation({
-  activeType,
-  onChange,
-}: NewTransactionTypeNavigationProps) {
-  return (
-    <SegmentTabs
-      ariaLabel="记账类型"
-      items={transactionTypeTabs}
-      value={activeType}
-      onChange={(value) => {
-        if (value === "normal" || value === "transfer") onChange(value);
-      }}
-    />
   );
 }
 
@@ -411,7 +386,7 @@ function EditTransactionShell({
     activeType !== "transfer" ? activeType : "expense",
   );
 
-  const outerTab: "normal" | "transfer" =
+  const outerTab: TransactionTypeNavigationValue =
     activeType === "transfer" ? "transfer" : "normal";
 
   const markDirty = useCallback(() => setHasUnsavedChanges(true), []);
@@ -434,7 +409,7 @@ function EditTransactionShell({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  function handleOuterTabChange(tab: "normal" | "transfer") {
+  function handleOuterTabChange(tab: TransactionTypeNavigationValue) {
     markDirty();
     setActiveType(tab === "transfer" ? "transfer" : lastNormalTypeRef.current);
   }
@@ -472,7 +447,7 @@ function EditTransactionShell({
           onClose={() => setIsExitDialogOpen(true)}
           title="编辑记账"
         />
-        <NewTransactionTypeNavigation
+        <TransactionTypeNavigation
           activeType={outerTab}
           onChange={handleOuterTabChange}
         />
