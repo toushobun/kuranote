@@ -85,7 +85,7 @@ export function filterTransactionRecords(
   });
 }
 
-function normalizeTransactionFilters(
+export function normalizeTransactionFilters(
   filters: TransactionFilters,
 ): TransactionFilters {
   return {
@@ -102,7 +102,7 @@ function normalizeTransactionFilters(
   };
 }
 
-function normalizeOptionalValue(value: string | undefined) {
+export function normalizeOptionalValue(value: string | undefined) {
   const normalized = value?.trim();
   return normalized ? normalized : undefined;
 }
@@ -138,9 +138,7 @@ function matchesRecordType(
 ) {
   if (filters.recordType === "all") return true;
   if (filters.recordType === "transfer") return record.type === "transfer";
-  if (record.type === "transfer") return false;
+  if (record.type !== "normal") return false;
 
-  return (
-    getTransactionRecordCategoryType(items, categoryById) === filters.recordType
-  );
+  return getTransactionRecordCategoryType(items, categoryById) === filters.recordType;
 }
