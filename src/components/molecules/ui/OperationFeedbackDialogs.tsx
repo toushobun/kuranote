@@ -213,7 +213,15 @@ export function DeleteConfirmationDialog({
 
 function feedbackSnackbarSx(bottomOffset?: string): SxProps<Theme> {
   return (theme) => ({
-    ...(bottomOffset ? { bottom: bottomOffset } : {}),
+    ...(bottomOffset
+      ? {
+          // MUI Snackbar 在 sm 以上会重设 bottom，这里保持传入偏移。
+          bottom: {
+            xs: bottomOffset,
+            sm: bottomOffset,
+          },
+        }
+      : {}),
     zIndex: theme.zIndex.modal - 1,
   });
 }

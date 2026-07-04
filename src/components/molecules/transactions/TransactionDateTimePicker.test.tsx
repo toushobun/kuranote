@@ -147,7 +147,7 @@ describe("TransactionDateTimePicker", () => {
     expect(
       screen.getByRole("button", { name: "选择 13 时" }),
     ).toBeInTheDocument();
-  });
+  }, 10000); // 打开抽屉会同时挂载年月选择器的 101 个年份按钮，CI 环境下渲染耗时可能超过默认 5000ms 超时
 
   it("点击月份标题可手动选择年月", () => {
     vi.useFakeTimers();
