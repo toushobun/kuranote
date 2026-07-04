@@ -31,7 +31,7 @@ const inactiveIconBackground = "var(--user-theme-segment-bg)";
 
 const heroLayout = {
   backgroundHeight: { xs: 238, sm: 270 },
-  containerBorderRadius: { xs: 0, sm: 3 },
+  containerBorderRadius: { xs: 0, sm: 0 },
   containerPadding: { xs: 1, sm: 1.2 },
   greetingFontSize: { xs: 15, sm: 17 },
   greetingPaddingLeft: { xs: 4.4, sm: 3.6 },
@@ -85,8 +85,9 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
       data-testid="dashboard-fullscreen-frame"
       sx={{
         background: "var(--user-theme-page-bg)",
+        border: 0,
         borderRadius: heroLayout.containerBorderRadius,
-        boxShadow: { xs: "none", sm: "var(--user-theme-card-shadow)" },
+        boxShadow: "none",
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
         minHeight: "100dvh",
         mx: { xs: -2, sm: "calc(50% - 50vw)" },

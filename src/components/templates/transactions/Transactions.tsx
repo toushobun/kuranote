@@ -3,6 +3,7 @@
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Badge from "@mui/material/Badge";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
@@ -135,111 +136,113 @@ export function TransactionsTemplate({
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
 
   return (
-    <Stack spacing={2.2} sx={pageContentSx}>
-      <Stack
-        direction="row"
-        sx={{ alignItems: "center", justifyContent: "space-between" }}
-      >
-        <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
-          小票明细
-        </Typography>
+    <Box sx={pageFrameSx}>
+      <Stack spacing={2.2} sx={pageContentSx}>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
+            小票明细
+          </Typography>
 
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-          <IconButton
-            aria-label="搜索"
-            onClick={openSearchPage}
-            sx={headerActionSx}
-          >
-            <SearchRoundedIcon />
-          </IconButton>
-          <IconButton
-            aria-label="筛选"
-            onClick={openFilterDialog}
-            sx={headerActionSx}
-          >
-            <Badge
-              color="warning"
-              invisible={!hasActiveDisplaySettings}
-              overlap="circular"
-              variant="dot"
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <IconButton
+              aria-label="搜索"
+              onClick={openSearchPage}
+              sx={headerActionSx}
             >
-              <FilterAltOutlinedIcon />
-            </Badge>
-          </IconButton>
+              <SearchRoundedIcon />
+            </IconButton>
+            <IconButton
+              aria-label="筛选"
+              onClick={openFilterDialog}
+              sx={headerActionSx}
+            >
+              <Badge
+                color="warning"
+                invisible={!hasActiveDisplaySettings}
+                overlap="circular"
+                variant="dot"
+              >
+                <FilterAltOutlinedIcon />
+              </Badge>
+            </IconButton>
+          </Stack>
         </Stack>
-      </Stack>
 
-      {displayLoading ? (
-        <TransactionsSkeleton />
-      ) : errorMessage ? (
-        <EmptyState
-          action={
-            <Button
-              onClick={() => globalThis.location.reload()}
-              sx={{
-                bgcolor: "var(--user-theme-action-bg)",
-                borderRadius: 999,
-                color: "var(--user-theme-action-text)",
-                fontWeight: 900,
-                px: 2.4,
-                "&:hover": {
-                  bgcolor: "var(--user-theme-field-card-selected-bg)",
-                },
-              }}
-              variant="contained"
-            >
-              重新读取
-            </Button>
-          }
-          description={errorMessage}
-          title="明细读取失败"
+        {displayLoading ? (
+          <TransactionsSkeleton />
+        ) : errorMessage ? (
+          <EmptyState
+            action={
+              <Button
+                onClick={() => globalThis.location.reload()}
+                sx={{
+                  bgcolor: "var(--user-theme-action-bg)",
+                  borderRadius: 999,
+                  color: "var(--user-theme-action-text)",
+                  fontWeight: 900,
+                  px: 2.4,
+                  "&:hover": {
+                    bgcolor: "var(--user-theme-field-card-selected-bg)",
+                  },
+                }}
+                variant="contained"
+              >
+                重新读取
+              </Button>
+            }
+            description={errorMessage}
+            title="明细读取失败"
+          />
+        ) : (
+          <>
+            {resultLabel ? (
+              <TransactionFilterResultSummary
+                chips={activeFilterChips}
+                hasActiveFilters={hasActiveFilters}
+                label={resultLabel}
+                onClear={clearFilters}
+              />
+            ) : null}
+            {showFilterEmptyState ? (
+              <EmptyState title="没有找到符合条件的流水。" />
+            ) : (
+              <TransactionMonthList
+                key={`${groupView.groupBy}:${appliedFilterKey}:${groupView.groups
+                  .map((group) => group.id)
+                  .join("|")}`}
+                loadGroupItemsAction={loadGroupItems}
+                loadMoreGroupsAction={loadMoreGroups}
+                timeGroupView={groupView}
+              />
+            )}
+          </>
+        )}
+
+        <TransactionFilterDialog
+          draftFilters={draftFilters}
+          draftGroupBy={draftGroupBy}
+          errorMessage={filterDialogErrorMessage}
+          filterOptions={filterOptions}
+          isPending={isPending}
+          onApply={onApplyDraftFilters}
+          onChangeFilters={onChangeDraftFilters}
+          onChangeGroupBy={onChangeDraftGroupBy}
+          onClose={closeFilterDialog}
+          onReset={resetDraftFilters}
+          open={isFilterOpen}
         />
-      ) : (
-        <>
-          {resultLabel ? (
-            <TransactionFilterResultSummary
-              chips={activeFilterChips}
-              hasActiveFilters={hasActiveFilters}
-              label={resultLabel}
-              onClear={clearFilters}
-            />
-          ) : null}
-          {showFilterEmptyState ? (
-            <EmptyState title="没有找到符合条件的流水。" />
-          ) : (
-            <TransactionMonthList
-              key={`${groupView.groupBy}:${appliedFilterKey}:${groupView.groups
-                .map((group) => group.id)
-                .join("|")}`}
-              loadGroupItemsAction={loadGroupItems}
-              loadMoreGroupsAction={loadMoreGroups}
-              timeGroupView={groupView}
-            />
-          )}
-        </>
-      )}
-
-      <TransactionFilterDialog
-        draftFilters={draftFilters}
-        draftGroupBy={draftGroupBy}
-        errorMessage={filterDialogErrorMessage}
-        filterOptions={filterOptions}
-        isPending={isPending}
-        onApply={onApplyDraftFilters}
-        onChangeFilters={onChangeDraftFilters}
-        onChangeGroupBy={onChangeDraftGroupBy}
-        onClose={closeFilterDialog}
-        onReset={resetDraftFilters}
-        open={isFilterOpen}
-      />
-      <SuccessFeedbackDialog
-        bottomOffset={saveFeedbackBottomOffset}
-        description={saveSuccessDialogText.description}
-        onClose={closeSaveSuccessDialog}
-        open={isSaveSuccessOpen}
-        title={saveSuccessDialogText.title}
-      />
-    </Stack>
+        <SuccessFeedbackDialog
+          bottomOffset={saveFeedbackBottomOffset}
+          description={saveSuccessDialogText.description}
+          onClose={closeSaveSuccessDialog}
+          open={isSaveSuccessOpen}
+          title={saveSuccessDialogText.title}
+        />
+      </Stack>
+    </Box>
   );
 }
 
@@ -271,14 +274,15 @@ const saveSuccessDialogTextByResult: Record<
 
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 40px)`;
 
-const pageContentSx = {
+const pageFrameSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",
   mb: bottomNavigationLayout.shellPaddingBottomOffset,
   minHeight: "100dvh",
+  // AppShell Container 的 py: 4，此处用负 margin 抵消使明细页内容从顶部开始。
   mt: -4,
   mx: {
     xs: -designTokens.spacing.page.mobile,
-    sm: -designTokens.spacing.page.desktop,
+    sm: "calc(50% - 50vw)",
   },
   px: {
     xs: designTokens.spacing.page.mobile,
@@ -289,6 +293,15 @@ const pageContentSx = {
     xs: designTokens.spacing.page.mobile,
     sm: designTokens.spacing.page.desktop,
   },
+  width: {
+    xs: "calc(100% + 32px)",
+    sm: "100vw",
+  },
+};
+
+const pageContentSx = {
+  maxWidth: "900px",
+  mx: "auto",
 };
 
 const headerActionSx = {
