@@ -1,5 +1,6 @@
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -43,6 +44,46 @@ export function TransactionFilterResultSummary({
   );
 }
 
+export function TransactionFilterResultSummarySkeleton({
+  chipCount,
+  hasActiveFilters,
+}: {
+  chipCount: number;
+  hasActiveFilters: boolean;
+}) {
+  return (
+    <Stack
+      aria-busy="true"
+      aria-label="筛选结果加载中"
+      role="status"
+      spacing={1}
+      sx={filterResultSx}
+    >
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+        <Skeleton width={120} sx={{ flex: 1, fontSize: 13 }} />
+        {hasActiveFilters ? <Skeleton width={34} sx={{ fontSize: 13 }} /> : null}
+      </Stack>
+      {chipCount > 0 ? (
+        <Stack
+          direction="row"
+          spacing={0.8}
+          sx={{ flexWrap: "wrap", rowGap: 0.8 }}
+        >
+          {Array.from({ length: chipCount }).map((_, index) => (
+            <Skeleton
+              key={index}
+              height={32}
+              variant="rounded"
+              width={64}
+              sx={resultChipSkeletonSx}
+            />
+          ))}
+        </Stack>
+      ) : null}
+    </Stack>
+  );
+}
+
 const filterResultSx = {
   bgcolor: "var(--user-theme-filter-summary-bg)",
   border: "1px solid var(--user-theme-card-border)",
@@ -71,4 +112,8 @@ const resultChipSx = {
   "& .MuiChip-label": {
     px: 1.5,
   },
+};
+
+const resultChipSkeletonSx = {
+  borderRadius: `${designTokens.radius.sm}px`,
 };
