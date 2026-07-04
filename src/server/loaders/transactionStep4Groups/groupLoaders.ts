@@ -55,6 +55,8 @@ const nonTimeTransactionGroupByValues = new Set<string>([
   "member",
 ]);
 
+const transactionGroupSummaryRpcPageSize = transactionPageSize + 1;
+
 type TransactionGroupSummaryRpcRow = {
   balance: number | string | null;
   expense: number | string | null;
@@ -144,8 +146,10 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
       p_date_start: dateBounds?.startIso ?? null,
       p_group_by: groupBy,
       p_ledger_id: currentLedger.id,
+      p_limit: transactionGroupSummaryRpcPageSize,
       p_member_id: normalizedFilters.memberId ?? null,
       p_merchant_id: normalizedFilters.merchantId ?? null,
+      p_offset: safeOffset,
       p_parent_category_id: normalizedFilters.parentCategoryId ?? null,
       p_record_type: normalizedFilters.recordType,
       p_tag_id: normalizedFilters.tagId ?? null,
@@ -154,16 +158,7 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
 
   if (error) throw new Error("Failed to load transaction group summaries");
 
-  const rows = [...((data ?? []) as TransactionGroupSummaryRpcRow[])].sort(
-    (a, b) => {
-      if (a.latest_transaction_at !== b.latest_transaction_at) {
-        return b.latest_transaction_at.localeCompare(a.latest_transaction_at);
-      }
-
-      return a.group_label.localeCompare(b.group_label, "zh-Hans-CN");
-    },
-  );
-  const pageRows = rows.slice(safeOffset, safeOffset + transactionPageSize + 1);
+  const pageRows = (data ?? []) as TransactionGroupSummaryRpcRow[];
   const groups = pageRows.slice(0, transactionPageSize).map((row) => ({
     id: row.group_id,
     key: row.group_key,
