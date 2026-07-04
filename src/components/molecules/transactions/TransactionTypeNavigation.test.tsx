@@ -8,28 +8,25 @@ afterEach(() => {
 });
 
 describe("TransactionTypeNavigation", () => {
-  it("默认渲染三种类型", () => {
+  it("默认渲染收支和转账入口", () => {
     render(
-      <TransactionTypeNavigation activeType="expense" onChange={() => {}} />,
+      <TransactionTypeNavigation activeType="normal" onChange={() => {}} />,
     );
 
-    expect(screen.getByRole("button", { name: "支出" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "收入" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "收支" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "转账" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "支出" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "收入" })).toBeNull();
   });
 
   it("当前类型高亮", () => {
     render(
-      <TransactionTypeNavigation activeType="income" onChange={() => {}} />,
+      <TransactionTypeNavigation activeType="normal" onChange={() => {}} />,
     );
 
-    expect(screen.getByRole("button", { name: "收入" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "收支" })).toHaveAttribute(
       "aria-pressed",
       "true",
-    );
-    expect(screen.getByRole("button", { name: "支出" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
     );
     expect(screen.getByRole("button", { name: "转账" })).toHaveAttribute(
       "aria-pressed",
@@ -40,7 +37,7 @@ describe("TransactionTypeNavigation", () => {
   it("点击转账会触发切换", () => {
     const onChange = vi.fn();
     render(
-      <TransactionTypeNavigation activeType="expense" onChange={onChange} />,
+      <TransactionTypeNavigation activeType="normal" onChange={onChange} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "转账" }));
@@ -48,25 +45,14 @@ describe("TransactionTypeNavigation", () => {
     expect(onChange).toHaveBeenCalledWith("transfer");
   });
 
-  it("点击支出会触发切换", () => {
+  it("点击收支会触发切换", () => {
     const onChange = vi.fn();
     render(
       <TransactionTypeNavigation activeType="transfer" onChange={onChange} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "支出" }));
+    fireEvent.click(screen.getByRole("button", { name: "收支" }));
 
-    expect(onChange).toHaveBeenCalledWith("expense");
-  });
-
-  it("点击收入会触发切换", () => {
-    const onChange = vi.fn();
-    render(
-      <TransactionTypeNavigation activeType="transfer" onChange={onChange} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "收入" }));
-
-    expect(onChange).toHaveBeenCalledWith("income");
+    expect(onChange).toHaveBeenCalledWith("normal");
   });
 });
