@@ -140,5 +140,7 @@ function matchesRecordType(
   if (filters.recordType === "transfer") return record.type === "transfer";
   if (record.type !== "normal") return false;
 
-  return getTransactionRecordCategoryType(items, categoryById) === filters.recordType;
+  return (
+    getTransactionRecordCategoryType(items, categoryById) === filters.recordType
+  );
 }
