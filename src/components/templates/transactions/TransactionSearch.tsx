@@ -25,6 +25,7 @@ import type {
   TransactionSearchPage,
 } from "types/transactions";
 
+import { TransactionsSkeleton } from "./TransactionsSkeleton";
 import { useTransactionSearch } from "./useTransactionSearch";
 
 export type TransactionSearchTemplateProps = {
@@ -202,9 +203,15 @@ function SearchEmptyState({
 
 function SearchLoadingState() {
   return (
-    <Stack spacing={1.2} sx={loadingStateSx}>
-      <CircularProgress size={28} />
+    <Stack
+      aria-busy="true"
+      aria-label="搜索结果加载中"
+      role="status"
+      spacing={1.3}
+      sx={loadingStateSx}
+    >
       <Typography sx={emptyDescriptionSx}>搜索中...</Typography>
+      <TransactionsSkeleton />
     </Stack>
   );
 }
@@ -337,10 +344,7 @@ const emptyDescriptionSx = {
 };
 
 const loadingStateSx = {
-  alignItems: "center",
-  justifyContent: "center",
   minHeight: "calc(100dvh - 220px)",
-  textAlign: "center",
 };
 
 const pillButtonSx = {
