@@ -13,7 +13,7 @@ describe("TransactionsLoadingPage", () => {
 
     expect(within(container).getByRole("status")).toBeInTheDocument();
     expect(
-      within(container).getByRole("heading", { name: "明细" }),
+      within(container).getByRole("heading", { name: "小票明细" }),
     ).toBeInTheDocument();
   });
 });
