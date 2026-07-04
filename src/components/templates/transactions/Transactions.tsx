@@ -27,7 +27,10 @@ import type {
 } from "types/transactions";
 
 import { TransactionFilterDialog } from "./TransactionFilterDialog";
-import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary";
+import {
+  TransactionFilterResultSummary,
+  TransactionFilterResultSummarySkeleton,
+} from "./TransactionFilterResultSummary";
 import { TransactionsSkeleton } from "./TransactionsSkeleton";
 import { useTransactions } from "./useTransactions";
 
@@ -100,6 +103,9 @@ export function TransactionsTemplate({
     isPending,
     loadGroupItems,
     loadMoreGroups,
+    loadingFilterChips,
+    loadingHasActiveFilters,
+    loadingResultLabel,
     onApplyDraftFilters,
     onChangeDraftFilters,
     onChangeDraftGroupBy,
@@ -172,7 +178,15 @@ export function TransactionsTemplate({
         </Stack>
 
         {displayLoading ? (
-          <TransactionsSkeleton />
+          <Stack spacing={1.3}>
+            {loadingResultLabel ? (
+              <TransactionFilterResultSummarySkeleton
+                chipCount={loadingFilterChips.length}
+                hasActiveFilters={loadingHasActiveFilters}
+              />
+            ) : null}
+            <TransactionsSkeleton />
+          </Stack>
         ) : errorMessage ? (
           <EmptyState
             action={
