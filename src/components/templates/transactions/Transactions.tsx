@@ -272,7 +272,7 @@ const saveSuccessDialogTextByResult: Record<
   },
 };
 
-const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 40px)`;
+const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const pageFrameSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",
