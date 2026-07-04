@@ -46,6 +46,14 @@ import {
 } from "./types";
 
 const transactionRecordScanPageSize = 100;
+const nonTimeTransactionGroupByValues = new Set<string>([
+  "merchant",
+  "account",
+  "parentCategory",
+  "category",
+  "tag",
+  "member",
+]);
 
 type TransactionGroupSummaryRpcRow = {
   balance: number | string | null;
@@ -113,6 +121,10 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
   offset: number,
   filters: TransactionFilters,
 ): Promise<TransactionGroupPage> {
+  if (!nonTimeTransactionGroupByValues.has(groupBy)) {
+    throw new Error(`Unsupported transaction group: ${groupBy}`);
+  }
+
   const currentLedger = await getCurrentLedgerOrRedirect();
   const supabase = await createClient();
   const normalizedFilters = normalizeTransactionFilters(filters);
