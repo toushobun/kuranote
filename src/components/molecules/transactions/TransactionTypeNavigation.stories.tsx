@@ -18,7 +18,7 @@ const meta = {
     );
   },
   args: {
-    activeType: "expense",
+    activeType: "normal",
     onChange: () => undefined,
   },
 } satisfies Meta<typeof TransactionTypeNavigation>;
@@ -26,14 +26,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Expense: Story = {
-  name: "支出选中",
-  args: { activeType: "expense" },
-};
-
-export const Income: Story = {
-  name: "收入选中",
-  args: { activeType: "income" },
+export const Normal: Story = {
+  name: "收支选中",
+  args: { activeType: "normal" },
 };
 
 export const Transfer: Story = {
