@@ -137,6 +137,7 @@ PR merge 后需要回收相关状态：
 - 可复用 UI 组件需要补充 Storybook。
 - 新 UI 优先复用 MUI 和现有组件，不要重复造基础组件。
 - 页面基础结构优先复用 Theme、PageShell、PageHeader、SectionCard、EmptyState、LoadingState、ErrorState。
+- 修改页面设计结构、PageShell / Layout、主要区块层级或 route-level 页面结构时，必须同步检查并更新对应 `loading.tsx`、skeleton 或 Suspense fallback，确保加载骨架与最终 UI 结构一致。
 - 同类 UI 结构出现 2 次以上时，必须优先抽象为可复用组件，禁止复制粘贴维护相似 UI。
 - 复用优先级：MUI 原生组件 → 项目通用组件 → 业务模块组件 → 页面内局部组件。
 

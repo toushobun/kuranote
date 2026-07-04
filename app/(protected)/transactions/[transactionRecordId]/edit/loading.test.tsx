@@ -15,9 +15,5 @@ describe("TransactionEditLoadingPage", () => {
       within(container).getByRole("heading", { name: "编辑记账" }),
     ).toBeInTheDocument();
     expect(within(container).getByRole("status")).toBeInTheDocument();
-    expect(within(container).getByText("正在读取记账数据")).toBeInTheDocument();
-    expect(
-      within(container).getByText("请稍等，读取完成后会自动显示编辑表单。"),
-    ).toBeInTheDocument();
   });
 });

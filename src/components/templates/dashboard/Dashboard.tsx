@@ -19,6 +19,8 @@ import { typographyStyles } from "theme/typographyTokens";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
 
+import { dashboardHeroLayout as heroLayout } from "./dashboardLayout";
+
 const incomeColor = "var(--user-theme-income-amount)";
 const expenseColor = "var(--user-theme-negative-amount)";
 const balanceColor = "var(--user-theme-stat-value-1)";
@@ -28,24 +30,6 @@ const actionText = "var(--user-theme-action-text)";
 const inactiveActionText = "var(--user-theme-bottom-nav-inactive)";
 const activeIconBackground = "var(--user-theme-bottom-nav-active-bg)";
 const inactiveIconBackground = "var(--user-theme-segment-bg)";
-
-const heroLayout = {
-  backgroundHeight: { xs: 238, sm: 270 },
-  containerBorderRadius: { xs: 0, sm: 0 },
-  containerPadding: { xs: 1, sm: 1.2 },
-  greetingFontSize: { xs: 15, sm: 17 },
-  greetingPaddingLeft: { xs: 4.4, sm: 3.6 },
-  greetingSpacing: 1.4,
-  overlayOpacity: 0.5,
-  overlayWidth: "55%",
-  subtitleFontSize: { xs: 12, sm: 13 },
-  titleFontSize: { xs: 28, sm: 33 },
-  welcomeHeight: { xs: 178, sm: 205 },
-  welcomeMaxWidth: { xs: "62%", sm: "64%" },
-  welcomePaddingLeft: { xs: 2.2, sm: 2.8 },
-  welcomePaddingRight: { xs: 0.5, sm: 0.8 },
-  welcomePaddingTop: { xs: 2.8, sm: 3.2 },
-} as const;
 
 type QuickAction = {
   href?: string;
