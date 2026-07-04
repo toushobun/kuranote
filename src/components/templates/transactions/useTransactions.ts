@@ -82,6 +82,22 @@ export function useTransactions({
     () => buildActiveFilterChips(appliedFilters, filterOptions),
     [appliedFilters, filterOptions],
   );
+  const draftHasActiveFilters = hasActiveTransactionFilters(draftFilters);
+  const draftHasCustomGroup = draftGroupBy !== "month";
+  const loadingHasActiveFilters = isPending
+    ? draftHasActiveFilters
+    : hasActiveFilters;
+  const loadingResultLabel = isPending
+    ? getResultLabel(draftGroupBy, draftHasActiveFilters)
+    : resultLabel;
+  const loadingFilterChips = useMemo(
+    () =>
+      buildActiveFilterChips(
+        isPending ? draftFilters : appliedFilters,
+        filterOptions,
+      ),
+    [appliedFilters, draftFilters, filterOptions, isPending],
+  );
   const displayLoading = isLoading || isPending;
   const showFilterEmptyState =
     hasActiveFilters && groupView.groups.length === 0;
@@ -197,6 +213,9 @@ export function useTransactions({
     isPending,
     loadGroupItems,
     loadMoreGroups,
+    loadingFilterChips,
+    loadingHasActiveFilters,
+    loadingResultLabel,
     onApplyDraftFilters: applyDraftFilters,
     onChangeDraftFilters: setDraftFilters,
     onChangeDraftGroupBy: setDraftGroupBy,
