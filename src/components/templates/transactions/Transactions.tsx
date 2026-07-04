@@ -278,6 +278,7 @@ const pageFrameSx = {
   bgcolor: "var(--user-theme-tx-page-bg)",
   mb: bottomNavigationLayout.shellPaddingBottomOffset,
   minHeight: "100dvh",
+  // AppShell Container 的 py: 4，此处用负 margin 抵消使明细页内容从顶部开始。
   mt: -4,
   mx: {
     xs: -designTokens.spacing.page.mobile,

@@ -91,6 +91,7 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
         minHeight: "100dvh",
         mx: { xs: -2, sm: "calc(50% - 50vw)" },
+        // AppShell Container 的 py: 4，此处用负 margin 抵消使首页内容从顶部开始。
         mt: -4,
         overflow: "hidden",
         px: heroLayout.containerPadding,
