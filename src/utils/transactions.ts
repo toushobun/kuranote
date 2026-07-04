@@ -9,6 +9,7 @@ import type {
 import { getCurrencySymbol } from "utils/currency";
 
 const weekDayLabels = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const minimumDateLabelRefreshDelayMs = 1;
 
 export function formatNumber(amount: string) {
   const value = Number(amount);
@@ -153,6 +154,23 @@ export function formatDateLabel(dateKey: string) {
   const relativeLabel = getRelativeDateLabel(dateKey);
 
   return `${day}日（${relativeLabel ?? weekDayLabels[date.getUTCDay()]}）`;
+}
+
+export function getDateLabelRefreshDelayMs(current = new Date()) {
+  const todayKey = getDateKeyInTimeZone(
+    current.toISOString(),
+    serverFallbackTimeZone,
+  );
+  const nextDateKey = shiftDateKey(todayKey, 1);
+  const nextDateStartMs = getDateStartUtcMs(
+    nextDateKey,
+    serverFallbackTimeZone,
+  );
+
+  return Math.max(
+    nextDateStartMs - current.getTime(),
+    minimumDateLabelRefreshDelayMs,
+  );
 }
 
 export function getCurrentMonthRange() {
@@ -372,13 +390,35 @@ export function getDateKeyInTimeZone(
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+function getDateStartUtcMs(dateKey: string, timeZone: string) {
+  const [yearText, monthText, dayText] = dateKey.split("-");
+
+  return getLocalDateStartUtcMs(
+    Number(yearText),
+    Number(monthText) - 1,
+    Number(dayText),
+    timeZone,
+  );
+}
+
 function getMonthStartUtcIso(
   year: number,
   monthIndex: number,
   timeZone: string,
 ): string {
-  // probe: UTC midnight on the 1st of the month (monthIndex may overflow, Date.UTC handles it)
-  const probe = new Date(Date.UTC(year, monthIndex, 1));
+  return new Date(
+    getLocalDateStartUtcMs(year, monthIndex, 1, timeZone),
+  ).toISOString();
+}
+
+function getLocalDateStartUtcMs(
+  year: number,
+  monthIndex: number,
+  day: number,
+  timeZone: string,
+) {
+  // 以目标日期的 UTC 0 点作为探针，monthIndex 溢出时交给 Date.UTC 处理
+  const probe = new Date(Date.UTC(year, monthIndex, day));
 
   const localParts = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
@@ -399,7 +439,7 @@ function getMonthStartUtcIso(
   const localHour = get("hour") % 24;
   const localMinute = get("minute");
 
-  // offset: naive-local-as-UTC minus actual-UTC
+  // 将本地时间当作 UTC 时刻后，与实际 UTC 探针相减得到时区偏移
   const naiveLocalMs = Date.UTC(
     localYear,
     localMonth,
@@ -409,8 +449,8 @@ function getMonthStartUtcIso(
   );
   const offsetMs = naiveLocalMs - probe.getTime();
 
-  // local midnight on 1st expressed as UTC
-  return new Date(Date.UTC(year, monthIndex, 1) - offsetMs).toISOString();
+  // 返回目标本地日期 0 点对应的 UTC 毫秒
+  return Date.UTC(year, monthIndex, day) - offsetMs;
 }
 
 export function getNowDateTimeLocalValue() {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -9,7 +11,11 @@ import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import type { TransactionDateGroup } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
-import { formatNumber } from "utils/transactions";
+import {
+  formatDateLabel,
+  formatNumber,
+  getDateLabelRefreshDelayMs,
+} from "utils/transactions";
 
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
@@ -20,6 +26,8 @@ export function TransactionGroupList({
   groups,
   showSummary = true,
 }: TransactionGroupListProps) {
+  useDateGroupLabelRefresh();
+
   return (
     <Stack spacing={1.2}>
       {groups.map((group, groupIndex) => (
@@ -44,7 +52,7 @@ export function TransactionGroupList({
               <Typography
                 sx={{ color: "text.primary", fontSize: 15, fontWeight: 700 }}
               >
-                {group.label}
+                {formatDateLabel(group.date)}
               </Typography>
               <Box
                 sx={{
@@ -104,6 +112,27 @@ export function TransactionGroupList({
       ))}
     </Stack>
   );
+}
+
+function useDateGroupLabelRefresh() {
+  const [, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextRefresh = () => {
+      timeoutId = setTimeout(() => {
+        setRefreshKey((current) => current + 1);
+        scheduleNextRefresh();
+      }, getDateLabelRefreshDelayMs(new Date()));
+    };
+
+    scheduleNextRefresh();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 }
 
 function getGroupSummaryText(group: TransactionDateGroup) {

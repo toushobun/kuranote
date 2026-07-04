@@ -1,6 +1,6 @@
-import { cleanup, render, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createTransactionDateGroup,
@@ -10,6 +10,8 @@ import type { TransactionRowProps } from "molecules/transactions/TransactionRow"
 
 import { TransactionGroupList } from "./TransactionGroupList";
 
+const stableDateLabelTestTime = new Date("2026-06-20T03:00:00.000Z");
+
 vi.mock("molecules/transactions/TransactionRow", () => ({
   TransactionRow: ({ item }: TransactionRowProps): ReactNode => (
     <div data-testid={`row-${item.id}`}>
@@ -18,8 +20,14 @@ vi.mock("molecules/transactions/TransactionRow", () => ({
   ),
 }));
 
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(stableDateLabelTestTime);
+});
+
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 const defaultGroup = createTransactionDateGroup({
@@ -74,6 +82,36 @@ describe("TransactionGroupList", () => {
 
     expect(within(container).getByText("5日（周五）")).toBeInTheDocument();
     expect(within(container).getByText("1日（周一）")).toBeInTheDocument();
+  });
+
+  it("跨过本地 0 点后自动重新计算相对日期标签", () => {
+    vi.setSystemTime(new Date("2026-07-01T14:50:00.000Z"));
+
+    render(
+      <TransactionGroupList
+        groups={[
+          createTransactionDateGroup({
+            date: "2026-07-01",
+            label: "1日（旧标签）",
+          }),
+          createTransactionDateGroup({
+            date: "2026-07-02",
+            label: "2日（旧标签）",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("1日（今天）")).toBeInTheDocument();
+    expect(screen.getByText("2日（明天）")).toBeInTheDocument();
+    expect(screen.queryByText("1日（旧标签）")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(10 * 60 * 1000);
+    });
+
+    expect(screen.getByText("1日（昨天）")).toBeInTheDocument();
+    expect(screen.getByText("2日（今天）")).toBeInTheDocument();
   });
 
   it("显示分组支出汇总", () => {

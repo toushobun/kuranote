@@ -21,6 +21,8 @@ import {
   transactionGroupCollapseDuration,
 } from "./TransactionMonthList";
 
+const stableDateLabelTestTime = new Date("2026-06-20T03:00:00.000Z");
+
 afterEach(() => {
   cleanup();
 });
@@ -117,7 +119,7 @@ const mayDateGroups = [
         transaction_at: "2026-05-02T10:00:00.000Z",
       }),
     ],
-    label: "2日（周二）",
+    label: "2日（周六）",
   }),
 ];
 
@@ -172,6 +174,7 @@ describe("TransactionMonthList", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -180,6 +183,9 @@ describe("TransactionMonthList", () => {
   });
 
   it("首次进入时默认展开第一条时间分组", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(stableDateLabelTestTime);
+
     render(
       <TransactionMonthList
         loadGroupItemsAction={async () => ({ groups: [], nextOffset: null })}
@@ -191,7 +197,7 @@ describe("TransactionMonthList", () => {
     expect(screen.getByText("2026年6月")).toBeInTheDocument();
     expect(screen.getByText("1日（周一）")).toBeInTheDocument();
     expect(screen.getByText("便利店")).toBeInTheDocument();
-    expect(screen.queryByText("2日（周二）")).toBeNull();
+    expect(screen.queryByText("2日（周六）")).toBeNull();
   });
 
   it("月份头部显示两行金额摘要且隐藏流水数量", () => {
@@ -231,8 +237,8 @@ describe("TransactionMonthList", () => {
 
     fireEvent.click(screen.getByText("2026年5月"));
 
-    expect(await screen.findByText("2日（周二）")).toBeInTheDocument();
-    expect(screen.getByText("1日（周一）")).toBeInTheDocument();
+    expect(await screen.findByText("超市")).toBeInTheDocument();
+    expect(screen.getByText("便利店")).toBeInTheDocument();
     expect(loadGroupItemsAction).toHaveBeenCalledWith("2026-05", 0);
   });
 

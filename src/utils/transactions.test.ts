@@ -18,6 +18,7 @@ import {
   formatTransactionTime,
   getCategoryLabel,
   getCurrentMonthRange,
+  getDateLabelRefreshDelayMs,
   getMonthBounds,
   getNowDateTimeLocalValue,
   groupTransactionItemsByDate,
@@ -196,6 +197,15 @@ describe("transactions utils", () => {
     expect(formatDateLabel("2026-06-29")).toBe("29日（昨天）");
     expect(formatDateLabel("2026-07-01")).toBe("1日（明天）");
     expect(formatDateLabel("2026-06-28")).toBe("28日（周日）");
+  });
+
+  it("计算日分组相对日期标签下次刷新延迟", () => {
+    expect(
+      getDateLabelRefreshDelayMs(new Date("2026-07-01T14:50:00.000Z")),
+    ).toBe(10 * 60 * 1000);
+    expect(
+      getDateLabelRefreshDelayMs(new Date("2026-07-01T15:00:00.000Z")),
+    ).toBe(24 * 60 * 60 * 1000);
   });
 
   it("格式化交易发生时间", () => {
