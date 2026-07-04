@@ -83,7 +83,6 @@ export function useTransactions({
     [appliedFilters, filterOptions],
   );
   const draftHasActiveFilters = hasActiveTransactionFilters(draftFilters);
-  const draftHasCustomGroup = draftGroupBy !== "month";
   const loadingHasActiveFilters = isPending
     ? draftHasActiveFilters
     : hasActiveFilters;
