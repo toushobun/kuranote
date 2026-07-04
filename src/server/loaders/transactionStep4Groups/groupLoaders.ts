@@ -33,7 +33,10 @@ import {
   getTransactionGroupContextLookups,
   loadTransactionGroupLoaderContextForRecords,
 } from "./context";
-import { filterTransactionRecords } from "./filters";
+import {
+  filterTransactionRecords,
+  normalizeTransactionFilters,
+} from "./filters";
 import { recordMatchesGroup } from "./groupMatching";
 import { buildGroupTagAssignments } from "./tagUtils";
 import {
@@ -276,29 +279,6 @@ function buildStep4TransactionGroupPageFromContext(
     recorders: context.recorders,
     tagAssignments: buildGroupTagAssignments(context),
   });
-}
-
-function normalizeTransactionFilters(
-  filters: TransactionFilters,
-): TransactionFilters {
-  return {
-    ...defaultTransactionFilters,
-    ...filters,
-    accountId: normalizeOptionalValue(filters.accountId),
-    categoryId: normalizeOptionalValue(filters.categoryId),
-    dateFrom: normalizeOptionalValue(filters.dateFrom),
-    dateTo: normalizeOptionalValue(filters.dateTo),
-    memberId: normalizeOptionalValue(filters.memberId),
-    merchantId: normalizeOptionalValue(filters.merchantId),
-    parentCategoryId: normalizeOptionalValue(filters.parentCategoryId),
-    tagId: normalizeOptionalValue(filters.tagId),
-  };
-}
-
-function normalizeOptionalValue(value: string | undefined) {
-  const normalized = value?.trim();
-
-  return normalized ? normalized : undefined;
 }
 
 function normalizeRpcAmount(value: number | string | null | undefined) {
