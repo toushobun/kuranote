@@ -7,7 +7,7 @@ describe("load_transaction_group_summaries RPC pagination migration", () => {
     expect(migration).toContain("drop function if exists");
     expect(migration).toContain("p_offset integer default 0");
     expect(migration).toContain("p_limit integer default 20");
-    expect(migration).toContain("integer,");
+    expect(migration).toContain("uuid,\n    integer,\n    integer");
   });
 
   it("在 SQL 层使用稳定排序和分页", () => {
