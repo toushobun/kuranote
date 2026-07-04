@@ -42,7 +42,10 @@ describe("loadStep4TransactionGroupPage non-time groups", () => {
         group_key: `m${index}`,
         group_label: `商家${index}`,
         income: 0,
-        latest_transaction_at: String(100 - index),
+        latest_transaction_at: `2026-06-${String(22 - index).padStart(
+          2,
+          "0",
+        )}T00:00:00.000Z`,
         transaction_count: 1,
       })),
       error: null,
