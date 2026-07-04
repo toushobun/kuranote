@@ -1,19 +1,17 @@
 "use client";
 
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import { SegmentTabs } from "molecules/ui/SegmentTabs";
 
-import type { TransactionRecordType } from "types/transactions";
+export type TransactionTypeNavigationValue = "normal" | "transfer";
 
 const typeNavItems = [
-  { label: "支出", value: "expense" as const },
-  { label: "收入", value: "income" as const },
-  { label: "转账", value: "transfer" as const },
-];
+  { label: "收支", value: "normal" },
+  { label: "转账", value: "transfer" },
+] as const;
 
 type TransactionTypeNavigationProps = {
-  activeType: TransactionRecordType;
-  onChange: (type: TransactionRecordType) => void;
+  activeType: TransactionTypeNavigationValue;
+  onChange: (type: TransactionTypeNavigationValue) => void;
 };
 
 export function TransactionTypeNavigation({
@@ -21,20 +19,13 @@ export function TransactionTypeNavigation({
   onChange,
 }: TransactionTypeNavigationProps) {
   return (
-    <ToggleButtonGroup
-      aria-label="记账类型"
-      exclusive
-      fullWidth
+    <SegmentTabs
+      ariaLabel="记账类型"
+      items={typeNavItems}
       value={activeType}
-      onChange={(_, value: TransactionRecordType | null) => {
-        if (value) onChange(value);
+      onChange={(value) => {
+        if (value === "normal" || value === "transfer") onChange(value);
       }}
-    >
-      {typeNavItems.map((item) => (
-        <ToggleButton key={item.value} value={item.value}>
-          {item.label}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+    />
   );
 }

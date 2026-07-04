@@ -46,37 +46,6 @@ vi.mock("organisms/transactions/TransferTransactionForm", () => ({
   ),
 }));
 
-vi.mock("molecules/transactions/TransactionTypeNavigation", () => ({
-  TransactionTypeNavigation: ({
-    activeType,
-    onChange,
-  }: {
-    activeType: string;
-    onChange: (type: string) => void;
-  }): ReactNode => (
-    <div aria-label="类型" role="group">
-      <button
-        onClick={() => onChange("expense")}
-        aria-pressed={activeType === "expense"}
-      >
-        支出
-      </button>
-      <button
-        onClick={() => onChange("income")}
-        aria-pressed={activeType === "income"}
-      >
-        收入
-      </button>
-      <button
-        onClick={() => onChange("transfer")}
-        aria-pressed={activeType === "transfer"}
-      >
-        转账
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock("organisms/transactions/TransactionAmountKeypadLauncher", () => ({
   TransactionAmountKeypadLauncher: (): ReactNode => null,
 }));

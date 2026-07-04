@@ -1,13 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { TransactionTypeNavigation } from "./TransactionTypeNavigation";
+import {
+  TransactionTypeNavigation,
+  type TransactionTypeNavigationValue,
+} from "./TransactionTypeNavigation";
 
 const meta = {
   title: "Molecules/Transactions/TransactionTypeNavigation",
   component: TransactionTypeNavigation,
   render: function TransactionTypeNavigationStory(args) {
-    const [activeType, setActiveType] = useState(args.activeType);
+    const [activeType, setActiveType] =
+      useState<TransactionTypeNavigationValue>(args.activeType ?? "normal");
 
     return (
       <TransactionTypeNavigation
@@ -18,7 +22,7 @@ const meta = {
     );
   },
   args: {
-    activeType: "expense",
+    activeType: "normal",
     onChange: () => undefined,
   },
 } satisfies Meta<typeof TransactionTypeNavigation>;
@@ -26,14 +30,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Expense: Story = {
-  name: "支出选中",
-  args: { activeType: "expense" },
-};
-
-export const Income: Story = {
-  name: "收入选中",
-  args: { activeType: "income" },
+export const Normal: Story = {
+  name: "收支选中",
+  args: { activeType: "normal" },
 };
 
 export const Transfer: Story = {
