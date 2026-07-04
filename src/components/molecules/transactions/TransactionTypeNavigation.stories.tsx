@@ -10,9 +10,8 @@ const meta = {
   title: "Molecules/Transactions/TransactionTypeNavigation",
   component: TransactionTypeNavigation,
   render: function TransactionTypeNavigationStory(args) {
-    const [activeType, setActiveType] = useState<TransactionTypeNavigationValue>(
-      args.activeType ?? "normal",
-    );
+    const [activeType, setActiveType] =
+      useState<TransactionTypeNavigationValue>(args.activeType ?? "normal");
 
     return (
       <TransactionTypeNavigation
