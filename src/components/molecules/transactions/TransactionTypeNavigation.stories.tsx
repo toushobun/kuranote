@@ -1,13 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { TransactionTypeNavigation } from "./TransactionTypeNavigation";
+import {
+  TransactionTypeNavigation,
+  type TransactionTypeNavigationValue,
+} from "./TransactionTypeNavigation";
 
 const meta = {
   title: "Molecules/Transactions/TransactionTypeNavigation",
   component: TransactionTypeNavigation,
   render: function TransactionTypeNavigationStory(args) {
-    const [activeType, setActiveType] = useState(args.activeType);
+    const [activeType, setActiveType] = useState<TransactionTypeNavigationValue>(
+      args.activeType ?? "normal",
+    );
 
     return (
       <TransactionTypeNavigation
