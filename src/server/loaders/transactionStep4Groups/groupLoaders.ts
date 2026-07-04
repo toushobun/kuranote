@@ -31,10 +31,12 @@ import {
 import {
   buildTransactionListItemsFromContext,
   getTransactionGroupContextLookups,
-  loadTransactionGroupLoaderContext,
   loadTransactionGroupLoaderContextForRecords,
 } from "./context";
-import { filterTransactionRecords } from "./filters";
+import {
+  filterTransactionRecords,
+  normalizeTransactionFilters,
+} from "./filters";
 import { recordMatchesGroup } from "./groupMatching";
 import { buildGroupTagAssignments } from "./tagUtils";
 import {
@@ -44,6 +46,25 @@ import {
 } from "./types";
 
 const transactionRecordScanPageSize = 100;
+const nonTimeTransactionGroupByValues = new Set<string>([
+  "merchant",
+  "account",
+  "parentCategory",
+  "category",
+  "tag",
+  "member",
+]);
+
+type TransactionGroupSummaryRpcRow = {
+  balance: number | string | null;
+  expense: number | string | null;
+  group_id: string;
+  group_key: string;
+  group_label: string;
+  income: number | string | null;
+  latest_transaction_at: string;
+  transaction_count: number | string | null;
+};
 
 export async function loadStep4TransactionGroupView(
   groupBy: TransactionGroupBy = "month",
@@ -85,21 +106,85 @@ export async function loadStep4TransactionGroupPage(
   filters: TransactionFilters = defaultTransactionFilters,
 ): Promise<TransactionGroupPage> {
   // 时间维度分组的分组边界与记录扫描顺序（按 transaction_at 倒序）严格单调，
-  // 可以增量分批扫描、只在拿到足够多"已闭合"分组后停止，避免拉取整个 ledger。
-  // 商家 / 账户 / 分类 / 标签 / 成员等非时间维度分组的记录不按时间连续分布，
-  // 单个分组的完整汇总在不引入 SQL 侧聚合查询前仍需要完整上下文，暂保留原实现。
+  // 可以增量分批扫描、只在拿到足够多"已闭合"分组后停止。
   if (isTransactionTimeGroupBy(groupBy)) {
     return loadStep4TimeGroupedTransactionGroupPage(groupBy, offset, filters);
   }
 
-  const context = await loadTransactionGroupLoaderContext();
+  // 非时间维度分组的记录会分散在整个 ledger 历史中，必须由 SQL/RPC 聚合完整分组，
+  // 避免在 loader 中拉取全部交易记录、明细与标签后再做内存聚合。
+  return loadStep4NonTimeGroupedTransactionGroupPage(groupBy, offset, filters);
+}
 
-  return buildStep4TransactionGroupPageFromContext(
-    context,
-    groupBy,
-    offset,
-    filters,
+async function loadStep4NonTimeGroupedTransactionGroupPage(
+  groupBy: TransactionGroupBy,
+  offset: number,
+  filters: TransactionFilters,
+): Promise<TransactionGroupPage> {
+  if (!nonTimeTransactionGroupByValues.has(groupBy)) {
+    throw new Error(`Unsupported transaction group: ${groupBy}`);
+  }
+
+  const currentLedger = await getCurrentLedgerOrRedirect();
+  const supabase = await createClient();
+  const normalizedFilters = normalizeTransactionFilters(filters);
+  const dateBounds = getFilterDateBounds(normalizedFilters);
+  const safeOffset = Math.max(0, offset);
+
+  if (dateBounds?.isEmpty) {
+    return { groupBy, groups: [], nextOffset: null };
+  }
+
+  const { data, error } = await supabase.rpc(
+    "load_transaction_group_summaries",
+    {
+      p_account_id: normalizedFilters.accountId ?? null,
+      p_category_id: normalizedFilters.categoryId ?? null,
+      p_date_end: dateBounds?.endIso ?? null,
+      p_date_start: dateBounds?.startIso ?? null,
+      p_group_by: groupBy,
+      p_ledger_id: currentLedger.id,
+      p_member_id: normalizedFilters.memberId ?? null,
+      p_merchant_id: normalizedFilters.merchantId ?? null,
+      p_parent_category_id: normalizedFilters.parentCategoryId ?? null,
+      p_record_type: normalizedFilters.recordType,
+      p_tag_id: normalizedFilters.tagId ?? null,
+    },
   );
+
+  if (error) throw new Error("Failed to load transaction group summaries");
+
+  const rows = [...((data ?? []) as TransactionGroupSummaryRpcRow[])].sort(
+    (a, b) => {
+      if (a.latest_transaction_at !== b.latest_transaction_at) {
+        return b.latest_transaction_at.localeCompare(a.latest_transaction_at);
+      }
+
+      return a.group_label.localeCompare(b.group_label, "zh-Hans-CN");
+    },
+  );
+  const pageRows = rows.slice(safeOffset, safeOffset + transactionPageSize + 1);
+  const groups = pageRows.slice(0, transactionPageSize).map((row) => ({
+    id: row.group_id,
+    key: row.group_key,
+    label: row.group_label,
+    summary: {
+      balance: normalizeRpcAmount(row.balance),
+      currency: currentLedger.baseCurrency,
+      expense: normalizeRpcAmount(row.expense),
+      income: normalizeRpcAmount(row.income),
+    },
+    transactionCount: Number(row.transaction_count ?? 0),
+  }));
+
+  return {
+    groupBy,
+    groups,
+    nextOffset:
+      pageRows.length > transactionPageSize
+        ? safeOffset + transactionPageSize
+        : null,
+  };
 }
 
 async function loadStep4TimeGroupedTransactionGroupPage(
@@ -206,6 +291,12 @@ function buildStep4TransactionGroupPageFromContext(
     recorders: context.recorders,
     tagAssignments: buildGroupTagAssignments(context),
   });
+}
+
+function normalizeRpcAmount(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
+
+  return Number.isFinite(amount) ? String(amount) : "0";
 }
 
 async function loadStep4TransactionGroupItemsPage(
