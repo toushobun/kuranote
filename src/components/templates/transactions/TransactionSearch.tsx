@@ -18,13 +18,16 @@ import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
 } from "molecules/transactions/TransactionSearchIllustration";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { designTokens } from "theme/theme";
 import type {
   TransactionListItem,
   TransactionSearchPage,
 } from "types/transactions";
 
+import { TransactionsSkeleton } from "./TransactionsSkeleton";
+import {
+  transactionPageContentSx,
+  transactionPageFrameSx,
+} from "./transactionsPageLayout";
 import { useTransactionSearch } from "./useTransactionSearch";
 
 export type TransactionSearchTemplateProps = {
@@ -52,93 +55,99 @@ export function TransactionSearchTemplate({
   });
 
   return (
-    <Stack spacing={2.2} sx={pageContentSx}>
-      <Stack direction="row" sx={searchHeaderSx}>
-        <IconButton
-          aria-label="返回明细页"
-          component={Link}
-          href={routePaths.transactions}
-          sx={headerActionSx}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
+    <Box sx={transactionPageFrameSx}>
+      <Stack spacing={2.2} sx={transactionPageContentSx}>
+        <Stack direction="row" sx={searchHeaderSx}>
+          <IconButton
+            aria-label="返回明细页"
+            component={Link}
+            href={routePaths.transactions}
+            sx={headerActionSx}
+          >
+            <ArrowBackRoundedIcon />
+          </IconButton>
 
-        <Box component="form" onSubmit={search.submitSearch} sx={searchFormSx}>
-          <SearchRoundedIcon sx={searchIconSx} />
-          <InputBase
-            autoFocus
-            fullWidth
-            inputProps={{ "aria-label": searchText.inputLabel }}
-            onChange={(event) => search.setInputValue(event.target.value)}
-            placeholder={searchText.placeholder}
-            sx={searchInputSx}
-            value={search.inputValue}
-          />
-          {search.inputValue ? (
-            <IconButton
-              aria-label="清除搜索词"
-              onClick={search.clearSearch}
-              size="small"
-              sx={clearButtonSx}
-            >
-              <CancelRoundedIcon fontSize="small" />
-            </IconButton>
-          ) : null}
-        </Box>
+          <Box
+            component="form"
+            onSubmit={search.submitSearch}
+            sx={searchFormSx}
+          >
+            <SearchRoundedIcon sx={searchIconSx} />
+            <InputBase
+              autoFocus
+              fullWidth
+              inputProps={{ "aria-label": searchText.inputLabel }}
+              onChange={(event) => search.setInputValue(event.target.value)}
+              placeholder={searchText.placeholder}
+              sx={searchInputSx}
+              value={search.inputValue}
+            />
+            {search.inputValue ? (
+              <IconButton
+                aria-label="清除搜索词"
+                onClick={search.clearSearch}
+                size="small"
+                sx={clearButtonSx}
+              >
+                <CancelRoundedIcon fontSize="small" />
+              </IconButton>
+            ) : null}
+          </Box>
 
-        <Button
-          component={Link}
-          href={routePaths.transactions}
-          sx={cancelButtonSx}
-        >
-          取消
-        </Button>
-      </Stack>
-
-      {isLoading ? (
-        <SearchLoadingState />
-      ) : errorMessage ? (
-        <SearchErrorState errorMessage={errorMessage} />
-      ) : !search.hasSubmittedQuery ? (
-        <SearchEmptyState
-          description={searchText.guideDescription}
-          illustrationVariant="guide"
-          title={searchText.guideTitle}
-        />
-      ) : search.items.length === 0 ? (
-        <SearchEmptyState
-          description={searchText.noResultDescription}
-          illustrationVariant="empty"
-          title={searchText.noResultTitle}
-        />
-      ) : (
-        <Stack spacing={1.3}>
-          <Typography sx={resultCountSx}>
-            共 {search.totalCount} 条结果
-          </Typography>
-          <SearchResultList
-            getEditHref={search.getEditHref}
-            items={search.items}
-          />
-
-          {search.nextOffset !== null ? (
-            <Button
-              disabled={search.isPending}
-              onClick={search.loadMoreResults}
-              sx={loadMoreButtonSx}
-            >
-              {search.isPending ? <CircularProgress size={18} /> : "加载更多"}
-            </Button>
-          ) : null}
-
-          {search.loadMoreError ? (
-            <Typography color="error" sx={loadMoreErrorSx}>
-              {search.loadMoreError}
-            </Typography>
-          ) : null}
+          <Button
+            component={Link}
+            href={routePaths.transactions}
+            sx={cancelButtonSx}
+          >
+            取消
+          </Button>
         </Stack>
-      )}
-    </Stack>
+
+        {isLoading ? (
+          <SearchLoadingState />
+        ) : errorMessage ? (
+          <SearchErrorState errorMessage={errorMessage} />
+        ) : !search.hasSubmittedQuery ? (
+          <SearchEmptyState
+            description={searchText.guideDescription}
+            illustrationVariant="guide"
+            title={searchText.guideTitle}
+          />
+        ) : search.items.length === 0 ? (
+          <SearchEmptyState
+            description={searchText.noResultDescription}
+            illustrationVariant="empty"
+            title={searchText.noResultTitle}
+          />
+        ) : (
+          <Stack spacing={1.3}>
+            <Typography sx={resultCountSx}>
+              共 {search.totalCount} 条结果
+            </Typography>
+            <SearchResultList
+              getEditHref={search.getEditHref}
+              items={search.items}
+            />
+
+            {search.nextOffset !== null ? (
+              <Button
+                disabled={search.isPending}
+                onClick={search.loadMoreResults}
+                sx={loadMoreButtonSx}
+              >
+                {search.isPending ? <CircularProgress size={18} /> : "加载更多"}
+              </Button>
+            ) : null}
+
+            {search.loadMoreError ? (
+              <Typography color="error" sx={loadMoreErrorSx}>
+                {search.loadMoreError}
+              </Typography>
+            ) : null}
+          </Stack>
+        )}
+      </Stack>
+    </Box>
   );
 }
 
@@ -202,9 +211,15 @@ function SearchEmptyState({
 
 function SearchLoadingState() {
   return (
-    <Stack spacing={1.2} sx={loadingStateSx}>
-      <CircularProgress size={28} />
+    <Stack
+      aria-busy="true"
+      aria-label="搜索结果加载中"
+      role="status"
+      spacing={1.3}
+      sx={loadingStateSx}
+    >
       <Typography sx={emptyDescriptionSx}>搜索中...</Typography>
+      <TransactionsSkeleton />
     </Stack>
   );
 }
@@ -229,26 +244,6 @@ const searchText = {
   noResultTitle: "没有找到相关流水",
   placeholder: "商家、备注、金额、成员",
 } as const;
-
-const pageContentSx = {
-  bgcolor: "var(--user-theme-tx-page-bg)",
-  mb: bottomNavigationLayout.shellPaddingBottomOffset,
-  minHeight: "100dvh",
-  mt: -4,
-  mx: {
-    xs: -designTokens.spacing.page.mobile,
-    sm: -designTokens.spacing.page.desktop,
-  },
-  px: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  pb: bottomNavigationLayout.shellPaddingBottom,
-  pt: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-};
 
 const searchHeaderSx = {
   alignItems: "center",
@@ -337,10 +332,7 @@ const emptyDescriptionSx = {
 };
 
 const loadingStateSx = {
-  alignItems: "center",
-  justifyContent: "center",
   minHeight: "calc(100dvh - 220px)",
-  textAlign: "center",
 };
 
 const pillButtonSx = {
