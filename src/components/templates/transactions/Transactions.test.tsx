@@ -178,6 +178,17 @@ function createLoadGroupViewAction() {
   return vi.fn(async (groupBy: TransactionGroupBy) => buildGroupView(groupBy));
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+}
+
 describe("TransactionsTemplate", () => {
   it("显示明细标题和入口", () => {
     const { container } = renderPage();
@@ -334,6 +345,42 @@ describe("TransactionsTemplate", () => {
         recordType: "expense",
       });
       expect(screen.getByText("筛选结果如下")).toBeInTheDocument();
+    });
+  });
+
+  it("移除筛选读取中不显示旧筛选摘要骨架", async () => {
+    const deferredView = createDeferred<TransactionTimeGroupViewData>();
+    let requestCount = 0;
+    const loadGroupViewAction = vi.fn(async (groupBy: TransactionGroupBy) => {
+      requestCount += 1;
+      if (requestCount === 1) return buildGroupView(groupBy);
+
+      return deferredView.promise;
+    });
+    renderPage({ loadGroupViewAction });
+
+    openFilterDialog();
+    selectFilterOption("支出");
+    applyFilterDialog();
+
+    await waitFor(() => {
+      expect(screen.getByText("筛选结果如下")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "清除" }));
+
+    await waitFor(() => {
+      expect(loadGroupViewAction).toHaveBeenCalledTimes(2);
+      expect(
+        screen.queryByRole("status", { name: "筛选结果加载中" }),
+      ).toBeNull();
+      expect(screen.queryByText("筛选结果如下")).toBeNull();
+    });
+
+    deferredView.resolve(buildGroupView("month"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("transaction-month-list")).toBeInTheDocument();
     });
   });
 
