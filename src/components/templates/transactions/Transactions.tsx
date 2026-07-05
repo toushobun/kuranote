@@ -140,6 +140,8 @@ export function TransactionsTemplate({
 
   const saveSuccessDialogText =
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
+  const shouldShowLoadingSummary =
+    Boolean(loadingResultLabel) && (isLoading || isFilterOpen);
 
   return (
     <Box sx={pageFrameSx}>
@@ -179,7 +181,7 @@ export function TransactionsTemplate({
 
         {displayLoading ? (
           <Stack spacing={1.3}>
-            {loadingResultLabel ? (
+            {shouldShowLoadingSummary ? (
               <TransactionFilterResultSummarySkeleton
                 chipCount={loadingFilterChips.length}
                 hasActiveFilters={loadingHasActiveFilters}
