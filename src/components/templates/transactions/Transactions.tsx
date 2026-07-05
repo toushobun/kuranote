@@ -80,7 +80,6 @@ export function TransactionsTemplate({
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
     saveResult !== null,
   );
-  const [isRemovingFilters, setIsRemovingFilters] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -100,6 +99,7 @@ export function TransactionsTemplate({
     groupView,
     hasActiveDisplaySettings,
     hasActiveFilters,
+    isClearingFilters,
     isFilterOpen,
     isPending,
     loadGroupItems,
@@ -125,11 +125,6 @@ export function TransactionsTemplate({
     timeGroupView,
   });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsRemovingFilters(false);
-  }, [appliedFilterKey, groupView.groupBy]);
-
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
@@ -144,14 +139,9 @@ export function TransactionsTemplate({
     router.push(routePaths.transactionsSearch);
   }
 
-  function removeFilters() {
-    setIsRemovingFilters(true);
-    clearFilters();
-  }
-
   const saveSuccessDialogText =
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
-  const displayContentLoading = displayLoading || isRemovingFilters;
+  const displayContentLoading = displayLoading || isClearingFilters;
   const shouldShowLoadingSummary =
     Boolean(loadingResultLabel) && (isLoading || isFilterOpen);
 
@@ -231,7 +221,7 @@ export function TransactionsTemplate({
                 chips={activeFilterChips}
                 hasActiveFilters={hasActiveFilters}
                 label={resultLabel}
-                onClear={removeFilters}
+                onClear={clearFilters}
               />
             ) : null}
             {showFilterEmptyState ? (
