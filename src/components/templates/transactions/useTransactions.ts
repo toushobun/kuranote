@@ -43,6 +43,10 @@ export type UseTransactionsParams = {
   timeGroupView: TransactionTimeGroupViewData;
 };
 
+type ApplyGroupAndFiltersOptions = {
+  onSettled?: () => void;
+};
+
 export function useTransactions({
   filterOptions,
   isLoading,
@@ -63,6 +67,7 @@ export function useTransactions({
   const [draftFilters, setDraftFilters] = useState<TransactionFilters>(
     defaultTransactionFilters,
   );
+  const [isClearingFilters, setIsClearingFilters] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterDialogErrorMessage, setFilterDialogErrorMessage] = useState<
     string | null
@@ -137,6 +142,7 @@ export function useTransactions({
   function applyGroupAndFilters(
     nextGroupBy: TransactionGroupBy,
     nextFilters: TransactionFilters,
+    options: ApplyGroupAndFiltersOptions = {},
   ) {
     if (!loadGroupViewAction) {
       setAppliedFilters(nextFilters);
@@ -145,6 +151,7 @@ export function useTransactions({
       setGroupView((prev) => ({ ...prev, groupBy: nextGroupBy }));
       setFilterDialogErrorMessage(null);
       setIsFilterOpen(false);
+      options.onSettled?.();
       return;
     }
 
@@ -166,12 +173,17 @@ export function useTransactions({
       } catch {
         if (latestRequestIdRef.current !== requestId) return;
         setFilterDialogErrorMessage("筛选结果读取失败，请稍后重试。");
+      } finally {
+        options.onSettled?.();
       }
     });
   }
 
   function clearFilters() {
-    applyGroupAndFilters(groupView.groupBy, defaultTransactionFilters);
+    setIsClearingFilters(true);
+    applyGroupAndFilters(groupView.groupBy, defaultTransactionFilters, {
+      onSettled: () => setIsClearingFilters(false),
+    });
   }
 
   function openFilterDialog() {
@@ -193,6 +205,7 @@ export function useTransactions({
   }
 
   function applyDraftFilters() {
+    setIsClearingFilters(false);
     applyGroupAndFilters(draftGroupBy, draftFilters);
   }
 
@@ -208,6 +221,7 @@ export function useTransactions({
     groupView,
     hasActiveDisplaySettings,
     hasActiveFilters,
+    isClearingFilters,
     isFilterOpen,
     isPending,
     loadGroupItems,
