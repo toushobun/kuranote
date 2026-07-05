@@ -1,13 +1,7 @@
 import { cleanup, render, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import TransactionsSearchLoadingPage from "./loading";
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: vi.fn(),
-  }),
-}));
 
 afterEach(() => {
   cleanup();
