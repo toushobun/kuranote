@@ -16,7 +16,6 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
-import { designTokens } from "theme/theme";
 import type {
   TransactionFilterOptions,
   TransactionFilters,
@@ -27,8 +26,15 @@ import type {
 } from "types/transactions";
 
 import { TransactionFilterDialog } from "./TransactionFilterDialog";
-import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary";
+import {
+  TransactionFilterResultSummary,
+  TransactionFilterResultSummarySkeleton,
+} from "./TransactionFilterResultSummary";
 import { TransactionsSkeleton } from "./TransactionsSkeleton";
+import {
+  transactionPageContentSx,
+  transactionPageFrameSx,
+} from "./transactionsPageLayout";
 import { useTransactions } from "./useTransactions";
 
 export type TransactionSaveResult = "created" | "deleted" | "updated";
@@ -96,10 +102,14 @@ export function TransactionsTemplate({
     groupView,
     hasActiveDisplaySettings,
     hasActiveFilters,
+    isClearingFilters,
     isFilterOpen,
     isPending,
     loadGroupItems,
     loadMoreGroups,
+    loadingFilterChips,
+    loadingHasActiveFilters,
+    loadingResultLabel,
     onApplyDraftFilters,
     onChangeDraftFilters,
     onChangeDraftGroupBy,
@@ -134,10 +144,13 @@ export function TransactionsTemplate({
 
   const saveSuccessDialogText =
     saveSuccessDialogTextByResult[activeSaveResult ?? "created"];
+  const displayContentLoading = displayLoading || isClearingFilters;
+  const shouldShowLoadingSummary =
+    Boolean(loadingResultLabel) && (isLoading || isFilterOpen);
 
   return (
-    <Box sx={pageFrameSx}>
-      <Stack spacing={2.2} sx={pageContentSx}>
+    <Box sx={transactionPageFrameSx}>
+      <Stack spacing={2.2} sx={transactionPageContentSx}>
         <Stack
           direction="row"
           sx={{ alignItems: "center", justifyContent: "space-between" }}
@@ -171,8 +184,16 @@ export function TransactionsTemplate({
           </Stack>
         </Stack>
 
-        {displayLoading ? (
-          <TransactionsSkeleton />
+        {displayContentLoading ? (
+          <Stack spacing={1.3}>
+            {shouldShowLoadingSummary ? (
+              <TransactionFilterResultSummarySkeleton
+                chipCount={loadingFilterChips.length}
+                hasActiveFilters={loadingHasActiveFilters}
+              />
+            ) : null}
+            <TransactionsSkeleton />
+          </Stack>
         ) : errorMessage ? (
           <EmptyState
             action={
@@ -273,36 +294,6 @@ const saveSuccessDialogTextByResult: Record<
 };
 
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
-
-const pageFrameSx = {
-  bgcolor: "var(--user-theme-tx-page-bg)",
-  mb: bottomNavigationLayout.shellPaddingBottomOffset,
-  minHeight: "100dvh",
-  // AppShell Container 的 py: 4，此处用负 margin 抵消使明细页内容从顶部开始。
-  mt: -4,
-  mx: {
-    xs: -designTokens.spacing.page.mobile,
-    sm: "calc(50% - 50vw)",
-  },
-  px: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  pb: bottomNavigationLayout.shellPaddingBottom,
-  pt: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  width: {
-    xs: "calc(100% + 32px)",
-    sm: "100vw",
-  },
-};
-
-const pageContentSx = {
-  maxWidth: "900px",
-  mx: "auto",
-};
 
 const headerActionSx = {
   color: "text.primary",

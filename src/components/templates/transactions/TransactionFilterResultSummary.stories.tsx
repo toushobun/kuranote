@@ -10,7 +10,10 @@ import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
 import { createDynamicMuiTheme } from "../../providers/DynamicMuiThemeProvider";
 
-import { TransactionFilterResultSummary } from "./TransactionFilterResultSummary";
+import {
+  TransactionFilterResultSummary,
+  TransactionFilterResultSummarySkeleton,
+} from "./TransactionFilterResultSummary";
 
 const meta = {
   title: "Templates/Transactions/TransactionFilterResultSummary",
@@ -27,6 +30,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const placeholderArgs = {
+  chips: [],
+  hasActiveFilters: false,
+  label: "筛选结果如下",
+  onClear: () => undefined,
+};
+
 export const FilteredByMerchant: Story = {
   name: "按商家筛选结果",
   args: {
@@ -35,6 +45,25 @@ export const FilteredByMerchant: Story = {
     label: "按商家显示，筛选结果如下",
     onClear: () => undefined,
   },
+};
+
+export const LoadingWithFilters: Story = {
+  name: "加载中：含筛选条件",
+  args: placeholderArgs,
+  render: () => (
+    <TransactionFilterResultSummarySkeleton chipCount={4} hasActiveFilters />
+  ),
+};
+
+export const LoadingWithoutFilters: Story = {
+  name: "加载中：无筛选条件",
+  args: placeholderArgs,
+  render: () => (
+    <TransactionFilterResultSummarySkeleton
+      chipCount={0}
+      hasActiveFilters={false}
+    />
+  ),
 };
 
 export const AllThemes: Story = {
@@ -62,4 +91,29 @@ export const AllThemes: Story = {
     label: "按商家显示，筛选结果如下",
     onClear: () => undefined,
   },
+};
+
+export const LoadingAllThemes: Story = {
+  name: "加载中：6 款主题",
+  args: placeholderArgs,
+  render: () => (
+    <Stack spacing={2}>
+      {userThemeKeys.map((themeKey) => (
+        <ThemeProvider key={themeKey} theme={createDynamicMuiTheme(themeKey)}>
+          <Box
+            style={getUserThemeCssVariables(themeKey) as CSSProperties}
+            sx={{ maxWidth: 380 }}
+          >
+            <Typography sx={{ mb: 0.75, fontSize: 12, fontWeight: 800 }}>
+              {userThemeTokens[themeKey].name}
+            </Typography>
+            <TransactionFilterResultSummarySkeleton
+              chipCount={4}
+              hasActiveFilters
+            />
+          </Box>
+        </ThemeProvider>
+      ))}
+    </Stack>
+  ),
 };
