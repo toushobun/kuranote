@@ -174,6 +174,12 @@ function selectFilterOption(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+async function waitForFilterDialogToClose() {
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+}
+
 function createLoadGroupViewAction() {
   return vi.fn(async (groupBy: TransactionGroupBy) => buildGroupView(groupBy));
 }
@@ -366,6 +372,7 @@ describe("TransactionsTemplate", () => {
     await waitFor(() => {
       expect(screen.getByText("筛选结果如下")).toBeInTheDocument();
     });
+    await waitForFilterDialogToClose();
 
     fireEvent.click(screen.getByRole("button", { name: "清除" }));
 
@@ -380,6 +387,34 @@ describe("TransactionsTemplate", () => {
     deferredView.resolve(buildGroupView("month"));
 
     await waitFor(() => {
+      expect(screen.getByTestId("transaction-month-list")).toBeInTheDocument();
+    });
+  });
+
+  it("移除筛选读取失败后恢复当前结果", async () => {
+    let requestCount = 0;
+    const loadGroupViewAction = vi.fn(async (groupBy: TransactionGroupBy) => {
+      requestCount += 1;
+      if (requestCount === 1) return buildGroupView(groupBy);
+
+      throw new Error("Failed to clear filters");
+    });
+    renderPage({ loadGroupViewAction });
+
+    openFilterDialog();
+    selectFilterOption("支出");
+    applyFilterDialog();
+
+    await waitFor(() => {
+      expect(screen.getByText("筛选结果如下")).toBeInTheDocument();
+    });
+    await waitForFilterDialogToClose();
+
+    fireEvent.click(screen.getByRole("button", { name: "清除" }));
+
+    await waitFor(() => {
+      expect(loadGroupViewAction).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("筛选结果如下")).toBeInTheDocument();
       expect(screen.getByTestId("transaction-month-list")).toBeInTheDocument();
     });
   });
