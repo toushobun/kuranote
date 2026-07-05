@@ -126,6 +126,7 @@ export function TransactionsTemplate({
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsRemovingFilters(false);
   }, [appliedFilterKey, groupView.groupBy]);
 
