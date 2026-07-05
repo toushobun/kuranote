@@ -61,7 +61,9 @@ export function TransactionFilterResultSummarySkeleton({
     >
       <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
         <Skeleton width={120} sx={{ flex: 1, fontSize: 13 }} />
-        {hasActiveFilters ? <Skeleton width={34} sx={{ fontSize: 13 }} /> : null}
+        {hasActiveFilters ? (
+          <Skeleton width={34} sx={{ fontSize: 13 }} />
+        ) : null}
       </Stack>
       {chipCount > 0 ? (
         <Stack
