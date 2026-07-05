@@ -3,9 +3,11 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { designTokens } from "theme/theme";
 import { TransactionsSkeleton } from "templates/transactions/TransactionsSkeleton";
+import {
+  transactionPageContentSx,
+  transactionPageFrameSx,
+} from "templates/transactions/transactionsPageLayout";
 
 export default function TransactionsLoadingPage() {
   return (
@@ -13,9 +15,9 @@ export default function TransactionsLoadingPage() {
       role="status"
       aria-label="页面数据加载中"
       aria-busy="true"
-      sx={pageFrameSx}
+      sx={transactionPageFrameSx}
     >
-      <Stack spacing={2.2} sx={pageContentSx}>
+      <Stack spacing={2.2} sx={transactionPageContentSx}>
         <Stack direction="row" sx={headerSx}>
           <Typography component="h1" sx={{ fontSize: 24, fontWeight: 900 }}>
             小票明细
@@ -32,35 +34,6 @@ export default function TransactionsLoadingPage() {
     </Box>
   );
 }
-
-const pageFrameSx = {
-  bgcolor: "var(--user-theme-tx-page-bg)",
-  mb: bottomNavigationLayout.shellPaddingBottomOffset,
-  minHeight: "100dvh",
-  mt: -4,
-  mx: {
-    xs: -designTokens.spacing.page.mobile,
-    sm: "calc(50% - 50vw)",
-  },
-  px: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  pb: bottomNavigationLayout.shellPaddingBottom,
-  pt: {
-    xs: designTokens.spacing.page.mobile,
-    sm: designTokens.spacing.page.desktop,
-  },
-  width: {
-    xs: "calc(100% + 32px)",
-    sm: "100vw",
-  },
-};
-
-const pageContentSx = {
-  maxWidth: "900px",
-  mx: "auto",
-};
 
 const headerSx = {
   alignItems: "center",
