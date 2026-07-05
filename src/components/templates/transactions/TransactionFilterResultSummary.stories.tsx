@@ -30,6 +30,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const placeholderArgs = {
+  chips: [],
+  hasActiveFilters: false,
+  label: "筛选结果如下",
+  onClear: () => undefined,
+};
+
 export const FilteredByMerchant: Story = {
   name: "按商家筛选结果",
   args: {
@@ -42,6 +49,7 @@ export const FilteredByMerchant: Story = {
 
 export const LoadingWithFilters: Story = {
   name: "加载中：含筛选条件",
+  args: placeholderArgs,
   render: () => (
     <TransactionFilterResultSummarySkeleton chipCount={4} hasActiveFilters />
   ),
@@ -49,6 +57,7 @@ export const LoadingWithFilters: Story = {
 
 export const LoadingWithoutFilters: Story = {
   name: "加载中：无筛选条件",
+  args: placeholderArgs,
   render: () => (
     <TransactionFilterResultSummarySkeleton
       chipCount={0}
@@ -86,6 +95,7 @@ export const AllThemes: Story = {
 
 export const LoadingAllThemes: Story = {
   name: "加载中：6 款主题",
+  args: placeholderArgs,
   render: () => (
     <Stack spacing={2}>
       {userThemeKeys.map((themeKey) => (
