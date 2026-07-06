@@ -55,7 +55,11 @@ const settingsEntryGroups = [
   {
     label: "系统",
     entries: [
-      { icon: LanguageOutlinedIcon, label: "语言设置", trailing: "简体中文" },
+      {
+        icon: LanguageOutlinedIcon,
+        label: "语言设置",
+        trailing: "简体中文",
+      },
       { icon: ImportExportOutlinedIcon, label: "数据导入导出" },
       { icon: TuneOutlinedIcon, label: "App 偏好设置" },
     ],
@@ -118,7 +122,11 @@ function SettingsEntryGroupCard({
   onEntryClick,
 }: SettingsEntryGroupCardProps) {
   return (
-    <SectionCard component="section" aria-label={group.label} sx={settingsCardSx}>
+    <SectionCard
+      component="section"
+      aria-label={group.label}
+      sx={settingsCardSx}
+    >
       {group.entries.map((entry, index) => (
         <SettingsEntryButton
           entry={entry}
