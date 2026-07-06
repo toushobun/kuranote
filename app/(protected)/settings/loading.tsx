@@ -6,7 +6,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
-const settingsLoadingGroupSizes = [1, 5, 3, 2] as const;
+const settingsLoadingGroupSizes = [1, 5, 3, 3] as const;
 
 export default function SettingsLoadingPage() {
   return (
