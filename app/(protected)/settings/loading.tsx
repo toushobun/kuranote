@@ -6,47 +6,49 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
+const settingsLoadingGroupSizes = [1, 5, 3, 2] as const;
+
 export default function SettingsLoadingPage() {
   return (
     <Box role="status" aria-label="页面数据加载中" aria-busy="true">
-      <PageShell>
-        <PageHeader title="设置" />
+      <PageShell maxWidth="sm">
+        <PageHeader title="我的" />
 
-        {/* 设置概览卡片骨架 */}
-        <SectionCard>
-          <Skeleton width="40%" sx={{ fontSize: 18 }} />
-          <Skeleton width="60%" sx={{ fontSize: 14, mt: 1 }} />
-          <Skeleton
-            variant="rounded"
-            width={100}
-            height={36}
-            sx={{ borderRadius: 1, mt: 2 }}
-          />
-        </SectionCard>
-
-        {/* 入口行骨架（账户 / 分类） */}
-        {[0, 1].map((i) => (
-          <SectionCard key={i}>
-            <Stack
-              direction="row"
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
-            >
-              <Skeleton width="40%" sx={{ fontSize: 16 }} />
-              <Skeleton width={24} sx={{ fontSize: 16 }} />
-            </Stack>
-          </SectionCard>
-        ))}
-
-        {/* 主题设置骨架 */}
-        <SectionCard>
-          <Skeleton width="30%" sx={{ fontSize: 16, mb: 1.5 }} />
-          <Stack direction="row" spacing={1}>
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="circular" width={36} height={36} />
-            ))}
-          </Stack>
-        </SectionCard>
+        <Stack spacing={1.25}>
+          {settingsLoadingGroupSizes.map((count, groupIndex) => (
+            <SectionCard key={groupIndex} sx={settingsLoadingCardSx}>
+              {Array.from({ length: count }, (_, index) => (
+                <Stack
+                  direction="row"
+                  key={index}
+                  spacing={1.5}
+                  sx={settingsLoadingRowSx(index === count - 1)}
+                >
+                  <Skeleton variant="circular" width={30} height={30} />
+                  <Skeleton width="38%" sx={{ fontSize: 16 }} />
+                  <Box sx={{ flex: 1 }} />
+                  <Skeleton width={20} sx={{ fontSize: 16 }} />
+                </Stack>
+              ))}
+            </SectionCard>
+          ))}
+        </Stack>
       </PageShell>
     </Box>
   );
+}
+
+const settingsLoadingCardSx = {
+  overflow: "hidden",
+  p: 0,
+};
+
+function settingsLoadingRowSx(isLast: boolean) {
+  return {
+    alignItems: "center",
+    borderBottom: isLast ? 0 : "1px solid var(--user-theme-card-border)",
+    minHeight: 52,
+    px: 2,
+    py: 1.25,
+  } as const;
 }
