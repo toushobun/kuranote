@@ -8,12 +8,12 @@ afterEach(() => {
 });
 
 describe("SettingsLoadingPage", () => {
-  it("显示设置页面的加载状态", () => {
+  it("显示我的页面的加载状态", () => {
     const { container } = render(<SettingsLoadingPage />);
 
     expect(within(container).getByRole("status")).toBeInTheDocument();
     expect(
-      within(container).getByRole("heading", { name: "设置" }),
+      within(container).getByRole("heading", { name: "我的" }),
     ).toBeInTheDocument();
   });
 });

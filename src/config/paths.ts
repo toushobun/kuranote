@@ -39,7 +39,7 @@ export const bottomNavigationRouteGroups = {
   ],
   right: [
     { href: routePaths.statistics, label: "统计" },
-    { href: routePaths.settings, label: "设置" },
+    { href: routePaths.settings, label: "我的" },
   ],
 } as const;
 

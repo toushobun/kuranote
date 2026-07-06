@@ -1,53 +1,89 @@
-import { cleanup, render, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsTemplate } from "./Settings";
 
 vi.mock("molecules/theme/UserThemePicker", () => ({
-  UserThemePicker: (): ReactNode => <div data-testid="user-theme-picker" />,
+  UserThemePicker: () => <div>主题选择器</div>,
 }));
+
+const logoutAction = vi.fn();
 
 afterEach(() => {
   cleanup();
+  logoutAction.mockClear();
 });
 
-const baseProps = {
-  currentLedgerName: "家庭账本",
-  email: "test@example.com",
-  logoutAction: vi.fn(async () => {}),
-};
+function renderSettingsTemplate() {
+  return render(<SettingsTemplate logoutAction={logoutAction} />);
+}
 
 describe("SettingsTemplate", () => {
-  it("显示设置页面标题和当前账本名称", () => {
-    const { container } = render(<SettingsTemplate {...baseProps} />);
+  it("显示我的页面标题、说明和设置入口", () => {
+    const { container } = renderSettingsTemplate();
 
     expect(
-      within(container).getByRole("heading", { name: "设置" }),
+      within(container).getByRole("heading", { name: "我的" }),
     ).toBeInTheDocument();
-    expect(within(container).getAllByText("当前账本：家庭账本").length).toBe(1);
+    expect(
+      within(container).getByText("管理个人信息、主题与应用设置"),
+    ).toBeInTheDocument();
+
+    for (const label of [
+      "个人主页",
+      "主题换装",
+      "标签管理",
+      "商家管理",
+      "语言设置",
+      "数据导入导出",
+      "App 偏好设置",
+      "帮助与反馈",
+      "关于 KuraNote",
+      "退出登录",
+    ]) {
+      expect(
+        within(container).getByRole("button", { name: new RegExp(label) }),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      within(container).getByRole("link", { name: /账户管理/ }),
+    ).toHaveAttribute("href", "/accounts");
+    expect(
+      within(container).getByRole("link", { name: /分类管理/ }),
+    ).toHaveAttribute("href", "/categories");
   });
 
-  it("账户管理区域显示标题和说明文字", () => {
-    const { container } = render(<SettingsTemplate {...baseProps} />);
+  it("语言设置入口显示当前语言", () => {
+    const { container } = renderSettingsTemplate();
 
-    expect(
-      within(container).getByRole("heading", { name: "账户管理" }),
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByText(
-        "管理当前账本的现金、银行卡、信用卡等账户，并可继续新增账户。",
-      ),
-    ).toBeInTheDocument();
+    expect(within(container).getByText("简体中文")).toBeInTheDocument();
   });
 
-  it("打开账户管理按钮链接到账户管理页面", () => {
-    const { container } = render(<SettingsTemplate {...baseProps} />);
+  it("点击未实现入口时显示准备中提示", () => {
+    const { container } = renderSettingsTemplate();
 
-    expect(
-      within(container)
-        .getByRole("link", { name: "打开账户管理" })
-        .getAttribute("href"),
-    ).toBe("/accounts");
+    fireEvent.click(
+      within(container).getByRole("button", { name: /标签管理/ }),
+    );
+
+    expect(screen.getByText("正在准备中")).toBeInTheDocument();
+  });
+
+  it("点击主题换装时显示主题选择器", () => {
+    const { container } = renderSettingsTemplate();
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: /主题换装/ }),
+    );
+
+    expect(screen.getByText("主题选择器")).toBeInTheDocument();
+    expect(screen.queryByText("正在准备中")).not.toBeInTheDocument();
   });
 });

@@ -17,7 +17,7 @@ const transactionEditPathPattern = /^\/transactions\/[^/]+\/edit$/;
 
 const bottomNavigationIconNames = {
   [routePaths.dashboard]: "home",
-  [routePaths.settings]: "settings",
+  [routePaths.settings]: "profile",
   [routePaths.statistics]: "statistics",
   [routePaths.transactions]: "transactions",
 } as const satisfies Record<string, KuraIconName>;

@@ -50,7 +50,7 @@ describe("BottomNavigationBar", () => {
 
     expect(
       links.map((link) => link.getAttribute("aria-label") ?? link.textContent),
-    ).toEqual(["首页", "明细", "新增记录", "统计", "设置"]);
+    ).toEqual(["首页", "明细", "新增记录", "统计", "我的"]);
   });
 
   it("底部导航渲染对应的自定义图标", () => {
@@ -65,7 +65,7 @@ describe("BottomNavigationBar", () => {
       "/assets/kura-icons/transactions.png",
       "/assets/kura-icons/quick-record.png",
       "/assets/kura-icons/statistics.png",
-      "/assets/kura-icons/settings.png",
+      "/assets/kura-icons/profile.png",
     ]);
   });
 
