@@ -18,7 +18,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
-import { useState, type ComponentType } from "react";
+import { useState, type ElementType } from "react";
 
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -27,7 +27,7 @@ import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
 type SettingsEntry = {
-  icon: ComponentType<SvgIconProps>;
+  icon: ElementType<SvgIconProps>;
   label: string;
   trailing?: string;
 };
