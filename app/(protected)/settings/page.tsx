@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { logout } from "server/actions/session";
 import { SettingsTemplate } from "templates/settings/Settings";
 
 export default async function SettingsRoute() {
@@ -11,5 +12,5 @@ export default async function SettingsRoute() {
     redirect(routePaths.ledgerSetup);
   }
 
-  return <SettingsTemplate />;
+  return <SettingsTemplate logoutAction={logout} />;
 }
