@@ -14,11 +14,14 @@ afterEach(() => {
 });
 
 describe("SettingsTemplate", () => {
-  it("显示我的页面标题和设置入口", () => {
+  it("显示我的页面标题、说明和设置入口", () => {
     const { container } = render(<SettingsTemplate />);
 
     expect(
       within(container).getByRole("heading", { name: "我的" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByText("管理个人信息、主题与应用设置"),
     ).toBeInTheDocument();
 
     for (const label of [
