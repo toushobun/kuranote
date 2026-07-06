@@ -14,6 +14,9 @@ const meta = {
       </UserThemeProvider>
     ),
   ],
+  args: {
+    logoutAction: () => undefined,
+  },
 } satisfies Meta<typeof SettingsTemplate>;
 
 export default meta;
