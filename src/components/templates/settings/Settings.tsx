@@ -278,9 +278,12 @@ function SettingsEntryButton({
   type = "button",
 }: SettingsEntryButtonProps) {
   const Icon = entry.icon;
-  const ChevronIcon = isExpanded
-    ? ExpandLessRoundedIcon
-    : ExpandMoreRoundedIcon;
+  const ChevronIcon =
+    entry.kind === "theme"
+      ? isExpanded
+        ? ExpandLessRoundedIcon
+        : ExpandMoreRoundedIcon
+      : ChevronRightRoundedIcon;
   const buttonContent = (
     <>
       <Box sx={settingsIconBoxSx(entry.kind === "logout")}>
