@@ -88,7 +88,7 @@ export function SettingsTemplate() {
 
   return (
     <PageShell maxWidth="sm">
-      <PageHeader title="我的" />
+      <PageHeader subtitle="管理个人信息、主题与应用设置" title="我的" />
 
       <Stack spacing={1.25}>
         {settingsEntryGroups.map((group) => (
