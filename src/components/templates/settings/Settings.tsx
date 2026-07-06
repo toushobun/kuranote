@@ -57,7 +57,11 @@ const settingsEntryGroups = [
   {
     label: "个人",
     entries: [
-      { icon: PersonOutlineOutlinedIcon, kind: "comingSoon", label: "个人主页" },
+      {
+        icon: PersonOutlineOutlinedIcon,
+        kind: "comingSoon",
+        label: "个人主页",
+      },
     ],
   },
   {
@@ -89,14 +93,22 @@ const settingsEntryGroups = [
         label: "语言设置",
         trailing: "简体中文",
       },
-      { icon: ImportExportOutlinedIcon, kind: "comingSoon", label: "数据导入导出" },
+      {
+        icon: ImportExportOutlinedIcon,
+        kind: "comingSoon",
+        label: "数据导入导出",
+      },
       { icon: TuneOutlinedIcon, kind: "comingSoon", label: "App 偏好设置" },
     ],
   },
   {
     label: "支持",
     entries: [
-      { icon: HelpOutlineOutlinedIcon, kind: "comingSoon", label: "帮助与反馈" },
+      {
+        icon: HelpOutlineOutlinedIcon,
+        kind: "comingSoon",
+        label: "帮助与反馈",
+      },
       { icon: InfoOutlinedIcon, kind: "comingSoon", label: "关于 KuraNote" },
       { icon: LogoutRoundedIcon, kind: "logout", label: "退出登录" },
     ],
@@ -209,11 +221,7 @@ function SettingsEntryItem({
 }: SettingsEntryItemProps) {
   if (entry.kind === "link") {
     return (
-      <SettingsEntryButton
-        entry={entry}
-        href={entry.href}
-        isLast={isLast}
-      />
+      <SettingsEntryButton entry={entry} href={entry.href} isLast={isLast} />
     );
   }
 
@@ -270,7 +278,9 @@ function SettingsEntryButton({
   type = "button",
 }: SettingsEntryButtonProps) {
   const Icon = entry.icon;
-  const ChevronIcon = isExpanded ? ExpandLessRoundedIcon : ExpandMoreRoundedIcon;
+  const ChevronIcon = isExpanded
+    ? ExpandLessRoundedIcon
+    : ExpandMoreRoundedIcon;
   const buttonContent = (
     <>
       <Box sx={settingsIconBoxSx(entry.kind === "logout")}>
@@ -295,7 +305,9 @@ function SettingsEntryButton({
         </Typography>
       ) : null}
 
-      {entry.kind === "logout" ? null : <ChevronIcon sx={settingsChevronSx} />}
+      {entry.kind === "logout" ? null : (
+        <ChevronIcon sx={settingsChevronSx} />
+      )}
     </>
   );
 
@@ -357,7 +369,9 @@ function settingsEntryButtonSx(isLast: boolean) {
 function settingsIconBoxSx(isDanger = false) {
   return {
     alignItems: "center",
-    bgcolor: isDanger ? "rgba(211, 47, 47, 0.1)" : "var(--user-theme-icon-badge-bg)",
+    bgcolor: isDanger
+      ? "rgba(211, 47, 47, 0.1)"
+      : "var(--user-theme-icon-badge-bg)",
     borderRadius: "50%",
     color: isDanger ? "error.main" : "var(--user-theme-icon-badge-color)",
     display: "inline-flex",
