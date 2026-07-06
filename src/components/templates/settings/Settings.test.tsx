@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { SettingsTemplate } from "./Settings";
@@ -28,8 +34,9 @@ describe("SettingsTemplate", () => {
       "帮助与反馈",
       "关于 KuraNote",
     ]) {
-      expect(within(container).getByRole("button", { name: new RegExp(label) }))
-        .toBeInTheDocument();
+      expect(
+        within(container).getByRole("button", { name: new RegExp(label) }),
+      ).toBeInTheDocument();
     }
   });
 
@@ -42,7 +49,9 @@ describe("SettingsTemplate", () => {
   it("点击入口时显示准备中提示", () => {
     const { container } = render(<SettingsTemplate />);
 
-    fireEvent.click(within(container).getByRole("button", { name: /主题换装/ }));
+    fireEvent.click(
+      within(container).getByRole("button", { name: /主题换装/ }),
+    );
 
     expect(screen.getByText("正在准备中")).toBeInTheDocument();
   });
