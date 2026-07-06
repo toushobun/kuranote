@@ -305,9 +305,7 @@ function SettingsEntryButton({
         </Typography>
       ) : null}
 
-      {entry.kind === "logout" ? null : (
-        <ChevronIcon sx={settingsChevronSx} />
-      )}
+      {entry.kind === "logout" ? null : <ChevronIcon sx={settingsChevronSx} />}
     </>
   );
 
