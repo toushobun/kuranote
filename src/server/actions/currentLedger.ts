@@ -13,6 +13,7 @@ const currentLedgerRevalidatePaths = [
   routePaths.dashboard,
   routePaths.transactions,
   routePaths.transactionsNew,
+  routePaths.transactionsSearch,
   routePaths.accounts,
   routePaths.categories,
   routePaths.merchants,
