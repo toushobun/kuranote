@@ -20,6 +20,8 @@ export type CurrentLedgerContext = {
 
 export const getCurrentLedgerContext = cache(
   async (): Promise<CurrentLedgerContext> => {
+    // cache() 的缓存范围是单次 server request。
+    // redirect() 抛出的控制流即使在同一请求内被复用，也只会在该请求内重新触发跳转，不会跨请求污染登录状态。
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getClaims();
 
@@ -60,7 +62,10 @@ export const getCurrentLedgerContext = cache(
       .from("ledger_member")
       .select("ledger_id")
       .eq("user_id", userId)
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("joined_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true })
+      .order("ledger_id", { ascending: true });
     type LedgerMemberRows = QueryData<typeof memberQuery>;
 
     const { data: memberData, error: memberError } = await memberQuery;
