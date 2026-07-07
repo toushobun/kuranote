@@ -11,6 +11,14 @@ const migrationSql = readFileSync(
   "utf8",
 );
 
+const currentLedgerMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260707072000_add_current_ledger_id.sql",
+  ),
+  "utf8",
+);
+
 const seedSql = readFileSync(join(process.cwd(), "supabase/seed.sql"), "utf8");
 
 function extractValuesBlock(sql: string, aliasName: string): string {
@@ -103,5 +111,16 @@ describe("账本默认数据初始化 migration", () => {
     );
     expect(migrationSql).not.toContain("必须登录后才能创建账本");
     expect(migrationSql).not.toContain("当前用户不存在或已停用");
+  });
+
+  it("current ledger migration 覆盖账本创建函数时保留错误标识约定", () => {
+    expect(currentLedgerMigrationSql).toContain(
+      "raise exception 'auth_required' using errcode = '42501';",
+    );
+    expect(currentLedgerMigrationSql).toContain(
+      "raise exception 'user_inactive' using errcode = '42501';",
+    );
+    expect(currentLedgerMigrationSql).not.toContain("login required");
+    expect(currentLedgerMigrationSql).not.toContain("active app_user required");
   });
 });

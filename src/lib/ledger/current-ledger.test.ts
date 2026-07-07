@@ -16,10 +16,16 @@ type QueryResponse = {
   error?: QueryError | null;
 };
 
+type OrderOptions = {
+  ascending?: boolean;
+  nullsFirst?: boolean;
+};
+
 type QueryCall =
   | { method: "select"; args: [string] }
-  | { method: "eq"; args: [string, string] }
-  | { method: "in"; args: [string, string[]] };
+  | { method: "eq"; args: [string, string | boolean] }
+  | { method: "in"; args: [string, string[]] }
+  | { method: "order"; args: [string, OrderOptions] };
 
 type QueryRecord = {
   table: string;
@@ -72,12 +78,16 @@ function createSupabaseMock({
     queries.push(record);
 
     const query = {
-      eq(column: string, value: string) {
+      eq(column: string, value: string | boolean) {
         record.calls.push({ args: [column, value], method: "eq" });
         return query;
       },
       in(column: string, values: string[]) {
         record.calls.push({ args: [column, values], method: "in" });
+        return query;
+      },
+      order(column: string, options: OrderOptions) {
+        record.calls.push({ args: [column, options], method: "order" });
         return query;
       },
       select(columns: string) {
@@ -129,6 +139,8 @@ describe("getCurrentLedgerContext", () => {
     );
 
     expect(mocks.redirect).toHaveBeenCalledWith(routePaths.login);
+    expect(supabase.client.auth.getClaims).toHaveBeenCalledTimes(1);
+    expect(supabase.client.from).not.toHaveBeenCalled();
   });
 
   it("读取 claims 失败时跳转登录页", async () => {
@@ -163,7 +175,7 @@ describe("getCurrentLedgerContext", () => {
 
   it("没有 active 账本时返回空上下文", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [{ data: [] }],
+      queryResponses: [{ data: [{ current_ledger_id: null }] }, { data: [] }],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -177,21 +189,33 @@ describe("getCurrentLedgerContext", () => {
     expect(supabase.queries).toEqual([
       {
         calls: [
+          { args: ["current_ledger_id"], method: "select" },
+          { args: ["id", "user-1"], method: "eq" },
+        ],
+        table: "app_user",
+      },
+      {
+        calls: [
           { args: ["ledger_id"], method: "select" },
           { args: ["user_id", "user-1"], method: "eq" },
           { args: ["status", "active"], method: "eq" },
+          {
+            args: ["joined_at", { ascending: true, nullsFirst: false }],
+            method: "order",
+          },
+          { args: ["created_at", { ascending: true }], method: "order" },
+          { args: ["ledger_id", { ascending: true }], method: "order" },
         ],
         table: "ledger_member",
       },
     ]);
   });
 
-  it("根据 active 成员关系读取当前账本", async () => {
+  it("优先使用 app_user 中保存的当前账本", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
-        {
-          data: [{ ledger_id: "ledger-2" }, { ledger_id: "ledger-1" }],
-        },
+        { data: [{ current_ledger_id: "ledger-1" }] },
+        { data: [{ ledger_id: "ledger-2" }, { ledger_id: "ledger-1" }] },
         {
           data: [
             { base_currency: "JPY", id: "ledger-1", name: "备用账本" },
@@ -204,9 +228,9 @@ describe("getCurrentLedgerContext", () => {
 
     await expect(getCurrentLedgerContext()).resolves.toEqual({
       currentLedger: {
-        baseCurrency: "USD",
-        id: "ledger-2",
-        name: "家庭账本",
+        baseCurrency: "JPY",
+        id: "ledger-1",
+        name: "备用账本",
       },
       email: "test@example.com",
       ledgers: [
@@ -218,11 +242,72 @@ describe("getCurrentLedgerContext", () => {
 
     expect(supabase.queries[1]).toEqual({
       calls: [
+        { args: ["ledger_id"], method: "select" },
+        { args: ["user_id", "user-1"], method: "eq" },
+        { args: ["status", "active"], method: "eq" },
+        {
+          args: ["joined_at", { ascending: true, nullsFirst: false }],
+          method: "order",
+        },
+        { args: ["created_at", { ascending: true }], method: "order" },
+        { args: ["ledger_id", { ascending: true }], method: "order" },
+      ],
+      table: "ledger_member",
+    });
+    expect(supabase.queries[2]).toEqual({
+      calls: [
         { args: ["id, name, base_currency"], method: "select" },
         { args: ["id", ["ledger-2", "ledger-1"]], method: "in" },
+        { args: ["is_archived", false], method: "eq" },
       ],
       table: "ledger",
     });
+  });
+
+  it("保存的当前账本失效时回退到第一个 active 账本", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ current_ledger_id: "ledger-x" }] },
+        { data: [{ ledger_id: "ledger-2" }, { ledger_id: "ledger-1" }] },
+        {
+          data: [
+            { base_currency: "JPY", id: "ledger-1", name: "备用账本" },
+            { base_currency: "USD", id: "ledger-2", name: "家庭账本" },
+          ],
+        },
+      ],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(getCurrentLedgerContext()).resolves.toEqual(
+      expect.objectContaining({
+        currentLedger: {
+          baseCurrency: "USD",
+          id: "ledger-2",
+          name: "家庭账本",
+        },
+      }),
+    );
+  });
+
+  it("读取 app_user 失败时抛出可定位错误", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const supabase = createSupabaseMock({
+      queryResponses: [{ error: { message: "profile missing" } }],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(getCurrentLedgerContext()).rejects.toThrow(
+      "Failed to load current app user: profile missing",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to load current app user.",
+      expect.objectContaining({ message: "profile missing" }),
+    );
+
+    consoleError.mockRestore();
   });
 
   it("读取成员关系失败时抛出可定位错误", async () => {
@@ -230,7 +315,10 @@ describe("getCurrentLedgerContext", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     const supabase = createSupabaseMock({
-      queryResponses: [{ error: { message: "db down" } }],
+      queryResponses: [
+        { data: [{ current_ledger_id: null }] },
+        { error: { message: "db down" } },
+      ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -251,6 +339,7 @@ describe("getCurrentLedgerContext", () => {
       .mockImplementation(() => undefined);
     const supabase = createSupabaseMock({
       queryResponses: [
+        { data: [{ current_ledger_id: null }] },
         { data: [{ ledger_id: "ledger-1" }] },
         { error: { message: "relation missing" } },
       ],
@@ -273,6 +362,7 @@ describe("getCurrentLedgerOrRedirect", () => {
   it("有当前账本时返回当前账本", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
+        { data: [{ current_ledger_id: "ledger-1" }] },
         { data: [{ ledger_id: "ledger-1" }] },
         {
           data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
@@ -292,7 +382,7 @@ describe("getCurrentLedgerOrRedirect", () => {
 
   it("没有当前账本时跳转账本初始化页", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [{ data: [] }],
+      queryResponses: [{ data: [{ current_ledger_id: null }] }, { data: [] }],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
