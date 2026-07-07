@@ -168,6 +168,8 @@ describe("getCurrentLedgerContext", () => {
       `redirect:${routePaths.login}`,
     );
 
+    expect(mocks.redirect).toHaveBeenCalledWith(routePaths.login);
+    expect(supabase.client.auth.getClaims).toHaveBeenCalledTimes(1);
     expect(supabase.client.from).not.toHaveBeenCalled();
   });
 
