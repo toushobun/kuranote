@@ -31,3 +31,22 @@ export const WithoutHolderInitialState: Story = {
     holderOptions,
   },
 };
+
+export const WithCancelButton: Story = {
+  name: "带取消按钮",
+  args: {
+    createAccountAction: async () => {},
+    defaultCurrency: "CNY",
+    holderOptions,
+    onCancel: () => {},
+  },
+};
+
+export const NoHolderOptions: Story = {
+  name: "无可选持有人",
+  args: {
+    createAccountAction: async () => {},
+    defaultCurrency: "JPY",
+    holderOptions: [],
+  },
+};

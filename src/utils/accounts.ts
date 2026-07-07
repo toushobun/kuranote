@@ -45,13 +45,29 @@ export function formatAmount(amount: number | string | null, currency: string) {
     return `${amount} ${currency}`;
   }
 
+  const normalizedCurrency = currency.trim().toUpperCase();
+
   try {
-    return new Intl.NumberFormat(defaultAmountDisplayLocale, {
+    // ja-JP locale 下 THB 没有对应的货币符号（会显示成「THB 1,234.50」），
+    // narrowSymbol 才能取到泰铢符号「฿」。
+    const currencyDisplay =
+      normalizedCurrency === "THB" ? "narrowSymbol" : "symbol";
+
+    const formatted = new Intl.NumberFormat(defaultAmountDisplayLocale, {
       currency,
+      currencyDisplay,
       style: "currency",
     })
       .format(numberAmount)
       .replace(/\uFFE5/g, "¥");
+
+    // ja-JP locale 下 CNY 的货币符号是前缀文案「元」（如「元 1,234.50」），
+    // 与金额惯用的「1,234.50元」顺序相反，这里把「元」挪到金额之后。
+    if (normalizedCurrency === "CNY") {
+      return `${formatted.replace(/^(-?)元\s*/, "$1")}元`;
+    }
+
+    return formatted;
   } catch {
     return `${numberAmount} ${currency}`;
   }

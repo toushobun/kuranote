@@ -22,4 +22,16 @@ describe("formatAmount", () => {
   it("Intl 无法格式化货币时使用 fallback 文案", () => {
     expect(formatAmount(1200, "INVALID")).toBe("1200 INVALID");
   });
+
+  it("人民币金额格式化为「金额元」而非「元 金额」", () => {
+    expect(formatAmount(1234.5, "CNY")).toBe("1,234.50元");
+  });
+
+  it("人民币负数金额保留负号在数字前", () => {
+    expect(formatAmount(-1234.5, "CNY")).toBe("-1,234.50元");
+  });
+
+  it("泰铢金额使用泰铢符号而非货币代码前缀", () => {
+    expect(formatAmount(1234.5, "THB")).toBe("฿1,234.50");
+  });
 });

@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { accountsErrorHref, routePaths } from "config/paths";
+import {
+  accountResultValues,
+  accountsErrorHref,
+  accountsResultHref,
+  routePaths,
+} from "config/paths";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import {
   archiveAccountService,
@@ -38,7 +43,7 @@ export async function createAccount(formData: FormData) {
   if (!result.ok) redirect(accountsErrorHref(result.error));
 
   revalidatePath(routePaths.accounts);
-  redirect(routePaths.accounts);
+  redirect(accountsResultHref(accountResultValues.created));
 }
 
 export async function updateAccount(formData: FormData) {
@@ -63,7 +68,7 @@ export async function updateAccount(formData: FormData) {
   if (!result.ok) redirect(accountsErrorHref(result.error));
 
   revalidatePath(routePaths.accounts);
-  redirect(routePaths.accounts);
+  redirect(accountsResultHref(accountResultValues.updated));
 }
 
 export async function archiveAccount(formData: FormData) {
@@ -85,5 +90,5 @@ export async function archiveAccount(formData: FormData) {
   if (!result.ok) redirect(accountsErrorHref(result.error));
 
   revalidatePath(routePaths.accounts);
-  redirect(routePaths.accounts);
+  redirect(accountsResultHref(accountResultValues.archived));
 }

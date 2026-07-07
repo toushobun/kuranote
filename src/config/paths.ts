@@ -29,8 +29,17 @@ export const transactionResultValues = {
   updated: "updated",
 } as const;
 
+export const accountResultValues = {
+  archived: "archived",
+  created: "created",
+  updated: "updated",
+} as const;
+
 type TransactionResultValue =
   (typeof transactionResultValues)[keyof typeof transactionResultValues];
+
+type AccountResultValue =
+  (typeof accountResultValues)[keyof typeof accountResultValues];
 
 export const bottomNavigationRouteGroups = {
   left: [
@@ -118,7 +127,16 @@ export function editTransactionErrorHref(
 }
 
 export function accountsErrorHref(error: string) {
-  return routeWithQuery(routePaths.accounts, { error });
+  // errorKey 保证每次错误 redirect 的 URL 都不同，即使 error 码相同，
+  // 前端也能区分出这是新的一次错误事件，而不是同一次错误的重复渲染。
+  return routeWithQuery(routePaths.accounts, {
+    error,
+    errorKey: crypto.randomUUID(),
+  });
+}
+
+export function accountsResultHref(result: AccountResultValue) {
+  return routeWithQuery(routePaths.accounts, { result });
 }
 
 export function categoriesErrorHref(error: string, categoryId?: string | null) {

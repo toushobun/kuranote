@@ -14,6 +14,13 @@ import { BottomNavButton } from "molecules/navigation/BottomNavButton";
 import { bottomNavigationLayout } from "./bottomNavigationLayout";
 
 const transactionEditPathPattern = /^\/transactions\/[^/]+\/edit$/;
+const settingsSectionPaths = [
+  routePaths.accounts,
+  routePaths.categories,
+  routePaths.ledgers,
+  routePaths.merchants,
+  routePaths.settings,
+];
 
 const bottomNavigationIconNames = {
   [routePaths.dashboard]: "home",
@@ -35,9 +42,17 @@ export function BottomNavigationBar() {
   const isTransactionFormPage =
     pathname === routePaths.transactionsNew ||
     transactionEditPathPattern.test(pathname);
-  const isBottomNavSelected = (href: string) =>
-    !isTransactionFormPage &&
-    (pathname === href || pathname.startsWith(`${href}/`));
+  const isBottomNavSelected = (href: string) => {
+    if (isTransactionFormPage) return false;
+
+    if (href === routePaths.settings) {
+      return settingsSectionPaths.some(
+        (path) => pathname === path || pathname.startsWith(`${path}/`),
+      );
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <Paper

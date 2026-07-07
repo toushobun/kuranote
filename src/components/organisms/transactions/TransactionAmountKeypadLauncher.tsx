@@ -6,12 +6,12 @@ import Drawer from "@mui/material/Drawer";
 import type { Theme } from "@mui/material/styles";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { appZIndex } from "theme/zIndex";
+import { amountKeypadZIndex } from "theme/zIndex";
 
 import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
 
 export const amountKeypadDrawerSx = {
-  zIndex: appZIndex.bottomSheet,
+  zIndex: amountKeypadZIndex,
 };
 
 export const amountKeypadDrawerPaperSx = {
