@@ -25,7 +25,7 @@
 ## 语言规范
 
 - Issue 正文、PR 正文、PR 描述一律使用中文。
-- commit message 使用中文，格式为 `type: 中文说明`，常用类型：`feat / fix / docs / refactor / style / test / chore`。
+- commit message 使用中文，格式为 `type: 中文说明`，常用类型：`feat / fix / docs / refactor / style / test / chore / perf / design`。
 - 测试文件中的 `it()` 描述一律使用中文，例如：`it("显示错误信息")`。
 - 代码注释（行内注释、块注释）一律使用中文。
 - 例外：`describe()` 参数使用组件名或文件名等专有名词时保持英文，例如：`describe("RegisterForm")`；HTML / MUI 属性名（`placeholder`、`label`、`href` 等）不翻译；变量名、函数名、类型名保持英文。
@@ -62,7 +62,18 @@
 
 - Issue 标题使用 `type: 中文说明` 格式，例如 `fix: 修复账户错误`。
 - Issue 正文默认使用中文。
-- 新建 Issue 时必须加上对应 label，例如 `enhancement`、`bug`、`refactor`、`test`、`documentation`、`chore`。
+- 新建 Issue 时必须加上对应 label。日常开发 Issue 优先使用以下 label：`enhancement`、`bug`、`refactor`、`test`、`documentation`、`chore`、`design`、`performance`。
+- 暂时不要默认使用 `help wanted`、`invalid`、`question`。这些 label 仅在人工明确要求时使用，不作为 AI Agent 创建 Issue 时的常规选择项。
+- Label 选择规则：
+  - `bug`：问题修复、异常行为、回归缺陷。
+  - `enhancement`：新功能、既有功能改善、用户可见能力增强。
+  - `documentation`：README、docs、Issue / PR 模板、开发规则等文档变更。
+  - `chore`：依赖更新、配置调整、CI、维护作业、非用户可见的杂项整理。
+  - `refactor`：不改变既有行为的代码结构调整、组件拆分、职责整理。
+  - `test`：测试追加、测试修正、测试基础设施整理。
+  - `design`：UI、UX、视觉设计、布局、插图、主题风格等设计相关调整。
+  - `performance`：加载速度、查询效率、渲染性能、构建效率或运行效率改善。
+- 如果一个 Issue 同时涉及多个维度，优先选择最能代表主要目的的 label，可按需追加辅助 label；不要为了凑数添加无关 label。
 - Issue 正文格式必须参考 `.github/ISSUE_TEMPLATE/` 下对应类型的模板：
   - 新功能 / 功能改善使用 `.github/ISSUE_TEMPLATE/feature.yml`。
   - Bug 修正 / 问题修复使用 `.github/ISSUE_TEMPLATE/fix.yml`。
@@ -70,6 +81,8 @@
   - 测试追加 / 测试整理使用 `.github/ISSUE_TEMPLATE/test.yml`。
   - 文档新增 / 文档修改使用 `.github/ISSUE_TEMPLATE/docs.yml`。
   - 依赖更新 / 配置调整 / 维护作业使用 `.github/ISSUE_TEMPLATE/chore.yml`。
+  - UI / UX / 视觉 / 布局调整使用 `.github/ISSUE_TEMPLATE/design.yml`。
+  - 性能改善 / 效率优化使用 `.github/ISSUE_TEMPLATE/performance.yml`。
 - 通过 PowerShell 写入 issue body 文件时，必须显式使用 UTF-8 no BOM，避免 GitHub 正文乱码。
 
 ## Git / GitHub 工作流程
