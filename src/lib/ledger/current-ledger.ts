@@ -46,7 +46,9 @@ export const getCurrentLedgerContext = cache(
 
     if (appUserError) {
       console.error("Failed to load current app user.", appUserError);
-      throw new Error(`Failed to load current app user: ${appUserError.message}`);
+      throw new Error(
+        `Failed to load current app user: ${appUserError.message}`,
+      );
     }
 
     const appUserRows: AppUserRows = appUserData ?? [];
