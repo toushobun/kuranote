@@ -46,7 +46,7 @@ begin
           and lm.status = 'active'
           and l.is_archived = false
     ) then
-        raise exception 'current_ledger_id must reference an active ledger member';
+        raise exception 'current_ledger_id_invalid' using errcode = '42501';
     end if;
 
     return new;
@@ -76,7 +76,7 @@ begin
     v_user_id = auth.uid();
 
     if v_user_id is null then
-        raise exception 'login required';
+        raise exception 'auth_required' using errcode = '42501';
     end if;
 
     if not exists (
@@ -85,7 +85,7 @@ begin
         where au.id = v_user_id
           and au.status = 'active'
     ) then
-        raise exception 'active app_user required';
+        raise exception 'user_inactive' using errcode = '42501';
     end if;
 
     insert into public.ledger (
