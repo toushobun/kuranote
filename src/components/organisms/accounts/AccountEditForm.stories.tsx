@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { UserThemeProvider } from "theme/UserThemeProvider";
+
 import { AccountEditForm } from "./AccountEditForm";
 
 const holderOptions = [
@@ -28,6 +30,13 @@ const baseAccount = {
 
 const meta: Meta<typeof AccountEditForm> = {
   component: AccountEditForm,
+  decorators: [
+    (Story) => (
+      <UserThemeProvider storageScope="storybook-account-edit-form">
+        <Story />
+      </UserThemeProvider>
+    ),
+  ],
   title: "Organisms/Accounts/AccountEditForm",
 };
 
@@ -84,6 +93,43 @@ export const SharedHolderAccount: Story = {
         },
       ],
     },
+    holderOptions,
+    updateAccountAction: async () => {},
+  },
+};
+
+export const NoHolderAccount: Story = {
+  name: "未设置持有人账户",
+  args: {
+    account: {
+      ...baseAccount,
+      name: "备用账户",
+      type: "other",
+      holders: [],
+    },
+    holderOptions,
+    updateAccountAction: async () => {},
+  },
+};
+
+export const WithArchiveAction: Story = {
+  name: "带删除按钮",
+  args: {
+    account: {
+      ...baseAccount,
+      holders: [
+        {
+          id: "holder-1",
+          user_id: "user-1",
+          display_name: "本地开发用户",
+          email: "local1@example.test",
+          display_color: "sky",
+          role: "owner",
+          share_ratio: null,
+        },
+      ],
+    },
+    archiveAccountAction: async () => {},
     holderOptions,
     updateAccountAction: async () => {},
   },

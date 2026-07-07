@@ -1,4 +1,4 @@
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -6,14 +6,15 @@ import type { AccountRow } from "types/accounts";
 
 import { AccountList } from "./AccountList";
 
-vi.mock("molecules/accounts/ArchiveAccountButton", () => ({
-  ArchiveAccountButton: (): ReactNode => (
-    <button type="submit">归档账户</button>
-  ),
-}));
-
-vi.mock("./AccountEditForm", () => ({
-  AccountEditForm: (): ReactNode => <div data-testid="account-edit-form" />,
+vi.mock("./AccountEditDialog", () => ({
+  AccountEditDialog: ({
+    account,
+  }: {
+    account: AccountRow | null;
+  }): ReactNode =>
+    account ? (
+      <div data-testid="account-edit-dialog">{account.name}</div>
+    ) : null,
 }));
 
 afterEach(() => {
@@ -46,6 +47,23 @@ describe("AccountList", () => {
     expect(within(container).getByText("还没有账户")).toBeInTheDocument();
   });
 
+  it("可自定义空状态提示", () => {
+    const { container } = render(
+      <AccountList
+        {...baseProps}
+        emptyDescription="请切换其他账户类型。"
+        emptyTitle="该类型下还没有账户"
+      />,
+    );
+
+    expect(
+      within(container).getByText("该类型下还没有账户"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByText("请切换其他账户类型。"),
+    ).toBeInTheDocument();
+  });
+
   it("有账户时显示账户名称", () => {
     const { container } = render(
       <AccountList {...baseProps} accounts={[baseAccount]} />,
@@ -68,5 +86,38 @@ describe("AccountList", () => {
 
     expect(within(container).getByText("三菱UFJ银行")).toBeInTheDocument();
     expect(within(container).getByText("PayPay")).toBeInTheDocument();
+  });
+
+  it("点击账户时打开编辑弹窗", () => {
+    const { container } = render(
+      <AccountList {...baseProps} accounts={[baseAccount]} />,
+    );
+
+    fireEvent.click(within(container).getByRole("button"));
+
+    expect(
+      within(container).getByTestId("account-edit-dialog"),
+    ).toHaveTextContent("三菱UFJ银行");
+  });
+
+  it("编辑账户保存成功后关闭编辑弹窗", () => {
+    const { container, rerender } = render(
+      <AccountList {...baseProps} accounts={[baseAccount]} />,
+    );
+
+    fireEvent.click(within(container).getByRole("button"));
+    expect(
+      within(container).getByTestId("account-edit-dialog"),
+    ).toBeInTheDocument();
+
+    rerender(
+      <AccountList
+        {...baseProps}
+        accounts={[baseAccount]}
+        saveResult="updated"
+      />,
+    );
+
+    expect(within(container).queryByTestId("account-edit-dialog")).toBeNull();
   });
 });

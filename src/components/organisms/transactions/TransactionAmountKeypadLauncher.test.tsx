@@ -9,7 +9,7 @@ import { createTheme } from "@mui/material/styles";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { appZIndex } from "theme/zIndex";
+import { amountKeypadZIndex, appZIndex } from "theme/zIndex";
 
 import {
   amountKeypadDrawerPaperSx,
@@ -81,12 +81,14 @@ describe("TransactionAmountKeypadLauncher", () => {
     expect(inputValues).toEqual(["1", "12"]);
   });
 
-  it("抽屉层级位于底部导航和 snackbar 之间并保持面板贴底", () => {
-    expect(amountKeypadDrawerSx.zIndex).toBe(appZIndex.bottomSheet);
+  it("抽屉层级高于底部导航、dialog 和 dropdown，并保持面板贴底", () => {
+    expect(amountKeypadDrawerSx.zIndex).toBe(amountKeypadZIndex);
     expect(amountKeypadDrawerSx.zIndex).toBeGreaterThan(
       bottomNavigationLayout.navigationZIndex,
     );
-    expect(amountKeypadDrawerSx.zIndex).toBeLessThan(appZIndex.snackbar);
+    expect(amountKeypadDrawerSx.zIndex).toBeGreaterThan(appZIndex.dialog);
+    expect(amountKeypadDrawerSx.zIndex).toBeGreaterThan(appZIndex.dropdown);
+    expect(amountKeypadDrawerSx.zIndex).toBeLessThan(appZIndex.tooltip);
     expect("bottom" in amountKeypadDrawerPaperSx).toBe(false);
   });
 

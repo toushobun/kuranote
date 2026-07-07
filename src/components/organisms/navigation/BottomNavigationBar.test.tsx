@@ -89,6 +89,17 @@ describe("BottomNavigationBar", () => {
     ).toBe("page");
   });
 
+  it("账户管理页选中我的导航", () => {
+    mockedPathname = "/accounts";
+    const { container } = renderBottomNavigationBar();
+
+    expect(
+      within(container)
+        .getByRole("link", { name: "我的" })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+  });
+
   it("新增记录页不选中明细导航", () => {
     mockedPathname = "/transactions/new";
     const { container } = renderBottomNavigationBar();

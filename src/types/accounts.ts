@@ -2,7 +2,7 @@ import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export const accountTypeOptions = [
   { label: "现金", value: "cash" },
-  { label: "银行账户", value: "bank" },
+  { label: "银行卡", value: "bank" },
   { label: "信用卡", value: "credit_card" },
   { label: "电子钱包", value: "e_money" },
   { label: "其他", value: "other" },

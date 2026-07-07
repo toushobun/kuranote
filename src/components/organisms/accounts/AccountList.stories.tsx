@@ -97,3 +97,62 @@ export const Empty: Story = {
     accounts: [],
   },
 };
+
+export const FilteredEmpty: Story = {
+  name: "筛选后无结果",
+  args: {
+    accounts: [],
+    emptyTitle: "该类型下还没有账户",
+    emptyDescription: "请切换其他账户类型，或新增一个账户。",
+  },
+};
+
+export const ManyAccounts: Story = {
+  name: "多账户列表",
+  args: {
+    accounts: [
+      ...accounts,
+      {
+        id: "00000000-0000-4000-8000-000000000004",
+        name: "招商银行信用卡",
+        type: "credit_card",
+        currency: "CNY",
+        initial_balance: 0,
+        current_balance: -5200,
+        sort_order: 4,
+        created_at: "2026-01-04T00:00:00.000Z",
+        holders: [
+          {
+            id: "holder-3",
+            user_id: "user-1",
+            display_name: "本地开发用户",
+            email: "local1@example.test",
+            display_color: "sky",
+            role: "owner",
+            share_ratio: null,
+          },
+          {
+            id: "holder-4",
+            user_id: "user-2",
+            display_name: "本地开发用户2",
+            email: "local2@example.test",
+            display_color: "sakura",
+            role: "co_owner",
+            share_ratio: null,
+          },
+        ],
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000005",
+        name: "PayPay",
+        type: "e_money",
+        currency: "JPY",
+        initial_balance: 0,
+        current_balance: 3200,
+        sort_order: 5,
+        created_at: "2026-01-05T00:00:00.000Z",
+        holders: [],
+      },
+    ],
+  },
+};

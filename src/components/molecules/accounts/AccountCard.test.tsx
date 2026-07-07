@@ -1,5 +1,5 @@
-import { cleanup, render, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AccountCard } from "./AccountCard";
 
@@ -11,7 +11,6 @@ const baseProps = {
   name: "三菱UFJ银行",
   type: "bank" as const,
   currency: "JPY",
-  initialBalance: 100000,
   currentBalance: 85000,
   holders: [],
 };
@@ -26,19 +25,25 @@ describe("AccountCard", () => {
   it("显示账户类型标签", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 
-    expect(within(container).getByText("银行账户")).toBeInTheDocument();
+    expect(within(container).getByText("银行卡")).toBeInTheDocument();
   });
 
   it("显示当前余额", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 
-    expect(within(container).getByText(/当前余额/)).toBeInTheDocument();
+    expect(within(container).getByText("¥85,000")).toBeInTheDocument();
+  });
+
+  it("不显示初始余额", () => {
+    const { container } = render(<AccountCard {...baseProps} />);
+
+    expect(within(container).queryByText(/初始余额/)).toBeNull();
   });
 
   it("没有持有人时显示未设置", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 
-    expect(within(container).getByText("未设置")).toBeInTheDocument();
+    expect(within(container).getByText("未设置持有人")).toBeInTheDocument();
   });
 
   it("有持有人时显示持有人名称", () => {
@@ -73,5 +78,16 @@ describe("AccountCard", () => {
     expect(
       within(container).getByRole("button", { name: "编辑" }),
     ).toBeInTheDocument();
+  });
+
+  it("点击卡片时触发回调", () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <AccountCard {...baseProps} onClick={onClick} />,
+    );
+
+    fireEvent.click(within(container).getByRole("button"));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

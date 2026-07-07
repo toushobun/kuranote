@@ -54,3 +54,38 @@ export const WithPreservedOptions: Story = {
     ],
   },
 };
+
+export const AllSelected: Story = {
+  name: "全部选中",
+  args: {
+    selectedUserIds: ["user-1", "user-2"],
+  },
+};
+
+export const SingleHolder: Story = {
+  name: "仅一位持有人",
+  args: {
+    holderOptions: [
+      {
+        user_id: "user-1",
+        display_name: "本地开发用户",
+        email: "local1@example.test",
+      },
+    ],
+    selectedUserIds: ["user-1"],
+  },
+};
+
+export const SelectedWithPreserved: Story = {
+  name: "选中活跃 + 保留非活跃",
+  args: {
+    selectedUserIds: ["user-1"],
+    preservedHolderOptions: [
+      {
+        user_id: "user-3",
+        display_name: "已离开用户",
+        email: "left@example.test",
+      },
+    ],
+  },
+};

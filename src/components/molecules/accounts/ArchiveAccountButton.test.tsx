@@ -1,74 +1,73 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { FormEvent } from "react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { ArchiveAccountButton } from "./ArchiveAccountButton";
 
-const originalConfirm = window.confirm;
+const actionLabel = String.fromCharCode(21024, 38500, 36134, 25143);
+const dialogTitle = `${actionLabel}？`;
+const confirmLabel = String.fromCharCode(21024, 38500);
 
 afterEach(() => {
   cleanup();
-  window.confirm = originalConfirm;
+  window.localStorage.clear();
+  document.documentElement.removeAttribute("data-user-theme");
 });
 
+function renderWithUserTheme(children: ReactNode) {
+  return render(
+    <UserThemeProvider storageScope="archive-account-button-test">
+      {children}
+    </UserThemeProvider>,
+  );
+}
+
 describe("ArchiveAccountButton", () => {
-  it("渲染归档按钮", () => {
-    render(
+  it("渲染按钮", () => {
+    renderWithUserTheme(
       <form>
         <ArchiveAccountButton />
       </form>,
     );
 
-    expect(screen.getByRole("button", { name: "归档" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: actionLabel }),
+    ).toBeInTheDocument();
   });
 
-  it("点击按钮时弹出确认对话框", () => {
-    window.confirm = vi.fn(() => true);
-
-    render(
+  it("点击后显示统一确认弹窗", () => {
+    renderWithUserTheme(
       <form>
         <ArchiveAccountButton />
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "归档" }));
+    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
 
-    expect(window.confirm).toHaveBeenCalledWith("确定归档该账户吗？");
+    expect(
+      screen.getByRole("heading", { name: dialogTitle }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: confirmLabel }),
+    ).toBeInTheDocument();
   });
 
-  it("用户确认后不阻止事件默认行为", () => {
-    window.confirm = vi.fn(() => true);
-    const handleSubmit = vi.fn((e: FormEvent<HTMLFormElement>) =>
-      e.preventDefault(),
-    );
+  it("取消时关闭弹窗", () => {
+    const handleSubmit = vi.fn();
 
-    render(
+    renderWithUserTheme(
       <form onSubmit={handleSubmit}>
         <ArchiveAccountButton />
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "归档" }));
+    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
 
-    expect(window.confirm).toHaveBeenCalled();
-    expect(handleSubmit).toHaveBeenCalledTimes(1);
-  });
-
-  it("用户取消时阻止表单提交", () => {
-    window.confirm = vi.fn(() => false);
-    const handleSubmit = vi.fn((e: FormEvent<HTMLFormElement>) =>
-      e.preventDefault(),
-    );
-
-    render(
-      <form onSubmit={handleSubmit}>
-        <ArchiveAccountButton />
-      </form>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "归档" }));
-
-    expect(window.confirm).toHaveBeenCalled();
     expect(handleSubmit).not.toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { name: dialogTitle })).toBeNull();
   });
 });
