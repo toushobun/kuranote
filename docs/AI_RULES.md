@@ -63,6 +63,7 @@
 - Issue 标题使用 `type: 中文说明` 格式，例如 `fix: 修复账户错误`。
 - Issue 正文默认使用中文。
 - 新建 Issue 时必须加上对应 label。日常开发 Issue 优先使用以下 label：`enhancement`、`bug`、`refactor`、`test`、`documentation`、`chore`、`performance`。`design` 作为辅助 label 使用，不作为独立 Issue 类型。
+- Issue 标题前缀对应的主 label 必须存在：`feat:` → `enhancement`，`fix:` → `bug`，`docs:` → `documentation`，`chore:` → `chore`，`refactor:` → `refactor`，`test:` → `test`，`perf:` → `performance`。在主 label 基础上可按需追加辅助 label，例如 `feat: 新增画面` 必须包含 `enhancement`，也可以追加 `design`、`documentation` 等；`docs: 更新说明` 必须包含 `documentation`，也可以追加其他辅助 label。
 - 暂时不要默认使用 `help wanted`、`invalid`、`question`。这些 label 仅在人工明确要求时使用，不作为 AI Agent 创建 Issue 时的常规选择项。
 - Label 选择规则：
   - `bug`：问题修复、异常行为、回归缺陷。
