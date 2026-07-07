@@ -16,10 +16,16 @@ type QueryResponse = {
   error?: QueryError | null;
 };
 
+type OrderOptions = {
+  ascending?: boolean;
+  nullsFirst?: boolean;
+};
+
 type QueryCall =
   | { method: "select"; args: [string] }
   | { method: "eq"; args: [string, string | boolean] }
-  | { method: "in"; args: [string, string[]] };
+  | { method: "in"; args: [string, string[]] }
+  | { method: "order"; args: [string, OrderOptions] };
 
 type QueryRecord = {
   table: string;
@@ -80,6 +86,10 @@ function createSupabaseMock({
         record.calls.push({ args: [column, values], method: "in" });
         return query;
       },
+      order(column: string, options: OrderOptions) {
+        record.calls.push({ args: [column, options], method: "order" });
+        return query;
+      },
       select(columns: string) {
         record.calls.push({ args: [columns], method: "select" });
         return query;
@@ -129,6 +139,8 @@ describe("getCurrentLedgerContext", () => {
     );
 
     expect(mocks.redirect).toHaveBeenCalledWith(routePaths.login);
+    expect(supabase.client.auth.getClaims).toHaveBeenCalledTimes(1);
+    expect(supabase.client.from).not.toHaveBeenCalled();
   });
 
   it("读取 claims 失败时跳转登录页", async () => {
@@ -141,6 +153,8 @@ describe("getCurrentLedgerContext", () => {
       `redirect:${routePaths.login}`,
     );
 
+    expect(mocks.redirect).toHaveBeenCalledWith(routePaths.login);
+    expect(supabase.client.auth.getClaims).toHaveBeenCalledTimes(1);
     expect(supabase.client.from).not.toHaveBeenCalled();
   });
 
@@ -183,6 +197,12 @@ describe("getCurrentLedgerContext", () => {
           { args: ["ledger_id"], method: "select" },
           { args: ["user_id", "user-1"], method: "eq" },
           { args: ["status", "active"], method: "eq" },
+          {
+            args: ["joined_at", { ascending: true, nullsFirst: false }],
+            method: "order",
+          },
+          { args: ["created_at", { ascending: true }], method: "order" },
+          { args: ["ledger_id", { ascending: true }], method: "order" },
         ],
         table: "ledger_member",
       },
@@ -218,6 +238,20 @@ describe("getCurrentLedgerContext", () => {
       userId: "user-1",
     });
 
+    expect(supabase.queries[1]).toEqual({
+      calls: [
+        { args: ["ledger_id"], method: "select" },
+        { args: ["user_id", "user-1"], method: "eq" },
+        { args: ["status", "active"], method: "eq" },
+        {
+          args: ["joined_at", { ascending: true, nullsFirst: false }],
+          method: "order",
+        },
+        { args: ["created_at", { ascending: true }], method: "order" },
+        { args: ["ledger_id", { ascending: true }], method: "order" },
+      ],
+      table: "ledger_member",
+    });
     expect(supabase.queries[2]).toEqual({
       calls: [
         { args: ["id, name, base_currency"], method: "select" },
