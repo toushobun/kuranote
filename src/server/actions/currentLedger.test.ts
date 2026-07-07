@@ -87,6 +87,9 @@ describe("updateCurrentLedger", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       routePaths.transactionsNew,
     );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      routePaths.transactionsSearch,
+    );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
     expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.categories);
     expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
