@@ -1,0 +1,46 @@
+name: Design
+description: UI・UX・视觉设计相关 Issue
+title: "design: "
+labels: ["design"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 请用中文说明本 Issue 要调整哪些 UI、UX、视觉或布局。
+      placeholder: 例如：调整账户管理页底部弹窗的视觉层级。
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景 / 目的
+      description: 为什么需要这个设计调整？当前体验或视觉上有什么问题？
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: 范围
+      description: 说明本次设计调整包含和不包含的范围。
+      placeholder: 例如：只调整布局和视觉，不改变业务逻辑。
+    validations:
+      required: false
+  - type: textarea
+    id: tasks
+    attributes:
+      label: TODO
+      description: 拆分需要完成的设计事项。
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+      description: 其他补充信息、参考图或设计约束。
+    validations:
+      required: false
