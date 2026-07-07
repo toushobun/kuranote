@@ -1,0 +1,57 @@
+name: Performance
+description: 性能改善・效率优化相关 Issue
+title: "perf: "
+labels: ["performance"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 请用中文说明本 Issue 要改善什么性能或效率问题。
+      placeholder: 例如：优化明细页初次加载速度。
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: 现状 / 问题
+      description: 当前性能问题是什么？在哪些场景下明显？
+    validations:
+      required: false
+  - type: textarea
+    id: target
+    attributes:
+      label: 目标
+      description: 说明希望达到的性能状态或可观察结果。
+      value: |
+        - 
+        - 
+        -
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: 范围
+      description: 说明本次优化包含和不包含的范围。
+      placeholder: 例如：只优化查询和渲染，不改变 UI 设计。
+    validations:
+      required: false
+  - type: textarea
+    id: tasks
+    attributes:
+      label: TODO
+      description: 拆分需要完成的性能改善事项。
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+      description: 其他补充信息、测量方式或风险。
+    validations:
+      required: false
