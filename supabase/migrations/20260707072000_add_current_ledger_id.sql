@@ -127,6 +127,8 @@ begin
         v_user_id
     );
 
+    perform public.initialize_ledger_default_data(v_ledger.id, v_user_id);
+
     update public.app_user
     set
         current_ledger_id = v_ledger.id,
