@@ -119,7 +119,7 @@ export const getCurrentLedgerContext = cache(
       .map((ledgerId) => ledgerById.get(ledgerId))
       .filter((ledger): ledger is CurrentLedger => ledger !== undefined);
     const currentLedger = storedCurrentLedgerId
-      ? ledgers.find((ledger) => ledger.id === storedCurrentLedgerId) ?? null
+      ? (ledgers.find((ledger) => ledger.id === storedCurrentLedgerId) ?? null)
       : null;
 
     return {
