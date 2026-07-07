@@ -2,8 +2,8 @@ import type { QueryData } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
-import { createClient } from "lib/supabase/server";
 import { routePaths } from "config/paths";
+import { createClient } from "lib/supabase/server";
 
 export type CurrentLedger = {
   id: string;
@@ -20,8 +20,6 @@ export type CurrentLedgerContext = {
 
 export const getCurrentLedgerContext = cache(
   async (): Promise<CurrentLedgerContext> => {
-    // cache() 的缓存范围是单次 server request。
-    // redirect() 抛出的控制流即使在同一请求内被复用，也只会在该请求内重新触发跳转，不会跨请求污染登录状态。
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getClaims();
 
@@ -37,6 +35,24 @@ export const getCurrentLedgerContext = cache(
 
     const email =
       typeof data.claims.email === "string" ? data.claims.email : "登录用户";
+
+    const appUserQuery = supabase
+      .from("app_user")
+      .select("current_ledger_id")
+      .eq("id", userId);
+    type AppUserRows = QueryData<typeof appUserQuery>;
+
+    const { data: appUserData, error: appUserError } = await appUserQuery;
+
+    if (appUserError) {
+      console.error("Failed to load current app user.", appUserError);
+      throw new Error(`Failed to load current app user: ${appUserError.message}`);
+    }
+
+    const appUserRows: AppUserRows = appUserData ?? [];
+    const storedCurrentLedgerId = appUserRows.find(
+      (row) => typeof row.current_ledger_id === "string",
+    )?.current_ledger_id;
 
     const memberQuery = supabase
       .from("ledger_member")
@@ -74,7 +90,8 @@ export const getCurrentLedgerContext = cache(
     const ledgerQuery = supabase
       .from("ledger")
       .select("id, name, base_currency")
-      .in("id", ledgerIds);
+      .in("id", ledgerIds)
+      .eq("is_archived", false);
     type LedgerRows = QueryData<typeof ledgerQuery>;
 
     const { data: ledgerData, error: ledgerError } = await ledgerQuery;
@@ -99,12 +116,15 @@ export const getCurrentLedgerContext = cache(
     const ledgers = ledgerIds
       .map((ledgerId) => ledgerById.get(ledgerId))
       .filter((ledger): ledger is CurrentLedger => ledger !== undefined);
+    const currentLedger = storedCurrentLedgerId
+      ? ledgers.find((ledger) => ledger.id === storedCurrentLedgerId) ?? null
+      : null;
 
     return {
       userId,
       email,
       ledgers,
-      currentLedger: ledgers[0] ?? null,
+      currentLedger: currentLedger ?? ledgers[0] ?? null,
     };
   },
 );
