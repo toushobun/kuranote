@@ -321,7 +321,7 @@ const pageTitleSx = {
   ...typographyStyles.pageTitle,
   flex: 1,
   fontSize: { xs: 28, sm: 30 },
-  fontWeight: 900,
+  fontWeight: 800,
 };
 
 const createButtonSx = {
@@ -330,7 +330,7 @@ const createButtonSx = {
   borderRadius: 999,
   color: "var(--user-theme-fab-text)",
   flexShrink: 0,
-  fontWeight: 800,
+  fontWeight: 700,
   fontSize: 16,
   minHeight: 48,
   px: 2.5,
@@ -372,19 +372,19 @@ const currentCardLabelSx = {
   ...typographyStyles.listText,
   color: "text.primary",
   fontSize: 17,
-  fontWeight: 700,
+  fontWeight: 600,
 };
 
 const currentLedgerNameSx = {
   ...typographyStyles.cardTitle,
   fontSize: { xs: 27, sm: 30 },
-  fontWeight: 900,
+  fontWeight: 700,
 };
 
 const sectionTitleSx = {
   ...typographyStyles.cardTitle,
   fontSize: 19,
-  fontWeight: 900,
+  fontWeight: 700,
 };
 
 function ledgerItemCardSx(isCurrent: boolean) {
@@ -432,7 +432,7 @@ const ledgerItemIconBoxSx = {
 const ledgerItemNameSx = {
   ...typographyStyles.cardTitle,
   fontSize: 21,
-  fontWeight: 900,
+  fontWeight: 700,
 };
 
 const statusChipSx = {
@@ -442,7 +442,7 @@ const statusChipSx = {
   color: "var(--user-theme-business-completed-text)",
   flexShrink: 0,
   fontSize: 16,
-  fontWeight: 800,
+  fontWeight: 700,
   height: 34,
   px: 0.6,
   "& .MuiChip-label": {
@@ -457,7 +457,7 @@ const editChipSx = {
   display: "inline-flex",
   flexShrink: 0,
   fontSize: 13,
-  fontWeight: 700,
+  fontWeight: 600,
   height: 28,
   px: 0.4,
 };
@@ -476,7 +476,7 @@ const metaIconSx = {
 
 const metaTextSx = {
   fontSize: { xs: 12.5, sm: 14 },
-  fontWeight: 700,
+  fontWeight: 600,
   whiteSpace: "nowrap",
 };
 
@@ -488,5 +488,5 @@ const emptyCardSx = {
 const emptyTitleSx = {
   ...typographyStyles.cardTitle,
   fontSize: 18,
-  fontWeight: 900,
+  fontWeight: 700,
 };
