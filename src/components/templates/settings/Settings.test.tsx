@@ -22,7 +22,10 @@ afterEach(() => {
 
 function renderSettingsTemplate() {
   return render(
-    <SettingsTemplate currentLedgerName="家庭账本" logoutAction={logoutAction} />,
+    <SettingsTemplate
+      currentLedgerName="家庭账本"
+      logoutAction={logoutAction}
+    />,
   );
 }
 

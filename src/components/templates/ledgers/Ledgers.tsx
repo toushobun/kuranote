@@ -87,7 +87,11 @@ export function LedgersTemplate({
                 新增账本
               </Button>
             </Stack>
-            <Typography color="text.secondary" variant="body2" sx={{ pl: 5.75 }}>
+            <Typography
+              color="text.secondary"
+              variant="body2"
+              sx={{ pl: 5.75 }}
+            >
               查看和管理你加入的账本
             </Typography>
           </Stack>
@@ -141,11 +145,7 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
           <Chip color="success" label="使用中" sx={statusChipSx} />
         </Stack>
 
-        <Stack
-          direction="row"
-          spacing={0}
-          sx={ledgerMetaRowSx}
-        >
+        <Stack direction="row" spacing={0} sx={ledgerMetaRowSx}>
           <LedgerMetaItem
             icon={PeopleAltRoundedIcon}
             label="成员"
@@ -259,11 +259,7 @@ function LedgerMetaItem({
   const Icon = icon;
 
   return (
-    <Stack
-      direction="row"
-      spacing={0.35}
-      sx={ledgerMetaItemSx}
-    >
+    <Stack direction="row" spacing={0.35} sx={ledgerMetaItemSx}>
       <Icon sx={metaIconSx} />
       <Typography color="text.secondary" variant="body2" sx={metaTextSx}>
         <Box component="span" sx={metaLabelSx}>

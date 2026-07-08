@@ -32,7 +32,11 @@ export default function LedgersLoadingPage() {
 
           <SoftCard sx={{ borderRadius: 2, p: { xs: 1.7, sm: 2 } }}>
             <Stack spacing={1.45}>
-              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+              <Stack
+                direction="row"
+                spacing={1.25}
+                sx={{ alignItems: "center" }}
+              >
                 <Skeleton height={56} variant="circular" width={56} />
                 <Stack spacing={0.5} sx={{ flex: 1 }}>
                   <Skeleton sx={{ fontSize: 14 }} width="24%" />

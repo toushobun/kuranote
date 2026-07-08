@@ -72,7 +72,9 @@ describe("LedgersTemplate", () => {
       />,
     );
 
-    expect(within(container).getAllByText("家庭账本").length).toBeGreaterThan(0);
+    expect(within(container).getAllByText("家庭账本").length).toBeGreaterThan(
+      0,
+    );
     expect(within(container).getByText("旅行账本")).toBeInTheDocument();
     expect(within(container).getAllByText("使用中").length).toBeGreaterThan(0);
   });
