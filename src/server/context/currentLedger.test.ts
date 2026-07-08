@@ -11,15 +11,11 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("config/paths", () => ({
-  routePaths: {
-    ledgerSetup: "/ledger-setup",
-  },
-}));
-
 vi.mock("lib/ledger/current-ledger", () => ({
   getCurrentLedgerContext: mocks.getCurrentLedgerContext,
 }));
+
+import { routePaths } from "config/paths";
 
 import { requireCurrentUserAndLedger } from "./currentLedger";
 
@@ -48,7 +44,7 @@ describe("requireCurrentUserAndLedger", () => {
     });
   });
 
-  it("当前账本不存在时跳转到账本初始化页", async () => {
+  it("当前账本不存在时跳转到首页无账本状态", async () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({
       currentLedger: null,
       email: "user@example.com",
@@ -57,8 +53,8 @@ describe("requireCurrentUserAndLedger", () => {
     });
 
     await expect(requireCurrentUserAndLedger()).rejects.toThrow(
-      "redirect:/ledger-setup",
+      `redirect:${routePaths.dashboard}`,
     );
-    expect(mocks.redirect).toHaveBeenCalledWith("/ledger-setup");
+    expect(mocks.redirect).toHaveBeenCalledWith(routePaths.dashboard);
   });
 });

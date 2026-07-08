@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { createDashboardViewData } from "@/test/mocks/dashboard";
+import {
+  createDashboardViewData,
+  createNoLedgerDashboardViewData,
+} from "@/test/mocks/dashboard";
 
 import { DashboardTemplate } from "./Dashboard";
 
@@ -53,5 +56,52 @@ describe("DashboardTemplate", () => {
 
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
+
+  it("无账本时按真实首页结构显示创建引导", () => {
+    render(
+      <DashboardTemplate
+        createLedgerAction={vi.fn(async () => {})}
+        data={createNoLedgerDashboardViewData()}
+      />,
+    );
+
+    expect(screen.getByText("先创建你的第一个账本")).toBeInTheDocument();
+    expect(
+      screen.getByText("创建账本后，就可以开始记录家庭收支了"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getByText("等待创建账本")).toBeInTheDocument();
+    expect(
+      screen.getByText("还没有账本，暂时无法显示账户余额"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/账本名称/)).toHaveValue("家庭账本");
+    expect(
+      screen.getByRole("button", { name: "创建第一个账本" }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("link", { name: "创建第一个账本" })).toBeNull();
+    expect(screen.getAllByText("需先创建账本")).toHaveLength(3);
+    expect(screen.queryByRole("link", { name: "查看全部" })).toBeNull();
+    expect(
+      screen.getByText("创建账本后，你的近期记录会显示在这里"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("dashboard-no-ledger-account-illustration-slot"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("dashboard-no-ledger-recent-illustration-slot"),
+    ).toBeInTheDocument();
+  });
+
+  it("无账本创建错误时显示错误提示", () => {
+    render(
+      <DashboardTemplate
+        createLedgerAction={vi.fn(async () => {})}
+        createLedgerErrorMessage="请输入账本名称。"
+        data={createNoLedgerDashboardViewData()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("请输入账本名称。");
   });
 });

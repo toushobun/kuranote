@@ -5,7 +5,6 @@ export const routePaths = {
   categories: "/categories",
   dashboard: "/dashboard",
   home: "/",
-  ledgerSetup: "/ledger-setup",
   ledgers: "/ledgers",
   login: "/login",
   merchants: "/merchants",
@@ -143,8 +142,8 @@ export function categoriesErrorHref(error: string, categoryId?: string | null) {
   return routeWithQuery(routePaths.categories, { error, categoryId });
 }
 
-export function ledgerSetupErrorHref(error: string) {
-  return routeWithQuery(routePaths.ledgerSetup, { error });
+export function dashboardLedgerSetupErrorHref(error: string) {
+  return routeWithQuery(routePaths.dashboard, { ledgerSetupError: error });
 }
 
 export function merchantsErrorHref(error: string, merchantId?: string | null) {

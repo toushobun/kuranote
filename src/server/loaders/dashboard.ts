@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 
 import type {
@@ -27,9 +27,21 @@ type DashboardAccountDbRow = AccountOptionDbRow & {
 };
 
 export async function loadDashboardView(): Promise<DashboardViewData> {
-  const currentLedger = await getCurrentLedgerOrRedirect();
-  const supabase = await createClient();
+  const currentLedgerContext = await getCurrentLedgerContext();
+  const currentLedger = currentLedgerContext.currentLedger;
   const { monthStartIso, monthEndIso, monthLabel } = getDashboardDateRange();
+
+  if (!currentLedger) {
+    return {
+      accountSummaries: [],
+      hasLedger: false,
+      monthLabel,
+      monthSummary: createTransactionAmountSummary("JPY"),
+      recentTransactions: [],
+    };
+  }
+
+  const supabase = await createClient();
 
   const [{ data: recordData, error: recordError }, { data: recentRecordData }] =
     await Promise.all([
@@ -219,8 +231,6 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   ).slice(0, 5);
 
   return {
-    monthLabel,
-    monthSummary,
     accountSummaries: accountSummaries.map((account) => ({
       id: account.id,
       name: account.name,
@@ -228,6 +238,9 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
       currency: account.currency,
       balance: account.current_balance,
     })),
+    hasLedger: true,
+    monthLabel,
+    monthSummary,
     recentTransactions,
   };
 }

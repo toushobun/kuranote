@@ -376,20 +376,18 @@ describe("getCurrentLedgerOrRedirect", () => {
       id: "ledger-1",
       name: "家庭账本",
     });
-
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("没有当前账本时跳转账本初始化页", async () => {
+  it("没有当前账本时跳转到首页无账本状态", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [{ data: [{ current_ledger_id: null }] }, { data: [] }],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
     await expect(getCurrentLedgerOrRedirect()).rejects.toThrow(
-      `redirect:${routePaths.ledgerSetup}`,
+      `redirect:${routePaths.dashboard}`,
     );
-
-    expect(mocks.redirect).toHaveBeenCalledWith(routePaths.ledgerSetup);
+    expect(mocks.redirect).toHaveBeenCalledWith(routePaths.dashboard);
   });
 });

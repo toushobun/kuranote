@@ -1,5 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 
+import { transactionResultValues } from "config/paths";
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import {
   loadStep4TransactionGroupItems,
   loadStep4TransactionGroupPage,
@@ -10,7 +12,6 @@ import {
   TransactionsTemplate,
   type TransactionSaveResult,
 } from "templates/transactions/Transactions";
-import { transactionResultValues } from "config/paths";
 import type {
   TransactionFilterOptions,
   TransactionTimeGroupViewData,
@@ -33,6 +34,8 @@ export default async function TransactionsPage({
 }) {
   const params = await searchParams;
   const queryErrorMessage = getTransactionErrorMessage(params.error);
+  await getCurrentLedgerOrRedirect();
+
   let timeGroupView: TransactionTimeGroupViewData = emptyTimeGroupView;
   let filterOptions: TransactionFilterOptions = emptyFilterOptions;
   let loadErrorMessage: string | null = null;

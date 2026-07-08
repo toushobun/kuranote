@@ -17,6 +17,36 @@ const dashboardHeroCatAssets = {
   flameRed: "/assets/kura-illustrations/dashboard-hero-cat-flame-red.png",
 } satisfies Record<UserThemeKey, string>;
 
+const dashboardRecentEmptyAssets = {
+  amberWarmth:
+    "/assets/kura-dashboard-recent/recent_illustration_amber_warmth.png",
+  lavenderDream:
+    "/assets/kura-dashboard-recent/recent_illustration_lavender_dream.png",
+  emeraldMorning:
+    "/assets/kura-dashboard-recent/recent_illustration_emerald_morning.png",
+  sakuraStory:
+    "/assets/kura-dashboard-recent/recent_illustration_sakura_story.png",
+  deepSeaStarlight:
+    "/assets/kura-dashboard-recent/recent_illustration_deep_sea.png",
+  flameRed:
+    "/assets/kura-dashboard-recent/recent_illustration_crimson_flame.png",
+} satisfies Record<UserThemeKey, string>;
+
+const dashboardAccountEmptyAssets = {
+  amberWarmth:
+    "/assets/kura-dashboard-account/dashboard_account_empty_amber_warmth.png",
+  lavenderDream:
+    "/assets/kura-dashboard-account/dashboard_account_empty_lavender_dream.png",
+  emeraldMorning:
+    "/assets/kura-dashboard-account/dashboard_account_empty_emerald_morning.png",
+  sakuraStory:
+    "/assets/kura-dashboard-account/dashboard_account_empty_sakura_story.png",
+  deepSeaStarlight:
+    "/assets/kura-dashboard-account/dashboard_account_empty_deep_sea.png",
+  flameRed:
+    "/assets/kura-dashboard-account/dashboard_account_empty_crimson_flame.png",
+} satisfies Record<UserThemeKey, string>;
+
 function createPageBackground(token: KuraThemeToken) {
   const { pageGradientFrom, pageGradientTo } = token.palette;
 
@@ -37,6 +67,14 @@ function createDashboardHeroImage(themeKey: UserThemeKey) {
   return `url("${dashboardHeroCatAssets[themeKey]}")`;
 }
 
+function createDashboardRecentEmptyImage(themeKey: UserThemeKey) {
+  return `url("${dashboardRecentEmptyAssets[themeKey]}")`;
+}
+
+function createDashboardAccountEmptyImage(themeKey: UserThemeKey) {
+  return `url("${dashboardAccountEmptyAssets[themeKey]}")`;
+}
+
 export function getUserThemeCssVariables(themeKey: UserThemeKey) {
   const token = userThemeTokens[themeKey];
   const { palette, semantic, component } = token;
@@ -44,6 +82,10 @@ export function getUserThemeCssVariables(themeKey: UserThemeKey) {
   return {
     "--user-theme-page-bg": createPageBackground(token),
     "--user-theme-dashboard-hero-image": createDashboardHeroImage(themeKey),
+    "--user-theme-dashboard-recent-empty-image":
+      createDashboardRecentEmptyImage(themeKey),
+    "--user-theme-dashboard-account-empty-image":
+      createDashboardAccountEmptyImage(themeKey),
     "--user-theme-switcher-gradient": component.buttonPrimaryBg,
     "--user-theme-status-text": palette.textMuted,
     "--user-theme-title-gradient": createTitleGradient(token),

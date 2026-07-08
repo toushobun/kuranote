@@ -1,5 +1,6 @@
 "use client";
 
+import Box from "@mui/material/Box";
 import MuiLink from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -11,10 +12,12 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import type { DashboardRecentTransaction } from "types/dashboard";
 
 type DashboardRecentTransactionsProps = {
+  hasLedger?: boolean;
   transactions: DashboardRecentTransaction[];
 };
 
 export function DashboardRecentTransactions({
+  hasLedger = true,
   transactions,
 }: DashboardRecentTransactionsProps) {
   return (
@@ -28,18 +31,24 @@ export function DashboardRecentTransactions({
         >
           近期记录
         </Typography>
-        <MuiLink
-          component={Link}
-          href={routePaths.transactions}
-          sx={{
-            color: "text.secondary",
-            fontSize: 12,
-            fontWeight: 800,
-            textDecoration: "none",
-          }}
-        >
-          查看全部
-        </MuiLink>
+        {hasLedger ? (
+          <MuiLink
+            component={Link}
+            href={routePaths.transactions}
+            sx={{
+              color: "text.secondary",
+              fontSize: 12,
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            查看全部
+          </MuiLink>
+        ) : (
+          <Typography sx={{ color: "text.secondary", fontSize: 12 }}>
+            需先创建账本
+          </Typography>
+        )}
       </Stack>
 
       <SectionCard
@@ -50,7 +59,9 @@ export function DashboardRecentTransactions({
           py: 0,
         }}
       >
-        {transactions.length > 0 ? (
+        {!hasLedger ? (
+          <DashboardNoLedgerRecentState />
+        ) : transactions.length > 0 ? (
           <Stack spacing={0}>
             {transactions.slice(0, 3).map((item) => (
               <TransactionRow item={item} key={item.id} showAccount showTime />
@@ -66,6 +77,59 @@ export function DashboardRecentTransactions({
           </Typography>
         )}
       </SectionCard>
+    </Stack>
+  );
+}
+
+function DashboardNoLedgerRecentState() {
+  return (
+    <Stack spacing={1.2} sx={{ alignItems: "center", px: 1, py: 3.2 }}>
+      <Box
+        aria-hidden="true"
+        data-testid="dashboard-no-ledger-recent-illustration-slot"
+        sx={{
+          backgroundImage: "var(--user-theme-dashboard-recent-empty-image)",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "contain",
+          height: 78,
+          width: 132,
+        }}
+      />
+      <Typography
+        sx={{ color: "text.secondary", fontSize: 13, textAlign: "center" }}
+      >
+        创建账本后，你的近期记录会显示在这里
+      </Typography>
+      <Stack spacing={0.8} sx={{ width: "72%" }}>
+        <DashboardRecentPlaceholderLine />
+        <DashboardRecentPlaceholderLine />
+      </Stack>
+    </Stack>
+  );
+}
+
+function DashboardRecentPlaceholderLine() {
+  return (
+    <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
+      <Box
+        aria-hidden="true"
+        sx={{
+          backgroundColor: "var(--user-theme-segment-bg)",
+          borderRadius: "50%",
+          height: 10,
+          width: 10,
+        }}
+      />
+      <Box
+        aria-hidden="true"
+        sx={{
+          backgroundColor: "var(--user-theme-segment-bg)",
+          borderRadius: 999,
+          flex: 1,
+          height: 8,
+        }}
+      />
     </Stack>
   );
 }
