@@ -142,8 +142,6 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
           <Chip color="success" label="使用中" sx={statusChipSx} />
         </Stack>
 
-        <Divider />
-
         <Stack
           direction="row"
           divider={<Divider flexItem orientation="vertical" />}
