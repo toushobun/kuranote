@@ -64,7 +64,7 @@ export function LedgersTemplate({
         sx={pageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={ledgersPageShellSx}>
-        <Stack spacing={2.6}>
+        <Stack spacing={2.1}>
           <Stack spacing={0.45}>
             <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
               <IconButton
@@ -126,7 +126,7 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
 
   return (
     <SoftCard component="section" aria-label="当前账本" sx={currentCardSx}>
-      <Stack spacing={2.3}>
+      <Stack spacing={1.5}>
         <Typography component="p" sx={currentCardLabelSx}>
           当前账本
         </Typography>
@@ -301,7 +301,7 @@ const headerIconButtonSx = {
   color: "text.primary",
   mt: 0.2,
   "& .MuiSvgIcon-root": {
-    fontSize: 30,
+    fontSize: 26,
   },
 };
 
@@ -320,7 +320,7 @@ const ledgersPageShellSx = {
 const pageTitleSx = {
   ...typographyStyles.pageTitle,
   flex: 1,
-  fontSize: { xs: 28, sm: 30 },
+  fontSize: { xs: 24, sm: 26 },
   fontWeight: 800,
 };
 
@@ -330,16 +330,16 @@ const createButtonSx = {
   borderRadius: 999,
   color: "var(--user-theme-fab-text)",
   flexShrink: 0,
+  fontSize: 14,
   fontWeight: 700,
-  fontSize: 16,
-  minHeight: 48,
-  px: 2.5,
+  minHeight: 40,
+  px: 2,
   whiteSpace: "nowrap",
   "& .MuiButton-startIcon": {
     mr: 0.75,
   },
   "& .MuiSvgIcon-root": {
-    fontSize: 24,
+    fontSize: 20,
   },
   "&:hover": {
     background: "var(--user-theme-fab-bg)",
@@ -348,9 +348,9 @@ const createButtonSx = {
 };
 
 const currentCardSx = {
-  borderRadius: 3,
-  px: { xs: 1.5, sm: 2.4 },
-  py: { xs: 2, sm: 2.4 },
+  borderRadius: 1,
+  px: { xs: 1.5, sm: 1.8 },
+  py: { xs: 1.5, sm: 1.8 },
 };
 
 const featuredIconBoxSx = {
@@ -360,30 +360,30 @@ const featuredIconBoxSx = {
   color: "var(--user-theme-icon-badge-color)",
   display: "inline-flex",
   flexShrink: 0,
-  height: 70,
+  height: 48,
   justifyContent: "center",
-  width: 70,
+  width: 48,
   "& .MuiSvgIcon-root": {
-    fontSize: 38,
+    fontSize: 28,
   },
 };
 
 const currentCardLabelSx = {
   ...typographyStyles.listText,
   color: "text.primary",
-  fontSize: 17,
+  fontSize: 15,
   fontWeight: 600,
 };
 
 const currentLedgerNameSx = {
   ...typographyStyles.cardTitle,
-  fontSize: { xs: 27, sm: 30 },
+  fontSize: { xs: 22, sm: 24 },
   fontWeight: 700,
 };
 
 const sectionTitleSx = {
   ...typographyStyles.cardTitle,
-  fontSize: 19,
+  fontSize: 17,
   fontWeight: 700,
 };
 
@@ -392,7 +392,7 @@ function ledgerItemCardSx(isCurrent: boolean) {
     borderColor: isCurrent
       ? "var(--user-theme-action-text)"
       : "var(--user-theme-card-border)",
-    borderRadius: 3,
+    borderRadius: 1,
     overflow: "hidden",
   } as const;
 }
@@ -401,11 +401,11 @@ const ledgerItemButtonSx = {
   alignItems: "center",
   color: "text.primary",
   display: "flex",
-  gap: 1.1,
+  gap: 1.25,
   justifyContent: "flex-start",
-  minHeight: 92,
-  px: 1.35,
-  py: 1.35,
+  minHeight: 76,
+  px: 1.5,
+  py: 1.25,
   textAlign: "left",
   textDecoration: "none",
   width: "100%",
@@ -421,17 +421,17 @@ const ledgerItemIconBoxSx = {
   color: "var(--user-theme-icon-badge-color)",
   display: "inline-flex",
   flexShrink: 0,
-  height: 58,
+  height: 38,
   justifyContent: "center",
-  width: 58,
+  width: 38,
   "& .MuiSvgIcon-root": {
-    fontSize: 32,
+    fontSize: 22,
   },
 };
 
 const ledgerItemNameSx = {
   ...typographyStyles.cardTitle,
-  fontSize: 21,
+  fontSize: { xs: 16, sm: 17 },
   fontWeight: 700,
 };
 
@@ -441,12 +441,12 @@ const statusChipSx = {
   borderRadius: 999,
   color: "var(--user-theme-business-completed-text)",
   flexShrink: 0,
-  fontSize: 16,
+  fontSize: 13,
   fontWeight: 700,
-  height: 34,
-  px: 0.6,
+  height: 24,
+  px: 0.2,
   "& .MuiChip-label": {
-    px: 1.1,
+    px: 0.9,
   },
 };
 
@@ -456,10 +456,10 @@ const editChipSx = {
   color: "var(--user-theme-action-text)",
   display: "inline-flex",
   flexShrink: 0,
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 600,
-  height: 28,
-  px: 0.4,
+  height: 24,
+  px: 0.2,
 };
 
 const chevronSx = {
@@ -471,22 +471,22 @@ const chevronSx = {
 const metaIconSx = {
   color: "var(--user-theme-action-text)",
   flexShrink: 0,
-  fontSize: { xs: 17, sm: 20 },
+  fontSize: { xs: 16, sm: 18 },
 };
 
 const metaTextSx = {
-  fontSize: { xs: 12.5, sm: 14 },
+  fontSize: { xs: 12, sm: 13 },
   fontWeight: 600,
   whiteSpace: "nowrap",
 };
 
 const emptyCardSx = {
-  borderRadius: 2,
-  p: { xs: 2, sm: 2.5 },
+  borderRadius: 1,
+  p: { xs: 1.5, sm: 1.75 },
 };
 
 const emptyTitleSx = {
   ...typographyStyles.cardTitle,
-  fontSize: 18,
+  fontSize: { xs: 16, sm: 17 },
   fontWeight: 700,
 };
