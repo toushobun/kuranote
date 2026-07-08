@@ -476,15 +476,14 @@ const chevronSx = {
 
 const ledgerMetaRowSx = {
   display: "flex",
-  justifyContent: "center",
+  justifyContent: "space-between",
   overflow: "hidden",
-  px: { xs: 0.35, sm: 0.6 },
+  px: { xs: 0.75, sm: 1 },
   py: { xs: 0.8, sm: 0.95 },
   "& > * + *": {
     borderLeft: "1px solid",
     borderColor: "divider",
-    ml: { xs: 1.2, sm: 1.7 },
-    pl: { xs: 1.2, sm: 1.7 },
+    pl: { xs: 1, sm: 1.25 },
   },
 };
 
