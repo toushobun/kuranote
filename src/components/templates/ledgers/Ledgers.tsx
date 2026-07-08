@@ -474,7 +474,7 @@ const metaIconSx = {
 
 const metaTextSx = {
   fontSize: { xs: 12, sm: 13 },
-  fontWeight: 600,
+  fontWeight: 500,
   whiteSpace: "nowrap",
 };
 
