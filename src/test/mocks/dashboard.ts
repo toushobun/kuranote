@@ -40,10 +40,12 @@ export function createDashboardRecentTransaction(
     categoryItems: [
       { categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" },
     ],
+    created_at: "2026-06-05T03:20:10.000Z",
     id: "00000000-0000-4000-8000-000000009001",
     merchant_icon_url: null,
     merchant_name: "便利店",
     note: "测试备注",
+    recorder_name: null,
     tagNames: [],
     transaction_at: "2026-06-05T03:20:10.000Z",
     type: "expense",
@@ -82,9 +84,26 @@ export function createDashboardViewData(
         type: "bank",
       }),
     ],
+    hasLedger: true,
     monthLabel: "2026年6月",
     monthSummary: createDashboardAmountSummary(),
     recentTransactions: [],
     ...overrides,
   };
+}
+
+export function createNoLedgerDashboardViewData(
+  overrides: Partial<DashboardViewData> = {},
+): DashboardViewData {
+  return createDashboardViewData({
+    accountSummaries: [],
+    hasLedger: false,
+    monthSummary: createDashboardAmountSummary({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    }),
+    recentTransactions: [],
+    ...overrides,
+  });
 }

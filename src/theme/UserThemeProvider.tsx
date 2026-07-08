@@ -41,7 +41,6 @@ const protectedRoutePrefixes = [
   routePaths.accounts,
   routePaths.categories,
   routePaths.dashboard,
-  routePaths.ledgerSetup,
   routePaths.ledgers,
   routePaths.merchants,
   routePaths.settings,

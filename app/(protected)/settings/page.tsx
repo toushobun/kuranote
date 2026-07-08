@@ -9,7 +9,7 @@ export default async function SettingsRoute() {
   const { currentLedger } = await getCurrentLedgerContext();
 
   if (!currentLedger) {
-    redirect(routePaths.ledgerSetup);
+    redirect(routePaths.dashboard);
   }
 
   return <SettingsTemplate logoutAction={logout} />;

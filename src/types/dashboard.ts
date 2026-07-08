@@ -1,7 +1,4 @@
-import type {
-  CategorySummaryItem,
-  TransactionRecordType,
-} from "types/transactions";
+import type { TransactionListItem } from "types/transactions";
 
 export type DashboardAmountSummary = {
   income: string;
@@ -18,21 +15,10 @@ export type DashboardAccountSummary = {
   balance: number | string;
 };
 
-export type DashboardRecentTransaction = {
-  id: string;
-  type: TransactionRecordType;
-  transaction_at: string;
-  amount: string;
-  account_name: string;
-  account_currency: string;
-  categoryItems: CategorySummaryItem[];
-  merchant_name: string | null;
-  merchant_icon_url: string | null;
-  note: string | null;
-  tagNames: string[];
-};
+export type DashboardRecentTransaction = TransactionListItem;
 
 export type DashboardViewData = {
+  hasLedger?: boolean;
   monthLabel: string;
   monthSummary: DashboardAmountSummary;
   accountSummaries: DashboardAccountSummary[];

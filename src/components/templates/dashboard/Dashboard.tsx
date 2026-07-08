@@ -16,6 +16,7 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
 import { typographyStyles } from "theme/typographyTokens";
+import type { ServerAction } from "types/actions";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
 
@@ -36,28 +37,47 @@ type QuickAction = {
   icon: ReactNode;
   id: string;
   label: string;
+  requiresLedger?: boolean;
 };
 
-export function DashboardTemplate({ data }: { data: DashboardViewData }) {
+type DashboardTemplateProps = {
+  createLedgerAction?: ServerAction;
+  createLedgerErrorMessage?: string | null;
+  data: DashboardViewData;
+};
+
+export function DashboardTemplate({
+  createLedgerAction,
+  createLedgerErrorMessage = null,
+  data,
+}: DashboardTemplateProps) {
   const { accountSummaries, monthLabel, monthSummary, recentTransactions } =
     data;
+  const hasLedger = data.hasLedger ?? true;
 
   return (
     <DashboardContentFrame>
       <DashboardHeroPanel
         balance={monthSummary.balance}
         expense={monthSummary.expense}
+        hasLedger={hasLedger}
         income={monthSummary.income}
       />
 
       <DashboardMonthSummaryCard
         accounts={accountSummaries}
+        createLedgerAction={createLedgerAction}
+        createLedgerErrorMessage={createLedgerErrorMessage}
+        hasLedger={hasLedger}
         monthLabel={monthLabel}
       />
 
-      <DashboardQuickActions />
+      <DashboardQuickActions hasLedger={hasLedger} />
 
-      <DashboardRecentTransactions transactions={recentTransactions} />
+      <DashboardRecentTransactions
+        hasLedger={hasLedger}
+        transactions={recentTransactions}
+      />
     </DashboardContentFrame>
   );
 }
@@ -96,19 +116,22 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
 function DashboardHeroPanel({
   balance,
   expense,
+  hasLedger,
   income,
 }: {
   balance: string;
   expense: string;
+  hasLedger: boolean;
   income: string;
 }) {
   return (
     <Stack spacing={0}>
-      <DashboardWelcomeHero />
+      <DashboardWelcomeHero hasLedger={hasLedger} />
 
       <DashboardIncomeExpenseSummary
         balance={balance}
         expense={expense}
+        hasLedger={hasLedger}
         income={income}
       />
     </Stack>
@@ -165,7 +188,12 @@ function DashboardHeroBackground() {
   );
 }
 
-function DashboardWelcomeHero() {
+function DashboardWelcomeHero({ hasLedger }: { hasLedger: boolean }) {
+  const greeting = hasLedger ? "早呀，今天也好好记录" : "先创建你的第一个账本";
+  const subtitle = hasLedger
+    ? "每一张小票，都是生活的线索"
+    : "创建账本后，就可以开始记录家庭收支了";
+
   return (
     <Stack
       sx={{
@@ -207,7 +235,7 @@ function DashboardWelcomeHero() {
               textShadow: "0 1px 8px var(--user-theme-card-bg)",
             }}
           >
-            早呀，今天也好好记录
+            {greeting}
           </Typography>
           <WbSunnyRoundedIcon
             sx={{
@@ -224,7 +252,7 @@ function DashboardWelcomeHero() {
             textShadow: "0 1px 8px var(--user-theme-card-bg)",
           }}
         >
-          每一张小票，都是生活的线索
+          {subtitle}
         </Typography>
       </Stack>
     </Stack>
@@ -234,10 +262,12 @@ function DashboardWelcomeHero() {
 function DashboardIncomeExpenseSummary({
   balance,
   expense,
+  hasLedger,
   income,
 }: {
   balance: string;
   expense: string;
+  hasLedger: boolean;
   income: string;
 }) {
   return (
@@ -251,16 +281,19 @@ function DashboardIncomeExpenseSummary({
     >
       <DashboardSummaryPill
         color={incomeColor}
+        isPlaceholder={!hasLedger}
         label="本月收入"
         value={income}
       />
       <DashboardSummaryPill
         color={expenseColor}
+        isPlaceholder={!hasLedger}
         label="本月支出"
         value={expense}
       />
       <DashboardSummaryPill
         color={balanceColor}
+        isPlaceholder={!hasLedger}
         label="本月结余"
         value={balance}
       />
@@ -270,10 +303,12 @@ function DashboardIncomeExpenseSummary({
 
 function DashboardSummaryPill({
   color,
+  isPlaceholder = false,
   label,
   value,
 }: {
   color: string;
+  isPlaceholder?: boolean;
   label: string;
   value: string;
 }) {
@@ -301,23 +336,25 @@ function DashboardSummaryPill({
         }}
       >
         {/* TODO: 暂时以日元固定显示，后续需根据 currency 字段使用 formatAmount */}
-        ¥ {formatNumber(value)}
+        {isPlaceholder ? "—" : `¥ ${formatNumber(value)}`}
       </Typography>
     </SectionCard>
   );
 }
 
-function DashboardQuickActions() {
+function DashboardQuickActions({ hasLedger }: { hasLedger: boolean }) {
   const actions: QuickAction[] = [
     {
       icon: <ReceiptLongRoundedIcon fontSize="small" />,
       id: "quick-entry",
       label: "快速记账",
+      requiresLedger: true,
     },
     {
       icon: <CameraAltRoundedIcon fontSize="small" />,
       id: "photo-entry",
       label: "拍照记账",
+      requiresLedger: true,
     },
     {
       icon: <AddRoundedIcon fontSize="small" />,
@@ -341,18 +378,19 @@ function DashboardQuickActions() {
     >
       {actions.map((action) => {
         const isActive = Boolean(action.href);
+        const shouldShowLedgerCaption = !hasLedger && action.requiresLedger;
         const content = (
           <SectionCard
             sx={{
               borderRadius: 1.25,
               color: isActive ? actionText : inactiveActionText,
-              minHeight: 68,
+              minHeight: shouldShowLedgerCaption ? 74 : 68,
               px: 0.7,
               py: 1,
               textAlign: "center",
             }}
           >
-            <Stack spacing={0.7} sx={{ alignItems: "center" }}>
+            <Stack spacing={0.5} sx={{ alignItems: "center" }}>
               <IconBadge
                 size="sm"
                 sx={{
@@ -370,6 +408,11 @@ function DashboardQuickActions() {
               <Typography sx={{ ...typographyStyles.button, fontSize: 11 }}>
                 {action.label}
               </Typography>
+              {shouldShowLedgerCaption ? (
+                <Typography sx={{ color: secondaryText, fontSize: 10 }}>
+                  需先创建账本
+                </Typography>
+              ) : null}
             </Stack>
           </SectionCard>
         );

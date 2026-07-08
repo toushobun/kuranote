@@ -8,6 +8,7 @@ const meta = {
   title: "Organisms/Dashboard/RecentTransactions",
   component: DashboardRecentTransactions,
   args: {
+    hasLedger: true,
     transactions: [createDashboardRecentTransaction()],
   },
 } satisfies Meta<typeof DashboardRecentTransactions>;
@@ -22,6 +23,14 @@ export const Default: Story = {
 export const Empty: Story = {
   name: "空状态",
   args: {
+    transactions: [],
+  },
+};
+
+export const NoLedger: Story = {
+  name: "无账本空状态",
+  args: {
+    hasLedger: false,
     transactions: [],
   },
 };

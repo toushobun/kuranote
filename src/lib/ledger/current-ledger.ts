@@ -140,7 +140,7 @@ export async function getCurrentLedgerOrRedirect() {
   const context = await getCurrentLedgerContext();
 
   if (!context.currentLedger) {
-    redirect(routePaths.ledgerSetup);
+    redirect(routePaths.dashboard);
   }
 
   return context.currentLedger;

@@ -7,7 +7,7 @@ export async function requireCurrentUserAndLedger() {
   const context = await getCurrentLedgerContext();
 
   if (!context.currentLedger) {
-    redirect(routePaths.ledgerSetup);
+    redirect(routePaths.dashboard);
   }
 
   return {
