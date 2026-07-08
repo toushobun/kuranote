@@ -475,6 +475,8 @@ const chevronSx = {
 };
 
 const ledgerMetaRowSx = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   overflow: "hidden",
   px: { xs: 0.35, sm: 0.6 },
   py: { xs: 0.8, sm: 0.95 },
@@ -486,7 +488,6 @@ const ledgerMetaRowSx = {
 
 const ledgerMetaItemSx = {
   alignItems: "center",
-  flex: "1 1 0",
   justifyContent: "center",
   minWidth: 0,
   px: 0.2,
