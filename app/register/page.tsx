@@ -1,20 +1,11 @@
-import { turnstileTestSiteKey } from "config/turnstile";
 import {
   checkRegisterEmailAvailability,
   requestRegisterOtp,
   submitRegisterOtp,
 } from "server/actions/auth";
+import { getTurnstileSiteKey } from "server/auth/turnstileKeys";
 import { redirectIfAuthenticated } from "server/loaders/login";
 import { RegisterTemplate } from "templates/register/Register";
-
-function getTurnstileSiteKey() {
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
-  if (siteKey) return siteKey;
-  if (process.env.NODE_ENV !== "production") return turnstileTestSiteKey;
-
-  throw new Error("NEXT_PUBLIC_TURNSTILE_SITE_KEY is required in production.");
-}
 
 export default async function RegisterRoute() {
   await redirectIfAuthenticated();
