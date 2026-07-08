@@ -148,15 +148,18 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
         >
           <LedgerMetaItem
             icon={PeopleAltRoundedIcon}
-            label={`成员 ${ledger.memberCount} 人`}
+            label="成员"
+            value={`${ledger.memberCount} 人`}
           />
           <LedgerMetaItem
             icon={WalletRoundedIcon}
-            label={`默认货币 ${ledger.baseCurrency}`}
+            label="默认货币"
+            value={ledger.baseCurrency}
           />
           <LedgerMetaItem
             icon={ShieldOutlinedIcon}
-            label={`我的角色 ${roleLabelMap[ledger.currentUserRole]}`}
+            label="我的角色"
+            value={roleLabelMap[ledger.currentUserRole]}
           />
         </Stack>
       </Stack>
@@ -247,9 +250,11 @@ function LedgersEmptyCard() {
 function LedgerMetaItem({
   icon,
   label,
+  value,
 }: {
   icon: ElementType<SvgIconProps>;
   label: string;
+  value: string;
 }) {
   const Icon = icon;
 
@@ -261,7 +266,12 @@ function LedgerMetaItem({
     >
       <Icon sx={metaIconSx} />
       <Typography color="text.secondary" variant="body2" sx={metaTextSx}>
-        {label}
+        <Box component="span" sx={metaLabelSx}>
+          {label}
+        </Box>{" "}
+        <Box component="span" sx={metaValueSx}>
+          {value}
+        </Box>
       </Typography>
     </Stack>
   );
@@ -487,8 +497,17 @@ const metaIconSx = {
 
 const metaTextSx = {
   fontSize: { xs: 12, sm: 13 },
-  fontWeight: 500,
   whiteSpace: "nowrap",
+};
+
+const metaLabelSx = {
+  color: "text.secondary",
+  fontWeight: 400,
+};
+
+const metaValueSx = {
+  color: "text.primary",
+  fontWeight: 700,
 };
 
 const emptyCardSx = {

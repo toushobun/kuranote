@@ -56,13 +56,12 @@ describe("LedgersTemplate", () => {
     });
 
     expect(within(currentSection).getByText("家庭账本")).toBeInTheDocument();
-    expect(within(currentSection).getByText("成员 2 人")).toBeInTheDocument();
-    expect(
-      within(currentSection).getByText("默认货币 JPY"),
-    ).toBeInTheDocument();
-    expect(
-      within(currentSection).getByText("我的角色 管理员"),
-    ).toBeInTheDocument();
+    expect(within(currentSection).getByText("成员")).toBeInTheDocument();
+    expect(within(currentSection).getByText("2 人")).toBeInTheDocument();
+    expect(within(currentSection).getByText("默认货币")).toBeInTheDocument();
+    expect(within(currentSection).getByText("JPY")).toBeInTheDocument();
+    expect(within(currentSection).getByText("我的角色")).toBeInTheDocument();
+    expect(within(currentSection).getByText("管理员")).toBeInTheDocument();
   });
 
   it("账本列表显示账本名称和当前使用状态", () => {
