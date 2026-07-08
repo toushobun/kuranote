@@ -12,5 +12,10 @@ export default async function SettingsRoute() {
     redirect(routePaths.dashboard);
   }
 
-  return <SettingsTemplate logoutAction={logout} />;
+  return (
+    <SettingsTemplate
+      currentLedgerName={currentLedger.name}
+      logoutAction={logout}
+    />
+  );
 }
