@@ -147,14 +147,19 @@ export const getCurrentLedgerContext = cache(
       );
     }
 
-    const roleByLedgerId = new Map(
-      memberRows
-        .filter(
-          (row): row is { ledger_id: string; role: string | null } =>
-            typeof row.ledger_id === "string" && row.ledger_id.length > 0,
-        )
-        .map((row) => [row.ledger_id, toCurrentLedgerRole(row.role)]),
-    );
+    const roleByLedgerId = new Map<string, CurrentLedgerRole>();
+
+    for (const row of memberRows) {
+      if (typeof row.ledger_id !== "string" || row.ledger_id.length === 0) {
+        continue;
+      }
+
+      roleByLedgerId.set(
+        row.ledger_id,
+        toCurrentLedgerRole(typeof row.role === "string" ? row.role : null),
+      );
+    }
+
     const activeMemberRows: ActiveMemberRows = activeMemberData ?? [];
     const memberCountByLedgerId = new Map<string, number>();
 
