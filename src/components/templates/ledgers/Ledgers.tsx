@@ -145,8 +145,8 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
         <Stack
           direction="row"
           divider={<Divider flexItem orientation="vertical" />}
-          spacing={{ xs: 0.55, sm: 1.25 }}
-          sx={{ justifyContent: "space-between", overflow: "hidden" }}
+          spacing={{ xs: 1.1, sm: 1.5 }}
+          sx={{ justifyContent: "center", overflow: "hidden" }}
         >
           <LedgerMetaItem
             icon={PeopleAltRoundedIcon}
