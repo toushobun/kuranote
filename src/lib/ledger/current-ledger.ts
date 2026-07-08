@@ -5,10 +5,14 @@ import { cache } from "react";
 import { routePaths } from "config/paths";
 import { createClient } from "lib/supabase/server";
 
+export type CurrentLedgerRole = "owner" | "admin" | "member" | "viewer";
+
 export type CurrentLedger = {
   id: string;
   name: string;
   baseCurrency: string;
+  currentUserRole: CurrentLedgerRole;
+  memberCount: number;
 };
 
 export type CurrentLedgerContext = {
@@ -17,6 +21,21 @@ export type CurrentLedgerContext = {
   ledgers: CurrentLedger[];
   currentLedger: CurrentLedger | null;
 };
+
+const fallbackCurrentLedgerRole: CurrentLedgerRole = "member";
+
+function toCurrentLedgerRole(role: string | null): CurrentLedgerRole {
+  if (
+    role === "owner" ||
+    role === "admin" ||
+    role === "member" ||
+    role === "viewer"
+  ) {
+    return role;
+  }
+
+  return fallbackCurrentLedgerRole;
+}
 
 export const getCurrentLedgerContext = cache(
   async (): Promise<CurrentLedgerContext> => {
@@ -60,7 +79,7 @@ export const getCurrentLedgerContext = cache(
 
     const memberQuery = supabase
       .from("ledger_member")
-      .select("ledger_id")
+      .select("ledger_id, role")
       .eq("user_id", userId)
       .eq("status", "active")
       .order("joined_at", { ascending: true, nullsFirst: false })
@@ -108,6 +127,48 @@ export const getCurrentLedgerContext = cache(
       throw new Error(`Failed to load current ledgers: ${ledgerError.message}`);
     }
 
+    const activeMemberQuery = supabase
+      .from("ledger_member")
+      .select("ledger_id")
+      .in("ledger_id", ledgerIds)
+      .eq("status", "active");
+    type ActiveMemberRows = QueryData<typeof activeMemberQuery>;
+
+    const { data: activeMemberData, error: activeMemberError } =
+      await activeMemberQuery;
+
+    if (activeMemberError) {
+      console.error(
+        "Failed to load active ledger member counts.",
+        activeMemberError,
+      );
+      throw new Error(
+        `Failed to load active ledger member counts: ${activeMemberError.message}`,
+      );
+    }
+
+    const roleByLedgerId = new Map(
+      memberRows
+        .filter(
+          (row): row is { ledger_id: string; role: string | null } =>
+            typeof row.ledger_id === "string" && row.ledger_id.length > 0,
+        )
+        .map((row) => [row.ledger_id, toCurrentLedgerRole(row.role)]),
+    );
+    const activeMemberRows: ActiveMemberRows = activeMemberData ?? [];
+    const memberCountByLedgerId = new Map<string, number>();
+
+    for (const row of activeMemberRows) {
+      if (typeof row.ledger_id !== "string" || row.ledger_id.length === 0) {
+        continue;
+      }
+
+      memberCountByLedgerId.set(
+        row.ledger_id,
+        (memberCountByLedgerId.get(row.ledger_id) ?? 0) + 1,
+      );
+    }
+
     const ledgerRows: LedgerRows = ledgerData ?? [];
     const ledgerById = new Map(
       ledgerRows.map((ledger) => [
@@ -116,6 +177,9 @@ export const getCurrentLedgerContext = cache(
           id: ledger.id,
           name: ledger.name,
           baseCurrency: ledger.base_currency,
+          currentUserRole:
+            roleByLedgerId.get(ledger.id) ?? fallbackCurrentLedgerRole,
+          memberCount: memberCountByLedgerId.get(ledger.id) ?? 1,
         },
       ]),
     );
