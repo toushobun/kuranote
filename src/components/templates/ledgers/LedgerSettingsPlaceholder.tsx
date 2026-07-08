@@ -1,3 +1,5 @@
+"use client";
+
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ConstructionRoundedIcon from "@mui/icons-material/ConstructionRounded";
 import Box from "@mui/material/Box";
