@@ -100,6 +100,8 @@
 
 创建 PR 时，正文必须遵循 `.github/pull_request_template.md`。
 
+- PR 不需要添加 label。Issue label 规则仅适用于 Issue，除非人工明确要求，否则 AI Agent 不应为 PR 添加 label。
+
 PR merge 后需要回收相关状态：
 
 - 确认对应 Issue / PR 中相关 TODO checkbox 已勾选。
