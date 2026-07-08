@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getTurnstileSecretKey } from "./turnstileKeys";
+
 type TurnstileSiteVerifyResponse = {
   success?: boolean;
 };
@@ -14,7 +16,7 @@ export async function verifyTurnstileToken(params: {
   remoteIp?: string | null;
   token: string;
 }) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
+  const secret = getTurnstileSecretKey();
 
   if (!secret || !params.token) {
     return false;

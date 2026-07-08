@@ -6,6 +6,9 @@ const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  delete process.env.VERCEL_ENV;
+  delete process.env.NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY;
+  delete process.env.TURNSTILE_PREVIEW_SECRET_KEY;
   delete process.env.TURNSTILE_SECRET_KEY;
   globalThis.fetch = originalFetch;
 });
