@@ -475,22 +475,23 @@ const chevronSx = {
 };
 
 const ledgerMetaRowSx = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  display: "flex",
+  justifyContent: "center",
   overflow: "hidden",
   px: { xs: 0.35, sm: 0.6 },
   py: { xs: 0.8, sm: 0.95 },
   "& > * + *": {
     borderLeft: "1px solid",
     borderColor: "divider",
+    ml: { xs: 1.2, sm: 1.7 },
+    pl: { xs: 1.2, sm: 1.7 },
   },
 };
 
 const ledgerMetaItemSx = {
   alignItems: "center",
   justifyContent: "center",
-  minWidth: 0,
-  px: 0.2,
+  flexShrink: 0,
 };
 
 const metaIconSx = {
