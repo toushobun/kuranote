@@ -1,5 +1,7 @@
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+"use client";
+
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -50,7 +52,8 @@ export function LedgerCreatePlaceholderTemplate() {
                   新增账本功能正在准备中
                 </Typography>
                 <Typography color="text.secondary" variant="body2">
-                  这里会在 #383 中实现账本名称、默认货币、默认账户和默认分类初始化。
+                  这里会在 #383
+                  中实现账本名称、默认货币、默认账户和默认分类初始化。
                 </Typography>
               </Stack>
               <Button
