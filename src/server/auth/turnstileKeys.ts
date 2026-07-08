@@ -1,9 +1,6 @@
 import "server-only";
 
-import {
-  turnstileTestSecretKey,
-  turnstileTestSiteKey,
-} from "config/turnstile";
+import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
 const vercelPreviewEnv = "preview";
 
