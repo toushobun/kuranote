@@ -21,7 +21,9 @@ afterEach(() => {
 });
 
 function renderSettingsTemplate() {
-  return render(<SettingsTemplate logoutAction={logoutAction} />);
+  return render(
+    <SettingsTemplate currentLedgerName="家庭账本" logoutAction={logoutAction} />,
+  );
 }
 
 describe("SettingsTemplate", () => {
@@ -53,11 +55,20 @@ describe("SettingsTemplate", () => {
     }
 
     expect(
+      within(container).getByRole("link", { name: /账本管理/ }),
+    ).toHaveAttribute("href", "/ledgers");
+    expect(
       within(container).getByRole("link", { name: /账户管理/ }),
     ).toHaveAttribute("href", "/accounts");
     expect(
       within(container).getByRole("link", { name: /分类管理/ }),
     ).toHaveAttribute("href", "/categories");
+  });
+
+  it("账本管理入口显示当前账本名称", () => {
+    const { container } = renderSettingsTemplate();
+
+    expect(within(container).getByText("家庭账本")).toBeInTheDocument();
   });
 
   it("语言设置入口显示当前语言", () => {
