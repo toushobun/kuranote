@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  turnstileTestSecretKey,
-  turnstileTestSiteKey,
-} from "config/turnstile";
+import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
 import { getTurnstileSecretKey, getTurnstileSiteKey } from "./turnstileKeys";
 
