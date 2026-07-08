@@ -476,8 +476,8 @@ const chevronSx = {
 
 const ledgerMetaRowSx = {
   overflow: "hidden",
-  px: { xs: 1.1, sm: 1.45 },
-  py: { xs: 0.45, sm: 0.6 },
+  px: { xs: 0.35, sm: 0.6 },
+  py: { xs: 0.8, sm: 0.95 },
   "& > * + *": {
     borderLeft: "1px solid",
     borderColor: "divider",
@@ -489,7 +489,7 @@ const ledgerMetaItemSx = {
   flex: "1 1 0",
   justifyContent: "center",
   minWidth: 0,
-  px: 0.35,
+  px: 0.2,
 };
 
 const metaIconSx = {
