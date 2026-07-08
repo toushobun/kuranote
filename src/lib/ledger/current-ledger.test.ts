@@ -365,9 +365,7 @@ describe("getCurrentLedgerOrRedirect", () => {
         { data: [{ current_ledger_id: "ledger-1" }] },
         { data: [{ ledger_id: "ledger-1" }] },
         {
-          data: [
-            { base_currency: "JPY", id: "ledger-1", name: "家庭账本" },
-          ],
+          data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
         },
       ],
     });
