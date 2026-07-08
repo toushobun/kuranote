@@ -10,7 +10,6 @@ import LuggageRoundedIcon from "@mui/icons-material/LuggageRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -22,7 +21,7 @@ import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import type { ElementType } from "react";
+import { createElement, type ElementType } from "react";
 
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import { SoftCard } from "atoms/ui/SoftCard";
@@ -65,7 +64,7 @@ export function LedgersTemplate({
         sx={pageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={ledgersPageShellSx}>
-        <Stack spacing={1.5}>
+        <Stack spacing={2.6}>
           <Stack spacing={0.45}>
             <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
               <IconButton
@@ -127,15 +126,15 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
 
   return (
     <SoftCard component="section" aria-label="当前账本" sx={currentCardSx}>
-      <Stack spacing={1.45}>
+      <Stack spacing={2.3}>
+        <Typography component="p" sx={currentCardLabelSx}>
+          当前账本
+        </Typography>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
           <Box sx={featuredIconBoxSx}>
-            <Icon fontSize="medium" />
+            {createElement(Icon, { fontSize: "medium" })}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography color="text.secondary" variant="body2">
-              当前账本
-            </Typography>
             <Typography component="p" sx={currentLedgerNameSx}>
               {ledger.name}
             </Typography>
@@ -148,8 +147,8 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
         <Stack
           direction="row"
           divider={<Divider flexItem orientation="vertical" />}
-          spacing={1}
-          sx={{ justifyContent: "space-between" }}
+          spacing={{ xs: 0.55, sm: 1.25 }}
+          sx={{ justifyContent: "space-between", overflow: "hidden" }}
         >
           <LedgerMetaItem
             icon={PeopleAltRoundedIcon}
@@ -190,28 +189,13 @@ function LedgerListItem({
         sx={ledgerItemButtonSx}
       >
         <Box sx={ledgerItemIconBoxSx}>
-          <Icon fontSize="small" />
+          {createElement(Icon, { fontSize: "small" })}
         </Box>
 
-        <Stack spacing={0.45} sx={{ flex: 1, minWidth: 0 }}>
-          <Stack
-            direction="row"
-            spacing={0.75}
-            sx={{ alignItems: "center", flexWrap: "wrap" }}
-          >
-            <Typography component="p" sx={ledgerItemNameSx}>
-              {ledger.name}
-            </Typography>
-            {isCurrent ? (
-              <Chip
-                color="success"
-                icon={<TaskAltRoundedIcon />}
-                label="使用中"
-                size="small"
-                sx={statusChipSx}
-              />
-            ) : null}
-          </Stack>
+        <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
+          <Typography component="p" sx={ledgerItemNameSx}>
+            {ledger.name}
+          </Typography>
 
           <Typography color="text.secondary" variant="body2">
             成员 {ledger.memberCount} 人 · {ledger.baseCurrency} ·{" "}
@@ -219,7 +203,9 @@ function LedgerListItem({
           </Typography>
         </Stack>
 
-        {isCurrent ? null : (
+        {isCurrent ? (
+          <Chip color="success" label="使用中" size="small" sx={statusChipSx} />
+        ) : (
           <Chip
             label="点击进入编辑"
             size="small"
@@ -227,7 +213,7 @@ function LedgerListItem({
             variant="outlined"
           />
         )}
-        <ChevronRightRoundedIcon sx={chevronSx} />
+        {isCurrent ? null : <ChevronRightRoundedIcon sx={chevronSx} />}
       </ButtonBase>
     </SoftCard>
   );
@@ -274,8 +260,8 @@ function LedgerMetaItem({
   return (
     <Stack
       direction="row"
-      spacing={0.6}
-      sx={{ alignItems: "center", minWidth: 0 }}
+      spacing={0.35}
+      sx={{ alignItems: "center", flexShrink: 0 }}
     >
       <Icon sx={metaIconSx} />
       <Typography color="text.secondary" variant="body2" sx={metaTextSx}>
@@ -314,36 +300,47 @@ const roleLabelMap: Record<CurrentLedgerRole, string> = {
 const headerIconButtonSx = {
   color: "text.primary",
   mt: 0.2,
+  "& .MuiSvgIcon-root": {
+    fontSize: 30,
+  },
 };
 
 const pageBackgroundSx = {
-  bgcolor: "background.paper",
+  bgcolor: "background.default",
   inset: 0,
   position: "fixed",
   zIndex: -1,
 };
 
 const ledgersPageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
+  px: { xs: 2 },
+  py: { xs: 2.25 },
 };
 
 const pageTitleSx = {
   ...typographyStyles.pageTitle,
   flex: 1,
-  fontSize: { xs: 24, sm: 26 },
+  fontSize: { xs: 28, sm: 30 },
   fontWeight: 900,
 };
 
 const createButtonSx = {
+  ...typographyStyles.button,
   background: "var(--user-theme-fab-bg)",
   borderRadius: 999,
   color: "var(--user-theme-fab-text)",
   flexShrink: 0,
   fontWeight: 800,
-  minHeight: 40,
-  px: 2,
+  fontSize: 16,
+  minHeight: 48,
+  px: 2.5,
   whiteSpace: "nowrap",
+  "& .MuiButton-startIcon": {
+    mr: 0.75,
+  },
+  "& .MuiSvgIcon-root": {
+    fontSize: 24,
+  },
   "&:hover": {
     background: "var(--user-theme-fab-bg)",
     filter: "brightness(1.04)",
@@ -351,8 +348,9 @@ const createButtonSx = {
 };
 
 const currentCardSx = {
-  borderRadius: 2,
-  p: { xs: 1.7, sm: 2 },
+  borderRadius: 3,
+  px: { xs: 1.5, sm: 2.4 },
+  py: { xs: 2, sm: 2.4 },
 };
 
 const featuredIconBoxSx = {
@@ -362,20 +360,30 @@ const featuredIconBoxSx = {
   color: "var(--user-theme-icon-badge-color)",
   display: "inline-flex",
   flexShrink: 0,
-  height: 56,
+  height: 70,
   justifyContent: "center",
-  width: 56,
+  width: 70,
+  "& .MuiSvgIcon-root": {
+    fontSize: 38,
+  },
+};
+
+const currentCardLabelSx = {
+  ...typographyStyles.listText,
+  color: "text.primary",
+  fontSize: 17,
+  fontWeight: 700,
 };
 
 const currentLedgerNameSx = {
   ...typographyStyles.cardTitle,
-  fontSize: { xs: 24, sm: 26 },
+  fontSize: { xs: 27, sm: 30 },
   fontWeight: 900,
 };
 
 const sectionTitleSx = {
   ...typographyStyles.cardTitle,
-  fontSize: 17,
+  fontSize: 19,
   fontWeight: 900,
 };
 
@@ -384,7 +392,7 @@ function ledgerItemCardSx(isCurrent: boolean) {
     borderColor: isCurrent
       ? "var(--user-theme-action-text)"
       : "var(--user-theme-card-border)",
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: "hidden",
   } as const;
 }
@@ -393,9 +401,11 @@ const ledgerItemButtonSx = {
   alignItems: "center",
   color: "text.primary",
   display: "flex",
-  gap: 1.25,
+  gap: 1.1,
   justifyContent: "flex-start",
-  p: 1.35,
+  minHeight: 92,
+  px: 1.35,
+  py: 1.35,
   textAlign: "left",
   textDecoration: "none",
   width: "100%",
@@ -411,26 +421,45 @@ const ledgerItemIconBoxSx = {
   color: "var(--user-theme-icon-badge-color)",
   display: "inline-flex",
   flexShrink: 0,
-  height: 46,
+  height: 58,
   justifyContent: "center",
-  width: 46,
+  width: 58,
+  "& .MuiSvgIcon-root": {
+    fontSize: 32,
+  },
 };
 
 const ledgerItemNameSx = {
   ...typographyStyles.cardTitle,
-  fontSize: 18,
+  fontSize: 21,
   fontWeight: 900,
 };
 
 const statusChipSx = {
+  ...typographyStyles.chipBadge,
+  bgcolor: "var(--user-theme-business-completed-bg)",
+  borderRadius: 999,
+  color: "var(--user-theme-business-completed-text)",
+  flexShrink: 0,
+  fontSize: 16,
   fontWeight: 800,
+  height: 34,
+  px: 0.6,
+  "& .MuiChip-label": {
+    px: 1.1,
+  },
 };
 
 const editChipSx = {
+  ...typographyStyles.chipBadge,
   borderColor: "var(--user-theme-action-text)",
   color: "var(--user-theme-action-text)",
-  display: { xs: "none", sm: "inline-flex" },
+  display: "inline-flex",
+  flexShrink: 0,
+  fontSize: 13,
   fontWeight: 700,
+  height: 28,
+  px: 0.4,
 };
 
 const chevronSx = {
@@ -442,13 +471,12 @@ const chevronSx = {
 const metaIconSx = {
   color: "var(--user-theme-action-text)",
   flexShrink: 0,
-  fontSize: 20,
+  fontSize: { xs: 17, sm: 20 },
 };
 
 const metaTextSx = {
+  fontSize: { xs: 12.5, sm: 14 },
   fontWeight: 700,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 
