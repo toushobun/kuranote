@@ -15,7 +15,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
@@ -144,9 +143,8 @@ function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
 
         <Stack
           direction="row"
-          divider={<Divider flexItem orientation="vertical" />}
-          spacing={{ xs: 1.1, sm: 1.5 }}
-          sx={{ justifyContent: "center", overflow: "hidden" }}
+          spacing={0}
+          sx={ledgerMetaRowSx}
         >
           <LedgerMetaItem
             icon={PeopleAltRoundedIcon}
@@ -259,7 +257,7 @@ function LedgerMetaItem({
     <Stack
       direction="row"
       spacing={0.35}
-      sx={{ alignItems: "center", flexShrink: 0 }}
+      sx={ledgerMetaItemSx}
     >
       <Icon sx={metaIconSx} />
       <Typography color="text.secondary" variant="body2" sx={metaTextSx}>
@@ -464,6 +462,21 @@ const chevronSx = {
   color: "text.secondary",
   flexShrink: 0,
   fontSize: 26,
+};
+
+const ledgerMetaRowSx = {
+  overflow: "hidden",
+  "& > * + *": {
+    borderLeft: "1px solid",
+    borderColor: "divider",
+  },
+};
+
+const ledgerMetaItemSx = {
+  alignItems: "center",
+  flex: "1 1 0",
+  justifyContent: "center",
+  minWidth: 0,
 };
 
 const metaIconSx = {
