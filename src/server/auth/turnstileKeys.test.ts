@@ -26,21 +26,48 @@ describe("turnstileKeys", () => {
     );
   });
 
-  it("Vercel Preview 优先使用 Preview 专用 site key", () => {
+  it("Vercel Preview 同时配置专用 site key 和 secret key 时使用专用 key pair", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY", "preview-site-key");
+    vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "preview-secret-key");
 
     expect(getTurnstileSiteKey()).toBe("preview-site-key");
+    expect(getTurnstileSecretKey()).toBe("preview-secret-key");
   });
 
-  it("Vercel Preview 缺少专用 site key 时使用官方测试 site key", () => {
+  it("Vercel Preview 缺少专用 key pair 时使用官方测试 key pair", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
 
     expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
+    expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
+  });
+
+  it("Vercel Preview 只配置专用 site key 时使用官方测试 key pair", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY", "preview-site-key");
+
+    expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
+    expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
+  });
+
+  it("Vercel Preview 只配置专用 secret key 时使用官方测试 key pair", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
+    vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "preview-secret-key");
+
+    expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
+    expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
   });
 
   it("本地开发缺少正式 site key 时使用官方测试 site key", () => {
@@ -55,23 +82,6 @@ describe("turnstileKeys", () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
 
     expect(getTurnstileSecretKey()).toBe("prod-secret-key");
-  });
-
-  it("Vercel Preview 优先使用 Preview 专用 secret key", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
-    vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "preview-secret-key");
-
-    expect(getTurnstileSecretKey()).toBe("preview-secret-key");
-  });
-
-  it("Vercel Preview 缺少专用 secret key 时使用官方测试 secret", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
-
-    expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
   });
 
   it("非 Preview 环境缺少 secret key 时保持 fail closed", () => {
