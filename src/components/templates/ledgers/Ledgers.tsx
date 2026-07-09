@@ -25,15 +25,15 @@ import { createElement, type ElementType } from "react";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import { SoftCard } from "atoms/ui/SoftCard";
 import type {
-  CurrentLedger,
   CurrentLedgerRole,
+  LedgerWithMemberCount,
 } from "lib/ledger/current-ledger";
 import { PageShell } from "templates/layout/PageShell";
 import { typographyStyles } from "theme/typographyTokens";
 
 type LedgersTemplateProps = {
   currentLedgerId: string;
-  ledgers: CurrentLedger[];
+  ledgers: LedgerWithMemberCount[];
 };
 
 type LedgerIconOption = {
@@ -123,7 +123,7 @@ export function LedgersTemplate({
   );
 }
 
-function CurrentLedgerCard({ ledger }: { ledger: CurrentLedger }) {
+function CurrentLedgerCard({ ledger }: { ledger: LedgerWithMemberCount }) {
   const Icon = getLedgerIcon(ledger.name, 0);
 
   return (
@@ -173,7 +173,7 @@ function LedgerListItem({
 }: {
   index: number;
   isCurrent: boolean;
-  ledger: CurrentLedger;
+  ledger: LedgerWithMemberCount;
 }) {
   const Icon = getLedgerIcon(ledger.name, index);
   const href = ledgerSettingsHref(ledger.id);
