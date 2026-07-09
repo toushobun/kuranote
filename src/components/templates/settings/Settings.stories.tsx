@@ -15,6 +15,7 @@ const meta = {
     ),
   ],
   args: {
+    currentLedgerName: "家庭账本",
     logoutAction: () => undefined,
   },
 } satisfies Meta<typeof SettingsTemplate>;
