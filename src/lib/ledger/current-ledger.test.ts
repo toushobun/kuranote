@@ -227,13 +227,6 @@ describe("getCurrentLedgerContext", () => {
             { base_currency: "USD", id: "ledger-2", name: "家庭账本" },
           ],
         },
-        {
-          data: [
-            { ledger_id: "ledger-1" },
-            { ledger_id: "ledger-1" },
-            { ledger_id: "ledger-2" },
-          ],
-        },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -243,7 +236,6 @@ describe("getCurrentLedgerContext", () => {
         baseCurrency: "JPY",
         currentUserRole: "owner",
         id: "ledger-1",
-        memberCount: 2,
         name: "备用账本",
       },
       email: "test@example.com",
@@ -252,14 +244,12 @@ describe("getCurrentLedgerContext", () => {
           baseCurrency: "USD",
           currentUserRole: "admin",
           id: "ledger-2",
-          memberCount: 1,
           name: "家庭账本",
         },
         {
           baseCurrency: "JPY",
           currentUserRole: "owner",
           id: "ledger-1",
-          memberCount: 2,
           name: "备用账本",
         },
       ],
@@ -288,14 +278,7 @@ describe("getCurrentLedgerContext", () => {
       ],
       table: "ledger",
     });
-    expect(supabase.queries[3]).toEqual({
-      calls: [
-        { args: ["ledger_id"], method: "select" },
-        { args: ["ledger_id", ["ledger-2", "ledger-1"]], method: "in" },
-        { args: ["status", "active"], method: "eq" },
-      ],
-      table: "ledger_member",
-    });
+    expect(supabase.queries).toHaveLength(3);
   });
 
   it("保存的当前账本失效时回退到第一个 active 账本", async () => {
@@ -314,9 +297,6 @@ describe("getCurrentLedgerContext", () => {
             { base_currency: "USD", id: "ledger-2", name: "家庭账本" },
           ],
         },
-        {
-          data: [{ ledger_id: "ledger-2" }, { ledger_id: "ledger-1" }],
-        },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -327,7 +307,6 @@ describe("getCurrentLedgerContext", () => {
           baseCurrency: "USD",
           currentUserRole: "member",
           id: "ledger-2",
-          memberCount: 1,
           name: "家庭账本",
         },
       }),
@@ -342,7 +321,6 @@ describe("getCurrentLedgerContext", () => {
         {
           data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
         },
-        { data: [{ ledger_id: "ledger-1" }] },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -427,33 +405,6 @@ describe("getCurrentLedgerContext", () => {
 
     consoleError.mockRestore();
   });
-
-  it("读取成员数量失败时抛出可定位错误", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-    const supabase = createSupabaseMock({
-      queryResponses: [
-        { data: [{ current_ledger_id: null }] },
-        { data: [{ ledger_id: "ledger-1", role: "owner" }] },
-        {
-          data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
-        },
-        { error: { message: "member count failed" } },
-      ],
-    });
-    mocks.createClient.mockResolvedValue(supabase.client);
-
-    await expect(getCurrentLedgerContext()).rejects.toThrow(
-      "Failed to load active ledger member counts: member count failed",
-    );
-    expect(consoleError).toHaveBeenCalledWith(
-      "Failed to load active ledger member counts.",
-      expect.objectContaining({ message: "member count failed" }),
-    );
-
-    consoleError.mockRestore();
-  });
 });
 
 describe("getCurrentLedgerOrRedirect", () => {
@@ -465,7 +416,6 @@ describe("getCurrentLedgerOrRedirect", () => {
         {
           data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
         },
-        { data: [{ ledger_id: "ledger-1" }] },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -474,7 +424,6 @@ describe("getCurrentLedgerOrRedirect", () => {
       baseCurrency: "JPY",
       currentUserRole: "owner",
       id: "ledger-1",
-      memberCount: 1,
       name: "家庭账本",
     });
     expect(mocks.redirect).not.toHaveBeenCalled();
