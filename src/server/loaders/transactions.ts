@@ -8,16 +8,14 @@ import { createClient } from "lib/supabase/server";
 
 import type {
   AccountOptionDbRow,
-  AppUserSummaryDbRow,
   CategorySummaryDbRow,
-  LedgerMemberDisplaySettingDbRow,
   MerchantSummaryDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
-import { mergeLedgerMemberDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
+import { loadUsersWithLedgerDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
 import { buildTransactionGroupSummaryPage } from "server/services/transactionListGroups";
 import type {
   TransactionGroupBy,
@@ -89,8 +87,7 @@ async function loadTransactionItems(
     accountResult,
     categories,
     merchantResult,
-    recorderResult,
-    memberDisplayResult,
+    recorders,
     tagAssignmentResult,
   ] = await Promise.all([
     accountIds.length > 0
@@ -108,19 +105,14 @@ async function loadTransactionItems(
           .eq("ledger_id", currentLedger.id)
           .in("id", merchantIds)
       : Promise.resolve({ data: [], error: null }),
-    recorderIds.length > 0
-      ? supabase
-          .from("app_user")
-          .select("id, display_name")
-          .in("id", recorderIds)
-      : Promise.resolve({ data: [], error: null }),
-    recorderIds.length > 0
-      ? supabase
-          .from("ledger_member_display_setting")
-          .select("user_id, display_name")
-          .eq("ledger_id", currentLedger.id)
-          .in("user_id", recorderIds)
-      : Promise.resolve({ data: [], error: null }),
+    loadUsersWithLedgerDisplayNames({
+      ledgerId: currentLedger.id,
+      memberDisplayErrorMessage:
+        "Failed to load transaction member display names",
+      supabase,
+      userErrorMessage: "Failed to load transaction recorders",
+      userIds: recorderIds,
+    }),
     supabase
       .from("transaction_record_tag")
       .select("tag_id, transaction_record_id")
@@ -134,14 +126,6 @@ async function loadTransactionItems(
 
   if (merchantResult.error) {
     throw new Error("Failed to load transaction merchants");
-  }
-
-  if (recorderResult.error) {
-    throw new Error("Failed to load transaction recorders");
-  }
-
-  if (memberDisplayResult.error) {
-    throw new Error("Failed to load transaction member display names");
   }
 
   if (tagAssignmentResult.error) {
@@ -183,10 +167,6 @@ async function loadTransactionItems(
 
   const accounts = (accountResult.data ?? []) as AccountOptionDbRow[];
   const merchants = (merchantResult.data ?? []) as MerchantSummaryDbRow[];
-  const recorders = mergeLedgerMemberDisplayNames(
-    (recorderResult.data ?? []) as AppUserSummaryDbRow[],
-    (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
-  );
   const accountById = new Map(
     accounts.map((account) => [account.id, account] as const),
   );
@@ -298,8 +278,7 @@ export async function loadTransactionGroupPage(
     accountResult,
     categories,
     merchantResult,
-    recorderResult,
-    memberDisplayResult,
+    recorders,
     tagAssignmentResult,
   ] = await Promise.all([
     accountIds.length > 0
@@ -317,19 +296,14 @@ export async function loadTransactionGroupPage(
           .eq("ledger_id", currentLedger.id)
           .in("id", merchantIds)
       : Promise.resolve({ data: [], error: null }),
-    recorderIds.length > 0
-      ? supabase
-          .from("app_user")
-          .select("id, display_name")
-          .in("id", recorderIds)
-      : Promise.resolve({ data: [], error: null }),
-    recorderIds.length > 0
-      ? supabase
-          .from("ledger_member_display_setting")
-          .select("user_id, display_name")
-          .eq("ledger_id", currentLedger.id)
-          .in("user_id", recorderIds)
-      : Promise.resolve({ data: [], error: null }),
+    loadUsersWithLedgerDisplayNames({
+      ledgerId: currentLedger.id,
+      memberDisplayErrorMessage:
+        "Failed to load transaction member display names",
+      supabase,
+      userErrorMessage: "Failed to load transaction recorders",
+      userIds: recorderIds,
+    }),
     supabase
       .from("transaction_record_tag")
       .select("tag_id, transaction_record_id")
@@ -343,14 +317,6 @@ export async function loadTransactionGroupPage(
 
   if (merchantResult.error) {
     throw new Error("Failed to load transaction merchants");
-  }
-
-  if (recorderResult.error) {
-    throw new Error("Failed to load transaction recorders");
-  }
-
-  if (memberDisplayResult.error) {
-    throw new Error("Failed to load transaction member display names");
   }
 
   if (tagAssignmentResult.error) {
@@ -388,10 +354,7 @@ export async function loadTransactionGroupPage(
     offset: safeOffset,
     pageSize: transactionGroupPageSize,
     records,
-    recorders: mergeLedgerMemberDisplayNames(
-      (recorderResult.data ?? []) as AppUserSummaryDbRow[],
-      (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
-    ),
+    recorders,
     tagAssignments: rawTagAssignments.flatMap((assignment) => {
       const tagName = tagById.get(assignment.tag_id);
 

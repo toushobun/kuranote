@@ -4,12 +4,10 @@ import type {
   AccountHolderRecord,
   AccountRow,
   AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
   LedgerMemberRecord,
 } from "types/accounts";
 import {
   buildAccountsWithHolders,
-  buildDisplayNameByUserId,
   buildHolderOptions,
   formatAmount,
 } from "utils/accounts";
@@ -49,23 +47,13 @@ describe("formatAmount", () => {
 });
 
 describe("account member display names", () => {
-  it("账户持有人优先显示当前账本内昵称", () => {
-    const displayNameByUserId = buildDisplayNameByUserId({
-      settings: [
-        createDisplaySetting({
-          displayName: "家庭账本淞文",
-          userId: "user-a",
-        }),
-        createDisplaySetting({ displayName: "   ", userId: "user-b" }),
-      ],
-    });
-
+  it("账户持有人使用已合并的当前账本内昵称", () => {
     const accounts = buildAccountsWithHolders({
       accounts: [createAccount("account-a")],
       appUserById: new Map([
         [
           "user-a",
-          createAppUser({ displayName: "全局淞文", userId: "user-a" }),
+          createAppUser({ displayName: "家庭账本淞文", userId: "user-a" }),
         ],
         [
           "user-b",
@@ -73,7 +61,6 @@ describe("account member display names", () => {
         ],
       ]),
       displayColorByUserId: new Map(),
-      displayNameByUserId,
       holders: [
         createHolder({
           accountId: "account-a",
@@ -94,33 +81,23 @@ describe("account member display names", () => {
     ]);
   });
 
-  it("账户持有人选项优先显示当前账本内昵称并按最终显示名排序", () => {
+  it("账户持有人选项使用已合并的当前账本内昵称并按最终显示名排序", () => {
     const members: LedgerMemberRecord[] = [
       createMember("user-a"),
       createMember("user-b"),
     ];
-    const displayNameByUserId = buildDisplayNameByUserId({
-      settings: [
-        createDisplaySetting({
-          displayName: "家庭账本淞文",
-          userId: "user-a",
-        }),
-        createDisplaySetting({ displayName: null, userId: "user-b" }),
-      ],
-    });
 
     const holderOptions = buildHolderOptions({
       appUserById: new Map([
         [
           "user-a",
-          createAppUser({ displayName: "全局淞文", userId: "user-a" }),
+          createAppUser({ displayName: "家庭账本淞文", userId: "user-a" }),
         ],
         [
           "user-b",
           createAppUser({ displayName: "全局成员", userId: "user-b" }),
         ],
       ]),
-      displayNameByUserId,
       members,
     });
 
@@ -164,20 +141,6 @@ function createAppUser({
     email: `${userId}@example.com`,
     id: userId,
     status: "active",
-  };
-}
-
-function createDisplaySetting({
-  displayName,
-  userId,
-}: {
-  displayName: string | null;
-  userId: string;
-}): LedgerMemberDisplaySettingRecord {
-  return {
-    display_color: "amber",
-    display_name: displayName,
-    user_id: userId,
   };
 }
 
