@@ -178,7 +178,8 @@ export async function loadTransactionGroupLoaderContextForRecords(
       : Promise.resolve({ data: [], error: null }),
     loadUsersWithLedgerDisplayNames({
       ledgerId: currentLedger.id,
-      memberDisplayErrorMessage: "Failed to load transaction member display names",
+      memberDisplayErrorMessage:
+        "Failed to load transaction member display names",
       supabase,
       userErrorMessage: "Failed to load transaction recorders",
       userIds: recorderIds,
