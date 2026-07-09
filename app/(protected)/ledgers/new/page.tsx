@@ -2,20 +2,14 @@ import { redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { logout } from "server/actions/session";
-import { SettingsTemplate } from "templates/settings/Settings";
+import { LedgerCreatePlaceholderTemplate } from "templates/ledgers/LedgerCreatePlaceholder";
 
-export default async function SettingsRoute() {
+export default async function LedgerCreatePlaceholderRoute() {
   const { currentLedger } = await getCurrentLedgerContext();
 
   if (!currentLedger) {
     redirect(routePaths.dashboard);
   }
 
-  return (
-    <SettingsTemplate
-      currentLedgerName={currentLedger.name}
-      logoutAction={logout}
-    />
-  );
+  return <LedgerCreatePlaceholderTemplate />;
 }

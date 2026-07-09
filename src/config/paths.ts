@@ -6,6 +6,7 @@ export const routePaths = {
   dashboard: "/dashboard",
   home: "/",
   ledgers: "/ledgers",
+  ledgersNew: "/ledgers/new",
   login: "/login",
   merchants: "/merchants",
   register: "/register",
@@ -98,6 +99,10 @@ export function transactionEditHref(
 
   const searchParams = new URLSearchParams({ returnTo });
   return `${editPath}?${searchParams.toString()}`;
+}
+
+export function ledgerSettingsHref(ledgerId: string) {
+  return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
 }
 
 export function transactionsErrorHref(error: string) {

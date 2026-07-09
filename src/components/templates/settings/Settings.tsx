@@ -11,6 +11,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
@@ -23,7 +24,7 @@ import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useState, type ElementType } from "react";
+import { useMemo, useState, type ElementType } from "react";
 
 import { routePaths, type AppRoutePath } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
@@ -53,77 +54,96 @@ type SettingsEntryGroup = {
   label: string;
 };
 
-const settingsEntryGroups = [
-  {
-    label: "个人",
-    entries: [
-      {
-        icon: PersonOutlineOutlinedIcon,
-        kind: "comingSoon",
-        label: "个人主页",
-      },
-    ],
-  },
-  {
-    label: "管理",
-    entries: [
-      { icon: PaletteOutlinedIcon, kind: "theme", label: "主题换装" },
-      {
-        href: routePaths.accounts,
-        icon: AccountBalanceWalletOutlinedIcon,
-        kind: "link",
-        label: "账户管理",
-      },
-      {
-        href: routePaths.categories,
-        icon: CategoryOutlinedIcon,
-        kind: "link",
-        label: "分类管理",
-      },
-      { icon: LocalOfferOutlinedIcon, kind: "comingSoon", label: "标签管理" },
-      { icon: StorefrontOutlinedIcon, kind: "comingSoon", label: "商家管理" },
-    ],
-  },
-  {
-    label: "系统",
-    entries: [
-      {
-        icon: LanguageOutlinedIcon,
-        kind: "comingSoon",
-        label: "语言设置",
-        trailing: "简体中文",
-      },
-      {
-        icon: ImportExportOutlinedIcon,
-        kind: "comingSoon",
-        label: "数据导入导出",
-      },
-      { icon: TuneOutlinedIcon, kind: "comingSoon", label: "App 偏好设置" },
-    ],
-  },
-  {
-    label: "支持",
-    entries: [
-      {
-        icon: HelpOutlineOutlinedIcon,
-        kind: "comingSoon",
-        label: "帮助与反馈",
-      },
-      { icon: InfoOutlinedIcon, kind: "comingSoon", label: "关于 KuraNote" },
-      { icon: LogoutRoundedIcon, kind: "logout", label: "退出登录" },
-    ],
-  },
-] as const satisfies readonly SettingsEntryGroup[];
+function createSettingsEntryGroups(
+  currentLedgerName: string,
+): readonly SettingsEntryGroup[] {
+  return [
+    {
+      label: "个人",
+      entries: [
+        {
+          icon: PersonOutlineOutlinedIcon,
+          kind: "comingSoon",
+          label: "个人主页",
+        },
+      ],
+    },
+    {
+      label: "管理",
+      entries: [
+        { icon: PaletteOutlinedIcon, kind: "theme", label: "主题换装" },
+        {
+          href: routePaths.ledgers,
+          icon: MenuBookOutlinedIcon,
+          kind: "link",
+          label: "账本管理",
+          trailing: currentLedgerName,
+        },
+        {
+          href: routePaths.accounts,
+          icon: AccountBalanceWalletOutlinedIcon,
+          kind: "link",
+          label: "账户管理",
+        },
+        {
+          href: routePaths.categories,
+          icon: CategoryOutlinedIcon,
+          kind: "link",
+          label: "分类管理",
+        },
+        { icon: LocalOfferOutlinedIcon, kind: "comingSoon", label: "标签管理" },
+        { icon: StorefrontOutlinedIcon, kind: "comingSoon", label: "商家管理" },
+      ],
+    },
+    {
+      label: "系统",
+      entries: [
+        {
+          icon: LanguageOutlinedIcon,
+          kind: "comingSoon",
+          label: "语言设置",
+          trailing: "简体中文",
+        },
+        {
+          icon: ImportExportOutlinedIcon,
+          kind: "comingSoon",
+          label: "数据导入导出",
+        },
+        { icon: TuneOutlinedIcon, kind: "comingSoon", label: "App 偏好设置" },
+      ],
+    },
+    {
+      label: "支持",
+      entries: [
+        {
+          icon: HelpOutlineOutlinedIcon,
+          kind: "comingSoon",
+          label: "帮助与反馈",
+        },
+        { icon: InfoOutlinedIcon, kind: "comingSoon", label: "关于 KuraNote" },
+        { icon: LogoutRoundedIcon, kind: "logout", label: "退出登录" },
+      ],
+    },
+  ];
+}
 
 const comingSoonMessage = "正在准备中";
 
 type SettingsTemplateProps = {
+  currentLedgerName: string;
   logoutAction: ServerAction;
 };
 
-export function SettingsTemplate({ logoutAction }: SettingsTemplateProps) {
+export function SettingsTemplate({
+  currentLedgerName,
+  logoutAction,
+}: SettingsTemplateProps) {
   const [isToastOpen, setIsToastOpen] = useState(false);
   const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
+  const settingsEntryGroups = useMemo(
+    () => createSettingsEntryGroups(currentLedgerName),
+    [currentLedgerName],
+  );
 
   const showComingSoonToast = () => {
     setIsToastOpen(true);
@@ -379,7 +399,7 @@ function settingsIconBoxSx(isDanger = false) {
     flexShrink: 0,
     height: 30,
     justifyContent: "center",
-    mr: 1.5,
+    mr: 1.4,
     width: 30,
   } as const;
 }
