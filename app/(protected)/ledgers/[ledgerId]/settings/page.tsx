@@ -1,28 +1,39 @@
-import { redirect } from "next/navigation";
+import { ledgerSettingsResultValues } from "config/paths";
+import { updateLedgerSettings } from "server/actions/ledgerSettings";
+import { loadLedgerSettingsView } from "server/loaders/ledgerSettings";
+import {
+  LedgerSettingsTemplate,
+  type LedgerSettingsSaveResult,
+} from "templates/ledgers/LedgerSettings";
+import { getLedgerSettingsErrorMessage } from "utils/pageErrors";
 
-import { routePaths } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { LedgerSettingsPlaceholderTemplate } from "templates/ledgers/LedgerSettingsPlaceholder";
+function getLedgerSettingsSaveResult(
+  result: string | undefined,
+): LedgerSettingsSaveResult | null {
+  if (result === ledgerSettingsResultValues.updated) return "updated";
+  return null;
+}
 
-export default async function LedgerSettingsPlaceholderRoute({
+export default async function LedgerSettingsRoute({
   params,
+  searchParams,
 }: {
   params: Promise<{ ledgerId: string }>;
+  searchParams: Promise<{ error?: string; errorKey?: string; result?: string }>;
 }) {
-  const [{ ledgerId }, { currentLedger, ledgers }] = await Promise.all([
+  const [{ ledgerId }, resolvedSearchParams] = await Promise.all([
     params,
-    getCurrentLedgerContext(),
+    searchParams,
   ]);
+  const view = await loadLedgerSettingsView(ledgerId);
 
-  if (!currentLedger) {
-    redirect(routePaths.dashboard);
-  }
-
-  const ledger = ledgers.find((item) => item.id === ledgerId);
-
-  if (!ledger) {
-    redirect(routePaths.ledgers);
-  }
-
-  return <LedgerSettingsPlaceholderTemplate ledgerName={ledger.name} />;
+  return (
+    <LedgerSettingsTemplate
+      {...view}
+      errorKey={resolvedSearchParams.errorKey ?? null}
+      errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
+      saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
+      updateLedgerSettingsAction={updateLedgerSettings}
+    />
+  );
 }

@@ -79,7 +79,7 @@ describe("LedgersTemplate", () => {
     expect(within(container).getAllByText("使用中").length).toBeGreaterThan(0);
   });
 
-  it("点击账本列表项进入账本设置占位页", () => {
+  it("点击账本列表项进入账本设置页", () => {
     const { container } = render(
       <LedgersTemplate
         currentLedgerId="00000000-0000-4000-8000-000000000001"
