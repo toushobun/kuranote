@@ -1,4 +1,3 @@
-import type { createClient } from "lib/supabase/server";
 import type {
   AppUserSummaryDbRow,
   LedgerMemberDisplaySettingDbRow,
@@ -9,9 +8,25 @@ type LedgerMemberDisplayNameUser = {
   id: string;
 };
 
-export type LedgerMemberDisplayNameSupabaseClient = Awaited<
-  ReturnType<typeof createClient>
->;
+type LedgerMemberDisplayNameQueryResult<TRow> = {
+  data: TRow[] | null;
+  error: unknown | null;
+};
+
+type LedgerMemberDisplayNameFilterBuilder<TRow> = PromiseLike<
+  LedgerMemberDisplayNameQueryResult<TRow>
+> & {
+  eq(column: string, value: string): LedgerMemberDisplayNameFilterBuilder<TRow>;
+  in(column: string, values: string[]): LedgerMemberDisplayNameFilterBuilder<TRow>;
+};
+
+type LedgerMemberDisplayNameQueryBuilder<TRow> = {
+  select(columns: string): LedgerMemberDisplayNameFilterBuilder<TRow>;
+};
+
+export type LedgerMemberDisplayNameSupabaseClient = {
+  from(table: string): LedgerMemberDisplayNameQueryBuilder<unknown>;
+};
 
 function normalizeLedgerMemberDisplayName(value: string | null | undefined) {
   const trimmed = value?.trim();
@@ -69,22 +84,31 @@ export async function loadUsersWithLedgerDisplayNames<
 }): Promise<TUser[]> {
   if (userIds.length === 0) return [];
 
+  const userQuery = supabase
+    .from("app_user")
+    .select(select)
+    .in("id", userIds) as PromiseLike<
+    LedgerMemberDisplayNameQueryResult<TUser>
+  >;
+  const memberDisplayQuery = memberDisplaySettings
+    ? Promise.resolve({ data: memberDisplaySettings, error: null })
+    : (supabase
+        .from("ledger_member_display_setting")
+        .select("user_id, display_name")
+        .eq("ledger_id", ledgerId)
+        .in("user_id", userIds) as PromiseLike<
+        LedgerMemberDisplayNameQueryResult<LedgerMemberDisplaySettingDbRow>
+      >);
   const [userResult, memberDisplayResult] = await Promise.all([
-    supabase.from("app_user").select(select).in("id", userIds),
-    memberDisplaySettings
-      ? Promise.resolve({ data: memberDisplaySettings, error: null })
-      : supabase
-          .from("ledger_member_display_setting")
-          .select("user_id, display_name")
-          .eq("ledger_id", ledgerId)
-          .in("user_id", userIds),
+    userQuery,
+    memberDisplayQuery,
   ]);
 
   if (userResult.error) throw new Error(userErrorMessage);
   if (memberDisplayResult.error) throw new Error(memberDisplayErrorMessage);
 
   return mergeLedgerMemberDisplayNames(
-    (userResult.data ?? []) as TUser[],
-    (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
+    userResult.data ?? [],
+    memberDisplayResult.data ?? [],
   );
 }
