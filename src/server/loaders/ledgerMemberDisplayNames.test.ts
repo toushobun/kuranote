@@ -175,11 +175,9 @@ function createFakeSupabase(
       },
       then<TResult1 = FakeQueryResult, TResult2 = never>(
         onfulfilled?:
-          | ((value: FakeQueryResult) => TResult1 | PromiseLike<TResult1>)
-          | null,
+          ((value: FakeQueryResult) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?:
-          | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
-          | null,
+          ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
       ) {
         return Promise.resolve({ data: rows, error }).then(
           onfulfilled,
