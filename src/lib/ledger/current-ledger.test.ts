@@ -334,6 +334,33 @@ describe("getCurrentLedgerContext", () => {
     );
   });
 
+  it("未知角色时回退为用户角色", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ current_ledger_id: null }] },
+        { data: [{ ledger_id: "ledger-1", role: "unknown" }] },
+        {
+          data: [{ base_currency: "JPY", id: "ledger-1", name: "家庭账本" }],
+        },
+        { data: [{ ledger_id: "ledger-1" }] },
+      ],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(getCurrentLedgerContext()).resolves.toEqual(
+      expect.objectContaining({
+        currentLedger: expect.objectContaining({
+          currentUserRole: "member",
+        }),
+        ledgers: [
+          expect.objectContaining({
+            currentUserRole: "member",
+          }),
+        ],
+      }),
+    );
+  });
+
   it("读取 app_user 失败时抛出可定位错误", async () => {
     const consoleError = vi
       .spyOn(console, "error")
