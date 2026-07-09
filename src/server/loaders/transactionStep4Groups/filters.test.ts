@@ -29,7 +29,6 @@ function createContext(
       baseCurrency: "JPY",
       currentUserRole: "owner",
       id: ledgerId,
-      memberCount: 1,
       name: "家庭账本",
     },
     items: [],
