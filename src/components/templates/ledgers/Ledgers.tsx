@@ -184,7 +184,6 @@ function LedgerListItem({
       <ButtonBase
         component={Link}
         href={href}
-        aria-current={isCurrent ? "page" : undefined}
         sx={ledgerItemButtonSx}
       >
         <Box sx={ledgerItemIconBoxSx}>
