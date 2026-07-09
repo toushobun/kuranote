@@ -51,8 +51,8 @@ export const SingleLedger: Story = {
   },
 };
 
-export const Empty: Story = {
-  name: "无账本",
+export const EmptyTemplateOnly: Story = {
+  name: "无账本空状态（组件确认用）",
   args: {
     currentLedgerId: "",
     ledgers: [],
