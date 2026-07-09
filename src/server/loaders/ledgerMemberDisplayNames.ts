@@ -16,10 +16,7 @@ type LedgerMemberDisplayNameQueryResult<TRow> = {
 type LedgerMemberDisplayNameFilterBuilder<TRow> = PromiseLike<
   LedgerMemberDisplayNameQueryResult<TRow>
 > & {
-  eq(
-    column: string,
-    value: string,
-  ): LedgerMemberDisplayNameFilterBuilder<TRow>;
+  eq(column: string, value: string): LedgerMemberDisplayNameFilterBuilder<TRow>;
   in(
     column: string,
     values: string[],
