@@ -16,8 +16,14 @@ type LedgerMemberDisplayNameQueryResult<TRow> = {
 type LedgerMemberDisplayNameFilterBuilder<TRow> = PromiseLike<
   LedgerMemberDisplayNameQueryResult<TRow>
 > & {
-  eq(column: string, value: string): LedgerMemberDisplayNameFilterBuilder<TRow>;
-  in(column: string, values: string[]): LedgerMemberDisplayNameFilterBuilder<TRow>;
+  eq(
+    column: string,
+    value: string,
+  ): LedgerMemberDisplayNameFilterBuilder<TRow>;
+  in(
+    column: string,
+    values: string[],
+  ): LedgerMemberDisplayNameFilterBuilder<TRow>;
 };
 
 type LedgerMemberDisplayNameQueryBuilder<TRow> = {
@@ -84,21 +90,14 @@ export async function loadUsersWithLedgerDisplayNames<
 }): Promise<TUser[]> {
   if (userIds.length === 0) return [];
 
-  const userQuery = supabase
-    .from("app_user")
-    .select(select)
-    .in("id", userIds) as PromiseLike<
-    LedgerMemberDisplayNameQueryResult<TUser>
-  >;
+  const userQuery = supabase.from("app_user").select(select).in("id", userIds);
   const memberDisplayQuery = memberDisplaySettings
     ? Promise.resolve({ data: memberDisplaySettings, error: null })
-    : (supabase
+    : supabase
         .from("ledger_member_display_setting")
         .select("user_id, display_name")
         .eq("ledger_id", ledgerId)
-        .in("user_id", userIds) as PromiseLike<
-        LedgerMemberDisplayNameQueryResult<LedgerMemberDisplaySettingDbRow>
-      >);
+        .in("user_id", userIds);
   const [userResult, memberDisplayResult] = await Promise.all([
     userQuery,
     memberDisplayQuery,
@@ -108,7 +107,7 @@ export async function loadUsersWithLedgerDisplayNames<
   if (memberDisplayResult.error) throw new Error(memberDisplayErrorMessage);
 
   return mergeLedgerMemberDisplayNames(
-    userResult.data ?? [],
-    memberDisplayResult.data ?? [],
+    (userResult.data ?? []) as TUser[],
+    (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
   );
 }
