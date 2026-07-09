@@ -65,5 +65,6 @@ export type LedgerMemberRecord = {
 
 export type LedgerMemberDisplaySettingRecord = {
   user_id: string;
+  display_name: string | null;
   display_color: string;
 };

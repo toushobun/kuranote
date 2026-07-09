@@ -7,12 +7,14 @@ import type {
   AccountOptionDbRow,
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
+  LedgerMemberDisplaySettingDbRow,
   MerchantSummaryDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
+import { mergeLedgerMemberDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
 import type { TransactionListItem } from "types/transactions";
 
 import {
@@ -158,6 +160,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     categories,
     merchantResult,
     recorderResult,
+    memberDisplayResult,
     tagAssignmentResult,
   ] = await Promise.all([
     accountIds.length > 0
@@ -181,6 +184,13 @@ export async function loadTransactionGroupLoaderContextForRecords(
           .select("id, display_name")
           .in("id", recorderIds)
       : Promise.resolve({ data: [], error: null }),
+    recorderIds.length > 0
+      ? supabase
+          .from("ledger_member_display_setting")
+          .select("user_id, display_name")
+          .eq("ledger_id", currentLedger.id)
+          .in("user_id", recorderIds)
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("transaction_record_tag")
       .select("tag_id, transaction_record_id")
@@ -196,6 +206,9 @@ export async function loadTransactionGroupLoaderContextForRecords(
   }
   if (recorderResult.error) {
     throw new Error("Failed to load transaction recorders");
+  }
+  if (memberDisplayResult.error) {
+    throw new Error("Failed to load transaction member display names");
   }
   if (tagAssignmentResult.error) {
     throw new Error("Failed to load transaction tags");
@@ -214,7 +227,10 @@ export async function loadTransactionGroupLoaderContextForRecords(
     items,
     merchants: (merchantResult.data ?? []) as MerchantSummaryDbRow[],
     records,
-    recorders: (recorderResult.data ?? []) as AppUserSummaryDbRow[],
+    recorders: mergeLedgerMemberDisplayNames(
+      (recorderResult.data ?? []) as AppUserSummaryDbRow[],
+      (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
+    ),
     tagAssignments,
     tagById,
   };

@@ -47,6 +47,11 @@ export type CategorySummaryDbRow = {
 
 export type CategoryOptionDbRow = CategorySummaryDbRow;
 
+export type LedgerMemberDisplaySettingDbRow = {
+  display_name: string | null;
+  user_id: string;
+};
+
 export type MerchantSummaryDbRow = {
   id: string;
   name: string;
