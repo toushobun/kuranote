@@ -18,7 +18,8 @@ type QueryMethodName =
   | "or"
   | "order"
   | "select"
-  | "update";
+  | "update"
+  | "upsert";
 
 export type SupabaseQueryMethodCall = {
   args: unknown[];
@@ -56,6 +57,7 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
   query.select = vi.fn((...args: unknown[]) => addCall("select", args));
   query.insert = vi.fn((...args: unknown[]) => addCall("insert", args));
   query.update = vi.fn((...args: unknown[]) => addCall("update", args));
+  query.upsert = vi.fn((...args: unknown[]) => addCall("upsert", args));
   query.eq = vi.fn((...args: unknown[]) => addCall("eq", args));
   query.gt = vi.fn((...args: unknown[]) => addCall("gt", args));
   query.gte = vi.fn((...args: unknown[]) => addCall("gte", args));

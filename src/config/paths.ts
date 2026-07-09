@@ -35,11 +35,18 @@ export const accountResultValues = {
   updated: "updated",
 } as const;
 
+export const ledgerSettingsResultValues = {
+  updated: "updated",
+} as const;
+
 type TransactionResultValue =
   (typeof transactionResultValues)[keyof typeof transactionResultValues];
 
 type AccountResultValue =
   (typeof accountResultValues)[keyof typeof accountResultValues];
+
+type LedgerSettingsResultValue =
+  (typeof ledgerSettingsResultValues)[keyof typeof ledgerSettingsResultValues];
 
 export const bottomNavigationRouteGroups = {
   left: [
@@ -103,6 +110,24 @@ export function transactionEditHref(
 
 export function ledgerSettingsHref(ledgerId: string) {
   return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
+}
+
+export function ledgerSettingsErrorHref(ledgerId: string, error: string) {
+  const searchParams = new URLSearchParams({
+    error,
+    errorKey: crypto.randomUUID(),
+  });
+
+  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
+}
+
+export function ledgerSettingsResultHref(
+  ledgerId: string,
+  result: LedgerSettingsResultValue,
+) {
+  const searchParams = new URLSearchParams({ result });
+
+  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
 }
 
 export function transactionsErrorHref(error: string) {
