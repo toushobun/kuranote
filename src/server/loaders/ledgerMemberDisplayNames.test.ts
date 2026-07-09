@@ -145,12 +145,18 @@ type Row = Record<string, unknown>;
 
 type TableErrors = Partial<Record<string, Error>>;
 
+type FakeQueryResult = { data: Row[]; error: Error | null };
+
+type FakeQueryBuilder = PromiseLike<FakeQueryResult> & {
+  eq(column: string, value: string): FakeQueryBuilder;
+  in(column: string, values: string[]): FakeQueryBuilder;
+  select(columns: string): FakeQueryBuilder;
+};
+
 function createFakeSupabase(
   tables: Record<string, Row[]>,
   errors: TableErrors = {},
-): LedgerMemberDisplayNameSupabaseClient & {
-  from: ReturnType<typeof vi.fn<(table: string) => FakeQueryBuilder>>;
-} {
+) {
   const from = vi.fn((table: string) => {
     let rows = [...(tables[table] ?? [])];
     const error = errors[table] ?? null;
@@ -167,19 +173,25 @@ function createFakeSupabase(
       select(_columns: string) {
         return builder;
       },
-      then(resolve: (value: { data: Row[]; error: Error | null }) => unknown) {
-        return Promise.resolve({ data: rows, error }).then(resolve);
+      then<TResult1 = FakeQueryResult, TResult2 = never>(
+        onfulfilled?:
+          | ((value: FakeQueryResult) => TResult1 | PromiseLike<TResult1>)
+          | null,
+        onrejected?:
+          | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+          | null,
+      ) {
+        return Promise.resolve({ data: rows, error }).then(
+          onfulfilled,
+          onrejected,
+        );
       },
     };
 
     return builder;
   });
 
-  return { from };
+  return { from } satisfies LedgerMemberDisplayNameSupabaseClient & {
+    from: typeof from;
+  };
 }
-
-type FakeQueryBuilder = PromiseLike<{ data: Row[]; error: Error | null }> & {
-  eq(column: string, value: string): FakeQueryBuilder;
-  in(column: string, values: string[]): FakeQueryBuilder;
-  select(columns: string): FakeQueryBuilder;
-};
