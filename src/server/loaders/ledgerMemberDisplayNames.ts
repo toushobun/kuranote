@@ -31,13 +31,20 @@ type LedgerMemberDisplayNameQueryBuilder<TRow> = {
 };
 
 export type LedgerMemberDisplayNameSupabaseClient = {
-  from(table: string): LedgerMemberDisplayNameQueryBuilder<unknown>;
+  from(table: string): unknown;
 };
 
 function normalizeLedgerMemberDisplayName(value: string | null | undefined) {
   const trimmed = value?.trim();
 
   return trimmed ? trimmed : null;
+}
+
+function fromTable<TRow>(
+  supabase: LedgerMemberDisplayNameSupabaseClient,
+  table: string,
+) {
+  return supabase.from(table) as LedgerMemberDisplayNameQueryBuilder<TRow>;
 }
 
 export function buildLedgerMemberDisplayNameByUserId(
@@ -90,11 +97,15 @@ export async function loadUsersWithLedgerDisplayNames<
 }): Promise<TUser[]> {
   if (userIds.length === 0) return [];
 
-  const userQuery = supabase.from("app_user").select(select).in("id", userIds);
+  const userQuery = fromTable<TUser>(supabase, "app_user")
+    .select(select)
+    .in("id", userIds);
   const memberDisplayQuery = memberDisplaySettings
     ? Promise.resolve({ data: memberDisplaySettings, error: null })
-    : supabase
-        .from("ledger_member_display_setting")
+    : fromTable<LedgerMemberDisplaySettingDbRow>(
+        supabase,
+        "ledger_member_display_setting",
+      )
         .select("user_id, display_name")
         .eq("ledger_id", ledgerId)
         .in("user_id", userIds);
@@ -107,7 +118,7 @@ export async function loadUsersWithLedgerDisplayNames<
   if (memberDisplayResult.error) throw new Error(memberDisplayErrorMessage);
 
   return mergeLedgerMemberDisplayNames(
-    (userResult.data ?? []) as TUser[],
-    (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
+    userResult.data ?? [],
+    memberDisplayResult.data ?? [],
   );
 }
