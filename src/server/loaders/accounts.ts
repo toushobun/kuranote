@@ -14,6 +14,7 @@ import type {
 import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
+  buildDisplayNameByUserId,
   buildHolderOptions,
 } from "utils/accounts";
 
@@ -52,7 +53,7 @@ export async function loadAccountsView(): Promise<AccountsView> {
     .eq("status", "active");
   const displaySettingRequest = supabase
     .from("ledger_member_display_setting")
-    .select("user_id, display_color")
+    .select("user_id, display_name, display_color")
     .eq("ledger_id", currentLedger.id);
   const holderRequest =
     accountIds.length > 0
@@ -106,6 +107,10 @@ export async function loadAccountsView(): Promise<AccountsView> {
     }
   }
 
+  const displayNameByUserId = buildDisplayNameByUserId({
+    settings: displaySettingRows,
+  });
+
   return {
     accounts: buildAccountsWithHolders({
       accounts: accountRows,
@@ -114,11 +119,13 @@ export async function loadAccountsView(): Promise<AccountsView> {
         members: memberRows,
         settings: displaySettingRows,
       }),
+      displayNameByUserId,
       holders: holderRows,
     }),
     baseCurrency: currentLedger.baseCurrency,
     holderOptions: buildHolderOptions({
       appUserById,
+      displayNameByUserId,
       members: memberRows,
     }),
     ledgerName: currentLedger.name,
