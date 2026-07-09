@@ -45,7 +45,6 @@ const ledgerIconOptions: readonly LedgerIconOption[] = [
   { icon: HomeRoundedIcon, keyword: "家" },
   { icon: ChildCareRoundedIcon, keyword: "育儿" },
   { icon: LuggageRoundedIcon, keyword: "旅行" },
-  { icon: EditNoteRoundedIcon, keyword: "测试" },
 ];
 
 export function LedgersTemplate({
@@ -181,11 +180,7 @@ function LedgerListItem({
 
   return (
     <SoftCard sx={ledgerItemCardSx(isCurrent)}>
-      <ButtonBase
-        component={Link}
-        href={href}
-        sx={ledgerItemButtonSx}
-      >
+      <ButtonBase component={Link} href={href} sx={ledgerItemButtonSx}>
         <Box sx={ledgerItemIconBoxSx}>
           {createElement(Icon, { fontSize: "small" })}
         </Box>
@@ -211,7 +206,7 @@ function LedgerListItem({
             variant="outlined"
           />
         )}
-        {isCurrent ? null : <ChevronRightRoundedIcon sx={chevronSx} />}
+        <ChevronRightRoundedIcon sx={chevronSx} />
       </ButtonBase>
     </SoftCard>
   );
@@ -294,7 +289,7 @@ const ledgerFallbackIcons = [
 const roleLabelMap: Record<CurrentLedgerRole, string> = {
   admin: "管理员",
   member: "用户",
-  owner: "管理员",
+  owner: "所有者",
   viewer: "只读",
 };
 
