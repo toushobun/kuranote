@@ -44,7 +44,7 @@ function fromTable<TRow>(
   return supabase.from(table) as LedgerMemberDisplayNameQueryBuilder<TRow>;
 }
 
-export function buildLedgerMemberDisplayNameByUserId(
+function buildLedgerMemberDisplayNameByUserId(
   memberDisplaySettings: LedgerMemberDisplaySettingDbRow[],
 ) {
   const displayNameByUserId = new Map<string, string>();
