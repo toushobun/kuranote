@@ -65,7 +65,7 @@ describe("loadUsersWithLedgerDisplayNames", () => {
 
     const users = await loadUsersWithLedgerDisplayNames({
       ledgerId,
-      supabase: supabase as unknown as LedgerMemberDisplayNameSupabaseClient,
+      supabase,
       userIds: ["user-a", "user-b"],
     });
 
@@ -83,7 +83,7 @@ describe("loadUsersWithLedgerDisplayNames", () => {
     await expect(
       loadUsersWithLedgerDisplayNames({
         ledgerId,
-        supabase: supabase as unknown as LedgerMemberDisplayNameSupabaseClient,
+        supabase,
         userIds: [],
       }),
     ).resolves.toEqual([]);
@@ -107,7 +107,7 @@ describe("loadUsersWithLedgerDisplayNames", () => {
         { display_name: "家庭账本淞文", user_id: "user-a" },
       ],
       select: "id, display_name, email",
-      supabase: supabase as unknown as LedgerMemberDisplayNameSupabaseClient,
+      supabase,
       userIds: ["user-a"],
     });
 
@@ -131,7 +131,7 @@ describe("loadUsersWithLedgerDisplayNames", () => {
     await expect(
       loadUsersWithLedgerDisplayNames({
         ledgerId,
-        supabase: supabase as unknown as LedgerMemberDisplayNameSupabaseClient,
+        supabase,
         userErrorMessage: "Failed to load test users",
         userIds: ["user-a"],
       }),
@@ -148,21 +148,23 @@ type TableErrors = Partial<Record<string, Error>>;
 function createFakeSupabase(
   tables: Record<string, Row[]>,
   errors: TableErrors = {},
-) {
+): LedgerMemberDisplayNameSupabaseClient & {
+  from: ReturnType<typeof vi.fn<(table: string) => FakeQueryBuilder>>;
+} {
   const from = vi.fn((table: string) => {
     let rows = [...(tables[table] ?? [])];
     const error = errors[table] ?? null;
 
-    const builder = {
-      eq(column: string, value: unknown) {
+    const builder: FakeQueryBuilder = {
+      eq(column: string, value: string) {
         rows = rows.filter((row) => row[column] === value);
         return builder;
       },
-      in(column: string, values: unknown[]) {
-        rows = rows.filter((row) => values.includes(row[column]));
+      in(column: string, values: string[]) {
+        rows = rows.filter((row) => values.includes(String(row[column])));
         return builder;
       },
-      select() {
+      select(_columns: string) {
         return builder;
       },
       then(resolve: (value: { data: Row[]; error: Error | null }) => unknown) {
@@ -175,3 +177,9 @@ function createFakeSupabase(
 
   return { from };
 }
+
+type FakeQueryBuilder = PromiseLike<{ data: Row[]; error: Error | null }> & {
+  eq(column: string, value: string): FakeQueryBuilder;
+  in(column: string, values: string[]): FakeQueryBuilder;
+  select(columns: string): FakeQueryBuilder;
+};
