@@ -2,13 +2,14 @@ import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 import type {
   AccountOptionDbRow,
-  AppUserSummaryDbRow,
   CategorySummaryDbRow,
-  LedgerMemberDisplaySettingDbRow,
   MerchantSummaryDbRow,
   TransactionTagDbRow,
 } from "server/db-types";
-import { mergeLedgerMemberDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
+import {
+  loadUsersWithLedgerDisplayNames,
+  type LedgerMemberDisplayNameSupabaseClient,
+} from "server/loaders/ledgerMemberDisplayNames";
 import type {
   TransactionFilterOptions,
   TransactionMemberOption,
@@ -69,7 +70,11 @@ export async function loadTransactionFilterOptions(): Promise<TransactionFilterO
 
   const memberRows = (memberResult.data ?? []) as { user_id: string }[];
   const memberUserIds = [...new Set(memberRows.map((row) => row.user_id))];
-  const members = await loadMemberOptions(currentLedger.id, memberUserIds);
+  const members = await loadMemberOptions(
+    supabase,
+    currentLedger.id,
+    memberUserIds,
+  );
 
   return {
     accounts: (accountResult.data ?? []) as AccountOptionDbRow[],
@@ -83,32 +88,18 @@ export async function loadTransactionFilterOptions(): Promise<TransactionFilterO
 }
 
 async function loadMemberOptions(
+  supabase: LedgerMemberDisplayNameSupabaseClient,
   ledgerId: string,
   memberUserIds: string[],
 ): Promise<TransactionMemberOption[]> {
-  if (memberUserIds.length === 0) return [];
-
-  const supabase = await createClient();
-  const [userResult, memberDisplayResult] = await Promise.all([
-    supabase
-      .from("app_user")
-      .select("id, display_name")
-      .in("id", memberUserIds),
-    supabase
-      .from("ledger_member_display_setting")
-      .select("user_id, display_name")
-      .eq("ledger_id", ledgerId)
-      .in("user_id", memberUserIds),
-  ]);
-
-  if (userResult.error) throw new Error("Failed to load member user options");
-  if (memberDisplayResult.error) {
-    throw new Error("Failed to load member display name options");
-  }
-
-  return mergeLedgerMemberDisplayNames(
-    (userResult.data ?? []) as AppUserSummaryDbRow[],
-    (memberDisplayResult.data ?? []) as LedgerMemberDisplaySettingDbRow[],
+  return (
+    await loadUsersWithLedgerDisplayNames({
+      ledgerId,
+      memberDisplayErrorMessage: "Failed to load member display name options",
+      supabase,
+      userErrorMessage: "Failed to load member user options",
+      userIds: memberUserIds,
+    })
   )
     .map((member) => ({
       id: member.id,
