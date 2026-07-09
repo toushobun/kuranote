@@ -25,7 +25,13 @@ function createContext(
   return {
     accounts: [],
     categories: [],
-    currentLedger: { baseCurrency: "JPY", id: ledgerId, name: "家庭账本" },
+    currentLedger: {
+      baseCurrency: "JPY",
+      currentUserRole: "owner",
+      id: ledgerId,
+      memberCount: 1,
+      name: "家庭账本",
+    },
     items: [],
     merchants: [],
     records,
