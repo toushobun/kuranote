@@ -1,7 +1,7 @@
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { LedgerWithMemberCount } from "lib/ledger/current-ledger";
 
 import { LedgersTemplate } from "./Ledgers";
 
@@ -9,7 +9,7 @@ afterEach(() => {
   cleanup();
 });
 
-const ledgers: CurrentLedger[] = [
+const ledgers: LedgerWithMemberCount[] = [
   {
     id: "00000000-0000-4000-8000-000000000001",
     name: "家庭账本",
