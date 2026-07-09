@@ -3,6 +3,7 @@
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
 
+import { loadUsersWithLedgerDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
 import type {
   AccountHolderOption,
   AccountHolderRecord,
@@ -14,7 +15,6 @@ import type {
 import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
-  buildDisplayNameByUserId,
   buildHolderOptions,
 } from "utils/accounts";
 
@@ -45,7 +45,6 @@ export async function loadAccountsView(): Promise<AccountsView> {
 
   const accountRows = (data ?? []) as Omit<AccountRow, "holders">[];
   const accountIds = accountRows.map((account) => account.id);
-  const appUserById = new Map<string, AppUserRecord>();
   const memberRequest = supabase
     .from("ledger_member")
     .select("user_id, joined_at, created_at")
@@ -91,25 +90,16 @@ export async function loadAccountsView(): Promise<AccountsView> {
       ...holderRows.map((holder) => holder.user_id),
     ]),
   ];
-
-  if (userIds.length > 0) {
-    const { data: appUserData, error: appUserError } = await supabase
-      .from("app_user")
-      .select("id, display_name, email, status")
-      .in("id", userIds);
-
-    if (appUserError) {
-      throw new Error("Failed to load account holder users");
-    }
-
-    for (const appUser of (appUserData ?? []) as AppUserRecord[]) {
-      appUserById.set(appUser.id, appUser);
-    }
-  }
-
-  const displayNameByUserId = buildDisplayNameByUserId({
-    settings: displaySettingRows,
+  const appUsers = await loadUsersWithLedgerDisplayNames<AppUserRecord>({
+    ledgerId: currentLedger.id,
+    memberDisplayErrorMessage: "Failed to load ledger member display settings",
+    memberDisplaySettings: displaySettingRows,
+    select: "id, display_name, email, status",
+    supabase,
+    userErrorMessage: "Failed to load account holder users",
+    userIds,
   });
+  const appUserById = new Map(appUsers.map((user) => [user.id, user]));
 
   return {
     accounts: buildAccountsWithHolders({
@@ -119,13 +109,11 @@ export async function loadAccountsView(): Promise<AccountsView> {
         members: memberRows,
         settings: displaySettingRows,
       }),
-      displayNameByUserId,
       holders: holderRows,
     }),
     baseCurrency: currentLedger.baseCurrency,
     holderOptions: buildHolderOptions({
       appUserById,
-      displayNameByUserId,
       members: memberRows,
     }),
     ledgerName: currentLedger.name,
