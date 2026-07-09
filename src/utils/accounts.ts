@@ -77,13 +77,11 @@ export function buildAccountsWithHolders({
   accounts,
   appUserById,
   displayColorByUserId,
-  displayNameByUserId,
   holders,
 }: {
   accounts: Omit<AccountRow, "holders">[];
   appUserById: Map<string, AppUserRecord>;
   displayColorByUserId: Map<string, ThemeColorKey>;
-  displayNameByUserId: Map<string, string>;
   holders: AccountHolderRecord[];
 }) {
   const holdersByAccountId = new Map<string, AccountHolderRow[]>();
@@ -100,8 +98,7 @@ export function buildAccountsWithHolders({
     accountHolders.push({
       id: holder.id,
       user_id: holder.user_id,
-      display_name:
-        displayNameByUserId.get(holder.user_id) ?? appUser.display_name,
+      display_name: appUser.display_name,
       email: appUser.email,
       display_color:
         displayColorByUserId.get(holder.user_id) ??
@@ -121,11 +118,9 @@ export function buildAccountsWithHolders({
 
 export function buildHolderOptions({
   appUserById,
-  displayNameByUserId,
   members,
 }: {
   appUserById: Map<string, AppUserRecord>;
-  displayNameByUserId: Map<string, string>;
   members: LedgerMemberRecord[];
 }) {
   return members
@@ -138,8 +133,7 @@ export function buildHolderOptions({
 
       return {
         user_id: member.user_id,
-        display_name:
-          displayNameByUserId.get(member.user_id) ?? appUser.display_name,
+        display_name: appUser.display_name,
         email: appUser.email,
       };
     })
@@ -178,22 +172,4 @@ export function buildDisplayColorByUserId({
   }
 
   return displayColorByUserId;
-}
-
-export function buildDisplayNameByUserId({
-  settings,
-}: {
-  settings: LedgerMemberDisplaySettingRecord[];
-}) {
-  const displayNameByUserId = new Map<string, string>();
-
-  for (const setting of settings) {
-    const displayName = setting.display_name?.trim();
-
-    if (displayName) {
-      displayNameByUserId.set(setting.user_id, displayName);
-    }
-  }
-
-  return displayNameByUserId;
 }
