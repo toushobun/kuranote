@@ -31,6 +31,8 @@ export async function loadLedgersView() {
 }
 
 async function loadLedgerMemberCounts(ledgerIds: string[]) {
+  // 当前单用户账本数量预期较小，先用 per-ledger DB-side exact count 保持实现简单；
+  // 后续如果账本数量增加，再改为 RPC / view 做 grouped count。
   const supabase = await createClient();
   const entries = await Promise.all(
     ledgerIds.map(async (ledgerId) => {
