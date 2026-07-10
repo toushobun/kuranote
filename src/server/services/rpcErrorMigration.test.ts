@@ -16,8 +16,10 @@ const rpcErrorMigrationSql = readMigrationSql(
 const createLedgerOwnerErrorMigrationSql = readMigrationSql(
   "20260710070000_add_create_ledger_owner_error_details.sql",
 );
-const allMigrationSql =
-  `${rpcErrorMigrationSql}\n${createLedgerOwnerErrorMigrationSql}`;
+const allMigrationSql = [
+  rpcErrorMigrationSql,
+  createLedgerOwnerErrorMigrationSql,
+].join("\n");
 
 function getFunctionSql(migrationSql: string, functionName: string) {
   const startMarker = `create or replace function public.${functionName}`;
