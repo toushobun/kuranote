@@ -86,6 +86,8 @@ export function LedgersTemplate({
   const [isSwitchSuccessOpen, setIsSwitchSuccessOpen] = useState(
     switchResult !== null,
   );
+  const [previousSwitchResult, setPreviousSwitchResult] =
+    useState(switchResult);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const router = useRouter();
@@ -104,11 +106,13 @@ export function LedgersTemplate({
     ]);
   }, [errorMessage, errorKey]);
 
-  useEffect(() => {
+  if (switchResult !== previousSwitchResult) {
+    setPreviousSwitchResult(switchResult);
+
     if (switchResult !== null) {
       setIsSwitchSuccessOpen(true);
     }
-  }, [switchResult]);
+  }
 
   function closeErrorFeedback(id: string) {
     setErrorFeedbacks((feedbacks) =>
