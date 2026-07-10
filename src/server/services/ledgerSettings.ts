@@ -4,6 +4,7 @@ import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "server/errors/ledgerSettings";
+import { mapRpcBusinessError } from "server/services/rpcError";
 import type { ServiceResult } from "server/services/serviceResult";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
@@ -26,39 +27,14 @@ export type UpdateLedgerSettingsParams = {
   userId: string;
 };
 
-type SupabaseErrorLike = {
-  message?: string;
-};
-
-function mapMemberSettingsError(error: SupabaseErrorLike | null) {
-  const message = error?.message ?? "";
-
-  if (message.includes("permission_denied")) {
-    return ledgerSettingsErrorCodes.permissionDenied;
-  }
-
-  if (message.includes("member_not_found")) {
-    return ledgerSettingsErrorCodes.memberInvalid;
-  }
-
-  if (message.includes("role_invalid")) {
-    return ledgerSettingsErrorCodes.roleInvalid;
-  }
-
-  if (message.includes("display_color_invalid")) {
-    return ledgerSettingsErrorCodes.displayColorInvalid;
-  }
-
-  if (message.includes("display_name_required")) {
-    return ledgerSettingsErrorCodes.displayNameRequired;
-  }
-
-  if (message.includes("display_name_too_long")) {
-    return ledgerSettingsErrorCodes.displayNameTooLong;
-  }
-
-  return ledgerSettingsErrorCodes.updateFailed;
-}
+const memberSettingsRpcErrorMap = {
+  display_color_invalid: ledgerSettingsErrorCodes.displayColorInvalid,
+  display_name_required: ledgerSettingsErrorCodes.displayNameRequired,
+  display_name_too_long: ledgerSettingsErrorCodes.displayNameTooLong,
+  member_not_found: ledgerSettingsErrorCodes.memberInvalid,
+  permission_denied: ledgerSettingsErrorCodes.permissionDenied,
+  role_invalid: ledgerSettingsErrorCodes.roleInvalid,
+} as const satisfies Readonly<Record<string, LedgerSettingsErrorCode>>;
 
 export async function updateLedgerSettingsService(
   params: UpdateLedgerSettingsParams,
@@ -133,7 +109,14 @@ export async function updateLedgerSettingsService(
     });
 
     if (error) {
-      return { ok: false, error: mapMemberSettingsError(error) };
+      return {
+        error: mapRpcBusinessError(
+          error,
+          memberSettingsRpcErrorMap,
+          ledgerSettingsErrorCodes.updateFailed,
+        ),
+        ok: false,
+      };
     }
   }
 
