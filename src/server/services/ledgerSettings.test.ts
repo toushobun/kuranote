@@ -138,7 +138,12 @@ describe("updateLedgerSettingsService", () => {
         { data: { id: ledgerId } },
       ],
       rpcResponse: {
-        error: { message: "permission_denied" },
+        error: {
+          code: "42501",
+          details: "permission_denied",
+          hint: null,
+          message: "权限不足",
+        },
       },
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -231,11 +236,16 @@ describe("updateLedgerSettingsService", () => {
     });
   });
 
-  it("成员设置保存失败时映射错误码", async () => {
+  it("成员设置保存失败时根据 details 映射错误码", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [{ data: { role: "owner" } }, { data: { id: ledgerId } }],
       rpcResponse: {
-        error: { message: "role_invalid" },
+        error: {
+          code: "22023",
+          details: "role_invalid",
+          hint: null,
+          message: "角色不正确",
+        },
       },
     });
     mocks.createClient.mockResolvedValue(supabase.client);

@@ -1,4 +1,5 @@
 export const ledgerSettingsErrorCodes = {
+  authRequired: "auth_required",
   currencyInvalid: "currency_invalid",
   displayColorInvalid: "display_color_invalid",
   displayNameRequired: "display_name_required",

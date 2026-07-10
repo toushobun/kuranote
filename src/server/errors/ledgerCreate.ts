@@ -1,4 +1,5 @@
 export const ledgerCreateErrorCodes = {
+  authRequired: "auth_required",
   createFailed: "create_failed",
   currencyInvalid: "currency_invalid",
   displayColorInvalid: "display_color_invalid",
@@ -6,12 +7,14 @@ export const ledgerCreateErrorCodes = {
   displayNameTooLong: "display_name_too_long",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
+  userInactive: "user_inactive",
 } as const;
 
 export type LedgerCreateErrorCode =
   (typeof ledgerCreateErrorCodes)[keyof typeof ledgerCreateErrorCodes];
 
 const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
+  [ledgerCreateErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
   [ledgerCreateErrorCodes.createFailed]: "账本创建失败。请确认内容后稍后重试。",
   [ledgerCreateErrorCodes.currencyInvalid]: "默认货币指定不正确。",
   [ledgerCreateErrorCodes.displayColorInvalid]: "个性色指定不正确。",
@@ -20,6 +23,7 @@ const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
     "我的显示名不能超过 100 个字符。",
   [ledgerCreateErrorCodes.nameRequired]: "请输入账本名称。",
   [ledgerCreateErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
+  [ledgerCreateErrorCodes.userInactive]: "当前账号不可用，请联系管理员。",
 };
 
 export function getLedgerCreateErrorMessage(error?: string) {

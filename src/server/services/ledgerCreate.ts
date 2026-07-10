@@ -3,6 +3,7 @@ import {
   ledgerCreateErrorCodes,
   type LedgerCreateErrorCode,
 } from "server/errors/ledgerCreate";
+import { mapRpcBusinessError } from "server/services/rpcError";
 import type { ServiceResult } from "server/services/serviceResult";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
@@ -13,41 +14,16 @@ export type CreateLedgerParams = {
   ledgerName: string;
 };
 
-type SupabaseErrorLike = {
-  message?: string;
-};
-
-function mapCreateLedgerError(
-  error: SupabaseErrorLike | null,
-): LedgerCreateErrorCode {
-  const message = error?.message ?? "";
-
-  if (message.includes("ledger_name_required")) {
-    return ledgerCreateErrorCodes.nameRequired;
-  }
-
-  if (message.includes("ledger_name_too_long")) {
-    return ledgerCreateErrorCodes.nameTooLong;
-  }
-
-  if (message.includes("currency_invalid")) {
-    return ledgerCreateErrorCodes.currencyInvalid;
-  }
-
-  if (message.includes("display_name_required")) {
-    return ledgerCreateErrorCodes.displayNameRequired;
-  }
-
-  if (message.includes("display_name_too_long")) {
-    return ledgerCreateErrorCodes.displayNameTooLong;
-  }
-
-  if (message.includes("display_color_invalid")) {
-    return ledgerCreateErrorCodes.displayColorInvalid;
-  }
-
-  return ledgerCreateErrorCodes.createFailed;
-}
+const createLedgerRpcErrorMap = {
+  auth_required: ledgerCreateErrorCodes.authRequired,
+  currency_invalid: ledgerCreateErrorCodes.currencyInvalid,
+  display_color_invalid: ledgerCreateErrorCodes.displayColorInvalid,
+  display_name_required: ledgerCreateErrorCodes.displayNameRequired,
+  display_name_too_long: ledgerCreateErrorCodes.displayNameTooLong,
+  ledger_name_required: ledgerCreateErrorCodes.nameRequired,
+  ledger_name_too_long: ledgerCreateErrorCodes.nameTooLong,
+  user_inactive: ledgerCreateErrorCodes.userInactive,
+} as const satisfies Readonly<Record<string, LedgerCreateErrorCode>>;
 
 export async function createLedgerService(
   params: CreateLedgerParams,
@@ -61,7 +37,14 @@ export async function createLedgerService(
   });
 
   if (error) {
-    return { error: mapCreateLedgerError(error), ok: false };
+    return {
+      error: mapRpcBusinessError(
+        error,
+        createLedgerRpcErrorMap,
+        ledgerCreateErrorCodes.createFailed,
+      ),
+      ok: false,
+    };
   }
 
   return { ok: true };
