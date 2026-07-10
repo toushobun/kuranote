@@ -13,7 +13,6 @@ import { DashboardTemplate } from "./Dashboard";
 
 const dashboardData = createDashboardViewData();
 const noLedgerDashboardData = createNoLedgerDashboardViewData();
-const mockCreateLedgerAction = async () => {};
 
 function renderWithTheme(
   themeKey: UserThemeKey,
@@ -25,10 +24,7 @@ function renderWithTheme(
         data-user-theme={themeKey}
         style={getUserThemeCssVariables(themeKey) as CSSProperties}
       >
-        <DashboardTemplate
-          createLedgerAction={mockCreateLedgerAction}
-          data={data}
-        />
+        <DashboardTemplate data={data} />
       </div>
     );
   };
@@ -38,7 +34,6 @@ const meta = {
   title: "Templates/Dashboard/DashboardTemplate",
   component: DashboardTemplate,
   args: {
-    createLedgerAction: mockCreateLedgerAction,
     data: dashboardData,
   },
 } satisfies Meta<typeof DashboardTemplate>;

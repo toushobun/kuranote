@@ -71,12 +71,6 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
     "账本设置保存失败。请确认内容后稍后重试。",
 };
 
-const ledgerSetupErrorMessages: Record<string, string> = {
-  create_failed: "账本创建失败，请稍后重试。",
-  currency_invalid: "基础货币必须是 3 位大写字母，例如 JPY。",
-  name_required: "请输入账本名称。",
-};
-
 const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败。",
   [merchantErrorCodes.aliasCreateFailed]:
@@ -169,10 +163,6 @@ export function getCategoryErrorMessage(error?: string) {
 
 export function getLedgerSettingsErrorMessage(error?: string) {
   return getPageErrorMessage(ledgerSettingsErrorMessages, error);
-}
-
-export function getLedgerSetupErrorMessage(error?: string) {
-  return getPageErrorMessage(ledgerSetupErrorMessages, error);
 }
 
 export function getMerchantErrorMessage(error?: string) {

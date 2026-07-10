@@ -5,12 +5,12 @@ import SmartphoneRoundedIcon from "@mui/icons-material/SmartphoneRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Link from "next/link";
 
 import { IconBadge } from "atoms/ui/IconBadge";
+import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
-import type { ServerAction } from "types/actions";
 import type { DashboardAccountSummary } from "types/dashboard";
 import { formatAmount } from "utils/accounts";
 
@@ -23,16 +23,12 @@ const accountIconMap = {
 
 type DashboardMonthSummaryCardProps = {
   accounts: DashboardAccountSummary[];
-  createLedgerAction?: ServerAction;
-  createLedgerErrorMessage?: string | null;
   hasLedger?: boolean;
   monthLabel: string;
 };
 
 export function DashboardMonthSummaryCard({
   accounts,
-  createLedgerAction,
-  createLedgerErrorMessage = null,
   hasLedger = true,
   monthLabel,
 }: DashboardMonthSummaryCardProps) {
@@ -60,10 +56,7 @@ export function DashboardMonthSummaryCard({
         </Stack>
 
         {!hasLedger ? (
-          <DashboardNoLedgerAccountState
-            createLedgerAction={createLedgerAction}
-            errorMessage={createLedgerErrorMessage}
-          />
+          <DashboardNoLedgerAccountState />
         ) : accounts.length > 0 ? (
           <Stack spacing={0}>
             {accounts.map((account) => (
@@ -117,13 +110,7 @@ export function DashboardMonthSummaryCard({
   );
 }
 
-function DashboardNoLedgerAccountState({
-  createLedgerAction,
-  errorMessage,
-}: {
-  createLedgerAction?: ServerAction;
-  errorMessage: string | null;
-}) {
+function DashboardNoLedgerAccountState() {
   return (
     <Stack
       direction={{ xs: "row", sm: "row" }}
@@ -149,40 +136,15 @@ function DashboardNoLedgerAccountState({
         }}
       />
 
-      <Stack
-        component="form"
-        action={createLedgerAction}
-        spacing={0.8}
-        sx={{ flex: 1, minWidth: 0 }}
-      >
+      <Stack spacing={0.8} sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           sx={{ color: "text.secondary", fontSize: 13, fontWeight: 700 }}
         >
           还没有账本，暂时无法显示账户余额
         </Typography>
-        <input name="baseCurrency" type="hidden" value="JPY" />
-        <TextField
-          autoComplete="off"
-          defaultValue="家庭账本"
-          label="账本名称"
-          name="name"
-          required
-          size="small"
-          sx={{
-            "& .MuiInputBase-root": {
-              backgroundColor: "var(--user-theme-card-bg)",
-              borderRadius: 1.25,
-              fontSize: 13,
-            },
-          }}
-        />
-        {errorMessage ? (
-          <Typography color="error" role="alert" sx={{ fontSize: 12 }}>
-            {errorMessage}
-          </Typography>
-        ) : null}
         <Button
-          disabled={!createLedgerAction}
+          component={Link}
+          href={routePaths.ledgersNew}
           size="small"
           sx={{
             background: "var(--user-theme-fab-bg)",
@@ -194,7 +156,6 @@ function DashboardNoLedgerAccountState({
             py: 0.85,
             textDecoration: "none",
           }}
-          type="submit"
           variant="contained"
         >
           创建第一个账本
