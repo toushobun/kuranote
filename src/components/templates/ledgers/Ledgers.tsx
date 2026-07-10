@@ -10,6 +10,7 @@ import LuggageRoundedIcon from "@mui/icons-material/LuggageRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -20,20 +21,44 @@ import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { createElement, type ElementType } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createElement,
+  type ElementType,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-import { ledgerSettingsHref, routePaths } from "config/paths";
 import { SoftCard } from "atoms/ui/SoftCard";
+import { ledgerSettingsHref, routePaths } from "config/paths";
 import type {
   CurrentLedgerRole,
   LedgerWithMemberCount,
 } from "lib/ledger/current-ledger";
+import {
+  FailureFeedbackDialog,
+  SuccessFeedbackDialog,
+} from "molecules/ui/OperationFeedbackDialogs";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { typographyStyles } from "theme/typographyTokens";
+import type { ServerAction } from "types/actions";
+
+export type LedgerSwitchResult = "switched";
+
+type ErrorFeedback = {
+  id: string;
+  message: string;
+};
 
 type LedgersTemplateProps = {
   currentLedgerId: string;
+  errorKey?: string | null;
+  errorMessage: string | null;
   ledgers: LedgerWithMemberCount[];
+  switchResult?: LedgerSwitchResult | null;
+  updateCurrentLedgerAction: ServerAction;
 };
 
 type LedgerIconOption = {
@@ -49,10 +74,64 @@ const ledgerIconOptions: readonly LedgerIconOption[] = [
 
 export function LedgersTemplate({
   currentLedgerId,
+  errorKey = null,
+  errorMessage,
   ledgers,
+  switchResult = null,
+  updateCurrentLedgerAction,
 }: LedgersTemplateProps) {
   const currentLedger =
     ledgers.find((ledger) => ledger.id === currentLedgerId) ?? ledgers[0];
+  const [errorFeedbacks, setErrorFeedbacks] = useState<ErrorFeedback[]>([]);
+  const [isSwitchSuccessOpen, setIsSwitchSuccessOpen] = useState(
+    switchResult !== null,
+  );
+  const enqueuedErrorKeysRef = useRef(new Set<string>());
+  const errorFeedbackIdRef = useRef(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (errorMessage === null || errorKey === null) return;
+    if (enqueuedErrorKeysRef.current.has(errorKey)) return;
+    enqueuedErrorKeysRef.current.add(errorKey);
+
+    errorFeedbackIdRef.current += 1;
+    const id = `${errorKey}-${errorFeedbackIdRef.current}`;
+
+    setErrorFeedbacks((feedbacks) => [
+      ...feedbacks,
+      { id, message: errorMessage },
+    ]);
+  }, [errorMessage, errorKey]);
+
+  useEffect(() => {
+    if (switchResult !== null) {
+      setIsSwitchSuccessOpen(true);
+    }
+  }, [switchResult]);
+
+  function closeErrorFeedback(id: string) {
+    setErrorFeedbacks((feedbacks) =>
+      feedbacks.filter((feedback) => feedback.id !== id),
+    );
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    url.searchParams.delete("errorKey");
+    router.replace(`${url.pathname}${url.search}${url.hash}`, {
+      scroll: false,
+    });
+  }
+
+  function closeSwitchSuccessDialog() {
+    setIsSwitchSuccessOpen(false);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("result");
+    router.replace(`${url.pathname}${url.search}${url.hash}`, {
+      scroll: false,
+    });
+  }
 
   return (
     <>
@@ -113,11 +192,36 @@ export function LedgersTemplate({
                   isCurrent={ledger.id === currentLedgerId}
                   key={ledger.id}
                   ledger={ledger}
+                  updateCurrentLedgerAction={updateCurrentLedgerAction}
                 />
               ))}
             </Stack>
+
+            {ledgers.length > 1 ? <LedgerSwitchHint /> : null}
           </Stack>
         </Stack>
+
+        {errorFeedbacks.map((feedback, index) => (
+          <FailureFeedbackDialog
+            bottomOffset={errorFeedbackBottomOffset(index)}
+            description={feedback.message}
+            key={feedback.id}
+            onClose={() => closeErrorFeedback(feedback.id)}
+            open
+            title="账本切换失败"
+          />
+        ))}
+        <SuccessFeedbackDialog
+          bottomOffset={feedbackBottomOffset}
+          description={
+            currentLedger
+              ? `已切换至「${currentLedger.name}」。`
+              : "当前账本已切换。"
+          }
+          onClose={closeSwitchSuccessDialog}
+          open={isSwitchSuccessOpen}
+          title="切换成功"
+        />
       </PageShell>
     </>
   );
@@ -170,17 +274,24 @@ function LedgerListItem({
   index,
   isCurrent,
   ledger,
+  updateCurrentLedgerAction,
 }: {
   index: number;
   isCurrent: boolean;
   ledger: LedgerWithMemberCount;
+  updateCurrentLedgerAction: ServerAction;
 }) {
   const Icon = getLedgerIcon(ledger.name, index);
   const href = ledgerSettingsHref(ledger.id);
 
   return (
     <SoftCard sx={ledgerItemCardSx(isCurrent)}>
-      <ButtonBase component={Link} href={href} sx={ledgerItemButtonSx}>
+      <ButtonBase
+        aria-label={`进入${ledger.name}设置`}
+        component={Link}
+        href={href}
+        sx={ledgerItemButtonSx}
+      >
         <Box sx={ledgerItemIconBoxSx}>
           {createElement(Icon, { fontSize: "small" })}
         </Box>
@@ -196,19 +307,44 @@ function LedgerListItem({
           </Typography>
         </Stack>
 
+        <Box aria-hidden="true" sx={ledgerItemActionSpacerSx(isCurrent)} />
+        <ChevronRightRoundedIcon sx={chevronSx} />
+      </ButtonBase>
+
+      <Box sx={ledgerItemActionOverlaySx}>
         {isCurrent ? (
           <Chip color="success" label="使用中" size="small" sx={statusChipSx} />
         ) : (
-          <Chip
-            label="点击进入编辑"
-            size="small"
-            sx={editChipSx}
-            variant="outlined"
-          />
+          <Box
+            component="form"
+            action={updateCurrentLedgerAction}
+            sx={switchFormSx}
+          >
+            <input name="ledgerId" type="hidden" value={ledger.id} />
+            <Button
+              aria-label={`切换到${ledger.name}`}
+              size="small"
+              sx={switchButtonSx}
+              type="submit"
+              variant="contained"
+            >
+              切换使用
+            </Button>
+          </Box>
         )}
-        <ChevronRightRoundedIcon sx={chevronSx} />
-      </ButtonBase>
+      </Box>
     </SoftCard>
+  );
+}
+
+function LedgerSwitchHint() {
+  return (
+    <Stack direction="row" spacing={0.9} sx={switchHintSx}>
+      <TipsAndUpdatesOutlinedIcon sx={switchHintIconSx} />
+      <Typography color="text.secondary" variant="body2">
+        点击「切换使用」可切换当前账本，点击卡片可进入账本设置。
+      </Typography>
+    </Stack>
   );
 }
 
@@ -390,6 +526,7 @@ function ledgerItemCardSx(isCurrent: boolean) {
       : "var(--user-theme-card-border)",
     borderRadius: 1,
     overflow: "hidden",
+    position: "relative",
   } as const;
 }
 
@@ -431,6 +568,44 @@ const ledgerItemNameSx = {
   fontWeight: 700,
 };
 
+function ledgerItemActionSpacerSx(isCurrent: boolean) {
+  return {
+    flexShrink: 0,
+    width: isCurrent ? 62 : 92,
+  } as const;
+}
+
+const ledgerItemActionOverlaySx = {
+  alignItems: "center",
+  display: "flex",
+  position: "absolute",
+  right: 42,
+  top: "50%",
+  transform: "translateY(-50%)",
+  zIndex: 1,
+};
+
+const switchFormSx = {
+  display: "inline-flex",
+  m: 0,
+};
+
+const switchButtonSx = {
+  ...typographyStyles.button,
+  background: "var(--user-theme-fab-bg)",
+  borderRadius: 999,
+  color: "var(--user-theme-fab-text)",
+  fontSize: 13,
+  fontWeight: 700,
+  minHeight: 32,
+  px: 1.35,
+  whiteSpace: "nowrap",
+  "&:hover": {
+    background: "var(--user-theme-fab-bg)",
+    filter: "brightness(1.04)",
+  },
+};
+
 const statusChipSx = {
   ...typographyStyles.chipBadge,
   bgcolor: "var(--user-theme-business-completed-bg)",
@@ -446,22 +621,25 @@ const statusChipSx = {
   },
 };
 
-const editChipSx = {
-  ...typographyStyles.chipBadge,
-  borderColor: "var(--user-theme-action-text)",
-  color: "var(--user-theme-action-text)",
-  display: "inline-flex",
-  flexShrink: 0,
-  fontSize: 12,
-  fontWeight: 600,
-  height: 24,
-  px: 0.2,
-};
-
 const chevronSx = {
   color: "text.secondary",
   flexShrink: 0,
   fontSize: 26,
+};
+
+const switchHintSx = {
+  alignItems: "center",
+  bgcolor: "var(--user-theme-tx-summary-bg)",
+  borderRadius: 1,
+  mt: 0.35,
+  px: 1.25,
+  py: 1,
+};
+
+const switchHintIconSx = {
+  color: "var(--user-theme-action-text)",
+  flexShrink: 0,
+  fontSize: 22,
 };
 
 const ledgerMetaRowSx = {
@@ -514,3 +692,9 @@ const emptyTitleSx = {
   fontSize: { xs: 16, sm: 17 },
   fontWeight: 700,
 };
+
+const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
+
+function errorFeedbackBottomOffset(index: number) {
+  return `calc(${feedbackBottomOffset} + ${index * 88}px)`;
+}
