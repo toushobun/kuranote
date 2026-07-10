@@ -1,4 +1,5 @@
 export const ledgerCreateErrorCodes = {
+  authRequired: "auth_required",
   createFailed: "create_failed",
   currencyInvalid: "currency_invalid",
   displayColorInvalid: "display_color_invalid",
@@ -12,6 +13,7 @@ export type LedgerCreateErrorCode =
   (typeof ledgerCreateErrorCodes)[keyof typeof ledgerCreateErrorCodes];
 
 const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
+  [ledgerCreateErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
   [ledgerCreateErrorCodes.createFailed]: "账本创建失败。请确认内容后稍后重试。",
   [ledgerCreateErrorCodes.currencyInvalid]: "默认货币指定不正确。",
   [ledgerCreateErrorCodes.displayColorInvalid]: "个性色指定不正确。",
