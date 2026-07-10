@@ -21,12 +21,25 @@ const params = {
 };
 
 const rpcErrorCases = [
-  ["ledger_name_required", ledgerCreateErrorCodes.nameRequired],
-  ["ledger_name_too_long", ledgerCreateErrorCodes.nameTooLong],
-  ["currency_invalid", ledgerCreateErrorCodes.currencyInvalid],
-  ["display_name_required", ledgerCreateErrorCodes.displayNameRequired],
-  ["display_name_too_long", ledgerCreateErrorCodes.displayNameTooLong],
-  ["display_color_invalid", ledgerCreateErrorCodes.displayColorInvalid],
+  ["auth_required", "42501", ledgerCreateErrorCodes.authRequired],
+  ["ledger_name_required", "22023", ledgerCreateErrorCodes.nameRequired],
+  ["ledger_name_too_long", "22023", ledgerCreateErrorCodes.nameTooLong],
+  ["currency_invalid", "22023", ledgerCreateErrorCodes.currencyInvalid],
+  [
+    "display_name_required",
+    "22023",
+    ledgerCreateErrorCodes.displayNameRequired,
+  ],
+  [
+    "display_name_too_long",
+    "22023",
+    ledgerCreateErrorCodes.displayNameTooLong,
+  ],
+  [
+    "display_color_invalid",
+    "22023",
+    ledgerCreateErrorCodes.displayColorInvalid,
+  ],
 ] as const;
 
 beforeEach(() => {
@@ -52,11 +65,11 @@ describe("createLedgerService", () => {
 
   it.each(rpcErrorCases)(
     "RPC details 返回 %s 时转换为对应错误码",
-    async (details, expectedError) => {
+    async (details, code, expectedError) => {
       const supabase = createSupabaseMock({
         rpcResponse: {
           error: {
-            code: "22023",
+            code,
             details,
             hint: null,
             message: "数据库业务校验失败",
