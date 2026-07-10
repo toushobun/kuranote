@@ -80,10 +80,7 @@ describe("updateLedgerSettingsService RPC 错误映射", () => {
 
   it("未知 details 即使 message 包含已知业务码也返回通用更新失败", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [
-        { data: { role: "owner" } },
-        { data: { id: ledgerId } },
-      ],
+      queryResponses: [{ data: { role: "owner" } }, { data: { id: ledgerId } }],
       rpcResponse: {
         error: {
           code: "22023",
