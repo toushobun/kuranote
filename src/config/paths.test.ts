@@ -5,6 +5,9 @@ import {
   accountsErrorHref,
   accountsResultHref,
   editTransactionErrorHref,
+  ledgerSwitchResultValues,
+  ledgersErrorHref,
+  ledgersResultHref,
   transactionEditHref,
   transactionEditPagePath,
   transactionResultValues,
@@ -12,6 +15,22 @@ import {
   transactionsResultHref,
   transactionsSearchHref,
 } from "./paths";
+
+describe("ledger list paths", () => {
+  it("生成带切换成功结果的账本列表路由", () => {
+    expect(ledgersResultHref(ledgerSwitchResultValues.switched)).toBe(
+      "/ledgers?result=switched",
+    );
+  });
+
+  it("生成带错误码和唯一 errorKey 的账本列表路由", () => {
+    const href = ledgersErrorHref("ledger_invalid");
+    const url = new URL(href, "http://localhost");
+
+    expect(url.searchParams.get("error")).toBe("ledger_invalid");
+    expect(url.searchParams.get("errorKey")).toBeTruthy();
+  });
+});
 
 describe("account paths", () => {
   it("生成带保存成功结果的账户路由", () => {
