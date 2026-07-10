@@ -22,6 +22,7 @@ const createLedgerRpcErrorMap = {
   display_name_too_long: ledgerCreateErrorCodes.displayNameTooLong,
   ledger_name_required: ledgerCreateErrorCodes.nameRequired,
   ledger_name_too_long: ledgerCreateErrorCodes.nameTooLong,
+  user_inactive: ledgerCreateErrorCodes.userInactive,
 } as const satisfies Readonly<Record<string, LedgerCreateErrorCode>>;
 
 export async function createLedgerService(
