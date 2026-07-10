@@ -108,6 +108,13 @@ export function transactionEditHref(
   return `${editPath}?${searchParams.toString()}`;
 }
 
+export function ledgerCreateErrorHref(error: string) {
+  return routeWithQuery(routePaths.ledgersNew, {
+    error,
+    errorKey: crypto.randomUUID(),
+  });
+}
+
 export function ledgerSettingsHref(ledgerId: string) {
   return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
 }
@@ -170,10 +177,6 @@ export function accountsResultHref(result: AccountResultValue) {
 
 export function categoriesErrorHref(error: string, categoryId?: string | null) {
   return routeWithQuery(routePaths.categories, { error, categoryId });
-}
-
-export function dashboardLedgerSetupErrorHref(error: string) {
-  return routeWithQuery(routePaths.dashboard, { ledgerSetupError: error });
 }
 
 export function merchantsErrorHref(error: string, merchantId?: string | null) {

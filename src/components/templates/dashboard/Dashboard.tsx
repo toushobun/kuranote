@@ -16,7 +16,6 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions";
 import { typographyStyles } from "theme/typographyTokens";
-import type { ServerAction } from "types/actions";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
 
@@ -41,16 +40,10 @@ type QuickAction = {
 };
 
 type DashboardTemplateProps = {
-  createLedgerAction?: ServerAction;
-  createLedgerErrorMessage?: string | null;
   data: DashboardViewData;
 };
 
-export function DashboardTemplate({
-  createLedgerAction,
-  createLedgerErrorMessage = null,
-  data,
-}: DashboardTemplateProps) {
+export function DashboardTemplate({ data }: DashboardTemplateProps) {
   const { accountSummaries, monthLabel, monthSummary, recentTransactions } =
     data;
   const hasLedger = data.hasLedger ?? true;
@@ -66,8 +59,6 @@ export function DashboardTemplate({
 
       <DashboardMonthSummaryCard
         accounts={accountSummaries}
-        createLedgerAction={createLedgerAction}
-        createLedgerErrorMessage={createLedgerErrorMessage}
         hasLedger={hasLedger}
         monthLabel={monthLabel}
       />

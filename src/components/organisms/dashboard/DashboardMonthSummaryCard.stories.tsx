@@ -4,14 +4,11 @@ import { createDashboardAccountSummary } from "@/test/mocks/dashboard";
 
 import { DashboardMonthSummaryCard } from "./DashboardMonthSummaryCard";
 
-const mockCreateLedgerAction = async () => {};
-
 const meta = {
   title: "Organisms/Dashboard/MonthSummaryCard",
   component: DashboardMonthSummaryCard,
   args: {
     accounts: [createDashboardAccountSummary()],
-    createLedgerAction: mockCreateLedgerAction,
     hasLedger: true,
     monthLabel: "2026年5月",
   },

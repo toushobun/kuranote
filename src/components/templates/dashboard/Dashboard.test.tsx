@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createDashboardViewData,
@@ -59,12 +59,7 @@ describe("DashboardTemplate", () => {
   });
 
   it("无账本时按真实首页结构显示创建引导", () => {
-    render(
-      <DashboardTemplate
-        createLedgerAction={vi.fn(async () => {})}
-        data={createNoLedgerDashboardViewData()}
-      />,
-    );
+    render(<DashboardTemplate data={createNoLedgerDashboardViewData()} />);
 
     expect(screen.getByText("先创建你的第一个账本")).toBeInTheDocument();
     expect(
@@ -75,11 +70,9 @@ describe("DashboardTemplate", () => {
     expect(
       screen.getByText("还没有账本，暂时无法显示账户余额"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/账本名称/)).toHaveValue("家庭账本");
     expect(
-      screen.getByRole("button", { name: "创建第一个账本" }),
-    ).toBeEnabled();
-    expect(screen.queryByRole("link", { name: "创建第一个账本" })).toBeNull();
+      screen.getByRole("link", { name: "创建第一个账本" }),
+    ).toHaveAttribute("href", "/ledgers/new");
     expect(screen.getAllByText("需先创建账本")).toHaveLength(3);
     expect(screen.queryByRole("link", { name: "查看全部" })).toBeNull();
     expect(
@@ -91,17 +84,5 @@ describe("DashboardTemplate", () => {
     expect(
       screen.getByTestId("dashboard-no-ledger-recent-illustration-slot"),
     ).toBeInTheDocument();
-  });
-
-  it("无账本创建错误时显示错误提示", () => {
-    render(
-      <DashboardTemplate
-        createLedgerAction={vi.fn(async () => {})}
-        createLedgerErrorMessage="请输入账本名称。"
-        data={createNoLedgerDashboardViewData()}
-      />,
-    );
-
-    expect(screen.getByRole("alert")).toHaveTextContent("请输入账本名称。");
   });
 });
