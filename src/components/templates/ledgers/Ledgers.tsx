@@ -16,6 +16,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
@@ -29,6 +30,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useFormStatus } from "react-dom";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSettingsHref, routePaths } from "config/paths";
@@ -325,19 +327,36 @@ function LedgerListItem({
             sx={switchFormSx}
           >
             <input name="ledgerId" type="hidden" value={ledger.id} />
-            <Button
-              aria-label={`切换到${ledger.name}`}
-              size="small"
-              sx={switchButtonSx}
-              type="submit"
-              variant="contained"
-            >
-              切换使用
-            </Button>
+            <SwitchLedgerButton ledgerName={ledger.name} />
           </Box>
         )}
       </Box>
     </SoftCard>
+  );
+}
+
+function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      aria-label={`切换到${ledgerName}`}
+      disabled={pending}
+      size="small"
+      sx={switchButtonSx}
+      type="submit"
+      variant="contained"
+    >
+      {pending ? (
+        <CircularProgress
+          aria-label={`正在切换到${ledgerName}`}
+          color="inherit"
+          size={18}
+        />
+      ) : (
+        "切换使用"
+      )}
+    </Button>
   );
 }
 
@@ -602,6 +621,7 @@ const switchButtonSx = {
   fontSize: 13,
   fontWeight: 700,
   minHeight: 32,
+  minWidth: 82,
   px: 1.35,
   whiteSpace: "nowrap",
   "&:hover": {
@@ -633,7 +653,7 @@ const chevronSx = {
 
 const switchHintSx = {
   alignItems: "center",
-  bgcolor: "var(--user-theme-tx-summary-bg)",
+  bgcolor: "action.hover",
   borderRadius: 1,
   mt: 0.35,
   px: 1.25,
