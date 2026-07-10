@@ -7,6 +7,7 @@ export const ledgerCreateErrorCodes = {
   displayNameTooLong: "display_name_too_long",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
+  userInactive: "user_inactive",
 } as const;
 
 export type LedgerCreateErrorCode =
@@ -22,6 +23,7 @@ const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
     "我的显示名不能超过 100 个字符。",
   [ledgerCreateErrorCodes.nameRequired]: "请输入账本名称。",
   [ledgerCreateErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
+  [ledgerCreateErrorCodes.userInactive]: "当前账号不可用，请联系管理员。",
 };
 
 export function getLedgerCreateErrorMessage(error?: string) {
