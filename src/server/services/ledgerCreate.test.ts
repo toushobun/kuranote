@@ -30,11 +30,7 @@ const rpcErrorCases = [
     "22023",
     ledgerCreateErrorCodes.displayNameRequired,
   ],
-  [
-    "display_name_too_long",
-    "22023",
-    ledgerCreateErrorCodes.displayNameTooLong,
-  ],
+  ["display_name_too_long", "22023", ledgerCreateErrorCodes.displayNameTooLong],
   [
     "display_color_invalid",
     "22023",
