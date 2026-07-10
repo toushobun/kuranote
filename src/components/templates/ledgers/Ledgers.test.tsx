@@ -101,7 +101,9 @@ describe("LedgersTemplate", () => {
     expect(switchButton).toHaveTextContent("切换使用");
     expect(switchButton.closest("a")).toBeNull();
     expect(switchForm).not.toBeNull();
-    expect(ledgerIdInput).toHaveValue("00000000-0000-4000-8000-000000000002");
+    expect(ledgerIdInput).toHaveValue(
+      "00000000-0000-4000-8000-000000000002",
+    );
     expect(
       screen.queryByRole("button", { name: "切换到家庭账本" }),
     ).not.toBeInTheDocument();
