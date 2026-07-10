@@ -33,7 +33,10 @@ const meta = {
   component: LedgersTemplate,
   args: {
     currentLedgerId: "00000000-0000-4000-8000-000000000001",
+    errorMessage: null,
     ledgers,
+    switchResult: null,
+    updateCurrentLedgerAction: async () => {},
   },
 } satisfies Meta<typeof LedgersTemplate>;
 
@@ -42,6 +45,22 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   name: "账本管理页",
+};
+
+export const SwitchSucceeded: Story = {
+  name: "切换账本成功",
+  args: {
+    currentLedgerId: "00000000-0000-4000-8000-000000000002",
+    switchResult: "switched",
+  },
+};
+
+export const SwitchFailed: Story = {
+  name: "切换账本失败",
+  args: {
+    errorKey: "storybook-switch-error",
+    errorMessage: "账本切换失败，请稍后重试。",
+  },
 };
 
 export const SingleLedger: Story = {

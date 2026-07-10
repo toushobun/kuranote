@@ -39,6 +39,10 @@ export const ledgerSettingsResultValues = {
   updated: "updated",
 } as const;
 
+export const ledgerSwitchResultValues = {
+  switched: "switched",
+} as const;
+
 type TransactionResultValue =
   (typeof transactionResultValues)[keyof typeof transactionResultValues];
 
@@ -47,6 +51,9 @@ type AccountResultValue =
 
 type LedgerSettingsResultValue =
   (typeof ledgerSettingsResultValues)[keyof typeof ledgerSettingsResultValues];
+
+export type LedgerSwitchResultValue =
+  (typeof ledgerSwitchResultValues)[keyof typeof ledgerSwitchResultValues];
 
 export const bottomNavigationRouteGroups = {
   left: [
@@ -113,6 +120,17 @@ export function ledgerCreateErrorHref(error: string) {
     error,
     errorKey: crypto.randomUUID(),
   });
+}
+
+export function ledgersErrorHref(error: string) {
+  return routeWithQuery(routePaths.ledgers, {
+    error,
+    errorKey: crypto.randomUUID(),
+  });
+}
+
+export function ledgersResultHref(result: LedgerSwitchResultValue) {
+  return routeWithQuery(routePaths.ledgers, { result });
 }
 
 export function ledgerSettingsHref(ledgerId: string) {

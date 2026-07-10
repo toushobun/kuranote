@@ -7,6 +7,10 @@ import {
   type CategoryErrorCode,
 } from "server/errors/categories";
 import {
+  currentLedgerErrorCodes,
+  type CurrentLedgerErrorCode,
+} from "server/errors/currentLedger";
+import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "server/errors/ledgerSettings";
@@ -51,6 +55,12 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.typeInvalid]: "分类类型不正确。",
   [categoryErrorCodes.updateFailed]:
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+};
+
+const currentLedgerErrorMessages: Record<CurrentLedgerErrorCode, string> = {
+  [currentLedgerErrorCodes.ledgerInvalid]:
+    "无法切换到该账本。请确认你仍是该账本成员。",
+  [currentLedgerErrorCodes.updateFailed]: "账本切换失败，请稍后重试。",
 };
 
 const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
@@ -160,6 +170,10 @@ export function getAccountErrorMessage(error?: string) {
 
 export function getCategoryErrorMessage(error?: string) {
   return getPageErrorMessage(categoryErrorMessages, error);
+}
+
+export function getCurrentLedgerErrorMessage(error?: string) {
+  return getPageErrorMessage(currentLedgerErrorMessages, error);
 }
 
 export function getLedgerSettingsErrorMessage(error?: string) {
