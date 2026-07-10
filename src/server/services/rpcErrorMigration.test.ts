@@ -40,10 +40,7 @@ function expectStructuredError(
   sqlState: string,
 ) {
   const escapedErrorCode = escapeRegExp(errorCode);
-  const raisePattern = new RegExp(
-    `raise exception '${escapedErrorCode}'`,
-    "g",
-  );
+  const raisePattern = new RegExp(`raise exception '${escapedErrorCode}'`, "g");
   const structuredPattern = new RegExp(
     `raise exception '${escapedErrorCode}'\\s+using errcode = '${sqlState}', detail = '${escapedErrorCode}';`,
     "g",
