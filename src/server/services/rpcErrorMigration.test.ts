@@ -11,8 +11,23 @@ const migrationSql = readFileSync(
   "utf8",
 );
 
-function expectStructuredError(errorCode: string, sqlState: string) {
-  expect(migrationSql).toMatch(
+function getFunctionSql(functionName: string) {
+  const startMarker = `create or replace function public.${functionName}`;
+  const startIndex = migrationSql.indexOf(startMarker);
+  const endIndex = migrationSql.indexOf("\n$$;", startIndex);
+
+  expect(startIndex).toBeGreaterThanOrEqual(0);
+  expect(endIndex).toBeGreaterThan(startIndex);
+
+  return migrationSql.slice(startIndex, endIndex + 4);
+}
+
+function expectStructuredError(
+  functionSql: string,
+  errorCode: string,
+  sqlState: string,
+) {
+  expect(functionSql).toMatch(
     new RegExp(
       `raise exception '${errorCode}'\\s+using errcode = '${sqlState}', detail = '${errorCode}';`,
     ),
@@ -21,27 +36,27 @@ function expectStructuredError(errorCode: string, sqlState: string) {
 
 describe("RPC 结构化业务错误 migration", () => {
   it("账本创建 RPC 通过 detail 返回稳定业务错误码", () => {
-    expect(migrationSql).toContain(
-      "create or replace function public.create_ledger_with_owner_settings",
-    );
+    const functionSql = getFunctionSql("create_ledger_with_owner_settings");
 
-    expectStructuredError("auth_required", "42501");
-    expectStructuredError("ledger_name_required", "22023");
-    expectStructuredError("ledger_name_too_long", "22023");
-    expectStructuredError("currency_invalid", "22023");
-    expectStructuredError("display_name_required", "22023");
-    expectStructuredError("display_name_too_long", "22023");
-    expectStructuredError("display_color_invalid", "22023");
+    expectStructuredError(functionSql, "auth_required", "42501");
+    expectStructuredError(functionSql, "ledger_name_required", "22023");
+    expectStructuredError(functionSql, "ledger_name_too_long", "22023");
+    expectStructuredError(functionSql, "currency_invalid", "22023");
+    expectStructuredError(functionSql, "display_name_required", "22023");
+    expectStructuredError(functionSql, "display_name_too_long", "22023");
+    expectStructuredError(functionSql, "display_color_invalid", "22023");
   });
 
   it("账本成员设置 RPC 通过 detail 返回稳定业务错误码", () => {
-    expect(migrationSql).toContain(
-      "create or replace function public.update_ledger_member_settings",
-    );
+    const functionSql = getFunctionSql("update_ledger_member_settings");
 
-    expectStructuredError("permission_denied", "42501");
-    expectStructuredError("member_not_found", "22023");
-    expectStructuredError("role_invalid", "22023");
+    expectStructuredError(functionSql, "auth_required", "42501");
+    expectStructuredError(functionSql, "permission_denied", "42501");
+    expectStructuredError(functionSql, "display_name_required", "22023");
+    expectStructuredError(functionSql, "display_name_too_long", "22023");
+    expectStructuredError(functionSql, "display_color_invalid", "22023");
+    expectStructuredError(functionSql, "role_invalid", "22023");
+    expectStructuredError(functionSql, "member_not_found", "22023");
   });
 
   it("保持两个 RPC 的执行权限限制", () => {
