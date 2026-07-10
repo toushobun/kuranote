@@ -3,15 +3,22 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const migrationSql = readFileSync(
-  join(
-    process.cwd(),
-    "supabase/migrations/20260710060000_add_rpc_business_error_details.sql",
-  ),
-  "utf8",
-);
+function readMigrationSql(fileName: string) {
+  return readFileSync(
+    join(process.cwd(), "supabase/migrations", fileName),
+    "utf8",
+  );
+}
 
-function getFunctionSql(functionName: string) {
+const rpcErrorMigrationSql = readMigrationSql(
+  "20260710060000_add_rpc_business_error_details.sql",
+);
+const createLedgerOwnerErrorMigrationSql = readMigrationSql(
+  "20260710070000_add_create_ledger_owner_error_details.sql",
+);
+const allMigrationSql = `${rpcErrorMigrationSql}\n${createLedgerOwnerErrorMigrationSql}`;
+
+function getFunctionSql(migrationSql: string, functionName: string) {
   const startMarker = `create or replace function public.${functionName}`;
   const startIndex = migrationSql.indexOf(startMarker);
   const endIndex = migrationSql.indexOf("\n$$;", startIndex);
@@ -54,8 +61,22 @@ function expectSecurityDefiner(functionSql: string) {
 }
 
 describe("RPC 结构化业务错误 migration", () => {
-  it("账本创建 RPC 通过 detail 返回稳定业务错误码", () => {
-    const functionSql = getFunctionSql("create_ledger_with_owner_settings");
+  it("底层账本创建 RPC 通过 detail 返回稳定业务错误码", () => {
+    const functionSql = getFunctionSql(
+      createLedgerOwnerErrorMigrationSql,
+      "create_ledger_with_owner",
+    );
+
+    expectSecurityDefiner(functionSql);
+    expectStructuredError(functionSql, "auth_required", "42501");
+    expectStructuredError(functionSql, "user_inactive", "42501");
+  });
+
+  it("账本创建包装 RPC 通过 detail 返回稳定业务错误码", () => {
+    const functionSql = getFunctionSql(
+      rpcErrorMigrationSql,
+      "create_ledger_with_owner_settings",
+    );
 
     expectSecurityDefiner(functionSql);
     expectStructuredError(functionSql, "auth_required", "42501");
@@ -68,7 +89,10 @@ describe("RPC 结构化业务错误 migration", () => {
   });
 
   it("账本成员设置 RPC 通过 detail 返回稳定业务错误码", () => {
-    const functionSql = getFunctionSql("update_ledger_member_settings");
+    const functionSql = getFunctionSql(
+      rpcErrorMigrationSql,
+      "update_ledger_member_settings",
+    );
 
     expectSecurityDefiner(functionSql);
     expectStructuredError(functionSql, "auth_required", "42501");
@@ -80,8 +104,11 @@ describe("RPC 结构化业务错误 migration", () => {
     expectStructuredError(functionSql, "member_not_found", "22023");
   });
 
-  it("保持两个 RPC 的执行权限限制", () => {
+  it("保持三个 RPC 的执行权限限制", () => {
     const permissionStatements = [
+      "revoke all on function public.create_ledger_with_owner(text, text) from public;",
+      "revoke all on function public.create_ledger_with_owner(text, text) from anon;",
+      "grant execute on function public.create_ledger_with_owner(text, text) to authenticated;",
       "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from public;",
       "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from anon;",
       "grant execute on function public.create_ledger_with_owner_settings(text, text, text, text) to authenticated;",
@@ -91,7 +118,7 @@ describe("RPC 结构化业务错误 migration", () => {
     ];
 
     permissionStatements.forEach((statement) => {
-      expect(migrationSql).toContain(statement);
+      expect(allMigrationSql).toContain(statement);
     });
   });
 });
