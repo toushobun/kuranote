@@ -18,6 +18,7 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const memberUserId = "00000000-0000-4000-8000-000000000034";
 
 const rpcErrorCases = [
+  ["auth_required", "42501", ledgerSettingsErrorCodes.authRequired],
   ["permission_denied", "42501", ledgerSettingsErrorCodes.permissionDenied],
   ["member_not_found", "22023", ledgerSettingsErrorCodes.memberInvalid],
   ["role_invalid", "22023", ledgerSettingsErrorCodes.roleInvalid],
