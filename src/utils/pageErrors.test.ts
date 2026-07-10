@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { accountErrorCodes } from "server/errors/accounts";
 import { categoryErrorCodes } from "server/errors/categories";
+import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
 import { merchantErrorCodes } from "server/errors/merchants";
 import { transactionErrorCodes } from "server/errors/transactions";
 
@@ -9,6 +10,7 @@ import {
   getAccountErrorMessage,
   getCategoryErrorMessage,
   getEditTransactionErrorMessage,
+  getLedgerSettingsErrorMessage,
   getMerchantErrorMessage,
   getNewTransactionErrorMessage,
   getTransactionErrorMessage,
@@ -36,6 +38,15 @@ describe("pageErrors", () => {
     expect(getCategoryErrorMessage(categoryErrorCodes.updateFailed)).toBe(
       "分类更新失败。请确认分类名称是否重复，或稍后重试。",
     );
+  });
+
+  it("使用统一错误码映射账本设置错误提示", () => {
+    expect(
+      getLedgerSettingsErrorMessage(ledgerSettingsErrorCodes.authRequired),
+    ).toBe("登录状态已失效，请重新登录。");
+    expect(
+      getLedgerSettingsErrorMessage(ledgerSettingsErrorCodes.permissionDenied),
+    ).toBe("你没有权限修改该账本或成员设置。");
   });
 
   it("使用统一错误码映射商家错误提示", () => {
