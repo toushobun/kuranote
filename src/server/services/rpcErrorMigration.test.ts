@@ -3,23 +3,21 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-function readMigrationSql(fileName: string) {
-  return readFileSync(
-    join(process.cwd(), "supabase/migrations", fileName),
-    "utf8",
-  );
-}
+const rpcErrorMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260710060000_add_rpc_business_error_details.sql",
+  ),
+  "utf8",
+);
 
-const rpcErrorMigrationSql = readMigrationSql(
-  "20260710060000_add_rpc_business_error_details.sql",
+const createLedgerOwnerErrorMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260710070000_add_create_ledger_owner_error_details.sql",
+  ),
+  "utf8",
 );
-const createLedgerOwnerErrorMigrationSql = readMigrationSql(
-  "20260710070000_add_create_ledger_owner_error_details.sql",
-);
-const allMigrationSql = [
-  rpcErrorMigrationSql,
-  createLedgerOwnerErrorMigrationSql,
-].join("\n");
 
 function getFunctionSql(migrationSql: string, functionName: string) {
   const startMarker = `create or replace function public.${functionName}`;
@@ -60,6 +58,18 @@ function expectStructuredError(
 function expectSecurityDefiner(functionSql: string) {
   expect(functionSql).toMatch(
     /language plpgsql\s+security definer\s+set search_path = public/,
+  );
+}
+
+function expectFunctionPermissions(migrationSql: string, signature: string) {
+  expect(migrationSql).toContain(
+    `revoke all on function public.${signature} from public;`,
+  );
+  expect(migrationSql).toContain(
+    `revoke all on function public.${signature} from anon;`,
+  );
+  expect(migrationSql).toContain(
+    `grant execute on function public.${signature} to authenticated;`,
   );
 }
 
@@ -108,20 +118,17 @@ describe("RPC 结构化业务错误 migration", () => {
   });
 
   it("保持三个 RPC 的执行权限限制", () => {
-    const permissionStatements = [
-      "revoke all on function public.create_ledger_with_owner(text, text) from public;",
-      "revoke all on function public.create_ledger_with_owner(text, text) from anon;",
-      "grant execute on function public.create_ledger_with_owner(text, text) to authenticated;",
-      "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from public;",
-      "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from anon;",
-      "grant execute on function public.create_ledger_with_owner_settings(text, text, text, text) to authenticated;",
-      "revoke all on function public.update_ledger_member_settings(uuid, uuid, text, text, text) from public;",
-      "revoke all on function public.update_ledger_member_settings(uuid, uuid, text, text, text) from anon;",
-      "grant execute on function public.update_ledger_member_settings(uuid, uuid, text, text, text) to authenticated;",
-    ];
-
-    permissionStatements.forEach((statement) => {
-      expect(allMigrationSql).toContain(statement);
-    });
+    expectFunctionPermissions(
+      createLedgerOwnerErrorMigrationSql,
+      "create_ledger_with_owner(text, text)",
+    );
+    expectFunctionPermissions(
+      rpcErrorMigrationSql,
+      "create_ledger_with_owner_settings(text, text, text, text)",
+    );
+    expectFunctionPermissions(
+      rpcErrorMigrationSql,
+      "update_ledger_member_settings(uuid, uuid, text, text, text)",
+    );
   });
 });
