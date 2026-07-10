@@ -54,6 +54,7 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
 };
 
 const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
+  [ledgerSettingsErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
   [ledgerSettingsErrorCodes.currencyInvalid]:
     "默认货币必须是 3 位大写字母，例如 JPY。",
   [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
