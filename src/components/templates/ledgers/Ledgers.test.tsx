@@ -1,13 +1,18 @@
-import { cleanup, render, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { LedgerWithMemberCount } from "lib/ledger/current-ledger";
 
 import { LedgersTemplate } from "./Ledgers";
 
-afterEach(() => {
-  cleanup();
-});
+const routerReplaceMock = vi.hoisted(() => vi.fn());
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: routerReplaceMock }),
+}));
+
+const updateCurrentLedgerAction = vi.fn(async () => {});
 
 const ledgers: LedgerWithMemberCount[] = [
   {
@@ -26,14 +31,29 @@ const ledgers: LedgerWithMemberCount[] = [
   },
 ];
 
+const defaultProps: ComponentProps<typeof LedgersTemplate> = {
+  currentLedgerId: "00000000-0000-4000-8000-000000000001",
+  errorMessage: null,
+  ledgers,
+  switchResult: null,
+  updateCurrentLedgerAction,
+};
+
+function renderTemplate(
+  overrides: Partial<ComponentProps<typeof LedgersTemplate>> = {},
+) {
+  return render(<LedgersTemplate {...defaultProps} {...overrides} />);
+}
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  window.history.replaceState(null, "", "/");
+});
+
 describe("LedgersTemplate", () => {
   it("显示账本管理页标题和新增账本入口", () => {
-    const { container } = render(
-      <LedgersTemplate
-        currentLedgerId="00000000-0000-4000-8000-000000000001"
-        ledgers={ledgers}
-      />,
-    );
+    const { container } = renderTemplate();
 
     expect(
       within(container).getByRole("heading", { name: "账本管理" }),
@@ -44,12 +64,7 @@ describe("LedgersTemplate", () => {
   });
 
   it("显示当前账本摘要", () => {
-    const { container } = render(
-      <LedgersTemplate
-        currentLedgerId="00000000-0000-4000-8000-000000000001"
-        ledgers={ledgers}
-      />,
-    );
+    const { container } = renderTemplate();
 
     const currentSection = within(container).getByRole("region", {
       name: "当前账本",
@@ -65,12 +80,7 @@ describe("LedgersTemplate", () => {
   });
 
   it("账本列表显示账本名称和当前使用状态", () => {
-    const { container } = render(
-      <LedgersTemplate
-        currentLedgerId="00000000-0000-4000-8000-000000000001"
-        ledgers={ledgers}
-      />,
-    );
+    const { container } = renderTemplate();
 
     expect(within(container).getAllByText("家庭账本").length).toBeGreaterThan(
       0,
@@ -79,26 +89,67 @@ describe("LedgersTemplate", () => {
     expect(within(container).getAllByText("使用中").length).toBeGreaterThan(0);
   });
 
-  it("点击账本列表项进入账本设置页", () => {
-    const { container } = render(
-      <LedgersTemplate
-        currentLedgerId="00000000-0000-4000-8000-000000000001"
-        ledgers={ledgers}
-      />,
+  it("非当前账本显示切换按钮并提交目标账本 ID", () => {
+    renderTemplate();
+
+    const switchButton = screen.getByRole("button", {
+      name: "切换到旅行账本",
+    });
+    const switchForm = switchButton.closest("form");
+    const ledgerIdInput = switchForm?.querySelector('input[name="ledgerId"]');
+
+    expect(switchButton).toHaveTextContent("切换使用");
+    expect(ledgerIdInput).toHaveValue(
+      "00000000-0000-4000-8000-000000000002",
     );
+    expect(
+      screen.queryByRole("button", { name: "切换到家庭账本" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "点击「切换使用」可切换当前账本，点击卡片可进入账本设置。",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("点击账本列表项进入账本设置页", () => {
+    renderTemplate();
 
     expect(
-      within(container).getByRole("link", { name: /旅行账本/ }),
+      screen.getByRole("link", { name: "进入旅行账本设置" }),
     ).toHaveAttribute(
       "href",
       "/ledgers/00000000-0000-4000-8000-000000000002/settings",
     );
   });
 
+  it("切换成功后显示新当前账本名称", () => {
+    renderTemplate({
+      currentLedgerId: "00000000-0000-4000-8000-000000000002",
+      switchResult: "switched",
+    });
+
+    expect(screen.getByText("切换成功")).toBeInTheDocument();
+    expect(screen.getByText("已切换至「旅行账本」。")).toBeInTheDocument();
+  });
+
+  it("切换失败后显示错误反馈", async () => {
+    renderTemplate({
+      errorKey: "switch-error-1",
+      errorMessage: "账本切换失败，请稍后重试。",
+    });
+
+    expect(await screen.findByText("账本切换失败")).toBeInTheDocument();
+    expect(
+      screen.getByText("账本切换失败，请稍后重试。"),
+    ).toBeInTheDocument();
+  });
+
   it("无账本时显示空状态", () => {
-    const { container } = render(
-      <LedgersTemplate currentLedgerId="" ledgers={[]} />,
-    );
+    const { container } = renderTemplate({
+      currentLedgerId: "",
+      ledgers: [],
+    });
 
     expect(within(container).getByText("你还没有任何账本")).toBeInTheDocument();
   });
