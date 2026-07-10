@@ -317,7 +317,7 @@ function LedgerListItem({
         <ChevronRightRoundedIcon sx={chevronSx} />
       </ButtonBase>
 
-      <Box sx={ledgerItemActionOverlaySx}>
+      <Box sx={ledgerItemActionOverlaySx(isCurrent)}>
         {isCurrent ? (
           <Chip color="success" label="使用中" size="small" sx={statusChipSx} />
         ) : (
@@ -598,15 +598,18 @@ function ledgerItemActionSpacerSx(isCurrent: boolean) {
   } as const;
 }
 
-const ledgerItemActionOverlaySx = {
-  alignItems: "center",
-  display: "flex",
-  position: "absolute",
-  right: 42,
-  top: "50%",
-  transform: "translateY(-50%)",
-  zIndex: 1,
-};
+function ledgerItemActionOverlaySx(isCurrent: boolean) {
+  return {
+    alignItems: "center",
+    display: "flex",
+    pointerEvents: isCurrent ? "none" : "auto",
+    position: "absolute",
+    right: 42,
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 1,
+  } as const;
+}
 
 const switchFormSx = {
   display: "inline-flex",
