@@ -22,6 +22,7 @@ const params = {
 
 const rpcErrorCases = [
   ["auth_required", "42501", ledgerCreateErrorCodes.authRequired],
+  ["user_inactive", "42501", ledgerCreateErrorCodes.userInactive],
   ["ledger_name_required", "22023", ledgerCreateErrorCodes.nameRequired],
   ["ledger_name_too_long", "22023", ledgerCreateErrorCodes.nameTooLong],
   ["currency_invalid", "22023", ledgerCreateErrorCodes.currencyInvalid],
