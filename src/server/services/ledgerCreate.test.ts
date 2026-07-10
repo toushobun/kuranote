@@ -20,6 +20,15 @@ const params = {
   ledgerName: "家庭账本",
 };
 
+const rpcErrorCases = [
+  ["ledger_name_required", ledgerCreateErrorCodes.nameRequired],
+  ["ledger_name_too_long", ledgerCreateErrorCodes.nameTooLong],
+  ["currency_invalid", ledgerCreateErrorCodes.currencyInvalid],
+  ["display_name_required", ledgerCreateErrorCodes.displayNameRequired],
+  ["display_name_too_long", ledgerCreateErrorCodes.displayNameTooLong],
+  ["display_color_invalid", ledgerCreateErrorCodes.displayColorInvalid],
+] as const;
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -41,24 +50,27 @@ describe("createLedgerService", () => {
     );
   });
 
-  it("RPC details 返回显示名错误时转换为对应错误码", async () => {
-    const supabase = createSupabaseMock({
-      rpcResponse: {
-        error: {
-          code: "22023",
-          details: "display_name_required",
-          hint: null,
-          message: "显示名不能为空",
+  it.each(rpcErrorCases)(
+    "RPC details 返回 %s 时转换为对应错误码",
+    async (details, expectedError) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: "22023",
+            details,
+            hint: null,
+            message: "数据库业务校验失败",
+          },
         },
-      },
-    });
-    mocks.createClient.mockResolvedValue(supabase.client);
+      });
+      mocks.createClient.mockResolvedValue(supabase.client);
 
-    await expect(createLedgerService(params)).resolves.toEqual({
-      error: ledgerCreateErrorCodes.displayNameRequired,
-      ok: false,
-    });
-  });
+      await expect(createLedgerService(params)).resolves.toEqual({
+        error: expectedError,
+        ok: false,
+      });
+    },
+  );
 
   it("未知 details 即使 message 包含已知业务码也返回通用创建失败", async () => {
     const supabase = createSupabaseMock({
