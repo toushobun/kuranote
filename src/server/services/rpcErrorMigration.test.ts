@@ -22,15 +22,34 @@ function getFunctionSql(functionName: string) {
   return migrationSql.slice(startIndex, endIndex + 4);
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function expectStructuredError(
   functionSql: string,
   errorCode: string,
   sqlState: string,
 ) {
+  const escapedErrorCode = escapeRegExp(errorCode);
+  const raisePattern = new RegExp(
+    `raise exception '${escapedErrorCode}'`,
+    "g",
+  );
+  const structuredPattern = new RegExp(
+    `raise exception '${escapedErrorCode}'\\s+using errcode = '${sqlState}', detail = '${escapedErrorCode}';`,
+    "g",
+  );
+  const raiseCount = functionSql.match(raisePattern)?.length ?? 0;
+  const structuredCount = functionSql.match(structuredPattern)?.length ?? 0;
+
+  expect(raiseCount).toBeGreaterThan(0);
+  expect(structuredCount).toBe(raiseCount);
+}
+
+function expectSecurityDefiner(functionSql: string) {
   expect(functionSql).toMatch(
-    new RegExp(
-      `raise exception '${errorCode}'\\s+using errcode = '${sqlState}', detail = '${errorCode}';`,
-    ),
+    /language plpgsql\s+security definer\s+set search_path = public/,
   );
 }
 
@@ -38,6 +57,7 @@ describe("RPC 结构化业务错误 migration", () => {
   it("账本创建 RPC 通过 detail 返回稳定业务错误码", () => {
     const functionSql = getFunctionSql("create_ledger_with_owner_settings");
 
+    expectSecurityDefiner(functionSql);
     expectStructuredError(functionSql, "auth_required", "42501");
     expectStructuredError(functionSql, "ledger_name_required", "22023");
     expectStructuredError(functionSql, "ledger_name_too_long", "22023");
@@ -50,6 +70,7 @@ describe("RPC 结构化业务错误 migration", () => {
   it("账本成员设置 RPC 通过 detail 返回稳定业务错误码", () => {
     const functionSql = getFunctionSql("update_ledger_member_settings");
 
+    expectSecurityDefiner(functionSql);
     expectStructuredError(functionSql, "auth_required", "42501");
     expectStructuredError(functionSql, "permission_denied", "42501");
     expectStructuredError(functionSql, "display_name_required", "22023");
@@ -60,11 +81,17 @@ describe("RPC 结构化业务错误 migration", () => {
   });
 
   it("保持两个 RPC 的执行权限限制", () => {
-    expect(migrationSql).toContain(
+    const permissionStatements = [
+      "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from public;",
+      "revoke all on function public.create_ledger_with_owner_settings(text, text, text, text) from anon;",
       "grant execute on function public.create_ledger_with_owner_settings(text, text, text, text) to authenticated;",
-    );
-    expect(migrationSql).toContain(
+      "revoke all on function public.update_ledger_member_settings(uuid, uuid, text, text, text) from public;",
+      "revoke all on function public.update_ledger_member_settings(uuid, uuid, text, text, text) from anon;",
       "grant execute on function public.update_ledger_member_settings(uuid, uuid, text, text, text) to authenticated;",
-    );
+    ];
+
+    permissionStatements.forEach((statement) => {
+      expect(migrationSql).toContain(statement);
+    });
   });
 });
