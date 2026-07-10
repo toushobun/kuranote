@@ -88,7 +88,8 @@ export function LedgersTemplate({
   const [isSwitchSuccessOpen, setIsSwitchSuccessOpen] = useState(
     switchResult !== null,
   );
-  const [previousSwitchResult, setPreviousSwitchResult] = useState(switchResult);
+  const [previousSwitchResult, setPreviousSwitchResult] =
+    useState(switchResult);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const router = useRouter();
