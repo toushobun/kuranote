@@ -6,10 +6,13 @@ import {
 } from "./ledgerCreate";
 
 describe("getLedgerCreateErrorMessage", () => {
-  it("认证失效时返回重新登录提示", () => {
+  it("认证失效或账号不可用时返回明确提示", () => {
     expect(
       getLedgerCreateErrorMessage(ledgerCreateErrorCodes.authRequired),
     ).toBe("登录状态已失效，请重新登录。");
+    expect(
+      getLedgerCreateErrorMessage(ledgerCreateErrorCodes.userInactive),
+    ).toBe("当前账号不可用，请联系管理员。");
   });
 
   it("空值或未知错误码返回 null", () => {
