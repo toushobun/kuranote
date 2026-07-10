@@ -41,9 +41,16 @@ describe("createLedgerService", () => {
     );
   });
 
-  it("RPC 返回显示名错误时转换为对应错误码", async () => {
+  it("RPC details 返回显示名错误时转换为对应错误码", async () => {
     const supabase = createSupabaseMock({
-      rpcResponse: { error: { message: "display_name_required" } },
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "display_name_required",
+          hint: null,
+          message: "显示名不能为空",
+        },
+      },
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -53,9 +60,16 @@ describe("createLedgerService", () => {
     });
   });
 
-  it("未知数据库错误时返回通用创建失败", async () => {
+  it("未知 details 即使 message 包含已知业务码也返回通用创建失败", async () => {
     const supabase = createSupabaseMock({
-      rpcResponse: { error: { message: "unexpected database error" } },
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "unexpected_database_error",
+          hint: null,
+          message: "display_name_required",
+        },
+      },
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
