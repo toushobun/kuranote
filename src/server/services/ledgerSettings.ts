@@ -28,6 +28,7 @@ export type UpdateLedgerSettingsParams = {
 };
 
 const memberSettingsRpcErrorMap = {
+  auth_required: ledgerSettingsErrorCodes.authRequired,
   display_color_invalid: ledgerSettingsErrorCodes.displayColorInvalid,
   display_name_required: ledgerSettingsErrorCodes.displayNameRequired,
   display_name_too_long: ledgerSettingsErrorCodes.displayNameTooLong,
