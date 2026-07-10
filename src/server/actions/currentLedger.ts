@@ -23,7 +23,14 @@ const currentLedgerRevalidatePaths = [
 ] as const;
 
 function currentLedgerErrorHref(error: string) {
-  return routeWithQuery(routePaths.ledgers, { error });
+  return routeWithQuery(routePaths.ledgers, {
+    error,
+    errorKey: crypto.randomUUID(),
+  });
+}
+
+function currentLedgerSuccessHref() {
+  return routeWithQuery(routePaths.ledgers, { result: "switched" });
 }
 
 export async function updateCurrentLedger(formData: FormData) {
@@ -43,5 +50,5 @@ export async function updateCurrentLedger(formData: FormData) {
   currentLedgerRevalidatePaths.forEach((path) => {
     revalidatePath(path);
   });
-  redirect(routePaths.ledgers);
+  redirect(currentLedgerSuccessHref());
 }
