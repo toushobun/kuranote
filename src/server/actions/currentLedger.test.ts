@@ -39,6 +39,14 @@ function createFormData(value: string) {
   return formData;
 }
 
+function getLastRedirectUrl() {
+  const calls = mocks.redirect.mock.calls;
+  const href = calls[calls.length - 1]?.[0];
+
+  expect(href).toBeDefined();
+  return new URL(href, "http://localhost");
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireCurrentUserAndLedger.mockResolvedValue({
@@ -51,9 +59,15 @@ beforeEach(() => {
 describe("updateCurrentLedger", () => {
   it("账本 ID 非法时跳转账本列表错误状态", async () => {
     await expect(updateCurrentLedger(createFormData("bad-id"))).rejects.toThrow(
-      `NEXT_REDIRECT:${routePaths.ledgers}?error=${currentLedgerErrorCodes.ledgerInvalid}`,
+      "NEXT_REDIRECT:",
     );
 
+    const redirectUrl = getLastRedirectUrl();
+    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
+    expect(redirectUrl.searchParams.get("error")).toBe(
+      currentLedgerErrorCodes.ledgerInvalid,
+    );
+    expect(redirectUrl.searchParams.get("errorKey")).toBeTruthy();
     expect(mocks.updateCurrentLedgerService).not.toHaveBeenCalled();
   });
 
@@ -64,18 +78,24 @@ describe("updateCurrentLedger", () => {
     });
 
     await expect(updateCurrentLedger(createFormData(ledgerId))).rejects.toThrow(
-      `NEXT_REDIRECT:${routePaths.ledgers}?error=${currentLedgerErrorCodes.updateFailed}`,
+      "NEXT_REDIRECT:",
     );
 
+    const redirectUrl = getLastRedirectUrl();
+    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
+    expect(redirectUrl.searchParams.get("error")).toBe(
+      currentLedgerErrorCodes.updateFailed,
+    );
+    expect(redirectUrl.searchParams.get("errorKey")).toBeTruthy();
     expect(mocks.updateCurrentLedgerService).toHaveBeenCalledWith({
       ledgerId,
       userId,
     });
   });
 
-  it("更新成功后刷新依赖当前账本的页面并返回账本列表", async () => {
+  it("更新成功后刷新依赖当前账本的页面并返回成功状态", async () => {
     await expect(updateCurrentLedger(createFormData(ledgerId))).rejects.toThrow(
-      `NEXT_REDIRECT:${routePaths.ledgers}`,
+      `NEXT_REDIRECT:${routePaths.ledgers}?result=switched`,
     );
 
     expect(mocks.updateCurrentLedgerService).toHaveBeenCalledWith({
