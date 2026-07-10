@@ -1,15 +1,19 @@
+import {
+  ledgerSwitchResultValues,
+  type LedgerSwitchResultValue,
+} from "config/paths";
 import { updateCurrentLedger } from "server/actions/currentLedger";
 import { loadLedgersView } from "server/loaders/ledgers";
-import {
-  LedgersTemplate,
-  type LedgerSwitchResult,
-} from "templates/ledgers/Ledgers";
+import { LedgersTemplate } from "templates/ledgers/Ledgers";
 import { getCurrentLedgerErrorMessage } from "utils/pageErrors";
 
 function getLedgerSwitchResult(
   result: string | undefined,
-): LedgerSwitchResult | null {
-  if (result === "switched") return "switched";
+): LedgerSwitchResultValue | null {
+  if (result === ledgerSwitchResultValues.switched) {
+    return ledgerSwitchResultValues.switched;
+  }
+
   return null;
 }
 
