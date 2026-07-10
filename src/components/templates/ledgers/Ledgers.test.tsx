@@ -99,9 +99,7 @@ describe("LedgersTemplate", () => {
     const ledgerIdInput = switchForm?.querySelector('input[name="ledgerId"]');
 
     expect(switchButton).toHaveTextContent("切换使用");
-    expect(ledgerIdInput).toHaveValue(
-      "00000000-0000-4000-8000-000000000002",
-    );
+    expect(ledgerIdInput).toHaveValue("00000000-0000-4000-8000-000000000002");
     expect(
       screen.queryByRole("button", { name: "切换到家庭账本" }),
     ).not.toBeInTheDocument();
@@ -140,9 +138,7 @@ describe("LedgersTemplate", () => {
     });
 
     expect(await screen.findByText("账本切换失败")).toBeInTheDocument();
-    expect(
-      screen.getByText("账本切换失败，请稍后重试。"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("账本切换失败，请稍后重试。")).toBeInTheDocument();
   });
 
   it("无账本时显示空状态", () => {
