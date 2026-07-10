@@ -15,6 +15,7 @@ export type CreateLedgerParams = {
 };
 
 const createLedgerRpcErrorMap = {
+  auth_required: ledgerCreateErrorCodes.authRequired,
   currency_invalid: ledgerCreateErrorCodes.currencyInvalid,
   display_color_invalid: ledgerCreateErrorCodes.displayColorInvalid,
   display_name_required: ledgerCreateErrorCodes.displayNameRequired,
