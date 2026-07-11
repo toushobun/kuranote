@@ -16,7 +16,7 @@ import type { TransactionListItem } from "types/transactions";
 export function buildTransactionListItem({
   accountById,
   accountColorById,
-  canEdit = true,
+  canEdit,
   categoryById,
   fallbackCurrency,
   merchantById,
@@ -28,7 +28,7 @@ export function buildTransactionListItem({
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
-  canEdit?: boolean;
+  canEdit: boolean;
   categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
   merchantById: Map<string, MerchantSummaryDbRow>;
