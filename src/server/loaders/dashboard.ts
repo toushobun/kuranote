@@ -222,7 +222,7 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
     buildTransactionListItem({
       accountById,
       canEdit: getDashboardTransactionCanEdit({
-        createdBy: record.created_by,
+        createdBy: record.created_by ?? null,
         role: currentLedger.currentUserRole,
         userId: currentLedger.currentUserId,
       }),
