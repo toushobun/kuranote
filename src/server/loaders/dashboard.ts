@@ -12,6 +12,7 @@ import type {
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { getDashboardDateRange } from "server/loaders/dashboardDateRange";
+import { getDashboardTransactionCanEdit } from "server/loaders/dashboardTransactionPermissions";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
 import type { DashboardViewData } from "types/dashboard";
 import {
@@ -47,7 +48,9 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
     await Promise.all([
       supabase
         .from("transaction_record")
-        .select("id, type, transaction_at, merchant_id, note, created_at")
+        .select(
+          "id, type, transaction_at, merchant_id, note, created_by, created_at",
+        )
         .eq("ledger_id", currentLedger.id)
         .eq("status", "active")
         .eq("type", "normal")
@@ -218,6 +221,11 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const recentTransactions = recentRecords.map((record) =>
     buildTransactionListItem({
       accountById,
+      canEdit: getDashboardTransactionCanEdit({
+        createdBy: record.created_by ?? null,
+        role: currentLedger.currentUserRole,
+        userId: currentLedger.currentUserId,
+      }),
       categoryById,
       fallbackCurrency: currentLedger.baseCurrency,
       merchantById,
