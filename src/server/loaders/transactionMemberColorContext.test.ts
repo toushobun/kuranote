@@ -76,9 +76,7 @@ describe("loadTransactionMemberColorContext", () => {
     expect(context.accountColorById.get("account-a")).toBe("sakura");
     expect(context.accountColorById.has("account-b")).toBe(false);
     expect(supabase.from).toHaveBeenCalledWith("account_holder");
-    expect(supabase.from).toHaveBeenCalledWith(
-      "ledger_member_display_setting",
-    );
+    expect(supabase.from).toHaveBeenCalledWith("ledger_member_display_setting");
     expect(supabase.from).toHaveBeenCalledWith("ledger_member");
   });
 
@@ -155,11 +153,9 @@ function createFakeSupabase(
       },
       then<TResult1 = FakeQueryResult, TResult2 = never>(
         onfulfilled?:
-          | ((value: FakeQueryResult) => TResult1 | PromiseLike<TResult1>)
-          | null,
+          ((value: FakeQueryResult) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?:
-          | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
-          | null,
+          ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
       ) {
         return Promise.resolve({ data: rows, error }).then(
           onfulfilled,
