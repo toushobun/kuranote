@@ -2,7 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import type { CategorySummaryDbRow } from "server/db-types";
 
-import { buildTransactionListItem } from "./buildTransactionListItem";
+import { buildTransactionListItem as buildTransactionListItemBase } from "./buildTransactionListItem";
+
+type BuildTransactionListItemInput = Parameters<
+  typeof buildTransactionListItemBase
+>[0];
+
+function buildTransactionListItem(
+  input: Omit<BuildTransactionListItemInput, "canEdit">,
+) {
+  return buildTransactionListItemBase({ ...input, canEdit: true });
+}
 
 const baseRecord = {
   created_at: "2026-06-22T10:00:00.000Z",
