@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { editTransactionErrorHref, transactionEditHref } from "config/paths";
+import {
+  editTransactionErrorHref,
+  transactionEditHref,
+  transactionsErrorHref,
+} from "config/paths";
 import { createTransaction } from "server/actions/transactions";
+import { transactionErrorCodes } from "server/errors/transactions";
 import { loadNewTransactionView } from "server/loaders/transactionForm";
 import { NewTransactionTemplate } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
@@ -31,7 +36,11 @@ export default async function TransactionsNewPage({
     );
   }
 
-  const view = await loadNewTransactionView();
+  const { canWriteTransactions, ...view } = await loadNewTransactionView();
+
+  if (canWriteTransactions === false) {
+    redirect(transactionsErrorHref(transactionErrorCodes.permissionDenied));
+  }
 
   return (
     <NewTransactionVisualFrame>

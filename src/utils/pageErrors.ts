@@ -39,6 +39,7 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.holderInvalid]: "账户持有人指定不正确。",
   [accountErrorCodes.initialBalanceInvalid]: "初始余额必须是数字。",
   [accountErrorCodes.nameRequired]: "请输入账户名称。",
+  [accountErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护账户。",
   [accountErrorCodes.typeInvalid]: "账户类型不正确。",
   [accountErrorCodes.updateFailed]:
     "账户更新失败。请确认账户名称是否重复，或稍后重试。",
@@ -52,6 +53,7 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.nameRequired]: "请输入分类名称。",
   [categoryErrorCodes.nameTooLong]: "分类名称不能超过 100 个字符。",
   [categoryErrorCodes.parentInvalid]: "大分类指定不正确。",
+  [categoryErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护分类。",
   [categoryErrorCodes.typeInvalid]: "分类类型不正确。",
   [categoryErrorCodes.updateFailed]:
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
@@ -96,6 +98,7 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.nameRequired]: "请输入商家名称。",
   [merchantErrorCodes.nameTooLong]: "商家名称不能超过 100 个字符。",
   [merchantErrorCodes.noteTooLong]: "备注不能超过 1000 个字符。",
+  [merchantErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护商家。",
   [merchantErrorCodes.updateFailed]:
     "商家更新失败。请确认商家名称是否重复，或稍后重试。",
   [merchantErrorCodes.websiteUrlInvalid]:
@@ -119,6 +122,8 @@ const newTransactionErrorMessages: Partial<
     newTransactionPageErrorMessages.merchantInvalid,
   [transactionErrorCodes.noteTooLong]:
     newTransactionPageErrorMessages.noteTooLong,
+  [transactionErrorCodes.permissionDenied]:
+    newTransactionPageErrorMessages.permissionDenied,
   [transactionErrorCodes.tagInvalid]:
     newTransactionPageErrorMessages.tagInvalid,
   [transactionErrorCodes.typeInvalid]:
@@ -140,6 +145,8 @@ const editTransactionErrorMessages: Partial<
     editTransactionPageErrorMessages.merchantInvalid,
   [transactionErrorCodes.noteTooLong]:
     editTransactionPageErrorMessages.noteTooLong,
+  [transactionErrorCodes.permissionDenied]:
+    editTransactionPageErrorMessages.permissionDenied,
   [transactionErrorCodes.tagInvalid]:
     editTransactionPageErrorMessages.tagInvalid,
   [transactionErrorCodes.typeInvalid]:
@@ -151,6 +158,8 @@ const editTransactionErrorMessages: Partial<
 };
 
 const transactionErrorMessages: Record<TransactionListErrorCode, string> = {
+  [transactionErrorCodes.permissionDenied]:
+    transactionListPageErrorMessages.permissionDenied,
   [transactionErrorCodes.voidFailed]:
     transactionListPageErrorMessages.voidFailed,
   [transactionErrorCodes.voidInvalid]:

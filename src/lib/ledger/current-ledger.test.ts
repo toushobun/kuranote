@@ -234,6 +234,7 @@ describe("getCurrentLedgerContext", () => {
     await expect(getCurrentLedgerContext()).resolves.toEqual({
       currentLedger: {
         baseCurrency: "JPY",
+        currentUserId: "user-1",
         currentUserRole: "owner",
         id: "ledger-1",
         name: "备用账本",
@@ -242,12 +243,14 @@ describe("getCurrentLedgerContext", () => {
       ledgers: [
         {
           baseCurrency: "USD",
+          currentUserId: "user-1",
           currentUserRole: "admin",
           id: "ledger-2",
           name: "家庭账本",
         },
         {
           baseCurrency: "JPY",
+          currentUserId: "user-1",
           currentUserRole: "owner",
           id: "ledger-1",
           name: "备用账本",
@@ -305,6 +308,7 @@ describe("getCurrentLedgerContext", () => {
       expect.objectContaining({
         currentLedger: {
           baseCurrency: "USD",
+          currentUserId: "user-1",
           currentUserRole: "member",
           id: "ledger-2",
           name: "家庭账本",
@@ -328,10 +332,12 @@ describe("getCurrentLedgerContext", () => {
     await expect(getCurrentLedgerContext()).resolves.toEqual(
       expect.objectContaining({
         currentLedger: expect.objectContaining({
+          currentUserId: "user-1",
           currentUserRole: "member",
         }),
         ledgers: [
           expect.objectContaining({
+            currentUserId: "user-1",
             currentUserRole: "member",
           }),
         ],
@@ -422,6 +428,7 @@ describe("getCurrentLedgerOrRedirect", () => {
 
     await expect(getCurrentLedgerOrRedirect()).resolves.toEqual({
       baseCurrency: "JPY",
+      currentUserId: "user-1",
       currentUserRole: "owner",
       id: "ledger-1",
       name: "家庭账本",

@@ -1,4 +1,5 @@
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { canManageMasterData } from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 import type {
   CategoriesViewData,
@@ -6,7 +7,11 @@ import type {
   CategoryTreeItem,
 } from "types/categories";
 
-export async function loadCategoriesView(): Promise<CategoriesViewData> {
+export type CategoriesView = CategoriesViewData & {
+  canManageCategories: boolean;
+};
+
+export async function loadCategoriesView(): Promise<CategoriesView> {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -38,6 +43,7 @@ export async function loadCategoriesView(): Promise<CategoriesViewData> {
   }
 
   return {
+    canManageCategories: canManageMasterData(currentLedger.currentUserRole),
     categories: roots,
     ledgerName: currentLedger.name,
     parentOptions: roots.map((category) => ({

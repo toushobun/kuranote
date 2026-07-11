@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { canWriteTransaction } from "lib/ledger/permissions";
 import { ProtectedLayoutShell } from "templates/protected/ProtectedLayoutShell";
 
 export default async function ProtectedLayout({
@@ -8,7 +9,18 @@ export default async function ProtectedLayout({
 }: {
   children: ReactNode;
 }) {
-  const { email } = await getCurrentLedgerContext();
+  const { currentLedger, email } = await getCurrentLedgerContext();
 
-  return <ProtectedLayoutShell email={email}>{children}</ProtectedLayoutShell>;
+  return (
+    <ProtectedLayoutShell
+      canWriteTransactions={
+        currentLedger
+          ? canWriteTransaction(currentLedger.currentUserRole)
+          : false
+      }
+      email={email}
+    >
+      {children}
+    </ProtectedLayoutShell>
+  );
 }

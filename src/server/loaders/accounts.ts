@@ -1,6 +1,10 @@
 "use server";
 
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import {
+  canManageMasterData,
+  canWriteTransaction,
+} from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 
 import { loadUsersWithLedgerDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
@@ -21,6 +25,8 @@ import {
 export type AccountsView = {
   accounts: AccountRow[];
   baseCurrency: string;
+  canManageAccounts: boolean;
+  canWriteTransactions: boolean;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
 };
@@ -112,6 +118,8 @@ export async function loadAccountsView(): Promise<AccountsView> {
       holders: holderRows,
     }),
     baseCurrency: currentLedger.baseCurrency,
+    canManageAccounts: canManageMasterData(currentLedger.currentUserRole),
+    canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
     holderOptions: buildHolderOptions({
       appUserById,
       members: memberRows,

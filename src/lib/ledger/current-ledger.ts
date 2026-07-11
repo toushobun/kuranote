@@ -11,6 +11,7 @@ export type CurrentLedger = {
   id: string;
   name: string;
   baseCurrency: string;
+  currentUserId?: string;
   currentUserRole: CurrentLedgerRole;
 };
 
@@ -151,15 +152,17 @@ export const getCurrentLedgerContext = cache(
           id: ledger.id,
           name: ledger.name,
           baseCurrency: ledger.base_currency,
+          currentUserId: userId,
           currentUserRole:
             roleByLedgerId.get(ledger.id) ?? fallbackCurrentLedgerRole,
         },
       ]),
     );
 
-    const ledgers = ledgerIds
-      .map((ledgerId) => ledgerById.get(ledgerId))
-      .filter((ledger): ledger is CurrentLedger => ledger !== undefined);
+    const ledgers: CurrentLedger[] = ledgerIds.flatMap((ledgerId) => {
+      const ledger = ledgerById.get(ledgerId);
+      return ledger ? [ledger] : [];
+    });
     const currentLedger = storedCurrentLedgerId
       ? (ledgers.find((ledger) => ledger.id === storedCurrentLedgerId) ?? null)
       : null;

@@ -42,6 +42,8 @@ type AccountsTemplateProps = {
   accounts: AccountRow[];
   archiveAccountAction: ServerAction;
   baseCurrency: string;
+  canManageAccounts?: boolean;
+  canWriteTransactions?: boolean;
   createAccountAction: ServerAction;
   errorKey?: string | null;
   errorMessage: string | null;
@@ -57,6 +59,8 @@ export function AccountsTemplate({
   accounts,
   archiveAccountAction,
   baseCurrency,
+  canManageAccounts = true,
+  canWriteTransactions = true,
   createAccountAction,
   errorKey = null,
   errorMessage,
@@ -77,13 +81,7 @@ export function AccountsTemplate({
   const router = useRouter();
 
   useEffect(() => {
-    // errorKey 由服务端为每次错误 redirect 生成，即使 errorMessage 文案相同，
-    // errorKey 也会不同，因此这里必须依赖 errorKey 而不是只依赖 errorMessage，
-    // 否则连续发生的相同错误不会被识别为新的一次事件。
     if (errorMessage === null || errorKey === null) return;
-
-    // StrictMode 下 effect 会额外重跑一次，用 ref 记录已入队的 errorKey，
-    // 避免同一次错误事件被重复 append 成两条反馈。
     if (enqueuedErrorKeysRef.current.has(errorKey)) return;
     enqueuedErrorKeysRef.current.add(errorKey);
 
@@ -105,6 +103,7 @@ export function AccountsTemplate({
       setIsCreateDialogOpen(false);
     }
   }
+
   const filteredAccounts = useMemo(() => {
     if (selectedType === "all") {
       return accounts;
@@ -165,14 +164,16 @@ export function AccountsTemplate({
               >
                 账户管理
               </Typography>
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
-                startIcon={<AddRoundedIcon />}
-                sx={createButtonSx}
-                variant="contained"
-              >
-                新增账户
-              </Button>
+              {canManageAccounts ? (
+                <Button
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  startIcon={<AddRoundedIcon />}
+                  sx={createButtonSx}
+                  variant="contained"
+                >
+                  新增账户
+                </Button>
+              ) : null}
             </Stack>
             <Typography
               color="text.secondary"
@@ -206,10 +207,13 @@ export function AccountsTemplate({
           <AccountList
             accounts={filteredAccounts}
             archiveAccountAction={archiveAccountAction}
+            canManageAccounts={canManageAccounts}
             emptyDescription={
               isFilteredEmpty
-                ? "请切换其他账户类型，或新增一个账户。"
-                : undefined
+                ? "请切换其他账户类型。"
+                : canManageAccounts
+                  ? undefined
+                  : "当前账本还没有可查看的账户。"
             }
             emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
             holderOptions={holderOptions}
@@ -218,14 +222,16 @@ export function AccountsTemplate({
           />
         </Stack>
 
-        <TransactionAmountKeypadLauncher />
-        <AccountCreateDialog
-          createAccountAction={createAccountAction}
-          defaultCurrency={baseCurrency}
-          holderOptions={holderOptions}
-          onClose={() => setIsCreateDialogOpen(false)}
-          open={isCreateDialogOpen}
-        />
+        {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
+        {canManageAccounts ? (
+          <AccountCreateDialog
+            createAccountAction={createAccountAction}
+            defaultCurrency={baseCurrency}
+            holderOptions={holderOptions}
+            onClose={() => setIsCreateDialogOpen(false)}
+            open={isCreateDialogOpen}
+          />
+        ) : null}
         {errorFeedbacks.map((feedback, index) => (
           <FailureFeedbackDialog
             key={feedback.id}
@@ -281,7 +287,6 @@ const pageBackgroundSx = {
   zIndex: -1,
 };
 
-// 账户页需要比其他 PageShell 页面更紧凑的移动端边距，局部覆盖而非改动全局 spacing token。
 const accountsPageShellSx = {
   px: { xs: 0.75 },
   py: { xs: 0.75 },
@@ -315,7 +320,6 @@ const createButtonSx = {
 
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
-// 多条错误反馈叠加显示时，按队列顺序依次上移，避免互相遮挡。
 function errorFeedbackBottomOffset(index: number) {
   return `calc(${saveFeedbackBottomOffset} + ${index * 88}px)`;
 }

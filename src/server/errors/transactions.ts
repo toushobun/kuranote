@@ -6,6 +6,7 @@ export const transactionErrorCodes = {
   dateInvalid: "date_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
+  permissionDenied: "permission_denied",
   tagInvalid: "tag_invalid",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
@@ -22,6 +23,7 @@ export type NewTransactionErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.permissionDenied
   | typeof transactionErrorCodes.tagInvalid
   | typeof transactionErrorCodes.typeInvalid;
 
@@ -32,12 +34,14 @@ export type EditTransactionErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.permissionDenied
   | typeof transactionErrorCodes.tagInvalid
   | typeof transactionErrorCodes.typeInvalid
   | typeof transactionErrorCodes.updateFailed
   | typeof transactionErrorCodes.updateInvalid;
 
 export type TransactionListErrorCode =
+  | typeof transactionErrorCodes.permissionDenied
   | typeof transactionErrorCodes.voidFailed
   | typeof transactionErrorCodes.voidInvalid;
 
@@ -65,5 +69,6 @@ export type VoidTransactionValidationErrorCode =
 
 export type TransactionServiceErrorCode =
   | typeof transactionErrorCodes.createFailed
+  | typeof transactionErrorCodes.permissionDenied
   | typeof transactionErrorCodes.updateFailed
   | typeof transactionErrorCodes.voidFailed;

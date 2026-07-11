@@ -1,12 +1,14 @@
 "use server";
 
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { canManageMasterData } from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 
 import type { MerchantAliasRow, MerchantRow } from "types/merchants";
 import { attachAliases, filterMerchantsByKeyword } from "utils/merchants";
 
 export type MerchantsView = {
+  canManageMerchants: boolean;
   ledgerName: string;
   merchants: MerchantRow[];
 };
@@ -49,6 +51,7 @@ export async function loadMerchantsView(
   }
 
   return {
+    canManageMerchants: canManageMasterData(currentLedger.currentUserRole),
     ledgerName: currentLedger.name,
     merchants: filterMerchantsByKeyword(
       attachAliases(

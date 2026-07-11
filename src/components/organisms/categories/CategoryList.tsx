@@ -11,6 +11,7 @@ import type { CategoryAction, CategoryTreeItem } from "types/categories";
 
 type CategoryListProps = {
   archiveCategoryAction: CategoryAction;
+  canManageCategories?: boolean;
   categories: CategoryTreeItem[];
   errorCategoryId: string | null;
   errorMessage: string | null;
@@ -54,6 +55,12 @@ function CategoryEditForm({
   );
 }
 
+function CategoryName({ name }: { name: string }) {
+  return (
+    <Typography sx={{ flex: 1, fontWeight: 700, py: 1 }}>{name}</Typography>
+  );
+}
+
 function ArchiveButton({
   action,
   categoryId,
@@ -73,6 +80,7 @@ function ArchiveButton({
 
 export function CategoryList({
   archiveCategoryAction,
+  canManageCategories = true,
   categories,
   errorCategoryId,
   errorMessage,
@@ -82,7 +90,11 @@ export function CategoryList({
     return (
       <EmptyState
         title="还没有分类"
-        description="先新增一个大分类，再在它下面新增小分类。"
+        description={
+          canManageCategories
+            ? "先新增一个大分类，再在它下面新增小分类。"
+            : "当前账本还没有可查看的分类。"
+        }
       />
     );
   }
@@ -134,14 +146,20 @@ export function CategoryList({
                         justifyContent: "space-between",
                       }}
                     >
-                      <CategoryEditForm
-                        action={updateCategoryAction}
-                        category={category}
-                      />
-                      <ArchiveButton
-                        action={archiveCategoryAction}
-                        categoryId={category.id}
-                      />
+                      {canManageCategories ? (
+                        <CategoryEditForm
+                          action={updateCategoryAction}
+                          category={category}
+                        />
+                      ) : (
+                        <CategoryName name={category.name} />
+                      )}
+                      {canManageCategories ? (
+                        <ArchiveButton
+                          action={archiveCategoryAction}
+                          categoryId={category.id}
+                        />
+                      ) : null}
                     </Stack>
 
                     <Divider sx={{ my: 2.5 }} />
@@ -185,14 +203,20 @@ export function CategoryList({
                                   },
                                 }}
                               >
-                                <CategoryEditForm
-                                  action={updateCategoryAction}
-                                  category={child}
-                                />
-                                <ArchiveButton
-                                  action={archiveCategoryAction}
-                                  categoryId={child.id}
-                                />
+                                {canManageCategories ? (
+                                  <CategoryEditForm
+                                    action={updateCategoryAction}
+                                    category={child}
+                                  />
+                                ) : (
+                                  <CategoryName name={child.name} />
+                                )}
+                                {canManageCategories ? (
+                                  <ArchiveButton
+                                    action={archiveCategoryAction}
+                                    categoryId={child.id}
+                                  />
+                                ) : null}
                               </Stack>
                             </Box>
                           );

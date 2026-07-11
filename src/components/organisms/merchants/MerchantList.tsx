@@ -1,14 +1,15 @@
 import Stack from "@mui/material/Stack";
 
+import { EmptyState } from "molecules/ui/EmptyState";
 import type { ServerAction } from "types/actions";
 import type { MerchantRow } from "types/merchants";
-import { EmptyState } from "molecules/ui/EmptyState";
 
 import { MerchantCard } from "./MerchantCard";
 
 type MerchantListProps = {
   archiveAliasAction: ServerAction;
   archiveMerchantAction: ServerAction;
+  canManageMerchants?: boolean;
   createAliasAction: ServerAction;
   errorMerchantId: string | null;
   errorMessage: string | null;
@@ -19,6 +20,7 @@ type MerchantListProps = {
 export function MerchantList({
   archiveAliasAction,
   archiveMerchantAction,
+  canManageMerchants = true,
   createAliasAction,
   errorMerchantId,
   errorMessage,
@@ -27,7 +29,14 @@ export function MerchantList({
 }: MerchantListProps) {
   if (merchants.length === 0) {
     return (
-      <EmptyState title="还没有商家" description="请先新增一个常用商家。" />
+      <EmptyState
+        title="还没有商家"
+        description={
+          canManageMerchants
+            ? "请先新增一个常用商家。"
+            : "当前账本还没有可查看的商家。"
+        }
+      />
     );
   }
 
@@ -37,6 +46,7 @@ export function MerchantList({
         <MerchantCard
           archiveAliasAction={archiveAliasAction}
           archiveMerchantAction={archiveMerchantAction}
+          canManageMerchants={canManageMerchants}
           createAliasAction={createAliasAction}
           errorMessage={errorMerchantId === merchant.id ? errorMessage : null}
           key={merchant.id}

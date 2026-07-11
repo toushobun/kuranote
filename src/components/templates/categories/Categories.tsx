@@ -13,6 +13,7 @@ import type {
 
 type CategoriesTemplateProps = {
   archiveCategoryAction: CategoryAction;
+  canManageCategories?: boolean;
   categories: CategoryTreeItem[];
   createCategoryAction: CategoryAction;
   errorCategoryId: string | null;
@@ -24,6 +25,7 @@ type CategoriesTemplateProps = {
 
 export function CategoriesTemplate({
   archiveCategoryAction,
+  canManageCategories = true,
   categories,
   createCategoryAction,
   errorCategoryId,
@@ -50,12 +52,15 @@ export function CategoriesTemplate({
         <ErrorState title="分类操作失败" description={errorMessage} />
       ) : null}
 
-      <CategoryForm
-        createCategoryAction={createCategoryAction}
-        parentOptions={parentOptions}
-      />
+      {canManageCategories ? (
+        <CategoryForm
+          createCategoryAction={createCategoryAction}
+          parentOptions={parentOptions}
+        />
+      ) : null}
       <CategoryList
         archiveCategoryAction={archiveCategoryAction}
+        canManageCategories={canManageCategories}
         categories={categories}
         errorCategoryId={errorCategoryId}
         errorMessage={errorMessage}

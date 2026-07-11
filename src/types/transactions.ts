@@ -61,6 +61,7 @@ export type TransactionRowItem = {
   account_name: string;
   account_currency: string;
   account_color?: ThemeColorKey | null;
+  canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;

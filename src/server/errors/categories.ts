@@ -5,6 +5,7 @@ export const categoryErrorCodes = {
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   parentInvalid: "parent_invalid",
+  permissionDenied: "permission_denied",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
 } as const;

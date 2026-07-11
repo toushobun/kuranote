@@ -10,6 +10,7 @@ export const merchantErrorCodes = {
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   noteTooLong: "note_too_long",
+  permissionDenied: "permission_denied",
   updateFailed: "update_failed",
   websiteUrlInvalid: "website_url_invalid",
 } as const;

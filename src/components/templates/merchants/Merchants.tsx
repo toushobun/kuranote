@@ -14,6 +14,7 @@ import type { MerchantRow } from "types/merchants";
 type MerchantsTemplateProps = {
   archiveMerchantAction: ServerAction;
   archiveMerchantAliasAction: ServerAction;
+  canManageMerchants?: boolean;
   createMerchantAction: ServerAction;
   createMerchantAliasAction: ServerAction;
   errorMerchantId: string | null;
@@ -27,6 +28,7 @@ type MerchantsTemplateProps = {
 export function MerchantsTemplate({
   archiveMerchantAction,
   archiveMerchantAliasAction,
+  canManageMerchants = true,
   createMerchantAction,
   createMerchantAliasAction,
   errorMerchantId,
@@ -75,10 +77,13 @@ export function MerchantsTemplate({
         </Stack>
       </SectionCard>
 
-      <MerchantForm action={createMerchantAction} />
+      {canManageMerchants ? (
+        <MerchantForm action={createMerchantAction} />
+      ) : null}
       <MerchantList
         archiveAliasAction={archiveMerchantAliasAction}
         archiveMerchantAction={archiveMerchantAction}
+        canManageMerchants={canManageMerchants}
         createAliasAction={createMerchantAliasAction}
         errorMerchantId={errorMerchantId}
         errorMessage={errorMessage}

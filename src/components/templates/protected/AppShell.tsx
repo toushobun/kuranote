@@ -4,17 +4,22 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import type { ReactNode } from "react";
 
+import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
-import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 type AppShellProps = {
+  canWriteTransactions?: boolean;
   children: ReactNode;
   email: string;
 };
 
-export function AppShell({ children, email }: AppShellProps) {
+export function AppShell({
+  canWriteTransactions = true,
+  children,
+  email,
+}: AppShellProps) {
   return (
     <UserThemeProvider storageScope={email}>
       <DynamicMuiThemeProvider>
@@ -62,7 +67,7 @@ export function AppShell({ children, email }: AppShellProps) {
             {children}
           </Container>
 
-          <BottomNavigationBar />
+          <BottomNavigationBar canWriteTransactions={canWriteTransactions} />
         </Box>
       </DynamicMuiThemeProvider>
     </UserThemeProvider>
