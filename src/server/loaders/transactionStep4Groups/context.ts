@@ -11,10 +11,10 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
-import { buildSingleHolderAccountColorById } from "server/loaders/accountHolderDisplayColors";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
 import { loadUsersWithLedgerDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
+import { loadTransactionMemberColorContext } from "server/loaders/transactionMemberColorContext";
 import type { TransactionListItem } from "types/transactions";
 
 import {
@@ -159,10 +159,8 @@ export async function loadTransactionGroupLoaderContextForRecords(
 
   const [
     accountResult,
-    accountHolderResult,
-    accountHolderDisplaySettingResult,
     categories,
-    activeMemberResult,
+    memberColorContext,
     merchantResult,
     recorders,
     tagAssignmentResult,
@@ -174,23 +172,12 @@ export async function loadTransactionGroupLoaderContextForRecords(
           .eq("ledger_id", currentLedger.id)
           .in("id", accountIds)
       : Promise.resolve({ data: [], error: null }),
-    accountIds.length > 0
-      ? supabase
-          .from("account_holder")
-          .select("account_id, user_id")
-          .eq("ledger_id", currentLedger.id)
-          .in("account_id", accountIds)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from("ledger_member_display_setting")
-      .select("user_id, display_color")
-      .eq("ledger_id", currentLedger.id),
     loadCategoriesByIdsWithParents(categoryIds, currentLedger.id),
-    supabase
-      .from("ledger_member")
-      .select("user_id")
-      .eq("ledger_id", currentLedger.id)
-      .eq("status", "active"),
+    loadTransactionMemberColorContext({
+      accountIds,
+      ledgerId: currentLedger.id,
+      supabase,
+    }),
     merchantIds.length > 0
       ? supabase
           .from("merchant")
@@ -217,15 +204,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
   if (accountResult.error) {
     throw new Error("Failed to load transaction accounts");
   }
-  if (accountHolderResult.error) {
-    throw new Error("Failed to load transaction account holders");
-  }
-  if (accountHolderDisplaySettingResult.error) {
-    throw new Error("Failed to load transaction account holder colors");
-  }
-  if (activeMemberResult.error) {
-    throw new Error("Failed to load active transaction ledger members");
-  }
   if (merchantResult.error) {
     throw new Error("Failed to load transaction merchants");
   }
@@ -240,13 +218,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   );
 
   return {
-    accountColorById: buildSingleHolderAccountColorById({
-      activeMemberUserIds: new Set(
-        (activeMemberResult.data ?? []).map((member) => member.user_id),
-      ),
-      holders: accountHolderResult.data ?? [],
-      settings: accountHolderDisplaySettingResult.data ?? [],
-    }),
+    accountColorById: memberColorContext.accountColorById,
     accounts: (accountResult.data ?? []) as AccountOptionDbRow[],
     categories,
     currentLedger,
@@ -254,7 +226,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     merchants: (merchantResult.data ?? []) as MerchantSummaryDbRow[],
     records,
     recorders,
-    showRecorder: (activeMemberResult.data?.length ?? 0) > 1,
+    showRecorder: memberColorContext.showRecorder,
     tagAssignments,
     tagById,
   };
