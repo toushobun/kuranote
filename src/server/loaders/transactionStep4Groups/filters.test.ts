@@ -23,6 +23,7 @@ function createContext(
   records: TransactionRecordDbRow[],
 ): TransactionGroupLoaderContext {
   return {
+    accountColorById: new Map(),
     accounts: [],
     categories: [],
     currentLedger: {

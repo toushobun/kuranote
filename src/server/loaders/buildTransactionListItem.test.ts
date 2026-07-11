@@ -218,4 +218,107 @@ describe("buildTransactionListItem", () => {
       },
     ]);
   });
+
+  it("多人账本保留记录人的昵称和成员颜色", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById: new Map(),
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, created_by: "user-a" },
+      recorderById: new Map([
+        [
+          "user-a",
+          {
+            display_color: "amber" as const,
+            display_name: "淞文",
+            id: "user-a",
+          },
+        ],
+      ]),
+      recordItems: [],
+    });
+
+    expect(item.recorder_name).toBe("淞文");
+    expect(item.recorder_color).toBe("amber");
+  });
+
+  it("单人账本保留记录人数据并通过展示标志隐藏", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById: new Map(),
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, created_by: "user-a" },
+      recorderById: new Map([
+        [
+          "user-a",
+          {
+            display_color: "amber" as const,
+            display_name: "淞文",
+            id: "user-a",
+          },
+        ],
+      ]),
+      recordItems: [],
+      showRecorder: false,
+    });
+
+    expect(item.recorder_name).toBe("淞文");
+    expect(item.recorder_color).toBe("amber");
+    expect(item.show_recorder).toBe(false);
+  });
+
+  it("唯一持有人账户保留该成员的账本内颜色", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      accountColorById: new Map([[accountA.id, "sakura" as const]]),
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.account_color).toBe("sakura");
+  });
+
+  it("转账两端账户颜色不一致时使用默认账户颜色", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      accountColorById: new Map([
+        [accountA.id, "sakura" as const],
+        [accountB.id, "amber" as const],
+      ]),
+      categoryById: new Map(),
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: baseRecord,
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "5000",
+          balance_delta: "-5000",
+          category_id: null,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountB.id,
+          amount: "5000",
+          balance_delta: "5000",
+          category_id: null,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.account_color).toBeNull();
+  });
 });

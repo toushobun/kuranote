@@ -1,3 +1,4 @@
+import type { ThemeColorKey } from "theme/themeColorTokens";
 import type {
   TransactionCategoryType,
   TransactionRecordStorageType,
@@ -48,6 +49,7 @@ export type CategorySummaryDbRow = {
 export type CategoryOptionDbRow = CategorySummaryDbRow;
 
 export type LedgerMemberDisplaySettingDbRow = {
+  display_color?: string | null;
   display_name: string | null;
   user_id: string;
 };
@@ -59,6 +61,7 @@ export type MerchantSummaryDbRow = {
 };
 
 export type AppUserSummaryDbRow = {
+  display_color?: ThemeColorKey | null;
   id: string;
   display_name: string;
 };

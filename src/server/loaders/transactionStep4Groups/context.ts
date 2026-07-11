@@ -11,6 +11,7 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
+import { buildSingleHolderAccountColorById } from "server/loaders/accountHolderDisplayColors";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
 import { loadUsersWithLedgerDisplayNames } from "server/loaders/ledgerMemberDisplayNames";
@@ -106,6 +107,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
 
   if (recordIds.length === 0) {
     return {
+      accountColorById: new Map(),
       accounts: [],
       categories: [],
       currentLedger,
@@ -113,6 +115,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
       merchants: [],
       records: [],
       recorders: [],
+      showRecorder: false,
       tagAssignments: [],
       tagById: new Map<string, string>(),
     };
@@ -156,7 +159,10 @@ export async function loadTransactionGroupLoaderContextForRecords(
 
   const [
     accountResult,
+    accountHolderResult,
+    accountHolderDisplaySettingResult,
     categories,
+    activeMemberResult,
     merchantResult,
     recorders,
     tagAssignmentResult,
@@ -168,7 +174,23 @@ export async function loadTransactionGroupLoaderContextForRecords(
           .eq("ledger_id", currentLedger.id)
           .in("id", accountIds)
       : Promise.resolve({ data: [], error: null }),
+    accountIds.length > 0
+      ? supabase
+          .from("account_holder")
+          .select("account_id, user_id")
+          .eq("ledger_id", currentLedger.id)
+          .in("account_id", accountIds)
+      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("ledger_member_display_setting")
+      .select("user_id, display_color")
+      .eq("ledger_id", currentLedger.id),
     loadCategoriesByIdsWithParents(categoryIds, currentLedger.id),
+    supabase
+      .from("ledger_member")
+      .select("user_id")
+      .eq("ledger_id", currentLedger.id)
+      .eq("status", "active"),
     merchantIds.length > 0
       ? supabase
           .from("merchant")
@@ -177,6 +199,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
           .in("id", merchantIds)
       : Promise.resolve({ data: [], error: null }),
     loadUsersWithLedgerDisplayNames({
+      includeDisplayColor: true,
       ledgerId: currentLedger.id,
       memberDisplayErrorMessage:
         "Failed to load transaction member display names",
@@ -194,6 +217,15 @@ export async function loadTransactionGroupLoaderContextForRecords(
   if (accountResult.error) {
     throw new Error("Failed to load transaction accounts");
   }
+  if (accountHolderResult.error) {
+    throw new Error("Failed to load transaction account holders");
+  }
+  if (accountHolderDisplaySettingResult.error) {
+    throw new Error("Failed to load transaction account holder colors");
+  }
+  if (activeMemberResult.error) {
+    throw new Error("Failed to load active transaction ledger members");
+  }
   if (merchantResult.error) {
     throw new Error("Failed to load transaction merchants");
   }
@@ -208,6 +240,13 @@ export async function loadTransactionGroupLoaderContextForRecords(
   );
 
   return {
+    accountColorById: buildSingleHolderAccountColorById({
+      activeMemberUserIds: new Set(
+        (activeMemberResult.data ?? []).map((member) => member.user_id),
+      ),
+      holders: accountHolderResult.data ?? [],
+      settings: accountHolderDisplaySettingResult.data ?? [],
+    }),
     accounts: (accountResult.data ?? []) as AccountOptionDbRow[],
     categories,
     currentLedger,
@@ -215,6 +254,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     merchants: (merchantResult.data ?? []) as MerchantSummaryDbRow[],
     records,
     recorders,
+    showRecorder: (activeMemberResult.data?.length ?? 0) > 1,
     tagAssignments,
     tagById,
   };
@@ -239,12 +279,14 @@ export function buildTransactionListItemsFromContext(
   return records.map((record) =>
     buildTransactionListItem({
       accountById: lookups.accountById,
+      accountColorById: context.accountColorById,
       categoryById: lookups.categoryById,
       fallbackCurrency: context.currentLedger.baseCurrency,
       merchantById: lookups.merchantById,
       record,
       recorderById: lookups.recorderById,
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
+      showRecorder: context.showRecorder ?? true,
       tagNamesByRecordId,
     }),
   );

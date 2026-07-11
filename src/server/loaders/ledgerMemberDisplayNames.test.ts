@@ -77,6 +77,35 @@ describe("loadUsersWithLedgerDisplayNames", () => {
     expect(supabase.from).toHaveBeenCalledWith("ledger_member_display_setting");
   });
 
+  it("按需同时加载当前账本内昵称和个性色", async () => {
+    const supabase = createFakeSupabase({
+      app_user: [{ display_name: "全局淞文", id: "user-a" }],
+      ledger_member_display_setting: [
+        {
+          display_color: "amber",
+          display_name: "家庭账本淞文",
+          ledger_id: ledgerId,
+          user_id: "user-a",
+        },
+      ],
+    });
+
+    const users = await loadUsersWithLedgerDisplayNames({
+      includeDisplayColor: true,
+      ledgerId,
+      supabase,
+      userIds: ["user-a"],
+    });
+
+    expect(users).toEqual([
+      {
+        display_color: "amber",
+        display_name: "家庭账本淞文",
+        id: "user-a",
+      },
+    ]);
+  });
+
   it("userIds 为空时不查询数据库", async () => {
     const supabase = createFakeSupabase({});
 

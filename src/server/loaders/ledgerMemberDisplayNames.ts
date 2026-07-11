@@ -2,6 +2,7 @@ import type {
   AppUserSummaryDbRow,
   LedgerMemberDisplaySettingDbRow,
 } from "server/db-types";
+import { isThemeColorKey } from "theme/themeColorTokens";
 
 type LedgerMemberDisplayNameUser = {
   display_name: string;
@@ -37,6 +38,10 @@ function normalizeLedgerMemberDisplayName(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function normalizeLedgerMemberDisplayColor(value: string | null | undefined) {
+  return value && isThemeColorKey(value) ? value : null;
+}
+
 function fromTable<TRow>(
   supabase: LedgerMemberDisplayNameSupabaseClient,
   table: string,
@@ -44,17 +49,12 @@ function fromTable<TRow>(
   return supabase.from(table) as LedgerMemberDisplayNameQueryBuilder<TRow>;
 }
 
-function buildLedgerMemberDisplayNameByUserId(
+function buildLedgerMemberDisplaySettingByUserId(
   memberDisplaySettings: LedgerMemberDisplaySettingDbRow[],
 ) {
-  const displayNameByUserId = new Map<string, string>();
-
-  for (const setting of memberDisplaySettings) {
-    const displayName = normalizeLedgerMemberDisplayName(setting.display_name);
-    if (displayName) displayNameByUserId.set(setting.user_id, displayName);
-  }
-
-  return displayNameByUserId;
+  return new Map(
+    memberDisplaySettings.map((setting) => [setting.user_id, setting] as const),
+  );
 }
 
 export function mergeLedgerMemberDisplayNames<
@@ -62,20 +62,37 @@ export function mergeLedgerMemberDisplayNames<
 >(
   appUsers: TUser[],
   memberDisplaySettings: LedgerMemberDisplaySettingDbRow[],
+  { includeDisplayColor = false }: { includeDisplayColor?: boolean } = {},
 ): TUser[] {
-  const displayNameByUserId = buildLedgerMemberDisplayNameByUserId(
+  const settingByUserId = buildLedgerMemberDisplaySettingByUserId(
     memberDisplaySettings,
   );
 
-  return appUsers.map((user) => ({
-    ...user,
-    display_name: displayNameByUserId.get(user.id) ?? user.display_name,
-  }));
+  return appUsers.map((user) => {
+    const setting = settingByUserId.get(user.id);
+    const displayName =
+      normalizeLedgerMemberDisplayName(setting?.display_name) ??
+      user.display_name;
+
+    if (!includeDisplayColor) {
+      return {
+        ...user,
+        display_name: displayName,
+      };
+    }
+
+    return {
+      ...user,
+      display_color: normalizeLedgerMemberDisplayColor(setting?.display_color),
+      display_name: displayName,
+    };
+  });
 }
 
 export async function loadUsersWithLedgerDisplayNames<
   TUser extends LedgerMemberDisplayNameUser = AppUserSummaryDbRow,
 >({
+  includeDisplayColor = false,
   ledgerId,
   memberDisplayErrorMessage = "Failed to load ledger member display names",
   memberDisplaySettings,
@@ -84,6 +101,7 @@ export async function loadUsersWithLedgerDisplayNames<
   userErrorMessage = "Failed to load users",
   userIds,
 }: {
+  includeDisplayColor?: boolean;
   ledgerId: string;
   memberDisplayErrorMessage?: string;
   memberDisplaySettings?: LedgerMemberDisplaySettingDbRow[];
@@ -103,7 +121,11 @@ export async function loadUsersWithLedgerDisplayNames<
         supabase,
         "ledger_member_display_setting",
       )
-        .select("user_id, display_name")
+        .select(
+          includeDisplayColor
+            ? "user_id, display_name, display_color"
+            : "user_id, display_name",
+        )
         .eq("ledger_id", ledgerId)
         .in("user_id", userIds);
   const [userResult, memberDisplayResult] = await Promise.all([
@@ -117,5 +139,6 @@ export async function loadUsersWithLedgerDisplayNames<
   return mergeLedgerMemberDisplayNames(
     userResult.data ?? [],
     memberDisplayResult.data ?? [],
+    { includeDisplayColor },
   );
 }

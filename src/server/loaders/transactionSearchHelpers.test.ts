@@ -54,6 +54,15 @@ describe("transactionSearchHelpers", () => {
     expect(page.items).toHaveLength(1);
   });
 
+  it("单人账本隐藏记录人时仍可按成员名搜索", () => {
+    const item = createItem({ idSuffix: "001", recorderName: "淞文" });
+    item.show_recorder = false;
+
+    const page = buildTransactionSearchPage([item], "淞文");
+
+    expect(page.items).toHaveLength(1);
+  });
+
   it("按发生时间、创建时间、id 稳定倒序排列", () => {
     const older = createItem({
       idSuffix: "001",
