@@ -51,6 +51,7 @@ describe("getDashboardTransactionCanEdit", () => {
       getDashboardTransactionCanEdit({
         createdBy: "user-a",
         role: "owner",
+        userId: undefined,
       }),
     ).toBe(false);
   });
