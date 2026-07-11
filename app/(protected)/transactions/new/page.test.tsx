@@ -89,6 +89,21 @@ describe("TransactionsNewPage", () => {
     expect(mocks.loadNewTransactionView).not.toHaveBeenCalled();
   });
 
+  it("只读成员访问新增页时跳回明细页", async () => {
+    mocks.loadNewTransactionView.mockResolvedValue({
+      ...baseView,
+      canWriteTransactions: false,
+    });
+
+    await expect(
+      TransactionsNewPage({ searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("NEXT_REDIRECT:/transactions?error=permission_denied");
+
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/transactions?error=permission_denied",
+    );
+  });
+
   it("没有 type 时默认 expense", async () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({}),

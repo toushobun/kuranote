@@ -1,7 +1,11 @@
+import { redirect } from "next/navigation";
+
+import { transactionsErrorHref } from "config/paths";
 import {
   saveEditTransaction,
   voidTransaction,
 } from "server/actions/transactions";
+import { transactionErrorCodes } from "server/errors/transactions";
 import { loadEditTransactionView } from "server/loaders/transactionForm";
 import {
   EditTransactionTemplate,
@@ -21,7 +25,13 @@ export default async function TransactionEditPage({
     params,
     searchParams,
   ]);
-  const view = await loadEditTransactionView(transactionRecordId);
+  const { canEdit, ...view } =
+    await loadEditTransactionView(transactionRecordId);
+
+  if (canEdit === false) {
+    redirect(transactionsErrorHref(transactionErrorCodes.permissionDenied));
+  }
+
   const errorMessage = getEditTransactionErrorMessage(query.error);
   const initialValues = view.initialValues;
 

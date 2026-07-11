@@ -1,5 +1,4 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import type { ThemeColorKey } from "theme/themeColorTokens";
 import type {
   AccountOptionDbRow,
   AppUserSummaryDbRow,
@@ -8,6 +7,7 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
+import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export const transactionPageSize = 20;
 export const activeTransactionRecordTypes = ["normal", "transfer"] as const;
@@ -22,6 +22,7 @@ export type TransactionGroupLoaderContext = {
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
   currentLedger: CurrentLedger;
+  currentUserId?: string;
   items: TransactionItemDbRow[];
   merchants: MerchantSummaryDbRow[];
   records: TransactionRecordDbRow[];

@@ -13,6 +13,7 @@ export const newTransactionPageErrorMessages = {
   dateInvalid: "发生时间不正确。",
   merchantInvalid: "商家指定不正确。",
   noteTooLong: "备注不能超过 2000 个字符。",
+  permissionDenied: "当前角色没有新增记账权限。",
   tagInvalid: transactionTagInvalidMessage,
   typeInvalid: "记账类型不正确。",
 } as const;
@@ -24,6 +25,7 @@ export const editTransactionPageErrorMessages = {
   dateInvalid: "发生时间不正确。",
   merchantInvalid: "商家指定不正确。",
   noteTooLong: "备注不能超过 2000 个字符。",
+  permissionDenied: "当前角色没有修改这条记账的权限。",
   tagInvalid: transactionTagInvalidMessage,
   typeInvalid: "记账类型不正确。",
   updateFailed: "记账更新失败。请稍后重试。",
@@ -40,6 +42,7 @@ export const transactionFormValidationMessages = {
 } as const;
 
 export const transactionListPageErrorMessages = {
+  permissionDenied: "当前角色没有删除这条记账的权限。",
   voidFailed: "记录删除失败。请稍后重试。",
   voidInvalid: "删除对象不正确。",
 } as const;

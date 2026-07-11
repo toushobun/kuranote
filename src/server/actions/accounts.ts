@@ -9,7 +9,9 @@ import {
   accountsResultHref,
   routePaths,
 } from "config/paths";
+import { canManageMasterData } from "lib/ledger/permissions";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { accountErrorCodes } from "server/errors/accounts";
 import {
   archiveAccountService,
   createAccountService,
@@ -21,8 +23,17 @@ import {
   validateUpdateAccountForm,
 } from "server/validators/accounts";
 
+function requireAccountManagement(
+  role: Parameters<typeof canManageMasterData>[0],
+) {
+  if (!canManageMasterData(role)) {
+    redirect(accountsErrorHref(accountErrorCodes.permissionDenied));
+  }
+}
+
 export async function createAccount(formData: FormData) {
   const { currentLedger } = await requireCurrentUserAndLedger();
+  requireAccountManagement(currentLedger.currentUserRole);
   const validation = validateCreateAccountForm(formData);
 
   if (!validation.ok) {
@@ -48,6 +59,7 @@ export async function createAccount(formData: FormData) {
 
 export async function updateAccount(formData: FormData) {
   const { currentLedger } = await requireCurrentUserAndLedger();
+  requireAccountManagement(currentLedger.currentUserRole);
   const validation = validateUpdateAccountForm(formData);
 
   if (!validation.ok) {
@@ -73,6 +85,7 @@ export async function updateAccount(formData: FormData) {
 
 export async function archiveAccount(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireAccountManagement(currentLedger.currentUserRole);
   const validation = validateArchiveAccountForm(formData);
 
   if (!validation.ok) {

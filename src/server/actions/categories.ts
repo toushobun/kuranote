@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { categoriesErrorHref, routePaths } from "config/paths";
+import { canManageMasterData } from "lib/ledger/permissions";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { categoryErrorCodes } from "server/errors/categories";
 import {
   archiveCategoryService,
   createCategoryService,
@@ -16,8 +18,17 @@ import {
   validateUpdateCategoryForm,
 } from "server/validators/categories";
 
+function requireCategoryManagement(
+  role: Parameters<typeof canManageMasterData>[0],
+) {
+  if (!canManageMasterData(role)) {
+    redirect(categoriesErrorHref(categoryErrorCodes.permissionDenied));
+  }
+}
+
 export async function createCategory(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireCategoryManagement(currentLedger.currentUserRole);
   const validation = validateCreateCategoryForm(formData);
 
   if (!validation.ok) {
@@ -42,6 +53,7 @@ export async function createCategory(formData: FormData) {
 
 export async function updateCategory(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireCategoryManagement(currentLedger.currentUserRole);
   const validation = validateUpdateCategoryForm(formData);
 
   if (!validation.ok) {
@@ -66,6 +78,7 @@ export async function updateCategory(formData: FormData) {
 
 export async function archiveCategory(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireCategoryManagement(currentLedger.currentUserRole);
   const validation = validateArchiveCategoryForm(formData);
 
   if (!validation.ok) {

@@ -13,8 +13,10 @@ import {
   transactionsMonthHref,
   transactionsResultHref,
 } from "config/paths";
-import { isUuid } from "utils/formData";
+import { canWriteTransaction } from "lib/ledger/permissions";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { transactionErrorCodes } from "server/errors/transactions";
+import { canModifyTransactionRecord } from "server/permissions/ledgerPermissions";
 import {
   convertTransactionTypeService,
   createTransactionService,
@@ -30,6 +32,7 @@ import {
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
 } from "server/validators/transactions";
+import { isUuid } from "utils/formData";
 
 function transactionCreatedRedirectHref(transactionAt: string) {
   return transactionsMonthHref(
@@ -76,8 +79,46 @@ function revalidateEditTransactionPaths() {
   revalidatePath(transactionEditPagePath, "page");
 }
 
+async function requireTransactionModification({
+  ledgerId,
+  role,
+  transactionRecordId,
+  userId,
+}: {
+  ledgerId: string;
+  role: Parameters<typeof canWriteTransaction>[0];
+  transactionRecordId: string;
+  userId: string;
+}) {
+  const allowed = await canModifyTransactionRecord({
+    ledgerId,
+    role,
+    transactionRecordId,
+    userId,
+  });
+
+  if (!allowed) {
+    redirect(
+      editTransactionErrorHref(
+        transactionRecordId,
+        transactionErrorCodes.permissionDenied,
+      ),
+    );
+  }
+}
+
 export async function createTransaction(formData: FormData) {
   const { currentLedger } = await requireCurrentUserAndLedger();
+
+  if (!canWriteTransaction(currentLedger.currentUserRole)) {
+    redirect(
+      newTransactionValidationErrorHref(
+        transactionErrorCodes.permissionDenied,
+        formData,
+      ),
+    );
+  }
+
   const validation = validateTransactionForm(formData);
 
   if (!validation.ok) {
@@ -122,7 +163,7 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function updateTransaction(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const validation = validateUpdateTransactionForm(formData);
   const transactionRecordId = rawTransactionRecordId(formData);
 
@@ -135,6 +176,12 @@ export async function updateTransaction(formData: FormData) {
   }
 
   const values = validation.value;
+  await requireTransactionModification({
+    ledgerId: currentLedger.id,
+    role: currentLedger.currentUserRole,
+    transactionRecordId: values.transactionRecordId,
+    userId,
+  });
 
   const result = await updateTransactionService({
     accountId: values.accountId,
@@ -159,7 +206,7 @@ export async function updateTransaction(formData: FormData) {
 }
 
 export async function updateTransferTransaction(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const validation = validateUpdateTransferTransactionForm(formData);
   const transactionRecordId = rawTransactionRecordId(formData);
 
@@ -172,6 +219,12 @@ export async function updateTransferTransaction(formData: FormData) {
   }
 
   const values = validation.value;
+  await requireTransactionModification({
+    ledgerId: currentLedger.id,
+    role: currentLedger.currentUserRole,
+    transactionRecordId: values.transactionRecordId,
+    userId,
+  });
 
   const result = await updateTransferTransactionService({
     accountId: values.accountId,
@@ -194,7 +247,7 @@ export async function updateTransferTransaction(formData: FormData) {
 }
 
 export async function convertTransactionType(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const validation = validateConvertTransactionTypeForm(formData);
   const transactionRecordId = rawTransactionRecordId(formData);
 
@@ -207,6 +260,13 @@ export async function convertTransactionType(formData: FormData) {
   }
 
   const values = validation.value;
+  await requireTransactionModification({
+    ledgerId: currentLedger.id,
+    role: currentLedger.currentUserRole,
+    transactionRecordId: values.transactionRecordId,
+    userId,
+  });
+
   const result =
     values.targetType === "transfer"
       ? await convertTransactionTypeService({
@@ -274,7 +334,7 @@ export async function saveEditTransaction(formData: FormData) {
 }
 
 export async function voidTransaction(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const validation = validateVoidTransactionForm(formData);
 
   if (!validation.ok) {
@@ -282,6 +342,16 @@ export async function voidTransaction(formData: FormData) {
   }
 
   const values = validation.value;
+  const allowed = await canModifyTransactionRecord({
+    ledgerId: currentLedger.id,
+    role: currentLedger.currentUserRole,
+    transactionRecordId: values.transactionRecordId,
+    userId,
+  });
+
+  if (!allowed) {
+    redirect(transactionsErrorHref(transactionErrorCodes.permissionDenied));
+  }
 
   const result = await voidTransactionService({
     ledgerId: currentLedger.id,

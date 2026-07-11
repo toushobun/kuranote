@@ -1,5 +1,6 @@
 "use client";
 
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
@@ -37,7 +38,11 @@ const quickRecordIconSx = {
   transform: "translateX(-50%)",
 } as const;
 
-export function BottomNavigationBar() {
+export function BottomNavigationBar({
+  canWriteTransactions = true,
+}: {
+  canWriteTransactions?: boolean;
+}) {
   const pathname = usePathname();
   const isTransactionFormPage =
     pathname === routePaths.transactionsNew ||
@@ -100,45 +105,49 @@ export function BottomNavigationBar() {
               selected={isBottomNavSelected(route.href)}
             />
           ))}
-          <Button
-            aria-label="新增记录"
-            component={Link}
-            disableFocusRipple
-            disableRipple
-            href={routePaths.transactionsNew}
-            variant="text"
-            sx={{
-              WebkitTapHighlightColor: "transparent",
-              alignItems: "center",
-              bgcolor: "transparent",
-              borderRadius: 0,
-              boxShadow: "none",
-              display: "inline-flex",
-              height: 56,
-              justifyContent: "center",
-              minWidth: 0,
-              overflow: "visible",
-              p: 0,
-              position: "relative",
-              width: 56,
-              "& .MuiTouchRipple-root": {
-                display: "none",
-              },
-              "&:active, &:focus, &:focus-visible, &:hover": {
+          {canWriteTransactions ? (
+            <Button
+              aria-label="新增记录"
+              component={Link}
+              disableFocusRipple
+              disableRipple
+              href={routePaths.transactionsNew}
+              variant="text"
+              sx={{
+                WebkitTapHighlightColor: "transparent",
+                alignItems: "center",
                 bgcolor: "transparent",
+                borderRadius: 0,
                 boxShadow: "none",
-                filter: "brightness(1.04)",
-                outline: "none",
-              },
-            }}
-          >
-            <KuraIcon
-              decorative
-              name="quickRecord"
-              size={70}
-              sx={quickRecordIconSx}
-            />
-          </Button>
+                display: "inline-flex",
+                height: 56,
+                justifyContent: "center",
+                minWidth: 0,
+                overflow: "visible",
+                p: 0,
+                position: "relative",
+                width: 56,
+                "& .MuiTouchRipple-root": {
+                  display: "none",
+                },
+                "&:active, &:focus, &:focus-visible, &:hover": {
+                  bgcolor: "transparent",
+                  boxShadow: "none",
+                  filter: "brightness(1.04)",
+                  outline: "none",
+                },
+              }}
+            >
+              <KuraIcon
+                decorative
+                name="quickRecord"
+                size={70}
+                sx={quickRecordIconSx}
+              />
+            </Button>
+          ) : (
+            <Box aria-hidden="true" sx={{ height: 56, width: 56 }} />
+          )}
           {bottomNavigationRouteGroups.right.map((route) => (
             <BottomNavButton
               href={route.href}

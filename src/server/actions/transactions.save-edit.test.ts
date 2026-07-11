@@ -86,6 +86,7 @@ function setupActionMocks() {
       id: ledgerId,
       name: "家庭账本",
       base_currency: "JPY",
+      currentUserRole: "owner",
     },
     userId,
   });

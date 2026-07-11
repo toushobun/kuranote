@@ -16,6 +16,7 @@ import type { TransactionListItem } from "types/transactions";
 export function buildTransactionListItem({
   accountById,
   accountColorById,
+  canEdit = true,
   categoryById,
   fallbackCurrency,
   merchantById,
@@ -27,6 +28,7 @@ export function buildTransactionListItem({
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
+  canEdit?: boolean;
   categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
   merchantById: Map<string, MerchantSummaryDbRow>;
@@ -45,6 +47,7 @@ export function buildTransactionListItem({
     return buildTransferListItem({
       accountById,
       accountColorById,
+      canEdit,
       fallbackCurrency,
       record,
       recorder,
@@ -92,6 +95,7 @@ export function buildTransactionListItem({
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(netAmount)),
+    canEdit,
     categoryItems,
     created_at: record.created_at,
     id: record.id,
@@ -110,6 +114,7 @@ export function buildTransactionListItem({
 function buildTransferListItem({
   accountById,
   accountColorById,
+  canEdit,
   fallbackCurrency,
   record,
   recorder,
@@ -118,6 +123,7 @@ function buildTransferListItem({
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
+  canEdit: boolean;
   fallbackCurrency: string;
   record: TransactionRecordDbRow;
   recorder: AppUserSummaryDbRow | undefined;
@@ -164,6 +170,7 @@ function buildTransferListItem({
     account_currency: currency,
     account_name: accountName,
     amount,
+    canEdit,
     categoryItems: [],
     created_at: record.created_at,
     id: record.id,

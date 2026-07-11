@@ -6,6 +6,7 @@ export const accountErrorCodes = {
   holderInvalid: "holder_invalid",
   initialBalanceInvalid: "initial_balance_invalid",
   nameRequired: "name_required",
+  permissionDenied: "permission_denied",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
 } as const;

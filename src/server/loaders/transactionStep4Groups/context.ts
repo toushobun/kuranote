@@ -2,6 +2,7 @@ import {
   getCurrentLedgerOrRedirect,
   type CurrentLedger,
 } from "lib/ledger/current-ledger";
+import { canModifyTransaction } from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 import type {
   AccountOptionDbRow,
@@ -94,6 +95,7 @@ export async function loadTransactionGroupLoaderContext(): Promise<TransactionGr
     currentLedger,
     (recordData ?? []) as TransactionRecordDbRow[],
     supabase,
+    currentLedger.currentUserId,
   );
 }
 
@@ -101,6 +103,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
   supabaseClient?: Awaited<ReturnType<typeof createClient>>,
+  currentUserId?: string,
 ): Promise<TransactionGroupLoaderContext> {
   const supabase = supabaseClient ?? (await createClient());
   const recordIds = records.map((record) => record.id);
@@ -111,6 +114,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
       accounts: [],
       categories: [],
       currentLedger,
+      currentUserId,
       items: [],
       merchants: [],
       records: [],
@@ -222,6 +226,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     accounts: (accountResult.data ?? []) as AccountOptionDbRow[],
     categories,
     currentLedger,
+    currentUserId,
     items,
     merchants: (merchantResult.data ?? []) as MerchantSummaryDbRow[],
     records,
@@ -252,6 +257,13 @@ export function buildTransactionListItemsFromContext(
     buildTransactionListItem({
       accountById: lookups.accountById,
       accountColorById: context.accountColorById,
+      canEdit: context.currentUserId
+        ? canModifyTransaction({
+            createdBy: record.created_by ?? null,
+            role: context.currentLedger.currentUserRole,
+            userId: context.currentUserId,
+          })
+        : false,
       categoryById: lookups.categoryById,
       fallbackCurrency: context.currentLedger.baseCurrency,
       merchantById: lookups.merchantById,

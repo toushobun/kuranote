@@ -336,6 +336,7 @@ describe("loadEditTransactionView", () => {
     await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
       {
         accountOptions: [{ currency: "JPY", id: accountId, name: "日元现金" }],
+        canEdit: true,
         categoryOptions: [
           {
             id: childId1,

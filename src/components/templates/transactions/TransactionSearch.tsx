@@ -162,28 +162,32 @@ function SearchResultList({
     <Box>
       {items.map((item, itemIndex) => {
         const isLastItem = itemIndex === items.length - 1;
+        const rowSx = {
+          ...searchResultRowSx,
+          borderBottom: isLastItem
+            ? "none"
+            : "1px solid var(--user-theme-card-border)",
+        };
+        const content = (
+          <TransactionRow item={item} showAccount showTime showRecorder />
+        );
+
+        if (item.canEdit === false) {
+          return (
+            <Box key={item.id} sx={rowSx}>
+              {content}
+            </Box>
+          );
+        }
 
         return (
           <Box
             key={item.id}
             component={Link}
             href={getEditHref(item)}
-            sx={{
-              borderBottom: isLastItem
-                ? "none"
-                : "1px solid var(--user-theme-card-border)",
-              color: "inherit",
-              display: "block",
-              outline: "none",
-              textDecoration: "none",
-              WebkitTapHighlightColor: "transparent",
-              "&:focus-visible": {
-                outline: "2px solid var(--user-theme-action-text)",
-                outlineOffset: "-2px",
-              },
-            }}
+            sx={rowSx}
           >
-            <TransactionRow item={item} showAccount showTime showRecorder />
+            {content}
           </Box>
         );
       })}
@@ -310,6 +314,18 @@ const resultCountSx = {
   color: "text.secondary",
   fontSize: 13,
   fontWeight: 800,
+};
+
+const searchResultRowSx = {
+  color: "inherit",
+  display: "block",
+  outline: "none",
+  textDecoration: "none",
+  WebkitTapHighlightColor: "transparent",
+  "&:focus-visible": {
+    outline: "2px solid var(--user-theme-action-text)",
+    outlineOffset: "-2px",
+  },
 };
 
 const emptyStateSx = {

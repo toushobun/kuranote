@@ -77,6 +77,25 @@ export type VoidTransactionParams = {
   transactionRecordId: string;
 };
 
+type RpcError = {
+  details?: string | null;
+  message?: string | null;
+};
+
+function mapTransactionRpcError(
+  error: RpcError,
+  fallback: TransactionServiceErrorCode,
+): TransactionServiceErrorCode {
+  if (
+    error.details?.trim() === transactionErrorCodes.permissionDenied ||
+    error.message?.includes(transactionErrorCodes.permissionDenied)
+  ) {
+    return transactionErrorCodes.permissionDenied;
+  }
+
+  return fallback;
+}
+
 export async function createTransactionService(
   params: CreateTransactionParams,
 ): Promise<ServiceResult<TransactionServiceErrorCode>> {
@@ -93,7 +112,10 @@ export async function createTransactionService(
   });
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.createFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.createFailed),
+    };
   }
 
   return { ok: true };
@@ -113,7 +135,10 @@ export async function createTransferTransactionService(
   });
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.createFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.createFailed),
+    };
   }
 
   return { ok: true };
@@ -136,7 +161,10 @@ export async function updateTransactionService(
   });
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.updateFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.updateFailed),
+    };
   }
 
   return { ok: true };
@@ -157,7 +185,10 @@ export async function updateTransferTransactionService(
   });
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.updateFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.updateFailed),
+    };
   }
 
   return { ok: true };
@@ -202,7 +233,10 @@ export async function convertTransactionTypeService(
   const { error } = await supabase.rpc("convert_transaction_type", rpcParams);
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.updateFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.updateFailed),
+    };
   }
 
   return { ok: true };
@@ -218,7 +252,10 @@ export async function voidTransactionService(
   });
 
   if (error) {
-    return { ok: false, error: transactionErrorCodes.voidFailed };
+    return {
+      ok: false,
+      error: mapTransactionRpcError(error, transactionErrorCodes.voidFailed),
+    };
   }
 
   return { ok: true };

@@ -9,7 +9,10 @@ import Link from "next/link";
 
 import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
-import type { TransactionDateGroup } from "types/transactions";
+import type {
+  TransactionDateGroup,
+  TransactionListItem,
+} from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import {
   formatDateLabel,
@@ -76,41 +79,53 @@ export function TransactionGroupList({
           </Stack>
 
           <Box>
-            {group.items.map((item, itemIndex) => {
-              const isLastItem = itemIndex === group.items.length - 1;
-              return (
-                <Box
-                  key={item.id}
-                  component={Link}
-                  href={transactionEditHref(item.id)}
-                  sx={{
-                    borderBottom: isLastItem
-                      ? "none"
-                      : "1px solid var(--user-theme-card-border)",
-                    color: "inherit",
-                    display: "block",
-                    outline: "none",
-                    textDecoration: "none",
-                    WebkitTapHighlightColor: "transparent",
-                    "&:focus-visible": {
-                      outline: "2px solid var(--user-theme-action-text)",
-                      outlineOffset: "-2px",
-                    },
-                  }}
-                >
-                  <TransactionRow
-                    item={item}
-                    showAccount
-                    showTime
-                    showRecorder
-                  />
-                </Box>
-              );
-            })}
+            {group.items.map((item, itemIndex) => (
+              <TransactionListRow
+                isLastItem={itemIndex === group.items.length - 1}
+                item={item}
+                key={item.id}
+              />
+            ))}
           </Box>
         </Stack>
       ))}
     </Stack>
+  );
+}
+
+function TransactionListRow({
+  isLastItem,
+  item,
+}: {
+  isLastItem: boolean;
+  item: TransactionListItem;
+}) {
+  const content = (
+    <TransactionRow item={item} showAccount showTime showRecorder />
+  );
+  const sx = {
+    borderBottom: isLastItem
+      ? "none"
+      : "1px solid var(--user-theme-card-border)",
+    color: "inherit",
+    display: "block",
+    outline: "none",
+    textDecoration: "none",
+    WebkitTapHighlightColor: "transparent",
+    "&:focus-visible": {
+      outline: "2px solid var(--user-theme-action-text)",
+      outlineOffset: "-2px",
+    },
+  };
+
+  if (item.canEdit === false) {
+    return <Box sx={sx}>{content}</Box>;
+  }
+
+  return (
+    <Box component={Link} href={transactionEditHref(item.id)} sx={sx}>
+      {content}
+    </Box>
   );
 }
 

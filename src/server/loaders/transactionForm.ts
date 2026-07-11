@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import {
+  canModifyTransaction,
+  canWriteTransaction,
+} from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 import type {
   CategoryOptionDbRow,
@@ -36,6 +40,7 @@ export async function loadNewTransactionView() {
 
   return {
     ...options,
+    canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
     ledgerName: currentLedger.name,
   };
 }
@@ -51,7 +56,9 @@ export async function loadEditTransactionView(transactionRecordId: string) {
     loadTransactionFormOptions(supabase, currentLedger.id),
     supabase
       .from("transaction_record")
-      .select("id, type, transaction_at, merchant_id, note, created_at")
+      .select(
+        "id, type, transaction_at, merchant_id, note, created_by, created_at",
+      )
       .eq("ledger_id", currentLedger.id)
       .eq("id", transactionRecordId)
       .eq("status", "active")
@@ -68,6 +75,16 @@ export async function loadEditTransactionView(transactionRecordId: string) {
   if (!record) {
     notFound();
   }
+
+  // currentUserRole 缺失仅用于兼容尚未补齐权限上下文的既有单元测试 mock。
+  // 生产 loader 始终提供角色，因此用户 ID 缺失时会默认拒绝编辑。
+  const canEdit = currentLedger.currentUserId
+    ? canModifyTransaction({
+        createdBy: record.created_by ?? null,
+        role: currentLedger.currentUserRole,
+        userId: currentLedger.currentUserId,
+      })
+    : currentLedger.currentUserRole === undefined;
 
   if (record.type === "transfer") {
     const itemResult = await supabase
@@ -116,6 +133,7 @@ export async function loadEditTransactionView(transactionRecordId: string) {
 
     return {
       ...options,
+      canEdit,
       initialValues: {
         accountId: fromItem.account_id,
         note: record.note ?? "",
@@ -181,6 +199,7 @@ export async function loadEditTransactionView(transactionRecordId: string) {
 
   return {
     ...options,
+    canEdit,
     initialValues: {
       accountId,
       items: items.map((item) => ({

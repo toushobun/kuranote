@@ -14,6 +14,7 @@ import { AccountEditDialog } from "./AccountEditDialog";
 type AccountListProps = {
   accounts: AccountRow[];
   archiveAccountAction: ServerAction;
+  canManageAccounts?: boolean;
   emptyDescription?: string;
   emptyTitle?: string;
   holderOptions: AccountHolderOption[];
@@ -24,6 +25,7 @@ type AccountListProps = {
 export function AccountList({
   accounts,
   archiveAccountAction,
+  canManageAccounts = true,
   emptyDescription = "请先新增一个账户。",
   emptyTitle = "还没有账户",
   holderOptions,
@@ -60,19 +62,25 @@ export function AccountList({
             currency={account.currency}
             holders={account.holders}
             currentBalance={account.current_balance}
-            onClick={() => setEditingAccountId(account.id)}
+            onClick={
+              canManageAccounts
+                ? () => setEditingAccountId(account.id)
+                : undefined
+            }
           />
         ))}
       </Stack>
 
-      <AccountEditDialog
-        account={editingAccount}
-        archiveAccountAction={archiveAccountAction}
-        holderOptions={holderOptions}
-        onClose={() => setEditingAccountId(null)}
-        open={editingAccount !== null}
-        updateAccountAction={updateAccountAction}
-      />
+      {canManageAccounts ? (
+        <AccountEditDialog
+          account={editingAccount}
+          archiveAccountAction={archiveAccountAction}
+          holderOptions={holderOptions}
+          onClose={() => setEditingAccountId(null)}
+          open={editingAccount !== null}
+          updateAccountAction={updateAccountAction}
+        />
+      ) : null}
     </>
   );
 }

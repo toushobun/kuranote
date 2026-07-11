@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { merchantsErrorHref, routePaths } from "config/paths";
+import { canManageMasterData } from "lib/ledger/permissions";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { merchantErrorCodes } from "server/errors/merchants";
 import {
   archiveMerchantAliasService,
   archiveMerchantService,
@@ -20,8 +22,17 @@ import {
   validateUpdateMerchantForm,
 } from "server/validators/merchants";
 
+function requireMerchantManagement(
+  role: Parameters<typeof canManageMasterData>[0],
+) {
+  if (!canManageMasterData(role)) {
+    redirect(merchantsErrorHref(merchantErrorCodes.permissionDenied));
+  }
+}
+
 export async function createMerchant(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireMerchantManagement(currentLedger.currentUserRole);
   const validation = validateCreateMerchantForm(formData);
 
   if (!validation.ok) {
@@ -46,6 +57,7 @@ export async function createMerchant(formData: FormData) {
 
 export async function updateMerchant(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireMerchantManagement(currentLedger.currentUserRole);
   const validation = validateUpdateMerchantForm(formData);
 
   if (!validation.ok) {
@@ -71,6 +83,7 @@ export async function updateMerchant(formData: FormData) {
 
 export async function archiveMerchant(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireMerchantManagement(currentLedger.currentUserRole);
   const validation = validateArchiveMerchantForm(formData);
 
   if (!validation.ok) {
@@ -93,6 +106,7 @@ export async function archiveMerchant(formData: FormData) {
 
 export async function createMerchantAlias(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireMerchantManagement(currentLedger.currentUserRole);
   const validation = validateCreateMerchantAliasForm(formData);
 
   if (!validation.ok) {
@@ -116,6 +130,7 @@ export async function createMerchantAlias(formData: FormData) {
 
 export async function archiveMerchantAlias(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  requireMerchantManagement(currentLedger.currentUserRole);
   const validation = validateArchiveMerchantAliasForm(formData);
 
   if (!validation.ok) {

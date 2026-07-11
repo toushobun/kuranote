@@ -17,6 +17,7 @@ import { getMerchantInitial } from "utils/merchants";
 type MerchantCardProps = {
   archiveAliasAction: ServerAction;
   archiveMerchantAction: ServerAction;
+  canManageMerchants?: boolean;
   createAliasAction: ServerAction;
   errorMessage: string | null;
   merchant: MerchantRow;
@@ -26,6 +27,7 @@ type MerchantCardProps = {
 export function MerchantCard({
   archiveAliasAction,
   archiveMerchantAction,
+  canManageMerchants = true,
   createAliasAction,
   errorMessage,
   merchant,
@@ -83,16 +85,18 @@ export function MerchantCard({
           </Box>
         </Stack>
 
-        <Stack
-          component="form"
-          action={archiveMerchantAction}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-        >
-          <input name="merchantId" type="hidden" value={merchant.id} />
-          <Button color="error" type="submit" variant="outlined">
-            归档商家
-          </Button>
-        </Stack>
+        {canManageMerchants ? (
+          <Stack
+            component="form"
+            action={archiveMerchantAction}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            <input name="merchantId" type="hidden" value={merchant.id} />
+            <Button color="error" type="submit" variant="outlined">
+              归档商家
+            </Button>
+          </Stack>
+        ) : null}
       </Stack>
 
       <Divider sx={{ my: 3 }} />
@@ -103,22 +107,26 @@ export function MerchantCard({
 
       {merchant.aliases.length > 0 ? (
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
-          {merchant.aliases.map((alias) => (
-            <Stack
-              key={alias.id}
-              component="form"
-              action={archiveAliasAction}
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center" }}
-            >
-              <input name="aliasId" type="hidden" value={alias.id} />
-              <Chip label={alias.alias} size="small" />
-              <Button color="error" size="small" type="submit" variant="text">
-                移除
-              </Button>
-            </Stack>
-          ))}
+          {merchant.aliases.map((alias) =>
+            canManageMerchants ? (
+              <Stack
+                key={alias.id}
+                component="form"
+                action={archiveAliasAction}
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center" }}
+              >
+                <input name="aliasId" type="hidden" value={alias.id} />
+                <Chip label={alias.alias} size="small" />
+                <Button color="error" size="small" type="submit" variant="text">
+                  移除
+                </Button>
+              </Stack>
+            ) : (
+              <Chip key={alias.id} label={alias.alias} size="small" />
+            ),
+          )}
         </Stack>
       ) : (
         <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
@@ -126,10 +134,16 @@ export function MerchantCard({
         </Typography>
       )}
 
-      <MerchantAliasForm action={createAliasAction} merchantId={merchant.id} />
-
-      <Divider sx={{ my: 3 }} />
-      <MerchantEditForm action={updateMerchantAction} merchant={merchant} />
+      {canManageMerchants ? (
+        <>
+          <MerchantAliasForm
+            action={createAliasAction}
+            merchantId={merchant.id}
+          />
+          <Divider sx={{ my: 3 }} />
+          <MerchantEditForm action={updateMerchantAction} merchant={merchant} />
+        </>
+      ) : null}
     </SoftCard>
   );
 }
