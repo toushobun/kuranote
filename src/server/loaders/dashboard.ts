@@ -1,6 +1,7 @@
 "use server";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { canModifyTransaction } from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 
 import type {
@@ -47,7 +48,9 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
     await Promise.all([
       supabase
         .from("transaction_record")
-        .select("id, type, transaction_at, merchant_id, note, created_at")
+        .select(
+          "id, type, transaction_at, merchant_id, note, created_by, created_at",
+        )
         .eq("ledger_id", currentLedger.id)
         .eq("status", "active")
         .eq("type", "normal")
@@ -218,6 +221,11 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
   const recentTransactions = recentRecords.map((record) =>
     buildTransactionListItem({
       accountById,
+      canEdit: getDashboardTransactionCanEdit({
+        createdBy: record.created_by,
+        role: currentLedger.currentUserRole,
+        userId: currentLedger.currentUserId,
+      }),
       categoryById,
       fallbackCurrency: currentLedger.baseCurrency,
       merchantById,
@@ -243,6 +251,20 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
     monthSummary,
     recentTransactions,
   };
+}
+
+export function getDashboardTransactionCanEdit({
+  createdBy,
+  role,
+  userId,
+}: {
+  createdBy: string | null;
+  role: Parameters<typeof canModifyTransaction>[0]["role"];
+  userId?: string;
+}) {
+  if (!userId) return false;
+
+  return canModifyTransaction({ createdBy, role, userId });
 }
 
 function getSignedDashboardItemAmount(
