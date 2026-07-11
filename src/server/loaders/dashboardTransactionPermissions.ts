@@ -8,7 +8,7 @@ export function getDashboardTransactionCanEdit({
 }: {
   createdBy: string | null;
   role: CurrentLedgerRole;
-  userId?: string;
+  userId: string | undefined;
 }) {
   if (!userId) return false;
 
