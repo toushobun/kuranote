@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDashboardTransactionCanEdit } from "./dashboard";
+import { getDashboardTransactionCanEdit } from "./dashboardTransactionPermissions";
 
 describe("getDashboardTransactionCanEdit", () => {
   it.each(["owner", "admin"] as const)(
