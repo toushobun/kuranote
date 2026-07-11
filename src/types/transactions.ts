@@ -1,3 +1,5 @@
+import type { ThemeColorKey } from "theme/themeColorTokens";
+
 export const transactionTypeOptions = [
   { label: "支出", value: "expense" },
   { label: "收入", value: "income" },
@@ -58,11 +60,14 @@ export type TransactionRowItem = {
   amount: string;
   account_name: string;
   account_currency: string;
+  account_color?: ThemeColorKey | null;
   categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
   note?: string | null;
+  recorder_color?: ThemeColorKey | null;
   recorder_name?: string | null;
+  show_recorder?: boolean;
   tagNames: string[];
 };
 

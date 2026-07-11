@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
 
 import { serverFallbackTimeZone } from "config/dateTime";
+import { themeColorTokens } from "theme/themeColorTokens";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -34,6 +35,18 @@ type ReceiptTransactionRowItem = TransactionRowItem & {
   tagItems?: TagItem[];
 };
 
+type MetaSegment =
+  | {
+      color: string;
+      key: string;
+      kind: "text";
+      label: string;
+    }
+  | {
+      key: "tags";
+      kind: "tags";
+    };
+
 const textColor = "var(--user-theme-tx-name)";
 const mutedText = "var(--user-theme-tx-meta)";
 const expenseColor = "var(--user-theme-negative-amount)";
@@ -49,6 +62,7 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const receiptItem = item as ReceiptTransactionRowItem;
   const isTransfer = item.type === "transfer";
+  const shouldShowRecorder = showRecorder && (item.show_recorder ?? true);
   const merchantName = isTransfer
     ? "账户周转"
     : (item.merchant_name ?? "未知商家");
@@ -68,24 +82,42 @@ export function TransactionRow({
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
     .join(" | ");
-  const nonTagMetaItems = [
-    showAccount ? item.account_name : null,
-    showRecorder ? (item.recorder_name ?? null) : null,
-  ].filter(Boolean) as string[];
-  const timeItem = showTime ? time : null;
 
   const resolvedTagItems: TagItem[] = receiptItem.tagItems
     ? receiptItem.tagItems
     : (receiptItem.tagNames ?? []).map((name) => ({ name, color: null }));
   const uniqueTagItems = Array.from(
-    new Map(resolvedTagItems.map((t) => [t.name, t])).values(),
+    new Map(resolvedTagItems.map((tag) => [tag.name, tag])).values(),
   );
-
-  const metaSegments: Array<string | "tags"> = [
-    ...nonTagMetaItems,
-    ...(uniqueTagItems.length > 0 ? (["tags"] as const) : []),
-    ...(timeItem ? [timeItem] : []),
-  ];
+  const metaSegments = [
+    showAccount
+      ? {
+          color: getMemberColor(item.account_color),
+          key: "account",
+          kind: "text" as const,
+          label: item.account_name,
+        }
+      : null,
+    shouldShowRecorder && item.recorder_name
+      ? {
+          color: getMemberColor(item.recorder_color),
+          key: "recorder",
+          kind: "text" as const,
+          label: item.recorder_name,
+        }
+      : null,
+    uniqueTagItems.length > 0
+      ? { key: "tags" as const, kind: "tags" as const }
+      : null,
+    showTime
+      ? {
+          color: mutedText,
+          key: "time",
+          kind: "text" as const,
+          label: time,
+        }
+      : null,
+  ].filter((segment): segment is MetaSegment => segment !== null);
 
   return (
     <Stack spacing={receiptCard ? 1 : 0.8} sx={{ px: 1.4, py: 1.45 }}>
@@ -150,9 +182,9 @@ export function TransactionRow({
               direction="row"
               sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}
             >
-              {metaSegments.map((segment, i) => (
-                <Fragment key={i}>
-                  {i > 0 && (
+              {metaSegments.map((segment, index) => (
+                <Fragment key={segment.key}>
+                  {index > 0 && (
                     <Typography
                       sx={{
                         color: mutedText,
@@ -164,7 +196,7 @@ export function TransactionRow({
                       {"|"}
                     </Typography>
                   )}
-                  {segment === "tags" ? (
+                  {segment.kind === "tags" ? (
                     <Stack
                       direction="row"
                       spacing={0.5}
@@ -202,8 +234,11 @@ export function TransactionRow({
                       ))}
                     </Stack>
                   ) : (
-                    <Typography noWrap sx={{ color: mutedText, fontSize: 11 }}>
-                      {segment}
+                    <Typography
+                      noWrap
+                      sx={{ color: segment.color, fontSize: 11 }}
+                    >
+                      {segment.label}
                     </Typography>
                   )}
                 </Fragment>
@@ -313,6 +348,14 @@ function getAvatarFallback(item: TransactionRowItem, merchantName: string) {
   if (item.type === "transfer") return <SyncAltIcon fontSize="small" />;
   if (item.merchant_name === null) return "?";
   return getMerchantInitial(merchantName, "?");
+}
+
+function getMemberColor(
+  colorKey:
+    | TransactionRowItem["account_color"]
+    | TransactionRowItem["recorder_color"],
+) {
+  return colorKey ? themeColorTokens[colorKey].chipText : mutedText;
 }
 
 function getTagTextColor(bgColor: string | null | undefined): string {

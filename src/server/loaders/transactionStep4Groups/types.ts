@@ -1,4 +1,5 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { ThemeColorKey } from "theme/themeColorTokens";
 import type {
   AccountOptionDbRow,
   AppUserSummaryDbRow,
@@ -17,6 +18,7 @@ export type RawTagAssignment = {
 };
 
 export type TransactionGroupLoaderContext = {
+  accountColorById: Map<string, ThemeColorKey>;
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
   currentLedger: CurrentLedger;
@@ -24,6 +26,7 @@ export type TransactionGroupLoaderContext = {
   merchants: MerchantSummaryDbRow[];
   records: TransactionRecordDbRow[];
   recorders: AppUserSummaryDbRow[];
+  showRecorder?: boolean;
   tagAssignments: RawTagAssignment[];
   tagById: Map<string, string>;
 };

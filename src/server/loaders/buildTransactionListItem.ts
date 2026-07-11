@@ -10,25 +10,30 @@ import {
   calculateTransactionRecordNetAmount,
   getTransactionRecordCategoryType,
 } from "server/services/transactionAmountHelpers";
+import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { TransactionListItem } from "types/transactions";
 
 export function buildTransactionListItem({
   accountById,
+  accountColorById,
   categoryById,
   fallbackCurrency,
   merchantById,
   record,
   recorderById,
   recordItems,
+  showRecorder = true,
   tagNamesByRecordId,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
+  accountColorById?: Map<string, ThemeColorKey>;
   categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
   merchantById: Map<string, MerchantSummaryDbRow>;
   record: TransactionRecordDbRow;
   recorderById?: Map<string, AppUserSummaryDbRow>;
   recordItems: TransactionItemDbRow[];
+  showRecorder?: boolean;
   tagNamesByRecordId?: Map<string, string[]>;
 }): TransactionListItem {
   const recorder =
@@ -39,10 +44,12 @@ export function buildTransactionListItem({
   if (record.type === "transfer") {
     return buildTransferListItem({
       accountById,
+      accountColorById,
       fallbackCurrency,
       record,
-      recorderById: recorder,
+      recorder,
       recordItems,
+      showRecorder,
     });
   }
 
@@ -79,6 +86,9 @@ export function buildTransactionListItem({
   });
 
   return {
+    account_color: firstItem
+      ? (accountColorById?.get(firstItem.account_id) ?? null)
+      : null,
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(netAmount)),
@@ -88,7 +98,9 @@ export function buildTransactionListItem({
     merchant_icon_url: merchant?.icon_url ?? null,
     merchant_name: merchant?.name ?? null,
     note: record.note ?? firstItem?.note ?? null,
+    recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
+    show_recorder: showRecorder,
     tagNames: tagNamesByRecordId?.get(record.id) ?? [],
     transaction_at: record.transaction_at,
     type: displayType,
@@ -97,16 +109,20 @@ export function buildTransactionListItem({
 
 function buildTransferListItem({
   accountById,
+  accountColorById,
   fallbackCurrency,
   record,
-  recorderById: recorder,
+  recorder,
   recordItems,
+  showRecorder,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
+  accountColorById?: Map<string, ThemeColorKey>;
   fallbackCurrency: string;
   record: TransactionRecordDbRow;
-  recorderById: AppUserSummaryDbRow | undefined;
+  recorder: AppUserSummaryDbRow | undefined;
   recordItems: TransactionItemDbRow[];
+  showRecorder: boolean;
 }): TransactionListItem {
   const fromItem = recordItems.find(
     (item) => Number(item.balance_delta ?? "0") < 0,
@@ -128,6 +144,12 @@ function buildTransferListItem({
   const toName = toAccount?.name ?? "未知账户";
   const accountName =
     fromAccount || toAccount ? `${fromName} → ${toName}` : "未知账户";
+  const accountColor = getTransferAccountColor({
+    accountColorById,
+    fallbackItem,
+    fromItem,
+    toItem,
+  });
 
   const currency =
     fromAccount?.currency ??
@@ -138,6 +160,7 @@ function buildTransferListItem({
   const amount = fromItem?.amount ?? fallbackItem?.amount ?? "0";
 
   return {
+    account_color: accountColor,
     account_currency: currency,
     account_name: accountName,
     amount,
@@ -147,9 +170,40 @@ function buildTransferListItem({
     merchant_icon_url: null,
     merchant_name: null,
     note: record.note ?? null,
+    recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
+    show_recorder: showRecorder,
     tagNames: [],
     transaction_at: record.transaction_at,
     type: "transfer",
   };
+}
+
+function getTransferAccountColor({
+  accountColorById,
+  fallbackItem,
+  fromItem,
+  toItem,
+}: {
+  accountColorById?: Map<string, ThemeColorKey>;
+  fallbackItem: TransactionItemDbRow | undefined;
+  fromItem: TransactionItemDbRow | undefined;
+  toItem: TransactionItemDbRow | undefined;
+}) {
+  const fromColor = fromItem
+    ? accountColorById?.get(fromItem.account_id)
+    : undefined;
+  const toColor = toItem ? accountColorById?.get(toItem.account_id) : undefined;
+
+  if (fromItem && toItem) {
+    return fromColor && fromColor === toColor ? fromColor : null;
+  }
+
+  return (
+    fromColor ??
+    toColor ??
+    (fallbackItem
+      ? (accountColorById?.get(fallbackItem.account_id) ?? null)
+      : null)
+  );
 }
