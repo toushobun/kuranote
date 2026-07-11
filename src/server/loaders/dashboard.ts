@@ -1,7 +1,6 @@
 "use server";
 
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { canModifyTransaction } from "lib/ledger/permissions";
 import { createClient } from "lib/supabase/server";
 
 import type {
@@ -13,6 +12,7 @@ import type {
 } from "server/db-types";
 import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
 import { getDashboardDateRange } from "server/loaders/dashboardDateRange";
+import { getDashboardTransactionCanEdit } from "server/loaders/dashboardTransactionPermissions";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
 import type { DashboardViewData } from "types/dashboard";
 import {
@@ -251,20 +251,6 @@ export async function loadDashboardView(): Promise<DashboardViewData> {
     monthSummary,
     recentTransactions,
   };
-}
-
-export function getDashboardTransactionCanEdit({
-  createdBy,
-  role,
-  userId,
-}: {
-  createdBy: string | null;
-  role: Parameters<typeof canModifyTransaction>[0]["role"];
-  userId?: string;
-}) {
-  if (!userId) return false;
-
-  return canModifyTransaction({ createdBy, role, userId });
 }
 
 function getSignedDashboardItemAmount(
