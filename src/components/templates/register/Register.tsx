@@ -17,6 +17,7 @@ type RegisterTemplateProps = {
     email: string,
   ) => Promise<RegisterEmailAvailabilityState>;
   initialRequestOtpState?: RequestRegisterOtpActionState;
+  loginHref?: string;
   requestOtpAction: (
     prevState: RequestRegisterOtpActionState,
     formData: FormData,
@@ -31,6 +32,7 @@ type RegisterTemplateProps = {
 export function RegisterTemplate({
   checkEmailAvailabilityAction,
   initialRequestOtpState,
+  loginHref = routePaths.login,
   requestOtpAction,
   submitOtpAction,
   turnstileSiteKey,
@@ -73,7 +75,7 @@ export function RegisterTemplate({
             color="text.secondary"
             sx={{ mt: 3, textAlign: "center" }}
           >
-            已有账号？ <Link href={routePaths.login}>登录</Link>
+            已有账号？ <Link href={loginHref}>登录</Link>
           </Typography>
         </Paper>
       </Container>

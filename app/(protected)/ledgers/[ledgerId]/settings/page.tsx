@@ -1,5 +1,7 @@
 import { ledgerSettingsResultValues } from "config/paths";
+import { createLedgerInvite } from "server/actions/ledgerInvite";
 import { updateLedgerSettings } from "server/actions/ledgerSettings";
+import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
 import { loadLedgerSettingsView } from "server/loaders/ledgerSettings";
 import {
   LedgerSettingsTemplate,
@@ -19,7 +21,12 @@ export default async function LedgerSettingsRoute({
   searchParams,
 }: {
   params: Promise<{ ledgerId: string }>;
-  searchParams: Promise<{ error?: string; errorKey?: string; result?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    errorKey?: string;
+    inviteError?: string;
+    result?: string;
+  }>;
 }) {
   const [{ ledgerId }, resolvedSearchParams] = await Promise.all([
     params,
@@ -32,6 +39,10 @@ export default async function LedgerSettingsRoute({
       {...view}
       errorKey={resolvedSearchParams.errorKey ?? null}
       errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
+      inviteAction={createLedgerInvite}
+      inviteErrorMessage={getLedgerInviteErrorMessage(
+        resolvedSearchParams.inviteError,
+      )}
       saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
       updateLedgerSettingsAction={updateLedgerSettings}
     />
