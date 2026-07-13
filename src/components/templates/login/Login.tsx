@@ -10,11 +10,13 @@ import { LoginForm } from "organisms/auth/LoginForm";
 type LoginTemplateProps = {
   action: Parameters<typeof LoginForm>[0]["action"];
   defaultEmail?: string;
+  registerHref?: string;
 };
 
 export function LoginTemplate({
   action,
   defaultEmail = "",
+  registerHref = routePaths.register,
 }: LoginTemplateProps) {
   return (
     <Box
@@ -48,7 +50,7 @@ export function LoginTemplate({
             color="text.secondary"
             sx={{ mt: 3, textAlign: "center" }}
           >
-            还没有账号？ <Link href={routePaths.register}>注册</Link>
+            还没有账号？ <Link href={registerHref}>注册</Link>
           </Typography>
         </Paper>
       </Container>

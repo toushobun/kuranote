@@ -9,7 +9,6 @@ import CurrencyYenRoundedIcon from "@mui/icons-material/CurrencyYenRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -25,6 +24,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
+import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
@@ -33,6 +33,7 @@ import {
   AccountDialogIllustrationSlot,
   AccountFormDialogShell,
 } from "organisms/accounts/AccountFormDialogShell";
+import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
@@ -57,6 +58,9 @@ type ErrorFeedback = {
 type LedgerSettingsTemplateProps = LedgerSettingsView & {
   errorKey?: string | null;
   errorMessage: string | null;
+  inviteAction: ServerAction;
+  inviteErrorMessage?: string | null;
+  inviteToken?: string | null;
   saveResult?: LedgerSettingsSaveResult | null;
   updateLedgerSettingsAction: ServerAction;
 };
@@ -66,6 +70,9 @@ export function LedgerSettingsTemplate({
   currentUser,
   errorKey = null,
   errorMessage,
+  inviteAction,
+  inviteErrorMessage = null,
+  inviteToken = null,
   ledger,
   members,
   saveResult = null,
@@ -243,9 +250,13 @@ export function LedgerSettingsTemplate({
                   />
                 ))}
                 <Box aria-hidden="true" sx={memberNoteDividerSx} />
-                <HelperText icon={<PeopleAltRoundedIcon />}>
-                  邀请成员、权限管理将在后续版本开放
-                </HelperText>
+                <LedgerInviteEntry
+                  action={inviteAction}
+                  canInvite={canEditLedger}
+                  errorMessage={inviteErrorMessage}
+                  ledgerId={ledger.id}
+                  token={inviteToken}
+                />
               </Stack>
             </SoftCard>
           </SettingsSection>
@@ -382,9 +393,9 @@ function MemberRow({
 
   return (
     <Stack spacing={1.15}>
-      <Button fullWidth onClick={onClick} sx={memberRowButtonSx} type="button">
-        <Box sx={memberAvatarSx(colorToken.accent, colorToken.accentSoft)}>
-          {member.avatarUrl ? (
+      <ListRowButton
+        avatar={
+          member.avatarUrl ? (
             <Box
               alt=""
               component="img"
@@ -393,24 +404,28 @@ function MemberRow({
             />
           ) : (
             <PersonRoundedIcon />
-          )}
-        </Box>
-        <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-          <Typography component="span" noWrap sx={memberNameSx}>
-            {member.displayName}
-          </Typography>
-          {member.email ? (
+          )
+        }
+        avatarSx={memberAvatarSx(colorToken.accent, colorToken.accentSoft)}
+        onClick={onClick}
+        subtitle={
+          member.email ? (
             <Typography color="text.secondary" noWrap variant="body2">
               {member.email}
             </Typography>
-          ) : null}
-        </Stack>
-        <Chip
-          label={ledgerRoleLabels[member.role]}
-          sx={roleChipSx(member.role)}
-        />
-        <ChevronRightRoundedIcon sx={memberChevronSx} />
-      </Button>
+          ) : null
+        }
+        title={member.displayName}
+        trailing={
+          <>
+            <Chip
+              label={ledgerRoleLabels[member.role]}
+              sx={roleChipSx(member.role)}
+            />
+            <ChevronRightRoundedIcon sx={memberChevronSx} />
+          </>
+        }
+      />
       {!isLast ? <SettingsDivider /> : null}
     </Stack>
   );
@@ -748,27 +763,6 @@ const memberAvatarImageSx = {
   height: "100%",
   objectFit: "cover",
   width: "100%",
-};
-
-const memberRowButtonSx = {
-  alignItems: "center",
-  borderRadius: 2,
-  color: "text.primary",
-  gap: 1.3,
-  justifyContent: "flex-start",
-  minHeight: 58,
-  p: 0,
-  textAlign: "left",
-  textTransform: "none",
-  "&:hover": {
-    bgcolor: "action.hover",
-  },
-};
-
-const memberNameSx = {
-  ...typographyStyles.cardTitle,
-  fontSize: 16,
-  fontWeight: 900,
 };
 
 function roleChipSx(role: LedgerSettingsMember["role"]) {

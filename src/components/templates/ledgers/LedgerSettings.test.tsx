@@ -14,6 +14,7 @@ import type { LedgerSettingsView } from "types/ledgers";
 import { LedgerSettingsTemplate } from "./LedgerSettings";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
+const inviteAction = vi.fn(async () => {});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: routerReplaceMock }),
@@ -78,6 +79,7 @@ describe("LedgerSettingsTemplate", () => {
       <LedgerSettingsTemplate
         {...view}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
@@ -93,6 +95,7 @@ describe("LedgerSettingsTemplate", () => {
       <LedgerSettingsTemplate
         {...view}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
@@ -110,6 +113,7 @@ describe("LedgerSettingsTemplate", () => {
       <LedgerSettingsTemplate
         {...view}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
@@ -130,6 +134,7 @@ describe("LedgerSettingsTemplate", () => {
         {...view}
         canEditLedger={false}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
@@ -159,6 +164,7 @@ describe("LedgerSettingsTemplate", () => {
         {...memberView}
         canEditLedger={false}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
@@ -185,6 +191,7 @@ describe("LedgerSettingsTemplate", () => {
       <LedgerSettingsTemplate
         {...view}
         errorMessage={null}
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={action}
       />,
     );
@@ -203,6 +210,7 @@ describe("LedgerSettingsTemplate", () => {
         {...view}
         errorKey="error-key-1"
         errorMessage="账本设置保存失败。"
+        inviteAction={inviteAction}
         updateLedgerSettingsAction={vi.fn(async () => {})}
       />,
     );
