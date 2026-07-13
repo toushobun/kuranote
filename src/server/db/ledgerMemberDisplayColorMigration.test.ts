@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migrationSql = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260711010000_assign_ledger_member_display_colors.sql",
+    "supabase/migrations/20260713010000_assign_ledger_member_display_colors.sql",
   ),
   "utf8",
 );
