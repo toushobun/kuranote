@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import {
   displayNameMaxLength,
   emailMaxLength,
@@ -139,10 +140,6 @@ function getRegisterSnapshotFromFormData(formData: FormData): RegisterSnapshot {
     displayName: getFormDataText(formData, "displayName"),
     email: getFormDataText(formData, "email"),
   };
-}
-
-function isSafeRedirectPath(redirectTo: string) {
-  return redirectTo.startsWith("/") && !redirectTo.startsWith("//");
 }
 
 export function useRegisterForm({
@@ -389,7 +386,7 @@ export function useRegisterForm({
   useEffect(() => {
     const redirectTo = submitOtpState.redirectTo;
 
-    if (redirectTo && isSafeRedirectPath(redirectTo)) {
+    if (redirectTo && isSafeNextPath(redirectTo)) {
       router.push(redirectTo);
     }
   }, [router, submitOtpState.redirectTo]);
