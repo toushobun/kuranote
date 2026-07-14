@@ -1,4 +1,5 @@
 import { ledgerSettingsResultValues } from "config/paths";
+import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext";
 import { createLedgerInvite } from "server/actions/ledgerInvite";
 import { updateLedgerSettings } from "server/actions/ledgerSettings";
 import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
@@ -35,16 +36,18 @@ export default async function LedgerSettingsRoute({
   const view = await loadLedgerSettingsView(ledgerId);
 
   return (
-    <LedgerSettingsTemplate
-      {...view}
-      errorKey={resolvedSearchParams.errorKey ?? null}
-      errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
-      inviteAction={createLedgerInvite}
-      inviteErrorMessage={getLedgerInviteErrorMessage(
-        resolvedSearchParams.inviteError,
-      )}
-      saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
-      updateLedgerSettingsAction={updateLedgerSettings}
-    />
+    <LedgerInvitePendingProvider pendingInvites={view.pendingInvites}>
+      <LedgerSettingsTemplate
+        {...view}
+        errorKey={resolvedSearchParams.errorKey ?? null}
+        errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
+        inviteAction={createLedgerInvite}
+        inviteErrorMessage={getLedgerInviteErrorMessage(
+          resolvedSearchParams.inviteError,
+        )}
+        saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
+        updateLedgerSettingsAction={updateLedgerSettings}
+      />
+    </LedgerInvitePendingProvider>
   );
 }

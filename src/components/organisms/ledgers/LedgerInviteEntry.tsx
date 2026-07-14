@@ -3,6 +3,7 @@
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import Button from "@mui/material/Button";
@@ -17,11 +18,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 
+import { transactionTimeLocale } from "config/dateTime";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { usePendingLedgerInvites } from "organisms/ledgers/LedgerInvitePendingContext";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { ServerAction } from "types/actions";
+import type { PendingLedgerInvite } from "types/ledgers";
 
 type LedgerInviteEntryProps = {
   action: ServerAction;
@@ -38,25 +42,36 @@ export function LedgerInviteEntry({
   ledgerId,
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
+  const pendingInvites = usePendingLedgerInvites();
   const [token, setToken] = useState<string | null>(initialToken);
   const [open, setOpen] = useState(
     errorMessage !== null || initialToken !== null,
   );
   const [copied, setCopied] = useState(false);
+  const [selectedInvite, setSelectedInvite] =
+    useState<PendingLedgerInvite | null>(null);
+  const [revoked, setRevoked] = useState(false);
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
     const hashToken = hashParams.get("inviteToken");
-    if (!hashToken) return;
+    const url = new URL(window.location.href);
+    const inviteResult = url.searchParams.get("inviteResult");
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 URL fragment 中的邀请 token，避免服务端水合差异。
-    setToken(hashToken);
-    setOpen(true);
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`,
-    );
+    if (hashToken) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 URL fragment 中的邀请 token，避免服务端水合差异。
+      setToken(hashToken);
+      setOpen(true);
+    }
+
+    if (inviteResult === "revoked") {
+      setRevoked(true);
+      url.searchParams.delete("inviteResult");
+    }
+
+    if (hashToken || inviteResult === "revoked") {
+      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    }
   }, []);
 
   const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "";
@@ -76,6 +91,15 @@ export function LedgerInviteEntry({
 
   return (
     <>
+      {pendingInvites.map((invite) => (
+        <PendingInviteRow
+          canRevoke={canInvite}
+          invite={invite}
+          key={invite.id}
+          onRevoke={() => setSelectedInvite(invite)}
+        />
+      ))}
+
       <ListRowButton
         avatar={<PeopleAltRoundedIcon />}
         avatarSx={inviteAvatarSx}
@@ -187,17 +211,113 @@ export function LedgerInviteEntry({
         </form>
       </Dialog>
 
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setSelectedInvite(null)}
+        open={selectedInvite !== null}
+      >
+        <form action={action}>
+          <DialogTitle>撤销邀请</DialogTitle>
+          <DialogContent>
+            <Typography color="text.secondary" variant="body2">
+              撤销后，已发送的邀请链接将立即失效，且无法恢复。
+            </Typography>
+            <input name="intent" type="hidden" value="revoke" />
+            <input name="ledgerId" type="hidden" value={ledgerId} />
+            <input
+              name="inviteId"
+              type="hidden"
+              value={selectedInvite?.id ?? ""}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={() => setSelectedInvite(null)} type="button">
+              取消
+            </Button>
+            <Button color="error" type="submit" variant="contained">
+              确认撤销
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
       <SuccessFeedbackDialog
         bottomOffset={feedbackBottomOffset}
         onClose={() => setCopied(false)}
         open={copied}
         title="已复制邀请链接"
       />
+      <SuccessFeedbackDialog
+        bottomOffset={feedbackBottomOffset}
+        description="该邀请链接已失效。"
+        onClose={() => setRevoked(false)}
+        open={revoked}
+        title="邀请已撤销"
+      />
     </>
   );
 }
 
+function PendingInviteRow({
+  canRevoke,
+  invite,
+  onRevoke,
+}: {
+  canRevoke: boolean;
+  invite: PendingLedgerInvite;
+  onRevoke: () => void;
+}) {
+  const createdAtLabel = formatInviteCreatedAt(invite.createdAt);
+  const roleLabel = invite.role === "viewer" ? "只读" : "成员";
+
+  return (
+    <ListRowButton
+      aria-label={`待接受邀请，${roleLabel}，${createdAtLabel}`}
+      avatar={<HourglassTopRoundedIcon />}
+      avatarSx={pendingAvatarSx}
+      disabled={!canRevoke}
+      onClick={canRevoke ? onRevoke : undefined}
+      subtitle={
+        <Typography color="text.secondary" noWrap variant="body2">
+          {invite.role === "viewer" ? "只读（Viewer）" : "用户（Member）"}
+          {` · ${createdAtLabel}`}
+        </Typography>
+      }
+      title="待接受邀请"
+      trailing={
+        <Typography color="error" sx={revokeLabelSx}>
+          {canRevoke ? "撤销" : "等待接受"}
+        </Typography>
+      }
+    />
+  );
+}
+
+function formatInviteCreatedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "已创建";
+
+  return new Intl.DateTimeFormat(transactionTimeLocale, {
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "numeric",
+  }).format(date);
+}
+
 const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
+
+const pendingAvatarSx = {
+  bgcolor: "warning.light",
+  color: "warning.dark",
+};
+
+const revokeLabelSx = {
+  flexShrink: 0,
+  fontSize: 13,
+  fontWeight: 800,
+};
 
 const inviteAvatarSx = {
   bgcolor: "var(--user-theme-icon-badge-bg)",

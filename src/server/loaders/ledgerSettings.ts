@@ -7,6 +7,7 @@ import {
   type CurrentLedgerRole,
 } from "lib/ledger/current-ledger";
 import { createClient } from "lib/supabase/server";
+import { loadPendingLedgerInvitesService } from "server/services/ledgerInvite";
 import {
   getStableFallbackThemeColorKey,
   isThemeColorKey,
@@ -77,16 +78,29 @@ export async function loadLedgerSettingsView(
     .order("user_id", { ascending: true });
   type MemberRows = QueryData<typeof memberQuery>;
 
-  const { data: memberData, error: memberError } = await memberQuery;
+  const [memberResult, pendingInviteResult] = await Promise.all([
+    memberQuery,
+    loadPendingLedgerInvitesService(ledgerId),
+  ]);
 
-  if (memberError) {
-    console.error("Failed to load ledger setting members.", memberError);
+  if (memberResult.error) {
+    console.error("Failed to load ledger setting members.", memberResult.error);
     throw new Error(
-      `Failed to load ledger setting members: ${memberError.message}`,
+      `Failed to load ledger setting members: ${memberResult.error.message}`,
     );
   }
 
-  const memberRows: MemberRows = memberData ?? [];
+  if (!pendingInviteResult.ok) {
+    console.error(
+      "Failed to load pending ledger invites.",
+      pendingInviteResult.error,
+    );
+    throw new Error(
+      `Failed to load pending ledger invites: ${pendingInviteResult.error}`,
+    );
+  }
+
+  const memberRows: MemberRows = memberResult.data ?? [];
   const userIds = memberRows
     .map((member) => member.user_id)
     .filter((memberUserId): memberUserId is string =>
@@ -183,5 +197,6 @@ export async function loadLedgerSettingsView(
       name: ledger.name,
     },
     members,
+    pendingInvites: pendingInviteResult.invites,
   };
 }

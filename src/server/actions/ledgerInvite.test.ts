@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   revalidatePath: vi.fn(),
+  revokeLedgerInviteService: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -30,6 +31,7 @@ vi.mock("lib/ledger/current-ledger", () => ({
 vi.mock("server/services/ledgerInvite", () => ({
   acceptLedgerInviteService: mocks.acceptLedgerInviteService,
   createLedgerInviteService: mocks.createLedgerInviteService,
+  revokeLedgerInviteService: mocks.revokeLedgerInviteService,
 }));
 
 beforeEach(() => {
@@ -72,6 +74,58 @@ describe("createLedgerInvite", () => {
 
     await expect(createLedgerInvite(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteToken=token%2Fwith%20space",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/ledgers/ledger-id/settings",
+    );
+  });
+
+  it("撤销缺少 inviteId 时回到账本设置页", async () => {
+    const formData = new FormData();
+    formData.set("intent", "revoke");
+    formData.set("ledgerId", "ledger-id");
+
+    await expect(createLedgerInvite(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=revoke_failed",
+    );
+    expect(mocks.revokeLedgerInviteService).not.toHaveBeenCalled();
+  });
+
+  it("撤销失败时携带稳定错误码返回设置页", async () => {
+    mocks.revokeLedgerInviteService.mockResolvedValue({
+      error: "invite_already_used",
+      ok: false,
+    });
+    const formData = new FormData();
+    formData.set("intent", "revoke");
+    formData.set("ledgerId", "ledger-id");
+    formData.set("inviteId", "invite-1");
+
+    await expect(createLedgerInvite(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=invite_already_used",
+    );
+    expect(mocks.revokeLedgerInviteService).toHaveBeenCalledWith(
+      "ledger-id",
+      "invite-1",
+    );
+  });
+
+  it("撤销成功后刷新设置页并返回成功参数", async () => {
+    mocks.revokeLedgerInviteService.mockResolvedValue({ ok: true });
+    const formData = new FormData();
+    formData.set("intent", "revoke");
+    formData.set("ledgerId", "ledger-id");
+    formData.set("inviteId", "invite-1");
+
+    await expect(createLedgerInvite(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteResult=revoked",
+    );
+    expect(mocks.revokeLedgerInviteService).toHaveBeenCalledWith(
+      "ledger-id",
+      "invite-1",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/ledgers/ledger-id/settings",
     );
   });
 });
