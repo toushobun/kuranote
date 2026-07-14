@@ -30,10 +30,10 @@ jobs:
       - name: Check migration history is append-only
         shell: bash
         run: |
-          changed_migrations="$(git diff --name-only --diff-filter=MD \
+          changed_migrations="$(git diff --name-only --diff-filter=MDR \
             "${{ github.event.pull_request.base.sha }}" HEAD -- supabase/migrations/)"
           if [[ -n "${changed_migrations}" ]]; then
-            echo "已经合入 main 的 migration 不允许修改或删除：" >&2
+            echo "已经合入 main 的 migration 不允许修改、删除或重命名：" >&2
             echo "${changed_migrations}" >&2
             echo "请新增向前 migration 表达数据库变更。" >&2
             exit 1

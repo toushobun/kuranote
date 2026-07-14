@@ -17,10 +17,10 @@
 以下命令需要 Docker 和本地 Supabase：
 
 ```bash
-npx supabase start
+npx --yes supabase@2.106.0 start
 ```
 
-仓库将 Supabase CLI 固定为 `2.106.0`。本机已安装 `supabase` 命令时，维护脚本优先使用该命令；否则通过 `npx` 使用固定版本。
+仓库将 Supabase CLI 固定为 `2.106.0`。本机已安装且版本完全一致时，维护脚本复用该命令；未安装或版本不一致时，通过 `npx` 使用固定版本。
 
 ## 查看当前最终结构
 
@@ -70,7 +70,7 @@ npm run db:schema:check
 
 该命令重新回放 migrations，并将实际 dump 与提交的声明式 schema 比较。相关路径变更时，GitHub Actions 也会执行同一检查。
 
-CI 同时禁止修改或删除已经合入 `main` 的历史 migration。数据库变更必须通过新的向前 migration 表达；同一 PR 中新建、尚未合入的 migration 可以继续调整。
+CI 同时禁止修改、删除或重命名已经合入 `main` 的历史 migration。数据库变更必须通过新的向前 migration 表达；同一 PR 中新建、尚未合入的 migration 可以继续调整。
 
 ## DML 与特殊对象
 
