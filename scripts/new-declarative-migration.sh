@@ -13,4 +13,4 @@ fi
 
 cd "${ROOT_DIR}"
 
-"${SUPABASE[@]}" db diff "$@"
+"${SUPABASE[@]}" db diff --schema public "$@"
