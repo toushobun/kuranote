@@ -15,5 +15,6 @@ cd "${ROOT_DIR}"
 
 "${SUPABASE[@]}" db reset --local --no-seed
 "${SUPABASE[@]}" db dump --local --schema public --file "${SCHEMA_PATH}"
+perl -0pi -e 's/[[:space:]]+\z/\n/' "${SCHEMA_PATH}"
 
 echo "已更新 ${SCHEMA_PATH#"${ROOT_DIR}/"}"

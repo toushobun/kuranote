@@ -23,6 +23,7 @@ cd "${ROOT_DIR}"
 
 "${SUPABASE[@]}" db reset --local --no-seed
 "${SUPABASE[@]}" db dump --local --schema public --file "${GENERATED_SCHEMA_PATH}"
+perl -0pi -e 's/[[:space:]]+\z/\n/' "${GENERATED_SCHEMA_PATH}"
 
 if ! diff -u "${EXPECTED_SCHEMA_PATH}" "${GENERATED_SCHEMA_PATH}"; then
   echo >&2
