@@ -13,6 +13,14 @@ else
   SUPABASE=(npx --yes "supabase@${SUPABASE_VERSION}")
 fi
 
+for expected_path in "${EXPECTED_SCHEMA_PATH}" "${EXPECTED_AUTH_TRIGGER_PATH}"; do
+  if [[ ! -f "${expected_path}" ]]; then
+    echo "未找到声明式 schema 基线：${expected_path#"${ROOT_DIR}/"}" >&2
+    echo "请先运行 npm run db:schema:update 生成基线后再执行检查。" >&2
+    exit 1
+  fi
+done
+
 if [[ -z "${CI:-}" && -t 0 ]]; then
   read -r -p "此操作会执行 supabase db reset，清空本地 Supabase 数据库中未纳入 seed 的数据。确认继续？[y/N] " confirm
   if [[ ! "${confirm}" =~ ^[Yy]$ ]]; then
@@ -47,6 +55,11 @@ grep -E '^CREATE (OR REPLACE )?TRIGGER "on_auth_user_created" ' "${GENERATED_AUT
   >"${GENERATED_AUTH_TRIGGER_PATH}" || true
 
 status=0
+auth_trigger_match_count="$(wc -l <"${GENERATED_AUTH_TRIGGER_PATH}")"
+if [[ "${auth_trigger_match_count}" -gt 1 ]]; then
+  echo "检测到多个名为 on_auth_user_created 的 trigger，无法确定应使用哪一个定义。" >&2
+  status=1
+fi
 
 if ! diff -u "${EXPECTED_SCHEMA_PATH}" "${GENERATED_SCHEMA_PATH}"; then
   echo >&2
