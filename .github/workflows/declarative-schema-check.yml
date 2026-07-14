@@ -1,0 +1,52 @@
+name: Declarative schema check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/schemas/**"
+      - "supabase/config.toml"
+      - "scripts/check-declarative-schema.sh"
+      - "scripts/update-declarative-schema.sh"
+      - "package.json"
+      - ".github/workflows/declarative-schema-check.yml"
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  declarative-schema-check:
+    name: Declarative schema check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: v2.106.0
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Compare migrations with declarative schema
+        run: npm run db:schema:check
+        env:
+          ACTUAL_SCHEMA_PATH: /tmp/kuranote-current-schema.sql
+
+      - name: Upload generated schema
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-schema
+          path: /tmp/kuranote-current-schema.sql
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup

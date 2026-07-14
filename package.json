@@ -10,6 +10,9 @@
     "test": "vitest run",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "db:migration:new": "npx --yes supabase@2.106.0 db diff",
+    "db:schema:update": "bash scripts/update-declarative-schema.sh",
+    "db:schema:check": "bash scripts/check-declarative-schema.sh",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit"

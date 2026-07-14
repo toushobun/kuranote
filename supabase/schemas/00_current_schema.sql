@@ -1,0 +1,2 @@
+-- 此文件由 npm run db:schema:update 从全部 migration 的回放结果生成。
+-- 首次基线将在本 Issue 的 CI 环境中生成并替换本占位内容。
