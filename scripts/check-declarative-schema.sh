@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXPECTED_SCHEMA_PATH="${ROOT_DIR}/supabase/schemas/00_current_schema.sql"
+EXPECTED_AUTH_TRIGGER_PATH="${ROOT_DIR}/supabase/schemas/_reference/auth_users_triggers.sql"
 SUPABASE_VERSION="2.106.0"
 
 if command -v supabase >/dev/null 2>&1 && [[ "$(supabase --version)" == "${SUPABASE_VERSION}" ]]; then
@@ -12,13 +13,28 @@ else
   SUPABASE=(npx --yes "supabase@${SUPABASE_VERSION}")
 fi
 
+if [[ -z "${CI:-}" && -t 0 ]]; then
+  read -r -p "此操作会执行 supabase db reset，清空本地 Supabase 数据库中未纳入 seed 的数据。确认继续？[y/N] " confirm
+  if [[ ! "${confirm}" =~ ^[Yy]$ ]]; then
+    echo "已取消。" >&2
+    exit 1
+  fi
+fi
+
 if [[ -n "${ACTUAL_SCHEMA_PATH:-}" ]]; then
   GENERATED_SCHEMA_PATH="${ACTUAL_SCHEMA_PATH}"
   mkdir -p "$(dirname "${GENERATED_SCHEMA_PATH}")"
 else
   GENERATED_SCHEMA_PATH="$(mktemp)"
-  trap 'rm -f "${GENERATED_SCHEMA_PATH}"' EXIT
 fi
+GENERATED_AUTH_SCHEMA_PATH="$(mktemp)"
+GENERATED_AUTH_TRIGGER_PATH="$(mktemp)"
+
+cleanup() {
+  [[ -n "${ACTUAL_SCHEMA_PATH:-}" ]] || rm -f "${GENERATED_SCHEMA_PATH}"
+  rm -f "${GENERATED_AUTH_SCHEMA_PATH}" "${GENERATED_AUTH_TRIGGER_PATH}"
+}
+trap cleanup EXIT
 
 cd "${ROOT_DIR}"
 
@@ -26,11 +42,29 @@ cd "${ROOT_DIR}"
 "${SUPABASE[@]}" db dump --local --schema public --file "${GENERATED_SCHEMA_PATH}"
 perl -0pi -e 's/[[:space:]]+\z/\n/' "${GENERATED_SCHEMA_PATH}"
 
+"${SUPABASE[@]}" db dump --local --schema auth --file "${GENERATED_AUTH_SCHEMA_PATH}"
+grep -E '^CREATE (OR REPLACE )?TRIGGER "on_auth_user_created" ' "${GENERATED_AUTH_SCHEMA_PATH}" \
+  >"${GENERATED_AUTH_TRIGGER_PATH}" || true
+
+status=0
+
 if ! diff -u "${EXPECTED_SCHEMA_PATH}" "${GENERATED_SCHEMA_PATH}"; then
   echo >&2
   echo "声明式 schema 与 migration 回放结果不一致。" >&2
   echo "请确认 migration 后运行 npm run db:schema:update，并提交更新后的 schema。" >&2
-  exit 1
+  status=1
 fi
 
-echo "声明式 schema 与 migration 回放结果一致。"
+if ! diff -u "${EXPECTED_AUTH_TRIGGER_PATH}" "${GENERATED_AUTH_TRIGGER_PATH}"; then
+  echo >&2
+  echo "auth.users 上的 on_auth_user_created trigger 与参考基线不一致（可能被误删或修改）。" >&2
+  echo "该 trigger 不在 public schema dump 范围内，需要单独维护，见 supabase/schemas/_reference/auth_users_triggers.sql。" >&2
+  echo "确认改动是有意为之后，运行 npm run db:schema:update 更新基线。" >&2
+  status=1
+fi
+
+if [[ "${status}" -eq 0 ]]; then
+  echo "声明式 schema 与 migration 回放结果一致。"
+fi
+
+exit "${status}"

@@ -379,6 +379,8 @@ npx supabase db reset
 
 ### 检查声明式 schema 与 migrations 是否一致
 
+⚠️ 会执行 `supabase db reset`，清空本地 Supabase 数据库中未纳入 seed 的数据，交互式终端下会先要求确认。
+
 ```bash
 npm run db:schema:check
 ```

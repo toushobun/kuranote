@@ -10,6 +10,7 @@ on:
       - "supabase/config.toml"
       - "scripts/check-declarative-schema.sh"
       - "scripts/update-declarative-schema.sh"
+      - "scripts/new-declarative-migration.sh"
       - "package.json"
       - ".github/workflows/declarative-schema-check.yml"
     types: [opened, synchronize, reopened, ready_for_review]
@@ -26,6 +27,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Syntax check maintenance scripts
+        run: |
+          bash -n scripts/check-declarative-schema.sh
+          bash -n scripts/update-declarative-schema.sh
+          bash -n scripts/new-declarative-migration.sh
 
       - name: Check migration history is append-only
         shell: bash
