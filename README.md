@@ -287,16 +287,6 @@ npx supabase db reset
 
 重置后如果浏览器中残留旧登录状态，可能会出现 refresh token 相关错误。重新登录即可。
 
-### 查看和维护数据库最终结构
-
-当前数据库最终结构统一记录在：
-
-```text
-supabase/schemas/00_current_schema.sql
-```
-
-历史 migrations 仍用于本地 reset 与生产发布。结构变更、migration 生成、schema 刷新和漂移检查流程见 [`docs/database-schema.md`](docs/database-schema.md)。
-
 ### 启动 Next.js 开发服务器
 
 ```bash
@@ -375,14 +365,6 @@ npm run build-storybook
 
 ```bash
 npx supabase db reset
-```
-
-### 检查声明式 schema 与 migrations 是否一致
-
-⚠️ 会执行 `supabase db reset`，清空本地 Supabase 数据库中未纳入 seed 的数据，交互式终端下会先要求确认。
-
-```bash
-npm run db:schema:check
 ```
 
 ## 开发流程
