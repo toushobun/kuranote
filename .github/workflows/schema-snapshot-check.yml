@@ -1,0 +1,89 @@
+name: Schema snapshot check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/schema_snapshot/**"
+      - "scripts/generate-schema-snapshot.sh"
+      - "scripts/update-schema-snapshot.sh"
+      - "scripts/check-schema-snapshot.sh"
+      - ".supabase-version"
+      - "package.json"
+      - ".github/workflows/schema-snapshot-check.yml"
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  schema-snapshot-check:
+    name: Schema snapshot check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check maintenance scripts
+        run: |
+          bash -n scripts/generate-schema-snapshot.sh
+          bash -n scripts/update-schema-snapshot.sh
+          bash -n scripts/check-schema-snapshot.sh
+          shellcheck \
+            scripts/generate-schema-snapshot.sh \
+            scripts/update-schema-snapshot.sh \
+            scripts/check-schema-snapshot.sh
+
+      - name: Check migration history is append-only
+        shell: bash
+        run: |
+          changed_migrations="$(git diff --name-only --diff-filter=MDR \
+            "${{ github.event.pull_request.base.sha }}" HEAD -- supabase/migrations/)"
+          if [[ -n "${changed_migrations}" ]]; then
+            echo "已经合入 main 的 migration 不允许修改、删除或重命名：" >&2
+            echo "${changed_migrations}" >&2
+            echo "请新增向前 migration 表达数据库变更。" >&2
+            exit 1
+          fi
+
+      - name: Read Supabase CLI version
+        id: supabase_version
+        shell: bash
+        run: |
+          version="$(<.supabase-version)"
+          version="${version%$'\r'}"
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo ".supabase-version 内容异常，应为形如 2.106.0 的版本号。" >&2
+            exit 1
+          fi
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: ${{ steps.supabase_version.outputs.version }}
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Compare migrations with schema snapshot
+        run: npm run db:schema:snapshot:check
+        env:
+          ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
+
+      - name: Upload generated snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-schema-snapshot
+          path: /tmp/kuranote-current-schema.sql
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup

@@ -10,6 +10,8 @@
     "test": "vitest run",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "db:schema:snapshot:update": "bash scripts/update-schema-snapshot.sh",
+    "db:schema:snapshot:check": "bash scripts/check-schema-snapshot.sh",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit"
