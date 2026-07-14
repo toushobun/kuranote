@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { typographyStyles } from "theme/typographyTokens";
 
 export type ListRowButtonProps = {
+  "aria-label"?: string;
   avatar: ReactNode;
   avatarSx?: SxProps<Theme>;
   disabled?: boolean;
@@ -21,6 +22,7 @@ export type ListRowButtonProps = {
 };
 
 export function ListRowButton({
+  "aria-label": ariaLabel,
   avatar,
   avatarSx,
   disabled = false,
@@ -32,6 +34,7 @@ export function ListRowButton({
 }: ListRowButtonProps) {
   return (
     <Button
+      aria-label={ariaLabel}
       disabled={disabled}
       fullWidth
       onClick={onClick}

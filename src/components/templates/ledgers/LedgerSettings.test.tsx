@@ -71,6 +71,7 @@ const view: LedgerSettingsView = {
       userId: memberUserId,
     },
   ],
+  pendingInvites: [],
 };
 
 describe("LedgerSettingsTemplate", () => {

@@ -8,14 +8,39 @@ import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import {
   acceptLedgerInviteService,
   createLedgerInviteService,
+  revokeLedgerInviteService,
 } from "server/services/ledgerInvite";
 
 export async function createLedgerInvite(formData: FormData) {
   await getCurrentLedgerContext();
   const ledgerId = String(formData.get("ledgerId") ?? "").trim();
+  const intent = String(formData.get("intent") ?? "create").trim();
 
   if (!ledgerId) {
     redirect(`${routePaths.ledgers}?inviteError=create_failed`);
+  }
+
+  if (intent === "revoke") {
+    const inviteId = String(formData.get("inviteId") ?? "").trim();
+
+    if (!inviteId) {
+      redirect(
+        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=revoke_failed`,
+      );
+    }
+
+    const revokeResult = await revokeLedgerInviteService(ledgerId, inviteId);
+
+    if (!revokeResult.ok) {
+      redirect(
+        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=${encodeURIComponent(revokeResult.error)}`,
+      );
+    }
+
+    revalidatePath(`/ledgers/${ledgerId}/settings`);
+    redirect(
+      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteResult=revoked`,
+    );
   }
 
   const result = await createLedgerInviteService(ledgerId);
@@ -26,6 +51,7 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
+  revalidatePath(`/ledgers/${ledgerId}/settings`);
   redirect(
     `/ledgers/${encodeURIComponent(ledgerId)}/settings#inviteToken=${encodeURIComponent(result.token)}`,
   );

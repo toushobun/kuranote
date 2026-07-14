@@ -5,6 +5,7 @@ import {
 } from "server/errors/ledgerInvite";
 import { mapRpcBusinessError } from "server/services/rpcError";
 import type { ServiceResult } from "server/services/serviceResult";
+import type { PendingLedgerInvite } from "types/ledgers";
 
 export type LedgerInviteStatus =
   | "valid"
@@ -24,8 +25,13 @@ type CreateInviteResult =
   | { ok: true; token: string }
   | { ok: false; error: LedgerInviteErrorCode };
 
+type PendingInvitesResult =
+  | { ok: true; invites: PendingLedgerInvite[] }
+  | { ok: false; error: LedgerInviteErrorCode };
+
 const inviteErrorMap = {
   auth_required: ledgerInviteErrorCodes.authRequired,
+  invite_already_revoked: ledgerInviteErrorCodes.inviteAlreadyRevoked,
   invite_already_used: ledgerInviteErrorCodes.inviteUsed,
   invite_invalid: ledgerInviteErrorCodes.inviteInvalid,
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
@@ -54,6 +60,48 @@ export async function createLedgerInviteService(
   }
 
   return { ok: true, token: data[0].token };
+}
+
+export async function loadPendingLedgerInvitesService(
+  ledgerId: string,
+): Promise<PendingInvitesResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_pending_ledger_invites", {
+    p_ledger_id: ledgerId,
+  });
+
+  if (error || !Array.isArray(data)) {
+    return {
+      error: error
+        ? mapRpcBusinessError(
+            error,
+            inviteErrorMap,
+            ledgerInviteErrorCodes.loadFailed,
+          )
+        : ledgerInviteErrorCodes.loadFailed,
+      ok: false,
+    };
+  }
+
+  const invites = data.flatMap((row) => {
+    if (
+      typeof row.invite_id !== "string" ||
+      typeof row.created_at !== "string" ||
+      (row.invite_role !== "member" && row.invite_role !== "viewer")
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        createdAt: row.created_at,
+        id: row.invite_id,
+        role: row.invite_role,
+      },
+    ];
+  });
+
+  return { invites, ok: true };
 }
 
 export async function loadLedgerInvitePreview(
@@ -99,6 +147,30 @@ export async function acceptLedgerInviteService(
         error,
         inviteErrorMap,
         ledgerInviteErrorCodes.inviteInvalid,
+      ),
+      ok: false,
+    };
+  }
+
+  return { ok: true };
+}
+
+export async function revokeLedgerInviteService(
+  ledgerId: string,
+  inviteId: string,
+): Promise<ServiceResult<LedgerInviteErrorCode>> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("revoke_ledger_invite", {
+    p_invite_id: inviteId,
+    p_ledger_id: ledgerId,
+  });
+
+  if (error) {
+    return {
+      error: mapRpcBusinessError(
+        error,
+        inviteErrorMap,
+        ledgerInviteErrorCodes.revokeFailed,
       ),
       ok: false,
     };

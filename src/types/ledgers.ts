@@ -46,6 +46,12 @@ export type LedgerSettingsMember = {
   userId: string;
 };
 
+export type PendingLedgerInvite = {
+  createdAt: string;
+  id: string;
+  role: "member" | "viewer";
+};
+
 export type LedgerSettingsView = {
   canEditLedger: boolean;
   currentUser: {
@@ -61,4 +67,5 @@ export type LedgerSettingsView = {
     name: string;
   };
   members: LedgerSettingsMember[];
+  pendingInvites: PendingLedgerInvite[];
 };
