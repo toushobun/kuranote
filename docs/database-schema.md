@@ -70,6 +70,8 @@ npm run db:schema:check
 
 该命令重新回放 migrations，并将实际 dump 与提交的声明式 schema 比较。相关路径变更时，GitHub Actions 也会执行同一检查。
 
+CI 同时禁止修改或删除已经合入 `main` 的历史 migration。数据库变更必须通过新的向前 migration 表达；同一 PR 中新建、尚未合入的 migration 可以继续调整。
+
 ## DML 与特殊对象
 
 声明式 schema 只表达数据库结构。以下内容继续通过手写向前 migration 维护：
