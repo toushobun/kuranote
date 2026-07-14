@@ -18,10 +18,10 @@ const inviteRpcSignatures = [
 ];
 
 describe("邀请 pgcrypto schema migration", () => {
-  it("为创建、预览和接受邀请 RPC 仅使用受信任 schema", () => {
+  it("为创建、预览和接受邀请 RPC 使用安全的 schema 顺序", () => {
     inviteRpcSignatures.forEach((signature) => {
       expect(migrationSql).toContain(
-        `alter function public.${signature}\nset search_path to pg_catalog, extensions;`,
+        `alter function public.${signature}\nset search_path to pg_catalog, extensions, pg_temp;`,
       );
     });
   });
