@@ -5,7 +5,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEMA_PATH="${ROOT_DIR}/supabase/schemas/00_current_schema.sql"
 AUTH_TRIGGER_REFERENCE_PATH="${ROOT_DIR}/supabase/schemas/_reference/auth_users_triggers.sql"
-SUPABASE_VERSION="2.106.0"
+SUPABASE_VERSION_FILE="${ROOT_DIR}/.supabase-version"
+
+if [[ ! -f "${SUPABASE_VERSION_FILE}" ]]; then
+  echo "未找到 Supabase CLI 版本文件：${SUPABASE_VERSION_FILE#"${ROOT_DIR}/"}" >&2
+  exit 1
+fi
+SUPABASE_VERSION="$(tr -d '[:space:]' <"${SUPABASE_VERSION_FILE}")"
+if [[ -z "${SUPABASE_VERSION}" ]]; then
+  echo "Supabase CLI 版本文件为空：${SUPABASE_VERSION_FILE#"${ROOT_DIR}/"}" >&2
+  exit 1
+fi
+if [[ ! "${SUPABASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Supabase CLI 版本文件内容异常：${SUPABASE_VERSION_FILE#"${ROOT_DIR}/"}（读取到 \"${SUPABASE_VERSION}\"，应为形如 2.106.0 的版本号）" >&2
+  exit 1
+fi
 
 if command -v supabase >/dev/null 2>&1 && [[ "$(supabase --version)" == "${SUPABASE_VERSION}" ]]; then
   SUPABASE=(supabase)
@@ -23,14 +37,28 @@ fi
 
 cd "${ROOT_DIR}"
 
-"${SUPABASE[@]}" db reset --local --no-seed
-"${SUPABASE[@]}" db dump --local --schema public --file "${SCHEMA_PATH}"
-perl -0pi -e 's/[[:space:]]+\z/\n/' "${SCHEMA_PATH}"
+mkdir -p "$(dirname "${SCHEMA_PATH}")" "$(dirname "${AUTH_TRIGGER_REFERENCE_PATH}")"
 
+# 生成与校验都先在与目标文件同目录的临时文件上进行，全部通过后再一次性替换正式基线，
+# 避免任一步骤失败时正式基线只更新一半。
+TMP_SCHEMA_PATH="$(mktemp "$(dirname "${SCHEMA_PATH}")/.00_current_schema.sql.XXXXXX")"
+TMP_AUTH_TRIGGER_PATH="$(mktemp "$(dirname "${AUTH_TRIGGER_REFERENCE_PATH}")/.auth_users_triggers.sql.XXXXXX")"
 AUTH_SCHEMA_DUMP_PATH="$(mktemp)"
-trap 'rm -f "${AUTH_SCHEMA_DUMP_PATH}"' EXIT
+
+# shellcheck disable=SC2317  # 通过 trap 调用，非未使用代码
+cleanup() {
+  rm -f "${TMP_SCHEMA_PATH}" "${TMP_AUTH_TRIGGER_PATH}" "${AUTH_SCHEMA_DUMP_PATH}"
+}
+trap cleanup EXIT
+
+"${SUPABASE[@]}" db reset --local --no-seed
+"${SUPABASE[@]}" db dump --local --schema public --file "${TMP_SCHEMA_PATH}"
+perl -0pi -e 's/[[:space:]]+\z/\n/' "${TMP_SCHEMA_PATH}"
+
 "${SUPABASE[@]}" db dump --local --schema auth --file "${AUTH_SCHEMA_DUMP_PATH}"
 
+# 依赖当前固定版本 Supabase CLI（pg_dump）将该 trigger 定义整体输出为单行；
+# 零匹配、多匹配或格式变化都必须使检查失败，不能静默放过，因此不引入 SQL parser。
 mapfile -t AUTH_TRIGGER_DEFINITIONS < <(
   grep -E '^CREATE (OR REPLACE )?TRIGGER "on_auth_user_created" ' "${AUTH_SCHEMA_DUMP_PATH}" || true
 )
@@ -45,7 +73,10 @@ if [[ "${#AUTH_TRIGGER_DEFINITIONS[@]}" -gt 1 ]]; then
   exit 1
 fi
 
-mkdir -p "$(dirname "${AUTH_TRIGGER_REFERENCE_PATH}")"
-printf '%s\n' "${AUTH_TRIGGER_DEFINITIONS[0]}" >"${AUTH_TRIGGER_REFERENCE_PATH}"
+printf '%s\n' "${AUTH_TRIGGER_DEFINITIONS[0]}" >"${TMP_AUTH_TRIGGER_PATH}"
+
+# 全部校验通过，才替换正式基线；两次 mv 均为同目录内重命名，替换前不会触碰正式文件。
+mv -f "${TMP_SCHEMA_PATH}" "${SCHEMA_PATH}"
+mv -f "${TMP_AUTH_TRIGGER_PATH}" "${AUTH_TRIGGER_REFERENCE_PATH}"
 
 echo "已更新 ${SCHEMA_PATH#"${ROOT_DIR}/"} 与 ${AUTH_TRIGGER_REFERENCE_PATH#"${ROOT_DIR}/"}"

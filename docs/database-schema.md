@@ -18,10 +18,10 @@
 以下命令需要 Docker 和本地 Supabase：
 
 ```bash
-npx --yes supabase@2.106.0 start
+npx --yes supabase@"$(cat .supabase-version)" start
 ```
 
-仓库将 Supabase CLI 固定为 `2.106.0`。本机已安装且版本完全一致时，维护脚本复用该命令；未安装或版本不一致时，通过 `npx` 使用固定版本。
+仓库将 Supabase CLI 固定版本记录在根目录的 [`.supabase-version`](../.supabase-version)。本机已安装且版本与该文件完全一致时，维护脚本复用该命令；未安装或版本不一致时，通过 `npx` 使用固定版本。
 
 ## 查看当前最终结构
 

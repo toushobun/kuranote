@@ -12,6 +12,7 @@ on:
       - "scripts/update-declarative-schema.sh"
       - "scripts/new-declarative-migration.sh"
       - "package.json"
+      - ".supabase-version"
       - ".github/workflows/declarative-schema-check.yml"
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -35,6 +36,13 @@ jobs:
           bash -n scripts/update-declarative-schema.sh
           bash -n scripts/new-declarative-migration.sh
 
+      - name: ShellCheck maintenance scripts
+        run: |
+          shellcheck \
+            scripts/check-declarative-schema.sh \
+            scripts/update-declarative-schema.sh \
+            scripts/new-declarative-migration.sh
+
       - name: Check migration history is append-only
         shell: bash
         run: |
@@ -47,10 +55,30 @@ jobs:
             exit 1
           fi
 
+      - name: Read Supabase CLI version
+        id: supabase_version
+        shell: bash
+        run: |
+          version_file=".supabase-version"
+          if [[ ! -f "${version_file}" ]]; then
+            echo "未找到 Supabase CLI 版本文件：${version_file}" >&2
+            exit 1
+          fi
+          version="$(tr -d '[:space:]' <"${version_file}")"
+          if [[ -z "${version}" ]]; then
+            echo "Supabase CLI 版本文件为空：${version_file}" >&2
+            exit 1
+          fi
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Supabase CLI 版本文件内容异常：${version_file}（读取到 \"${version}\"，应为形如 2.106.0 的版本号）" >&2
+            exit 1
+          fi
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: v2.106.0
+          version: ${{ steps.supabase_version.outputs.version }}
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
