@@ -39,6 +39,7 @@ const deleteIllustrationByTheme = {
 } satisfies Record<UserThemeKey, string>;
 
 export type FeedbackDialogProps = {
+  aboveModal?: boolean;
   bottomOffset?: string;
   description?: ReactNode;
   onClose: () => void;
@@ -49,6 +50,7 @@ export type FeedbackDialogProps = {
 type FeedbackTone = "error" | "success";
 
 function FeedbackDialog({
+  aboveModal = false,
   bottomOffset,
   description,
   onClose,
@@ -64,7 +66,7 @@ function FeedbackDialog({
       autoHideDuration={3000}
       onClose={onClose}
       open={open}
-      sx={feedbackSnackbarSx(bottomOffset)}
+      sx={feedbackSnackbarSx(bottomOffset, aboveModal)}
     >
       <Alert
         closeText="关闭"
@@ -211,7 +213,10 @@ export function DeleteConfirmationDialog({
   );
 }
 
-function feedbackSnackbarSx(bottomOffset?: string): SxProps<Theme> {
+function feedbackSnackbarSx(
+  bottomOffset?: string,
+  aboveModal = false,
+): SxProps<Theme> {
   return (theme) => ({
     ...(bottomOffset
       ? {
@@ -222,7 +227,7 @@ function feedbackSnackbarSx(bottomOffset?: string): SxProps<Theme> {
           },
         }
       : {}),
-    zIndex: theme.zIndex.modal - 1,
+    zIndex: aboveModal ? theme.zIndex.modal + 1 : theme.zIndex.modal - 1,
   });
 }
 

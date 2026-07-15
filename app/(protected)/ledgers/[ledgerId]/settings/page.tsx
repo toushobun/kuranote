@@ -1,4 +1,8 @@
-import { ledgerSettingsResultValues } from "config/paths";
+import {
+  ledgerInviteErrorOperations,
+  ledgerSettingsResultValues,
+  type LedgerInviteErrorOperation,
+} from "config/paths";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext";
 import { createLedgerInvite } from "server/actions/ledgerInvite";
 import { updateLedgerSettings } from "server/actions/ledgerSettings";
@@ -17,6 +21,14 @@ function getLedgerSettingsSaveResult(
   return null;
 }
 
+function getLedgerInviteErrorOperation(
+  operation: string | undefined,
+): LedgerInviteErrorOperation {
+  if (operation === ledgerInviteErrorOperations.replace) return operation;
+  if (operation === ledgerInviteErrorOperations.revoke) return operation;
+  return ledgerInviteErrorOperations.create;
+}
+
 export default async function LedgerSettingsRoute({
   params,
   searchParams,
@@ -26,6 +38,8 @@ export default async function LedgerSettingsRoute({
     error?: string;
     errorKey?: string;
     inviteError?: string;
+    inviteErrorKey?: string;
+    inviteOperation?: string;
     result?: string;
   }>;
 }) {
@@ -42,8 +56,12 @@ export default async function LedgerSettingsRoute({
         errorKey={resolvedSearchParams.errorKey ?? null}
         errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
         inviteAction={createLedgerInvite}
+        inviteErrorKey={resolvedSearchParams.inviteErrorKey ?? null}
         inviteErrorMessage={getLedgerInviteErrorMessage(
           resolvedSearchParams.inviteError,
+        )}
+        inviteErrorOperation={getLedgerInviteErrorOperation(
+          resolvedSearchParams.inviteOperation,
         )}
         saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
         updateLedgerSettingsAction={updateLedgerSettings}

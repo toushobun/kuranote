@@ -69,7 +69,12 @@ export const RevokeConfirmation: Story = {
     await userEvent.click(
       await canvas.findByRole("button", { name: /待接受邀请/ }),
     );
-    await within(document.body).findByRole("heading", { name: "撤销邀请" });
+    await userEvent.click(
+      await within(document.body).findByRole("button", { name: "撤销邀请" }),
+    );
+    await within(document.body).findByRole("heading", {
+      name: "确认撤销邀请？",
+    });
   },
 };
 

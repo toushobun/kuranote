@@ -1,33 +1,93 @@
+"use client";
+
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
-export type LedgerInviteRole = "member" | "viewer";
+import { ledgerInviteRoleLabels, type LedgerInviteRole } from "types/ledgers";
 
 const roleContent: Record<
   LedgerInviteRole,
   { icon: ReactNode; label: string }
 > = {
-  member: { icon: <PersonRoundedIcon />, label: "用户（Member）" },
-  viewer: { icon: <VisibilityRoundedIcon />, label: "只读（Viewer）" },
+  admin: {
+    icon: <AdminPanelSettingsRoundedIcon />,
+    label: ledgerInviteRoleLabels.admin,
+  },
+  member: { icon: <PersonRoundedIcon />, label: ledgerInviteRoleLabels.member },
+  viewer: {
+    icon: <VisibilityRoundedIcon />,
+    label: ledgerInviteRoleLabels.viewer,
+  },
 };
 
-export function LedgerInviteRoleRow({ role }: { role: LedgerInviteRole }) {
+export function LedgerInviteRoleRow({
+  onChange,
+  role,
+}: {
+  onChange?: (role: LedgerInviteRole) => void;
+  role: LedgerInviteRole;
+}) {
   const { icon, label } = roleContent[role];
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const menuId = useId();
+  const menuOpen = anchorEl !== null;
 
   return (
     <Stack direction="row" spacing={1.4} sx={{ alignItems: "center" }}>
       <Box sx={iconBoxSx}>{icon}</Box>
       <Stack spacing={0.3} sx={{ flex: 1, minWidth: 0 }}>
         <Typography component="span" sx={labelSx}>
-          默认权限
+          权限
         </Typography>
-        <Typography component="span" sx={valueSx}>
-          {label}
-        </Typography>
+        {onChange ? (
+          <>
+            <Button
+              aria-controls={menuOpen ? menuId : undefined}
+              aria-expanded={menuOpen ? "true" : undefined}
+              aria-haspopup="menu"
+              aria-label={`选择邀请权限，当前为${label}`}
+              endIcon={<ArrowDropDownRoundedIcon />}
+              onClick={(event) => setAnchorEl(event.currentTarget)}
+              size="small"
+              sx={roleButtonSx}
+              type="button"
+            >
+              {label}
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              id={menuId}
+              onClose={() => setAnchorEl(null)}
+              open={menuOpen}
+            >
+              {(Object.keys(roleContent) as LedgerInviteRole[]).map((value) => (
+                <MenuItem
+                  key={value}
+                  onClick={() => {
+                    onChange(value);
+                    setAnchorEl(null);
+                  }}
+                  selected={value === role}
+                >
+                  {roleContent[value].label}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
+        ) : (
+          <Typography component="span" sx={valueSx}>
+            {label}
+          </Typography>
+        )}
       </Stack>
     </Stack>
   );
@@ -57,4 +117,16 @@ const labelSx = {
 const valueSx = {
   fontSize: 15,
   fontWeight: 800,
+};
+
+const roleButtonSx = {
+  alignSelf: "flex-start",
+  color: "text.primary",
+  fontSize: 15,
+  fontWeight: 800,
+  justifyContent: "flex-start",
+  minWidth: 0,
+  mx: -1,
+  my: -0.5,
+  textTransform: "none",
 };

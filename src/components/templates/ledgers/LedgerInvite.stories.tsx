@@ -29,6 +29,28 @@ type Story = StoryObj<typeof meta>;
 
 export const Valid: Story = {};
 
+export const Admin: Story = {
+  args: {
+    preview: {
+      inviteRole: "admin",
+      inviterName: "淞文",
+      ledgerName: "家庭账本",
+      status: "valid",
+    },
+  },
+};
+
+export const Viewer: Story = {
+  args: {
+    preview: {
+      inviteRole: "viewer",
+      inviterName: "淞文",
+      ledgerName: "家庭账本",
+      status: "valid",
+    },
+  },
+};
+
 export const LoggedOut: Story = {
   args: {
     isAuthenticated: false,

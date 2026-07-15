@@ -23,7 +23,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { routePaths } from "config/paths";
+import {
+  ledgerInviteErrorOperations,
+  routePaths,
+  type LedgerInviteErrorOperation,
+} from "config/paths";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
   FailureFeedbackDialog,
@@ -59,7 +63,9 @@ type LedgerSettingsTemplateProps = LedgerSettingsView & {
   errorKey?: string | null;
   errorMessage: string | null;
   inviteAction: ServerAction;
+  inviteErrorKey?: string | null;
   inviteErrorMessage?: string | null;
+  inviteErrorOperation?: LedgerInviteErrorOperation;
   inviteToken?: string | null;
   saveResult?: LedgerSettingsSaveResult | null;
   updateLedgerSettingsAction: ServerAction;
@@ -71,7 +77,9 @@ export function LedgerSettingsTemplate({
   errorKey = null,
   errorMessage,
   inviteAction,
+  inviteErrorKey = null,
   inviteErrorMessage = null,
+  inviteErrorOperation = ledgerInviteErrorOperations.create,
   inviteToken = null,
   ledger,
   members,
@@ -253,7 +261,9 @@ export function LedgerSettingsTemplate({
                 <LedgerInviteEntry
                   action={inviteAction}
                   canInvite={canEditLedger}
+                  errorKey={inviteErrorKey}
                   errorMessage={inviteErrorMessage}
+                  errorOperation={inviteErrorOperation}
                   ledgerId={ledger.id}
                   token={inviteToken}
                 />
