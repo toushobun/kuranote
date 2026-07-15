@@ -57,6 +57,7 @@ export function LedgerInviteEntry({
     const hashToken = hashParams.get("inviteToken");
     const url = new URL(window.location.href);
     const inviteResult = url.searchParams.get("inviteResult");
+    const hasInviteError = url.searchParams.has("inviteError");
 
     if (hashToken) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 URL fragment 中的邀请 token，避免服务端水合差异。
@@ -69,7 +70,11 @@ export function LedgerInviteEntry({
       url.searchParams.delete("inviteResult");
     }
 
-    if (hashToken || inviteResult === "revoked") {
+    if (hasInviteError) {
+      url.searchParams.delete("inviteError");
+    }
+
+    if (hashToken || inviteResult === "revoked" || hasInviteError) {
       window.history.replaceState(null, "", `${url.pathname}${url.search}`);
     }
   }, []);
