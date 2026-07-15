@@ -50,6 +50,22 @@ describe("SuccessFeedbackDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("需要显示在弹窗上层时挂载到页面根节点", () => {
+    const { container } = render(
+      <div>
+        <SuccessFeedbackDialog
+          aboveModal
+          onClose={vi.fn()}
+          open
+          title="复制成功"
+        />
+      </div>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("复制成功");
+    expect(container).not.toContainElement(screen.getByRole("status"));
+  });
+
   it("3 秒后自动触发关闭回调", () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
