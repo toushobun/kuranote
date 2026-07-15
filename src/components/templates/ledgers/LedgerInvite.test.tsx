@@ -69,11 +69,7 @@ describe("LedgerInviteTemplate", () => {
       "管理员（Admin）",
       "加入后可管理账本、成员与基础设置，并共同记录数据。",
     ],
-    [
-      "member",
-      "用户（Member）",
-      "加入后可共同查看和记录该账本的数据。",
-    ],
+    ["member", "用户（Member）", "加入后可共同查看和记录该账本的数据。"],
     [
       "viewer",
       "只读（Viewer）",
