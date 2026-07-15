@@ -19,6 +19,10 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 
 import { transactionTimeLocale } from "config/dateTime";
+import {
+  ledgerInviteErrorOperations,
+  type LedgerInviteErrorOperation,
+} from "config/paths";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
@@ -38,7 +42,9 @@ import {
 type LedgerInviteEntryProps = {
   action: ServerAction;
   canInvite: boolean;
+  errorKey?: string | null;
   errorMessage?: string | null;
+  errorOperation?: LedgerInviteErrorOperation;
   ledgerId: string;
   token?: string | null;
 };
@@ -46,17 +52,32 @@ type LedgerInviteEntryProps = {
 export function LedgerInviteEntry({
   action,
   canInvite,
+  errorKey = null,
   errorMessage = null,
+  errorOperation = ledgerInviteErrorOperations.create,
   ledgerId,
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
   const [draftOpen, setDraftOpen] = useState(
-    errorMessage !== null || initialToken !== null,
+    (errorMessage !== null &&
+      errorOperation === ledgerInviteErrorOperations.create) ||
+      initialToken !== null,
   );
   const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
   const [draftToken, setDraftToken] = useState<string | null>(initialToken);
-  const [visibleError, setVisibleError] = useState(errorMessage);
+  const [visibleError, setVisibleError] = useState(
+    errorOperation === ledgerInviteErrorOperations.create ? errorMessage : null,
+  );
+  const [managementError, setManagementError] = useState<{
+    message: string;
+    operation: Exclude<LedgerInviteErrorOperation, "create">;
+  } | null>(
+    errorMessage !== null &&
+      errorOperation !== ledgerInviteErrorOperations.create
+      ? { message: errorMessage, operation: errorOperation }
+      : null,
+  );
   const [sessionTokens, setSessionTokens] = useState<Record<string, string>>(
     {},
   );
@@ -79,7 +100,6 @@ export function LedgerInviteEntry({
       const hasInviteError = url.searchParams.has("inviteError");
 
       if (hashToken) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- 读取 fragment 中的一次性 token，避免 token 进入服务端请求日志。
         setDraftToken(hashToken);
         setDraftOpen(true);
         setSelectedInvite(null);
@@ -110,6 +130,8 @@ export function LedgerInviteEntry({
 
       if (hasInviteError) {
         url.searchParams.delete("inviteError");
+        url.searchParams.delete("inviteErrorKey");
+        url.searchParams.delete("inviteOperation");
       }
 
       if (hashToken || inviteResult === "revoked" || hasInviteError) {
@@ -128,12 +150,19 @@ export function LedgerInviteEntry({
 
   useEffect(() => {
     if (errorMessage === null) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步打开反馈窗口。
-    setVisibleError(errorMessage);
-    setDraftOpen(true);
-    setSelectedInvite(null);
+    if (errorOperation === ledgerInviteErrorOperations.create) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步打开反馈窗口。
+      setVisibleError(errorMessage);
+      setManagementError(null);
+      setDraftOpen(true);
+      setSelectedInvite(null);
+      setRevokeConfirmOpen(false);
+      return;
+    }
+
+    setManagementError({ message: errorMessage, operation: errorOperation });
     setRevokeConfirmOpen(false);
-  }, [errorMessage]);
+  }, [errorKey, errorMessage, errorOperation]);
 
   const draftLink = useInviteLink(draftToken);
   const selectedToken = selectedInvite
@@ -380,6 +409,18 @@ export function LedgerInviteEntry({
         onClose={() => setCopyFailed(false)}
         open={copyFailed}
         title="复制失败，请手动复制邀请链接"
+      />
+      <FailureFeedbackDialog
+        aboveModal
+        bottomOffset={feedbackBottomOffset}
+        description={managementError?.message}
+        onClose={() => setManagementError(null)}
+        open={managementError !== null}
+        title={
+          managementError?.operation === ledgerInviteErrorOperations.replace
+            ? "重新生成邀请链接失败"
+            : "撤销邀请失败"
+        }
       />
     </>
   );

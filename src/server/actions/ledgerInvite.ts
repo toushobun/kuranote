@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { routePaths } from "config/paths";
+import {
+  ledgerInviteErrorHref,
+  ledgerInviteErrorOperations,
+  routePaths,
+} from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import {
   acceptLedgerInviteService,
@@ -27,7 +31,11 @@ export async function createLedgerInvite(formData: FormData) {
 
     if (!inviteId) {
       redirect(
-        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=revoke_failed`,
+        ledgerInviteErrorHref(
+          ledgerId,
+          "revoke_failed",
+          ledgerInviteErrorOperations.revoke,
+        ),
       );
     }
 
@@ -35,7 +43,11 @@ export async function createLedgerInvite(formData: FormData) {
 
     if (!revokeResult.ok) {
       redirect(
-        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=${encodeURIComponent(revokeResult.error)}`,
+        ledgerInviteErrorHref(
+          ledgerId,
+          revokeResult.error,
+          ledgerInviteErrorOperations.revoke,
+        ),
       );
     }
 
@@ -49,14 +61,22 @@ export async function createLedgerInvite(formData: FormData) {
     const inviteId = String(formData.get("inviteId") ?? "").trim();
     if (!inviteId) {
       redirect(
-        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=create_failed`,
+        ledgerInviteErrorHref(
+          ledgerId,
+          "create_failed",
+          ledgerInviteErrorOperations.replace,
+        ),
       );
     }
 
     const result = await replaceLedgerInviteService(ledgerId, inviteId);
     if (!result.ok) {
       redirect(
-        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=${encodeURIComponent(result.error)}`,
+        ledgerInviteErrorHref(
+          ledgerId,
+          result.error,
+          ledgerInviteErrorOperations.replace,
+        ),
       );
     }
 
@@ -67,7 +87,11 @@ export async function createLedgerInvite(formData: FormData) {
   const roleValue = String(formData.get("role") ?? "member").trim();
   if (!isLedgerInviteRole(roleValue)) {
     redirect(
-      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=invite_role_invalid`,
+      ledgerInviteErrorHref(
+        ledgerId,
+        "invite_role_invalid",
+        ledgerInviteErrorOperations.create,
+      ),
     );
   }
 
@@ -75,7 +99,11 @@ export async function createLedgerInvite(formData: FormData) {
 
   if (!result.ok) {
     redirect(
-      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=${encodeURIComponent(result.error)}`,
+      ledgerInviteErrorHref(
+        ledgerId,
+        result.error,
+        ledgerInviteErrorOperations.create,
+      ),
     );
   }
 

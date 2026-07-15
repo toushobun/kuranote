@@ -44,6 +44,20 @@ beforeEach(() => {
   });
 });
 
+async function expectInviteErrorRedirect(
+  formData: FormData,
+  expected: { error: string; operation: "create" | "replace" | "revoke" },
+) {
+  await expect(createLedgerInvite(formData)).rejects.toThrow("NEXT_REDIRECT:");
+
+  const redirectCall = mocks.redirect.mock.calls.at(-1);
+  const url = new URL(String(redirectCall?.[0]), "http://localhost");
+  expect(url.pathname).toBe("/ledgers/ledger%2Fid/settings");
+  expect(url.searchParams.get("inviteError")).toBe(expected.error);
+  expect(url.searchParams.get("inviteErrorKey")).toBeTruthy();
+  expect(url.searchParams.get("inviteOperation")).toBe(expected.operation);
+}
+
 describe("createLedgerInvite", () => {
   it("ledgerId 为空时跳到账本列表并返回创建失败", async () => {
     await expect(createLedgerInvite(new FormData())).rejects.toThrow(
@@ -62,9 +76,10 @@ describe("createLedgerInvite", () => {
     formData.set("ledgerId", "ledger/id");
     formData.set("role", "admin");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger%2Fid/settings?inviteError=permission_denied",
-    );
+    await expectInviteErrorRedirect(formData, {
+      error: "permission_denied",
+      operation: "create",
+    });
   });
 
   it("创建成功时通过 fragment 回传邀请信息，避免 token 进入查询参数和 Referer", async () => {
@@ -95,9 +110,11 @@ describe("createLedgerInvite", () => {
     formData.set("ledgerId", "ledger-id");
     formData.set("role", role);
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=invite_role_invalid",
-    );
+    formData.set("ledgerId", "ledger/id");
+    await expectInviteErrorRedirect(formData, {
+      error: "invite_role_invalid",
+      operation: "create",
+    });
     expect(mocks.createLedgerInviteService).not.toHaveBeenCalled();
   });
 
@@ -122,14 +139,43 @@ describe("createLedgerInvite", () => {
     );
   });
 
+  it("重新生成缺少 inviteId 时返回对应操作错误", async () => {
+    const formData = new FormData();
+    formData.set("intent", "replace");
+    formData.set("ledgerId", "ledger/id");
+
+    await expectInviteErrorRedirect(formData, {
+      error: "create_failed",
+      operation: "replace",
+    });
+    expect(mocks.replaceLedgerInviteService).not.toHaveBeenCalled();
+  });
+
+  it("重新生成失败时返回对应操作错误", async () => {
+    mocks.replaceLedgerInviteService.mockResolvedValue({
+      error: "invite_already_used",
+      ok: false,
+    });
+    const formData = new FormData();
+    formData.set("intent", "replace");
+    formData.set("ledgerId", "ledger/id");
+    formData.set("inviteId", "invite-1");
+
+    await expectInviteErrorRedirect(formData, {
+      error: "invite_already_used",
+      operation: "replace",
+    });
+  });
+
   it("撤销缺少 inviteId 时回到账本设置页", async () => {
     const formData = new FormData();
     formData.set("intent", "revoke");
-    formData.set("ledgerId", "ledger-id");
+    formData.set("ledgerId", "ledger/id");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=revoke_failed",
-    );
+    await expectInviteErrorRedirect(formData, {
+      error: "revoke_failed",
+      operation: "revoke",
+    });
     expect(mocks.revokeLedgerInviteService).not.toHaveBeenCalled();
   });
 
@@ -140,14 +186,15 @@ describe("createLedgerInvite", () => {
     });
     const formData = new FormData();
     formData.set("intent", "revoke");
-    formData.set("ledgerId", "ledger-id");
+    formData.set("ledgerId", "ledger/id");
     formData.set("inviteId", "invite-1");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=invite_already_used",
-    );
+    await expectInviteErrorRedirect(formData, {
+      error: "invite_already_used",
+      operation: "revoke",
+    });
     expect(mocks.revokeLedgerInviteService).toHaveBeenCalledWith(
-      "ledger-id",
+      "ledger/id",
       "invite-1",
     );
   });
