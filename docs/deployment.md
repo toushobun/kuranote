@@ -105,6 +105,7 @@ npx supabase db push
 ### migration / RLS / RPC 验证原则
 
 - 修改 migration 时，优先在本地 Supabase 或一次性开发验证用 project 中验证。
+- 数据库变更仍以新的时间戳 migration 为唯一事实来源；整体结构快照只由 migrations 回放生成，具体流程见 [`database-schema.md`](database-schema.md)。
 - 修改 RLS policy 时，需要确认不同用户和账本成员的访问边界。
 - 修改 RPC 时，需要确认正常路径、权限不足、参数异常和回滚行为。
 - 对 Supabase Cloud project 执行 `db push` 前，先确认 project ref，并通过 `db diff --linked` 检查即将应用的内容。
@@ -144,6 +145,7 @@ workflow 文件：
 
 原则：
 
+- `supabase/schema_snapshot/current_schema.sql` 仅用于查看和审查，不直接应用到 production。
 - 每次生产部署前都执行 `supabase db push`，不再只依赖当前提交是否包含 `supabase/migrations/` diff。
 - 这样可以覆盖「上一次 migration 失败，下一次提交没有 migration diff」的场景，避免应用代码先部署、生产 DB 仍停在旧 schema。
 - `migrate` job 失败时，`deploy` job 不会执行。
