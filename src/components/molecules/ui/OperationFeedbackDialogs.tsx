@@ -10,6 +10,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Portal from "@mui/material/Portal";
 import Snackbar from "@mui/material/Snackbar";
 import type { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
@@ -59,8 +60,7 @@ function FeedbackDialog({
   tone,
 }: FeedbackDialogProps & { tone: FeedbackTone }) {
   const isError = tone === "error";
-
-  return (
+  const snackbar = (
     <Snackbar
       anchorOrigin={{ horizontal: "center", vertical: "bottom" }}
       autoHideDuration={3000}
@@ -96,6 +96,8 @@ function FeedbackDialog({
       </Alert>
     </Snackbar>
   );
+
+  return aboveModal ? <Portal>{snackbar}</Portal> : snackbar;
 }
 
 export function SuccessFeedbackDialog(props: FeedbackDialogProps) {
@@ -227,7 +229,7 @@ function feedbackSnackbarSx(
           },
         }
       : {}),
-    zIndex: aboveModal ? theme.zIndex.modal + 1 : theme.zIndex.modal - 1,
+    zIndex: aboveModal ? theme.zIndex.snackbar : theme.zIndex.modal - 1,
   });
 }
 
