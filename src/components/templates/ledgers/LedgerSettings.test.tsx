@@ -199,10 +199,32 @@ describe("LedgerSettingsTemplate", () => {
 
     expect(
       within(container).getByRole("button", { name: "保存修改" }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("form", "ledger-settings-form");
     expect(
       within(container).getByRole("link", { name: "取消" }),
     ).toHaveAttribute("href", "/ledgers");
+  });
+
+  it("账本设置表单与邀请表单互不嵌套", () => {
+    renderWithUserTheme(
+      <LedgerSettingsTemplate
+        {...view}
+        errorMessage={null}
+        inviteAction={inviteAction}
+        updateLedgerSettingsAction={vi.fn(async () => {})}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+
+    const forms = Array.from(document.querySelectorAll("form"));
+    expect(forms).toHaveLength(2);
+    expect(forms.every((form) => form.querySelector("form") === null)).toBe(
+      true,
+    );
+    expect(
+      screen.getByRole("button", { name: "生成邀请链接" }).closest("form"),
+    ).not.toHaveAttribute("id", "ledger-settings-form");
   });
 
   it("传入错误信息时显示失败反馈", () => {
