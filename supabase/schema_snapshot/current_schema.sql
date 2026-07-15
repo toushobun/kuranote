@@ -137,7 +137,7 @@ begin
       into v_ledger
       from public.ledger l
      where l.id = v_invite.ledger_id
-       and l.status = 'active';
+       and l.is_archived = false;
 
     if v_ledger.id is null then
         raise exception 'invite_invalid'
@@ -820,7 +820,7 @@ begin
         select 1
         from public.ledger l
         where l.id = p_ledger_id
-          and l.status = 'active'
+          and l.is_archived = false
     ) then
         raise exception 'ledger_not_found'
             using errcode = 'P0002', detail = 'ledger_not_found';
@@ -1763,7 +1763,7 @@ begin
             ) then 'already_member'
             when li.revoked_at is not null then 'revoked'
             when li.accepted_at is not null then 'accepted'
-            when l.status <> 'active' then 'invalid'
+            when l.is_archived then 'invalid'
             else 'valid'
         end,
         l.name,
