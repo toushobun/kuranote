@@ -4,6 +4,7 @@
 -- v2 已完全替代旧创建入口，移除不再使用且仅支持旧角色集合的 RPC。
 drop function if exists public.create_ledger_invite(uuid, text);
 
+-- Owner 与 Admin 均可邀请 Admin、Member、Viewer；Owner 本身不作为邀请目标角色。
 alter table public.ledger_invite
     drop constraint ledger_invite_role_check;
 
