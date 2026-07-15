@@ -15,24 +15,22 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function renderEntry() {
+function renderEntry(action = vi.fn(async () => {})) {
   return render(
-    <LedgerInviteEntry
-      action={vi.fn(async () => {})}
-      canInvite
-      ledgerId="ledger-1"
-    />,
+    <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />,
   );
 }
 
 describe("LedgerInviteEntry", () => {
   it("新邀请默认选择 Member，并可切换 Admin 与 Viewer", async () => {
-    renderEntry();
+    const action = vi.fn(async () => {});
+    renderEntry(action);
     fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
 
     expect(screen.getByText("权限")).toBeInTheDocument();
     const roleButton = screen.getByRole("button", { name: /选择邀请权限/ });
     expect(roleButton).toHaveTextContent("用户（Member）");
+    expect(roleButton).toHaveAttribute("type", "button");
 
     fireEvent.click(roleButton);
     expect(screen.queryByText("所有者（Owner）")).not.toBeInTheDocument();
@@ -43,6 +41,27 @@ describe("LedgerInviteEntry", () => {
       screen.getByRole("button", { name: /选择邀请权限/ }),
     ).toHaveTextContent("管理员（Admin）");
     expect(screen.getByDisplayValue("admin")).toHaveAttribute("name", "role");
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("邀请表单内的菜单、复制与关闭按钮不会提交表单", async () => {
+    const action = vi.fn(async () => {});
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings#inviteId=invite-1&inviteRole=member&inviteToken=invite-token",
+    );
+    renderEntry(action);
+
+    const copyButton = await screen.findByRole("button", { name: "复制" });
+    const closeButton = screen.getByRole("button", { name: "关闭" });
+
+    expect(copyButton).toHaveAttribute("type", "button");
+    expect(closeButton).toHaveAttribute("type", "button");
+    fireEvent.click(copyButton);
+    fireEvent.click(closeButton);
+
+    expect(action).not.toHaveBeenCalled();
   });
 
   it("创建成功后显示一次提示并清理 fragment", async () => {

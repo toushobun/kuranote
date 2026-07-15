@@ -59,6 +59,7 @@ export function LedgerInviteRoleRow({
               onClick={(event) => setAnchorEl(event.currentTarget)}
               size="small"
               sx={roleButtonSx}
+              type="button"
             >
               {label}
             </Button>

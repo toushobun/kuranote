@@ -236,6 +236,7 @@ export function LedgerInviteEntry({
               aria-label="关闭"
               onClick={() => setDraftOpen(false)}
               sx={dialogCloseSx}
+              type="button"
             >
               <CloseRoundedIcon />
             </IconButton>
@@ -295,6 +296,7 @@ export function LedgerInviteEntry({
             aria-label="关闭邀请详情"
             onClick={() => setSelectedInvite(null)}
             sx={dialogCloseSx}
+            type="button"
           >
             <CloseRoundedIcon />
           </IconButton>
@@ -477,6 +479,7 @@ function InviteLinkField({
                 edge="end"
                 onClick={() => onCopy(link)}
                 size="small"
+                type="button"
               >
                 <ContentCopyRoundedIcon fontSize="small" />
               </IconButton>

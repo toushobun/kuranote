@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 52685)
-Total output lines: 5879
-
 -- 此文件由 supabase/migrations 自动生成，禁止手工修改。
 -- 更新命令：npm run db:schema:snapshot:update
 
@@ -2958,7 +2955,361 @@ ALTER FUNCTION "public"."replace_ledger_invite"("p_ledger_id" "uuid", "p_invite_
 
 
 CREATE OR REPLACE FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS "void"
-  …2685 tokens truncated…stgres";
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_invite public.ledger_invite;
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    if p_ledger_id is null or p_invite_id is null then
+        raise exception 'invite_invalid'
+            using errcode = '22023', detail = 'invite_invalid';
+    end if;
+
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
+
+    select *
+      into v_invite
+      from public.ledger_invite li
+     where li.id = p_invite_id
+       and li.ledger_id = p_ledger_id
+     for update;
+
+    if v_invite.id is null then
+        raise exception 'invite_invalid'
+            using errcode = 'P0002', detail = 'invite_invalid';
+    end if;
+
+    if v_invite.accepted_at is not null then
+        raise exception 'invite_already_used'
+            using errcode = '23505', detail = 'invite_already_used';
+    end if;
+
+    if v_invite.revoked_at is not null then
+        raise exception 'invite_already_revoked'
+            using errcode = '23505', detail = 'invite_already_revoked';
+    end if;
+
+    update public.ledger_invite
+       set revoked_at = now(),
+           revoked_by = v_user_id
+     where id = v_invite.id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."set_account_initial_current_balance"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+    new.current_balance = new.initial_balance;
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."set_account_initial_current_balance"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."set_ledger_member_display_setting_audit_user"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+declare
+    v_user_id uuid;
+begin
+    v_user_id = auth.uid();
+
+    if v_user_id is null then
+        return new;
+    end if;
+
+    if tg_op = 'INSERT' then
+        new.created_by = v_user_id;
+        new.updated_by = v_user_id;
+    else
+        new.created_by = old.created_by;
+        new.updated_by = v_user_id;
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."set_ledger_member_display_setting_audit_user"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+    v_max_tag_count constant integer := 10;
+    v_max_tag_name_length constant integer := 40;
+    v_raw_tag jsonb;
+    v_tag_name text;
+    v_tag_names text[] := '{}';
+    v_tag_id uuid;
+    v_tag_ids uuid[] := '{}';
+    v_sort_order integer := 0;
+begin
+    if p_tag_names is null then
+        p_tag_names := '[]'::jsonb;
+    end if;
+
+    if jsonb_typeof(p_tag_names) <> 'array' then
+        raise exception 'tag_names_invalid' using errcode = '22023';
+    end if;
+
+    for v_raw_tag in select * from jsonb_array_elements(p_tag_names)
+    loop
+        v_tag_name := nullif(trim(v_raw_tag #>> '{}'), '');
+
+        if v_tag_name is null then
+            continue;
+        end if;
+
+        if length(v_tag_name) > v_max_tag_name_length then
+            raise exception 'tag_name_invalid' using errcode = '22023';
+        end if;
+
+        if not exists (
+            select 1
+            from unnest(v_tag_names) as existing_tag(name)
+            where lower(existing_tag.name) = lower(v_tag_name)
+        ) then
+            if coalesce(array_length(v_tag_names, 1), 0) >= v_max_tag_count then
+                raise exception 'tag_count_invalid' using errcode = '22023';
+            end if;
+
+            v_tag_names := array_append(v_tag_names, v_tag_name);
+        end if;
+    end loop;
+
+    foreach v_tag_name in array v_tag_names
+    loop
+        v_tag_id := null;
+
+        -- 编辑保存时优先复用当前记录已关联的同名标签，包含已归档标签。
+        -- 这样 no-op 编辑不会把历史归档标签重新创建为 active 标签。
+        select tt.id
+        into v_tag_id
+        from public.transaction_record_tag trt
+        join public.transaction_tag tt
+          on tt.id = trt.tag_id
+         and tt.ledger_id = trt.ledger_id
+        where trt.ledger_id = p_ledger_id
+          and trt.transaction_record_id = p_transaction_record_id
+          and lower(tt.name) = lower(v_tag_name)
+        order by trt.sort_order asc
+        limit 1;
+
+        if v_tag_id is null then
+            select tt.id
+            into v_tag_id
+            from public.transaction_tag tt
+            where tt.ledger_id = p_ledger_id
+              and tt.is_archived = false
+              and lower(tt.name) = lower(v_tag_name)
+            limit 1;
+        end if;
+
+        if v_tag_id is null then
+            begin
+                insert into public.transaction_tag (
+                    ledger_id,
+                    name,
+                    created_by,
+                    updated_by
+                ) values (
+                    p_ledger_id,
+                    v_tag_name,
+                    p_user_id,
+                    p_user_id
+                )
+                returning id into v_tag_id;
+            exception when unique_violation then
+                select tt.id
+                into v_tag_id
+                from public.transaction_tag tt
+                where tt.ledger_id = p_ledger_id
+                  and tt.is_archived = false
+                  and lower(tt.name) = lower(v_tag_name)
+                limit 1;
+            end;
+        end if;
+
+        -- 极端竞态下（INSERT 冲突后对方立即删除）兜底
+        if v_tag_id is null then
+            raise exception 'tag_sync_failed' using errcode = '22023';
+        end if;
+
+        v_tag_ids := array_append(v_tag_ids, v_tag_id);
+    end loop;
+
+    delete from public.transaction_record_tag trt
+    where trt.ledger_id = p_ledger_id
+      and trt.transaction_record_id = p_transaction_record_id;
+
+    foreach v_tag_id in array v_tag_ids
+    loop
+        insert into public.transaction_record_tag (
+            ledger_id,
+            transaction_record_id,
+            tag_id,
+            sort_order,
+            created_by
+        ) values (
+            p_ledger_id,
+            p_transaction_record_id,
+            v_tag_id,
+            v_sort_order,
+            p_user_id
+        )
+        on conflict do nothing;
+
+        v_sort_order := v_sort_order + 1;
+    end loop;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+    v_user_id uuid;
+    v_updated_account_id uuid;
+    v_holder_user_ids uuid[];
+    v_active_holder_user_ids uuid[];
+begin
+    v_user_id = auth.uid();
+
+    if v_user_id is null then
+        raise exception 'must be authenticated';
+    end if;
+
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'current user cannot write this ledger';
+    end if;
+
+    select coalesce(array_agg(distinct holder_user_id), '{}'::uuid[])
+    into v_holder_user_ids
+    from unnest(coalesce(p_holder_user_ids, '{}'::uuid[])) as holder_user_ids(holder_user_id);
+
+    if cardinality(v_holder_user_ids) > 0 then
+        with locked_active_holders as (
+            select lm.user_id
+            from public.ledger_member lm
+            join public.app_user au
+              on au.id = lm.user_id
+            where lm.ledger_id = p_ledger_id
+              and lm.user_id = any(v_holder_user_ids)
+              and lm.status = 'active'
+              and au.status = 'active'
+            for update of lm
+        )
+        select coalesce(array_agg(user_id), '{}'::uuid[])
+        into v_active_holder_user_ids
+        from locked_active_holders;
+
+        if cardinality(v_active_holder_user_ids) <> cardinality(v_holder_user_ids) then
+            raise exception 'account holders must be active ledger members';
+        end if;
+    end if;
+
+    update public.account
+    set
+        name = p_name,
+        type = p_type,
+        currency = p_currency,
+        updated_by = v_user_id
+    where id = p_account_id
+      and ledger_id = p_ledger_id
+      and is_archived = false
+    returning id into v_updated_account_id;
+
+    if v_updated_account_id is null then
+        raise exception 'account not found';
+    end if;
+
+    delete from public.account_holder
+    where account_holder.ledger_id = p_ledger_id
+      and account_holder.account_id = p_account_id
+      and not (account_holder.user_id = any(v_holder_user_ids))
+      and exists (
+          select 1
+          from public.ledger_member lm
+          join public.app_user au
+            on au.id = lm.user_id
+          where lm.ledger_id = account_holder.ledger_id
+            and lm.user_id = account_holder.user_id
+            and lm.status = 'active'
+            and au.status = 'active'
+      );
+
+    if cardinality(v_holder_user_ids) > 0 then
+        insert into public.account_holder (
+            ledger_id,
+            account_id,
+            user_id,
+            role,
+            created_by,
+            updated_by
+        )
+        select
+            p_ledger_id,
+            p_account_id,
+            holder_user_id,
+            case
+                when cardinality(v_holder_user_ids) = 1 then 'owner'
+                else 'co_owner'
+            end,
+            v_user_id,
+            v_user_id
+        from unnest(v_holder_user_ids) as holder_user_ids(holder_user_id)
+        on conflict (account_id, user_id)
+        do update set
+            role = excluded.role,
+            updated_by = excluded.updated_by;
+    end if;
+
+    return v_updated_account_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") RETURNS "void"
