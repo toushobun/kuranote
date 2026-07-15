@@ -3,7 +3,10 @@ import {
   ledgerInviteErrorCodes,
   type LedgerInviteErrorCode,
 } from "server/errors/ledgerInvite";
-import { mapRpcBusinessError } from "server/services/rpcError";
+import {
+  mapRpcBusinessError,
+  type RpcErrorLike,
+} from "server/services/rpcError";
 import type { ServiceResult } from "server/services/serviceResult";
 import type { PendingLedgerInvite } from "types/ledgers";
 
@@ -46,17 +49,26 @@ export async function createLedgerInviteService(
     p_role: "member",
   });
 
-  if (error || !Array.isArray(data) || typeof data[0]?.token !== "string") {
-    return {
-      error: error
-        ? mapRpcBusinessError(
-            error,
-            inviteErrorMap,
-            ledgerInviteErrorCodes.createFailed,
-          )
-        : ledgerInviteErrorCodes.createFailed,
-      ok: false,
-    };
+  if (error) {
+    const mappedError = mapRpcBusinessError(
+      error,
+      inviteErrorMap,
+      ledgerInviteErrorCodes.createFailed,
+    );
+
+    if (mappedError === ledgerInviteErrorCodes.createFailed) {
+      logUnexpectedRpcError("create_ledger_invite", error);
+    }
+
+    return { error: mappedError, ok: false };
+  }
+
+  if (!Array.isArray(data) || typeof data[0]?.token !== "string") {
+    console.error("[ledgerInvite] create_ledger_invite returned invalid data", {
+      isArray: Array.isArray(data),
+      rowCount: Array.isArray(data) ? data.length : null,
+    });
+    return { error: ledgerInviteErrorCodes.createFailed, ok: false };
   }
 
   return { ok: true, token: data[0].token };
@@ -177,6 +189,14 @@ export async function revokeLedgerInviteService(
   }
 
   return { ok: true };
+}
+
+function logUnexpectedRpcError(operation: string, error: RpcErrorLike): void {
+  console.error(`[ledgerInvite] ${operation} failed`, {
+    code: error.code ?? null,
+    hint: error.hint ?? null,
+    message: error.message ?? null,
+  });
 }
 
 function isInviteStatus(value: unknown): value is LedgerInviteStatus {

@@ -39,6 +39,9 @@ describe("createLedgerInviteService", () => {
   });
 
   it("非管理员生成邀请时根据 PostgreSQL DETAIL 映射 permission_denied", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const supabase = createSupabaseMock({
       rpcResponse: {
         error: {
@@ -55,11 +58,51 @@ describe("createLedgerInviteService", () => {
       error: ledgerInviteErrorCodes.permissionDenied,
       ok: false,
     });
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("未知 RPC 错误仅记录非敏感诊断字段并返回 create_failed", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "42883",
+          details: "possibly-sensitive-details",
+          hint: "Check the function signature",
+          message: "function digest(text, unknown) does not exist",
+        },
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(createLedgerInviteService("ledger-id")).resolves.toEqual({
+      error: ledgerInviteErrorCodes.createFailed,
+      ok: false,
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledgerInvite] create_ledger_invite failed",
+      {
+        code: "42883",
+        hint: "Check the function signature",
+        message: "function digest(text, unknown) does not exist",
+      },
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ details: expect.anything() }),
+    );
+    consoleError.mockRestore();
   });
 
   it.each([null, [], [{}], [{ token: 123 }]])(
     "RPC 返回无效数据 %j 时返回 create_failed",
     async (data) => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       const supabase = createSupabaseMock({ rpcResponse: { data } });
       mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -67,6 +110,14 @@ describe("createLedgerInviteService", () => {
         error: ledgerInviteErrorCodes.createFailed,
         ok: false,
       });
+      expect(consoleError).toHaveBeenCalledWith(
+        "[ledgerInvite] create_ledger_invite returned invalid data",
+        {
+          isArray: Array.isArray(data),
+          rowCount: Array.isArray(data) ? data.length : null,
+        },
+      );
+      consoleError.mockRestore();
     },
   );
 });

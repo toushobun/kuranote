@@ -101,7 +101,7 @@ ALTER FUNCTION "public"."accept_ledger_invitation"("p_ledger_member_id" "uuid") 
 
 CREATE OR REPLACE FUNCTION "public"."accept_ledger_invite"("p_token" "text") RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "result" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'extensions', 'pg_temp'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -120,7 +120,7 @@ begin
             using errcode = '22023', detail = 'invite_invalid';
     end if;
 
-    v_token_hash := encode(digest(btrim(p_token), 'sha256'), 'hex');
+    v_token_hash := encode(extensions.digest(btrim(p_token), 'sha256'), 'hex');
 
     select *
       into v_invite
@@ -146,9 +146,10 @@ begin
 
     select lm.status
       into v_existing_status
-      from public.ledger_member lm
+     from public.ledger_member lm
      where lm.ledger_id = v_invite.ledger_id
-       and lm.user_id = v_user_id;
+       and lm.user_id = v_user_id
+       and lm.status <> 'removed';
 
     if v_existing_status = 'active' then
         insert into public.user_setting (user_id, current_ledger_id, created_by, updated_by)
@@ -187,7 +188,7 @@ begin
         v_invite.inviter_user_id,
         v_user_id
     )
-    on conflict (ledger_id, user_id) do update set
+    on conflict (ledger_id, user_id) where status <> 'removed' do update set
         role = excluded.role,
         status = 'active',
         joined_at = now(),
@@ -788,7 +789,7 @@ ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_n
 
 CREATE OR REPLACE FUNCTION "public"."create_ledger_invite"("p_ledger_id" "uuid", "p_role" "text" DEFAULT 'member'::"text") RETURNS TABLE("token" "text", "ledger_name" "text", "invite_role" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'extensions', 'pg_temp'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -825,7 +826,7 @@ begin
             using errcode = 'P0002', detail = 'ledger_not_found';
     end if;
 
-    v_token := encode(gen_random_bytes(32), 'hex');
+    v_token := encode(extensions.gen_random_bytes(32), 'hex');
 
     insert into public.ledger_invite (
         ledger_id,
@@ -836,7 +837,7 @@ begin
     ) values (
         p_ledger_id,
         v_user_id,
-        encode(digest(v_token, 'sha256'), 'hex'),
+        encode(extensions.digest(v_token, 'sha256'), 'hex'),
         v_role,
         v_user_id
     );
@@ -1738,7 +1739,7 @@ ALTER FUNCTION "public"."enforce_transaction_record_permission"() OWNER TO "post
 
 CREATE OR REPLACE FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") RETURNS TABLE("invite_status" "text", "ledger_name" "text", "inviter_name" "text", "invite_role" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'extensions', 'pg_temp'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_token_hash text;
@@ -1748,7 +1749,7 @@ begin
         return;
     end if;
 
-    v_token_hash := encode(digest(btrim(p_token), 'sha256'), 'hex');
+    v_token_hash := encode(extensions.digest(btrim(p_token), 'sha256'), 'hex');
 
     return query
     select

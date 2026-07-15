@@ -92,7 +92,13 @@ describe("LedgerInviteEntry", () => {
     expect(await screen.findByText("已复制邀请链接")).toBeInTheDocument();
   });
 
-  it("传入错误信息时自动打开弹窗并显示错误", () => {
+  it("传入错误信息时自动打开弹窗，显示错误后清理地址栏", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteError=create_failed",
+    );
+
     render(
       <LedgerInviteEntry
         action={vi.fn(async () => {})}
@@ -106,6 +112,64 @@ describe("LedgerInviteEntry", () => {
       screen.getByRole("heading", { name: "邀请成员" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("邀请链接生成失败。");
+
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
+  });
+
+  it("刷新后不再显示已经消费的邀请错误", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteError=create_failed",
+    );
+    const { unmount } = render(
+      <LedgerInviteEntry
+        action={vi.fn(async () => {})}
+        canInvite
+        errorMessage="邀请链接生成失败。"
+        ledgerId="ledger-1"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
+    unmount();
+
+    render(
+      <LedgerInviteEntry
+        action={vi.fn(async () => {})}
+        canInvite
+        ledgerId="ledger-1"
+      />,
+    );
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "邀请成员" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("空的 inviteError 参数也会从地址栏删除", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteError=",
+    );
+
+    render(
+      <LedgerInviteEntry
+        action={vi.fn(async () => {})}
+        canInvite
+        ledgerId="ledger-1"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
   });
 
   it("点击关闭按钮会关闭弹窗", async () => {
