@@ -7,6 +7,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/schema_snapshot/**"
+      - "supabase/config.toml"
       - "scripts/generate-schema-snapshot.sh"
       - "scripts/update-schema-snapshot.sh"
       - "scripts/check-schema-snapshot.sh"
@@ -37,6 +38,14 @@ jobs:
             scripts/generate-schema-snapshot.sh \
             scripts/update-schema-snapshot.sh \
             scripts/check-schema-snapshot.sh
+
+      - name: Check migration-first configuration
+        shell: bash
+        run: |
+          if ! grep -Eq '^[[:space:]]*schema_paths[[:space:]]*=[[:space:]]*\[[[:space:]]*\][[:space:]]*$' supabase/config.toml; then
+            echo "supabase/config.toml 的 schema_paths 必须保持为空，结构快照不得参与 migration 生成。" >&2
+            exit 1
+          fi
 
       - name: Check migration history is append-only
         shell: bash
