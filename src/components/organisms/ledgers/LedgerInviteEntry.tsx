@@ -69,45 +69,71 @@ export function LedgerInviteEntry({
   const [revoked, setRevoked] = useState(false);
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const hashInviteId = hashParams.get("inviteId");
-    const hashRole = hashParams.get("inviteRole");
-    const hashToken = hashParams.get("inviteToken");
-    const url = new URL(window.location.href);
-    const inviteResult = url.searchParams.get("inviteResult");
-    const hasInviteError = url.searchParams.has("inviteError");
+    function consumeActionResult() {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const hashInviteId = hashParams.get("inviteId");
+      const hashRole = hashParams.get("inviteRole");
+      const hashToken = hashParams.get("inviteToken");
+      const url = new URL(window.location.href);
+      const inviteResult = url.searchParams.get("inviteResult");
+      const hasInviteError = url.searchParams.has("inviteError");
 
-    if (hashToken) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 fragment 中的一次性 token，避免 token 进入服务端日志。
-      setDraftToken(hashToken);
-      setDraftOpen(true);
-      setCreated(true);
+      if (hashToken) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 读取 fragment 中的一次性 token，避免 token 进入服务端请求日志。
+        setDraftToken(hashToken);
+        setDraftOpen(true);
+        setSelectedInvite(null);
+        setRevokeConfirmOpen(false);
+        setVisibleError(null);
+        setCopied(false);
+        setCopyFailed(false);
+        setCreated(true);
+      }
+
+      if (hashInviteId && hashToken) {
+        setSessionTokens((current) => ({
+          ...current,
+          [hashInviteId]: hashToken,
+        }));
+      }
+
+      if (isLedgerInviteRole(hashRole)) {
+        setDraftRole(hashRole);
+      }
+
+      if (inviteResult === "revoked") {
+        setSelectedInvite(null);
+        setRevokeConfirmOpen(false);
+        setRevoked(true);
+        url.searchParams.delete("inviteResult");
+      }
+
+      if (hasInviteError) {
+        url.searchParams.delete("inviteError");
+      }
+
+      if (hashToken || inviteResult === "revoked" || hasInviteError) {
+        window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+      }
     }
 
-    if (hashInviteId && hashToken) {
-      setSessionTokens((current) => ({
-        ...current,
-        [hashInviteId]: hashToken,
-      }));
-    }
+    consumeActionResult();
+    window.addEventListener("hashchange", consumeActionResult);
+    window.addEventListener("popstate", consumeActionResult);
+    return () => {
+      window.removeEventListener("hashchange", consumeActionResult);
+      window.removeEventListener("popstate", consumeActionResult);
+    };
+  }, [pendingInvites]);
 
-    if (isLedgerInviteRole(hashRole)) {
-      setDraftRole(hashRole);
-    }
-
-    if (inviteResult === "revoked") {
-      setRevoked(true);
-      url.searchParams.delete("inviteResult");
-    }
-
-    if (hasInviteError) {
-      url.searchParams.delete("inviteError");
-    }
-
-    if (hashToken || inviteResult === "revoked" || hasInviteError) {
-      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-    }
-  }, []);
+  useEffect(() => {
+    if (errorMessage === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步打开反馈窗口。
+    setVisibleError(errorMessage);
+    setDraftOpen(true);
+    setSelectedInvite(null);
+    setRevokeConfirmOpen(false);
+  }, [errorMessage]);
 
   const draftLink = useInviteLink(draftToken);
   const selectedToken = selectedInvite

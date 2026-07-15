@@ -64,6 +64,24 @@ describe("LedgerInviteEntry", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("组件未重新挂载时仍会消费后续创建结果", async () => {
+    renderEntry();
+
+    window.history.pushState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings#inviteId=invite-2&inviteRole=admin&inviteToken=second-token",
+    );
+    fireEvent(window, new Event("hashchange"));
+
+    expect(
+      await screen.findByText("创建链接成功，快去复制给你的亲友吧"),
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/second-token/)).toBeInTheDocument();
+    expect(screen.getByText("管理员（Admin）")).toBeInTheDocument();
+    expect(window.location.hash).toBe("");
+  });
+
   it("复制成功后显示明确反馈", async () => {
     window.history.replaceState(
       null,
@@ -140,5 +158,28 @@ describe("LedgerInviteEntry", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("邀请链接生成失败。");
     await waitFor(() => expect(window.location.search).toBe(""));
+  });
+
+  it("组件未重新挂载时仍会展示新的 Action 错误", async () => {
+    const action = vi.fn(async () => {});
+    const { rerender } = render(
+      <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />,
+    );
+
+    rerender(
+      <LedgerInviteEntry
+        action={action}
+        canInvite
+        errorMessage="邀请链接生成失败。"
+        ledgerId="ledger-1"
+      />,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "邀请链接生成失败。",
+    );
+    expect(
+      screen.getByRole("heading", { name: "邀请成员" }),
+    ).toBeInTheDocument();
   });
 });

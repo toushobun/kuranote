@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
@@ -78,6 +78,51 @@ describe("LedgerInviteEntry 待接受邀请", () => {
         .getAllByDisplayValue("invite-member")
         .some((input) => input.getAttribute("name") === "inviteId"),
     ).toBe(true);
+  });
+
+  it("同页替换成功后关闭旧详情并展示新链接", async () => {
+    renderEntry();
+    fireEvent.click(
+      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
+    );
+
+    window.history.pushState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings#inviteId=invite-new&inviteRole=member&inviteToken=new-token",
+    );
+    fireEvent(window, new Event("hashchange"));
+
+    expect(
+      await screen.findByRole("heading", { name: "邀请成员" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "邀请详情" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue(/new-token/)).toBeInTheDocument();
+  });
+
+  it("同页撤销成功后关闭旧弹窗并清理结果参数", async () => {
+    renderEntry();
+    fireEvent.click(
+      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "撤销邀请" }));
+
+    window.history.pushState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteResult=revoked",
+    );
+    fireEvent(window, new Event("popstate"));
+
+    expect(await screen.findByText("邀请已撤销")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "确认撤销邀请？" }),
+      ).not.toBeInTheDocument();
+    });
+    await waitFor(() => expect(window.location.search).toBe(""));
   });
 
   it("刷新后详情提供安全重新生成入口，不展示不可恢复的旧链接", () => {

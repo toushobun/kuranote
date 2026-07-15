@@ -10,7 +10,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { ledgerInviteRoleLabels, type LedgerInviteRole } from "types/ledgers";
 
@@ -38,6 +38,8 @@ export function LedgerInviteRoleRow({
 }) {
   const { icon, label } = roleContent[role];
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const menuId = useId();
+  const menuOpen = anchorEl !== null;
 
   return (
     <Stack direction="row" spacing={1.4} sx={{ alignItems: "center" }}>
@@ -49,6 +51,8 @@ export function LedgerInviteRoleRow({
         {onChange ? (
           <>
             <Button
+              aria-controls={menuOpen ? menuId : undefined}
+              aria-expanded={menuOpen ? "true" : undefined}
               aria-haspopup="menu"
               aria-label={`选择邀请权限，当前为${label}`}
               endIcon={<ArrowDropDownRoundedIcon />}
@@ -60,8 +64,9 @@ export function LedgerInviteRoleRow({
             </Button>
             <Menu
               anchorEl={anchorEl}
+              id={menuId}
               onClose={() => setAnchorEl(null)}
-              open={anchorEl !== null}
+              open={menuOpen}
             >
               {(Object.keys(roleContent) as LedgerInviteRole[]).map((value) => (
                 <MenuItem
