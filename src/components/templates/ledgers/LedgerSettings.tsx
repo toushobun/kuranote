@@ -59,8 +59,6 @@ type ErrorFeedback = {
   message: string;
 };
 
-const ledgerSettingsFormId = "ledger-settings-form";
-
 type LedgerSettingsTemplateProps = LedgerSettingsView & {
   errorKey?: string | null;
   errorMessage: string | null;
@@ -152,7 +150,15 @@ export function LedgerSettingsTemplate({
         sx={pageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={pageShellSx}>
-        <Stack spacing={1.45} sx={formSx}>
+        <Stack
+          component="form"
+          action={updateLedgerSettingsAction}
+          spacing={1.45}
+          sx={formSx}
+        >
+          <input name="intent" type="hidden" value="ledger" />
+          <input name="ledgerId" type="hidden" value={ledger.id} />
+
           <Stack spacing={1.2} sx={headerSx}>
             <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
               <IconButton
@@ -186,68 +192,59 @@ export function LedgerSettingsTemplate({
             ) : null}
           </Stack>
 
-          <Box
-            action={updateLedgerSettingsAction}
-            component="form"
-            id={ledgerSettingsFormId}
-          >
-            <input name="intent" type="hidden" value="ledger" />
-            <input name="ledgerId" type="hidden" value={ledger.id} />
+          <SettingsSection title="基础信息">
+            <SoftCard sx={sectionCardSx}>
+              <Stack spacing={1.5}>
+                <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
+                  <TextField
+                    autoComplete="off"
+                    defaultValue={ledger.name}
+                    disabled={!canEditLedger}
+                    fullWidth
+                    name="ledgerName"
+                    required
+                    slotProps={{ htmlInput: { "aria-label": "账本名称" } }}
+                  />
+                </SettingsField>
 
-            <SettingsSection title="基础信息">
-              <SoftCard sx={sectionCardSx}>
-                <Stack spacing={1.5}>
-                  <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
-                    <TextField
-                      autoComplete="off"
-                      defaultValue={ledger.name}
-                      disabled={!canEditLedger}
-                      fullWidth
-                      name="ledgerName"
-                      required
-                      slotProps={{ htmlInput: { "aria-label": "账本名称" } }}
-                    />
-                  </SettingsField>
+                <SettingsDivider />
 
-                  <SettingsDivider />
-
-                  <SettingsField
-                    icon={<CurrencyYenRoundedIcon />}
-                    label="默认货币"
+                <SettingsField
+                  icon={<CurrencyYenRoundedIcon />}
+                  label="默认货币"
+                >
+                  <TextField
+                    defaultValue={ledger.baseCurrency}
+                    disabled={!canEditLedger}
+                    fullWidth
+                    name="baseCurrency"
+                    required
+                    select
+                    slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
                   >
-                    <TextField
-                      defaultValue={ledger.baseCurrency}
-                      disabled={!canEditLedger}
-                      fullWidth
-                      name="baseCurrency"
-                      required
-                      select
-                      slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
-                    >
-                      {ledgerCurrencyOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                      {!ledgerCurrencyOptions.some(
-                        (option) => option.value === ledger.baseCurrency,
-                      ) ? (
-                        <MenuItem value={ledger.baseCurrency}>
-                          {ledger.baseCurrency}
-                        </MenuItem>
-                      ) : null}
-                    </TextField>
-                  </SettingsField>
+                    {ledgerCurrencyOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                    {!ledgerCurrencyOptions.some(
+                      (option) => option.value === ledger.baseCurrency,
+                    ) ? (
+                      <MenuItem value={ledger.baseCurrency}>
+                        {ledger.baseCurrency}
+                      </MenuItem>
+                    ) : null}
+                  </TextField>
+                </SettingsField>
 
-                  {!canEditLedger ? (
-                    <HelperText>
-                      只有管理员或所有者可以修改账本名称与默认货币。
-                    </HelperText>
-                  ) : null}
-                </Stack>
-              </SoftCard>
-            </SettingsSection>
-          </Box>
+                {!canEditLedger ? (
+                  <HelperText>
+                    只有管理员或所有者可以修改账本名称与默认货币。
+                  </HelperText>
+                ) : null}
+              </Stack>
+            </SoftCard>
+          </SettingsSection>
 
           <SettingsSection title="成员">
             <SoftCard sx={sectionCardSx}>
@@ -286,7 +283,6 @@ export function LedgerSettingsTemplate({
             </Button>
             <Button
               disabled={!canEditLedger}
-              form={ledgerSettingsFormId}
               fullWidth
               sx={saveButtonSx}
               type="submit"
