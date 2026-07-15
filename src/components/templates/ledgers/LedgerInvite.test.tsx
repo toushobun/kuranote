@@ -63,6 +63,36 @@ describe("LedgerInviteTemplate", () => {
     );
   });
 
+  it.each([
+    [
+      "admin",
+      "管理员（Admin）",
+      "加入后可管理账本、成员与基础设置，并共同记录数据。",
+    ],
+    [
+      "member",
+      "用户（Member）",
+      "加入后可共同查看和记录该账本的数据。",
+    ],
+    [
+      "viewer",
+      "只读（Viewer）",
+      "加入后可查看该账本的数据，但不能新增或修改记录。",
+    ],
+  ] as const)("%s 邀请展示对应权限说明", (role, label, description) => {
+    render(
+      <LedgerInviteTemplate
+        acceptAction={acceptAction}
+        isAuthenticated
+        preview={{ ...validPreview, inviteRole: role }}
+        token="invite-token"
+      />,
+    );
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(description)).toBeInTheDocument();
+  });
+
   it("已加入时显示进入账本入口和已加入插图", () => {
     render(
       <LedgerInviteTemplate

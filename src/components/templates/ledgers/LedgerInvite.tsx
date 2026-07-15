@@ -14,6 +14,13 @@ import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import type { LedgerInvitePreview } from "server/services/ledgerInvite";
 import { PageShell } from "templates/layout/PageShell";
 import type { ServerAction } from "types/actions";
+import type { LedgerInviteRole } from "types/ledgers";
+
+const inviteRoleDescriptions: Record<LedgerInviteRole, string> = {
+  admin: "加入后可管理账本、成员与基础设置，并共同记录数据。",
+  member: "加入后可共同查看和记录该账本的数据。",
+  viewer: "加入后可查看该账本的数据，但不能新增或修改记录。",
+};
 
 type LedgerInviteTemplateProps = {
   acceptAction: ServerAction;
@@ -112,7 +119,7 @@ export function LedgerInviteTemplate({
                 </Stack>
                 <LedgerInviteRoleRow role={preview.inviteRole ?? "member"} />
                 <Typography color="text.secondary" variant="body2">
-                  加入后即可共同查看和记录该账本的数据。
+                  {inviteRoleDescriptions[preview.inviteRole ?? "member"]}
                 </Typography>
               </Stack>
             </SoftCard>
