@@ -16,7 +16,6 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { transactionTimeLocale } from "config/dateTime";
 import {
@@ -33,11 +32,11 @@ import { usePendingLedgerInvites } from "organisms/ledgers/LedgerInvitePendingCo
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { ServerAction } from "types/actions";
 import {
-  isLedgerInviteRole,
   ledgerInviteRoleLabels,
-  type LedgerInviteRole,
   type PendingLedgerInvite,
 } from "types/ledgers";
+
+import { useLedgerInviteEntry } from "./useLedgerInviteEntry";
 
 type LedgerInviteEntryProps = {
   action: ServerAction;
@@ -59,143 +58,41 @@ export function LedgerInviteEntry({
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
-  const [draftOpen, setDraftOpen] = useState(
-    (errorMessage !== null &&
-      errorOperation === ledgerInviteErrorOperations.create) ||
-      initialToken !== null,
-  );
-  const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
-  const [draftToken, setDraftToken] = useState<string | null>(initialToken);
-  const [visibleError, setVisibleError] = useState(
-    errorOperation === ledgerInviteErrorOperations.create ? errorMessage : null,
-  );
-  const [managementError, setManagementError] = useState<{
-    message: string;
-    operation: Exclude<LedgerInviteErrorOperation, "create">;
-  } | null>(
-    errorMessage !== null &&
-      errorOperation !== ledgerInviteErrorOperations.create
-      ? { message: errorMessage, operation: errorOperation }
-      : null,
-  );
-  const [sessionTokens, setSessionTokens] = useState<Record<string, string>>(
-    {},
-  );
-  const [selectedInvite, setSelectedInvite] =
-    useState<PendingLedgerInvite | null>(null);
-  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
-  const [created, setCreated] = useState(false);
-  const [revoked, setRevoked] = useState(false);
-
-  const resetTransientFeedback = useCallback(() => {
-    setCopied(false);
-    setCopyFailed(false);
-    setCreated(false);
-    setRevoked(false);
-    setManagementError(null);
-  }, []);
-
-  useEffect(() => {
-    function consumeActionResult() {
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      const hashInviteId = hashParams.get("inviteId");
-      const hashRole = hashParams.get("inviteRole");
-      const hashToken = hashParams.get("inviteToken");
-      const url = new URL(window.location.href);
-      const inviteResult = url.searchParams.get("inviteResult");
-      const hasInviteError = url.searchParams.has("inviteError");
-
-      if (hashToken) {
-        resetTransientFeedback();
-        setDraftToken(hashToken);
-        setDraftOpen(true);
-        setSelectedInvite(null);
-        setRevokeConfirmOpen(false);
-        setVisibleError(null);
-        setCreated(true);
-      }
-
-      if (hashInviteId && hashToken) {
-        setSessionTokens((current) => ({
-          ...current,
-          [hashInviteId]: hashToken,
-        }));
-      }
-
-      if (isLedgerInviteRole(hashRole)) {
-        setDraftRole(hashRole);
-      }
-
-      if (inviteResult === "revoked") {
-        resetTransientFeedback();
-        setSelectedInvite(null);
-        setRevokeConfirmOpen(false);
-        setRevoked(true);
-        url.searchParams.delete("inviteResult");
-      }
-
-      if (hasInviteError) {
-        url.searchParams.delete("inviteError");
-        url.searchParams.delete("inviteErrorKey");
-        url.searchParams.delete("inviteOperation");
-      }
-
-      if (hashToken || inviteResult === "revoked" || hasInviteError) {
-        window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-      }
-    }
-
-    consumeActionResult();
-    window.addEventListener("hashchange", consumeActionResult);
-    window.addEventListener("popstate", consumeActionResult);
-    return () => {
-      window.removeEventListener("hashchange", consumeActionResult);
-      window.removeEventListener("popstate", consumeActionResult);
-    };
-  }, [pendingInvites, resetTransientFeedback]);
-
-  useEffect(() => {
-    if (errorMessage === null) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步重置旧反馈并展示本次错误。
-    resetTransientFeedback();
-    if (errorOperation === ledgerInviteErrorOperations.create) {
-      setVisibleError(errorMessage);
-      setDraftOpen(true);
-      setSelectedInvite(null);
-      setRevokeConfirmOpen(false);
-      return;
-    }
-
-    setManagementError({ message: errorMessage, operation: errorOperation });
-    setRevokeConfirmOpen(false);
-  }, [errorKey, errorMessage, errorOperation, resetTransientFeedback]);
-
-  const draftLink = useInviteLink(draftToken);
-  const selectedToken = selectedInvite
-    ? (sessionTokens[selectedInvite.id] ?? null)
-    : null;
-  const selectedLink = useInviteLink(selectedToken);
-
-  function openNewDraft() {
-    setDraftRole("member");
-    setDraftToken(null);
-    setVisibleError(null);
-    resetTransientFeedback();
-    setDraftOpen(true);
-  }
-
-  async function copyLink(link: string) {
-    if (!link) return;
-    resetTransientFeedback();
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-    } catch {
-      setCopyFailed(true);
-    }
-  }
+  const {
+    closeCopyFailedFeedback,
+    closeCopyFeedback,
+    closeCreatedFeedback,
+    closeDraft,
+    closeInviteDetails,
+    closeManagementError,
+    closeRevokedFeedback,
+    closeRevokeConfirm,
+    copied,
+    copyFailed,
+    copyLink,
+    created,
+    draftLink,
+    draftOpen,
+    draftRole,
+    draftToken,
+    managementError,
+    openNewDraft,
+    openRevokeConfirm,
+    revoked,
+    revokeConfirmOpen,
+    selectedInvite,
+    selectedLink,
+    selectedToken,
+    selectInvite,
+    setDraftRole,
+    visibleError,
+  } = useLedgerInviteEntry({
+    errorKey,
+    errorMessage,
+    errorOperation,
+    initialToken,
+    pendingInvites,
+  });
 
   return (
     <>
@@ -203,7 +100,7 @@ export function LedgerInviteEntry({
         <PendingInviteRow
           invite={invite}
           key={invite.id}
-          onClick={() => setSelectedInvite(invite)}
+          onClick={() => selectInvite(invite)}
         />
       ))}
 
@@ -223,18 +120,13 @@ export function LedgerInviteEntry({
         trailing={<ChevronRightRoundedIcon sx={inviteTrailingIconSx} />}
       />
 
-      <Dialog
-        fullWidth
-        maxWidth="xs"
-        onClose={() => setDraftOpen(false)}
-        open={draftOpen}
-      >
+      <Dialog fullWidth maxWidth="xs" onClose={closeDraft} open={draftOpen}>
         <form action={action}>
           <DialogTitle sx={dialogTitleSx}>
             邀请成员
             <IconButton
               aria-label="关闭"
-              onClick={() => setDraftOpen(false)}
+              onClick={closeDraft}
               sx={dialogCloseSx}
               type="button"
             >
@@ -287,14 +179,14 @@ export function LedgerInviteEntry({
       <Dialog
         fullWidth
         maxWidth="xs"
-        onClose={() => setSelectedInvite(null)}
+        onClose={closeInviteDetails}
         open={selectedInvite !== null && !revokeConfirmOpen}
       >
         <DialogTitle sx={dialogTitleSx}>
           邀请详情
           <IconButton
             aria-label="关闭邀请详情"
-            onClick={() => setSelectedInvite(null)}
+            onClick={closeInviteDetails}
             sx={dialogCloseSx}
             type="button"
           >
@@ -347,7 +239,7 @@ export function LedgerInviteEntry({
             <Button
               color="error"
               fullWidth
-              onClick={() => setRevokeConfirmOpen(true)}
+              onClick={openRevokeConfirm}
               type="button"
               variant="outlined"
             >
@@ -360,7 +252,7 @@ export function LedgerInviteEntry({
       <Dialog
         fullWidth
         maxWidth="xs"
-        onClose={() => setRevokeConfirmOpen(false)}
+        onClose={closeRevokeConfirm}
         open={revokeConfirmOpen}
       >
         <form action={action}>
@@ -378,7 +270,7 @@ export function LedgerInviteEntry({
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={() => setRevokeConfirmOpen(false)} type="button">
+            <Button onClick={closeRevokeConfirm} type="button">
               取消
             </Button>
             <Button color="error" type="submit" variant="contained">
@@ -391,28 +283,28 @@ export function LedgerInviteEntry({
       <SuccessFeedbackDialog
         aboveModal
         bottomOffset={feedbackBottomOffset}
-        onClose={() => setCopied(false)}
+        onClose={closeCopyFeedback}
         open={copied}
         title="复制成功"
       />
       <SuccessFeedbackDialog
         aboveModal
         bottomOffset={feedbackBottomOffset}
-        onClose={() => setCreated(false)}
+        onClose={closeCreatedFeedback}
         open={created}
         title="创建链接成功，快去复制给你的亲友吧"
       />
       <SuccessFeedbackDialog
         bottomOffset={feedbackBottomOffset}
         description="该邀请链接已失效。"
-        onClose={() => setRevoked(false)}
+        onClose={closeRevokedFeedback}
         open={revoked}
         title="邀请已撤销"
       />
       <FailureFeedbackDialog
         aboveModal
         bottomOffset={feedbackBottomOffset}
-        onClose={() => setCopyFailed(false)}
+        onClose={closeCopyFailedFeedback}
         open={copyFailed}
         title="复制失败，请手动复制邀请链接"
       />
@@ -420,7 +312,7 @@ export function LedgerInviteEntry({
         aboveModal
         bottomOffset={feedbackBottomOffset}
         description={managementError?.message}
-        onClose={() => setManagementError(null)}
+        onClose={closeManagementError}
         open={managementError !== null}
         title={
           managementError?.operation === ledgerInviteErrorOperations.replace
@@ -523,15 +415,6 @@ function DetailLine({ label, value }: { label: string; value: string }) {
       </Typography>
     </Stack>
   );
-}
-
-function useInviteLink(token: string | null) {
-  return useMemo(() => {
-    if (!token) return "";
-    const path = `/invite/${encodeURIComponent(token)}`;
-    if (typeof window === "undefined") return path;
-    return `${window.location.origin}${path}`;
-  }, [token]);
 }
 
 function formatInviteCreatedAt(value: string) {
