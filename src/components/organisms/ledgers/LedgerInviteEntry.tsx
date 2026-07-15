@@ -16,7 +16,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { transactionTimeLocale } from "config/dateTime";
 import {
@@ -89,6 +89,14 @@ export function LedgerInviteEntry({
   const [created, setCreated] = useState(false);
   const [revoked, setRevoked] = useState(false);
 
+  const resetTransientFeedback = useCallback(() => {
+    setCopied(false);
+    setCopyFailed(false);
+    setCreated(false);
+    setRevoked(false);
+    setManagementError(null);
+  }, []);
+
   useEffect(() => {
     function consumeActionResult() {
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
@@ -100,13 +108,12 @@ export function LedgerInviteEntry({
       const hasInviteError = url.searchParams.has("inviteError");
 
       if (hashToken) {
+        resetTransientFeedback();
         setDraftToken(hashToken);
         setDraftOpen(true);
         setSelectedInvite(null);
         setRevokeConfirmOpen(false);
         setVisibleError(null);
-        setCopied(false);
-        setCopyFailed(false);
         setCreated(true);
       }
 
@@ -122,6 +129,7 @@ export function LedgerInviteEntry({
       }
 
       if (inviteResult === "revoked") {
+        resetTransientFeedback();
         setSelectedInvite(null);
         setRevokeConfirmOpen(false);
         setRevoked(true);
@@ -146,14 +154,14 @@ export function LedgerInviteEntry({
       window.removeEventListener("hashchange", consumeActionResult);
       window.removeEventListener("popstate", consumeActionResult);
     };
-  }, [pendingInvites]);
+  }, [pendingInvites, resetTransientFeedback]);
 
   useEffect(() => {
     if (errorMessage === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步重置旧反馈并展示本次错误。
+    resetTransientFeedback();
     if (errorOperation === ledgerInviteErrorOperations.create) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步打开反馈窗口。
       setVisibleError(errorMessage);
-      setManagementError(null);
       setDraftOpen(true);
       setSelectedInvite(null);
       setRevokeConfirmOpen(false);
@@ -162,7 +170,7 @@ export function LedgerInviteEntry({
 
     setManagementError({ message: errorMessage, operation: errorOperation });
     setRevokeConfirmOpen(false);
-  }, [errorKey, errorMessage, errorOperation]);
+  }, [errorKey, errorMessage, errorOperation, resetTransientFeedback]);
 
   const draftLink = useInviteLink(draftToken);
   const selectedToken = selectedInvite
@@ -174,21 +182,17 @@ export function LedgerInviteEntry({
     setDraftRole("member");
     setDraftToken(null);
     setVisibleError(null);
-    setCopied(false);
-    setCopyFailed(false);
-    setCreated(false);
+    resetTransientFeedback();
     setDraftOpen(true);
   }
 
   async function copyLink(link: string) {
     if (!link) return;
+    resetTransientFeedback();
     try {
       await navigator.clipboard.writeText(link);
-      setCreated(false);
-      setCopyFailed(false);
       setCopied(true);
     } catch {
-      setCopied(false);
       setCopyFailed(true);
     }
   }

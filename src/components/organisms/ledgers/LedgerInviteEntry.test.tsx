@@ -241,4 +241,45 @@ describe("LedgerInviteEntry", () => {
       screen.queryByRole("heading", { name: "邀请成员" }),
     ).not.toBeInTheDocument();
   });
+
+  it("打开全新邀请草稿时清除旧管理错误", async () => {
+    render(
+      <LedgerInviteEntry
+        action={vi.fn(async () => {})}
+        canInvite
+        errorKey="error-1"
+        errorMessage="邀请已失效。"
+        errorOperation={ledgerInviteErrorOperations.replace}
+        ledgerId="ledger-1"
+      />,
+    );
+
+    expect(screen.getByText("重新生成邀请链接失败")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+
+    expect(
+      screen.getByRole("heading", { name: "邀请成员" }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByText("重新生成邀请链接失败"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("打开全新邀请草稿时清除旧撤销成功提示", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteResult=revoked",
+    );
+    renderEntry();
+
+    expect(await screen.findByText("邀请已撤销")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("邀请已撤销")).not.toBeInTheDocument();
+    });
+  });
 });
