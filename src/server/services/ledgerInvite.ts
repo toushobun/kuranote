@@ -8,7 +8,11 @@ import {
   type RpcErrorLike,
 } from "server/services/rpcError";
 import type { ServiceResult } from "server/services/serviceResult";
-import type { PendingLedgerInvite } from "types/ledgers";
+import {
+  isLedgerInviteRole,
+  type LedgerInviteRole,
+  type PendingLedgerInvite,
+} from "types/ledgers";
 
 export type LedgerInviteStatus =
   | "valid"
@@ -18,14 +22,14 @@ export type LedgerInviteStatus =
   | "invalid";
 
 export type LedgerInvitePreview = {
-  inviteRole: "member" | "viewer" | null;
+  inviteRole: LedgerInviteRole | null;
   inviterName: string | null;
   ledgerName: string | null;
   status: LedgerInviteStatus;
 };
 
 type CreateInviteResult =
-  | { ok: true; token: string }
+  | { inviteId: string; ok: true; role: LedgerInviteRole; token: string }
   | { ok: false; error: LedgerInviteErrorCode };
 
 type PendingInvitesResult =
@@ -37,16 +41,18 @@ const inviteErrorMap = {
   invite_already_revoked: ledgerInviteErrorCodes.inviteAlreadyRevoked,
   invite_already_used: ledgerInviteErrorCodes.inviteUsed,
   invite_invalid: ledgerInviteErrorCodes.inviteInvalid,
+  invite_role_invalid: ledgerInviteErrorCodes.inviteRoleInvalid,
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
 } as const satisfies Readonly<Record<string, LedgerInviteErrorCode>>;
 
 export async function createLedgerInviteService(
   ledgerId: string,
+  role: LedgerInviteRole,
 ): Promise<CreateInviteResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_ledger_invite", {
+  const { data, error } = await supabase.rpc("create_ledger_invite_v2", {
     p_ledger_id: ledgerId,
-    p_role: "member",
+    p_role: role,
   });
 
   if (error) {
@@ -57,21 +63,80 @@ export async function createLedgerInviteService(
     );
 
     if (mappedError === ledgerInviteErrorCodes.createFailed) {
-      logUnexpectedRpcError("create_ledger_invite", error);
+      logUnexpectedRpcError("create_ledger_invite_v2", error);
     }
 
     return { error: mappedError, ok: false };
   }
 
-  if (!Array.isArray(data) || typeof data[0]?.token !== "string") {
-    console.error("[ledgerInvite] create_ledger_invite returned invalid data", {
-      isArray: Array.isArray(data),
-      rowCount: Array.isArray(data) ? data.length : null,
-    });
+  if (
+    !Array.isArray(data) ||
+    typeof data[0]?.invite_id !== "string" ||
+    typeof data[0]?.token !== "string" ||
+    !isLedgerInviteRole(data[0]?.invite_role)
+  ) {
+    console.error(
+      "[ledgerInvite] create_ledger_invite_v2 returned invalid data",
+      {
+        isArray: Array.isArray(data),
+        rowCount: Array.isArray(data) ? data.length : null,
+      },
+    );
     return { error: ledgerInviteErrorCodes.createFailed, ok: false };
   }
 
-  return { ok: true, token: data[0].token };
+  return {
+    inviteId: data[0].invite_id,
+    ok: true,
+    role: data[0].invite_role,
+    token: data[0].token,
+  };
+}
+
+export async function replaceLedgerInviteService(
+  ledgerId: string,
+  inviteId: string,
+): Promise<CreateInviteResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("replace_ledger_invite", {
+    p_invite_id: inviteId,
+    p_ledger_id: ledgerId,
+  });
+
+  if (error) {
+    const mappedError = mapRpcBusinessError(
+      error,
+      inviteErrorMap,
+      ledgerInviteErrorCodes.createFailed,
+    );
+    if (mappedError === ledgerInviteErrorCodes.createFailed) {
+      logUnexpectedRpcError("replace_ledger_invite", error);
+    }
+    return { error: mappedError, ok: false };
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (
+    typeof row?.invite_id !== "string" ||
+    typeof row.token !== "string" ||
+    !isLedgerInviteRole(row.invite_role)
+  ) {
+    console.error(
+      "[ledgerInvite] replace_ledger_invite returned invalid data",
+      {
+        isArray: Array.isArray(data),
+        rowCount: Array.isArray(data) ? data.length : null,
+      },
+    );
+    return { error: ledgerInviteErrorCodes.createFailed, ok: false };
+  }
+
+  return {
+    inviteId: row.invite_id,
+    ok: true,
+    role: row.invite_role,
+    token: row.token,
+  };
 }
 
 export async function loadPendingLedgerInvitesService(
@@ -99,7 +164,7 @@ export async function loadPendingLedgerInvitesService(
     if (
       typeof row.invite_id !== "string" ||
       typeof row.created_at !== "string" ||
-      (row.invite_role !== "member" && row.invite_role !== "viewer")
+      !isLedgerInviteRole(row.invite_role)
     ) {
       return [];
     }
@@ -135,10 +200,7 @@ export async function loadLedgerInvitePreview(
   }
 
   return {
-    inviteRole:
-      row.invite_role === "viewer" || row.invite_role === "member"
-        ? row.invite_role
-        : null,
+    inviteRole: isLedgerInviteRole(row.invite_role) ? row.invite_role : null,
     inviterName: typeof row.inviter_name === "string" ? row.inviter_name : null,
     ledgerName: typeof row.ledger_name === "string" ? row.ledger_name : null,
     status: isInviteStatus(row.invite_status) ? row.invite_status : "invalid",

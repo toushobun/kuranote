@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   revalidatePath: vi.fn(),
+  replaceLedgerInviteService: vi.fn(),
   revokeLedgerInviteService: vi.fn(),
 }));
 
@@ -31,6 +32,7 @@ vi.mock("lib/ledger/current-ledger", () => ({
 vi.mock("server/services/ledgerInvite", () => ({
   acceptLedgerInviteService: mocks.acceptLedgerInviteService,
   createLedgerInviteService: mocks.createLedgerInviteService,
+  replaceLedgerInviteService: mocks.replaceLedgerInviteService,
   revokeLedgerInviteService: mocks.revokeLedgerInviteService,
 }));
 
@@ -58,25 +60,65 @@ describe("createLedgerInvite", () => {
     });
     const formData = new FormData();
     formData.set("ledgerId", "ledger/id");
+    formData.set("role", "admin");
 
     await expect(createLedgerInvite(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/ledgers/ledger%2Fid/settings?inviteError=permission_denied",
     );
   });
 
-  it("创建成功时通过 fragment 回传 token，避免进入查询参数和 Referer", async () => {
+  it("创建成功时通过 fragment 回传邀请信息，避免 token 进入查询参数和 Referer", async () => {
     mocks.createLedgerInviteService.mockResolvedValue({
+      inviteId: "invite-id",
       ok: true,
+      role: "viewer",
       token: "token/with space",
     });
     const formData = new FormData();
     formData.set("ledgerId", "ledger-id");
+    formData.set("role", "viewer");
 
     await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteToken=token%2Fwith%20space",
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-id&inviteRole=viewer&inviteToken=token%2Fwith+space",
+    );
+    expect(mocks.createLedgerInviteService).toHaveBeenCalledWith(
+      "ledger-id",
+      "viewer",
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       "/ledgers/ledger-id/settings",
+    );
+  });
+
+  it.each(["owner", "unknown"])("拒绝非法邀请角色 %s", async (role) => {
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("role", role);
+
+    await expect(createLedgerInvite(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteError=invite_role_invalid",
+    );
+    expect(mocks.createLedgerInviteService).not.toHaveBeenCalled();
+  });
+
+  it("安全替换邀请后返回新 token 与邀请标识", async () => {
+    mocks.replaceLedgerInviteService.mockResolvedValue({
+      inviteId: "invite-new",
+      ok: true,
+      role: "admin",
+      token: "new-token",
+    });
+    const formData = new FormData();
+    formData.set("intent", "replace");
+    formData.set("ledgerId", "ledger-id");
+    formData.set("inviteId", "invite-old");
+
+    await expect(createLedgerInvite(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-new&inviteRole=admin&inviteToken=new-token",
+    );
+    expect(mocks.replaceLedgerInviteService).toHaveBeenCalledWith(
+      "ledger-id",
+      "invite-old",
     );
   });
 

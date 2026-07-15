@@ -21,11 +21,19 @@ import { useEffect, useMemo, useState } from "react";
 import { transactionTimeLocale } from "config/dateTime";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
-import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import {
+  FailureFeedbackDialog,
+  SuccessFeedbackDialog,
+} from "molecules/ui/OperationFeedbackDialogs";
 import { usePendingLedgerInvites } from "organisms/ledgers/LedgerInvitePendingContext";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { ServerAction } from "types/actions";
-import type { PendingLedgerInvite } from "types/ledgers";
+import {
+  isLedgerInviteRole,
+  ledgerInviteRoleLabels,
+  type LedgerInviteRole,
+  type PendingLedgerInvite,
+} from "types/ledgers";
 
 type LedgerInviteEntryProps = {
   action: ServerAction;
@@ -43,26 +51,48 @@ export function LedgerInviteEntry({
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
-  const [token, setToken] = useState<string | null>(initialToken);
-  const [open, setOpen] = useState(
+  const [draftOpen, setDraftOpen] = useState(
     errorMessage !== null || initialToken !== null,
   );
-  const [copied, setCopied] = useState(false);
+  const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
+  const [draftToken, setDraftToken] = useState<string | null>(initialToken);
+  const [visibleError, setVisibleError] = useState(errorMessage);
+  const [sessionTokens, setSessionTokens] = useState<Record<string, string>>(
+    {},
+  );
   const [selectedInvite, setSelectedInvite] =
     useState<PendingLedgerInvite | null>(null);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const [created, setCreated] = useState(false);
   const [revoked, setRevoked] = useState(false);
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashInviteId = hashParams.get("inviteId");
+    const hashRole = hashParams.get("inviteRole");
     const hashToken = hashParams.get("inviteToken");
     const url = new URL(window.location.href);
     const inviteResult = url.searchParams.get("inviteResult");
     const hasInviteError = url.searchParams.has("inviteError");
 
     if (hashToken) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 URL fragment 中的邀请 token，避免服务端水合差异。
-      setToken(hashToken);
-      setOpen(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后读取 fragment 中的一次性 token，避免 token 进入服务端日志。
+      setDraftToken(hashToken);
+      setDraftOpen(true);
+      setCreated(true);
+    }
+
+    if (hashInviteId && hashToken) {
+      setSessionTokens((current) => ({
+        ...current,
+        [hashInviteId]: hashToken,
+      }));
+    }
+
+    if (isLedgerInviteRole(hashRole)) {
+      setDraftRole(hashRole);
     }
 
     if (inviteResult === "revoked") {
@@ -79,29 +109,42 @@ export function LedgerInviteEntry({
     }
   }, []);
 
-  const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "";
-  const displayedLink = useMemo(() => {
-    if (!invitePath) return "生成后将在这里显示邀请链接";
-    if (typeof window === "undefined") return invitePath;
-    return `${window.location.origin}${invitePath}`;
-  }, [invitePath]);
+  const draftLink = useInviteLink(draftToken);
+  const selectedToken = selectedInvite
+    ? (sessionTokens[selectedInvite.id] ?? null)
+    : null;
+  const selectedLink = useInviteLink(selectedToken);
 
-  async function copyLink() {
-    if (!invitePath) return;
-    await navigator.clipboard.writeText(
-      `${window.location.origin}${invitePath}`,
-    );
-    setCopied(true);
+  function openNewDraft() {
+    setDraftRole("member");
+    setDraftToken(null);
+    setVisibleError(null);
+    setCopied(false);
+    setCopyFailed(false);
+    setCreated(false);
+    setDraftOpen(true);
+  }
+
+  async function copyLink(link: string) {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCreated(false);
+      setCopyFailed(false);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
+    }
   }
 
   return (
     <>
       {pendingInvites.map((invite) => (
         <PendingInviteRow
-          canRevoke={canInvite}
           invite={invite}
           key={invite.id}
-          onRevoke={() => setSelectedInvite(invite)}
+          onClick={() => setSelectedInvite(invite)}
         />
       ))}
 
@@ -109,7 +152,7 @@ export function LedgerInviteEntry({
         avatar={<PeopleAltRoundedIcon />}
         avatarSx={inviteAvatarSx}
         disabled={!canInvite}
-        onClick={() => setOpen(true)}
+        onClick={openNewDraft}
         subtitle={
           <Typography color="text.secondary" noWrap variant="body2">
             {canInvite
@@ -124,15 +167,15 @@ export function LedgerInviteEntry({
       <Dialog
         fullWidth
         maxWidth="xs"
-        onClose={() => setOpen(false)}
-        open={open}
+        onClose={() => setDraftOpen(false)}
+        open={draftOpen}
       >
         <form action={action}>
           <DialogTitle sx={dialogTitleSx}>
             邀请成员
             <IconButton
               aria-label="关闭"
-              onClick={() => setOpen(false)}
+              onClick={() => setDraftOpen(false)}
               sx={dialogCloseSx}
             >
               <CloseRoundedIcon />
@@ -144,63 +187,28 @@ export function LedgerInviteEntry({
                 邀请家人、伴侣或朋友加入当前账本，共同记账。
               </Typography>
 
-              <LedgerInviteRoleRow role="member" />
-
-              <input name="ledgerId" type="hidden" value={ledgerId} />
-
-              <TextField
-                fullWidth
-                label="邀请链接"
-                slotProps={{
-                  htmlInput: { readOnly: true },
-                  input: {
-                    endAdornment: token ? (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="复制"
-                          edge="end"
-                          onClick={copyLink}
-                          size="small"
-                        >
-                          <ContentCopyRoundedIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ) : null,
-                  },
-                }}
-                value={displayedLink}
+              <LedgerInviteRoleRow
+                onChange={draftToken ? undefined : setDraftRole}
+                role={draftRole}
               />
+              <input name="ledgerId" type="hidden" value={ledgerId} />
+              <input name="role" type="hidden" value={draftRole} />
 
-              <Stack spacing={0.75}>
-                <Typography color="text.secondary" sx={qrLabelSx}>
-                  邀请二维码（即将支持）
-                </Typography>
-                <Stack
-                  aria-label="邀请二维码占位，即将支持"
-                  role="img"
-                  sx={qrPlaceholderSx}
-                >
-                  <QrCode2RoundedIcon
-                    sx={{ color: "text.disabled", fontSize: 40 }}
-                  />
-                  <Typography color="text.disabled" variant="caption">
-                    即将支持二维码邀请
-                  </Typography>
-                </Stack>
-              </Stack>
+              <InviteLinkField link={draftLink} onCopy={copyLink} />
+              <QrPlaceholder />
 
-              {errorMessage ? (
+              {visibleError ? (
                 <Typography color="error" role="alert" variant="body2">
-                  {errorMessage}
+                  {visibleError}
                 </Typography>
               ) : null}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            {token ? (
+            {draftToken ? (
               <Button
                 fullWidth
-                onClick={copyLink}
+                onClick={() => copyLink(draftLink)}
                 startIcon={<ContentCopyRoundedIcon />}
                 type="button"
                 variant="contained"
@@ -220,10 +228,82 @@ export function LedgerInviteEntry({
         fullWidth
         maxWidth="xs"
         onClose={() => setSelectedInvite(null)}
-        open={selectedInvite !== null}
+        open={selectedInvite !== null && !revokeConfirmOpen}
+      >
+        <DialogTitle sx={dialogTitleSx}>
+          邀请详情
+          <IconButton
+            aria-label="关闭邀请详情"
+            onClick={() => setSelectedInvite(null)}
+            sx={dialogCloseSx}
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedInvite ? (
+            <Stack spacing={2} sx={{ pt: 0.5 }}>
+              <LedgerInviteRoleRow role={selectedInvite.role} />
+              <Stack spacing={0.5}>
+                <DetailLine
+                  label="创建时间"
+                  value={formatInviteCreatedAt(selectedInvite.createdAt)}
+                />
+                <DetailLine label="当前状态" value="等待接受" />
+              </Stack>
+              {selectedToken ? (
+                <InviteLinkField link={selectedLink} onCopy={copyLink} />
+              ) : (
+                <Typography color="text.secondary" variant="body2">
+                  为保护邀请安全，刷新后无法再次读取原链接。可以重新生成链接，旧链接会立即失效。
+                </Typography>
+              )}
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={detailActionsSx}>
+          {selectedToken ? (
+            <Button
+              fullWidth
+              onClick={() => copyLink(selectedLink)}
+              startIcon={<ContentCopyRoundedIcon />}
+              type="button"
+              variant="contained"
+            >
+              复制链接
+            </Button>
+          ) : canInvite && selectedInvite ? (
+            <form action={action} style={{ width: "100%" }}>
+              <input name="intent" type="hidden" value="replace" />
+              <input name="ledgerId" type="hidden" value={ledgerId} />
+              <input name="inviteId" type="hidden" value={selectedInvite.id} />
+              <Button fullWidth type="submit" variant="contained">
+                重新生成链接
+              </Button>
+            </form>
+          ) : null}
+          {canInvite ? (
+            <Button
+              color="error"
+              fullWidth
+              onClick={() => setRevokeConfirmOpen(true)}
+              type="button"
+              variant="outlined"
+            >
+              撤销邀请
+            </Button>
+          ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setRevokeConfirmOpen(false)}
+        open={revokeConfirmOpen}
       >
         <form action={action}>
-          <DialogTitle>撤销邀请</DialogTitle>
+          <DialogTitle>确认撤销邀请？</DialogTitle>
           <DialogContent>
             <Typography color="text.secondary" variant="body2">
               撤销后，已发送的邀请链接将立即失效，且无法恢复。
@@ -237,7 +317,7 @@ export function LedgerInviteEntry({
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={() => setSelectedInvite(null)} type="button">
+            <Button onClick={() => setRevokeConfirmOpen(false)} type="button">
               取消
             </Button>
             <Button color="error" type="submit" variant="contained">
@@ -248,10 +328,18 @@ export function LedgerInviteEntry({
       </Dialog>
 
       <SuccessFeedbackDialog
+        aboveModal
         bottomOffset={feedbackBottomOffset}
         onClose={() => setCopied(false)}
         open={copied}
-        title="已复制邀请链接"
+        title="复制成功"
+      />
+      <SuccessFeedbackDialog
+        aboveModal
+        bottomOffset={feedbackBottomOffset}
+        onClose={() => setCreated(false)}
+        open={created}
+        title="创建链接成功，快去复制给你的亲友吧"
       />
       <SuccessFeedbackDialog
         bottomOffset={feedbackBottomOffset}
@@ -260,43 +348,116 @@ export function LedgerInviteEntry({
         open={revoked}
         title="邀请已撤销"
       />
+      <FailureFeedbackDialog
+        aboveModal
+        bottomOffset={feedbackBottomOffset}
+        onClose={() => setCopyFailed(false)}
+        open={copyFailed}
+        title="复制失败，请手动复制邀请链接"
+      />
     </>
   );
 }
 
 function PendingInviteRow({
-  canRevoke,
   invite,
-  onRevoke,
+  onClick,
 }: {
-  canRevoke: boolean;
   invite: PendingLedgerInvite;
-  onRevoke: () => void;
+  onClick: () => void;
 }) {
   const createdAtLabel = formatInviteCreatedAt(invite.createdAt);
-  const roleLabel = invite.role === "viewer" ? "只读" : "成员";
 
   return (
     <ListRowButton
-      aria-label={`待接受邀请，${roleLabel}，${createdAtLabel}`}
+      aria-label={`待接受邀请，${ledgerInviteRoleLabels[invite.role]}，${createdAtLabel}`}
       avatar={<HourglassTopRoundedIcon />}
       avatarSx={pendingAvatarSx}
-      disabled={!canRevoke}
-      onClick={canRevoke ? onRevoke : undefined}
+      onClick={onClick}
       subtitle={
         <Typography color="text.secondary" noWrap variant="body2">
-          {invite.role === "viewer" ? "只读（Viewer）" : "用户（Member）"}
-          {` · ${createdAtLabel}`}
+          {`${ledgerInviteRoleLabels[invite.role]} · ${createdAtLabel}`}
         </Typography>
       }
       title="待接受邀请"
-      trailing={
-        <Typography color="error" sx={revokeLabelSx}>
-          {canRevoke ? "撤销" : "等待接受"}
-        </Typography>
-      }
+      trailing={<ChevronRightRoundedIcon sx={inviteTrailingIconSx} />}
     />
   );
+}
+
+function InviteLinkField({
+  link,
+  onCopy,
+}: {
+  link: string;
+  onCopy: (link: string) => void;
+}) {
+  return (
+    <TextField
+      fullWidth
+      label="邀请链接"
+      slotProps={{
+        htmlInput: { readOnly: true },
+        input: {
+          endAdornment: link ? (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="复制"
+                edge="end"
+                onClick={() => onCopy(link)}
+                size="small"
+              >
+                <ContentCopyRoundedIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
+        },
+      }}
+      value={link || "生成后将在这里显示邀请链接"}
+    />
+  );
+}
+
+function QrPlaceholder() {
+  return (
+    <Stack spacing={0.75}>
+      <Typography color="text.secondary" sx={qrLabelSx}>
+        邀请二维码（即将支持）
+      </Typography>
+      <Stack
+        aria-label="邀请二维码占位，即将支持"
+        role="img"
+        sx={qrPlaceholderSx}
+      >
+        <QrCode2RoundedIcon sx={{ color: "text.disabled", fontSize: 40 }} />
+        <Typography color="text.disabled" variant="caption">
+          即将支持二维码邀请
+        </Typography>
+      </Stack>
+    </Stack>
+  );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+      <Typography color="text.secondary" variant="body2">
+        {label}
+      </Typography>
+      <Typography sx={{ fontWeight: 700 }} variant="body2">
+        {value}
+      </Typography>
+    </Stack>
+  );
+}
+
+function useInviteLink(token: string | null) {
+  return useMemo(() => {
+    if (!token) return "";
+    const path = `/invite/${encodeURIComponent(token)}`;
+    if (typeof window === "undefined") return path;
+    return `${window.location.origin}${path}`;
+  }, [token]);
 }
 
 function formatInviteCreatedAt(value: string) {
@@ -316,12 +477,6 @@ const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} 
 const pendingAvatarSx = {
   bgcolor: "warning.light",
   color: "warning.dark",
-};
-
-const revokeLabelSx = {
-  flexShrink: 0,
-  fontSize: 13,
-  fontWeight: 800,
 };
 
 const inviteAvatarSx = {
@@ -344,6 +499,15 @@ const dialogCloseSx = {
   position: "absolute",
   right: 12,
   top: 10,
+};
+
+const detailActionsSx = {
+  alignItems: "stretch",
+  flexDirection: "column",
+  gap: 1,
+  px: 3,
+  pb: 2.5,
+  "& > :not(style) ~ :not(style)": { ml: 0 },
 };
 
 const qrLabelSx = {

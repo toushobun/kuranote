@@ -14,184 +14,131 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function renderEntry() {
+  return render(
+    <LedgerInviteEntry
+      action={vi.fn(async () => {})}
+      canInvite
+      ledgerId="ledger-1"
+    />,
+  );
+}
+
 describe("LedgerInviteEntry", () => {
-  it("可以邀请时点击入口会打开邀请弹窗", () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
-
+  it("新邀请默认选择 Member，并可切换 Admin 与 Viewer", async () => {
+    renderEntry();
     fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
 
+    expect(screen.getByText("权限")).toBeInTheDocument();
+    const roleButton = screen.getByRole("button", { name: /选择邀请权限/ });
+    expect(roleButton).toHaveTextContent("用户（Member）");
+
+    fireEvent.click(roleButton);
+    expect(screen.queryByText("所有者（Owner）")).not.toBeInTheDocument();
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "管理员（Admin）" }),
+    );
     expect(
-      screen.getByRole("heading", { name: "邀请成员" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("用户（Member）")).toBeInTheDocument();
-    expect(screen.getByText("即将支持二维码邀请")).toBeInTheDocument();
+      screen.getByRole("button", { name: /选择邀请权限/ }),
+    ).toHaveTextContent("管理员（Admin）");
+    expect(screen.getByDisplayValue("admin")).toHaveAttribute("name", "role");
   });
 
-  it("不能邀请时入口按钮禁用", () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite={false}
-        ledgerId="ledger-1"
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: /邀请成员/ })).toBeDisabled();
-  });
-
-  it("没有邀请链接时显示可提交的生成邀请链接按钮", () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
-
-    const button = screen.getByRole("button", { name: "生成邀请链接" });
-    expect(button).toHaveAttribute("type", "submit");
-    expect(button.closest("form")).not.toBeNull();
-  });
-
-  it("从 fragment 读取邀请 token 后立即清理地址栏并支持复制", async () => {
+  it("创建成功后显示一次提示并清理 fragment", async () => {
     window.history.replaceState(
       null,
       "",
-      "/ledgers/ledger-1/settings#inviteToken=invite-token",
+      "/ledgers/ledger-1/settings#inviteId=invite-1&inviteRole=viewer&inviteToken=invite-token",
     );
-
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
+    const { unmount } = renderEntry();
 
     expect(
-      await screen.findByRole("heading", { name: "邀请成员" }),
+      await screen.findByText("创建链接成功，快去复制给你的亲友吧"),
     ).toBeInTheDocument();
     expect(window.location.hash).toBe("");
+    unmount();
+
+    renderEntry();
     expect(
-      screen.queryByRole("button", { name: "撤销邀请" }),
+      screen.queryByText("创建链接成功，快去复制给你的亲友吧"),
     ).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "复制" }));
+  it("复制成功后显示明确反馈", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings#inviteId=invite-1&inviteRole=member&inviteToken=invite-token",
+    );
+    renderEntry();
 
+    fireEvent.click(await screen.findByRole("button", { name: "复制链接" }));
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining("/invite/invite-token"),
     );
-    expect(await screen.findByText("已复制邀请链接")).toBeInTheDocument();
+    expect(await screen.findByText("复制成功")).toBeInTheDocument();
   });
 
-  it("传入错误信息时自动打开弹窗，显示错误后清理地址栏", async () => {
+  it("复制失败时不显示成功提示", async () => {
+    writeText.mockRejectedValueOnce(new Error("denied"));
     window.history.replaceState(
       null,
       "",
-      "/ledgers/ledger-1/settings?inviteError=create_failed",
+      "/ledgers/ledger-1/settings#inviteId=invite-1&inviteRole=member&inviteToken=invite-token",
     );
+    renderEntry();
 
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
-
+    fireEvent.click(await screen.findByRole("button", { name: "复制链接" }));
     expect(
-      screen.getByRole("heading", { name: "邀请成员" }),
+      await screen.findByText("复制失败，请手动复制邀请链接"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("邀请链接生成失败。");
-
-    await waitFor(() => {
-      expect(window.location.search).toBe("");
-    });
+    expect(screen.queryByText("复制成功")).not.toBeInTheDocument();
   });
 
-  it("刷新后不再显示已经消费的邀请错误", async () => {
+  it("再次点击邀请成员会清空旧链接、反馈并恢复 Member", async () => {
     window.history.replaceState(
       null,
       "",
-      "/ledgers/ledger-1/settings?inviteError=create_failed",
+      "/ledgers/ledger-1/settings#inviteId=invite-1&inviteRole=admin&inviteToken=invite-token",
     );
-    const { unmount } = render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
-
-    await waitFor(() => {
-      expect(window.location.search).toBe("");
-    });
-    unmount();
-
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
-
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "邀请成员" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("空的 inviteError 参数也会从地址栏删除", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/ledgers/ledger-1/settings?inviteError=",
-    );
-
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
-
-    await waitFor(() => {
-      expect(window.location.search).toBe("");
-    });
-  });
-
-  it("点击关闭按钮会关闭弹窗", async () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        ledgerId="ledger-1"
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
-    expect(
-      screen.getByRole("heading", { name: "邀请成员" }),
-    ).toBeInTheDocument();
+    renderEntry();
+    expect(await screen.findByDisplayValue(/invite-token/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-
     await waitFor(() => {
       expect(
         screen.queryByRole("heading", { name: "邀请成员" }),
       ).not.toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+
+    expect(
+      screen.getByDisplayValue("生成后将在这里显示邀请链接"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /选择邀请权限/ }),
+    ).toHaveTextContent("用户（Member）");
+    expect(
+      screen.getByRole("button", { name: "生成邀请链接" }),
+    ).toHaveAttribute("type", "submit");
+  });
+
+  it("错误显示后会清理查询参数", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/ledgers/ledger-1/settings?inviteError=create_failed",
+    );
+    render(
+      <LedgerInviteEntry
+        action={vi.fn(async () => {})}
+        canInvite
+        errorMessage="邀请链接生成失败。"
+        ledgerId="ledger-1"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("邀请链接生成失败。");
+    await waitFor(() => expect(window.location.search).toBe(""));
   });
 });

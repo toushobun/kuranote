@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
@@ -6,13 +6,18 @@ import { LedgerInvitePendingProvider } from "./LedgerInvitePendingContext";
 
 const pendingInvites = [
   {
+    createdAt: "2026-07-13T10:00:00.000Z",
+    id: "invite-admin",
+    role: "admin" as const,
+  },
+  {
     createdAt: "2026-07-13T09:00:00.000Z",
-    id: "invite-1",
+    id: "invite-member",
     role: "member" as const,
   },
   {
     createdAt: "2026-07-13T08:00:00.000Z",
-    id: "invite-2",
+    id: "invite-viewer",
     role: "viewer" as const,
   },
 ];
@@ -34,63 +39,75 @@ function renderEntry(canInvite = true) {
 }
 
 describe("LedgerInviteEntry 待接受邀请", () => {
-  it("在成员列表区域展示服务端加载的待接受邀请", () => {
+  it("展示 Admin、Member、Viewer 三种待接受邀请", () => {
     renderEntry();
 
-    expect(screen.getAllByText("待接受邀请")).toHaveLength(2);
+    expect(screen.getByText(/管理员（Admin）/)).toBeInTheDocument();
     expect(screen.getByText(/用户（Member）/)).toBeInTheDocument();
     expect(screen.getByText(/只读（Viewer）/)).toBeInTheDocument();
-    expect(screen.getAllByText("撤销")).toHaveLength(2);
   });
 
-  it("多个待邀请行具有可区分的可访问名称", () => {
+  it("点击条目先打开详情，不直接打开撤销确认", () => {
     renderEntry();
-
-    const buttons = screen.getAllByRole("button", { name: /待接受邀请/ });
-    expect(buttons).toHaveLength(2);
-    expect(buttons[0]).toHaveAccessibleName(/成员/);
-    expect(buttons[1]).toHaveAccessibleName(/只读/);
-  });
-
-  it("点击待接受邀请后显示撤销确认与邀请标识", () => {
-    renderEntry();
-
-    fireEvent.click(screen.getByRole("button", { name: /待接受邀请，成员/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
+    );
 
     expect(
-      screen.getByRole("heading", { name: "撤销邀请" }),
+      screen.getByRole("heading", { name: "邀请详情" }),
     ).toBeInTheDocument();
-    expect(screen.getByDisplayValue("invite-1")).toHaveAttribute(
-      "name",
-      "inviteId",
-    );
-    expect(screen.getByDisplayValue("revoke")).toHaveAttribute(
-      "name",
-      "intent",
-    );
+    expect(screen.getByText("等待接受")).toBeInTheDocument();
+    expect(screen.getByText("创建时间")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "确认撤销邀请？" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("无管理权限时展示状态但不能执行撤销", () => {
-    renderEntry(false);
-
-    screen
-      .getAllByRole("button", { name: /待接受邀请/ })
-      .forEach((button) => expect(button).toBeDisabled());
-    expect(screen.getAllByText("等待接受")).toHaveLength(2);
-  });
-
-  it("撤销成功参数显示反馈并清理地址栏", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/ledgers/ledger-1/settings?inviteResult=revoked",
-    );
-
+  it("详情中的撤销入口仍要求二次确认", () => {
     renderEntry();
+    fireEvent.click(
+      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "撤销邀请" }));
 
-    expect(await screen.findByText("邀请已撤销")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(window.location.search).toBe("");
+    expect(
+      screen.getByRole("heading", { name: "确认撤销邀请？" }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByDisplayValue("invite-member")
+        .some((input) => input.getAttribute("name") === "inviteId"),
+    ).toBe(true);
+  });
+
+  it("刷新后详情提供安全重新生成入口，不展示不可恢复的旧链接", () => {
+    renderEntry();
+    fireEvent.click(
+      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
+    );
+
+    expect(screen.getByText(/刷新后无法再次读取原链接/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "重新生成链接" }),
+    ).toHaveAttribute("type", "submit");
+  });
+
+  it("无管理权限仍可查看详情，但不展示替换或撤销操作", () => {
+    renderEntry(false);
+    const row = screen.getByRole("button", {
+      name: /待接受邀请，用户（Member）/,
     });
+    expect(row).not.toBeDisabled();
+    fireEvent.click(row);
+
+    expect(
+      screen.getByRole("heading", { name: "邀请详情" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重新生成链接" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "撤销邀请" }),
+    ).not.toBeInTheDocument();
   });
 });

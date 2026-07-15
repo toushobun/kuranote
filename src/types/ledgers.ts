@@ -49,7 +49,21 @@ export type LedgerSettingsMember = {
 export type PendingLedgerInvite = {
   createdAt: string;
   id: string;
-  role: "member" | "viewer";
+  role: LedgerInviteRole;
+};
+
+export const ledgerInviteRoles = ["admin", "member", "viewer"] as const;
+
+export type LedgerInviteRole = (typeof ledgerInviteRoles)[number];
+
+export function isLedgerInviteRole(value: unknown): value is LedgerInviteRole {
+  return ledgerInviteRoles.some((role) => role === value);
+}
+
+export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
+  admin: "管理员（Admin）",
+  member: "用户（Member）",
+  viewer: "只读（Viewer）",
 };
 
 export type LedgerSettingsView = {

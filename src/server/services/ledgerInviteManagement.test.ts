@@ -26,6 +26,11 @@ describe("loadPendingLedgerInvitesService", () => {
       rpcResponse: {
         data: [
           {
+            created_at: "2026-07-13T10:00:00.000Z",
+            invite_id: "invite-0",
+            invite_role: "admin",
+          },
+          {
             created_at: "2026-07-13T09:00:00.000Z",
             invite_id: "invite-1",
             invite_role: "member",
@@ -43,6 +48,11 @@ describe("loadPendingLedgerInvitesService", () => {
     await expect(loadPendingLedgerInvitesService("ledger-id")).resolves.toEqual(
       {
         invites: [
+          {
+            createdAt: "2026-07-13T10:00:00.000Z",
+            id: "invite-0",
+            role: "admin",
+          },
           {
             createdAt: "2026-07-13T09:00:00.000Z",
             id: "invite-1",

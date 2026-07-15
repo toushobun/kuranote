@@ -8,8 +8,10 @@ import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import {
   acceptLedgerInviteService,
   createLedgerInviteService,
+  replaceLedgerInviteService,
   revokeLedgerInviteService,
 } from "server/services/ledgerInvite";
+import { isLedgerInviteRole } from "types/ledgers";
 
 export async function createLedgerInvite(formData: FormData) {
   await getCurrentLedgerContext();
@@ -43,7 +45,33 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
-  const result = await createLedgerInviteService(ledgerId);
+  if (intent === "replace") {
+    const inviteId = String(formData.get("inviteId") ?? "").trim();
+    if (!inviteId) {
+      redirect(
+        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=create_failed`,
+      );
+    }
+
+    const result = await replaceLedgerInviteService(ledgerId, inviteId);
+    if (!result.ok) {
+      redirect(
+        `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=${encodeURIComponent(result.error)}`,
+      );
+    }
+
+    revalidatePath(`/ledgers/${ledgerId}/settings`);
+    redirectToCreatedInvite(ledgerId, result);
+  }
+
+  const roleValue = String(formData.get("role") ?? "member").trim();
+  if (!isLedgerInviteRole(roleValue)) {
+    redirect(
+      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteError=invite_role_invalid`,
+    );
+  }
+
+  const result = await createLedgerInviteService(ledgerId, roleValue);
 
   if (!result.ok) {
     redirect(
@@ -52,8 +80,20 @@ export async function createLedgerInvite(formData: FormData) {
   }
 
   revalidatePath(`/ledgers/${ledgerId}/settings`);
+  redirectToCreatedInvite(ledgerId, result);
+}
+
+function redirectToCreatedInvite(
+  ledgerId: string,
+  result: { inviteId: string; role: string; token: string },
+): never {
+  const fragment = new URLSearchParams({
+    inviteId: result.inviteId,
+    inviteRole: result.role,
+    inviteToken: result.token,
+  });
   redirect(
-    `/ledgers/${encodeURIComponent(ledgerId)}/settings#inviteToken=${encodeURIComponent(result.token)}`,
+    `/ledgers/${encodeURIComponent(ledgerId)}/settings#${fragment.toString()}`,
   );
 }
 
