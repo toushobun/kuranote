@@ -107,10 +107,8 @@ describe("createLedgerInvite", () => {
 
   it.each(["owner", "unknown"])("拒绝非法邀请角色 %s", async (role) => {
     const formData = new FormData();
-    formData.set("ledgerId", "ledger-id");
-    formData.set("role", role);
-
     formData.set("ledgerId", "ledger/id");
+    formData.set("role", role);
     await expectInviteErrorRedirect(formData, {
       error: "invite_role_invalid",
       operation: "create",

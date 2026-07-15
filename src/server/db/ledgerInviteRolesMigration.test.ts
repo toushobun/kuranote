@@ -24,6 +24,12 @@ describe("邀请角色与安全替换 migration", () => {
     );
   });
 
+  it("移除已由 v2 替代的旧创建 RPC", () => {
+    expect(migrationSql).toContain(
+      "drop function if exists public.create_ledger_invite(uuid, text);",
+    );
+  });
+
   it("接受邀请的 trigger 允许三种邀请角色", () => {
     expect(
       migrationSql.match(/new\.role in \('admin', 'member', 'viewer'\)/g),

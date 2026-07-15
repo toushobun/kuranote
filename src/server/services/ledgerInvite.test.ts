@@ -7,6 +7,7 @@ import {
   acceptLedgerInviteService,
   createLedgerInviteService,
   loadLedgerInvitePreview,
+  replaceLedgerInviteService,
 } from "./ledgerInvite";
 
 const mocks = vi.hoisted(() => ({
@@ -140,6 +141,127 @@ describe("createLedgerInviteService", () => {
         isArray: Array.isArray(data),
         rowCount: Array.isArray(data) ? data.length : null,
       },
+    );
+    consoleError.mockRestore();
+  });
+});
+
+describe("replaceLedgerInviteService", () => {
+  it("替换成功时返回新邀请信息", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        data: [
+          {
+            invite_id: "invite-new",
+            invite_role: "admin",
+            token: "new-token",
+          },
+        ],
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      replaceLedgerInviteService("ledger-id", "invite-old"),
+    ).resolves.toEqual({
+      inviteId: "invite-new",
+      ok: true,
+      role: "admin",
+      token: "new-token",
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith("replace_ledger_invite", {
+      p_invite_id: "invite-old",
+      p_ledger_id: "ledger-id",
+    });
+  });
+
+  it("权限不足时映射 permission_denied", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "42501",
+          details: "permission_denied",
+          hint: null,
+          message: "权限不足",
+        },
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      replaceLedgerInviteService("ledger-id", "invite-old"),
+    ).resolves.toEqual({
+      error: ledgerInviteErrorCodes.permissionDenied,
+      ok: false,
+    });
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it.each([
+    null,
+    [],
+    [{}],
+    [{ invite_id: "invite-new", invite_role: "owner", token: "token" }],
+  ])("RPC 返回无效数据 %j 时返回 create_failed", async (data) => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const supabase = createSupabaseMock({ rpcResponse: { data } });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      replaceLedgerInviteService("ledger-id", "invite-old"),
+    ).resolves.toEqual({
+      error: ledgerInviteErrorCodes.createFailed,
+      ok: false,
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledgerInvite] replace_ledger_invite returned invalid data",
+      {
+        isArray: Array.isArray(data),
+        rowCount: Array.isArray(data) ? data.length : null,
+      },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("未知 RPC 错误仅记录非敏感诊断字段并返回 create_failed", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "XX000",
+          details: "possibly-sensitive-details",
+          hint: "Retry later",
+          message: "unexpected database error",
+        },
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(
+      replaceLedgerInviteService("ledger-id", "invite-old"),
+    ).resolves.toEqual({
+      error: ledgerInviteErrorCodes.createFailed,
+      ok: false,
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledgerInvite] replace_ledger_invite failed",
+      {
+        code: "XX000",
+        hint: "Retry later",
+        message: "unexpected database error",
+      },
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ details: expect.anything() }),
     );
     consoleError.mockRestore();
   });

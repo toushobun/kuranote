@@ -787,72 +787,6 @@ $$;
 ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_ledger_invite"("p_ledger_id" "uuid", "p_role" "text" DEFAULT 'member'::"text") RETURNS TABLE("token" "text", "ledger_name" "text", "invite_role" "text")
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_user_id uuid := auth.uid();
-    v_token text;
-    v_role text := lower(btrim(coalesce(p_role, 'member')));
-begin
-    if v_user_id is null then
-        raise exception 'auth_required'
-            using errcode = '42501', detail = 'auth_required';
-    end if;
-
-    if p_ledger_id is null then
-        raise exception 'ledger_required'
-            using errcode = '22023', detail = 'ledger_required';
-    end if;
-
-    if v_role not in ('member', 'viewer') then
-        raise exception 'invite_role_invalid'
-            using errcode = '22023', detail = 'invite_role_invalid';
-    end if;
-
-    if not public.current_user_can_manage_ledger(p_ledger_id) then
-        raise exception 'permission_denied'
-            using errcode = '42501', detail = 'permission_denied';
-    end if;
-
-    if not exists (
-        select 1
-        from public.ledger l
-        where l.id = p_ledger_id
-          and l.is_archived = false
-    ) then
-        raise exception 'ledger_not_found'
-            using errcode = 'P0002', detail = 'ledger_not_found';
-    end if;
-
-    v_token := encode(extensions.gen_random_bytes(32), 'hex');
-
-    insert into public.ledger_invite (
-        ledger_id,
-        inviter_user_id,
-        token_hash,
-        role,
-        created_by
-    ) values (
-        p_ledger_id,
-        v_user_id,
-        encode(extensions.digest(v_token, 'sha256'), 'hex'),
-        v_role,
-        v_user_id
-    );
-
-    return query
-    select v_token, l.name, v_role
-    from public.ledger l
-    where l.id = p_ledger_id;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."create_ledger_invite"("p_ledger_id" "uuid", "p_role" "text") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text" DEFAULT 'member'::"text") RETURNS TABLE("invite_id" "uuid", "token" "text", "ledger_name" "text", "invite_role" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5619,11 +5553,6 @@ GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", 
 
 REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) TO "authenticated";
-
-
-
-REVOKE ALL ON FUNCTION "public"."create_ledger_invite"("p_ledger_id" "uuid", "p_role" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_ledger_invite"("p_ledger_id" "uuid", "p_role" "text") TO "authenticated";
 
 
 

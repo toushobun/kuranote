@@ -1,6 +1,9 @@
 -- Issue #442：允许邀请管理员，并为无法恢复明文 token 的待接受邀请提供安全替换。
 -- 数据库仍只保存 token 摘要；替换在同一事务中使旧邀请失效并生成新邀请。
 
+-- v2 已完全替代旧创建入口，移除不再使用且仅支持旧角色集合的 RPC。
+drop function if exists public.create_ledger_invite(uuid, text);
+
 alter table public.ledger_invite
     drop constraint ledger_invite_role_check;
 
