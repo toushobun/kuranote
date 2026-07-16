@@ -37,12 +37,7 @@ export function LedgerInviteQrCode({
 
   if (!qrData) {
     return (
-      <Stack
-        aria-label="邀请二维码不可用"
-        role="status"
-        spacing={0.75}
-        sx={emptyContainerSx}
-      >
+      <Stack role="status" spacing={0.75} sx={emptyContainerSx}>
         <QrCode2RoundedIcon aria-hidden="true" sx={emptyIconSx} />
         <Typography color="text.secondary" sx={centeredTextSx} variant="body2">
           {emptyMessage}
