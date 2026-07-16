@@ -45,7 +45,7 @@ type LedgerInviteEntryProps = {
   errorMessage?: string | null;
   errorOperation?: LedgerInviteErrorOperation;
   ledgerId: string;
-  ledgerName: string;
+  ledgerName?: string;
   token?: string | null;
 };
 
@@ -56,7 +56,7 @@ export function LedgerInviteEntry({
   errorMessage = null,
   errorOperation = ledgerInviteErrorOperations.create,
   ledgerId,
-  ledgerName,
+  ledgerName = "当前账本",
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
