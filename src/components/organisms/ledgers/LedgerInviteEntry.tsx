@@ -217,10 +217,12 @@ export function LedgerInviteEntry({
               ) : (
                 <>
                   <Typography color="text.secondary" variant="body2">
-                    为保护邀请安全，刷新后无法再次读取原链接。可以重新生成链接，旧链接会立即失效。
+                    {canInvite
+                      ? "邀请链接暂不可读取，请刷新页面后重试。"
+                      : "仅管理员或所有者可以查看邀请链接和二维码。"}
                   </Typography>
                   <LedgerInviteQrCode
-                    emptyMessage="原邀请链接不可读取，无法显示二维码"
+                    emptyMessage="邀请链接不可读取，无法显示二维码"
                     ledgerName={ledgerName}
                     link=""
                   />
@@ -229,39 +231,32 @@ export function LedgerInviteEntry({
             </Stack>
           ) : null}
         </DialogContent>
-        <DialogActions sx={detailActionsSx}>
-          {selectedToken ? (
-            <Button
-              fullWidth
-              onClick={() => copyLink(selectedLink)}
-              startIcon={<ContentCopyRoundedIcon />}
-              type="button"
-              variant="contained"
-            >
-              复制链接
-            </Button>
-          ) : canInvite && selectedInvite ? (
-            <form action={action} style={{ width: "100%" }}>
-              <input name="intent" type="hidden" value="replace" />
-              <input name="ledgerId" type="hidden" value={ledgerId} />
-              <input name="inviteId" type="hidden" value={selectedInvite.id} />
-              <Button fullWidth type="submit" variant="contained">
-                重新生成链接
+        {selectedToken || canInvite ? (
+          <DialogActions sx={detailActionsSx}>
+            {selectedToken ? (
+              <Button
+                fullWidth
+                onClick={() => copyLink(selectedLink)}
+                startIcon={<ContentCopyRoundedIcon />}
+                type="button"
+                variant="contained"
+              >
+                复制链接
               </Button>
-            </form>
-          ) : null}
-          {canInvite ? (
-            <Button
-              color="error"
-              fullWidth
-              onClick={openRevokeConfirm}
-              type="button"
-              variant="outlined"
-            >
-              撤销邀请
-            </Button>
-          ) : null}
-        </DialogActions>
+            ) : null}
+            {canInvite ? (
+              <Button
+                color="error"
+                fullWidth
+                onClick={openRevokeConfirm}
+                type="button"
+                variant="outlined"
+              >
+                撤销邀请
+              </Button>
+            ) : null}
+          </DialogActions>
+        ) : null}
       </Dialog>
 
       <Dialog
@@ -329,11 +324,7 @@ export function LedgerInviteEntry({
         description={managementError?.message}
         onClose={closeManagementError}
         open={managementError !== null}
-        title={
-          managementError?.operation === ledgerInviteErrorOperations.replace
-            ? "重新生成邀请链接失败"
-            : "撤销邀请失败"
-        }
+        title="撤销邀请失败"
       />
     </>
   );
