@@ -1,31 +1,17 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
   ledgerSwitchResultValues,
   ledgersErrorHref,
   ledgersResultHref,
-  routePaths,
 } from "config/paths";
+import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
 import { updateCurrentLedgerService } from "server/services/currentLedger";
 import { getFormText, isUuid } from "utils/formData";
-
-const currentLedgerRevalidatePaths = [
-  routePaths.dashboard,
-  routePaths.transactions,
-  routePaths.transactionsNew,
-  routePaths.transactionsSearch,
-  routePaths.accounts,
-  routePaths.categories,
-  routePaths.merchants,
-  routePaths.statistics,
-  routePaths.settings,
-  routePaths.ledgers,
-] as const;
 
 export async function updateCurrentLedger(formData: FormData) {
   const { userId } = await requireCurrentUserAndLedger();
@@ -41,8 +27,6 @@ export async function updateCurrentLedger(formData: FormData) {
     redirect(ledgersErrorHref(result.error));
   }
 
-  currentLedgerRevalidatePaths.forEach((path) => {
-    revalidatePath(path);
-  });
+  revalidateCurrentLedgerPaths();
   redirect(ledgersResultHref(ledgerSwitchResultValues.switched));
 }

@@ -4,6 +4,7 @@ import {
   acceptLedgerInvite,
   createLedgerInvite,
 } from "server/actions/ledgerInvite";
+import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
 
 const mocks = vi.hoisted(() => ({
   acceptLedgerInviteService: vi.fn(),
@@ -239,7 +240,7 @@ describe("acceptLedgerInvite", () => {
     );
   });
 
-  it("接受成功后刷新相关页面并进入首页", async () => {
+  it("接受成功后刷新全部 current ledger 页面并进入首页", async () => {
     mocks.acceptLedgerInviteService.mockResolvedValue({ ok: true });
     const formData = new FormData();
     formData.set("token", "invite-token");
@@ -248,12 +249,8 @@ describe("acceptLedgerInvite", () => {
       "NEXT_REDIRECT:/dashboard",
     );
 
-    expect(mocks.revalidatePath.mock.calls.map(([path]) => path)).toEqual([
-      "/dashboard",
-      "/ledgers",
-      "/settings",
-      "/transactions",
-      "/statistics",
-    ]);
+    expect(mocks.revalidatePath.mock.calls.map(([path]) => path)).toEqual(
+      currentLedgerRevalidatePaths,
+    );
   });
 });

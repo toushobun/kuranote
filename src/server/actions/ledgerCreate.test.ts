@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
 import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
 
 import { createLedger } from "./ledgerCreate";
@@ -94,13 +95,14 @@ describe("createLedger", () => {
     );
   });
 
-  it("创建成功后刷新相关页面并跳转首页", async () => {
+  it("创建成功后刷新全部 current ledger 页面并跳转首页", async () => {
     await expect(createLedger(createFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/dashboard",
     );
 
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ledgers");
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
+    expect(mocks.revalidatePath.mock.calls.map(([path]) => path)).toEqual(
+      currentLedgerRevalidatePaths,
+    );
     expect(mocks.revalidatePath).not.toHaveBeenCalledWith("/", "layout");
   });
 });

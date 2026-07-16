@@ -9,6 +9,7 @@ import {
   routePaths,
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
 import {
   acceptLedgerInviteService,
   createLedgerInviteService,
@@ -140,13 +141,6 @@ export async function acceptLedgerInvite(formData: FormData) {
     );
   }
 
-  [
-    routePaths.dashboard,
-    routePaths.ledgers,
-    routePaths.settings,
-    routePaths.transactions,
-    routePaths.statistics,
-  ].forEach((path) => revalidatePath(path));
-
+  revalidateCurrentLedgerPaths();
   redirect(routePaths.dashboard);
 }
