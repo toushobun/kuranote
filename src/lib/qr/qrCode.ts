@@ -8,15 +8,14 @@ type Bit = number;
 type Byte = number;
 
 const ECC_CODEWORDS_PER_BLOCK = [
-  -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24,
-  28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30,
-  30, 30, 30, 30, 30, 30, 30,
+  -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28,
+  28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+  30, 30,
 ] as const;
 
 const NUM_ERROR_CORRECTION_BLOCKS = [
-  -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8,
-  9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24,
-  25,
+  -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10,
+  12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25,
 ] as const;
 
 const MIN_VERSION = 1;
@@ -167,18 +166,10 @@ class QrCode {
       this.setFunctionModule(14 - index, 8, getBit(bits, index));
     }
     for (let index = 0; index < 8; index += 1) {
-      this.setFunctionModule(
-        this.size - 1 - index,
-        8,
-        getBit(bits, index),
-      );
+      this.setFunctionModule(this.size - 1 - index, 8, getBit(bits, index));
     }
     for (let index = 8; index < 15; index += 1) {
-      this.setFunctionModule(
-        8,
-        this.size - 15 + index,
-        getBit(bits, index),
-      );
+      this.setFunctionModule(8, this.size - 15 + index, getBit(bits, index));
     }
     this.setFunctionModule(8, this.size - 8, true);
   }
@@ -247,9 +238,7 @@ class QrCode {
       blockIndex += 1
     ) {
       const dataLength =
-        shortBlockLength -
-        eccLength +
-        (blockIndex < shortBlockCount ? 0 : 1);
+        shortBlockLength - eccLength + (blockIndex < shortBlockCount ? 0 : 1);
       const block = data.slice(offset, offset + dataLength);
       offset += dataLength;
       const ecc = reedSolomonComputeRemainder(block, divisor);
@@ -311,8 +300,7 @@ class QrCode {
             invert = (x + y) % 3 === 0;
             break;
           case 4:
-            invert =
-              (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0;
+            invert = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0;
             break;
           case 5:
             invert = ((x * y) % 2) + ((x * y) % 3) === 0;
@@ -347,19 +335,15 @@ class QrCode {
         } else {
           this.finderPenaltyAddHistory(runLength, history);
           if (!runColor) {
-            result +=
-              this.finderPenaltyCountPatterns(history) * PENALTY_N3;
+            result += this.finderPenaltyCountPatterns(history) * PENALTY_N3;
           }
           runColor = this.modules[y][x];
           runLength = 1;
         }
       }
       result +=
-        this.finderPenaltyTerminateAndCount(
-          runColor,
-          runLength,
-          history,
-        ) * PENALTY_N3;
+        this.finderPenaltyTerminateAndCount(runColor, runLength, history) *
+        PENALTY_N3;
     }
 
     for (let x = 0; x < this.size; x += 1) {
@@ -374,19 +358,15 @@ class QrCode {
         } else {
           this.finderPenaltyAddHistory(runLength, history);
           if (!runColor) {
-            result +=
-              this.finderPenaltyCountPatterns(history) * PENALTY_N3;
+            result += this.finderPenaltyCountPatterns(history) * PENALTY_N3;
           }
           runColor = this.modules[y][x];
           runLength = 1;
         }
       }
       result +=
-        this.finderPenaltyTerminateAndCount(
-          runColor,
-          runLength,
-          history,
-        ) * PENALTY_N3;
+        this.finderPenaltyTerminateAndCount(runColor, runLength, history) *
+        PENALTY_N3;
     }
 
     for (let y = 0; y < this.size - 1; y += 1) {
@@ -440,10 +420,7 @@ class QrCode {
     return this.finderPenaltyCountPatterns(history);
   }
 
-  private finderPenaltyAddHistory(
-    currentLength: number,
-    history: number[],
-  ) {
+  private finderPenaltyAddHistory(currentLength: number, history: number[]) {
     if (history[0] === 0) currentLength += this.size;
     history.pop();
     history.unshift(currentLength);
@@ -484,8 +461,7 @@ function getNumRawDataModules(version: number): number {
 function getNumDataCodewords(version: number): number {
   return (
     Math.floor(getNumRawDataModules(version) / 8) -
-    ECC_CODEWORDS_PER_BLOCK[version] *
-      NUM_ERROR_CORRECTION_BLOCKS[version]
+    ECC_CODEWORDS_PER_BLOCK[version] * NUM_ERROR_CORRECTION_BLOCKS[version]
   );
 }
 
@@ -494,15 +470,8 @@ function reedSolomonComputeDivisor(degree: number): Byte[] {
   result[degree - 1] = 1;
   let root = 1;
   for (let index = 0; index < degree; index += 1) {
-    for (
-      let coefficient = 0;
-      coefficient < result.length;
-      coefficient += 1
-    ) {
-      result[coefficient] = reedSolomonMultiply(
-        result[coefficient],
-        root,
-      );
+    for (let coefficient = 0; coefficient < result.length; coefficient += 1) {
+      result[coefficient] = reedSolomonMultiply(result[coefficient], root);
       if (coefficient + 1 < result.length) {
         result[coefficient] ^= result[coefficient + 1];
       }

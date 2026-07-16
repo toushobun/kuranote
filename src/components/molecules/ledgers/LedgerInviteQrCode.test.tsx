@@ -8,9 +8,7 @@ const inviteLink =
 
 describe("LedgerInviteQrCode", () => {
   it("将邀请链接编码为可访问的二维码并显示账本说明", () => {
-    render(
-      <LedgerInviteQrCode ledgerName="家庭账本" link={inviteLink} />,
-    );
+    render(<LedgerInviteQrCode ledgerName="家庭账本" link={inviteLink} />);
 
     const qrCode = screen.getByRole("img", {
       name: "账本邀请二维码，家庭账本",

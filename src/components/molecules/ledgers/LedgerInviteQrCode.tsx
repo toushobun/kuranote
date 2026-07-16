@@ -72,7 +72,11 @@ export function LedgerInviteQrCode({
         <Typography sx={ledgerNameSx} variant="body2">
           {ledgerName}
         </Typography>
-        <Typography color="text.secondary" sx={centeredTextSx} variant="caption">
+        <Typography
+          color="text.secondary"
+          sx={centeredTextSx}
+          variant="caption"
+        >
           使用手机相机扫码，打开邀请确认页
         </Typography>
       </Stack>
