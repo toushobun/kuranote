@@ -22,7 +22,6 @@ type UseLedgerInviteEntryParams = {
   errorMessage: string | null;
   errorOperation: LedgerInviteErrorOperation;
   initialToken: string | null;
-  pendingInvites: readonly PendingLedgerInvite[];
 };
 
 export function useLedgerInviteEntry({
@@ -30,7 +29,6 @@ export function useLedgerInviteEntry({
   errorMessage,
   errorOperation,
   initialToken,
-  pendingInvites,
 }: UseLedgerInviteEntryParams) {
   const [draftOpen, setDraftOpen] = useState(
     (errorMessage !== null &&
