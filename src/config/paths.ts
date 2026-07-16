@@ -45,7 +45,6 @@ export const ledgerSwitchResultValues = {
 
 export const ledgerInviteErrorOperations = {
   create: "create",
-  replace: "replace",
   revoke: "revoke",
 } as const;
 
