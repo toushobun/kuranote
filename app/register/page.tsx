@@ -31,9 +31,9 @@ export default async function RegisterRoute({
     next?: string | string[];
   }>;
 }) {
-  await redirectIfAuthenticated();
   const params = await searchParams;
   const nextPath = getNextPath(params?.next);
+  await redirectIfAuthenticated(nextPath);
   const googleAuthEnabled = isGoogleAuthEnabled();
   const turnstileSiteKey = getTurnstileSiteKey();
 
