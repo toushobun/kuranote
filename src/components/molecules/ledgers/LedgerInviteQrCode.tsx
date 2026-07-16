@@ -44,7 +44,7 @@ export function LedgerInviteQrCode({
         sx={emptyContainerSx}
       >
         <QrCode2RoundedIcon aria-hidden="true" sx={emptyIconSx} />
-        <Typography color="text.secondary" textAlign="center" variant="body2">
+        <Typography color="text.secondary" sx={centeredTextSx} variant="body2">
           {emptyMessage}
         </Typography>
       </Stack>
@@ -69,10 +69,10 @@ export function LedgerInviteQrCode({
         </Box>
       </Box>
       <Stack spacing={0.25} sx={{ alignItems: "center" }}>
-        <Typography fontWeight={700} textAlign="center" variant="body2">
+        <Typography sx={ledgerNameSx} variant="body2">
           {ledgerName}
         </Typography>
-        <Typography color="text.secondary" textAlign="center" variant="caption">
+        <Typography color="text.secondary" sx={centeredTextSx} variant="caption">
           使用手机相机扫码，打开邀请确认页
         </Typography>
       </Stack>
@@ -113,4 +113,13 @@ const emptyContainerSx = {
 const emptyIconSx = {
   color: "text.disabled",
   fontSize: 56,
+};
+
+const centeredTextSx = {
+  textAlign: "center",
+};
+
+const ledgerNameSx = {
+  fontWeight: 700,
+  textAlign: "center",
 };
