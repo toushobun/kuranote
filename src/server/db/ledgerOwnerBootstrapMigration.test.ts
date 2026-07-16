@@ -11,17 +11,52 @@ const migrationSql = readFileSync(
   "utf8",
 );
 
+const schemaSnapshot = readFileSync(
+  join(process.cwd(), "supabase/schema_snapshot/current_schema.sql"),
+  "utf8",
+);
+
 describe("首次账本所有者 bootstrap migration", () => {
-  it("在通用校验前恢复首个所有者分支", () => {
-    const bootstrapIndex = migrationSql.indexOf("and new.role = 'owner'");
-    const genericCheckIndex = migrationSql.indexOf(
-      "current_user_can_manage_ledger(v_ledger_id)",
+  it("只允许账本创建 RPC 临时开启 bootstrap", () => {
+    const enableIndex = migrationSql.indexOf(
+      "set_config('app.allow_ledger_owner_bootstrap', 'true', true)",
+    );
+    const ownerInsertIndex = migrationSql.indexOf(
+      "insert into public.ledger_member",
+    );
+    const disableIndex = migrationSql.indexOf(
+      "set_config('app.allow_ledger_owner_bootstrap', 'false', true)",
     );
 
-    expect(bootstrapIndex).toBeGreaterThan(-1);
-    expect(genericCheckIndex).toBeGreaterThan(bootstrapIndex);
+    expect(enableIndex).toBeGreaterThan(-1);
+    expect(ownerInsertIndex).toBeGreaterThan(enableIndex);
+    expect(disableIndex).toBeGreaterThan(ownerInsertIndex);
+    expect(migrationSql).toContain(
+      "current_setting('app.allow_ledger_owner_bootstrap', true) = 'true'",
+    );
+  });
+
+  it("严格限制首个所有者成员的身份和审计字段", () => {
+    expect(migrationSql).toContain("new.user_id = auth.uid()");
+    expect(migrationSql).toContain("new.role = 'owner'");
+    expect(migrationSql).toContain("new.status = 'active'");
+    expect(migrationSql).toContain("new.invited_by = auth.uid()");
+    expect(migrationSql).toContain("new.created_by = auth.uid()");
+    expect(migrationSql).toContain("new.updated_by = auth.uid()");
     expect(migrationSql).toContain("l.owner_user_id = auth.uid()");
     expect(migrationSql).toContain("where existing_member.ledger_id = l.id");
+  });
+
+  it("收回旧账本创建 RPC 的直接执行权限", () => {
+    expect(migrationSql).toContain(
+      "revoke all on function public.create_ledger_with_owner(text, text) from authenticated",
+    );
+    expect(migrationSql).not.toContain(
+      "grant execute on function public.create_ledger_with_owner(text, text) to authenticated",
+    );
+    expect(schemaSnapshot).not.toContain(
+      'GRANT ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") TO "authenticated";',
+    );
   });
 
   it("保留邀请接受分支", () => {
