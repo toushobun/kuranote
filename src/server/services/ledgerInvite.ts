@@ -183,7 +183,7 @@ export async function acceptLedgerInviteService(
       error: mapRpcBusinessError(
         error,
         inviteErrorMap,
-        ledgerInviteErrorCodes.inviteInvalid,
+        ledgerInviteErrorCodes.acceptFailed,
       ),
       ok: false,
     };
