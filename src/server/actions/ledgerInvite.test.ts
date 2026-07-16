@@ -115,6 +115,20 @@ describe("createLedgerInvite", () => {
     expect(mocks.createLedgerInviteService).not.toHaveBeenCalled();
   });
 
+  it("拒绝已废弃的替换操作", async () => {
+    const formData = new FormData();
+    formData.set("intent", "replace");
+    formData.set("ledgerId", "ledger/id");
+    formData.set("inviteId", "invite-id");
+
+    await expectInviteErrorRedirect(formData, {
+      error: "create_failed",
+      operation: "create",
+    });
+    expect(mocks.createLedgerInviteService).not.toHaveBeenCalled();
+    expect(mocks.revokeLedgerInviteService).not.toHaveBeenCalled();
+  });
+
   it("撤销缺少 inviteId 时回到账本设置页", async () => {
     const formData = new FormData();
     formData.set("intent", "revoke");
