@@ -27,9 +27,11 @@ describe("首次账本所有者 bootstrap migration", () => {
   });
 
   it("保留邀请接受分支", () => {
-    expect(
-      migrationSql.match(/app\.allow_ledger_invite_accept/g),
-    ).toHaveLength(2);
+    const inviteAcceptanceFlags = migrationSql.match(
+      /app\.allow_ledger_invite_accept/g,
+    );
+
+    expect(inviteAcceptanceFlags).toHaveLength(2);
     expect(migrationSql).toContain(
       "new.role in ('admin', 'member', 'viewer')",
     );
