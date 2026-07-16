@@ -1,5 +1,8 @@
 -- Issue #459：恢复首次创建账本时写入唯一 owner 成员的受控豁免。
--- 同时收回旧 create_ledger_with_owner 对 authenticated 的执行权限，避免绕过完整初始化 RPC。
+-- 同时收回旧创建 RPC 与 ledger 表直写权限，确保账本统一经过完整初始化 RPC。
+drop policy if exists ledger_insert_self_owner on public.ledger;
+revoke insert on table public.ledger from authenticated;
+
 create or replace function public.create_ledger_with_owner(
     p_name text,
     p_base_currency text default 'JPY'
