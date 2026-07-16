@@ -101,23 +101,30 @@ describe("首次账本所有者 bootstrap migration", () => {
       "grant execute on function public.create_ledger_with_owner(text, text) to authenticated",
     );
 
-    const ledgerGrant = schemaSnapshot
-      .split("\n")
-      .find((line) =>
-        line.includes('ON TABLE "public"."ledger" TO "authenticated"'),
-      );
+    const schemaLines = schemaSnapshot.split("\n");
+    const ledgerGrants = schemaLines.filter((line) =>
+      line.includes('ON TABLE "public"."ledger" TO "authenticated"'),
+    );
+    const oldCreateFunctionGrant = schemaLines.find(
+      (line) =>
+        line.includes(
+          'ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text")',
+        ) && line.endsWith('TO "authenticated";'),
+    );
+    const completeCreateFunctionGrant = schemaLines.find(
+      (line) =>
+        line.includes(
+          'ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text")',
+        ) && line.endsWith('TO "authenticated";'),
+    );
 
-    expect(ledgerGrant).toBeDefined();
-    expect(ledgerGrant).not.toContain("INSERT");
+    expect(ledgerGrants.length).toBeGreaterThan(0);
+    expect(ledgerGrants.every((line) => !line.includes("INSERT"))).toBe(true);
     expect(schemaSnapshot).not.toContain(
       'CREATE POLICY "ledger_insert_self_owner"',
     );
-    expect(schemaSnapshot).not.toContain(
-      'GRANT ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") TO "authenticated";',
-    );
-    expect(schemaSnapshot).toContain(
-      'GRANT ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";',
-    );
+    expect(oldCreateFunctionGrant).toBeUndefined();
+    expect(completeCreateFunctionGrant).toBeDefined();
   });
 
   it("最终 schema 保留邀请接受分支", () => {
