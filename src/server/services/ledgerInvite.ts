@@ -45,6 +45,13 @@ const inviteErrorMap = {
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
 } as const satisfies Readonly<Record<string, LedgerInviteErrorCode>>;
 
+const invalidInvitePreview: LedgerInvitePreview = {
+  inviteRole: null,
+  inviterName: null,
+  ledgerName: null,
+  status: "invalid",
+};
+
 export async function createLedgerInviteService(
   ledgerId: string,
   role: LedgerInviteRole,
@@ -93,52 +100,6 @@ export async function createLedgerInviteService(
   };
 }
 
-export async function replaceLedgerInviteService(
-  ledgerId: string,
-  inviteId: string,
-): Promise<CreateInviteResult> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("replace_ledger_invite", {
-    p_invite_id: inviteId,
-    p_ledger_id: ledgerId,
-  });
-
-  if (error) {
-    const mappedError = mapRpcBusinessError(
-      error,
-      inviteErrorMap,
-      ledgerInviteErrorCodes.createFailed,
-    );
-    if (mappedError === ledgerInviteErrorCodes.createFailed) {
-      logUnexpectedRpcError("replace_ledger_invite", error);
-    }
-    return { error: mappedError, ok: false };
-  }
-
-  const row = Array.isArray(data) ? data[0] : null;
-  if (
-    typeof row?.invite_id !== "string" ||
-    typeof row.token !== "string" ||
-    !isLedgerInviteRole(row.invite_role)
-  ) {
-    console.error(
-      "[ledgerInvite] replace_ledger_invite returned invalid data",
-      {
-        isArray: Array.isArray(data),
-        rowCount: Array.isArray(data) ? data.length : null,
-      },
-    );
-    return { error: ledgerInviteErrorCodes.createFailed, ok: false };
-  }
-
-  return {
-    inviteId: row.invite_id,
-    ok: true,
-    role: row.invite_role,
-    token: row.token,
-  };
-}
-
 export async function loadPendingLedgerInvitesService(
   ledgerId: string,
 ): Promise<PendingInvitesResult> {
@@ -174,6 +135,8 @@ export async function loadPendingLedgerInvitesService(
         createdAt: row.created_at,
         id: row.invite_id,
         role: row.invite_role,
+        token:
+          typeof row.invite_token === "string" ? row.invite_token : null,
       },
     ];
   });
@@ -184,27 +147,28 @@ export async function loadPendingLedgerInvitesService(
 export async function loadLedgerInvitePreview(
   token: string,
 ): Promise<LedgerInvitePreview> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_ledger_invite_preview", {
-    p_token: token,
-  });
-  const row = Array.isArray(data) ? data[0] : null;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_ledger_invite_preview", {
+      p_token: token,
+    });
+    const row = Array.isArray(data) ? data[0] : null;
 
-  if (error || !row) {
+    if (error || !row) {
+      return invalidInvitePreview;
+    }
+
     return {
-      inviteRole: null,
-      inviterName: null,
-      ledgerName: null,
-      status: "invalid",
+      inviteRole: isLedgerInviteRole(row.invite_role) ? row.invite_role : null,
+      inviterName:
+        typeof row.inviter_name === "string" ? row.inviter_name : null,
+      ledgerName: typeof row.ledger_name === "string" ? row.ledger_name : null,
+      status: isInviteStatus(row.invite_status) ? row.invite_status : "invalid",
     };
+  } catch {
+    console.error("[ledgerInvite] failed to load invite preview");
+    return invalidInvitePreview;
   }
-
-  return {
-    inviteRole: isLedgerInviteRole(row.invite_role) ? row.invite_role : null,
-    inviterName: typeof row.inviter_name === "string" ? row.inviter_name : null,
-    ledgerName: typeof row.ledger_name === "string" ? row.ledger_name : null,
-    status: isInviteStatus(row.invite_status) ? row.invite_status : "invalid",
-  };
 }
 
 export async function acceptLedgerInviteService(
