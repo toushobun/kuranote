@@ -25,7 +25,7 @@ const inviteRoleDescriptions: Record<LedgerInviteRole, string> = {
 type LedgerInviteTemplateProps = {
   acceptAction: ServerAction;
   errorMessage?: string | null;
-  isAuthenticated: boolean;
+  exitHref?: string;
   preview: LedgerInvitePreview;
   token: string;
 };
@@ -33,12 +33,11 @@ type LedgerInviteTemplateProps = {
 export function LedgerInviteTemplate({
   acceptAction,
   errorMessage = null,
-  isAuthenticated,
+  exitHref = routePaths.dashboard,
   preview,
   token,
 }: LedgerInviteTemplateProps) {
   const isAlreadyMember = preview.status === "already_member";
-  const isValid = preview.status === "valid";
   const isInvalid =
     preview.status === "invalid" ||
     preview.status === "revoked" ||
@@ -78,7 +77,7 @@ export function LedgerInviteTemplate({
             <IconButton
               aria-label="返回"
               component={Link}
-              href={routePaths.dashboard}
+              href={exitHref}
               sx={backButtonSx}
             >
               <ArrowBackRoundedIcon />
@@ -133,11 +132,7 @@ export function LedgerInviteTemplate({
 
           <Stack spacing={1.25} sx={{ mt: "auto" }}>
             {isInvalid ? (
-              <Button
-                component={Link}
-                href={routePaths.dashboard}
-                variant="contained"
-              >
+              <Button component={Link} href={exitHref} variant="contained">
                 返回首页
               </Button>
             ) : isAlreadyMember ? (
@@ -152,29 +147,18 @@ export function LedgerInviteTemplate({
               <Stack direction="row" spacing={1.25}>
                 <Button
                   component={Link}
-                  href={routePaths.dashboard}
+                  href={exitHref}
                   sx={{ flex: 1 }}
                   variant="outlined"
                 >
                   取消
                 </Button>
-                {isAuthenticated && isValid ? (
-                  <Box action={acceptAction} component="form" sx={{ flex: 1 }}>
-                    <input name="token" type="hidden" value={token} />
-                    <Button fullWidth type="submit" variant="contained">
-                      加入账本
-                    </Button>
-                  </Box>
-                ) : (
-                  <Button
-                    component={Link}
-                    href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}
-                    sx={{ flex: 1 }}
-                    variant="contained"
-                  >
-                    登录后加入
+                <Box action={acceptAction} component="form" sx={{ flex: 1 }}>
+                  <input name="token" type="hidden" value={token} />
+                  <Button fullWidth type="submit" variant="contained">
+                    加入账本
                   </Button>
-                )}
+                </Box>
               </Stack>
             )}
           </Stack>

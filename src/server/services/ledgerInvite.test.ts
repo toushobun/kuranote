@@ -370,7 +370,7 @@ describe("acceptLedgerInviteService", () => {
     });
   });
 
-  it("未知业务错误时回退 invite_invalid", async () => {
+  it("未知业务错误时回退 accept_failed", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
         error: {
@@ -384,7 +384,7 @@ describe("acceptLedgerInviteService", () => {
     mocks.createClient.mockResolvedValue(supabase.client);
 
     await expect(acceptLedgerInviteService("invite-token")).resolves.toEqual({
-      error: ledgerInviteErrorCodes.inviteInvalid,
+      error: ledgerInviteErrorCodes.acceptFailed,
       ok: false,
     });
   });

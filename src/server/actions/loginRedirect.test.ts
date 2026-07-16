@@ -91,9 +91,47 @@ describe("loginWithRedirect", () => {
     ).resolves.toEqual({ error: "邮箱或密码不正确。" });
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
+
+  it.each(["client", "signIn"] as const)(
+    "%s 抛出异常时返回服务错误且不泄漏异常内容",
+    async (failurePoint) => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const sensitiveError = new Error("secret session and password details");
+
+      if (failurePoint === "client") {
+        mocks.createClient.mockRejectedValue(sensitiveError);
+      } else {
+        mocks.signInWithPassword.mockRejectedValue(sensitiveError);
+      }
+
+      await expect(
+        loginWithRedirect(
+          "/invite/invite-token",
+          {} as never,
+          createLoginFormData(),
+        ),
+      ).resolves.toEqual({ error: "登录服务暂时不可用，请稍后重试。" });
+      expect(mocks.redirect).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith(
+        "[login] sign in failed unexpectedly",
+      );
+      expect(consoleError).not.toHaveBeenCalledWith(
+        expect.stringContaining("secret session and password details"),
+      );
+      consoleError.mockRestore();
+    },
+  );
 });
 
 describe("submitRegisterOtpWithRedirect", () => {
+  function createRegisterFormData() {
+    const formData = new FormData();
+    formData.set("email", "user@example.test");
+    return formData;
+  }
+
   it("注册成功后写入邀请页回跳地址", async () => {
     mocks.submitRegisterOtp.mockResolvedValue({ status: "success" });
 
@@ -101,11 +139,30 @@ describe("submitRegisterOtpWithRedirect", () => {
       submitRegisterOtpWithRedirect(
         "/invite/invite-token",
         {} as never,
-        new FormData(),
+        createRegisterFormData(),
       ),
     ).resolves.toEqual({
       redirectTo: "/invite/invite-token",
       status: "success",
+    });
+  });
+
+  it("注册后需要重新登录时仍保留邀请页回跳地址", async () => {
+    mocks.submitRegisterOtp.mockResolvedValue({
+      redirectTo: "/login?email=user%40example.test",
+      status: "session_invalid",
+    });
+
+    await expect(
+      submitRegisterOtpWithRedirect(
+        "/invite/invite-token",
+        {} as never,
+        createRegisterFormData(),
+      ),
+    ).resolves.toEqual({
+      redirectTo:
+        "/login?email=user%40example.test&next=%2Finvite%2Finvite-token",
+      status: "session_invalid",
     });
   });
 
@@ -116,7 +173,7 @@ describe("submitRegisterOtpWithRedirect", () => {
       submitRegisterOtpWithRedirect(
         "https://evil.example",
         {} as never,
-        new FormData(),
+        createRegisterFormData(),
       ),
     ).resolves.toEqual({ redirectTo: "/dashboard", status: "success" });
   });
@@ -129,7 +186,7 @@ describe("submitRegisterOtpWithRedirect", () => {
       submitRegisterOtpWithRedirect(
         "/invite/invite-token",
         {} as never,
-        new FormData(),
+        createRegisterFormData(),
       ),
     ).resolves.toBe(failure);
   });
