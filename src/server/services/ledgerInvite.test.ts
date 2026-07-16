@@ -162,19 +162,19 @@ describe("loadPendingLedgerInvitesService", () => {
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
-    await expect(
-      loadPendingLedgerInvitesService("ledger-id"),
-    ).resolves.toEqual({
-      invites: [
-        {
-          createdAt: "2026-07-16T05:00:00.000Z",
-          id: "invite-id",
-          role: "admin",
-          token: "restored-token",
-        },
-      ],
-      ok: true,
-    });
+    await expect(loadPendingLedgerInvitesService("ledger-id")).resolves.toEqual(
+      {
+        invites: [
+          {
+            createdAt: "2026-07-16T05:00:00.000Z",
+            id: "invite-id",
+            role: "admin",
+            token: "restored-token",
+          },
+        ],
+        ok: true,
+      },
+    );
     expect(supabase.rpc).toHaveBeenCalledWith("list_pending_ledger_invites", {
       p_ledger_id: "ledger-id",
     });
@@ -195,19 +195,19 @@ describe("loadPendingLedgerInvitesService", () => {
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
-    await expect(
-      loadPendingLedgerInvitesService("ledger-id"),
-    ).resolves.toEqual({
-      invites: [
-        {
-          createdAt: "2026-07-16T05:00:00.000Z",
-          id: "invite-id",
-          role: "member",
-          token: null,
-        },
-      ],
-      ok: true,
-    });
+    await expect(loadPendingLedgerInvitesService("ledger-id")).resolves.toEqual(
+      {
+        invites: [
+          {
+            createdAt: "2026-07-16T05:00:00.000Z",
+            id: "invite-id",
+            role: "member",
+            token: null,
+          },
+        ],
+        ok: true,
+      },
+    );
   });
 
   it("RPC 失败时返回稳定加载错误", async () => {
@@ -216,12 +216,12 @@ describe("loadPendingLedgerInvitesService", () => {
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
-    await expect(
-      loadPendingLedgerInvitesService("ledger-id"),
-    ).resolves.toEqual({
-      error: ledgerInviteErrorCodes.loadFailed,
-      ok: false,
-    });
+    await expect(loadPendingLedgerInvitesService("ledger-id")).resolves.toEqual(
+      {
+        error: ledgerInviteErrorCodes.loadFailed,
+        ok: false,
+      },
+    );
   });
 });
 

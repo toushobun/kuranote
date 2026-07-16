@@ -95,7 +95,9 @@ describe("LedgerInviteEntry 待接受邀请", () => {
     );
 
     const linkField = screen.getByDisplayValue(/\/invite\/member-token/);
-    const qrCode = screen.getByRole("img", { name: "账本邀请二维码，家庭账本" });
+    const qrCode = screen.getByRole("img", {
+      name: "账本邀请二维码，家庭账本",
+    });
 
     expect(linkField).toBeInTheDocument();
     expect(qrCode).toHaveAttribute(

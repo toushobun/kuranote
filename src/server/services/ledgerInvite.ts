@@ -135,8 +135,7 @@ export async function loadPendingLedgerInvitesService(
         createdAt: row.created_at,
         id: row.invite_id,
         role: row.invite_role,
-        token:
-          typeof row.invite_token === "string" ? row.invite_token : null,
+        token: typeof row.invite_token === "string" ? row.invite_token : null,
       },
     ];
   });
