@@ -57,6 +57,16 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
+  if (intent !== "create") {
+    redirect(
+      ledgerInviteErrorHref(
+        ledgerId,
+        "create_failed",
+        ledgerInviteErrorOperations.create,
+      ),
+    );
+  }
+
   const roleValue = String(formData.get("role") ?? "member").trim();
   if (!isLedgerInviteRole(roleValue)) {
     redirect(
