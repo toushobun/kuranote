@@ -18,6 +18,8 @@ async function defaultCheckEmailAvailabilityAction(): Promise<RegisterEmailAvail
   return { available: true };
 }
 
+async function defaultGoogleAction() {}
+
 async function defaultSubmitOtpAction(): Promise<SubmitRegisterOtpActionState> {
   return {};
 }
@@ -41,6 +43,7 @@ const meta = {
   ],
   args: {
     checkEmailAvailabilityAction: defaultCheckEmailAvailabilityAction,
+    googleAction: defaultGoogleAction,
     requestOtpAction: defaultRequestOtpAction,
     submitOtpAction: defaultSubmitOtpAction,
     turnstileSiteKey: turnstileTestSiteKey,
@@ -55,11 +58,18 @@ export const Default: Story = {
 };
 
 export const WithError: Story = {
-  name: "含错误提示",
+  name: "含验证码错误提示",
   args: {
     initialRequestOtpState: {
       error: "验证码发送失败，请稍后再试。",
     },
+  },
+};
+
+export const WithGoogleError: Story = {
+  name: "含 Google 登录错误提示",
+  args: {
+    googleErrorMessage: "Google 登录未完成，请重新尝试或改用邮箱方式。",
   },
 };
 
