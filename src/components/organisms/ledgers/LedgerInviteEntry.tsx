@@ -93,7 +93,6 @@ export function LedgerInviteEntry({
     errorMessage,
     errorOperation,
     initialToken,
-    pendingInvites,
   });
 
   return (
