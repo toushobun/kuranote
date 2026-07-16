@@ -6,6 +6,8 @@ async function defaultAction() {
   return {};
 }
 
+async function defaultGoogleAction() {}
+
 async function errorAction() {
   return { error: "邮箱或密码错误。" };
 }
@@ -15,6 +17,7 @@ const meta = {
   component: LoginTemplate,
   args: {
     action: defaultAction,
+    googleAction: defaultGoogleAction,
   },
 } satisfies Meta<typeof LoginTemplate>;
 
@@ -26,8 +29,15 @@ export const Default: Story = {
 };
 
 export const WithError: Story = {
-  name: "含错误提示",
+  name: "含邮箱登录错误提示",
   args: {
     action: errorAction,
+  },
+};
+
+export const WithGoogleError: Story = {
+  name: "含 Google 登录错误提示",
+  args: {
+    googleErrorMessage: "Google 登录未完成，请重新尝试或改用邮箱方式。",
   },
 };

@@ -5,6 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
+import { GoogleAuthSection } from "molecules/auth/GoogleAuthSection";
 import { RegisterForm } from "organisms/auth/RegisterForm";
 import type {
   RegisterEmailAvailabilityState,
@@ -16,6 +17,8 @@ type RegisterTemplateProps = {
   checkEmailAvailabilityAction: (
     email: string,
   ) => Promise<RegisterEmailAvailabilityState>;
+  googleAction?: () => Promise<void>;
+  googleErrorMessage?: string;
   initialRequestOtpState?: RequestRegisterOtpActionState;
   loginHref?: string;
   requestOtpAction: (
@@ -31,6 +34,8 @@ type RegisterTemplateProps = {
 
 export function RegisterTemplate({
   checkEmailAvailabilityAction,
+  googleAction,
+  googleErrorMessage,
   initialRequestOtpState,
   loginHref = routePaths.login,
   requestOtpAction,
@@ -62,6 +67,13 @@ export function RegisterTemplate({
           <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
             创建账号后开始使用记账功能
           </Typography>
+
+          {googleAction || googleErrorMessage ? (
+            <GoogleAuthSection
+              action={googleAction}
+              errorMessage={googleErrorMessage}
+            />
+          ) : null}
 
           <RegisterForm
             checkEmailAvailabilityAction={checkEmailAvailabilityAction}

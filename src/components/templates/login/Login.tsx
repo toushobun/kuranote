@@ -5,17 +5,22 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
+import { GoogleAuthSection } from "molecules/auth/GoogleAuthSection";
 import { LoginForm } from "organisms/auth/LoginForm";
 
 type LoginTemplateProps = {
   action: Parameters<typeof LoginForm>[0]["action"];
   defaultEmail?: string;
+  googleAction?: () => Promise<void>;
+  googleErrorMessage?: string;
   registerHref?: string;
 };
 
 export function LoginTemplate({
   action,
   defaultEmail = "",
+  googleAction,
+  googleErrorMessage,
   registerHref = routePaths.register,
 }: LoginTemplateProps) {
   return (
@@ -43,6 +48,13 @@ export function LoginTemplate({
           <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
             登录后开始使用记账功能
           </Typography>
+
+          {googleAction || googleErrorMessage ? (
+            <GoogleAuthSection
+              action={googleAction}
+              errorMessage={googleErrorMessage}
+            />
+          ) : null}
 
           <LoginForm action={action} defaultEmail={defaultEmail} />
 

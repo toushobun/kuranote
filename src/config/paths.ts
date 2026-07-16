@@ -2,6 +2,7 @@ import type { TransactionRecordType } from "types/transactions";
 
 export const routePaths = {
   accounts: "/accounts",
+  authCallback: "/auth/callback",
   categories: "/categories",
   dashboard: "/dashboard",
   home: "/",

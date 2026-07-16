@@ -39,6 +39,8 @@ https://<vercel-project>.vercel.app
 
 如后续使用自定义域名，再补充正式域名。
 
+启用 Google OAuth 时，还需要配置 Google Cloud、Supabase Provider、应用 callback 和功能开关，具体见 [`Google 账号登录配置`](google-oauth.md)。
+
 ## 本地 Supabase 开发
 
 本地开发有两种模式：
