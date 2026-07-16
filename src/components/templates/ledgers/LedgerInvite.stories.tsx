@@ -10,7 +10,6 @@ const meta = {
   args: {
     acceptAction,
     errorMessage: null,
-    isAuthenticated: true,
     preview: {
       inviteRole: "member",
       inviterName: "淞文",
@@ -48,12 +47,6 @@ export const Viewer: Story = {
       ledgerName: "家庭账本",
       status: "valid",
     },
-  },
-};
-
-export const LoggedOut: Story = {
-  args: {
-    isAuthenticated: false,
   },
 };
 
