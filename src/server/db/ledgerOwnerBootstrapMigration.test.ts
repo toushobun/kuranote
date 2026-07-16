@@ -61,9 +61,7 @@ describe("首次账本所有者 bootstrap migration", () => {
   });
 
   it("最终 schema 严格限制首个所有者成员的身份和审计字段", () => {
-    expect(finalMemberPermissionFunction).toContain(
-      "new.user_id = auth.uid()",
-    );
+    expect(finalMemberPermissionFunction).toContain("new.user_id = auth.uid()");
     expect(finalMemberPermissionFunction).toContain("new.role = 'owner'");
     expect(finalMemberPermissionFunction).toContain("new.status = 'active'");
     expect(finalMemberPermissionFunction).toContain(
@@ -131,9 +129,7 @@ describe("首次账本所有者 bootstrap migration", () => {
     expect(finalMemberPermissionFunction).toContain(
       "new.role in ('admin', 'member', 'viewer')",
     );
-    expect(finalMemberPermissionFunction).toContain(
-      "old.status = 'invited'",
-    );
+    expect(finalMemberPermissionFunction).toContain("old.status = 'invited'");
   });
 
   it("最终 schema 在 bootstrap 后保留通用权限校验和稳定错误详情", () => {
