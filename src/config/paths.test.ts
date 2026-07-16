@@ -23,14 +23,14 @@ describe("ledger invite paths", () => {
     const href = ledgerInviteErrorHref(
       "ledger/id",
       "invite_already_used",
-      ledgerInviteErrorOperations.replace,
+      ledgerInviteErrorOperations.revoke,
     );
     const url = new URL(href, "http://localhost");
 
     expect(url.pathname).toBe("/ledgers/ledger%2Fid/settings");
     expect(url.searchParams.get("inviteError")).toBe("invite_already_used");
     expect(url.searchParams.get("inviteErrorKey")).toBeTruthy();
-    expect(url.searchParams.get("inviteOperation")).toBe("replace");
+    expect(url.searchParams.get("inviteOperation")).toBe("revoke");
   });
 
   it("相同邀请错误连续发生时生成不同标识", () => {
