@@ -5300,10 +5300,6 @@ CREATE POLICY "category_update_admin" ON "public"."category" FOR UPDATE TO "auth
 ALTER TABLE "public"."ledger" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "ledger_insert_self_owner" ON "public"."ledger" FOR INSERT TO "authenticated" WITH CHECK ((("owner_user_id" = "auth"."uid"()) AND "public"."current_app_user_is_active"()));
-
-
-
 ALTER TABLE "public"."ledger_invite" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5516,7 +5512,7 @@ GRANT ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger" TO "authenticated";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger" TO "service_role";
 
 
