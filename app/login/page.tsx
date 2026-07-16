@@ -39,9 +39,9 @@ function getAuthErrorMessage(authError: string | string[] | undefined) {
 }
 
 export default async function LoginRoute({ searchParams }: LoginRouteProps) {
-  await redirectIfAuthenticated();
   const params = await searchParams;
   const nextPath = getNextPath(params?.next);
+  await redirectIfAuthenticated(nextPath);
   const googleAuthEnabled = isGoogleAuthEnabled();
 
   return (
