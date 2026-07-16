@@ -9,7 +9,9 @@ import {
   routePaths,
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
+import { ledgerInviteErrorCodes } from "server/errors/ledgerInvite";
 import {
   acceptLedgerInviteService,
   createLedgerInviteService,
@@ -90,6 +92,16 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
+  if (!isValidLedgerInviteToken(result.token)) {
+    redirect(
+      ledgerInviteErrorHref(
+        ledgerId,
+        ledgerInviteErrorCodes.createFailed,
+        ledgerInviteErrorOperations.create,
+      ),
+    );
+  }
+
   revalidatePath(`/ledgers/${ledgerId}/settings`);
   redirectToCreatedInvite(ledgerId, result);
 }
@@ -111,18 +123,25 @@ function redirectToCreatedInvite(
 export async function acceptLedgerInvite(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
 
-  if (!token) {
+  if (!isValidLedgerInviteToken(token)) {
     redirect("/invite/invalid");
   }
 
-  const result = await acceptLedgerInviteService(token);
+  const result = await acceptLedgerInviteSafely(token);
 
   if (!result.ok) {
-    redirect(
-      `/invite/${encodeURIComponent(token)}?error=${encodeURIComponent(result.error)}`,
-    );
+    redirect(`/invite/${token}?error=${encodeURIComponent(result.error)}`);
   }
 
   revalidateCurrentLedgerPaths();
   redirect(routePaths.dashboard);
+}
+
+async function acceptLedgerInviteSafely(token: string) {
+  try {
+    return await acceptLedgerInviteService(token);
+  } catch {
+    console.error("[ledgerInvite] failed to accept invite action");
+    return { error: ledgerInviteErrorCodes.acceptFailed, ok: false } as const;
+  }
 }
