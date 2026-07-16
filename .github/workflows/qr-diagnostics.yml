@@ -22,7 +22,7 @@ jobs:
             npx tsc --noEmit --pretty false 2>&1 || true
             echo
             echo "## Prettier"
-            npx prettier . --check --list-different 2>&1 || true
+            npx prettier . --list-different 2>&1 || true
           } > diagnostics.txt
       - uses: actions/upload-artifact@v4
         with:
