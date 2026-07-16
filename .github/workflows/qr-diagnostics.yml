@@ -15,16 +15,18 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Collect diagnostics
+      - name: Format files
         run: |
-          {
-            echo "## TypeScript"
-            npx tsc --noEmit --pretty false 2>&1 || true
-            echo
-            echo "## Prettier"
-            npx prettier . --list-different 2>&1 || true
-          } > diagnostics.txt
+          npx prettier --write \
+            src/components/molecules/ledgers/LedgerInviteQrCode.test.tsx \
+            src/components/molecules/ledgers/LedgerInviteQrCode.tsx \
+            src/components/organisms/ledgers/LedgerInviteEntry.tsx \
+            src/lib/qr/qrCode.ts
       - uses: actions/upload-artifact@v4
         with:
-          name: qr-diagnostics
-          path: diagnostics.txt
+          name: qr-formatted-files
+          path: |
+            src/components/molecules/ledgers/LedgerInviteQrCode.test.tsx
+            src/components/molecules/ledgers/LedgerInviteQrCode.tsx
+            src/components/organisms/ledgers/LedgerInviteEntry.tsx
+            src/lib/qr/qrCode.ts
