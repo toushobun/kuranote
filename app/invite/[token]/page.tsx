@@ -12,19 +12,29 @@ export default async function LedgerInviteRoute({
   searchParams: Promise<{ error?: string }>;
 }) {
   const [{ token }, query] = await Promise.all([params, searchParams]);
-  const supabase = await createClient();
-  const [preview, authResult] = await Promise.all([
+  const [preview, isAuthenticated] = await Promise.all([
     loadLedgerInvitePreview(token),
-    supabase.auth.getUser(),
+    probeAuthentication(),
   ]);
 
   return (
     <LedgerInviteTemplate
       acceptAction={acceptLedgerInvite}
       errorMessage={getLedgerInviteErrorMessage(query.error)}
-      isAuthenticated={authResult.data.user !== null}
+      isAuthenticated={isAuthenticated}
       preview={preview}
       token={token}
     />
   );
+}
+
+export async function probeAuthentication(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    return error === null && data.user !== null;
+  } catch {
+    console.error("[ledgerInvite] failed to probe authentication");
+    return false;
+  }
 }
