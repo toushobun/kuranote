@@ -1,5 +1,94 @@
 -- Issue #459：恢复首次创建账本时写入唯一 owner 成员的受控豁免。
--- 后续邀请权限 migration 覆盖了同名函数并遗漏该分支，导致首个成员写入被权限检查拒绝。
+-- 同时收回旧 create_ledger_with_owner 对 authenticated 的执行权限，避免绕过完整初始化 RPC。
+create or replace function public.create_ledger_with_owner(
+    p_name text,
+    p_base_currency text default 'JPY'
+)
+returns public.ledger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_user_id uuid;
+    v_ledger public.ledger;
+begin
+    v_user_id = auth.uid();
+
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    if not exists (
+        select 1
+        from public.app_user au
+        where au.id = v_user_id
+          and au.status = 'active'
+    ) then
+        raise exception 'user_inactive'
+            using errcode = '42501', detail = 'user_inactive';
+    end if;
+
+    insert into public.ledger (
+        name,
+        base_currency,
+        owner_user_id,
+        created_by,
+        updated_by
+    )
+    values (
+        p_name,
+        p_base_currency,
+        v_user_id,
+        v_user_id,
+        v_user_id
+    )
+    returning * into v_ledger;
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
+
+    insert into public.ledger_member (
+        ledger_id,
+        user_id,
+        role,
+        status,
+        invited_by,
+        invited_at,
+        joined_at,
+        created_by,
+        updated_by
+    )
+    values (
+        v_ledger.id,
+        v_user_id,
+        'owner',
+        'active',
+        v_user_id,
+        now(),
+        now(),
+        v_user_id,
+        v_user_id
+    );
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
+
+    perform public.initialize_ledger_default_data(v_ledger.id, v_user_id);
+
+    update public.app_user
+    set
+        current_ledger_id = v_ledger.id,
+        updated_by = v_user_id
+    where id = v_user_id;
+
+    return v_ledger;
+end;
+$$;
+
+revoke all on function public.create_ledger_with_owner(text, text) from public;
+revoke all on function public.create_ledger_with_owner(text, text) from anon;
+revoke all on function public.create_ledger_with_owner(text, text) from authenticated;
+
 create or replace function public.enforce_ledger_member_management_permission()
 returns trigger
 language plpgsql
@@ -19,9 +108,17 @@ begin
     v_ledger_id := case when tg_op = 'INSERT' then new.ledger_id else old.ledger_id end;
 
     if tg_op = 'INSERT'
+       and current_setting('app.allow_ledger_owner_bootstrap', true) = 'true'
        and new.user_id = auth.uid()
        and new.role = 'owner'
        and new.status = 'active'
+       and new.invited_by = auth.uid()
+       and new.invited_at is not null
+       and new.joined_at is not null
+       and new.removed_by is null
+       and new.removed_at is null
+       and new.created_by = auth.uid()
+       and new.updated_by = auth.uid()
        and exists (
            select 1
            from public.ledger l
