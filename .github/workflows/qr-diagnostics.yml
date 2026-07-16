@@ -1,0 +1,21 @@
+name: QR diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: TypeScript diagnostics
+        run: npx tsc --noEmit --pretty false 2>&1 | grep -E "error TS" || true
+      - name: Prettier diagnostics
+        run: npx prettier . --check --list-different 2>&1 | grep -E "^src/|^\.github/" || true
