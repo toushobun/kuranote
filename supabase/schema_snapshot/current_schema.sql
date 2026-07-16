@@ -1567,6 +1567,24 @@ begin
     v_ledger_id := case when tg_op = 'INSERT' then new.ledger_id else old.ledger_id end;
 
     if tg_op = 'INSERT'
+       and new.user_id = auth.uid()
+       and new.role = 'owner'
+       and new.status = 'active'
+       and exists (
+           select 1
+           from public.ledger l
+           where l.id = new.ledger_id
+             and l.owner_user_id = auth.uid()
+             and not exists (
+                 select 1
+                 from public.ledger_member existing_member
+                 where existing_member.ledger_id = l.id
+             )
+       ) then
+        return new;
+    end if;
+
+    if tg_op = 'INSERT'
        and current_setting('app.allow_ledger_invite_accept', true) = 'true'
        and new.user_id = auth.uid()
        and new.status = 'active'
