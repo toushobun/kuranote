@@ -28,6 +28,7 @@ const ledgerId = "00000000-0000-4000-8000-000000000001";
 const transactionRecordId = "00000000-0000-4000-8000-000000009001";
 const accountId = "00000000-0000-4000-8000-000000000041";
 const categoryId = "00000000-0000-4000-8000-000000005072";
+const tagId = "00000000-0000-4000-8000-000000003001";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -71,7 +72,8 @@ describe("记账编辑 current ledger 边界", () => {
             },
           ],
         },
-        { data: [] },
+        { data: [{ tag_id: tagId }] },
+        { data: [{ color: null, id: tagId, name: "日常" }] },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
@@ -86,6 +88,7 @@ describe("记账编辑 current ledger 边界", () => {
       "transaction_record",
       "transaction_item",
       "transaction_record_tag",
+      "transaction_tag",
     ]);
 
     for (const query of supabase.queries) {
