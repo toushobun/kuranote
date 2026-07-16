@@ -21,9 +21,7 @@ describe("首次账本所有者 bootstrap migration", () => {
     expect(bootstrapIndex).toBeGreaterThan(-1);
     expect(genericCheckIndex).toBeGreaterThan(bootstrapIndex);
     expect(migrationSql).toContain("l.owner_user_id = auth.uid()");
-    expect(migrationSql).toContain(
-      "where existing_member.ledger_id = l.id",
-    );
+    expect(migrationSql).toContain("where existing_member.ledger_id = l.id");
   });
 
   it("保留邀请接受分支", () => {
