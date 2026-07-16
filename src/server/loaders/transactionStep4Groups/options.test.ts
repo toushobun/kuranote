@@ -16,6 +16,7 @@ vi.mock("lib/supabase/server", () => ({
 import { loadTransactionFilterOptions } from "./options";
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
+const otherLedgerId = "00000000-0000-4000-8000-000000000002";
 
 type Row = Record<string, unknown>;
 
@@ -106,6 +107,123 @@ describe("loadTransactionFilterOptions", () => {
     expect(options.members).toEqual([
       { id: "user-b", name: "全局成员" },
       { id: "user-a", name: "家庭账本淞文" },
+    ]);
+  });
+
+  it("账户、分类、商家、标签和成员候选不会混入其他账本数据", async () => {
+    const fakeDb = createFakeSupabase({
+      account: [
+        {
+          created_at: "2026-07-01T00:00:00Z",
+          currency: "JPY",
+          id: "account-current",
+          is_archived: false,
+          ledger_id: ledgerId,
+          name: "当前账户",
+          sort_order: 0,
+        },
+        {
+          created_at: "2026-07-01T00:00:00Z",
+          currency: "JPY",
+          id: "account-other",
+          is_archived: false,
+          ledger_id: otherLedgerId,
+          name: "其他账户",
+          sort_order: 0,
+        },
+      ],
+      app_user: [
+        { display_name: "当前成员", id: "member-current" },
+        { display_name: "其他成员", id: "member-other" },
+      ],
+      category: [
+        {
+          id: "category-current",
+          is_archived: false,
+          ledger_id: ledgerId,
+          name: "当前分类",
+          parent_id: null,
+          sort_order: 0,
+          type: "expense",
+        },
+        {
+          id: "category-other",
+          is_archived: false,
+          ledger_id: otherLedgerId,
+          name: "其他分类",
+          parent_id: null,
+          sort_order: 0,
+          type: "expense",
+        },
+      ],
+      ledger_member: [
+        {
+          ledger_id: ledgerId,
+          status: "active",
+          user_id: "member-current",
+        },
+        {
+          ledger_id: otherLedgerId,
+          status: "active",
+          user_id: "member-other",
+        },
+      ],
+      ledger_member_display_setting: [],
+      merchant: [
+        {
+          created_at: "2026-07-01T00:00:00Z",
+          icon_url: null,
+          id: "merchant-current",
+          is_archived: false,
+          ledger_id: ledgerId,
+          name: "当前商家",
+          sort_order: 0,
+        },
+        {
+          created_at: "2026-07-01T00:00:00Z",
+          icon_url: null,
+          id: "merchant-other",
+          is_archived: false,
+          ledger_id: otherLedgerId,
+          name: "其他商家",
+          sort_order: 0,
+        },
+      ],
+      transaction_tag: [
+        {
+          color: null,
+          created_at: "2026-07-01T00:00:00Z",
+          id: "tag-current",
+          is_archived: false,
+          ledger_id: ledgerId,
+          name: "当前标签",
+        },
+        {
+          color: null,
+          created_at: "2026-07-01T00:00:00Z",
+          id: "tag-other",
+          is_archived: false,
+          ledger_id: otherLedgerId,
+          name: "其他标签",
+        },
+      ],
+    });
+    mocks.createClient.mockResolvedValue(fakeDb);
+
+    const options = await loadTransactionFilterOptions();
+
+    expect(options.accounts.map((option) => option.id)).toEqual([
+      "account-current",
+    ]);
+    expect(options.categories.map((option) => option.id)).toEqual([
+      "category-current",
+    ]);
+    expect(options.merchants.map((option) => option.id)).toEqual([
+      "merchant-current",
+    ]);
+    expect(options.tags.map((option) => option.id)).toEqual(["tag-current"]);
+    expect(options.members.map((option) => option.id)).toEqual([
+      "member-current",
     ]);
   });
 });

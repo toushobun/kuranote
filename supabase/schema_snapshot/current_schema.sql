@@ -109,6 +109,7 @@ declare
     v_invite public.ledger_invite;
     v_ledger public.ledger;
     v_existing_status text;
+    v_result text;
 begin
     if v_user_id is null then
         raise exception 'auth_required'
@@ -146,70 +147,70 @@ begin
 
     select lm.status
       into v_existing_status
-     from public.ledger_member lm
+      from public.ledger_member lm
      where lm.ledger_id = v_invite.ledger_id
        and lm.user_id = v_user_id
        and lm.status <> 'removed';
 
     if v_existing_status = 'active' then
-        insert into public.user_setting (user_id, current_ledger_id, created_by, updated_by)
-        values (v_user_id, v_invite.ledger_id, v_user_id, v_user_id)
-        on conflict (user_id) do update set
-            current_ledger_id = excluded.current_ledger_id,
+        v_result := 'already_member';
+    else
+        if v_invite.accepted_at is not null then
+            raise exception 'invite_already_used'
+                using errcode = '23505', detail = 'invite_already_used';
+        end if;
+
+        perform set_config('app.allow_ledger_invite_accept', 'true', true);
+
+        insert into public.ledger_member (
+            ledger_id,
+            user_id,
+            role,
+            status,
+            joined_at,
+            invited_by,
+            created_by,
+            updated_by
+        ) values (
+            v_invite.ledger_id,
+            v_user_id,
+            v_invite.role,
+            'active',
+            now(),
+            v_invite.inviter_user_id,
+            v_invite.inviter_user_id,
+            v_user_id
+        )
+        on conflict (ledger_id, user_id) where status <> 'removed' do update set
+            role = excluded.role,
+            status = 'active',
+            joined_at = now(),
+            removed_at = null,
+            removed_by = null,
             updated_by = v_user_id;
 
-        return query select v_ledger.id, v_ledger.name, 'already_member'::text;
-        return;
+        perform set_config('app.allow_ledger_invite_accept', 'false', true);
+
+        update public.ledger_invite
+           set accepted_at = now(),
+               accepted_by = v_user_id
+         where id = v_invite.id;
+
+        v_result := 'joined';
     end if;
 
-    if v_invite.accepted_at is not null then
-        raise exception 'invite_already_used'
-            using errcode = '23505', detail = 'invite_already_used';
+    update public.app_user
+       set current_ledger_id = v_invite.ledger_id,
+           updated_by = v_user_id
+     where id = v_user_id
+       and status = 'active';
+
+    if not found then
+        raise exception 'user_inactive'
+            using errcode = '42501', detail = 'user_inactive';
     end if;
 
-    perform set_config('app.allow_ledger_invite_accept', 'true', true);
-
-    insert into public.ledger_member (
-        ledger_id,
-        user_id,
-        role,
-        status,
-        joined_at,
-        invited_by,
-        created_by,
-        updated_by
-    ) values (
-        v_invite.ledger_id,
-        v_user_id,
-        v_invite.role,
-        'active',
-        now(),
-        v_invite.inviter_user_id,
-        v_invite.inviter_user_id,
-        v_user_id
-    )
-    on conflict (ledger_id, user_id) where status <> 'removed' do update set
-        role = excluded.role,
-        status = 'active',
-        joined_at = now(),
-        removed_at = null,
-        removed_by = null,
-        updated_by = v_user_id;
-
-    perform set_config('app.allow_ledger_invite_accept', 'false', true);
-
-    update public.ledger_invite
-       set accepted_at = now(),
-           accepted_by = v_user_id
-     where id = v_invite.id;
-
-    insert into public.user_setting (user_id, current_ledger_id, created_by, updated_by)
-    values (v_user_id, v_invite.ledger_id, v_user_id, v_user_id)
-    on conflict (user_id) do update set
-        current_ledger_id = excluded.current_ledger_id,
-        updated_by = v_user_id;
-
-    return query select v_ledger.id, v_ledger.name, 'joined'::text;
+    return query select v_ledger.id, v_ledger.name, v_result;
 end;
 $$;
 

@@ -1,24 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ledgerCreateErrorHref, routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
 import { createLedgerService } from "server/services/ledgerCreate";
 import { validateCreateLedgerForm } from "server/validators/ledgerCreate";
-
-const ledgerCreateRevalidatePaths = [
-  routePaths.dashboard,
-  routePaths.transactions,
-  routePaths.transactionsNew,
-  routePaths.accounts,
-  routePaths.categories,
-  routePaths.merchants,
-  routePaths.statistics,
-  routePaths.settings,
-  routePaths.ledgers,
-] as const;
 
 export async function createLedger(formData: FormData) {
   await getCurrentLedgerContext();
@@ -34,8 +22,6 @@ export async function createLedger(formData: FormData) {
     redirect(ledgerCreateErrorHref(result.error));
   }
 
-  ledgerCreateRevalidatePaths.forEach((path) => {
-    revalidatePath(path);
-  });
+  revalidateCurrentLedgerPaths();
   redirect(routePaths.dashboard);
 }

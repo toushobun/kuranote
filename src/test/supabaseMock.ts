@@ -14,6 +14,7 @@ type QueryMethodName =
   | "insert"
   | "is"
   | "limit"
+  | "lt"
   | "maybeSingle"
   | "or"
   | "order"
@@ -61,6 +62,7 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
   query.eq = vi.fn((...args: unknown[]) => addCall("eq", args));
   query.gt = vi.fn((...args: unknown[]) => addCall("gt", args));
   query.gte = vi.fn((...args: unknown[]) => addCall("gte", args));
+  query.lt = vi.fn((...args: unknown[]) => addCall("lt", args));
   query.is = vi.fn((...args: unknown[]) => addCall("is", args));
   query.order = vi.fn((...args: unknown[]) => addCall("order", args));
   query.limit = vi.fn((...args: unknown[]) => addCall("limit", args));
