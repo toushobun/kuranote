@@ -47,12 +47,30 @@ describe("首次账本所有者 bootstrap migration", () => {
     expect(migrationSql).toContain("where existing_member.ledger_id = l.id");
   });
 
-  it("收回旧账本创建 RPC 的直接执行权限", () => {
+  it("禁止绕过完整账本初始化入口", () => {
     expect(migrationSql).toContain(
       "revoke all on function public.create_ledger_with_owner(text, text) from authenticated",
     );
+    expect(migrationSql).toContain(
+      "revoke insert on table public.ledger from authenticated",
+    );
+    expect(migrationSql).toContain(
+      "drop policy if exists ledger_insert_self_owner on public.ledger",
+    );
     expect(migrationSql).not.toContain(
       "grant execute on function public.create_ledger_with_owner(text, text) to authenticated",
+    );
+
+    const ledgerGrant = schemaSnapshot
+      .split("\n")
+      .find((line) =>
+        line.includes('ON TABLE "public"."ledger" TO "authenticated"'),
+      );
+
+    expect(ledgerGrant).toBeDefined();
+    expect(ledgerGrant).not.toContain("INSERT");
+    expect(schemaSnapshot).not.toContain(
+      'CREATE POLICY "ledger_insert_self_owner"',
     );
     expect(schemaSnapshot).not.toContain(
       'GRANT ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") TO "authenticated";',
