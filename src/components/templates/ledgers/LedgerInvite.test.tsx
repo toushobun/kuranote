@@ -13,11 +13,10 @@ const validPreview = {
 };
 
 describe("LedgerInviteTemplate", () => {
-  it("未登录时显示登录入口和邀请插图", () => {
+  it("有效邀请显示加入表单和邀请插图", () => {
     render(
       <LedgerInviteTemplate
         acceptAction={acceptAction}
-        isAuthenticated={false}
         preview={validPreview}
         token="invite-token"
       />,
@@ -26,10 +25,14 @@ describe("LedgerInviteTemplate", () => {
     expect(screen.getByText("邀请你加入账本")).toBeInTheDocument();
     expect(screen.getByText("家庭账本")).toBeInTheDocument();
     expect(screen.getByText("用户（Member）")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "登录后加入" })).toHaveAttribute(
-      "href",
-      "/login?next=%2Finvite%2Finvite-token",
+    expect(screen.getByRole("button", { name: "加入账本" })).toBeEnabled();
+    expect(screen.getByDisplayValue("invite-token")).toHaveAttribute(
+      "name",
+      "token",
     );
+    expect(
+      screen.queryByRole("link", { name: "登录后加入" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "取消" })).toHaveAttribute(
       "href",
       "/dashboard",
@@ -39,27 +42,6 @@ describe("LedgerInviteTemplate", () => {
     ).toHaveAttribute(
       "src",
       expect.stringContaining("invite_illustration.png"),
-    );
-  });
-
-  it("已登录且邀请有效时显示加入表单", () => {
-    render(
-      <LedgerInviteTemplate
-        acceptAction={acceptAction}
-        isAuthenticated
-        preview={validPreview}
-        token="invite-token"
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "加入账本" })).toBeEnabled();
-    expect(screen.getByDisplayValue("invite-token")).toHaveAttribute(
-      "name",
-      "token",
-    );
-    expect(screen.getByRole("link", { name: "取消" })).toHaveAttribute(
-      "href",
-      "/dashboard",
     );
   });
 
@@ -79,7 +61,6 @@ describe("LedgerInviteTemplate", () => {
     render(
       <LedgerInviteTemplate
         acceptAction={acceptAction}
-        isAuthenticated
         preview={{ ...validPreview, inviteRole: role }}
         token="invite-token"
       />,
@@ -93,7 +74,6 @@ describe("LedgerInviteTemplate", () => {
     render(
       <LedgerInviteTemplate
         acceptAction={acceptAction}
-        isAuthenticated
         preview={{ ...validPreview, status: "already_member" }}
         token="invite-token"
       />,
@@ -115,7 +95,6 @@ describe("LedgerInviteTemplate", () => {
       render(
         <LedgerInviteTemplate
           acceptAction={acceptAction}
-          isAuthenticated
           preview={{
             inviteRole: null,
             inviterName: null,
@@ -136,4 +115,29 @@ describe("LedgerInviteTemplate", () => {
       ).toHaveAttribute("src", expect.stringContaining("invite-invalid.png"));
     },
   );
+
+  it("公开失效邀请使用自定义退出地址", () => {
+    render(
+      <LedgerInviteTemplate
+        acceptAction={acceptAction}
+        exitHref="/"
+        preview={{
+          inviteRole: null,
+          inviterName: null,
+          ledgerName: null,
+          status: "invalid",
+        }}
+        token=""
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "返回" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+  });
 });
