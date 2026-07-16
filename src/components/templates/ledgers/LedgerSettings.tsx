@@ -265,6 +265,7 @@ export function LedgerSettingsTemplate({
                   errorMessage={inviteErrorMessage}
                   errorOperation={inviteErrorOperation}
                   ledgerId={ledger.id}
+                  ledgerName={ledger.name}
                   token={inviteToken}
                 />
               </Stack>

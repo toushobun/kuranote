@@ -5,7 +5,6 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
-import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -22,6 +21,7 @@ import {
   ledgerInviteErrorOperations,
   type LedgerInviteErrorOperation,
 } from "config/paths";
+import { LedgerInviteQrCode } from "molecules/ledgers/LedgerInviteQrCode";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
@@ -45,6 +45,7 @@ type LedgerInviteEntryProps = {
   errorMessage?: string | null;
   errorOperation?: LedgerInviteErrorOperation;
   ledgerId: string;
+  ledgerName?: string;
   token?: string | null;
 };
 
@@ -55,6 +56,7 @@ export function LedgerInviteEntry({
   errorMessage = null,
   errorOperation = ledgerInviteErrorOperations.create,
   ledgerId,
+  ledgerName = "当前账本",
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
@@ -147,7 +149,7 @@ export function LedgerInviteEntry({
               <input name="role" type="hidden" value={draftRole} />
 
               <InviteLinkField link={draftLink} onCopy={copyLink} />
-              <QrPlaceholder />
+              <LedgerInviteQrCode ledgerName={ledgerName} link={draftLink} />
 
               {visibleError ? (
                 <Typography color="error" role="alert" variant="body2">
@@ -205,11 +207,24 @@ export function LedgerInviteEntry({
                 <DetailLine label="当前状态" value="等待接受" />
               </Stack>
               {selectedToken ? (
-                <InviteLinkField link={selectedLink} onCopy={copyLink} />
+                <>
+                  <InviteLinkField link={selectedLink} onCopy={copyLink} />
+                  <LedgerInviteQrCode
+                    ledgerName={ledgerName}
+                    link={selectedLink}
+                  />
+                </>
               ) : (
-                <Typography color="text.secondary" variant="body2">
-                  为保护邀请安全，刷新后无法再次读取原链接。可以重新生成链接，旧链接会立即失效。
-                </Typography>
+                <>
+                  <Typography color="text.secondary" variant="body2">
+                    为保护邀请安全，刷新后无法再次读取原链接。可以重新生成链接，旧链接会立即失效。
+                  </Typography>
+                  <LedgerInviteQrCode
+                    emptyMessage="原邀请链接不可读取，无法显示二维码"
+                    ledgerName={ledgerName}
+                    link=""
+                  />
+                </>
               )}
             </Stack>
           ) : null}
@@ -384,26 +399,6 @@ function InviteLinkField({
   );
 }
 
-function QrPlaceholder() {
-  return (
-    <Stack spacing={0.75}>
-      <Typography color="text.secondary" sx={qrLabelSx}>
-        邀请二维码（即将支持）
-      </Typography>
-      <Stack
-        aria-label="邀请二维码占位，即将支持"
-        role="img"
-        sx={qrPlaceholderSx}
-      >
-        <QrCode2RoundedIcon sx={{ color: "text.disabled", fontSize: 40 }} />
-        <Typography color="text.disabled" variant="caption">
-          即将支持二维码邀请
-        </Typography>
-      </Stack>
-    </Stack>
-  );
-}
-
 function DetailLine({ label, value }: { label: string; value: string }) {
   return (
     <Stack direction="row" sx={{ justifyContent: "space-between" }}>
@@ -465,22 +460,4 @@ const detailActionsSx = {
   px: 3,
   pb: 2.5,
   "& > :not(style) ~ :not(style)": { ml: 0 },
-};
-
-const qrLabelSx = {
-  fontSize: 13,
-  fontWeight: 700,
-  px: 0.2,
-};
-
-const qrPlaceholderSx = {
-  alignItems: "center",
-  bgcolor: "action.hover",
-  border: "1.5px dashed",
-  borderColor: "divider",
-  borderRadius: 2,
-  gap: 0.5,
-  justifyContent: "center",
-  minHeight: 132,
-  py: 2,
 };
