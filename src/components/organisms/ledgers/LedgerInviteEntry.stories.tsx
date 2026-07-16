@@ -11,6 +11,7 @@ const pendingInvites = [
     createdAt: "2026-07-13T09:00:00.000Z",
     id: "storybook-invite-id",
     role: "member" as const,
+    token: "storybook-pending-invite-token",
   },
 ];
 
@@ -38,8 +39,12 @@ type Story = StoryObj<typeof meta>;
 type LedgerInviteEntryArgs = ComponentProps<typeof LedgerInviteEntry>;
 
 function renderWithPendingInvites(args: LedgerInviteEntryArgs) {
+  const visibleInvites = args.canInvite
+    ? pendingInvites
+    : pendingInvites.map((invite) => ({ ...invite, token: null }));
+
   return (
-    <LedgerInvitePendingProvider pendingInvites={pendingInvites}>
+    <LedgerInvitePendingProvider pendingInvites={visibleInvites}>
       <LedgerInviteEntry {...args} />
     </LedgerInvitePendingProvider>
   );
