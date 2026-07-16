@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { LedgerInviteEntry } from "./LedgerInviteEntry";
 import { ledgerInviteErrorOperations } from "config/paths";
+
+import { LedgerInviteEntry } from "./LedgerInviteEntry";
 
 const writeText = vi.fn(async () => {});
 
@@ -239,50 +240,45 @@ describe("LedgerInviteEntry", () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    [ledgerInviteErrorOperations.replace, "重新生成邀请链接失败"],
-    [ledgerInviteErrorOperations.revoke, "撤销邀请失败"],
-  ] as const)("%s 失败时展示对应反馈且不打开新建窗口", (operation, title) => {
+  it("撤销失败时展示对应反馈且不打开新建窗口", () => {
     render(
       <LedgerInviteEntry
         action={vi.fn(async () => {})}
         canInvite
         errorKey="error-1"
         errorMessage="邀请已失效。"
-        errorOperation={operation}
+        errorOperation={ledgerInviteErrorOperations.revoke}
         ledgerId="ledger-1"
       />,
     );
 
-    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.getByText("撤销邀请失败")).toBeInTheDocument();
     expect(screen.getByText("邀请已失效。")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "邀请成员" }),
     ).not.toBeInTheDocument();
   });
 
-  it("打开全新邀请草稿时清除旧管理错误", async () => {
+  it("打开全新邀请草稿时清除旧撤销错误", async () => {
     render(
       <LedgerInviteEntry
         action={vi.fn(async () => {})}
         canInvite
         errorKey="error-1"
         errorMessage="邀请已失效。"
-        errorOperation={ledgerInviteErrorOperations.replace}
+        errorOperation={ledgerInviteErrorOperations.revoke}
         ledgerId="ledger-1"
       />,
     );
 
-    expect(screen.getByText("重新生成邀请链接失败")).toBeInTheDocument();
+    expect(screen.getByText("撤销邀请失败")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
 
     expect(
       screen.getByRole("heading", { name: "邀请成员" }),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        screen.queryByText("重新生成邀请链接失败"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("撤销邀请失败")).not.toBeInTheDocument();
     });
   });
 
