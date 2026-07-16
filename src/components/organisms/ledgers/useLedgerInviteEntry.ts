@@ -22,7 +22,6 @@ type UseLedgerInviteEntryParams = {
   errorMessage: string | null;
   errorOperation: LedgerInviteErrorOperation;
   initialToken: string | null;
-  pendingInvites: readonly PendingLedgerInvite[];
 };
 
 export function useLedgerInviteEntry({
@@ -30,7 +29,6 @@ export function useLedgerInviteEntry({
   errorMessage,
   errorOperation,
   initialToken,
-  pendingInvites,
 }: UseLedgerInviteEntryParams) {
   const [draftOpen, setDraftOpen] = useState(
     (errorMessage !== null &&
@@ -49,9 +47,6 @@ export function useLedgerInviteEntry({
         ? { message: errorMessage, operation: errorOperation }
         : null,
     );
-  const [sessionTokens, setSessionTokens] = useState<Record<string, string>>(
-    {},
-  );
   const [selectedInvite, setSelectedInvite] =
     useState<PendingLedgerInvite | null>(null);
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
@@ -71,7 +66,6 @@ export function useLedgerInviteEntry({
   useEffect(() => {
     function consumeActionResult() {
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      const hashInviteId = hashParams.get("inviteId");
       const hashRole = hashParams.get("inviteRole");
       const hashToken = hashParams.get("inviteToken");
       const url = new URL(window.location.href);
@@ -86,13 +80,6 @@ export function useLedgerInviteEntry({
         setRevokeConfirmOpen(false);
         setVisibleError(null);
         setCreated(true);
-      }
-
-      if (hashInviteId && hashToken) {
-        setSessionTokens((current) => ({
-          ...current,
-          [hashInviteId]: hashToken,
-        }));
       }
 
       if (isLedgerInviteRole(hashRole)) {
@@ -125,7 +112,7 @@ export function useLedgerInviteEntry({
       window.removeEventListener("hashchange", consumeActionResult);
       window.removeEventListener("popstate", consumeActionResult);
     };
-  }, [pendingInvites, resetTransientFeedback]);
+  }, [resetTransientFeedback]);
 
   useEffect(() => {
     if (errorMessage === null) return;
@@ -144,9 +131,7 @@ export function useLedgerInviteEntry({
   }, [errorKey, errorMessage, errorOperation, resetTransientFeedback]);
 
   const draftLink = useInviteLink(draftToken);
-  const selectedToken = selectedInvite
-    ? (sessionTokens[selectedInvite.id] ?? null)
-    : null;
+  const selectedToken = selectedInvite?.token ?? null;
   const selectedLink = useInviteLink(selectedToken);
 
   function openNewDraft() {

@@ -24,7 +24,6 @@ function getLedgerSettingsSaveResult(
 function getLedgerInviteErrorOperation(
   operation: string | undefined,
 ): LedgerInviteErrorOperation {
-  if (operation === ledgerInviteErrorOperations.replace) return operation;
   if (operation === ledgerInviteErrorOperations.revoke) return operation;
   return ledgerInviteErrorOperations.create;
 }

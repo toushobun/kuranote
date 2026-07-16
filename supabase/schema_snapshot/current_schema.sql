@@ -193,7 +193,8 @@ begin
 
         update public.ledger_invite
            set accepted_at = now(),
-               accepted_by = v_user_id
+               accepted_by = v_user_id,
+               invite_token = null
          where id = v_invite.id;
 
         v_result := 'joined';
@@ -834,12 +835,14 @@ begin
         ledger_id,
         inviter_user_id,
         token_hash,
+        invite_token,
         role,
         created_by
     ) values (
         p_ledger_id,
         v_user_id,
         encode(extensions.digest(v_token, 'sha256'), 'hex'),
+        v_token,
         v_role,
         v_user_id
     )
@@ -2347,12 +2350,13 @@ $$;
 ALTER FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") RETURNS TABLE("invite_id" "uuid", "invite_role" "text", "created_at" timestamp with time zone)
+CREATE OR REPLACE FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") RETURNS TABLE("invite_id" "uuid", "invite_role" "text", "created_at" timestamp with time zone, "invite_token" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
+    v_can_manage boolean;
 begin
     if v_user_id is null then
         raise exception 'auth_required'
@@ -2375,8 +2379,14 @@ begin
             using errcode = '42501', detail = 'permission_denied';
     end if;
 
+    v_can_manage := public.current_user_can_manage_ledger(p_ledger_id);
+
     return query
-    select li.id, li.role, li.created_at
+    select
+        li.id,
+        li.role,
+        li.created_at,
+        case when v_can_manage then li.invite_token else null::text end
     from public.ledger_invite li
     where li.ledger_id = p_ledger_id
       and li.accepted_at is null
@@ -2799,99 +2809,9 @@ $$;
 ALTER FUNCTION "public"."prevent_used_category_type_change"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."replace_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS TABLE("invite_id" "uuid", "token" "text", "ledger_name" "text", "invite_role" "text")
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_user_id uuid := auth.uid();
-    v_invite public.ledger_invite;
-    v_new_invite_id uuid;
-    v_token text;
-begin
-    if v_user_id is null then
-        raise exception 'auth_required'
-            using errcode = '42501', detail = 'auth_required';
-    end if;
-
-    if p_ledger_id is null or p_invite_id is null then
-        raise exception 'invite_invalid'
-            using errcode = '22023', detail = 'invite_invalid';
-    end if;
-
-    if not public.current_user_can_manage_ledger(p_ledger_id) then
-        raise exception 'permission_denied'
-            using errcode = '42501', detail = 'permission_denied';
-    end if;
-
-    select *
-      into v_invite
-      from public.ledger_invite li
-     where li.id = p_invite_id
-       and li.ledger_id = p_ledger_id
-     for update;
-
-    if v_invite.id is null or v_invite.revoked_at is not null then
-        raise exception 'invite_invalid'
-            using errcode = 'P0002', detail = 'invite_invalid';
-    end if;
-
-    if v_invite.accepted_at is not null then
-        raise exception 'invite_already_used'
-            using errcode = '23505', detail = 'invite_already_used';
-    end if;
-
-    if v_invite.role not in ('admin', 'member', 'viewer') then
-        raise exception 'invite_role_invalid'
-            using errcode = '22023', detail = 'invite_role_invalid';
-    end if;
-
-    if not exists (
-        select 1
-        from public.ledger l
-        where l.id = p_ledger_id
-          and l.is_archived = false
-    ) then
-        raise exception 'ledger_not_found'
-            using errcode = 'P0002', detail = 'ledger_not_found';
-    end if;
-
-    v_token := encode(extensions.gen_random_bytes(32), 'hex');
-
-    update public.ledger_invite
-       set revoked_at = now(),
-           revoked_by = v_user_id
-     where id = v_invite.id;
-
-    insert into public.ledger_invite (
-        ledger_id,
-        inviter_user_id,
-        token_hash,
-        role,
-        created_by
-    ) values (
-        p_ledger_id,
-        v_user_id,
-        encode(extensions.digest(v_token, 'sha256'), 'hex'),
-        v_invite.role,
-        v_user_id
-    )
-    returning id into v_new_invite_id;
-
-    return query
-    select v_new_invite_id, v_token, l.name, v_invite.role
-    from public.ledger l
-    where l.id = p_ledger_id;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."replace_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -2936,7 +2856,8 @@ begin
 
     update public.ledger_invite
        set revoked_at = now(),
-           revoked_by = v_user_id
+           revoked_by = v_user_id,
+           invite_token = null
      where id = v_invite.id;
 end;
 $$;
@@ -4257,9 +4178,12 @@ CREATE TABLE IF NOT EXISTS "public"."ledger_invite" (
     "revoked_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid" NOT NULL,
+    "invite_token" "text",
     CONSTRAINT "ledger_invite_acceptance_check" CHECK (((("accepted_at" IS NULL) AND ("accepted_by" IS NULL)) OR (("accepted_at" IS NOT NULL) AND ("accepted_by" IS NOT NULL)))),
     CONSTRAINT "ledger_invite_revocation_check" CHECK (((("revoked_at" IS NULL) AND ("revoked_by" IS NULL)) OR (("revoked_at" IS NOT NULL) AND ("revoked_by" IS NOT NULL)))),
-    CONSTRAINT "ledger_invite_role_check" CHECK (("role" = ANY (ARRAY['admin'::"text", 'member'::"text", 'viewer'::"text"])))
+    CONSTRAINT "ledger_invite_role_check" CHECK (("role" = ANY (ARRAY['admin'::"text", 'member'::"text", 'viewer'::"text"]))),
+    CONSTRAINT "ledger_invite_token_length_check" CHECK ((("invite_token" IS NULL) OR ("length"("invite_token") = 64))),
+    CONSTRAINT "ledger_invite_token_lifecycle_check" CHECK (((("accepted_at" IS NULL) AND ("revoked_at" IS NULL) AND ("invite_token" IS NOT NULL)) OR ((("accepted_at" IS NOT NULL) OR ("revoked_at" IS NOT NULL)) AND ("invite_token" IS NULL))))
 );
 
 
@@ -5669,11 +5593,6 @@ REVOKE ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"()
 
 
 REVOKE ALL ON FUNCTION "public"."prevent_used_category_type_change"() FROM PUBLIC;
-
-
-
-REVOKE ALL ON FUNCTION "public"."replace_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."replace_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "authenticated";
 
 
 

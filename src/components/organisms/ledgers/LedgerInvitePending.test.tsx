@@ -9,16 +9,19 @@ const pendingInvites = [
     createdAt: "2026-07-13T10:00:00.000Z",
     id: "invite-admin",
     role: "admin" as const,
+    token: "admin-token",
   },
   {
     createdAt: "2026-07-13T09:00:00.000Z",
     id: "invite-member",
     role: "member" as const,
+    token: "member-token",
   },
   {
     createdAt: "2026-07-13T08:00:00.000Z",
     id: "invite-viewer",
     role: "viewer" as const,
+    token: "viewer-token",
   },
 ];
 
@@ -27,12 +30,17 @@ beforeEach(() => {
 });
 
 function renderEntry(canInvite = true) {
+  const visibleInvites = canInvite
+    ? pendingInvites
+    : pendingInvites.map((invite) => ({ ...invite, token: null }));
+
   return render(
-    <LedgerInvitePendingProvider pendingInvites={pendingInvites}>
+    <LedgerInvitePendingProvider pendingInvites={visibleInvites}>
       <LedgerInviteEntry
         action={vi.fn(async () => {})}
         canInvite={canInvite}
         ledgerId="ledger-1"
+        ledgerName="家庭账本"
       />
     </LedgerInvitePendingProvider>,
   );
@@ -80,26 +88,25 @@ describe("LedgerInviteEntry 待接受邀请", () => {
     ).toBe(true);
   });
 
-  it("同页替换成功后关闭旧详情并展示新链接", async () => {
+  it("刷新后详情仍显示同一邀请链接和对应二维码", () => {
     renderEntry();
     fireEvent.click(
       screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
     );
 
-    window.history.pushState(
-      null,
-      "",
-      "/ledgers/ledger-1/settings#inviteId=invite-new&inviteRole=member&inviteToken=new-token",
-    );
-    fireEvent(window, new Event("hashchange"));
+    const linkField = screen.getByDisplayValue(/\/invite\/member-token/);
+    const qrCode = screen.getByRole("img", {
+      name: "账本邀请二维码，家庭账本",
+    });
 
+    expect(linkField).toBeInTheDocument();
+    expect(qrCode).toHaveAttribute(
+      "data-qr-value",
+      expect.stringContaining("/invite/member-token"),
+    );
     expect(
-      await screen.findByRole("heading", { name: "邀请成员" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "邀请详情" }),
+      screen.queryByRole("button", { name: "重新生成链接" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue(/new-token/)).toBeInTheDocument();
   });
 
   it("同页撤销成功后关闭旧弹窗并清理结果参数", async () => {
@@ -125,19 +132,7 @@ describe("LedgerInviteEntry 待接受邀请", () => {
     await waitFor(() => expect(window.location.search).toBe(""));
   });
 
-  it("刷新后详情提供安全重新生成入口，不展示不可恢复的旧链接", () => {
-    renderEntry();
-    fireEvent.click(
-      screen.getByRole("button", { name: /待接受邀请，用户（Member）/ }),
-    );
-
-    expect(screen.getByText(/刷新后无法再次读取原链接/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "重新生成链接" }),
-    ).toHaveAttribute("type", "submit");
-  });
-
-  it("无管理权限仍可查看详情，但不展示替换或撤销操作", () => {
+  it("无管理权限仍可查看详情，但不能读取链接、二维码或撤销", () => {
     renderEntry(false);
     const row = screen.getByRole("button", {
       name: /待接受邀请，用户（Member）/,
@@ -149,7 +144,13 @@ describe("LedgerInviteEntry 待接受邀请", () => {
       screen.getByRole("heading", { name: "邀请详情" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "重新生成链接" }),
+      screen.getByText("仅管理员或所有者可以查看邀请链接和二维码。"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: /账本邀请二维码/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "复制链接" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "撤销邀请" }),

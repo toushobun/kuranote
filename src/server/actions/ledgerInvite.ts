@@ -13,7 +13,6 @@ import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
 import {
   acceptLedgerInviteService,
   createLedgerInviteService,
-  replaceLedgerInviteService,
   revokeLedgerInviteService,
 } from "server/services/ledgerInvite";
 import { isLedgerInviteRole } from "types/ledgers";
@@ -58,31 +57,14 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
-  if (intent === "replace") {
-    const inviteId = String(formData.get("inviteId") ?? "").trim();
-    if (!inviteId) {
-      redirect(
-        ledgerInviteErrorHref(
-          ledgerId,
-          "create_failed",
-          ledgerInviteErrorOperations.replace,
-        ),
-      );
-    }
-
-    const result = await replaceLedgerInviteService(ledgerId, inviteId);
-    if (!result.ok) {
-      redirect(
-        ledgerInviteErrorHref(
-          ledgerId,
-          result.error,
-          ledgerInviteErrorOperations.replace,
-        ),
-      );
-    }
-
-    revalidatePath(`/ledgers/${ledgerId}/settings`);
-    redirectToCreatedInvite(ledgerId, result);
+  if (intent !== "create") {
+    redirect(
+      ledgerInviteErrorHref(
+        ledgerId,
+        "create_failed",
+        ledgerInviteErrorOperations.create,
+      ),
+    );
   }
 
   const roleValue = String(formData.get("role") ?? "member").trim();

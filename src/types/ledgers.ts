@@ -50,6 +50,7 @@ export type PendingLedgerInvite = {
   createdAt: string;
   id: string;
   role: LedgerInviteRole;
+  token: string | null;
 };
 
 export const ledgerInviteRoles = ["admin", "member", "viewer"] as const;
