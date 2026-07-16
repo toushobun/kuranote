@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   revalidatePath: vi.fn(),
-  replaceLedgerInviteService: vi.fn(),
   revokeLedgerInviteService: vi.fn(),
 }));
 
@@ -33,7 +32,6 @@ vi.mock("lib/ledger/current-ledger", () => ({
 vi.mock("server/services/ledgerInvite", () => ({
   acceptLedgerInviteService: mocks.acceptLedgerInviteService,
   createLedgerInviteService: mocks.createLedgerInviteService,
-  replaceLedgerInviteService: mocks.replaceLedgerInviteService,
   revokeLedgerInviteService: mocks.revokeLedgerInviteService,
 }));
 
@@ -47,7 +45,7 @@ beforeEach(() => {
 
 async function expectInviteErrorRedirect(
   formData: FormData,
-  expected: { error: string; operation: "create" | "replace" | "revoke" },
+  expected: { error: string; operation: "create" | "revoke" },
 ) {
   await expect(createLedgerInvite(formData)).rejects.toThrow("NEXT_REDIRECT:");
 
@@ -115,55 +113,6 @@ describe("createLedgerInvite", () => {
       operation: "create",
     });
     expect(mocks.createLedgerInviteService).not.toHaveBeenCalled();
-  });
-
-  it("安全替换邀请后返回新 token 与邀请标识", async () => {
-    mocks.replaceLedgerInviteService.mockResolvedValue({
-      inviteId: "invite-new",
-      ok: true,
-      role: "admin",
-      token: "new-token",
-    });
-    const formData = new FormData();
-    formData.set("intent", "replace");
-    formData.set("ledgerId", "ledger-id");
-    formData.set("inviteId", "invite-old");
-
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-new&inviteRole=admin&inviteToken=new-token",
-    );
-    expect(mocks.replaceLedgerInviteService).toHaveBeenCalledWith(
-      "ledger-id",
-      "invite-old",
-    );
-  });
-
-  it("重新生成缺少 inviteId 时返回对应操作错误", async () => {
-    const formData = new FormData();
-    formData.set("intent", "replace");
-    formData.set("ledgerId", "ledger/id");
-
-    await expectInviteErrorRedirect(formData, {
-      error: "create_failed",
-      operation: "replace",
-    });
-    expect(mocks.replaceLedgerInviteService).not.toHaveBeenCalled();
-  });
-
-  it("重新生成失败时返回对应操作错误", async () => {
-    mocks.replaceLedgerInviteService.mockResolvedValue({
-      error: "invite_already_used",
-      ok: false,
-    });
-    const formData = new FormData();
-    formData.set("intent", "replace");
-    formData.set("ledgerId", "ledger/id");
-    formData.set("inviteId", "invite-1");
-
-    await expectInviteErrorRedirect(formData, {
-      error: "invite_already_used",
-      operation: "replace",
-    });
   });
 
   it("撤销缺少 inviteId 时回到账本设置页", async () => {
