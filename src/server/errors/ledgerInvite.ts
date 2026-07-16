@@ -1,4 +1,5 @@
 export const ledgerInviteErrorCodes = {
+  acceptFailed: "accept_failed",
   authRequired: "auth_required",
   createFailed: "create_failed",
   inviteAlreadyRevoked: "invite_already_revoked",
@@ -14,6 +15,7 @@ export type LedgerInviteErrorCode =
   (typeof ledgerInviteErrorCodes)[keyof typeof ledgerInviteErrorCodes];
 
 const messages: Record<LedgerInviteErrorCode, string> = {
+  accept_failed: "加入账本失败，请稍后重试。",
   auth_required: "请先登录后再继续。",
   create_failed: "邀请链接生成失败，请稍后重试。",
   invite_already_revoked: "该邀请已经撤销。",
