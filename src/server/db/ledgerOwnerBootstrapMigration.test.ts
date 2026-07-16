@@ -83,6 +83,12 @@ describe("首次账本所有者 bootstrap migration", () => {
     );
   });
 
+  it("最终 schema 保持成员权限触发器绑定", () => {
+    expect(schemaSnapshot).toContain(
+      'CREATE OR REPLACE TRIGGER "ledger_member_require_management_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."ledger_member" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_ledger_member_management_permission"();',
+    );
+  });
+
   it("禁止绕过完整账本初始化入口", () => {
     expect(migrationSql).toContain(
       "revoke all on function public.create_ledger_with_owner(text, text) from authenticated",
