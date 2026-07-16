@@ -30,9 +30,7 @@ describe("首次账本所有者 bootstrap migration", () => {
     );
 
     expect(inviteAcceptanceFlags).toHaveLength(2);
-    expect(migrationSql).toContain(
-      "new.role in ('admin', 'member', 'viewer')",
-    );
+    expect(migrationSql).toContain("new.role in ('admin', 'member', 'viewer')");
     expect(migrationSql).toContain("old.status = 'invited'");
   });
 
