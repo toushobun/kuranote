@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 describe("loadPendingLedgerInvitesService", () => {
-  it("将待接受邀请映射为列表模型", async () => {
+  it("将待接受邀请和可恢复 token 映射为列表模型", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
         data: [
@@ -29,16 +29,19 @@ describe("loadPendingLedgerInvitesService", () => {
             created_at: "2026-07-13T10:00:00.000Z",
             invite_id: "invite-0",
             invite_role: "admin",
+            invite_token: "admin-token",
           },
           {
             created_at: "2026-07-13T09:00:00.000Z",
             invite_id: "invite-1",
             invite_role: "member",
+            invite_token: "member-token",
           },
           {
             created_at: "2026-07-13T08:00:00.000Z",
             invite_id: "invite-2",
             invite_role: "viewer",
+            invite_token: null,
           },
         ],
       },
@@ -52,16 +55,19 @@ describe("loadPendingLedgerInvitesService", () => {
             createdAt: "2026-07-13T10:00:00.000Z",
             id: "invite-0",
             role: "admin",
+            token: "admin-token",
           },
           {
             createdAt: "2026-07-13T09:00:00.000Z",
             id: "invite-1",
             role: "member",
+            token: "member-token",
           },
           {
             createdAt: "2026-07-13T08:00:00.000Z",
             id: "invite-2",
             role: "viewer",
+            token: null,
           },
         ],
         ok: true,
