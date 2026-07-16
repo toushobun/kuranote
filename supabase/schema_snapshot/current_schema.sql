@@ -921,6 +921,8 @@ begin
     )
     returning * into v_ledger;
 
+    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
+
     insert into public.ledger_member (
         ledger_id,
         user_id,
@@ -943,6 +945,8 @@ begin
         v_user_id,
         v_user_id
     );
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
 
     perform public.initialize_ledger_default_data(v_ledger.id, v_user_id);
 
@@ -1567,9 +1571,17 @@ begin
     v_ledger_id := case when tg_op = 'INSERT' then new.ledger_id else old.ledger_id end;
 
     if tg_op = 'INSERT'
+       and current_setting('app.allow_ledger_owner_bootstrap', true) = 'true'
        and new.user_id = auth.uid()
        and new.role = 'owner'
        and new.status = 'active'
+       and new.invited_by = auth.uid()
+       and new.invited_at is not null
+       and new.joined_at is not null
+       and new.removed_by is null
+       and new.removed_at is null
+       and new.created_by = auth.uid()
+       and new.updated_by = auth.uid()
        and exists (
            select 1
            from public.ledger l
@@ -5510,7 +5522,6 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger" TO "servic
 
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") TO "authenticated";
 
 
 
