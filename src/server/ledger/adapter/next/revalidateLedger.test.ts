@@ -6,12 +6,14 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { revalidatePath } from "next/cache";
 
-import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
-import { revalidateLedgerInviteAccepted } from "server/ledger/adapter/next/revalidateLedger";
+import {
+  currentLedgerRevalidatePaths,
+  revalidateLedgerMutation,
+} from "server/ledger/adapter/next/revalidateLedger";
 
-describe("revalidateLedgerInviteAccepted", () => {
+describe("revalidateLedgerMutation", () => {
   it("失效当前账本相关的全部路径", () => {
-    revalidateLedgerInviteAccepted();
+    revalidateLedgerMutation();
 
     expect(revalidatePath).toHaveBeenCalledTimes(
       currentLedgerRevalidatePaths.length,

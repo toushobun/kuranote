@@ -1,16 +1,34 @@
 import { revalidatePath } from "next/cache";
 
-import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
+import { routePaths } from "config/paths";
 
 /**
- * 账本邀请接受成功后需要失效的页面路径。Hono Controller 与后续保留的
- * Server Action（如仍处理账本切换 / 创建）必须调用同一个模块级函数，
+ * 依赖 current ledger 的核心页面路径。任何切换 / 创建账本或接受账本
+ * 邀请等会改变"当前账本可见范围"的写操作，成功后都需要失效这些路径。
+ */
+export const currentLedgerRevalidatePaths = [
+  routePaths.dashboard,
+  routePaths.transactions,
+  routePaths.transactionsNew,
+  routePaths.transactionsSearch,
+  routePaths.accounts,
+  routePaths.categories,
+  routePaths.merchants,
+  routePaths.statistics,
+  routePaths.settings,
+  routePaths.ledgers,
+] as const;
+
+/**
+ * Ledger 模块统一的缓存失效函数。Hono Controller 与仍然保留的
+ * Server Action（账本切换、创建）必须调用同一个模块级函数——
  * 不得各自维护一份 path 清单。
  *
- * 复用 server/cache/currentLedger 中已有的路径清单，避免重复定义；
- * 该清单后续随 Ledger 模块整体迁移（#472）一并收编进本目录。
+ * `src/server/cache/currentLedger.ts` 目前把 `revalidateCurrentLedgerPaths`
+ * re-export 到这里，保证旧调用方（账本切换 / 创建 Server Action）
+ * 无需改动 import 路径，也自动共用同一份实现。
  */
-export function revalidateLedgerInviteAccepted(): void {
+export function revalidateLedgerMutation(): void {
   currentLedgerRevalidatePaths.forEach((path) => {
     revalidatePath(path);
   });

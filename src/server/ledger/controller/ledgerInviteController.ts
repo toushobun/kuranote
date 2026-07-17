@@ -1,7 +1,7 @@
 import { createRoute, type RouteHandler } from "@hono/zod-openapi";
 
 import type { AppEnv } from "server/appEnv";
-import { revalidateLedgerInviteAccepted } from "server/ledger/adapter/next/revalidateLedger";
+import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
 import {
   acceptLedgerInviteRequestSchema,
   acceptLedgerInviteResponseSchema,
@@ -65,7 +65,7 @@ export const acceptLedgerInviteHandler: RouteHandler<
   const container = c.get("container");
 
   await container.ledger.inviteService.accept(token);
-  revalidateLedgerInviteAccepted();
+  revalidateLedgerMutation();
 
   return c.json({ ok: true as const }, 200);
 };

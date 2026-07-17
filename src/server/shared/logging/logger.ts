@@ -4,9 +4,45 @@ export type Logger = {
   info: (message: string, fields?: Record<string, unknown>) => void;
 };
 
+const sensitiveFieldNamePattern =
+  /password|token|cookie|secret|key|authorization|connection.?string/i;
+
+const redactedValue = "[REDACTED]";
+const maxRedactionDepth = 4;
+
 /**
- * 结构化服务端日志。禁止记录密码、Cookie、Access Token、邀请 Token、
- * 密钥、数据库连接信息等敏感内容——调用方负责脱敏后再传入 fields。
+ * 递归脱敏字段名匹配敏感模式（密码、Token、Cookie、密钥、数据库连接
+ * 信息等）的值，避免依赖调用方每次手动脱敏。
+ */
+function redact(value: unknown, depth = 0): unknown {
+  if (
+    depth >= maxRedactionDepth ||
+    value === null ||
+    typeof value !== "object"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redact(item, depth + 1));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(
+      ([key, fieldValue]) => [
+        key,
+        sensitiveFieldNamePattern.test(key)
+          ? redactedValue
+          : redact(fieldValue, depth + 1),
+      ],
+    ),
+  );
+}
+
+/**
+ * 结构化服务端日志。字段名匹配密码 / Token / Cookie / 密钥 /
+ * 数据库连接信息等敏感模式时自动脱敏；调用方仍应避免把完整个人隐私
+ * 信息放进日志字段。
  */
 export function createLogger(requestId: string): Logger {
   function log(
@@ -14,7 +50,7 @@ export function createLogger(requestId: string): Logger {
     message: string,
     fields: Record<string, unknown> = {},
   ) {
-    const entry = { level, message, requestId, ...fields };
+    const entry = { level, message, requestId, ...(redact(fields) as object) };
 
     if (level === "error") {
       console.error(entry);

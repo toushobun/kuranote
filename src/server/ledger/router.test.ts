@@ -42,6 +42,8 @@ const sameOriginHeaders = {
   "content-type": "application/json",
   origin: "https://kuranote.example",
 };
+// isValidLedgerInviteToken 要求 64 位十六进制字符串。
+const validToken = "a".repeat(64);
 
 describe("ledger invite router", () => {
   beforeEach(() => {
@@ -53,14 +55,14 @@ describe("ledger invite router", () => {
     const app = createTestApp(containerWithAccept(accept));
 
     const response = await app.request(acceptUrl, {
-      body: JSON.stringify({ token: "valid-token" }),
+      body: JSON.stringify({ token: validToken }),
       headers: sameOriginHeaders,
       method: "POST",
     });
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(accept).toHaveBeenCalledWith("valid-token");
+    expect(accept).toHaveBeenCalledWith(validToken);
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -69,7 +71,7 @@ describe("ledger invite router", () => {
     const app = createTestApp(containerWithAccept(accept));
 
     const response = await app.request(acceptUrl, {
-      body: JSON.stringify({ token: "valid-token" }),
+      body: JSON.stringify({ token: validToken }),
       headers: { "content-type": "application/json" },
       method: "POST",
     });
@@ -90,6 +92,23 @@ describe("ledger invite router", () => {
     expect(response.status).toBe(400);
   });
 
+  it.each(["valid-token", "not-hex-format", "a".repeat(63), ""])(
+    "token 格式不合法（%s）时返回 400，且不调用 Service",
+    async (token) => {
+      const accept = vi.fn();
+      const app = createTestApp(containerWithAccept(accept));
+
+      const response = await app.request(acceptUrl, {
+        body: JSON.stringify({ token }),
+        headers: sameOriginHeaders,
+        method: "POST",
+      });
+
+      expect(response.status).toBe(400);
+      expect(accept).not.toHaveBeenCalled();
+    },
+  );
+
   it("Service 抛出应用错误时返回对应状态码，且不触发缓存失效", async () => {
     const accept = vi
       .fn()
@@ -97,7 +116,7 @@ describe("ledger invite router", () => {
     const app = createTestApp(containerWithAccept(accept));
 
     const response = await app.request(acceptUrl, {
-      body: JSON.stringify({ token: "valid-token" }),
+      body: JSON.stringify({ token: validToken }),
       headers: sameOriginHeaders,
       method: "POST",
     });
@@ -113,7 +132,7 @@ describe("ledger invite router", () => {
     const app = createTestApp(containerWithAccept(accept));
 
     const response = await app.request(acceptUrl, {
-      body: JSON.stringify({ token: "valid-token" }),
+      body: JSON.stringify({ token: validToken }),
       headers: sameOriginHeaders,
       method: "POST",
     });

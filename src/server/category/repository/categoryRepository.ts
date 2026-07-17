@@ -1,5 +1,5 @@
 import type { CategoryRow } from "types/categories";
-import { RepositoryError } from "server/shared/errors/appError";
+import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 
 export interface CategoryRepository {
@@ -25,7 +25,7 @@ export function createSupabaseCategoryRepository(
           ledgerId,
           message: error.message,
         });
-        throw new RepositoryError(
+        throw toRepositoryError(
           "category_load_failed",
           "分类加载失败，请稍后重试。",
         );
