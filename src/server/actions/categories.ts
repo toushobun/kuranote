@@ -10,13 +10,16 @@ import { categoryErrorCodes } from "server/errors/categories";
 import {
   archiveCategoryService,
   createCategoryService,
+  reorderCategoriesService,
   updateCategoryService,
 } from "server/services/categories";
 import {
   validateArchiveCategoryForm,
   validateCreateCategoryForm,
+  validateReorderCategoryForm,
   validateUpdateCategoryForm,
 } from "server/validators/categories";
+import type { CategoryReorderActionResult } from "types/categories";
 
 function requireCategoryManagement(
   role: Parameters<typeof canManageMasterData>[0],
@@ -36,8 +39,8 @@ export async function createCategory(formData: FormData) {
   }
 
   const values = validation.value;
-
   const result = await createCategoryService({
+    iconName: values.iconName,
     ledgerId: currentLedger.id,
     name: values.name,
     parentId: values.parentId,
@@ -61,9 +64,9 @@ export async function updateCategory(formData: FormData) {
   }
 
   const values = validation.value;
-
   const result = await updateCategoryService({
     categoryId: values.categoryId,
+    iconName: values.iconName,
     ledgerId: currentLedger.id,
     name: values.name,
     userId,
@@ -76,6 +79,33 @@ export async function updateCategory(formData: FormData) {
   redirect(routePaths.categories);
 }
 
+export async function reorderCategories(
+  formData: FormData,
+): Promise<CategoryReorderActionResult> {
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
+
+  if (!canManageMasterData(currentLedger.currentUserRole)) {
+    return { ok: false, error: categoryErrorCodes.permissionDenied };
+  }
+
+  const validation = validateReorderCategoryForm(formData);
+
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
+  }
+
+  const result = await reorderCategoriesService({
+    ...validation.value,
+    ledgerId: currentLedger.id,
+    userId,
+  });
+
+  if (!result.ok) return result;
+
+  revalidatePath(routePaths.categories);
+  return { ok: true };
+}
+
 export async function archiveCategory(formData: FormData) {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   requireCategoryManagement(currentLedger.currentUserRole);
@@ -86,7 +116,6 @@ export async function archiveCategory(formData: FormData) {
   }
 
   const values = validation.value;
-
   const result = await archiveCategoryService({
     categoryId: values.categoryId,
     ledgerId: currentLedger.id,

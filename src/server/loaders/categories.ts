@@ -16,7 +16,7 @@ export async function loadCategoriesView(): Promise<CategoriesView> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("category")
-    .select("id, name, parent_id, type, sort_order, created_at")
+    .select("id, name, icon_name, parent_id, type, sort_order, created_at")
     .eq("ledger_id", currentLedger.id)
     .eq("is_archived", false)
     .order("type", { ascending: true })

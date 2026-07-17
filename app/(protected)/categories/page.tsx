@@ -1,6 +1,7 @@
 import {
   archiveCategory,
   createCategory,
+  reorderCategories,
   updateCategory,
 } from "server/actions/categories";
 import { loadCategoriesView } from "server/loaders/categories";
@@ -22,6 +23,7 @@ export default async function CategoriesRoute({
       createCategoryAction={createCategory}
       errorCategoryId={params.categoryId ?? null}
       errorMessage={getCategoryErrorMessage(params.error)}
+      reorderCategoryAction={reorderCategories}
       updateCategoryAction={updateCategory}
     />
   );

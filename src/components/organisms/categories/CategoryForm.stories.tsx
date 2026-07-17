@@ -8,9 +8,9 @@ const meta = {
   args: {
     createCategoryAction: async () => {},
     parentOptions: [
-      { id: "expense-food", name: "餐饮", type: "expense" },
-      { id: "expense-transport", name: "交通", type: "expense" },
-      { id: "income-main", name: "收入", type: "income" },
+      { id: "expense-food", name: "🍽️ 餐饮", type: "expense" },
+      { id: "expense-transport", name: "🚃 交通", type: "expense" },
+      { id: "income-main", name: "💰 收入", type: "income" },
     ],
   },
 } satisfies Meta<typeof CategoryForm>;
@@ -19,7 +19,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "新增分类表单",
+  name: "新增分类弹窗",
 };
 
 export const EmptyParentOptions: Story = {
