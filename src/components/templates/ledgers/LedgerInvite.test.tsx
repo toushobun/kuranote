@@ -1,12 +1,23 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LedgerInviteTemplate } from "./LedgerInvite";
 
-const acceptAction = vi.fn(async () => {});
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mocks.push,
+    refresh: mocks.refresh,
+  }),
+}));
+
 const componentSource = readFileSync(
   join(process.cwd(), "src/components/templates/ledgers/LedgerInvite.tsx"),
   "utf8",
@@ -19,31 +30,32 @@ const validPreview = {
   status: "valid" as const,
 };
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ ok: true }),
+    }),
+  );
+});
+
 describe("LedgerInviteTemplate", () => {
   it("声明客户端边界以支持 MUI Link 组件", () => {
     expect(componentSource.startsWith('"use client";')).toBe(true);
   });
 
-  it("有效邀请显示加入表单和邀请插图", () => {
+  it("有效邀请显示加入按钮和邀请插图", () => {
     render(
-      <LedgerInviteTemplate
-        acceptAction={acceptAction}
-        preview={validPreview}
-        token="invite-token"
-      />,
+      <LedgerInviteTemplate preview={validPreview} token="invite-token" />,
     );
 
     expect(screen.getByText("邀请你加入账本")).toBeInTheDocument();
     expect(screen.getByText("家庭账本")).toBeInTheDocument();
     expect(screen.getByText("用户（Member）")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "加入账本" })).toBeEnabled();
-    expect(screen.getByDisplayValue("invite-token")).toHaveAttribute(
-      "name",
-      "token",
-    );
-    expect(
-      screen.queryByRole("link", { name: "登录后加入" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("invite-token")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "取消" })).toHaveAttribute(
       "href",
       "/dashboard",
@@ -54,6 +66,47 @@ describe("LedgerInviteTemplate", () => {
       "src",
       expect.stringContaining("invite_illustration.png"),
     );
+  });
+
+  it("接受邀请成功后进入 Dashboard 并刷新", async () => {
+    render(
+      <LedgerInviteTemplate preview={validPreview} token="invite-token" />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "加入账本" }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("/api/ledger-invites/accept", {
+        body: JSON.stringify({ token: "invite-token" }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+    });
+    expect(mocks.push).toHaveBeenCalledWith("/dashboard");
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("接受邀请失败时在当前页面显示错误弹框", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({
+        error: {
+          code: "invite_already_revoked",
+          message: "该邀请已经撤销。",
+          status: 409,
+        },
+      }),
+    } as unknown as Response);
+
+    render(
+      <LedgerInviteTemplate preview={validPreview} token="invite-token" />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "加入账本" }));
+
+    expect(await screen.findByText("加入账本失败")).toBeInTheDocument();
+    expect(screen.getByText("该邀请已经撤销。")).toBeInTheDocument();
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -71,7 +124,6 @@ describe("LedgerInviteTemplate", () => {
   ] as const)("%s 邀请展示对应权限说明", (role, label, description) => {
     render(
       <LedgerInviteTemplate
-        acceptAction={acceptAction}
         preview={{ ...validPreview, inviteRole: role }}
         token="invite-token"
       />,
@@ -84,7 +136,6 @@ describe("LedgerInviteTemplate", () => {
   it("已加入时显示进入账本入口和已加入插图", () => {
     render(
       <LedgerInviteTemplate
-        acceptAction={acceptAction}
         preview={{ ...validPreview, status: "already_member" }}
         token="invite-token"
       />,
@@ -105,7 +156,6 @@ describe("LedgerInviteTemplate", () => {
     (status) => {
       render(
         <LedgerInviteTemplate
-          acceptAction={acceptAction}
           preview={{
             inviteRole: null,
             inviterName: null,
@@ -130,7 +180,6 @@ describe("LedgerInviteTemplate", () => {
   it("公开失效邀请使用自定义退出地址", () => {
     render(
       <LedgerInviteTemplate
-        acceptAction={acceptAction}
         exitHref="/"
         preview={{
           inviteRole: null,
