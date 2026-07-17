@@ -20,15 +20,18 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@hono/zod-openapi": "^1.5.1",
     "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.0.1",
     "@mui/material-nextjs": "^9.0.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "hono": "^4.12.30",
     "next": "16.2.6",
     "pinyin-pro": "^3.28.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@storybook/nextjs-vite": "^10.4.2",

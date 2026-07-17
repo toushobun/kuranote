@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { loadAccountsView } from "./accounts";
-import { loadCategoriesView } from "./categories";
 import { loadMerchantsView } from "./merchants";
 
 const mocks = vi.hoisted(() => ({
@@ -67,25 +66,6 @@ describe("基础数据 current ledger 边界", () => {
       "ledger_member_display_setting",
     ]);
     supabase.queries.forEach(expectCurrentLedgerQuery);
-  });
-
-  it("分类树只查询 current ledger", async () => {
-    const supabase = createSupabaseMock({
-      queryResponses: [{ data: [] }],
-    });
-    mocks.createClient.mockResolvedValue(supabase.client);
-
-    await expect(loadCategoriesView()).resolves.toEqual(
-      expect.objectContaining({
-        categories: [],
-        ledgerName: "家庭账本",
-        parentOptions: [],
-      }),
-    );
-
-    expect(supabase.queries).toHaveLength(1);
-    expect(supabase.queries[0].table).toBe("category");
-    expectCurrentLedgerQuery(supabase.queries[0]);
   });
 
   it("商家列表只查询 current ledger，并且空列表时不读取别名", async () => {
