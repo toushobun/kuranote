@@ -103,6 +103,7 @@ CREATE OR REPLACE FUNCTION "public"."accept_ledger_invite"("p_token" "text") RET
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
+#variable_conflict use_column
 declare
     v_user_id uuid := auth.uid();
     v_token_hash text;
