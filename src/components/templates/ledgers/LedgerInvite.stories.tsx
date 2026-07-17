@@ -2,14 +2,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { LedgerInviteTemplate } from "./LedgerInvite";
 
-const acceptAction = async () => {};
-
 const meta = {
   title: "Templates/Ledgers/LedgerInvite",
   component: LedgerInviteTemplate,
   args: {
-    acceptAction,
-    errorMessage: null,
     preview: {
       inviteRole: "member",
       inviterName: "淞文",
