@@ -14,12 +14,17 @@ import {
   currentLedgerRevalidatePaths,
   revalidateCurrentLedgerPaths,
 } from "./currentLedger";
+import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("current ledger 页面刷新", () => {
+  it("是 ledger 模块统一 revalidate 函数的 re-export，不是另一份实现", () => {
+    expect(revalidateCurrentLedgerPaths).toBe(revalidateLedgerMutation);
+  });
+
   it("覆盖所有依赖 current ledger 的核心页面", () => {
     expect(currentLedgerRevalidatePaths).toEqual([
       routePaths.dashboard,
