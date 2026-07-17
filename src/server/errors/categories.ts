@@ -2,10 +2,13 @@ export const categoryErrorCodes = {
   archiveFailed: "archive_failed",
   categoryInvalid: "category_invalid",
   createFailed: "create_failed",
+  iconInvalid: "icon_invalid",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
+  orderInvalid: "order_invalid",
   parentInvalid: "parent_invalid",
   permissionDenied: "permission_denied",
+  reorderFailed: "reorder_failed",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
 } as const;
@@ -15,8 +18,10 @@ export type CategoryErrorCode =
 
 export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.categoryInvalid
+  | typeof categoryErrorCodes.iconInvalid
   | typeof categoryErrorCodes.nameRequired
   | typeof categoryErrorCodes.nameTooLong
+  | typeof categoryErrorCodes.orderInvalid
   | typeof categoryErrorCodes.parentInvalid
   | typeof categoryErrorCodes.typeInvalid;
 
@@ -24,4 +29,5 @@ export type CategoryServiceErrorCode =
   | typeof categoryErrorCodes.archiveFailed
   | typeof categoryErrorCodes.createFailed
   | typeof categoryErrorCodes.parentInvalid
+  | typeof categoryErrorCodes.reorderFailed
   | typeof categoryErrorCodes.updateFailed;

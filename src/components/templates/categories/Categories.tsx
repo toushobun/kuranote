@@ -8,6 +8,7 @@ import { PageShell } from "templates/layout/PageShell";
 import type {
   CategoryAction,
   CategoryParentOption,
+  CategoryReorderAction,
   CategoryTreeItem,
 } from "types/categories";
 
@@ -20,6 +21,7 @@ type CategoriesTemplateProps = {
   errorMessage: string | null;
   ledgerName: string;
   parentOptions: CategoryParentOption[];
+  reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
 };
 
@@ -32,18 +34,25 @@ export function CategoriesTemplate({
   errorMessage,
   ledgerName,
   parentOptions,
+  reorderCategoryAction,
   updateCategoryAction,
 }: CategoriesTemplateProps) {
   return (
     <PageShell>
       <PageHeader
-        title="分类"
+        action={
+          canManageCategories ? (
+            <CategoryForm
+              createCategoryAction={createCategoryAction}
+              parentOptions={parentOptions}
+            />
+          ) : null
+        }
+        title="分类管理"
         subtitle={
           <Stack spacing={0.5}>
             <span>当前账本：{ledgerName}</span>
-            <span>
-              管理支出和收入分类。记账时只会使用小分类，大分类用于分组。
-            </span>
+            <span>整理家庭账本里的收支分类。</span>
           </Stack>
         }
       />
@@ -52,18 +61,13 @@ export function CategoriesTemplate({
         <ErrorState title="分类操作失败" description={errorMessage} />
       ) : null}
 
-      {canManageCategories ? (
-        <CategoryForm
-          createCategoryAction={createCategoryAction}
-          parentOptions={parentOptions}
-        />
-      ) : null}
       <CategoryList
         archiveCategoryAction={archiveCategoryAction}
         canManageCategories={canManageCategories}
         categories={categories}
         errorCategoryId={errorCategoryId}
         errorMessage={errorMessage}
+        reorderCategoryAction={reorderCategoryAction}
         updateCategoryAction={updateCategoryAction}
       />
     </PageShell>

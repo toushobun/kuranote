@@ -1,5 +1,6 @@
-import type { TransactionType } from "types/transactions";
+import type { CategoryErrorCode } from "server/errors/categories";
 import type { ServerAction } from "types/actions";
+import type { TransactionType } from "types/transactions";
 
 export const categoryTypeOptions = [
   { label: "支出", value: "expense" },
@@ -11,13 +12,22 @@ export const categoryTypeOptions = [
 
 export type CategoryAction = ServerAction;
 
+export type CategoryReorderActionResult =
+  | { ok: true }
+  | { error: CategoryErrorCode; ok: false; recoveryFailed?: boolean };
+
+export type CategoryReorderAction = (
+  formData: FormData,
+) => Promise<CategoryReorderActionResult>;
+
 export type CategoryRow = {
+  created_at: string;
+  icon_name: string | null;
   id: string;
   name: string;
   parent_id: string | null;
-  type: TransactionType;
   sort_order: number;
-  created_at: string;
+  type: TransactionType;
 };
 
 export type CategoryTreeItem = CategoryRow & {
