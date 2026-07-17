@@ -8,10 +8,7 @@ import { LedgerInviteTemplate } from "./LedgerInvite";
 
 const acceptAction = vi.fn(async () => {});
 const componentSource = readFileSync(
-  join(
-    process.cwd(),
-    "src/components/templates/ledgers/LedgerInvite.tsx",
-  ),
+  join(process.cwd(), "src/components/templates/ledgers/LedgerInvite.tsx"),
   "utf8",
 );
 
