@@ -34,13 +34,17 @@ const finalAcceptInviteFunction = extractSchemaFunction("accept_ledger_invite");
 describe("接受账本邀请列名歧义 migration", () => {
   it("在函数级别将歧义标识符优先解释为表列", () => {
     const bodyIndex = migrationSql.indexOf("as $$");
-    const directiveIndex = migrationSql.indexOf("#variable_conflict use_column");
+    const directiveIndex = migrationSql.indexOf(
+      "#variable_conflict use_column",
+    );
     const declareIndex = migrationSql.indexOf("declare", bodyIndex);
 
     expect(bodyIndex).toBeGreaterThan(-1);
     expect(directiveIndex).toBeGreaterThan(bodyIndex);
     expect(directiveIndex).toBeLessThan(declareIndex);
-    expect(finalAcceptInviteFunction).toContain("#variable_conflict use_column");
+    expect(finalAcceptInviteFunction).toContain(
+      "#variable_conflict use_column",
+    );
   });
 
   it("保留部分唯一索引的冲突目标和既有 RPC 输出字段", () => {
