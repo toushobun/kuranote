@@ -1,9 +1,19 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { LedgerInviteTemplate } from "./LedgerInvite";
 
 const acceptAction = vi.fn(async () => {});
+const componentSource = readFileSync(
+  join(
+    process.cwd(),
+    "src/components/templates/ledgers/LedgerInvite.tsx",
+  ),
+  "utf8",
+);
 
 const validPreview = {
   inviteRole: "member" as const,
@@ -13,6 +23,10 @@ const validPreview = {
 };
 
 describe("LedgerInviteTemplate", () => {
+  it("声明客户端边界以支持 MUI Link 组件", () => {
+    expect(componentSource.startsWith('"use client";')).toBe(true);
+  });
+
   it("有效邀请显示加入表单和邀请插图", () => {
     render(
       <LedgerInviteTemplate
