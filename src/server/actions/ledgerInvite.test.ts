@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  acceptLedgerInvite,
-  createLedgerInvite,
-} from "server/actions/ledgerInvite";
-import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
+import { createLedgerInvite } from "server/actions/ledgerInvite";
 
 const validToken = "a".repeat(64);
 
 const mocks = vi.hoisted(() => ({
-  acceptLedgerInviteService: vi.fn(),
   createLedgerInviteService: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   redirect: vi.fn((path: string) => {
@@ -32,7 +27,6 @@ vi.mock("lib/ledger/current-ledger", () => ({
 }));
 
 vi.mock("server/services/ledgerInvite", () => ({
-  acceptLedgerInviteService: mocks.acceptLedgerInviteService,
   createLedgerInviteService: mocks.createLedgerInviteService,
   revokeLedgerInviteService: mocks.revokeLedgerInviteService,
 }));
@@ -197,71 +191,6 @@ describe("createLedgerInvite", () => {
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       "/ledgers/ledger-id/settings",
-    );
-  });
-});
-
-describe("acceptLedgerInvite", () => {
-  it.each(["", "token/with space", "a".repeat(65)])(
-    "畸形 token %s 跳到无效邀请页且不调用 service",
-    async (token) => {
-      const formData = new FormData();
-      if (token) formData.set("token", token);
-
-      await expect(acceptLedgerInvite(formData)).rejects.toThrow(
-        "NEXT_REDIRECT:/invite/invalid",
-      );
-      expect(mocks.acceptLedgerInviteService).not.toHaveBeenCalled();
-    },
-  );
-
-  it("接受失败时回到原邀请页并携带错误码", async () => {
-    mocks.acceptLedgerInviteService.mockResolvedValue({
-      error: "invite_already_used",
-      ok: false,
-    });
-    const formData = new FormData();
-    formData.set("token", validToken);
-
-    await expect(acceptLedgerInvite(formData)).rejects.toThrow(
-      `NEXT_REDIRECT:/invite/${validToken}?error=invite_already_used`,
-    );
-  });
-
-  it("服务抛出异常时回到原邀请页并隐藏异常内容", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    mocks.acceptLedgerInviteService.mockRejectedValue(
-      new Error("secret invite token and rpc details"),
-    );
-    const formData = new FormData();
-    formData.set("token", validToken);
-
-    await expect(acceptLedgerInvite(formData)).rejects.toThrow(
-      `NEXT_REDIRECT:/invite/${validToken}?error=accept_failed`,
-    );
-    expect(consoleError).toHaveBeenCalledWith(
-      "[ledgerInvite] failed to accept invite action",
-    );
-    expect(consoleError).not.toHaveBeenCalledWith(
-      expect.stringContaining("secret invite token and rpc details"),
-    );
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
-    consoleError.mockRestore();
-  });
-
-  it("接受成功后刷新全部 current ledger 页面并进入首页", async () => {
-    mocks.acceptLedgerInviteService.mockResolvedValue({ ok: true });
-    const formData = new FormData();
-    formData.set("token", validToken);
-
-    await expect(acceptLedgerInvite(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/dashboard",
-    );
-
-    expect(mocks.revalidatePath.mock.calls.map(([path]) => path)).toEqual(
-      currentLedgerRevalidatePaths,
     );
   });
 });

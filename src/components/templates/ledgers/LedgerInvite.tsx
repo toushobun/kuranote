@@ -4,18 +4,21 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
+import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import type { LedgerInvitePreview } from "server/services/ledgerInvite";
 import { PageShell } from "templates/layout/PageShell";
-import type { ServerAction } from "types/actions";
 import type { LedgerInviteRole } from "types/ledgers";
 
 const inviteRoleDescriptions: Record<LedgerInviteRole, string> = {
@@ -25,20 +28,27 @@ const inviteRoleDescriptions: Record<LedgerInviteRole, string> = {
 };
 
 type LedgerInviteTemplateProps = {
-  acceptAction: ServerAction;
-  errorMessage?: string | null;
   exitHref?: string;
   preview: LedgerInvitePreview;
   token: string;
 };
 
+type InviteErrorResponse = {
+  error?: {
+    code?: string;
+    message?: string;
+    status?: number;
+  };
+};
+
 export function LedgerInviteTemplate({
-  acceptAction,
-  errorMessage = null,
   exitHref = routePaths.dashboard,
   preview,
   token,
 }: LedgerInviteTemplateProps) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isAlreadyMember = preview.status === "already_member";
   const isInvalid =
     preview.status === "invalid" ||
@@ -58,6 +68,37 @@ export function LedgerInviteTemplate({
           alt: "邀请加入账本插图",
           src: "/assets/kura-invite/invite_illustration.png",
         };
+
+  async function acceptInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/ledger-invites/accept", {
+        body: JSON.stringify({ token }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const body = (await response
+          .json()
+          .catch(() => null)) as InviteErrorResponse | null;
+        setErrorMessage(body?.error?.message ?? "加入账本失败，请稍后重试。");
+        return;
+      }
+
+      router.push(routePaths.dashboard);
+      router.refresh();
+    } catch {
+      setErrorMessage("加入账本失败，请检查网络后重试。");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <>
@@ -126,12 +167,6 @@ export function LedgerInviteTemplate({
             </SoftCard>
           ) : null}
 
-          {errorMessage ? (
-            <Typography color="error" role="alert" sx={{ textAlign: "center" }}>
-              {errorMessage}
-            </Typography>
-          ) : null}
-
           <Stack spacing={1.25} sx={{ mt: "auto" }}>
             {isInvalid ? (
               <Button component={Link} href={exitHref} variant="contained">
@@ -155,10 +190,17 @@ export function LedgerInviteTemplate({
                 >
                   取消
                 </Button>
-                <Box action={acceptAction} component="form" sx={{ flex: 1 }}>
-                  <input name="token" type="hidden" value={token} />
-                  <Button fullWidth type="submit" variant="contained">
-                    加入账本
+                <Box component="form" onSubmit={acceptInvite} sx={{ flex: 1 }}>
+                  <Button
+                    disabled={isSubmitting}
+                    fullWidth
+                    startIcon={
+                      isSubmitting ? <CircularProgress size={18} /> : undefined
+                    }
+                    type="submit"
+                    variant="contained"
+                  >
+                    {isSubmitting ? "加入中" : "加入账本"}
                   </Button>
                 </Box>
               </Stack>
@@ -166,6 +208,13 @@ export function LedgerInviteTemplate({
           </Stack>
         </Stack>
       </PageShell>
+
+      <FailureFeedbackDialog
+        description={errorMessage ?? undefined}
+        onClose={() => setErrorMessage(null)}
+        open={errorMessage !== null}
+        title="加入账本失败"
+      />
     </>
   );
 }
