@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { routePaths, routeWithQuery } from "config/paths";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { createClient } from "lib/supabase/server";
-import { acceptLedgerInvite } from "server/actions/ledgerInvite";
-import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
 import {
   loadLedgerInvitePreview,
   type LedgerInvitePreview,
@@ -20,19 +18,14 @@ const invalidInvitePreview: LedgerInvitePreview = {
 
 export default async function LedgerInviteRoute({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ token }, query] = await Promise.all([params, searchParams]);
-  const errorMessage = getLedgerInviteErrorMessage(query.error);
+  const { token } = await params;
 
   if (!isValidLedgerInviteToken(token)) {
     return (
       <LedgerInviteTemplate
-        acceptAction={acceptLedgerInvite}
-        errorMessage={errorMessage}
         exitHref={routePaths.home}
         preview={invalidInvitePreview}
         token=""
@@ -49,14 +42,7 @@ export default async function LedgerInviteRoute({
 
   const preview = await loadLedgerInvitePreview(token);
 
-  return (
-    <LedgerInviteTemplate
-      acceptAction={acceptLedgerInvite}
-      errorMessage={errorMessage}
-      preview={preview}
-      token={token}
-    />
-  );
+  return <LedgerInviteTemplate preview={preview} token={token} />;
 }
 
 export async function probeAuthentication(): Promise<boolean> {
