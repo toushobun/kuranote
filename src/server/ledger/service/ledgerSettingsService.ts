@@ -187,6 +187,11 @@ export function createLedgerSettingsService({
         throw toAppError(ledgerSettingsErrorCodes.permissionDenied);
       }
 
+      // 普通成员只能维护自己的昵称与个性色，不能借这条路径给自己提权。
+      if (!canEditLedger && input.settings.role !== role) {
+        throw toAppError(ledgerSettingsErrorCodes.permissionDenied);
+      }
+
       const result = await ledgerSettingsRepository.updateMemberSettings({
         ...input.settings,
         ledgerId: input.ledgerId,

@@ -203,11 +203,36 @@ describe("createLedgerSettingsService.update — member 意图", () => {
     });
     const selfInput = {
       ...memberSettingsInput,
-      settings: { ...memberSettingsInput.settings, userId },
+      settings: {
+        ...memberSettingsInput.settings,
+        role: "member" as const,
+        userId,
+      },
     };
 
     await expect(service.update(selfInput)).resolves.toBeUndefined();
     expect(ledgerSettingsRepository.updateMemberSettings).toHaveBeenCalled();
+  });
+
+  it("普通成员修改自己的设置时尝试提升角色抛出 AuthorizationError", async () => {
+    const { service, ledgerSettingsRepository } = createService({
+      getMemberRole: vi.fn().mockResolvedValue("member"),
+    });
+    const selfEscalationInput = {
+      ...memberSettingsInput,
+      settings: {
+        ...memberSettingsInput.settings,
+        role: "admin" as const,
+        userId,
+      },
+    };
+
+    await expect(service.update(selfEscalationInput)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+    expect(
+      ledgerSettingsRepository.updateMemberSettings,
+    ).not.toHaveBeenCalled();
   });
 
   it("普通成员修改他人设置时抛出 AuthorizationError", async () => {
