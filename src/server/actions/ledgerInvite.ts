@@ -1,20 +1,20 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
   ledgerInviteErrorHref,
   ledgerInviteErrorOperations,
+  ledgerSettingsHref,
   routePaths,
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
+import { createRequestContainer } from "server/container";
 import { ledgerInviteErrorCodes } from "server/errors/ledgerInvite";
-import {
-  createLedgerInviteService,
-  revokeLedgerInviteService,
-} from "server/services/ledgerInvite";
+import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+import { AppError } from "server/shared/errors/appError";
 import { isLedgerInviteRole } from "types/ledgers";
 
 export async function createLedgerInvite(formData: FormData) {
@@ -26,6 +26,9 @@ export async function createLedgerInvite(formData: FormData) {
     redirect(`${routePaths.ledgers}?inviteError=create_failed`);
   }
 
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
+
   if (intent === "revoke") {
     const inviteId = String(formData.get("inviteId") ?? "").trim();
 
@@ -33,25 +36,28 @@ export async function createLedgerInvite(formData: FormData) {
       redirect(
         ledgerInviteErrorHref(
           ledgerId,
-          "revoke_failed",
+          ledgerInviteErrorCodes.revokeFailed,
           ledgerInviteErrorOperations.revoke,
         ),
       );
     }
 
-    const revokeResult = await revokeLedgerInviteService(ledgerId, inviteId);
-
-    if (!revokeResult.ok) {
-      redirect(
-        ledgerInviteErrorHref(
-          ledgerId,
-          revokeResult.error,
-          ledgerInviteErrorOperations.revoke,
-        ),
-      );
+    try {
+      await container.ledger.inviteService.revoke(ledgerId, inviteId);
+    } catch (error) {
+      if (error instanceof AppError) {
+        redirect(
+          ledgerInviteErrorHref(
+            ledgerId,
+            error.code,
+            ledgerInviteErrorOperations.revoke,
+          ),
+        );
+      }
+      throw error;
     }
 
-    revalidatePath(`/ledgers/${ledgerId}/settings`);
+    revalidateLedgerMutation([ledgerSettingsHref(ledgerId)]);
     redirect(
       `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteResult=revoked`,
     );
@@ -61,7 +67,7 @@ export async function createLedgerInvite(formData: FormData) {
     redirect(
       ledgerInviteErrorHref(
         ledgerId,
-        "create_failed",
+        ledgerInviteErrorCodes.createFailed,
         ledgerInviteErrorOperations.create,
       ),
     );
@@ -72,22 +78,26 @@ export async function createLedgerInvite(formData: FormData) {
     redirect(
       ledgerInviteErrorHref(
         ledgerId,
-        "invite_role_invalid",
+        ledgerInviteErrorCodes.inviteRoleInvalid,
         ledgerInviteErrorOperations.create,
       ),
     );
   }
 
-  const result = await createLedgerInviteService(ledgerId, roleValue);
-
-  if (!result.ok) {
-    redirect(
-      ledgerInviteErrorHref(
-        ledgerId,
-        result.error,
-        ledgerInviteErrorOperations.create,
-      ),
-    );
+  let result;
+  try {
+    result = await container.ledger.inviteService.create(ledgerId, roleValue);
+  } catch (error) {
+    if (error instanceof AppError) {
+      redirect(
+        ledgerInviteErrorHref(
+          ledgerId,
+          error.code,
+          ledgerInviteErrorOperations.create,
+        ),
+      );
+    }
+    throw error;
   }
 
   if (!isValidLedgerInviteToken(result.token)) {
@@ -100,7 +110,7 @@ export async function createLedgerInvite(formData: FormData) {
     );
   }
 
-  revalidatePath(`/ledgers/${ledgerId}/settings`);
+  revalidateLedgerMutation([ledgerSettingsHref(ledgerId)]);
   redirectToCreatedInvite(ledgerId, result);
 }
 

@@ -1,13 +1,18 @@
+import { redirect } from "next/navigation";
+
 import {
   ledgerInviteErrorOperations,
   ledgerSettingsResultValues,
+  routePaths,
   type LedgerInviteErrorOperation,
 } from "config/paths";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext";
 import { createLedgerInvite } from "server/actions/ledgerInvite";
 import { updateLedgerSettings } from "server/actions/ledgerSettings";
+import { createRequestContainer } from "server/container";
 import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
-import { loadLedgerSettingsView } from "server/loaders/ledgerSettings";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import {
   LedgerSettingsTemplate,
   type LedgerSettingsSaveResult,
@@ -46,7 +51,27 @@ export default async function LedgerSettingsRoute({
     params,
     searchParams,
   ]);
-  const view = await loadLedgerSettingsView(ledgerId);
+
+  // redirect() 属于页面边界，currentLedger 解析保留在这里；Service 不感知 Next.js 导航行为。
+  const { currentLedger, ledgers, userId } = await getCurrentLedgerContext();
+
+  if (!currentLedger) {
+    redirect(routePaths.dashboard);
+  }
+
+  const ledger = ledgers.find((item) => item.id === ledgerId);
+
+  if (!ledger) {
+    redirect(routePaths.ledgers);
+  }
+
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
+  const [settingsView, pendingInvites] = await Promise.all([
+    container.ledger.settingsService.getView({ currentLedger, ledger, userId }),
+    container.ledger.inviteService.listPending(ledgerId),
+  ]);
+  const view = { ...settingsView, pendingInvites };
 
   return (
     <LedgerInvitePendingProvider pendingInvites={view.pendingInvites}>

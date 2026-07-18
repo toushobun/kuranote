@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 
 import { ledgerCreateErrorHref, routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { revalidateCurrentLedgerPaths } from "server/cache/currentLedger";
-import { createLedgerService } from "server/services/ledgerCreate";
+import { createRequestContainer } from "server/container";
+import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
+import { AppError } from "server/shared/errors/appError";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { validateCreateLedgerForm } from "server/validators/ledgerCreate";
 
 export async function createLedger(formData: FormData) {
@@ -16,12 +18,18 @@ export async function createLedger(formData: FormData) {
     redirect(ledgerCreateErrorHref(validation.error));
   }
 
-  const result = await createLedgerService(validation.value);
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
 
-  if (!result.ok) {
-    redirect(ledgerCreateErrorHref(result.error));
+  try {
+    await container.ledger.service.create(validation.value);
+  } catch (error) {
+    if (error instanceof AppError) {
+      redirect(ledgerCreateErrorHref(error.code));
+    }
+    throw error;
   }
 
-  revalidateCurrentLedgerPaths();
+  revalidateLedgerMutation();
   redirect(routePaths.dashboard);
 }

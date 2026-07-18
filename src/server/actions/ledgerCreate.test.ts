@@ -1,21 +1,20 @@
+// @vitest-environment node
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { currentLedgerRevalidatePaths } from "server/cache/currentLedger";
+import { routePaths } from "config/paths";
 import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
+import { AppError } from "server/shared/errors/appError";
 
 import { createLedger } from "./ledgerCreate";
 
 const mocks = vi.hoisted(() => ({
-  createLedgerService: vi.fn(),
+  createService: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-  revalidatePath: vi.fn(),
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: mocks.revalidatePath,
+  revalidateLedgerMutation: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -26,8 +25,18 @@ vi.mock("lib/ledger/current-ledger", () => ({
   getCurrentLedgerContext: mocks.getCurrentLedgerContext,
 }));
 
-vi.mock("server/services/ledgerCreate", () => ({
-  createLedgerService: mocks.createLedgerService,
+vi.mock("server/ledger/adapter/next/revalidateLedger", () => ({
+  revalidateLedgerMutation: mocks.revalidateLedgerMutation,
+}));
+
+vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("server/container", () => ({
+  createRequestContainer: () => ({
+    ledger: { service: { create: mocks.createService } },
+  }),
 }));
 
 function createFormData(overrides: Record<string, string> = {}) {
@@ -53,7 +62,7 @@ beforeEach(() => {
     ledgers: [],
     userId: "00000000-0000-4000-8000-000000000031",
   });
-  mocks.createLedgerService.mockResolvedValue({ ok: true });
+  mocks.createService.mockResolvedValue(undefined);
 });
 
 describe("createLedger", () => {
@@ -62,7 +71,7 @@ describe("createLedger", () => {
       "NEXT_REDIRECT:/dashboard",
     );
 
-    expect(mocks.createLedgerService).toHaveBeenCalledWith({
+    expect(mocks.createService).toHaveBeenCalledWith({
       baseCurrency: "JPY",
       displayColor: "amber",
       displayName: "淞文",
@@ -78,14 +87,13 @@ describe("createLedger", () => {
     expect(mocks.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`error=${ledgerCreateErrorCodes.nameRequired}`),
     );
-    expect(mocks.createLedgerService).not.toHaveBeenCalled();
+    expect(mocks.createService).not.toHaveBeenCalled();
   });
 
   it("创建服务失败时显示对应错误", async () => {
-    mocks.createLedgerService.mockResolvedValue({
-      error: ledgerCreateErrorCodes.createFailed,
-      ok: false,
-    });
+    mocks.createService.mockRejectedValue(
+      new AppError(ledgerCreateErrorCodes.createFailed, "账本创建失败"),
+    );
 
     await expect(createLedger(createFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/ledgers/new?",
@@ -93,6 +101,7 @@ describe("createLedger", () => {
     expect(mocks.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`error=${ledgerCreateErrorCodes.createFailed}`),
     );
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
 
   it("创建成功后刷新全部 current ledger 页面并跳转首页", async () => {
@@ -100,9 +109,7 @@ describe("createLedger", () => {
       "NEXT_REDIRECT:/dashboard",
     );
 
-    expect(mocks.revalidatePath.mock.calls.map(([path]) => path)).toEqual(
-      currentLedgerRevalidatePaths,
-    );
-    expect(mocks.revalidatePath).not.toHaveBeenCalledWith("/", "layout");
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
+    expect(mocks.redirect).toHaveBeenLastCalledWith(routePaths.dashboard);
   });
 });

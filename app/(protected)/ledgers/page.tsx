@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation";
+
 import {
   ledgerSwitchResultValues,
+  routePaths,
   type LedgerSwitchResultValue,
 } from "config/paths";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { updateCurrentLedger } from "server/actions/currentLedger";
-import { loadLedgersView } from "server/loaders/ledgers";
+import { createRequestContainer } from "server/container";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { LedgersTemplate } from "templates/ledgers/Ledgers";
 import { getCurrentLedgerErrorMessage } from "utils/pageErrors";
 
@@ -22,16 +27,31 @@ export default async function LedgersRoute({
 }: {
   searchParams: Promise<{ error?: string; errorKey?: string; result?: string }>;
 }) {
-  const [view, resolvedSearchParams] = await Promise.all([
-    loadLedgersView(),
-    searchParams,
-  ]);
+  // redirect() 属于页面边界，currentLedger 解析保留在这里；Service 不感知 Next.js 导航行为。
+  const [{ currentLedger, ledgers }, resolvedSearchParams] = await Promise.all(
+    [getCurrentLedgerContext(), searchParams],
+  );
+
+  if (!currentLedger) {
+    redirect(routePaths.dashboard);
+  }
+
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
+  const memberCountByLedgerId = await container.ledger.service.getMemberCounts(
+    ledgers.map((ledger) => ledger.id),
+  );
+  const ledgersWithMemberCount = ledgers.map((ledger) => ({
+    ...ledger,
+    memberCount: memberCountByLedgerId.get(ledger.id) ?? 0,
+  }));
 
   return (
     <LedgersTemplate
-      {...view}
+      currentLedgerId={currentLedger.id}
       errorKey={resolvedSearchParams.errorKey ?? null}
       errorMessage={getCurrentLedgerErrorMessage(resolvedSearchParams.error)}
+      ledgers={ledgersWithMemberCount}
       switchResult={getLedgerSwitchResult(resolvedSearchParams.result)}
       updateCurrentLedgerAction={updateCurrentLedger}
     />

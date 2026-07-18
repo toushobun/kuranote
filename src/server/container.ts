@@ -1,7 +1,13 @@
 import { createSupabaseCategoryRepository } from "server/category/repository/categoryRepository";
 import { createCategoryService } from "server/category/service/categoryService";
+import { createSupabaseCurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "server/ledger/repository/ledgerInviteRepository";
+import { createSupabaseLedgerRepository } from "server/ledger/repository/ledgerRepository";
+import { createSupabaseLedgerSettingsRepository } from "server/ledger/repository/ledgerSettingsRepository";
+import { createCurrentLedgerService } from "server/ledger/service/currentLedgerService";
 import { createLedgerInviteService } from "server/ledger/service/ledgerInviteService";
+import { createLedgerService } from "server/ledger/service/ledgerService";
+import { createLedgerSettingsService } from "server/ledger/service/ledgerSettingsService";
 import type { RequestDependencies } from "server/shared/context/requestDependencies";
 
 /**
@@ -16,6 +22,9 @@ import type { RequestDependencies } from "server/shared/context/requestDependenc
  */
 export type RequestContainer = {
   readonly ledger: {
+    readonly service: ReturnType<typeof createLedgerService>;
+    readonly currentLedgerService: ReturnType<typeof createCurrentLedgerService>;
+    readonly settingsService: ReturnType<typeof createLedgerSettingsService>;
     readonly inviteService: ReturnType<typeof createLedgerInviteService>;
   };
   readonly category: {
@@ -46,12 +55,28 @@ export function createRequestContainer(
 
     get ledger() {
       if (!ledgerContainer) {
+        const ledgerRepository = createSupabaseLedgerRepository(
+          dependencies.supabase,
+        );
+        const currentLedgerRepository = createSupabaseCurrentLedgerRepository(
+          dependencies.supabase,
+        );
+        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
+          dependencies.supabase,
+        );
         const ledgerInviteRepository = createSupabaseLedgerInviteRepository(
           dependencies.supabase,
         );
 
         ledgerContainer = {
+          currentLedgerService: createCurrentLedgerService({
+            currentLedgerRepository,
+          }),
           inviteService: createLedgerInviteService({ ledgerInviteRepository }),
+          service: createLedgerService({ ledgerRepository }),
+          settingsService: createLedgerSettingsService({
+            ledgerSettingsRepository,
+          }),
         };
       }
 
