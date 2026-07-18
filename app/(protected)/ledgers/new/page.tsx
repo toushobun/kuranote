@@ -1,3 +1,4 @@
+import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { createLedger } from "server/actions/ledgerCreate";
 import { createRequestContainer } from "server/container";
@@ -17,7 +18,6 @@ export default async function LedgerCreateRoute({
   const container = createRequestContainer(dependencies);
   const view = await container.ledger.service.getCreateDefaults({
     email,
-    hasCurrentLedger: currentLedger !== null,
     inheritedCurrency: currentLedger?.baseCurrency,
     userId,
   });
@@ -25,6 +25,7 @@ export default async function LedgerCreateRoute({
   return (
     <LedgerCreateTemplate
       {...view}
+      backHref={currentLedger ? routePaths.ledgers : routePaths.dashboard}
       createLedgerAction={createLedger}
       errorKey={resolvedSearchParams.errorKey ?? null}
       errorMessage={getLedgerCreateErrorMessage(resolvedSearchParams.error)}

@@ -122,7 +122,9 @@ describe("createLedgerSettingsService.update — ledger 意图", () => {
   });
 
   it("账本已归档时抛出 NotFoundError", async () => {
-    const { service } = createService({ isLedgerActive: vi.fn().mockResolvedValue(false) });
+    const { service } = createService({
+      isLedgerActive: vi.fn().mockResolvedValue(false),
+    });
 
     await expect(service.update(ledgerSettingsInput)).rejects.toBeInstanceOf(
       NotFoundError,
@@ -137,24 +139,30 @@ describe("createLedgerSettingsService.update — ledger 意图", () => {
     await expect(service.update(ledgerSettingsInput)).rejects.toBeInstanceOf(
       AuthorizationError,
     );
-    expect(ledgerSettingsRepository.updateLedgerBaseSettings).not.toHaveBeenCalled();
+    expect(
+      ledgerSettingsRepository.updateLedgerBaseSettings,
+    ).not.toHaveBeenCalled();
   });
 
   it("owner 修改账本设置成功时调用 Repository", async () => {
     const { service, ledgerSettingsRepository } = createService();
 
     await expect(service.update(ledgerSettingsInput)).resolves.toBeUndefined();
-    expect(ledgerSettingsRepository.updateLedgerBaseSettings).toHaveBeenCalledWith(
-      ledgerId,
-      { baseCurrency: "USD", ledgerName: "新名称", updatedBy: userId },
-    );
+    expect(
+      ledgerSettingsRepository.updateLedgerBaseSettings,
+    ).toHaveBeenCalledWith(ledgerId, {
+      baseCurrency: "USD",
+      ledgerName: "新名称",
+      updatedBy: userId,
+    });
   });
 
   it("Repository 更新失败时抛出映射后的错误", async () => {
     const { service } = createService({
-      updateLedgerBaseSettings: vi
-        .fn()
-        .mockResolvedValue({ code: ledgerSettingsErrorCodes.updateFailed, ok: false }),
+      updateLedgerBaseSettings: vi.fn().mockResolvedValue({
+        code: ledgerSettingsErrorCodes.updateFailed,
+        ok: false,
+      }),
     });
 
     await expect(service.update(ledgerSettingsInput)).rejects.toMatchObject({
@@ -210,6 +218,8 @@ describe("createLedgerSettingsService.update — member 意图", () => {
     await expect(service.update(memberSettingsInput)).rejects.toBeInstanceOf(
       AuthorizationError,
     );
-    expect(ledgerSettingsRepository.updateMemberSettings).not.toHaveBeenCalled();
+    expect(
+      ledgerSettingsRepository.updateMemberSettings,
+    ).not.toHaveBeenCalled();
   });
 });

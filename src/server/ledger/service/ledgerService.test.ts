@@ -2,11 +2,13 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { routePaths } from "config/paths";
 import { createLedgerService } from "server/ledger/service/ledgerService";
 import type { LedgerRepository } from "server/ledger/repository/ledgerRepository";
 import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
-import { AuthenticationError, ValidationError } from "server/shared/errors/appError";
+import {
+  AuthenticationError,
+  ValidationError,
+} from "server/shared/errors/appError";
 
 function createService(overrides: Partial<LedgerRepository> = {}) {
   const ledgerRepository: LedgerRepository = {
@@ -15,7 +17,10 @@ function createService(overrides: Partial<LedgerRepository> = {}) {
     getUserDisplayName: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
-  return { ledgerRepository, service: createLedgerService({ ledgerRepository }) };
+  return {
+    ledgerRepository,
+    service: createLedgerService({ ledgerRepository }),
+  };
 }
 
 const createInput = {
@@ -34,9 +39,10 @@ describe("createLedgerService.create", () => {
 
   it("Repository 返回权限错误时抛出 AuthenticationError", async () => {
     const { service } = createService({
-      create: vi
-        .fn()
-        .mockResolvedValue({ code: ledgerCreateErrorCodes.authRequired, ok: false }),
+      create: vi.fn().mockResolvedValue({
+        code: ledgerCreateErrorCodes.authRequired,
+        ok: false,
+      }),
     });
 
     await expect(service.create(createInput)).rejects.toBeInstanceOf(
@@ -46,9 +52,10 @@ describe("createLedgerService.create", () => {
 
   it("Repository 返回校验错误时抛出 ValidationError", async () => {
     const { service } = createService({
-      create: vi
-        .fn()
-        .mockResolvedValue({ code: ledgerCreateErrorCodes.nameRequired, ok: false }),
+      create: vi.fn().mockResolvedValue({
+        code: ledgerCreateErrorCodes.nameRequired,
+        ok: false,
+      }),
     });
 
     await expect(service.create(createInput)).rejects.toBeInstanceOf(
@@ -76,18 +83,16 @@ describe("createLedgerService.getCreateDefaults", () => {
     await expect(
       service.getCreateDefaults({
         email: "user@example.com",
-        hasCurrentLedger: true,
         userId: "user-1",
       }),
-    ).resolves.toMatchObject({ backHref: routePaths.ledgers });
+    ).resolves.toMatchObject({ defaults: expect.any(Object) });
 
     await expect(
       service.getCreateDefaults({
         email: "user@example.com",
-        hasCurrentLedger: false,
         userId: "user-1",
       }),
-    ).resolves.toMatchObject({ backHref: routePaths.dashboard });
+    ).resolves.toMatchObject({ defaults: expect.any(Object) });
   });
 
   it("有已保存的显示名时优先使用", async () => {
@@ -97,7 +102,6 @@ describe("createLedgerService.getCreateDefaults", () => {
 
     const result = await service.getCreateDefaults({
       email: "user@example.com",
-      hasCurrentLedger: false,
       userId: "user-1",
     });
 
@@ -109,7 +113,6 @@ describe("createLedgerService.getCreateDefaults", () => {
 
     const result = await service.getCreateDefaults({
       email: "songwen@example.com",
-      hasCurrentLedger: false,
       userId: "user-1",
     });
 
@@ -117,7 +120,6 @@ describe("createLedgerService.getCreateDefaults", () => {
 
     const fallback = await service.getCreateDefaults({
       email: "@example.com",
-      hasCurrentLedger: false,
       userId: "user-1",
     });
 
@@ -129,7 +131,6 @@ describe("createLedgerService.getCreateDefaults", () => {
 
     const inherited = await service.getCreateDefaults({
       email: "user@example.com",
-      hasCurrentLedger: false,
       inheritedCurrency: "USD",
       userId: "user-1",
     });
@@ -137,7 +138,6 @@ describe("createLedgerService.getCreateDefaults", () => {
 
     const invalid = await service.getCreateDefaults({
       email: "user@example.com",
-      hasCurrentLedger: false,
       inheritedCurrency: "not-a-currency",
       userId: "user-1",
     });

@@ -69,7 +69,7 @@ export default async function LedgerSettingsRoute({
   const container = createRequestContainer(dependencies);
   const [settingsView, pendingInvites] = await Promise.all([
     container.ledger.settingsService.getView({ currentLedger, ledger, userId }),
-    container.ledger.inviteService.listPending(ledgerId),
+    container.ledger.inviteService.listPending({ ledgerId, userId }),
   ]);
   const view = { ...settingsView, pendingInvites };
 

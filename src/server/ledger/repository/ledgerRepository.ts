@@ -3,6 +3,7 @@ import {
   type LedgerCreateErrorCode,
 } from "server/errors/ledgerCreate";
 import { mapRpcBusinessError } from "server/services/rpcError";
+import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -37,6 +38,11 @@ export interface LedgerRepository {
 
 export function createSupabaseLedgerRepository(
   supabase: AuthenticatedSupabaseClient,
+  logger: Logger = {
+    error: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+  },
 ): LedgerRepository {
   return {
     async create(input) {
@@ -76,7 +82,7 @@ export function createSupabaseLedgerRepository(
             .eq("status", "active");
 
           if (error) {
-            console.error("[ledger] failed to load ledger member count", {
+            logger.error("[ledger] failed to load ledger member count", {
               ledgerId,
               message: error.message,
             });
@@ -101,7 +107,7 @@ export function createSupabaseLedgerRepository(
         .maybeSingle();
 
       if (error) {
-        console.error("[ledger] failed to load user display name", {
+        logger.error("[ledger] failed to load user display name", {
           message: error.message,
           userId,
         });

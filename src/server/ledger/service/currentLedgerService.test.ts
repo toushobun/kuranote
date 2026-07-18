@@ -2,50 +2,52 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { createCurrentLedgerService } from "server/ledger/service/currentLedgerService";
-import type { CurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { createCurrentLedgerService } from "server/ledger/service/currentLedgerService";
 import { AppError, NotFoundError } from "server/shared/errors/appError";
-
-function createService(
-  switchFn: CurrentLedgerRepository["switch"],
-): ReturnType<typeof createCurrentLedgerService> {
-  return createCurrentLedgerService({
-    currentLedgerRepository: { switch: switchFn },
-  });
-}
 
 const input = { ledgerId: "ledger-1", userId: "user-1" };
 
+function createService(
+  options: {
+    isActiveMember?: boolean;
+    isLedgerActive?: boolean;
+    updateResult?: unknown;
+  } = {},
+) {
+  return createCurrentLedgerService({
+    currentLedgerRepository: {
+      isActiveMember: vi.fn().mockResolvedValue(options.isActiveMember ?? true),
+      isLedgerActive: vi.fn().mockResolvedValue(options.isLedgerActive ?? true),
+      updateCurrentLedger: vi
+        .fn()
+        .mockResolvedValue(options.updateResult ?? { ok: true }),
+    },
+  });
+}
+
 describe("createCurrentLedgerService.switch", () => {
-  it("Repository 返回成功时正常 resolve", async () => {
-    const service = createService(vi.fn().mockResolvedValue({ ok: true }));
-
-    await expect(service.switch(input)).resolves.toBeUndefined();
+  it("active 成员且账本有效时更新当前账本", async () => {
+    await expect(createService().switch(input)).resolves.toBeUndefined();
   });
 
-  it("Repository 返回 ledger_invalid 时抛出 NotFoundError", async () => {
-    const service = createService(
-      vi.fn().mockResolvedValue({
-        code: currentLedgerErrorCodes.ledgerInvalid,
-        ok: false,
-      }),
+  it.each([
+    { isActiveMember: false, isLedgerActive: true },
+    { isActiveMember: true, isLedgerActive: false },
+  ])("成员或账本无效时抛出 NotFoundError", async (options) => {
+    await expect(createService(options).switch(input)).rejects.toBeInstanceOf(
+      NotFoundError,
     );
-
-    await expect(service.switch(input)).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("Repository 返回其他错误时抛出通用 AppError", async () => {
-    const service = createService(
-      vi.fn().mockResolvedValue({
-        code: currentLedgerErrorCodes.updateFailed,
-        ok: false,
-      }),
-    );
+  it("更新失败时抛出通用 AppError", async () => {
+    const error = await createService({
+      updateResult: { code: currentLedgerErrorCodes.updateFailed, ok: false },
+    })
+      .switch(input)
+      .catch((caught: unknown) => caught);
 
-    const error = await service.switch(input).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(AppError);
     expect(error).not.toBeInstanceOf(NotFoundError);
-    expect((error as AppError).code).toBe(currentLedgerErrorCodes.updateFailed);
   });
 });

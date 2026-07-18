@@ -1,19 +1,81 @@
 import { z } from "@hono/zod-openapi";
 
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
+import { themeColorKeys } from "theme/themeColorTokens";
+import { ledgerCurrencyOptions, ledgerInviteRoles } from "types/ledgers";
+
+const uuidSchema = z.string().uuid();
+const currencySchema = z.enum(
+  ledgerCurrencyOptions.map((option) => option.value) as [
+    (typeof ledgerCurrencyOptions)[number]["value"],
+    ...(typeof ledgerCurrencyOptions)[number]["value"][],
+  ],
+);
+const themeColorSchema = z.enum(themeColorKeys);
+const memberRoleSchema = z.enum(["owner", "admin", "member", "viewer"]);
+const inviteRoleSchema = z.enum(ledgerInviteRoles);
 
 export const acceptLedgerInviteRequestSchema = z.object({
-  token: z
-    .string()
-    .min(1)
-    .refine(isValidLedgerInviteToken, { message: "邀请 token 格式无效。" })
-    .openapi({
-      example: "0".repeat(64),
-    }),
+  token: z.string().refine(isValidLedgerInviteToken, {
+    message: "邀请 token 格式无效。",
+  }),
 });
 
-export const acceptLedgerInviteResponseSchema = z.object({
-  ok: z.literal(true),
+export const createLedgerRequestSchema = z.object({
+  baseCurrency: currencySchema,
+  displayColor: themeColorSchema,
+  displayName: z.string().trim().min(1).max(100),
+  ledgerName: z.string().trim().min(1).max(100),
+});
+
+export const switchCurrentLedgerRequestSchema = z.object({
+  ledgerId: uuidSchema,
+});
+
+export const ledgerIdParamsSchema = z.object({ ledgerId: uuidSchema });
+export const ledgerInviteParamsSchema = z.object({
+  inviteId: uuidSchema,
+  ledgerId: uuidSchema,
+});
+
+export const createLedgerInviteRequestSchema = z.object({
+  role: inviteRoleSchema,
+});
+
+export const updateLedgerSettingsRequestSchema = z.discriminatedUnion(
+  "intent",
+  [
+    z.object({
+      intent: z.literal("ledger"),
+      baseCurrency: currencySchema,
+      ledgerName: z.string().trim().min(1).max(100),
+    }),
+    z.object({
+      intent: z.literal("member"),
+      displayColor: themeColorSchema,
+      displayName: z.string().trim().min(1).max(100),
+      role: memberRoleSchema,
+      userId: uuidSchema,
+    }),
+  ],
+);
+
+export const okResponseSchema = z.object({ ok: z.literal(true) });
+export const acceptLedgerInviteResponseSchema = okResponseSchema;
+export const createdLedgerInviteResponseSchema = z.object({
+  inviteId: uuidSchema,
+  role: inviteRoleSchema,
+  token: z.string().refine(isValidLedgerInviteToken),
+});
+export const pendingLedgerInvitesResponseSchema = z.object({
+  invites: z.array(
+    z.object({
+      createdAt: z.string(),
+      id: uuidSchema,
+      role: inviteRoleSchema,
+      token: z.string().nullable(),
+    }),
+  ),
 });
 
 export const errorResponseSchema = z.object({
@@ -24,7 +86,3 @@ export const errorResponseSchema = z.object({
     status: z.number(),
   }),
 });
-
-export type AcceptLedgerInviteRequest = z.infer<
-  typeof acceptLedgerInviteRequestSchema
->;

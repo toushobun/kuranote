@@ -4,25 +4,29 @@ import {
 } from "server/errors/currentLedger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 
-export type SwitchCurrentLedgerInput = {
+export type UpdateCurrentLedgerInput = {
   ledgerId: string;
   userId: string;
 };
 
-export type SwitchCurrentLedgerResult =
+export type UpdateCurrentLedgerResult =
   | { ok: true }
   | { ok: false; code: CurrentLedgerErrorCode };
 
 export interface CurrentLedgerRepository {
-  switch(input: SwitchCurrentLedgerInput): Promise<SwitchCurrentLedgerResult>;
+  isActiveMember(ledgerId: string, userId: string): Promise<boolean>;
+  isLedgerActive(ledgerId: string): Promise<boolean>;
+  updateCurrentLedger(
+    input: UpdateCurrentLedgerInput,
+  ): Promise<UpdateCurrentLedgerResult>;
 }
 
 export function createSupabaseCurrentLedgerRepository(
   supabase: AuthenticatedSupabaseClient,
 ): CurrentLedgerRepository {
   return {
-    async switch({ ledgerId, userId }) {
-      const { data: memberData, error: memberError } = await supabase
+    async isActiveMember(ledgerId, userId) {
+      const { data, error } = await supabase
         .from("ledger_member")
         .select("ledger_id")
         .eq("ledger_id", ledgerId)
@@ -30,21 +34,21 @@ export function createSupabaseCurrentLedgerRepository(
         .eq("status", "active")
         .maybeSingle();
 
-      if (memberError || !memberData) {
-        return { code: currentLedgerErrorCodes.ledgerInvalid, ok: false };
-      }
+      return !error && Boolean(data);
+    },
 
-      const { data: ledgerData, error: ledgerError } = await supabase
+    async isLedgerActive(ledgerId) {
+      const { data, error } = await supabase
         .from("ledger")
         .select("id")
         .eq("id", ledgerId)
         .eq("is_archived", false)
         .maybeSingle();
 
-      if (ledgerError || !ledgerData) {
-        return { code: currentLedgerErrorCodes.ledgerInvalid, ok: false };
-      }
+      return !error && Boolean(data);
+    },
 
+    async updateCurrentLedger({ ledgerId, userId }) {
       const { error, count } = await supabase
         .from("app_user")
         .update(

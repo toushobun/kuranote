@@ -149,8 +149,8 @@ describe("createSupabaseLedgerRepository.getUserDisplayName", () => {
     });
     const repository = createSupabaseLedgerRepository(supabase.client as never);
 
-    await expect(
-      repository.getUserDisplayName(userId),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    await expect(repository.getUserDisplayName(userId)).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
   });
 });

@@ -110,7 +110,8 @@ export function createLedgerSettingsService({
       }
 
       const canEditLedger =
-        currentUserMember.role === "owner" || currentUserMember.role === "admin";
+        currentUserMember.role === "owner" ||
+        currentUserMember.role === "admin";
 
       return {
         canEditLedger,

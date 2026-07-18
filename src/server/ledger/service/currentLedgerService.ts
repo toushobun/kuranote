@@ -2,11 +2,13 @@ import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
 } from "server/errors/currentLedger";
-import type {
-  CurrentLedgerRepository,
-  SwitchCurrentLedgerInput,
-} from "server/ledger/repository/currentLedgerRepository";
+import type { CurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
 import { AppError, NotFoundError } from "server/shared/errors/appError";
+
+export type SwitchCurrentLedgerInput = {
+  ledgerId: string;
+  userId: string;
+};
 
 export type CurrentLedgerServiceDependencies = {
   currentLedgerRepository: CurrentLedgerRepository;
@@ -25,16 +27,27 @@ function toAppError(code: CurrentLedgerErrorCode): AppError {
 }
 
 /**
- * 切换当前账本的 UseCase：校验目标账本存在、当前用户是其 active 成员，
- * 再更新 app_user.current_ledger_id。权限判断独立成立，不依赖 Router
- * middleware——Server Action 会直接调用。
+ * 切换当前账本的 UseCase。成员资格与账本状态由 Service 独立编排，
+ * 不依赖 Router middleware 或数据库 RPC 内部的隐式权限判断。
  */
 export function createCurrentLedgerService({
   currentLedgerRepository,
 }: CurrentLedgerServiceDependencies): CurrentLedgerService {
   return {
-    async switch(input) {
-      const result = await currentLedgerRepository.switch(input);
+    async switch({ ledgerId, userId }) {
+      const [isActiveMember, isLedgerActive] = await Promise.all([
+        currentLedgerRepository.isActiveMember(ledgerId, userId),
+        currentLedgerRepository.isLedgerActive(ledgerId),
+      ]);
+
+      if (!isActiveMember || !isLedgerActive) {
+        throw toAppError(currentLedgerErrorCodes.ledgerInvalid);
+      }
+
+      const result = await currentLedgerRepository.updateCurrentLedger({
+        ledgerId,
+        userId,
+      });
 
       if (!result.ok) {
         throw toAppError(result.code);

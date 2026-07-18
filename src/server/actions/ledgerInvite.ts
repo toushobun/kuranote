@@ -18,7 +18,7 @@ import { AppError } from "server/shared/errors/appError";
 import { isLedgerInviteRole } from "types/ledgers";
 
 export async function createLedgerInvite(formData: FormData) {
-  await getCurrentLedgerContext();
+  const { userId } = await getCurrentLedgerContext();
   const ledgerId = String(formData.get("ledgerId") ?? "").trim();
   const intent = String(formData.get("intent") ?? "create").trim();
 
@@ -43,7 +43,11 @@ export async function createLedgerInvite(formData: FormData) {
     }
 
     try {
-      await container.ledger.inviteService.revoke(ledgerId, inviteId);
+      await container.ledger.inviteService.revoke({
+        inviteId,
+        ledgerId,
+        userId,
+      });
     } catch (error) {
       if (error instanceof AppError) {
         redirect(
@@ -86,7 +90,11 @@ export async function createLedgerInvite(formData: FormData) {
 
   let result;
   try {
-    result = await container.ledger.inviteService.create(ledgerId, roleValue);
+    result = await container.ledger.inviteService.create({
+      ledgerId,
+      role: roleValue,
+      userId,
+    });
   } catch (error) {
     if (error instanceof AppError) {
       redirect(

@@ -1,13 +1,17 @@
+import { ledgerManagementRouter } from "server/ledger/managementRouter";
 import { ledgerRouter } from "server/ledger/router";
 import type { ServerModule } from "server/serverModule";
 
-/**
- * basePath 沿用旧 Route Handler 的 URL（/api/ledger-invites/accept），
- * 保持对外 URL 不变。#472 迁移账本其余功能时，会把该模块整体收敛到
- * 统一的 /ledgers 基础路径下。
- */
-export const ledgerModule = {
+/** 保留既有邀请接受 URL，避免破坏已经发布的邀请链接。 */
+export const ledgerInviteModule = {
   basePath: "/ledger-invites",
-  name: "ledger",
+  name: "ledger-invites",
   router: ledgerRouter,
+} satisfies ServerModule;
+
+/** Ledger 创建、切换、设置和邀请管理的统一业务入口。 */
+export const ledgerModule = {
+  basePath: "/ledgers",
+  name: "ledger",
+  router: ledgerManagementRouter,
 } satisfies ServerModule;

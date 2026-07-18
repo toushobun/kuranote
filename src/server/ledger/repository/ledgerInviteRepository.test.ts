@@ -128,18 +128,21 @@ describe("createSupabaseLedgerInviteRepository.revoke", () => {
     ["permission_denied", ledgerInviteErrorCodes.permissionDenied],
     ["invite_already_used", ledgerInviteErrorCodes.inviteUsed],
     ["invite_already_revoked", ledgerInviteErrorCodes.inviteAlreadyRevoked],
-  ] as const)("RPC details 返回 %s 时映射撤销错误", async (details, expected) => {
-    const supabase = createSupabaseStub({
-      data: null,
-      error: { details, message: "业务错误" },
-    });
-    const repository = createSupabaseLedgerInviteRepository(supabase);
+  ] as const)(
+    "RPC details 返回 %s 时映射撤销错误",
+    async (details, expected) => {
+      const supabase = createSupabaseStub({
+        data: null,
+        error: { details, message: "业务错误" },
+      });
+      const repository = createSupabaseLedgerInviteRepository(supabase);
 
-    await expect(repository.revoke(ledgerId, "invite-1")).resolves.toEqual({
-      code: expected,
-      ok: false,
-    });
-  });
+      await expect(repository.revoke(ledgerId, "invite-1")).resolves.toEqual({
+        code: expected,
+        ok: false,
+      });
+    },
+  );
 });
 
 describe("createSupabaseLedgerInviteRepository.listPending", () => {

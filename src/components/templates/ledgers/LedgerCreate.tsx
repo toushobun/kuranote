@@ -54,6 +54,7 @@ const ledgerCreateText = {
 } as const;
 
 type LedgerCreateTemplateProps = LedgerCreateDefaults & {
+  backHref: string;
   createLedgerAction: ServerAction;
   errorKey?: string | null;
   errorMessage: string | null;

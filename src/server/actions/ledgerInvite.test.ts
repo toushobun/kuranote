@@ -40,7 +40,10 @@ vi.mock("server/shared/context/createServerRequestDependencies", () => ({
 vi.mock("server/container", () => ({
   createRequestContainer: () => ({
     ledger: {
-      inviteService: { create: mocks.createService, revoke: mocks.revokeService },
+      inviteService: {
+        create: mocks.createService,
+        revoke: mocks.revokeService,
+      },
     },
   }),
 }));
@@ -106,7 +109,11 @@ describe("createLedgerInvite", () => {
     await expect(createLedgerInvite(formData)).rejects.toThrow(
       `NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-id&inviteRole=viewer&inviteToken=${validToken}`,
     );
-    expect(mocks.createService).toHaveBeenCalledWith("ledger-id", "viewer");
+    expect(mocks.createService).toHaveBeenCalledWith({
+      ledgerId: "ledger-id",
+      role: "viewer",
+      userId: "user-id",
+    });
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
       "/ledgers/ledger-id/settings",
     ]);
@@ -179,7 +186,11 @@ describe("createLedgerInvite", () => {
       error: ledgerInviteErrorCodes.inviteUsed,
       operation: "revoke",
     });
-    expect(mocks.revokeService).toHaveBeenCalledWith("ledger/id", "invite-1");
+    expect(mocks.revokeService).toHaveBeenCalledWith({
+      inviteId: "invite-1",
+      ledgerId: "ledger/id",
+      userId: "user-id",
+    });
   });
 
   it("撤销成功后刷新设置页并返回成功参数", async () => {
@@ -192,7 +203,11 @@ describe("createLedgerInvite", () => {
     await expect(createLedgerInvite(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteResult=revoked",
     );
-    expect(mocks.revokeService).toHaveBeenCalledWith("ledger-id", "invite-1");
+    expect(mocks.revokeService).toHaveBeenCalledWith({
+      inviteId: "invite-1",
+      ledgerId: "ledger-id",
+      userId: "user-id",
+    });
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
       "/ledgers/ledger-id/settings",
     ]);

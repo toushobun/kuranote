@@ -1,4 +1,3 @@
-import { routePaths } from "config/paths";
 import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
@@ -22,13 +21,11 @@ export type LedgerServiceDependencies = {
 
 export type LedgerCreateDefaultsInput = {
   email: string;
-  hasCurrentLedger: boolean;
   inheritedCurrency?: string;
   userId: string;
 };
 
 export type LedgerCreateDefaults = {
-  backHref: string;
   defaults: {
     baseCurrency: string;
     displayColor: ThemeColorKey;
@@ -55,7 +52,8 @@ const validationErrorCodes = new Set<LedgerCreateErrorCode>([
 ]);
 
 function toAppError(code: LedgerCreateErrorCode): AppError {
-  const message = getLedgerCreateErrorMessage(code) ?? "账本创建失败，请稍后重试。";
+  const message =
+    getLedgerCreateErrorMessage(code) ?? "账本创建失败，请稍后重试。";
 
   if (code === ledgerCreateErrorCodes.authRequired) {
     return new AuthenticationError(code, message);
@@ -88,17 +86,18 @@ export function createLedgerService({
       return ledgerRepository.getMemberCounts(ledgerIds);
     },
 
-    async getCreateDefaults({ email, hasCurrentLedger, inheritedCurrency, userId }) {
+    async getCreateDefaults({ email, inheritedCurrency, userId }) {
       const displayName = await ledgerRepository.getUserDisplayName(userId);
       const emailName = email.split("@")[0]?.trim();
       const baseCurrency =
         inheritedCurrency &&
-        ledgerCurrencyOptions.some((option) => option.value === inheritedCurrency)
+        ledgerCurrencyOptions.some(
+          (option) => option.value === inheritedCurrency,
+        )
           ? inheritedCurrency
           : "JPY";
 
       return {
-        backHref: hasCurrentLedger ? routePaths.ledgers : routePaths.dashboard,
         defaults: {
           baseCurrency,
           displayColor: "amber",

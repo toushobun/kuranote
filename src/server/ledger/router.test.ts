@@ -34,7 +34,8 @@ function containerWithAccept(
   return {
     category: {} as RequestContainer["category"],
     ledger: {
-      currentLedgerService: {} as RequestContainer["ledger"]["currentLedgerService"],
+      currentLedgerService:
+        {} as RequestContainer["ledger"]["currentLedgerService"],
       inviteService: {
         accept,
         create: vi.fn(),

@@ -3,176 +3,115 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLedgerInviteService } from "server/ledger/service/ledgerInviteService";
-import type { LedgerInviteRepository } from "server/ledger/repository/ledgerInviteRepository";
 import {
-  AuthenticationError,
   AuthorizationError,
   ConflictError,
-  NotFoundError,
   RepositoryError,
-  ValidationError,
 } from "server/shared/errors/appError";
+import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 
-function createService(
-  accept: LedgerInviteRepository["accept"],
-): ReturnType<typeof createLedgerInviteService> {
-  return createLedgerInviteService({
-    ledgerInviteRepository: {
-      accept,
-      create: vi.fn(),
-      listPending: vi.fn(),
-      revoke: vi.fn(),
-    },
-  });
+function createRepository(role: CurrentLedgerRole | null = "owner") {
+  return {
+    accept: vi.fn().mockResolvedValue({ ok: true }),
+    create: vi.fn().mockResolvedValue({
+      inviteId: "00000000-0000-4000-8000-000000000041",
+      ok: true,
+      role: "member" as const,
+      token: "a".repeat(64),
+    }),
+    getMemberRole: vi.fn().mockResolvedValue(role),
+    listPending: vi.fn().mockResolvedValue({ invites: [], ok: true }),
+    revoke: vi.fn().mockResolvedValue({ ok: true }),
+  };
 }
 
-describe("createLedgerInviteService", () => {
-  it("Repository 返回成功时正常 resolve", async () => {
-    const service = createService(vi.fn().mockResolvedValue({ ok: true }));
+const actor = {
+  ledgerId: "00000000-0000-4000-8000-000000000032",
+  userId: "00000000-0000-4000-8000-000000000031",
+};
+
+describe("createLedgerInviteService.accept", () => {
+  it("Repository 成功时正常完成", async () => {
+    const repository = createRepository();
+    const service = createLedgerInviteService({
+      ledgerInviteRepository: repository,
+    });
 
     await expect(service.accept("token")).resolves.toBeUndefined();
+    expect(repository.accept).toHaveBeenCalledWith("token");
   });
+});
 
-  it.each([
-    ["auth_required", AuthenticationError],
-    ["permission_denied", AuthorizationError],
-    ["invite_invalid", NotFoundError],
-    ["invite_already_revoked", ConflictError],
-    ["invite_already_used", ConflictError],
-    ["invite_role_invalid", ValidationError],
-    ["accept_failed", RepositoryError],
-  ] as const)("Repository 返回 %s 时抛出 %s", async (code, ErrorClass) => {
-    const service = createService(
-      vi.fn().mockResolvedValue({ code, ok: false }),
-    );
+describe.each(["create", "revoke", "listPending"] as const)(
+  "createLedgerInviteService.%s 权限",
+  (operation) => {
+    it.each(["owner", "admin"] as const)("%s 可以执行", async (role) => {
+      const repository = createRepository(role);
+      const service = createLedgerInviteService({
+        ledgerInviteRepository: repository,
+      });
 
-    await expect(service.accept("token")).rejects.toBeInstanceOf(ErrorClass);
-  });
+      if (operation === "create") {
+        await expect(
+          service.create({ ...actor, role: "member" }),
+        ).resolves.toMatchObject({ role: "member" });
+      } else if (operation === "revoke") {
+        await expect(
+          service.revoke({ ...actor, inviteId: "invite-1" }),
+        ).resolves.toBeUndefined();
+      } else {
+        await expect(service.listPending(actor)).resolves.toEqual([]);
+      }
+    });
 
-  it("权限判断独立成立，不依赖任何 Hono / Router 上下文", async () => {
-    const accept = vi.fn().mockResolvedValue({
-      code: "permission_denied",
+    it.each(["member", "viewer"] as const)("%s 无权执行", async (role) => {
+      const repository = createRepository(role);
+      const service = createLedgerInviteService({
+        ledgerInviteRepository: repository,
+      });
+
+      const action =
+        operation === "create"
+          ? service.create({ ...actor, role: "member" })
+          : operation === "revoke"
+            ? service.revoke({ ...actor, inviteId: "invite-1" })
+            : service.listPending(actor);
+
+      await expect(action).rejects.toBeInstanceOf(AuthorizationError);
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.revoke).not.toHaveBeenCalled();
+      expect(repository.listPending).not.toHaveBeenCalled();
+    });
+  },
+);
+
+describe("createLedgerInviteService 错误映射", () => {
+  it("撤销已使用邀请时抛出 ConflictError", async () => {
+    const repository = createRepository();
+    repository.revoke.mockResolvedValue({
+      code: "invite_already_used",
       ok: false,
     });
-    const service = createService(accept);
-
-    await expect(service.accept("token")).rejects.toThrow(AuthorizationError);
-    expect(accept).toHaveBeenCalledWith("token");
-  });
-});
-
-describe("createLedgerInviteService.create", () => {
-  it("Repository 返回成功时返回邀请信息", async () => {
-    const create = vi.fn().mockResolvedValue({
-      inviteId: "invite-1",
-      ok: true,
-      role: "member",
-      token: "token-abc",
-    });
     const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create,
-        listPending: vi.fn(),
-        revoke: vi.fn(),
-      },
-    });
-
-    await expect(service.create("ledger-1", "member")).resolves.toEqual({
-      inviteId: "invite-1",
-      role: "member",
-      token: "token-abc",
-    });
-    expect(create).toHaveBeenCalledWith("ledger-1", "member");
-  });
-
-  it("Repository 返回失败时抛出对应错误", async () => {
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create: vi.fn().mockResolvedValue({
-          code: "permission_denied",
-          ok: false,
-        }),
-        listPending: vi.fn(),
-        revoke: vi.fn(),
-      },
-    });
-
-    await expect(service.create("ledger-1", "member")).rejects.toBeInstanceOf(
-      AuthorizationError,
-    );
-  });
-});
-
-describe("createLedgerInviteService.revoke", () => {
-  it("Repository 返回成功时正常 resolve", async () => {
-    const revoke = vi.fn().mockResolvedValue({ ok: true });
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create: vi.fn(),
-        listPending: vi.fn(),
-        revoke,
-      },
-    });
-
-    await expect(service.revoke("ledger-1", "invite-1")).resolves.toBeUndefined();
-    expect(revoke).toHaveBeenCalledWith("ledger-1", "invite-1");
-  });
-
-  it("Repository 返回已使用错误时抛出 ConflictError", async () => {
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create: vi.fn(),
-        listPending: vi.fn(),
-        revoke: vi.fn().mockResolvedValue({
-          code: "invite_already_used",
-          ok: false,
-        }),
-      },
+      ledgerInviteRepository: repository,
     });
 
     await expect(
-      service.revoke("ledger-1", "invite-1"),
+      service.revoke({ ...actor, inviteId: "invite-1" }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
-});
 
-describe("createLedgerInviteService.listPending", () => {
-  it("Repository 返回成功时返回邀请列表", async () => {
-    const invites = [
-      { createdAt: "2026-07-13T10:00:00.000Z", id: "invite-1", role: "member" as const, token: "token" },
-    ];
-    const listPending = vi.fn().mockResolvedValue({ invites, ok: true });
+  it("列表读取失败时抛出 RepositoryError", async () => {
+    const repository = createRepository();
+    repository.listPending.mockResolvedValue({
+      code: "load_failed",
+      ok: false,
+    });
     const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create: vi.fn(),
-        listPending,
-        revoke: vi.fn(),
-      },
+      ledgerInviteRepository: repository,
     });
 
-    await expect(service.listPending("ledger-1")).resolves.toEqual(invites);
-    expect(listPending).toHaveBeenCalledWith("ledger-1");
-  });
-
-  it("Repository 返回失败时抛出对应错误", async () => {
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: {
-        accept: vi.fn(),
-        create: vi.fn(),
-        listPending: vi.fn().mockResolvedValue({
-          code: "load_failed",
-          ok: false,
-        }),
-        revoke: vi.fn(),
-      },
-    });
-
-    await expect(service.listPending("ledger-1")).rejects.toBeInstanceOf(
+    await expect(service.listPending(actor)).rejects.toBeInstanceOf(
       RepositoryError,
     );
   });

@@ -28,9 +28,10 @@ export default async function LedgersRoute({
   searchParams: Promise<{ error?: string; errorKey?: string; result?: string }>;
 }) {
   // redirect() 属于页面边界，currentLedger 解析保留在这里；Service 不感知 Next.js 导航行为。
-  const [{ currentLedger, ledgers }, resolvedSearchParams] = await Promise.all(
-    [getCurrentLedgerContext(), searchParams],
-  );
+  const [{ currentLedger, ledgers }, resolvedSearchParams] = await Promise.all([
+    getCurrentLedgerContext(),
+    searchParams,
+  ]);
 
   if (!currentLedger) {
     redirect(routePaths.dashboard);

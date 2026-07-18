@@ -152,9 +152,9 @@ describe("createSupabaseLedgerSettingsRepository.listActiveMembers", () => {
       supabase.client as never,
     );
 
-    await expect(
-      repository.listActiveMembers(ledgerId),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    await expect(repository.listActiveMembers(ledgerId)).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
   });
 
   it("资料查询失败时抛出 RepositoryError", async () => {
@@ -169,9 +169,9 @@ describe("createSupabaseLedgerSettingsRepository.listActiveMembers", () => {
       supabase.client as never,
     );
 
-    await expect(
-      repository.listActiveMembers(ledgerId),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    await expect(repository.listActiveMembers(ledgerId)).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
   });
 
   it("展示设置查询失败时抛出 RepositoryError", async () => {
@@ -186,9 +186,9 @@ describe("createSupabaseLedgerSettingsRepository.listActiveMembers", () => {
       supabase.client as never,
     );
 
-    await expect(
-      repository.listActiveMembers(ledgerId),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    await expect(repository.listActiveMembers(ledgerId)).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
   });
 });
 
@@ -220,7 +220,10 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
         ledgerName: "家庭账本",
         updatedBy: userId,
       }),
-    ).resolves.toEqual({ code: ledgerSettingsErrorCodes.updateFailed, ok: false });
+    ).resolves.toEqual({
+      code: ledgerSettingsErrorCodes.updateFailed,
+      ok: false,
+    });
   });
 });
 
@@ -276,7 +279,10 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
   it("未知 details 即使 message 包含已知业务码也返回通用更新失败", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
-        error: { details: "unexpected_database_error", message: "role_invalid" },
+        error: {
+          details: "unexpected_database_error",
+          message: "role_invalid",
+        },
       },
     });
     const repository = createSupabaseLedgerSettingsRepository(

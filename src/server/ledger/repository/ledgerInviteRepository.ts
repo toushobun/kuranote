@@ -6,6 +6,7 @@ import {
   mapRpcBusinessError,
   type RpcErrorLike,
 } from "server/services/rpcError";
+import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { isLedgerInviteRole, type LedgerInviteRole } from "types/ledgers";
 
@@ -30,6 +31,10 @@ export type ListPendingLedgerInvitesResult =
 
 export interface LedgerInviteRepository {
   accept(token: string): Promise<LedgerInviteWriteResult>;
+  getMemberRole(
+    ledgerId: string,
+    userId: string,
+  ): Promise<"owner" | "admin" | "member" | "viewer" | null>;
   create(
     ledgerId: string,
     role: LedgerInviteRole,
@@ -47,8 +52,12 @@ const inviteErrorMap = {
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
 } as const satisfies Readonly<Record<string, LedgerInviteErrorCode>>;
 
-function logUnexpectedRpcError(operation: string, error: RpcErrorLike): void {
-  console.error(`[ledger] ${operation} failed`, {
+function logUnexpectedRpcError(
+  logger: Logger,
+  operation: string,
+  error: RpcErrorLike,
+): void {
+  logger.error(`[ledger] ${operation} failed`, {
     code: error.code ?? null,
     hint: error.hint ?? null,
     message: error.message ?? null,
@@ -57,8 +66,31 @@ function logUnexpectedRpcError(operation: string, error: RpcErrorLike): void {
 
 export function createSupabaseLedgerInviteRepository(
   supabase: AuthenticatedSupabaseClient,
+  logger: Logger = {
+    error: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+  },
 ): LedgerInviteRepository {
   return {
+    async getMemberRole(ledgerId, userId) {
+      const { data, error } = await supabase
+        .from("ledger_member")
+        .select("role")
+        .eq("ledger_id", ledgerId)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return data.role === "owner" ||
+        data.role === "admin" ||
+        data.role === "member" ||
+        data.role === "viewer"
+        ? data.role
+        : null;
+    },
+
     async accept(token) {
       const { error } = await supabase.rpc("accept_ledger_invite", {
         p_token: token,
@@ -72,7 +104,7 @@ export function createSupabaseLedgerInviteRepository(
         );
 
         if (code === ledgerInviteErrorCodes.acceptFailed) {
-          logUnexpectedRpcError("accept_ledger_invite", error);
+          logUnexpectedRpcError(logger, "accept_ledger_invite", error);
         }
 
         return { code, ok: false };
@@ -95,7 +127,7 @@ export function createSupabaseLedgerInviteRepository(
         );
 
         if (code === ledgerInviteErrorCodes.createFailed) {
-          logUnexpectedRpcError("create_ledger_invite_v2", error);
+          logUnexpectedRpcError(logger, "create_ledger_invite_v2", error);
         }
 
         return { code, ok: false };
@@ -108,10 +140,10 @@ export function createSupabaseLedgerInviteRepository(
         typeof row?.token !== "string" ||
         !isLedgerInviteRole(row?.invite_role)
       ) {
-        console.error(
-          "[ledger] create_ledger_invite_v2 returned invalid data",
-          { isArray: Array.isArray(data), rowCount: Array.isArray(data) ? data.length : null },
-        );
+        logger.error("[ledger] create_ledger_invite_v2 returned invalid data", {
+          isArray: Array.isArray(data),
+          rowCount: Array.isArray(data) ? data.length : null,
+        });
         return { code: ledgerInviteErrorCodes.createFailed, ok: false };
       }
 
@@ -137,7 +169,7 @@ export function createSupabaseLedgerInviteRepository(
         );
 
         if (code === ledgerInviteErrorCodes.revokeFailed) {
-          logUnexpectedRpcError("revoke_ledger_invite", error);
+          logUnexpectedRpcError(logger, "revoke_ledger_invite", error);
         }
 
         return { code, ok: false };

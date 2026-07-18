@@ -23,7 +23,9 @@ import type { RequestDependencies } from "server/shared/context/requestDependenc
 export type RequestContainer = {
   readonly ledger: {
     readonly service: ReturnType<typeof createLedgerService>;
-    readonly currentLedgerService: ReturnType<typeof createCurrentLedgerService>;
+    readonly currentLedgerService: ReturnType<
+      typeof createCurrentLedgerService
+    >;
     readonly settingsService: ReturnType<typeof createLedgerSettingsService>;
     readonly inviteService: ReturnType<typeof createLedgerInviteService>;
   };
@@ -57,15 +59,18 @@ export function createRequestContainer(
       if (!ledgerContainer) {
         const ledgerRepository = createSupabaseLedgerRepository(
           dependencies.supabase,
+          dependencies.logger,
         );
         const currentLedgerRepository = createSupabaseCurrentLedgerRepository(
           dependencies.supabase,
         );
         const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
           dependencies.supabase,
+          dependencies.logger,
         );
         const ledgerInviteRepository = createSupabaseLedgerInviteRepository(
           dependencies.supabase,
+          dependencies.logger,
         );
 
         ledgerContainer = {

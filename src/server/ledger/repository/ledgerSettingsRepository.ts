@@ -6,6 +6,7 @@ import {
   type LedgerSettingsErrorCode,
 } from "server/errors/ledgerSettings";
 import { mapRpcBusinessError } from "server/services/rpcError";
+import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -78,6 +79,11 @@ function toCurrentLedgerRole(role: unknown): CurrentLedgerRole {
 
 export function createSupabaseLedgerSettingsRepository(
   supabase: AuthenticatedSupabaseClient,
+  logger: Logger = {
+    error: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+  },
 ): LedgerSettingsRepository {
   return {
     async getMemberRole(ledgerId, userId) {
@@ -119,7 +125,7 @@ export function createSupabaseLedgerSettingsRepository(
       const { data: memberData, error: memberError } = await memberQuery;
 
       if (memberError) {
-        console.error("[ledger] failed to load ledger settings members", {
+        logger.error("[ledger] failed to load ledger settings members", {
           ledgerId,
           message: memberError.message,
         });
@@ -148,7 +154,7 @@ export function createSupabaseLedgerSettingsRepository(
       ]);
 
       if (profilesResult.error) {
-        console.error("[ledger] failed to load ledger settings profiles", {
+        logger.error("[ledger] failed to load ledger settings profiles", {
           ledgerId,
           message: profilesResult.error.message,
         });
@@ -159,10 +165,10 @@ export function createSupabaseLedgerSettingsRepository(
       }
 
       if (displaySettingsResult.error) {
-        console.error(
-          "[ledger] failed to load ledger member display settings",
-          { ledgerId, message: displaySettingsResult.error.message },
-        );
+        logger.error("[ledger] failed to load ledger member display settings", {
+          ledgerId,
+          message: displaySettingsResult.error.message,
+        });
         throw toRepositoryError(
           "ledger_member_display_settings_load_failed",
           "账本成员显示设置加载失败，请稍后重试。",
@@ -187,7 +193,8 @@ export function createSupabaseLedgerSettingsRepository(
         return {
           avatarUrl: profile?.avatar_url ?? null,
           displayColor: displaySetting?.display_color ?? null,
-          displayName: displaySetting?.display_name ?? profile?.display_name ?? null,
+          displayName:
+            displaySetting?.display_name ?? profile?.display_name ?? null,
           email: profile?.email ?? null,
           role: toCurrentLedgerRole(member.role),
           userId,
