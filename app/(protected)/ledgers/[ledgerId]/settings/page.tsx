@@ -13,6 +13,7 @@ import { updateLedgerSettings } from "server/actions/ledgerSettings";
 import { createRequestContainer } from "server/container";
 import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+import { AuthorizationError } from "server/shared/errors/appError";
 import {
   LedgerSettingsTemplate,
   type LedgerSettingsSaveResult,
@@ -67,10 +68,23 @@ export default async function LedgerSettingsRoute({
 
   const dependencies = await createServerRequestDependencies();
   const container = createRequestContainer(dependencies);
-  const [settingsView, pendingInvites] = await Promise.all([
-    container.ledger.settingsService.getView({ currentLedger, ledger, userId }),
-    container.ledger.inviteService.listPending({ ledgerId, userId }),
-  ]);
+  let settingsView;
+  let pendingInvites;
+
+  try {
+    [settingsView, pendingInvites] = await Promise.all([
+      container.ledger.settingsService.getView({ currentLedger, ledger, userId }),
+      container.ledger.inviteService.listPending({ ledgerId, userId }),
+    ]);
+  } catch (error) {
+    // 用户可能在 currentLedger 快照取得后被移出账本，保持旧行为并在页面边界友好跳转。
+    if (error instanceof AuthorizationError) {
+      redirect(routePaths.ledgers);
+    }
+
+    throw error;
+  }
+
   const view = { ...settingsView, pendingInvites };
 
   return (
