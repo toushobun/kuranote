@@ -63,6 +63,7 @@ export function createRequestContainer(
         );
         const currentLedgerRepository = createSupabaseCurrentLedgerRepository(
           dependencies.supabase,
+          dependencies.logger,
         );
         const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
           dependencies.supabase,
