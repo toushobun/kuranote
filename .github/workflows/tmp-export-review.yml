@@ -1,9 +1,9 @@
 name: Temporary review export
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/472_ledger_auth_user
+      - main
     paths:
       - .github/workflows/tmp-export-review.yml
 
