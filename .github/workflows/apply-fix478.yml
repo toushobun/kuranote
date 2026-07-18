@@ -6,6 +6,7 @@ on:
       - refactor/472_ledger_auth_user
     paths:
       - .github/fix478.patch.b64
+      - .github/fix478.trigger
 
 permissions:
   contents: write
@@ -24,6 +25,7 @@ jobs:
           base64 -d .github/fix478.patch.b64 | gzip -d > /tmp/fix478.patch
           git apply --index /tmp/fix478.patch
           rm -f .github/fix478.patch.b64
+          rm -f .github/fix478.trigger
           rm -f .github/workflows/apply-fix478.yml
           rm -f .github/workflows/tmp-export-review.yml
           git add -A
