@@ -108,14 +108,11 @@ describe("user router", () => {
     });
     const app = createApp(createContainer({ updateCurrentProfile }));
 
-    const response = await app.request(
-      "https://kuranote.example/users/me",
-      {
-        body: JSON.stringify({ displayName: "  新昵称  " }),
-        headers: sameOriginHeaders,
-        method: "PATCH",
-      },
-    );
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({ displayName: "  新昵称  " }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
 
     expect(response.status).toBe(200);
     expect(updateCurrentProfile).toHaveBeenCalledWith({
@@ -133,14 +130,11 @@ describe("user router", () => {
     const updateCurrentProfile = vi.fn();
     const app = createApp(createContainer({ updateCurrentProfile }));
 
-    const response = await app.request(
-      "https://kuranote.example/users/me",
-      {
-        body: JSON.stringify({}),
-        headers: sameOriginHeaders,
-        method: "PATCH",
-      },
-    );
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({}),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
 
     expect(response.status).toBe(400);
     expect(updateCurrentProfile).not.toHaveBeenCalled();
@@ -153,14 +147,11 @@ describe("user router", () => {
       .mockRejectedValue(new AuthorizationError("user_inactive", "已停用"));
     const app = createApp(createContainer({ updateCurrentProfile }));
 
-    const response = await app.request(
-      "https://kuranote.example/users/me",
-      {
-        body: JSON.stringify({ displayName: "新昵称" }),
-        headers: sameOriginHeaders,
-        method: "PATCH",
-      },
-    );
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({ displayName: "新昵称" }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
 
     expect(response.status).toBe(403);
     expect(revalidatePath).not.toHaveBeenCalled();
