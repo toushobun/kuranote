@@ -30,7 +30,7 @@ import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 import { ledgerCurrencyOptions, ledgerMemberColorOptions } from "types/ledgers";
 
-import type { LedgerCreateView } from "server/loaders/ledgerCreate";
+import type { LedgerCreateDefaults } from "server/ledger/service/ledgerService";
 
 const ledgerCreateText = {
   automaticItems: [
@@ -53,7 +53,8 @@ const ledgerCreateText = {
   title: "创建新账本",
 } as const;
 
-type LedgerCreateTemplateProps = LedgerCreateView & {
+type LedgerCreateTemplateProps = LedgerCreateDefaults & {
+  backHref: string;
   createLedgerAction: ServerAction;
   errorKey?: string | null;
   errorMessage: string | null;

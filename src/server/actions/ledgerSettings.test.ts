@@ -1,7 +1,10 @@
+// @vitest-environment node
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ledgerSettingsResultValues } from "config/paths";
+import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
+import { AppError } from "server/shared/errors/appError";
 
 import { updateLedgerSettings } from "./ledgerSettings";
 
@@ -10,12 +13,8 @@ const mocks = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   requireCurrentUserAndLedger: vi.fn(),
-  revalidatePath: vi.fn(),
-  updateLedgerSettingsService: vi.fn(),
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: mocks.revalidatePath,
+  revalidateLedgerMutation: vi.fn(),
+  updateService: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -26,8 +25,18 @@ vi.mock("server/context/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 
-vi.mock("server/services/ledgerSettings", () => ({
-  updateLedgerSettingsService: mocks.updateLedgerSettingsService,
+vi.mock("server/ledger/adapter/next/revalidateLedger", () => ({
+  revalidateLedgerMutation: mocks.revalidateLedgerMutation,
+}));
+
+vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("server/container", () => ({
+  createRequestContainer: () => ({
+    ledger: { settingsService: { update: mocks.updateService } },
+  }),
 }));
 
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -68,11 +77,8 @@ function createMemberFormData(overrides: Record<string, string> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireCurrentUserAndLedger.mockResolvedValue({
-    currentLedger: { baseCurrency: "JPY", id: ledgerId, name: "家庭账本" },
-    userId,
-  });
-  mocks.updateLedgerSettingsService.mockResolvedValue({ ok: true });
+  mocks.requireCurrentUserAndLedger.mockResolvedValue({ userId });
+  mocks.updateService.mockResolvedValue(undefined);
 });
 
 describe("updateLedgerSettings", () => {
@@ -84,7 +90,7 @@ describe("updateLedgerSettings", () => {
     expect(mocks.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`error=${ledgerSettingsErrorCodes.nameRequired}`),
     );
-    expect(mocks.updateLedgerSettingsService).not.toHaveBeenCalled();
+    expect(mocks.updateService).not.toHaveBeenCalled();
   });
 
   it("非法账本 ID 时直接返回账本列表", async () => {
@@ -92,14 +98,13 @@ describe("updateLedgerSettings", () => {
       updateLedgerSettings(createLedgerFormData({ ledgerId: "invalid" })),
     ).rejects.toThrow("NEXT_REDIRECT:/ledgers");
 
-    expect(mocks.updateLedgerSettingsService).not.toHaveBeenCalled();
+    expect(mocks.updateService).not.toHaveBeenCalled();
   });
 
-  it("保存失败时跳转到账本设置错误状态", async () => {
-    mocks.updateLedgerSettingsService.mockResolvedValue({
-      error: ledgerSettingsErrorCodes.updateFailed,
-      ok: false,
-    });
+  it("Service 抛出应用错误时跳转到账本设置错误状态", async () => {
+    mocks.updateService.mockRejectedValue(
+      new AppError(ledgerSettingsErrorCodes.updateFailed, "更新失败"),
+    );
 
     await expect(updateLedgerSettings(createLedgerFormData())).rejects.toThrow(
       "NEXT_REDIRECT:",
@@ -115,19 +120,18 @@ describe("updateLedgerSettings", () => {
       `NEXT_REDIRECT:/ledgers/${ledgerId}/settings?result=${ledgerSettingsResultValues.updated}`,
     );
 
-    expect(mocks.updateLedgerSettingsService).toHaveBeenCalledWith({
+    expect(mocks.updateService).toHaveBeenCalledWith({
+      intent: "ledger",
       ledgerId,
-      ledgerSettings: {
+      settings: {
         baseCurrency: "JPY",
         ledgerName: "家庭账本",
       },
-      memberSettings: null,
       userId,
     });
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ledgers");
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(
-      `/ledgers/${ledgerId}/settings`,
-    );
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
+      `${routePaths.ledgers}/${ledgerId}/settings`,
+    ]);
   });
 
   it("成员设置表单保存时传递成员信息", async () => {
@@ -135,10 +139,10 @@ describe("updateLedgerSettings", () => {
       "NEXT_REDIRECT:",
     );
 
-    expect(mocks.updateLedgerSettingsService).toHaveBeenCalledWith({
+    expect(mocks.updateService).toHaveBeenCalledWith({
+      intent: "member",
       ledgerId,
-      ledgerSettings: null,
-      memberSettings: {
+      settings: {
         displayColor: "amber",
         displayName: "配偶",
         role: "admin",

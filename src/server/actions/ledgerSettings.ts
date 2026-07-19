@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -10,24 +9,14 @@ import {
   ledgerSettingsResultValues,
   routePaths,
 } from "config/paths";
+import { createRequestContainer } from "server/container";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
-import { updateLedgerSettingsService } from "server/services/ledgerSettings";
+import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+import { AppError } from "server/shared/errors/appError";
 import { validateUpdateLedgerSettingsForm } from "server/validators/ledgerSettings";
 import { getFormText } from "utils/formData";
-
-const ledgerSettingsRevalidatePaths = [
-  routePaths.dashboard,
-  routePaths.transactions,
-  routePaths.transactionsNew,
-  routePaths.transactionsSearch,
-  routePaths.accounts,
-  routePaths.categories,
-  routePaths.merchants,
-  routePaths.statistics,
-  routePaths.settings,
-  routePaths.ledgers,
-] as const;
 
 export async function updateLedgerSettings(formData: FormData) {
   const { userId } = await requireCurrentUserAndLedger();
@@ -43,21 +32,40 @@ export async function updateLedgerSettings(formData: FormData) {
   }
 
   const values = validation.value;
-  const result = await updateLedgerSettingsService({
-    ledgerId: values.ledgerId,
-    ledgerSettings: values.ledgerSettings,
-    memberSettings: values.memberSettings,
-    userId,
-  });
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
 
-  if (!result.ok) {
-    redirect(ledgerSettingsErrorHref(values.ledgerId, result.error));
+  try {
+    if (values.intent === "ledger" && values.ledgerSettings) {
+      await container.ledger.settingsService.update({
+        intent: "ledger",
+        ledgerId: values.ledgerId,
+        settings: values.ledgerSettings,
+        userId,
+      });
+    } else if (values.intent === "member" && values.memberSettings) {
+      await container.ledger.settingsService.update({
+        intent: "member",
+        ledgerId: values.ledgerId,
+        settings: values.memberSettings,
+        userId,
+      });
+    } else {
+      redirect(
+        ledgerSettingsErrorHref(
+          values.ledgerId,
+          ledgerSettingsErrorCodes.updateFailed,
+        ),
+      );
+    }
+  } catch (error) {
+    if (error instanceof AppError) {
+      redirect(ledgerSettingsErrorHref(values.ledgerId, error.code));
+    }
+    throw error;
   }
 
-  ledgerSettingsRevalidatePaths.forEach((path) => {
-    revalidatePath(path);
-  });
-  revalidatePath(ledgerSettingsHref(values.ledgerId));
+  revalidateLedgerMutation([ledgerSettingsHref(values.ledgerId)]);
   redirect(
     ledgerSettingsResultHref(
       values.ledgerId,

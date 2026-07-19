@@ -1,9 +1,11 @@
 import {
-  getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
   type LedgerInviteErrorCode,
 } from "server/errors/ledgerInvite";
-import type { LedgerInviteRepository } from "server/ledger/repository/ledgerInviteRepository";
+import type {
+  LedgerInviteRepository,
+  PendingLedgerInvite,
+} from "server/ledger/repository/ledgerInviteRepository";
 import {
   AppError,
   AuthenticationError,
@@ -13,39 +15,72 @@ import {
   RepositoryError,
   ValidationError,
 } from "server/shared/errors/appError";
+import type { LedgerInviteRole } from "types/ledgers";
 
 export type LedgerInviteServiceDependencies = {
   ledgerInviteRepository: LedgerInviteRepository;
 };
 
+export type CreatedLedgerInvite = {
+  inviteId: string;
+  role: LedgerInviteRole;
+  token: string;
+};
+
+export type ManageLedgerInviteInput = {
+  ledgerId: string;
+  userId: string;
+};
+
+export type CreateLedgerInviteInput = ManageLedgerInviteInput & {
+  role: LedgerInviteRole;
+};
+
+export type RevokeLedgerInviteInput = ManageLedgerInviteInput & {
+  inviteId: string;
+};
+
 export type LedgerInviteService = {
   accept(token: string): Promise<void>;
+  create(input: CreateLedgerInviteInput): Promise<CreatedLedgerInvite>;
+  revoke(input: RevokeLedgerInviteInput): Promise<void>;
+  listPending(input: ManageLedgerInviteInput): Promise<PendingLedgerInvite[]>;
 };
 
 function toAppError(code: LedgerInviteErrorCode): AppError {
-  const message =
-    getLedgerInviteErrorMessage(code) ?? "邀请处理失败，请稍后重试。";
-
   switch (code) {
     case ledgerInviteErrorCodes.authRequired:
-      return new AuthenticationError(code, message);
+      return new AuthenticationError(code, "请先登录。");
     case ledgerInviteErrorCodes.permissionDenied:
-      return new AuthorizationError(code, message);
+      return new AuthorizationError(code, "没有权限管理账本邀请。");
     case ledgerInviteErrorCodes.inviteInvalid:
-      return new NotFoundError(code, message);
-    case ledgerInviteErrorCodes.inviteAlreadyRevoked:
+      return new NotFoundError(code, "邀请不存在或已失效。");
     case ledgerInviteErrorCodes.inviteUsed:
-      return new ConflictError(code, message);
+    case ledgerInviteErrorCodes.inviteAlreadyRevoked:
+      return new ConflictError(code, "邀请状态已发生变化。");
     case ledgerInviteErrorCodes.inviteRoleInvalid:
-      return new ValidationError(code, message);
+      return new ValidationError(code, "邀请角色无效。");
+    case ledgerInviteErrorCodes.loadFailed:
+      return new RepositoryError(code, "邀请列表加载失败，请稍后重试。");
     default:
-      return new RepositoryError(code, message);
+      return new AppError(code, "邀请操作失败，请稍后重试。");
+  }
+}
+
+async function requireInviteManager(
+  repository: LedgerInviteRepository,
+  { ledgerId, userId }: ManageLedgerInviteInput,
+): Promise<void> {
+  const role = await repository.getMemberRole(ledgerId, userId);
+
+  if (role !== "owner" && role !== "admin") {
+    throw toAppError(ledgerInviteErrorCodes.permissionDenied);
   }
 }
 
 /**
- * Ledger 邀请相关的 UseCase。权限判断和业务状态校验独立成立，
- * 不假设调用方一定经过 Router middleware（Server Component 也会直接调用）。
+ * Ledger 邀请相关的 UseCase。创建、撤销和列表读取都在 Service 内独立
+ * 校验 owner/admin 权限，不依赖 Router middleware 或 RPC 的隐式检查。
  */
 export function createLedgerInviteService({
   ledgerInviteRepository,
@@ -53,6 +88,47 @@ export function createLedgerInviteService({
   return {
     async accept(token) {
       const result = await ledgerInviteRepository.accept(token);
+
+      if (!result.ok) {
+        throw toAppError(result.code);
+      }
+    },
+
+    async create(input) {
+      await requireInviteManager(ledgerInviteRepository, input);
+      const result = await ledgerInviteRepository.create(
+        input.ledgerId,
+        input.role,
+      );
+
+      if (!result.ok) {
+        throw toAppError(result.code);
+      }
+
+      return {
+        inviteId: result.inviteId,
+        role: result.role,
+        token: result.token,
+      };
+    },
+
+    async listPending(input) {
+      await requireInviteManager(ledgerInviteRepository, input);
+      const result = await ledgerInviteRepository.listPending(input.ledgerId);
+
+      if (!result.ok) {
+        throw toAppError(result.code);
+      }
+
+      return result.invites;
+    },
+
+    async revoke(input) {
+      await requireInviteManager(ledgerInviteRepository, input);
+      const result = await ledgerInviteRepository.revoke(
+        input.ledgerId,
+        input.inviteId,
+      );
 
       if (!result.ok) {
         throw toAppError(result.code);

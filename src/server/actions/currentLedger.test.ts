@@ -1,7 +1,10 @@
+// @vitest-environment node
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { routePaths } from "config/paths";
+import { ledgerSwitchResultValues, routePaths } from "config/paths";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { NotFoundError } from "server/shared/errors/appError";
 
 import { updateCurrentLedger } from "./currentLedger";
 
@@ -10,12 +13,8 @@ const mocks = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   requireCurrentUserAndLedger: vi.fn(),
-  revalidatePath: vi.fn(),
-  updateCurrentLedgerService: vi.fn(),
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: mocks.revalidatePath,
+  revalidateLedgerMutation: vi.fn(),
+  switchService: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -26,8 +25,18 @@ vi.mock("server/context/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 
-vi.mock("server/services/currentLedger", () => ({
-  updateCurrentLedgerService: mocks.updateCurrentLedgerService,
+vi.mock("server/ledger/adapter/next/revalidateLedger", () => ({
+  revalidateLedgerMutation: mocks.revalidateLedgerMutation,
+}));
+
+vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("server/container", () => ({
+  createRequestContainer: () => ({
+    ledger: { currentLedgerService: { switch: mocks.switchService } },
+  }),
 }));
 
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -49,11 +58,8 @@ function getLastRedirectUrl() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireCurrentUserAndLedger.mockResolvedValue({
-    currentLedger: { baseCurrency: "JPY", id: ledgerId, name: "家庭账本" },
-    userId,
-  });
-  mocks.updateCurrentLedgerService.mockResolvedValue({ ok: true });
+  mocks.requireCurrentUserAndLedger.mockResolvedValue({ userId });
+  mocks.switchService.mockResolvedValue(undefined);
 });
 
 describe("updateCurrentLedger", () => {
@@ -68,14 +74,16 @@ describe("updateCurrentLedger", () => {
       currentLedgerErrorCodes.ledgerInvalid,
     );
     expect(redirectUrl.searchParams.get("errorKey")).toBeTruthy();
-    expect(mocks.updateCurrentLedgerService).not.toHaveBeenCalled();
+    expect(mocks.switchService).not.toHaveBeenCalled();
   });
 
-  it("更新失败时跳转账本列表错误状态", async () => {
-    mocks.updateCurrentLedgerService.mockResolvedValue({
-      error: currentLedgerErrorCodes.updateFailed,
-      ok: false,
-    });
+  it("Service 抛出应用错误时跳转账本列表并携带错误码", async () => {
+    mocks.switchService.mockRejectedValue(
+      new NotFoundError(
+        currentLedgerErrorCodes.ledgerInvalid,
+        "账本不存在或您不是该账本成员。",
+      ),
+    );
 
     await expect(updateCurrentLedger(createFormData(ledgerId))).rejects.toThrow(
       "NEXT_REDIRECT:",
@@ -84,13 +92,10 @@ describe("updateCurrentLedger", () => {
     const redirectUrl = getLastRedirectUrl();
     expect(redirectUrl.pathname).toBe(routePaths.ledgers);
     expect(redirectUrl.searchParams.get("error")).toBe(
-      currentLedgerErrorCodes.updateFailed,
+      currentLedgerErrorCodes.ledgerInvalid,
     );
-    expect(redirectUrl.searchParams.get("errorKey")).toBeTruthy();
-    expect(mocks.updateCurrentLedgerService).toHaveBeenCalledWith({
-      ledgerId,
-      userId,
-    });
+    expect(mocks.switchService).toHaveBeenCalledWith({ ledgerId, userId });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
 
   it("更新成功后刷新依赖当前账本的页面并返回成功状态", async () => {
@@ -98,23 +103,13 @@ describe("updateCurrentLedger", () => {
       `NEXT_REDIRECT:${routePaths.ledgers}?result=switched`,
     );
 
-    expect(mocks.updateCurrentLedgerService).toHaveBeenCalledWith({
-      ledgerId,
-      userId,
-    });
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.dashboard);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.transactions);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(
-      routePaths.transactionsNew,
+    expect(mocks.switchService).toHaveBeenCalledWith({ ledgerId, userId });
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
+
+    const redirectUrl = getLastRedirectUrl();
+    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
+    expect(redirectUrl.searchParams.get("result")).toBe(
+      ledgerSwitchResultValues.switched,
     );
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(
-      routePaths.transactionsSearch,
-    );
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.categories);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.statistics);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.settings);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.ledgers);
   });
 });

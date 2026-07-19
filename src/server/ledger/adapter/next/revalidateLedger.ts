@@ -21,15 +21,17 @@ export const currentLedgerRevalidatePaths = [
 
 /**
  * Ledger 模块统一的缓存失效函数。Hono Controller 与仍然保留的
- * Server Action（账本切换、创建）必须调用同一个模块级函数——
- * 不得各自维护一份 path 清单。
+ * Server Action（账本切换、创建、设置、邀请）必须调用同一个模块级
+ * 函数——不得各自维护一份 path 清单。
  *
- * `src/server/cache/currentLedger.ts` 目前把 `revalidateCurrentLedgerPaths`
- * re-export 到这里，保证旧调用方（账本切换 / 创建 Server Action）
- * 无需改动 import 路径，也自动共用同一份实现。
+ * @param extraPaths 除通用清单外，额外需要失效的路径（例如某个账本的
+ * 设置页 `/ledgers/:id/settings`）。
  */
-export function revalidateLedgerMutation(): void {
+export function revalidateLedgerMutation(extraPaths: string[] = []): void {
   currentLedgerRevalidatePaths.forEach((path) => {
+    revalidatePath(path);
+  });
+  extraPaths.forEach((path) => {
     revalidatePath(path);
   });
 }
