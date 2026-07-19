@@ -10,7 +10,7 @@ function createDependenciesStub(): RequestDependencies {
     auth: { email: null, isAuthenticated: false, userId: null },
     logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
     requestId: "req-1",
-    // Repository 只使用 supabase.rpc，这里提供最小可用的 stub。
+    // Repository 只在方法被调用时访问 Supabase，这里提供最小 stub。
     supabase: { rpc: vi.fn() } as never,
   };
 }
@@ -29,5 +29,14 @@ describe("createRequestContainer", () => {
     const container = createRequestContainer(createDependenciesStub());
 
     expect(typeof container.ledger.inviteService.accept).toBe("function");
+  });
+
+  it("提供惰性缓存的 user.service 和显示名同步窄接口", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.user).toBe(container.user);
+    expect(typeof container.user.service.getCurrentProfile).toBe("function");
+    expect(typeof container.user.service.updateCurrentProfile).toBe("function");
+    expect(typeof container.user.service.syncDisplayName).toBe("function");
   });
 });
