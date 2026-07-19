@@ -9,6 +9,8 @@ import { createLedgerInviteService } from "server/ledger/service/ledgerInviteSer
 import { createLedgerService } from "server/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "server/ledger/service/ledgerSettingsService";
 import type { RequestDependencies } from "server/shared/context/requestDependencies";
+import { createSupabaseUserRepository } from "server/user/repository/userRepository";
+import { createUserService } from "server/user/service/userService";
 
 /**
  * 请求级依赖容器。Hono middleware 和 Server Component 都可以调用
@@ -32,6 +34,9 @@ export type RequestContainer = {
   readonly category: {
     readonly service: ReturnType<typeof createCategoryService>;
   };
+  readonly user: {
+    readonly service: ReturnType<typeof createUserService>;
+  };
 };
 
 export function createRequestContainer(
@@ -39,6 +44,7 @@ export function createRequestContainer(
 ): RequestContainer {
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
+  let userContainer: RequestContainer["user"] | undefined;
 
   return {
     get category() {
@@ -87,6 +93,26 @@ export function createRequestContainer(
       }
 
       return ledgerContainer;
+    },
+
+    get user() {
+      if (!userContainer) {
+        const userRepository = createSupabaseUserRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+
+        userContainer = {
+          service: createUserService({
+            currentUserId: dependencies.auth.isAuthenticated
+              ? dependencies.auth.userId
+              : null,
+            userRepository,
+          }),
+        };
+      }
+
+      return userContainer;
     },
   };
 }
