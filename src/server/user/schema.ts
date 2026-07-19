@@ -2,13 +2,19 @@ import { z } from "@hono/zod-openapi";
 
 import { userStatuses } from "server/user/entity/userProfile";
 
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 const httpsUrlSchema = z
   .string()
   .trim()
   .url()
-  .refine((value) => new URL(value).protocol === "https:", {
-    message: "头像地址必须使用 HTTPS。",
-  });
+  .refine(isHttpsUrl, { message: "头像地址必须使用 HTTPS。" });
 
 export const updateUserProfileRequestSchema = z
   .object({
