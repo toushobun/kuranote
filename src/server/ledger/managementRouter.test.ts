@@ -24,6 +24,7 @@ const headers = {
 
 function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
   return {
+    auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
     ledger: {
       currentLedgerService: { switch: vi.fn() },

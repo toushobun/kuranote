@@ -2,10 +2,12 @@ import { routePaths, routeWithQuery } from "config/paths";
 import { getGoogleAuthErrorMessage } from "lib/auth/googleOAuth";
 import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import { emailMaxLength, isValidEmailFormat } from "lib/validators/auth";
-import { startGoogleAuth } from "server/actions/googleAuth";
-import { loginWithRedirect } from "server/actions/loginRedirect";
+import {
+  loginWithRedirect,
+  startGoogleAuth,
+} from "server/auth/adapter/next/actions";
 import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
-import { redirectIfAuthenticated } from "server/loaders/login";
+import { redirectIfAuthenticated } from "server/auth/adapter/next/session";
 import { LoginTemplate } from "templates/login/Login";
 
 type LoginRouteProps = {
