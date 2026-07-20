@@ -73,9 +73,7 @@ function createRouterApp(service: RequestContainer["auth"]["service"]) {
   return app;
 }
 
-const maxLengthNextPath = `/${"x".repeat(
-  googleAuthNextPathMaxLength - 1,
-)}`;
+const maxLengthNextPath = `/${"x".repeat(googleAuthNextPathMaxLength - 1)}`;
 const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
 const requestHeaders = {
   "content-type": "application/json",
