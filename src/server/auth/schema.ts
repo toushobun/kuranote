@@ -1,6 +1,9 @@
 import { z } from "@hono/zod-openapi";
 
-import { turnstileTokenMaxLength } from "server/auth/entity/auth";
+import {
+  googleAuthNextPathMaxLength,
+  turnstileTokenMaxLength,
+} from "server/auth/entity/auth";
 
 import {
   displayNameMaxLength,
@@ -43,7 +46,7 @@ export const submitRegisterOtpRequestSchema = z.object({
 });
 
 export const startGoogleAuthRequestSchema = z.object({
-  nextPath: z.string(),
+  nextPath: z.string().max(googleAuthNextPathMaxLength),
   source: z.enum(["login", "register"]),
 });
 
