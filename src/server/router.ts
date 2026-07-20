@@ -2,14 +2,19 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 
 import type { AppEnv } from "server/appEnv";
 import { serverModules } from "server/moduleRegistry";
-import { errorHandlingMiddleware } from "server/shared/http/errorResponse";
+import {
+  errorHandlingMiddleware,
+  openApiValidationErrorHook,
+} from "server/shared/http/errorResponse";
 import { requestContextMiddleware } from "server/shared/middleware/requestContextMiddleware";
 
 /**
  * Master Router：挂载全局 middleware、统一异常处理、统一 404，
  * 并把每个业务模块的 Router 挂载到各自的 basePath 下。
  */
-export const apiRouter = new OpenAPIHono<AppEnv>().basePath("/api");
+export const apiRouter = new OpenAPIHono<AppEnv>({
+  defaultHook: openApiValidationErrorHook,
+}).basePath("/api");
 
 apiRouter.use("*", requestContextMiddleware);
 apiRouter.onError(errorHandlingMiddleware);

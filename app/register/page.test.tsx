@@ -18,16 +18,10 @@ vi.mock("lib/auth/googleOAuth", () => ({
   getGoogleAuthErrorMessage: mocks.getGoogleAuthErrorMessage,
 }));
 
-vi.mock("server/actions/auth", () => ({
+vi.mock("server/auth/adapter/next/actions", () => ({
   checkRegisterEmailAvailability: mocks.checkRegisterEmailAvailability,
   requestRegisterOtp: mocks.requestRegisterOtp,
-}));
-
-vi.mock("server/actions/googleAuth", () => ({
   startGoogleAuth: mocks.startGoogleAuth,
-}));
-
-vi.mock("server/actions/loginRedirect", () => ({
   submitRegisterOtpWithRedirect: mocks.submitRegisterOtpWithRedirect,
 }));
 
@@ -39,7 +33,7 @@ vi.mock("server/auth/turnstileKeys", () => ({
   getTurnstileSiteKey: mocks.getTurnstileSiteKey,
 }));
 
-vi.mock("server/loaders/login", () => ({
+vi.mock("server/auth/adapter/next/session", () => ({
   redirectIfAuthenticated: mocks.redirectIfAuthenticated,
 }));
 

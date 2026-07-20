@@ -4,12 +4,12 @@ import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import {
   checkRegisterEmailAvailability,
   requestRegisterOtp,
-} from "server/actions/auth";
-import { startGoogleAuth } from "server/actions/googleAuth";
-import { submitRegisterOtpWithRedirect } from "server/actions/loginRedirect";
+  startGoogleAuth,
+  submitRegisterOtpWithRedirect,
+} from "server/auth/adapter/next/actions";
 import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
 import { getTurnstileSiteKey } from "server/auth/turnstileKeys";
-import { redirectIfAuthenticated } from "server/loaders/login";
+import { redirectIfAuthenticated } from "server/auth/adapter/next/session";
 import { RegisterTemplate } from "templates/register/Register";
 
 function getNextPath(next: string | string[] | undefined) {

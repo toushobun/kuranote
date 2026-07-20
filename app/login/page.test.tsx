@@ -15,19 +15,16 @@ vi.mock("lib/auth/googleOAuth", () => ({
   getGoogleAuthErrorMessage: mocks.getGoogleAuthErrorMessage,
 }));
 
-vi.mock("server/actions/googleAuth", () => ({
-  startGoogleAuth: mocks.startGoogleAuth,
-}));
-
-vi.mock("server/actions/loginRedirect", () => ({
+vi.mock("server/auth/adapter/next/actions", () => ({
   loginWithRedirect: mocks.loginWithRedirect,
+  startGoogleAuth: mocks.startGoogleAuth,
 }));
 
 vi.mock("server/auth/googleAuthConfig", () => ({
   isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
 }));
 
-vi.mock("server/loaders/login", () => ({
+vi.mock("server/auth/adapter/next/session", () => ({
   redirectIfAuthenticated: mocks.redirectIfAuthenticated,
 }));
 

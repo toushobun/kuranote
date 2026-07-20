@@ -1,3 +1,4 @@
+import type { OpenAPIHonoOptions } from "@hono/zod-openapi";
 import type { Context } from "hono";
 
 import type { AppEnv } from "server/appEnv";
@@ -20,6 +21,30 @@ export type ErrorResponseBody = {
     details?: unknown;
     requestId?: string;
   };
+};
+
+const validationErrorMessage = "请求参数无效。";
+
+function validationErrorResponseBody(requestId?: string): ErrorResponseBody {
+  return {
+    error: {
+      code: "validation_error",
+      message: validationErrorMessage,
+      status: 400,
+      ...(requestId ? { requestId } : {}),
+    },
+  };
+}
+
+export const openApiValidationErrorHook: NonNullable<
+  OpenAPIHonoOptions<AppEnv>["defaultHook"]
+> = (result, context) => {
+  if (result.success) return;
+
+  return context.json(
+    validationErrorResponseBody(context.get("requestId")),
+    400,
+  );
 };
 
 /**
@@ -49,11 +74,21 @@ export function appErrorToResponseBody(
         code: error.code,
         message: error.message,
         status,
+        ...(error.details === undefined ? {} : { details: error.details }),
         ...(requestId ? { requestId } : {}),
       },
     },
     status,
   };
+}
+
+function getRetryAfterSeconds(details: unknown): number | null {
+  if (typeof details !== "object" || details === null) return null;
+  const value = (details as Record<string, unknown>).retryAfterSeconds;
+
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.ceil(value)
+    : null;
 }
 
 /**
@@ -68,13 +103,21 @@ export function errorHandlingMiddleware(
 
   if (error instanceof AppError) {
     const { body, status } = appErrorToResponseBody(error, requestId);
+
+    if (error instanceof RateLimitError) {
+      const retryAfterSeconds = getRetryAfterSeconds(error.details);
+      if (retryAfterSeconds !== null) {
+        context.header("Retry-After", String(retryAfterSeconds));
+      }
+    }
+
     return context.json(body, status as never);
   }
 
   const logger = context.get("requestDependencies")?.logger;
   const logUnhandledError = logger?.error ?? console.error;
   logUnhandledError("[server] unhandled error", {
-    error,
+    errorName: error.name || "unknown",
     path: context.req.path,
     requestId,
   });

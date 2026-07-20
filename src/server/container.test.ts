@@ -31,6 +31,18 @@ describe("createRequestContainer", () => {
     expect(typeof container.ledger.inviteService.accept).toBe("function");
   });
 
+  it("提供惰性缓存的 auth.service 及全部认证 UseCase", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.auth).toBe(container.auth);
+    expect(typeof container.auth.service.login).toBe("function");
+    expect(typeof container.auth.service.requestRegisterOtp).toBe("function");
+    expect(typeof container.auth.service.submitRegisterOtp).toBe("function");
+    expect(typeof container.auth.service.startGoogleAuth).toBe("function");
+    expect(typeof container.auth.service.getSession).toBe("function");
+    expect(typeof container.auth.service.logout).toBe("function");
+  });
+
   it("提供惰性缓存的 user.service 和显示名同步窄接口", () => {
     const container = createRequestContainer(createDependenciesStub());
 
