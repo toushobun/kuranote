@@ -202,6 +202,16 @@ export async function requestRegisterOtp(
         status: "validation_error",
       };
     }
+    if (
+      error.code === "signup_disabled" ||
+      error.code === "register_failed"
+    ) {
+      return {
+        error: error.message,
+        resetTurnstile: true,
+        status: "unknown_error",
+      };
+    }
 
     return {
       error: registerOtpMessages.serviceError,
