@@ -1,3 +1,4 @@
+export const googleAuthNextPathMaxLength = 2048;
 export const turnstileTokenMaxLength = 2048;
 
 export type AuthUser = {
