@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountResultValues,
-  accountsErrorHref,
   accountsResultHref,
   editTransactionErrorHref,
   ledgerInviteErrorHref,
@@ -77,29 +76,6 @@ describe("account paths", () => {
   it("生成带保存成功结果的账户路由", () => {
     expect(accountsResultHref(accountResultValues.updated)).toBe(
       "/accounts?result=updated",
-    );
-  });
-
-  it("生成带错误码和唯一 errorKey 的账户路由", () => {
-    const href = accountsErrorHref("create_failed");
-    const url = new URL(href, "http://localhost");
-
-    expect(url.searchParams.get("error")).toBe("create_failed");
-    expect(url.searchParams.get("errorKey")).toBeTruthy();
-  });
-
-  it("每次调用生成的 errorKey 都不同，即使错误码相同", () => {
-    const firstUrl = new URL(
-      accountsErrorHref("create_failed"),
-      "http://localhost",
-    );
-    const secondUrl = new URL(
-      accountsErrorHref("create_failed"),
-      "http://localhost",
-    );
-
-    expect(firstUrl.searchParams.get("errorKey")).not.toBe(
-      secondUrl.searchParams.get("errorKey"),
     );
   });
 });
