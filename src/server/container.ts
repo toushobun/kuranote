@@ -1,3 +1,5 @@
+import { createSupabaseAccountRepository } from "server/account/repository/accountRepository";
+import { createAccountService } from "server/account/service/accountService";
 import { createSupabaseAuthRepository } from "server/auth/repository/authRepository";
 import { createSupabaseAuthSecurityRepository } from "server/auth/repository/authSecurityRepository";
 import { createCloudflareTurnstileRepository } from "server/auth/repository/turnstileRepository";
@@ -31,6 +33,9 @@ import { createUserService } from "server/user/service/userService";
  * 每个模块字段惰性求值：未被访问的模块不会创建对应的 Repository / Service。
  */
 export type RequestContainer = {
+  readonly account: {
+    readonly service: ReturnType<typeof createAccountService>;
+  };
   readonly auth: {
     readonly service: ReturnType<typeof createAuthService>;
   };
@@ -56,6 +61,7 @@ export type RequestContainer = {
 export function createRequestContainer(
   dependencies: RequestDependencies,
 ): RequestContainer {
+  let accountContainer: RequestContainer["account"] | undefined;
   let authContainer: RequestContainer["auth"] | undefined;
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
@@ -63,6 +69,19 @@ export function createRequestContainer(
   let userContainer: RequestContainer["user"] | undefined;
 
   return {
+    get account() {
+      if (!accountContainer) {
+        const accountRepository = createSupabaseAccountRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        accountContainer = {
+          service: createAccountService({ accountRepository }),
+        };
+      }
+      return accountContainer;
+    },
+
     get auth() {
       if (!authContainer) {
         const authRepository = createSupabaseAuthRepository(
