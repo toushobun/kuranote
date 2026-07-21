@@ -105,6 +105,24 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
+  it("viewer 不能修改交易", async () => {
+    const { repository, service } = createService("viewer");
+    await expect(
+      service.updateNormal({ ...normalInput, transactionRecordId }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.findActiveRecord).not.toHaveBeenCalled();
+    expect(repository.updateNormal).not.toHaveBeenCalled();
+  });
+
+  it("viewer 不能删除交易", async () => {
+    const { repository, service } = createService("viewer");
+    await expect(
+      service.void({ ledgerId, transactionRecordId }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.findActiveRecord).not.toHaveBeenCalled();
+    expect(repository.void).not.toHaveBeenCalled();
+  });
+
   it("member 可以修改自己创建的交易", async () => {
     const { repository, service } = createService("member");
     await service.updateNormal({ ...normalInput, transactionRecordId });

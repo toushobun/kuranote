@@ -119,9 +119,7 @@ function operationError(error: unknown, fallbackCode: string): never {
     if (error.code === transactionErrorCodes.permissionDenied) {
       throw permissionError();
     }
-    throw new RepositoryError(fallbackCode, "交易操作失败，请稍后重试。", {
-      details: error.details,
-    });
+    throw new RepositoryError(fallbackCode, "交易操作失败，请稍后重试。");
   }
   throw error;
 }

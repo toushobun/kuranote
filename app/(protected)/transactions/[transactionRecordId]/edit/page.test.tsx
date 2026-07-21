@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   ),
   loadEditTransactionView: vi.fn(),
   NewTransactionVisualFrame: vi.fn(() => null),
+  TransactionPermissionDenied: vi.fn(() => null),
   saveEditTransaction: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
 vi.mock("templates/transactions/TransactionFormPage", () => ({
   EditTransactionTemplate: mocks.EditTransactionTemplate,
   EditTransferTransactionTemplate: mocks.EditTransferTransactionTemplate,
+  TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
 vi.mock("utils/pageErrors", () => ({
@@ -84,6 +86,24 @@ function createTransferEditView() {
 describe("TransactionEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("无修改权限时在当前页面显示权限提示", async () => {
+    mocks.loadEditTransactionView.mockResolvedValue({
+      ...createEditView(),
+      canEdit: false,
+    });
+
+    const result = await TransactionEditPage({
+      params: Promise.resolve({ transactionRecordId }),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+    const child = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
+
+    expect(child.type).toBe(mocks.TransactionPermissionDenied);
+    expect(child.props).toMatchObject({ operation: "edit" });
   });
 
   it("使用 URL 参数中的 transactionRecordId 显示编辑画面", async () => {

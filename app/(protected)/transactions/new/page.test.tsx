@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   ),
   loadNewTransactionView: vi.fn(),
   NewTransactionTemplate: vi.fn(() => null),
+  TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
   redirect: vi.fn((href: string) => {
     throw new Error(`NEXT_REDIRECT:${href}`);
@@ -30,6 +31,7 @@ vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
   NewTransactionTemplate: mocks.NewTransactionTemplate,
+  TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
 vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
@@ -89,17 +91,23 @@ describe("TransactionsNewPage", () => {
     expect(mocks.loadNewTransactionView).not.toHaveBeenCalled();
   });
 
-  it("只读成员访问新增页时跳回明细页", async () => {
+  it("只读成员访问新增页时在当前页面显示权限提示", async () => {
     mocks.loadNewTransactionView.mockResolvedValue({
       ...baseView,
       canWriteTransactions: false,
     });
 
-    await expect(
-      TransactionsNewPage({ searchParams: Promise.resolve({}) }),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions");
+    const result = await TransactionsNewPage({
+      searchParams: Promise.resolve({}),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+    const child = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
 
-    expect(mocks.redirect).toHaveBeenCalledWith("/transactions");
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(child.type).toBe(mocks.TransactionPermissionDenied);
+    expect(child.props).toMatchObject({ operation: "create" });
   });
 
   it("没有 type 时默认 expense", async () => {

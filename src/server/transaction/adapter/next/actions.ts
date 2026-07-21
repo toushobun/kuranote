@@ -32,7 +32,7 @@ async function getTransactionService() {
 }
 
 function errorState(message: string): TransactionActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
+  return { error: message };
 }
 
 function appErrorState(error: unknown, fallback: string) {

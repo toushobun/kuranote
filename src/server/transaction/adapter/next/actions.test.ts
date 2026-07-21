@@ -65,7 +65,6 @@ describe("Transaction Actions", () => {
   it("校验失败在当前页面返回错误状态", async () => {
     const state = await createTransaction({}, createFormData("-1"));
     expect(state.error).toBeTruthy();
-    expect(state.errorKey).toBeTruthy();
     expect(mocks.createNormal).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });

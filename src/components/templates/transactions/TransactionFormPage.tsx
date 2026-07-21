@@ -27,6 +27,7 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { ErrorState } from "molecules/ui/ErrorState";
 import {
   TransactionTypeNavigation,
   type TransactionTypeNavigationValue,
@@ -197,6 +198,33 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
       <NewTransactionFormView {...props} />
       <TransactionAmountKeypadLauncher />
     </>
+  );
+}
+
+export function TransactionPermissionDenied({
+  operation,
+}: {
+  operation: "edit" | "create";
+}) {
+  const operationLabel = operation === "create" ? "新增" : "编辑";
+
+  return (
+    <Stack spacing={2}>
+      <TransactionPageTopBar title={`${operationLabel}记账`} />
+      <ErrorState
+        title={`无法${operationLabel}记账`}
+        description={`当前账本角色没有${operationLabel}记账的权限。`}
+        action={
+          <Button
+            component={Link}
+            href={routePaths.transactions}
+            variant="outlined"
+          >
+            返回明细
+          </Button>
+        }
+      />
+    </Stack>
   );
 }
 

@@ -1,9 +1,7 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
-export type TransactionActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type TransactionActionState = BaseActionState;
 
 export type TransactionStateAction = (
   previousState: TransactionActionState,

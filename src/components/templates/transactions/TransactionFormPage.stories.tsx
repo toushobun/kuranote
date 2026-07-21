@@ -4,6 +4,7 @@ import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
   NewTransactionTemplate,
+  TransactionPermissionDenied,
 } from "./TransactionFormPage";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
 
@@ -102,6 +103,11 @@ export const WithError: Story = {
   args: {
     errorMessage: "新增记账失败。请稍后重试。",
   },
+};
+
+export const PermissionDenied: Story = {
+  name: "无新增权限",
+  render: () => <TransactionPermissionDenied operation="create" />,
 };
 
 export const EmptyOptions: Story = {

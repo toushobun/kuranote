@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-
-import { routePaths } from "config/paths";
 import {
   saveEditTransaction,
   voidTransaction,
@@ -9,6 +6,7 @@ import { loadEditTransactionView } from "server/transaction/adapter/next/loadTra
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
+  TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
 
@@ -22,7 +20,11 @@ export default async function TransactionEditPage({
     await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
-    redirect(routePaths.transactions);
+    return (
+      <NewTransactionVisualFrame>
+        <TransactionPermissionDenied operation="edit" />
+      </NewTransactionVisualFrame>
+    );
   }
 
   const errorMessage = null;
