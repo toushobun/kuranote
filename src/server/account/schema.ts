@@ -19,7 +19,10 @@ export const accountParamsSchema = accountLedgerParamsSchema.extend({
 });
 
 const accountFieldsSchema = z.object({
-  currency: z.string().trim().regex(/^[A-Z]{3}$/),
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/),
   holderUserIds: z.array(z.string().uuid()).min(1),
   name: z.string().trim().min(1),
   type: z.enum(accountTypeValues),
