@@ -6,7 +6,6 @@ export const accountErrorCodes = {
   holderInvalid: "holder_invalid",
   initialBalanceInvalid: "initial_balance_invalid",
   ledgerInvalid: "ledger_invalid",
-  loadFailed: "load_failed",
   nameRequired: "name_required",
   permissionDenied: "permission_denied",
   typeInvalid: "type_invalid",
