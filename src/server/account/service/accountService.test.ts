@@ -194,9 +194,9 @@ describe("AccountService", () => {
       now: () => new Date("2026-07-21T00:00:00.000Z"),
     });
 
-    await expect(service.archive({ accountId, ledgerId, userId })).resolves.toBe(
-      undefined,
-    );
+    await expect(
+      service.archive({ accountId, ledgerId, userId }),
+    ).resolves.toBe(undefined);
     expect(repository.archive).toHaveBeenCalledWith({
       accountId,
       archivedAt: "2026-07-21T00:00:00.000Z",
