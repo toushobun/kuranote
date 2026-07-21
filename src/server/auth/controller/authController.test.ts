@@ -46,6 +46,7 @@ function createContainer(
   service: RequestContainer["auth"]["service"],
 ): RequestContainer {
   return {
+    account: {} as RequestContainer["account"],
     auth: { service },
     category: {} as RequestContainer["category"],
     ledger: {} as RequestContainer["ledger"],
