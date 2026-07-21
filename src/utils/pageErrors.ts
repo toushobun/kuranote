@@ -16,8 +16,8 @@ import {
 } from "server/errors/ledgerSettings";
 import {
   merchantErrorCodes,
-  type MerchantErrorCode,
-} from "server/errors/merchants";
+  type MerchantPageErrorCode,
+} from "server/merchant/errors";
 import {
   transactionErrorCodes,
   type EditTransactionErrorCode,
@@ -87,7 +87,7 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
     "账本设置保存失败。请确认内容后稍后重试。",
 };
 
-const merchantErrorMessages: Record<MerchantErrorCode, string> = {
+const merchantErrorMessages: Record<MerchantPageErrorCode, string> = {
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败。",
   [merchantErrorCodes.aliasCreateFailed]:
     "商家别名新增失败。请确认别名是否重复，或稍后重试。",

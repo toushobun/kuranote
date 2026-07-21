@@ -1,0 +1,110 @@
+import type { ReactElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  archiveMerchant: vi.fn(),
+  archiveMerchantAlias: vi.fn(),
+  createMerchant: vi.fn(),
+  createMerchantAlias: vi.fn(),
+  createRequestContainer: vi.fn(),
+  createServerRequestDependencies: vi.fn(),
+  getCurrentLedgerOrRedirect: vi.fn(),
+  getMerchantErrorMessage: vi.fn((error?: string) =>
+    error ? `商家错误:${error}` : null,
+  ),
+  getView: vi.fn(),
+  MerchantsTemplate: vi.fn(() => null),
+  updateMerchant: vi.fn(),
+}));
+
+vi.mock("lib/ledger/current-ledger", () => ({
+  getCurrentLedgerOrRedirect: mocks.getCurrentLedgerOrRedirect,
+}));
+vi.mock("server/container", () => ({
+  createRequestContainer: mocks.createRequestContainer,
+}));
+vi.mock("server/merchant/adapter/next/actions", () => ({
+  archiveMerchant: mocks.archiveMerchant,
+  archiveMerchantAlias: mocks.archiveMerchantAlias,
+  createMerchant: mocks.createMerchant,
+  createMerchantAlias: mocks.createMerchantAlias,
+  updateMerchant: mocks.updateMerchant,
+}));
+vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: mocks.createServerRequestDependencies,
+}));
+vi.mock("templates/merchants/Merchants", () => ({
+  MerchantsTemplate: mocks.MerchantsTemplate,
+}));
+vi.mock("utils/pageErrors", () => ({
+  getMerchantErrorMessage: mocks.getMerchantErrorMessage,
+}));
+
+import MerchantsPage from "./page";
+
+const ledgerId = "00000000-0000-4000-8000-000000000032";
+
+describe("MerchantsPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getCurrentLedgerOrRedirect.mockResolvedValue({
+      currentUserRole: "owner",
+      id: ledgerId,
+      name: "家庭账本",
+    });
+    mocks.createServerRequestDependencies.mockResolvedValue({
+      requestId: "req-1",
+    });
+    mocks.getView.mockResolvedValue({
+      canManageMerchants: true,
+      ledgerName: "家庭账本",
+      merchants: [],
+    });
+    mocks.createRequestContainer.mockReturnValue({
+      merchant: { service: { getView: mocks.getView } },
+    });
+  });
+
+  it("SSR 直接调用 Request Container 的 Merchant Service，不请求内部 API", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const result = await MerchantsPage({
+      searchParams: Promise.resolve({ q: " LIFE " }),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+
+    expect(mocks.createServerRequestDependencies).toHaveBeenCalledOnce();
+    expect(mocks.createRequestContainer).toHaveBeenCalledOnce();
+    expect(mocks.getView).toHaveBeenCalledWith({
+      keyword: " LIFE ",
+      ledgerId,
+      ledgerName: "家庭账本",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(element.type).toBe(mocks.MerchantsTemplate);
+  });
+
+  it("把页面参数、视图数据和保留的 Server Action 传给模板", async () => {
+    const result = await MerchantsPage({
+      searchParams: Promise.resolve({
+        error: "create_failed",
+        merchantId: "merchant-1",
+        q: "LIFE",
+      }),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+
+    expect(element.props).toMatchObject({
+      archiveMerchantAction: mocks.archiveMerchant,
+      archiveMerchantAliasAction: mocks.archiveMerchantAlias,
+      createMerchantAction: mocks.createMerchant,
+      createMerchantAliasAction: mocks.createMerchantAlias,
+      errorMerchantId: "merchant-1",
+      errorMessage: "商家错误:create_failed",
+      keyword: "LIFE",
+      ledgerName: "家庭账本",
+      merchants: [],
+      updateMerchantAction: mocks.updateMerchant,
+    });
+  });
+});

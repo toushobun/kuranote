@@ -1,10 +1,9 @@
+import { z } from "@hono/zod-openapi";
+
 import {
   merchantErrorCodes,
   type MerchantValidationErrorCode,
-} from "server/errors/merchants";
-import { getFormText } from "utils/formData";
-import { parseWebsiteUrl } from "utils/merchants";
-
+} from "server/merchant/errors";
 import {
   invalid,
   parseOptionalTextField,
@@ -12,13 +11,13 @@ import {
   parseTextField,
   type ValidationResult,
   valid,
-} from "./common";
+} from "server/validators/common";
+import { getFormText } from "utils/formData";
+import { parseWebsiteUrl } from "utils/merchants";
 
-export type { MerchantValidationErrorCode };
-
-const merchantNameMaxLength = 100;
-const textMaxLength = 1000;
-const aliasMaxLength = 100;
+export const merchantNameMaxLength = 100;
+export const merchantNoteMaxLength = 1000;
+export const merchantAliasMaxLength = 100;
 
 export type CreateMerchantValues = {
   name: string;
@@ -92,7 +91,7 @@ function parseMerchantNote(
   return parseOptionalTextField(
     formData,
     "note",
-    textMaxLength,
+    merchantNoteMaxLength,
     merchantErrorCodes.noteTooLong,
   );
 }
@@ -101,22 +100,13 @@ function parseMerchantValues(
   formData: FormData,
 ): ValidationResult<CreateMerchantValues, MerchantValidationErrorCode> {
   const nameResult = parseMerchantName(formData);
-
-  if (!nameResult.ok) {
-    return nameResult;
-  }
+  if (!nameResult.ok) return nameResult;
 
   const siteUrlResult = parseMerchantSiteUrl(formData);
-
-  if (!siteUrlResult.ok) {
-    return siteUrlResult;
-  }
+  if (!siteUrlResult.ok) return siteUrlResult;
 
   const noteResult = parseMerchantNote(formData);
-
-  if (!noteResult.ok) {
-    return noteResult;
-  }
+  if (!noteResult.ok) return noteResult;
 
   return valid({
     name: nameResult.value,
@@ -140,13 +130,9 @@ export function validateUpdateMerchantForm(
     "merchantId",
     merchantErrorCodes.merchantInvalid,
   );
-
-  if (!merchantIdResult.ok) {
-    return merchantIdResult;
-  }
+  if (!merchantIdResult.ok) return merchantIdResult;
 
   const merchantValuesResult = parseMerchantValues(formData);
-
   if (!merchantValuesResult.ok) {
     return invalidWithMerchantId(merchantValuesResult.error, merchantIdText);
   }
@@ -168,12 +154,9 @@ export function validateArchiveMerchantForm(
     "merchantId",
     merchantErrorCodes.merchantInvalid,
   );
-
-  if (!merchantIdResult.ok) {
-    return merchantIdResult;
-  }
-
-  return valid({ merchantId: merchantIdResult.value });
+  return merchantIdResult.ok
+    ? valid({ merchantId: merchantIdResult.value })
+    : merchantIdResult;
 }
 
 export function validateCreateMerchantAliasForm(
@@ -185,17 +168,13 @@ export function validateCreateMerchantAliasForm(
     "merchantId",
     merchantErrorCodes.merchantInvalid,
   );
-
-  if (!merchantIdResult.ok) {
-    return merchantIdResult;
-  }
+  if (!merchantIdResult.ok) return merchantIdResult;
 
   const aliasResult = parseTextField(formData, "alias", {
-    maxLength: aliasMaxLength,
+    maxLength: merchantAliasMaxLength,
     maxLengthError: merchantErrorCodes.aliasTooLong,
     requiredError: merchantErrorCodes.aliasRequired,
   });
-
   if (!aliasResult.ok) {
     return invalidWithMerchantId(aliasResult.error, merchantIdText);
   }
@@ -217,10 +196,89 @@ export function validateArchiveMerchantAliasForm(
     "aliasId",
     merchantErrorCodes.aliasInvalid,
   );
-
-  if (!aliasIdResult.ok) {
-    return aliasIdResult;
-  }
-
-  return valid({ aliasId: aliasIdResult.value });
+  return aliasIdResult.ok
+    ? valid({ aliasId: aliasIdResult.value })
+    : aliasIdResult;
 }
+
+function isHttpUrl(value: string): boolean {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+const optionalWebsiteUrlSchema = z
+  .string()
+  .trim()
+  .refine(isHttpUrl, { message: "商家网址必须使用 HTTP 或 HTTPS。" })
+  .nullable();
+
+export const merchantIdParamsSchema = z.object({
+  merchantId: z.string().uuid(),
+});
+export const merchantAliasIdParamsSchema = z.object({
+  aliasId: z.string().uuid(),
+});
+export const merchantLedgerQuerySchema = z.object({
+  ledgerId: z.string().uuid(),
+});
+export const merchantListQuerySchema = merchantLedgerQuerySchema.extend({
+  q: z.string().optional().default(""),
+});
+
+export const createMerchantRequestSchema = z.object({
+  ledgerId: z.string().uuid(),
+  name: z.string().trim().min(1).max(merchantNameMaxLength),
+  note: z.string().trim().max(merchantNoteMaxLength).nullable(),
+  siteUrl: optionalWebsiteUrlSchema,
+});
+
+export const updateMerchantRequestSchema = createMerchantRequestSchema;
+export const createMerchantAliasRequestSchema = z.object({
+  alias: z.string().trim().min(1).max(merchantAliasMaxLength),
+  ledgerId: z.string().uuid(),
+});
+
+export const merchantAliasSchema = z.object({
+  alias: z.string(),
+  created_at: z.string(),
+  id: z.string().uuid(),
+  merchant_id: z.string().uuid(),
+  sort_order: z.number().int(),
+});
+
+export const merchantSchema = z.object({
+  aliases: z.array(merchantAliasSchema),
+  created_at: z.string(),
+  icon_url: z.string().nullable(),
+  id: z.string().uuid(),
+  name: z.string(),
+  note: z.string().nullable(),
+  sort_order: z.number().int(),
+  website_url: z.string().nullable(),
+});
+
+export const merchantSummarySchema = z.object({
+  icon_url: z.string().nullable(),
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
+export const merchantListResponseSchema = z.object({
+  canManageMerchants: z.boolean(),
+  merchants: z.array(merchantSchema),
+});
+export const merchantOptionsResponseSchema = z.object({
+  merchants: z.array(merchantSummarySchema),
+});
+export const okResponseSchema = z.object({ ok: z.literal(true) });
+export const errorResponseSchema = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    requestId: z.string().optional(),
+    status: z.number(),
+  }),
+});

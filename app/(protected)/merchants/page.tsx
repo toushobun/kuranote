@@ -1,11 +1,13 @@
+import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { createRequestContainer } from "server/container";
 import {
   archiveMerchant,
   archiveMerchantAlias,
   createMerchant,
   createMerchantAlias,
   updateMerchant,
-} from "server/actions/merchants";
-import { loadMerchantsView } from "server/loaders/merchants";
+} from "server/merchant/adapter/next/actions";
+import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { MerchantsTemplate } from "templates/merchants/Merchants";
 import { getMerchantErrorMessage } from "utils/pageErrors";
 
@@ -15,8 +17,14 @@ export default async function MerchantsPage({
   searchParams: Promise<{ error?: string; merchantId?: string; q?: string }>;
 }) {
   const params = await searchParams;
-  const keyword = params.q ?? "";
-  const view = await loadMerchantsView(keyword);
+  const currentLedger = await getCurrentLedgerOrRedirect();
+  const dependencies = await createServerRequestDependencies();
+  const container = createRequestContainer(dependencies);
+  const view = await container.merchant.service.getView({
+    keyword: params.q ?? "",
+    ledgerId: currentLedger.id,
+    ledgerName: currentLedger.name,
+  });
 
   return (
     <MerchantsTemplate
@@ -26,7 +34,7 @@ export default async function MerchantsPage({
       createMerchantAliasAction={createMerchantAlias}
       errorMerchantId={params.merchantId ?? null}
       errorMessage={getMerchantErrorMessage(params.error)}
-      keyword={keyword}
+      keyword={params.q ?? ""}
       ledgerName={view.ledgerName}
       merchants={view.merchants}
       updateMerchantAction={updateMerchant}

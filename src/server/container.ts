@@ -14,6 +14,8 @@ import { createLedgerAccessService } from "server/ledger/service/ledgerAccessSer
 import { createLedgerInviteService } from "server/ledger/service/ledgerInviteService";
 import { createLedgerService } from "server/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "server/ledger/service/ledgerSettingsService";
+import { createSupabaseMerchantRepository } from "server/merchant/repository/merchantRepository";
+import { createMerchantService } from "server/merchant/service/merchantService";
 import type { RequestDependencies } from "server/shared/context/requestDependencies";
 import { createSupabaseUserRepository } from "server/user/repository/userRepository";
 import { createUserService } from "server/user/service/userService";
@@ -43,6 +45,9 @@ export type RequestContainer = {
   readonly category: {
     readonly service: ReturnType<typeof createCategoryService>;
   };
+  readonly merchant: {
+    readonly service: ReturnType<typeof createMerchantService>;
+  };
   readonly user: {
     readonly service: ReturnType<typeof createUserService>;
   };
@@ -54,6 +59,7 @@ export function createRequestContainer(
   let authContainer: RequestContainer["auth"] | undefined;
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
+  let merchantContainer: RequestContainer["merchant"] | undefined;
   let userContainer: RequestContainer["user"] | undefined;
 
   return {
@@ -150,6 +156,33 @@ export function createRequestContainer(
       }
 
       return ledgerContainer;
+    },
+
+    get merchant() {
+      if (!merchantContainer) {
+        const merchantRepository = createSupabaseMerchantRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+
+        merchantContainer = {
+          service: createMerchantService({
+            currentUserId: dependencies.auth.isAuthenticated
+              ? dependencies.auth.userId
+              : null,
+            ledgerAccessService: createLedgerAccessService(
+              ledgerSettingsRepository,
+            ),
+            merchantRepository,
+          }),
+        };
+      }
+
+      return merchantContainer;
     },
 
     get user() {

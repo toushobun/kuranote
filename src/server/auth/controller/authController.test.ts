@@ -49,6 +49,7 @@ function createContainer(
     auth: { service },
     category: {} as RequestContainer["category"],
     ledger: {} as RequestContainer["ledger"],
+    merchant: {} as RequestContainer["merchant"],
     user: {} as RequestContainer["user"],
   };
 }

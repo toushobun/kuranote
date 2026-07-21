@@ -64,4 +64,18 @@ describe("createRequestContainer", () => {
     expect(typeof container.user.service.updateCurrentProfile).toBe("function");
     expect(typeof container.user.service.syncDisplayName).toBe("function");
   });
+
+  it("提供惰性缓存的 merchant.service 与跨模块窄查询接口", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.merchant).toBe(container.merchant);
+    expect(typeof container.merchant.service.getView).toBe("function");
+    expect(typeof container.merchant.service.list).toBe("function");
+    expect(typeof container.merchant.service.listActiveOptions).toBe(
+      "function",
+    );
+    expect(typeof container.merchant.service.findSummariesByIds).toBe(
+      "function",
+    );
+  });
 });

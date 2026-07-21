@@ -40,6 +40,7 @@ function createContainer(
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
     ledger: {} as RequestContainer["ledger"],
+    merchant: {} as RequestContainer["merchant"],
     user: {
       service: {
         getCurrentProfile: vi.fn(),

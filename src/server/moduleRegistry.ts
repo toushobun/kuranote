@@ -1,6 +1,7 @@
 import { authModule } from "server/auth";
 import { categoryModule } from "server/category";
 import { ledgerInviteModule, ledgerModule } from "server/ledger";
+import { merchantModule } from "server/merchant";
 import type { ServerModule } from "server/serverModule";
 import { userModule } from "server/user";
 
@@ -10,5 +11,6 @@ export const serverModules = [
   ledgerModule,
   ledgerInviteModule,
   categoryModule,
+  merchantModule,
   userModule,
 ] satisfies ServerModule[];
