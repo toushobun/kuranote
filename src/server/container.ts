@@ -1,10 +1,10 @@
 import { createSupabaseAccountRepository } from "server/account/repository/accountRepository";
 import { createAccountService } from "server/account/service/accountService";
+import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
 import { createSupabaseAuthRepository } from "server/auth/repository/authRepository";
 import { createSupabaseAuthSecurityRepository } from "server/auth/repository/authSecurityRepository";
 import { createCloudflareTurnstileRepository } from "server/auth/repository/turnstileRepository";
 import { createAuthService } from "server/auth/service/authService";
-import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
 import { createSupabaseCategoryRepository } from "server/category/repository/categoryRepository";
 import { createCategoryService } from "server/category/service/categoryService";
 import { createSupabaseCurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
@@ -75,8 +75,18 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
+        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+
         accountContainer = {
-          service: createAccountService({ accountRepository }),
+          service: createAccountService({
+            accountRepository,
+            ledgerAccessService: createLedgerAccessService(
+              ledgerSettingsRepository,
+            ),
+          }),
         };
       }
       return accountContainer;
