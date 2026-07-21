@@ -1,7 +1,7 @@
 import {
   accountErrorCodes,
   type AccountErrorCode,
-} from "server/errors/accounts";
+} from "server/account/errors";
 import {
   categoryErrorCodes,
   type CategoryErrorCode,
@@ -38,6 +38,8 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
   [accountErrorCodes.holderInvalid]: "账户持有人指定不正确。",
   [accountErrorCodes.initialBalanceInvalid]: "初始余额必须是数字。",
+  [accountErrorCodes.ledgerInvalid]: "账本不存在或您不是该账本成员。",
+  [accountErrorCodes.loadFailed]: "账户信息加载失败，请稍后重试。",
   [accountErrorCodes.nameRequired]: "请输入账户名称。",
   [accountErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护账户。",
   [accountErrorCodes.typeInvalid]: "账户类型不正确。",
