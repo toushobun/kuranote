@@ -1,3 +1,4 @@
+import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import {
   canManageMasterData,
   canWriteTransaction,
@@ -9,6 +10,12 @@ import type {
   CreateAccountInput as RepositoryCreateAccountInput,
   UpdateAccountInput as RepositoryUpdateAccountInput,
 } from "server/account/repository/accountRepository";
+import {
+  buildAccountsWithHolders,
+  buildDisplayColorByUserId,
+  buildHolderOptions,
+} from "server/account/util/accountView";
+import type { LedgerAccessService } from "server/ledger/service/ledgerAccessService";
 import {
   AppError,
   AuthorizationError,
@@ -22,11 +29,6 @@ import type {
   LedgerMemberDisplaySettingRecord,
 } from "types/accounts";
 import { accountTypeOptions, type AccountType } from "types/accounts";
-import {
-  buildAccountsWithHolders,
-  buildDisplayColorByUserId,
-  buildHolderOptions,
-} from "server/account/util/accountView";
 
 export type AccountsView = {
   accounts: AccountRow[];
@@ -69,6 +71,7 @@ export interface AccountService {
 
 export type AccountServiceDependencies = {
   accountRepository: AccountRepository;
+  ledgerAccessService: LedgerAccessService;
   now?: () => Date;
 };
 
@@ -163,33 +166,29 @@ function mergeLedgerDisplayNames(
  */
 export function createAccountService({
   accountRepository,
+  ledgerAccessService,
   now = () => new Date(),
 }: AccountServiceDependencies): AccountService {
-  async function requireLedgerContext(ledgerId: string, userId: string) {
-    const [ledger, members] = await Promise.all([
-      accountRepository.findActiveLedger(ledgerId),
-      accountRepository.listActiveMembers(ledgerId),
-    ]);
+  async function requireActiveMemberRole(
+    ledgerId: string,
+    userId: string,
+  ): Promise<CurrentLedgerRole> {
+    const role = await ledgerAccessService.getActiveMemberRole({
+      ledgerId,
+      userId,
+    });
 
-    if (!ledger) {
-      throw new NotFoundError(
-        accountErrorCodes.ledgerInvalid,
-        "账本不存在或已停用。",
-      );
-    }
-
-    const currentMember = members.find((member) => member.user_id === userId);
-    if (!currentMember) {
+    if (!role) {
       throw new NotFoundError(
         accountErrorCodes.ledgerInvalid,
         "账本不存在或您不是该账本成员。",
       );
     }
 
-    return { currentMember, ledger, members };
+    return role;
   }
 
-  function requireManagement(role: AccountLedgerMemberRecord["role"]): void {
+  function requireManagement(role: CurrentLedgerRole): void {
     if (!canManageMasterData(role)) {
       throw new AuthorizationError(
         accountErrorCodes.permissionDenied,
@@ -229,8 +228,8 @@ export function createAccountService({
 
   return {
     async archive({ accountId, ledgerId, userId }) {
-      const { currentMember } = await requireLedgerContext(ledgerId, userId);
-      requireManagement(currentMember.role);
+      const role = await requireActiveMemberRole(ledgerId, userId);
+      requireManagement(role);
 
       if (!(await accountRepository.isActiveAccount(ledgerId, accountId))) {
         throw new NotFoundError(
@@ -255,11 +254,9 @@ export function createAccountService({
     },
 
     async create(input) {
-      const { currentMember, members } = await requireLedgerContext(
-        input.ledgerId,
-        input.userId,
-      );
-      requireManagement(currentMember.role);
+      const role = await requireActiveMemberRole(input.ledgerId, input.userId);
+      requireManagement(role);
+      const members = await accountRepository.listActiveMembers(input.ledgerId);
 
       const accountId = await accountRepository.create({
         currency: normalizeCurrency(input.currency),
@@ -281,14 +278,21 @@ export function createAccountService({
     },
 
     async getView({ ledgerId, userId }) {
-      const { currentMember, ledger, members } = await requireLedgerContext(
-        ledgerId,
-        userId,
-      );
-      const [accounts, displaySettings] = await Promise.all([
+      const role = await requireActiveMemberRole(ledgerId, userId);
+      const [ledger, members, accounts, displaySettings] = await Promise.all([
+        accountRepository.findActiveLedger(ledgerId),
+        accountRepository.listActiveMembers(ledgerId),
         accountRepository.listAccounts(ledgerId),
         accountRepository.listDisplaySettings(ledgerId),
       ]);
+
+      if (!ledger) {
+        throw new NotFoundError(
+          accountErrorCodes.ledgerInvalid,
+          "账本不存在或已停用。",
+        );
+      }
+
       const holders = await accountRepository.listHolders(
         ledgerId,
         accounts.map((account) => account.id),
@@ -316,19 +320,16 @@ export function createAccountService({
           holders,
         }),
         baseCurrency: ledger.baseCurrency,
-        canManageAccounts: canManageMasterData(currentMember.role),
-        canWriteTransactions: canWriteTransaction(currentMember.role),
+        canManageAccounts: canManageMasterData(role),
+        canWriteTransactions: canWriteTransaction(role),
         holderOptions: buildHolderOptions({ appUserById, members }),
         ledgerName: ledger.name,
       };
     },
 
     async update(input) {
-      const { currentMember, members } = await requireLedgerContext(
-        input.ledgerId,
-        input.userId,
-      );
-      requireManagement(currentMember.role);
+      const role = await requireActiveMemberRole(input.ledgerId, input.userId);
+      requireManagement(role);
 
       if (
         !(await accountRepository.isActiveAccount(
@@ -342,6 +343,7 @@ export function createAccountService({
         );
       }
 
+      const members = await accountRepository.listActiveMembers(input.ledgerId);
       const updated = await accountRepository.update({
         accountId: input.accountId,
         currency: normalizeCurrency(input.currency),
