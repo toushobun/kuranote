@@ -42,7 +42,10 @@ export type GetAccountsViewInput = {
   userId: string;
 };
 
-export type CreateAccountInput = Omit<RepositoryCreateAccountInput, "ledgerId"> & {
+export type CreateAccountInput = Omit<
+  RepositoryCreateAccountInput,
+  "ledgerId"
+> & {
   ledgerId: string;
   userId: string;
 };
@@ -76,14 +79,20 @@ const accountTypeValues = new Set<AccountType>(
 function normalizeName(name: string): string {
   const normalized = name.trim();
   if (!normalized) {
-    throw new ValidationError(accountErrorCodes.nameRequired, "请输入账户名称。");
+    throw new ValidationError(
+      accountErrorCodes.nameRequired,
+      "请输入账户名称。",
+    );
   }
   return normalized;
 }
 
 function normalizeType(type: AccountType): AccountType {
   if (!accountTypeValues.has(type)) {
-    throw new ValidationError(accountErrorCodes.typeInvalid, "账户类型不正确。");
+    throw new ValidationError(
+      accountErrorCodes.typeInvalid,
+      "账户类型不正确。",
+    );
   }
   return type;
 }
@@ -196,7 +205,7 @@ export function createAccountService({
     const normalized = normalizeHolderUserIds(holderUserIds);
     const activeMemberIds = new Set(members.map((member) => member.user_id));
 
-    if (normalized.some((holderUserId) => !activeMemberIds.has(holderUserId))) {
+    if (normalized.some((userId) => !activeMemberIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
         "账户持有人必须是当前账本的有效成员。",
@@ -208,7 +217,7 @@ export function createAccountService({
       users.filter((user) => user.status === "active").map((user) => user.id),
     );
 
-    if (normalized.some((holderUserId) => !activeUserIds.has(holderUserId))) {
+    if (normalized.some((userId) => !activeUserIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
         "账户持有人必须是当前账本的有效成员。",
@@ -254,10 +263,7 @@ export function createAccountService({
 
       const accountId = await accountRepository.create({
         currency: normalizeCurrency(input.currency),
-        holderUserIds: await requireValidHolders(
-          input.holderUserIds,
-          members,
-        ),
+        holderUserIds: await requireValidHolders(input.holderUserIds, members),
         initialBalance: normalizeInitialBalance(input.initialBalance),
         ledgerId: input.ledgerId,
         name: normalizeName(input.name),
@@ -339,10 +345,7 @@ export function createAccountService({
       const updated = await accountRepository.update({
         accountId: input.accountId,
         currency: normalizeCurrency(input.currency),
-        holderUserIds: await requireValidHolders(
-          input.holderUserIds,
-          members,
-        ),
+        holderUserIds: await requireValidHolders(input.holderUserIds, members),
         ledgerId: input.ledgerId,
         name: normalizeName(input.name),
         type: normalizeType(input.type),
