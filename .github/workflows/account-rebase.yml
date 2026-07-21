@@ -1,0 +1,44 @@
+name: Account rebase
+
+on:
+  push:
+    branches:
+      - refactor/486_migrate_account_module
+
+permissions:
+  contents: write
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 检查并执行 rebase
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "当前分支已经基于最新 main。"
+            exit 0
+          fi
+
+          base="$(git merge-base HEAD origin/main)"
+          git reset --soft "$base"
+          git commit -m "refactor: 迁移 Account 业务模块"
+
+          if ! git rebase origin/main; then
+            echo "REBASE_CONFLICTS_START"
+            git diff --name-only --diff-filter=U
+            echo "REBASE_CONFLICTS_END"
+            exit 1
+          fi
+
+          git push --force-with-lease origin HEAD:refactor/486_migrate_account_module
