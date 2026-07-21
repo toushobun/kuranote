@@ -48,6 +48,7 @@ function containerWithAccept(
       settingsService: {} as RequestContainer["ledger"]["settingsService"],
     },
     merchant: {} as RequestContainer["merchant"],
+    transaction: {} as RequestContainer["transaction"],
     user: {} as RequestContainer["user"],
   };
 }

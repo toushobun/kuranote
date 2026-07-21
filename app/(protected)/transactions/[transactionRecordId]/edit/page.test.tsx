@@ -16,13 +16,13 @@ const mocks = vi.hoisted(() => ({
   voidTransaction: vi.fn(),
 }));
 
-vi.mock("server/actions/transactions", () => ({
+vi.mock("server/transaction/adapter/next/actions", () => ({
   saveEditTransaction: mocks.saveEditTransaction,
   updateTransaction: mocks.updateTransaction,
   voidTransaction: mocks.voidTransaction,
 }));
 
-vi.mock("server/loaders/transactionForm", () => ({
+vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
   loadEditTransactionView: mocks.loadEditTransactionView,
 }));
 
@@ -92,7 +92,6 @@ describe("TransactionEditPage", () => {
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({ error: "update_failed" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<
@@ -102,16 +101,14 @@ describe("TransactionEditPage", () => {
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
     );
-    expect(mocks.getEditTransactionErrorMessage).toHaveBeenCalledWith(
-      "update_failed",
-    );
+    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransactionTemplate);
     expect(child.props).toMatchObject({
       ...view,
       action: mocks.saveEditTransaction,
       deleteAction: mocks.voidTransaction,
-      errorMessage: "编辑错误:update_failed",
+      errorMessage: null,
     });
   });
 
@@ -121,7 +118,6 @@ describe("TransactionEditPage", () => {
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({}),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<
@@ -131,9 +127,7 @@ describe("TransactionEditPage", () => {
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
     );
-    expect(mocks.getEditTransactionErrorMessage).toHaveBeenCalledWith(
-      undefined,
-    );
+    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransactionTemplate);
     expect(child.props).toMatchObject({
@@ -150,7 +144,6 @@ describe("TransactionEditPage", () => {
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({}),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<

@@ -24,7 +24,7 @@ import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
-import type { TransferEditInitialValues } from "server/loaders/transactionForm";
+import type { TransferEditInitialValues } from "server/transaction/service/transactionFormService";
 import type {
   TransactionAccountOption,
   TransactionRecordType,
@@ -64,7 +64,7 @@ type TransferFieldErrors = {
 };
 
 type TransferTransactionFormProps = {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => void | Promise<void>;
   accountOptions: TransactionAccountOption[];
   errorMessage?: string | null;
   formId?: string;

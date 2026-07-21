@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useActionState,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -13,6 +14,7 @@ import {
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -37,19 +39,20 @@ import {
 } from "organisms/transactions/TransactionForm";
 import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm.styles";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm";
-import type { TransferEditInitialValues } from "server/loaders/transactionForm";
+import type { TransferEditInitialValues } from "server/transaction/service/transactionFormService";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
   TransactionRecordType,
+  TransactionStateAction,
   TransactionTagOption,
   TransactionType,
 } from "types/transactions";
 
 export type TransactionFormTemplateProps = {
   accountOptions: TransactionAccountOption[];
-  action: (formData: FormData) => Promise<void>;
+  action: TransactionStateAction;
   categoryOptions: TransactionCategoryOption[];
   errorMessage: string | null;
   initialType?: TransactionRecordType;
@@ -62,7 +65,7 @@ type EditTransactionTemplateProps = Omit<
   TransactionFormTemplateProps,
   "initialType"
 > & {
-  deleteAction: (formData: FormData) => Promise<void>;
+  deleteAction: TransactionStateAction;
   initialValues: TransactionFormInitialValues;
 };
 
@@ -70,7 +73,7 @@ type EditTransferTransactionTemplateProps = Omit<
   TransactionFormTemplateProps,
   "initialType"
 > & {
-  deleteAction: (formData: FormData) => Promise<void>;
+  deleteAction: TransactionStateAction;
   initialValues: TransferEditInitialValues;
 };
 
@@ -206,6 +209,8 @@ function NewTransactionFormView({
   merchantOptions,
   tagOptions,
 }: TransactionFormTemplateProps) {
+  const [actionState, formAction] = useActionState(action, {});
+  const activeErrorMessage = actionState.error ?? errorMessage;
   const [activeType, setActiveType] = useState<TransactionRecordType>(
     initialType ?? "expense",
   );
@@ -235,10 +240,10 @@ function NewTransactionFormView({
     () => ({
       expense: (
         <TransactionForm
-          action={action}
+          action={formAction}
           accountOptions={accountOptions}
           categoryOptions={categoryOptions}
-          errorMessage={errorMessage}
+          errorMessage={activeErrorMessage}
           formId="new-expense-transaction-form"
           hideHeader
           initialType="expense"
@@ -251,10 +256,10 @@ function NewTransactionFormView({
       ),
       income: (
         <TransactionForm
-          action={action}
+          action={formAction}
           accountOptions={accountOptions}
           categoryOptions={categoryOptions}
-          errorMessage={errorMessage}
+          errorMessage={activeErrorMessage}
           formId="new-income-transaction-form"
           hideHeader
           initialType="income"
@@ -267,9 +272,9 @@ function NewTransactionFormView({
       ),
       transfer: (
         <TransferTransactionForm
-          action={action}
+          action={formAction}
           accountOptions={accountOptions}
-          errorMessage={errorMessage}
+          errorMessage={activeErrorMessage}
           formId="new-transfer-transaction-form"
           hideHeader
           onSubmitDisabledChange={(disabled) =>
@@ -279,10 +284,10 @@ function NewTransactionFormView({
       ),
     }),
     [
-      action,
+      formAction,
       accountOptions,
       categoryOptions,
-      errorMessage,
+      activeErrorMessage,
       merchantOptions,
       tagOptions,
     ],
@@ -364,7 +369,7 @@ const newTransactionTitleSx = {
 
 type EditTransactionShellProps = {
   activeType: TransactionRecordType;
-  deleteAction: (formData: FormData) => Promise<void>;
+  deleteAction: TransactionStateAction;
   panels: Record<TransactionRecordType, ReactNode>;
   setActiveType: (type: TransactionRecordType) => void;
   submitDisabledByType: Record<TransactionRecordType, boolean>;
@@ -379,6 +384,7 @@ function EditTransactionShell({
   submitDisabledByType,
   transactionRecordId,
 }: EditTransactionShellProps) {
+  const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -451,6 +457,9 @@ function EditTransactionShell({
           activeType={outerTab}
           onChange={handleOuterTabChange}
         />
+        {deleteState.error ? (
+          <Alert severity="error">{deleteState.error}</Alert>
+        ) : null}
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
         <Box sx={editTransactionActionBarSx}>
           <Button
@@ -474,7 +483,7 @@ function EditTransactionShell({
           </Button>
         </Box>
       </Stack>
-      <form action={deleteAction} id={deleteTransactionFormId}>
+      <form action={deleteFormAction} id={deleteTransactionFormId}>
         <input
           name="transactionRecordId"
           readOnly
@@ -539,6 +548,8 @@ export function EditTransferTransactionTemplate({
   merchantOptions,
   tagOptions,
 }: EditTransferTransactionTemplateProps) {
+  const [actionState, formAction] = useActionState(action, {});
+  const activeErrorMessage = actionState.error ?? errorMessage;
   const [activeType, setActiveType] =
     useState<TransactionRecordType>("transfer");
   const [submitDisabledByType, setSubmitDisabledByType] = useState<
@@ -557,10 +568,10 @@ export function EditTransferTransactionTemplate({
             value="transfer"
           />
           <TransactionForm
-            action={action}
+            action={formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
-            errorMessage={errorMessage}
+            errorMessage={activeErrorMessage}
             formId={editTransactionFormId("expense")}
             hideHeader
             hideSubmitButton
@@ -590,10 +601,10 @@ export function EditTransferTransactionTemplate({
             value="transfer"
           />
           <TransactionForm
-            action={action}
+            action={formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
-            errorMessage={errorMessage}
+            errorMessage={activeErrorMessage}
             formId={editTransactionFormId("income")}
             hideHeader
             hideSubmitButton
@@ -612,9 +623,9 @@ export function EditTransferTransactionTemplate({
       ),
       transfer: (
         <TransferTransactionForm
-          action={action}
+          action={formAction}
           accountOptions={accountOptions}
-          errorMessage={errorMessage}
+          errorMessage={activeErrorMessage}
           formId={editTransactionFormId("transfer")}
           hideHeader
           hideSubmitButton
@@ -627,10 +638,10 @@ export function EditTransferTransactionTemplate({
       ),
     }),
     [
-      action,
+      formAction,
       accountOptions,
       categoryOptions,
-      errorMessage,
+      activeErrorMessage,
       initialValues,
       merchantOptions,
       tagOptions,
@@ -661,6 +672,8 @@ export function EditTransactionTemplate({
   merchantOptions,
   tagOptions,
 }: EditTransactionTemplateProps) {
+  const [actionState, formAction] = useActionState(action, {});
+  const activeErrorMessage = actionState.error ?? errorMessage;
   const [activeType, setActiveType] = useState<TransactionRecordType>(
     initialValues.type,
   );
@@ -680,10 +693,10 @@ export function EditTransactionTemplate({
             value={initialValues.type}
           />
           <TransactionForm
-            action={action}
+            action={formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
-            errorMessage={errorMessage}
+            errorMessage={activeErrorMessage}
             formId={editTransactionFormId("expense")}
             hideHeader
             hideSubmitButton
@@ -713,10 +726,10 @@ export function EditTransactionTemplate({
             value={initialValues.type}
           />
           <TransactionForm
-            action={action}
+            action={formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
-            errorMessage={errorMessage}
+            errorMessage={activeErrorMessage}
             formId={editTransactionFormId("income")}
             hideHeader
             hideSubmitButton
@@ -735,9 +748,9 @@ export function EditTransactionTemplate({
       ),
       transfer: (
         <TransferTransactionForm
-          action={action}
+          action={formAction}
           accountOptions={accountOptions}
-          errorMessage={errorMessage}
+          errorMessage={activeErrorMessage}
           formId={editTransactionFormId("transfer")}
           hideHeader
           hideSubmitButton
@@ -753,10 +766,10 @@ export function EditTransactionTemplate({
       ),
     }),
     [
-      action,
+      formAction,
       accountOptions,
       categoryOptions,
-      errorMessage,
+      activeErrorMessage,
       initialValues,
       merchantOptions,
       tagOptions,

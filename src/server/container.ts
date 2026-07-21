@@ -19,6 +19,8 @@ import { createLedgerSettingsService } from "server/ledger/service/ledgerSetting
 import { createSupabaseMerchantRepository } from "server/merchant/repository/merchantRepository";
 import { createMerchantService } from "server/merchant/service/merchantService";
 import type { RequestDependencies } from "server/shared/context/requestDependencies";
+import { createSupabaseTransactionRepository } from "server/transaction/repository/transactionRepository";
+import { createTransactionService } from "server/transaction/service/transactionService";
 import { createSupabaseUserRepository } from "server/user/repository/userRepository";
 import { createUserService } from "server/user/service/userService";
 
@@ -53,6 +55,9 @@ export type RequestContainer = {
   readonly merchant: {
     readonly service: ReturnType<typeof createMerchantService>;
   };
+  readonly transaction: {
+    readonly service: ReturnType<typeof createTransactionService>;
+  };
   readonly user: {
     readonly service: ReturnType<typeof createUserService>;
   };
@@ -66,6 +71,7 @@ export function createRequestContainer(
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
   let merchantContainer: RequestContainer["merchant"] | undefined;
+  let transactionContainer: RequestContainer["transaction"] | undefined;
   let userContainer: RequestContainer["user"] | undefined;
 
   return {
@@ -212,6 +218,61 @@ export function createRequestContainer(
       }
 
       return merchantContainer;
+    },
+
+    get transaction() {
+      if (!transactionContainer) {
+        const accountRepository = createSupabaseAccountRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        const categoryRepository = createSupabaseCategoryRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        const merchantRepository = createSupabaseMerchantRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        const transactionRepository = createSupabaseTransactionRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
+          dependencies.supabase,
+          dependencies.logger,
+        );
+
+        const ledgerAccessService = createLedgerAccessService(
+          ledgerSettingsRepository,
+        );
+        const currentUserId = dependencies.auth.isAuthenticated
+          ? dependencies.auth.userId
+          : null;
+
+        transactionContainer = {
+          service: createTransactionService({
+            accountQueryService: createAccountService({
+              accountRepository,
+              ledgerAccessService,
+            }),
+            categoryQueryService: createCategoryService({
+              categoryRepository,
+              ledgerAccessService,
+            }),
+            currentUserId,
+            ledgerAccessService,
+            merchantQueryService: createMerchantService({
+              currentUserId,
+              ledgerAccessService,
+              merchantRepository,
+            }),
+            transactionRepository,
+          }),
+        };
+      }
+
+      return transactionContainer;
     },
 
     get user() {

@@ -74,9 +74,9 @@ function renderTemplate() {
           currency: "JPY",
         },
       ]}
-      action={vi.fn(async () => undefined)}
+      action={vi.fn(async () => ({}))}
       categoryOptions={[]}
-      deleteAction={vi.fn(async () => undefined)}
+      deleteAction={vi.fn(async () => ({}))}
       errorMessage={null}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000045",

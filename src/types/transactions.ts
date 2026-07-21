@@ -1,4 +1,14 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import type { BaseActionState } from "types/auth";
+
+export type TransactionActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type TransactionStateAction = (
+  previousState: TransactionActionState,
+  formData: FormData,
+) => Promise<TransactionActionState>;
 
 export const transactionTypeOptions = [
   { label: "支出", value: "expense" },

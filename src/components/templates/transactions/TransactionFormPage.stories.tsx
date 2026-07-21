@@ -63,7 +63,9 @@ const tagOptions = [
   },
 ];
 
-async function noopAction() {}
+async function noopAction() {
+  return {};
+}
 
 const baseArgs = {
   accountOptions,

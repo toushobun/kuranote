@@ -64,7 +64,7 @@ afterEach(() => {
 
 const baseProps = {
   accountOptions: [],
-  action: vi.fn(async () => {}),
+  action: vi.fn(async () => ({})),
   categoryOptions: [],
   errorMessage: null,
   ledgerName: "家庭账本",

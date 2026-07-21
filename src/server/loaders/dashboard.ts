@@ -10,7 +10,7 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "server/db-types";
-import { buildTransactionListItem } from "server/loaders/buildTransactionListItem";
+import { buildTransactionListItem } from "server/transaction/util/buildTransactionListItem";
 import { getDashboardDateRange } from "server/loaders/dashboardDateRange";
 import { getDashboardTransactionCanEdit } from "server/loaders/dashboardTransactionPermissions";
 import { loadCategoriesByIdsWithParents } from "server/loaders/loadCategoriesByIdsWithParents";
