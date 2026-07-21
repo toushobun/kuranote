@@ -10,6 +10,16 @@ export const accountTypeOptions = [
 
 export type AccountType = (typeof accountTypeOptions)[number]["value"];
 
+export type AccountActionState = {
+  error?: string;
+  errorKey?: string;
+};
+
+export type AccountStateAction = (
+  previousState: AccountActionState,
+  formData: FormData,
+) => Promise<AccountActionState>;
+
 export type AccountHolderRole = "owner" | "co_owner";
 
 export type AccountHolderRow = {
