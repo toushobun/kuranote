@@ -1,9 +1,11 @@
 name: Account rebase
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/486_migrate_account_module
+      - main
+    types:
+      - synchronize
 
 permissions:
   contents: write
@@ -16,6 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refactor/486_migrate_account_module
 
       - name: 检查并执行 rebase
         shell: bash
