@@ -81,7 +81,7 @@ describe("Account Server Actions", () => {
     const formData = createFormData();
     formData.set("ledgerId", "00000000-0000-4000-8000-000000000099");
 
-    await expect(createAccount(formData)).rejects.toThrow(
+    await expect(createAccount({}, formData)).rejects.toThrow(
       "NEXT_REDIRECT:/accounts?result=created",
     );
 
@@ -102,7 +102,7 @@ describe("Account Server Actions", () => {
     formData.set("accountId", accountId);
     formData.delete("initialBalance");
 
-    await expect(updateAccount(formData)).rejects.toThrow(
+    await expect(updateAccount({}, formData)).rejects.toThrow(
       "NEXT_REDIRECT:/accounts?result=updated",
     );
     expect(mocks.update).toHaveBeenCalledWith(
@@ -114,7 +114,7 @@ describe("Account Server Actions", () => {
     const formData = new FormData();
     formData.set("accountId", accountId);
 
-    await expect(archiveAccount(formData)).rejects.toThrow(
+    await expect(archiveAccount({}, formData)).rejects.toThrow(
       "NEXT_REDIRECT:/accounts?result=archived",
     );
 
@@ -131,9 +131,10 @@ describe("Account Server Actions", () => {
     const formData = createFormData();
     formData.delete("holderUserIds");
 
-    await expect(createAccount(formData)).rejects.toThrow(
-      /^NEXT_REDIRECT:\/accounts\?error=holder_invalid&errorKey=/,
-    );
+    await expect(createAccount({}, formData)).resolves.toEqual({
+      error: "账户持有人指定不正确。",
+      errorKey: expect.any(String),
+    });
 
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
@@ -146,9 +147,10 @@ describe("Account Server Actions", () => {
     const formData = new FormData();
     formData.set("accountId", accountId);
 
-    await expect(archiveAccount(formData)).rejects.toThrow(
-      /^NEXT_REDIRECT:\/accounts\?error=permission_denied&errorKey=/,
-    );
+    await expect(archiveAccount({}, formData)).resolves.toEqual({
+      error: "没有权限",
+      errorKey: expect.any(String),
+    });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });
