@@ -10,6 +10,7 @@ import { createSupabaseLedgerInviteRepository } from "server/ledger/repository/l
 import { createSupabaseLedgerRepository } from "server/ledger/repository/ledgerRepository";
 import { createSupabaseLedgerSettingsRepository } from "server/ledger/repository/ledgerSettingsRepository";
 import { createCurrentLedgerService } from "server/ledger/service/currentLedgerService";
+import { createLedgerAccessService } from "server/ledger/service/ledgerAccessService";
 import { createLedgerInviteService } from "server/ledger/service/ledgerInviteService";
 import { createLedgerService } from "server/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "server/ledger/service/ledgerSettingsService";
@@ -97,10 +98,20 @@ export function createRequestContainer(
       if (!categoryContainer) {
         const categoryRepository = createSupabaseCategoryRepository(
           dependencies.supabase,
+          dependencies.logger,
+        );
+        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
+          dependencies.supabase,
+          dependencies.logger,
         );
 
         categoryContainer = {
-          service: createCategoryService({ categoryRepository }),
+          service: createCategoryService({
+            categoryRepository,
+            ledgerAccessService: createLedgerAccessService(
+              ledgerSettingsRepository,
+            ),
+          }),
         };
       }
 

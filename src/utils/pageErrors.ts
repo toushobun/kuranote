@@ -5,7 +5,7 @@ import {
 import {
   categoryErrorCodes,
   type CategoryErrorCode,
-} from "server/errors/categories";
+} from "server/category/categoryErrors";
 import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
