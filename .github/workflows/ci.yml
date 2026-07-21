@@ -12,6 +12,24 @@ env:
     startsWith(github.head_ref, 'docs/') == false
 
 jobs:
+  debug-snapshot:
+    name: Debug source snapshot
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-snapshot
+          include-hidden-files: true
+          path: |
+            .
+            !.git
+            !node_modules
+
   # Stage 1: 并行静态检查
   type-check:
     name: Type check
