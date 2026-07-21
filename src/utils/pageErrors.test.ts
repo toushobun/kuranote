@@ -4,8 +4,8 @@ import { categoryErrorCodes } from "server/category/categoryErrors";
 import { accountErrorCodes } from "server/errors/accounts";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
-import { merchantErrorCodes } from "server/errors/merchants";
 import { transactionErrorCodes } from "server/errors/transactions";
+import { merchantErrorCodes } from "server/merchant/errors";
 
 import {
   getAccountErrorMessage,
@@ -67,6 +67,12 @@ describe("pageErrors", () => {
     expect(getMerchantErrorMessage(merchantErrorCodes.websiteUrlInvalid)).toBe(
       "商家网址必须以 http:// 或 https:// 开头。",
     );
+    expect(
+      getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid),
+    ).toBeNull();
+    expect(
+      getMerchantErrorMessage(merchantErrorCodes.merchantReadFailed),
+    ).toBeNull();
   });
 
   it("使用统一错误码映射交易错误提示", () => {

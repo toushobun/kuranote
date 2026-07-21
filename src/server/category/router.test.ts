@@ -48,6 +48,7 @@ function createContainer(
       },
     },
     ledger: {} as RequestContainer["ledger"],
+    merchant: {} as RequestContainer["merchant"],
     user: {} as RequestContainer["user"],
   };
 }
