@@ -6,8 +6,12 @@ import {
   getSafeGoogleAuthNextPath,
   googleAuthErrorCodes,
   googleAuthFailureHref,
+  googleAuthNextPathMaxLength,
   googleAuthSources,
 } from "lib/auth/googleOAuth";
+
+const maxLengthNextPath = `/${"x".repeat(googleAuthNextPathMaxLength - 1)}`;
+const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
 
 describe("googleOAuth", () => {
   it("注册来源会保持为注册页", () => {
@@ -34,6 +38,13 @@ describe("googleOAuth", () => {
     expect(getSafeGoogleAuthNextPath("/invite/token-123")).toBe(
       "/invite/token-123",
     );
+  });
+
+  it("上限长度的回跳地址会保留，超长地址退回首页", () => {
+    expect(getSafeGoogleAuthNextPath(maxLengthNextPath)).toBe(
+      maxLengthNextPath,
+    );
+    expect(getSafeGoogleAuthNextPath(oversizedNextPath)).toBe("/dashboard");
   });
 
   it.each([
