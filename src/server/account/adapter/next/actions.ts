@@ -2,43 +2,63 @@
 
 import { redirect } from "next/navigation";
 
-import {
-  accountResultValues,
-  accountsErrorHref,
-  accountsResultHref,
-} from "config/paths";
+import { accountResultValues, accountsResultHref } from "config/paths";
 import {
   parseArchiveAccountForm,
   parseCreateAccountForm,
   parseUpdateAccountForm,
 } from "server/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "server/account/adapter/next/revalidate";
-import { isAccountErrorCode, accountErrorCodes } from "server/account/errors";
+import { isAccountErrorCode } from "server/account/errors";
 import { createRequestContainer } from "server/container";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { AppError } from "server/shared/errors/appError";
+import type { AccountActionState } from "types/accounts";
+import { getAccountErrorMessage } from "utils/pageErrors";
 
 async function getAccountService() {
   const dependencies = await createServerRequestDependencies();
   return createRequestContainer(dependencies).account.service;
 }
 
-function getActionErrorCode(error: unknown, fallback: string): string {
+function createErrorState(message: string): AccountActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
+}
+
+function getValidationErrorState(
+  code: string,
+  fallback: string,
+): AccountActionState {
+  return createErrorState(getAccountErrorMessage(code) ?? fallback);
+}
+
+function getActionErrorState(
+  error: unknown,
+  fallback: string,
+): AccountActionState {
   if (error instanceof AppError && isAccountErrorCode(error.code)) {
-    return error.code;
+    return createErrorState(error.message);
   }
 
   console.error("[account] account action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return fallback;
+  return createErrorState(fallback);
 }
 
-export async function createAccount(formData: FormData): Promise<never> {
+export async function createAccount(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseCreateAccountForm(formData);
-  if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
+  if (!parsed.ok) {
+    return getValidationErrorState(
+      parsed.error,
+      "账户信息不正确，请确认后重试。",
+    );
+  }
 
   try {
     await (
@@ -49,10 +69,9 @@ export async function createAccount(formData: FormData): Promise<never> {
       userId,
     });
   } catch (error) {
-    redirect(
-      accountsErrorHref(
-        getActionErrorCode(error, accountErrorCodes.createFailed),
-      ),
+    return getActionErrorState(
+      error,
+      "账户新增失败。请确认账户名称是否重复，或稍后重试。",
     );
   }
 
@@ -60,10 +79,18 @@ export async function createAccount(formData: FormData): Promise<never> {
   redirect(accountsResultHref(accountResultValues.created));
 }
 
-export async function updateAccount(formData: FormData): Promise<never> {
+export async function updateAccount(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseUpdateAccountForm(formData);
-  if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
+  if (!parsed.ok) {
+    return getValidationErrorState(
+      parsed.error,
+      "账户信息不正确，请确认后重试。",
+    );
+  }
 
   try {
     await (
@@ -74,10 +101,9 @@ export async function updateAccount(formData: FormData): Promise<never> {
       userId,
     });
   } catch (error) {
-    redirect(
-      accountsErrorHref(
-        getActionErrorCode(error, accountErrorCodes.updateFailed),
-      ),
+    return getActionErrorState(
+      error,
+      "账户更新失败。请确认账户名称是否重复，或稍后重试。",
     );
   }
 
@@ -85,10 +111,18 @@ export async function updateAccount(formData: FormData): Promise<never> {
   redirect(accountsResultHref(accountResultValues.updated));
 }
 
-export async function archiveAccount(formData: FormData): Promise<never> {
+export async function archiveAccount(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseArchiveAccountForm(formData);
-  if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
+  if (!parsed.ok) {
+    return getValidationErrorState(
+      parsed.error,
+      "账户指定不正确，请刷新页面后重试。",
+    );
+  }
 
   try {
     await (
@@ -99,11 +133,7 @@ export async function archiveAccount(formData: FormData): Promise<never> {
       userId,
     });
   } catch (error) {
-    redirect(
-      accountsErrorHref(
-        getActionErrorCode(error, accountErrorCodes.archiveFailed),
-      ),
-    );
+    return getActionErrorState(error, "账户删除失败，请稍后重试。");
   }
 
   revalidateAccountMutation();
