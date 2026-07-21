@@ -13,7 +13,7 @@ import {
   parseUpdateAccountForm,
 } from "server/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "server/account/adapter/next/revalidate";
-import { accountErrorCodes, isAccountErrorCode } from "server/account/errors";
+import { isAccountErrorCode, accountErrorCodes } from "server/account/errors";
 import { createRequestContainer } from "server/container";
 import { requireCurrentUserAndLedger } from "server/context/currentLedger";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
@@ -41,7 +41,9 @@ export async function createAccount(formData: FormData): Promise<never> {
   if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
 
   try {
-    await (await getAccountService()).create({
+    await (
+      await getAccountService()
+    ).create({
       ...parsed.value,
       ledgerId: currentLedger.id,
       userId,
@@ -64,7 +66,9 @@ export async function updateAccount(formData: FormData): Promise<never> {
   if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
 
   try {
-    await (await getAccountService()).update({
+    await (
+      await getAccountService()
+    ).update({
       ...parsed.value,
       ledgerId: currentLedger.id,
       userId,
@@ -87,7 +91,9 @@ export async function archiveAccount(formData: FormData): Promise<never> {
   if (!parsed.ok) redirect(accountsErrorHref(parsed.error));
 
   try {
-    await (await getAccountService()).archive({
+    await (
+      await getAccountService()
+    ).archive({
       accountId: parsed.value.accountId,
       ledgerId: currentLedger.id,
       userId,
