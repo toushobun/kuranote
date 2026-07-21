@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import { handleGoogleOAuthCallback } from "server/auth/adapter/next/googleOAuthCallback";
 import { RepositoryError } from "server/shared/errors/appError";
 
@@ -52,6 +53,21 @@ describe("handleGoogleOAuthCallback", () => {
         "https://kuranote.test/auth/callback?code=code-123&next=https%3A%2F%2Fevil.example",
       ),
     );
+
+    expect(mocks.completeGoogleAuth).toHaveBeenCalledWith(
+      expect.objectContaining({ nextPath: "/dashboard" }),
+    );
+  });
+
+  it("超长 nextPath 在进入 Service 前规范化为首页", async () => {
+    const callbackUrl = new URL("https://kuranote.test/auth/callback");
+    callbackUrl.searchParams.set("code", "code-123");
+    callbackUrl.searchParams.set(
+      "next",
+      `/${"x".repeat(googleAuthNextPathMaxLength)}`,
+    );
+
+    await handleGoogleOAuthCallback(new Request(callbackUrl));
 
     expect(mocks.completeGoogleAuth).toHaveBeenCalledWith(
       expect.objectContaining({ nextPath: "/dashboard" }),
