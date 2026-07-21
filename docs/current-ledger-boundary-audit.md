@@ -82,10 +82,10 @@ Parent：#380
 
 ### 核心读取路径
 
-以下 loader 已逐条确认使用 `currentLedger.id` 或由该值派生的受限 ID 集合：
+以下 SSR 读取入口和 loader 已逐条确认使用 `currentLedger.id` 或由该值派生的受限 ID 集合：
 
 - `src/server/loaders/dashboard.ts`
-- `src/server/loaders/accounts.ts`
+- `src/server/account/adapter/next/loadAccountsView.ts`
 - `src/server/loaders/categories.ts`
 - `src/server/loaders/merchants.ts`
 - `src/server/loaders/statistics.ts`
@@ -99,7 +99,7 @@ Parent：#380
 
 以下 Action 均从服务端 current ledger 上下文取得账本 ID：
 
-- `src/server/actions/accounts.ts`
+- `src/server/account/adapter/next/actions.ts`
 - `src/server/actions/categories.ts`
 - `src/server/actions/merchants.ts`
 - `src/server/actions/transactions.ts`
@@ -129,8 +129,10 @@ Parent：#380
   - current ledger、角色判断、交易 RPC、业务对象归属和权限 trigger。
 - `src/server/db/ledgerInviteCurrentLedgerMigration.test.ts`
   - 接受邀请统一更新 `app_user.current_ledger_id`，不再写入 `user_setting`。
+- `src/server/account/adapter/next/actions.test.ts`
+  - 创建账户忽略客户端伪造的 `ledgerId`。
 - `src/server/actions/currentLedgerBoundary.test.ts`
-  - 创建账户和创建记账忽略客户端伪造的 `ledgerId`。
+  - 创建记账忽略客户端伪造的 `ledgerId`。
 - `src/server/cache/currentLedger.test.ts`
   - 固化所有依赖 current ledger 的刷新路径。
 - `src/server/actions/ledgerCreate.test.ts`
@@ -141,8 +143,10 @@ Parent：#380
   - Dashboard 交易和账户查询使用 current ledger；无账本时不查询业务数据。
 - `src/server/loaders/statistics.currentLedger.test.ts`
   - 月度统计查询使用 current ledger。
+- `src/server/account/repository/accountRepository.test.ts` / `src/server/account/service/accountService.test.ts`
+  - 账户、持有人、成员和成员显示设置查询使用 current ledger。
 - `src/server/loaders/masterData.currentLedger.test.ts`
-  - 账户、成员、成员显示设置、分类和商家查询使用 current ledger。
+  - 分类和商家查询使用 current ledger。
 - `src/server/loaders/transactionStep4Groups/options.test.ts`
   - 双账本场景下，账户、分类、商家、标签和成员筛选候选不会串账。
 - `src/test/supabaseMock.ts`

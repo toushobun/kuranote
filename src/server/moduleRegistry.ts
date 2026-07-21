@@ -1,3 +1,4 @@
+import { accountModule } from "server/account";
 import { authModule } from "server/auth";
 import { categoryModule } from "server/category";
 import { ledgerInviteModule, ledgerModule } from "server/ledger";
@@ -10,6 +11,7 @@ export const serverModules = [
   authModule,
   ledgerModule,
   ledgerInviteModule,
+  accountModule,
   categoryModule,
   merchantModule,
   userModule,

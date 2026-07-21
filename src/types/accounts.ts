@@ -1,4 +1,5 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import type { BaseActionState } from "types/auth";
 
 export const accountTypeOptions = [
   { label: "现金", value: "cash" },
@@ -9,6 +10,15 @@ export const accountTypeOptions = [
 ] as const;
 
 export type AccountType = (typeof accountTypeOptions)[number]["value"];
+
+export type AccountActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type AccountStateAction = (
+  previousState: AccountActionState,
+  formData: FormData,
+) => Promise<AccountActionState>;
 
 export type AccountHolderRole = "owner" | "co_owner";
 

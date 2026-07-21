@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { accountErrorCodes } from "server/account/errors";
 import { categoryErrorCodes } from "server/category/categoryErrors";
-import { accountErrorCodes } from "server/errors/accounts";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
 import { transactionErrorCodes } from "server/errors/transactions";

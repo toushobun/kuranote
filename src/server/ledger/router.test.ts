@@ -32,6 +32,7 @@ function containerWithAccept(
   accept: RequestContainer["ledger"]["inviteService"]["accept"],
 ): RequestContainer {
   return {
+    account: {} as RequestContainer["account"],
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
     ledger: {

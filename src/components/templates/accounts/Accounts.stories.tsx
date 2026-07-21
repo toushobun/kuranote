@@ -60,13 +60,12 @@ const meta = {
   ],
   args: {
     accounts,
-    archiveAccountAction: async () => {},
+    archiveAccountAction: async () => ({}),
     baseCurrency: "JPY",
-    createAccountAction: async () => {},
-    errorMessage: null,
+    createAccountAction: async () => ({}),
     holderOptions,
     ledgerName: "家庭账本",
-    updateAccountAction: async () => {},
+    updateAccountAction: async () => ({}),
   },
 } satisfies Meta<typeof AccountsTemplate>;
 
@@ -87,8 +86,8 @@ export const Empty: Story = {
 export const WithError: Story = {
   name: "错误反馈弹窗",
   args: {
-    errorKey: "story-error-key-1",
-    errorMessage: "账户新增失败。请确认账户名称是否重复，或稍后重试。",
+    initialErrorKey: "story-error-key-1",
+    initialErrorMessage: "账户新增失败。请确认账户名称是否重复，或稍后重试。",
   },
 };
 

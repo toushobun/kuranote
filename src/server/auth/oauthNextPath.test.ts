@@ -38,6 +38,7 @@ function addRequestContext(
 ) {
   app.use("*", async (c, next) => {
     c.set("container", {
+      account: {} as RequestContainer["account"],
       auth: { service },
       category: {} as RequestContainer["category"],
       ledger: {} as RequestContainer["ledger"],

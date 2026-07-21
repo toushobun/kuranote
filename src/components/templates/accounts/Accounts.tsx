@@ -10,7 +10,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { routePaths } from "config/paths";
 import {
@@ -23,11 +23,12 @@ import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
-import type { ServerAction } from "types/actions";
 import {
   accountTypeOptions,
+  type AccountActionState,
   type AccountHolderOption,
   type AccountRow,
+  type AccountStateAction,
   type AccountType,
 } from "types/accounts";
 
@@ -40,20 +41,22 @@ type ErrorFeedback = {
 
 type AccountsTemplateProps = {
   accounts: AccountRow[];
-  archiveAccountAction: ServerAction;
+  archiveAccountAction: AccountStateAction;
   baseCurrency: string;
   canManageAccounts?: boolean;
   canWriteTransactions?: boolean;
-  createAccountAction: ServerAction;
-  errorKey?: string | null;
-  errorMessage: string | null;
+  createAccountAction: AccountStateAction;
+  initialErrorKey?: string | null;
+  initialErrorMessage?: string | null;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
   saveResult?: AccountSaveResult | null;
-  updateAccountAction: ServerAction;
+  updateAccountAction: AccountStateAction;
 };
 
 type AccountTypeFilter = AccountType | "all";
+
+const initialAccountActionState: AccountActionState = {};
 
 export function AccountsTemplate({
   accounts,
@@ -62,8 +65,8 @@ export function AccountsTemplate({
   canManageAccounts = true,
   canWriteTransactions = true,
   createAccountAction,
-  errorKey = null,
-  errorMessage,
+  initialErrorKey = null,
+  initialErrorMessage = null,
   holderOptions,
   saveResult = null,
   updateAccountAction,
@@ -78,21 +81,50 @@ export function AccountsTemplate({
     saveResult !== null,
   );
   const [previousSaveResult, setPreviousSaveResult] = useState(saveResult);
+  const [createActionState, createFormAction] = useActionState(
+    createAccountAction,
+    initialAccountActionState,
+  );
+  const [updateActionState, updateFormAction] = useActionState(
+    updateAccountAction,
+    initialAccountActionState,
+  );
+  const [archiveActionState, archiveFormAction] = useActionState(
+    archiveAccountAction,
+    initialAccountActionState,
+  );
   const router = useRouter();
 
   useEffect(() => {
-    if (errorMessage === null || errorKey === null) return;
-    if (enqueuedErrorKeysRef.current.has(errorKey)) return;
-    enqueuedErrorKeysRef.current.add(errorKey);
+    const actionStates = [
+      {
+        error: initialErrorMessage ?? undefined,
+        errorKey: initialErrorKey ?? undefined,
+      },
+      createActionState,
+      updateActionState,
+      archiveActionState,
+    ];
 
-    errorFeedbackIdRef.current += 1;
-    const id = `${errorKey}-${errorFeedbackIdRef.current}`;
+    for (const state of actionStates) {
+      if (!state.error || !state.errorKey) continue;
+      if (enqueuedErrorKeysRef.current.has(state.errorKey)) continue;
+      enqueuedErrorKeysRef.current.add(state.errorKey);
 
-    setErrorFeedbacks((feedbacks) => [
-      ...feedbacks,
-      { id, message: errorMessage },
-    ]);
-  }, [errorMessage, errorKey]);
+      errorFeedbackIdRef.current += 1;
+      const id = `${state.errorKey}-${errorFeedbackIdRef.current}`;
+      setErrorFeedbacks((feedbacks) => [
+        ...feedbacks,
+        { id, message: state.error as string },
+      ]);
+    }
+  }, [
+    archiveActionState,
+    createActionState,
+    initialErrorKey,
+    initialErrorMessage,
+    updateActionState,
+  ]);
 
   if (saveResult !== previousSaveResult) {
     setPreviousSaveResult(saveResult);
@@ -120,13 +152,6 @@ export function AccountsTemplate({
     setErrorFeedbacks((feedbacks) =>
       feedbacks.filter((feedback) => feedback.id !== id),
     );
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("error");
-    url.searchParams.delete("errorKey");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
   }
 
   function closeSaveSuccessDialog() {
@@ -206,7 +231,7 @@ export function AccountsTemplate({
 
           <AccountList
             accounts={filteredAccounts}
-            archiveAccountAction={archiveAccountAction}
+            archiveAccountAction={archiveFormAction}
             canManageAccounts={canManageAccounts}
             emptyDescription={
               isFilteredEmpty
@@ -218,14 +243,14 @@ export function AccountsTemplate({
             emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
             holderOptions={holderOptions}
             saveResult={saveResult}
-            updateAccountAction={updateAccountAction}
+            updateAccountAction={updateFormAction}
           />
         </Stack>
 
         {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
         {canManageAccounts ? (
           <AccountCreateDialog
-            createAccountAction={createAccountAction}
+            createAccountAction={createFormAction}
             defaultCurrency={baseCurrency}
             holderOptions={holderOptions}
             onClose={() => setIsCreateDialogOpen(false)}

@@ -31,6 +31,16 @@ describe("createRequestContainer", () => {
     expect(typeof container.ledger.inviteService.accept).toBe("function");
   });
 
+  it("提供惰性缓存的 account.service 及账户 UseCase", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.account).toBe(container.account);
+    expect(typeof container.account.service.getView).toBe("function");
+    expect(typeof container.account.service.create).toBe("function");
+    expect(typeof container.account.service.update).toBe("function");
+    expect(typeof container.account.service.archive).toBe("function");
+  });
+
   it("提供惰性缓存的 auth.service 及全部认证 UseCase", () => {
     const container = createRequestContainer(createDependenciesStub());
 
