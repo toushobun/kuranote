@@ -66,6 +66,7 @@ function createApp(
   });
   app.use("*", async (c, next) => {
     c.set("container", {
+      account: {} as RequestContainer["account"],
       auth: {} as RequestContainer["auth"],
       category: {} as RequestContainer["category"],
       ledger: {} as RequestContainer["ledger"],

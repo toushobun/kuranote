@@ -153,10 +153,7 @@ describe("AccountService", () => {
 
   it("非 active 成员在读取账户数据前被账本窄接口拒绝", async () => {
     const repository = createRepository();
-    const service = createService(
-      repository,
-      createLedgerAccessService(null),
-    );
+    const service = createService(repository, createLedgerAccessService(null));
 
     await expect(service.getView({ ledgerId, userId })).rejects.toMatchObject({
       code: accountErrorCodes.ledgerInvalid,
