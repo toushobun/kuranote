@@ -17,5 +17,7 @@ export type AccountErrorCode =
   (typeof accountErrorCodes)[keyof typeof accountErrorCodes];
 
 export function isAccountErrorCode(value: string): value is AccountErrorCode {
-  return (Object.values(accountErrorCodes) as readonly string[]).includes(value);
+  return (Object.values(accountErrorCodes) as readonly string[]).includes(
+    value,
+  );
 }
