@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { categoryErrorCodes } from "server/category/categoryErrors";
 import { accountErrorCodes } from "server/errors/accounts";
-import { categoryErrorCodes } from "server/errors/categories";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
 import { merchantErrorCodes } from "server/errors/merchants";
@@ -18,8 +18,8 @@ import {
   getTransactionErrorMessage,
 } from "./pageErrors";
 import {
-  newTransactionPageErrorMessages,
   editTransactionPageErrorMessages,
+  newTransactionPageErrorMessages,
   transactionListPageErrorMessages,
 } from "./transactionMessages";
 

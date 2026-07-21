@@ -24,10 +24,3 @@ export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.orderInvalid
   | typeof categoryErrorCodes.parentInvalid
   | typeof categoryErrorCodes.typeInvalid;
-
-export type CategoryServiceErrorCode =
-  | typeof categoryErrorCodes.archiveFailed
-  | typeof categoryErrorCodes.createFailed
-  | typeof categoryErrorCodes.parentInvalid
-  | typeof categoryErrorCodes.reorderFailed
-  | typeof categoryErrorCodes.updateFailed;

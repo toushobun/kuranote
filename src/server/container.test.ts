@@ -43,6 +43,19 @@ describe("createRequestContainer", () => {
     expect(typeof container.auth.service.logout).toBe("function");
   });
 
+  it("提供惰性缓存的 Category 读取与写入 UseCase", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.category).toBe(container.category);
+    expect(typeof container.category.service.getCategoriesView).toBe(
+      "function",
+    );
+    expect(typeof container.category.service.create).toBe("function");
+    expect(typeof container.category.service.update).toBe("function");
+    expect(typeof container.category.service.archive).toBe("function");
+    expect(typeof container.category.service.reorder).toBe("function");
+  });
+
   it("提供惰性缓存的 user.service 和显示名同步窄接口", () => {
     const container = createRequestContainer(createDependenciesStub());
 
