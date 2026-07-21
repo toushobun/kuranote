@@ -85,6 +85,15 @@ function createBody() {
   } as const;
 }
 
+function createUpdateBody() {
+  return {
+    currency: "JPY",
+    holderUserIds: [holderUserId],
+    name: "现金",
+    type: "cash",
+  } as const;
+}
+
 describe("account router", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -154,7 +163,7 @@ describe("account router", () => {
   it("更新账户成功时传递路径和请求参数并刷新账户页面", async () => {
     const update = vi.fn().mockResolvedValue(undefined);
     const app = createApp(createContainer({ update }));
-    const { initialBalance: _initialBalance, ...updateBody } = createBody();
+    const updateBody = createUpdateBody();
 
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/accounts/${accountId}`,
@@ -200,7 +209,7 @@ describe("account router", () => {
         new AuthorizationError("permission_denied", "没有权限"),
       );
     const app = createApp(createContainer({ update }));
-    const { initialBalance: _initialBalance, ...updateBody } = createBody();
+    const updateBody = createUpdateBody();
 
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/accounts/${accountId}`,
