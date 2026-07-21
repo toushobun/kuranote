@@ -26,7 +26,7 @@ import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
   buildHolderOptions,
-} from "utils/accounts";
+} from "server/account/util/accountView";
 
 export type AccountsView = {
   accounts: AccountRow[];

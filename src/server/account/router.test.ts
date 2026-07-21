@@ -151,6 +151,48 @@ describe("account router", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
+  it("更新账户成功时传递路径和请求参数并刷新账户页面", async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    const app = createApp(createContainer({ update }));
+    const { initialBalance: _initialBalance, ...updateBody } = createBody();
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts/${accountId}`,
+      {
+        body: JSON.stringify(updateBody),
+        headers: requestHeaders,
+        method: "PATCH",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(update).toHaveBeenCalledWith({
+      ...updateBody,
+      accountId,
+      ledgerId,
+      userId,
+    });
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
+  });
+
+  it("归档账户成功时传递账户、账本和用户并刷新账户页面", async () => {
+    const archive = vi.fn().mockResolvedValue(undefined);
+    const app = createApp(createContainer({ archive }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts/${accountId}`,
+      { headers: { origin: "https://kuranote.example" }, method: "DELETE" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(archive).toHaveBeenCalledWith({ accountId, ledgerId, userId });
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
+  });
+
   it("Service 拒绝更新时返回 403 且不触发缓存失效", async () => {
     const update = vi
       .fn()

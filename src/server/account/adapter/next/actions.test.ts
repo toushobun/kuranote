@@ -110,6 +110,35 @@ describe("Account Server Actions", () => {
     );
   });
 
+  it("归档账户成功后传递 current ledger 并刷新账户页面", async () => {
+    const formData = new FormData();
+    formData.set("accountId", accountId);
+
+    await expect(archiveAccount(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/accounts?result=archived",
+    );
+
+    expect(mocks.archive).toHaveBeenCalledWith({
+      accountId,
+      ledgerId,
+      userId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
+  });
+
+  it("表单参数无效时不创建账户也不触发缓存失效", async () => {
+    const formData = createFormData();
+    formData.delete("holderUserIds");
+
+    await expect(createAccount(formData)).rejects.toThrow(
+      /^NEXT_REDIRECT:\/accounts\?error=holder_invalid&errorKey=/,
+    );
+
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("归档账户失败时保留安全错误码且不触发缓存失效", async () => {
     mocks.archive.mockRejectedValue(
       new AuthorizationError("permission_denied", "没有权限"),
