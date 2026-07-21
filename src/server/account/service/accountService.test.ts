@@ -1,10 +1,12 @@
 // @vitest-environment node
 
+import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { accountErrorCodes } from "server/account/errors";
 import type { AccountRepository } from "server/account/repository/accountRepository";
 import { createAccountService } from "server/account/service/accountService";
+import type { LedgerAccessService } from "server/ledger/service/ledgerAccessService";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -50,6 +52,14 @@ function createRepository(): AccountRepository {
   };
 }
 
+function createLedgerAccessService(
+  role: CurrentLedgerRole | null = "owner",
+): LedgerAccessService {
+  return {
+    getActiveMemberRole: vi.fn().mockResolvedValue(role),
+  };
+}
+
 function createInput() {
   return {
     currency: " jpy ",
@@ -62,11 +72,22 @@ function createInput() {
   };
 }
 
+function createService(
+  repository: AccountRepository,
+  ledgerAccessService = createLedgerAccessService(),
+) {
+  return createAccountService({
+    accountRepository: repository,
+    ledgerAccessService,
+  });
+}
+
 describe("AccountService", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("读取账户页面时聚合账户、持有人和账本成员显示信息", async () => {
+  it("读取账户页面时通过账本窄接口校验权限并聚合成员信息", async () => {
     const repository = createRepository();
+    const ledgerAccessService = createLedgerAccessService();
     vi.mocked(repository.listAccounts).mockResolvedValue([
       {
         created_at: "2026-07-01T00:00:00.000Z",
@@ -95,10 +116,14 @@ describe("AccountService", () => {
         user_id: holderUserId,
       },
     ]);
-    const service = createAccountService({ accountRepository: repository });
+    const service = createService(repository, ledgerAccessService);
 
     const view = await service.getView({ ledgerId, userId });
 
+    expect(ledgerAccessService.getActiveMemberRole).toHaveBeenCalledWith({
+      ledgerId,
+      userId,
+    });
     expect(view).toEqual(
       expect.objectContaining({
         baseCurrency: "JPY",
@@ -126,17 +151,27 @@ describe("AccountService", () => {
     expect(repository.listHolders).toHaveBeenCalledWith(ledgerId, [accountId]);
   });
 
+  it("非 active 成员在读取账户数据前被账本窄接口拒绝", async () => {
+    const repository = createRepository();
+    const service = createService(
+      repository,
+      createLedgerAccessService(null),
+    );
+
+    await expect(service.getView({ ledgerId, userId })).rejects.toMatchObject({
+      code: accountErrorCodes.ledgerInvalid,
+    });
+    expect(repository.findActiveLedger).not.toHaveBeenCalled();
+    expect(repository.listActiveMembers).not.toHaveBeenCalled();
+    expect(repository.listAccounts).not.toHaveBeenCalled();
+  });
+
   it("普通成员可以读取账户但不能维护账户", async () => {
     const repository = createRepository();
-    vi.mocked(repository.listActiveMembers).mockResolvedValue([
-      {
-        created_at: "2026-07-01T00:00:00.000Z",
-        joined_at: null,
-        role: "member",
-        user_id: userId,
-      },
-    ]);
-    const service = createAccountService({ accountRepository: repository });
+    const service = createService(
+      repository,
+      createLedgerAccessService("member"),
+    );
 
     await expect(service.getView({ ledgerId, userId })).resolves.toEqual(
       expect.objectContaining({ canManageAccounts: false }),
@@ -149,7 +184,7 @@ describe("AccountService", () => {
 
   it("创建账户前规范化字段并确认持有人属于当前账本", async () => {
     const repository = createRepository();
-    const service = createAccountService({ accountRepository: repository });
+    const service = createService(repository);
 
     await expect(service.create(createInput())).resolves.toEqual({ accountId });
 
@@ -165,7 +200,7 @@ describe("AccountService", () => {
 
   it("持有人不是当前账本有效成员时拒绝创建", async () => {
     const repository = createRepository();
-    const service = createAccountService({ accountRepository: repository });
+    const service = createService(repository);
 
     await expect(
       service.create({
@@ -179,7 +214,7 @@ describe("AccountService", () => {
   it("更新不存在或已删除的账户时返回 account_invalid", async () => {
     const repository = createRepository();
     vi.mocked(repository.isActiveAccount).mockResolvedValue(false);
-    const service = createAccountService({ accountRepository: repository });
+    const service = createService(repository);
 
     await expect(
       service.update({ ...createInput(), accountId }),
@@ -191,6 +226,7 @@ describe("AccountService", () => {
     const repository = createRepository();
     const service = createAccountService({
       accountRepository: repository,
+      ledgerAccessService: createLedgerAccessService(),
       now: () => new Date("2026-07-21T00:00:00.000Z"),
     });
 
@@ -203,5 +239,6 @@ describe("AccountService", () => {
       ledgerId,
       userId,
     });
+    expect(repository.listActiveMembers).not.toHaveBeenCalled();
   });
 });
