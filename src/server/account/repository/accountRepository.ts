@@ -86,7 +86,7 @@ export function createSupabaseAccountRepository(
 ): AccountRepository {
   function logError(
     operation: string,
-    error: { code?: string | null },
+    error: { code?: string | null; message?: string | null },
     details: Record<string, unknown>,
   ) {
     logger.error(`[account] ${operation}`, {
@@ -120,17 +120,22 @@ export function createSupabaseAccountRepository(
     },
 
     async create(input) {
-      const { data, error } = await supabase.rpc("create_account_with_holders", {
-        p_currency: input.currency,
-        p_holder_user_ids: input.holderUserIds,
-        p_initial_balance: input.initialBalance,
-        p_ledger_id: input.ledgerId,
-        p_name: input.name,
-        p_type: input.type,
-      });
+      const { data, error } = await supabase.rpc(
+        "create_account_with_holders",
+        {
+          p_currency: input.currency,
+          p_holder_user_ids: input.holderUserIds,
+          p_initial_balance: input.initialBalance,
+          p_ledger_id: input.ledgerId,
+          p_name: input.name,
+          p_type: input.type,
+        },
+      );
 
       if (error) {
-        logError("failed to create account", error, { ledgerId: input.ledgerId });
+        logError("failed to create account", error, {
+          ledgerId: input.ledgerId,
+        });
         return null;
       }
 
@@ -289,14 +294,17 @@ export function createSupabaseAccountRepository(
     },
 
     async update(input) {
-      const { data, error } = await supabase.rpc("update_account_with_holders", {
-        p_account_id: input.accountId,
-        p_currency: input.currency,
-        p_holder_user_ids: input.holderUserIds,
-        p_ledger_id: input.ledgerId,
-        p_name: input.name,
-        p_type: input.type,
-      });
+      const { data, error } = await supabase.rpc(
+        "update_account_with_holders",
+        {
+          p_account_id: input.accountId,
+          p_currency: input.currency,
+          p_holder_user_ids: input.holderUserIds,
+          p_ledger_id: input.ledgerId,
+          p_name: input.name,
+          p_type: input.type,
+        },
+      );
 
       if (error) {
         logError("failed to update account", error, {
