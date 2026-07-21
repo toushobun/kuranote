@@ -1,6 +1,8 @@
 import { routePaths, routeWithQuery } from "config/paths";
 import { isSafeNextPath } from "lib/navigation/safeNextPath";
 
+export const googleAuthNextPathMaxLength = 2048;
+
 export const googleAuthSources = {
   login: "login",
   register: "register",
@@ -42,7 +44,11 @@ export function getGoogleAuthErrorMessage(value: string | null | undefined) {
 }
 
 export function getSafeGoogleAuthNextPath(value: string | null | undefined) {
-  return value && isSafeNextPath(value) ? value : routePaths.dashboard;
+  return value &&
+    value.length <= googleAuthNextPathMaxLength &&
+    isSafeNextPath(value)
+    ? value
+    : routePaths.dashboard;
 }
 
 export function googleAuthFailureHref(
