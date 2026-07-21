@@ -1,10 +1,10 @@
+import { accountResultValues } from "config/paths";
 import {
   archiveAccount,
   createAccount,
   updateAccount,
-} from "server/actions/accounts";
-import { accountResultValues } from "config/paths";
-import { loadAccountsView } from "server/loaders/accounts";
+} from "server/account/adapter/next/actions";
+import { loadAccountsView } from "server/account/adapter/next/loadAccountsView";
 import {
   AccountsTemplate,
   type AccountSaveResult,
