@@ -527,8 +527,25 @@ export function validateVoidTransactionForm(
   return valid({ transactionRecordId: transactionRecordIdResult.value });
 }
 
+// 与 parseMoneyAmount 的 `^-?\d+(\.\d{1,2})?$` 保持一致，避免 JSON 接口接受超过 2 位小数的金额。
+const moneyAmountPrecisionPattern = /^-?\d+(\.\d{1,2})?$/;
+
+function hasValidMoneyPrecision(value: number): boolean {
+  return moneyAmountPrecisionPattern.test(String(value));
+}
+
+function addSameAccountTransferIssue(context: z.RefinementCtx) {
+  context.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: transactionErrorCodes.accountInvalid,
+    path: ["transferTargetAccountId"],
+  });
+}
+
 const transactionItemRequestSchema = z.object({
-  amount: z.number().nonnegative(),
+  amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.amountInvalid,
+  }),
   categoryId: z.string().uuid(),
 });
 
@@ -550,29 +567,46 @@ const transferTransactionRequestSchema = z.object({
   ledgerId: z.string().uuid(),
   note: z.string().max(2000).nullable(),
   transactionAt: z.string().datetime({ offset: true }),
-  transferAmount: z.number().positive(),
+  transferAmount: z.number().positive().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.amountInvalid,
+  }),
   transferTargetAccountId: z.string().uuid(),
   type: z.literal("transfer"),
 });
 
-export const createTransactionRequestSchema = z.discriminatedUnion("type", [
-  normalTransactionRequestSchema,
-  transferTransactionRequestSchema,
-]);
+export const createTransactionRequestSchema = z
+  .discriminatedUnion("type", [
+    normalTransactionRequestSchema,
+    transferTransactionRequestSchema,
+  ])
+  .superRefine((value, context) => {
+    if (
+      value.type === "transfer" &&
+      value.transferTargetAccountId === value.accountId
+    ) {
+      addSameAccountTransferIssue(context);
+    }
+  });
 
 export const updateTransactionRequestSchema = createTransactionRequestSchema;
 
-export const convertTransactionRequestSchema = z.discriminatedUnion(
-  "targetType",
-  [
+export const convertTransactionRequestSchema = z
+  .discriminatedUnion("targetType", [
     normalTransactionRequestSchema.omit({ type: true }).extend({
       targetType: z.enum(["expense", "income"]),
     }),
     transferTransactionRequestSchema.omit({ type: true }).extend({
       targetType: z.literal("transfer"),
     }),
-  ],
-);
+  ])
+  .superRefine((value, context) => {
+    if (
+      value.targetType === "transfer" &&
+      value.transferTargetAccountId === value.accountId
+    ) {
+      addSameAccountTransferIssue(context);
+    }
+  });
 
 export const transactionIdParamsSchema = z.object({
   transactionRecordId: z.string().uuid(),

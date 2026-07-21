@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { validateTransactionForm, validateVoidTransactionForm } from "./schema";
+import { transactionErrorCodes } from "./errors";
+import {
+  convertTransactionRequestSchema,
+  createTransactionRequestSchema,
+  validateTransactionForm,
+  validateVoidTransactionForm,
+} from "./schema";
 
 const accountId = "00000000-0000-4000-8000-000000000041";
+const otherAccountId = "00000000-0000-4000-8000-000000000042";
 const categoryId = "00000000-0000-4000-8000-000000000101";
+const ledgerId = "00000000-0000-4000-8000-000000000032";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const transactionRecordId = "00000000-0000-4000-8000-000000002001";
 
@@ -201,5 +209,113 @@ describe("transaction validators", () => {
       error: "void_invalid",
       ok: false,
     });
+  });
+});
+
+describe("transaction request schema", () => {
+  it("拒绝转出与转入账户相同的转账创建请求", () => {
+    const result = createTransactionRequestSchema.safeParse({
+      accountId,
+      ledgerId,
+      note: null,
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      transferAmount: 1200,
+      transferTargetAccountId: accountId,
+      type: "transfer",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        transactionErrorCodes.accountInvalid,
+      );
+    }
+  });
+
+  it("拒绝转出与转入账户相同的转账转换请求", () => {
+    const result = convertTransactionRequestSchema.safeParse({
+      accountId,
+      ledgerId,
+      note: null,
+      targetType: "transfer",
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      transferAmount: 1200,
+      transferTargetAccountId: accountId,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        transactionErrorCodes.accountInvalid,
+      );
+    }
+  });
+
+  it("接受账户不同的转账创建请求", () => {
+    const result = createTransactionRequestSchema.safeParse({
+      accountId,
+      ledgerId,
+      note: null,
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      transferAmount: 1200,
+      transferTargetAccountId: otherAccountId,
+      type: "transfer",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝超过 2 位小数的普通交易金额", () => {
+    const result = createTransactionRequestSchema.safeParse({
+      accountId,
+      items: [{ amount: 12.345, categoryId }],
+      ledgerId,
+      merchantId,
+      note: null,
+      tagNames: [],
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      type: "expense",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        transactionErrorCodes.amountInvalid,
+      );
+    }
+  });
+
+  it("拒绝超过 2 位小数的转账金额", () => {
+    const result = createTransactionRequestSchema.safeParse({
+      accountId,
+      ledgerId,
+      note: null,
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      transferAmount: 12.345,
+      transferTargetAccountId: otherAccountId,
+      type: "transfer",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        transactionErrorCodes.amountInvalid,
+      );
+    }
+  });
+
+  it("接受最多 2 位小数的金额", () => {
+    const result = createTransactionRequestSchema.safeParse({
+      accountId,
+      items: [{ amount: 12.3, categoryId }],
+      ledgerId,
+      merchantId,
+      note: null,
+      tagNames: [],
+      transactionAt: "2026-06-04T01:00:00.000Z",
+      type: "expense",
+    });
+
+    expect(result.success).toBe(true);
   });
 });
