@@ -203,15 +203,6 @@ export function editTransactionErrorHref(
   return `${transactionEditHref(transactionRecordId)}?${searchParams.toString()}`;
 }
 
-export function accountsErrorHref(error: string) {
-  // errorKey 保证每次错误 redirect 的 URL 都不同，即使 error 码相同，
-  // 前端也能区分出这是新的一次错误事件，而不是同一次错误的重复渲染。
-  return routeWithQuery(routePaths.accounts, {
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-}
-
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }
