@@ -43,9 +43,9 @@ describe("startGoogleAuth nextPath 边界", () => {
   it("Server Action 会在调用 Service 前把超长 nextPath 退回首页", async () => {
     const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
 
-    await expect(
-      startGoogleAuth("login", oversizedNextPath),
-    ).rejects.toThrow("NEXT_REDIRECT:https://accounts.google.test/oauth");
+    await expect(startGoogleAuth("login", oversizedNextPath)).rejects.toThrow(
+      "NEXT_REDIRECT:https://accounts.google.test/oauth",
+    );
 
     expect(mocks.startGoogleAuth).toHaveBeenCalledWith({
       nextPath: "/dashboard",
