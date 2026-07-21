@@ -1,4 +1,5 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import type { BaseActionState } from "types/auth";
 
 export const accountTypeOptions = [
   { label: "现金", value: "cash" },
@@ -10,8 +11,7 @@ export const accountTypeOptions = [
 
 export type AccountType = (typeof accountTypeOptions)[number]["value"];
 
-export type AccountActionState = {
-  error?: string;
+export type AccountActionState = BaseActionState & {
   errorKey?: string;
 };
 
