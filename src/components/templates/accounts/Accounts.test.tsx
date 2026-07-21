@@ -38,13 +38,13 @@ function renderWithUserTheme(children: ReactNode) {
 
 const baseProps = {
   accounts: [],
-  archiveAccountAction: vi.fn(async () => {}),
+  archiveAccountAction: vi.fn(async () => ({})),
   baseCurrency: "JPY",
-  createAccountAction: vi.fn(async () => {}),
-  errorMessage: null,
+  createAccountAction: vi.fn(async () => ({})),
+  initialErrorMessage: null,
   holderOptions: [],
   ledgerName: "家庭账本",
-  updateAccountAction: vi.fn(async () => {}),
+  updateAccountAction: vi.fn(async () => ({})),
 };
 
 describe("AccountsTemplate", () => {
@@ -100,14 +100,42 @@ describe("AccountsTemplate", () => {
     renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        errorKey="error-key-1"
-        errorMessage="账户新增失败。"
+        initialErrorKey="error-key-1"
+        initialErrorMessage="账户新增失败。"
       />,
     );
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("账户操作失败")).toBeInTheDocument();
     expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
+  });
+
+  it("Server Action 返回错误状态时弹窗且不修改当前 URL", async () => {
+    window.history.replaceState(null, "", "/accounts?tab=all");
+    const createAccountAction = vi.fn(async () => ({
+      error: "账户新增失败。",
+      errorKey: "action-error-key-1",
+    }));
+    const { container } = renderWithUserTheme(
+      <AccountsTemplate
+        {...baseProps}
+        createAccountAction={createAccountAction}
+      />,
+    );
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: "新增账户" }),
+    );
+    fireEvent.submit(document.querySelector("form") as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
+    });
+    expect(createAccountAction).toHaveBeenCalled();
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/accounts?tab=all",
+    );
   });
 
   it("无错误信息时不显示错误反馈弹窗", () => {
@@ -119,16 +147,12 @@ describe("AccountsTemplate", () => {
   });
 
   it("关闭错误弹窗后再次收到相同错误信息也会重新弹出", () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/accounts?error=create_failed&errorKey=error-key-1",
-    );
+    window.history.replaceState(null, "", "/accounts?tab=all");
     const { rerender } = renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        errorKey="error-key-1"
-        errorMessage="账户新增失败。"
+        initialErrorKey="error-key-1"
+        initialErrorMessage="账户新增失败。"
       />,
     );
 
@@ -136,27 +160,25 @@ describe("AccountsTemplate", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
 
-    expect(routerReplaceMock).toHaveBeenCalledWith("/accounts", {
-      scroll: false,
-    });
+    expect(routerReplaceMock).not.toHaveBeenCalled();
 
-    rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
-        <AccountsTemplate {...baseProps} errorKey={null} errorMessage={null} />
-      </UserThemeProvider>,
-    );
-
-    window.history.replaceState(
-      null,
-      "",
-      "/accounts?error=create_failed&errorKey=error-key-2",
-    );
     rerender(
       <UserThemeProvider storageScope="accounts-template-test">
         <AccountsTemplate
           {...baseProps}
-          errorKey="error-key-2"
-          errorMessage="账户新增失败。"
+          initialErrorKey={null}
+          initialErrorMessage={null}
+        />
+      </UserThemeProvider>,
+    );
+
+    window.history.replaceState(null, "", "/accounts?tab=all");
+    rerender(
+      <UserThemeProvider storageScope="accounts-template-test">
+        <AccountsTemplate
+          {...baseProps}
+          initialErrorKey="error-key-2"
+          initialErrorMessage="账户新增失败。"
         />
       </UserThemeProvider>,
     );
@@ -169,8 +191,8 @@ describe("AccountsTemplate", () => {
     const { rerender } = renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        errorKey="error-key-1"
-        errorMessage="账户新增失败。"
+        initialErrorKey="error-key-1"
+        initialErrorMessage="账户新增失败。"
       />,
     );
 
@@ -178,8 +200,8 @@ describe("AccountsTemplate", () => {
       <UserThemeProvider storageScope="accounts-template-test">
         <AccountsTemplate
           {...baseProps}
-          errorKey="error-key-2"
-          errorMessage="账户新增失败。"
+          initialErrorKey="error-key-2"
+          initialErrorMessage="账户新增失败。"
         />
       </UserThemeProvider>,
     );
@@ -194,8 +216,8 @@ describe("AccountsTemplate", () => {
         <UserThemeProvider storageScope="accounts-template-test">
           <AccountsTemplate
             {...baseProps}
-            errorKey="error-key-1"
-            errorMessage="账户新增失败。"
+            initialErrorKey="error-key-1"
+            initialErrorMessage="账户新增失败。"
           />
         </UserThemeProvider>
       </StrictMode>,
@@ -208,8 +230,8 @@ describe("AccountsTemplate", () => {
     const { rerender } = renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        errorKey="error-key-1"
-        errorMessage="账户新增失败。"
+        initialErrorKey="error-key-1"
+        initialErrorMessage="账户新增失败。"
       />,
     );
 
@@ -217,8 +239,8 @@ describe("AccountsTemplate", () => {
       <UserThemeProvider storageScope="accounts-template-test">
         <AccountsTemplate
           {...baseProps}
-          errorKey="error-key-2"
-          errorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
+          initialErrorKey="error-key-2"
+          initialErrorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
         />
       </UserThemeProvider>,
     );
@@ -234,8 +256,8 @@ describe("AccountsTemplate", () => {
     const { rerender } = renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        errorKey="error-key-1"
-        errorMessage="账户新增失败。"
+        initialErrorKey="error-key-1"
+        initialErrorMessage="账户新增失败。"
       />,
     );
 
@@ -243,8 +265,8 @@ describe("AccountsTemplate", () => {
       <UserThemeProvider storageScope="accounts-template-test">
         <AccountsTemplate
           {...baseProps}
-          errorKey="error-key-2"
-          errorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
+          initialErrorKey="error-key-2"
+          initialErrorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
         />
       </UserThemeProvider>,
     );
