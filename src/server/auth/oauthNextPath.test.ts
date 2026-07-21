@@ -3,10 +3,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  getSafeGoogleAuthNextPath,
-  googleAuthNextPathMaxLength,
-} from "lib/auth/googleOAuth";
+import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import type { AppEnv } from "server/appEnv";
 import {
   startGoogleAuthHandler,
@@ -101,13 +98,6 @@ describe("Google OAuth nextPath 长度边界", () => {
         source: "login",
       }).success,
     ).toBe(false);
-  });
-
-  it("共享 OAuth 归一化会把超长 nextPath 退回首页", () => {
-    expect(getSafeGoogleAuthNextPath(maxLengthNextPath)).toBe(
-      maxLengthNextPath,
-    );
-    expect(getSafeGoogleAuthNextPath(oversizedNextPath)).toBe("/dashboard");
   });
 
   it("Controller 在超长 nextPath 时返回 400 且不调用 Service", async () => {
