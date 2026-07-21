@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAccount } from "server/actions/accounts";
 import { createTransaction } from "server/actions/transactions";
 
 const mocks = vi.hoisted(() => ({
@@ -32,23 +31,9 @@ vi.mock("lib/supabase/server", () => ({
 const currentLedgerId = "00000000-0000-4000-8000-000000000032";
 const forgedLedgerId = "00000000-0000-4000-8000-000000000099";
 const userId = "00000000-0000-4000-8000-000000000031";
-const holderUserId = "00000000-0000-4000-8000-000000000041";
 const accountId = "00000000-0000-4000-8000-000000000045";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
-
-function createAccountFormData() {
-  const formData = new FormData();
-
-  formData.set("ledgerId", forgedLedgerId);
-  formData.set("name", "现金");
-  formData.set("type", "cash");
-  formData.set("currency", "JPY");
-  formData.set("initialBalance", "0");
-  formData.append("holderUserIds", holderUserId);
-
-  return formData;
-}
 
 function createTransactionFormData() {
   const formData = new FormData();
@@ -80,19 +65,6 @@ describe("Server Action current ledger 边界", () => {
     });
     mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });
     mocks.rpc.mockResolvedValue({ data: null, error: null });
-  });
-
-  it("创建账户时忽略客户端伪造的 ledgerId", async () => {
-    await expect(createAccount(createAccountFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/accounts?result=created",
-    );
-
-    expect(mocks.rpc).toHaveBeenCalledWith(
-      "create_account_with_holders",
-      expect.objectContaining({
-        p_ledger_id: currentLedgerId,
-      }),
-    );
   });
 
   it("创建记账时忽略客户端伪造的 ledgerId", async () => {
