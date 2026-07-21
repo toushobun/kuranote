@@ -196,3 +196,34 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook
+
+  rebase-diagnostics:
+    name: Rebase diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refactor/486_migrate_account_module
+
+      - name: 输出 rebase 冲突文件
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          base="$(git merge-base HEAD origin/main)"
+          git reset --soft "$base"
+          git commit -m "refactor: 迁移 Account 业务模块"
+
+          if git rebase origin/main; then
+            echo "REBASE_OK"
+            exit 0
+          fi
+
+          echo "REBASE_CONFLICTS_START"
+          git diff --name-only --diff-filter=U
+          echo "REBASE_CONFLICTS_END"
+          exit 1
