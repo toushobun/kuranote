@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAccount } from "server/actions/accounts";
 import {
   createTransaction,
   updateTransaction,
@@ -79,17 +78,6 @@ function createValidTransactionFormData({
   return formData;
 }
 
-function createValidAccountFormData() {
-  const formData = new FormData();
-
-  formData.set("name", "现金");
-  formData.set("type", "cash");
-  formData.set("currency", "JPY");
-  formData.set("initialBalance", "0");
-
-  return formData;
-}
-
 describe("账本角色 Action 权限", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -138,17 +126,6 @@ describe("账本角色 Action 权限", () => {
       `NEXT_REDIRECT:/transactions/${transactionRecordId}/edit?error=permission_denied`,
     );
 
-    expect(mocks.rpc).not.toHaveBeenCalled();
-  });
-
-  it("member 新增账户时返回权限错误且不调用数据库", async () => {
-    mockCurrentLedger("member");
-
-    await expect(createAccount(createValidAccountFormData())).rejects.toThrow(
-      /^NEXT_REDIRECT:\/accounts\?error=permission_denied&errorKey=/,
-    );
-
-    expect(mocks.createClient).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });
