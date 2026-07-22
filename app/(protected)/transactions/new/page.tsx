@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
 
+import { transactionEditHref } from "config/paths";
+import { createTransaction } from "server/transaction/adapter/next/actions";
+import { loadNewTransactionView } from "server/transaction/adapter/next/loadTransactionViews";
 import {
-  editTransactionErrorHref,
-  transactionEditHref,
-  transactionsErrorHref,
-} from "config/paths";
-import { createTransaction } from "server/actions/transactions";
-import { transactionErrorCodes } from "server/errors/transactions";
-import { loadNewTransactionView } from "server/loaders/transactionForm";
-import { NewTransactionTemplate } from "templates/transactions/TransactionFormPage";
+  NewTransactionTemplate,
+  TransactionPermissionDenied,
+} from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
 import type { TransactionRecordType } from "types/transactions";
-import { getNewTransactionErrorMessage } from "utils/pageErrors";
 
 function parseInitialType(type?: string): TransactionRecordType {
   if (type === "expense" || type === "income" || type === "transfer") {
@@ -24,29 +21,29 @@ function parseInitialType(type?: string): TransactionRecordType {
 export default async function TransactionsNewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; editId?: string; type?: string }>;
+  searchParams: Promise<{ editId?: string; type?: string }>;
 }) {
   const params = await searchParams;
 
   if (params.editId) {
-    redirect(
-      params.error
-        ? editTransactionErrorHref(params.editId, params.error)
-        : transactionEditHref(params.editId),
-    );
+    redirect(transactionEditHref(params.editId));
   }
 
   const { canWriteTransactions, ...view } = await loadNewTransactionView();
 
   if (canWriteTransactions === false) {
-    redirect(transactionsErrorHref(transactionErrorCodes.permissionDenied));
+    return (
+      <NewTransactionVisualFrame>
+        <TransactionPermissionDenied operation="create" />
+      </NewTransactionVisualFrame>
+    );
   }
 
   return (
     <NewTransactionVisualFrame>
       <NewTransactionTemplate
         action={createTransaction}
-        errorMessage={getNewTransactionErrorMessage(params.error)}
+        errorMessage={null}
         initialType={parseInitialType(params.type)}
         {...view}
       />

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   ),
   loadNewTransactionView: vi.fn(),
   NewTransactionTemplate: vi.fn(() => null),
+  TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
   redirect: vi.fn((href: string) => {
     throw new Error(`NEXT_REDIRECT:${href}`);
@@ -20,16 +21,17 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("server/actions/transactions", () => ({
+vi.mock("server/transaction/adapter/next/actions", () => ({
   createTransaction: mocks.createTransaction,
 }));
 
-vi.mock("server/loaders/transactionForm", () => ({
+vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
   loadNewTransactionView: mocks.loadNewTransactionView,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
   NewTransactionTemplate: mocks.NewTransactionTemplate,
+  TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
 vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
@@ -71,7 +73,7 @@ describe("TransactionsNewPage", () => {
     expect(mocks.loadNewTransactionView).not.toHaveBeenCalled();
   });
 
-  it("旧 URL 的 error 参数会带到专用编辑路由", async () => {
+  it("旧 URL 的 error 参数不会带到专用编辑路由", async () => {
     await expect(
       TransactionsNewPage({
         searchParams: Promise.resolve({
@@ -80,28 +82,32 @@ describe("TransactionsNewPage", () => {
         }),
       }),
     ).rejects.toThrow(
-      `NEXT_REDIRECT:/transactions/${transactionRecordId}/edit?error=update_failed`,
+      `NEXT_REDIRECT:/transactions/${transactionRecordId}/edit`,
     );
 
     expect(mocks.redirect).toHaveBeenCalledWith(
-      `/transactions/${transactionRecordId}/edit?error=update_failed`,
+      `/transactions/${transactionRecordId}/edit`,
     );
     expect(mocks.loadNewTransactionView).not.toHaveBeenCalled();
   });
 
-  it("只读成员访问新增页时跳回明细页", async () => {
+  it("只读成员访问新增页时在当前页面显示权限提示", async () => {
     mocks.loadNewTransactionView.mockResolvedValue({
       ...baseView,
       canWriteTransactions: false,
     });
 
-    await expect(
-      TransactionsNewPage({ searchParams: Promise.resolve({}) }),
-    ).rejects.toThrow("NEXT_REDIRECT:/transactions?error=permission_denied");
+    const result = await TransactionsNewPage({
+      searchParams: Promise.resolve({}),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+    const child = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
 
-    expect(mocks.redirect).toHaveBeenCalledWith(
-      "/transactions?error=permission_denied",
-    );
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(child.type).toBe(mocks.TransactionPermissionDenied);
+    expect(child.props).toMatchObject({ operation: "create" });
   });
 
   it("没有 type 时默认 expense", async () => {
@@ -178,13 +184,13 @@ describe("TransactionsNewPage", () => {
 
     expect(child.props).toMatchObject({
       initialType: "transfer",
-      errorMessage: "新建错误:create_failed",
+      errorMessage: null,
     });
   });
 
   it("没有 editId 时显示新增记账画面", async () => {
     const result = await TransactionsNewPage({
-      searchParams: Promise.resolve({ error: "create_failed" }),
+      searchParams: Promise.resolve({ type: "expense" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<
@@ -192,15 +198,13 @@ describe("TransactionsNewPage", () => {
     >;
 
     expect(mocks.loadNewTransactionView).toHaveBeenCalledTimes(1);
-    expect(mocks.getNewTransactionErrorMessage).toHaveBeenCalledWith(
-      "create_failed",
-    );
+    expect(mocks.getNewTransactionErrorMessage).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.NewTransactionTemplate);
     expect(child.props).toMatchObject({
       ...baseView,
       action: mocks.createTransaction,
-      errorMessage: "新建错误:create_failed",
+      errorMessage: null,
     });
   });
 });

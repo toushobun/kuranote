@@ -1,4 +1,5 @@
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import { buildSingleHolderAccountColorById } from "server/account/util/accountHolderDisplayColors";
 import {
   canManageMasterData,
   canWriteTransaction,
@@ -28,6 +29,8 @@ import type {
   AppUserRecord,
   LedgerMemberDisplaySettingRecord,
 } from "types/accounts";
+import type { ThemeColorKey } from "theme/themeColorTokens";
+import type { TransactionAccountOption } from "types/transactions";
 import { accountTypeOptions, type AccountType } from "types/accounts";
 
 export type AccountsView = {
@@ -62,7 +65,26 @@ export type ArchiveAccountInput = {
   userId: string;
 };
 
-export interface AccountService {
+export type TransactionAccountContext = {
+  accountColorById: Map<string, ThemeColorKey>;
+  accounts: TransactionAccountOption[];
+  showRecorder: boolean;
+};
+
+/** Transaction 等其他模块只依赖此窄查询接口。 */
+export interface AccountQueryService {
+  getTransactionContext(input: {
+    accountIds: string[];
+    ledgerId: string;
+    userId: string;
+  }): Promise<TransactionAccountContext>;
+  listTransactionOptions(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<TransactionAccountOption[]>;
+}
+
+export interface AccountService extends AccountQueryService {
   archive(input: ArchiveAccountInput): Promise<void>;
   create(input: CreateAccountInput): Promise<{ accountId: string }>;
   getView(input: GetAccountsViewInput): Promise<AccountsView>;
@@ -275,6 +297,37 @@ export function createAccountService({
       }
 
       return { accountId };
+    },
+
+    async getTransactionContext({ accountIds, ledgerId, userId }) {
+      await requireActiveMemberRole(ledgerId, userId);
+      const uniqueAccountIds = [...new Set(accountIds)];
+      const [accounts, members, holders, settings] = await Promise.all([
+        accountRepository.findSummariesByIds(ledgerId, uniqueAccountIds),
+        accountRepository.listActiveMembers(ledgerId),
+        accountRepository.listHolders(ledgerId, uniqueAccountIds),
+        accountRepository.listDisplaySettings(ledgerId),
+      ]);
+      return {
+        accountColorById: buildSingleHolderAccountColorById({
+          activeMemberUserIds: new Set(members.map((member) => member.user_id)),
+          holders,
+          settings,
+        }),
+        accounts: accounts.map(({ currency, id, name }) => ({
+          currency,
+          id,
+          name,
+        })),
+        showRecorder: members.length > 1,
+      };
+    },
+
+    async listTransactionOptions({ ledgerId, userId }) {
+      await requireActiveMemberRole(ledgerId, userId);
+      return (await accountRepository.listAccounts(ledgerId)).map(
+        ({ currency, id, name }) => ({ currency, id, name }),
+      );
     },
 
     async getView({ ledgerId, userId }) {

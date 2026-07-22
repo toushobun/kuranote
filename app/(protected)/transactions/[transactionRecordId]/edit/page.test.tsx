@@ -11,24 +11,26 @@ const mocks = vi.hoisted(() => ({
   ),
   loadEditTransactionView: vi.fn(),
   NewTransactionVisualFrame: vi.fn(() => null),
+  TransactionPermissionDenied: vi.fn(() => null),
   saveEditTransaction: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
 }));
 
-vi.mock("server/actions/transactions", () => ({
+vi.mock("server/transaction/adapter/next/actions", () => ({
   saveEditTransaction: mocks.saveEditTransaction,
   updateTransaction: mocks.updateTransaction,
   voidTransaction: mocks.voidTransaction,
 }));
 
-vi.mock("server/loaders/transactionForm", () => ({
+vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
   loadEditTransactionView: mocks.loadEditTransactionView,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
   EditTransactionTemplate: mocks.EditTransactionTemplate,
   EditTransferTransactionTemplate: mocks.EditTransferTransactionTemplate,
+  TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
 vi.mock("utils/pageErrors", () => ({
@@ -86,13 +88,30 @@ describe("TransactionEditPage", () => {
     vi.clearAllMocks();
   });
 
+  it("无修改权限时在当前页面显示权限提示", async () => {
+    mocks.loadEditTransactionView.mockResolvedValue({
+      ...createEditView(),
+      canEdit: false,
+    });
+
+    const result = await TransactionEditPage({
+      params: Promise.resolve({ transactionRecordId }),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+    const child = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
+
+    expect(child.type).toBe(mocks.TransactionPermissionDenied);
+    expect(child.props).toMatchObject({ operation: "edit" });
+  });
+
   it("使用 URL 参数中的 transactionRecordId 显示编辑画面", async () => {
     const view = createEditView();
     mocks.loadEditTransactionView.mockResolvedValue(view);
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({ error: "update_failed" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<
@@ -102,16 +121,14 @@ describe("TransactionEditPage", () => {
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
     );
-    expect(mocks.getEditTransactionErrorMessage).toHaveBeenCalledWith(
-      "update_failed",
-    );
+    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransactionTemplate);
     expect(child.props).toMatchObject({
       ...view,
       action: mocks.saveEditTransaction,
       deleteAction: mocks.voidTransaction,
-      errorMessage: "编辑错误:update_failed",
+      errorMessage: null,
     });
   });
 
@@ -121,7 +138,6 @@ describe("TransactionEditPage", () => {
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({}),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<
@@ -131,9 +147,7 @@ describe("TransactionEditPage", () => {
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
     );
-    expect(mocks.getEditTransactionErrorMessage).toHaveBeenCalledWith(
-      undefined,
-    );
+    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransactionTemplate);
     expect(child.props).toMatchObject({
@@ -150,7 +164,6 @@ describe("TransactionEditPage", () => {
 
     const result = await TransactionEditPage({
       params: Promise.resolve({ transactionRecordId }),
-      searchParams: Promise.resolve({}),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     const child = element.props.children as ReactElement<

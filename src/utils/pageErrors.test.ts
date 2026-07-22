@@ -4,7 +4,7 @@ import { accountErrorCodes } from "server/account/errors";
 import { categoryErrorCodes } from "server/category/categoryErrors";
 import { currentLedgerErrorCodes } from "server/errors/currentLedger";
 import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
-import { transactionErrorCodes } from "server/errors/transactions";
+import { transactionErrorCodes } from "server/transaction/errors";
 import { merchantErrorCodes } from "server/merchant/errors";
 
 import {

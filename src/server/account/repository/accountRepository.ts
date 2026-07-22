@@ -49,6 +49,10 @@ export type ArchiveAccountInput = {
 export interface AccountRepository {
   archive(input: ArchiveAccountInput): Promise<boolean>;
   create(input: CreateAccountInput): Promise<string | null>;
+  findSummariesByIds(
+    ledgerId: string,
+    accountIds: string[],
+  ): Promise<Pick<AccountRow, "currency" | "id" | "name">[]>;
   findActiveLedger(ledgerId: string): Promise<AccountLedgerSummary | null>;
   isActiveAccount(ledgerId: string, accountId: string): Promise<boolean>;
   listAccounts(ledgerId: string): Promise<Omit<AccountRow, "holders">[]>;
@@ -140,6 +144,24 @@ export function createSupabaseAccountRepository(
       }
 
       return typeof data === "string" ? data : null;
+    },
+
+    async findSummariesByIds(ledgerId, accountIds) {
+      const uniqueAccountIds = [...new Set(accountIds)];
+      if (uniqueAccountIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("account")
+        .select("id, name, currency")
+        .eq("ledger_id", ledgerId)
+        .in("id", uniqueAccountIds);
+      if (error) {
+        logError("failed to load account summaries", error, { ledgerId });
+        throw toRepositoryError(
+          "account_summaries_load_failed",
+          "账户信息加载失败，请稍后重试。",
+        );
+      }
+      return data ?? [];
     },
 
     async findActiveLedger(ledgerId) {

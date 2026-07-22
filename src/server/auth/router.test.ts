@@ -39,6 +39,7 @@ function createApp(service: RequestContainer["auth"]["service"]) {
       category: {} as RequestContainer["category"],
       ledger: {} as RequestContainer["ledger"],
       merchant: {} as RequestContainer["merchant"],
+      transaction: {} as RequestContainer["transaction"],
       user: {} as RequestContainer["user"],
     });
     c.set("requestId", "request-1");

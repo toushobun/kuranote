@@ -75,7 +75,7 @@ import { TransactionTagSection } from "./TransactionTagSection";
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
 
 type TransactionFormProps = {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => void | Promise<void>;
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
   closeHref?: string;

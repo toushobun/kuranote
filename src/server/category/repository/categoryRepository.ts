@@ -1,6 +1,7 @@
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";
+import type { CategorySummaryDbRow } from "server/db-types";
 import type { CategoryRow } from "types/categories";
 import type { TransactionType } from "types/transactions";
 
@@ -59,6 +60,10 @@ export interface CategoryRepository {
     ledgerId: string;
   }): Promise<CategoryRecord | null>;
   findActiveByLedgerId(ledgerId: string): Promise<CategoryRow[]>;
+  findByIdsWithParents(
+    ledgerId: string,
+    categoryIds: string[],
+  ): Promise<CategorySummaryDbRow[]>;
   findActiveRootById(input: {
     categoryId: string;
     ledgerId: string;
@@ -184,6 +189,51 @@ export function createSupabaseCategoryRepository(
       }
 
       return (data ?? []) as CategoryRow[];
+    },
+
+    async findByIdsWithParents(ledgerId, categoryIds) {
+      const uniqueCategoryIds = [...new Set(categoryIds)];
+      if (uniqueCategoryIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from("category")
+        .select("id, name, parent_id, type")
+        .eq("ledger_id", ledgerId)
+        .in("id", uniqueCategoryIds);
+      if (error) {
+        throwRepositoryError(
+          "category_summary_load_failed",
+          "分类信息加载失败，请稍后重试。",
+          "[category] failed to load category summaries",
+          error,
+          { ledgerId },
+        );
+      }
+      const categories = (data ?? []) as CategorySummaryDbRow[];
+      const parentIds = [
+        ...new Set(
+          categories
+            .map((category) => category.parent_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ].filter((id) => !uniqueCategoryIds.includes(id));
+      if (parentIds.length === 0) return categories;
+
+      const { data: parentData, error: parentError } = await supabase
+        .from("category")
+        .select("id, name, parent_id, type")
+        .eq("ledger_id", ledgerId)
+        .in("id", parentIds);
+      if (parentError) {
+        throwRepositoryError(
+          "category_summary_load_failed",
+          "分类信息加载失败，请稍后重试。",
+          "[category] failed to load parent category summaries",
+          parentError,
+          { ledgerId },
+        );
+      }
+      return [...categories, ...((parentData ?? []) as CategorySummaryDbRow[])];
     },
 
     async findActiveRootById({ categoryId, ledgerId, type }) {

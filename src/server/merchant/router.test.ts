@@ -71,6 +71,7 @@ function createApp(
       category: {} as RequestContainer["category"],
       ledger: {} as RequestContainer["ledger"],
       merchant: { service },
+      transaction: {} as RequestContainer["transaction"],
       user: {} as RequestContainer["user"],
     });
     c.set("requestId", "request-1");

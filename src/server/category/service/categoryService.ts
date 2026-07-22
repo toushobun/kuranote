@@ -17,7 +17,7 @@ import type {
   CategoryRow,
   CategoryTreeItem,
 } from "types/categories";
-import type { TransactionType } from "types/transactions";
+import type { CategorySummaryDbRow } from "server/db-types";
 import {
   getCategoryDisplayName,
   getCategoryStoredName,
@@ -57,7 +57,20 @@ export type CategoryServiceDependencies = {
   ledgerAccessService: LedgerAccessService;
 };
 
-export type CategoryService = {
+/** Transaction 等其他模块只依赖此窄查询接口。 */
+export interface CategoryQueryService {
+  findSummariesByIds(input: {
+    categoryIds: string[];
+    ledgerId: string;
+    userId: string;
+  }): Promise<CategorySummaryDbRow[]>;
+  listActiveSummaries(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<CategorySummaryDbRow[]>;
+}
+
+export interface CategoryService extends CategoryQueryService {
   archive(input: ArchiveCategoryInput): Promise<void>;
   create(input: CreateCategoryInput): Promise<void>;
   getCategoriesView(input: {
@@ -67,7 +80,7 @@ export type CategoryService = {
   }): Promise<CategoriesView>;
   reorder(input: ReorderCategoriesInput): Promise<void>;
   update(input: UpdateCategoryInput): Promise<void>;
-};
+}
 
 function buildCategoryTree(categories: CategoryRow[]): CategoryTreeItem[] {
   const roots: CategoryTreeItem[] = categories
@@ -283,6 +296,11 @@ export function createCategoryService({
       );
     },
 
+    async findSummariesByIds({ categoryIds, ledgerId, userId }) {
+      await requireActiveMemberRole(ledgerId, userId);
+      return categoryRepository.findByIdsWithParents(ledgerId, categoryIds);
+    },
+
     async getCategoriesView({ ledgerId, ledgerName, userId }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
       const categories =
@@ -299,6 +317,13 @@ export function createCategoryService({
           type: category.type,
         })),
       };
+    },
+
+    async listActiveSummaries({ ledgerId, userId }) {
+      await requireActiveMemberRole(ledgerId, userId);
+      return (await categoryRepository.findActiveByLedgerId(ledgerId)).map(
+        ({ id, name, parent_id, type }) => ({ id, name, parent_id, type }),
+      );
     },
 
     async reorder(input) {

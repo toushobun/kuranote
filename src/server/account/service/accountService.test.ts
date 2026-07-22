@@ -22,6 +22,7 @@ function createRepository(): AccountRepository {
       id: ledgerId,
       name: "家庭账本",
     }),
+    findSummariesByIds: vi.fn().mockResolvedValue([]),
     isActiveAccount: vi.fn().mockResolvedValue(true),
     listAccounts: vi.fn().mockResolvedValue([]),
     listActiveMembers: vi.fn().mockResolvedValue([
@@ -237,5 +238,27 @@ describe("AccountService", () => {
       userId,
     });
     expect(repository.listActiveMembers).not.toHaveBeenCalled();
+  });
+
+  it("交易上下文保留已归档账户的历史显示信息", async () => {
+    const repository = createRepository();
+    vi.mocked(repository.findSummariesByIds).mockResolvedValue([
+      { currency: "JPY", id: accountId, name: "已归档现金" },
+    ]);
+    const service = createService(repository);
+
+    await expect(
+      service.getTransactionContext({
+        accountIds: [accountId],
+        ledgerId,
+        userId,
+      }),
+    ).resolves.toMatchObject({
+      accounts: [{ currency: "JPY", id: accountId, name: "已归档现金" }],
+    });
+    expect(repository.findSummariesByIds).toHaveBeenCalledWith(ledgerId, [
+      accountId,
+    ]);
+    expect(repository.listAccounts).not.toHaveBeenCalled();
   });
 });

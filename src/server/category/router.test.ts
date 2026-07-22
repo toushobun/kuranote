@@ -42,7 +42,9 @@ function createContainer(
       service: {
         archive: vi.fn(),
         create: vi.fn(),
+        findSummariesByIds: vi.fn(),
         getCategoriesView: vi.fn(),
+        listActiveSummaries: vi.fn(),
         reorder: vi.fn(),
         update: vi.fn(),
         ...overrides,
@@ -50,6 +52,7 @@ function createContainer(
     },
     ledger: {} as RequestContainer["ledger"],
     merchant: {} as RequestContainer["merchant"],
+    transaction: {} as RequestContainer["transaction"],
     user: {} as RequestContainer["user"],
   };
 }

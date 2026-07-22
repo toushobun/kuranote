@@ -1,5 +1,3 @@
-import type { TransactionRecordType } from "types/transactions";
-
 export const routePaths = {
   accounts: "/accounts",
   authCallback: "/auth/callback",
@@ -176,31 +174,6 @@ export function ledgerSettingsResultHref(
   const searchParams = new URLSearchParams({ result });
 
   return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
-}
-
-export function transactionsErrorHref(error: string) {
-  return routeWithQuery(routePaths.transactions, { error });
-}
-
-export function newTransactionErrorHref(
-  error: string,
-  type?: TransactionRecordType | null,
-) {
-  return routeWithQuery(routePaths.transactionsNew, { error, type });
-}
-
-export function editTransactionErrorHref(
-  transactionRecordId: string,
-  error: string,
-  returnTo?: string | null,
-) {
-  const searchParams = new URLSearchParams({ error });
-
-  if (returnTo) {
-    searchParams.set("returnTo", returnTo);
-  }
-
-  return `${transactionEditHref(transactionRecordId)}?${searchParams.toString()}`;
 }
 
 export function accountsResultHref(result: AccountResultValue) {
