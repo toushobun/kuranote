@@ -18,7 +18,7 @@ const currentLedger = {
 };
 
 describe("TransactionDashboardQueryService", () => {
-  it("通过 Transaction 统一上下文生成汇总和编辑权限", async () => {
+  it("复用 Transaction 权限并保持 Dashboard 原有可见字段", async () => {
     const monthlyRecord = {
       created_at: "2026-06-04T01:00:00.000Z",
       created_by: otherUserId,
@@ -37,7 +37,13 @@ describe("TransactionDashboardQueryService", () => {
       transaction_record_id: "record-1",
     };
     const transactionRepository = {
-      findUserSummaries: vi.fn().mockResolvedValue([]),
+      findUserSummaries: vi.fn().mockResolvedValue([
+        {
+          display_color: "amber",
+          display_name: "其他成员",
+          id: otherUserId,
+        },
+      ]),
       listItems: vi
         .fn()
         .mockResolvedValueOnce([monthlyItem])
@@ -46,15 +52,19 @@ describe("TransactionDashboardQueryService", () => {
         .fn()
         .mockResolvedValueOnce([monthlyRecord])
         .mockResolvedValueOnce([monthlyRecord]),
-      listTagAssignments: vi.fn().mockResolvedValue([]),
-      listTagsByIds: vi.fn().mockResolvedValue([]),
+      listTagAssignments: vi.fn().mockResolvedValue([
+        { tag_id: "tag-1", transaction_record_id: "record-1" },
+      ]),
+      listTagsByIds: vi
+        .fn()
+        .mockResolvedValue([{ color: null, id: "tag-1", name: "外食" }]),
     };
     const service = createTransactionDashboardQueryService({
       accountQueryService: {
         getTransactionContext: vi.fn().mockResolvedValue({
-          accountColorById: new Map(),
+          accountColorById: new Map([["account-1", "amber"]]),
           accounts: [{ currency: "JPY", id: "account-1", name: "现金" }],
-          showRecorder: false,
+          showRecorder: true,
         }),
       } as never,
       categoryQueryService: {
@@ -94,8 +104,13 @@ describe("TransactionDashboardQueryService", () => {
       income: "0",
     });
     expect(result.recentTransactions[0]).toMatchObject({
+      account_color: null,
       canEdit: false,
       merchant_name: "超市",
+      recorder_color: null,
+      recorder_name: null,
+      show_recorder: true,
+      tagNames: [],
     });
     expect(result.recentlyUsedAccountIds).toEqual(["account-1"]);
   });
