@@ -57,6 +57,8 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.orderInvalid]: "分类排序内容不正确。",
   [categoryErrorCodes.parentInvalid]: "大分类指定不正确。",
   [categoryErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护分类。",
+  [categoryErrorCodes.reorderConflict]:
+    "分类列表已发生变化，请刷新页面后重试。",
   [categoryErrorCodes.reorderFailed]: "分类排序保存失败，请稍后重试。",
   [categoryErrorCodes.typeInvalid]: "分类类型不正确。",
   [categoryErrorCodes.updateFailed]:
