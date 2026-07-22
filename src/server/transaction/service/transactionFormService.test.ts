@@ -80,9 +80,11 @@ function createDependencies(repository: TransactionRepository) {
     currentUserId: userId,
     merchantQueryService: {
       findSummariesByIds: vi.fn(),
-      listActiveOptions: vi.fn().mockResolvedValue([
-        { icon_url: null, id: merchantId, name: "便利店" },
-      ]),
+      listActiveOptions: vi
+        .fn()
+        .mockResolvedValue([
+          { icon_url: null, id: merchantId, name: "便利店" },
+        ]),
     },
     transactionRepository: repository,
   } satisfies TransactionReadDependencies;
@@ -110,12 +112,14 @@ describe("getEditTransactionView", () => {
           transaction_record_id: transactionRecordId,
         },
       ]),
-      listTagAssignments: vi.fn().mockResolvedValue([
-        { tag_id: tagId, transaction_record_id: transactionRecordId },
-      ]),
-      listTagsByIds: vi.fn().mockResolvedValue([
-        { color: null, id: tagId, name: "已归档标签" },
-      ]),
+      listTagAssignments: vi
+        .fn()
+        .mockResolvedValue([
+          { tag_id: tagId, transaction_record_id: transactionRecordId },
+        ]),
+      listTagsByIds: vi
+        .fn()
+        .mockResolvedValue([{ color: null, id: tagId, name: "已归档标签" }]),
     });
 
     const view = await getEditTransactionView(

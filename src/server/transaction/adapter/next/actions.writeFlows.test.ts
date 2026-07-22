@@ -116,7 +116,9 @@ describe("Transaction Action 写入流程", () => {
   });
 
   it("创建转账成功后刷新缓存并跳转到发生月份", async () => {
-    await expect(createTransaction({}, createTransferFormData())).rejects.toThrow(
+    await expect(
+      createTransaction({}, createTransferFormData()),
+    ).rejects.toThrow(
       "NEXT_REDIRECT:/transactions?month=2026-06&result=created",
     );
 

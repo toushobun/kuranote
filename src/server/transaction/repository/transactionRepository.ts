@@ -174,7 +174,9 @@ function findTransactionRpcErrorCode(
     .filter((value): value is string => Boolean(value));
 
   for (const code of transactionRpcErrorCodes) {
-    if (messages.some((message) => message === code || message.includes(code))) {
+    if (
+      messages.some((message) => message === code || message.includes(code))
+    ) {
       return code;
     }
   }

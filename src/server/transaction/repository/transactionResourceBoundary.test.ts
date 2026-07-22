@@ -103,7 +103,9 @@ describe("Transaction RPC 资源边界", () => {
       expect(body).toContain("a.ledger_id = p_ledger_id");
       expect(body).toContain("raise exception 'from_account_invalid'");
       expect(body).toContain("raise exception 'to_account_invalid'");
-      expect(body).toContain("v_from_account.currency <> v_to_account.currency");
+      expect(body).toContain(
+        "v_from_account.currency <> v_to_account.currency",
+      );
       expect(body).toContain("raise exception 'transfer_currency_invalid'");
     },
   );
@@ -128,16 +130,8 @@ describe("Transaction Repository RPC 错误边界", () => {
       "account_invalid",
       "账户信息不正确，请确认后重试。",
     ],
-    [
-      "to_account_invalid",
-      "account_invalid",
-      "账户信息不正确，请确认后重试。",
-    ],
-    [
-      "transfer_currency_invalid",
-      "account_invalid",
-      "转账账户币种必须一致。",
-    ],
+    ["to_account_invalid", "account_invalid", "账户信息不正确，请确认后重试。"],
+    ["transfer_currency_invalid", "account_invalid", "转账账户币种必须一致。"],
     ["merchant_invalid", "merchant_invalid", "商家信息不正确，请确认后重试。"],
     ["category_invalid", "category_invalid", "分类信息不正确，请确认后重试。"],
   ])(
@@ -148,9 +142,9 @@ describe("Transaction Repository RPC 错误边界", () => {
         databaseError,
       });
 
-      const error = await repository.createNormal(normalInput).catch((value) =>
-        Promise.resolve(value),
-      );
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
 
       expect(error).toBeInstanceOf(ValidationError);
       expect(error).toMatchObject({
@@ -182,9 +176,9 @@ describe("Transaction Repository RPC 错误边界", () => {
         databaseError,
       });
 
-      const error = await repository.createNormal(normalInput).catch((value) =>
-        Promise.resolve(value),
-      );
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
 
       expect(error).toBeInstanceOf(ErrorType);
       expect(error).toMatchObject({ code: expectedCode });
@@ -198,9 +192,9 @@ describe("Transaction Repository RPC 错误边界", () => {
       databaseError: "unexpected_database_failure",
     });
 
-    const error = await repository.createNormal(normalInput).catch((value) =>
-      Promise.resolve(value),
-    );
+    const error = await repository
+      .createNormal(normalInput)
+      .catch((value) => Promise.resolve(value));
 
     expect(error).toBeInstanceOf(RepositoryError);
     expect(error).toMatchObject({
