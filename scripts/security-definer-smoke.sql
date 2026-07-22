@@ -282,11 +282,11 @@ begin
         raise exception 'accept_ledger_invite member state smoke test failed';
     end if;
 
-    -- member 可以记账但不能维护基础数据，直接更新账户应被 trigger 拒绝。
+    -- member 可以记账但不能维护基础数据，直接更新商家应被 trigger 拒绝。
     begin
-        update public.account
+        update public.merchant
            set name = 'SECURITY DEFINER Trigger Bypass'
-         where id = v_account_id;
+         where id = v_merchant_id;
 
         raise exception 'enforce_ledger_management_permission did not reject member update';
     exception
@@ -296,9 +296,9 @@ begin
 
     if not exists (
         select 1
-        from public.account account
-        where account.id = v_account_id
-          and account.name = 'SECURITY DEFINER Account'
+        from public.merchant merchant
+        where merchant.id = v_merchant_id
+          and merchant.name = 'SECURITY DEFINER Merchant'
     ) then
         raise exception 'enforce_ledger_management_permission rollback smoke test failed';
     end if;
