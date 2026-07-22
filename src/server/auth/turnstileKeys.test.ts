@@ -90,14 +90,22 @@ describe("turnstileKeys", () => {
     expect(getTurnstileSecretKey()).toBe("prod-secret-key");
   });
 
-  it("Production 缺少正式 secret key 时抛出错误", () => {
+  it("Production 缺少正式 secret key 时抛出可识别配置错误", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+    let thrownError: unknown;
 
-    expect(() => getTurnstileSecretKey()).toThrow(
-      "TURNSTILE_SECRET_KEY is required in production.",
-    );
+    try {
+      getTurnstileSecretKey();
+    } catch (error) {
+      thrownError = error;
+    }
+
+    expect(thrownError).toMatchObject({
+      message: "TURNSTILE_SECRET_KEY is required in production.",
+      name: "TurnstileConfigurationError",
+    });
   });
 
   it("本地开发缺少正式 secret key 时保持 fail closed", () => {
