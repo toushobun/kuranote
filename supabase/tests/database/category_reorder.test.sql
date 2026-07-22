@@ -393,6 +393,8 @@ select throws_ok(
     '其他账本的上级分类被拒绝'
 );
 
+reset role;
+
 insert into public.ledger (
     id,
     name,
@@ -442,6 +444,8 @@ values
         '00000000-0000-4000-8000-000000000031',
         '00000000-0000-4000-8000-000000000031'
     );
+
+set local role authenticated;
 
 select throws_ok(
     $$
