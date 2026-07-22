@@ -3,6 +3,7 @@ export const categoryErrorCodes = {
   categoryInvalid: "category_invalid",
   createFailed: "create_failed",
   iconInvalid: "icon_invalid",
+  ledgerInvalid: "ledger_invalid",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   orderInvalid: "order_invalid",
