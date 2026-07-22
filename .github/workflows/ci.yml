@@ -47,6 +47,9 @@ jobs:
           version: v2.106.0
           github-token: ${{ github.token }}
 
+      - name: Start local Supabase
+        run: supabase start
+
       - name: Update schema snapshot
         env:
           CI: "1"
@@ -63,6 +66,10 @@ jobs:
           git add .
           git commit -m "chore: 更新分类排序格式与数据库快照"
           git push origin HEAD:${{ github.head_ref }}
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
 
   # Stage 1: 并行静态检查
   type-check:
