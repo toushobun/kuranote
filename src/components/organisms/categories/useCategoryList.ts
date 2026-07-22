@@ -151,10 +151,8 @@ export function useCategoryList({
             source: categories,
           });
           setReorderError(
-            result.recoveryFailed
-              ? "分类排序恢复失败，请刷新页面后重试。"
-              : (getCategoryErrorMessage(result.error) ??
-                  "分类排序保存失败，请稍后重试。"),
+            getCategoryErrorMessage(result.error) ??
+              "分类排序保存失败，请稍后重试。",
           );
         }
       } catch {
