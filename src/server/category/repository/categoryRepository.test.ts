@@ -2,8 +2,14 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { categoryErrorCodes } from "server/category/categoryErrors";
 import { createSupabaseCategoryRepository } from "server/category/repository/categoryRepository";
-import { RepositoryError } from "server/shared/errors/appError";
+import {
+  AuthorizationError,
+  ConflictError,
+  RepositoryError,
+  ValidationError,
+} from "server/shared/errors/appError";
 import type { Logger } from "server/shared/logging/logger";
 import { createSupabaseMock } from "test/supabaseMock";
 
@@ -197,11 +203,43 @@ describe("createSupabaseCategoryRepository", () => {
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("排序 RPC 拒绝非法集合时转换为 RepositoryError", async () => {
+  it("排序 RPC 的权限错误转换为 AuthorizationError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "42501",
+          details: "permission_denied",
+          message: "permission_denied",
+        },
+      },
+    });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.reorder({
+        categoryIds: [categoryId],
+        ledgerId,
+        parentId: null,
+        type: "expense",
+      }),
+    ).rejects.toMatchObject({
+      code: categoryErrorCodes.permissionDenied,
+      name: AuthorizationError.name,
+    });
+  });
+
+  it("排序 RPC 的集合过期错误转换为可刷新冲突", async () => {
     const logger = createLogger();
     const supabase = createSupabaseMock({
       rpcResponse: {
-        error: { code: "22023", message: "category_set_invalid" },
+        error: {
+          code: "22023",
+          details: "category_set_invalid",
+          message: "category_set_invalid",
+        },
       },
     });
     const repository = createSupabaseCategoryRepository(
@@ -216,18 +254,50 @@ describe("createSupabaseCategoryRepository", () => {
         parentId,
         type: "expense",
       }),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    ).rejects.toMatchObject({
+      code: categoryErrorCodes.reorderConflict,
+      name: ConflictError.name,
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "[category] failed to reorder categories transactionally",
       {
         categoryCount: 2,
-        code: "22023",
+        databaseCode: "22023",
+        databaseDetails: "category_set_invalid",
+        databaseMessage: "category_set_invalid",
         ledgerId,
-        message: "category_set_invalid",
         parentId,
         type: "expense",
       },
     );
+  });
+
+  it("排序 RPC 的参数错误保留具体校验语义", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "category_parent_invalid",
+          message: "category_parent_invalid",
+        },
+      },
+    });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.reorder({
+        categoryIds: [categoryId],
+        ledgerId,
+        parentId,
+        type: "expense",
+      }),
+    ).rejects.toMatchObject({
+      code: categoryErrorCodes.parentInvalid,
+      name: ValidationError.name,
+    });
   });
 
   it("排序 RPC 返回的写入数异常时按失败处理", async () => {
