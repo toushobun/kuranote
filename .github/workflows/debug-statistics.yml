@@ -1,0 +1,29 @@
+name: Statistics migration diagnostics
+
+on:
+  pull_request:
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Capture diagnostics
+        shell: bash
+        run: |
+          npm run type-check > typecheck.log 2>&1 || true
+          npm run format:check > format.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: statistics-migration-diagnostics
+          path: |
+            typecheck.log
+            format.log
