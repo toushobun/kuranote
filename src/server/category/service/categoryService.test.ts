@@ -30,6 +30,7 @@ function createRepository(
       type: "expense",
     }),
     findActiveByLedgerId: vi.fn().mockResolvedValue([]),
+    findByIdsWithParents: vi.fn().mockResolvedValue([]),
     findActiveRootById: vi.fn().mockResolvedValue({
       id: parentId,
       parentId: null,

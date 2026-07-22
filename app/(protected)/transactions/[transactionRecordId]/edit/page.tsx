@@ -1,38 +1,33 @@
-import { redirect } from "next/navigation";
-
-import { transactionsErrorHref } from "config/paths";
 import {
   saveEditTransaction,
   voidTransaction,
-} from "server/actions/transactions";
-import { transactionErrorCodes } from "server/errors/transactions";
-import { loadEditTransactionView } from "server/loaders/transactionForm";
+} from "server/transaction/adapter/next/actions";
+import { loadEditTransactionView } from "server/transaction/adapter/next/loadTransactionViews";
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
+  TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
-import { getEditTransactionErrorMessage } from "utils/pageErrors";
 
 export default async function TransactionEditPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ transactionRecordId: string }>;
-  searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ transactionRecordId }, query] = await Promise.all([
-    params,
-    searchParams,
-  ]);
+  const { transactionRecordId } = await params;
   const { canEdit, ...view } =
     await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
-    redirect(transactionsErrorHref(transactionErrorCodes.permissionDenied));
+    return (
+      <NewTransactionVisualFrame>
+        <TransactionPermissionDenied operation="edit" />
+      </NewTransactionVisualFrame>
+    );
   }
 
-  const errorMessage = getEditTransactionErrorMessage(query.error);
+  const errorMessage = null;
   const initialValues = view.initialValues;
 
   if (initialValues.type === "transfer") {

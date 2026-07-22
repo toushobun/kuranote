@@ -23,7 +23,7 @@ import {
   type EditTransactionErrorCode,
   type NewTransactionErrorCode,
   type TransactionListErrorCode,
-} from "server/errors/transactions";
+} from "server/transaction/errors";
 import {
   editTransactionPageErrorMessages,
   newTransactionPageErrorMessages,

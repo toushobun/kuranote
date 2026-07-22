@@ -97,9 +97,9 @@ const merchantOptions = [
 function createProps(type: "expense" | "income" = "expense") {
   return {
     accountOptions,
-    action: vi.fn(async () => undefined),
+    action: vi.fn(async () => ({})),
     categoryOptions,
-    deleteAction: vi.fn(async () => undefined),
+    deleteAction: vi.fn(async () => ({})),
     errorMessage: null,
     initialValues: {
       accountId: accountOptions[0].id,

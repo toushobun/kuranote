@@ -2,7 +2,10 @@ import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NewTransactionTemplate } from "./TransactionFormPage";
+import {
+  NewTransactionTemplate,
+  TransactionPermissionDenied,
+} from "./TransactionFormPage";
 
 vi.mock("organisms/transactions/TransactionForm", () => ({
   TransactionForm: ({
@@ -64,7 +67,7 @@ afterEach(() => {
 
 const baseProps = {
   accountOptions: [],
-  action: vi.fn(async () => {}),
+  action: vi.fn(async () => ({})),
   categoryOptions: [],
   errorMessage: null,
   ledgerName: "家庭账本",
@@ -289,5 +292,23 @@ describe("NewTransactionTemplate", () => {
     const hiddenInput = within(activePanel).getByDisplayValue("income");
     expect(hiddenInput).toHaveAttribute("name", "type");
     expect(hiddenInput).toHaveAttribute("type", "hidden");
+  });
+});
+
+describe("TransactionPermissionDenied", () => {
+  it("显示当前操作的权限提示和返回入口", () => {
+    const { container } = render(
+      <TransactionPermissionDenied operation="create" />,
+    );
+
+    expect(within(container).getByRole("alert")).toHaveTextContent(
+      "无法新增记账",
+    );
+    expect(within(container).getByRole("alert")).toHaveTextContent(
+      "当前账本角色没有新增记账的权限。",
+    );
+    expect(
+      within(container).getByRole("link", { name: "返回明细" }),
+    ).toHaveAttribute("href", "/transactions");
   });
 });

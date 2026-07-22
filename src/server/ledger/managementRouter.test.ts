@@ -44,6 +44,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
       ...overrides,
     },
     merchant: {} as RequestContainer["merchant"],
+    transaction: {} as RequestContainer["transaction"],
     user: {} as RequestContainer["user"],
   } satisfies RequestContainer;
 }
