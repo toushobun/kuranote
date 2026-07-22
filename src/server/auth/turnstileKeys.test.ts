@@ -99,9 +99,7 @@ describe("turnstileKeys", () => {
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
 
-    expect(() => getTurnstileSecretKey()).toThrow(
-      TurnstileConfigurationError,
-    );
+    expect(() => getTurnstileSecretKey()).toThrow(TurnstileConfigurationError);
     expect(() => getTurnstileSecretKey()).toThrow(
       "TURNSTILE_SECRET_KEY is required in production.",
     );
