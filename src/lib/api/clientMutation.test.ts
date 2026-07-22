@@ -18,15 +18,20 @@ afterEach(() => {
 });
 
 describe("executeClientMutation", () => {
-  it("成功响应返回 ok", async () => {
+  it("成功响应执行成功回调并返回 ok", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    const onSuccess = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(executeClientMutation(options)).resolves.toEqual({ ok: true });
+    await expect(
+      executeClientMutation({ ...options, onSuccess }),
+    ).resolves.toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledWith(options.url, options.init);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
   it("失败响应优先返回统一错误响应中的安全消息", async () => {
+    const onSuccess = vi.fn();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -41,10 +46,13 @@ describe("executeClientMutation", () => {
       }),
     );
 
-    await expect(executeClientMutation(options)).resolves.toEqual({
+    await expect(
+      executeClientMutation({ ...options, onSuccess }),
+    ).resolves.toEqual({
       errorMessage: "内容已经发生变化。",
       ok: false,
     });
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("失败响应不是统一结构时使用兜底消息", async () => {
