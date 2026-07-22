@@ -6,12 +6,64 @@ on:
       - main
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: write
+
 env:
   RUN_CODE_CI: &run_code_ci >-
     github.event_name != 'pull_request' ||
     startsWith(github.head_ref, 'docs/') == false
 
 jobs:
+  issue-469-autofix:
+    name: Issue 469 autofix
+    if: >-
+      github.head_ref == 'perf/469_category_reorder_transactional_rpc' &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format files
+        run: npm run format
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: v2.106.0
+          github-token: ${{ github.token }}
+
+      - name: Update schema snapshot
+        env:
+          CI: "1"
+        run: npm run db:schema:snapshot:update
+
+      - name: Commit generated changes
+        run: |
+          if git diff --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: 更新分类排序格式与数据库快照"
+          git push origin HEAD:${{ github.head_ref }}
+
   # Stage 1: 并行静态检查
   type-check:
     name: Type check
