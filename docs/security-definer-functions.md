@@ -156,7 +156,7 @@ order by p.oid::regprocedure::text;
 - `create_account_with_holders` 创建账户与持有人，并触发账户初始化和基础数据权限 trigger。
 - `create_transaction` 创建交易，验证交易明细、余额同步、标签同步及交易表 trigger 路径。
 - `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 邀请链路。
-- 普通 member 直接修改账户时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
+- 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
 
 全部测试数据都在同一事务中创建，验证完成后统一 `ROLLBACK`。
 
