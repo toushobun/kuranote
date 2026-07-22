@@ -1,4 +1,4 @@
-name: Self-check sync main
+name: Self-check format audit
 
 on:
   pull_request:
@@ -11,37 +11,35 @@ permissions:
   contents: write
 
 jobs:
-  sync:
+  format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
 
-      - name: Sync latest main and update audit paths
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format audit document
+        run: npx prettier --write docs/security-definer-functions.md
+
+      - name: Commit formatting
         shell: bash
         run: |
+          if git diff --quiet; then
+            echo "格式无需调整。"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge --no-ff --no-commit origin/main
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("docs/security-definer-functions.md")
-          content = path.read_text()
-          content = content.replace(
-              "RPC：`src/server/services/transactions.ts`",
-              "RPC：`src/server/transaction/repository/transactionRepository.ts`",
-          )
-          content = content.replace(
-              "RPC：`src/server/loaders/transactionStep4Groups/groupLoaders.ts`",
-              "RPC：`src/server/transaction/repository/transactionRepository.ts`",
-          )
-          path.write_text(content)
-          PY
           git add docs/security-definer-functions.md
-          git commit -m "chore: 同步最新 main 并更新盘点路径"
+          git commit -m "style: 格式化安全函数盘点文档"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
