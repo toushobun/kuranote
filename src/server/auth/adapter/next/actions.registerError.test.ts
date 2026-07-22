@@ -12,6 +12,7 @@ import {
   RepositoryError,
   ValidationError,
 } from "server/shared/errors/appError";
+import { TurnstileConfigurationError } from "server/auth/turnstileKeys";
 
 const mocks = vi.hoisted(() => ({
   createRequestContainer: vi.fn(),
@@ -96,5 +97,31 @@ describe("requestRegisterOtp 注册失败文案", () => {
       resetTurnstile: true,
       status: "unknown_error",
     });
+  });
+
+  it("Turnstile 配置错误只返回通用文案且日志不泄露配置细节", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.requestRegisterOtp.mockRejectedValue(
+      new TurnstileConfigurationError(),
+    );
+
+    await expect(
+      requestRegisterOtp({}, createRegisterFormData()),
+    ).resolves.toEqual({
+      error: registerOtpMessages.serviceError,
+      resetTurnstile: true,
+      status: "unknown_error",
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[auth] OTP request action failed unexpectedly",
+      { errorName: "TurnstileConfigurationError" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "TURNSTILE_SECRET_KEY",
+    );
+
+    consoleError.mockRestore();
   });
 });
