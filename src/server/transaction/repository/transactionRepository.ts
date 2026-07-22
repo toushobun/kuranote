@@ -1,4 +1,10 @@
 import type { Logger } from "server/shared/logging/logger";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  ValidationError,
+} from "server/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import type {
@@ -133,7 +139,48 @@ export interface TransactionRepository {
   void(ledgerId: string, transactionRecordId: string): Promise<void>;
 }
 
-type RpcError = { details?: string | null; message?: string | null };
+type RpcError = {
+  code?: string | null;
+  details?: string | null;
+  message?: string | null;
+};
+
+const transactionRpcErrorCodes = [
+  "not_authenticated",
+  "ledger_forbidden",
+  transactionErrorCodes.permissionDenied,
+  "transaction_not_found",
+  "transaction_type_invalid",
+  "transaction_at_invalid",
+  "items_invalid",
+  transactionErrorCodes.accountInvalid,
+  transactionErrorCodes.amountInvalid,
+  transactionErrorCodes.categoryInvalid,
+  transactionErrorCodes.merchantInvalid,
+  "transfer_account_invalid",
+  "from_account_invalid",
+  "to_account_invalid",
+  "transfer_currency_invalid",
+  "transaction_type_not_changed",
+] as const;
+
+type TransactionRpcErrorCode = (typeof transactionRpcErrorCodes)[number];
+
+function findTransactionRpcErrorCode(
+  error: RpcError,
+): TransactionRpcErrorCode | null {
+  const messages = [error.details, error.message]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  for (const code of transactionRpcErrorCodes) {
+    if (messages.some((message) => message === code || message.includes(code))) {
+      return code;
+    }
+  }
+
+  return null;
+}
 
 export function createSupabaseTransactionRepository(
   supabase: AuthenticatedSupabaseClient,
@@ -145,18 +192,113 @@ export function createSupabaseTransactionRepository(
     error: RpcError,
     fields: Record<string, unknown>,
   ): never {
-    const code =
-      error.details?.trim() === transactionErrorCodes.permissionDenied ||
-      error.message?.includes(transactionErrorCodes.permissionDenied)
-        ? transactionErrorCodes.permissionDenied
-        : fallbackCode;
+    const rpcErrorCode = findTransactionRpcErrorCode(error);
 
     logger.error(`[transaction] ${operation}`, {
       ...fields,
+      databaseCode: error.code,
       databaseDetails: error.details,
       databaseMessage: error.message,
     });
-    throw toRepositoryError(code, "交易操作失败，请稍后重试。");
+
+    if (rpcErrorCode === "not_authenticated" || error.code === "28000") {
+      throw new AuthenticationError("auth_required", "请先登录。");
+    }
+
+    if (
+      rpcErrorCode === "ledger_forbidden" ||
+      rpcErrorCode === transactionErrorCodes.permissionDenied ||
+      error.code === "42501"
+    ) {
+      throw new AuthorizationError(
+        transactionErrorCodes.permissionDenied,
+        "没有权限执行此交易操作。",
+      );
+    }
+
+    if (rpcErrorCode === "transaction_not_found") {
+      throw new NotFoundError(
+        "transaction_not_found",
+        "交易记录不存在或已删除。",
+      );
+    }
+
+    if (
+      rpcErrorCode === transactionErrorCodes.accountInvalid ||
+      rpcErrorCode === "transfer_account_invalid" ||
+      rpcErrorCode === "from_account_invalid" ||
+      rpcErrorCode === "to_account_invalid"
+    ) {
+      throw new ValidationError(
+        transactionErrorCodes.accountInvalid,
+        "账户信息不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "transfer_currency_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.accountInvalid,
+        "转账账户币种必须一致。",
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.merchantInvalid) {
+      throw new ValidationError(
+        transactionErrorCodes.merchantInvalid,
+        "商家信息不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.categoryInvalid) {
+      throw new ValidationError(
+        transactionErrorCodes.categoryInvalid,
+        "分类信息不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.amountInvalid) {
+      throw new ValidationError(
+        transactionErrorCodes.amountInvalid,
+        "金额格式不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "transaction_type_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.typeInvalid,
+        "交易类型不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "transaction_at_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.dateInvalid,
+        "交易时间不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "items_invalid") {
+      throw new ValidationError(
+        "items_invalid",
+        "交易明细不正确，请确认后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "transaction_type_not_changed") {
+      throw new ValidationError(
+        transactionErrorCodes.updateInvalid,
+        "交易类型没有发生变化，请刷新页面后重试。",
+      );
+    }
+
+    if (error.code === "22023") {
+      throw new ValidationError(
+        rpcErrorCode ?? "transaction_invalid",
+        "交易内容不正确，请确认后重试。",
+      );
+    }
+
+    throw toRepositoryError(fallbackCode, "交易操作失败，请稍后重试。");
   }
 
   return {
