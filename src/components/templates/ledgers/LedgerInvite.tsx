@@ -213,40 +213,48 @@ export function LedgerInviteTemplate({
 }
 
 const pageBackgroundSx = {
-  background:
-    "linear-gradient(180deg, color-mix(in srgb, var(--mui-palette-primary-main) 10%, transparent) 0%, transparent 44%)",
+  bgcolor: "background.paper",
   inset: 0,
-  pointerEvents: "none",
   position: "fixed",
   zIndex: -1,
 };
 
 const pageShellSx = {
-  position: "relative",
+  px: { xs: 1.5, sm: 2 },
 };
 
 const illustrationSlotSx = {
-  aspectRatio: "16 / 10",
-  borderRadius: 4,
+  borderRadius: "0 0 28px 28px",
+  minHeight: 280,
+  mt: { xs: -2, sm: -3 },
+  mx: { xs: -1.5, sm: -2 },
   overflow: "hidden",
   position: "relative",
 };
 
 const backButtonSx = {
-  backdropFilter: "blur(8px)",
-  backgroundColor: "rgba(255, 255, 255, 0.82)",
+  bgcolor: "rgba(255, 255, 255, 0.85)",
+  boxShadow: 2,
+  color: "text.primary",
   left: 12,
   position: "absolute",
   top: 12,
+  "&:hover": {
+    bgcolor: "rgba(255, 255, 255, 0.95)",
+  },
 };
 
 const ledgerIconSx = {
   alignItems: "center",
-  backgroundColor: "primary.main",
-  borderRadius: 3,
-  color: "primary.contrastText",
-  display: "flex",
+  bgcolor: "var(--user-theme-icon-badge-bg)",
+  borderRadius: "50%",
+  color: "var(--user-theme-icon-badge-color)",
+  display: "inline-flex",
+  flexShrink: 0,
   height: 44,
   justifyContent: "center",
   width: 44,
-};
+  "& .MuiSvgIcon-root": {
+    fontSize: 24,
+  },
+} as const;
