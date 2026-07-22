@@ -4,6 +4,7 @@ import {
   AuthenticationError,
   AuthorizationError,
   ConflictError,
+  NotFoundError,
   ValidationError,
 } from "server/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
@@ -174,6 +175,13 @@ export function createSupabaseCategoryRepository(
       );
     }
 
+    if (rpcErrorCode === "ledger_not_found") {
+      throw new NotFoundError(
+        categoryErrorCodes.ledgerInvalid,
+        "账本不存在或已归档。",
+      );
+    }
+
     if (rpcErrorCode === "category_type_invalid") {
       throw new ValidationError(
         categoryErrorCodes.typeInvalid,
@@ -195,10 +203,7 @@ export function createSupabaseCategoryRepository(
       );
     }
 
-    if (
-      rpcErrorCode === "category_set_invalid" ||
-      rpcErrorCode === "ledger_not_found"
-    ) {
+    if (rpcErrorCode === "category_set_invalid") {
       throw new ConflictError(
         categoryErrorCodes.reorderConflict,
         "分类列表已发生变化，请刷新页面后重试。",
