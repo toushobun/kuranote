@@ -42,31 +42,10 @@ jobs:
           fi
 
       - name: Run database tests
-        id: database-tests
         shell: bash
         run: |
-          set +e
-          : > /tmp/db-test.log
-
-          supabase test db >> /tmp/db-test.log 2>&1
-          status=$?
-
-          if [ "${status}" -eq 0 ]; then
-            bash supabase/tests/database/category_reorder_concurrency.sh \
-              >> /tmp/db-test.log 2>&1
-            status=$?
-          fi
-
-          cat /tmp/db-test.log
-          exit "${status}"
-
-      - name: Upload database test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: database-test-log
-          path: /tmp/db-test.log
-          if-no-files-found: error
+          supabase test db
+          bash supabase/tests/database/category_reorder_concurrency.sh
 
       - name: Stop local Supabase
         if: always()
