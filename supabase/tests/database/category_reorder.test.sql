@@ -395,6 +395,10 @@ select throws_ok(
 
 reset role;
 
+-- 清空 jwt claim，让 ledger_member 的管理权限触发器按“未认证”分支放行本
+-- 次 fixture 插入，行为与文件顶部初始 fixture 插入时一致。
+select set_config('request.jwt.claim.sub', '', true);
+
 insert into public.ledger (
     id,
     name,
@@ -445,6 +449,11 @@ values
         '00000000-0000-4000-8000-000000000031'
     );
 
+select set_config(
+    'request.jwt.claim.sub',
+    '00000000-0000-4000-8000-000000000031',
+    true
+);
 set local role authenticated;
 
 select throws_ok(
