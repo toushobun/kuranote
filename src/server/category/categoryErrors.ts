@@ -8,6 +8,7 @@ export const categoryErrorCodes = {
   orderInvalid: "order_invalid",
   parentInvalid: "parent_invalid",
   permissionDenied: "permission_denied",
+  reorderConflict: "reorder_conflict",
   reorderFailed: "reorder_failed",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
