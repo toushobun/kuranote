@@ -78,16 +78,16 @@ export function LedgerInviteTemplate({
           method: "POST",
         },
         networkErrorMessage: "加入账本失败，请检查网络后重试。",
+        onSuccess: () => {
+          router.push(routePaths.dashboard);
+          router.refresh();
+        },
         url: "/api/ledger-invites/accept",
       });
 
       if (!result.ok) {
         setErrorMessage(result.errorMessage);
-        return;
       }
-
-      router.push(routePaths.dashboard);
-      router.refresh();
     } finally {
       setIsSubmitting(false);
     }
