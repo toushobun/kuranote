@@ -21,9 +21,11 @@ jobs:
         run: |
           npm run type-check > typecheck.log 2>&1 || true
           npm run format:check > format.log 2>&1 || true
+          git archive --format=zip HEAD -o source.zip
       - uses: actions/upload-artifact@v4
         with:
           name: statistics-migration-diagnostics
           path: |
             typecheck.log
             format.log
+            source.zip
