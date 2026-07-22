@@ -68,9 +68,7 @@ function expectRegisterFieldsPreserved() {
 
 function installInteractiveTurnstile() {
   let renderOptions: TurnstileRenderOptions | undefined;
-  const reset = vi.fn(() => {
-    renderOptions?.callback("turnstile-retry-ok");
-  });
+  const reset = vi.fn();
   const api: TurnstileApi = {
     render: (_container, options) => {
       renderOptions = options;
@@ -83,6 +81,7 @@ function installInteractiveTurnstile() {
   window.turnstile = api;
 
   return {
+    completeReset: () => renderOptions?.callback("turnstile-retry-ok"),
     getRenderOptions: () => renderOptions,
     reset,
   };
@@ -120,6 +119,12 @@ describe("RegisterForm Turnstile", () => {
     fireEvent.click(screen.getByRole("button", { name: "重新加载验证" }));
 
     expect(turnstile.reset).toHaveBeenCalledWith("turnstile-widget");
+    expect(screen.getByRole("button", { name: "获取验证码" })).toBeDisabled();
+
+    act(() => {
+      turnstile.completeReset();
+    });
+
     await waitFor(() => {
       expect(
         screen.queryByText("人机验证失败，请刷新页面后再试。"),
