@@ -12,7 +12,7 @@ on:
       - "scripts/update-schema-snapshot.sh"
       - "scripts/check-schema-snapshot.sh"
       - "scripts/check-security-definer-search-path.mjs"
-      - "scripts/check-security-definer-search-path.test.mjs"
+      - "scripts/check-security-definer-search-path-cases.mjs"
       - "scripts/security-definer-smoke.sql"
       - ".supabase-version"
       - "package.json"
