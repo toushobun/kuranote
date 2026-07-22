@@ -1,32 +1,9 @@
-import { createClient } from "lib/supabase/server";
 import type { TransactionItemDbRow } from "server/db-types";
 
 import type {
   RawTagAssignment,
   TransactionGroupLoaderContext,
 } from "server/transaction/util/grouping/types";
-
-export async function loadTagNameMap(tagIds: string[], ledgerId: string) {
-  const uniqueTagIds = [...new Set(tagIds)];
-  const tagById = new Map<string, string>();
-
-  if (uniqueTagIds.length === 0) return tagById;
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("transaction_tag")
-    .select("id, name")
-    .eq("ledger_id", ledgerId)
-    .in("id", uniqueTagIds);
-
-  if (error) throw new Error("Failed to load transaction tag names");
-
-  for (const tag of data ?? []) {
-    tagById.set(tag.id as string, tag.name as string);
-  }
-
-  return tagById;
-}
 
 export function groupItemsByRecordId(items: TransactionItemDbRow[]) {
   const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
