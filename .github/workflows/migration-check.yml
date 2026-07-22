@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check SECURITY DEFINER search_path
+        run: npm run db:security-definer:check
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
