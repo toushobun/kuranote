@@ -1,4 +1,4 @@
--- Issue #435：对 SECURITY DEFINER 的账户、交易、trigger 与邀请路径执行运行时烟雾测试。
+-- Issue #435：对 SECURITY DEFINER 的账户、交易、转换、作废、转账、trigger 与邀请路径执行运行时烟雾测试。
 -- 测试数据仅存在于当前事务，最终统一回滚。
 
 begin;
@@ -9,9 +9,12 @@ declare
     v_member_id uuid := '43500000-0000-4000-8000-000000000002';
     v_ledger_id uuid;
     v_account_id uuid;
+    v_transfer_account_id uuid;
     v_merchant_id uuid;
     v_expense_category_id uuid;
     v_transaction_id uuid;
+    v_transfer_transaction_id uuid;
+    v_result_id uuid;
     v_token text;
     v_preview_status text;
     v_accept_result text;
@@ -134,6 +137,16 @@ begin
     )
       into v_account_id;
 
+    select public.create_account_with_holders(
+        v_ledger_id,
+        'SECURITY DEFINER Transfer Account',
+        'bank',
+        'JPY',
+        50,
+        array[v_owner_id]
+    )
+      into v_transfer_account_id;
+
     if not exists (
         select 1
         from public.account account
@@ -143,6 +156,17 @@ begin
           and account.current_balance = 100
     ) then
         raise exception 'create_account_with_holders smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_transfer_account_id
+          and account.ledger_id = v_ledger_id
+          and account.initial_balance = 50
+          and account.current_balance = 50
+    ) then
+        raise exception 'create_account_with_holders transfer account smoke test failed';
     end if;
 
     if not exists (
@@ -235,6 +259,233 @@ begin
           and account.current_balance = 87.66
     ) then
         raise exception 'apply_account_balance_delta smoke test failed';
+    end if;
+
+    -- 普通交易转换为转账：先回滚原支出，再写入转出/转入两条明细。
+    select public.convert_transaction_type(
+        p_ledger_id => v_ledger_id,
+        p_transaction_record_id => v_transaction_id,
+        p_target_type => 'transfer',
+        p_transaction_at => pg_catalog.now(),
+        p_note => 'SECURITY DEFINER Converted Transfer',
+        p_from_account_id => v_account_id,
+        p_to_account_id => v_transfer_account_id,
+        p_transfer_amount => 20
+    )
+      into v_result_id;
+
+    if v_result_id <> v_transaction_id then
+        raise exception 'convert_transaction_type returned unexpected transaction id';
+    end if;
+
+    if not exists (
+        select 1
+        from public.transaction_record record
+        where record.id = v_transaction_id
+          and record.type = 'transfer'
+          and record.status = 'active'
+          and record.merchant_id is null
+          and record.note = 'SECURITY DEFINER Converted Transfer'
+    ) then
+        raise exception 'convert_transaction_type record smoke test failed';
+    end if;
+
+    if (
+        select pg_catalog.count(*)
+        from public.transaction_item item
+        where item.transaction_record_id = v_transaction_id
+    ) <> 2
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transaction_id
+             and item.account_id = v_account_id
+             and item.category_id is null
+             and item.amount = 20
+             and item.balance_delta = -20
+       )
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transaction_id
+             and item.account_id = v_transfer_account_id
+             and item.category_id is null
+             and item.amount = 20
+             and item.balance_delta = 20
+       ) then
+        raise exception 'convert_transaction_type items smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.current_balance = 80
+    ) or not exists (
+        select 1
+        from public.account account
+        where account.id = v_transfer_account_id
+          and account.current_balance = 70
+    ) then
+        raise exception 'convert_transaction_type balance smoke test failed';
+    end if;
+
+    -- 作废转换后的转账，验证两侧余额均被冲回。
+    select public.void_transaction(v_ledger_id, v_transaction_id)
+      into v_result_id;
+
+    if v_result_id <> v_transaction_id then
+        raise exception 'void_transaction returned unexpected transaction id';
+    end if;
+
+    if not exists (
+        select 1
+        from public.transaction_record record
+        where record.id = v_transaction_id
+          and record.status = 'deleted'
+          and record.deleted_by = v_owner_id
+          and record.deleted_at is not null
+    ) then
+        raise exception 'void_transaction record smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.current_balance = 100
+    ) or not exists (
+        select 1
+        from public.account account
+        where account.id = v_transfer_account_id
+          and account.current_balance = 50
+    ) then
+        raise exception 'void_transaction balance smoke test failed';
+    end if;
+
+    -- 单独创建转账，验证一条转出和一条转入明细及两侧余额。
+    select public.create_transfer_transaction(
+        v_ledger_id,
+        pg_catalog.now(),
+        10,
+        v_account_id,
+        v_transfer_account_id,
+        'SECURITY DEFINER Transfer'
+    )
+      into v_transfer_transaction_id;
+
+    if not exists (
+        select 1
+        from public.transaction_record record
+        where record.id = v_transfer_transaction_id
+          and record.type = 'transfer'
+          and record.status = 'active'
+          and record.note = 'SECURITY DEFINER Transfer'
+    ) then
+        raise exception 'create_transfer_transaction record smoke test failed';
+    end if;
+
+    if (
+        select pg_catalog.count(*)
+        from public.transaction_item item
+        where item.transaction_record_id = v_transfer_transaction_id
+    ) <> 2
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transfer_transaction_id
+             and item.account_id = v_account_id
+             and item.amount = 10
+             and item.balance_delta = -10
+       )
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transfer_transaction_id
+             and item.account_id = v_transfer_account_id
+             and item.amount = 10
+             and item.balance_delta = 10
+       ) then
+        raise exception 'create_transfer_transaction items smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.current_balance = 90
+    ) or not exists (
+        select 1
+        from public.account account
+        where account.id = v_transfer_account_id
+          and account.current_balance = 60
+    ) then
+        raise exception 'create_transfer_transaction balance smoke test failed';
+    end if;
+
+    -- 更新转账会先冲回旧金额，再按新金额重建转出/转入明细。
+    select public.update_transfer_transaction(
+        v_ledger_id,
+        v_transfer_transaction_id,
+        pg_catalog.now(),
+        15,
+        v_account_id,
+        v_transfer_account_id,
+        'SECURITY DEFINER Updated Transfer'
+    )
+      into v_result_id;
+
+    if v_result_id <> v_transfer_transaction_id then
+        raise exception 'update_transfer_transaction returned unexpected transaction id';
+    end if;
+
+    if not exists (
+        select 1
+        from public.transaction_record record
+        where record.id = v_transfer_transaction_id
+          and record.type = 'transfer'
+          and record.status = 'active'
+          and record.note = 'SECURITY DEFINER Updated Transfer'
+    ) then
+        raise exception 'update_transfer_transaction record smoke test failed';
+    end if;
+
+    if (
+        select pg_catalog.count(*)
+        from public.transaction_item item
+        where item.transaction_record_id = v_transfer_transaction_id
+    ) <> 2
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transfer_transaction_id
+             and item.account_id = v_account_id
+             and item.amount = 15
+             and item.balance_delta = -15
+       )
+       or not exists (
+           select 1
+           from public.transaction_item item
+           where item.transaction_record_id = v_transfer_transaction_id
+             and item.account_id = v_transfer_account_id
+             and item.amount = 15
+             and item.balance_delta = 15
+       ) then
+        raise exception 'update_transfer_transaction items smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.current_balance = 85
+    ) or not exists (
+        select 1
+        from public.account account
+        where account.id = v_transfer_account_id
+          and account.current_balance = 65
+    ) then
+        raise exception 'update_transfer_transaction balance smoke test failed';
     end if;
 
     select invite.token
