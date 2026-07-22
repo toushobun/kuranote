@@ -46,6 +46,7 @@ jobs:
         run: |
           supabase test db
           bash supabase/tests/database/category_reorder_concurrency.sh
+          bash supabase/tests/database/category_reorder_write_concurrency.sh
 
       - name: Stop local Supabase
         if: always()
