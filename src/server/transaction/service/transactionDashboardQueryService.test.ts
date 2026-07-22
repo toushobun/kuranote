@@ -52,9 +52,11 @@ describe("TransactionDashboardQueryService", () => {
         .fn()
         .mockResolvedValueOnce([monthlyRecord])
         .mockResolvedValueOnce([monthlyRecord]),
-      listTagAssignments: vi.fn().mockResolvedValue([
-        { tag_id: "tag-1", transaction_record_id: "record-1" },
-      ]),
+      listTagAssignments: vi
+        .fn()
+        .mockResolvedValue([
+          { tag_id: "tag-1", transaction_record_id: "record-1" },
+        ]),
       listTagsByIds: vi
         .fn()
         .mockResolvedValue([{ color: null, id: "tag-1", name: "外食" }]),

@@ -31,7 +31,11 @@ describe("executeClientMutation", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         json: vi.fn().mockResolvedValue({
-          error: { code: "conflict", message: "内容已经发生变化。", status: 409 },
+          error: {
+            code: "conflict",
+            message: "内容已经发生变化。",
+            status: 409,
+          },
         }),
         ok: false,
       }),
