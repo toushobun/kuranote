@@ -5,21 +5,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCloudflareTurnstileRepository } from "server/auth/repository/turnstileRepository";
 import type { Logger } from "server/shared/logging/logger";
 
-const originalSecret = process.env.TURNSTILE_SECRET_KEY;
-
 function createLogger(): Logger {
   return { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
 }
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  process.env.TURNSTILE_SECRET_KEY = originalSecret;
   vi.restoreAllMocks();
 });
 
 describe("createCloudflareTurnstileRepository", () => {
   it("携带 token、secret 和可信 IP 调用 Cloudflare", async () => {
-    process.env.TURNSTILE_SECRET_KEY = "secret-key";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "secret-key");
     const fetcher = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue({ success: true }),
       ok: true,
@@ -45,6 +44,7 @@ describe("createCloudflareTurnstileRepository", () => {
 
   it("非 Production 缺少 secret 时直接失败且不发外部请求", async () => {
     vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("VERCEL_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
     const fetcher = vi.fn();
     const repository = createCloudflareTurnstileRepository(
@@ -75,7 +75,9 @@ describe("createCloudflareTurnstileRepository", () => {
   });
 
   it("网络异常时只记录服务端日志并返回 false", async () => {
-    process.env.TURNSTILE_SECRET_KEY = "secret-key";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "secret-key");
     const logger = createLogger();
     const fetcher = vi.fn().mockRejectedValue(new Error("network details"));
     const repository = createCloudflareTurnstileRepository(logger, fetcher);
