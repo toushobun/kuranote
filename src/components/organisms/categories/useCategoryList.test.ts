@@ -114,6 +114,25 @@ describe("useCategoryList", () => {
     ).toEqual([categories[0].id, categories[1].id]);
   });
 
+  it("排序集合过期时恢复原顺序并提示刷新", async () => {
+    const reorderCategoryAction = vi.fn(async () => ({
+      error: categoryErrorCodes.reorderConflict,
+      ok: false as const,
+    }));
+    const { result } = renderCategoryListHook(reorderCategoryAction);
+
+    act(() => result.current.moveCategory(categories[0], 1));
+
+    await waitFor(() =>
+      expect(result.current.reorderError).toBe(
+        "分类列表已发生变化，请刷新页面后重试。",
+      ),
+    );
+    expect(
+      result.current.visibleCategories.map((category) => category.id),
+    ).toEqual([categories[0].id, categories[1].id]);
+  });
+
   it("排序 Action 抛出异常时恢复原顺序并显示错误", async () => {
     const reorderCategoryAction = vi.fn(async () => {
       throw new Error("network error");
