@@ -12,16 +12,98 @@ declare
     v_preview_status text;
     v_accept_result text;
 begin
-    -- app_user.id 引用 auth.users。烟雾测试只需准备应用侧身份，临时关闭该表的
-    -- 约束 trigger 完成 fixture 插入，随后立即恢复；业务 RPC 执行期间 trigger 正常启用。
-    alter table public.app_user disable trigger all;
-
-    insert into public.app_user (id, display_name, email, status)
+    -- 按真实认证链路准备用户，让既存 on_auth_user_created trigger 创建 app_user。
+    insert into auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        confirmation_token,
+        recovery_token,
+        email_change_token_new,
+        email_change,
+        phone,
+        phone_change,
+        phone_change_token,
+        email_change_token_current,
+        email_change_confirm_status,
+        reauthentication_token,
+        last_sign_in_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        is_super_admin,
+        is_sso_user,
+        is_anonymous,
+        created_at,
+        updated_at
+    )
     values
-        (v_owner_id, 'SECURITY DEFINER Owner', 'security-owner@example.invalid', 'active'),
-        (v_member_id, 'SECURITY DEFINER Member', 'security-member@example.invalid', 'active');
+        (
+            '00000000-0000-0000-0000-000000000000',
+            v_owner_id,
+            'authenticated',
+            'authenticated',
+            'security-owner@example.invalid',
+            extensions.crypt('not-used', extensions.gen_salt('bf')),
+            pg_catalog.now(),
+            '',
+            '',
+            '',
+            '',
+            null,
+            '',
+            '',
+            '',
+            0,
+            '',
+            pg_catalog.now(),
+            '{"provider": "email", "providers": ["email"]}'::jsonb,
+            '{"display_name": "SECURITY DEFINER Owner"}'::jsonb,
+            false,
+            false,
+            false,
+            pg_catalog.now(),
+            pg_catalog.now()
+        ),
+        (
+            '00000000-0000-0000-0000-000000000000',
+            v_member_id,
+            'authenticated',
+            'authenticated',
+            'security-member@example.invalid',
+            extensions.crypt('not-used', extensions.gen_salt('bf')),
+            pg_catalog.now(),
+            '',
+            '',
+            '',
+            '',
+            null,
+            '',
+            '',
+            '',
+            0,
+            '',
+            pg_catalog.now(),
+            '{"provider": "email", "providers": ["email"]}'::jsonb,
+            '{"display_name": "SECURITY DEFINER Member"}'::jsonb,
+            false,
+            false,
+            false,
+            pg_catalog.now(),
+            pg_catalog.now()
+        );
 
-    alter table public.app_user enable trigger all;
+    if not exists (
+        select 1
+        from public.app_user app_user
+        where app_user.id in (v_owner_id, v_member_id)
+        having pg_catalog.count(*) = 2
+    ) then
+        raise exception 'on_auth_user_created fixture setup failed';
+    end if;
 
     perform pg_catalog.set_config(
         'request.jwt.claim.sub',
