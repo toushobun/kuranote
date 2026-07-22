@@ -44,4 +44,33 @@ describe("分类排序账本失效错误", () => {
       name: NotFoundError.name,
     });
   });
+
+  it("ledger_required 不落入通用排序失败错误", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "ledger_required",
+          message: "ledger_required",
+        },
+      },
+    });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.reorder({
+        categoryIds: [categoryId],
+        ledgerId,
+        parentId: null,
+        type: "expense",
+      }),
+    ).rejects.toMatchObject({
+      code: categoryErrorCodes.ledgerInvalid,
+      message: "账本不存在或已归档。",
+      name: NotFoundError.name,
+    });
+  });
 });

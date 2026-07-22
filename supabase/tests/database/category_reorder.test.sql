@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(15);
+select plan(16);
 
 insert into public.ledger (
     id,
@@ -391,6 +391,70 @@ select throws_ok(
     '22023',
     'category_parent_invalid',
     '其他账本的上级分类被拒绝'
+);
+
+insert into public.ledger (
+    id,
+    name,
+    base_currency,
+    owner_user_id,
+    is_archived,
+    archived_by,
+    archived_at,
+    created_by,
+    updated_by
+)
+values
+    (
+        '46900000-0000-4000-8000-000000000003',
+        '分类排序已归档账本',
+        'JPY',
+        '00000000-0000-4000-8000-000000000031',
+        true,
+        '00000000-0000-4000-8000-000000000031',
+        now(),
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031'
+    );
+
+insert into public.ledger_member (
+    id,
+    ledger_id,
+    user_id,
+    role,
+    status,
+    invited_by,
+    invited_at,
+    joined_at,
+    created_by,
+    updated_by
+)
+values
+    (
+        '46901000-0000-4000-8000-000000000004',
+        '46900000-0000-4000-8000-000000000003',
+        '00000000-0000-4000-8000-000000000031',
+        'owner',
+        'active',
+        '00000000-0000-4000-8000-000000000031',
+        now(),
+        now(),
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031'
+    );
+
+select throws_ok(
+    $$
+        select public.reorder_categories(
+            '46900000-0000-4000-8000-000000000003',
+            'expense',
+            null,
+            array['46910000-0000-4000-8000-000000000001'::uuid]
+        )
+    $$,
+    'P0002',
+    'ledger_not_found',
+    '已归档账本的排序请求被拒绝'
 );
 
 reset role;

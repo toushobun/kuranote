@@ -96,6 +96,7 @@ type CategoryReorderRpcError = {
 const categoryReorderRpcErrorCodes = [
   "auth_required",
   "permission_denied",
+  "ledger_required",
   "ledger_not_found",
   "category_type_invalid",
   "category_order_invalid",
@@ -175,7 +176,10 @@ export function createSupabaseCategoryRepository(
       );
     }
 
-    if (rpcErrorCode === "ledger_not_found") {
+    if (
+      rpcErrorCode === "ledger_required" ||
+      rpcErrorCode === "ledger_not_found"
+    ) {
       throw new NotFoundError(
         categoryErrorCodes.ledgerInvalid,
         "账本不存在或已归档。",
