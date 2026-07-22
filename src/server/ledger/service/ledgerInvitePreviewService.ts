@@ -25,7 +25,8 @@ export function createLedgerInvitePreviewService(
           : null,
         inviterName:
           typeof row.inviter_name === "string" ? row.inviter_name : null,
-        ledgerName: typeof row.ledger_name === "string" ? row.ledger_name : null,
+        ledgerName:
+          typeof row.ledger_name === "string" ? row.ledger_name : null,
         status: isInviteStatus(row.invite_status)
           ? row.invite_status
           : "invalid",

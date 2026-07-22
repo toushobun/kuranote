@@ -44,7 +44,7 @@ function addRequestContext(
       ledger: {} as RequestContainer["ledger"],
       merchant: {} as RequestContainer["merchant"],
       statistics: {} as RequestContainer["statistics"],
-    transaction: {} as RequestContainer["transaction"],
+      transaction: {} as RequestContainer["transaction"],
       user: {} as RequestContainer["user"],
     });
     c.set("requestId", "request-1");

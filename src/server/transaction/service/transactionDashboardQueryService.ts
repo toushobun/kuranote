@@ -101,7 +101,9 @@ export function createTransactionDashboardQueryService({
         ledgerId: ledger.id,
         recordType: "all",
       });
-      const normalRecords = records.filter((record) => record.type === "normal");
+      const normalRecords = records.filter(
+        (record) => record.type === "normal",
+      );
       const context = await loadTransactionGroupLoaderContextForRecords(
         getReadDependencies(),
         ledger,

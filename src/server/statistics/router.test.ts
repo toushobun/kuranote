@@ -85,9 +85,7 @@ describe("statisticsRouter", () => {
 
   it("返回指定月份的统计数据", async () => {
     const { app, service } = createApp();
-    const response = await app.request(
-      `/statistics/${ledgerId}?month=2026-06`,
-    );
+    const response = await app.request(`/statistics/${ledgerId}?month=2026-06`);
 
     expect(response.status).toBe(200);
     expect(service.getMonthly).toHaveBeenCalledWith({
@@ -98,9 +96,7 @@ describe("statisticsRouter", () => {
 
   it("无效月份在调用 Service 前返回 400", async () => {
     const { app, service } = createApp();
-    const response = await app.request(
-      `/statistics/${ledgerId}?month=2026-13`,
-    );
+    const response = await app.request(`/statistics/${ledgerId}?month=2026-13`);
 
     expect(response.status).toBe(400);
     expect(service.getMonthly).not.toHaveBeenCalled();

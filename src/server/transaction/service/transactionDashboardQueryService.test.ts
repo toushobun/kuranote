@@ -72,9 +72,11 @@ describe("TransactionDashboardQueryService", () => {
         getActiveMemberRole: vi.fn().mockResolvedValue("member"),
       },
       merchantQueryService: {
-        findSummariesByIds: vi.fn().mockResolvedValue([
-          { icon_url: null, id: "merchant-1", name: "超市" },
-        ]),
+        findSummariesByIds: vi
+          .fn()
+          .mockResolvedValue([
+            { icon_url: null, id: "merchant-1", name: "超市" },
+          ]),
       } as never,
       transactionRepository: transactionRepository as never,
     });

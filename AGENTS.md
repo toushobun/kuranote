@@ -16,9 +16,9 @@
 - `3xx` 仅用于真实的页面或资源重定向。正常的 `next`、筛选、分页、搜索等查询参数不属于禁止范围。
 - 弹框关闭后应维持当前 URL，刷新页面不得重复显示已经处理完毕的历史异常。
 - 新增或修改功能时，应优先复用现有异常处理机制，避免再次引入 URL 错误参数方案。
+
 ## 后端模块归属
 
 - 后端业务代码必须放入 `src/server/<module>/`，框架相关的 Server Action、`redirect()`、`notFound()` 与缓存失效放入模块内 `adapter/next/`。
 - 不得重新建立顶级 `src/server/actions`、`services`、`loaders`、`errors`、`validators`、`http` 或 `context` 兼容目录；跨模块调用只使用公开的窄 Service Interface。
 - 通用错误、日志、Schema、Supabase 与 middleware 能力放入 `src/server/shared/`，不得把业务规则塞入 `shared/`。
-

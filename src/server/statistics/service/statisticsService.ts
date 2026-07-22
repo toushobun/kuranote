@@ -72,9 +72,8 @@ export function createStatisticsService({
   return {
     async getDashboard({ ledgerId }) {
       const ledger = await requireLedger(ledgerId);
-      const { monthEndIso, monthLabel, monthStartIso } = getDashboardDateRange(
-        now(),
-      );
+      const { monthEndIso, monthLabel, monthStartIso } =
+        getDashboardDateRange(now());
       const [transactionData, accounts] = await Promise.all([
         transactionDashboardQueryService.getDashboardData({
           currentLedger: ledger,

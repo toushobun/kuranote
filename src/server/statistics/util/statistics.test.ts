@@ -10,13 +10,37 @@ const records = [
 ];
 
 const items = [
-  { amount: "1000", category_id: "category-food", transaction_record_id: "expense-1" },
-  { amount: "600", category_id: "category-daily", transaction_record_id: "expense-1" },
-  { amount: "1500", category_id: "category-food", transaction_record_id: "expense-2" },
+  {
+    amount: "1000",
+    category_id: "category-food",
+    transaction_record_id: "expense-1",
+  },
+  {
+    amount: "600",
+    category_id: "category-daily",
+    transaction_record_id: "expense-1",
+  },
+  {
+    amount: "1500",
+    category_id: "category-food",
+    transaction_record_id: "expense-2",
+  },
   { amount: "300", category_id: null, transaction_record_id: "expense-3" },
-  { amount: "250000", category_id: "category-salary", transaction_record_id: "income-1" },
-  { amount: "999", category_id: "category-food", transaction_record_id: "missing-record" },
-  { amount: "invalid", category_id: "category-food", transaction_record_id: "expense-2" },
+  {
+    amount: "250000",
+    category_id: "category-salary",
+    transaction_record_id: "income-1",
+  },
+  {
+    amount: "999",
+    category_id: "category-food",
+    transaction_record_id: "missing-record",
+  },
+  {
+    amount: "invalid",
+    category_id: "category-food",
+    transaction_record_id: "expense-2",
+  },
 ];
 
 const merchants = [
@@ -26,10 +50,30 @@ const merchants = [
 ];
 
 const categories = [
-  { id: "category-parent-food", name: "食费", parent_id: null, type: "expense" as const },
-  { id: "category-food", name: "外食", parent_id: "category-parent-food", type: "expense" as const },
-  { id: "category-daily", name: "日用品", parent_id: null, type: "expense" as const },
-  { id: "category-salary", name: "工资", parent_id: null, type: "income" as const },
+  {
+    id: "category-parent-food",
+    name: "食费",
+    parent_id: null,
+    type: "expense" as const,
+  },
+  {
+    id: "category-food",
+    name: "外食",
+    parent_id: "category-parent-food",
+    type: "expense" as const,
+  },
+  {
+    id: "category-daily",
+    name: "日用品",
+    parent_id: null,
+    type: "expense" as const,
+  },
+  {
+    id: "category-salary",
+    name: "工资",
+    parent_id: null,
+    type: "income" as const,
+  },
 ];
 
 describe("statistics util", () => {
@@ -58,12 +102,32 @@ describe("statistics util", () => {
       },
     });
     expect(view.merchantExpenseRanking).toEqual([
-      { amount: "1600", id: "merchant-super", name: "超市", transactionCount: 1 },
-      { amount: "1500", id: "merchant-cafe", name: "咖啡店", transactionCount: 1 },
+      {
+        amount: "1600",
+        id: "merchant-super",
+        name: "超市",
+        transactionCount: 1,
+      },
+      {
+        amount: "1500",
+        id: "merchant-cafe",
+        name: "咖啡店",
+        transactionCount: 1,
+      },
     ]);
     expect(view.categoryExpenseRanking).toEqual([
-      { amount: "2500", id: "category-food", name: "食费 / 外食", transactionCount: 2 },
-      { amount: "600", id: "category-daily", name: "日用品", transactionCount: 1 },
+      {
+        amount: "2500",
+        id: "category-food",
+        name: "食费 / 外食",
+        transactionCount: 2,
+      },
+      {
+        amount: "600",
+        id: "category-daily",
+        name: "日用品",
+        transactionCount: 1,
+      },
     ]);
   });
 
