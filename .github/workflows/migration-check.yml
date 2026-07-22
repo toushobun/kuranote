@@ -46,8 +46,17 @@ jobs:
         shell: bash
         run: |
           set +e
-          supabase test db > /tmp/db-test.log 2>&1
+          : > /tmp/db-test.log
+
+          supabase test db >> /tmp/db-test.log 2>&1
           status=$?
+
+          if [ "${status}" -eq 0 ]; then
+            bash supabase/tests/database/category_reorder_concurrency.sh \
+              >> /tmp/db-test.log 2>&1
+            status=$?
+          fi
+
           cat /tmp/db-test.log
           exit "${status}"
 
