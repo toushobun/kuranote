@@ -18,16 +18,26 @@ jobs:
       - name: Apply migration batch
         shell: bash
         run: |
-          set -euo pipefail
-          cat .github/tmp/issue475-added.part* | base64 --decode > /tmp/issue475-added.tar.gz
-          tar -xzf /tmp/issue475-added.tar.gz
-          cat .github/tmp/issue475-batch.part* | base64 --decode | gunzip > /tmp/issue475.patch
-          git apply /tmp/issue475.patch
-          rm -f .github/tmp/issue475-added.part*
-          rm -f .github/tmp/issue475-batch.part*
-          rm -f .github/workflows/apply-issue475-batch.yml
-          git add -A
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "refactor: 收编废弃后端顶级结构"
-          git push origin HEAD:${{ github.head_ref }}
+          set -o pipefail
+          {
+            set -eux
+            cat .github/tmp/issue475-added.part* | base64 --decode > /tmp/issue475-added.tar.gz
+            tar -tzf /tmp/issue475-added.tar.gz
+            tar -xzf /tmp/issue475-added.tar.gz
+            cat .github/tmp/issue475-batch.part* | base64 --decode | gunzip > /tmp/issue475.patch
+            git apply --check /tmp/issue475.patch
+            git apply /tmp/issue475.patch
+            rm -f .github/tmp/issue475-added.part*
+            rm -f .github/tmp/issue475-batch.part*
+            rm -f .github/workflows/apply-issue475-batch.yml
+            git add -A
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "refactor: 收编废弃后端顶级结构"
+            git push origin HEAD:${{ github.head_ref }}
+          } 2>&1 | tee apply.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue475-apply-log
+          path: apply.log
