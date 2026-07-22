@@ -142,7 +142,23 @@ order by p.oid::regprocedure::text;
 - 新增函数体是否存在未限定的应用对象引用。
 - 常见 pgcrypto 函数是否遗漏 `extensions.` 限定。
 
+检查器使用 `.mjs`，是为了让 Node.js 在 GitHub Actions 中无需 TypeScript 编译或额外运行器即可直接执行；它只依赖 Node.js 标准库，不引入新的构建步骤或 npm 依赖。
+
 `npm run db:security-definer:test` 使用独立 SQL fixture 覆盖安全定义、同文件多函数、缺少 `search_path`、未限定应用对象、未限定 pgcrypto 和不安全 `ALTER FUNCTION`。
+
+静态检查基于 SQL 文本解析与正则扫描，无法可靠理解 `EXECUTE format(...)` 等动态 SQL。当前 41 个函数均未使用动态 SQL；今后如在 `SECURITY DEFINER` 中引入动态 SQL，必须在 PR 中单独说明拼接来源、schema 限定和注入防护，并补充针对该函数的数据库运行时测试，不能仅以静态检查通过作为安全依据。
+
+## 运行时烟雾测试
+
+`Schema snapshot check` 会在本地 Supabase 回放全部 migrations 后执行事务内烟雾测试，覆盖：
+
+- `create_ledger_with_owner_settings` 创建账本及默认数据。
+- `create_account_with_holders` 创建账户与持有人，并触发账户初始化和基础数据权限 trigger。
+- `create_transaction` 创建交易，验证交易明细、余额同步、标签同步及交易表 trigger 路径。
+- `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 邀请链路。
+- 普通 member 直接修改账户时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
+
+全部测试数据都在同一事务中创建，验证完成后统一 `ROLLBACK`。
 
 ## 新增或修改函数检查清单
 
