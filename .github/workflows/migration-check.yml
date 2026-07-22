@@ -7,6 +7,8 @@ on:
     # paths 未命中时不会创建 workflow，因此不要将 Migration check 设为全局 required check。
     paths:
       - "supabase/migrations/**"
+      - "supabase/tests/database/**"
+      - ".github/workflows/migration-check.yml"
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
@@ -30,6 +32,16 @@ jobs:
         with:
           version: v2.106.0
           github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Run database tests
+        run: supabase test db
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
 
       - name: Check required configuration
         shell: bash
