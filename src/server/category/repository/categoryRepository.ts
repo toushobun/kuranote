@@ -1,6 +1,13 @@
+import { categoryErrorCodes } from "server/category/categoryErrors";
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ConflictError,
+  ValidationError,
+} from "server/shared/errors/appError";
 import type { CategorySummaryDbRow } from "server/db-types";
 import type { CategoryRow } from "types/categories";
 import type { TransactionType } from "types/transactions";
@@ -79,6 +86,40 @@ type CategoryRecordRow = {
   type: TransactionType;
 };
 
+type CategoryReorderRpcError = {
+  code?: string | null;
+  details?: string | null;
+  message?: string | null;
+};
+
+const categoryReorderRpcErrorCodes = [
+  "auth_required",
+  "permission_denied",
+  "ledger_not_found",
+  "category_type_invalid",
+  "category_order_invalid",
+  "category_parent_invalid",
+  "category_set_invalid",
+  "category_write_failed",
+] as const;
+
+type CategoryReorderRpcErrorCode =
+  (typeof categoryReorderRpcErrorCodes)[number];
+
+function findCategoryReorderRpcErrorCode(
+  error: CategoryReorderRpcError,
+): CategoryReorderRpcErrorCode | null {
+  const messages = [error.details, error.message]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return (
+    categoryReorderRpcErrorCodes.find((code) =>
+      messages.some((message) => message === code || message.includes(code)),
+    ) ?? null
+  );
+}
+
 function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {
   return {
     id: row.id,
@@ -104,6 +145,70 @@ export function createSupabaseCategoryRepository(
       message: error.message,
     });
     throw toRepositoryError(code, message);
+  }
+
+  function throwReorderRpcError(
+    error: CategoryReorderRpcError,
+    input: ReorderCategoriesInput,
+  ): never {
+    const rpcErrorCode = findCategoryReorderRpcErrorCode(error);
+
+    logger.error("[category] failed to reorder categories transactionally", {
+      categoryCount: input.categoryIds.length,
+      databaseCode: error.code,
+      databaseDetails: error.details,
+      databaseMessage: error.message,
+      ledgerId: input.ledgerId,
+      parentId: input.parentId,
+      type: input.type,
+    });
+
+    if (rpcErrorCode === "auth_required") {
+      throw new AuthenticationError("auth_required", "请先登录。");
+    }
+
+    if (rpcErrorCode === "permission_denied" || error.code === "42501") {
+      throw new AuthorizationError(
+        categoryErrorCodes.permissionDenied,
+        "只有账本所有者或管理员可以维护分类。",
+      );
+    }
+
+    if (rpcErrorCode === "category_type_invalid") {
+      throw new ValidationError(
+        categoryErrorCodes.typeInvalid,
+        "分类类型不正确。",
+      );
+    }
+
+    if (rpcErrorCode === "category_order_invalid") {
+      throw new ValidationError(
+        categoryErrorCodes.orderInvalid,
+        "分类排序内容不正确。",
+      );
+    }
+
+    if (rpcErrorCode === "category_parent_invalid") {
+      throw new ValidationError(
+        categoryErrorCodes.parentInvalid,
+        "大分类指定不正确。",
+      );
+    }
+
+    if (
+      rpcErrorCode === "category_set_invalid" ||
+      rpcErrorCode === "ledger_not_found"
+    ) {
+      throw new ConflictError(
+        categoryErrorCodes.reorderConflict,
+        "分类列表已发生变化，请刷新页面后重试。",
+      );
+    }
+
+    throw toRepositoryError(
+      categoryErrorCodes.reorderFailed,
+      "分类排序保存失败，请稍后重试。",
+    );
   }
 
   return {
@@ -329,18 +434,7 @@ export function createSupabaseCategoryRepository(
       });
 
       if (error) {
-        throwRepositoryError(
-          "category_reorder_failed",
-          "分类排序保存失败，请稍后重试。",
-          "[category] failed to reorder categories transactionally",
-          error,
-          {
-            categoryCount: input.categoryIds.length,
-            ledgerId: input.ledgerId,
-            parentId: input.parentId,
-            type: input.type,
-          },
-        );
+        throwReorderRpcError(error, input);
       }
 
       if (Number(data) !== input.categoryIds.length) {
