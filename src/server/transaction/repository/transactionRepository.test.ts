@@ -418,7 +418,7 @@ describe("TransactionRepository", () => {
       repository.void(ledgerId, transactionRecordId),
     ).rejects.toMatchObject({
       code: "permission_denied",
-      message: "交易操作失败，请稍后重试。",
+      message: "没有权限执行此交易操作。",
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
