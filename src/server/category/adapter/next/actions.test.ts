@@ -3,7 +3,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { categoryErrorCodes } from "server/category/categoryErrors";
-import { ConflictError, RepositoryError } from "server/shared/errors/appError";
+import {
+  ConflictError,
+  NotFoundError,
+  RepositoryError,
+} from "server/shared/errors/appError";
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
@@ -165,6 +169,25 @@ describe("Category Server Actions", () => {
 
     await expect(reorderCategories(formData)).resolves.toEqual({
       error: categoryErrorCodes.reorderConflict,
+      ok: false,
+    });
+    expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
+  });
+
+  it("排序账本失效时返回独立错误且不失效缓存", async () => {
+    mocks.reorder.mockRejectedValue(
+      new NotFoundError(
+        categoryErrorCodes.ledgerInvalid,
+        "账本不存在或已归档。",
+      ),
+    );
+    const formData = new FormData();
+    formData.set("categoryIds", JSON.stringify([categoryId]));
+    formData.set("parentId", "");
+    formData.set("type", "expense");
+
+    await expect(reorderCategories(formData)).resolves.toEqual({
+      error: categoryErrorCodes.ledgerInvalid,
       ok: false,
     });
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
