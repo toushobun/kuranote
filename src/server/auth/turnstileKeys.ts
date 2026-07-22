@@ -4,7 +4,7 @@ import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
 const vercelPreviewEnv = "preview";
 
-class TurnstileConfigurationError extends Error {
+export class TurnstileConfigurationError extends Error {
   constructor() {
     super("TURNSTILE_SECRET_KEY is required in production.");
     this.name = "TurnstileConfigurationError";
