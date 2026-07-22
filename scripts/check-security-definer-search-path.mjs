@@ -5,7 +5,8 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const DEFAULT_BASELINE = "20260722093000_harden_security_definer_search_path.sql";
+const DEFAULT_BASELINE =
+  "20260722093000_harden_security_definer_search_path.sql";
 const ALLOWED_SEARCH_PATH_SCHEMAS = new Set([
   "pg_catalog",
   "extensions",
@@ -60,20 +61,18 @@ function parseArguments(argv) {
 }
 
 function stripSqlComments(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/--[^\r\n]*/g, " ");
+  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\r\n]*/g, " ");
 }
 
 function normalizeIdentifier(identifier) {
-  return identifier.trim().replace(/^['"]|['"]$/g, "").toLowerCase();
+  return identifier
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .toLowerCase();
 }
 
 function normalizeSearchPath(rawPath) {
-  return rawPath
-    .split(",")
-    .map(normalizeIdentifier)
-    .filter(Boolean);
+  return rawPath.split(",").map(normalizeIdentifier).filter(Boolean);
 }
 
 function validateSearchPath(rawPath, context) {
@@ -147,9 +146,10 @@ function extractFunctionDefinitions(sql) {
 
 function extractSearchPathFromFunctionHeader(header) {
   const normalizedHeader = header.replace(/\s+/g, " ");
-  const match = /\bset\s+"?search_path"?\s*(?:=|to)\s*(.+?)(?=\s+(?:as\s+\$|stable\b|immutable\b|volatile\b|strict\b|called\b|parallel\b|cost\b|rows\b|support\b|transform\b|leakproof\b|not\s+leakproof\b)|$)/i.exec(
-    normalizedHeader,
-  );
+  const match =
+    /\bset\s+"?search_path"?\s*(?:=|to)\s*(.+?)(?=\s+(?:as\s+\$|stable\b|immutable\b|volatile\b|strict\b|called\b|parallel\b|cost\b|rows\b|support\b|transform\b|leakproof\b|not\s+leakproof\b)|$)/i.exec(
+      normalizedHeader,
+    );
   return match?.[1]?.trim() ?? null;
 }
 
@@ -215,7 +215,9 @@ function findUnqualifiedExtensionReferences(body) {
       "i",
     );
     if (callPattern.test(body)) {
-      errors.push(`扩展函数 ${functionName}() 必须显式使用 extensions schema。`);
+      errors.push(
+        `扩展函数 ${functionName}() 必须显式使用 extensions schema。`,
+      );
     }
   }
 
@@ -262,9 +264,7 @@ function analyzeAlterFunctionStatements(sql, fileLabel) {
 
   while ((match = searchPathPattern.exec(normalizedSql)) !== null) {
     const signature = match[1].replace(/\s+/g, " ").trim();
-    errors.push(
-      ...validateSearchPath(match[2], `${fileLabel} (${signature})`),
-    );
+    errors.push(...validateSearchPath(match[2], `${fileLabel} (${signature})`));
   }
 
   const securityDefinerPattern =
@@ -360,7 +360,8 @@ export function main(argv = process.argv.slice(2)) {
 
 const isDirectExecution =
   process.argv[1] &&
-  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+  path.resolve(process.argv[1]) ===
+    path.resolve(fileURLToPath(import.meta.url));
 if (isDirectExecution) {
   main();
 }

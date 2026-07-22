@@ -9,7 +9,9 @@ import { analyzeRepository } from "./check-security-definer-search-path.mjs";
 const baseline = "20260722093000_harden_security_definer_search_path.sql";
 
 function createRepository({ migration = "", snapshot }) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "security-definer-check-"));
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "security-definer-check-"),
+  );
   const migrationsDirectory = path.join(root, "supabase", "migrations");
   const snapshotDirectory = path.join(root, "supabase", "schema_snapshot");
   fs.mkdirSync(migrationsDirectory, { recursive: true });
