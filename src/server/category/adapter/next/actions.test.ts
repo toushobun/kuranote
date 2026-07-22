@@ -135,11 +135,9 @@ describe("Category Server Actions", () => {
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledTimes(2);
   });
 
-  it("排序失败时返回 Service 错误和恢复标记且不失效缓存", async () => {
+  it("排序失败时返回 Service 错误且不失效缓存", async () => {
     mocks.reorder.mockRejectedValue(
-      new RepositoryError(categoryErrorCodes.reorderFailed, "排序失败", {
-        details: { recoveryFailed: true },
-      }),
+      new RepositoryError(categoryErrorCodes.reorderFailed, "排序失败"),
     );
     const formData = new FormData();
     formData.set("categoryIds", JSON.stringify([categoryId]));
@@ -149,7 +147,6 @@ describe("Category Server Actions", () => {
     await expect(reorderCategories(formData)).resolves.toEqual({
       error: categoryErrorCodes.reorderFailed,
       ok: false,
-      recoveryFailed: true,
     });
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
   });
