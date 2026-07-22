@@ -1,0 +1,44 @@
+name: Format issue 475 self-check changes
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.repository == 'toushobun/kuranote' && github.head_ref == 'refactor/475_migrate_statistics_dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Format self-check changes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npx prettier --write \
+            src/lib/api/clientMutation.ts \
+            src/lib/api/clientMutation.test.ts \
+            src/components/templates/ledgers/LedgerInvite.tsx \
+            src/server/transaction/service/transactionDashboardQueryService.ts \
+            src/server/transaction/service/transactionDashboardQueryService.test.ts
+          git add \
+            src/lib/api/clientMutation.ts \
+            src/lib/api/clientMutation.test.ts \
+            src/components/templates/ledgers/LedgerInvite.tsx \
+            src/server/transaction/service/transactionDashboardQueryService.ts \
+            src/server/transaction/service/transactionDashboardQueryService.test.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style: 格式化 #475 自查改动"
+          git push origin HEAD:${{ github.head_ref }}
