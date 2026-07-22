@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { categoryErrorCodes } from "server/category/categoryErrors";
-import { RepositoryError } from "server/shared/errors/appError";
+import { ConflictError, RepositoryError } from "server/shared/errors/appError";
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
@@ -146,6 +146,25 @@ describe("Category Server Actions", () => {
 
     await expect(reorderCategories(formData)).resolves.toEqual({
       error: categoryErrorCodes.reorderFailed,
+      ok: false,
+    });
+    expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
+  });
+
+  it("排序集合过期时返回可刷新冲突且不失效缓存", async () => {
+    mocks.reorder.mockRejectedValue(
+      new ConflictError(
+        categoryErrorCodes.reorderConflict,
+        "分类列表已发生变化，请刷新页面后重试。",
+      ),
+    );
+    const formData = new FormData();
+    formData.set("categoryIds", JSON.stringify([categoryId]));
+    formData.set("parentId", "");
+    formData.set("type", "expense");
+
+    await expect(reorderCategories(formData)).resolves.toEqual({
+      error: categoryErrorCodes.reorderConflict,
       ok: false,
     });
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
