@@ -1,7 +1,7 @@
 import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
-} from "server/errors/currentLedger";
+} from "server/ledger/errors/currentLedger";
 import type { CurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
 import { AppError, NotFoundError } from "server/shared/errors/appError";
 

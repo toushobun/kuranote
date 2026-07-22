@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import { createLedgerSettingsService } from "server/ledger/service/ledgerSettingsService";
 import type { LedgerSettingsRepository } from "server/ledger/repository/ledgerSettingsRepository";
-import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
+import { ledgerSettingsErrorCodes } from "server/ledger/errors/ledgerSettings";
 import {
   AuthorizationError,
   NotFoundError,

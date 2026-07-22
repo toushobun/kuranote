@@ -88,4 +88,12 @@ describe("createRequestContainer", () => {
       "function",
     );
   });
+
+  it("提供惰性缓存的 statistics.service 与统计查询 UseCase", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.statistics).toBe(container.statistics);
+    expect(typeof container.statistics.service.getDashboard).toBe("function");
+    expect(typeof container.statistics.service.getMonthly).toBe("function");
+  });
 });

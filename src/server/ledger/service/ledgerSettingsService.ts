@@ -2,7 +2,7 @@ import type { CurrentLedger } from "lib/ledger/current-ledger";
 import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
-} from "server/errors/ledgerSettings";
+} from "server/ledger/errors/ledgerSettings";
 import type {
   LedgerSettingsRepository,
   UpdateLedgerBaseSettingsInput,

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { currentLedgerErrorCodes } from "server/ledger/errors/currentLedger";
 import { createSupabaseCurrentLedgerRepository } from "server/ledger/repository/currentLedgerRepository";
 import { createSupabaseMock } from "test/supabaseMock";
 

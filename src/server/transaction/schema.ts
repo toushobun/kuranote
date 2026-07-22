@@ -26,7 +26,7 @@ import {
   parseRequiredUuidField,
   type ValidationResult,
   valid,
-} from "server/validators/common";
+} from "server/shared/schema/formValidation";
 
 export type { TransactionValidationErrorCode };
 

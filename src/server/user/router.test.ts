@@ -42,6 +42,7 @@ function createContainer(
     category: {} as RequestContainer["category"],
     ledger: {} as RequestContainer["ledger"],
     merchant: {} as RequestContainer["merchant"],
+    statistics: {} as RequestContainer["statistics"],
     transaction: {} as RequestContainer["transaction"],
     user: {
       service: {

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { merchantsErrorHref, routePaths } from "config/paths";
-import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { requireCurrentUserAndLedger } from "server/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "server/container";
 import { revalidateMerchantMutation } from "server/merchant/adapter/next/revalidate";
 import {

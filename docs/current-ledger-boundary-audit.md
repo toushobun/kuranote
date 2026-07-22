@@ -1,3 +1,5 @@
+> **状态：已完成。** 本文记录的是重构前的边界盘点，文中 `src/server/actions`、`loaders`、`services` 等路径属于历史来源，不再是当前代码位置。当前后端模块归属以 Issue #468、`docs/AI_RULES.md` 和各业务模块目录为准。
+
 # Current ledger 数据边界审计
 
 关联 Issue：#445  
@@ -131,13 +133,13 @@ Parent：#380
   - 接受邀请统一更新 `app_user.current_ledger_id`，不再写入 `user_setting`。
 - `src/server/account/adapter/next/actions.test.ts`
   - 创建账户忽略客户端伪造的 `ledgerId`。
-- `src/server/actions/currentLedgerBoundary.test.ts`
+- `src/server/ledger/adapter/next/actions/currentLedgerBoundary.test.ts`
   - 创建记账忽略客户端伪造的 `ledgerId`。
 - `src/server/cache/currentLedger.test.ts`
   - 固化所有依赖 current ledger 的刷新路径。
-- `src/server/actions/ledgerCreate.test.ts`
-- `src/server/actions/currentLedger.test.ts`
-- `src/server/actions/ledgerInvite.test.ts`
+- `src/server/ledger/adapter/next/actions/ledgerCreate.test.ts`
+- `src/server/ledger/adapter/next/actions/currentLedger.test.ts`
+- `src/server/ledger/adapter/next/actions/ledgerInvite.test.ts`
   - 三条 current ledger 变化路径统一使用完整刷新范围。
 - `src/server/loaders/dashboard.currentLedger.test.ts`
   - Dashboard 交易和账户查询使用 current ledger；无账本时不查询业务数据。

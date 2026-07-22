@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createLedgerService } from "server/ledger/service/ledgerService";
 import type { LedgerRepository } from "server/ledger/repository/ledgerRepository";
-import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
+import { ledgerCreateErrorCodes } from "server/ledger/errors/ledgerCreate";
 import {
   AuthenticationError,
   ValidationError,

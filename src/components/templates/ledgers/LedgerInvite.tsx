@@ -15,9 +15,10 @@ import { useState, type FormEvent } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
+import { executeClientMutation } from "lib/api/clientMutation";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import type { LedgerInvitePreview } from "server/services/ledgerInvite";
+import type { LedgerInvitePreview } from "server/ledger/entity/ledgerInvitePreview";
 import { PageShell } from "templates/layout/PageShell";
 import type { LedgerInviteRole } from "types/ledgers";
 
@@ -31,14 +32,6 @@ type LedgerInviteTemplateProps = {
   exitHref?: string;
   preview: LedgerInvitePreview;
   token: string;
-};
-
-type InviteErrorResponse = {
-  error?: {
-    code?: string;
-    message?: string;
-    status?: number;
-  };
 };
 
 export function LedgerInviteTemplate({
@@ -77,24 +70,24 @@ export function LedgerInviteTemplate({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/ledger-invites/accept", {
-        body: JSON.stringify({ token }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
+      const result = await executeClientMutation({
+        fallbackErrorMessage: "加入账本失败，请稍后重试。",
+        init: {
+          body: JSON.stringify({ token }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        networkErrorMessage: "加入账本失败，请检查网络后重试。",
+        onSuccess: () => {
+          router.push(routePaths.dashboard);
+          router.refresh();
+        },
+        url: "/api/ledger-invites/accept",
       });
 
-      if (!response.ok) {
-        const body = (await response
-          .json()
-          .catch(() => null)) as InviteErrorResponse | null;
-        setErrorMessage(body?.error?.message ?? "加入账本失败，请稍后重试。");
-        return;
+      if (!result.ok) {
+        setErrorMessage(result.errorMessage);
       }
-
-      router.push(routePaths.dashboard);
-      router.refresh();
-    } catch {
-      setErrorMessage("加入账本失败，请检查网络后重试。");
     } finally {
       setIsSubmitting(false);
     }

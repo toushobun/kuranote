@@ -1,7 +1,7 @@
 import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
-} from "server/errors/currentLedger";
+} from "server/ledger/errors/currentLedger";
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 

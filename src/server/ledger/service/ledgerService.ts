@@ -2,7 +2,7 @@ import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
   type LedgerCreateErrorCode,
-} from "server/errors/ledgerCreate";
+} from "server/ledger/errors/ledgerCreate";
 import type {
   CreateLedgerInput,
   LedgerRepository,

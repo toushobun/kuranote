@@ -11,7 +11,7 @@ import {
 import { revalidateAccountMutation } from "server/account/adapter/next/revalidate";
 import { isAccountErrorCode } from "server/account/errors";
 import { createRequestContainer } from "server/container";
-import { requireCurrentUserAndLedger } from "server/context/currentLedger";
+import { requireCurrentUserAndLedger } from "server/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { AppError } from "server/shared/errors/appError";
 import type { AccountActionState } from "types/accounts";

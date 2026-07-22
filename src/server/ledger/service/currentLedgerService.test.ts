@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { currentLedgerErrorCodes } from "server/ledger/errors/currentLedger";
 import { createCurrentLedgerService } from "server/ledger/service/currentLedgerService";
 import { AppError, NotFoundError } from "server/shared/errors/appError";
 

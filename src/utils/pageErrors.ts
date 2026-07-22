@@ -9,11 +9,11 @@ import {
 import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
-} from "server/errors/currentLedger";
+} from "server/ledger/errors/currentLedger";
 import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
-} from "server/errors/ledgerSettings";
+} from "server/ledger/errors/ledgerSettings";
 import {
   merchantErrorCodes,
   type MerchantPageErrorCode,
