@@ -1,0 +1,30 @@
+name: Apply issue 475 prettier patch
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.repository == 'toushobun/kuranote' && github.head_ref == 'refactor/475_migrate_statistics_dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Apply Prettier patch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          base64 --decode .github/tmp/issue475-prettier.patch.gz.b64 | gunzip > /tmp/prettier.patch
+          git apply --check /tmp/prettier.patch
+          git apply /tmp/prettier.patch
+          rm -f .github/tmp/issue475-prettier.patch.gz.b64
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style: 格式化 Statistics 收尾改动"
+          git push origin HEAD:${{ github.head_ref }}
