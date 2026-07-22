@@ -37,9 +37,7 @@ describe("分类排序事务型 RPC migration", () => {
     expect(migration).toContain("l.is_archived = false");
     expect(migration).toContain("p_type not in ('expense', 'income')");
     expect(migration).toContain("parent.parent_id is null");
-    expect(migration).toContain(
-      "c.parent_id is not distinct from p_parent_id",
-    );
+    expect(migration).toContain("c.parent_id is not distinct from p_parent_id");
     expect(migration).toContain("v_distinct_count <> v_category_count");
     expect(migration).toContain(
       "v_submitted_ids is distinct from v_sibling_ids",
@@ -57,9 +55,7 @@ describe("分类排序事务型 RPC migration", () => {
     expect(migration).toContain(
       "sort_order = (submitted_order.position * 10)::integer",
     );
-    expect(migration).toContain(
-      "get diagnostics v_updated_count = row_count",
-    );
+    expect(migration).toContain("get diagnostics v_updated_count = row_count");
     expect(migration).toContain("category_write_failed");
   });
 
