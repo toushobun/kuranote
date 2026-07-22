@@ -5,12 +5,35 @@ import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from "server/shared/errors/appError";
 import { createSupabaseTransactionRepository } from "server/transaction/repository/transactionRepository";
 
 const migrationPath = path.join(
   process.cwd(),
   "supabase/migrations/20260630020000_drop_transaction_item_stat_type.sql",
 );
+
+const normalInput = {
+  accountId: "00000000-0000-4000-8000-000000000045",
+  items: [
+    {
+      amount: 1200,
+      categoryId: "00000000-0000-4000-8000-000000005072",
+    },
+  ],
+  ledgerId: "00000000-0000-4000-8000-000000000032",
+  merchantId: "00000000-0000-4000-8000-000000001001",
+  note: null,
+  tagNames: [],
+  transactionAt: "2026-06-04T01:00:00.000Z",
+  type: "expense" as const,
+};
 
 function readFunctionBody(functionName: string) {
   const migration = readFileSync(migrationPath, "utf8");
@@ -20,6 +43,30 @@ function readFunctionBody(functionName: string) {
   const end = migration.indexOf("\n$$;", start);
   if (end < 0) throw new Error(`${functionName} body was not terminated`);
   return migration.slice(start, end);
+}
+
+function createRepositoryWithRpcError({
+  code,
+  databaseError,
+}: {
+  code: string;
+  databaseError: string;
+}) {
+  const rpc = vi.fn().mockResolvedValue({
+    data: null,
+    error: {
+      code,
+      details: databaseError,
+      message: `raw database message: ${databaseError}`,
+    },
+  });
+  const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+  const repository = createSupabaseTransactionRepository(
+    { from: vi.fn(), rpc } as never,
+    logger,
+  );
+
+  return { logger, repository };
 }
 
 /**
@@ -75,56 +122,91 @@ describe("Transaction RPC 资源边界", () => {
 
 describe("Transaction Repository RPC 错误边界", () => {
   it.each([
-    "account_invalid",
-    "merchant_invalid",
-    "category_invalid",
-    "from_account_invalid",
-    "to_account_invalid",
-    "transfer_currency_invalid",
+    ["account_invalid", "account_invalid", "账户信息不正确，请确认后重试。"],
+    [
+      "from_account_invalid",
+      "account_invalid",
+      "账户信息不正确，请确认后重试。",
+    ],
+    [
+      "to_account_invalid",
+      "account_invalid",
+      "账户信息不正确，请确认后重试。",
+    ],
+    [
+      "transfer_currency_invalid",
+      "account_invalid",
+      "转账账户币种必须一致。",
+    ],
+    ["merchant_invalid", "merchant_invalid", "商家信息不正确，请确认后重试。"],
+    ["category_invalid", "category_invalid", "分类信息不正确，请确认后重试。"],
   ])(
-    "数据库资源错误 %s 不向上层泄露原始详情",
-    async (databaseError) => {
-      const rpc = vi.fn().mockResolvedValue({
-        data: null,
-        error: {
-          details: databaseError,
-          message: `raw database message: ${databaseError}`,
-        },
+    "数据库参数错误 %s 转换为安全的 ValidationError",
+    async (databaseError, expectedCode, expectedMessage) => {
+      const { logger, repository } = createRepositoryWithRpcError({
+        code: "22023",
+        databaseError,
       });
-      const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
-      const repository = createSupabaseTransactionRepository(
-        { from: vi.fn(), rpc } as never,
-        logger,
+
+      const error = await repository.createNormal(normalInput).catch((value) =>
+        Promise.resolve(value),
       );
 
-      await expect(
-        repository.createNormal({
-          accountId: "00000000-0000-4000-8000-000000000045",
-          items: [
-            {
-              amount: 1200,
-              categoryId: "00000000-0000-4000-8000-000000005072",
-            },
-          ],
-          ledgerId: "00000000-0000-4000-8000-000000000032",
-          merchantId: "00000000-0000-4000-8000-000000001001",
-          note: null,
-          tagNames: [],
-          transactionAt: "2026-06-04T01:00:00.000Z",
-          type: "expense",
-        }),
-      ).rejects.toMatchObject({
-        code: "create_failed",
-        message: "交易操作失败，请稍后重试。",
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchObject({
+        code: expectedCode,
+        message: expectedMessage,
       });
-
+      expect(String(error)).not.toContain("raw database message");
       expect(logger.error).toHaveBeenCalledWith(
         "[transaction] failed to create transaction",
         expect.objectContaining({
+          databaseCode: "22023",
           databaseDetails: databaseError,
           databaseMessage: expect.stringContaining(databaseError),
         }),
       );
     },
   );
+
+  it.each([
+    ["not_authenticated", "28000", AuthenticationError, "auth_required"],
+    ["ledger_forbidden", "42501", AuthorizationError, "permission_denied"],
+    ["permission_denied", "42501", AuthorizationError, "permission_denied"],
+    ["transaction_not_found", "22023", NotFoundError, "transaction_not_found"],
+  ])(
+    "数据库业务错误 %s 转换为对应应用错误",
+    async (databaseError, databaseCode, ErrorType, expectedCode) => {
+      const { repository } = createRepositoryWithRpcError({
+        code: databaseCode,
+        databaseError,
+      });
+
+      const error = await repository.createNormal(normalInput).catch((value) =>
+        Promise.resolve(value),
+      );
+
+      expect(error).toBeInstanceOf(ErrorType);
+      expect(error).toMatchObject({ code: expectedCode });
+      expect(String(error)).not.toContain("raw database message");
+    },
+  );
+
+  it("未知数据库异常保留为安全的 RepositoryError", async () => {
+    const { repository } = createRepositoryWithRpcError({
+      code: "XX000",
+      databaseError: "unexpected_database_failure",
+    });
+
+    const error = await repository.createNormal(normalInput).catch((value) =>
+      Promise.resolve(value),
+    );
+
+    expect(error).toBeInstanceOf(RepositoryError);
+    expect(error).toMatchObject({
+      code: "create_failed",
+      message: "交易操作失败，请稍后重试。",
+    });
+    expect(String(error)).not.toContain("unexpected_database_failure");
+  });
 });
