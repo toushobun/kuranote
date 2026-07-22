@@ -22,14 +22,14 @@ jobs:
           {
             set -eux
             cat .github/tmp/issue475-added.part* | base64 --decode > /tmp/issue475-added.tar.gz
-            tar -tzf /tmp/issue475-added.tar.gz
             tar -xzf /tmp/issue475-added.tar.gz
             cat .github/tmp/issue475-batch.part* | base64 --decode | gunzip > /tmp/issue475.patch
             git apply --check /tmp/issue475.patch
             git apply /tmp/issue475.patch
+            git checkout -- .github/workflows
             rm -f .github/tmp/issue475-added.part*
             rm -f .github/tmp/issue475-batch.part*
-            rm -f .github/workflows/apply-issue475-batch.yml
+            rm -f apply.log
             git add -A
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
