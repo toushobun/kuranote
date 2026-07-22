@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
-import { getTurnstileSecretKey, getTurnstileSiteKey } from "./turnstileKeys";
+import {
+  getTurnstileSecretKey,
+  getTurnstileSiteKey,
+  TurnstileConfigurationError,
+} from "./turnstileKeys";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -20,6 +24,7 @@ describe("turnstileKeys", () => {
   it("Production 缺少正式 site key 时抛出错误", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
 
     expect(() => getTurnstileSiteKey()).toThrow(
       "NEXT_PUBLIC_TURNSTILE_SITE_KEY is required in production.",
@@ -43,6 +48,8 @@ describe("turnstileKeys", () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY", "");
+    vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "");
 
     expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
     expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
@@ -54,6 +61,7 @@ describe("turnstileKeys", () => {
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY", "preview-site-key");
+    vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "");
 
     expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
     expect(getTurnstileSecretKey()).toBe(turnstileTestSecretKey);
@@ -64,6 +72,7 @@ describe("turnstileKeys", () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "prod-site-key");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "prod-secret-key");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_PREVIEW_SITE_KEY", "");
     vi.stubEnv("TURNSTILE_PREVIEW_SECRET_KEY", "preview-secret-key");
 
     expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
@@ -72,6 +81,7 @@ describe("turnstileKeys", () => {
 
   it("本地开发缺少正式 site key 时使用官方测试 site key", () => {
     vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
 
     expect(getTurnstileSiteKey()).toBe(turnstileTestSiteKey);
   });
@@ -84,9 +94,21 @@ describe("turnstileKeys", () => {
     expect(getTurnstileSecretKey()).toBe("prod-secret-key");
   });
 
-  it("非 Preview 环境缺少 secret key 时保持 fail closed", () => {
+  it("Production 缺少正式 secret key 时抛出可识别配置错误", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+
+    expect(() => getTurnstileSecretKey()).toThrow(TurnstileConfigurationError);
+    expect(() => getTurnstileSecretKey()).toThrow(
+      "TURNSTILE_SECRET_KEY is required in production.",
+    );
+  });
+
+  it("本地开发缺少正式 secret key 时保持 fail closed", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL_ENV", "development");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
 
     expect(getTurnstileSecretKey()).toBe("");
   });
