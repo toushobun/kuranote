@@ -4,6 +4,13 @@ import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
 const vercelPreviewEnv = "preview";
 
+class TurnstileConfigurationError extends Error {
+  constructor() {
+    super("TURNSTILE_SECRET_KEY is required in production.");
+    this.name = "TurnstileConfigurationError";
+  }
+}
+
 function isVercelPreview() {
   return process.env.VERCEL_ENV === vercelPreviewEnv;
 }
@@ -49,5 +56,5 @@ export function getTurnstileSecretKey() {
   if (secretKey) return secretKey;
   if (process.env.NODE_ENV !== "production") return "";
 
-  throw new Error("TURNSTILE_SECRET_KEY is required in production.");
+  throw new TurnstileConfigurationError();
 }
