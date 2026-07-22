@@ -9,6 +9,7 @@ declare
     v_member_id uuid := '43500000-0000-4000-8000-000000000002';
     v_ledger_id uuid;
     v_account_id uuid;
+    v_merchant_id uuid;
     v_expense_category_id uuid;
     v_transaction_id uuid;
     v_token text;
@@ -154,6 +155,21 @@ begin
         raise exception 'create_account_with_holders holder smoke test failed';
     end if;
 
+    -- 普通交易要求关联商家；该写入同时经过基础数据权限 trigger。
+    insert into public.merchant (
+        ledger_id,
+        name,
+        created_by,
+        updated_by
+    )
+    values (
+        v_ledger_id,
+        'SECURITY DEFINER Merchant',
+        v_owner_id,
+        v_owner_id
+    )
+    returning id into v_merchant_id;
+
     select category.id
       into v_expense_category_id
       from public.category category
@@ -182,7 +198,7 @@ begin
             )
         ),
         v_account_id,
-        null,
+        v_merchant_id,
         'SECURITY DEFINER Smoke',
         '[]'::jsonb
     )
@@ -193,6 +209,7 @@ begin
         from public.transaction_record record
         where record.id = v_transaction_id
           and record.ledger_id = v_ledger_id
+          and record.merchant_id = v_merchant_id
           and record.status = 'active'
           and record.created_by = v_owner_id
     ) then
