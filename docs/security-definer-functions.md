@@ -158,7 +158,7 @@ order by p.oid::regprocedure::text;
 - `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 邀请链路。
 - 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
 
-全部测试数据都在同一事务中创建，验证完成后统一 `ROLLBACK`。
+全部测试数据都在同一事务中创建，验证完成后统一 `ROLLBACK`。上述路径已在 PR #494 的最终验证中实际执行通过。
 
 ## 新增或修改函数检查清单
 
