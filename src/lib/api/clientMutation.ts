@@ -6,6 +6,7 @@ type ClientMutationOptions = {
   fallbackErrorMessage: string;
   init: RequestInit;
   networkErrorMessage: string;
+  onSuccess?: () => Promise<void> | void;
   url: string;
 };
 
@@ -13,24 +14,28 @@ export async function executeClientMutation({
   fallbackErrorMessage,
   init,
   networkErrorMessage,
+  onSuccess,
   url,
 }: ClientMutationOptions): Promise<ClientMutationResult> {
+  let response: Response;
+
   try {
-    const response = await fetch(url, init);
+    response = await fetch(url, init);
+  } catch {
+    return { errorMessage: networkErrorMessage, ok: false };
+  }
 
-    if (response.ok) {
-      return { ok: true };
-    }
-
+  if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
 
     return {
       errorMessage: getErrorMessage(body) ?? fallbackErrorMessage,
       ok: false,
     };
-  } catch {
-    return { errorMessage: networkErrorMessage, ok: false };
   }
+
+  await onSuccess?.();
+  return { ok: true };
 }
 
 function getErrorMessage(value: unknown): string | null {
