@@ -49,7 +49,8 @@ describe("分类排序事务型 RPC migration", () => {
 
   it("使用单次批量 UPDATE 并在写入数异常时使事务失败", () => {
     const migration = readMigration();
-    const updateStatements = migration.match(/update public\.category c/g) ?? [];
+    const updateStatements =
+      migration.match(/update public\.category c/g) ?? [];
 
     expect(updateStatements).toHaveLength(1);
     expect(migration).toContain("unnest(p_category_ids) with ordinality");
@@ -72,8 +73,8 @@ describe("分类排序事务型 RPC migration", () => {
     expect(migration.indexOf("lock table public.category")).toBeLessThan(
       migration.indexOf("select coalesce(array_agg(locked_category.id"),
     );
-    expect(migration.indexOf("select coalesce(array_agg(locked_category.id")).toBeLessThan(
-      migration.indexOf("update public.category c"),
-    );
+    expect(
+      migration.indexOf("select coalesce(array_agg(locked_category.id"),
+    ).toBeLessThan(migration.indexOf("update public.category c"));
   });
 });
