@@ -50,6 +50,7 @@ describe("分类排序事务型 RPC migration", () => {
     const updateStatements =
       migration.match(/update public\.category c/g) ?? [];
 
+    expect(migration).toContain("returns integer");
     expect(updateStatements).toHaveLength(1);
     expect(migration).toContain("unnest(p_category_ids) with ordinality");
     expect(migration).toContain(
