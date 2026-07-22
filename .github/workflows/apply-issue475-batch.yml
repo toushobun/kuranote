@@ -1,0 +1,30 @@
+name: Apply issue 475 migration batch
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.repository == 'toushobun/kuranote' && github.head_ref == 'refactor/475_migrate_statistics_dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Apply migration batch
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode .github/tmp/issue475-batch.patch.gz.b64 | gunzip > /tmp/issue475.patch
+          git apply --index /tmp/issue475.patch
+          rm -f .github/tmp/issue475-batch.patch.gz.b64
+          rm -f .github/workflows/apply-issue475-batch.yml
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: 收编废弃后端顶级结构"
+          git push origin HEAD:${{ github.head_ref }}
