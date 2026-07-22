@@ -13,6 +13,7 @@ on:
       - "scripts/check-schema-snapshot.sh"
       - "scripts/check-security-definer-search-path.mjs"
       - "scripts/check-security-definer-search-path.test.mjs"
+      - "scripts/security-definer-smoke.sql"
       - ".supabase-version"
       - "package.json"
       - ".github/workflows/schema-snapshot-check.yml"
@@ -89,6 +90,13 @@ jobs:
         run: npm run db:schema:snapshot:check
         env:
           ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
+
+      - name: Smoke test SECURITY DEFINER RPC
+        run: |
+          psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            --set ON_ERROR_STOP=1 \
+            --file scripts/security-definer-smoke.sql
 
       - name: Upload generated snapshot
         if: always()
