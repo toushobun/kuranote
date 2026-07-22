@@ -10,7 +10,8 @@ import { createSupabaseMock } from "test/supabaseMock";
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const categoryId = "00000000-0000-4000-8000-000000000101";
-const parentId = "00000000-0000-4000-8000-000000000102";
+const secondCategoryId = "00000000-0000-4000-8000-000000000102";
+const parentId = "00000000-0000-4000-8000-000000000103";
 
 function createLogger(): Logger {
   return { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
@@ -170,6 +171,93 @@ describe("createSupabaseCategoryRepository", () => {
       args: [`id.eq.${categoryId},parent_id.eq.${categoryId}`],
       method: "or",
     });
+  });
+
+  it("一次排序只调用一个事务型 RPC 且不逐条更新", async () => {
+    const supabase = createSupabaseMock({ rpcResponse: { data: 2 } });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await repository.reorder({
+      categoryIds: [secondCategoryId, categoryId],
+      ledgerId,
+      parentId: null,
+      type: "expense",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledOnce();
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_categories", {
+      p_category_ids: [secondCategoryId, categoryId],
+      p_ledger_id: ledgerId,
+      p_parent_id: null,
+      p_type: "expense",
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("排序 RPC 拒绝非法集合时转换为 RepositoryError", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: { code: "22023", message: "category_set_invalid" },
+      },
+    });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.reorder({
+        categoryIds: [categoryId, categoryId],
+        ledgerId,
+        parentId,
+        type: "expense",
+      }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[category] failed to reorder categories transactionally",
+      {
+        categoryCount: 2,
+        code: "22023",
+        ledgerId,
+        message: "category_set_invalid",
+        parentId,
+        type: "expense",
+      },
+    );
+  });
+
+  it("排序 RPC 返回的写入数异常时按失败处理", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({ rpcResponse: { data: 1 } });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.reorder({
+        categoryIds: [categoryId, secondCategoryId],
+        ledgerId,
+        parentId: null,
+        type: "expense",
+      }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[category] category reorder RPC returned an unexpected count",
+      {
+        actualCount: 1,
+        code: undefined,
+        expectedCount: 2,
+        ledgerId,
+        message: "unexpected updated category count",
+        parentId: null,
+        type: "expense",
+      },
+    );
   });
 
   it("Supabase 错误会记录安全字段并转换为 RepositoryError", async () => {
