@@ -11,6 +11,8 @@ on:
       - "scripts/generate-schema-snapshot.sh"
       - "scripts/update-schema-snapshot.sh"
       - "scripts/check-schema-snapshot.sh"
+      - "scripts/check-security-definer-search-path.mjs"
+      - "scripts/check-security-definer-search-path.test.mjs"
       - ".supabase-version"
       - "package.json"
       - ".github/workflows/schema-snapshot-check.yml"
@@ -38,6 +40,9 @@ jobs:
             scripts/generate-schema-snapshot.sh \
             scripts/update-schema-snapshot.sh \
             scripts/check-schema-snapshot.sh
+          node --check scripts/check-security-definer-search-path.mjs
+          npm run db:security-definer:test
+          npm run db:security-definer:check
 
       - name: Check migration-first configuration
         shell: bash
