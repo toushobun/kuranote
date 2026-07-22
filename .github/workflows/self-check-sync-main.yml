@@ -1,0 +1,47 @@
+name: Self-check sync main
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/self-check-sync-main.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Sync latest main and update audit paths
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-ff --no-commit origin/main
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/security-definer-functions.md")
+          content = path.read_text()
+          content = content.replace(
+              "RPC：`src/server/services/transactions.ts`",
+              "RPC：`src/server/transaction/repository/transactionRepository.ts`",
+          )
+          content = content.replace(
+              "RPC：`src/server/loaders/transactionStep4Groups/groupLoaders.ts`",
+              "RPC：`src/server/transaction/repository/transactionRepository.ts`",
+          )
+          path.write_text(content)
+          PY
+          git add docs/security-definer-functions.md
+          git commit -m "chore: 同步最新 main 并更新盘点路径"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
