@@ -30,10 +30,4 @@ describe("createServerRequestDependencies", () => {
       userId: null,
     });
   });
-
-  // 注意：React.cache() 的请求内去重依赖 React 在渲染 Server Component
-  // 树时提供的调用帧，脱离真实渲染上下文（例如本文件所在的纯 Vitest 环境）
-  // 调用两次会各自触发一次底层依赖创建，无法在这里验证去重效果。
-  // 去重行为本身由 React.cache() 保证，实际效果需要在页面级 / e2e 测试中
-  // 通过真实 Server Component 渲染验证。
 });
