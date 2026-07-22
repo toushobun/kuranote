@@ -1,4 +1,4 @@
--- Issue #435：对依赖 pgcrypto 的邀请 RPC 执行最小烟雾测试。
+-- Issue #435：对 SECURITY DEFINER 的账户、交易、trigger 与邀请路径执行运行时烟雾测试。
 -- 测试数据仅存在于当前事务，最终统一回滚。
 
 begin;
@@ -8,6 +8,9 @@ declare
     v_owner_id uuid := '43500000-0000-4000-8000-000000000001';
     v_member_id uuid := '43500000-0000-4000-8000-000000000002';
     v_ledger_id uuid;
+    v_account_id uuid;
+    v_expense_category_id uuid;
+    v_transaction_id uuid;
     v_token text;
     v_preview_status text;
     v_accept_result text;
@@ -119,6 +122,104 @@ begin
     )).id
       into v_ledger_id;
 
+    -- 账户 RPC 会同时触发账户初始化和基础数据管理权限 trigger。
+    select public.create_account_with_holders(
+        v_ledger_id,
+        'SECURITY DEFINER Account',
+        'cash',
+        'JPY',
+        100,
+        array[v_owner_id]
+    )
+      into v_account_id;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.ledger_id = v_ledger_id
+          and account.initial_balance = 100
+          and account.current_balance = 100
+    ) then
+        raise exception 'create_account_with_holders smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account_holder holder
+        where holder.account_id = v_account_id
+          and holder.user_id = v_owner_id
+          and holder.role = 'owner'
+    ) then
+        raise exception 'create_account_with_holders holder smoke test failed';
+    end if;
+
+    select category.id
+      into v_expense_category_id
+      from public.category category
+     where category.ledger_id = v_ledger_id
+       and category.type = 'expense'
+       and category.parent_id is not null
+       and category.is_archived = false
+     order by category.sort_order, category.id
+     limit 1;
+
+    if v_expense_category_id is null then
+        raise exception 'default expense category fixture setup failed';
+    end if;
+
+    -- 交易 RPC 会进一步执行余额同步、标签同步及交易表 trigger。
+    select public.create_transaction(
+        v_ledger_id,
+        'expense',
+        pg_catalog.now(),
+        pg_catalog.jsonb_build_array(
+            pg_catalog.jsonb_build_object(
+                'amount',
+                '12.34',
+                'categoryId',
+                v_expense_category_id::text
+            )
+        ),
+        v_account_id,
+        null,
+        'SECURITY DEFINER Smoke',
+        '[]'::jsonb
+    )
+      into v_transaction_id;
+
+    if not exists (
+        select 1
+        from public.transaction_record record
+        where record.id = v_transaction_id
+          and record.ledger_id = v_ledger_id
+          and record.status = 'active'
+          and record.created_by = v_owner_id
+    ) then
+        raise exception 'create_transaction record smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.transaction_item item
+        where item.transaction_record_id = v_transaction_id
+          and item.account_id = v_account_id
+          and item.category_id = v_expense_category_id
+          and item.amount = 12.34
+          and item.balance_delta = -12.34
+    ) then
+        raise exception 'create_transaction item smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.current_balance = 87.66
+    ) then
+        raise exception 'apply_account_balance_delta smoke test failed';
+    end if;
+
     select invite.token
       into v_token
       from public.create_ledger_invite_v2(v_ledger_id, 'member') invite;
@@ -162,6 +263,27 @@ begin
           and member.role = 'member'
     ) then
         raise exception 'accept_ledger_invite member state smoke test failed';
+    end if;
+
+    -- member 可以记账但不能维护基础数据，直接更新账户应被 trigger 拒绝。
+    begin
+        update public.account
+           set name = 'SECURITY DEFINER Trigger Bypass'
+         where id = v_account_id;
+
+        raise exception 'enforce_ledger_management_permission did not reject member update';
+    exception
+        when sqlstate '42501' then
+            null;
+    end;
+
+    if not exists (
+        select 1
+        from public.account account
+        where account.id = v_account_id
+          and account.name = 'SECURITY DEFINER Account'
+    ) then
+        raise exception 'enforce_ledger_management_permission rollback smoke test failed';
     end if;
 end;
 $$;
