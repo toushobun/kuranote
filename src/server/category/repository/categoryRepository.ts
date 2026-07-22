@@ -31,17 +31,15 @@ export type InsertCategoryInput = CategoryScope & {
   sortOrder: number;
 };
 
+export type ReorderCategoriesInput = CategoryScope & {
+  categoryIds: string[];
+};
+
 export type UpdateCategoryDetailsInput = {
   categoryId: string;
   iconName: string;
   ledgerId: string;
   name: string;
-  updatedBy: string;
-};
-
-export type UpdateCategorySortOrderInput = CategoryScope & {
-  categoryId: string;
-  sortOrder: number;
   updatedBy: string;
 };
 
@@ -71,8 +69,8 @@ export interface CategoryRepository {
   }): Promise<CategoryRecord | null>;
   insert(input: InsertCategoryInput): Promise<void>;
   listActiveSiblings(scope: CategoryScope): Promise<CategorySibling[]>;
+  reorder(input: ReorderCategoriesInput): Promise<void>;
   updateDetails(input: UpdateCategoryDetailsInput): Promise<boolean>;
-  updateSortOrder(input: UpdateCategorySortOrderInput): Promise<boolean>;
 }
 
 type CategoryRecordRow = {
@@ -127,7 +125,6 @@ export function createSupabaseCategoryRepository(
       query = input.includeChildren
         ? query.or(`id.eq.${input.categoryId},parent_id.eq.${input.categoryId}`)
         : query.eq("id", input.categoryId);
-
       const { count, error } = await query;
 
       if (error) {
@@ -323,6 +320,46 @@ export function createSupabaseCategoryRepository(
       }));
     },
 
+    async reorder(input) {
+      const { data, error } = await supabase.rpc("reorder_categories", {
+        p_category_ids: input.categoryIds,
+        p_ledger_id: input.ledgerId,
+        p_parent_id: input.parentId,
+        p_type: input.type,
+      });
+
+      if (error) {
+        throwRepositoryError(
+          "category_reorder_failed",
+          "分类排序保存失败，请稍后重试。",
+          "[category] failed to reorder categories transactionally",
+          error,
+          {
+            categoryCount: input.categoryIds.length,
+            ledgerId: input.ledgerId,
+            parentId: input.parentId,
+            type: input.type,
+          },
+        );
+      }
+
+      if (Number(data) !== input.categoryIds.length) {
+        throwRepositoryError(
+          "category_reorder_failed",
+          "分类排序保存失败，请稍后重试。",
+          "[category] category reorder RPC returned an unexpected count",
+          { message: "unexpected updated category count" },
+          {
+            actualCount: data,
+            expectedCount: input.categoryIds.length,
+            ledgerId: input.ledgerId,
+            parentId: input.parentId,
+            type: input.type,
+          },
+        );
+      }
+    },
+
     async updateDetails(input) {
       const { count, error } = await supabase
         .from("category")
@@ -345,45 +382,6 @@ export function createSupabaseCategoryRepository(
           "[category] failed to update category",
           error,
           { categoryId: input.categoryId, ledgerId: input.ledgerId },
-        );
-      }
-
-      return count === 1;
-    },
-
-    async updateSortOrder(input) {
-      let query = supabase
-        .from("category")
-        .update(
-          {
-            sort_order: input.sortOrder,
-            updated_by: input.updatedBy,
-          },
-          { count: "exact" },
-        )
-        .eq("id", input.categoryId)
-        .eq("ledger_id", input.ledgerId)
-        .eq("type", input.type)
-        .eq("is_archived", false);
-
-      query =
-        input.parentId === null
-          ? query.is("parent_id", null)
-          : query.eq("parent_id", input.parentId);
-      const { count, error } = await query;
-
-      if (error) {
-        throwRepositoryError(
-          "category_reorder_failed",
-          "分类排序保存失败，请稍后重试。",
-          "[category] failed to update category sort order",
-          error,
-          {
-            categoryId: input.categoryId,
-            ledgerId: input.ledgerId,
-            parentId: input.parentId,
-            type: input.type,
-          },
         );
       }
 
