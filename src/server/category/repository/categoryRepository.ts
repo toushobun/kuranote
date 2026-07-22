@@ -1,13 +1,13 @@
 import { categoryErrorCodes } from "server/category/categoryErrors";
 import type { Logger } from "server/shared/logging/logger";
-import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
-import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import {
   AuthenticationError,
   AuthorizationError,
   ConflictError,
   ValidationError,
 } from "server/shared/errors/appError";
+import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
+import { toRepositoryError } from "server/shared/supabase/repositoryError";
 import type { CategorySummaryDbRow } from "server/db-types";
 import type { CategoryRow } from "types/categories";
 import type { TransactionType } from "types/transactions";
