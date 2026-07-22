@@ -19,7 +19,6 @@ declare
     v_preview_status text;
     v_accept_result text;
 begin
-    -- 按真实认证链路准备用户，让既存 on_auth_user_created trigger 创建 app_user。
     insert into auth.users (
         instance_id,
         id,
@@ -112,11 +111,7 @@ begin
         raise exception 'on_auth_user_created fixture setup failed';
     end if;
 
-    perform pg_catalog.set_config(
-        'request.jwt.claim.sub',
-        v_owner_id::text,
-        true
-    );
+    perform pg_catalog.set_config('request.jwt.claim.sub', v_owner_id::text, true);
 
     select (public.create_ledger_with_owner_settings(
         'SECURITY DEFINER Smoke',
@@ -126,7 +121,6 @@ begin
     )).id
       into v_ledger_id;
 
-    -- 账户 RPC 会同时触发账户初始化和基础数据管理权限 trigger。
     select public.create_account_with_holders(
         v_ledger_id,
         'SECURITY DEFINER Account',
@@ -179,7 +173,6 @@ begin
         raise exception 'create_account_with_holders holder smoke test failed';
     end if;
 
-    -- 普通交易要求关联商家；该写入同时经过基础数据权限 trigger。
     insert into public.merchant (
         ledger_id,
         name,
@@ -208,7 +201,6 @@ begin
         raise exception 'default expense category fixture setup failed';
     end if;
 
-    -- 交易 RPC 会进一步执行余额同步、标签同步及交易表 trigger。
     select public.create_transaction(
         v_ledger_id,
         'expense',
@@ -261,7 +253,6 @@ begin
         raise exception 'apply_account_balance_delta smoke test failed';
     end if;
 
-    -- 普通交易转换为转账：先回滚原支出，再写入转出/转入两条明细。
     select public.convert_transaction_type(
         p_ledger_id => v_ledger_id,
         p_transaction_record_id => v_transaction_id,
@@ -330,7 +321,6 @@ begin
         raise exception 'convert_transaction_type balance smoke test failed';
     end if;
 
-    -- 作废转换后的转账，验证两侧余额均被冲回。
     select public.void_transaction(v_ledger_id, v_transaction_id)
       into v_result_id;
 
@@ -363,7 +353,6 @@ begin
         raise exception 'void_transaction balance smoke test failed';
     end if;
 
-    -- 单独创建转账，验证一条转出和一条转入明细及两侧余额。
     select public.create_transfer_transaction(
         v_ledger_id,
         pg_catalog.now(),
@@ -423,7 +412,6 @@ begin
         raise exception 'create_transfer_transaction balance smoke test failed';
     end if;
 
-    -- 更新转账会先冲回旧金额，再按新金额重建转出/转入明细。
     select public.update_transfer_transaction(
         v_ledger_id,
         v_transfer_transaction_id,
@@ -507,11 +495,7 @@ begin
             v_preview_status;
     end if;
 
-    perform pg_catalog.set_config(
-        'request.jwt.claim.sub',
-        v_member_id::text,
-        true
-    );
+    perform pg_catalog.set_config('request.jwt.claim.sub', v_member_id::text, true);
 
     select accepted.result
       into v_accept_result
@@ -533,7 +517,6 @@ begin
         raise exception 'accept_ledger_invite member state smoke test failed';
     end if;
 
-    -- member 可以记账但不能维护基础数据，直接更新商家应被 trigger 拒绝。
     begin
         update public.merchant
            set name = 'SECURITY DEFINER Trigger Bypass'
