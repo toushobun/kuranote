@@ -58,7 +58,23 @@ describe("createCloudflareTurnstileRepository", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("Production 缺少 secret 时抛出配置错误且不发外部请求", async () => {
+  it("缺少 token 时直接失败且不发外部请求", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "secret-key");
+    const fetcher = vi.fn();
+    const repository = createCloudflareTurnstileRepository(
+      createLogger(),
+      fetcher,
+    );
+
+    await expect(
+      repository.verify({ remoteIp: null, token: "" }),
+    ).resolves.toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("Production 缺少 secret 时抛出可识别配置错误且不发外部请求", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
@@ -70,7 +86,10 @@ describe("createCloudflareTurnstileRepository", () => {
 
     await expect(
       repository.verify({ remoteIp: null, token: "token-value" }),
-    ).rejects.toThrow("TURNSTILE_SECRET_KEY is required in production.");
+    ).rejects.toMatchObject({
+      message: "TURNSTILE_SECRET_KEY is required in production.",
+      name: "TurnstileConfigurationError",
+    });
     expect(fetcher).not.toHaveBeenCalled();
   });
 
