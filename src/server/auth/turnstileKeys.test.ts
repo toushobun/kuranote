@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTestSecretKey, turnstileTestSiteKey } from "config/turnstile";
 
-import { getTurnstileSecretKey, getTurnstileSiteKey } from "./turnstileKeys";
+import {
+  getTurnstileSecretKey,
+  getTurnstileSiteKey,
+  TurnstileConfigurationError,
+} from "./turnstileKeys";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -94,18 +98,13 @@ describe("turnstileKeys", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
-    let thrownError: unknown;
 
-    try {
-      getTurnstileSecretKey();
-    } catch (error) {
-      thrownError = error;
-    }
-
-    expect(thrownError).toMatchObject({
-      message: "TURNSTILE_SECRET_KEY is required in production.",
-      name: "TurnstileConfigurationError",
-    });
+    expect(() => getTurnstileSecretKey()).toThrow(
+      TurnstileConfigurationError,
+    );
+    expect(() => getTurnstileSecretKey()).toThrow(
+      "TURNSTILE_SECRET_KEY is required in production.",
+    );
   });
 
   it("本地开发缺少正式 secret key 时保持 fail closed", () => {
