@@ -68,9 +68,10 @@ jobs:
 
       - name: Wait for temporary workflow cleanup
         run: |
+          initial_branch_head="$(git rev-parse HEAD^)"
           for attempt in $(seq 1 60); do
             git fetch origin "${{ github.head_ref }}"
-            if [[ "$(git rev-parse origin/${{ github.head_ref }})" != "${GITHUB_SHA}" ]]; then
+            if [[ "$(git rev-parse origin/${{ github.head_ref }})" != "${initial_branch_head}" ]]; then
               exit 0
             fi
             sleep 5
