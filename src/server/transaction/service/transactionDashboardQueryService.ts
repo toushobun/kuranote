@@ -157,9 +157,23 @@ export function createTransactionDashboardQueryService({
         recentTransactions: buildTransactionListItemsFromContext(
           normalRecords.slice(0, 5),
           context,
-        ),
+        ).map(toDashboardRecentTransaction),
         recentlyUsedAccountIds: [...recentlyUsedAccountIds],
       };
     },
+  };
+}
+
+/** Dashboard 迁移只复用交易权限与数据构建，不改变原有可见字段。 */
+function toDashboardRecentTransaction(
+  item: TransactionListItem,
+): TransactionListItem {
+  return {
+    ...item,
+    account_color: null,
+    recorder_color: null,
+    recorder_name: null,
+    show_recorder: true,
+    tagNames: [],
   };
 }
