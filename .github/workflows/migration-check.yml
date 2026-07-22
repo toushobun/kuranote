@@ -42,7 +42,22 @@ jobs:
           fi
 
       - name: Run database tests
-        run: supabase test db
+        id: database-tests
+        shell: bash
+        run: |
+          set +e
+          supabase test db > /tmp/db-test.log 2>&1
+          status=$?
+          cat /tmp/db-test.log
+          exit "${status}"
+
+      - name: Upload database test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-test-log
+          path: /tmp/db-test.log
+          if-no-files-found: error
 
       - name: Stop local Supabase
         if: always()
