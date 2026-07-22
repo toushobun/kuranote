@@ -1,55 +1,6 @@
 -- Issue #469：使用单个 PostgreSQL RPC 在同一事务内校验并保存分类排序。
--- 分类写操作统一锁定所属账本行，使同一账本内的新增、归档、更新和排序串行执行，
--- 避免完整 sibling 集合校验与批量更新之间被并发写入穿插。
-
-create or replace function public.serialize_category_write_by_ledger()
-returns trigger
-language plpgsql
-security definer
-set search_path = pg_catalog, pg_temp
-as $$
-declare
-    v_old_ledger_id uuid;
-    v_new_ledger_id uuid;
-begin
-    if tg_op <> 'INSERT' then
-        v_old_ledger_id := old.ledger_id;
-    end if;
-
-    if tg_op <> 'DELETE' then
-        v_new_ledger_id := new.ledger_id;
-    end if;
-
-    if v_old_ledger_id is not null
-       and v_new_ledger_id is not null
-       and v_old_ledger_id is distinct from v_new_ledger_id then
-        perform 1
-        from public.ledger l
-        where l.id in (v_old_ledger_id, v_new_ledger_id)
-        order by l.id
-        for update;
-    else
-        perform 1
-        from public.ledger l
-        where l.id = coalesce(v_new_ledger_id, v_old_ledger_id)
-        for update;
-    end if;
-
-    if tg_op = 'DELETE' then
-        return old;
-    end if;
-    return new;
-end;
-$$;
-
-revoke all on function public.serialize_category_write_by_ledger() from public;
-revoke all on function public.serialize_category_write_by_ledger() from anon;
-revoke all on function public.serialize_category_write_by_ledger() from authenticated;
-
-drop trigger if exists category_serialize_writes on public.category;
-create trigger category_serialize_writes
-before insert or update or delete on public.category
-for each row execute function public.serialize_category_write_by_ledger();
+-- 排序期间取得 SHARE ROW EXCLUSIVE 表锁，使分类新增、更新、归档和其他排序请求
+-- 无法穿插到完整 sibling 集合校验与批量更新之间；同级分类行仍显式 FOR UPDATE。
 
 create or replace function public.reorder_categories(
     p_ledger_id uuid,
@@ -66,7 +17,6 @@ declare
     v_user_id uuid := auth.uid();
     v_category_count integer;
     v_distinct_count integer;
-    v_locked_ledger_id uuid;
     v_sibling_ids uuid[];
     v_submitted_ids uuid[];
     v_updated_count integer;
@@ -113,21 +63,49 @@ begin
             using errcode = '22023', detail = 'category_order_invalid';
     end if;
 
-    if not public.current_user_can_manage_ledger(p_ledger_id) then
+    if not exists (
+        select 1
+        from public.ledger_member lm
+        join public.app_user au
+          on au.id = lm.user_id
+        where lm.ledger_id = p_ledger_id
+          and lm.user_id = v_user_id
+          and lm.status = 'active'
+          and lm.role in ('owner', 'admin')
+          and au.status = 'active'
+    ) then
         raise exception 'permission_denied'
             using errcode = '42501', detail = 'permission_denied';
     end if;
 
-    select l.id
-      into v_locked_ledger_id
-      from public.ledger l
-     where l.id = p_ledger_id
-       and l.is_archived = false
-     for update;
+    -- PostgreSQL 不提供可锁定“不存在行”的谓词锁。为了同时防住并发新增、
+    -- 归档和排序，使用最小可证明正确的表级写锁，而不是只锁当前 sibling 行。
+    lock table public.category in share row exclusive mode;
 
-    if v_locked_ledger_id is null then
+    if not exists (
+        select 1
+        from public.ledger l
+        where l.id = p_ledger_id
+          and l.is_archived = false
+    ) then
         raise exception 'ledger_not_found'
             using errcode = 'P0002', detail = 'ledger_not_found';
+    end if;
+
+    -- 取得并发锁后再次验证成员和权限，避免等待锁期间权限已发生变化。
+    if not exists (
+        select 1
+        from public.ledger_member lm
+        join public.app_user au
+          on au.id = lm.user_id
+        where lm.ledger_id = p_ledger_id
+          and lm.user_id = v_user_id
+          and lm.status = 'active'
+          and lm.role in ('owner', 'admin')
+          and au.status = 'active'
+    ) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
     end if;
 
     if p_parent_id is not null and not exists (
