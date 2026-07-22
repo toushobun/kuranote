@@ -15,6 +15,7 @@ import { useState, type FormEvent } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
+import { executeClientMutation } from "lib/api/clientMutation";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import type { LedgerInvitePreview } from "server/ledger/entity/ledgerInvitePreview";
@@ -31,14 +32,6 @@ type LedgerInviteTemplateProps = {
   exitHref?: string;
   preview: LedgerInvitePreview;
   token: string;
-};
-
-type InviteErrorResponse = {
-  error?: {
-    code?: string;
-    message?: string;
-    status?: number;
-  };
 };
 
 export function LedgerInviteTemplate({
@@ -76,28 +69,26 @@ export function LedgerInviteTemplate({
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    try {
-      const response = await fetch("/api/ledger-invites/accept", {
+    const result = await executeClientMutation({
+      fallbackErrorMessage: "加入账本失败，请稍后重试。",
+      init: {
         body: JSON.stringify({ token }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
-      });
+      },
+      networkErrorMessage: "加入账本失败，请检查网络后重试。",
+      url: "/api/ledger-invites/accept",
+    });
 
-      if (!response.ok) {
-        const body = (await response
-          .json()
-          .catch(() => null)) as InviteErrorResponse | null;
-        setErrorMessage(body?.error?.message ?? "加入账本失败，请稍后重试。");
-        return;
-      }
-
-      router.push(routePaths.dashboard);
-      router.refresh();
-    } catch {
-      setErrorMessage("加入账本失败，请检查网络后重试。");
-    } finally {
+    if (!result.ok) {
+      setErrorMessage(result.errorMessage);
       setIsSubmitting(false);
+      return;
     }
+
+    router.push(routePaths.dashboard);
+    router.refresh();
+    setIsSubmitting(false);
   }
 
   return (
@@ -220,48 +211,40 @@ export function LedgerInviteTemplate({
 }
 
 const pageBackgroundSx = {
-  bgcolor: "background.paper",
+  background:
+    "linear-gradient(180deg, color-mix(in srgb, var(--mui-palette-primary-main) 10%, transparent) 0%, transparent 44%)",
   inset: 0,
+  pointerEvents: "none",
   position: "fixed",
   zIndex: -1,
 };
 
 const pageShellSx = {
-  px: { xs: 1.5, sm: 2 },
+  position: "relative",
 };
 
 const illustrationSlotSx = {
-  borderRadius: "0 0 28px 28px",
-  minHeight: 280,
-  mt: { xs: -2, sm: -3 },
-  mx: { xs: -1.5, sm: -2 },
+  aspectRatio: "16 / 10",
+  borderRadius: 4,
   overflow: "hidden",
   position: "relative",
 };
 
 const backButtonSx = {
-  bgcolor: "rgba(255, 255, 255, 0.85)",
-  boxShadow: 2,
-  color: "text.primary",
+  backdropFilter: "blur(8px)",
+  backgroundColor: "rgba(255, 255, 255, 0.82)",
   left: 12,
   position: "absolute",
   top: 12,
-  "&:hover": {
-    bgcolor: "rgba(255, 255, 255, 0.95)",
-  },
 };
 
 const ledgerIconSx = {
   alignItems: "center",
-  bgcolor: "var(--user-theme-icon-badge-bg)",
-  borderRadius: "50%",
-  color: "var(--user-theme-icon-badge-color)",
-  display: "inline-flex",
-  flexShrink: 0,
+  backgroundColor: "primary.main",
+  borderRadius: 3,
+  color: "primary.contrastText",
+  display: "flex",
   height: 44,
   justifyContent: "center",
   width: 44,
-  "& .MuiSvgIcon-root": {
-    fontSize: 24,
-  },
-} as const;
+};
