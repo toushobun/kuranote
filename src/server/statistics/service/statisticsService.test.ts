@@ -2,7 +2,11 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthenticationError, NotFoundError } from "server/shared/errors/appError";
+import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import {
+  AuthenticationError,
+  NotFoundError,
+} from "server/shared/errors/appError";
 import type { StatisticsRepository } from "server/statistics/repository/statisticsRepository";
 import { createStatisticsService } from "server/statistics/service/statisticsService";
 
@@ -32,7 +36,11 @@ function createRepository(
 function createService({
   currentUserId = userId,
   repository = createRepository(),
-  role = "member" as const,
+  role = "member",
+}: {
+  currentUserId?: string | null;
+  repository?: StatisticsRepository;
+  role?: CurrentLedgerRole | null;
 } = {}) {
   const transactionDashboardQueryService = {
     getDashboardData: vi.fn().mockResolvedValue({
@@ -75,7 +83,7 @@ describe("StatisticsService", () => {
   });
 
   it("非账本成员不能读取统计数据", async () => {
-    const { repository, service } = createService({ role: null as never });
+    const { repository, service } = createService({ role: null });
 
     await expect(service.getDashboard({ ledgerId })).rejects.toBeInstanceOf(
       NotFoundError,
