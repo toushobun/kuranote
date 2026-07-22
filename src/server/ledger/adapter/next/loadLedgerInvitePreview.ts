@@ -7,6 +7,8 @@ import { createSupabaseLedgerInvitePreviewRepository } from "server/ledger/repos
 import { createLedgerInvitePreviewService } from "server/ledger/service/ledgerInvitePreviewService";
 import { createLogger } from "server/shared/logging/logger";
 
+export type { LedgerInvitePreview } from "server/ledger/entity/ledgerInvitePreview";
+
 export async function loadLedgerInvitePreview(
   token: string,
 ): Promise<LedgerInvitePreview> {
