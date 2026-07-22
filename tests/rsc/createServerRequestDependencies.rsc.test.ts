@@ -21,6 +21,32 @@ const productionModulePath = join(
   repositoryRoot,
   "src/server/shared/context/createServerRequestDependencies.ts",
 );
+const fixtureTsconfig = {
+  compilerOptions: {
+    target: "ES2017",
+    lib: ["dom", "dom.iterable", "esnext"],
+    allowJs: true,
+    skipLibCheck: true,
+    strict: true,
+    noEmit: true,
+    esModuleInterop: true,
+    module: "esnext",
+    moduleResolution: "bundler",
+    resolveJsonModule: true,
+    isolatedModules: true,
+    jsx: "preserve",
+    incremental: true,
+    plugins: [{ name: "next" }],
+  },
+  include: [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+  ],
+  exclude: ["node_modules"],
+};
 
 let baseUrl = "";
 let firstRenderMarkup = "";
@@ -91,6 +117,11 @@ async function createFixture(): Promise<string> {
     writeFile(
       join(directory, "package.json"),
       `${JSON.stringify({ private: true }, null, 2)}\n`,
+      "utf8",
+    ),
+    writeFile(
+      join(directory, "tsconfig.json"),
+      `${JSON.stringify(fixtureTsconfig, null, 2)}\n`,
       "utf8",
     ),
     writeFile(
@@ -238,6 +269,7 @@ afterAll(async () => {
   await stopNextProcess();
 
   if (fixtureDirectory) {
+    // node_modules 是指向仓库依赖目录的符号链接；fs.rm 只删除链接本身，不会进入真实目录。
     await rm(fixtureDirectory, { force: true, recursive: true });
   }
 }, 15_000);
