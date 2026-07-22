@@ -69,26 +69,28 @@ export function LedgerInviteTemplate({
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const result = await executeClientMutation({
-      fallbackErrorMessage: "加入账本失败，请稍后重试。",
-      init: {
-        body: JSON.stringify({ token }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      },
-      networkErrorMessage: "加入账本失败，请检查网络后重试。",
-      url: "/api/ledger-invites/accept",
-    });
+    try {
+      const result = await executeClientMutation({
+        fallbackErrorMessage: "加入账本失败，请稍后重试。",
+        init: {
+          body: JSON.stringify({ token }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        networkErrorMessage: "加入账本失败，请检查网络后重试。",
+        url: "/api/ledger-invites/accept",
+      });
 
-    if (!result.ok) {
-      setErrorMessage(result.errorMessage);
+      if (!result.ok) {
+        setErrorMessage(result.errorMessage);
+        return;
+      }
+
+      router.push(routePaths.dashboard);
+      router.refresh();
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    router.push(routePaths.dashboard);
-    router.refresh();
-    setIsSubmitting(false);
   }
 
   return (
