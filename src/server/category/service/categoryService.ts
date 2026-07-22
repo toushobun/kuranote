@@ -133,7 +133,6 @@ function operationError(
     | typeof categoryErrorCodes.createFailed
     | typeof categoryErrorCodes.reorderFailed
     | typeof categoryErrorCodes.updateFailed,
-  details?: unknown,
 ) {
   const messages = {
     [categoryErrorCodes.archiveFailed]: "分类隐藏失败。",
@@ -144,7 +143,7 @@ function operationError(
       "分类更新失败。请确认分类名称是否重复，或稍后重试。",
   };
 
-  return new RepositoryError(code, messages[code], { details });
+  return new RepositoryError(code, messages[code]);
 }
 
 async function withOperationError<T>(
@@ -204,7 +203,6 @@ export function createCategoryService({
     scope: CategoryScope,
     operation:
       | typeof categoryErrorCodes.createFailed
-      | typeof categoryErrorCodes.reorderFailed
       | typeof categoryErrorCodes.updateFailed,
   ) {
     try {
@@ -328,75 +326,14 @@ export function createCategoryService({
 
     async reorder(input) {
       await requireManagePermission(input.ledgerId, input.userId);
-      const siblings = await listSiblingsOrThrow(
-        input,
-        categoryErrorCodes.reorderFailed,
+      await withOperationError(categoryErrorCodes.reorderFailed, () =>
+        categoryRepository.reorder({
+          categoryIds: input.categoryIds,
+          ledgerId: input.ledgerId,
+          parentId: input.parentId,
+          type: input.type,
+        }),
       );
-      const siblingIds = new Set(siblings.map((category) => category.id));
-
-      if (
-        siblings.length !== input.categoryIds.length ||
-        new Set(input.categoryIds).size !== input.categoryIds.length ||
-        !input.categoryIds.every((categoryId) => siblingIds.has(categoryId))
-      ) {
-        throw new ValidationError(
-          categoryErrorCodes.reorderFailed,
-          "分类排序保存失败，请稍后重试。",
-        );
-      }
-
-      const originalSortOrderById = new Map(
-        siblings.map((category) => [category.id, category.sortOrder]),
-      );
-      const updatedCategoryIds: string[] = [];
-
-      for (const [index, categoryId] of input.categoryIds.entries()) {
-        let updated = false;
-
-        try {
-          updated = await categoryRepository.updateSortOrder({
-            categoryId,
-            ledgerId: input.ledgerId,
-            parentId: input.parentId,
-            sortOrder: (index + 1) * 10,
-            type: input.type,
-            updatedBy: input.userId,
-          });
-        } catch (error) {
-          if (!(error instanceof RepositoryError)) throw error;
-        }
-
-        if (updated) {
-          updatedCategoryIds.push(categoryId);
-          continue;
-        }
-
-        let recoveryFailed = false;
-        for (const updatedCategoryId of updatedCategoryIds.toReversed()) {
-          const originalSortOrder =
-            originalSortOrderById.get(updatedCategoryId);
-          if (originalSortOrder === undefined) continue;
-
-          try {
-            const restored = await categoryRepository.updateSortOrder({
-              categoryId: updatedCategoryId,
-              ledgerId: input.ledgerId,
-              parentId: input.parentId,
-              sortOrder: originalSortOrder,
-              type: input.type,
-              updatedBy: input.userId,
-            });
-            recoveryFailed ||= !restored;
-          } catch (error) {
-            if (!(error instanceof RepositoryError)) throw error;
-            recoveryFailed = true;
-          }
-        }
-
-        throw operationError(categoryErrorCodes.reorderFailed, {
-          recoveryFailed: recoveryFailed || undefined,
-        });
-      }
     },
 
     async update({ categoryId, iconName, ledgerId, name, userId }) {
