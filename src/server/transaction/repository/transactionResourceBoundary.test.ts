@@ -81,47 +81,50 @@ describe("Transaction Repository RPC 错误边界", () => {
     "from_account_invalid",
     "to_account_invalid",
     "transfer_currency_invalid",
-  ])("数据库资源错误 %s 不向上层泄露原始详情", async (databaseError) => {
-    const rpc = vi.fn().mockResolvedValue({
-      data: null,
-      error: {
-        details: databaseError,
-        message: `raw database message: ${databaseError}`,
-      },
-    });
-    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
-    const repository = createSupabaseTransactionRepository(
-      { from: vi.fn(), rpc } as never,
-      logger,
-    );
+  ])(
+    "数据库资源错误 %s 不向上层泄露原始详情",
+    async (databaseError) => {
+      const rpc = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          details: databaseError,
+          message: `raw database message: ${databaseError}`,
+        },
+      });
+      const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+      const repository = createSupabaseTransactionRepository(
+        { from: vi.fn(), rpc } as never,
+        logger,
+      );
 
-    await expect(
-      repository.createNormal({
-        accountId: "00000000-0000-4000-8000-000000000045",
-        items: [
-          {
-            amount: 1200,
-            categoryId: "00000000-0000-4000-8000-000000005072",
-          },
-        ],
-        ledgerId: "00000000-0000-4000-8000-000000000032",
-        merchantId: "00000000-0000-4000-8000-000000001001",
-        note: null,
-        tagNames: [],
-        transactionAt: "2026-06-04T01:00:00.000Z",
-        type: "expense",
-      }),
-    ).rejects.toMatchObject({
-      code: "create_failed",
-      message: "交易操作失败，请稍后重试。",
-    });
+      await expect(
+        repository.createNormal({
+          accountId: "00000000-0000-4000-8000-000000000045",
+          items: [
+            {
+              amount: 1200,
+              categoryId: "00000000-0000-4000-8000-000000005072",
+            },
+          ],
+          ledgerId: "00000000-0000-4000-8000-000000000032",
+          merchantId: "00000000-0000-4000-8000-000000001001",
+          note: null,
+          tagNames: [],
+          transactionAt: "2026-06-04T01:00:00.000Z",
+          type: "expense",
+        }),
+      ).rejects.toMatchObject({
+        code: "create_failed",
+        message: "交易操作失败，请稍后重试。",
+      });
 
-    expect(logger.error).toHaveBeenCalledWith(
-      "[transaction] failed to create transaction",
-      expect.objectContaining({
-        databaseDetails: databaseError,
-        databaseMessage: expect.stringContaining(databaseError),
-      }),
-    );
-  });
+      expect(logger.error).toHaveBeenCalledWith(
+        "[transaction] failed to create transaction",
+        expect.objectContaining({
+          databaseDetails: databaseError,
+          databaseMessage: expect.stringContaining(databaseError),
+        }),
+      );
+    },
+  );
 });
