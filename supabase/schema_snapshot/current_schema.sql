@@ -56,7 +56,7 @@ ALTER TABLE "public"."ledger_member" OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."accept_ledger_invitation"("p_ledger_member_id" "uuid") RETURNS "public"."ledger_member"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
@@ -254,7 +254,7 @@ ALTER TABLE "public"."account" OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."apply_account_balance_delta"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_delta" numeric, "p_updated_by" "uuid" DEFAULT NULL::"uuid") RETURNS "public"."account"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_account public.account;
@@ -289,7 +289,7 @@ ALTER FUNCTION "public"."apply_account_balance_delta"("p_ledger_id" "uuid", "p_a
 
 CREATE OR REPLACE FUNCTION "public"."assign_ledger_member_default_display_color"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_actor_id uuid;
@@ -339,7 +339,7 @@ COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '
 
 CREATE OR REPLACE FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     if old.status = 'active' and new.status <> 'active' then
@@ -358,7 +358,7 @@ ALTER FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"(
 
 CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -695,7 +695,7 @@ ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_tran
 
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
@@ -883,7 +883,7 @@ ALTER TABLE "public"."ledger" OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text" DEFAULT 'JPY'::"text") RETURNS "public"."ledger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
@@ -967,7 +967,7 @@ ALTER FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_curr
 
 CREATE OR REPLACE FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "public"."ledger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
@@ -1099,7 +1099,7 @@ ALTER FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_
 
 CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_transaction_record_id uuid;
@@ -1251,7 +1251,7 @@ ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "tex
 
 CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_transaction_record_id uuid;
@@ -1383,7 +1383,7 @@ ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_t
 
 CREATE OR REPLACE FUNCTION "public"."current_app_user_is_active"() RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select exists (
         select 1
@@ -1399,7 +1399,7 @@ ALTER FUNCTION "public"."current_app_user_is_active"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select public.current_user_has_ledger_role(
         p_ledger_id,
@@ -1413,7 +1413,7 @@ ALTER FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") O
 
 CREATE OR REPLACE FUNCTION "public"."current_user_can_manage_member_display_setting"("p_ledger_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select exists (
         select 1
@@ -1434,7 +1434,7 @@ ALTER FUNCTION "public"."current_user_can_manage_member_display_setting"("p_ledg
 
 CREATE OR REPLACE FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select exists (
         select 1
@@ -1462,7 +1462,7 @@ ALTER FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uui
 
 CREATE OR REPLACE FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select public.current_user_has_ledger_role(
         p_ledger_id,
@@ -1476,7 +1476,7 @@ ALTER FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id" "uuid") OW
 
 CREATE OR REPLACE FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_roles" "text"[]) RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select exists (
         select 1
@@ -1497,7 +1497,7 @@ ALTER FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_
 
 CREATE OR REPLACE FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select exists (
         select 1
@@ -1517,7 +1517,7 @@ ALTER FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uu
 
 CREATE OR REPLACE FUNCTION "public"."enforce_ledger_management_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_row jsonb;
@@ -1557,7 +1557,7 @@ ALTER FUNCTION "public"."enforce_ledger_management_permission"() OWNER TO "postg
 
 CREATE OR REPLACE FUNCTION "public"."enforce_ledger_member_management_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_ledger_id uuid;
@@ -1654,7 +1654,7 @@ ALTER FUNCTION "public"."enforce_ledger_member_management_permission"() OWNER TO
 
 CREATE OR REPLACE FUNCTION "public"."enforce_merchant_alias_management_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_merchant_id uuid;
@@ -1691,7 +1691,7 @@ ALTER FUNCTION "public"."enforce_merchant_alias_management_permission"() OWNER T
 
 CREATE OR REPLACE FUNCTION "public"."enforce_transaction_child_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_old_ledger_id uuid;
@@ -1737,7 +1737,7 @@ ALTER FUNCTION "public"."enforce_transaction_child_permission"() OWNER TO "postg
 
 CREATE OR REPLACE FUNCTION "public"."enforce_transaction_record_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     if auth.uid() is null then
@@ -1830,7 +1830,7 @@ ALTER FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") OWNER TO "
 
 CREATE OR REPLACE FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id" "uuid") RETURNS "text"
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     with color_options(display_color, sort_order) as (
         values
@@ -1872,7 +1872,7 @@ COMMENT ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id
 
 CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     insert into public.app_user (
@@ -1901,7 +1901,7 @@ ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_root record;
@@ -2432,7 +2432,7 @@ ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNE
 
 CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_tag_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone)
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     with record_amounts as (
         select
@@ -2714,7 +2714,7 @@ ALTER FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid",
 
 CREATE OR REPLACE FUNCTION "public"."normalize_transaction_record_type_for_compat"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     if new.type in ('expense', 'income', 'refund', 'reimbursement') then
@@ -2818,7 +2818,7 @@ ALTER FUNCTION "public"."prevent_merchant_alias_identity_change"() OWNER TO "pos
 
 CREATE OR REPLACE FUNCTION "public"."prevent_used_category_type_change"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     if old.type is distinct from new.type
@@ -2954,7 +2954,7 @@ ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_max_tag_count constant integer := 10;
@@ -3092,7 +3092,7 @@ ALTER FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_
 
 CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
@@ -3201,7 +3201,7 @@ ALTER FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_a
 
 CREATE OR REPLACE FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_actor_id uuid;
@@ -3339,7 +3339,7 @@ ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p
 
 CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -3515,7 +3515,7 @@ ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transactio
 
 CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
@@ -3848,7 +3848,7 @@ ALTER FUNCTION "public"."validate_category_parent"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."validate_ledger_member_display_setting_member"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
     perform 1
@@ -3875,7 +3875,7 @@ ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER 
 
 CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_category_shape"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_record_type text;
@@ -3932,7 +3932,7 @@ ALTER FUNCTION "public"."validate_transaction_record"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."void_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();

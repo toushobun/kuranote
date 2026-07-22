@@ -11,6 +11,9 @@ on:
       - "scripts/generate-schema-snapshot.sh"
       - "scripts/update-schema-snapshot.sh"
       - "scripts/check-schema-snapshot.sh"
+      - "scripts/check-security-definer-search-path.mjs"
+      - "scripts/check-security-definer-search-path-cases.mjs"
+      - "scripts/security-definer-smoke.sql"
       - ".supabase-version"
       - "package.json"
       - ".github/workflows/schema-snapshot-check.yml"
@@ -38,6 +41,9 @@ jobs:
             scripts/generate-schema-snapshot.sh \
             scripts/update-schema-snapshot.sh \
             scripts/check-schema-snapshot.sh
+          node --check scripts/check-security-definer-search-path.mjs
+          npm run db:security-definer:test
+          npm run db:security-definer:check
 
       - name: Check migration-first configuration
         shell: bash
@@ -84,6 +90,13 @@ jobs:
         run: npm run db:schema:snapshot:check
         env:
           ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
+
+      - name: Smoke test SECURITY DEFINER RPC
+        run: |
+          psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            --set ON_ERROR_STOP=1 \
+            --file scripts/security-definer-smoke.sql
 
       - name: Upload generated snapshot
         if: always()
