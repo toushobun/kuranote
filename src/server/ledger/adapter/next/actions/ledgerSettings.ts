@@ -10,12 +10,12 @@ import {
   routePaths,
 } from "config/paths";
 import { createRequestContainer } from "server/container";
-import { requireCurrentUserAndLedger } from "server/context/currentLedger";
-import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
+import { requireCurrentUserAndLedger } from "server/ledger/adapter/next/currentLedger";
+import { ledgerSettingsErrorCodes } from "server/ledger/errors/ledgerSettings";
 import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { AppError } from "server/shared/errors/appError";
-import { validateUpdateLedgerSettingsForm } from "server/validators/ledgerSettings";
+import { validateUpdateLedgerSettingsForm } from "server/ledger/schema/ledgerSettingsForm";
 import { getFormText } from "utils/formData";
 
 export async function updateLedgerSettings(formData: FormData) {

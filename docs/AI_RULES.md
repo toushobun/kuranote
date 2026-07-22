@@ -14,6 +14,7 @@
 > Issue #1 保留项目背景、技术选型、产品方向等上下文说明，按需参考。
 > Issue #90 保留前端骨架历史决策记录，按需参考。
 > Issue #468 保留后端架构分层规则、迁移阶段和验收条件，规则随迁移进度持续更新，后端任务必须参考最新正文，不能只按本文件推断。
+> 后端业务迁移完成后，业务代码统一归入 `src/server/<module>/`。不得重新建立顶级 `src/server/actions`、`services`、`loaders`、`errors`、`validators`、`http` 或 `context` 兼容目录；Next.js 专用行为放入模块 `adapter/next/`，跨模块协作只依赖公开窄 Service Interface。
 > 前端相关的核心行为约束已全部整理在本文件中，无需每次强制读取 #1 / #90；后端任务仍需按上一条参考 #468。
 
 ## CodeGraph

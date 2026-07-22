@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isSameOriginRequest } from "server/http/sameOriginRequest";
+import { isSameOriginRequest } from "server/shared/middleware/sameOriginRequest";
 
 describe("isSameOriginRequest", () => {
   it("Origin 与请求地址一致时返回 true", () => {

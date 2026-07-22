@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { createSupabaseLedgerRepository } from "server/ledger/repository/ledgerRepository";
-import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
+import { ledgerCreateErrorCodes } from "server/ledger/errors/ledgerCreate";
 import { RepositoryError } from "server/shared/errors/appError";
 
 const ledgerIdA = "00000000-0000-4000-8000-000000000001";

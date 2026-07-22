@@ -17,7 +17,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import type { LedgerInvitePreview } from "server/services/ledgerInvite";
+import type { LedgerInvitePreview } from "server/ledger/entity/ledgerInvitePreview";
 import { PageShell } from "templates/layout/PageShell";
 import type { LedgerInviteRole } from "types/ledgers";
 

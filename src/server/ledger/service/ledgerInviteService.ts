@@ -1,7 +1,7 @@
 import {
   ledgerInviteErrorCodes,
   type LedgerInviteErrorCode,
-} from "server/errors/ledgerInvite";
+} from "server/ledger/errors/ledgerInvite";
 import type {
   LedgerInviteRepository,
   PendingLedgerInvite,

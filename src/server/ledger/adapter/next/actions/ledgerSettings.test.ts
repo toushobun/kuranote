@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
-import { ledgerSettingsErrorCodes } from "server/errors/ledgerSettings";
+import { ledgerSettingsErrorCodes } from "server/ledger/errors/ledgerSettings";
 import { AppError } from "server/shared/errors/appError";
 
 import { updateLedgerSettings } from "./ledgerSettings";
@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("server/context/currentLedger", () => ({
+vi.mock("server/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 

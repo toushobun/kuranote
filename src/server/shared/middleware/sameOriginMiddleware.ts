@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import { isSameOriginRequest } from "server/http/sameOriginRequest";
+import { isSameOriginRequest } from "server/shared/middleware/sameOriginRequest";
 import { AuthorizationError } from "server/shared/errors/appError";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);

@@ -2,8 +2,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createLedgerInvite } from "server/actions/ledgerInvite";
-import { ledgerInviteErrorCodes } from "server/errors/ledgerInvite";
+import { createLedgerInvite } from "server/ledger/adapter/next/actions/ledgerInvite";
+import { ledgerInviteErrorCodes } from "server/ledger/errors/ledgerInvite";
 import {
   AuthorizationError,
   ConflictError,

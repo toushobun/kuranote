@@ -1,11 +1,11 @@
 import {
   ledgerInviteErrorCodes,
   type LedgerInviteErrorCode,
-} from "server/errors/ledgerInvite";
+} from "server/ledger/errors/ledgerInvite";
 import {
   mapRpcBusinessError,
   type RpcErrorLike,
-} from "server/services/rpcError";
+} from "server/shared/supabase/rpcError";
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { isLedgerInviteRole, type LedgerInviteRole } from "types/ledgers";

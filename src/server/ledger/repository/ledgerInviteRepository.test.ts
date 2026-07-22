@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createSupabaseLedgerInviteRepository } from "server/ledger/repository/ledgerInviteRepository";
-import { ledgerInviteErrorCodes } from "server/errors/ledgerInvite";
+import { ledgerInviteErrorCodes } from "server/ledger/errors/ledgerInvite";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";

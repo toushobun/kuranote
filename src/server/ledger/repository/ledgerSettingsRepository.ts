@@ -4,8 +4,8 @@ import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
-} from "server/errors/ledgerSettings";
-import { mapRpcBusinessError } from "server/services/rpcError";
+} from "server/ledger/errors/ledgerSettings";
+import { mapRpcBusinessError } from "server/shared/supabase/rpcError";
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";

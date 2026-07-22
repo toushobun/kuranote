@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("server/container", () => ({
   createRequestContainer: mocks.createRequestContainer,
 }));
-vi.mock("server/context/currentLedger", () => ({
+vi.mock("server/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 vi.mock("server/shared/context/createServerRequestDependencies", () => ({

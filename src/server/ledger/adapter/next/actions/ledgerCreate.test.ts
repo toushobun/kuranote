@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
-import { ledgerCreateErrorCodes } from "server/errors/ledgerCreate";
+import { ledgerCreateErrorCodes } from "server/ledger/errors/ledgerCreate";
 import { AppError } from "server/shared/errors/appError";
 
 import { createLedger } from "./ledgerCreate";

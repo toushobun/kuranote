@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateUpdateLedgerSettingsForm } from "./ledgerSettings";
+import { validateUpdateLedgerSettingsForm } from "./ledgerSettingsForm";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const memberUserId = "00000000-0000-4000-8000-000000000031";

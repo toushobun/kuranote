@@ -3,10 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerSwitchResultValues, routePaths } from "config/paths";
-import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { currentLedgerErrorCodes } from "server/ledger/errors/currentLedger";
 import { NotFoundError } from "server/shared/errors/appError";
 
-import { updateCurrentLedger } from "./currentLedger";
+import { updateCurrentLedger } from "server/ledger/adapter/next/actions/currentLedger";
 
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("server/context/currentLedger", () => ({
+vi.mock("server/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 

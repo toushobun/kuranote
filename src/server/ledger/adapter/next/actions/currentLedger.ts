@@ -8,8 +8,8 @@ import {
   ledgersResultHref,
 } from "config/paths";
 import { createRequestContainer } from "server/container";
-import { requireCurrentUserAndLedger } from "server/context/currentLedger";
-import { currentLedgerErrorCodes } from "server/errors/currentLedger";
+import { requireCurrentUserAndLedger } from "server/ledger/adapter/next/currentLedger";
+import { currentLedgerErrorCodes } from "server/ledger/errors/currentLedger";
 import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { AppError } from "server/shared/errors/appError";

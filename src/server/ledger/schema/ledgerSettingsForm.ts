@@ -2,7 +2,7 @@ import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
-} from "server/errors/ledgerSettings";
+} from "server/ledger/errors/ledgerSettings";
 import { isThemeColorKey, type ThemeColorKey } from "theme/themeColorTokens";
 import { getFormText } from "utils/formData";
 
@@ -13,7 +13,7 @@ import {
   parseTextField,
   type ValidationResult,
   valid,
-} from "./common";
+} from "server/shared/schema/formValidation";
 
 const ledgerSettingsIntentValues = ["ledger", "member"] as const;
 

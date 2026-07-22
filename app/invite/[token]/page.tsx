@@ -6,7 +6,7 @@ import { createClient } from "lib/supabase/server";
 import {
   loadLedgerInvitePreview,
   type LedgerInvitePreview,
-} from "server/services/ledgerInvite";
+} from "server/ledger/adapter/next/loadLedgerInvitePreview";
 import { LedgerInviteTemplate } from "templates/ledgers/LedgerInvite";
 
 const invalidInvitePreview: LedgerInvitePreview = {

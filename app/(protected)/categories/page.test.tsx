@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   requireCurrentUserAndLedger: vi.fn(),
 }));
 
-vi.mock("server/context/currentLedger", () => ({
+vi.mock("server/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
 vi.mock("server/shared/context/createServerRequestDependencies", () => ({

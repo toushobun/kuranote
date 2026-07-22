@@ -1,8 +1,8 @@
 import {
   ledgerCreateErrorCodes,
   type LedgerCreateErrorCode,
-} from "server/errors/ledgerCreate";
-import { mapRpcBusinessError } from "server/services/rpcError";
+} from "server/ledger/errors/ledgerCreate";
+import { mapRpcBusinessError } from "server/shared/supabase/rpcError";
 import type { Logger } from "server/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "server/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "server/shared/supabase/repositoryError";

@@ -8,10 +8,10 @@ import {
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext";
-import { createLedgerInvite } from "server/actions/ledgerInvite";
-import { updateLedgerSettings } from "server/actions/ledgerSettings";
+import { createLedgerInvite } from "server/ledger/adapter/next/actions/ledgerInvite";
+import { updateLedgerSettings } from "server/ledger/adapter/next/actions/ledgerSettings";
 import { createRequestContainer } from "server/container";
-import { getLedgerInviteErrorMessage } from "server/errors/ledgerInvite";
+import { getLedgerInviteErrorMessage } from "server/ledger/errors/ledgerInvite";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
 import { AuthorizationError } from "server/shared/errors/appError";
 import {

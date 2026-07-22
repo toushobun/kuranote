@@ -8,7 +8,7 @@ import { createRequestContainer } from "server/container";
 import { revalidateLedgerMutation } from "server/ledger/adapter/next/revalidateLedger";
 import { AppError } from "server/shared/errors/appError";
 import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
-import { validateCreateLedgerForm } from "server/validators/ledgerCreate";
+import { validateCreateLedgerForm } from "server/ledger/schema/ledgerCreateForm";
 
 export async function createLedger(formData: FormData) {
   await getCurrentLedgerContext();

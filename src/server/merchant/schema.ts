@@ -11,7 +11,7 @@ import {
   parseTextField,
   type ValidationResult,
   valid,
-} from "server/validators/common";
+} from "server/shared/schema/formValidation";
 import { getFormText } from "utils/formData";
 import { parseWebsiteUrl } from "utils/merchants";
 
