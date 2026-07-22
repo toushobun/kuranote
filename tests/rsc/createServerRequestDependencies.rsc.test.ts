@@ -154,7 +154,7 @@ async function waitForFirstRender(): Promise<string> {
   let lastError: unknown;
 
   while (Date.now() < deadline) {
-    if (nextProcess?.exitCode !== null && nextProcess?.exitCode !== undefined) {
+    if (nextProcess?.exitCode != null) {
       throw new Error(
         `RSC 测试服务器提前退出。\n${processLogs || "没有进程日志。"}`,
       );
@@ -274,7 +274,7 @@ afterAll(async () => {
   }
 }, 15_000);
 
-describe("createServerRequestDependencies RSC render", () => {
+describe("createServerRequestDependencies", () => {
   it("同一 SSR 请求内跨组件去重，并在下一次请求重新创建依赖", async () => {
     const firstRequestId = expectSingleRequestDependencies(firstRenderMarkup);
 
