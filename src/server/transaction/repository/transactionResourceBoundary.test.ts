@@ -112,7 +112,7 @@ describe("Transaction Repository RPC 错误边界", () => {
         type: "expense",
       }),
     ).rejects.toMatchObject({
-      code: "transaction_create_failed",
+      code: "create_failed",
       message: "交易操作失败，请稍后重试。",
     });
 
