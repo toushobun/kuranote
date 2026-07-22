@@ -52,11 +52,14 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.createFailed]:
     "分类新增失败。请确认分类名称是否重复，或稍后重试。",
   [categoryErrorCodes.iconInvalid]: "请选择图标库中的分类图标。",
+  [categoryErrorCodes.ledgerInvalid]: "账本不存在或已归档。",
   [categoryErrorCodes.nameRequired]: "请输入分类名称。",
   [categoryErrorCodes.nameTooLong]: "分类名称不能超过 100 个字符。",
   [categoryErrorCodes.orderInvalid]: "分类排序内容不正确。",
   [categoryErrorCodes.parentInvalid]: "大分类指定不正确。",
   [categoryErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护分类。",
+  [categoryErrorCodes.reorderConflict]:
+    "分类列表已发生变化，请刷新页面后重试。",
   [categoryErrorCodes.reorderFailed]: "分类排序保存失败，请稍后重试。",
   [categoryErrorCodes.typeInvalid]: "分类类型不正确。",
   [categoryErrorCodes.updateFailed]:

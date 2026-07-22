@@ -14,7 +14,7 @@ export type CategoryAction = ServerAction;
 
 export type CategoryReorderActionResult =
   | { ok: true }
-  | { error: CategoryErrorCode; ok: false; recoveryFailed?: boolean };
+  | { error: CategoryErrorCode; ok: false };
 
 export type CategoryReorderAction = (
   formData: FormData,

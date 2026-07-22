@@ -137,12 +137,6 @@ export async function reorderCategories(
     });
   } catch (error) {
     if (error instanceof AppError) {
-      const recoveryFailed =
-        typeof error.details === "object" &&
-        error.details !== null &&
-        "recoveryFailed" in error.details &&
-        (error.details as Record<string, unknown>).recoveryFailed === true;
-
       const categoryErrorValues = new Set<CategoryErrorCode>(
         Object.values(categoryErrorCodes),
       );
@@ -150,11 +144,7 @@ export async function reorderCategories(
         ? (error.code as CategoryErrorCode)
         : categoryErrorCodes.reorderFailed;
 
-      return {
-        error: errorCode,
-        ok: false,
-        ...(recoveryFailed ? { recoveryFailed: true } : {}),
-      };
+      return { error: errorCode, ok: false };
     }
     throw error;
   }

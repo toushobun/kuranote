@@ -38,8 +38,8 @@ function createRepository(
     }),
     insert: vi.fn(),
     listActiveSiblings: vi.fn().mockResolvedValue([]),
+    reorder: vi.fn(),
     updateDetails: vi.fn().mockResolvedValue(true),
-    updateSortOrder: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -224,92 +224,58 @@ describe("createCategoryService", () => {
     });
   });
 
-  it("排序必须完整覆盖同级分类并保留 reorder_failed 语义", async () => {
-    const repository = createRepository({
-      listActiveSiblings: vi.fn().mockResolvedValue([
-        {
-          iconName: null,
-          id: categoryId,
-          name: "餐饮",
-          sortOrder: 10,
-        },
-      ]),
-    });
+  it("排序只调用一次事务型 Repository RPC", async () => {
+    const reorder = vi.fn();
+    const repository = createRepository({ reorder });
     const service = createService(repository);
+
+    await service.reorder({
+      categoryIds: [secondCategoryId, categoryId],
+      ledgerId,
+      parentId: null,
+      type: "expense",
+      userId,
+    });
+
+    expect(reorder).toHaveBeenCalledOnce();
+    expect(reorder).toHaveBeenCalledWith({
+      categoryIds: [secondCategoryId, categoryId],
+      ledgerId,
+      parentId: null,
+      type: "expense",
+    });
+    expect(repository.listActiveSiblings).not.toHaveBeenCalled();
+  });
+
+  it("无分类管理权限时不会调用排序 RPC", async () => {
+    const repository = createRepository();
+    const service = createService(repository, "member");
 
     await expect(
       service.reorder({
-        categoryIds: [categoryId, secondCategoryId],
+        categoryIds: [categoryId],
         ledgerId,
         parentId: null,
         type: "expense",
         userId,
       }),
-    ).rejects.toMatchObject({ code: categoryErrorCodes.reorderFailed });
-    expect(repository.updateSortOrder).not.toHaveBeenCalled();
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.reorder).not.toHaveBeenCalled();
   });
 
-  it("排序列表包含重复 ID 时不会绕过完整覆盖校验", async () => {
+  it("排序 RPC 失败时转换为既有 reorder_failed 语义", async () => {
     const repository = createRepository({
-      listActiveSiblings: vi.fn().mockResolvedValue([
-        {
-          iconName: null,
-          id: categoryId,
-          name: "餐饮",
-          sortOrder: 10,
-        },
-        {
-          iconName: null,
-          id: secondCategoryId,
-          name: "交通",
-          sortOrder: 20,
-        },
-      ]),
+      reorder: vi
+        .fn()
+        .mockRejectedValue(
+          new RepositoryError("category_reorder_failed", "失败"),
+        ),
     });
     const service = createService(repository);
 
     await expect(
       service.reorder({
-        categoryIds: [categoryId, categoryId],
-        ledgerId,
-        parentId: null,
-        type: "expense",
-        userId,
-      }),
-    ).rejects.toMatchObject({ code: categoryErrorCodes.reorderFailed });
-    expect(repository.updateSortOrder).not.toHaveBeenCalled();
-  });
-
-  it("排序中途失败时恢复已写入项并保留恢复失败标记", async () => {
-    const updateSortOrder = vi
-      .fn()
-      .mockResolvedValueOnce(true)
-      .mockRejectedValueOnce(
-        new RepositoryError("category_reorder_failed", "失败"),
-      )
-      .mockResolvedValueOnce(false);
-    const repository = createRepository({
-      listActiveSiblings: vi.fn().mockResolvedValue([
-        {
-          iconName: null,
-          id: categoryId,
-          name: "餐饮",
-          sortOrder: 10,
-        },
-        {
-          iconName: null,
-          id: secondCategoryId,
-          name: "交通",
-          sortOrder: 20,
-        },
-      ]),
-      updateSortOrder,
-    });
-    const service = createService(repository);
-
-    await expect(
-      service.reorder({
-        categoryIds: [secondCategoryId, categoryId],
+        categoryIds: [categoryId],
         ledgerId,
         parentId: null,
         type: "expense",
@@ -317,15 +283,7 @@ describe("createCategoryService", () => {
       }),
     ).rejects.toMatchObject({
       code: categoryErrorCodes.reorderFailed,
-      details: { recoveryFailed: true },
-    });
-    expect(updateSortOrder).toHaveBeenNthCalledWith(3, {
-      categoryId: secondCategoryId,
-      ledgerId,
-      parentId: null,
-      sortOrder: 20,
-      type: "expense",
-      updatedBy: userId,
+      details: undefined,
     });
   });
 
