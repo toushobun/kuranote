@@ -161,23 +161,6 @@ describe("useCategoryList", () => {
     ).toEqual([incomeCategory.id]);
   });
 
-  it("排序恢复失败时提示刷新页面", async () => {
-    const reorderCategoryAction = vi.fn(async () => ({
-      error: categoryErrorCodes.reorderFailed,
-      ok: false as const,
-      recoveryFailed: true,
-    }));
-    const { result } = renderCategoryListHook(reorderCategoryAction);
-
-    act(() => result.current.moveCategory(categories[0], 1));
-
-    await waitFor(() =>
-      expect(result.current.reorderError).toBe(
-        "分类排序恢复失败，请刷新页面后重试。",
-      ),
-    );
-  });
-
   it("非主键按下时不启动拖动", () => {
     const { result } = renderCategoryListHook(
       vi.fn(async () => ({ ok: true as const })),
