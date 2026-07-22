@@ -12,6 +12,7 @@ function createLogger(): Logger {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   process.env.TURNSTILE_SECRET_KEY = originalSecret;
   vi.restoreAllMocks();
 });
@@ -42,8 +43,9 @@ describe("createCloudflareTurnstileRepository", () => {
     expect(String(init.body)).toContain("remoteip=203.0.113.10");
   });
 
-  it("缺少 token 或 secret 时直接失败且不发外部请求", async () => {
-    process.env.TURNSTILE_SECRET_KEY = "";
+  it("非 Production 缺少 secret 时直接失败且不发外部请求", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
     const fetcher = vi.fn();
     const repository = createCloudflareTurnstileRepository(
       createLogger(),
@@ -53,6 +55,22 @@ describe("createCloudflareTurnstileRepository", () => {
     await expect(
       repository.verify({ remoteIp: null, token: "token-value" }),
     ).resolves.toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("Production 缺少 secret 时抛出配置错误且不发外部请求", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+    const fetcher = vi.fn();
+    const repository = createCloudflareTurnstileRepository(
+      createLogger(),
+      fetcher,
+    );
+
+    await expect(
+      repository.verify({ remoteIp: null, token: "token-value" }),
+    ).rejects.toThrow("TURNSTILE_SECRET_KEY is required in production.");
     expect(fetcher).not.toHaveBeenCalled();
   });
 
