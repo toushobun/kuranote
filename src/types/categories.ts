@@ -1,4 +1,4 @@
-import type { CategoryErrorCode } from "internal/category/categoryErrors";
+import type { CategoryErrorCode } from "internal/category";
 import type { ServerAction } from "types/actions";
 import type { TransactionType } from "types/transactions";
 
