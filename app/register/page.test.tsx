@@ -26,11 +26,8 @@ vi.mock("internal/auth/adapter/next/actions", () => ({
 }));
 
 vi.mock("internal/auth", () => ({
-  isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
-}));
-
-vi.mock("internal/auth", () => ({
   getTurnstileSiteKey: mocks.getTurnstileSiteKey,
+  isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
 }));
 
 vi.mock("internal/auth/adapter/next/session", () => ({
