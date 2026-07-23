@@ -1,40 +1,45 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  createLedgerRoute,
-  switchCurrentLedgerRoute,
-  updateLedgerSettingsRoute,
-  createLedgerInviteRoute,
-  revokeLedgerInviteRoute,
-  listPendingLedgerInvitesRoute,
-} from "internal/ledger/managementRouter";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
-import { AuthenticationError } from "internal/shared/errors/appError";
+import {
+  createLedgerInviteRequestSchema,
+  createLedgerRequestSchema,
+  ledgerIdParamsSchema,
+  ledgerInviteParamsSchema,
+  switchCurrentLedgerRequestSchema,
+  updateLedgerSettingsRequestSchema,
+} from "internal/ledger/schema";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 
-function requireUserId(c: Context<AppEnv>): string {
-  const auth = c.get("requestDependencies").auth;
-  if (!auth.isAuthenticated)
-    throw new AuthenticationError("auth_required", "请先登录。");
-  return auth.userId;
-}
+type CreateLedgerRequest = z.infer<typeof createLedgerRequestSchema>;
+type SwitchCurrentLedgerRequest = z.infer<
+  typeof switchCurrentLedgerRequestSchema
+>;
+type LedgerIdParams = z.infer<typeof ledgerIdParamsSchema>;
+type UpdateLedgerSettingsRequest = z.infer<
+  typeof updateLedgerSettingsRequestSchema
+>;
+type CreateLedgerInviteRequest = z.infer<
+  typeof createLedgerInviteRequestSchema
+>;
+type LedgerInviteParams = z.infer<typeof ledgerInviteParamsSchema>;
 
-export const createLedgerHandler: RouteHandler<
-  typeof createLedgerRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const createLedgerHandler = async (
+  c: ControllerContext<{ json: CreateLedgerRequest }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").ledger.service.create(c.req.valid("json"));
   revalidateLedgerMutation();
   return c.json({ ok: true as const }, 201);
 };
 
-export const switchCurrentLedgerHandler: RouteHandler<
-  typeof switchCurrentLedgerRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const switchCurrentLedgerHandler = async (
+  c: ControllerContext<{ json: SwitchCurrentLedgerRequest }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   await c
     .get("container")
     .ledger.currentLedgerService.switch({ ...c.req.valid("json"), userId });
@@ -42,11 +47,15 @@ export const switchCurrentLedgerHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const updateLedgerSettingsHandler: RouteHandler<
-  typeof updateLedgerSettingsRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const updateLedgerSettingsHandler = async (
+  c: ControllerContext<{
+    json: UpdateLedgerSettingsRequest;
+    param: LedgerIdParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
   const body = c.req.valid("json");
   await c.get("container").ledger.settingsService.update(
@@ -76,11 +85,15 @@ export const updateLedgerSettingsHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const createLedgerInviteHandler: RouteHandler<
-  typeof createLedgerInviteRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const createLedgerInviteHandler = async (
+  c: ControllerContext<{
+    json: CreateLedgerInviteRequest;
+    param: LedgerIdParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
   const result = await c.get("container").ledger.inviteService.create({
     ledgerId,
@@ -91,11 +104,12 @@ export const createLedgerInviteHandler: RouteHandler<
   return c.json(result, 201);
 };
 
-export const revokeLedgerInviteHandler: RouteHandler<
-  typeof revokeLedgerInviteRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const revokeLedgerInviteHandler = async (
+  c: ControllerContext<{ param: LedgerInviteParams }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId, inviteId } = c.req.valid("param");
   await c
     .get("container")
@@ -104,11 +118,12 @@ export const revokeLedgerInviteHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const listPendingLedgerInvitesHandler: RouteHandler<
-  typeof listPendingLedgerInvitesRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const listPendingLedgerInvitesHandler = async (
+  c: ControllerContext<{ param: LedgerIdParams }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
   const invites = await c
     .get("container")
