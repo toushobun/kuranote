@@ -2,6 +2,16 @@ import { ledgerManagementRouter } from "internal/ledger/managementRouter";
 import { ledgerRouter } from "internal/ledger/router";
 import type { InternalModule } from "internal/internalModule";
 
+export {
+  currentLedgerErrorCodes,
+  type CurrentLedgerErrorCode,
+  type CurrentLedgerValidationErrorCode,
+} from "internal/ledger/errors/currentLedger";
+export {
+  ledgerSettingsErrorCodes,
+  type LedgerSettingsErrorCode,
+} from "internal/ledger/errors/ledgerSettings";
+
 /** 保留既有邀请接受 URL，避免破坏已经发布的邀请链接。 */
 export const ledgerInviteModule = {
   basePath: "/ledger-invites",
