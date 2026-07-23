@@ -1,27 +1,19 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  getDashboardRoute,
-  getStatisticsRoute,
-} from "internal/statistics/router";
-import { AuthenticationError } from "internal/shared/errors/appError";
-function requireUserId(c: Context<AppEnv>): string {
-  const auth = c.get("requestDependencies").auth;
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
+import {
+  statisticsLedgerParamsSchema,
+  statisticsMonthQuerySchema,
+} from "internal/statistics/schema";
 
-  if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
-  }
+type StatisticsLedgerParams = z.infer<typeof statisticsLedgerParamsSchema>;
+type StatisticsMonthQuery = z.infer<typeof statisticsMonthQuerySchema>;
 
-  return auth.userId;
-}
-
-export const getDashboardHandler: RouteHandler<
-  typeof getDashboardRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const getDashboardHandler = async (
+  c: ControllerContext<{ param: StatisticsLedgerParams }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const view = await c.get("container").statistics.service.getDashboard({
     ledgerId,
@@ -30,11 +22,13 @@ export const getDashboardHandler: RouteHandler<
   return c.json(view, 200);
 };
 
-export const getStatisticsHandler: RouteHandler<
-  typeof getStatisticsRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const getStatisticsHandler = async (
+  c: ControllerContext<{
+    param: StatisticsLedgerParams;
+    query: StatisticsMonthQuery;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const { month } = c.req.valid("query");
   const view = await c.get("container").statistics.service.getMonthly({
