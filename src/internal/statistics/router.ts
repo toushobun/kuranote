@@ -2,6 +2,10 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 
 import type { AppEnv } from "internal/appEnv";
 import {
+  createOpenApiErrorResponses,
+  protectedReadErrorStatuses,
+} from "internal/shared/http/openApiErrorResponses";
+import {
   getDashboardHandler,
   getStatisticsHandler,
 } from "internal/statistics/controller/statisticsController";
@@ -13,24 +17,10 @@ import {
   statisticsResponseSchema,
 } from "internal/statistics/schema";
 
-const errorResponses = {
-  400: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "请求无效",
-  },
-  401: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "未登录",
-  },
-  404: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "资源不存在",
-  },
-  500: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "服务异常",
-  },
-} as const;
+const errorResponses = createOpenApiErrorResponses(
+  errorResponseSchema,
+  protectedReadErrorStatuses,
+);
 
 export const getDashboardRoute = createRoute({
   method: "get",
