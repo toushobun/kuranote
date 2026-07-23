@@ -100,7 +100,7 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-  # Stage 2: 依赖 Stage 1 全部通过
+  # Stage 2: 依赖 Stage 1，快速测试与按需 RSC 测试并行
   test:
     name: Test
     if: *run_code_ci
@@ -130,7 +130,59 @@ jobs:
       - name: Run tests
         run: npm run test
 
-  # Stage 3: build 和 storybook-build 并行，都依赖 Stage 2 通过
+  rsc-test:
+    name: RSC test
+    if: *run_code_ci
+    needs: [format-check, type-check, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check RSC test scope
+        id: rsc-scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            src/server/shared/context/createServerRequestDependencies.ts \
+            tests/rsc \
+            package.json \
+            package-lock.json; then
+            echo "run_rsc=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_rsc=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        uses: actions/cache@v4
+        id: rsc-node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: >-
+          steps.rsc-scope.outputs.run_rsc == 'true' &&
+          steps.rsc-node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run RSC tests
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        run: npm run test:rsc
+
+  # Stage 3: build 和 storybook-build 并行，都依赖快速测试通过
   build:
     name: Build
     if: *run_code_ci
