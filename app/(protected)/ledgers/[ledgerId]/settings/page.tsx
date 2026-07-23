@@ -11,7 +11,7 @@ import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendi
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import { updateLedgerSettings } from "internal/ledger/adapter/next/actions/ledgerSettings";
 import { createRequestContainer } from "internal/container";
-import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import { getLedgerInviteErrorMessage } from "internal/ledger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AuthorizationError } from "internal/shared/errors/appError";
 import {

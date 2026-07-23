@@ -7,8 +7,8 @@ import {
   startGoogleAuth,
   submitRegisterOtpWithRedirect,
 } from "internal/auth/adapter/next/actions";
-import { isGoogleAuthEnabled } from "internal/auth/googleAuthConfig";
-import { getTurnstileSiteKey } from "internal/auth/turnstileKeys";
+import { isGoogleAuthEnabled } from "internal/auth";
+import { getTurnstileSiteKey } from "internal/auth";
 import { redirectIfAuthenticated } from "internal/auth/adapter/next/session";
 import { RegisterTemplate } from "templates/register/Register";
 

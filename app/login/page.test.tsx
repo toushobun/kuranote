@@ -20,7 +20,7 @@ vi.mock("internal/auth/adapter/next/actions", () => ({
   startGoogleAuth: mocks.startGoogleAuth,
 }));
 
-vi.mock("internal/auth/googleAuthConfig", () => ({
+vi.mock("internal/auth", () => ({
   isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
 }));
 

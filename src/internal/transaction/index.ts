@@ -1,5 +1,3 @@
-import { transactionRouter } from "internal/transaction/router";
-
 export {
   transactionErrorCodes,
   type EditTransactionErrorCode,
@@ -11,10 +9,10 @@ export {
   type UpdateTransactionValidationErrorCode,
   type VoidTransactionValidationErrorCode,
 } from "internal/transaction/errors";
+export * from "internal/transaction/schema";
 export type { TransferEditInitialValues } from "internal/transaction/service/transactionFormService";
-
-export const transactionModule = {
-  basePath: "/transactions",
-  name: "transaction",
-  router: transactionRouter,
-};
+export {
+  buildTransactionSearchPage,
+  emptyTransactionSearchPage,
+  normalizeTransactionSearchQuery,
+} from "internal/transaction/util/transactionSearchHelpers";

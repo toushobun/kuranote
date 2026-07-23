@@ -4,7 +4,7 @@ import { loadTransactionSearchPage } from "internal/transaction/adapter/next/loa
 import {
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,
-} from "internal/transaction/util/transactionSearchHelpers";
+} from "internal/transaction";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type { TransactionSearchPage as TransactionSearchPageData } from "types/transactions";
 import { transactionSearchPageErrorMessages } from "utils/transactionMessages";

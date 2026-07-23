@@ -2,7 +2,7 @@ import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { createLedger } from "internal/ledger/adapter/next/actions/ledgerCreate";
 import { createRequestContainer } from "internal/container";
-import { getLedgerCreateErrorMessage } from "internal/ledger/errors/ledgerCreate";
+import { getLedgerCreateErrorMessage } from "internal/ledger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { LedgerCreateTemplate } from "templates/ledgers/LedgerCreate";
 

@@ -30,7 +30,7 @@ import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 import { ledgerCurrencyOptions, ledgerMemberColorOptions } from "types/ledgers";
 
-import type { LedgerCreateDefaults } from "internal/ledger/service/ledgerService";
+import type { LedgerCreateDefaults } from "internal/ledger";
 
 const ledgerCreateText = {
   automaticItems: [

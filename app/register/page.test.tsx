@@ -25,11 +25,11 @@ vi.mock("internal/auth/adapter/next/actions", () => ({
   submitRegisterOtpWithRedirect: mocks.submitRegisterOtpWithRedirect,
 }));
 
-vi.mock("internal/auth/googleAuthConfig", () => ({
+vi.mock("internal/auth", () => ({
   isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
 }));
 
-vi.mock("internal/auth/turnstileKeys", () => ({
+vi.mock("internal/auth", () => ({
   getTurnstileSiteKey: mocks.getTurnstileSiteKey,
 }));
 

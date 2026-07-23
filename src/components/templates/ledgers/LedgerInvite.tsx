@@ -18,7 +18,7 @@ import { routePaths } from "config/paths";
 import { executeClientMutation } from "lib/api/clientMutation";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import type { LedgerInvitePreview } from "internal/ledger/entity/ledgerInvitePreview";
+import type { LedgerInvitePreview } from "internal/ledger";
 import { PageShell } from "templates/layout/PageShell";
 import type { LedgerInviteRole } from "types/ledgers";
 

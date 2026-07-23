@@ -6,7 +6,7 @@ import {
   loginWithRedirect,
   startGoogleAuth,
 } from "internal/auth/adapter/next/actions";
-import { isGoogleAuthEnabled } from "internal/auth/googleAuthConfig";
+import { isGoogleAuthEnabled } from "internal/auth";
 import { redirectIfAuthenticated } from "internal/auth/adapter/next/session";
 import { LoginTemplate } from "templates/login/Login";
 
