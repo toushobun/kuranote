@@ -313,7 +313,7 @@ describe("createServerRequestDependencies", () => {
   it("同一 SSR 请求内跨组件去重，并在下一次请求重新创建依赖", async () => {
     const firstRequestId = expectSingleRequestDependencies(firstRenderMarkup);
 
-    const secondResponse = await fetch(`${baseUrl}/?request=second`, {
+    const secondResponse = await fetch(baseUrl, {
       cache: "no-store",
       headers: { Accept: "text/html" },
     });
