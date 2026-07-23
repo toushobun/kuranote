@@ -47,6 +47,7 @@ const fixtureTsconfig = {
   ],
   exclude: ["node_modules"],
 };
+const nextServerStartAttempts = 3;
 
 let baseUrl = "";
 let firstRenderMarkup = "";
@@ -97,7 +98,7 @@ async function createFixture(): Promise<string> {
 
   if (!productionModuleSource.includes(requestDependenciesImport)) {
     throw new Error(
-      "生产模块的 Request Dependencies import 与测试夹具不一致。",
+      "生产模块的 Request Dependencies import 与测试夹具不一致。请同步更新本测试文件中的 import 替换逻辑。",
     );
   }
 
@@ -167,12 +168,18 @@ async function waitForFirstRender(): Promise<string> {
       });
 
       if (response.ok) {
-        return await response.text();
-      }
+        const markup = await response.text();
 
-      lastError = new Error(
-        `RSC 测试页面返回 ${response.status}: ${await response.text()}`,
-      );
+        if (markup.includes("data-page-first-request-id")) {
+          return markup;
+        }
+
+        lastError = new Error("RSC 测试页面尚未完成渲染。");
+      } else {
+        lastError = new Error(
+          `RSC 测试页面返回 ${response.status}: ${await response.text()}`,
+        );
+      }
     } catch (error) {
       lastError = error;
     }
@@ -209,6 +216,62 @@ async function stopNextProcess(): Promise<void> {
   });
 }
 
+function spawnNextProcess(port: number): ChildProcess {
+  const child = spawn(
+    process.execPath,
+    [
+      nextCliPath,
+      "dev",
+      "--webpack",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      String(port),
+    ],
+    {
+      cwd: fixtureDirectory,
+      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+
+  child.stdout?.on("data", appendProcessLog);
+  child.stderr?.on("data", appendProcessLog);
+  child.on("error", (error) => {
+    appendProcessLog(Buffer.from(error.stack ?? error.message));
+  });
+
+  return child;
+}
+
+async function startNextServer(): Promise<string> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= nextServerStartAttempts; attempt += 1) {
+    const port = await findAvailablePort();
+    baseUrl = `http://127.0.0.1:${port}`;
+    processLogs = "";
+    nextProcess = spawnNextProcess(port);
+
+    try {
+      return await waitForFirstRender();
+    } catch (error) {
+      lastError = error;
+      const shouldRetry =
+        processLogs.includes("EADDRINUSE") &&
+        attempt < nextServerStartAttempts;
+
+      await stopNextProcess();
+
+      if (!shouldRetry) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 function readDataAttribute(markup: string, attribute: string): string {
   const match = markup.match(new RegExp(`${attribute}="([^"]+)"`));
 
@@ -235,34 +298,7 @@ function expectSingleRequestDependencies(markup: string): string {
 
 beforeAll(async () => {
   fixtureDirectory = await createFixture();
-  const port = await findAvailablePort();
-  baseUrl = `http://127.0.0.1:${port}`;
-
-  nextProcess = spawn(
-    process.execPath,
-    [
-      nextCliPath,
-      "dev",
-      "--webpack",
-      "--hostname",
-      "127.0.0.1",
-      "--port",
-      String(port),
-    ],
-    {
-      cwd: fixtureDirectory,
-      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-
-  nextProcess.stdout?.on("data", appendProcessLog);
-  nextProcess.stderr?.on("data", appendProcessLog);
-  nextProcess.on("error", (error) => {
-    appendProcessLog(Buffer.from(error.stack ?? error.message));
-  });
-
-  firstRenderMarkup = await waitForFirstRender();
+  firstRenderMarkup = await startNextServer();
 }, 120_000);
 
 afterAll(async () => {
