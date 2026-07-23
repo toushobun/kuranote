@@ -1,0 +1,61 @@
+name: Update issue 468 for internal architecture
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  update-parent-issue:
+    if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update issue 468
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh issue view 468 --repo "${{ github.repository }}" --json body --jq .body > /tmp/issue-468.md
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('/tmp/issue-468.md')
+          body = path.read_text()
+
+          replacements = [
+              ('src/server', 'src/internal'),
+              ('serverModule.ts', 'internalModule.ts'),
+              ('ServerModule', 'InternalModule'),
+              ('serverModules', 'internalModules'),
+              ('`server/', '`internal/'),
+          ]
+          for old, new in replacements:
+              body = body.replace(old, new)
+
+          marker = '### Router 可视入口'
+          if marker not in body:
+              anchor = '- 前端类型后续从 OpenAPI 契约生成\n'
+              section = '''
+
+### Router 可视入口
+
+- 每个业务模块的 `router.ts` 是该模块 HTTP 路由的唯一可视入口。
+- `createRoute()` 契约与 `router.openapi(route, handler)` 绑定必须位于同一个 Router 文件中，使 Method、Path 与 Controller Handler 的对应关系可直接阅读。
+- Controller 只保留参数读取、Service 调用、状态码、响应和写成功后的缓存失效，不再定义 `createRoute()`。
+- Method / Path 只能有一个事实来源，不得为了可读性在 Router 与 Controller 等多个文件中重复维护。
+- 目录命名与 Router 可视化规则由 #500 / PR #501 落地。
+'''
+              if anchor not in body:
+                  raise SystemExit('找不到技术决策插入位置')
+              body = body.replace(anchor, anchor + section, 1)
+
+          path.write_text(body)
+          PY
+
+          gh issue edit 468 --repo "${{ github.repository }}" --body-file /tmp/issue-468.md
