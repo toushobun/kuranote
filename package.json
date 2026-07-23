@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --exclude=tests/rsc/**",
+    "test": "vitest run --exclude \"tests/rsc/**\"",
     "test:rsc": "vitest run tests/rsc",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
