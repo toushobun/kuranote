@@ -100,9 +100,9 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-  # Stage 2: 依赖 Stage 1 全部通过
-  test:
-    name: Test
+  # Stage 2: 依赖 Stage 1，快速测试与按需 RSC 测试并行
+  unit-test:
+    name: Unit test
     if: *run_code_ci
     needs: [format-check, type-check, lint]
     runs-on: ubuntu-latest
@@ -130,11 +130,85 @@ jobs:
       - name: Run tests
         run: npm run test
 
-  # Stage 3: build 和 storybook-build 并行，都依赖 Stage 2 通过
+  rsc-test:
+    name: RSC test
+    if: *run_code_ci
+    needs: [format-check, type-check, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check RSC test scope
+        id: rsc-scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            src/server/shared/context/createServerRequestDependencies.ts \
+            tests/rsc \
+            package.json \
+            package-lock.json; then
+            echo "run_rsc=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_rsc=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        uses: actions/cache@v4
+        id: rsc-node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: >-
+          steps.rsc-scope.outputs.run_rsc == 'true' &&
+          steps.rsc-node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run RSC tests
+        if: steps.rsc-scope.outputs.run_rsc == 'true'
+        run: npm run test:rsc
+
+  # Stage 3: 保留原 Test 检查名，统一汇总快速测试与 RSC 测试结果
+  test:
+    name: Test
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
+    needs: [unit-test, rsc-test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify test results
+        env:
+          UNIT_TEST_RESULT: ${{ needs.unit-test.result }}
+          RSC_TEST_RESULT: ${{ needs.rsc-test.result }}
+        run: |
+          if [ "$UNIT_TEST_RESULT" != "success" ] || [ "$RSC_TEST_RESULT" != "success" ]; then
+            echo "Unit test: $UNIT_TEST_RESULT"
+            echo "RSC test: $RSC_TEST_RESULT"
+            exit 1
+          fi
+
+  # Stage 3: build 和 storybook-build 并行，只等待快速测试完成
   build:
     name: Build
     if: *run_code_ci
-    needs: [test]
+    needs: [unit-test]
     runs-on: ubuntu-latest
 
     env:
@@ -167,7 +241,7 @@ jobs:
   storybook-build:
     name: Storybook build
     if: *run_code_ci
-    needs: [test]
+    needs: [unit-test]
     runs-on: ubuntu-latest
 
     env:
