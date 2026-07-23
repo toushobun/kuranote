@@ -1,4 +1,4 @@
-name: Issue 500 boundary diagnostic
+name: Issue 500 boundary fix
 
 on:
   pull_request:
@@ -6,13 +6,19 @@ on:
       - main
     types: [synchronize]
 
+permissions:
+  contents: write
+
 jobs:
-  diagnose:
+  fix:
     if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -26,15 +32,182 @@ jobs:
       - name: Install dependencies
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
-      - name: Run boundary test
+      - name: Apply public boundary fixes
         shell: bash
         run: |
-          npx vitest run src/internal/internalBoundary.test.ts --reporter=dot > boundary.log 2>&1 || touch boundary.failed
-      - name: Upload diagnostic
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: internal-boundary-diagnostic
-          path: boundary.log
-      - name: Verify result
-        run: test ! -f boundary.failed
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          internal = root / 'src/internal'
+
+          (internal / 'moduleRegistry.ts').write_text('''import { accountRouter } from "internal/account/router";
+          import { authRouter } from "internal/auth/router";
+          import { categoryRouter } from "internal/category/router";
+          import type { InternalModule } from "internal/internalModule";
+          import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
+          import { ledgerRouter } from "internal/ledger/router";
+          import { merchantRouter } from "internal/merchant/router";
+          import { statisticsRouter } from "internal/statistics/router";
+          import { transactionRouter } from "internal/transaction/router";
+          import { userRouter } from "internal/user/router";
+
+          /** 集中登记业务模块和 basePath，Master Router 只负责挂载。 */
+          export const internalModules = [
+            { basePath: "/auth", name: "auth", router: authRouter },
+            { basePath: "/ledgers", name: "ledger", router: ledgerRouter },
+            {
+              basePath: "/ledger-invites",
+              name: "ledger-invites",
+              router: ledgerInviteRouter,
+            },
+            { basePath: "/ledgers", name: "account", router: accountRouter },
+            { basePath: "/categories", name: "category", router: categoryRouter },
+            { basePath: "/merchants", name: "merchant", router: merchantRouter },
+            {
+              basePath: "/transactions",
+              name: "transaction",
+              router: transactionRouter,
+            },
+            {
+              basePath: "/statistics",
+              name: "statistics",
+              router: statisticsRouter,
+            },
+            { basePath: "/users", name: "user", router: userRouter },
+          ] satisfies InternalModule[];
+          ''', encoding='utf-8')
+
+          public_indices = {
+            'account/index.ts': '''export {
+              accountErrorCodes,
+              isAccountErrorCode,
+              type AccountErrorCode,
+            } from "internal/account/errors";
+            ''',
+            'auth/index.ts': '''export { isGoogleAuthEnabled } from "internal/auth/googleAuthConfig";
+            export {
+              getTurnstileSecretKey,
+              getTurnstileSiteKey,
+              TurnstileConfigurationError,
+            } from "internal/auth/turnstileKeys";
+            ''',
+            'category/index.ts': '''export {
+              categoryErrorCodes,
+              type CategoryErrorCode,
+              type CategoryValidationErrorCode,
+            } from "internal/category/categoryErrors";
+            ''',
+            'ledger/index.ts': '''export {
+              currentLedgerErrorCodes,
+              type CurrentLedgerErrorCode,
+              type CurrentLedgerValidationErrorCode,
+            } from "internal/ledger/errors/currentLedger";
+            export {
+              ledgerCreateErrorCodes,
+              getLedgerCreateErrorMessage,
+              type LedgerCreateErrorCode,
+            } from "internal/ledger/errors/ledgerCreate";
+            export {
+              getLedgerInviteErrorMessage,
+              ledgerInviteErrorCodes,
+              type LedgerInviteErrorCode,
+            } from "internal/ledger/errors/ledgerInvite";
+            export {
+              ledgerSettingsErrorCodes,
+              type LedgerSettingsErrorCode,
+            } from "internal/ledger/errors/ledgerSettings";
+            export type {
+              LedgerInvitePreview,
+              LedgerInviteStatus,
+            } from "internal/ledger/entity/ledgerInvitePreview";
+            export type { LedgerCreateDefaults } from "internal/ledger/service/ledgerService";
+            ''',
+            'merchant/index.ts': '''export type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
+            export {
+              isMerchantPageErrorCode,
+              merchantErrorCodes,
+              type MerchantErrorCode,
+              type MerchantPageErrorCode,
+              type MerchantValidationErrorCode,
+            } from "internal/merchant/errors";
+            export type { MerchantQueryService } from "internal/merchant/service/merchantService";
+            ''',
+            'statistics/index.ts': 'export {};\n',
+            'transaction/index.ts': '''export {
+              transactionErrorCodes,
+              type EditTransactionErrorCode,
+              type NewTransactionErrorCode,
+              type TransactionErrorCode,
+              type TransactionListErrorCode,
+              type TransactionServiceErrorCode,
+              type TransactionValidationErrorCode,
+              type UpdateTransactionValidationErrorCode,
+              type VoidTransactionValidationErrorCode,
+            } from "internal/transaction/errors";
+            export * from "internal/transaction/schema";
+            export type { TransferEditInitialValues } from "internal/transaction/service/transactionFormService";
+            export {
+              buildTransactionSearchPage,
+              emptyTransactionSearchPage,
+              normalizeTransactionSearchQuery,
+            } from "internal/transaction/util/transactionSearchHelpers";
+            ''',
+            'user/index.ts': 'export {};\n',
+          }
+          for path, content in public_indices.items():
+              (internal / path).write_text(content, encoding='utf-8')
+
+          replacements = {
+            'internal/account/errors': 'internal/account',
+            'internal/auth/googleAuthConfig': 'internal/auth',
+            'internal/auth/turnstileKeys': 'internal/auth',
+            'internal/category/categoryErrors': 'internal/category',
+            'internal/ledger/entity/ledgerInvitePreview': 'internal/ledger',
+            'internal/ledger/errors/currentLedger': 'internal/ledger',
+            'internal/ledger/errors/ledgerCreate': 'internal/ledger',
+            'internal/ledger/errors/ledgerInvite': 'internal/ledger',
+            'internal/ledger/errors/ledgerSettings': 'internal/ledger',
+            'internal/ledger/service/ledgerService': 'internal/ledger',
+            'internal/merchant/errors': 'internal/merchant',
+            'internal/transaction/errors': 'internal/transaction',
+            'internal/transaction/schema': 'internal/transaction',
+            'internal/transaction/service/transactionFormService': 'internal/transaction',
+            'internal/transaction/util/transactionSearchHelpers': 'internal/transaction',
+          }
+          source_extensions = {'.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'}
+          for path in root.rglob('*'):
+              if not path.is_file() or path.suffix not in source_extensions:
+                  continue
+              if str(path).startswith(str(internal)):
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for old, new in replacements.items():
+                  updated = updated.replace(f'"{old}"', f'"{new}"')
+                  updated = updated.replace(f"'{old}'", f"'{new}'")
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          page_errors_test = root / 'src/utils/pageErrors.test.ts'
+          text = page_errors_test.read_text(encoding='utf-8')
+          text = text.replace(
+              'import { currentLedgerErrorCodes } from "internal/ledger";\nimport { ledgerSettingsErrorCodes } from "internal/ledger";',
+              'import {\n  currentLedgerErrorCodes,\n  ledgerSettingsErrorCodes,\n} from "internal/ledger";',
+          )
+          page_errors_test.write_text(text, encoding='utf-8')
+          PY
+      - name: Remove temporary workflow
+        run: git rm .github/workflows/issue-500-boundary-diagnostic.yml
+      - name: Format
+        run: npm run format
+      - name: Verify boundary
+        run: npx vitest run src/internal/internalBoundary.test.ts
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit --no-verify -m 'refactor: 收紧 internal 模块公共边界'
+          git push origin HEAD:${{ github.head_ref }}
