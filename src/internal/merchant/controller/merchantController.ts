@@ -1,32 +1,32 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  listMerchantsRoute,
-  listMerchantOptionsRoute,
-  createMerchantRoute,
-  updateMerchantRoute,
-  archiveMerchantRoute,
-  createMerchantAliasRoute,
-  archiveMerchantAliasRoute,
-} from "internal/merchant/router";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
-import { AuthenticationError } from "internal/shared/errors/appError";
+import {
+  createMerchantAliasRequestSchema,
+  createMerchantRequestSchema,
+  merchantAliasIdParamsSchema,
+  merchantIdParamsSchema,
+  merchantLedgerQuerySchema,
+  merchantListQuerySchema,
+  updateMerchantRequestSchema,
+} from "internal/merchant/schema";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 
-function requireUserId(c: Context<AppEnv>): string {
-  const auth = c.get("requestDependencies").auth;
-  if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
-  }
-  return auth.userId;
-}
+type MerchantListQuery = z.infer<typeof merchantListQuerySchema>;
+type MerchantLedgerQuery = z.infer<typeof merchantLedgerQuerySchema>;
+type CreateMerchantRequest = z.infer<typeof createMerchantRequestSchema>;
+type MerchantIdParams = z.infer<typeof merchantIdParamsSchema>;
+type UpdateMerchantRequest = z.infer<typeof updateMerchantRequestSchema>;
+type CreateMerchantAliasRequest = z.infer<
+  typeof createMerchantAliasRequestSchema
+>;
+type MerchantAliasIdParams = z.infer<typeof merchantAliasIdParamsSchema>;
 
-export const listMerchantsHandler: RouteHandler<
-  typeof listMerchantsRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const listMerchantsHandler = async (
+  c: ControllerContext<{ query: MerchantListQuery }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId, q } = c.req.valid("query");
   const result = await c.get("container").merchant.service.list({
     keyword: q,
@@ -35,32 +35,32 @@ export const listMerchantsHandler: RouteHandler<
   return c.json(result, 200);
 };
 
-export const listMerchantOptionsHandler: RouteHandler<
-  typeof listMerchantOptionsRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const listMerchantOptionsHandler = async (
+  c: ControllerContext<{ query: MerchantLedgerQuery }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const merchants = await c
     .get("container")
     .merchant.service.listActiveOptions(c.req.valid("query"));
   return c.json({ merchants }, 200);
 };
 
-export const createMerchantHandler: RouteHandler<
-  typeof createMerchantRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const createMerchantHandler = async (
+  c: ControllerContext<{ json: CreateMerchantRequest }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").merchant.service.createMerchant(c.req.valid("json"));
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 201);
 };
 
-export const updateMerchantHandler: RouteHandler<
-  typeof updateMerchantRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const updateMerchantHandler = async (
+  c: ControllerContext<{
+    json: UpdateMerchantRequest;
+    param: MerchantIdParams;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { merchantId } = c.req.valid("param");
   await c.get("container").merchant.service.updateMerchant({
     ...c.req.valid("json"),
@@ -70,11 +70,13 @@ export const updateMerchantHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const archiveMerchantHandler: RouteHandler<
-  typeof archiveMerchantRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const archiveMerchantHandler = async (
+  c: ControllerContext<{
+    param: MerchantIdParams;
+    query: MerchantLedgerQuery;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").merchant.service.archiveMerchant({
     ...c.req.valid("param"),
     ...c.req.valid("query"),
@@ -83,11 +85,13 @@ export const archiveMerchantHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const createMerchantAliasHandler: RouteHandler<
-  typeof createMerchantAliasRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const createMerchantAliasHandler = async (
+  c: ControllerContext<{
+    json: CreateMerchantAliasRequest;
+    param: MerchantIdParams;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").merchant.service.createAlias({
     ...c.req.valid("json"),
     ...c.req.valid("param"),
@@ -96,11 +100,13 @@ export const createMerchantAliasHandler: RouteHandler<
   return c.json({ ok: true as const }, 201);
 };
 
-export const archiveMerchantAliasHandler: RouteHandler<
-  typeof archiveMerchantAliasRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const archiveMerchantAliasHandler = async (
+  c: ControllerContext<{
+    param: MerchantAliasIdParams;
+    query: MerchantLedgerQuery;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").merchant.service.archiveAlias({
     ...c.req.valid("param"),
     ...c.req.valid("query"),
