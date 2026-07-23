@@ -4,269 +4,60 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
+    types: [synchronize]
 
-env:
-  RUN_CODE_CI: &run_code_ci >-
-    github.event_name != 'pull_request' ||
-    startsWith(github.head_ref, 'docs/') == false
+permissions:
+  contents: read
+  issues: write
 
 jobs:
-  # Stage 1: 并行静态检查
-  type-check:
-    name: Type check
-    if: *run_code_ci
+  update-parent-issue:
+    name: Update architecture issue
+    if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
     runs-on: ubuntu-latest
-
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
-
+    timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-  format-check:
-    name: Format check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Check formatting
-        run: npm run format:check
-
-  lint:
-    name: Lint
-    if: *run_code_ci
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Run lint
-        run: npm run lint
-
-  # Stage 2: 依赖 Stage 1，快速测试与按需 RSC 测试并行
-  unit-test:
-    name: Unit test
-    if: *run_code_ci
-    needs: [format-check, type-check, lint]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Run tests
-        run: npm run test
-
-  rsc-test:
-    name: RSC test
-    if: *run_code_ci
-    needs: [format-check, type-check, lint]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check RSC test scope
-        id: rsc-scope
+      - name: Update issue 468
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
-            src/internal/shared/context/createServerRequestDependencies.ts \
-            tests/rsc \
-            package.json \
-            package-lock.json; then
-            echo "run_rsc=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "run_rsc=true" >> "$GITHUB_OUTPUT"
-          fi
+          gh issue view 468 --repo "${{ github.repository }}" --json body --jq .body > /tmp/issue-468.md
 
-      - name: Setup Node.js
-        if: steps.rsc-scope.outputs.run_rsc == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Cache node_modules
-        if: steps.rsc-scope.outputs.run_rsc == 'true'
-        uses: actions/cache@v4
-        id: rsc-node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+          path = Path('/tmp/issue-468.md')
+          body = path.read_text()
 
-      - name: Install dependencies
-        if: >-
-          steps.rsc-scope.outputs.run_rsc == 'true' &&
-          steps.rsc-node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+          replacements = [
+              ('src/server', 'src/internal'),
+              ('serverModule.ts', 'internalModule.ts'),
+              ('ServerModule', 'InternalModule'),
+              ('serverModules', 'internalModules'),
+              ('`server/', '`internal/'),
+          ]
+          for old, new in replacements:
+              body = body.replace(old, new)
 
-      - name: Run RSC tests
-        if: steps.rsc-scope.outputs.run_rsc == 'true'
-        run: npm run test:rsc
+          marker = '### Router 可视入口'
+          if marker not in body:
+              anchor = '- 前端类型后续从 OpenAPI 契约生成\n'
+              section = '''
 
-  # Stage 3: 保留原 Test 检查名，统一汇总快速测试与 RSC 测试结果
-  test:
-    name: Test
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' ||
-      startsWith(github.head_ref, 'docs/') == false)
-    needs: [unit-test, rsc-test]
-    runs-on: ubuntu-latest
+### Router 可视入口
 
-    steps:
-      - name: Verify test results
-        env:
-          UNIT_TEST_RESULT: ${{ needs.unit-test.result }}
-          RSC_TEST_RESULT: ${{ needs.rsc-test.result }}
-        run: |
-          if [ "$UNIT_TEST_RESULT" != "success" ] || [ "$RSC_TEST_RESULT" != "success" ]; then
-            echo "Unit test: $UNIT_TEST_RESULT"
-            echo "RSC test: $RSC_TEST_RESULT"
-            exit 1
-          fi
+- 每个业务模块的 `router.ts` 是该模块 HTTP 路由的唯一可视入口。
+- `createRoute()` 契约与 `router.openapi(route, handler)` 绑定必须位于同一个 Router 文件中，使 Method、Path 与 Controller Handler 的对应关系可直接阅读。
+- Controller 只保留参数读取、Service 调用、状态码、响应和写成功后的缓存失效，不再定义 `createRoute()`。
+- Method / Path 只能有一个事实来源，不得为了可读性在 Router 与 Controller 等多个文件中重复维护。
+- 目录命名与 Router 可视化规则由 #500 / PR #501 落地。
+'''
+              if anchor not in body:
+                  raise SystemExit('找不到技术决策插入位置')
+              body = body.replace(anchor, anchor + section, 1)
 
-  # Stage 3: build 和 storybook-build 并行，只等待快速测试完成
-  build:
-    name: Build
-    if: *run_code_ci
-    needs: [unit-test]
-    runs-on: ubuntu-latest
+          path.write_text(body)
+          PY
 
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Run build
-        run: npm run build
-
-  storybook-build:
-    name: Storybook build
-    if: *run_code_ci
-    needs: [unit-test]
-    runs-on: ubuntu-latest
-
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Build Storybook
-        run: npm run build-storybook
+          gh issue edit 468 --repo "${{ github.repository }}" --body-file /tmp/issue-468.md
