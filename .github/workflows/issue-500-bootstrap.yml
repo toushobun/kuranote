@@ -1,0 +1,59 @@
+name: Issue 500 bootstrap
+
+on:
+  push:
+    branches:
+      - refactor/500_internal_router_table
+
+permissions:
+  contents: write
+
+jobs:
+  inventory:
+    if: github.event.head_commit.message == 'chore: 生成架构重构清单'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate inventory
+        shell: bash
+        run: |
+          {
+            echo '=== FILES ==='
+            find src/server -type f | sort
+            echo
+            echo '=== ROUTERS ==='
+            while IFS= read -r file; do
+              echo
+              echo "===== $file ====="
+              cat "$file"
+            done < <(find src/server -name router.ts -type f | sort)
+            echo
+            echo '=== CONTROLLERS ==='
+            while IFS= read -r file; do
+              echo
+              echo "===== $file ====="
+              cat "$file"
+            done < <(find src/server -path '*/controller/*.ts' -type f | sort)
+            echo
+            echo '=== CONFIG AND RULES ==='
+            for file in tsconfig.json vitest.config.ts eslint.config.mjs AGENTS.md docs/AI_RULES.md .github/workflows/ci.yml tests/rsc/createServerRequestDependencies.rsc.test.ts; do
+              if [ -f "$file" ]; then
+                echo
+                echo "===== $file ====="
+                cat "$file"
+              fi
+            done
+          } > issue-500-inventory.txt
+
+      - name: Commit inventory
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add issue-500-inventory.txt
+          git commit -m 'chore: 生成架构重构清单结果'
+          git push
