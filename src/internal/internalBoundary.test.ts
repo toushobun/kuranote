@@ -85,9 +85,7 @@ describe("internal backend boundary", () => {
       );
       const compactRouterSource = routerSource.replace(/\s/g, "");
       const routeNames = [
-        ...routerSource.matchAll(
-          /export const (\w+Route) = createRoute\(\{/g,
-        ),
+        ...routerSource.matchAll(/export const (\w+Route) = createRoute\(\{/g),
       ].map((match) => match[1]);
 
       expect(routeNames.length, routerPath).toBeGreaterThan(0);
