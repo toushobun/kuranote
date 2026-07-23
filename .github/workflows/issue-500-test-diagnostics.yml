@@ -34,33 +34,28 @@ jobs:
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Run tests with diagnostics
+      - name: Run boundary test
         id: tests
         continue-on-error: true
         shell: bash
         run: |
           set +e
-          npm run test 2>&1 | tee /tmp/issue-500-test.log
+          NO_COLOR=1 npx vitest run src/internal/internalBoundary.test.ts --reporter=verbose 2>&1 | tee /tmp/issue-500-test.log
           test_status=${PIPESTATUS[0]}
-          echo "status=$test_status" >> "$GITHUB_OUTPUT"
           exit "$test_status"
 
-      - name: Report test diagnostics
+      - name: Report boundary diagnostics
         if: steps.tests.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          sed -E 's/\x1B\[[0-9;]*[mK]//g' /tmp/issue-500-test.log > /tmp/issue-500-test-clean.log
           {
             echo '<!-- issue-500-test-diagnostics -->'
-            echo 'Issue #500 单测失败诊断：'
+            echo 'Issue #500 Router 边界测试失败诊断：'
             echo
             echo '```text'
-            awk '
-              /FAIL |Failed Tests|AssertionError|Test Files/ { capture = 1 }
-              capture { print }
-            ' /tmp/issue-500-test-clean.log | tail -n 240
+            cat /tmp/issue-500-test.log
             echo '```'
           } > /tmp/issue-500-test-comment.md
           gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/issue-500-test-comment.md
