@@ -159,6 +159,8 @@ PR merge 后需要回收相关状态：
 - 修改页面设计结构、PageShell / Layout、主要区块层级或 route-level 页面结构时，必须同步检查并更新对应 `loading.tsx`、skeleton 或 Suspense fallback，确保加载骨架与最终 UI 结构一致。
 - 同类 UI 结构出现 2 次以上时，必须优先抽象为可复用组件，禁止复制粘贴维护相似 UI。
 - 复用优先级：MUI 原生组件 → 项目通用组件 → 业务模块组件 → 页面内局部组件。
+- 实现某个功能前，优先确认是否已有现成方案可以直接解决：先看是否有可用的 npm 包 / 内置能力 / 现有依赖（MUI、Supabase 等）能满足需求，其次看代码库中是否已有可复用的工具函数、组件或 Service，最后才考虑新写实现。
+- 同一段业务逻辑不允许分散重复写在多个文件里（禁止“东写一处西写一处”）。发现相同或近似逻辑出现在两处以上时，必须先归并到统一的函数 / 工具 / Service，再让调用方引用，不允许各自复制一份维护。
 
 ## 组件与 Hook 拆分规则
 
@@ -175,6 +177,17 @@ PR merge 后需要回收相关状态：
 - 纯展示组件、简单 layout 组件
 - EmptyState / LoadingState / ErrorState 等状态组件
 - 没有复杂逻辑的小组件
+
+### 组件目录归属
+
+- 模块下每个独立组件（尤其带 Form / Dialog / 专属 hook / 测试 / Story 等配套文件的组件），必须拥有自己的子目录，而不是把多个组件的文件平铺在模块根目录下混在一起。
+- 组件本体、`.test.tsx`、`.stories.tsx`、专属 `useXxx.ts` 统一放在该组件自己的路径下，例如：
+  - `organisms/merchants/MerchantForm/MerchantForm.tsx`
+  - `organisms/merchants/MerchantForm/MerchantForm.test.tsx`
+  - `organisms/merchants/MerchantForm/MerchantForm.stories.tsx`
+  - `organisms/merchants/MerchantForm/useMerchantForm.ts`（如需要拆 hook）
+- 只有单文件、没有配套文件的极简组件（如纯展示型小组件）可以不建子目录，直接平铺。
+- 新增组件必须遵循该目录约定。
 
 ## Storybook 豁免条件
 
