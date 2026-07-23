@@ -21,34 +21,16 @@ import {
   switchCurrentLedgerRequestSchema,
   updateLedgerSettingsRequestSchema,
 } from "internal/ledger/schema";
+import {
+  createOpenApiErrorResponses,
+  standardMutationErrorStatuses,
+} from "internal/shared/http/openApiErrorResponses";
 import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
 
-const errorResponses = {
-  400: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "请求无效",
-  },
-  401: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "未登录",
-  },
-  403: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "无权限",
-  },
-  404: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "资源不存在",
-  },
-  409: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "资源冲突",
-  },
-  500: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "服务异常",
-  },
-} as const;
+const errorResponses = createOpenApiErrorResponses(
+  errorResponseSchema,
+  standardMutationErrorStatuses,
+);
 
 export const createLedgerRoute = createRoute({
   method: "post",
