@@ -1,4 +1,4 @@
-import { loadStatisticsView } from "server/statistics/adapter/next/loadStatisticsViews";
+import { loadStatisticsView } from "internal/statistics/adapter/next/loadStatisticsViews";
 import { StatisticsTemplate } from "templates/statistics/Statistics";
 
 export default async function StatisticsRoute({

@@ -1,6 +1,6 @@
 import { handle } from "hono/vercel";
 
-import { apiRouter } from "server/router";
+import { apiRouter } from "internal/router";
 
 // 锁定 Hono、Supabase、cookies 及后端基础设施的运行时假设，
 // 避免未来被无意切换为 Edge Runtime。

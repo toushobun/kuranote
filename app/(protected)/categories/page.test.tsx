@@ -10,16 +10,16 @@ const mocks = vi.hoisted(() => ({
   requireCurrentUserAndLedger: vi.fn(),
 }));
 
-vi.mock("server/ledger/adapter/next/currentLedger", () => ({
+vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
-vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
   createServerRequestDependencies: mocks.createServerRequestDependencies,
 }));
-vi.mock("server/container", () => ({
+vi.mock("internal/container", () => ({
   createRequestContainer: mocks.createRequestContainer,
 }));
-vi.mock("server/category/adapter/next/actions", () => ({
+vi.mock("internal/category/adapter/next/actions", () => ({
   archiveCategory: vi.fn(),
   createCategory: vi.fn(),
   reorderCategories: vi.fn(),

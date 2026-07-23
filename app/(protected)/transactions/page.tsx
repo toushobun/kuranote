@@ -7,7 +7,7 @@ import {
   loadStep4TransactionGroupPage,
   loadStep4TransactionGroupView,
   loadTransactionFilterOptions,
-} from "server/transaction/adapter/next/loadTransactionViews";
+} from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   TransactionsTemplate,
   type TransactionSaveResult,

@@ -1,4 +1,4 @@
-> **状态：已完成。** 本文记录的是重构前的边界盘点，文中 `src/server/actions`、`loaders`、`services` 等路径属于历史来源，不再是当前代码位置。当前后端模块归属以 Issue #468、`docs/AI_RULES.md` 和各业务模块目录为准。
+> **状态：已完成。** 本文记录的是重构前的边界盘点，文中 `src/internal/actions`、`loaders`、`services` 等路径属于历史来源，不再是当前代码位置。当前后端模块归属以 Issue #468、`docs/AI_RULES.md` 和各业务模块目录为准。
 
 # Current ledger 数据边界审计
 
@@ -67,7 +67,7 @@ Parent：#380
 
 修复：
 
-- 新增 `server/cache/currentLedger.ts`，集中维护完整刷新路径。
+- 新增 `internal/cache/currentLedger.ts`，集中维护完整刷新路径。
 - `createLedger`、`updateCurrentLedger`、`acceptLedgerInvite` 统一调用 `revalidateCurrentLedgerPaths()`。
 - 新增共通刷新测试，固定完整列表及每个路径只刷新一次。
 - 更新创建账本、切换账本和接受邀请 Action 测试，避免三份清单再次分叉。
@@ -86,25 +86,25 @@ Parent：#380
 
 以下 SSR 读取入口和 loader 已逐条确认使用 `currentLedger.id` 或由该值派生的受限 ID 集合：
 
-- `src/server/loaders/dashboard.ts`
-- `src/server/account/adapter/next/loadAccountsView.ts`
-- `src/server/loaders/categories.ts`
-- `src/server/loaders/merchants.ts`
-- `src/server/loaders/statistics.ts`
-- `src/server/loaders/transactionForm.ts`
-- `src/server/loaders/transactionStep4Groups/groupLoaders.ts`
-- `src/server/loaders/transactionStep4Groups/context.ts`
-- `src/server/loaders/transactionStep4Groups/options.ts`
-- `src/server/loaders/loadCategoriesByIdsWithParents.ts`
+- `src/internal/loaders/dashboard.ts`
+- `src/internal/account/adapter/next/loadAccountsView.ts`
+- `src/internal/loaders/categories.ts`
+- `src/internal/loaders/merchants.ts`
+- `src/internal/loaders/statistics.ts`
+- `src/internal/loaders/transactionForm.ts`
+- `src/internal/loaders/transactionStep4Groups/groupLoaders.ts`
+- `src/internal/loaders/transactionStep4Groups/context.ts`
+- `src/internal/loaders/transactionStep4Groups/options.ts`
+- `src/internal/loaders/loadCategoriesByIdsWithParents.ts`
 
 ### 核心写入路径
 
 以下 Action 均从服务端 current ledger 上下文取得账本 ID：
 
-- `src/server/account/adapter/next/actions.ts`
-- `src/server/actions/categories.ts`
-- `src/server/actions/merchants.ts`
-- `src/server/actions/transactions.ts`
+- `src/internal/account/adapter/next/actions.ts`
+- `src/internal/actions/categories.ts`
+- `src/internal/actions/merchants.ts`
+- `src/internal/actions/transactions.ts`
 
 以下交易 RPC 已确认同时校验账本权限和业务对象的账本归属：
 
@@ -127,29 +127,29 @@ Parent：#380
 
 ## 本次新增或扩展的回归测试
 
-- `src/server/db/currentLedgerBoundaryAudit.test.ts`
+- `src/internal/db/currentLedgerBoundaryAudit.test.ts`
   - current ledger、角色判断、交易 RPC、业务对象归属和权限 trigger。
-- `src/server/db/ledgerInviteCurrentLedgerMigration.test.ts`
+- `src/internal/db/ledgerInviteCurrentLedgerMigration.test.ts`
   - 接受邀请统一更新 `app_user.current_ledger_id`，不再写入 `user_setting`。
-- `src/server/account/adapter/next/actions.test.ts`
+- `src/internal/account/adapter/next/actions.test.ts`
   - 创建账户忽略客户端伪造的 `ledgerId`。
-- `src/server/ledger/adapter/next/actions/currentLedgerBoundary.test.ts`
+- `src/internal/ledger/adapter/next/actions/currentLedgerBoundary.test.ts`
   - 创建记账忽略客户端伪造的 `ledgerId`。
-- `src/server/cache/currentLedger.test.ts`
+- `src/internal/cache/currentLedger.test.ts`
   - 固化所有依赖 current ledger 的刷新路径。
-- `src/server/ledger/adapter/next/actions/ledgerCreate.test.ts`
-- `src/server/ledger/adapter/next/actions/currentLedger.test.ts`
-- `src/server/ledger/adapter/next/actions/ledgerInvite.test.ts`
+- `src/internal/ledger/adapter/next/actions/ledgerCreate.test.ts`
+- `src/internal/ledger/adapter/next/actions/currentLedger.test.ts`
+- `src/internal/ledger/adapter/next/actions/ledgerInvite.test.ts`
   - 三条 current ledger 变化路径统一使用完整刷新范围。
-- `src/server/loaders/dashboard.currentLedger.test.ts`
+- `src/internal/loaders/dashboard.currentLedger.test.ts`
   - Dashboard 交易和账户查询使用 current ledger；无账本时不查询业务数据。
-- `src/server/loaders/statistics.currentLedger.test.ts`
+- `src/internal/loaders/statistics.currentLedger.test.ts`
   - 月度统计查询使用 current ledger。
-- `src/server/account/repository/accountRepository.test.ts` / `src/server/account/service/accountService.test.ts`
+- `src/internal/account/repository/accountRepository.test.ts` / `src/internal/account/service/accountService.test.ts`
   - 账户、持有人、成员和成员显示设置查询使用 current ledger。
-- `src/server/loaders/masterData.currentLedger.test.ts`
+- `src/internal/loaders/masterData.currentLedger.test.ts`
   - 分类和商家查询使用 current ledger。
-- `src/server/loaders/transactionStep4Groups/options.test.ts`
+- `src/internal/loaders/transactionStep4Groups/options.test.ts`
   - 双账本场景下，账户、分类、商家、标签和成员筛选候选不会串账。
 - `src/test/supabaseMock.ts`
   - 补充 `.lt()` 查询记录能力，用于日期范围 loader 测试。

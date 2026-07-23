@@ -18,22 +18,19 @@ vi.mock("lib/auth/googleOAuth", () => ({
   getGoogleAuthErrorMessage: mocks.getGoogleAuthErrorMessage,
 }));
 
-vi.mock("server/auth/adapter/next/actions", () => ({
+vi.mock("internal/auth/adapter/next/actions", () => ({
   checkRegisterEmailAvailability: mocks.checkRegisterEmailAvailability,
   requestRegisterOtp: mocks.requestRegisterOtp,
   startGoogleAuth: mocks.startGoogleAuth,
   submitRegisterOtpWithRedirect: mocks.submitRegisterOtpWithRedirect,
 }));
 
-vi.mock("server/auth/googleAuthConfig", () => ({
+vi.mock("internal/auth", () => ({
+  getTurnstileSiteKey: mocks.getTurnstileSiteKey,
   isGoogleAuthEnabled: mocks.isGoogleAuthEnabled,
 }));
 
-vi.mock("server/auth/turnstileKeys", () => ({
-  getTurnstileSiteKey: mocks.getTurnstileSiteKey,
-}));
-
-vi.mock("server/auth/adapter/next/session", () => ({
+vi.mock("internal/auth/adapter/next/session", () => ({
   redirectIfAuthenticated: mocks.redirectIfAuthenticated,
 }));
 

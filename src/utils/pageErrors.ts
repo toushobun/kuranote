@@ -1,29 +1,21 @@
-import {
-  accountErrorCodes,
-  type AccountErrorCode,
-} from "server/account/errors";
-import {
-  categoryErrorCodes,
-  type CategoryErrorCode,
-} from "server/category/categoryErrors";
+import { accountErrorCodes, type AccountErrorCode } from "internal/account";
+import { categoryErrorCodes, type CategoryErrorCode } from "internal/category";
 import {
   currentLedgerErrorCodes,
-  type CurrentLedgerErrorCode,
-} from "server/ledger/errors/currentLedger";
-import {
   ledgerSettingsErrorCodes,
+  type CurrentLedgerErrorCode,
   type LedgerSettingsErrorCode,
-} from "server/ledger/errors/ledgerSettings";
+} from "internal/ledger";
 import {
   merchantErrorCodes,
   type MerchantPageErrorCode,
-} from "server/merchant/errors";
+} from "internal/merchant";
 import {
   transactionErrorCodes,
   type EditTransactionErrorCode,
   type NewTransactionErrorCode,
   type TransactionListErrorCode,
-} from "server/transaction/errors";
+} from "internal/transaction";
 import {
   editTransactionPageErrorMessages,
   newTransactionPageErrorMessages,

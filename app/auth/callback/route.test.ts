@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   handleGoogleOAuthCallback: vi.fn(),
 }));
 
-vi.mock("server/auth/adapter/next/googleOAuthCallback", () => ({
+vi.mock("internal/auth/adapter/next/googleOAuthCallback", () => ({
   handleGoogleOAuthCallback: mocks.handleGoogleOAuthCallback,
 }));
 

@@ -6,10 +6,10 @@ import {
   requestRegisterOtp,
   startGoogleAuth,
   submitRegisterOtpWithRedirect,
-} from "server/auth/adapter/next/actions";
-import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
-import { getTurnstileSiteKey } from "server/auth/turnstileKeys";
-import { redirectIfAuthenticated } from "server/auth/adapter/next/session";
+} from "internal/auth/adapter/next/actions";
+import { isGoogleAuthEnabled } from "internal/auth";
+import { getTurnstileSiteKey } from "internal/auth";
+import { redirectIfAuthenticated } from "internal/auth/adapter/next/session";
 import { RegisterTemplate } from "templates/register/Register";
 
 function getNextPath(next: string | string[] | undefined) {

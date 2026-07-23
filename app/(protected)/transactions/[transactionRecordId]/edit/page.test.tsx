@@ -17,13 +17,13 @@ const mocks = vi.hoisted(() => ({
   voidTransaction: vi.fn(),
 }));
 
-vi.mock("server/transaction/adapter/next/actions", () => ({
+vi.mock("internal/transaction/adapter/next/actions", () => ({
   saveEditTransaction: mocks.saveEditTransaction,
   updateTransaction: mocks.updateTransaction,
   voidTransaction: mocks.voidTransaction,
 }));
 
-vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
+vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadEditTransactionView: mocks.loadEditTransactionView,
 }));
 

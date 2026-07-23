@@ -149,7 +149,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
-            src/server/shared/context/createServerRequestDependencies.ts \
+            src/internal/shared/context/createServerRequestDependencies.ts \
             tests/rsc \
             package.json \
             package-lock.json; then

@@ -20,17 +20,17 @@ const mocks = vi.hoisted(() => ({
 vi.mock("lib/ledger/current-ledger", () => ({
   getCurrentLedgerOrRedirect: mocks.getCurrentLedgerOrRedirect,
 }));
-vi.mock("server/container", () => ({
+vi.mock("internal/container", () => ({
   createRequestContainer: mocks.createRequestContainer,
 }));
-vi.mock("server/merchant/adapter/next/actions", () => ({
+vi.mock("internal/merchant/adapter/next/actions", () => ({
   archiveMerchant: mocks.archiveMerchant,
   archiveMerchantAlias: mocks.archiveMerchantAlias,
   createMerchant: mocks.createMerchant,
   createMerchantAlias: mocks.createMerchantAlias,
   updateMerchant: mocks.updateMerchant,
 }));
-vi.mock("server/shared/context/createServerRequestDependencies", () => ({
+vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
   createServerRequestDependencies: mocks.createServerRequestDependencies,
 }));
 vi.mock("templates/merchants/Merchants", () => ({

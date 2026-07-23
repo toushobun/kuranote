@@ -5,9 +5,9 @@ import { emailMaxLength, isValidEmailFormat } from "lib/validators/auth";
 import {
   loginWithRedirect,
   startGoogleAuth,
-} from "server/auth/adapter/next/actions";
-import { isGoogleAuthEnabled } from "server/auth/googleAuthConfig";
-import { redirectIfAuthenticated } from "server/auth/adapter/next/session";
+} from "internal/auth/adapter/next/actions";
+import { isGoogleAuthEnabled } from "internal/auth";
+import { redirectIfAuthenticated } from "internal/auth/adapter/next/session";
 import { LoginTemplate } from "templates/login/Login";
 
 type LoginRouteProps = {

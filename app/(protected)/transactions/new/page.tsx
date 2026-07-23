@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { transactionEditHref } from "config/paths";
-import { createTransaction } from "server/transaction/adapter/next/actions";
-import { loadNewTransactionView } from "server/transaction/adapter/next/loadTransactionViews";
+import { createTransaction } from "internal/transaction/adapter/next/actions";
+import { loadNewTransactionView } from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   NewTransactionTemplate,
   TransactionPermissionDenied,

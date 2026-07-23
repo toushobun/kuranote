@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PointerEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "server/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category";
 import type { CategoryReorderAction, CategoryTreeItem } from "types/categories";
 
 import { useCategoryList } from "./useCategoryList";

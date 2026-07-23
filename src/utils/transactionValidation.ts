@@ -1,2 +1,2 @@
-export * from "server/transaction/schema";
+export * from "internal/transaction";
 export * from "utils/transactionBalance";

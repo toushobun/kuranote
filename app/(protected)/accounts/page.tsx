@@ -3,8 +3,8 @@ import {
   archiveAccount,
   createAccount,
   updateAccount,
-} from "server/account/adapter/next/actions";
-import { loadAccountsView } from "server/account/adapter/next/loadAccountsView";
+} from "internal/account/adapter/next/actions";
+import { loadAccountsView } from "internal/account/adapter/next/loadAccountsView";
 import {
   AccountsTemplate,
   type AccountSaveResult,

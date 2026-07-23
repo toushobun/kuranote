@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "server/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category";
 
 import { CategoryList } from "./CategoryList";
 

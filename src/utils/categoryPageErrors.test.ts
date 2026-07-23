@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { categoryErrorCodes } from "server/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category";
 import { getCategoryErrorMessage } from "utils/pageErrors";
 
 describe("分类错误提示", () => {

@@ -21,11 +21,11 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("server/transaction/adapter/next/actions", () => ({
+vi.mock("internal/transaction/adapter/next/actions", () => ({
   createTransaction: mocks.createTransaction,
 }));
 
-vi.mock("server/transaction/adapter/next/loadTransactionViews", () => ({
+vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadNewTransactionView: mocks.loadNewTransactionView,
 }));
 

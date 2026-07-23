@@ -19,7 +19,7 @@ const repositoryRoot = process.cwd();
 const nextCliPath = join(repositoryRoot, "node_modules/next/dist/bin/next");
 const productionModulePath = join(
   repositoryRoot,
-  "src/server/shared/context/createServerRequestDependencies.ts",
+  "src/internal/shared/context/createServerRequestDependencies.ts",
 );
 const fixtureTsconfig = {
   compilerOptions: {
@@ -94,7 +94,7 @@ async function createFixture(): Promise<string> {
   const appDirectory = join(directory, "app");
   const productionModuleSource = await readFile(productionModulePath, "utf8");
   const requestDependenciesImport =
-    '"server/shared/context/requestDependencies"';
+    '"internal/shared/context/requestDependencies"';
 
   if (!productionModuleSource.includes(requestDependenciesImport)) {
     throw new Error(
