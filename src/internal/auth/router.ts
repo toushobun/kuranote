@@ -25,35 +25,18 @@ import {
   startGoogleAuthRequestSchema,
   submitRegisterOtpRequestSchema,
 } from "internal/auth/schema";
+import { createOpenApiErrorResponses } from "internal/shared/http/openApiErrorResponses";
 import { jsonBodySyntaxMiddleware } from "internal/shared/middleware/jsonBodySyntaxMiddleware";
 import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
 
-const errorResponses = {
-  400: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "请求无效",
+const errorResponses = createOpenApiErrorResponses(
+  errorResponseSchema,
+  [400, 401, 403, 409, 429, 500],
+  {
+    401: "认证失败",
+    403: "请求被拒绝",
   },
-  401: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "认证失败",
-  },
-  403: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "请求被拒绝",
-  },
-  409: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "资源冲突",
-  },
-  429: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "请求过于频繁",
-  },
-  500: {
-    content: { "application/json": { schema: errorResponseSchema } },
-    description: "服务异常",
-  },
-} as const;
+);
 
 export const loginRoute = createRoute({
   method: "post",
