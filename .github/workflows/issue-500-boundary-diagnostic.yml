@@ -29,8 +29,12 @@ jobs:
       - name: Run boundary test
         shell: bash
         run: |
-          set +e
-          npx vitest run src/internal/internalBoundary.test.ts --reporter=dot > /tmp/boundary.log 2>&1
-          status=$?
-          grep -E '绕过模块入口|反向依赖|定义 createRoute|AssertionError|FAIL|×' /tmp/boundary.log || tail -n 30 /tmp/boundary.log
-          exit "$status"
+          npx vitest run src/internal/internalBoundary.test.ts --reporter=dot > boundary.log 2>&1 || touch boundary.failed
+      - name: Upload diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-boundary-diagnostic
+          path: boundary.log
+      - name: Verify result
+        run: test ! -f boundary.failed
