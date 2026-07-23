@@ -21,7 +21,7 @@ function renderWithTheme(ui: ReactNode) {
   );
 }
 
-vi.mock("organisms/transactions/TransactionForm", () => ({
+vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     formId,
     initialValues,
@@ -42,26 +42,35 @@ vi.mock("organisms/transactions/TransactionForm", () => ({
   },
 }));
 
-vi.mock("organisms/transactions/TransferTransactionForm", () => ({
-  TransferTransactionForm: ({ formId }: { formId: string }): ReactNode => (
-    <form data-testid="transfer-transaction-form" id={formId}>
-      <input aria-label="转账编辑临时输入" defaultValue="" />
-    </form>
-  ),
-}));
+vi.mock(
+  "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
+  () => ({
+    TransferTransactionForm: ({ formId }: { formId: string }): ReactNode => (
+      <form data-testid="transfer-transaction-form" id={formId}>
+        <input aria-label="转账编辑临时输入" defaultValue="" />
+      </form>
+    ),
+  }),
+);
 
-vi.mock("organisms/transactions/TransactionAmountKeypadLauncher", () => ({
-  TransactionAmountKeypadLauncher: (): ReactNode => null,
-}));
+vi.mock(
+  "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher",
+  () => ({
+    TransactionAmountKeypadLauncher: (): ReactNode => null,
+  }),
+);
 
-vi.mock("organisms/transactions/TransactionFormHeader", () => ({
-  TransactionFormHeader: ({ title }: { title: string }): ReactNode => (
-    <div data-testid="transaction-form-header">
-      <h1>{title}</h1>
-      <button type="submit">保存</button>
-    </div>
-  ),
-}));
+vi.mock(
+  "organisms/transactions/TransactionFormHeader/TransactionFormHeader",
+  () => ({
+    TransactionFormHeader: ({ title }: { title: string }): ReactNode => (
+      <div data-testid="transaction-form-header">
+        <h1>{title}</h1>
+        <button type="submit">保存</button>
+      </div>
+    ),
+  }),
+);
 
 afterEach(() => {
   cleanup();

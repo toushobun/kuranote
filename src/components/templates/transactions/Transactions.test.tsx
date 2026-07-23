@@ -37,17 +37,20 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("organisms/transactions/TransactionMonthList", () => ({
-  TransactionMonthList: ({
-    timeGroupView,
-  }: {
-    timeGroupView: TransactionTimeGroupViewData;
-  }): ReactNode => (
-    <div data-testid="transaction-month-list">
-      {timeGroupView.groups.map((group) => group.label).join(" / ")}
-    </div>
-  ),
-}));
+vi.mock(
+  "organisms/transactions/TransactionMonthList/TransactionMonthList",
+  () => ({
+    TransactionMonthList: ({
+      timeGroupView,
+    }: {
+      timeGroupView: TransactionTimeGroupViewData;
+    }): ReactNode => (
+      <div data-testid="transaction-month-list">
+        {timeGroupView.groups.map((group) => group.label).join(" / ")}
+      </div>
+    ),
+  }),
+);
 
 afterEach(() => {
   cleanup();

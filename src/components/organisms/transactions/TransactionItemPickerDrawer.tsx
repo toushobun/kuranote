@@ -22,9 +22,9 @@ import type { TransactionCategoryOption } from "types/transactions";
 import type {
   CategoryPickerGroup,
   TransactionPickerErrors,
-} from "./TransactionForm.types";
+} from "./TransactionForm/TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
-import { getCurrencySymbol } from "./TransactionForm.utils";
+import { getCurrencySymbol } from "./TransactionForm/TransactionForm.utils";
 
 type TransactionItemPickerDrawerProps = {
   categoryGroups: CategoryPickerGroup[];

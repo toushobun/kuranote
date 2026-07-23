@@ -7,7 +7,7 @@ import {
   type LedgerInviteErrorOperation,
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext";
+import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import { updateLedgerSettings } from "internal/ledger/adapter/next/actions/ledgerSettings";
 import { createRequestContainer } from "internal/container";

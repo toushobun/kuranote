@@ -8,13 +8,13 @@ import type {
   TransactionMerchantOption,
 } from "types/transactions";
 
-import type { TransactionItemSummary } from "./TransactionForm.types";
-import { transactionSummarySurfaceSx } from "./TransactionForm.styles";
+import type { TransactionItemSummary } from "./TransactionForm/TransactionForm.types";
+import { transactionSummarySurfaceSx } from "./TransactionForm/TransactionForm.styles";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
-} from "./TransactionForm.utils";
+} from "./TransactionForm/TransactionForm.utils";
 
 type TransactionSummarySectionProps = {
   itemSummaries: TransactionItemSummary[];

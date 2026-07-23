@@ -9,7 +9,7 @@ import {
   transactionFormStackSx,
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
-} from "organisms/transactions/TransactionForm.styles";
+} from "organisms/transactions/TransactionForm/TransactionForm.styles";
 
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
 

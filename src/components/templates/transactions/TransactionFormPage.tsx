@@ -32,14 +32,14 @@ import {
   TransactionTypeNavigation,
   type TransactionTypeNavigationValue,
 } from "molecules/transactions/TransactionTypeNavigation";
-import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
+import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext";
 import {
   TransactionForm,
   type TransactionFormInitialValues,
-} from "organisms/transactions/TransactionForm";
-import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm.styles";
-import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm";
+} from "organisms/transactions/TransactionForm/TransactionForm";
+import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
 import type { TransferEditInitialValues } from "internal/transaction";
 import type {
   TransactionAccountOption,

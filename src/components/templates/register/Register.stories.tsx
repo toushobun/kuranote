@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { turnstileTestSiteKey } from "config/turnstile";
-import { installTurnstileTestDouble } from "organisms/auth/turnstileTestDouble";
+import { installTurnstileTestDouble } from "organisms/auth/RegisterForm/turnstileTestDouble";
 import type {
   RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,

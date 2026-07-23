@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import type { ReactNode } from "react";
 
-import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar";
+import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar/BottomNavigationBar";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";

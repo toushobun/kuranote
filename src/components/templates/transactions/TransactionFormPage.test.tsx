@@ -7,7 +7,7 @@ import {
   TransactionPermissionDenied,
 } from "./TransactionFormPage";
 
-vi.mock("organisms/transactions/TransactionForm", () => ({
+vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     errorMessage,
     initialType,
@@ -28,38 +28,47 @@ vi.mock("organisms/transactions/TransactionForm", () => ({
   },
 }));
 
-vi.mock("organisms/transactions/TransferTransactionForm", () => ({
-  TransferTransactionForm: ({
-    errorMessage,
-  }: {
-    errorMessage: string | null;
-  }): ReactNode => (
-    <div data-testid="transfer-transaction-form">
-      <input aria-label="转账临时输入" defaultValue="" />
-      {errorMessage ? <div role="alert">{errorMessage}</div> : null}
-    </div>
-  ),
-}));
+vi.mock(
+  "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
+  () => ({
+    TransferTransactionForm: ({
+      errorMessage,
+    }: {
+      errorMessage: string | null;
+    }): ReactNode => (
+      <div data-testid="transfer-transaction-form">
+        <input aria-label="转账临时输入" defaultValue="" />
+        {errorMessage ? <div role="alert">{errorMessage}</div> : null}
+      </div>
+    ),
+  }),
+);
 
-vi.mock("organisms/transactions/TransactionAmountKeypadLauncher", () => ({
-  TransactionAmountKeypadLauncher: (): ReactNode => null,
-}));
+vi.mock(
+  "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher",
+  () => ({
+    TransactionAmountKeypadLauncher: (): ReactNode => null,
+  }),
+);
 
-vi.mock("organisms/transactions/TransactionFormHeader", () => ({
-  TransactionFormHeader: ({
-    ledgerName,
-    title,
-  }: {
-    ledgerName?: string;
-    title: string;
-  }): ReactNode => (
-    <div data-testid="transaction-form-header">
-      <h1>{title}</h1>
-      {ledgerName ? <p>当前账本：{ledgerName}</p> : null}
-      <button type="submit">保存</button>
-    </div>
-  ),
-}));
+vi.mock(
+  "organisms/transactions/TransactionFormHeader/TransactionFormHeader",
+  () => ({
+    TransactionFormHeader: ({
+      ledgerName,
+      title,
+    }: {
+      ledgerName?: string;
+      title: string;
+    }): ReactNode => (
+      <div data-testid="transaction-form-header">
+        <h1>{title}</h1>
+        {ledgerName ? <p>当前账本：{ledgerName}</p> : null}
+        <button type="submit">保存</button>
+      </div>
+    ),
+  }),
+);
 
 afterEach(() => {
   cleanup();
