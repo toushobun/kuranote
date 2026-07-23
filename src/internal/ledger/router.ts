@@ -7,8 +7,20 @@ import {
   acceptLedgerInviteResponseSchema,
   errorResponseSchema,
 } from "internal/ledger/schema";
-
+import { createOpenApiErrorResponses } from "internal/shared/http/openApiErrorResponses";
 import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
+
+const errorResponses = createOpenApiErrorResponses(
+  errorResponseSchema,
+  [400, 401, 403, 404, 409, 500],
+  {
+    400: "请求内容无效",
+    403: "来源无效或无权限",
+    404: "邀请不存在或已失效",
+    409: "邀请已被使用或撤销",
+    500: "服务端异常",
+  },
+);
 
 export const acceptLedgerInviteRoute = createRoute({
   method: "post",
@@ -27,30 +39,7 @@ export const acceptLedgerInviteRoute = createRoute({
       },
       description: "邀请接受成功",
     },
-    400: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "请求内容无效",
-    },
-    401: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "未登录",
-    },
-    403: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "来源无效或无权限",
-    },
-    404: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "邀请不存在或已失效",
-    },
-    409: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "邀请已被使用或撤销",
-    },
-    500: {
-      content: { "application/json": { schema: errorResponseSchema } },
-      description: "服务端异常",
-    },
+    ...errorResponses,
   },
 });
 
