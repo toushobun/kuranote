@@ -136,7 +136,7 @@ describe("internal backend boundary", () => {
       ].map((match) => ({ handlerName: match[2], routeName: match[1] }));
       const controllerHandlerImports = [
         ...routerSource.matchAll(
-          /import\s*\{([\s\S]*?)\}\s*from\s*["'][^"']*\/controller\/[^"']+["'];/g,
+          /import\s*\{([^}]*)\}\s*from\s*["'][^"']*\/controller\/[^"']+["'];/g,
         ),
       ].flatMap((match) => parseNamedImports(match[1]));
 
