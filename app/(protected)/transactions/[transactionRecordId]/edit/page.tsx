@@ -1,8 +1,8 @@
 import {
   saveEditTransaction,
   voidTransaction,
-} from "server/transaction/adapter/next/actions";
-import { loadEditTransactionView } from "server/transaction/adapter/next/loadTransactionViews";
+} from "internal/transaction/adapter/next/actions";
+import { loadEditTransactionView } from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,

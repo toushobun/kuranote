@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { logout } from "server/auth/adapter/next/actions";
+import { logout } from "internal/auth/adapter/next/actions";
 import { SettingsTemplate } from "templates/settings/Settings";
 
 export default async function SettingsRoute() {

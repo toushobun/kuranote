@@ -22,7 +22,7 @@ vi.mock("lib/supabase/server", () => ({
   createClient: mocks.createClient,
 }));
 
-vi.mock("server/ledger/adapter/next/loadLedgerInvitePreview", () => ({
+vi.mock("internal/ledger/adapter/next/loadLedgerInvitePreview", () => ({
   loadLedgerInvitePreview: mocks.loadLedgerInvitePreview,
 }));
 

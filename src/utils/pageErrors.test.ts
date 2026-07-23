@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { accountErrorCodes } from "server/account/errors";
-import { categoryErrorCodes } from "server/category/categoryErrors";
-import { currentLedgerErrorCodes } from "server/ledger/errors/currentLedger";
-import { ledgerSettingsErrorCodes } from "server/ledger/errors/ledgerSettings";
-import { transactionErrorCodes } from "server/transaction/errors";
-import { merchantErrorCodes } from "server/merchant/errors";
+import { accountErrorCodes } from "internal/account/errors";
+import { categoryErrorCodes } from "internal/category/categoryErrors";
+import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
+import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
+import { transactionErrorCodes } from "internal/transaction/errors";
+import { merchantErrorCodes } from "internal/merchant/errors";
 
 import {
   getAccountErrorMessage,

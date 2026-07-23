@@ -1,13 +1,13 @@
 import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
-import { createRequestContainer } from "server/container";
+import { createRequestContainer } from "internal/container";
 import {
   archiveMerchant,
   archiveMerchantAlias,
   createMerchant,
   createMerchantAlias,
   updateMerchant,
-} from "server/merchant/adapter/next/actions";
-import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+} from "internal/merchant/adapter/next/actions";
+import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { MerchantsTemplate } from "templates/merchants/Merchants";
 import { getMerchantErrorMessage } from "utils/pageErrors";
 

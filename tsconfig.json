@@ -26,7 +26,7 @@
       "templates/*": ["./src/components/templates/*"],
       "providers/*": ["./src/components/providers/*"],
       "config/*": ["./src/config/*"],
-      "server/*": ["./src/server/*"],
+      "internal/*": ["./src/internal/*"],
       "theme/*": ["./src/theme/*"],
       "types/*": ["./src/types/*"],
       "utils/*": ["./src/utils/*"],

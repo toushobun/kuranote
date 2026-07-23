@@ -3,10 +3,10 @@ import {
   createCategory,
   reorderCategories,
   updateCategory,
-} from "server/category/adapter/next/actions";
-import { createRequestContainer } from "server/container";
-import { requireCurrentUserAndLedger } from "server/ledger/adapter/next/currentLedger";
-import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+} from "internal/category/adapter/next/actions";
+import { createRequestContainer } from "internal/container";
+import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { CategoriesTemplate } from "templates/categories/Categories";
 import { getCategoryErrorMessage } from "utils/pageErrors";
 

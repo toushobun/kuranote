@@ -1,10 +1,10 @@
 import { unstable_rethrow } from "next/navigation";
 
-import { loadTransactionSearchPage } from "server/transaction/adapter/next/loadTransactionViews";
+import { loadTransactionSearchPage } from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,
-} from "server/transaction/util/transactionSearchHelpers";
+} from "internal/transaction/util/transactionSearchHelpers";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type { TransactionSearchPage as TransactionSearchPageData } from "types/transactions";
 import { transactionSearchPageErrorMessages } from "utils/transactionMessages";

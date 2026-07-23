@@ -6,9 +6,9 @@ import {
   type LedgerSwitchResultValue,
 } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { updateCurrentLedger } from "server/ledger/adapter/next/actions/currentLedger";
-import { createRequestContainer } from "server/container";
-import { createServerRequestDependencies } from "server/shared/context/createServerRequestDependencies";
+import { updateCurrentLedger } from "internal/ledger/adapter/next/actions/currentLedger";
+import { createRequestContainer } from "internal/container";
+import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { LedgersTemplate } from "templates/ledgers/Ledgers";
 import { getCurrentLedgerErrorMessage } from "utils/pageErrors";
 

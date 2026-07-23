@@ -13,7 +13,7 @@ export default defineConfig({
         .pathname,
       providers: new URL("./src/components/providers", import.meta.url)
         .pathname,
-      server: new URL("./src/server", import.meta.url).pathname,
+      server: new URL("./src/internal", import.meta.url).pathname,
       templates: new URL("./src/components/templates", import.meta.url)
         .pathname,
       test: new URL("./src/test", import.meta.url).pathname,
