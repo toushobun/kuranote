@@ -1,3 +1,4 @@
+import { AuthenticationError } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 
 export type AuthContext =
@@ -20,4 +21,16 @@ export async function getAuthContext(
   }
 
   return { email: user.email ?? null, isAuthenticated: true, userId: user.id };
+}
+
+/**
+ * Controller 和其他请求边界统一使用这一窄函数读取已认证用户 ID，
+ * 避免各模块重复实现相同的登录状态判断。
+ */
+export function requireAuthenticatedUserId(auth: AuthContext): string {
+  if (!auth.isAuthenticated) {
+    throw new AuthenticationError("auth_required", "请先登录。");
+  }
+
+  return auth.userId;
 }
