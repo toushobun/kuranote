@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   refactor:
@@ -37,11 +38,47 @@ jobs:
         run: npm run format
 
       - name: Commit refactor
+        id: commit-refactor
+        continue-on-error: true
         shell: bash
         run: |
+          set +e
           rm -f scripts/refactor-issue-500.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit --no-verify -m 'refactor: 迁移 internal 目录并显式化路由契约'
-          git push origin HEAD:${{ github.head_ref }}
+          {
+            echo '## git status'
+            git status --short
+            echo
+            echo '## git add'
+            git add -A
+            add_status=$?
+            echo "exit=$add_status"
+            echo
+            echo '## git commit'
+            git commit --no-verify -m 'refactor: 迁移 internal 目录并显式化路由契约'
+            commit_status=$?
+            echo "exit=$commit_status"
+            echo
+            echo '## git push'
+            git push origin HEAD:${{ github.head_ref }}
+            push_status=$?
+            echo "exit=$push_status"
+          } 2>&1 | tee /tmp/issue-500-git-diagnostics.txt
+          test "${PIPESTATUS[0]}" -eq 0
+
+      - name: Report commit diagnostics
+        if: steps.commit-refactor.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          {
+            echo '架构迁移的转换、依赖安装和格式化已成功，但提交步骤失败。诊断如下：'
+            echo
+            echo '```text'
+            tail -n 200 /tmp/issue-500-git-diagnostics.txt
+            echo '```'
+          } > /tmp/issue-500-pr-comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/issue-500-pr-comment.md
+          exit 1
