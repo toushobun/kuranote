@@ -96,12 +96,15 @@ describe("internal backend boundary", () => {
         const routeContractPattern = new RegExp(
           `export const ${routeName} = createRoute\\(\\{[\\s\\S]*?method:\\s*["'][a-z]+["'][\\s\\S]*?path:\\s*["'][^"']+["']`,
         );
+        const routeBindingPattern = new RegExp(
+          `\\.openapi\\(${routeName},${handlerName},?\\)`,
+        );
 
         expect(routerSource, `${routerPath}:${routeName}`).toMatch(
           routeContractPattern,
         );
-        expect(compactRouterSource, `${routerPath}:${routeName}`).toContain(
-          `.openapi(${routeName},${handlerName})`,
+        expect(compactRouterSource, `${routerPath}:${routeName}`).toMatch(
+          routeBindingPattern,
         );
       }
     }
