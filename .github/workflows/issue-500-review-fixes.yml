@@ -1,0 +1,140 @@
+name: Issue 500 review fixes
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Apply review fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          ledger = root / 'src/internal/ledger'
+
+          (ledger / 'router.ts').rename(ledger / 'inviteRouter.ts')
+          (ledger / 'managementRouter.ts').rename(ledger / 'router.ts')
+          (ledger / 'router.test.ts').rename(ledger / 'inviteRouter.test.ts')
+          (ledger / 'managementRouter.test.ts').rename(ledger / 'router.test.ts')
+
+          invite_router = ledger / 'inviteRouter.ts'
+          text = invite_router.read_text(encoding='utf-8')
+          text = text.replace('ledgerRouter', 'ledgerInviteRouter')
+          invite_router.write_text(text, encoding='utf-8')
+
+          main_router = ledger / 'router.ts'
+          text = main_router.read_text(encoding='utf-8')
+          text = text.replace('ledgerManagementRouter', 'ledgerRouter')
+          main_router.write_text(text, encoding='utf-8')
+
+          invite_test = ledger / 'inviteRouter.test.ts'
+          text = invite_test.read_text(encoding='utf-8')
+          text = text.replace('internal/ledger/router', 'internal/ledger/inviteRouter')
+          text = text.replace('ledgerRouter', 'ledgerInviteRouter')
+          invite_test.write_text(text, encoding='utf-8')
+
+          main_test = ledger / 'router.test.ts'
+          text = main_test.read_text(encoding='utf-8')
+          text = text.replace('internal/ledger/managementRouter', 'internal/ledger/router')
+          text = text.replace('ledgerManagementRouter', 'ledgerRouter')
+          text = text.replace('ledger management router', 'ledger router')
+          main_test.write_text(text, encoding='utf-8')
+
+          index_file = ledger / 'index.ts'
+          index_file.write_text('''import type { InternalModule } from "internal/internalModule";
+          import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
+          import { ledgerRouter } from "internal/ledger/router";
+
+          export {
+            currentLedgerErrorCodes,
+            type CurrentLedgerErrorCode,
+            type CurrentLedgerValidationErrorCode,
+          } from "internal/ledger/errors/currentLedger";
+          export {
+            ledgerSettingsErrorCodes,
+            type LedgerSettingsErrorCode,
+          } from "internal/ledger/errors/ledgerSettings";
+
+          /** 保留既有邀请接受 URL，避免破坏已经发布的邀请链接。 */
+          export const ledgerInviteModule = {
+            basePath: "/ledger-invites",
+            name: "ledger-invites",
+            router: ledgerInviteRouter,
+          } satisfies InternalModule;
+
+          /** Ledger 创建、切换、设置和邀请管理的统一业务入口。 */
+          export const ledgerModule = {
+            basePath: "/ledgers",
+            name: "ledger",
+            router: ledgerRouter,
+          } satisfies InternalModule;
+          ''', encoding='utf-8')
+
+          route_registry = root / 'src/internal/routeRegistry.test.ts'
+          text = route_registry.read_text(encoding='utf-8')
+          text = text.replace(
+              'import * as ledgerManagementRoutes from "internal/ledger/managementRouter";',
+              'import * as ledgerManagementRoutes from "internal/ledger/router";',
+          )
+          text = text.replace(
+              'import * as ledgerInviteRoutes from "internal/ledger/router";',
+              'import * as ledgerInviteRoutes from "internal/ledger/inviteRouter";',
+          )
+          route_registry.write_text(text, encoding='utf-8')
+
+          transfer_form = root / 'src/components/organisms/transactions/TransferTransactionForm.tsx'
+          text = transfer_form.read_text(encoding='utf-8')
+          text = text.replace(
+              'from "internal/transaction/service/transactionFormService";',
+              'from "internal/transaction";',
+          )
+          transfer_form.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Format
+        run: npm run format
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit --no-verify -m 'refactor: 完成 internal review 修正'
+          git push origin HEAD:${{ github.head_ref }}
