@@ -10,11 +10,11 @@ import type { TransactionType } from "types/transactions";
 import type {
   TransactionFormItem,
   TransactionItemSummary,
-} from "./TransactionForm/TransactionForm.types";
+} from "../TransactionForm/TransactionForm.types";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
-} from "./TransactionForm/TransactionForm.utils";
+} from "../TransactionForm/TransactionForm.utils";
 
 type TransactionItemsSectionProps = {
   fieldError?: string;

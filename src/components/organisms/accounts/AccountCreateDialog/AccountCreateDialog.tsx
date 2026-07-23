@@ -1,11 +1,11 @@
 import type { ServerAction } from "types/actions";
 import type { AccountHolderOption } from "types/accounts";
 
-import { AccountForm } from "./AccountForm/AccountForm";
+import { AccountForm } from "../AccountForm/AccountForm";
 import {
   AccountDialogIllustrationSlot,
   AccountFormDialogShell,
-} from "./AccountFormDialogShell/AccountFormDialogShell";
+} from "../AccountFormDialogShell/AccountFormDialogShell";
 
 type AccountCreateDialogProps = {
   createAccountAction: ServerAction;
