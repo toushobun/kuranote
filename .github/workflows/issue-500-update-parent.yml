@@ -14,6 +14,7 @@ jobs:
   update-parent-issue:
     if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Update issue 468
         env:
