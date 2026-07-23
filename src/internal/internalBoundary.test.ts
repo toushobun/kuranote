@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
 
+import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = process.cwd();
@@ -35,6 +36,26 @@ const textExtensions = new Set([
   ".yaml",
   ".yml",
 ]);
+const sourceExtensions = new Set([
+  ".cjs",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".mts",
+  ".ts",
+  ".tsx",
+]);
+const businessModules = new Set([
+  "account",
+  "auth",
+  "category",
+  "ledger",
+  "merchant",
+  "statistics",
+  "transaction",
+  "user",
+]);
 const forbiddenPathPatterns = [
   {
     name: "src/server 目录引用",
@@ -51,7 +72,18 @@ const forbiddenPathPatterns = [
   },
 ] as const;
 
-function collectTextFiles(directory: string): string[] {
+type RouteDeclaration = {
+  method: string | null;
+  name: string;
+  path: string | null;
+};
+
+type RouteBinding = {
+  handlerName: string;
+  routeName: string;
+};
+
+function collectFiles(directory: string, extensions: Set<string>): string[] {
   if (!existsSync(directory)) return [];
 
   return readdirSync(directory).flatMap((entry) => {
@@ -60,15 +92,32 @@ function collectTextFiles(directory: string): string[] {
     const path = join(directory, entry);
     const stats = statSync(path);
 
-    if (stats.isDirectory()) return collectTextFiles(path);
-    return textExtensions.has(extname(entry)) ? [path] : [];
+    if (stats.isDirectory()) return collectFiles(path, extensions);
+    return extensions.has(extname(entry)) ? [path] : [];
   });
+}
+
+function createSourceFile(file: string): ts.SourceFile {
+  const extension = extname(file);
+  const scriptKind =
+    extension === ".tsx" || extension === ".jsx"
+      ? ts.ScriptKind.TSX
+      : extension === ".js" || extension === ".mjs" || extension === ".cjs"
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
+
+  return ts.createSourceFile(
+    file,
+    readFileSync(file, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind,
+  );
 }
 
 function isControllerFile(file: string): boolean {
   return (
     file.includes(`${sep}controller${sep}`) &&
-    (file.endsWith(".ts") || file.endsWith(".tsx")) &&
     !file.endsWith(".test.ts") &&
     !file.endsWith(".test.tsx")
   );
@@ -79,12 +128,142 @@ function isModuleRouterFile(file: string): boolean {
   return fileName === "router.ts" || fileName.endsWith("Router.ts");
 }
 
-function parseNamedImports(importBody: string): string[] {
-  return importBody
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => entry.split(/\s+as\s+/).at(-1) ?? entry);
+function getModuleSpecifier(
+  declaration: ts.ImportDeclaration | ts.ExportDeclaration,
+): string | null {
+  return declaration.moduleSpecifier &&
+    ts.isStringLiteralLike(declaration.moduleSpecifier)
+    ? declaration.moduleSpecifier.text
+    : null;
+}
+
+function collectModuleSpecifiers(sourceFile: ts.SourceFile): string[] {
+  return sourceFile.statements.flatMap((statement) => {
+    if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) {
+      const moduleSpecifier = getModuleSpecifier(statement);
+      return moduleSpecifier ? [moduleSpecifier] : [];
+    }
+    return [];
+  });
+}
+
+function isCreateRouteCall(node: ts.Node): node is ts.CallExpression {
+  return (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === "createRoute"
+  );
+}
+
+function hasCreateRouteCall(sourceFile: ts.SourceFile): boolean {
+  let found = false;
+
+  function visit(node: ts.Node) {
+    if (isCreateRouteCall(node)) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return found;
+}
+
+function getPropertyString(
+  objectLiteral: ts.ObjectLiteralExpression,
+  propertyName: string,
+): string | null {
+  for (const property of objectLiteral.properties) {
+    if (!ts.isPropertyAssignment(property)) continue;
+    const name = ts.isIdentifier(property.name)
+      ? property.name.text
+      : ts.isStringLiteralLike(property.name)
+        ? property.name.text
+        : null;
+    if (name !== propertyName) continue;
+    return ts.isStringLiteralLike(property.initializer)
+      ? property.initializer.text
+      : null;
+  }
+  return null;
+}
+
+function collectRouteDeclarations(
+  sourceFile: ts.SourceFile,
+): RouteDeclaration[] {
+  return sourceFile.statements.flatMap((statement) => {
+    if (!ts.isVariableStatement(statement)) return [];
+    const isExported = statement.modifiers?.some(
+      (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+    );
+    if (!isExported) return [];
+
+    return statement.declarationList.declarations.flatMap((declaration) => {
+      if (!ts.isIdentifier(declaration.name)) return [];
+      if (!declaration.name.text.endsWith("Route")) return [];
+      if (!declaration.initializer || !isCreateRouteCall(declaration.initializer)) {
+        return [];
+      }
+
+      const config = declaration.initializer.arguments[0];
+      if (!config || !ts.isObjectLiteralExpression(config)) {
+        return [
+          { method: null, name: declaration.name.text, path: null },
+        ];
+      }
+
+      return [
+        {
+          method: getPropertyString(config, "method"),
+          name: declaration.name.text,
+          path: getPropertyString(config, "path"),
+        },
+      ];
+    });
+  });
+}
+
+function collectRouteBindings(sourceFile: ts.SourceFile): RouteBinding[] {
+  const bindings: RouteBinding[] = [];
+
+  function visit(node: ts.Node) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === "openapi"
+    ) {
+      const [route, handler] = node.arguments;
+      if (ts.isIdentifier(route) && ts.isIdentifier(handler)) {
+        bindings.push({
+          handlerName: handler.text,
+          routeName: route.text,
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return bindings;
+}
+
+function collectControllerHandlerImports(sourceFile: ts.SourceFile): string[] {
+  return sourceFile.statements.flatMap((statement) => {
+    if (!ts.isImportDeclaration(statement)) return [];
+    const moduleSpecifier = getModuleSpecifier(statement);
+    if (!moduleSpecifier?.includes("/controller/")) return [];
+    const namedBindings = statement.importClause?.namedBindings;
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) return [];
+    return namedBindings.elements.map((element) => element.name.text);
+  });
+}
+
+function isAllowedExternalModuleImport(moduleSpecifier: string): boolean {
+  const match = moduleSpecifier.match(/^internal\/([^/]+)(?:\/(.+))?$/);
+  if (!match || !businessModules.has(match[1])) return true;
+  const subpath = match[2];
+  return !subpath || subpath === "adapter/next" || subpath.startsWith("adapter/next/");
 }
 
 describe("internal backend boundary", () => {
@@ -93,7 +272,7 @@ describe("internal backend boundary", () => {
   });
 
   it("全仓库代码、配置与文档不再引用旧 server 路径", () => {
-    const violations = collectTextFiles(repositoryRoot)
+    const violations = collectFiles(repositoryRoot, textExtensions)
       .filter((file) => file !== testFile)
       .flatMap((file) => {
         const source = readFileSync(file, "utf8");
@@ -107,58 +286,70 @@ describe("internal backend boundary", () => {
     expect(violations).toEqual([]);
   });
 
-  it("所有 Controller 都不再定义 createRoute", () => {
-    const violations = collectTextFiles(internalRoot)
+  it("Controller 不定义 createRoute，也不反向依赖 Router", () => {
+    const violations = collectFiles(internalRoot, sourceExtensions)
       .filter(isControllerFile)
-      .filter((file) => readFileSync(file, "utf8").includes("createRoute("))
-      .map((file) => relative(repositoryRoot, file));
+      .flatMap((file) => {
+        const sourceFile = createSourceFile(file);
+        const filePath = relative(repositoryRoot, file);
+        const issues = hasCreateRouteCall(sourceFile) ? ["定义 createRoute"] : [];
+        const routerImports = collectModuleSpecifiers(sourceFile).filter(
+          (moduleSpecifier) => /(?:\/router|Router)$/.test(moduleSpecifier),
+        );
+        return [
+          ...issues.map((issue) => `${filePath}: ${issue}`),
+          ...routerImports.map(
+            (moduleSpecifier) =>
+              `${filePath}: 反向依赖 ${moduleSpecifier}`,
+          ),
+        ];
+      });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("模块外代码只通过模块根入口或 adapter/next 访问业务模块", () => {
+    const violations = collectFiles(repositoryRoot, sourceExtensions)
+      .filter((file) => !file.startsWith(`${internalRoot}${sep}`))
+      .flatMap((file) => {
+        const filePath = relative(repositoryRoot, file);
+        return collectModuleSpecifiers(createSourceFile(file))
+          .filter((moduleSpecifier) => !isAllowedExternalModuleImport(moduleSpecifier))
+          .map(
+            (moduleSpecifier) =>
+              `${filePath}: 绕过模块入口 ${moduleSpecifier}`,
+          );
+      });
 
     expect(violations).toEqual([]);
   });
 
   it("所有模块 Router 都在同一文件声明 Method、Path 与 Handler 绑定", () => {
-    const routerFiles = collectTextFiles(internalRoot).filter((file) => {
-      if (!isModuleRouterFile(file)) return false;
-      return readFileSync(file, "utf8").includes("createRoute(");
-    });
+    const routerFiles = collectFiles(internalRoot, sourceExtensions).filter(
+      (file) => {
+        if (!isModuleRouterFile(file)) return false;
+        return hasCreateRouteCall(createSourceFile(file));
+      },
+    );
 
     expect(routerFiles.length).toBeGreaterThan(0);
 
     for (const routerFile of routerFiles) {
       const routerPath = relative(repositoryRoot, routerFile);
-      const routerSource = readFileSync(routerFile, "utf8");
-      const compactRouterSource = routerSource.replace(/\s/g, "");
-      const routeNames = [
-        ...routerSource.matchAll(/export const (\w+Route) = createRoute\(\{/g),
-      ].map((match) => match[1]);
-      const bindings = [
-        ...compactRouterSource.matchAll(/\.openapi\((\w+Route),(\w+)/g),
-      ].map((match) => ({ handlerName: match[2], routeName: match[1] }));
-      const controllerHandlerImports = [
-        ...routerSource.matchAll(
-          /import\s*\{([^}]*)\}\s*from\s*["'][^"']*\/controller\/[^"']+["'];/g,
-        ),
-      ].flatMap((match) => parseNamedImports(match[1]));
+      const sourceFile = createSourceFile(routerFile);
+      const routes = collectRouteDeclarations(sourceFile);
+      const bindings = collectRouteBindings(sourceFile);
+      const controllerHandlerImports = collectControllerHandlerImports(sourceFile);
 
-      expect(routeNames.length, routerPath).toBeGreaterThan(0);
+      expect(routes.length, routerPath).toBeGreaterThan(0);
       expect(
         bindings.map(({ routeName }) => routeName).sort(),
         `${routerPath}: Route Contract 必须且只能绑定一次`,
-      ).toEqual([...routeNames].sort());
+      ).toEqual(routes.map(({ name }) => name).sort());
 
-      for (const routeName of routeNames) {
-        const declarationPattern = new RegExp(
-          `export const ${routeName} = createRoute\\(\\{([\\s\\S]*?)\\n\\}\\);`,
-        );
-        const declaration = routerSource.match(declarationPattern)?.[1];
-
-        expect(declaration, `${routerPath}:${routeName}`).toBeDefined();
-        expect(declaration, `${routerPath}:${routeName}:method`).toMatch(
-          /\bmethod:\s*["'][a-z]+["']/,
-        );
-        expect(declaration, `${routerPath}:${routeName}:path`).toMatch(
-          /\bpath:\s*["'][^"']+["']/,
-        );
+      for (const route of routes) {
+        expect(route.method, `${routerPath}:${route.name}:method`).not.toBeNull();
+        expect(route.path, `${routerPath}:${route.name}:path`).not.toBeNull();
       }
 
       for (const { handlerName, routeName } of bindings) {
