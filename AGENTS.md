@@ -23,4 +23,4 @@
 - 不得重新建立顶级 `src/internal/actions`、`services`、`loaders`、`errors`、`validators`、`http` 或 `context` 兼容目录；跨模块调用只使用公开的窄 Service Interface。
 - 通用错误、日志、Schema、Supabase 与 middleware 能力放入 `src/internal/shared/`，不得把业务规则塞入 `shared/`。
 - 每个模块的 `router.ts` 必须是 HTTP 路由的可视入口，在同一文件中声明 Method、Path 与 Controller Handler 绑定；Controller 不得定义 `createRoute()`，Method / Path 也不得在多个文件中重复维护。
-- `src/internal` 目录命名与 Router 可视化规则以 Issue #468 的最新正文为准，由 #500 / PR #501 落地。
+- `src/internal` 目录命名与 Router 可视化规则以 Issue #468 的最新正文为准，由 #500 / PR #501 落地，并由 `internalBoundary.test.ts` 防止旧目录或隐藏路由声明重新出现。
