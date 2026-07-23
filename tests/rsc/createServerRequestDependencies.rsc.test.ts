@@ -258,8 +258,7 @@ async function startNextServer(): Promise<string> {
     } catch (error) {
       lastError = error;
       const shouldRetry =
-        processLogs.includes("EADDRINUSE") &&
-        attempt < nextServerStartAttempts;
+        processLogs.includes("EADDRINUSE") && attempt < nextServerStartAttempts;
 
       await stopNextProcess();
 
