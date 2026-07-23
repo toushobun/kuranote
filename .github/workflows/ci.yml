@@ -101,8 +101,8 @@ jobs:
         run: npm run lint
 
   # Stage 2: 依赖 Stage 1，快速测试与按需 RSC 测试并行
-  test:
-    name: Test
+  unit-test:
+    name: Unit test
     if: *run_code_ci
     needs: [format-check, type-check, lint]
     runs-on: ubuntu-latest
@@ -182,11 +182,33 @@ jobs:
         if: steps.rsc-scope.outputs.run_rsc == 'true'
         run: npm run test:rsc
 
-  # Stage 3: build 和 storybook-build 并行，都依赖快速测试通过
+  # Stage 3: 保留原 Test 检查名，统一汇总快速测试与 RSC 测试结果
+  test:
+    name: Test
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
+    needs: [unit-test, rsc-test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify test results
+        env:
+          UNIT_TEST_RESULT: ${{ needs.unit-test.result }}
+          RSC_TEST_RESULT: ${{ needs.rsc-test.result }}
+        run: |
+          if [ "$UNIT_TEST_RESULT" != "success" ] || [ "$RSC_TEST_RESULT" != "success" ]; then
+            echo "Unit test: $UNIT_TEST_RESULT"
+            echo "RSC test: $RSC_TEST_RESULT"
+            exit 1
+          fi
+
+  # Stage 3: build 和 storybook-build 并行，只等待快速测试完成
   build:
     name: Build
     if: *run_code_ci
-    needs: [test]
+    needs: [unit-test]
     runs-on: ubuntu-latest
 
     env:
@@ -219,7 +241,7 @@ jobs:
   storybook-build:
     name: Storybook build
     if: *run_code_ci
-    needs: [test]
+    needs: [unit-test]
     runs-on: ubuntu-latest
 
     env:
