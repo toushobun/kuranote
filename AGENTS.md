@@ -22,3 +22,4 @@
 - 后端业务代码必须放入 `src/internal/<module>/`，框架相关的 Server Action、`redirect()`、`notFound()` 与缓存失效放入模块内 `adapter/next/`。
 - 不得重新建立顶级 `src/internal/actions`、`services`、`loaders`、`errors`、`validators`、`http` 或 `context` 兼容目录；跨模块调用只使用公开的窄 Service Interface。
 - 通用错误、日志、Schema、Supabase 与 middleware 能力放入 `src/internal/shared/`，不得把业务规则塞入 `shared/`。
+- 每个模块的 `router.ts` 必须是 HTTP 路由的可视入口，在同一文件中声明 Method、Path 与 Controller Handler 绑定；Controller 不得定义 `createRoute()`，Method / Path 也不得在多个文件中重复维护。
