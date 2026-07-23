@@ -1,0 +1,38 @@
+name: Issue 500 unit diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
+
+jobs:
+  diagnose:
+    if: github.event.pull_request.head.ref == 'refactor/500_internal_router_table'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Run unit tests
+        run: npm run test > unit-test.log 2>&1 || touch unit-test.failed
+      - name: Upload diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-diagnostic
+          path: unit-test.log
+      - name: Verify result
+        run: test ! -f unit-test.failed
