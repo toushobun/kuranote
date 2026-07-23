@@ -1,6 +1,6 @@
-import { ledgerManagementRouter } from "internal/ledger/managementRouter";
-import { ledgerRouter } from "internal/ledger/router";
 import type { InternalModule } from "internal/internalModule";
+import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
+import { ledgerRouter } from "internal/ledger/router";
 
 export {
   currentLedgerErrorCodes,
@@ -16,12 +16,12 @@ export {
 export const ledgerInviteModule = {
   basePath: "/ledger-invites",
   name: "ledger-invites",
-  router: ledgerRouter,
+  router: ledgerInviteRouter,
 } satisfies InternalModule;
 
 /** Ledger 创建、切换、设置和邀请管理的统一业务入口。 */
 export const ledgerModule = {
   basePath: "/ledgers",
   name: "ledger",
-  router: ledgerManagementRouter,
+  router: ledgerRouter,
 } satisfies InternalModule;

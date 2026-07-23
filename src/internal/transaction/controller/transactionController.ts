@@ -11,12 +11,8 @@ import {
   updateTransactionRequestSchema,
 } from "internal/transaction/schema";
 
-type CreateTransactionRequest = z.infer<
-  typeof createTransactionRequestSchema
->;
-type UpdateTransactionRequest = z.infer<
-  typeof updateTransactionRequestSchema
->;
+type CreateTransactionRequest = z.infer<typeof createTransactionRequestSchema>;
+type UpdateTransactionRequest = z.infer<typeof updateTransactionRequestSchema>;
 type ConvertTransactionRequest = z.infer<
   typeof convertTransactionRequestSchema
 >;

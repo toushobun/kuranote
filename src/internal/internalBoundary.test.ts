@@ -139,7 +139,10 @@ function getModuleSpecifier(
 
 function collectModuleSpecifiers(sourceFile: ts.SourceFile): string[] {
   return sourceFile.statements.flatMap((statement) => {
-    if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) {
+    if (
+      ts.isImportDeclaration(statement) ||
+      ts.isExportDeclaration(statement)
+    ) {
       const moduleSpecifier = getModuleSpecifier(statement);
       return moduleSpecifier ? [moduleSpecifier] : [];
     }
@@ -202,15 +205,16 @@ function collectRouteDeclarations(
     return statement.declarationList.declarations.flatMap((declaration) => {
       if (!ts.isIdentifier(declaration.name)) return [];
       if (!declaration.name.text.endsWith("Route")) return [];
-      if (!declaration.initializer || !isCreateRouteCall(declaration.initializer)) {
+      if (
+        !declaration.initializer ||
+        !isCreateRouteCall(declaration.initializer)
+      ) {
         return [];
       }
 
       const config = declaration.initializer.arguments[0];
       if (!config || !ts.isObjectLiteralExpression(config)) {
-        return [
-          { method: null, name: declaration.name.text, path: null },
-        ];
+        return [{ method: null, name: declaration.name.text, path: null }];
       }
 
       return [
@@ -263,7 +267,11 @@ function isAllowedExternalModuleImport(moduleSpecifier: string): boolean {
   const match = moduleSpecifier.match(/^internal\/([^/]+)(?:\/(.+))?$/);
   if (!match || !businessModules.has(match[1])) return true;
   const subpath = match[2];
-  return !subpath || subpath === "adapter/next" || subpath.startsWith("adapter/next/");
+  return (
+    !subpath ||
+    subpath === "adapter/next" ||
+    subpath.startsWith("adapter/next/")
+  );
 }
 
 describe("internal backend boundary", () => {
@@ -292,15 +300,16 @@ describe("internal backend boundary", () => {
       .flatMap((file) => {
         const sourceFile = createSourceFile(file);
         const filePath = relative(repositoryRoot, file);
-        const issues = hasCreateRouteCall(sourceFile) ? ["定义 createRoute"] : [];
+        const issues = hasCreateRouteCall(sourceFile)
+          ? ["定义 createRoute"]
+          : [];
         const routerImports = collectModuleSpecifiers(sourceFile).filter(
           (moduleSpecifier) => /(?:\/router|Router)$/.test(moduleSpecifier),
         );
         return [
           ...issues.map((issue) => `${filePath}: ${issue}`),
           ...routerImports.map(
-            (moduleSpecifier) =>
-              `${filePath}: 反向依赖 ${moduleSpecifier}`,
+            (moduleSpecifier) => `${filePath}: 反向依赖 ${moduleSpecifier}`,
           ),
         ];
       });
@@ -314,10 +323,12 @@ describe("internal backend boundary", () => {
       .flatMap((file) => {
         const filePath = relative(repositoryRoot, file);
         return collectModuleSpecifiers(createSourceFile(file))
-          .filter((moduleSpecifier) => !isAllowedExternalModuleImport(moduleSpecifier))
-          .map(
+          .filter(
             (moduleSpecifier) =>
-              `${filePath}: 绕过模块入口 ${moduleSpecifier}`,
+              !isAllowedExternalModuleImport(moduleSpecifier),
+          )
+          .map(
+            (moduleSpecifier) => `${filePath}: 绕过模块入口 ${moduleSpecifier}`,
           );
       });
 
@@ -339,7 +350,8 @@ describe("internal backend boundary", () => {
       const sourceFile = createSourceFile(routerFile);
       const routes = collectRouteDeclarations(sourceFile);
       const bindings = collectRouteBindings(sourceFile);
-      const controllerHandlerImports = collectControllerHandlerImports(sourceFile);
+      const controllerHandlerImports =
+        collectControllerHandlerImports(sourceFile);
 
       expect(routes.length, routerPath).toBeGreaterThan(0);
       expect(
@@ -348,7 +360,10 @@ describe("internal backend boundary", () => {
       ).toEqual(routes.map(({ name }) => name).sort());
 
       for (const route of routes) {
-        expect(route.method, `${routerPath}:${route.name}:method`).not.toBeNull();
+        expect(
+          route.method,
+          `${routerPath}:${route.name}:method`,
+        ).not.toBeNull();
         expect(route.path, `${routerPath}:${route.name}:path`).not.toBeNull();
       }
 

@@ -1,27 +1,15 @@
 export type OpenApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500;
 
 export const standardMutationErrorStatuses = [
-  400,
-  401,
-  403,
-  404,
-  409,
-  500,
+  400, 401, 403, 404, 409, 500,
 ] as const satisfies readonly OpenApiErrorStatus[];
 
 export const protectedMutationErrorStatuses = [
-  400,
-  401,
-  403,
-  404,
-  500,
+  400, 401, 403, 404, 500,
 ] as const satisfies readonly OpenApiErrorStatus[];
 
 export const protectedReadErrorStatuses = [
-  400,
-  401,
-  404,
-  500,
+  400, 401, 404, 500,
 ] as const satisfies readonly OpenApiErrorStatus[];
 
 const defaultDescriptions: Record<OpenApiErrorStatus, string> = {
@@ -55,7 +43,8 @@ export function createOpenApiErrorResponses<
       status,
       {
         content: { "application/json": { schema } },
-        description: descriptionOverrides[status] ?? defaultDescriptions[status],
+        description:
+          descriptionOverrides[status] ?? defaultDescriptions[status],
       },
     ]),
   ) as { [TStatus in TStatuses[number]]: ErrorResponse<TSchema> };

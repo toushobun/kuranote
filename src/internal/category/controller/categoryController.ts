@@ -15,9 +15,7 @@ type CategoryLedgerParams = z.infer<typeof categoryLedgerParamsSchema>;
 type CategoryParams = z.infer<typeof categoryParamsSchema>;
 type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
 type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;
-type ReorderCategoriesRequest = z.infer<
-  typeof reorderCategoriesRequestSchema
->;
+type ReorderCategoriesRequest = z.infer<typeof reorderCategoriesRequestSchema>;
 
 export const createCategoryHandler = async (
   c: ControllerContext<{
@@ -25,9 +23,7 @@ export const createCategoryHandler = async (
     param: CategoryLedgerParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.create({
@@ -46,9 +42,7 @@ export const updateCategoryHandler = async (
     param: CategoryParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { categoryId, ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.update({
@@ -65,9 +59,7 @@ export const updateCategoryHandler = async (
 export const archiveCategoryHandler = async (
   c: ControllerContext<{ param: CategoryParams }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { categoryId, ledgerId } = c.req.valid("param");
 
   await c
@@ -84,9 +76,7 @@ export const reorderCategoriesHandler = async (
     param: CategoryLedgerParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.reorder({

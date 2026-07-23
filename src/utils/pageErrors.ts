@@ -1,11 +1,5 @@
-import {
-  accountErrorCodes,
-  type AccountErrorCode,
-} from "internal/account";
-import {
-  categoryErrorCodes,
-  type CategoryErrorCode,
-} from "internal/category";
+import { accountErrorCodes, type AccountErrorCode } from "internal/account";
+import { categoryErrorCodes, type CategoryErrorCode } from "internal/category";
 import {
   currentLedgerErrorCodes,
   ledgerSettingsErrorCodes,

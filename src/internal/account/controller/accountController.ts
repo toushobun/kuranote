@@ -18,9 +18,7 @@ type UpdateAccountRequest = z.infer<typeof updateAccountRequestSchema>;
 export const getAccountsHandler = async (
   c: ControllerContext<{ param: AccountLedgerParams }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const view = await c.get("container").account.service.getView({
     ledgerId,
@@ -35,9 +33,7 @@ export const createAccountHandler = async (
     param: AccountLedgerParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const result = await c.get("container").account.service.create({
     ...c.req.valid("json"),
@@ -54,9 +50,7 @@ export const updateAccountHandler = async (
     param: AccountParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { accountId, ledgerId } = c.req.valid("param");
   await c.get("container").account.service.update({
     ...c.req.valid("json"),
@@ -71,9 +65,7 @@ export const updateAccountHandler = async (
 export const archiveAccountHandler = async (
   c: ControllerContext<{ param: AccountParams }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { accountId, ledgerId } = c.req.valid("param");
   await c.get("container").account.service.archive({
     accountId,

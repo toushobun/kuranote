@@ -37,9 +37,7 @@ export const createLedgerHandler = async (
 export const switchCurrentLedgerHandler = async (
   c: ControllerContext<{ json: SwitchCurrentLedgerRequest }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c
     .get("container")
     .ledger.currentLedgerService.switch({ ...c.req.valid("json"), userId });
@@ -53,9 +51,7 @@ export const updateLedgerSettingsHandler = async (
     param: LedgerIdParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const body = c.req.valid("json");
   await c.get("container").ledger.settingsService.update(
@@ -91,9 +87,7 @@ export const createLedgerInviteHandler = async (
     param: LedgerIdParams;
   }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const result = await c.get("container").ledger.inviteService.create({
     ledgerId,
@@ -107,9 +101,7 @@ export const createLedgerInviteHandler = async (
 export const revokeLedgerInviteHandler = async (
   c: ControllerContext<{ param: LedgerInviteParams }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId, inviteId } = c.req.valid("param");
   await c
     .get("container")
@@ -121,9 +113,7 @@ export const revokeLedgerInviteHandler = async (
 export const listPendingLedgerInvitesHandler = async (
   c: ControllerContext<{ param: LedgerIdParams }>,
 ) => {
-  const userId = requireAuthenticatedUserId(
-    c.get("requestDependencies").auth,
-  );
+  const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
   const invites = await c
     .get("container")

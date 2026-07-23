@@ -5,9 +5,7 @@ import type { ControllerContext } from "internal/shared/http/controllerContext";
 import { revalidateUserProfileMutation } from "internal/user/adapter/next/revalidate";
 import { updateUserProfileRequestSchema } from "internal/user/schema";
 
-type UpdateUserProfileRequest = z.infer<
-  typeof updateUserProfileRequestSchema
->;
+type UpdateUserProfileRequest = z.infer<typeof updateUserProfileRequestSchema>;
 
 export const getCurrentUserProfileHandler = async (c: ControllerContext) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);

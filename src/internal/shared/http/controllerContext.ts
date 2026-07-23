@@ -5,10 +5,7 @@ import type { AppEnv } from "internal/appEnv";
 type ValidationTarget = "json" | "param" | "query";
 type ControllerValidation = Partial<Record<ValidationTarget, unknown>>;
 type PresentValidation<TValidation extends ControllerValidation> = {
-  [TTarget in keyof TValidation]-?: Exclude<
-    TValidation[TTarget],
-    undefined
-  >;
+  [TTarget in keyof TValidation]-?: Exclude<TValidation[TTarget], undefined>;
 };
 
 /**

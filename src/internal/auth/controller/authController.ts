@@ -20,9 +20,7 @@ type RegisterEmailAvailabilityRequest = z.infer<
 type RequestRegisterOtpRequest = z.infer<
   typeof requestRegisterOtpRequestSchema
 >;
-type SubmitRegisterOtpRequest = z.infer<
-  typeof submitRegisterOtpRequestSchema
->;
+type SubmitRegisterOtpRequest = z.infer<typeof submitRegisterOtpRequestSchema>;
 type StartGoogleAuthRequest = z.infer<typeof startGoogleAuthRequestSchema>;
 
 export const loginHandler = async (
