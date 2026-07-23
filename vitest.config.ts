@@ -6,6 +6,7 @@ export default defineConfig({
       "@": new URL("./src", import.meta.url).pathname,
       atoms: new URL("./src/components/atoms", import.meta.url).pathname,
       config: new URL("./src/config", import.meta.url).pathname,
+      internal: new URL("./src/internal", import.meta.url).pathname,
       lib: new URL("./src/lib", import.meta.url).pathname,
       molecules: new URL("./src/components/molecules", import.meta.url)
         .pathname,
@@ -13,7 +14,6 @@ export default defineConfig({
         .pathname,
       providers: new URL("./src/components/providers", import.meta.url)
         .pathname,
-      server: new URL("./src/internal", import.meta.url).pathname,
       templates: new URL("./src/components/templates", import.meta.url)
         .pathname,
       test: new URL("./src/test", import.meta.url).pathname,
