@@ -30,6 +30,17 @@ const forbiddenAliasPatterns = [
   /(?:vi|jest)\.mock\(\s*["']server\//,
   /["']server\/\*["']/,
 ];
+const routeModules = [
+  ["account/router.ts", "account/controller/accountController.ts"],
+  ["auth/router.ts", "auth/controller/authController.ts"],
+  ["category/router.ts", "category/controller/categoryController.ts"],
+  ["ledger/router.ts", "ledger/controller/ledgerInviteController.ts"],
+  ["ledger/managementRouter.ts", "ledger/controller/ledgerController.ts"],
+  ["merchant/router.ts", "merchant/controller/merchantController.ts"],
+  ["statistics/router.ts", "statistics/controller/statisticsController.ts"],
+  ["transaction/router.ts", "transaction/controller/transactionController.ts"],
+  ["user/router.ts", "user/controller/userController.ts"],
+] as const;
 
 function collectFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
@@ -60,5 +71,41 @@ describe("internal backend boundary", () => {
       });
 
     expect(violations).toEqual([]);
+  });
+
+  it("模块 Router 同时声明 Method、Path 与 Controller Handler 绑定", () => {
+    for (const [routerPath, controllerPath] of routeModules) {
+      const routerSource = readFileSync(
+        join(repositoryRoot, "src", "internal", routerPath),
+        "utf8",
+      );
+      const controllerSource = readFileSync(
+        join(repositoryRoot, "src", "internal", controllerPath),
+        "utf8",
+      );
+      const compactRouterSource = routerSource.replace(/\s/g, "");
+      const routeNames = [
+        ...routerSource.matchAll(
+          /export const (\w+Route) = createRoute\(\{/g,
+        ),
+      ].map((match) => match[1]);
+
+      expect(routeNames.length, routerPath).toBeGreaterThan(0);
+      expect(controllerSource, controllerPath).not.toContain("createRoute(");
+
+      for (const routeName of routeNames) {
+        const handlerName = routeName.replace(/Route$/, "Handler");
+        const routeContractPattern = new RegExp(
+          `export const ${routeName} = createRoute\\(\\{[\\s\\S]*?method:\\s*["'][a-z]+["'][\\s\\S]*?path:\\s*["'][^"']+["']`,
+        );
+
+        expect(routerSource, `${routerPath}:${routeName}`).toMatch(
+          routeContractPattern,
+        );
+        expect(compactRouterSource, `${routerPath}:${routeName}`).toContain(
+          `.openapi(${routeName},${handlerName})`,
+        );
+      }
+    }
   });
 });
