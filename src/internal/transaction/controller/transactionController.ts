@@ -1,28 +1,32 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  createTransactionRoute,
-  updateTransactionRoute,
-  convertTransactionRoute,
-  voidTransactionRoute,
-} from "internal/transaction/router";
-import { AuthenticationError } from "internal/shared/errors/appError";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
-function requireUserId(c: Context<AppEnv>) {
-  const auth = c.get("requestDependencies").auth;
-  if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
-  }
-  return auth.userId;
-}
+import {
+  convertTransactionRequestSchema,
+  createTransactionRequestSchema,
+  transactionIdParamsSchema,
+  transactionLedgerQuerySchema,
+  updateTransactionRequestSchema,
+} from "internal/transaction/schema";
 
-export const createTransactionHandler: RouteHandler<
-  typeof createTransactionRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+type CreateTransactionRequest = z.infer<
+  typeof createTransactionRequestSchema
+>;
+type UpdateTransactionRequest = z.infer<
+  typeof updateTransactionRequestSchema
+>;
+type ConvertTransactionRequest = z.infer<
+  typeof convertTransactionRequestSchema
+>;
+type TransactionIdParams = z.infer<typeof transactionIdParamsSchema>;
+type TransactionLedgerQuery = z.infer<typeof transactionLedgerQuerySchema>;
+
+export const createTransactionHandler = async (
+  c: ControllerContext<{ json: CreateTransactionRequest }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const input = c.req.valid("json");
   const service = c.get("container").transaction.service;
   if (input.type === "transfer") {
@@ -41,11 +45,13 @@ export const createTransactionHandler: RouteHandler<
   return c.json({ ok: true as const }, 201);
 };
 
-export const updateTransactionHandler: RouteHandler<
-  typeof updateTransactionRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const updateTransactionHandler = async (
+  c: ControllerContext<{
+    json: UpdateTransactionRequest;
+    param: TransactionIdParams;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const input = c.req.valid("json");
   const transactionRecordId = c.req.valid("param").transactionRecordId;
   const service = c.get("container").transaction.service;
@@ -66,11 +72,13 @@ export const updateTransactionHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const convertTransactionHandler: RouteHandler<
-  typeof convertTransactionRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const convertTransactionHandler = async (
+  c: ControllerContext<{
+    json: ConvertTransactionRequest;
+    param: TransactionIdParams;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").transaction.service.convert({
     ...c.req.valid("json"),
     transactionRecordId: c.req.valid("param").transactionRecordId,
@@ -79,11 +87,13 @@ export const convertTransactionHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const voidTransactionHandler: RouteHandler<
-  typeof voidTransactionRoute,
-  AppEnv
-> = async (c) => {
-  requireUserId(c);
+export const voidTransactionHandler = async (
+  c: ControllerContext<{
+    param: TransactionIdParams;
+    query: TransactionLedgerQuery;
+  }>,
+) => {
+  requireAuthenticatedUserId(c.get("requestDependencies").auth);
   await c.get("container").transaction.service.void({
     ...c.req.valid("param"),
     ...c.req.valid("query"),
