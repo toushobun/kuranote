@@ -61,11 +61,21 @@ jobs:
             echo "exit=$commit_status"
             echo
             echo '## git push'
-            git push origin HEAD:${{ github.head_ref }}
-            push_status=$?
+            if [ "$add_status" -eq 0 ] && [ "$commit_status" -eq 0 ]; then
+              git push origin HEAD:${{ github.head_ref }}
+              push_status=$?
+            else
+              echo '由于 add 或 commit 失败，跳过 push。'
+              push_status=1
+            fi
             echo "exit=$push_status"
+            echo
+            if [ "$add_status" -ne 0 ] || [ "$commit_status" -ne 0 ] || [ "$push_status" -ne 0 ]; then
+              exit 1
+            fi
           } 2>&1 | tee /tmp/issue-500-git-diagnostics.txt
-          test "${PIPESTATUS[0]}" -eq 0
+          group_status=${PIPESTATUS[0]}
+          exit "$group_status"
 
       - name: Report commit diagnostics
         if: steps.commit-refactor.outcome == 'failure'
