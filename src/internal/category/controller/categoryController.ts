@@ -1,31 +1,33 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  createCategoryRoute,
-  updateCategoryRoute,
-  archiveCategoryRoute,
-  reorderCategoriesRoute,
-} from "internal/category/router";
 import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
-import { AuthenticationError } from "internal/shared/errors/appError";
+import {
+  categoryLedgerParamsSchema,
+  categoryParamsSchema,
+  createCategoryRequestSchema,
+  reorderCategoriesRequestSchema,
+  updateCategoryRequestSchema,
+} from "internal/category/schema";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 
-function requireUserId(c: Context<AppEnv>): string {
-  const auth = c.get("requestDependencies").auth;
+type CategoryLedgerParams = z.infer<typeof categoryLedgerParamsSchema>;
+type CategoryParams = z.infer<typeof categoryParamsSchema>;
+type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
+type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;
+type ReorderCategoriesRequest = z.infer<
+  typeof reorderCategoriesRequestSchema
+>;
 
-  if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
-  }
-
-  return auth.userId;
-}
-
-export const createCategoryHandler: RouteHandler<
-  typeof createCategoryRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const createCategoryHandler = async (
+  c: ControllerContext<{
+    json: CreateCategoryRequest;
+    param: CategoryLedgerParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.create({
@@ -38,11 +40,15 @@ export const createCategoryHandler: RouteHandler<
   return c.json({ ok: true as const }, 201);
 };
 
-export const updateCategoryHandler: RouteHandler<
-  typeof updateCategoryRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const updateCategoryHandler = async (
+  c: ControllerContext<{
+    json: UpdateCategoryRequest;
+    param: CategoryParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { categoryId, ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.update({
@@ -56,11 +62,12 @@ export const updateCategoryHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const archiveCategoryHandler: RouteHandler<
-  typeof archiveCategoryRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const archiveCategoryHandler = async (
+  c: ControllerContext<{ param: CategoryParams }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { categoryId, ledgerId } = c.req.valid("param");
 
   await c
@@ -71,11 +78,15 @@ export const archiveCategoryHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const reorderCategoriesHandler: RouteHandler<
-  typeof reorderCategoriesRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const reorderCategoriesHandler = async (
+  c: ControllerContext<{
+    json: ReorderCategoriesRequest;
+    param: CategoryLedgerParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
 
   await c.get("container").category.service.reorder({
