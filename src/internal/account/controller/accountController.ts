@@ -1,29 +1,26 @@
-import type { RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { z } from "@hono/zod-openapi";
 
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
-import type { AppEnv } from "internal/appEnv";
-import type {
-  getAccountsRoute,
-  createAccountRoute,
-  updateAccountRoute,
-  archiveAccountRoute,
-} from "internal/account/router";
-import { AuthenticationError } from "internal/shared/errors/appError";
+import {
+  accountLedgerParamsSchema,
+  accountParamsSchema,
+  createAccountRequestSchema,
+  updateAccountRequestSchema,
+} from "internal/account/schema";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 
-function requireUserId(c: Context<AppEnv>): string {
-  const auth = c.get("requestDependencies").auth;
-  if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
-  }
-  return auth.userId;
-}
+type AccountLedgerParams = z.infer<typeof accountLedgerParamsSchema>;
+type AccountParams = z.infer<typeof accountParamsSchema>;
+type CreateAccountRequest = z.infer<typeof createAccountRequestSchema>;
+type UpdateAccountRequest = z.infer<typeof updateAccountRequestSchema>;
 
-export const getAccountsHandler: RouteHandler<
-  typeof getAccountsRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const getAccountsHandler = async (
+  c: ControllerContext<{ param: AccountLedgerParams }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
   const view = await c.get("container").account.service.getView({
     ledgerId,
@@ -32,11 +29,15 @@ export const getAccountsHandler: RouteHandler<
   return c.json(view, 200);
 };
 
-export const createAccountHandler: RouteHandler<
-  typeof createAccountRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const createAccountHandler = async (
+  c: ControllerContext<{
+    json: CreateAccountRequest;
+    param: AccountLedgerParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { ledgerId } = c.req.valid("param");
   const result = await c.get("container").account.service.create({
     ...c.req.valid("json"),
@@ -47,11 +48,15 @@ export const createAccountHandler: RouteHandler<
   return c.json(result, 201);
 };
 
-export const updateAccountHandler: RouteHandler<
-  typeof updateAccountRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const updateAccountHandler = async (
+  c: ControllerContext<{
+    json: UpdateAccountRequest;
+    param: AccountParams;
+  }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { accountId, ledgerId } = c.req.valid("param");
   await c.get("container").account.service.update({
     ...c.req.valid("json"),
@@ -63,11 +68,12 @@ export const updateAccountHandler: RouteHandler<
   return c.json({ ok: true as const }, 200);
 };
 
-export const archiveAccountHandler: RouteHandler<
-  typeof archiveAccountRoute,
-  AppEnv
-> = async (c) => {
-  const userId = requireUserId(c);
+export const archiveAccountHandler = async (
+  c: ControllerContext<{ param: AccountParams }>,
+) => {
+  const userId = requireAuthenticatedUserId(
+    c.get("requestDependencies").auth,
+  );
   const { accountId, ledgerId } = c.req.valid("param");
   await c.get("container").account.service.archive({
     accountId,
