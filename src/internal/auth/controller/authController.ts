@@ -1,30 +1,40 @@
-import type { RouteHandler } from "@hono/zod-openapi";
+import type { z } from "@hono/zod-openapi";
 
-import type { AppEnv } from "internal/appEnv";
-import type {
-  loginRoute,
-  registerRoute,
-  checkRegisterEmailAvailabilityRoute,
-  requestRegisterOtpRoute,
-  submitRegisterOtpRoute,
-  startGoogleAuthRoute,
-  getSessionRoute,
-  logoutRoute,
-} from "internal/auth/router";
 import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
+import {
+  loginRequestSchema,
+  registerEmailAvailabilityRequestSchema,
+  registerRouteRequestSchema,
+  requestRegisterOtpRequestSchema,
+  startGoogleAuthRequestSchema,
+  submitRegisterOtpRequestSchema,
+} from "internal/auth/schema";
 import { RepositoryError } from "internal/shared/errors/appError";
+import type { ControllerContext } from "internal/shared/http/controllerContext";
 
-export const loginHandler: RouteHandler<typeof loginRoute, AppEnv> = async (
-  c,
+type LoginRequest = z.infer<typeof loginRequestSchema>;
+type RegisterRouteRequest = z.infer<typeof registerRouteRequestSchema>;
+type RegisterEmailAvailabilityRequest = z.infer<
+  typeof registerEmailAvailabilityRequestSchema
+>;
+type RequestRegisterOtpRequest = z.infer<
+  typeof requestRegisterOtpRequestSchema
+>;
+type SubmitRegisterOtpRequest = z.infer<
+  typeof submitRegisterOtpRequestSchema
+>;
+type StartGoogleAuthRequest = z.infer<typeof startGoogleAuthRequestSchema>;
+
+export const loginHandler = async (
+  c: ControllerContext<{ json: LoginRequest }>,
 ) => {
   await c.get("container").auth.service.login(c.req.valid("json"));
   return c.json({ ok: true }, 200);
 };
 
-export const registerHandler: RouteHandler<
-  typeof registerRoute,
-  AppEnv
-> = async (c) => {
+export const registerHandler = async (
+  c: ControllerContext<{ json: RegisterRouteRequest }>,
+) => {
   const input = c.req.valid("json");
   const result = await c.get("container").auth.service.requestRegisterOtp({
     ...input,
@@ -39,10 +49,9 @@ export const registerHandler: RouteHandler<
   );
 };
 
-export const checkRegisterEmailAvailabilityHandler: RouteHandler<
-  typeof checkRegisterEmailAvailabilityRoute,
-  AppEnv
-> = async (c) => {
+export const checkRegisterEmailAvailabilityHandler = async (
+  c: ControllerContext<{ json: RegisterEmailAvailabilityRequest }>,
+) => {
   const result = await c
     .get("container")
     .auth.service.checkRegisterEmailAvailability({
@@ -52,10 +61,9 @@ export const checkRegisterEmailAvailabilityHandler: RouteHandler<
   return c.json(result, 200);
 };
 
-export const requestRegisterOtpHandler: RouteHandler<
-  typeof requestRegisterOtpRoute,
-  AppEnv
-> = async (c) => {
+export const requestRegisterOtpHandler = async (
+  c: ControllerContext<{ json: RequestRegisterOtpRequest }>,
+) => {
   const input = c.req.valid("json");
   const result = await c.get("container").auth.service.requestRegisterOtp({
     displayName: "",
@@ -74,10 +82,9 @@ export const requestRegisterOtpHandler: RouteHandler<
   );
 };
 
-export const submitRegisterOtpHandler: RouteHandler<
-  typeof submitRegisterOtpRoute,
-  AppEnv
-> = async (c) => {
+export const submitRegisterOtpHandler = async (
+  c: ControllerContext<{ json: SubmitRegisterOtpRequest }>,
+) => {
   const input = c.req.valid("json");
   await c.get("container").auth.service.submitRegisterOtp({
     ...input,
@@ -86,10 +93,9 @@ export const submitRegisterOtpHandler: RouteHandler<
   return c.json({ ok: true }, 200);
 };
 
-export const startGoogleAuthHandler: RouteHandler<
-  typeof startGoogleAuthRoute,
-  AppEnv
-> = async (c) => {
+export const startGoogleAuthHandler = async (
+  c: ControllerContext<{ json: StartGoogleAuthRequest }>,
+) => {
   const input = c.req.valid("json");
   const result = await c.get("container").auth.service.startGoogleAuth({
     ...input,
@@ -107,15 +113,10 @@ export const startGoogleAuthHandler: RouteHandler<
   return c.json({ redirectTo: result.providerUrl }, 200);
 };
 
-export const getSessionHandler: RouteHandler<
-  typeof getSessionRoute,
-  AppEnv
-> = async (c) =>
+export const getSessionHandler = async (c: ControllerContext) =>
   c.json(await c.get("container").auth.service.getSession(), 200);
 
-export const logoutHandler: RouteHandler<typeof logoutRoute, AppEnv> = async (
-  c,
-) => {
+export const logoutHandler = async (c: ControllerContext) => {
   await c.get("container").auth.service.logout();
   return c.json({ ok: true }, 200);
 };
