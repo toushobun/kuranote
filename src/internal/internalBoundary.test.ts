@@ -1,7 +1,15 @@
 // @vitest-environment node
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, extname, join, relative, sep } from "node:path";
+import {
+  basename,
+  dirname,
+  extname,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 
 import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -137,8 +145,57 @@ function getModuleSpecifier(
     : null;
 }
 
+/**
+ * 把 "@/internal/..." 别名和相对路径 import 归一化为 "internal/..." 形式，
+ * 避免边界检查因为 import 写法不同（而非实际指向不同）而被绕过。
+ */
+function normalizeModuleSpecifier(
+  moduleSpecifier: string,
+  containingFile: string,
+): string {
+  if (moduleSpecifier.startsWith("@/")) {
+    return moduleSpecifier.slice("@/".length);
+  }
+
+  if (moduleSpecifier.startsWith(".")) {
+    const resolved = resolve(dirname(containingFile), moduleSpecifier);
+    if (
+      resolved !== internalRoot &&
+      !resolved.startsWith(`${internalRoot}${sep}`)
+    ) {
+      return moduleSpecifier;
+    }
+    const relativeToInternal = relative(internalRoot, resolved)
+      .split(sep)
+      .join("/");
+    return relativeToInternal ? `internal/${relativeToInternal}` : "internal";
+  }
+
+  return moduleSpecifier;
+}
+
+function collectDynamicImportSpecifiers(sourceFile: ts.SourceFile): string[] {
+  const specifiers: string[] = [];
+
+  function visit(node: ts.Node) {
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
+    ) {
+      const [source] = node.arguments;
+      if (source && ts.isStringLiteralLike(source)) {
+        specifiers.push(source.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return specifiers;
+}
+
 function collectModuleSpecifiers(sourceFile: ts.SourceFile): string[] {
-  return sourceFile.statements.flatMap((statement) => {
+  const staticSpecifiers = sourceFile.statements.flatMap((statement) => {
     if (
       ts.isImportDeclaration(statement) ||
       ts.isExportDeclaration(statement)
@@ -148,6 +205,14 @@ function collectModuleSpecifiers(sourceFile: ts.SourceFile): string[] {
     }
     return [];
   });
+  const allSpecifiers = [
+    ...staticSpecifiers,
+    ...collectDynamicImportSpecifiers(sourceFile),
+  ];
+
+  return allSpecifiers.map((moduleSpecifier) =>
+    normalizeModuleSpecifier(moduleSpecifier, sourceFile.fileName),
+  );
 }
 
 function isCreateRouteCall(node: ts.Node): node is ts.CallExpression {
