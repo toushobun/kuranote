@@ -176,6 +176,27 @@ describe("Category Server Actions", () => {
     consoleError.mockRestore();
   });
 
+  it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createServerRequestDependencies.mockRejectedValue(
+      new Error("dependencies unavailable"),
+    );
+
+    const state = await createCategory({}, createCreateFormData());
+
+    expectErrorState(
+      state,
+      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+    );
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[category] create failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
   it("编辑和隐藏成功时共用 Category Service 与缓存失效函数", async () => {
     await expect(updateCategory({}, createUpdateFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/categories",
