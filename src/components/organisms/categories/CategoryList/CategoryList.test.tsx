@@ -65,8 +65,7 @@ function renderList(
     <CategoryList
       archiveCategoryAction={vi.fn(async () => {})}
       categories={categories}
-      errorCategoryId={null}
-      errorMessage={null}
+      onReorderError={vi.fn()}
       reorderCategoryAction={vi.fn(async () => ({}))}
       updateCategoryAction={vi.fn(async () => {})}
       {...overrides}
@@ -126,15 +125,6 @@ describe("CategoryList", () => {
       "餐饮",
     );
     expect(screen.getByLabelText("当前分类图标：🍽️")).toBeInTheDocument();
-  });
-
-  it("显示指定分类的错误信息", () => {
-    renderList({
-      errorCategoryId: expenseChildId,
-      errorMessage: "分类更新失败。",
-    });
-
-    expect(screen.getByRole("alert")).toHaveTextContent("分类更新失败。");
   });
 
   it("拖动大分类时提交同级分类顺序", async () => {
@@ -215,22 +205,25 @@ describe("CategoryList", () => {
     expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
   });
 
-  it("排序失败时显示 Service message 并恢复当前页面状态", async () => {
+  it("排序失败时恢复页面状态并上抛统一错误状态", async () => {
+    const onReorderError = vi.fn();
     const reorderCategoryAction = vi.fn(async () => ({
       error: "分类排序保存失败，请稍后重试。",
       errorKey: "reorder-error-1",
     }));
-    renderList({ reorderCategoryAction });
+    renderList({ onReorderError, reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.keyDown(handle, { key: "ArrowDown" });
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "分类排序保存失败，请稍后重试。",
-      ),
+      expect(onReorderError).toHaveBeenCalledWith({
+        error: "分类排序保存失败，请稍后重试。",
+        errorKey: "reorder-error-1",
+      }),
     );
     expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("没有分类时显示空状态", () => {
