@@ -1,4 +1,11 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { LedgerWithMemberCount } from "lib/ledger/current-ledger";
@@ -96,6 +103,9 @@ describe("LedgersActionStateTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "切换到旅行账本" }));
     const firstAlert = await screen.findByRole("alert");
     fireEvent.click(within(firstAlert).getByRole("button", { name: "关闭" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "切换到旅行账本" }));
 
