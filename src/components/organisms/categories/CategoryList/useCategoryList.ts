@@ -10,7 +10,6 @@ import type {
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
-import { getCategoryErrorMessage } from "utils/pageErrors";
 
 type DraggedCategory = Pick<CategoryRow, "id" | "parent_id" | "type">;
 
@@ -145,15 +144,12 @@ export function useCategoryList({
       try {
         const result = await reorderCategoryAction(formData);
 
-        if (!result.ok) {
+        if (result.error) {
           setOptimisticCategoryOrder({
             categories: previousCategories,
             source: categories,
           });
-          setReorderError(
-            getCategoryErrorMessage(result.error) ??
-              "分类排序保存失败，请稍后重试。",
-          );
+          setReorderError(result.error);
         }
       } catch {
         setOptimisticCategoryOrder({

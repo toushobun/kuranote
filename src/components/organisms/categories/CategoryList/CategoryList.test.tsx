@@ -8,8 +8,6 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "internal/category";
-
 import { CategoryList } from "./CategoryList";
 
 const expenseRootId = "00000000-0000-4000-8000-000000000101";
@@ -69,7 +67,7 @@ function renderList(
       categories={categories}
       errorCategoryId={null}
       errorMessage={null}
-      reorderCategoryAction={vi.fn(async () => ({ ok: true as const }))}
+      reorderCategoryAction={vi.fn(async () => ({}))}
       updateCategoryAction={vi.fn(async () => {})}
       {...overrides}
     />,
@@ -106,15 +104,11 @@ describe("CategoryList", () => {
   it("大分类和小分类都显示编辑与排序按钮", () => {
     renderList();
 
-    expect(
-      screen.getByRole("button", { name: "编辑餐饮" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑餐饮" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "调整餐饮排序" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "编辑外食" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑外食" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "调整外食排序" }),
     ).toBeInTheDocument();
@@ -146,12 +140,10 @@ describe("CategoryList", () => {
   it("拖动大分类时提交同级分类顺序", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;
-      return { ok: true as const };
+      return {};
     });
     const { container } = renderList({ reorderCategoryAction });
-    const handle = screen.getByRole("button", {
-      name: "调整餐饮排序",
-    });
+    const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     const targetRow = container.querySelector<HTMLElement>(
       `[data-category-row-id="${expenseSecondRootId}"]`,
     );
@@ -165,19 +157,17 @@ describe("CategoryList", () => {
       configurable: true,
       value: vi.fn(() => targetRow),
     });
-    vi.spyOn(targetRow as HTMLElement, "getBoundingClientRect").mockReturnValue(
-      {
-        bottom: 100,
-        height: 40,
-        left: 0,
-        right: 320,
-        toJSON: () => ({}),
-        top: 60,
-        width: 320,
-        x: 0,
-        y: 60,
-      },
-    );
+    vi.spyOn(targetRow as HTMLElement, "getBoundingClientRect").mockReturnValue({
+      bottom: 100,
+      height: 40,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 60,
+      width: 320,
+      x: 0,
+      y: 60,
+    });
 
     fireEvent.pointerDown(handle, {
       button: 0,
@@ -198,7 +188,7 @@ describe("CategoryList", () => {
   });
 
   it("非主键按下排序按钮时不启动拖动", () => {
-    const reorderCategoryAction = vi.fn(async () => ({ ok: true as const }));
+    const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
@@ -211,7 +201,7 @@ describe("CategoryList", () => {
   it("使用方向键调整顺序时不重置展开状态或焦点", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;
-      return { ok: true as const };
+      return {};
     });
     renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
@@ -225,10 +215,10 @@ describe("CategoryList", () => {
     expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
   });
 
-  it("排序失败时显示错误并恢复当前页面状态", async () => {
+  it("排序失败时显示 Service message 并恢复当前页面状态", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: categoryErrorCodes.reorderFailed,
-      ok: false as const,
+      error: "分类排序保存失败，请稍后重试。",
+      errorKey: "reorder-error-1",
     }));
     renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });

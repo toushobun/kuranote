@@ -28,8 +28,6 @@ const baseProps = {
     },
   ],
   createCategoryAction: vi.fn(async () => {}),
-  errorCategoryId: null,
-  errorMessage: null,
   ledgerName: "家庭账本",
   parentOptions: [
     {
@@ -38,7 +36,7 @@ const baseProps = {
       type: "expense" as const,
     },
   ],
-  reorderCategoryAction: vi.fn(async () => ({ ok: true as const })),
+  reorderCategoryAction: vi.fn(async () => ({})),
   updateCategoryAction: vi.fn(async () => {}),
 };
 
@@ -66,15 +64,5 @@ describe("CategoriesTemplate", () => {
     ).toBeInTheDocument();
     expect(within(container).getByText("餐饮")).toBeInTheDocument();
     expect(within(container).getByText("外食")).toBeInTheDocument();
-  });
-
-  it("显示全局错误信息", () => {
-    const { container } = render(
-      <CategoriesTemplate {...baseProps} errorMessage="请输入分类名称。" />,
-    );
-    const alert = within(container).getByRole("alert");
-
-    expect(alert.textContent).toContain("分类操作失败");
-    expect(alert.textContent).toContain("请输入分类名称。");
   });
 });

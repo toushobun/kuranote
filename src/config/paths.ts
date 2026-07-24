@@ -135,10 +135,6 @@ export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }
 
-export function categoriesErrorHref(error: string, categoryId?: string | null) {
-  return routeWithQuery(routePaths.categories, { error, categoryId });
-}
-
 export function merchantsErrorHref(error: string, merchantId?: string | null) {
   return routeWithQuery(routePaths.merchants, { error, merchantId });
 }

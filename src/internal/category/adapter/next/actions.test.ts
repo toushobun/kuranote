@@ -8,6 +8,7 @@ import {
   NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
+import type { CategoryActionState } from "types/categories";
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
@@ -46,6 +47,49 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const categoryId = "00000000-0000-4000-8000-000000000101";
 
+function createCreateFormData(overrides: Record<string, string> = {}) {
+  const formData = new FormData();
+  formData.set("iconName", "🍽️");
+  formData.set("name", "餐饮");
+  formData.set("parentId", "");
+  formData.set("type", "expense");
+
+  for (const [key, value] of Object.entries(overrides)) {
+    formData.set(key, value);
+  }
+
+  return formData;
+}
+
+function createUpdateFormData() {
+  const formData = new FormData();
+  formData.set("categoryId", categoryId);
+  formData.set("iconName", "🍜");
+  formData.set("name", "外食");
+  return formData;
+}
+
+function createArchiveFormData() {
+  const formData = new FormData();
+  formData.set("categoryId", categoryId);
+  return formData;
+}
+
+function createReorderFormData() {
+  const formData = new FormData();
+  formData.set("categoryIds", JSON.stringify([categoryId]));
+  formData.set("parentId", "");
+  formData.set("type", "expense");
+  return formData;
+}
+
+function expectErrorState(state: CategoryActionState, message: string) {
+  expect(state).toEqual({
+    error: message,
+    errorKey: expect.any(String),
+  });
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.redirect.mockImplementation((path: string) => {
@@ -71,13 +115,7 @@ beforeEach(() => {
 
 describe("Category Server Actions", () => {
   it("创建成功后调用模块级缓存失效并跳回分类页", async () => {
-    const formData = new FormData();
-    formData.set("iconName", "🍽️");
-    formData.set("name", "餐饮");
-    formData.set("parentId", "");
-    formData.set("type", "expense");
-
-    await expect(createCategory(formData)).rejects.toThrow(
+    await expect(createCategory({}, createCreateFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/categories",
     );
 
@@ -92,35 +130,57 @@ describe("Category Server Actions", () => {
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledOnce();
   });
 
-  it("创建表单无效时不创建请求依赖也不触发缓存失效", async () => {
-    const formData = new FormData();
-    formData.set("iconName", "🍽️");
-    formData.set("name", "");
-    formData.set("type", "expense");
-
-    await expect(createCategory(formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/categories?error=name_required",
+  it("创建表单无效时返回安全错误状态", async () => {
+    const state = await createCategory(
+      {},
+      createCreateFormData({ name: "" }),
     );
 
+    expectErrorState(state, "请输入分类名称。");
     expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("创建 Service 失败时保留应用异常 message", async () => {
+    mocks.create.mockRejectedValue(
+      new ConflictError(
+        categoryErrorCodes.createFailed,
+        "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+      ),
+    );
+
+    const state = await createCategory({}, createCreateFormData());
+
+    expectErrorState(
+      state,
+      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+    );
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
   });
 
-  it("编辑和归档成功时共用 Category Service 与缓存失效函数", async () => {
-    const updateForm = new FormData();
-    updateForm.set("categoryId", categoryId);
-    updateForm.set("iconName", "🍜");
-    updateForm.set("name", "外食");
+  it("未知异常时记录安全日志并返回对应操作提示", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.update.mockRejectedValue(new Error("database unavailable"));
 
-    await expect(updateCategory(updateForm)).rejects.toThrow(
+    const state = await updateCategory({}, createUpdateFormData());
+
+    expectErrorState(
+      state,
+      "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "[category] update failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("编辑和隐藏成功时共用 Category Service 与缓存失效函数", async () => {
+    await expect(updateCategory({}, createUpdateFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/categories",
     );
-
-    const archiveForm = new FormData();
-    archiveForm.set("categoryId", categoryId);
-
-    await expect(archiveCategory(archiveForm)).rejects.toThrow(
+    await expect(archiveCategory({}, createArchiveFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/categories",
     );
 
@@ -139,68 +199,50 @@ describe("Category Server Actions", () => {
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledTimes(2);
   });
 
-  it("排序失败时返回 Service 错误且不失效缓存", async () => {
-    mocks.reorder.mockRejectedValue(
+  it.each([
+    [
       new RepositoryError(categoryErrorCodes.reorderFailed, "排序失败"),
-    );
-    const formData = new FormData();
-    formData.set("categoryIds", JSON.stringify([categoryId]));
-    formData.set("parentId", "");
-    formData.set("type", "expense");
-
-    await expect(reorderCategories(formData)).resolves.toEqual({
-      error: categoryErrorCodes.reorderFailed,
-      ok: false,
-    });
-    expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
-  });
-
-  it("排序集合过期时返回可刷新冲突且不失效缓存", async () => {
-    mocks.reorder.mockRejectedValue(
+      "排序失败",
+    ],
+    [
       new ConflictError(
         categoryErrorCodes.reorderConflict,
         "分类列表已发生变化，请刷新页面后重试。",
       ),
-    );
-    const formData = new FormData();
-    formData.set("categoryIds", JSON.stringify([categoryId]));
-    formData.set("parentId", "");
-    formData.set("type", "expense");
-
-    await expect(reorderCategories(formData)).resolves.toEqual({
-      error: categoryErrorCodes.reorderConflict,
-      ok: false,
-    });
-    expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
-  });
-
-  it("排序账本失效时返回独立错误且不失效缓存", async () => {
-    mocks.reorder.mockRejectedValue(
+      "分类列表已发生变化，请刷新页面后重试。",
+    ],
+    [
       new NotFoundError(
         categoryErrorCodes.ledgerInvalid,
         "账本不存在或已归档。",
       ),
-    );
-    const formData = new FormData();
-    formData.set("categoryIds", JSON.stringify([categoryId]));
-    formData.set("parentId", "");
-    formData.set("type", "expense");
+      "账本不存在或已归档。",
+    ],
+  ])("排序失败时返回 Service message 且不失效缓存", async (error, message) => {
+    mocks.reorder.mockRejectedValue(error);
 
-    await expect(reorderCategories(formData)).resolves.toEqual({
-      error: categoryErrorCodes.ledgerInvalid,
-      ok: false,
-    });
+    const state = await reorderCategories(createReorderFormData());
+
+    expectErrorState(state, message);
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
   });
 
-  it("排序成功后复用同一模块级缓存失效函数且不跳转", async () => {
-    const formData = new FormData();
-    formData.set("categoryIds", JSON.stringify([categoryId]));
-    formData.set("parentId", "");
-    formData.set("type", "expense");
-
-    await expect(reorderCategories(formData)).resolves.toEqual({ ok: true });
+  it("排序成功后复用模块级缓存失效函数且不跳转", async () => {
+    await expect(reorderCategories(createReorderFormData())).resolves.toEqual(
+      {},
+    );
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledOnce();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.requireCurrentUserAndLedger.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(createCategory({}, createCreateFormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
   });
 });

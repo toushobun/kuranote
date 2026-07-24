@@ -72,7 +72,7 @@ const meta = {
     categories,
     errorCategoryId: null,
     errorMessage: null,
-    reorderCategoryAction: async () => ({ ok: true as const }),
+    reorderCategoryAction: async () => ({}),
     updateCategoryAction: async () => {},
   },
 } satisfies Meta<typeof CategoryList>;

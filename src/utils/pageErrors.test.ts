@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { accountErrorCodes } from "internal/account";
-import { categoryErrorCodes } from "internal/category";
 import { merchantErrorCodes } from "internal/merchant";
 
 import {
   getAccountErrorMessage,
-  getCategoryErrorMessage,
   getMerchantErrorMessage,
 } from "./pageErrors";
 
@@ -17,15 +15,6 @@ describe("pageErrors", () => {
     );
     expect(getAccountErrorMessage(accountErrorCodes.createFailed)).toBe(
       "账户新增失败。请确认账户名称是否重复，或稍后重试。",
-    );
-  });
-
-  it("使用统一错误码映射分类错误提示", () => {
-    expect(getCategoryErrorMessage(categoryErrorCodes.parentInvalid)).toBe(
-      "大分类指定不正确。",
-    );
-    expect(getCategoryErrorMessage(categoryErrorCodes.updateFailed)).toBe(
-      "分类更新失败。请确认分类名称是否重复，或稍后重试。",
     );
   });
 
