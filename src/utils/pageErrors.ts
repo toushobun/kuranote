@@ -1,10 +1,6 @@
 import { accountErrorCodes, type AccountErrorCode } from "internal/account";
 import { categoryErrorCodes, type CategoryErrorCode } from "internal/category";
 import {
-  ledgerSettingsErrorCodes,
-  type LedgerSettingsErrorCode,
-} from "internal/ledger";
-import {
   merchantErrorCodes,
   type MerchantPageErrorCode,
 } from "internal/merchant";
@@ -45,25 +41,6 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
 };
 
-const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
-  [ledgerSettingsErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
-  [ledgerSettingsErrorCodes.currencyInvalid]:
-    "默认货币必须是 3 位大写字母，例如 JPY。",
-  [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
-  [ledgerSettingsErrorCodes.displayNameRequired]: "请输入当前账本昵称。",
-  [ledgerSettingsErrorCodes.displayNameTooLong]:
-    "当前账本昵称不能超过 100 个字符。",
-  [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
-  [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
-  [ledgerSettingsErrorCodes.nameRequired]: "请输入账本名称。",
-  [ledgerSettingsErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
-  [ledgerSettingsErrorCodes.permissionDenied]:
-    "你没有权限修改该账本或成员设置。",
-  [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
-  [ledgerSettingsErrorCodes.updateFailed]:
-    "账本设置保存失败。请确认内容后稍后重试。",
-};
-
 const merchantErrorMessages: Record<MerchantPageErrorCode, string> = {
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败。",
   [merchantErrorCodes.aliasCreateFailed]:
@@ -98,10 +75,6 @@ export function getAccountErrorMessage(error?: string) {
 
 export function getCategoryErrorMessage(error?: string) {
   return getPageErrorMessage(categoryErrorMessages, error);
-}
-
-export function getLedgerSettingsErrorMessage(error?: string) {
-  return getPageErrorMessage(ledgerSettingsErrorMessages, error);
 }
 
 export function getMerchantErrorMessage(error?: string) {

@@ -15,6 +15,7 @@ export {
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 export {
+  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";

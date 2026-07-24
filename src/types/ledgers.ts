@@ -98,6 +98,15 @@ export type LedgerInviteStateAction = (
   formData: FormData,
 ) => Promise<LedgerInviteActionState>;
 
+export type LedgerSettingsActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type LedgerSettingsStateAction = (
+  previousState: LedgerSettingsActionState,
+  formData: FormData,
+) => Promise<LedgerSettingsActionState>;
+
 export type LedgerSettingsView = {
   canEditLedger: boolean;
   currentUser: {

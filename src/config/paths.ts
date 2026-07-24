@@ -122,15 +122,6 @@ export function ledgerSettingsHref(ledgerId: string) {
   return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
 }
 
-export function ledgerSettingsErrorHref(ledgerId: string, error: string) {
-  const searchParams = new URLSearchParams({
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-
-  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
-}
-
 export function ledgerSettingsResultHref(
   ledgerId: string,
   result: LedgerSettingsResultValue,

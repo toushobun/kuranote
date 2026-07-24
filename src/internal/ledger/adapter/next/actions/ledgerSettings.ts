@@ -3,39 +3,64 @@
 import { redirect } from "next/navigation";
 
 import {
-  ledgerSettingsErrorHref,
   ledgerSettingsHref,
   ledgerSettingsResultHref,
   ledgerSettingsResultValues,
-  routePaths,
 } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
-import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
+import {
+  getLedgerSettingsErrorMessage,
+  ledgerSettingsErrorCodes,
+} from "internal/ledger/errors/ledgerSettings";
+import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
-import { getFormText } from "utils/formData";
+import type { LedgerSettingsActionState } from "types/ledgers";
 
-export async function updateLedgerSettings(formData: FormData) {
+function createErrorState(message: string): LedgerSettingsActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
+}
+
+function validationErrorState(code: string): LedgerSettingsActionState {
+  return createErrorState(
+    getLedgerSettingsErrorMessage(code) ??
+      "账本设置内容不正确，请确认后重试。",
+  );
+}
+
+function actionErrorState(error: unknown): LedgerSettingsActionState {
+  if (error instanceof AppError) {
+    return createErrorState(error.message);
+  }
+
+  console.error("[ledger] ledger settings action failed unexpectedly", {
+    errorName: error instanceof Error ? error.name : "unknown",
+  });
+  return createErrorState(
+    getLedgerSettingsErrorMessage(ledgerSettingsErrorCodes.updateFailed) ??
+      "账本设置保存失败，请稍后重试。",
+  );
+}
+
+export async function updateLedgerSettings(
+  _previousState: LedgerSettingsActionState,
+  formData: FormData,
+): Promise<LedgerSettingsActionState> {
   const { userId } = await requireCurrentUserAndLedger();
-  const ledgerId = getFormText(formData, "ledgerId");
   const validation = validateUpdateLedgerSettingsForm(formData);
 
   if (!validation.ok) {
-    if (validation.error === ledgerSettingsErrorCodes.ledgerInvalid) {
-      redirect(routePaths.ledgers);
-    }
-
-    redirect(ledgerSettingsErrorHref(ledgerId, validation.error));
+    return validationErrorState(validation.error);
   }
 
   const values = validation.value;
-  const dependencies = await createServerRequestDependencies();
-  const container = createRequestContainer(dependencies);
 
   try {
+    const dependencies = await createServerRequestDependencies();
+    const container = createRequestContainer(dependencies);
+
     if (values.intent === "ledger" && values.ledgerSettings) {
       await container.ledger.settingsService.update({
         intent: "ledger",
@@ -51,18 +76,10 @@ export async function updateLedgerSettings(formData: FormData) {
         userId,
       });
     } else {
-      redirect(
-        ledgerSettingsErrorHref(
-          values.ledgerId,
-          ledgerSettingsErrorCodes.updateFailed,
-        ),
-      );
+      return validationErrorState(ledgerSettingsErrorCodes.updateFailed);
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      redirect(ledgerSettingsErrorHref(values.ledgerId, error.code));
-    }
-    throw error;
+    return actionErrorState(error);
   }
 
   revalidateLedgerMutation([ledgerSettingsHref(values.ledgerId)]);
