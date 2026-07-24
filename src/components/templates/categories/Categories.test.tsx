@@ -29,6 +29,7 @@ const baseProps = {
   ],
   createCategoryAction: vi.fn(async () => {}),
   ledgerName: "家庭账本",
+  onReorderError: vi.fn(),
   parentOptions: [
     {
       id: "00000000-0000-4000-8000-000000000101",
