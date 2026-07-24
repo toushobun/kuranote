@@ -2,16 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { accountErrorCodes } from "internal/account";
 import { categoryErrorCodes } from "internal/category";
-import {
-  currentLedgerErrorCodes,
-  ledgerSettingsErrorCodes,
-} from "internal/ledger";
+import { ledgerSettingsErrorCodes } from "internal/ledger";
 import { merchantErrorCodes } from "internal/merchant";
 
 import {
   getAccountErrorMessage,
   getCategoryErrorMessage,
-  getCurrentLedgerErrorMessage,
   getLedgerSettingsErrorMessage,
   getMerchantErrorMessage,
 } from "./pageErrors";
@@ -33,15 +29,6 @@ describe("pageErrors", () => {
     expect(getCategoryErrorMessage(categoryErrorCodes.updateFailed)).toBe(
       "分类更新失败。请确认分类名称是否重复，或稍后重试。",
     );
-  });
-
-  it("使用统一错误码映射账本切换错误提示", () => {
-    expect(
-      getCurrentLedgerErrorMessage(currentLedgerErrorCodes.ledgerInvalid),
-    ).toBe("无法切换到该账本。请确认你仍是该账本成员。");
-    expect(
-      getCurrentLedgerErrorMessage(currentLedgerErrorCodes.updateFailed),
-    ).toBe("账本切换失败，请稍后重试。");
   });
 
   it("使用统一错误码映射账本设置错误提示", () => {
@@ -70,6 +57,6 @@ describe("pageErrors", () => {
 
   it("空值或未知错误码返回 null", () => {
     expect(getAccountErrorMessage()).toBeNull();
-    expect(getCurrentLedgerErrorMessage("unknown")).toBeNull();
+    expect(getAccountErrorMessage("unknown")).toBeNull();
   });
 });

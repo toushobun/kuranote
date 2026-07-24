@@ -68,6 +68,15 @@ export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
   viewer: "只读（Viewer）",
 };
 
+export type CurrentLedgerActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type CurrentLedgerStateAction = (
+  previousState: CurrentLedgerActionState,
+  formData: FormData,
+) => Promise<CurrentLedgerActionState>;
+
 export type LedgerCreateActionState = BaseActionState & {
   errorKey?: string;
 };

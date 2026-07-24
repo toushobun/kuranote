@@ -1,5 +1,6 @@
 export {
   currentLedgerErrorCodes,
+  getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
   type CurrentLedgerValidationErrorCode,
 } from "internal/ledger/errors/currentLedger";
