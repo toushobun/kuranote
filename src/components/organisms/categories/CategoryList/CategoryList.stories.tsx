@@ -70,8 +70,7 @@ const meta = {
   args: {
     archiveCategoryAction: async () => {},
     categories,
-    errorCategoryId: null,
-    errorMessage: null,
+    onReorderError: () => {},
     reorderCategoryAction: async () => ({}),
     updateCategoryAction: async () => {},
   },
@@ -92,12 +91,4 @@ export const ReadOnly: Story = {
 export const Empty: Story = {
   name: "空状态",
   args: { categories: [] },
-};
-
-export const WithError: Story = {
-  name: "带错误提示",
-  args: {
-    errorCategoryId: "00000000-0000-4000-8000-000000000101",
-    errorMessage: "分类更新失败。",
-  },
 };
