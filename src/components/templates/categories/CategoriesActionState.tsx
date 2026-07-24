@@ -16,6 +16,7 @@ type CategoriesActionStateTemplateProps = Omit<
   ComponentProps<typeof CategoriesTemplate>,
   | "archiveCategoryAction"
   | "createCategoryAction"
+  | "onReorderError"
   | "updateCategoryAction"
 > & {
   archiveCategoryAction: CategoryStateAction;
@@ -41,6 +42,9 @@ export function CategoriesActionStateTemplate({
     archiveCategoryAction,
     initialCategoryActionState,
   );
+  const [reorderState, setReorderState] = useState<CategoryActionState>(
+    initialCategoryActionState,
+  );
 
   return (
     <>
@@ -48,11 +52,13 @@ export function CategoriesActionStateTemplate({
         {...templateProps}
         archiveCategoryAction={archiveAction}
         createCategoryAction={createAction}
+        onReorderError={setReorderState}
         updateCategoryAction={updateAction}
       />
       <CategoryFailureFeedback state={createState} title="分类新增失败" />
       <CategoryFailureFeedback state={updateState} title="分类更新失败" />
       <CategoryFailureFeedback state={archiveState} title="分类隐藏失败" />
+      <CategoryFailureFeedback state={reorderState} title="分类排序保存失败" />
     </>
   );
 }
