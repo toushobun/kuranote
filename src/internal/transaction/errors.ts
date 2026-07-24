@@ -53,8 +53,7 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
-  [transactionErrorCodes.tagInvalid]:
-    `标签最多 ${maxTransactionTagCount} 个，单个标签不能超过 ${maxTransactionTagNameLength} 个字符。`,
+  [transactionErrorCodes.tagInvalid]: `标签最多 ${maxTransactionTagCount} 个，单个标签不能超过 ${maxTransactionTagNameLength} 个字符。`,
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

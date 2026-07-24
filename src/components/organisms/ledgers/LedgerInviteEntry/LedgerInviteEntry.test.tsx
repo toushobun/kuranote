@@ -35,11 +35,7 @@ function renderEntry(
 ) {
   return render(
     <LedgerInvitePendingProvider pendingInvites={pendingInvites}>
-      <LedgerInviteEntry
-        action={action}
-        canInvite
-        ledgerId="ledger-1"
-      />
+      <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />
     </LedgerInvitePendingProvider>,
   );
 }
@@ -255,9 +251,7 @@ describe("LedgerInviteEntry", () => {
     const firstAlert = await screen.findByRole("alert");
     expect(firstAlert).toHaveTextContent("生成邀请链接失败");
 
-    fireEvent.click(
-      within(firstAlert).getByRole("button", { name: "关闭" }),
-    );
+    fireEvent.click(within(firstAlert).getByRole("button", { name: "关闭" }));
     await waitFor(() => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });

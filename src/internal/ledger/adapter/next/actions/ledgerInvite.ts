@@ -42,10 +42,7 @@ export async function createLedgerInvite(
     const inviteId = String(formData.get("inviteId") ?? "").trim();
 
     if (!inviteId) {
-      return createErrorState(
-        ledgerInviteErrorCodes.revokeFailed,
-        operation,
-      );
+      return createErrorState(ledgerInviteErrorCodes.revokeFailed, operation);
     }
 
     try {
@@ -112,9 +109,7 @@ function createErrorState(
   operation: LedgerInviteActionOperation,
 ): LedgerInviteActionState {
   return {
-    error:
-      getLedgerInviteErrorMessage(code) ??
-      "邀请操作失败，请稍后重试。",
+    error: getLedgerInviteErrorMessage(code) ?? "邀请操作失败，请稍后重试。",
     errorKey: crypto.randomUUID(),
     operation,
   };

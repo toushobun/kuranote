@@ -22,7 +22,7 @@ const meta = {
       userId: "00000000-0000-4000-8000-000000000031",
     },
     errorMessage: null,
-    inviteAction: async () => {},
+    inviteAction: async () => ({}),
     ledger: {
       baseCurrency: "JPY",
       currentUserRole: "owner",

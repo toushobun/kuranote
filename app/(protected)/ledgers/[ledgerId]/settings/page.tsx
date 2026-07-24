@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 
-import {
-  ledgerSettingsResultValues,
-  routePaths,
-} from "config/paths";
+import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";

@@ -242,7 +242,9 @@ describe("createLedgerInvite", () => {
   });
 
   it("非 AppError 返回安全提示并记录服务端日志", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     mocks.createService.mockRejectedValueOnce(new Error("boom"));
     const formData = new FormData();
     formData.set("ledgerId", "ledger-id");
@@ -262,7 +264,9 @@ describe("createLedgerInvite", () => {
   });
 
   it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     mocks.createDependencies.mockRejectedValueOnce(new Error("unavailable"));
     const formData = new FormData();
     formData.set("ledgerId", "ledger-id");

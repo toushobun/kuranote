@@ -14,7 +14,7 @@ import type { LedgerSettingsView } from "types/ledgers";
 import { LedgerSettingsTemplate } from "./LedgerSettings";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
-const inviteAction = vi.fn(async () => {});
+const inviteAction = vi.fn(async () => ({}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: routerReplaceMock }),

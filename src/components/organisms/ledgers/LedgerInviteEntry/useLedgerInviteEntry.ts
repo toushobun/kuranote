@@ -94,12 +94,12 @@ export function useLedgerInviteEntry({
     if (consumedErrorKeysRef.current.has(actionState.errorKey)) return;
     consumedErrorKeysRef.current.add(actionState.errorKey);
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 返回新错误状态时同步关闭旧反馈并展示本次错误。
     resetTransientFeedback();
     const operation = actionState.operation ?? "create";
     setManagementError({ message: actionState.error, operation });
 
     if (operation === "create") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 返回新错误状态时同步关闭旧反馈并展示本次错误。
       setDraftOpen(true);
       setSelectedInvite(null);
     }
