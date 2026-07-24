@@ -1,8 +1,8 @@
 import Stack from "@mui/material/Stack";
 
 import { ErrorState } from "molecules/ui/ErrorState";
-import { CategoryForm } from "organisms/categories/CategoryForm";
-import { CategoryList } from "organisms/categories/CategoryList";
+import { CategoryForm } from "organisms/categories/CategoryForm/CategoryForm";
+import { CategoryList } from "organisms/categories/CategoryList/CategoryList";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type {

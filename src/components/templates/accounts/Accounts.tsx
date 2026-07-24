@@ -17,11 +17,11 @@ import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
-import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog";
-import { AccountList } from "organisms/accounts/AccountList";
-import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard";
+import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog/AccountCreateDialog";
+import { AccountList } from "organisms/accounts/AccountList/AccountList";
+import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/AccountSummaryCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher";
+import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
 import {
   accountTypeOptions,

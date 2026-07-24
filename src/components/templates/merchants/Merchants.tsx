@@ -4,8 +4,8 @@ import TextField from "@mui/material/TextField";
 
 import { ErrorState } from "molecules/ui/ErrorState";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { MerchantForm } from "organisms/merchants/MerchantForm";
-import { MerchantList } from "organisms/merchants/MerchantList";
+import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
+import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type { ServerAction } from "types/actions";

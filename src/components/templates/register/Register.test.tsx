@@ -22,7 +22,7 @@ vi.mock("molecules/auth/GoogleAuthSection", () => ({
   ),
 }));
 
-vi.mock("organisms/auth/RegisterForm", () => ({
+vi.mock("organisms/auth/RegisterForm/RegisterForm", () => ({
   RegisterForm: ({
     checkEmailAvailabilityAction,
     requestOtpAction,

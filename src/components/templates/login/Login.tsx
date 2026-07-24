@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
 import { GoogleAuthSection } from "molecules/auth/GoogleAuthSection";
-import { LoginForm } from "organisms/auth/LoginForm";
+import { LoginForm } from "organisms/auth/LoginForm/LoginForm";
 
 type LoginTemplateProps = {
   action: Parameters<typeof LoginForm>[0]["action"];

@@ -36,8 +36,8 @@ import {
 import {
   AccountDialogIllustrationSlot,
   AccountFormDialogShell,
-} from "organisms/accounts/AccountFormDialogShell";
-import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry";
+} from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
+import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";

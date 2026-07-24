@@ -20,7 +20,7 @@ vi.mock("molecules/auth/GoogleAuthSection", () => ({
   ),
 }));
 
-vi.mock("organisms/auth/LoginForm", () => ({
+vi.mock("organisms/auth/LoginForm/LoginForm", () => ({
   LoginForm: ({
     action,
     defaultEmail,

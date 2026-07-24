@@ -15,7 +15,7 @@ import { routePaths } from "config/paths";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { TransactionMonthList } from "organisms/transactions/TransactionMonthList";
+import { TransactionMonthList } from "organisms/transactions/TransactionMonthList/TransactionMonthList";
 import type {
   TransactionFilterOptions,
   TransactionFilters,

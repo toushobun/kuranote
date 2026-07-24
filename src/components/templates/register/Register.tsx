@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 
 import { routePaths } from "config/paths";
 import { GoogleAuthSection } from "molecules/auth/GoogleAuthSection";
-import { RegisterForm } from "organisms/auth/RegisterForm";
+import { RegisterForm } from "organisms/auth/RegisterForm/RegisterForm";
 import type {
   RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
