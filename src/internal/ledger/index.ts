@@ -1,6 +1,5 @@
 export {
   currentLedgerErrorCodes,
-  getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
   type CurrentLedgerValidationErrorCode,
 } from "internal/ledger/errors/currentLedger";
@@ -15,7 +14,6 @@ export {
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 export {
-  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
