@@ -1,9 +1,5 @@
 export {
   transactionErrorCodes,
-  type EditTransactionErrorCode,
-  type NewTransactionErrorCode,
-  type TransactionErrorCode,
-  type TransactionListErrorCode,
   type TransactionServiceErrorCode,
   type TransactionValidationErrorCode,
   type UpdateTransactionValidationErrorCode,

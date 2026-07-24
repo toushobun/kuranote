@@ -2,63 +2,63 @@
 
 import { redirect } from "next/navigation";
 
-import {
-  ledgerInviteErrorHref,
-  ledgerInviteErrorOperations,
-  ledgerSettingsHref,
-  routePaths,
-} from "config/paths";
+import { ledgerSettingsHref } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { createRequestContainer } from "internal/container";
-import { ledgerInviteErrorCodes } from "internal/ledger/errors/ledgerInvite";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
+import {
+  getLedgerInviteErrorMessage,
+  ledgerInviteErrorCodes,
+} from "internal/ledger/errors/ledgerInvite";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import { isLedgerInviteRole } from "types/ledgers";
+import {
+  isLedgerInviteRole,
+  type LedgerInviteActionOperation,
+  type LedgerInviteActionState,
+} from "types/ledgers";
 
-export async function createLedgerInvite(formData: FormData) {
+export async function createLedgerInvite(
+  _previousState: LedgerInviteActionState,
+  formData: FormData,
+): Promise<LedgerInviteActionState> {
+  const intent = String(formData.get("intent") ?? "create").trim();
+  const operation: LedgerInviteActionOperation =
+    intent === "revoke" ? "revoke" : "create";
   const { userId } = await getCurrentLedgerContext();
   const ledgerId = String(formData.get("ledgerId") ?? "").trim();
-  const intent = String(formData.get("intent") ?? "create").trim();
 
   if (!ledgerId) {
-    redirect(`${routePaths.ledgers}?inviteError=create_failed`);
+    return createErrorState(
+      operation === "revoke"
+        ? ledgerInviteErrorCodes.revokeFailed
+        : ledgerInviteErrorCodes.createFailed,
+      operation,
+    );
   }
 
-  const dependencies = await createServerRequestDependencies();
-  const container = createRequestContainer(dependencies);
-
-  if (intent === "revoke") {
+  if (operation === "revoke") {
     const inviteId = String(formData.get("inviteId") ?? "").trim();
 
     if (!inviteId) {
-      redirect(
-        ledgerInviteErrorHref(
-          ledgerId,
-          ledgerInviteErrorCodes.revokeFailed,
-          ledgerInviteErrorOperations.revoke,
-        ),
-      );
+      return createErrorState(ledgerInviteErrorCodes.revokeFailed, operation);
     }
 
     try {
+      const dependencies = await createServerRequestDependencies();
+      const container = createRequestContainer(dependencies);
       await container.ledger.inviteService.revoke({
         inviteId,
         ledgerId,
         userId,
       });
     } catch (error) {
-      if (error instanceof AppError) {
-        redirect(
-          ledgerInviteErrorHref(
-            ledgerId,
-            error.code,
-            ledgerInviteErrorOperations.revoke,
-          ),
-        );
-      }
-      throw error;
+      return createActionErrorState(
+        error,
+        operation,
+        ledgerInviteErrorCodes.revokeFailed,
+      );
     }
 
     revalidateLedgerMutation([ledgerSettingsHref(ledgerId)]);
@@ -68,58 +68,71 @@ export async function createLedgerInvite(formData: FormData) {
   }
 
   if (intent !== "create") {
-    redirect(
-      ledgerInviteErrorHref(
-        ledgerId,
-        ledgerInviteErrorCodes.createFailed,
-        ledgerInviteErrorOperations.create,
-      ),
-    );
+    return createErrorState(ledgerInviteErrorCodes.createFailed, operation);
   }
 
   const roleValue = String(formData.get("role") ?? "member").trim();
   if (!isLedgerInviteRole(roleValue)) {
-    redirect(
-      ledgerInviteErrorHref(
-        ledgerId,
-        ledgerInviteErrorCodes.inviteRoleInvalid,
-        ledgerInviteErrorOperations.create,
-      ),
+    return createErrorState(
+      ledgerInviteErrorCodes.inviteRoleInvalid,
+      operation,
     );
   }
 
   let result;
   try {
+    const dependencies = await createServerRequestDependencies();
+    const container = createRequestContainer(dependencies);
     result = await container.ledger.inviteService.create({
       ledgerId,
       role: roleValue,
       userId,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      redirect(
-        ledgerInviteErrorHref(
-          ledgerId,
-          error.code,
-          ledgerInviteErrorOperations.create,
-        ),
-      );
-    }
-    throw error;
+    return createActionErrorState(
+      error,
+      operation,
+      ledgerInviteErrorCodes.createFailed,
+    );
   }
 
   if (!isValidLedgerInviteToken(result.token)) {
-    redirect(
-      ledgerInviteErrorHref(
-        ledgerId,
-        ledgerInviteErrorCodes.createFailed,
-        ledgerInviteErrorOperations.create,
-      ),
-    );
+    return createErrorState(ledgerInviteErrorCodes.createFailed, operation);
   }
 
   revalidateLedgerMutation([ledgerSettingsHref(ledgerId)]);
   redirectToCreatedInvite(ledgerId, result);
+}
+
+function createErrorState(
+  code: string,
+  operation: LedgerInviteActionOperation,
+): LedgerInviteActionState {
+  return {
+    error: getLedgerInviteErrorMessage(code) ?? "邀请操作失败，请稍后重试。",
+    errorKey: crypto.randomUUID(),
+    operation,
+  };
+}
+
+function createActionErrorState(
+  error: unknown,
+  operation: LedgerInviteActionOperation,
+  fallbackCode: string,
+): LedgerInviteActionState {
+  if (error instanceof AppError) {
+    return {
+      error: error.message,
+      errorKey: crypto.randomUUID(),
+      operation,
+    };
+  }
+
+  console.error("[ledger] ledger invite action failed unexpectedly", {
+    errorName: error instanceof Error ? error.name : "unknown",
+    operation,
+  });
+  return createErrorState(fallbackCode, operation);
 }
 
 function redirectToCreatedInvite(

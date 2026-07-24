@@ -2,10 +2,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps } from "react";
 import { userEvent, within } from "storybook/test";
 
+import type { LedgerInviteStateAction } from "types/ledgers";
+
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
 import { LedgerInvitePendingProvider } from "../LedgerInvitePendingContext/LedgerInvitePendingContext";
 
-const action = async () => {};
+const action: LedgerInviteStateAction = async () => ({});
 const pendingInvites = [
   {
     createdAt: "2026-07-13T09:00:00.000Z",
@@ -28,7 +30,6 @@ const meta = {
   args: {
     action,
     canInvite: true,
-    errorMessage: null,
     ledgerId: "storybook-ledger",
     token: null,
   },
@@ -101,6 +102,24 @@ export const ReadOnly: Story = {
 export const WithError: Story = {
   name: "生成邀请链接失败",
   args: {
-    errorMessage: "邀请链接生成失败，请稍后重试。",
+    action: async () => ({
+      error: "邀请链接生成失败，请稍后重试。",
+      errorKey: "storybook-create-failed",
+      operation: "create",
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "邀请成员" }),
+    );
+    await userEvent.click(
+      await within(document.body).findByRole("button", {
+        name: "生成邀请链接",
+      }),
+    );
+    await within(document.body).findByRole("heading", {
+      name: "生成邀请链接失败",
+    });
   },
 };

@@ -12,10 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
-import {
-  newTransactionPageErrorMessages,
-  transactionFormValidationMessages,
-} from "utils/transactionMessages";
+import { transactionFormValidationMessages } from "utils/transactionMessages";
 import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 
 import {
@@ -214,11 +211,10 @@ describe("TransactionForm", () => {
   });
 
   it("传入错误信息时显示 Alert", () => {
-    renderForm({ errorMessage: newTransactionPageErrorMessages.amountInvalid });
+    const errorMessage = "保存失败，请稍后重试。";
+    renderForm({ errorMessage });
 
-    expect(
-      screen.getByText(newTransactionPageErrorMessages.amountInvalid),
-    ).toBeInTheDocument();
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
   it("编辑模式下回填发生日期、时间和标签", () => {

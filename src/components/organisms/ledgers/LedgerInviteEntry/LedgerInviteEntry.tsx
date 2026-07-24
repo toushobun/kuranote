@@ -15,12 +15,9 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { useActionState } from "react";
 
 import { transactionTimeLocale } from "config/dateTime";
-import {
-  ledgerInviteErrorOperations,
-  type LedgerInviteErrorOperation,
-} from "config/paths";
 import { LedgerInviteQrCode } from "molecules/ledgers/LedgerInviteQrCode";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
@@ -30,36 +27,37 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { usePendingLedgerInvites } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import type { ServerAction } from "types/actions";
 import {
   ledgerInviteRoleLabels,
+  type LedgerInviteActionState,
+  type LedgerInviteStateAction,
   type PendingLedgerInvite,
 } from "types/ledgers";
 
 import { useLedgerInviteEntry } from "./useLedgerInviteEntry";
 
 type LedgerInviteEntryProps = {
-  action: ServerAction;
+  action: LedgerInviteStateAction;
   canInvite: boolean;
-  errorKey?: string | null;
-  errorMessage?: string | null;
-  errorOperation?: LedgerInviteErrorOperation;
   ledgerId: string;
   ledgerName?: string;
   token?: string | null;
 };
 
+const initialLedgerInviteActionState: LedgerInviteActionState = {};
+
 export function LedgerInviteEntry({
   action,
   canInvite,
-  errorKey = null,
-  errorMessage = null,
-  errorOperation = ledgerInviteErrorOperations.create,
   ledgerId,
   ledgerName = "当前账本",
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
+  const [actionState, formAction] = useActionState(
+    action,
+    initialLedgerInviteActionState,
+  );
   const {
     closeCopyFailedFeedback,
     closeCopyFeedback,
@@ -87,11 +85,8 @@ export function LedgerInviteEntry({
     selectedToken,
     selectInvite,
     setDraftRole,
-    visibleError,
   } = useLedgerInviteEntry({
-    errorKey,
-    errorMessage,
-    errorOperation,
+    actionState,
     initialToken,
   });
 
@@ -122,7 +117,7 @@ export function LedgerInviteEntry({
       />
 
       <Dialog fullWidth maxWidth="xs" onClose={closeDraft} open={draftOpen}>
-        <form action={action}>
+        <form action={formAction}>
           <DialogTitle sx={dialogTitleSx}>
             邀请成员
             <IconButton
@@ -149,12 +144,6 @@ export function LedgerInviteEntry({
 
               <InviteLinkField link={draftLink} onCopy={copyLink} />
               <LedgerInviteQrCode ledgerName={ledgerName} link={draftLink} />
-
-              {visibleError ? (
-                <Typography color="error" role="alert" variant="body2">
-                  {visibleError}
-                </Typography>
-              ) : null}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
@@ -264,7 +253,7 @@ export function LedgerInviteEntry({
         onClose={closeRevokeConfirm}
         open={revokeConfirmOpen}
       >
-        <form action={action}>
+        <form action={formAction}>
           <DialogTitle>确认撤销邀请？</DialogTitle>
           <DialogContent>
             <Typography color="text.secondary" variant="body2">
@@ -323,7 +312,11 @@ export function LedgerInviteEntry({
         description={managementError?.message}
         onClose={closeManagementError}
         open={managementError !== null}
-        title="撤销邀请失败"
+        title={
+          managementError?.operation === "create"
+            ? "生成邀请链接失败"
+            : "撤销邀请失败"
+        }
       />
     </>
   );

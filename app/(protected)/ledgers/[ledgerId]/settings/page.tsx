@@ -1,17 +1,11 @@
 import { redirect } from "next/navigation";
 
-import {
-  ledgerInviteErrorOperations,
-  ledgerSettingsResultValues,
-  routePaths,
-  type LedgerInviteErrorOperation,
-} from "config/paths";
+import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import { updateLedgerSettings } from "internal/ledger/adapter/next/actions/ledgerSettings";
 import { createRequestContainer } from "internal/container";
-import { getLedgerInviteErrorMessage } from "internal/ledger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AuthorizationError } from "internal/shared/errors/appError";
 import {
@@ -27,13 +21,6 @@ function getLedgerSettingsSaveResult(
   return null;
 }
 
-function getLedgerInviteErrorOperation(
-  operation: string | undefined,
-): LedgerInviteErrorOperation {
-  if (operation === ledgerInviteErrorOperations.revoke) return operation;
-  return ledgerInviteErrorOperations.create;
-}
-
 export default async function LedgerSettingsRoute({
   params,
   searchParams,
@@ -42,9 +29,6 @@ export default async function LedgerSettingsRoute({
   searchParams: Promise<{
     error?: string;
     errorKey?: string;
-    inviteError?: string;
-    inviteErrorKey?: string;
-    inviteOperation?: string;
     result?: string;
   }>;
 }) {
@@ -98,13 +82,6 @@ export default async function LedgerSettingsRoute({
         errorKey={resolvedSearchParams.errorKey ?? null}
         errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
         inviteAction={createLedgerInvite}
-        inviteErrorKey={resolvedSearchParams.inviteErrorKey ?? null}
-        inviteErrorMessage={getLedgerInviteErrorMessage(
-          resolvedSearchParams.inviteError,
-        )}
-        inviteErrorOperation={getLedgerInviteErrorOperation(
-          resolvedSearchParams.inviteOperation,
-        )}
         saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
         updateLedgerSettingsAction={updateLedgerSettings}
       />

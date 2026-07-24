@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   accountResultValues,
   accountsResultHref,
-  ledgerInviteErrorHref,
-  ledgerInviteErrorOperations,
   ledgerSwitchResultValues,
   ledgersErrorHref,
   ledgersResultHref,
@@ -15,45 +13,6 @@ import {
   transactionsResultHref,
   transactionsSearchHref,
 } from "./paths";
-
-describe("ledger invite paths", () => {
-  it("生成带操作类型和唯一错误标识的邀请错误路由", () => {
-    const href = ledgerInviteErrorHref(
-      "ledger/id",
-      "invite_already_used",
-      ledgerInviteErrorOperations.revoke,
-    );
-    const url = new URL(href, "http://localhost");
-
-    expect(url.pathname).toBe("/ledgers/ledger%2Fid/settings");
-    expect(url.searchParams.get("inviteError")).toBe("invite_already_used");
-    expect(url.searchParams.get("inviteErrorKey")).toBeTruthy();
-    expect(url.searchParams.get("inviteOperation")).toBe("revoke");
-  });
-
-  it("相同邀请错误连续发生时生成不同标识", () => {
-    const first = new URL(
-      ledgerInviteErrorHref(
-        "ledger-id",
-        "revoke_failed",
-        ledgerInviteErrorOperations.revoke,
-      ),
-      "http://localhost",
-    );
-    const second = new URL(
-      ledgerInviteErrorHref(
-        "ledger-id",
-        "revoke_failed",
-        ledgerInviteErrorOperations.revoke,
-      ),
-      "http://localhost",
-    );
-
-    expect(first.searchParams.get("inviteErrorKey")).not.toBe(
-      second.searchParams.get("inviteErrorKey"),
-    );
-  });
-});
 
 describe("ledger list paths", () => {
   it("生成带切换成功结果的账本列表路由", () => {

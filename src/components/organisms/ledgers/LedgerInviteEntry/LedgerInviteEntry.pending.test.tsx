@@ -37,7 +37,7 @@ function renderEntry(canInvite = true) {
   return render(
     <LedgerInvitePendingProvider pendingInvites={visibleInvites}>
       <LedgerInviteEntry
-        action={vi.fn(async () => {})}
+        action={vi.fn(async () => ({}))}
         canInvite={canInvite}
         ledgerId="ledger-1"
         ledgerName="家庭账本"

@@ -1,7 +1,18 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ledgerInviteErrorOperations } from "config/paths";
+import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import type {
+  LedgerInviteActionState,
+  LedgerInviteStateAction,
+  PendingLedgerInvite,
+} from "types/ledgers";
 
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
 
@@ -16,15 +27,29 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function renderEntry(action = vi.fn(async () => {})) {
+function renderEntry(
+  action: LedgerInviteStateAction = vi.fn(
+    async (state: LedgerInviteActionState) => state,
+  ),
+  pendingInvites: PendingLedgerInvite[] = [],
+) {
   return render(
-    <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />,
+    <LedgerInvitePendingProvider pendingInvites={pendingInvites}>
+      <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />
+    </LedgerInvitePendingProvider>,
   );
 }
 
+const pendingInvite: PendingLedgerInvite = {
+  createdAt: "2026-07-24T00:00:00.000Z",
+  id: "invite-1",
+  role: "member",
+  token: "invite-token",
+};
+
 describe("LedgerInviteEntry", () => {
   it("新邀请默认选择 Member，并可切换 Admin 与 Viewer", async () => {
-    const action = vi.fn(async () => {});
+    const action = vi.fn(async (state: LedgerInviteActionState) => state);
     renderEntry(action);
     fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
 
@@ -46,7 +71,7 @@ describe("LedgerInviteEntry", () => {
   });
 
   it("邀请表单内的菜单、复制与关闭按钮不会提交表单", async () => {
-    const action = vi.fn(async () => {});
+    const action = vi.fn(async (state: LedgerInviteActionState) => state);
     window.history.replaceState(
       null,
       "",
@@ -162,124 +187,99 @@ describe("LedgerInviteEntry", () => {
     ).toHaveAttribute("type", "submit");
   });
 
-  it("错误显示后会清理查询参数", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/ledgers/ledger-1/settings?inviteError=create_failed&inviteErrorKey=error-1&inviteOperation=create",
-    );
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        errorKey="error-1"
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
+  it("创建失败时保留所选权限且 URL 不携带错误参数", async () => {
+    const action = vi.fn(async () => ({
+      error: "邀请链接生成失败，请稍后重试。",
+      errorKey: "create-error-1",
+      operation: "create" as const,
+    }));
+    renderEntry(action);
 
-    expect(screen.getByRole("alert")).toHaveTextContent("邀请链接生成失败。");
-    await waitFor(() => expect(window.location.search).toBe(""));
-  });
-
-  it("组件未重新挂载时仍会展示新的 Action 错误", async () => {
-    const action = vi.fn(async () => {});
-    const { rerender } = render(
-      <LedgerInviteEntry action={action} canInvite ledgerId="ledger-1" />,
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+    fireEvent.click(screen.getByRole("button", { name: /选择邀请权限/ }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "管理员（Admin）" }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "生成邀请链接" }));
 
-    rerender(
-      <LedgerInviteEntry
-        action={action}
-        canInvite
-        errorKey="error-1"
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "邀请链接生成失败。",
-    );
+    expect(await screen.findByText("生成邀请链接失败")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "邀请成员" }),
+      screen.getByText("邀请链接生成失败，请稍后重试。"),
     ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("admin")).toHaveAttribute("name", "role");
+    expect(window.location.search).toBe("");
+    expect(window.location.href).not.toContain("inviteError");
+    expect(window.location.href).not.toContain("errorKey");
   });
 
-  it("相同创建错误使用新错误标识时会再次展示", async () => {
-    const action = vi.fn(async () => {});
-    const { rerender } = render(
-      <LedgerInviteEntry
-        action={action}
-        canInvite
-        errorKey="error-1"
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
+  it("撤销失败时展示对应弹框且不打开新建窗口", async () => {
+    const action = vi.fn(async () => ({
+      error: "该邀请链接已经被使用，无法撤销。",
+      errorKey: "revoke-error-1",
+      operation: "revoke" as const,
+    }));
+    renderEntry(action, [pendingInvite]);
 
-    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: "邀请成员" }),
-      ).not.toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole("button", { name: /待接受邀请/ }));
+    fireEvent.click(screen.getByRole("button", { name: "撤销邀请" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认撤销" }));
 
-    rerender(
-      <LedgerInviteEntry
-        action={action}
-        canInvite
-        errorKey="error-2"
-        errorMessage="邀请链接生成失败。"
-        ledgerId="ledger-1"
-      />,
-    );
-
+    expect(await screen.findByText("撤销邀请失败")).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "邀请成员" }),
+      screen.getByText("该邀请链接已经被使用，无法撤销。"),
     ).toBeInTheDocument();
-  });
-
-  it("撤销失败时展示对应反馈且不打开新建窗口", () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        errorKey="error-1"
-        errorMessage="邀请已失效。"
-        errorOperation={ledgerInviteErrorOperations.revoke}
-        ledgerId="ledger-1"
-      />,
-    );
-
-    expect(screen.getByText("撤销邀请失败")).toBeInTheDocument();
-    expect(screen.getByText("邀请已失效。")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "邀请成员" }),
     ).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
   });
 
-  it("打开全新邀请草稿时清除旧撤销错误", async () => {
-    render(
-      <LedgerInviteEntry
-        action={vi.fn(async () => {})}
-        canInvite
-        errorKey="error-1"
-        errorMessage="邀请已失效。"
-        errorOperation={ledgerInviteErrorOperations.revoke}
-        ledgerId="ledger-1"
-      />,
-    );
-
-    expect(screen.getByText("撤销邀请失败")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
-
-    expect(
-      screen.getByRole("heading", { name: "邀请成员" }),
-    ).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByText("撤销邀请失败")).not.toBeInTheDocument();
+  it("相同错误使用新错误标识时会再次展示", async () => {
+    let errorCount = 0;
+    const action = vi.fn(async () => {
+      errorCount += 1;
+      return {
+        error: "邀请链接生成失败，请稍后重试。",
+        errorKey: `create-error-${errorCount}`,
+        operation: "create" as const,
+      };
     });
+    renderEntry(action);
+
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+    fireEvent.click(screen.getByRole("button", { name: "生成邀请链接" }));
+    const firstAlert = await screen.findByRole("alert");
+    expect(firstAlert).toHaveTextContent("生成邀请链接失败");
+
+    fireEvent.click(within(firstAlert).getByRole("button", { name: "关闭" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "生成邀请链接" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "生成邀请链接失败",
+    );
+    expect(action).toHaveBeenCalledTimes(2);
+  });
+
+  it("页面刷新后不会重复展示已处理的 Action 错误", async () => {
+    const action = vi.fn(async () => ({
+      error: "邀请链接生成失败，请稍后重试。",
+      errorKey: "create-error-1",
+      operation: "create" as const,
+    }));
+    const { unmount } = renderEntry(action);
+
+    fireEvent.click(screen.getByRole("button", { name: /邀请成员/ }));
+    fireEvent.click(screen.getByRole("button", { name: "生成邀请链接" }));
+    expect(await screen.findByText("生成邀请链接失败")).toBeInTheDocument();
+    unmount();
+
+    renderEntry(action);
+    expect(screen.queryByText("生成邀请链接失败")).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
   });
 
   it("打开全新邀请草稿时清除旧撤销成功提示", async () => {
