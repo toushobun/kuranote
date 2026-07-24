@@ -12,6 +12,7 @@ import {
 const validToken = "a".repeat(64);
 
 const mocks = vi.hoisted(() => ({
+  createDependencies: vi.fn(),
   createService: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   redirect: vi.fn((path: string) => {
@@ -34,7 +35,7 @@ vi.mock("internal/ledger/adapter/next/revalidateLedger", () => ({
 }));
 
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+  createServerRequestDependencies: mocks.createDependencies,
 }));
 
 vi.mock("internal/container", () => ({
@@ -50,54 +51,62 @@ vi.mock("internal/container", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.createDependencies.mockResolvedValue({});
   mocks.getCurrentLedgerContext.mockResolvedValue({
     currentLedger: { id: "current-ledger-id" },
     userId: "user-id",
   });
 });
 
-async function expectInviteErrorRedirect(
-  formData: FormData,
-  expected: { error: string; operation: "create" | "revoke" },
-) {
-  await expect(createLedgerInvite(formData)).rejects.toThrow("NEXT_REDIRECT:");
+async function runAction(formData: FormData) {
+  return createLedgerInvite({}, formData);
+}
 
-  const redirectCall = mocks.redirect.mock.calls.at(-1);
-  const url = new URL(String(redirectCall?.[0]), "http://localhost");
-  expect(url.pathname).toBe("/ledgers/ledger%2Fid/settings");
-  expect(url.searchParams.get("inviteError")).toBe(expected.error);
-  expect(url.searchParams.get("inviteErrorKey")).toBeTruthy();
-  expect(url.searchParams.get("inviteOperation")).toBe(expected.operation);
+function expectErrorState(
+  state: Awaited<ReturnType<typeof runAction>>,
+  expected: { message: string; operation: "create" | "revoke" },
+) {
+  expect(state).toEqual({
+    error: expected.message,
+    errorKey: expect.any(String),
+    operation: expected.operation,
+  });
+  expect(mocks.redirect).not.toHaveBeenCalled();
+  expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
 }
 
 describe("createLedgerInvite", () => {
-  it("ledgerId 为空时跳到账本列表并返回创建失败", async () => {
-    await expect(createLedgerInvite(new FormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/ledgers?inviteError=create_failed",
-    );
+  it("ledgerId 为空时在当前页返回创建失败状态", async () => {
+    const state = await runAction(new FormData());
 
+    expectErrorState(state, {
+      message: "邀请链接生成失败，请稍后重试。",
+      operation: "create",
+    });
     expect(mocks.createService).not.toHaveBeenCalled();
   });
 
-  it("创建失败时回到账本设置页并携带错误码", async () => {
-    mocks.createService.mockRejectedValue(
+  it("创建 Service 返回 AppError 时直接使用安全消息", async () => {
+    mocks.createService.mockRejectedValueOnce(
       new AuthorizationError(
         ledgerInviteErrorCodes.permissionDenied,
-        "没有权限",
+        "只有账本所有者或管理员可以管理邀请。",
       ),
     );
     const formData = new FormData();
     formData.set("ledgerId", "ledger/id");
     formData.set("role", "admin");
 
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.permissionDenied,
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "只有账本所有者或管理员可以管理邀请。",
       operation: "create",
     });
   });
 
-  it("创建成功时通过 fragment 回传邀请信息，避免 token 进入查询参数和 Referer", async () => {
-    mocks.createService.mockResolvedValue({
+  it("创建成功时通过 fragment 回传邀请信息且 URL 不含错误参数", async () => {
+    mocks.createService.mockResolvedValueOnce({
       inviteId: "invite-id",
       role: "viewer",
       token: validToken,
@@ -106,7 +115,7 @@ describe("createLedgerInvite", () => {
     formData.set("ledgerId", "ledger-id");
     formData.set("role", "viewer");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
+    await expect(runAction(formData)).rejects.toThrow(
       `NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-id&inviteRole=viewer&inviteToken=${validToken}`,
     );
     expect(mocks.createService).toHaveBeenCalledWith({
@@ -117,10 +126,13 @@ describe("createLedgerInvite", () => {
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
       "/ledgers/ledger-id/settings",
     ]);
+    const redirectTarget = String(mocks.redirect.mock.calls.at(-1)?.[0]);
+    expect(redirectTarget).not.toContain("inviteError");
+    expect(redirectTarget).not.toContain("errorKey");
   });
 
-  it("创建 RPC 返回畸形 token 时按创建失败处理", async () => {
-    mocks.createService.mockResolvedValue({
+  it("创建 RPC 返回畸形 token 时在当前页返回创建失败状态", async () => {
+    mocks.createService.mockResolvedValueOnce({
       inviteId: "invite-id",
       role: "member",
       token: "invalid-token",
@@ -129,19 +141,23 @@ describe("createLedgerInvite", () => {
     formData.set("ledgerId", "ledger/id");
     formData.set("role", "member");
 
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.createFailed,
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "邀请链接生成失败，请稍后重试。",
       operation: "create",
     });
-    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
 
   it.each(["owner", "unknown"])("拒绝非法邀请角色 %s", async (role) => {
     const formData = new FormData();
     formData.set("ledgerId", "ledger/id");
     formData.set("role", role);
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.inviteRoleInvalid,
+
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "请选择有效的邀请权限。",
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -153,37 +169,46 @@ describe("createLedgerInvite", () => {
     formData.set("ledgerId", "ledger/id");
     formData.set("inviteId", "invite-id");
 
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.createFailed,
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "邀请链接生成失败，请稍后重试。",
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
     expect(mocks.revokeService).not.toHaveBeenCalled();
   });
 
-  it("撤销缺少 inviteId 时回到账本设置页", async () => {
+  it("撤销缺少 inviteId 时在当前页返回撤销失败状态", async () => {
     const formData = new FormData();
     formData.set("intent", "revoke");
     formData.set("ledgerId", "ledger/id");
 
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.revokeFailed,
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "邀请撤销失败，请稍后重试。",
       operation: "revoke",
     });
     expect(mocks.revokeService).not.toHaveBeenCalled();
   });
 
-  it("撤销失败时携带稳定错误码返回设置页", async () => {
-    mocks.revokeService.mockRejectedValue(
-      new ConflictError(ledgerInviteErrorCodes.inviteUsed, "已使用"),
+  it("撤销 Service 返回 AppError 时直接使用安全消息", async () => {
+    mocks.revokeService.mockRejectedValueOnce(
+      new ConflictError(
+        ledgerInviteErrorCodes.inviteUsed,
+        "该邀请链接已经被使用，无法撤销。",
+      ),
     );
     const formData = new FormData();
     formData.set("intent", "revoke");
     formData.set("ledgerId", "ledger/id");
     formData.set("inviteId", "invite-1");
 
-    await expectInviteErrorRedirect(formData, {
-      error: ledgerInviteErrorCodes.inviteUsed,
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "该邀请链接已经被使用，无法撤销。",
       operation: "revoke",
     });
     expect(mocks.revokeService).toHaveBeenCalledWith({
@@ -193,14 +218,14 @@ describe("createLedgerInvite", () => {
     });
   });
 
-  it("撤销成功后刷新设置页并返回成功参数", async () => {
-    mocks.revokeService.mockResolvedValue(undefined);
+  it("撤销成功后只携带成功参数返回设置页", async () => {
+    mocks.revokeService.mockResolvedValueOnce(undefined);
     const formData = new FormData();
     formData.set("intent", "revoke");
     formData.set("ledgerId", "ledger-id");
     formData.set("inviteId", "invite-1");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow(
+    await expect(runAction(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/ledgers/ledger-id/settings?inviteResult=revoked",
     );
     expect(mocks.revokeService).toHaveBeenCalledWith({
@@ -211,14 +236,49 @@ describe("createLedgerInvite", () => {
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
       "/ledgers/ledger-id/settings",
     ]);
+    const redirectTarget = String(mocks.redirect.mock.calls.at(-1)?.[0]);
+    expect(redirectTarget).not.toContain("inviteError");
+    expect(redirectTarget).not.toContain("errorKey");
   });
 
-  it("Service 抛出非 AppError 时向上抛出", async () => {
-    mocks.createService.mockRejectedValue(new Error("boom"));
+  it("非 AppError 返回安全提示并记录服务端日志", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createService.mockRejectedValueOnce(new Error("boom"));
     const formData = new FormData();
     formData.set("ledgerId", "ledger-id");
     formData.set("role", "member");
 
-    await expect(createLedgerInvite(formData)).rejects.toThrow("boom");
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "邀请链接生成失败，请稍后重试。",
+      operation: "create",
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger invite action failed unexpectedly",
+      { errorName: "Error", operation: "create" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createDependencies.mockRejectedValueOnce(new Error("unavailable"));
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("role", "member");
+
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: "邀请链接生成失败，请稍后重试。",
+      operation: "create",
+    });
+    expect(mocks.createService).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger invite action failed unexpectedly",
+      { errorName: "Error", operation: "create" },
+    );
+    consoleError.mockRestore();
   });
 });

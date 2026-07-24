@@ -6,24 +6,15 @@ import {
   currentLedgerErrorCodes,
   ledgerSettingsErrorCodes,
 } from "internal/ledger";
-import { transactionErrorCodes } from "internal/transaction";
 import { merchantErrorCodes } from "internal/merchant";
 
 import {
   getAccountErrorMessage,
   getCategoryErrorMessage,
   getCurrentLedgerErrorMessage,
-  getEditTransactionErrorMessage,
   getLedgerSettingsErrorMessage,
   getMerchantErrorMessage,
-  getNewTransactionErrorMessage,
-  getTransactionErrorMessage,
 } from "./pageErrors";
-import {
-  editTransactionPageErrorMessages,
-  newTransactionPageErrorMessages,
-  transactionListPageErrorMessages,
-} from "./transactionMessages";
 
 describe("pageErrors", () => {
   it("使用统一错误码映射账户错误提示", () => {
@@ -77,24 +68,8 @@ describe("pageErrors", () => {
     ).toBeNull();
   });
 
-  it("使用统一错误码映射交易错误提示", () => {
-    expect(
-      getNewTransactionErrorMessage(transactionErrorCodes.amountInvalid),
-    ).toBe(newTransactionPageErrorMessages.amountInvalid);
-    expect(getTransactionErrorMessage(transactionErrorCodes.voidInvalid)).toBe(
-      transactionListPageErrorMessages.voidInvalid,
-    );
-    expect(
-      getEditTransactionErrorMessage(transactionErrorCodes.updateInvalid),
-    ).toBe(editTransactionPageErrorMessages.updateInvalid);
-    expect(
-      getTransactionErrorMessage(transactionErrorCodes.updateInvalid),
-    ).toBeNull();
-  });
-
   it("空值或未知错误码返回 null", () => {
     expect(getAccountErrorMessage()).toBeNull();
     expect(getCurrentLedgerErrorMessage("unknown")).toBeNull();
-    expect(getTransactionErrorMessage("unknown")).toBeNull();
   });
 });

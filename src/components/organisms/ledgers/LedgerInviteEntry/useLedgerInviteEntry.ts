@@ -1,52 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  ledgerInviteErrorOperations,
-  type LedgerInviteErrorOperation,
-} from "config/paths";
-import {
   isLedgerInviteRole,
+  type LedgerInviteActionOperation,
+  type LedgerInviteActionState,
   type LedgerInviteRole,
   type PendingLedgerInvite,
 } from "types/ledgers";
 
 type LedgerInviteManagementError = {
   message: string;
-  operation: Exclude<LedgerInviteErrorOperation, "create">;
+  operation: LedgerInviteActionOperation;
 };
 
 type UseLedgerInviteEntryParams = {
-  errorKey: string | null;
-  errorMessage: string | null;
-  errorOperation: LedgerInviteErrorOperation;
+  actionState: LedgerInviteActionState;
   initialToken: string | null;
 };
 
 export function useLedgerInviteEntry({
-  errorKey,
-  errorMessage,
-  errorOperation,
+  actionState,
   initialToken,
 }: UseLedgerInviteEntryParams) {
-  const [draftOpen, setDraftOpen] = useState(
-    (errorMessage !== null &&
-      errorOperation === ledgerInviteErrorOperations.create) ||
-      initialToken !== null,
-  );
+  const [draftOpen, setDraftOpen] = useState(initialToken !== null);
   const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
   const [draftToken, setDraftToken] = useState<string | null>(initialToken);
-  const [visibleError, setVisibleError] = useState(
-    errorOperation === ledgerInviteErrorOperations.create ? errorMessage : null,
-  );
   const [managementError, setManagementError] =
-    useState<LedgerInviteManagementError | null>(
-      errorMessage !== null &&
-        errorOperation !== ledgerInviteErrorOperations.create
-        ? { message: errorMessage, operation: errorOperation }
-        : null,
-    );
+    useState<LedgerInviteManagementError | null>(null);
   const [selectedInvite, setSelectedInvite] =
     useState<PendingLedgerInvite | null>(null);
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
@@ -54,6 +36,7 @@ export function useLedgerInviteEntry({
   const [copyFailed, setCopyFailed] = useState(false);
   const [created, setCreated] = useState(false);
   const [revoked, setRevoked] = useState(false);
+  const consumedErrorKeysRef = useRef(new Set<string>());
 
   const resetTransientFeedback = useCallback(() => {
     setCopied(false);
@@ -70,7 +53,6 @@ export function useLedgerInviteEntry({
       const hashToken = hashParams.get("inviteToken");
       const url = new URL(window.location.href);
       const inviteResult = url.searchParams.get("inviteResult");
-      const hasInviteError = url.searchParams.has("inviteError");
 
       if (hashToken) {
         resetTransientFeedback();
@@ -78,7 +60,6 @@ export function useLedgerInviteEntry({
         setDraftOpen(true);
         setSelectedInvite(null);
         setRevokeConfirmOpen(false);
-        setVisibleError(null);
         setCreated(true);
       }
 
@@ -94,13 +75,7 @@ export function useLedgerInviteEntry({
         url.searchParams.delete("inviteResult");
       }
 
-      if (hasInviteError) {
-        url.searchParams.delete("inviteError");
-        url.searchParams.delete("inviteErrorKey");
-        url.searchParams.delete("inviteOperation");
-      }
-
-      if (hashToken || inviteResult === "revoked" || hasInviteError) {
+      if (hashToken || inviteResult === "revoked") {
         window.history.replaceState(null, "", `${url.pathname}${url.search}`);
       }
     }
@@ -115,20 +90,21 @@ export function useLedgerInviteEntry({
   }, [resetTransientFeedback]);
 
   useEffect(() => {
-    if (errorMessage === null) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同路由 Server Action 返回新错误 props 时同步重置旧反馈并展示本次错误。
+    if (!actionState.error || !actionState.errorKey) return;
+    if (consumedErrorKeysRef.current.has(actionState.errorKey)) return;
+    consumedErrorKeysRef.current.add(actionState.errorKey);
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 返回新错误状态时同步关闭旧反馈并展示本次错误。
     resetTransientFeedback();
-    if (errorOperation === ledgerInviteErrorOperations.create) {
-      setVisibleError(errorMessage);
+    const operation = actionState.operation ?? "create";
+    setManagementError({ message: actionState.error, operation });
+
+    if (operation === "create") {
       setDraftOpen(true);
       setSelectedInvite(null);
-      setRevokeConfirmOpen(false);
-      return;
     }
-
-    setManagementError({ message: errorMessage, operation: errorOperation });
     setRevokeConfirmOpen(false);
-  }, [errorKey, errorMessage, errorOperation, resetTransientFeedback]);
+  }, [actionState, resetTransientFeedback]);
 
   const draftLink = useInviteLink(draftToken);
   const selectedToken = selectedInvite?.token ?? null;
@@ -137,7 +113,6 @@ export function useLedgerInviteEntry({
   function openNewDraft() {
     setDraftRole("member");
     setDraftToken(null);
-    setVisibleError(null);
     resetTransientFeedback();
     setDraftOpen(true);
   }
@@ -180,7 +155,6 @@ export function useLedgerInviteEntry({
     selectedToken,
     selectInvite: setSelectedInvite,
     setDraftRole,
-    visibleError,
   };
 }
 

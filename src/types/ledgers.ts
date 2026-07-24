@@ -1,5 +1,6 @@
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import type { BaseActionState } from "types/auth";
 
 export const ledgerCurrencyOptions = [
   { label: "CNY 人民币", value: "CNY" },
@@ -66,6 +67,18 @@ export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
   member: "用户（Member）",
   viewer: "只读（Viewer）",
 };
+
+export type LedgerInviteActionOperation = "create" | "revoke";
+
+export type LedgerInviteActionState = BaseActionState & {
+  errorKey?: string;
+  operation?: LedgerInviteActionOperation;
+};
+
+export type LedgerInviteStateAction = (
+  previousState: LedgerInviteActionState,
+  formData: FormData,
+) => Promise<LedgerInviteActionState>;
 
 export type LedgerSettingsView = {
   canEditLedger: boolean;

@@ -10,17 +10,6 @@ import {
   merchantErrorCodes,
   type MerchantPageErrorCode,
 } from "internal/merchant";
-import {
-  transactionErrorCodes,
-  type EditTransactionErrorCode,
-  type NewTransactionErrorCode,
-  type TransactionListErrorCode,
-} from "internal/transaction";
-import {
-  editTransactionPageErrorMessages,
-  newTransactionPageErrorMessages,
-  transactionListPageErrorMessages,
-} from "utils/transactionMessages";
 
 const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
@@ -104,67 +93,6 @@ const merchantErrorMessages: Record<MerchantPageErrorCode, string> = {
     "商家网址必须以 http:// 或 https:// 开头。",
 };
 
-const newTransactionErrorMessages: Partial<
-  Record<NewTransactionErrorCode, string>
-> = {
-  [transactionErrorCodes.accountInvalid]:
-    newTransactionPageErrorMessages.accountInvalid,
-  [transactionErrorCodes.amountInvalid]:
-    newTransactionPageErrorMessages.amountInvalid,
-  [transactionErrorCodes.categoryInvalid]:
-    newTransactionPageErrorMessages.categoryInvalid,
-  [transactionErrorCodes.createFailed]:
-    newTransactionPageErrorMessages.createFailed,
-  [transactionErrorCodes.dateInvalid]:
-    newTransactionPageErrorMessages.dateInvalid,
-  [transactionErrorCodes.merchantInvalid]:
-    newTransactionPageErrorMessages.merchantInvalid,
-  [transactionErrorCodes.noteTooLong]:
-    newTransactionPageErrorMessages.noteTooLong,
-  [transactionErrorCodes.permissionDenied]:
-    newTransactionPageErrorMessages.permissionDenied,
-  [transactionErrorCodes.tagInvalid]:
-    newTransactionPageErrorMessages.tagInvalid,
-  [transactionErrorCodes.typeInvalid]:
-    newTransactionPageErrorMessages.typeInvalid,
-};
-
-const editTransactionErrorMessages: Partial<
-  Record<EditTransactionErrorCode, string>
-> = {
-  [transactionErrorCodes.accountInvalid]:
-    editTransactionPageErrorMessages.accountInvalid,
-  [transactionErrorCodes.amountInvalid]:
-    editTransactionPageErrorMessages.amountInvalid,
-  [transactionErrorCodes.categoryInvalid]:
-    editTransactionPageErrorMessages.categoryInvalid,
-  [transactionErrorCodes.dateInvalid]:
-    editTransactionPageErrorMessages.dateInvalid,
-  [transactionErrorCodes.merchantInvalid]:
-    editTransactionPageErrorMessages.merchantInvalid,
-  [transactionErrorCodes.noteTooLong]:
-    editTransactionPageErrorMessages.noteTooLong,
-  [transactionErrorCodes.permissionDenied]:
-    editTransactionPageErrorMessages.permissionDenied,
-  [transactionErrorCodes.tagInvalid]:
-    editTransactionPageErrorMessages.tagInvalid,
-  [transactionErrorCodes.typeInvalid]:
-    editTransactionPageErrorMessages.typeInvalid,
-  [transactionErrorCodes.updateFailed]:
-    editTransactionPageErrorMessages.updateFailed,
-  [transactionErrorCodes.updateInvalid]:
-    editTransactionPageErrorMessages.updateInvalid,
-};
-
-const transactionErrorMessages: Record<TransactionListErrorCode, string> = {
-  [transactionErrorCodes.permissionDenied]:
-    transactionListPageErrorMessages.permissionDenied,
-  [transactionErrorCodes.voidFailed]:
-    transactionListPageErrorMessages.voidFailed,
-  [transactionErrorCodes.voidInvalid]:
-    transactionListPageErrorMessages.voidInvalid,
-};
-
 function getPageErrorMessage<TError extends string>(
   messages: Partial<Record<TError, string>>,
   error?: string,
@@ -190,16 +118,4 @@ export function getLedgerSettingsErrorMessage(error?: string) {
 
 export function getMerchantErrorMessage(error?: string) {
   return getPageErrorMessage(merchantErrorMessages, error);
-}
-
-export function getNewTransactionErrorMessage(error?: string) {
-  return getPageErrorMessage(newTransactionErrorMessages, error);
-}
-
-export function getEditTransactionErrorMessage(error?: string) {
-  return getPageErrorMessage(editTransactionErrorMessages, error);
-}
-
-export function getTransactionErrorMessage(error?: string) {
-  return getPageErrorMessage(transactionErrorMessages, error);
 }

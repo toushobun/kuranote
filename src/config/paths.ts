@@ -42,11 +42,6 @@ export const ledgerSwitchResultValues = {
   switched: "switched",
 } as const;
 
-export const ledgerInviteErrorOperations = {
-  create: "create",
-  revoke: "revoke",
-} as const;
-
 type TransactionResultValue =
   (typeof transactionResultValues)[keyof typeof transactionResultValues];
 
@@ -58,9 +53,6 @@ type LedgerSettingsResultValue =
 
 export type LedgerSwitchResultValue =
   (typeof ledgerSwitchResultValues)[keyof typeof ledgerSwitchResultValues];
-
-export type LedgerInviteErrorOperation =
-  (typeof ledgerInviteErrorOperations)[keyof typeof ledgerInviteErrorOperations];
 
 export const bottomNavigationRouteGroups = {
   left: [
@@ -148,20 +140,6 @@ export function ledgerSettingsErrorHref(ledgerId: string, error: string) {
   const searchParams = new URLSearchParams({
     error,
     errorKey: crypto.randomUUID(),
-  });
-
-  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
-}
-
-export function ledgerInviteErrorHref(
-  ledgerId: string,
-  error: string,
-  operation: LedgerInviteErrorOperation,
-) {
-  const searchParams = new URLSearchParams({
-    inviteError: error,
-    inviteErrorKey: crypto.randomUUID(),
-    inviteOperation: operation,
   });
 
   return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;

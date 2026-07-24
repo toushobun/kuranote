@@ -13,6 +13,11 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
+  getTransactionValidationErrorMessage,
+  getUpdateTransactionValidationErrorMessage,
+  getVoidTransactionValidationErrorMessage,
+} from "internal/transaction/errors";
+import {
   validateConvertTransactionTypeForm,
   validateTransactionForm,
   validateUpdateTransactionForm,
@@ -20,11 +25,6 @@ import {
   validateVoidTransactionForm,
 } from "internal/transaction/schema";
 import type { TransactionActionState } from "types/transactions";
-import {
-  getEditTransactionErrorMessage,
-  getNewTransactionErrorMessage,
-  getTransactionErrorMessage,
-} from "utils/pageErrors";
 
 async function getTransactionService() {
   const dependencies = await createServerRequestDependencies();
@@ -65,7 +65,7 @@ export async function createTransaction(
   const validation = validateTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
-      getNewTransactionErrorMessage(validation.error) ??
+      getTransactionValidationErrorMessage(validation.error) ??
         "交易内容不正确，请确认后重试。",
     );
   }
@@ -101,7 +101,7 @@ export async function updateTransaction(
   const validation = validateUpdateTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
-      getEditTransactionErrorMessage(validation.error) ??
+      getUpdateTransactionValidationErrorMessage(validation.error) ??
         "交易内容不正确，请确认后重试。",
     );
   }
@@ -124,7 +124,7 @@ export async function updateTransferTransaction(
   const validation = validateUpdateTransferTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
-      getEditTransactionErrorMessage(validation.error) ??
+      getUpdateTransactionValidationErrorMessage(validation.error) ??
         "转账内容不正确，请确认后重试。",
     );
   }
@@ -156,7 +156,7 @@ export async function convertTransactionType(
   const validation = validateConvertTransactionTypeForm(formData);
   if (!validation.ok) {
     return errorState(
-      getEditTransactionErrorMessage(validation.error) ??
+      getUpdateTransactionValidationErrorMessage(validation.error) ??
         "交易类型转换内容不正确，请确认后重试。",
     );
   }
@@ -225,7 +225,7 @@ export async function voidTransaction(
   const validation = validateVoidTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
-      getTransactionErrorMessage(validation.error) ??
+      getVoidTransactionValidationErrorMessage(validation.error) ??
         "交易指定不正确，请刷新页面后重试。",
     );
   }
