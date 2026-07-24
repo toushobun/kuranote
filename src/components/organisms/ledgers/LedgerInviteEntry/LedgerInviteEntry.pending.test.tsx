@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { LedgerInviteEntry } from "../LedgerInviteEntry/LedgerInviteEntry";
-import { LedgerInvitePendingProvider } from "./LedgerInvitePendingContext";
+import { LedgerInvitePendingProvider } from "../LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { LedgerInviteEntry } from "./LedgerInviteEntry";
 
 const pendingInvites = [
   {

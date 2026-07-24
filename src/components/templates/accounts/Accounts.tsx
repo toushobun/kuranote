@@ -17,7 +17,7 @@ import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
-import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog";
+import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog/AccountCreateDialog";
 import { AccountList } from "organisms/accounts/AccountList/AccountList";
 import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/AccountSummaryCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";

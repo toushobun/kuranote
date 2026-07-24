@@ -22,7 +22,7 @@ import {
   drawerFooterSx,
   itemPickerDrawerPaperSx,
   itemPickerDrawerSx,
-} from "../TransactionItemPickerDrawer";
+} from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import { TransactionForm } from "./TransactionForm";
 
 vi.mock("next/link", () => ({

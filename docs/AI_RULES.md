@@ -187,6 +187,7 @@ PR merge 后需要回收相关状态：
   - `organisms/merchants/MerchantForm/MerchantForm.stories.tsx`
   - `organisms/merchants/MerchantForm/useMerchantForm.ts`（如需要拆 hook）
 - 只有单文件、没有配套文件的极简组件（如纯展示型小组件）可以不建子目录，直接平铺。
+- `organisms` 组件目录不使用 `index.ts` 桶文件。跨目录引用必须显式指向组件文件，例如 `organisms/merchants/MerchantForm/MerchantForm`；同目录内的测试、Story 与专属辅助文件可使用 `./MerchantForm`。
 - 新增组件必须遵循该目录约定。
 
 ## Storybook 豁免条件

@@ -4,7 +4,7 @@ import { userEvent, waitFor, within } from "storybook/test";
 import { turnstileTestSiteKey } from "config/turnstile";
 
 import { RegisterForm } from "./RegisterForm";
-import { installTurnstileTestDouble } from "./turnstileTestDouble";
+import { installTurnstileTestDouble } from "test/turnstile/turnstileTestDouble";
 
 const meta: Meta<typeof RegisterForm> = {
   title: "Organisms/Auth/RegisterForm",

@@ -45,7 +45,7 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "../TransactionForm/TransactionForm.styles";
-import { useEditTransactionDirty } from "../EditTransactionDirtyContext";
+import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
   formatSignedCurrencyAmount,
   getCurrencySymbol,
@@ -53,7 +53,7 @@ import {
 import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
-} from "../TransactionSelectionValue";
+} from "../TransactionSelectionValue/TransactionSelectionValue";
 
 const maxNoteLength = 2000;
 

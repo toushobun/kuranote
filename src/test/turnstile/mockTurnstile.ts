@@ -1,4 +1,7 @@
-import type { TurnstileApi, TurnstileRenderOptions } from "./turnstile";
+import type {
+  TurnstileApi,
+  TurnstileRenderOptions,
+} from "organisms/auth/RegisterForm/turnstile";
 
 export function installMockTurnstile(responseValue = "turnstile-ok") {
   let widgetIndex = 0;

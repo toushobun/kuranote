@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { turnstileTestSiteKey } from "config/turnstile";
 import type { RegisterEmailAvailabilityState } from "types/auth";
 
-import { installMockTurnstile } from "./mockTurnstile";
+import { installMockTurnstile } from "test/turnstile/mockTurnstile";
 import { RegisterForm } from "./RegisterForm";
 
 vi.mock("next/navigation", () => ({

@@ -44,9 +44,9 @@ import {
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
-import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer";
-import { useEditTransactionDirty } from "../EditTransactionDirtyContext";
-import { TransactionItemsSection } from "../TransactionItemsSection";
+import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
+import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
+import { TransactionItemsSection } from "../TransactionItemsSection/TransactionItemsSection";
 import type {
   TransactionFieldErrors,
   TransactionFormInitialValues,
@@ -65,12 +65,12 @@ import {
   transactionSectionTitleSx,
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
-import { TransactionSummarySection } from "../TransactionSummarySection";
+import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
 import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
-} from "../TransactionSelectionValue";
-import { TransactionTagSection } from "../TransactionTagSection";
+} from "../TransactionSelectionValue/TransactionSelectionValue";
+import { TransactionTagSection } from "../TransactionTagSection/TransactionTagSection";
 
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
 

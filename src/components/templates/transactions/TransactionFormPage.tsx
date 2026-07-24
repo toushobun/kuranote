@@ -33,7 +33,7 @@ import {
   type TransactionTypeNavigationValue,
 } from "molecules/transactions/TransactionTypeNavigation";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
-import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext";
+import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
   TransactionForm,
   type TransactionFormInitialValues,
