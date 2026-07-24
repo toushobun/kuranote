@@ -114,13 +114,6 @@ export function transactionEditHref(
   return `${editPath}?${searchParams.toString()}`;
 }
 
-export function ledgerCreateErrorHref(error: string) {
-  return routeWithQuery(routePaths.ledgersNew, {
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-}
-
 export function ledgersErrorHref(error: string) {
   return routeWithQuery(routePaths.ledgers, {
     error,

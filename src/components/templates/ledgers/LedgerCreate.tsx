@@ -17,20 +17,22 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState, type ReactNode, type RefObject } from "react";
+import { useActionState, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import type { LedgerCreateDefaults } from "internal/ledger";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
-import type { ServerAction } from "types/actions";
-import { ledgerCurrencyOptions, ledgerMemberColorOptions } from "types/ledgers";
-
-import type { LedgerCreateDefaults } from "internal/ledger";
+import {
+  ledgerCurrencyOptions,
+  ledgerMemberColorOptions,
+  type LedgerCreateActionState,
+  type LedgerCreateStateAction,
+} from "types/ledgers";
 
 const ledgerCreateText = {
   automaticItems: [
@@ -53,36 +55,41 @@ const ledgerCreateText = {
   title: "创建新账本",
 } as const;
 
+const initialLedgerCreateActionState: LedgerCreateActionState = {};
+
 type LedgerCreateTemplateProps = LedgerCreateDefaults & {
   backHref: string;
-  createLedgerAction: ServerAction;
-  errorKey?: string | null;
-  errorMessage: string | null;
+  createLedgerAction: LedgerCreateStateAction;
 };
 
 export function LedgerCreateTemplate({
   backHref,
   createLedgerAction,
   defaults,
-  errorKey = null,
-  errorMessage,
 }: LedgerCreateTemplateProps) {
-  const currentErrorKey = errorKey ?? errorMessage;
+  const [actionState, formAction] = useActionState(
+    createLedgerAction,
+    initialLedgerCreateActionState,
+  );
+  const currentErrorKey = actionState.errorKey ?? actionState.error ?? null;
   const [closedErrorKey, setClosedErrorKey] = useState<string | null>(null);
   const isErrorOpen =
-    errorMessage !== null && currentErrorKey !== closedErrorKey;
+    actionState.error !== undefined && currentErrorKey !== closedErrorKey;
+  const [ledgerName, setLedgerName] = useState(defaults.ledgerName);
+  const [baseCurrency, setBaseCurrency] = useState(defaults.baseCurrency);
+  const [displayName, setDisplayName] = useState(defaults.displayName);
+  const [displayColor, setDisplayColor] = useState<ThemeColorKey>(
+    defaults.displayColor,
+  );
   const ledgerNameInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   function closeErrorFeedback() {
     setClosedErrorKey(currentErrorKey);
+  }
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("error");
-    url.searchParams.delete("errorKey");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+  function clearLedgerName() {
+    setLedgerName("");
+    ledgerNameInputRef.current?.focus();
   }
 
   return (
@@ -93,12 +100,7 @@ export function LedgerCreateTemplate({
         sx={pageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={pageShellSx}>
-        <Stack
-          component="form"
-          action={createLedgerAction}
-          spacing={1.6}
-          sx={formSx}
-        >
+        <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
           <Stack spacing={1.2} sx={headerSx}>
             <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
               <IconButton
@@ -126,11 +128,11 @@ export function LedgerCreateTemplate({
               >
                 <TextField
                   autoComplete="off"
-                  defaultValue={defaults.ledgerName}
                   fullWidth
                   id="create-ledger-name"
                   inputRef={ledgerNameInputRef}
                   name="ledgerName"
+                  onChange={(event) => setLedgerName(event.target.value)}
                   required
                   slotProps={{
                     htmlInput: {
@@ -142,7 +144,7 @@ export function LedgerCreateTemplate({
                           <IconButton
                             aria-label="清空账本名称"
                             edge="end"
-                            onClick={() => clearInput(ledgerNameInputRef)}
+                            onClick={clearLedgerName}
                             size="small"
                             type="button"
                           >
@@ -157,6 +159,7 @@ export function LedgerCreateTemplate({
                       ),
                     },
                   }}
+                  value={ledgerName}
                 />
               </CreateField>
 
@@ -165,10 +168,10 @@ export function LedgerCreateTemplate({
                 labelId="create-ledger-currency-label"
               >
                 <TextField
-                  defaultValue={defaults.baseCurrency}
                   fullWidth
                   id="create-ledger-currency"
                   name="baseCurrency"
+                  onChange={(event) => setBaseCurrency(event.target.value)}
                   required
                   select
                   slotProps={{
@@ -183,6 +186,7 @@ export function LedgerCreateTemplate({
                       "aria-labelledby": "create-ledger-currency-label",
                     },
                   }}
+                  value={baseCurrency}
                 >
                   {ledgerCurrencyOptions.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
@@ -199,10 +203,10 @@ export function LedgerCreateTemplate({
               >
                 <TextField
                   autoComplete="name"
-                  defaultValue={defaults.displayName}
                   fullWidth
                   id="create-ledger-display-name"
                   name="memberDisplayName"
+                  onChange={(event) => setDisplayName(event.target.value)}
                   required
                   slotProps={{
                     htmlInput: {
@@ -216,6 +220,7 @@ export function LedgerCreateTemplate({
                       ),
                     },
                   }}
+                  value={displayName}
                 />
               </CreateField>
 
@@ -231,9 +236,10 @@ export function LedgerCreateTemplate({
                 >
                   {ledgerMemberColorOptions.map((colorKey) => (
                     <ColorRadio
+                      checked={colorKey === displayColor}
                       colorKey={colorKey}
-                      defaultChecked={colorKey === defaults.displayColor}
                       key={colorKey}
+                      onChange={setDisplayColor}
                     />
                   ))}
                 </Stack>
@@ -292,7 +298,7 @@ export function LedgerCreateTemplate({
 
         <FailureFeedbackDialog
           bottomOffset={feedbackBottomOffset}
-          description={errorMessage}
+          description={actionState.error ?? null}
           onClose={closeErrorFeedback}
           open={isErrorOpen}
           title={ledgerCreateText.errorTitle}
@@ -350,11 +356,13 @@ function FieldIconAdornment({ children }: { children: ReactNode }) {
 }
 
 function ColorRadio({
+  checked,
   colorKey,
-  defaultChecked,
+  onChange,
 }: {
+  checked: boolean;
   colorKey: ThemeColorKey;
-  defaultChecked: boolean;
+  onChange: (colorKey: ThemeColorKey) => void;
 }) {
   const colorToken = themeColorTokens[colorKey];
 
@@ -362,8 +370,9 @@ function ColorRadio({
     <Box component="label" sx={colorOptionLabelSx}>
       <input
         aria-label={colorToken.label}
-        defaultChecked={defaultChecked}
+        checked={checked}
         name="memberDisplayColor"
+        onChange={() => onChange(colorKey)}
         style={visuallyHiddenInputStyle}
         type="radio"
         value={colorKey}
@@ -393,13 +402,6 @@ function CreateSubmitButton() {
       )}
     </Button>
   );
-}
-
-function clearInput(inputRef: RefObject<HTMLInputElement | null>) {
-  if (!inputRef.current) return;
-
-  inputRef.current.value = "";
-  inputRef.current.focus();
 }
 
 const pageBackgroundSx = {

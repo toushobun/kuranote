@@ -16,14 +16,13 @@ const meta = {
   ],
   args: {
     backHref: "/ledgers",
-    createLedgerAction: async () => {},
+    createLedgerAction: async (state) => state,
     defaults: {
       baseCurrency: "JPY",
       displayColor: "amber",
       displayName: "DENG SONGWEN",
       ledgerName: "家庭账本",
     },
-    errorMessage: null,
   },
 } satisfies Meta<typeof LedgerCreateTemplate>;
 
@@ -35,9 +34,11 @@ export const Default: Story = {
 };
 
 export const CreateFailed: Story = {
-  name: "创建失败",
+  name: "提交后创建失败",
   args: {
-    errorKey: "storybook-error",
-    errorMessage: "账本创建失败。请确认内容后稍后重试。",
+    createLedgerAction: async () => ({
+      error: "账本创建失败。请确认内容后稍后重试。",
+      errorKey: "storybook-error",
+    }),
   },
 };
