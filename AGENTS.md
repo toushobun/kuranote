@@ -9,6 +9,7 @@
 ## 异常处理
 
 - 不得通过在 URL 中追加 `?error=failed`、`?error=xxx` 等查询参数传递异常状态，也不得通过异常重定向后读取 `searchParams` 的方式触发错误提示。
+- Server Action 的失败态统一以 `BaseActionState` 为基础，返回当前请求的 inline `{ error, errorKey? }` 状态（可按需保留 `success`），并由页面复用 `FailureFeedbackDialog` 展示；Action 只写入安全的应用异常 message 和稳定错误标识，同一用户侧错误文案不得在页面层再次映射维护；禁止为各 flow 新增互不兼容的 `status` 枚举、`{ ok, error }` 协议或失败 `redirect()`，成功后的真实页面导航仍可使用 `redirect()`。
 - 用户侧异常应优先复用项目现有异常处理机制，在当前页面通过弹框或提示组件显示安全、可理解的异常消息。
 - HTTP 请求应返回符合语义的标准状态码，并在响应体中使用统一的 `error.code`、`error.message`、`error.status` 结构；不得将失败请求统一包装为 `200`，也不得使用无关的 `3xx` 掩盖异常。
 - 原始数据库错误、SQL、堆栈、密钥和连接信息只能记录在安全的服务端日志中，不得直接返回客户端。
