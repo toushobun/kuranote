@@ -1,11 +1,4 @@
 import { accountErrorCodes, type AccountErrorCode } from "internal/account";
-import { categoryErrorCodes, type CategoryErrorCode } from "internal/category";
-import {
-  currentLedgerErrorCodes,
-  ledgerSettingsErrorCodes,
-  type CurrentLedgerErrorCode,
-  type LedgerSettingsErrorCode,
-} from "internal/ledger";
 import {
   merchantErrorCodes,
   type MerchantPageErrorCode,
@@ -25,51 +18,6 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.typeInvalid]: "账户类型不正确。",
   [accountErrorCodes.updateFailed]:
     "账户更新失败。请确认账户名称是否重复，或稍后重试。",
-};
-
-const categoryErrorMessages: Record<CategoryErrorCode, string> = {
-  [categoryErrorCodes.archiveFailed]: "分类隐藏失败。",
-  [categoryErrorCodes.categoryInvalid]: "分类指定不正确。",
-  [categoryErrorCodes.createFailed]:
-    "分类新增失败。请确认分类名称是否重复，或稍后重试。",
-  [categoryErrorCodes.iconInvalid]: "请选择图标库中的分类图标。",
-  [categoryErrorCodes.ledgerInvalid]: "账本不存在或已归档。",
-  [categoryErrorCodes.nameRequired]: "请输入分类名称。",
-  [categoryErrorCodes.nameTooLong]: "分类名称不能超过 100 个字符。",
-  [categoryErrorCodes.orderInvalid]: "分类排序内容不正确。",
-  [categoryErrorCodes.parentInvalid]: "大分类指定不正确。",
-  [categoryErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护分类。",
-  [categoryErrorCodes.reorderConflict]:
-    "分类列表已发生变化，请刷新页面后重试。",
-  [categoryErrorCodes.reorderFailed]: "分类排序保存失败，请稍后重试。",
-  [categoryErrorCodes.typeInvalid]: "分类类型不正确。",
-  [categoryErrorCodes.updateFailed]:
-    "分类更新失败。请确认分类名称是否重复，或稍后重试。",
-};
-
-const currentLedgerErrorMessages: Record<CurrentLedgerErrorCode, string> = {
-  [currentLedgerErrorCodes.ledgerInvalid]:
-    "无法切换到该账本。请确认你仍是该账本成员。",
-  [currentLedgerErrorCodes.updateFailed]: "账本切换失败，请稍后重试。",
-};
-
-const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
-  [ledgerSettingsErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
-  [ledgerSettingsErrorCodes.currencyInvalid]:
-    "默认货币必须是 3 位大写字母，例如 JPY。",
-  [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
-  [ledgerSettingsErrorCodes.displayNameRequired]: "请输入当前账本昵称。",
-  [ledgerSettingsErrorCodes.displayNameTooLong]:
-    "当前账本昵称不能超过 100 个字符。",
-  [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
-  [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
-  [ledgerSettingsErrorCodes.nameRequired]: "请输入账本名称。",
-  [ledgerSettingsErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
-  [ledgerSettingsErrorCodes.permissionDenied]:
-    "你没有权限修改该账本或成员设置。",
-  [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
-  [ledgerSettingsErrorCodes.updateFailed]:
-    "账本设置保存失败。请确认内容后稍后重试。",
 };
 
 const merchantErrorMessages: Record<MerchantPageErrorCode, string> = {
@@ -102,18 +50,6 @@ function getPageErrorMessage<TError extends string>(
 
 export function getAccountErrorMessage(error?: string) {
   return getPageErrorMessage(accountErrorMessages, error);
-}
-
-export function getCategoryErrorMessage(error?: string) {
-  return getPageErrorMessage(categoryErrorMessages, error);
-}
-
-export function getCurrentLedgerErrorMessage(error?: string) {
-  return getPageErrorMessage(currentLedgerErrorMessages, error);
-}
-
-export function getLedgerSettingsErrorMessage(error?: string) {
-  return getPageErrorMessage(ledgerSettingsErrorMessages, error);
 }
 
 export function getMerchantErrorMessage(error?: string) {

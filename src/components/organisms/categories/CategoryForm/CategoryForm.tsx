@@ -35,6 +35,7 @@ export function CategoryForm({
   parentOptions,
 }: CategoryFormProps) {
   const [open, setOpen] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [selectedParentId, setSelectedParentId] = useState("");
   const [iconName, setIconName] = useState(defaultCategoryEmoji);
@@ -44,6 +45,7 @@ export function CategoryForm({
 
   function closeDialog() {
     setOpen(false);
+    setCategoryName("");
     setSelectedType("expense");
     setSelectedParentId("");
     setIconName(defaultCategoryEmoji);
@@ -70,9 +72,11 @@ export function CategoryForm({
                 fullWidth
                 label="分类名称"
                 name="name"
+                onChange={(event) => setCategoryName(event.target.value)}
                 placeholder="例如：餐饮、工资、交通"
                 required
                 slotProps={{ htmlInput: { maxLength: 100 } }}
+                value={categoryName}
               />
 
               <TextField

@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -141,6 +147,9 @@ describe("LedgersTemplate", () => {
 
     expect(await screen.findByText("账本切换失败")).toBeInTheDocument();
     expect(screen.getByText("账本切换失败，请稍后重试。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(routerReplaceMock).not.toHaveBeenCalled();
   });
 
   it("无账本时显示空状态", () => {

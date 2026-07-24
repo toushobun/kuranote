@@ -20,6 +20,12 @@
 - 弹框关闭后应维持当前 URL，刷新页面不得重复显示已经处理完毕的历史异常。
 - 新增或修改功能时，应优先复用现有异常处理机制，避免再次引入 URL 错误参数方案。
 
+## PR 拆分与验证
+
+- 同一个 Issue 下，如果多个模块采用完全相同且已经定型的机械模式、模块之间没有耦合，并且拆分后子 PR 因 base 不是 `main` 而无法独立触发 CI，必须合并为一个以 `main` 为 base 的 PR，不得按模块堆叠。
+- 只有当后一个改动确实依赖前一个先合并才能验证或避免冲突，并且每个子 PR 都能以 `main` 为 base 独立运行 CI 时，才允许使用堆叠 PR。
+- 开 PR 或将 draft 转为 ready for review 前，常规 TypeScript 改动必须在本地运行 `npx tsc --noEmit`、`npx eslint .`、`npx prettier . --check`、`npx vitest run --exclude "tests/rsc/**"` 并全部通过。不得以“本轮暂不以 CI 结果作为处理重点”等说明替代本地验证。
+
 ## 后端模块归属
 
 - 后端业务代码必须放入 `src/internal/<module>/`，框架相关的 Server Action、`redirect()`、`notFound()` 与缓存失效放入模块内 `adapter/next/`。

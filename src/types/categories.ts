@@ -1,4 +1,4 @@
-import type { CategoryErrorCode } from "internal/category";
+import type { BaseActionState } from "types/auth";
 import type { ServerAction } from "types/actions";
 import type { TransactionType } from "types/transactions";
 
@@ -12,13 +12,18 @@ export const categoryTypeOptions = [
 
 export type CategoryAction = ServerAction;
 
-export type CategoryReorderActionResult =
-  | { ok: true }
-  | { error: CategoryErrorCode; ok: false };
+export type CategoryActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type CategoryStateAction = (
+  previousState: CategoryActionState,
+  formData: FormData,
+) => Promise<CategoryActionState>;
 
 export type CategoryReorderAction = (
   formData: FormData,
-) => Promise<CategoryReorderActionResult>;
+) => Promise<CategoryActionState>;
 
 export type CategoryRow = {
   created_at: string;

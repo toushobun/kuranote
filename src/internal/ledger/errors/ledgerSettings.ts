@@ -15,3 +15,28 @@ export const ledgerSettingsErrorCodes = {
 
 export type LedgerSettingsErrorCode =
   (typeof ledgerSettingsErrorCodes)[keyof typeof ledgerSettingsErrorCodes];
+
+const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
+  [ledgerSettingsErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
+  [ledgerSettingsErrorCodes.currencyInvalid]:
+    "默认货币必须是 3 位大写字母，例如 JPY。",
+  [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
+  [ledgerSettingsErrorCodes.displayNameRequired]: "请输入当前账本昵称。",
+  [ledgerSettingsErrorCodes.displayNameTooLong]:
+    "当前账本昵称不能超过 100 个字符。",
+  [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
+  [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
+  [ledgerSettingsErrorCodes.nameRequired]: "请输入账本名称。",
+  [ledgerSettingsErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
+  [ledgerSettingsErrorCodes.permissionDenied]:
+    "你没有权限修改该账本或成员设置。",
+  [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
+  [ledgerSettingsErrorCodes.updateFailed]:
+    "账本设置保存失败。请确认内容后稍后重试。",
+};
+
+export function getLedgerSettingsErrorMessage(error?: string) {
+  return error
+    ? (ledgerSettingsErrorMessages[error as LedgerSettingsErrorCode] ?? null)
+    : null;
+}

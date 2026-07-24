@@ -120,13 +120,6 @@ export function LedgersTemplate({
     setErrorFeedbacks((feedbacks) =>
       feedbacks.filter((feedback) => feedback.id !== id),
     );
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("error");
-    url.searchParams.delete("errorKey");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
   }
 
   function closeSwitchSuccessDialog() {

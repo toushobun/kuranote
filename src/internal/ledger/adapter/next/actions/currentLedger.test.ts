@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ledgerSwitchResultValues, routePaths } from "config/paths";
 import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
 import { NotFoundError } from "internal/shared/errors/appError";
+import type { CurrentLedgerActionState } from "types/ledgers";
 
 import { updateCurrentLedger } from "internal/ledger/adapter/next/actions/currentLedger";
 
 const mocks = vi.hoisted(() => ({
+  createDependencies: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
@@ -30,7 +32,7 @@ vi.mock("internal/ledger/adapter/next/revalidateLedger", () => ({
 }));
 
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+  createServerRequestDependencies: mocks.createDependencies,
 }));
 
 vi.mock("internal/container", () => ({
@@ -48,68 +50,103 @@ function createFormData(value: string) {
   return formData;
 }
 
-function getLastRedirectUrl() {
-  const calls = mocks.redirect.mock.calls;
-  const href = calls[calls.length - 1]?.[0];
+function runAction(value: string) {
+  return updateCurrentLedger({}, createFormData(value));
+}
 
-  expect(href).toBeDefined();
-  return new URL(href, "http://localhost");
+function expectErrorState(state: CurrentLedgerActionState, message: string) {
+  expect(state).toEqual({
+    error: message,
+    errorKey: expect.any(String),
+  });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.createDependencies.mockResolvedValue({});
   mocks.requireCurrentUserAndLedger.mockResolvedValue({ userId });
   mocks.switchService.mockResolvedValue(undefined);
 });
 
 describe("updateCurrentLedger", () => {
-  it("账本 ID 非法时跳转账本列表错误状态", async () => {
-    await expect(updateCurrentLedger(createFormData("bad-id"))).rejects.toThrow(
-      "NEXT_REDIRECT:",
-    );
+  it("账本 ID 非法时返回当前页错误状态", async () => {
+    const state = await runAction("bad-id");
 
-    const redirectUrl = getLastRedirectUrl();
-    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
-    expect(redirectUrl.searchParams.get("error")).toBe(
-      currentLedgerErrorCodes.ledgerInvalid,
-    );
-    expect(redirectUrl.searchParams.get("errorKey")).toBeTruthy();
+    expectErrorState(state, "无法切换到该账本。请确认你仍是该账本成员。");
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
     expect(mocks.switchService).not.toHaveBeenCalled();
   });
 
-  it("Service 抛出应用错误时跳转账本列表并携带错误码", async () => {
+  it("Service 抛出应用错误时保留安全文案", async () => {
     mocks.switchService.mockRejectedValue(
       new NotFoundError(
         currentLedgerErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
+        "无法切换到该账本。请确认你仍是该账本成员。",
       ),
     );
 
-    await expect(updateCurrentLedger(createFormData(ledgerId))).rejects.toThrow(
-      "NEXT_REDIRECT:",
-    );
+    const state = await runAction(ledgerId);
 
-    const redirectUrl = getLastRedirectUrl();
-    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
-    expect(redirectUrl.searchParams.get("error")).toBe(
-      currentLedgerErrorCodes.ledgerInvalid,
-    );
+    expectErrorState(state, "无法切换到该账本。请确认你仍是该账本成员。");
     expect(mocks.switchService).toHaveBeenCalledWith({ ledgerId, userId });
+    expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
 
+  it("未知异常时记录安全日志并返回通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.switchService.mockRejectedValue(new Error("database unavailable"));
+
+    const state = await runAction(ledgerId);
+
+    expectErrorState(state, "账本切换失败，请稍后重试。");
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] current ledger switch failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.createDependencies.mockRejectedValueOnce(new Error("unavailable"));
+
+    const state = await runAction(ledgerId);
+
+    expectErrorState(state, "账本切换失败，请稍后重试。");
+    expect(mocks.switchService).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] current ledger switch failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.requireCurrentUserAndLedger.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(runAction(ledgerId)).rejects.toThrow("NEXT_REDIRECT:/login");
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.switchService).not.toHaveBeenCalled();
+  });
+
   it("更新成功后刷新依赖当前账本的页面并返回成功状态", async () => {
-    await expect(updateCurrentLedger(createFormData(ledgerId))).rejects.toThrow(
+    await expect(runAction(ledgerId)).rejects.toThrow(
       `NEXT_REDIRECT:${routePaths.ledgers}?result=switched`,
     );
 
     expect(mocks.switchService).toHaveBeenCalledWith({ ledgerId, userId });
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
-
-    const redirectUrl = getLastRedirectUrl();
-    expect(redirectUrl.pathname).toBe(routePaths.ledgers);
-    expect(redirectUrl.searchParams.get("result")).toBe(
-      ledgerSwitchResultValues.switched,
+    expect(mocks.redirect).toHaveBeenLastCalledWith(
+      `${routePaths.ledgers}?result=${ledgerSwitchResultValues.switched}`,
     );
   });
 });

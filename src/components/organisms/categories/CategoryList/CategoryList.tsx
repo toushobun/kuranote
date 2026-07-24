@@ -5,7 +5,6 @@ import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -26,6 +25,7 @@ import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
 import type {
   CategoryAction,
+  CategoryActionState,
   CategoryReorderAction,
   CategoryRow,
   CategoryTreeItem,
@@ -40,8 +40,7 @@ type CategoryListProps = {
   archiveCategoryAction: CategoryAction;
   canManageCategories?: boolean;
   categories: CategoryTreeItem[];
-  errorCategoryId: string | null;
-  errorMessage: string | null;
+  onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
 };
@@ -50,7 +49,6 @@ type CategoryRowItemProps = {
   canManageCategories: boolean;
   category: CategoryRow;
   childCount?: number;
-  errorMessage: string | null;
   expanded?: boolean;
   isPending: boolean;
   nested?: boolean;
@@ -73,7 +71,6 @@ function CategoryRowItem({
   canManageCategories,
   category,
   childCount,
-  errorMessage,
   expanded = false,
   isPending,
   nested = false,
@@ -99,11 +96,6 @@ function CategoryRowItem({
         transition: "opacity 120ms ease",
       }}
     >
-      {errorMessage ? (
-        <Alert severity="error" sx={{ mb: 1.5, mt: 1.5 }}>
-          {errorMessage}
-        </Alert>
-      ) : null}
       <Stack
         direction="row"
         spacing={{ xs: 0.5, sm: 1 }}
@@ -226,8 +218,7 @@ export function CategoryList({
   archiveCategoryAction,
   canManageCategories = true,
   categories,
-  errorCategoryId,
-  errorMessage,
+  onReorderError,
   reorderCategoryAction,
   updateCategoryAction,
 }: CategoryListProps) {
@@ -244,7 +235,6 @@ export function CategoryList({
     isPending,
     moveCategory,
     openEditor,
-    reorderError,
     selectedType,
     setEditingIconName,
     setEditingName,
@@ -252,7 +242,11 @@ export function CategoryList({
     startDrag,
     toggleCategory,
     visibleCategories,
-  } = useCategoryList({ categories, reorderCategoryAction });
+  } = useCategoryList({
+    categories,
+    onReorderError,
+    reorderCategoryAction,
+  });
 
   if (categories.length === 0) {
     return (
@@ -299,8 +293,6 @@ export function CategoryList({
         {visibleCategories.length} 个大分类 · {childCount} 个小分类
       </Typography>
 
-      {reorderError ? <Alert severity="error">{reorderError}</Alert> : null}
-
       {visibleCategories.length === 0 ? (
         <EmptyState
           title={`还没有${selectedType === "expense" ? "支出" : "收入"}分类`}
@@ -317,9 +309,6 @@ export function CategoryList({
                   canManageCategories={canManageCategories}
                   category={category}
                   childCount={category.children.length}
-                  errorMessage={
-                    errorCategoryId === category.id ? errorMessage : null
-                  }
                   expanded={expanded}
                   dragging={draggedCategoryId === category.id}
                   isPending={isPending}
@@ -336,9 +325,6 @@ export function CategoryList({
                       <CategoryRowItem
                         canManageCategories={canManageCategories}
                         category={child}
-                        errorMessage={
-                          errorCategoryId === child.id ? errorMessage : null
-                        }
                         dragging={draggedCategoryId === child.id}
                         isPending={isPending}
                         key={child.id}

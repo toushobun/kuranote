@@ -52,15 +52,14 @@ const meta = {
     archiveCategoryAction: async () => {},
     categories,
     createCategoryAction: async () => {},
-    errorCategoryId: null,
-    errorMessage: null,
     ledgerName: "家庭账本",
+    onReorderError: () => {},
     parentOptions: categories.map((category) => ({
       id: category.id,
       name: category.name,
       type: category.type,
     })),
-    reorderCategoryAction: async () => ({ ok: true as const }),
+    reorderCategoryAction: async () => ({}),
     updateCategoryAction: async () => {},
   },
 } satisfies Meta<typeof CategoriesTemplate>;

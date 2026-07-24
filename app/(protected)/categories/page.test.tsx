@@ -56,9 +56,7 @@ describe("CategoriesRoute SSR", () => {
 
   it("直接调用 Category Service，不向自身 /api 发请求", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const result = (await CategoriesRoute({
-      searchParams: Promise.resolve({}),
-    })) as ReactElement;
+    const result = (await CategoriesRoute()) as ReactElement;
 
     expect(mocks.getCategoriesView).toHaveBeenCalledWith({
       ledgerId,

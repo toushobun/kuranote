@@ -114,35 +114,12 @@ export function transactionEditHref(
   return `${editPath}?${searchParams.toString()}`;
 }
 
-export function ledgerCreateErrorHref(error: string) {
-  return routeWithQuery(routePaths.ledgersNew, {
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-}
-
-export function ledgersErrorHref(error: string) {
-  return routeWithQuery(routePaths.ledgers, {
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-}
-
 export function ledgersResultHref(result: LedgerSwitchResultValue) {
   return routeWithQuery(routePaths.ledgers, { result });
 }
 
 export function ledgerSettingsHref(ledgerId: string) {
   return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
-}
-
-export function ledgerSettingsErrorHref(ledgerId: string, error: string) {
-  const searchParams = new URLSearchParams({
-    error,
-    errorKey: crypto.randomUUID(),
-  });
-
-  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
 }
 
 export function ledgerSettingsResultHref(
@@ -156,10 +133,6 @@ export function ledgerSettingsResultHref(
 
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
-}
-
-export function categoriesErrorHref(error: string, categoryId?: string | null) {
-  return routeWithQuery(routePaths.categories, { error, categoryId });
 }
 
 export function merchantsErrorHref(error: string, merchantId?: string | null) {

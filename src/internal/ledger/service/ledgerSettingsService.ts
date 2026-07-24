@@ -1,5 +1,6 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import {
+  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
@@ -56,16 +57,18 @@ export type LedgerSettingsService = {
 };
 
 function toAppError(code: LedgerSettingsErrorCode): AppError {
-  const message = "操作失败，请稍后重试。";
+  const message =
+    getLedgerSettingsErrorMessage(code) ??
+    "账本设置保存失败。请确认内容后稍后重试。";
 
   switch (code) {
     case ledgerSettingsErrorCodes.authRequired:
       return new AuthenticationError(code, message);
     case ledgerSettingsErrorCodes.permissionDenied:
-      return new AuthorizationError(code, "没有权限执行该操作。");
+      return new AuthorizationError(code, message);
     case ledgerSettingsErrorCodes.ledgerInvalid:
     case ledgerSettingsErrorCodes.memberInvalid:
-      return new NotFoundError(code, "账本或成员不存在。");
+      return new NotFoundError(code, message);
     case ledgerSettingsErrorCodes.currencyInvalid:
     case ledgerSettingsErrorCodes.displayColorInvalid:
     case ledgerSettingsErrorCodes.displayNameRequired:
@@ -73,7 +76,7 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
     case ledgerSettingsErrorCodes.nameRequired:
     case ledgerSettingsErrorCodes.nameTooLong:
     case ledgerSettingsErrorCodes.roleInvalid:
-      return new ValidationError(code, "提交内容不合法，请检查后重试。");
+      return new ValidationError(code, message);
     default:
       return new AppError(code, message);
   }

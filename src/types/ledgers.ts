@@ -68,6 +68,24 @@ export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
   viewer: "只读（Viewer）",
 };
 
+export type CurrentLedgerActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type CurrentLedgerStateAction = (
+  previousState: CurrentLedgerActionState,
+  formData: FormData,
+) => Promise<CurrentLedgerActionState>;
+
+export type LedgerCreateActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type LedgerCreateStateAction = (
+  previousState: LedgerCreateActionState,
+  formData: FormData,
+) => Promise<LedgerCreateActionState>;
+
 export type LedgerInviteActionOperation = "create" | "revoke";
 
 export type LedgerInviteActionState = BaseActionState & {
@@ -79,6 +97,15 @@ export type LedgerInviteStateAction = (
   previousState: LedgerInviteActionState,
   formData: FormData,
 ) => Promise<LedgerInviteActionState>;
+
+export type LedgerSettingsActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type LedgerSettingsStateAction = (
+  previousState: LedgerSettingsActionState,
+  formData: FormData,
+) => Promise<LedgerSettingsActionState>;
 
 export type LedgerSettingsView = {
   canEditLedger: boolean;
