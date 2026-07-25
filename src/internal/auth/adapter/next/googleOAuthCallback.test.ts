@@ -42,6 +42,7 @@ describe("handleGoogleOAuthCallback", () => {
       providerError: null,
       source: "register",
     });
+    expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
       "https://kuranote.test/invite/token-123",
     );

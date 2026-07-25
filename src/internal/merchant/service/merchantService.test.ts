@@ -200,7 +200,7 @@ describe("createMerchantService", () => {
     expect(repository.archiveAlias).not.toHaveBeenCalled();
   });
 
-  it("别名归档未命中时保留商家 ID", async () => {
+  it("别名归档未命中时不向错误详情暴露内部 ID", async () => {
     const repository = createRepository({
       archiveAlias: vi.fn().mockResolvedValue(false),
     });
@@ -209,7 +209,7 @@ describe("createMerchantService", () => {
       createService(repository).archiveAlias({ aliasId, ledgerId }),
     ).rejects.toMatchObject({
       code: merchantErrorCodes.aliasArchiveFailed,
-      details: { merchantId },
+      details: undefined,
     });
   });
 

@@ -3,6 +3,7 @@ import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessSe
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantActionErrorMessage,
+  getMerchantErrorMessage,
   merchantErrorCodes,
 } from "internal/merchant/errors";
 import type {
@@ -87,12 +88,10 @@ function operationError(
     | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.updateFailed,
-  details?: unknown,
 ): RepositoryError {
   return new RepositoryError(
     code,
     getMerchantActionErrorMessage(code) ?? "商家操作失败，请稍后重试。",
-    { details },
   );
 }
 
@@ -125,7 +124,8 @@ export function createMerchantService({
     if (!role) {
       throw new NotFoundError(
         merchantErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
+        getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid) ??
+          "账本不存在或无法访问。",
       );
     }
     if (manage && !canManageMasterData(role)) throw permissionError();
@@ -140,7 +140,8 @@ export function createMerchantService({
     if (!(await merchantRepository.findActiveMerchant(ledgerId, merchantId))) {
       throw new NotFoundError(
         merchantErrorCodes.merchantInvalid,
-        "商家不存在或已归档。",
+        getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
+          "商家指定不正确。",
       );
     }
   }
@@ -164,7 +165,8 @@ export function createMerchantService({
       if (!alias) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          "商家别名不存在或已归档。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
+            "商家别名指定不正确。",
         );
       }
       if (
@@ -175,7 +177,8 @@ export function createMerchantService({
       ) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          "商家别名不存在或不属于当前账本。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
+            "商家别名指定不正确。",
         );
       }
 
@@ -184,9 +187,7 @@ export function createMerchantService({
         userId,
       });
       if (!archived) {
-        throw operationError(merchantErrorCodes.aliasArchiveFailed, {
-          merchantId: alias.merchantId,
-        });
+        throw operationError(merchantErrorCodes.aliasArchiveFailed);
       }
       return alias.merchantId;
     },

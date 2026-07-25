@@ -82,6 +82,7 @@ export function buildHolderOptions({
     .sort((a, b) =>
       (a.display_name || a.email || "").localeCompare(
         b.display_name || b.email || "",
+        "en",
       ),
     );
 }

@@ -169,19 +169,12 @@ type TransactionRpcErrorCode = (typeof transactionRpcErrorCodes)[number];
 function findTransactionRpcErrorCode(
   error: RpcError,
 ): TransactionRpcErrorCode | null {
-  const messages = [error.details, error.message]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-
-  for (const code of transactionRpcErrorCodes) {
-    if (
-      messages.some((message) => message === code || message.includes(code))
-    ) {
-      return code;
-    }
-  }
-
-  return null;
+  const businessErrorCode = error.details?.trim();
+  return transactionRpcErrorCodes.includes(
+    businessErrorCode as TransactionRpcErrorCode,
+  )
+    ? (businessErrorCode as TransactionRpcErrorCode)
+    : null;
 }
 
 export function createSupabaseTransactionRepository(

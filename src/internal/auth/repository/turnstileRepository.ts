@@ -1,4 +1,5 @@
 import { getTurnstileSecretKey } from "internal/auth/turnstileKeys";
+import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 
 export interface TurnstileRepository {
@@ -38,16 +39,31 @@ export function createCloudflareTurnstileRepository(
           { body, method: "POST" },
         );
 
-        if (!response.ok) return false;
+        if (!response.ok) {
+          throw new RepositoryError(
+            "turnstile_service_unavailable",
+            "安全验证服务暂时不可用，请稍后重试。",
+          );
+        }
 
         const data: unknown = await response.json();
-        return isTurnstileResponse(data) && data.success === true;
+        if (!isTurnstileResponse(data)) {
+          throw new RepositoryError(
+            "turnstile_response_invalid",
+            "安全验证服务暂时不可用，请稍后重试。",
+          );
+        }
+        return data.success === true;
       } catch (error) {
         logger.warn(
           "[auth] Turnstile verification request failed",
           toSafeUnexpectedErrorContext(error),
         );
-        return false;
+        if (error instanceof RepositoryError) throw error;
+        throw new RepositoryError(
+          "turnstile_service_unavailable",
+          "安全验证服务暂时不可用，请稍后重试。",
+        );
       }
     },
   };

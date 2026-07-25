@@ -60,6 +60,77 @@
 - 禁止使用 `any`。需要表达未知类型时使用 `unknown` 并做类型 narrow。
 - 表单状态类型以 `BaseActionState = { error?: string; success?: string }` 为基础扩展，定义在 `src/types/auth.ts`。
 
+## 统一错误处理
+
+本节是项目错误处理的权威规则来源。模块实现与测试必须遵守本节；Issue #462
+保留迁移和验收记录，Issue #468 保留后端分层规则。
+
+### 应用错误与 HTTP 状态
+
+- 参数格式或业务校验失败使用 `ValidationError`，映射为 `400`。
+- 未登录或会话失效使用 `AuthenticationError`，映射为 `401`。
+- 已登录但无权限使用 `AuthorizationError`，映射为 `403`。
+- 资源不存在或不可访问使用 `NotFoundError`，映射为 `404`。
+- 唯一约束、重复操作或状态竞争使用 `ConflictError`，映射为 `409`。
+- 限流使用 `RateLimitError`，映射为 `429`；安全的
+  `details.retryAfterSeconds` 同步输出为 `Retry-After`。
+- 数据库、Supabase 或外部持久层失败使用 `RepositoryError`，映射为
+  `500`。
+- 未知程序错误由 `errorHandlingMiddleware` 记录后转换为安全
+  `internal_error` `500`。
+- 不得用普通 `AppError` 或普通 `Error` 模糊代替语义明确的上述子类。
+  HTTP status 与响应体 `error.status` 必须一致。
+
+### 分层职责与数据库异常
+
+- Repository 负责 Query / RPC、Row 转换和原始异常转换；不得直接
+  `throw error`、`throw new Error(error.message)`，也不得用 `null`、
+  `false` 或空数组掩盖数据库失败。
+- “没有查询到数据”可以返回 `null` 或空数组；“查询执行失败”必须记录在
+  安全服务端日志中并抛出 `RepositoryError`。两者不得混用。
+- PostgreSQL 稳定 code（例如唯一约束 `23505`）或 RPC 明确返回的稳定业务
+  code 可以转换为 `ConflictError` 等业务错误。RPC 业务 code 只从约定字段
+  精确匹配，不得解析或模糊匹配英文 `message`。
+- Service 负责业务编排、权限和状态判断，并抛出语义正确且 message 可安全
+  直接展示的应用错误；不得依赖 HTTP、Hono 或 Next.js 导航行为。
+- Controller 负责输入 Schema、调用 Service、成功状态与响应；不得另建错误
+  响应协议或自行泄露异常。
+- Router 挂载统一 request context、错误处理中间件和模块路由。
+
+原始数据库 message、details、SQL、表名、约束内部名称、连接信息、堆栈、密钥
+和内部 cause 只能存在于安全服务端日志或不会被序列化的内部字段中。统一错误
+响应不得序列化内部 cause。`details` 只用于客户端确实需要且已确认安全、稳定的
+结构化信息（例如重试秒数或受控跳转路径），不得承载原始数据库异常。
+
+### 日志、requestId 与入口差异
+
+- Hono/API 未知异常日志至少包含 `requestId`、请求 `path` 和安全的
+  `errorName`；有请求级 logger 时必须使用它，仅在 logger 不可用时回退到
+  `console.error`。
+- 客户端只能收到安全 message、稳定 code、真实 status，以及可用时的
+  `requestId`，不得收到未知异常的原始 message。
+- HTTP API 失败通过真实 `4xx` / `5xx` 与统一 `error` 响应体表达。
+- Server Action 不是独立 HTTP API。失败态以 `BaseActionState` 为基础返回
+  inline `{ error, errorKey? }`，由当前页面复用 `FailureFeedbackDialog`
+  展示；Action 记录未知异常并返回安全 message，不得为制造 HTTP `500`
+  破坏 `useActionState`。
+- Server Action 的解析失败、前置校验和 Service 失败文案必须来自对应模块的
+  单一权威错误定义。页面和组件不得按错误码重复维护文案。
+
+### Redirect、查询参数与测试
+
+- 禁止用失败 `redirect()`、`?error=...` 或读取 `searchParams.error` 传递
+  异常。成功后的真实导航、OAuth 协议回跳、登录 `next`、筛选、分页、搜索等
+  正常查询参数不在禁止范围。
+- 新增错误码时，至少补充子类到 HTTP status 的共享映射测试，并在受影响的
+  Repository / Service / Router 或 Server Action 层补充最接近真实入口的
+  回归测试。
+- Router 测试必须同时断言真实 HTTP status、响应体 status、code、安全
+  message、可用时的 requestId，以及不会泄露原始异常。
+- 成功入口需验证实际 `2xx` 和 OpenAPI 声明一致；可通过真实
+  `Response` 观察的正常跳转需验证实际 `3xx` 与 `Location`。不得把
+  `NEXT_REDIRECT` 单元测试冒充真实 HTTP 状态测试。
+
 ## GitHub Issue 规则
 
 创建或编辑 GitHub Issue 时，必须遵循以下规则：

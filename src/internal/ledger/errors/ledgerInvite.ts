@@ -21,7 +21,7 @@ const messages: Record<LedgerInviteErrorCode, string> = {
   invite_already_revoked: "该邀请已经撤销。",
   invite_invalid: "该邀请链接无效或已失效。",
   invite_role_invalid: "请选择有效的邀请权限。",
-  invite_already_used: "该邀请链接已经被使用，无法撤销。",
+  invite_already_used: "该邀请链接已经被使用。",
   load_failed: "待接受邀请加载失败，请稍后重试。",
   permission_denied: "只有账本所有者或管理员可以管理邀请。",
   revoke_failed: "邀请撤销失败，请稍后重试。",

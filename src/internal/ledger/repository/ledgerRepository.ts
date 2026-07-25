@@ -2,7 +2,7 @@ import {
   ledgerCreateErrorCodes,
   type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
-import { mapRpcBusinessError } from "internal/shared/supabase/rpcError";
+import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -57,12 +57,18 @@ export function createSupabaseLedgerRepository(
       );
 
       if (error) {
+        const code = findRpcBusinessError(error, createLedgerRpcErrorMap);
+        if (!code) {
+          logger.error("[ledger] failed to create ledger", {
+            databaseCode: error.code,
+          });
+          throw toRepositoryError(
+            "ledger_create_failed",
+            "账本创建失败，请稍后重试。",
+          );
+        }
         return {
-          code: mapRpcBusinessError(
-            error,
-            createLedgerRpcErrorMap,
-            ledgerCreateErrorCodes.createFailed,
-          ),
+          code,
           ok: false,
         };
       }

@@ -132,7 +132,7 @@ describe("Account Server Actions", () => {
     formData.delete("holderUserIds");
 
     await expect(createAccount({}, formData)).resolves.toEqual({
-      error: "账户持有人指定不正确。",
+      error: "账户持有人必须是当前账本的有效成员。",
       errorKey: expect.any(String),
     });
 

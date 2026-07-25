@@ -26,7 +26,7 @@ describe("createSupabaseLedgerSettingsRepository.getMemberRole", () => {
     );
   });
 
-  it("角色值非法时回退为 member", async () => {
+  it("角色值非法时转换为安全 RepositoryError", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [{ data: { role: "unexpected" } }],
     });
@@ -34,9 +34,12 @@ describe("createSupabaseLedgerSettingsRepository.getMemberRole", () => {
       supabase.client as never,
     );
 
-    await expect(repository.getMemberRole(ledgerId, userId)).resolves.toBe(
-      "member",
-    );
+    await expect(
+      repository.getMemberRole(ledgerId, userId),
+    ).rejects.toMatchObject({
+      code: "ledger_member_role_invalid",
+      message: "账本成员资料格式异常，请稍后重试。",
+    });
   });
 
   it("非成员或查询出错时返回 null", async () => {
@@ -276,7 +279,7 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
     });
   });
 
-  it("未知 details 即使 message 包含已知业务码也返回通用更新失败", async () => {
+  it("未知 details 即使 message 包含已知业务码也返回 RepositoryError", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
         error: {
@@ -289,9 +292,9 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
       supabase.client as never,
     );
 
-    await expect(repository.updateMemberSettings(input)).resolves.toEqual({
-      code: ledgerSettingsErrorCodes.updateFailed,
-      ok: false,
+    await expect(repository.updateMemberSettings(input)).rejects.toMatchObject({
+      code: "ledger_member_settings_update_failed",
+      message: "账本成员设置保存失败，请稍后重试。",
     });
   });
 });

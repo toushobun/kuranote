@@ -6,14 +6,14 @@ import { describe, expect, it } from "vitest";
 const schemaSql = readFileSync(
   join(process.cwd(), "supabase/schema_snapshot/current_schema.sql"),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 const permissionMigrationSql = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260711180000_add_ledger_member_permission_model.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 function getFunctionSql(functionName: string) {
   const marker = `CREATE OR REPLACE FUNCTION "public"."${functionName}"`;

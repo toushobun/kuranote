@@ -4,7 +4,10 @@ import {
   canManageMasterData,
   canWriteTransaction,
 } from "lib/ledger/permissions";
-import { accountErrorCodes } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 import type {
   AccountLedgerMemberRecord,
   AccountRepository,
@@ -18,8 +21,8 @@ import {
 } from "internal/account/util/accountView";
 import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
 import {
-  AppError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -101,12 +104,16 @@ const accountTypeValues = new Set<AccountType>(
   accountTypeOptions.map((option) => option.value),
 );
 
+function accountErrorMessage(code: string): string {
+  return getAccountErrorMessage(code) ?? "账户操作失败，请稍后重试。";
+}
+
 function normalizeName(name: string): string {
   const normalized = name.trim();
   if (!normalized) {
     throw new ValidationError(
       accountErrorCodes.nameRequired,
-      "请输入账户名称。",
+      accountErrorMessage(accountErrorCodes.nameRequired),
     );
   }
   return normalized;
@@ -116,7 +123,7 @@ function normalizeType(type: AccountType): AccountType {
   if (!accountTypeValues.has(type)) {
     throw new ValidationError(
       accountErrorCodes.typeInvalid,
-      "账户类型不正确。",
+      accountErrorMessage(accountErrorCodes.typeInvalid),
     );
   }
   return type;
@@ -127,7 +134,7 @@ function normalizeCurrency(currency: string): string {
   if (!/^[A-Z]{3}$/.test(normalized)) {
     throw new ValidationError(
       accountErrorCodes.currencyInvalid,
-      "货币必须是 3 位大写字母，例如 JPY。",
+      accountErrorMessage(accountErrorCodes.currencyInvalid),
     );
   }
   return normalized;
@@ -141,7 +148,7 @@ function normalizeHolderUserIds(holderUserIds: string[]): string[] {
   if (normalized.length === 0) {
     throw new ValidationError(
       accountErrorCodes.holderInvalid,
-      "账户持有人指定不正确。",
+      accountErrorMessage(accountErrorCodes.holderInvalid),
     );
   }
 
@@ -156,7 +163,7 @@ function normalizeInitialBalance(initialBalance: number): number {
   ) {
     throw new ValidationError(
       accountErrorCodes.initialBalanceInvalid,
-      "初始余额必须是最多两位小数的数字。",
+      accountErrorMessage(accountErrorCodes.initialBalanceInvalid),
     );
   }
   return initialBalance;
@@ -203,7 +210,7 @@ export function createAccountService({
     if (!role) {
       throw new NotFoundError(
         accountErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
+        accountErrorMessage(accountErrorCodes.ledgerInvalid),
       );
     }
 
@@ -214,7 +221,7 @@ export function createAccountService({
     if (!canManageMasterData(role)) {
       throw new AuthorizationError(
         accountErrorCodes.permissionDenied,
-        "只有账本所有者或管理员可以维护账户。",
+        accountErrorMessage(accountErrorCodes.permissionDenied),
       );
     }
   }
@@ -229,7 +236,7 @@ export function createAccountService({
     if (normalized.some((userId) => !activeMemberIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
-        "账户持有人必须是当前账本的有效成员。",
+        accountErrorMessage(accountErrorCodes.holderInvalid),
       );
     }
 
@@ -241,7 +248,7 @@ export function createAccountService({
     if (normalized.some((userId) => !activeUserIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
-        "账户持有人必须是当前账本的有效成员。",
+        accountErrorMessage(accountErrorCodes.holderInvalid),
       );
     }
 
@@ -255,8 +262,8 @@ export function createAccountService({
 
       if (!(await accountRepository.isActiveAccount(ledgerId, accountId))) {
         throw new NotFoundError(
-          accountErrorCodes.accountInvalid,
-          "账户不存在或已删除。",
+          accountErrorCodes.accountNotFound,
+          accountErrorMessage(accountErrorCodes.accountNotFound),
         );
       }
 
@@ -268,9 +275,9 @@ export function createAccountService({
       });
 
       if (!archived) {
-        throw new AppError(
+        throw new ConflictError(
           accountErrorCodes.archiveFailed,
-          "账户删除失败，请稍后重试。",
+          accountErrorMessage(accountErrorCodes.archiveFailed),
         );
       }
     },
@@ -290,9 +297,9 @@ export function createAccountService({
       });
 
       if (!accountId) {
-        throw new AppError(
+        throw new ConflictError(
           accountErrorCodes.createFailed,
-          "账户新增失败。请确认账户名称是否重复，或稍后重试。",
+          accountErrorMessage(accountErrorCodes.createFailed),
         );
       }
 
@@ -342,7 +349,7 @@ export function createAccountService({
       if (!ledger) {
         throw new NotFoundError(
           accountErrorCodes.ledgerInvalid,
-          "账本不存在或已停用。",
+          accountErrorMessage(accountErrorCodes.ledgerInvalid),
         );
       }
 
@@ -391,8 +398,8 @@ export function createAccountService({
         ))
       ) {
         throw new NotFoundError(
-          accountErrorCodes.accountInvalid,
-          "账户不存在或已删除。",
+          accountErrorCodes.accountNotFound,
+          accountErrorMessage(accountErrorCodes.accountNotFound),
         );
       }
 
@@ -407,9 +414,9 @@ export function createAccountService({
       });
 
       if (!updated) {
-        throw new AppError(
+        throw new ConflictError(
           accountErrorCodes.updateFailed,
-          "账户更新失败。请确认账户名称是否重复，或稍后重试。",
+          accountErrorMessage(accountErrorCodes.updateFailed),
         );
       }
     },

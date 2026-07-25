@@ -93,7 +93,7 @@ describe("createCloudflareTurnstileRepository", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("网络异常时只记录服务端日志并返回 false", async () => {
+  it("网络异常时记录安全日志并转换为 RepositoryError", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "secret-key");
@@ -103,7 +103,10 @@ describe("createCloudflareTurnstileRepository", () => {
 
     await expect(
       repository.verify({ remoteIp: null, token: "token-value" }),
-    ).resolves.toBe(false);
+    ).rejects.toMatchObject({
+      code: "turnstile_service_unavailable",
+      message: "安全验证服务暂时不可用，请稍后重试。",
+    });
     expect(logger.warn).toHaveBeenCalledWith(
       "[auth] Turnstile verification request failed",
       { errorName: "Error" },
@@ -111,5 +114,22 @@ describe("createCloudflareTurnstileRepository", () => {
     expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(
       "network details",
     );
+  });
+
+  it("Cloudflare 非成功响应转换为 RepositoryError", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "secret-key");
+    const repository = createCloudflareTurnstileRepository(
+      createLogger(),
+      vi.fn().mockResolvedValue({ ok: false }),
+    );
+
+    await expect(
+      repository.verify({ remoteIp: null, token: "token-value" }),
+    ).rejects.toMatchObject({
+      code: "turnstile_service_unavailable",
+      message: "安全验证服务暂时不可用，请稍后重试。",
+    });
   });
 });

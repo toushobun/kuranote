@@ -4,6 +4,7 @@ import {
 } from "internal/ledger/errors/currentLedger";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
+import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 
 export type UpdateCurrentLedgerInput = {
   ledgerId: string;
@@ -46,9 +47,13 @@ export function createSupabaseCurrentLedgerRepository(
           message: error.message,
           userId,
         });
+        throw toRepositoryError(
+          "current_ledger_member_lookup_failed",
+          "账本成员信息读取失败，请稍后重试。",
+        );
       }
 
-      return !error && Boolean(data);
+      return Boolean(data);
     },
 
     async isLedgerActive(ledgerId) {
@@ -64,9 +69,13 @@ export function createSupabaseCurrentLedgerRepository(
           ledgerId,
           message: error.message,
         });
+        throw toRepositoryError(
+          "current_ledger_lookup_failed",
+          "账本信息读取失败，请稍后重试。",
+        );
       }
 
-      return !error && Boolean(data);
+      return Boolean(data);
     },
 
     async updateCurrentLedger({ ledgerId, userId }) {
@@ -79,15 +88,19 @@ export function createSupabaseCurrentLedgerRepository(
         .eq("id", userId)
         .eq("status", "active");
 
-      if (error || count !== 1) {
-        if (error) {
-          logger.error("[ledger] failed to update current ledger", {
-            ledgerId,
-            message: error.message,
-            userId,
-          });
-        }
+      if (error) {
+        logger.error("[ledger] failed to update current ledger", {
+          ledgerId,
+          message: error.message,
+          userId,
+        });
+        throw toRepositoryError(
+          "current_ledger_update_failed",
+          "当前账本切换失败，请稍后重试。",
+        );
+      }
 
+      if (count !== 1) {
         return { code: currentLedgerErrorCodes.updateFailed, ok: false };
       }
 

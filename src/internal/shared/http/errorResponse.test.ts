@@ -7,9 +7,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { AppEnv } from "internal/appEnv";
 import {
   AuthenticationError,
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   RateLimitError,
+  RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
@@ -31,8 +33,13 @@ describe("errorHandlingMiddleware", () => {
   it.each([
     [new ValidationError("invalid_request", "请求内容无效。"), 400],
     [new AuthenticationError("auth_required", "请先登录后再继续。"), 401],
+    [new AuthorizationError("permission_denied", "没有操作权限。"), 403],
     [new NotFoundError("invite_invalid", "该邀请链接无效或已失效。"), 404],
     [new ConflictError("invite_already_used", "该邀请链接已经被使用。"), 409],
+    [
+      new RepositoryError("repository_failed", "数据读取失败，请稍后重试。"),
+      500,
+    ],
   ])("把 %s 映射为对应的 HTTP 状态", async (error, expectedStatus) => {
     const response = await appThatThrows(error).request("/boom");
 

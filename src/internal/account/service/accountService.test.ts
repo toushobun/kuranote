@@ -209,14 +209,14 @@ describe("AccountService", () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
 
-  it("更新不存在或已删除的账户时返回 account_invalid", async () => {
+  it("更新不存在或已删除的账户时返回 account_not_found", async () => {
     const repository = createRepository();
     vi.mocked(repository.isActiveAccount).mockResolvedValue(false);
     const service = createService(repository);
 
     await expect(
       service.update({ ...createInput(), accountId }),
-    ).rejects.toMatchObject({ code: accountErrorCodes.accountInvalid });
+    ).rejects.toMatchObject({ code: accountErrorCodes.accountNotFound });
     expect(repository.update).not.toHaveBeenCalled();
   });
 

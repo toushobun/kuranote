@@ -9,13 +9,12 @@ import {
   parseUpdateAccountForm,
 } from "internal/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
-import { isAccountErrorCode } from "internal/account/errors";
+import { getAccountErrorMessage } from "internal/account/errors";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { AccountActionState } from "types/accounts";
-import { getAccountErrorMessage } from "utils/pageErrors";
 
 async function getAccountService() {
   const dependencies = await createServerRequestDependencies();
@@ -37,7 +36,7 @@ function getActionErrorState(
   error: unknown,
   fallback: string,
 ): AccountActionState {
-  if (error instanceof AppError && isAccountErrorCode(error.code)) {
+  if (error instanceof AppError) {
     return createErrorState(error.message);
   }
 

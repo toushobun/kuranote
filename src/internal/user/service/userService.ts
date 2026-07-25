@@ -57,10 +57,14 @@ function normalizeAvatarUrl(avatarUrl: string | null): string | null {
 
   const normalized = avatarUrl.trim();
 
+  let isValidHttpsUrl = false;
   try {
-    const parsed = new URL(normalized);
-    if (parsed.protocol !== "https:") throw new Error("invalid protocol");
+    isValidHttpsUrl = new URL(normalized).protocol === "https:";
   } catch {
+    isValidHttpsUrl = false;
+  }
+
+  if (!isValidHttpsUrl) {
     throw new ValidationError(
       "avatar_url_invalid",
       "头像地址必须是有效的 HTTPS URL。",

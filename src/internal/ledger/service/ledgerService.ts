@@ -10,6 +10,8 @@ import type {
 import {
   AppError,
   AuthenticationError,
+  AuthorizationError,
+  RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -59,11 +61,19 @@ function toAppError(code: LedgerCreateErrorCode): AppError {
     return new AuthenticationError(code, message);
   }
 
+  if (code === ledgerCreateErrorCodes.userInactive) {
+    return new AuthorizationError(code, message);
+  }
+
+  if (code === ledgerCreateErrorCodes.createFailed) {
+    return new RepositoryError(code, message);
+  }
+
   if (validationErrorCodes.has(code)) {
     return new ValidationError(code, message);
   }
 
-  return new AppError(code, message);
+  return new RepositoryError(code, message);
 }
 
 /**

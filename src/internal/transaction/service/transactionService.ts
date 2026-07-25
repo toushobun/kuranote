@@ -148,7 +148,7 @@ export function createTransactionService({
     });
     if (!role) {
       throw new NotFoundError(
-        transactionErrorCodes.permissionDenied,
+        transactionErrorCodes.ledgerInvalid,
         "账本不存在或您不是该账本成员。",
       );
     }
@@ -166,7 +166,7 @@ export function createTransactionService({
     });
     if (!role) {
       throw new NotFoundError(
-        transactionErrorCodes.permissionDenied,
+        transactionErrorCodes.ledgerInvalid,
         "账本不存在或您不是该账本成员。",
       );
     }

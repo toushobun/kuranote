@@ -9,12 +9,12 @@ const migrationSql = readFileSync(
     "supabase/migrations/20260717105000_fix_ledger_invite_ambiguous_column.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 const schemaSnapshot = readFileSync(
   join(process.cwd(), "supabase/schema_snapshot/current_schema.sql"),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 function extractSchemaFunction(functionName: string): string {
   const startMarker = `CREATE OR REPLACE FUNCTION "public"."${functionName}"`;
