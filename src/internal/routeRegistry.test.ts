@@ -86,10 +86,7 @@ const routeSpecs: RouteSpec[] = [
         method: "delete",
         path: "/{ledgerId}/categories/{categoryId}",
       },
-      createCategoryRoute: {
-        method: "post",
-        path: "/{ledgerId}/categories",
-      },
+      createCategoryRoute: { method: "post", path: "/{ledgerId}/categories" },
       reorderCategoriesRoute: {
         method: "put",
         path: "/{ledgerId}/categories/order",
@@ -150,18 +147,12 @@ const routeSpecs: RouteSpec[] = [
         method: "post",
         path: "/{ledgerId}/merchants/{merchantId}/aliases",
       },
-      createMerchantRoute: {
-        method: "post",
-        path: "/{ledgerId}/merchants",
-      },
+      createMerchantRoute: { method: "post", path: "/{ledgerId}/merchants" },
       listMerchantOptionsRoute: {
         method: "get",
         path: "/{ledgerId}/merchants/options",
       },
-      listMerchantsRoute: {
-        method: "get",
-        path: "/{ledgerId}/merchants",
-      },
+      listMerchantsRoute: { method: "get", path: "/{ledgerId}/merchants" },
       updateMerchantRoute: {
         method: "patch",
         path: "/{ledgerId}/merchants/{merchantId}",
