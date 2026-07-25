@@ -80,20 +80,23 @@ const routeSpecs: RouteSpec[] = [
     namespace: authRoutes,
   },
   {
-    basePath: "/categories",
+    basePath: "/ledgers",
     expectedRoutes: {
       archiveCategoryRoute: {
         method: "delete",
-        path: "/{ledgerId}/{categoryId}",
+        path: "/{ledgerId}/categories/{categoryId}",
       },
-      createCategoryRoute: { method: "post", path: "/{ledgerId}" },
+      createCategoryRoute: {
+        method: "post",
+        path: "/{ledgerId}/categories",
+      },
       reorderCategoriesRoute: {
         method: "put",
-        path: "/{ledgerId}/order",
+        path: "/{ledgerId}/categories/order",
       },
       updateCategoryRoute: {
         method: "patch",
-        path: "/{ledgerId}/{categoryId}",
+        path: "/{ledgerId}/categories/{categoryId}",
       },
     },
     moduleName: "category",
@@ -133,21 +136,36 @@ const routeSpecs: RouteSpec[] = [
     namespace: ledgerManagementRoutes,
   },
   {
-    basePath: "/merchants",
+    basePath: "/ledgers",
     expectedRoutes: {
       archiveMerchantAliasRoute: {
         method: "delete",
-        path: "/aliases/{aliasId}",
+        path: "/{ledgerId}/merchants/aliases/{aliasId}",
       },
-      archiveMerchantRoute: { method: "delete", path: "/{merchantId}" },
+      archiveMerchantRoute: {
+        method: "delete",
+        path: "/{ledgerId}/merchants/{merchantId}",
+      },
       createMerchantAliasRoute: {
         method: "post",
-        path: "/{merchantId}/aliases",
+        path: "/{ledgerId}/merchants/{merchantId}/aliases",
       },
-      createMerchantRoute: { method: "post", path: "/" },
-      listMerchantOptionsRoute: { method: "get", path: "/options" },
-      listMerchantsRoute: { method: "get", path: "/" },
-      updateMerchantRoute: { method: "patch", path: "/{merchantId}" },
+      createMerchantRoute: {
+        method: "post",
+        path: "/{ledgerId}/merchants",
+      },
+      listMerchantOptionsRoute: {
+        method: "get",
+        path: "/{ledgerId}/merchants/options",
+      },
+      listMerchantsRoute: {
+        method: "get",
+        path: "/{ledgerId}/merchants",
+      },
+      updateMerchantRoute: {
+        method: "patch",
+        path: "/{ledgerId}/merchants/{merchantId}",
+      },
     },
     moduleName: "merchant",
     namespace: merchantRoutes,
@@ -242,8 +260,8 @@ describe("internal route registry", () => {
       { basePath: "/ledgers", name: "ledger" },
       { basePath: "/ledger-invites", name: "ledger-invites" },
       { basePath: "/ledgers", name: "account" },
-      { basePath: "/categories", name: "category" },
-      { basePath: "/merchants", name: "merchant" },
+      { basePath: "/ledgers", name: "category" },
+      { basePath: "/ledgers", name: "merchant" },
       { basePath: "/transactions", name: "transaction" },
       { basePath: "/statistics", name: "statistics" },
       { basePath: "/users", name: "user" },
