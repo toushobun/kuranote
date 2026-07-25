@@ -36,7 +36,7 @@ const actions = {
 describe("MerchantCard", () => {
   it("显示商家基本信息、别名和表单区域", () => {
     const { container } = render(
-      <MerchantCard {...actions} errorMessage={null} merchant={merchant} />,
+      <MerchantCard {...actions} merchant={merchant} />,
     );
 
     expect(within(container).getByText("LIFE超市")).toBeInTheDocument();
@@ -57,25 +57,11 @@ describe("MerchantCard", () => {
     const { container } = render(
       <MerchantCard
         {...actions}
-        errorMessage={null}
         merchant={createMerchantRow({ aliases: [], website_url: null })}
       />,
     );
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
     expect(within(container).getByText("还没有别名。")).toBeInTheDocument();
-  });
-
-  it("有错误信息时显示 alert", () => {
-    const { container } = render(
-      <MerchantCard
-        {...actions}
-        errorMessage="商家归档失败。"
-        merchant={merchant}
-      />,
-    );
-
-    expect(within(container).getByRole("alert")).toBeInTheDocument();
-    expect(within(container).getByText("商家归档失败。")).toBeInTheDocument();
   });
 });

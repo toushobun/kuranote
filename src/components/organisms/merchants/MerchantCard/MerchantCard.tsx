@@ -19,7 +19,6 @@ type MerchantCardProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
-  errorMessage: string | null;
   merchant: MerchantRow;
   updateMerchantAction: ServerAction;
 };
@@ -29,25 +28,16 @@ export function MerchantCard({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
-  errorMessage,
   merchant,
   updateMerchantAction,
 }: MerchantCardProps) {
   return (
     <SoftCard
       sx={{
-        borderColor: errorMessage
-          ? "error.main"
-          : "var(--user-theme-card-border)",
+        borderColor: "var(--user-theme-card-border)",
         p: 3,
       }}
     >
-      {errorMessage ? (
-        <Typography color="error" role="alert" sx={{ mb: 2 }}>
-          {errorMessage}
-        </Typography>
-      ) : null}
-
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}

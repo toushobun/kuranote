@@ -23,15 +23,6 @@ export const merchantErrorCodes = {
 export type MerchantErrorCode =
   (typeof merchantErrorCodes)[keyof typeof merchantErrorCodes];
 
-export type MerchantPageErrorCode = Exclude<
-  MerchantErrorCode,
-  | typeof merchantErrorCodes.ledgerInvalid
-  | typeof merchantErrorCodes.merchantAliasListFailed
-  | typeof merchantErrorCodes.merchantAliasReadFailed
-  | typeof merchantErrorCodes.merchantListFailed
-  | typeof merchantErrorCodes.merchantReadFailed
->;
-
 export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.aliasInvalid
   | typeof merchantErrorCodes.aliasRequired
@@ -42,25 +33,29 @@ export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.noteTooLong
   | typeof merchantErrorCodes.websiteUrlInvalid;
 
-const merchantPageErrorCodeSet = new Set<string>([
-  merchantErrorCodes.aliasArchiveFailed,
-  merchantErrorCodes.aliasCreateFailed,
-  merchantErrorCodes.aliasInvalid,
-  merchantErrorCodes.aliasRequired,
-  merchantErrorCodes.aliasTooLong,
-  merchantErrorCodes.archiveFailed,
-  merchantErrorCodes.createFailed,
-  merchantErrorCodes.merchantInvalid,
-  merchantErrorCodes.nameRequired,
-  merchantErrorCodes.nameTooLong,
-  merchantErrorCodes.noteTooLong,
-  merchantErrorCodes.permissionDenied,
-  merchantErrorCodes.updateFailed,
-  merchantErrorCodes.websiteUrlInvalid,
-]);
+const merchantActionErrorMessages: Partial<Record<MerchantErrorCode, string>> =
+  {
+    [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",
+    [merchantErrorCodes.aliasCreateFailed]:
+      "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+    [merchantErrorCodes.aliasInvalid]: "商家别名指定不正确。",
+    [merchantErrorCodes.aliasRequired]: "请输入商家别名。",
+    [merchantErrorCodes.aliasTooLong]: "商家别名不能超过 100 个字符。",
+    [merchantErrorCodes.archiveFailed]: "商家归档失败，请稍后重试。",
+    [merchantErrorCodes.createFailed]:
+      "商家新增失败。请确认商家名称是否重复，或稍后重试。",
+    [merchantErrorCodes.merchantInvalid]: "商家指定不正确。",
+    [merchantErrorCodes.nameRequired]: "请输入商家名称。",
+    [merchantErrorCodes.nameTooLong]: "商家名称不能超过 100 个字符。",
+    [merchantErrorCodes.noteTooLong]: "备注不能超过 1000 个字符。",
+    [merchantErrorCodes.permissionDenied]:
+      "只有账本所有者或管理员可以维护商家。",
+    [merchantErrorCodes.updateFailed]:
+      "商家更新失败。请确认商家名称是否重复，或稍后重试。",
+    [merchantErrorCodes.websiteUrlInvalid]:
+      "商家网址必须以 http:// 或 https:// 开头。",
+  };
 
-export function isMerchantPageErrorCode(
-  value: string,
-): value is MerchantPageErrorCode {
-  return merchantPageErrorCodeSet.has(value);
+export function getMerchantActionErrorMessage(error: MerchantErrorCode) {
+  return merchantActionErrorMessages[error] ?? null;
 }

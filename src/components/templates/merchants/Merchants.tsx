@@ -2,7 +2,6 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
-import { ErrorState } from "molecules/ui/ErrorState";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
@@ -17,8 +16,6 @@ type MerchantsTemplateProps = {
   canManageMerchants?: boolean;
   createMerchantAction: ServerAction;
   createMerchantAliasAction: ServerAction;
-  errorMerchantId: string | null;
-  errorMessage: string | null;
   keyword: string;
   ledgerName: string;
   merchants: MerchantRow[];
@@ -31,8 +28,6 @@ export function MerchantsTemplate({
   canManageMerchants = true,
   createMerchantAction,
   createMerchantAliasAction,
-  errorMerchantId,
-  errorMessage,
   keyword,
   ledgerName,
   merchants,
@@ -52,10 +47,6 @@ export function MerchantsTemplate({
           </Stack>
         }
       />
-
-      {errorMessage && !errorMerchantId ? (
-        <ErrorState title="商家操作失败" description={errorMessage} />
-      ) : null}
 
       <SectionCard component="form" sx={{ p: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -85,8 +76,6 @@ export function MerchantsTemplate({
         archiveMerchantAction={archiveMerchantAction}
         canManageMerchants={canManageMerchants}
         createAliasAction={createMerchantAliasAction}
-        errorMerchantId={errorMerchantId}
-        errorMessage={errorMessage}
         merchants={merchants}
         updateMerchantAction={updateMerchantAction}
       />

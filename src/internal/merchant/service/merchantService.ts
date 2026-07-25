@@ -1,7 +1,10 @@
 import { canManageMasterData } from "lib/ledger/permissions";
 import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  getMerchantActionErrorMessage,
+  merchantErrorCodes,
+} from "internal/merchant/errors";
 import type {
   CreateMerchantInput,
   MerchantRepository,
@@ -74,7 +77,8 @@ type MerchantServiceDependencies = {
 function permissionError(): AuthorizationError {
   return new AuthorizationError(
     merchantErrorCodes.permissionDenied,
-    "只有账本所有者或管理员可以维护商家。",
+    getMerchantActionErrorMessage(merchantErrorCodes.permissionDenied) ??
+      "没有权限维护商家。",
   );
 }
 
@@ -83,10 +87,13 @@ function operationError(
     | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.updateFailed,
-  message: string,
   details?: unknown,
 ): RepositoryError {
-  return new RepositoryError(code, message, { details });
+  return new RepositoryError(
+    code,
+    getMerchantActionErrorMessage(code) ?? "商家操作失败，请稍后重试。",
+    { details },
+  );
 }
 
 /**
@@ -177,11 +184,9 @@ export function createMerchantService({
         userId,
       });
       if (!archived) {
-        throw operationError(
-          merchantErrorCodes.aliasArchiveFailed,
-          "商家别名归档失败，请稍后重试。",
-          { merchantId: alias.merchantId },
-        );
+        throw operationError(merchantErrorCodes.aliasArchiveFailed, {
+          merchantId: alias.merchantId,
+        });
       }
       return alias.merchantId;
     },
@@ -194,10 +199,7 @@ export function createMerchantService({
         userId,
       });
       if (!archived) {
-        throw operationError(
-          merchantErrorCodes.archiveFailed,
-          "商家归档失败，请稍后重试。",
-        );
+        throw operationError(merchantErrorCodes.archiveFailed);
       }
     },
 
@@ -242,10 +244,7 @@ export function createMerchantService({
         userId,
       });
       if (!updated) {
-        throw operationError(
-          merchantErrorCodes.updateFailed,
-          "商家更新失败。请确认商家名称是否重复，或稍后重试。",
-        );
+        throw operationError(merchantErrorCodes.updateFailed);
       }
     },
   };

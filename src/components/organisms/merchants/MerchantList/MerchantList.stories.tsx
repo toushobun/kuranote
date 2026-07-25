@@ -31,8 +31,6 @@ const meta = {
     archiveMerchantAction: async () => {},
     createAliasAction: async () => {},
     merchants,
-    errorMerchantId: null,
-    errorMessage: null,
     updateMerchantAction: async () => {},
   },
 } satisfies Meta<typeof MerchantList>;
@@ -42,14 +40,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   name: "商家列表",
-};
-
-export const WithMerchantError: Story = {
-  name: "指定商家含错误提示",
-  args: {
-    errorMerchantId: merchants[0].id,
-    errorMessage: "商家归档失败。",
-  },
 };
 
 export const Empty: Story = {

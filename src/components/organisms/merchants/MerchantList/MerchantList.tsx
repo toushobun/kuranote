@@ -11,8 +11,6 @@ type MerchantListProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
-  errorMerchantId: string | null;
-  errorMessage: string | null;
   merchants: MerchantRow[];
   updateMerchantAction: ServerAction;
 };
@@ -22,8 +20,6 @@ export function MerchantList({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
-  errorMerchantId,
-  errorMessage,
   merchants,
   updateMerchantAction,
 }: MerchantListProps) {
@@ -48,7 +44,6 @@ export function MerchantList({
           archiveMerchantAction={archiveMerchantAction}
           canManageMerchants={canManageMerchants}
           createAliasAction={createAliasAction}
-          errorMessage={errorMerchantId === merchant.id ? errorMessage : null}
           key={merchant.id}
           merchant={merchant}
           updateMerchantAction={updateMerchantAction}

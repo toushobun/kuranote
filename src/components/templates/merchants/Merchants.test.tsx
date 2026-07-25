@@ -15,8 +15,6 @@ const baseProps = {
   merchants: [],
   keyword: "",
   ledgerName: "家庭账本",
-  errorMerchantId: null,
-  errorMessage: null,
   updateMerchantAction: vi.fn(async () => {}),
 };
 
@@ -51,32 +49,5 @@ describe("MerchantsTemplate", () => {
     const input = within(container).getByLabelText("搜索商家");
 
     expect((input as HTMLInputElement).value).toBe("便利");
-  });
-
-  it("无关联商家时的全局错误信息显示在列表外", () => {
-    const { container } = render(
-      <MerchantsTemplate
-        {...baseProps}
-        errorMessage="商家新增失败。"
-        errorMerchantId={null}
-      />,
-    );
-
-    const alert = within(container).getByRole("alert");
-
-    expect(alert.textContent).toContain("商家操作失败");
-    expect(alert.textContent).toContain("商家新增失败。");
-  });
-
-  it("指定了 errorMerchantId 时不显示全局错误提示", () => {
-    const { container } = render(
-      <MerchantsTemplate
-        {...baseProps}
-        errorMessage="商家归档失败。"
-        errorMerchantId="some-merchant-id"
-      />,
-    );
-
-    expect(within(container).queryByRole("alert")).toBeNull();
   });
 });

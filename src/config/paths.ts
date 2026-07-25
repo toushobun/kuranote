@@ -134,7 +134,3 @@ export function ledgerSettingsResultHref(
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }
-
-export function merchantsErrorHref(error: string, merchantId?: string | null) {
-  return routeWithQuery(routePaths.merchants, { error, merchantId });
-}

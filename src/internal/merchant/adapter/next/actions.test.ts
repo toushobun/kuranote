@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes } from "internal/merchant/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
+import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 const mocks = vi.hoisted(() => ({
   archiveAlias: vi.fn(),
@@ -33,8 +34,10 @@ vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
 }));
 
 import {
+  archiveMerchant,
   archiveMerchantAlias,
   createMerchant,
+  createMerchantAlias,
   updateMerchant,
 } from "internal/merchant/adapter/next/actions";
 
@@ -46,6 +49,7 @@ function merchantForm(overrides: Record<string, string> = {}) {
   const formData = new FormData();
   formData.set("merchantId", merchantId);
   formData.set("aliasId", aliasId);
+  formData.set("alias", "来福");
   formData.set("name", "LIFE");
   formData.set("websiteUrl", "https://example.com");
   formData.set("note", "常用超市");
@@ -53,6 +57,20 @@ function merchantForm(overrides: Record<string, string> = {}) {
     formData.set(key, value);
   }
   return formData;
+}
+
+function runAction(
+  action: MerchantStateAction,
+  formData = merchantForm(),
+): Promise<MerchantActionState> {
+  return action({}, formData);
+}
+
+function expectErrorState(state: MerchantActionState, message: string) {
+  expect(state).toEqual({
+    error: message,
+    errorKey: expect.any(String),
+  });
 }
 
 beforeEach(() => {
@@ -81,10 +99,155 @@ beforeEach(() => {
 });
 
 describe("Merchant Server Actions", () => {
-  it("创建成功后调用模块级缓存失效并跳回商家页", async () => {
-    await expect(createMerchant(merchantForm())).rejects.toThrow(
-      "NEXT_REDIRECT:/merchants",
+  it.each([
+    {
+      action: createMerchant,
+      expected: "请输入商家名称。",
+      formData: merchantForm({ name: "" }),
+      name: "新增商家",
+    },
+    {
+      action: updateMerchant,
+      expected: "商家指定不正确。",
+      formData: merchantForm({ merchantId: "invalid" }),
+      name: "更新商家",
+    },
+    {
+      action: archiveMerchant,
+      expected: "商家指定不正确。",
+      formData: merchantForm({ merchantId: "invalid" }),
+      name: "归档商家",
+    },
+    {
+      action: createMerchantAlias,
+      expected: "请输入商家别名。",
+      formData: merchantForm({ alias: "" }),
+      name: "新增别名",
+    },
+    {
+      action: archiveMerchantAlias,
+      expected: "商家别名指定不正确。",
+      formData: merchantForm({ aliasId: "invalid" }),
+      name: "归档别名",
+    },
+  ])(
+    "$name 校验失败时返回 inline error state",
+    async ({ action, expected, formData }) => {
+      const state = await runAction(action, formData);
+
+      expectErrorState(state, expected);
+      expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
+      expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    },
+  );
+
+  it("已知 AppError 返回可直接展示的安全文案", async () => {
+    mocks.updateMerchant.mockRejectedValue(
+      new RepositoryError(
+        merchantErrorCodes.updateFailed,
+        "商家更新失败，请稍后重试。",
+      ),
     );
+
+    const state = await runAction(updateMerchant);
+
+    expectErrorState(state, "商家更新失败，请稍后重试。");
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("未知异常记录安全日志并返回通用文案", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.createMerchant.mockRejectedValue(
+      new Error("password=secret database unavailable"),
+    );
+
+    const state = await runAction(createMerchant);
+
+    expectErrorState(
+      state,
+      "商家新增失败。请确认商家名称是否重复，或稍后重试。",
+    );
+    expect(JSON.stringify(state)).not.toContain("password");
+    expect(JSON.stringify(state)).not.toContain("database");
+    expect(consoleError).toHaveBeenCalledWith(
+      "[merchant] create action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret");
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.createServerRequestDependencies.mockRejectedValueOnce(
+      new Error("connection string"),
+    );
+
+    const state = await runAction(archiveMerchant);
+
+    expectErrorState(state, "商家归档失败，请稍后重试。");
+    expect(mocks.createRequestContainer).not.toHaveBeenCalled();
+    expect(mocks.archiveMerchant).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[merchant] archive action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("Container 初始化失败时返回安全提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.createRequestContainer.mockImplementationOnce(() => {
+      throw new Error("container unavailable");
+    });
+
+    const state = await runAction(createMerchantAlias);
+
+    expectErrorState(
+      state,
+      "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+    );
+    expect(mocks.createAlias).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[merchant] create alias action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持 Next.js 原有控制流", async () => {
+    mocks.requireCurrentUserAndLedger.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(runAction(createMerchant)).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
+    expect(mocks.createMerchant).not.toHaveBeenCalled();
+  });
+
+  it("五个操作成功后均失效缓存并正常跳回商家页", async () => {
+    for (const action of [
+      createMerchant,
+      updateMerchant,
+      archiveMerchant,
+      createMerchantAlias,
+      archiveMerchantAlias,
+    ]) {
+      await expect(runAction(action)).rejects.toThrow(
+        "NEXT_REDIRECT:/merchants",
+      );
+    }
 
     expect(mocks.createMerchant).toHaveBeenCalledWith({
       ledgerId,
@@ -92,51 +255,40 @@ describe("Merchant Server Actions", () => {
       note: "常用超市",
       siteUrl: "https://example.com",
     });
-    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+    expect(mocks.updateMerchant).toHaveBeenCalledWith({
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: "常用超市",
+      siteUrl: "https://example.com",
+    });
+    expect(mocks.archiveMerchant).toHaveBeenCalledWith({
+      ledgerId,
+      merchantId,
+    });
+    expect(mocks.createAlias).toHaveBeenCalledWith({
+      alias: "来福",
+      ledgerId,
+      merchantId,
+    });
+    expect(mocks.archiveAlias).toHaveBeenCalledWith({ aliasId, ledgerId });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(5);
+    expect(mocks.redirect).toHaveBeenCalledTimes(5);
   });
 
-  it("创建表单无效时不创建请求依赖也不失效缓存", async () => {
-    await expect(createMerchant(merchantForm({ name: "" }))).rejects.toThrow(
-      "NEXT_REDIRECT:/merchants?error=name_required",
+  it("连续相同错误生成不同 errorKey", async () => {
+    const firstState = await runAction(
+      createMerchant,
+      merchantForm({ name: "" }),
+    );
+    const secondState = await runAction(
+      createMerchant,
+      merchantForm({ name: "" }),
     );
 
-    expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
-    expect(mocks.createMerchant).not.toHaveBeenCalled();
-    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
-  });
-
-  it("内部 Repository 错误映射为当前操作错误且不失效缓存", async () => {
-    mocks.createMerchant.mockRejectedValue(
-      new RepositoryError("merchant_write_failed", "写入失败"),
-    );
-
-    await expect(createMerchant(merchantForm())).rejects.toThrow(
-      "NEXT_REDIRECT:/merchants?error=create_failed",
-    );
-    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
-  });
-
-  it("更新失败保留 merchantId 并不失效缓存", async () => {
-    mocks.updateMerchant.mockRejectedValue(
-      new RepositoryError(merchantErrorCodes.updateFailed, "更新失败"),
-    );
-
-    await expect(updateMerchant(merchantForm())).rejects.toThrow(
-      `NEXT_REDIRECT:/merchants?error=update_failed&merchantId=${merchantId}`,
-    );
-    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
-  });
-
-  it("别名归档失败从错误详情恢复 merchantId", async () => {
-    mocks.archiveAlias.mockRejectedValue(
-      new RepositoryError(merchantErrorCodes.aliasArchiveFailed, "归档失败", {
-        details: { merchantId },
-      }),
-    );
-
-    await expect(archiveMerchantAlias(merchantForm())).rejects.toThrow(
-      `NEXT_REDIRECT:/merchants?error=alias_archive_failed&merchantId=${merchantId}`,
-    );
-    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(firstState.error).toBe(secondState.error);
+    expect(firstState.errorKey).toEqual(expect.any(String));
+    expect(secondState.errorKey).toEqual(expect.any(String));
+    expect(firstState.errorKey).not.toBe(secondState.errorKey);
   });
 });

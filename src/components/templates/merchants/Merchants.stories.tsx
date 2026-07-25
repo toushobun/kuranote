@@ -46,8 +46,6 @@ const meta = {
     merchants,
     keyword: "",
     ledgerName: "家庭账本",
-    errorMerchantId: null,
-    errorMessage: null,
     updateMerchantAction: async () => {},
   },
 } satisfies Meta<typeof MerchantsTemplate>;
@@ -70,20 +68,5 @@ export const Empty: Story = {
   name: "无商家",
   args: {
     merchants: [],
-  },
-};
-
-export const WithGlobalError: Story = {
-  name: "含全局错误提示",
-  args: {
-    errorMessage: "商家新增失败。请确认商家名称是否重复，或稍后重试。",
-  },
-};
-
-export const WithMerchantError: Story = {
-  name: "含指定商家错误提示",
-  args: {
-    errorMerchantId: "00000000-0000-4000-8000-000000001001",
-    errorMessage: "商家归档失败。",
   },
 };

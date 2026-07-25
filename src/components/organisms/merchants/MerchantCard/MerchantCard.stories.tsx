@@ -22,7 +22,6 @@ const meta = {
     archiveAliasAction: async () => {},
     archiveMerchantAction: async () => {},
     createAliasAction: async () => {},
-    errorMessage: null,
     merchant,
     updateMerchantAction: async () => {},
   },
@@ -39,12 +38,5 @@ export const WithoutAliases: Story = {
   name: "无别名",
   args: {
     merchant: createMerchantRow({ aliases: [] }),
-  },
-};
-
-export const WithError: Story = {
-  name: "带错误提示",
-  args: {
-    errorMessage: "商家归档失败。",
   },
 };

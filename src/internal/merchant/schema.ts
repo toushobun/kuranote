@@ -42,23 +42,6 @@ export type ArchiveMerchantAliasValues = {
   aliasId: string;
 };
 
-type MerchantFormFailure = {
-  error: MerchantValidationErrorCode;
-  merchantId?: string;
-  ok: false;
-};
-
-type MerchantFormResult<T> = { ok: true; value: T } | MerchantFormFailure;
-
-function invalidWithMerchantId(
-  error: MerchantValidationErrorCode,
-  merchantId: string,
-): MerchantFormFailure {
-  return merchantId.length > 0
-    ? { error, merchantId, ok: false }
-    : { error, ok: false };
-}
-
 function parseMerchantName(
   formData: FormData,
 ): ValidationResult<
@@ -123,8 +106,7 @@ export function validateCreateMerchantForm(
 
 export function validateUpdateMerchantForm(
   formData: FormData,
-): MerchantFormResult<UpdateMerchantValues> {
-  const merchantIdText = getFormText(formData, "merchantId");
+): ValidationResult<UpdateMerchantValues, MerchantValidationErrorCode> {
   const merchantIdResult = parseRequiredUuidField(
     formData,
     "merchantId",
@@ -133,9 +115,7 @@ export function validateUpdateMerchantForm(
   if (!merchantIdResult.ok) return merchantIdResult;
 
   const merchantValuesResult = parseMerchantValues(formData);
-  if (!merchantValuesResult.ok) {
-    return invalidWithMerchantId(merchantValuesResult.error, merchantIdText);
-  }
+  if (!merchantValuesResult.ok) return merchantValuesResult;
 
   return valid({
     merchantId: merchantIdResult.value,
@@ -161,8 +141,7 @@ export function validateArchiveMerchantForm(
 
 export function validateCreateMerchantAliasForm(
   formData: FormData,
-): MerchantFormResult<CreateMerchantAliasValues> {
-  const merchantIdText = getFormText(formData, "merchantId");
+): ValidationResult<CreateMerchantAliasValues, MerchantValidationErrorCode> {
   const merchantIdResult = parseRequiredUuidField(
     formData,
     "merchantId",
@@ -175,9 +154,7 @@ export function validateCreateMerchantAliasForm(
     maxLengthError: merchantErrorCodes.aliasTooLong,
     requiredError: merchantErrorCodes.aliasRequired,
   });
-  if (!aliasResult.ok) {
-    return invalidWithMerchantId(aliasResult.error, merchantIdText);
-  }
+  if (!aliasResult.ok) return aliasResult;
 
   return valid({
     alias: aliasResult.value,
