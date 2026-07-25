@@ -109,9 +109,7 @@ export const archiveMerchantAliasHandler = async (
   c: ControllerContext<{ param: MerchantAliasParams }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c
-    .get("container")
-    .merchant.service.archiveAlias(c.req.valid("param"));
+  await c.get("container").merchant.service.archiveAlias(c.req.valid("param"));
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 200);
 };
