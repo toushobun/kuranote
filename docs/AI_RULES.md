@@ -9,14 +9,14 @@
 
 1. 阅读本文件全文。
 2. 如果任务对应 GitHub Issue，再阅读当前要处理的目标 Issue。
-3. 如果任务涉及 `src/internal/**`、`app/api/**` 等后端分层结构，还需阅读 Issue #468（后端架构重构父 Issue），确认当前适用的分层规则、模块归属和迁移阶段要求。
+3. 涉及 `src/internal/**`、`app/api/**` 等后端分层结构的任务，直接遵循本文件下方的后端分层规则即可。Issue #468（后端架构重构父 Issue）已关闭，规则已定型并整理进本文件，不再需要每次任务都去读取其最新正文。
 
 > Issue #1 保留项目背景、技术选型、产品方向等上下文说明，按需参考。
 > Issue #90 保留前端骨架历史决策记录，按需参考。
-> Issue #468 保留后端架构分层规则、迁移阶段和验收条件，规则随迁移进度持续更新，后端任务必须参考最新正文，不能只按本文件推断。
+> Issue #468（后端架构重构父 Issue）已于重构完成后关闭，规则已定型并整理进本文件，不再随迁移进度变化；如需追溯设计决策背景，可按需参考存档正文，但不作为日常任务的必读项。
 > 后端业务迁移完成后，业务代码统一归入 `src/internal/<module>/`。不得重新建立顶级 `src/internal/actions`、`services`、`loaders`、`errors`、`validators`、`http` 或 `context` 兼容目录；Next.js 专用行为放入模块 `adapter/next/`，跨模块协作只依赖公开窄 Service Interface。
 > `src/internal/<module>/index.ts` 是模块公共契约入口，Router 与 `basePath` 只在 `moduleRegistry.ts` 集中登记。`src/internal/` 外部代码只能通过模块根入口或模块内 `adapter/next/**` 访问业务模块，不得深度导入 Controller、Service、Repository、Schema、errors、entity 或 util 等实现文件。
-> 前端相关的核心行为约束已全部整理在本文件中，无需每次强制读取 #1 / #90；后端任务仍需按上一条参考 #468。
+> 前端与后端相关的核心行为约束均已整理在本文件中，无需每次强制读取 #1 / #90 / #468。
 
 ## CodeGraph
 
@@ -290,7 +290,7 @@ PR merge 后需要回收相关状态：
 - #92：Theme / Design Token（已完成）。
 - #93：Layout / 状态组件（已完成）。
 - #95：前端骨架整体验收记录（已完成）。
-- #468：后端架构重构父 Issue（进行中），涉及 `src/internal/**` 的后端任务时必须参考最新正文。
+- #468：后端架构重构父 Issue（已完成），规则已并入本文件，不再随任务变化，仅作历史存档按需参考。
 
 ## Karpathy 编码行为准则
 
