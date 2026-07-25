@@ -62,15 +62,14 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
-  it("更新和新增别名失败时保留 merchantId 供页面定位", () => {
+  it("更新和新增别名失败时返回对应校验错误", () => {
     expect(validateUpdateMerchantForm(createFormData({ name: "" }))).toEqual({
       error: "name_required",
-      merchantId,
       ok: false,
     });
     expect(
       validateCreateMerchantAliasForm(createFormData({ alias: "" })),
-    ).toEqual({ error: "alias_required", merchantId, ok: false });
+    ).toEqual({ error: "alias_required", ok: false });
   });
 
   it("归档商家与别名只接受 UUID", () => {

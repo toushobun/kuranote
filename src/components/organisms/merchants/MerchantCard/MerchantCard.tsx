@@ -19,8 +19,11 @@ type MerchantCardProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
-  errorMessage: string | null;
+  createAliasPending?: boolean;
   merchant: MerchantRow;
+  merchantAliasFormResetKey?: string;
+  merchantEditFormResetKey?: string;
+  updateMerchantPending?: boolean;
   updateMerchantAction: ServerAction;
 };
 
@@ -29,25 +32,20 @@ export function MerchantCard({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
-  errorMessage,
+  createAliasPending = false,
   merchant,
+  merchantAliasFormResetKey = "initial",
+  merchantEditFormResetKey = "initial",
+  updateMerchantPending = false,
   updateMerchantAction,
 }: MerchantCardProps) {
   return (
     <SoftCard
       sx={{
-        borderColor: errorMessage
-          ? "error.main"
-          : "var(--user-theme-card-border)",
+        borderColor: "var(--user-theme-card-border)",
         p: 3,
       }}
     >
-      {errorMessage ? (
-        <Typography color="error" role="alert" sx={{ mb: 2 }}>
-          {errorMessage}
-        </Typography>
-      ) : null}
-
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -138,10 +136,17 @@ export function MerchantCard({
         <>
           <MerchantAliasForm
             action={createAliasAction}
+            key={`alias-${merchantAliasFormResetKey}`}
             merchantId={merchant.id}
+            pending={createAliasPending}
           />
           <Divider sx={{ my: 3 }} />
-          <MerchantEditForm action={updateMerchantAction} merchant={merchant} />
+          <MerchantEditForm
+            action={updateMerchantAction}
+            key={`edit-${merchantEditFormResetKey}`}
+            merchant={merchant}
+            pending={updateMerchantPending}
+          />
         </>
       ) : null}
     </SoftCard>

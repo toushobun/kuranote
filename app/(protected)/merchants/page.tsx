@@ -8,13 +8,12 @@ import {
   updateMerchant,
 } from "internal/merchant/adapter/next/actions";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import { MerchantsTemplate } from "templates/merchants/Merchants";
-import { getMerchantErrorMessage } from "utils/pageErrors";
+import { MerchantsActionStateTemplate } from "templates/merchants/MerchantsActionState";
 
 export default async function MerchantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; merchantId?: string; q?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const params = await searchParams;
   const currentLedger = await getCurrentLedgerOrRedirect();
@@ -27,13 +26,11 @@ export default async function MerchantsPage({
   });
 
   return (
-    <MerchantsTemplate
+    <MerchantsActionStateTemplate
       archiveMerchantAction={archiveMerchant}
       archiveMerchantAliasAction={archiveMerchantAlias}
       createMerchantAction={createMerchant}
       createMerchantAliasAction={createMerchantAlias}
-      errorMerchantId={params.merchantId ?? null}
-      errorMessage={getMerchantErrorMessage(params.error)}
       keyword={params.q ?? ""}
       ledgerName={view.ledgerName}
       merchants={view.merchants}

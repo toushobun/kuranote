@@ -27,8 +27,6 @@ const baseProps = {
   archiveAliasAction: vi.fn(async () => {}),
   archiveMerchantAction: vi.fn(async () => {}),
   createAliasAction: vi.fn(async () => {}),
-  errorMerchantId: null,
-  errorMessage: null,
   merchants: [],
   updateMerchantAction: vi.fn(async () => {}),
 };
@@ -67,33 +65,6 @@ describe("MerchantList", () => {
     );
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
-  });
-
-  it("指定 errorMerchantId 的商家显示错误提示", () => {
-    const { container } = render(
-      <MerchantList
-        {...baseProps}
-        merchants={[baseMerchant]}
-        errorMerchantId={baseMerchant.id}
-        errorMessage="商家归档失败。"
-      />,
-    );
-
-    expect(within(container).getByRole("alert")).toBeInTheDocument();
-    expect(within(container).getByText("商家归档失败。")).toBeInTheDocument();
-  });
-
-  it("errorMerchantId 不匹配时不显示错误提示", () => {
-    const { container } = render(
-      <MerchantList
-        {...baseProps}
-        merchants={[baseMerchant]}
-        errorMerchantId="other-id"
-        errorMessage="商家归档失败。"
-      />,
-    );
-
-    expect(within(container).queryByRole("alert")).toBeNull();
   });
 
   it("有别名时显示别名列表", () => {

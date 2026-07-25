@@ -2,14 +2,15 @@
 
 import { redirect } from "next/navigation";
 
-import { merchantsErrorHref, routePaths } from "config/paths";
-import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
+import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
-  isMerchantPageErrorCode,
+  getMerchantActionErrorMessage,
+  isMerchantActionErrorCode,
   merchantErrorCodes,
-  type MerchantPageErrorCode,
+  type MerchantErrorCode,
 } from "internal/merchant/errors";
 import {
   validateArchiveMerchantAliasForm,
@@ -20,148 +21,154 @@ import {
 } from "internal/merchant/schema";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 async function getMerchantService() {
   const dependencies = await createServerRequestDependencies();
   return createRequestContainer(dependencies).merchant.service;
 }
 
-function merchantIdFromDetails(details: unknown): string | null {
-  if (typeof details !== "object" || details === null) return null;
-  const merchantId = (details as Record<string, unknown>).merchantId;
-  return typeof merchantId === "string" && merchantId.length > 0
-    ? merchantId
-    : null;
+function createErrorState(message: string): MerchantActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
 }
 
-function redirectForMerchantError(
-  error: unknown,
-  fallback: MerchantPageErrorCode,
-  merchantId?: string | null,
-): never {
-  if (!(error instanceof AppError)) throw error;
-
-  const pageError = isMerchantPageErrorCode(error.code) ? error.code : fallback;
-  redirect(
-    merchantsErrorHref(
-      pageError,
-      merchantId ?? merchantIdFromDetails(error.details),
-    ),
+function validationErrorState(error: MerchantErrorCode): MerchantActionState {
+  return createErrorState(
+    getMerchantActionErrorMessage(error) ??
+      "商家操作内容不正确，请确认后重试。",
   );
 }
 
-export async function createMerchant(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateCreateMerchantForm(formData);
-  if (!validation.ok) redirect(merchantsErrorHref(validation.error));
-
-  try {
-    await (
-      await getMerchantService()
-    ).createMerchant({
-      ledgerId: currentLedger.id,
-      ...validation.value,
-    });
-  } catch (error) {
-    redirectForMerchantError(error, merchantErrorCodes.createFailed);
+function actionErrorState(
+  error: unknown,
+  fallback: MerchantErrorCode,
+  action: string,
+): MerchantActionState {
+  if (error instanceof AppError && isMerchantActionErrorCode(error.code)) {
+    return createErrorState(error.message);
   }
 
-  revalidateMerchantMutation();
-  redirect(routePaths.merchants);
+  console.error(`[merchant] ${action} action failed unexpectedly`, {
+    errorName: error instanceof Error ? error.name : "unknown",
+  });
+  return createErrorState(
+    getMerchantActionErrorMessage(fallback) ?? "商家操作失败，请稍后重试。",
+  );
 }
 
-export async function updateMerchant(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateUpdateMerchantForm(formData);
-  if (!validation.ok) {
-    redirect(merchantsErrorHref(validation.error, validation.merchantId));
-  }
+export const createMerchant: MerchantStateAction =
+  async function createMerchant(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateCreateMerchantForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
 
-  try {
-    await (
-      await getMerchantService()
-    ).updateMerchant({
-      ledgerId: currentLedger.id,
-      ...validation.value,
-    });
-  } catch (error) {
-    redirectForMerchantError(
-      error,
-      merchantErrorCodes.updateFailed,
-      validation.value.merchantId,
-    );
-  }
+    try {
+      await (
+        await getMerchantService()
+      ).createMerchant({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(error, merchantErrorCodes.createFailed, "create");
+    }
 
-  revalidateMerchantMutation();
-  redirect(routePaths.merchants);
-}
+    revalidateMerchantMutation();
+    redirect(routePaths.merchants);
+  };
 
-export async function archiveMerchant(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateArchiveMerchantForm(formData);
-  if (!validation.ok) redirect(merchantsErrorHref(validation.error));
+export const updateMerchant: MerchantStateAction =
+  async function updateMerchant(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateUpdateMerchantForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
 
-  try {
-    await (
-      await getMerchantService()
-    ).archiveMerchant({
-      ledgerId: currentLedger.id,
-      merchantId: validation.value.merchantId,
-    });
-  } catch (error) {
-    redirectForMerchantError(
-      error,
-      merchantErrorCodes.archiveFailed,
-      validation.value.merchantId,
-    );
-  }
+    try {
+      await (
+        await getMerchantService()
+      ).updateMerchant({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(error, merchantErrorCodes.updateFailed, "update");
+    }
 
-  revalidateMerchantMutation();
-  redirect(routePaths.merchants);
-}
+    revalidateMerchantMutation();
+    redirect(routePaths.merchants);
+  };
 
-export async function createMerchantAlias(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateCreateMerchantAliasForm(formData);
-  if (!validation.ok) {
-    redirect(merchantsErrorHref(validation.error, validation.merchantId));
-  }
+export const archiveMerchant: MerchantStateAction =
+  async function archiveMerchant(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateArchiveMerchantForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
 
-  try {
-    await (
-      await getMerchantService()
-    ).createAlias({
-      ledgerId: currentLedger.id,
-      ...validation.value,
-    });
-  } catch (error) {
-    redirectForMerchantError(
-      error,
-      merchantErrorCodes.aliasCreateFailed,
-      validation.value.merchantId,
-    );
-  }
+    try {
+      await (
+        await getMerchantService()
+      ).archiveMerchant({
+        ledgerId: currentLedger.id,
+        merchantId: validation.value.merchantId,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.archiveFailed,
+        "archive",
+      );
+    }
 
-  revalidateMerchantMutation();
-  redirect(routePaths.merchants);
-}
+    revalidateMerchantMutation();
+    redirect(routePaths.merchants);
+  };
 
-export async function archiveMerchantAlias(formData: FormData) {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateArchiveMerchantAliasForm(formData);
-  if (!validation.ok) redirect(merchantsErrorHref(validation.error));
+export const createMerchantAlias: MerchantStateAction =
+  async function createMerchantAlias(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateCreateMerchantAliasForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
 
-  try {
-    await (
-      await getMerchantService()
-    ).archiveAlias({
-      aliasId: validation.value.aliasId,
-      ledgerId: currentLedger.id,
-    });
-  } catch (error) {
-    redirectForMerchantError(error, merchantErrorCodes.aliasArchiveFailed);
-  }
+    try {
+      await (
+        await getMerchantService()
+      ).createAlias({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.aliasCreateFailed,
+        "create alias",
+      );
+    }
 
-  revalidateMerchantMutation();
-  redirect(routePaths.merchants);
-}
+    revalidateMerchantMutation();
+    redirect(routePaths.merchants);
+  };
+
+export const archiveMerchantAlias: MerchantStateAction =
+  async function archiveMerchantAlias(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateArchiveMerchantAliasForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+
+    try {
+      await (
+        await getMerchantService()
+      ).archiveAlias({
+        aliasId: validation.value.aliasId,
+        ledgerId: currentLedger.id,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.aliasArchiveFailed,
+        "archive alias",
+      );
+    }
+
+    revalidateMerchantMutation();
+    redirect(routePaths.merchants);
+  };

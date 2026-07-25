@@ -9,11 +9,8 @@ const mocks = vi.hoisted(() => ({
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
-  getMerchantErrorMessage: vi.fn((error?: string) =>
-    error ? `商家错误:${error}` : null,
-  ),
   getView: vi.fn(),
-  MerchantsTemplate: vi.fn(() => null),
+  MerchantsActionStateTemplate: vi.fn(() => null),
   updateMerchant: vi.fn(),
 }));
 
@@ -33,11 +30,8 @@ vi.mock("internal/merchant/adapter/next/actions", () => ({
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
   createServerRequestDependencies: mocks.createServerRequestDependencies,
 }));
-vi.mock("templates/merchants/Merchants", () => ({
-  MerchantsTemplate: mocks.MerchantsTemplate,
-}));
-vi.mock("utils/pageErrors", () => ({
-  getMerchantErrorMessage: mocks.getMerchantErrorMessage,
+vi.mock("templates/merchants/MerchantsActionState", () => ({
+  MerchantsActionStateTemplate: mocks.MerchantsActionStateTemplate,
 }));
 
 import MerchantsPage from "./page";
@@ -81,10 +75,10 @@ describe("MerchantsPage", () => {
       ledgerName: "家庭账本",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(element.type).toBe(mocks.MerchantsTemplate);
+    expect(element.type).toBe(mocks.MerchantsActionStateTemplate);
   });
 
-  it("把页面参数、视图数据和保留的 Server Action 传给模板", async () => {
+  it("只把搜索参数、视图数据和 Server Action 传给状态模板", async () => {
     const result = await MerchantsPage({
       searchParams: Promise.resolve({
         error: "create_failed",
@@ -99,12 +93,12 @@ describe("MerchantsPage", () => {
       archiveMerchantAliasAction: mocks.archiveMerchantAlias,
       createMerchantAction: mocks.createMerchant,
       createMerchantAliasAction: mocks.createMerchantAlias,
-      errorMerchantId: "merchant-1",
-      errorMessage: "商家错误:create_failed",
       keyword: "LIFE",
       ledgerName: "家庭账本",
       merchants: [],
       updateMerchantAction: mocks.updateMerchant,
     });
+    expect(element.props).not.toHaveProperty("errorMerchantId");
+    expect(element.props).not.toHaveProperty("errorMessage");
   });
 });

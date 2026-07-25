@@ -1,3 +1,14 @@
+import type { BaseActionState } from "types/auth";
+
+export type MerchantActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type MerchantStateAction = (
+  previousState: MerchantActionState,
+  formData: FormData,
+) => Promise<MerchantActionState>;
+
 export type MerchantAliasRow = {
   id: string;
   merchant_id: string;
