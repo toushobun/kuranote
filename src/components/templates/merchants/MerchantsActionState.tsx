@@ -1,19 +1,19 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-} from "react";
+import { useState, type ComponentProps } from "react";
 
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import type { MerchantActionState, MerchantStateAction } from "types/merchants";
+import { MerchantCard } from "organisms/merchants/MerchantCard/MerchantCard";
+import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
+import type { ServerAction } from "types/actions";
+import type {
+  MerchantActionState,
+  MerchantRow,
+  MerchantStateAction,
+} from "types/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
-
-const initialMerchantActionState: MerchantActionState = {};
+import { useMerchantsActionState } from "./useMerchantsActionState";
 
 type MerchantsActionStateTemplateProps = Omit<
   ComponentProps<typeof MerchantsTemplate>,
@@ -21,149 +21,134 @@ type MerchantsActionStateTemplateProps = Omit<
   | "archiveMerchantAliasAction"
   | "createMerchantAction"
   | "createMerchantAliasAction"
+  | "createMerchantFormResetKey"
+  | "createMerchantPending"
+  | "renderCreateMerchantForm"
+  | "renderMerchantCard"
   | "updateMerchantAction"
 > & {
   archiveMerchantAction: MerchantStateAction;
   archiveMerchantAliasAction: MerchantStateAction;
   createMerchantAction: MerchantStateAction;
   createMerchantAliasAction: MerchantStateAction;
-  renderKey: string;
   updateMerchantAction: MerchantStateAction;
 };
 
-type PendingFormReset =
-  | { operation: "create" }
-  | { merchantId: string; operation: "createAlias" | "update" };
-
-type FormResetKeys = {
-  create: string;
-  createAlias: Readonly<Record<string, string>>;
-  update: Readonly<Record<string, string>>;
-};
-
-const initialFormResetKeys: FormResetKeys = {
-  create: "initial",
-  createAlias: {},
-  update: {},
+type MerchantCardActionStateProps = {
+  archiveAliasAction: ServerAction;
+  archiveMerchantAction: ServerAction;
+  canManageMerchants: boolean;
+  createMerchantAliasAction: MerchantStateAction;
+  merchant: MerchantRow;
+  updateMerchantAction: MerchantStateAction;
 };
 
 export function MerchantsActionStateTemplate({
   archiveMerchantAction,
   archiveMerchantAliasAction,
+  canManageMerchants = true,
   createMerchantAction,
   createMerchantAliasAction,
-  renderKey,
   updateMerchantAction,
   ...templateProps
 }: MerchantsActionStateTemplateProps) {
-  const [createState, createAction] = useActionState(
-    createMerchantAction,
-    initialMerchantActionState,
-  );
-  const [updateState, updateAction] = useActionState(
-    updateMerchantAction,
-    initialMerchantActionState,
-  );
-  const [archiveState, archiveAction] = useActionState(
-    archiveMerchantAction,
-    initialMerchantActionState,
-  );
-  const [createAliasState, createAliasAction] = useActionState(
-    createMerchantAliasAction,
-    initialMerchantActionState,
-  );
-  const [archiveAliasState, archiveAliasAction] = useActionState(
-    archiveMerchantAliasAction,
-    initialMerchantActionState,
-  );
-  const previousRenderKeyRef = useRef(renderKey);
-  const pendingFormResetRef = useRef<PendingFormReset | null>(null);
-  const [formResetKeys, setFormResetKeys] = useState(initialFormResetKeys);
-
-  useEffect(() => {
-    if (previousRenderKeyRef.current === renderKey) return;
-    previousRenderKeyRef.current = renderKey;
-
-    const pendingReset = pendingFormResetRef.current;
-    pendingFormResetRef.current = null;
-    if (!pendingReset) return;
-
-    setFormResetKeys((current) => {
-      if (pendingReset.operation === "create") {
-        return { ...current, create: renderKey };
-      }
-
-      const resetGroup =
-        pendingReset.operation === "createAlias" ? "createAlias" : "update";
-      return {
-        ...current,
-        [resetGroup]: {
-          ...current[resetGroup],
-          [pendingReset.merchantId]: renderKey,
-        },
-      };
-    });
-  }, [renderKey]);
-
-  useEffect(() => {
-    const pendingReset = pendingFormResetRef.current;
-    if (
-      (pendingReset?.operation === "create" && createState.error) ||
-      (pendingReset?.operation === "createAlias" && createAliasState.error) ||
-      (pendingReset?.operation === "update" && updateState.error)
-    ) {
-      pendingFormResetRef.current = null;
-    }
-  }, [createAliasState, createState, updateState]);
-
-  function submitCreateMerchant(formData: FormData) {
-    pendingFormResetRef.current = { operation: "create" };
-    createAction(formData);
-  }
-
-  function submitCreateMerchantAlias(formData: FormData) {
-    const merchantId = formData.get("merchantId");
-    if (typeof merchantId === "string") {
-      pendingFormResetRef.current = {
-        merchantId,
-        operation: "createAlias",
-      };
-    }
-    createAliasAction(formData);
-  }
-
-  function submitUpdateMerchant(formData: FormData) {
-    const merchantId = formData.get("merchantId");
-    if (typeof merchantId === "string") {
-      pendingFormResetRef.current = { merchantId, operation: "update" };
-    }
-    updateAction(formData);
-  }
+  const archive = useMerchantsActionState(archiveMerchantAction, {
+    operation: "archive",
+  });
+  const archiveAlias = useMerchantsActionState(archiveMerchantAliasAction, {
+    operation: "archiveAlias",
+  });
 
   return (
     <>
       <MerchantsTemplate
         {...templateProps}
-        archiveMerchantAction={archiveAction}
-        archiveMerchantAliasAction={archiveAliasAction}
-        createMerchantAction={submitCreateMerchant}
-        createMerchantAliasAction={submitCreateMerchantAlias}
-        createMerchantFormResetKey={formResetKeys.create}
-        merchantAliasFormResetKeys={formResetKeys.createAlias}
-        merchantEditFormResetKeys={formResetKeys.update}
-        updateMerchantAction={submitUpdateMerchant}
+        archiveMerchantAction={archive.action}
+        archiveMerchantAliasAction={archiveAlias.action}
+        canManageMerchants={canManageMerchants}
+        renderCreateMerchantForm={() => (
+          <CreateMerchantActionState action={createMerchantAction} />
+        )}
+        renderMerchantCard={(merchant) => (
+          <MerchantCardActionState
+            archiveAliasAction={archiveAlias.action}
+            archiveMerchantAction={archive.action}
+            canManageMerchants={canManageMerchants}
+            createMerchantAliasAction={createMerchantAliasAction}
+            merchant={merchant}
+            updateMerchantAction={updateMerchantAction}
+          />
+        )}
       />
-      <MerchantFailureFeedback state={createState} title="商家新增失败" />
-      <MerchantFailureFeedback state={updateState} title="商家更新失败" />
-      <MerchantFailureFeedback state={archiveState} title="商家归档失败" />
+      <MerchantFailureFeedback state={archive.state} title="商家归档失败" />
       <MerchantFailureFeedback
-        state={createAliasState}
-        title="商家别名新增失败"
-      />
-      <MerchantFailureFeedback
-        state={archiveAliasState}
+        state={archiveAlias.state}
         title="商家别名归档失败"
       />
+    </>
+  );
+}
+
+function CreateMerchantActionState({
+  action,
+}: {
+  action: MerchantStateAction;
+}) {
+  const create = useMerchantsActionState(action, {
+    operation: "create",
+    resetOnSuccess: true,
+  });
+
+  return (
+    <>
+      <MerchantForm
+        action={create.action}
+        key={create.resetKey}
+        pending={create.pending}
+      />
+      <MerchantFailureFeedback state={create.state} title="商家新增失败" />
+    </>
+  );
+}
+
+function MerchantCardActionState({
+  archiveAliasAction,
+  archiveMerchantAction,
+  canManageMerchants,
+  createMerchantAliasAction,
+  merchant,
+  updateMerchantAction,
+}: MerchantCardActionStateProps) {
+  const createAlias = useMerchantsActionState(createMerchantAliasAction, {
+    merchantId: merchant.id,
+    operation: "createAlias",
+    resetOnSuccess: true,
+  });
+  const update = useMerchantsActionState(updateMerchantAction, {
+    merchantId: merchant.id,
+    operation: "update",
+    resetOnSuccess: true,
+  });
+
+  return (
+    <>
+      <MerchantCard
+        archiveAliasAction={archiveAliasAction}
+        archiveMerchantAction={archiveMerchantAction}
+        canManageMerchants={canManageMerchants}
+        createAliasAction={createAlias.action}
+        createAliasPending={createAlias.pending}
+        merchant={merchant}
+        merchantAliasFormResetKey={createAlias.resetKey}
+        merchantEditFormResetKey={update.resetKey}
+        updateMerchantAction={update.action}
+        updateMerchantPending={update.pending}
+      />
+      <MerchantFailureFeedback
+        state={createAlias.state}
+        title="商家别名新增失败"
+      />
+      <MerchantFailureFeedback state={update.state} title="商家更新失败" />
     </>
   );
 }

@@ -49,7 +49,6 @@ const meta = {
     merchants,
     keyword: "",
     ledgerName: "家庭账本",
-    renderKey: "storybook-render",
     updateMerchantAction: action,
   },
 } satisfies Meta<typeof MerchantsActionStateTemplate>;

@@ -19,9 +19,11 @@ type MerchantCardProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
+  createAliasPending?: boolean;
   merchant: MerchantRow;
   merchantAliasFormResetKey?: string;
   merchantEditFormResetKey?: string;
+  updateMerchantPending?: boolean;
   updateMerchantAction: ServerAction;
 };
 
@@ -30,9 +32,11 @@ export function MerchantCard({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
+  createAliasPending = false,
   merchant,
   merchantAliasFormResetKey = "initial",
   merchantEditFormResetKey = "initial",
+  updateMerchantPending = false,
   updateMerchantAction,
 }: MerchantCardProps) {
   return (
@@ -134,12 +138,14 @@ export function MerchantCard({
             action={createAliasAction}
             key={`alias-${merchantAliasFormResetKey}`}
             merchantId={merchant.id}
+            pending={createAliasPending}
           />
           <Divider sx={{ my: 3 }} />
           <MerchantEditForm
             action={updateMerchantAction}
             key={`edit-${merchantEditFormResetKey}`}
             merchant={merchant}
+            pending={updateMerchantPending}
           />
         </>
       ) : null}

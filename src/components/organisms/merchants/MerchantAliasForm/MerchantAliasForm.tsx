@@ -10,11 +10,13 @@ import type { ServerAction } from "types/actions";
 type MerchantAliasFormProps = {
   action: ServerAction;
   merchantId: string;
+  pending?: boolean;
 };
 
 export function MerchantAliasForm({
   action,
   merchantId,
+  pending = false,
 }: MerchantAliasFormProps) {
   const [alias, setAlias] = useState("");
 
@@ -35,7 +37,7 @@ export function MerchantAliasForm({
         value={alias}
       />
 
-      <Button size="small" type="submit" variant="outlined">
+      <Button disabled={pending} size="small" type="submit" variant="outlined">
         新增别名
       </Button>
     </Stack>

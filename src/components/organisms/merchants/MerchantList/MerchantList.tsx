@@ -1,4 +1,5 @@
 import Stack from "@mui/material/Stack";
+import { Fragment, type ReactNode } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import type { ServerAction } from "types/actions";
@@ -10,11 +11,10 @@ type MerchantListProps = {
   archiveAliasAction: ServerAction;
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
-  createAliasAction: ServerAction;
-  merchantAliasFormResetKeys?: Readonly<Record<string, string>>;
-  merchantEditFormResetKeys?: Readonly<Record<string, string>>;
+  createAliasAction?: ServerAction;
   merchants: MerchantRow[];
-  updateMerchantAction: ServerAction;
+  renderMerchantCard?: (merchant: MerchantRow) => ReactNode;
+  updateMerchantAction?: ServerAction;
 };
 
 export function MerchantList({
@@ -22,9 +22,8 @@ export function MerchantList({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
-  merchantAliasFormResetKeys = {},
-  merchantEditFormResetKeys = {},
   merchants,
+  renderMerchantCard,
   updateMerchantAction,
 }: MerchantListProps) {
   if (merchants.length === 0) {
@@ -42,23 +41,25 @@ export function MerchantList({
 
   return (
     <Stack spacing={2.5} sx={{ mt: 4 }}>
-      {merchants.map((merchant) => (
-        <MerchantCard
-          archiveAliasAction={archiveAliasAction}
-          archiveMerchantAction={archiveMerchantAction}
-          canManageMerchants={canManageMerchants}
-          createAliasAction={createAliasAction}
-          key={merchant.id}
-          merchant={merchant}
-          merchantAliasFormResetKey={
-            merchantAliasFormResetKeys[merchant.id] ?? "initial"
-          }
-          merchantEditFormResetKey={
-            merchantEditFormResetKeys[merchant.id] ?? "initial"
-          }
-          updateMerchantAction={updateMerchantAction}
-        />
-      ))}
+      {merchants.map((merchant) =>
+        renderMerchantCard ? (
+          <Fragment key={merchant.id}>{renderMerchantCard(merchant)}</Fragment>
+        ) : (
+          <MerchantCard
+            archiveAliasAction={archiveAliasAction}
+            archiveMerchantAction={archiveMerchantAction}
+            canManageMerchants={canManageMerchants}
+            createAliasAction={createAliasAction ?? missingMerchantAction}
+            key={merchant.id}
+            merchant={merchant}
+            updateMerchantAction={updateMerchantAction ?? missingMerchantAction}
+          />
+        ),
+      )}
     </Stack>
   );
+}
+
+function missingMerchantAction() {
+  throw new Error("商家表单 Action 未配置。");
 }

@@ -11,9 +11,14 @@ import type { MerchantRow } from "types/merchants";
 type MerchantEditFormProps = {
   action: ServerAction;
   merchant: MerchantRow;
+  pending?: boolean;
 };
 
-export function MerchantEditForm({ action, merchant }: MerchantEditFormProps) {
+export function MerchantEditForm({
+  action,
+  merchant,
+  pending = false,
+}: MerchantEditFormProps) {
   const [name, setName] = useState(merchant.name);
   const [note, setNote] = useState(merchant.note ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(merchant.website_url ?? "");
@@ -54,7 +59,7 @@ export function MerchantEditForm({ action, merchant }: MerchantEditFormProps) {
         value={note}
       />
 
-      <Button type="submit" variant="outlined">
+      <Button disabled={pending} type="submit" variant="outlined">
         保存修改
       </Button>
     </Stack>

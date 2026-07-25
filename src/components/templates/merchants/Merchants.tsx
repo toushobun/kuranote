@@ -1,6 +1,7 @@
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import type { ReactNode } from "react";
 
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
@@ -14,15 +15,16 @@ type MerchantsTemplateProps = {
   archiveMerchantAction: ServerAction;
   archiveMerchantAliasAction: ServerAction;
   canManageMerchants?: boolean;
-  createMerchantAction: ServerAction;
-  createMerchantAliasAction: ServerAction;
+  createMerchantAction?: ServerAction;
+  createMerchantAliasAction?: ServerAction;
   createMerchantFormResetKey?: string;
+  createMerchantPending?: boolean;
   keyword: string;
   ledgerName: string;
-  merchantAliasFormResetKeys?: Readonly<Record<string, string>>;
-  merchantEditFormResetKeys?: Readonly<Record<string, string>>;
   merchants: MerchantRow[];
-  updateMerchantAction: ServerAction;
+  renderCreateMerchantForm?: () => ReactNode;
+  renderMerchantCard?: (merchant: MerchantRow) => ReactNode;
+  updateMerchantAction?: ServerAction;
 };
 
 export function MerchantsTemplate({
@@ -32,11 +34,12 @@ export function MerchantsTemplate({
   createMerchantAction,
   createMerchantAliasAction,
   createMerchantFormResetKey = "initial",
+  createMerchantPending = false,
   keyword,
   ledgerName,
-  merchantAliasFormResetKeys = {},
-  merchantEditFormResetKeys = {},
   merchants,
+  renderCreateMerchantForm,
+  renderMerchantCard,
   updateMerchantAction,
 }: MerchantsTemplateProps) {
   return (
@@ -75,21 +78,29 @@ export function MerchantsTemplate({
       </SectionCard>
 
       {canManageMerchants ? (
-        <MerchantForm
-          action={createMerchantAction}
-          key={createMerchantFormResetKey}
-        />
+        renderCreateMerchantForm ? (
+          renderCreateMerchantForm()
+        ) : (
+          <MerchantForm
+            action={createMerchantAction ?? missingMerchantAction}
+            key={createMerchantFormResetKey}
+            pending={createMerchantPending}
+          />
+        )
       ) : null}
       <MerchantList
         archiveAliasAction={archiveMerchantAliasAction}
         archiveMerchantAction={archiveMerchantAction}
         canManageMerchants={canManageMerchants}
         createAliasAction={createMerchantAliasAction}
-        merchantAliasFormResetKeys={merchantAliasFormResetKeys}
-        merchantEditFormResetKeys={merchantEditFormResetKeys}
         merchants={merchants}
+        renderMerchantCard={renderMerchantCard}
         updateMerchantAction={updateMerchantAction}
       />
     </PageShell>
   );
+}
+
+function missingMerchantAction() {
+  throw new Error("商家表单 Action 未配置。");
 }

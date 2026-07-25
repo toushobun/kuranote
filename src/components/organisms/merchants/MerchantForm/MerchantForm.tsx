@@ -11,9 +11,10 @@ import type { ServerAction } from "types/actions";
 
 type MerchantFormProps = {
   action: ServerAction;
+  pending?: boolean;
 };
 
-export function MerchantForm({ action }: MerchantFormProps) {
+export function MerchantForm({ action, pending = false }: MerchantFormProps) {
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -61,7 +62,7 @@ export function MerchantForm({ action }: MerchantFormProps) {
           value={note}
         />
 
-        <Button type="submit" variant="contained">
+        <Button disabled={pending} type="submit" variant="contained">
           新增商家
         </Button>
       </Stack>
