@@ -7,7 +7,10 @@ import {
   createAccount,
   updateAccount,
 } from "internal/account/adapter/next/actions";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
@@ -149,6 +152,18 @@ describe("Account Server Actions", () => {
 
     await expect(archiveAccount({}, formData)).resolves.toEqual({
       error: "没有权限",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("账户操作显示非账户错误码的安全应用错误文案", async () => {
+    mocks.create.mockRejectedValue(
+      new RepositoryError("external_dependency_failed", "依赖服务暂时不可用。"),
+    );
+
+    await expect(createAccount({}, createFormData())).resolves.toEqual({
+      error: "依赖服务暂时不可用。",
       errorKey: expect.any(String),
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();

@@ -64,11 +64,6 @@ function toAppError(code: LedgerInviteErrorCode): AppError {
       return new ConflictError(code, message);
     case ledgerInviteErrorCodes.inviteRoleInvalid:
       return new ValidationError(code, message);
-    case ledgerInviteErrorCodes.acceptFailed:
-    case ledgerInviteErrorCodes.createFailed:
-    case ledgerInviteErrorCodes.loadFailed:
-    case ledgerInviteErrorCodes.revokeFailed:
-      return new RepositoryError(code, message);
     default:
       return new RepositoryError(code, message);
   }
