@@ -19,8 +19,8 @@ export const internalModules = [
     router: ledgerInviteRouter,
   },
   { basePath: "/ledgers", name: "account", router: accountRouter },
-  { basePath: "/categories", name: "category", router: categoryRouter },
-  { basePath: "/merchants", name: "merchant", router: merchantRouter },
+  { basePath: "/ledgers", name: "category", router: categoryRouter },
+  { basePath: "/ledgers", name: "merchant", router: merchantRouter },
   {
     basePath: "/transactions",
     name: "transaction",
