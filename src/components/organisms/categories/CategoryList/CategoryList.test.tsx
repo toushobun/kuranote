@@ -8,8 +8,6 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "internal/category";
-
 import { CategoryList } from "./CategoryList";
 
 const expenseRootId = "00000000-0000-4000-8000-000000000101";
@@ -67,9 +65,8 @@ function renderList(
     <CategoryList
       archiveCategoryAction={vi.fn(async () => {})}
       categories={categories}
-      errorCategoryId={null}
-      errorMessage={null}
-      reorderCategoryAction={vi.fn(async () => ({ ok: true as const }))}
+      onReorderError={vi.fn()}
+      reorderCategoryAction={vi.fn(async () => ({}))}
       updateCategoryAction={vi.fn(async () => {})}
       {...overrides}
     />,
@@ -134,24 +131,13 @@ describe("CategoryList", () => {
     expect(screen.getByLabelText("当前分类图标：🍽️")).toBeInTheDocument();
   });
 
-  it("显示指定分类的错误信息", () => {
-    renderList({
-      errorCategoryId: expenseChildId,
-      errorMessage: "分类更新失败。",
-    });
-
-    expect(screen.getByRole("alert")).toHaveTextContent("分类更新失败。");
-  });
-
   it("拖动大分类时提交同级分类顺序", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;
-      return { ok: true as const };
+      return {};
     });
     const { container } = renderList({ reorderCategoryAction });
-    const handle = screen.getByRole("button", {
-      name: "调整餐饮排序",
-    });
+    const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     const targetRow = container.querySelector<HTMLElement>(
       `[data-category-row-id="${expenseSecondRootId}"]`,
     );
@@ -198,7 +184,7 @@ describe("CategoryList", () => {
   });
 
   it("非主键按下排序按钮时不启动拖动", () => {
-    const reorderCategoryAction = vi.fn(async () => ({ ok: true as const }));
+    const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
@@ -211,7 +197,7 @@ describe("CategoryList", () => {
   it("使用方向键调整顺序时不重置展开状态或焦点", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;
-      return { ok: true as const };
+      return {};
     });
     renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
@@ -225,22 +211,25 @@ describe("CategoryList", () => {
     expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
   });
 
-  it("排序失败时显示错误并恢复当前页面状态", async () => {
+  it("排序失败时恢复页面状态并上抛统一错误状态", async () => {
+    const onReorderError = vi.fn();
     const reorderCategoryAction = vi.fn(async () => ({
-      error: categoryErrorCodes.reorderFailed,
-      ok: false as const,
+      error: "分类排序保存失败，请稍后重试。",
+      errorKey: "reorder-error-1",
     }));
-    renderList({ reorderCategoryAction });
+    renderList({ onReorderError, reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.keyDown(handle, { key: "ArrowDown" });
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "分类排序保存失败，请稍后重试。",
-      ),
+      expect(onReorderError).toHaveBeenCalledWith({
+        error: "分类排序保存失败，请稍后重试。",
+        errorKey: "reorder-error-1",
+      }),
     );
     expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("没有分类时显示空状态", () => {

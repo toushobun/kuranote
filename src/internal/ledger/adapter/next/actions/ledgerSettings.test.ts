@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
 import { AppError } from "internal/shared/errors/appError";
+import type { LedgerSettingsActionState } from "types/ledgers";
 
 import { updateLedgerSettings } from "./ledgerSettings";
 
 const mocks = vi.hoisted(() => ({
+  createDependencies: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
@@ -30,7 +32,7 @@ vi.mock("internal/ledger/adapter/next/revalidateLedger", () => ({
 }));
 
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: vi.fn().mockResolvedValue({}),
+  createServerRequestDependencies: mocks.createDependencies,
 }));
 
 vi.mock("internal/container", () => ({
@@ -75,48 +77,104 @@ function createMemberFormData(overrides: Record<string, string> = {}) {
   return formData;
 }
 
+function runAction(formData: FormData) {
+  return updateLedgerSettings({}, formData);
+}
+
+function expectErrorState(state: LedgerSettingsActionState, message: string) {
+  expect(state).toEqual({
+    error: message,
+    errorKey: expect.any(String),
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.createDependencies.mockResolvedValue({});
   mocks.requireCurrentUserAndLedger.mockResolvedValue({ userId });
   mocks.updateService.mockResolvedValue(undefined);
 });
 
 describe("updateLedgerSettings", () => {
-  it("表单校验失败时跳转到账本设置错误状态", async () => {
-    await expect(
-      updateLedgerSettings(createLedgerFormData({ ledgerName: "" })),
-    ).rejects.toThrow("NEXT_REDIRECT:");
+  it("表单校验失败时返回可直接展示的错误状态", async () => {
+    const state = await runAction(createLedgerFormData({ ledgerName: "" }));
 
-    expect(mocks.redirect).toHaveBeenCalledWith(
-      expect.stringContaining(`error=${ledgerSettingsErrorCodes.nameRequired}`),
+    expectErrorState(state, "请输入账本名称。");
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.updateService).not.toHaveBeenCalled();
+  });
+
+  it("非法账本 ID 时返回当前页错误状态", async () => {
+    const state = await runAction(
+      createLedgerFormData({ ledgerId: "invalid" }),
     );
+
+    expectErrorState(state, "账本指定不正确。");
+    expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.updateService).not.toHaveBeenCalled();
   });
 
-  it("非法账本 ID 时直接返回账本列表", async () => {
-    await expect(
-      updateLedgerSettings(createLedgerFormData({ ledgerId: "invalid" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/ledgers");
-
-    expect(mocks.updateService).not.toHaveBeenCalled();
-  });
-
-  it("Service 抛出应用错误时跳转到账本设置错误状态", async () => {
+  it("Service 抛出应用错误时保留安全文案", async () => {
     mocks.updateService.mockRejectedValue(
       new AppError(ledgerSettingsErrorCodes.updateFailed, "更新失败"),
     );
 
-    await expect(updateLedgerSettings(createLedgerFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:",
+    const state = await runAction(createLedgerFormData());
+
+    expectErrorState(state, "更新失败");
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("未知异常时记录安全日志并返回通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.updateService.mockRejectedValue(new Error("database unavailable"));
+
+    const state = await runAction(createLedgerFormData());
+
+    expectErrorState(state, "账本设置保存失败。请确认内容后稍后重试。");
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger settings action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.createDependencies.mockRejectedValueOnce(new Error("unavailable"));
+
+    const state = await runAction(createLedgerFormData());
+
+    expectErrorState(state, "账本设置保存失败。请确认内容后稍后重试。");
+    expect(mocks.updateService).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger settings action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.requireCurrentUserAndLedger.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
     );
 
-    expect(mocks.redirect).toHaveBeenCalledWith(
-      expect.stringContaining(`error=${ledgerSettingsErrorCodes.updateFailed}`),
+    await expect(runAction(createLedgerFormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
     );
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.updateService).not.toHaveBeenCalled();
   });
 
   it("保存成功后刷新相关页面并返回成功状态", async () => {
-    await expect(updateLedgerSettings(createLedgerFormData())).rejects.toThrow(
+    await expect(runAction(createLedgerFormData())).rejects.toThrow(
       `NEXT_REDIRECT:/ledgers/${ledgerId}/settings?result=${ledgerSettingsResultValues.updated}`,
     );
 
@@ -135,7 +193,7 @@ describe("updateLedgerSettings", () => {
   });
 
   it("成员设置表单保存时传递成员信息", async () => {
-    await expect(updateLedgerSettings(createMemberFormData())).rejects.toThrow(
+    await expect(runAction(createMemberFormData())).rejects.toThrow(
       "NEXT_REDIRECT:",
     );
 

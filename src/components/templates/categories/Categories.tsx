@@ -1,12 +1,12 @@
 import Stack from "@mui/material/Stack";
 
-import { ErrorState } from "molecules/ui/ErrorState";
 import { CategoryForm } from "organisms/categories/CategoryForm/CategoryForm";
 import { CategoryList } from "organisms/categories/CategoryList/CategoryList";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type {
   CategoryAction,
+  CategoryActionState,
   CategoryParentOption,
   CategoryReorderAction,
   CategoryTreeItem,
@@ -17,9 +17,8 @@ type CategoriesTemplateProps = {
   canManageCategories?: boolean;
   categories: CategoryTreeItem[];
   createCategoryAction: CategoryAction;
-  errorCategoryId: string | null;
-  errorMessage: string | null;
   ledgerName: string;
+  onReorderError: (state: CategoryActionState) => void;
   parentOptions: CategoryParentOption[];
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
@@ -30,9 +29,8 @@ export function CategoriesTemplate({
   canManageCategories = true,
   categories,
   createCategoryAction,
-  errorCategoryId,
-  errorMessage,
   ledgerName,
+  onReorderError,
   parentOptions,
   reorderCategoryAction,
   updateCategoryAction,
@@ -57,16 +55,11 @@ export function CategoriesTemplate({
         }
       />
 
-      {errorMessage && !errorCategoryId ? (
-        <ErrorState title="分类操作失败" description={errorMessage} />
-      ) : null}
-
       <CategoryList
         archiveCategoryAction={archiveCategoryAction}
         canManageCategories={canManageCategories}
         categories={categories}
-        errorCategoryId={errorCategoryId}
-        errorMessage={errorMessage}
+        onReorderError={onReorderError}
         reorderCategoryAction={reorderCategoryAction}
         updateCategoryAction={updateCategoryAction}
       />

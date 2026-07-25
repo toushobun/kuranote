@@ -84,6 +84,8 @@ export function LedgerSettingsTemplate({
   const [previousSaveResult, setPreviousSaveResult] = useState(saveResult);
   const [selectedMember, setSelectedMember] =
     useState<LedgerSettingsMember | null>(null);
+  const [ledgerName, setLedgerName] = useState(ledger.name);
+  const [baseCurrency, setBaseCurrency] = useState(ledger.baseCurrency);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const router = useRouter();
@@ -114,13 +116,6 @@ export function LedgerSettingsTemplate({
     setErrorFeedbacks((feedbacks) =>
       feedbacks.filter((feedback) => feedback.id !== id),
     );
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("error");
-    url.searchParams.delete("errorKey");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
   }
 
   function closeSaveSuccessDialog() {
@@ -189,12 +184,13 @@ export function LedgerSettingsTemplate({
                 <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
                   <TextField
                     autoComplete="off"
-                    defaultValue={ledger.name}
                     disabled={!canEditLedger}
                     fullWidth
                     name="ledgerName"
+                    onChange={(event) => setLedgerName(event.target.value)}
                     required
                     slotProps={{ htmlInput: { "aria-label": "账本名称" } }}
+                    value={ledgerName}
                   />
                 </SettingsField>
 
@@ -205,13 +201,14 @@ export function LedgerSettingsTemplate({
                   label="默认货币"
                 >
                   <TextField
-                    defaultValue={ledger.baseCurrency}
                     disabled={!canEditLedger}
                     fullWidth
                     name="baseCurrency"
+                    onChange={(event) => setBaseCurrency(event.target.value)}
                     required
                     select
                     slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
+                    value={baseCurrency}
                   >
                     {ledgerCurrencyOptions.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -293,6 +290,7 @@ export function LedgerSettingsTemplate({
 
         {errorFeedbacks.map((feedback, index) => (
           <FailureFeedbackDialog
+            aboveModal
             bottomOffset={errorFeedbackBottomOffset(index)}
             description={feedback.message}
             key={feedback.id}
@@ -447,6 +445,38 @@ function MemberSettingsDialog({
 }) {
   if (!member) return null;
 
+  return (
+    <MemberSettingsDialogContent
+      canManageMembers={canManageMembers}
+      currentUserId={currentUserId}
+      key={member.userId}
+      ledger={ledger}
+      member={member}
+      onClose={onClose}
+      updateLedgerSettingsAction={updateLedgerSettingsAction}
+    />
+  );
+}
+
+function MemberSettingsDialogContent({
+  canManageMembers,
+  currentUserId,
+  ledger,
+  member,
+  onClose,
+  updateLedgerSettingsAction,
+}: {
+  canManageMembers: boolean;
+  currentUserId: string;
+  ledger: LedgerSettingsView["ledger"];
+  member: LedgerSettingsMember;
+  onClose: () => void;
+  updateLedgerSettingsAction: ServerAction;
+}) {
+  const [displayName, setDisplayName] = useState(member.displayName);
+  const [displayColor, setDisplayColor] = useState(member.displayColor);
+  const [role, setRole] = useState(member.role);
+
   const isSelf = member.userId === currentUserId;
   const canEditProfile = canManageMembers || isSelf;
   const canEditRole = canManageMembers && member.role !== "owner";
@@ -484,12 +514,13 @@ function MemberSettingsDialog({
         <SettingsField icon={<PersonRoundedIcon />} label="当前账本昵称">
           <TextField
             autoComplete="off"
-            defaultValue={member.displayName}
             disabled={!canEditProfile}
             fullWidth
             name={canEditProfile ? "memberDisplayName" : undefined}
+            onChange={(event) => setDisplayName(event.target.value)}
             required={canEditProfile}
             slotProps={{ htmlInput: { "aria-label": "当前账本昵称" } }}
+            value={displayName}
           />
         </SettingsField>
 
@@ -504,14 +535,27 @@ function MemberSettingsDialog({
               <Typography component="p" sx={fieldLabelSx}>
                 当前账本个性色
               </Typography>
-              <Stack direction="row" spacing={1.35} sx={colorPickerSx}>
+              {canEditProfile ? (
+                <input
+                  name="memberDisplayColor"
+                  type="hidden"
+                  value={displayColor}
+                />
+              ) : null}
+              <Stack
+                aria-label="当前账本个性色"
+                direction="row"
+                role="radiogroup"
+                spacing={1.35}
+                sx={colorPickerSx}
+              >
                 {getVisibleColorOptions(member.displayColor).map((colorKey) => (
                   <ColorRadio
+                    checked={colorKey === displayColor}
                     colorKey={colorKey}
-                    defaultChecked={colorKey === member.displayColor}
                     disabled={!canEditProfile}
                     key={colorKey}
-                    name={canEditProfile ? "memberDisplayColor" : undefined}
+                    onChange={setDisplayColor}
                   />
                 ))}
               </Stack>
@@ -529,13 +573,16 @@ function MemberSettingsDialog({
           label="成员权限"
         >
           <TextField
-            defaultValue={member.role}
             disabled={!canEditRole}
             fullWidth
             name={canEditRole ? "memberRole" : undefined}
+            onChange={(event) =>
+              setRole(event.target.value as LedgerSettingsMember["role"])
+            }
             required={canEditRole}
             select
             slotProps={{ htmlInput: { "aria-label": "成员权限" } }}
+            value={role}
           >
             {ledgerRoleOptions.map((option) => (
               <MenuItem
@@ -579,15 +626,15 @@ function MemberSettingsDialog({
 }
 
 function ColorRadio({
+  checked,
   colorKey,
-  defaultChecked,
   disabled = false,
-  name,
+  onChange,
 }: {
+  checked: boolean;
   colorKey: ThemeColorKey;
-  defaultChecked: boolean;
   disabled?: boolean;
-  name?: string;
+  onChange: (colorKey: ThemeColorKey) => void;
 }) {
   const colorToken = themeColorTokens[colorKey];
 
@@ -595,9 +642,11 @@ function ColorRadio({
     <Box component="label" sx={colorOptionLabelSx(disabled)}>
       <input
         aria-label={colorToken.label}
-        defaultChecked={defaultChecked}
+        checked={checked}
         disabled={disabled}
-        name={name}
+        form=""
+        name="memberDisplayColorOption"
+        onChange={() => onChange(colorKey)}
         style={visuallyHiddenInputStyle}
         type="radio"
         value={colorKey}

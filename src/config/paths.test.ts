@@ -4,7 +4,6 @@ import {
   accountResultValues,
   accountsResultHref,
   ledgerSwitchResultValues,
-  ledgersErrorHref,
   ledgersResultHref,
   transactionEditHref,
   transactionEditPagePath,
@@ -19,14 +18,6 @@ describe("ledger list paths", () => {
     expect(ledgersResultHref(ledgerSwitchResultValues.switched)).toBe(
       "/ledgers?result=switched",
     );
-  });
-
-  it("生成带错误码和唯一 errorKey 的账本列表路由", () => {
-    const href = ledgersErrorHref("ledger_invalid");
-    const url = new URL(href, "http://localhost");
-
-    expect(url.searchParams.get("error")).toBe("ledger_invalid");
-    expect(url.searchParams.get("errorKey")).toBeTruthy();
   });
 });
 

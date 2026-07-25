@@ -4,18 +4,19 @@ import { useRef, useState, useTransition, type PointerEvent } from "react";
 
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import type {
+  CategoryActionState,
   CategoryReorderAction,
   CategoryRow,
   CategoryTreeItem,
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
-import { getCategoryErrorMessage } from "utils/pageErrors";
 
 type DraggedCategory = Pick<CategoryRow, "id" | "parent_id" | "type">;
 
 type UseCategoryListParams = {
   categories: CategoryTreeItem[];
+  onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
 };
 
@@ -70,6 +71,7 @@ function applyCategoryOrder(
 
 export function useCategoryList({
   categories,
+  onReorderError,
   reorderCategoryAction,
 }: UseCategoryListParams) {
   const [optimisticCategoryOrder, setOptimisticCategoryOrder] =
@@ -97,7 +99,6 @@ export function useCategoryList({
   const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(
     null,
   );
-  const [reorderError, setReorderError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const visibleCategories = orderedCategories.filter(
@@ -139,28 +140,26 @@ export function useCategoryList({
       categories: nextCategories,
       source: categories,
     });
-    setReorderError(null);
-
     startTransition(async () => {
       try {
         const result = await reorderCategoryAction(formData);
 
-        if (!result.ok) {
+        if (result.error) {
           setOptimisticCategoryOrder({
             categories: previousCategories,
             source: categories,
           });
-          setReorderError(
-            getCategoryErrorMessage(result.error) ??
-              "分类排序保存失败，请稍后重试。",
-          );
+          onReorderError(result);
         }
       } catch {
         setOptimisticCategoryOrder({
           categories: previousCategories,
           source: categories,
         });
-        setReorderError("分类排序保存失败，请稍后重试。");
+        onReorderError({
+          error: "分类排序保存失败，请稍后重试。",
+          errorKey: crypto.randomUUID(),
+        });
       }
     });
   }
@@ -306,7 +305,6 @@ export function useCategoryList({
     isPending,
     moveCategory,
     openEditor,
-    reorderError,
     selectedType,
     setEditingIconName,
     setEditingName,

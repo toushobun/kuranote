@@ -126,6 +126,15 @@ describe("LedgerSettingsTemplate", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("当前账本昵称")).toHaveValue("配偶");
     expect(screen.getByLabelText("粉樱")).toBeChecked();
+    const colorGroup = screen.getByRole("radiogroup", {
+      name: "当前账本个性色",
+    });
+
+    within(colorGroup)
+      .getAllByRole("radio")
+      .forEach((radio) => {
+        expect(radio).toHaveAttribute("name", "memberDisplayColorOption");
+      });
     expect(screen.getByText("成员权限")).toBeInTheDocument();
   });
 
@@ -218,5 +227,8 @@ describe("LedgerSettingsTemplate", () => {
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("账本设置保存失败。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(routerReplaceMock).not.toHaveBeenCalled();
   });
 });

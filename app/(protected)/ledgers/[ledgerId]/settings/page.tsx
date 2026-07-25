@@ -1,18 +1,15 @@
 import { redirect } from "next/navigation";
 
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { createRequestContainer } from "internal/container";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import { updateLedgerSettings } from "internal/ledger/adapter/next/actions/ledgerSettings";
-import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AuthorizationError } from "internal/shared/errors/appError";
-import {
-  LedgerSettingsTemplate,
-  type LedgerSettingsSaveResult,
-} from "templates/ledgers/LedgerSettings";
-import { getLedgerSettingsErrorMessage } from "utils/pageErrors";
+import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { LedgerSettingsActionStateTemplate } from "templates/ledgers/LedgerSettingsActionState";
+import type { LedgerSettingsSaveResult } from "templates/ledgers/LedgerSettings";
 
 function getLedgerSettingsSaveResult(
   result: string | undefined,
@@ -26,11 +23,7 @@ export default async function LedgerSettingsRoute({
   searchParams,
 }: {
   params: Promise<{ ledgerId: string }>;
-  searchParams: Promise<{
-    error?: string;
-    errorKey?: string;
-    result?: string;
-  }>;
+  searchParams: Promise<{ result?: string }>;
 }) {
   const [{ ledgerId }, resolvedSearchParams] = await Promise.all([
     params,
@@ -77,10 +70,8 @@ export default async function LedgerSettingsRoute({
 
   return (
     <LedgerInvitePendingProvider pendingInvites={view.pendingInvites}>
-      <LedgerSettingsTemplate
+      <LedgerSettingsActionStateTemplate
         {...view}
-        errorKey={resolvedSearchParams.errorKey ?? null}
-        errorMessage={getLedgerSettingsErrorMessage(resolvedSearchParams.error)}
         inviteAction={createLedgerInvite}
         saveResult={getLedgerSettingsSaveResult(resolvedSearchParams.result)}
         updateLedgerSettingsAction={updateLedgerSettings}

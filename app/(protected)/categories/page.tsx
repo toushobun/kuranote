@@ -7,16 +7,9 @@ import {
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import { CategoriesTemplate } from "templates/categories/Categories";
-import { getCategoryErrorMessage } from "utils/pageErrors";
+import { CategoriesActionStateTemplate } from "templates/categories/CategoriesActionState";
 
-export default async function CategoriesRoute({
-  searchParams,
-}: {
-  searchParams: Promise<{ categoryId?: string; error?: string }>;
-}) {
-  const params = await searchParams;
-
+export default async function CategoriesRoute() {
   // redirect() 属于页面边界，保留在这里；Service 不感知 Next.js 导航行为。
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const dependencies = await createServerRequestDependencies();
@@ -28,12 +21,10 @@ export default async function CategoriesRoute({
   });
 
   return (
-    <CategoriesTemplate
+    <CategoriesActionStateTemplate
       {...view}
       archiveCategoryAction={archiveCategory}
       createCategoryAction={createCategory}
-      errorCategoryId={params.categoryId ?? null}
-      errorMessage={getCategoryErrorMessage(params.error)}
       reorderCategoryAction={reorderCategories}
       updateCategoryAction={updateCategory}
     />

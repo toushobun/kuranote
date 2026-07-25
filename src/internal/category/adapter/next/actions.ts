@@ -2,12 +2,12 @@
 
 import { redirect } from "next/navigation";
 
-import { categoriesErrorHref, routePaths } from "config/paths";
+import { routePaths } from "config/paths";
+import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   categoryErrorCodes,
-  type CategoryErrorCode,
+  getCategoryErrorMessage,
 } from "internal/category/categoryErrors";
-import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   parseArchiveCategoryForm,
   parseCreateCategoryForm,
@@ -18,100 +18,115 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import type { CategoryReorderActionResult } from "types/categories";
+import type { CategoryActionState } from "types/categories";
 
-async function getCategoryActionContext() {
-  const [{ currentLedger, userId }, dependencies] = await Promise.all([
-    requireCurrentUserAndLedger(),
-    createServerRequestDependencies(),
-  ]);
-
-  return {
-    currentLedger,
-    service: createRequestContainer(dependencies).category.service,
-    userId,
-  };
+function createErrorState(message: string): CategoryActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
 }
 
-function redirectCategoryError(
-  error: string,
-  categoryId?: string | null,
-): never {
-  redirect(categoriesErrorHref(error, categoryId));
+function validationErrorState(code: string): CategoryActionState {
+  return createErrorState(
+    getCategoryErrorMessage(code) ?? "分类信息不正确，请确认后重试。",
+  );
 }
 
-export async function createCategory(formData: FormData) {
+function actionErrorState(
+  error: unknown,
+  fallbackCode: string,
+  operation: string,
+): CategoryActionState {
+  if (error instanceof AppError) {
+    return createErrorState(error.message);
+  }
+
+  console.error(`[category] ${operation} failed unexpectedly`, {
+    errorName: error instanceof Error ? error.name : "unknown",
+  });
+  return createErrorState(
+    getCategoryErrorMessage(fallbackCode) ?? "分类操作失败，请稍后重试。",
+  );
+}
+
+async function getCategoryService() {
+  const dependencies = await createServerRequestDependencies();
+  return createRequestContainer(dependencies).category.service;
+}
+
+export async function createCategory(
+  _previousState: CategoryActionState,
+  formData: FormData,
+): Promise<CategoryActionState> {
   const validation = parseCreateCategoryForm(formData);
 
   if (!validation.ok) {
-    redirectCategoryError(validation.error);
+    return validationErrorState(validation.error);
   }
 
-  const { currentLedger, service, userId } = await getCategoryActionContext();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
 
   try {
+    const service = await getCategoryService();
     await service.create({
       ...validation.value,
       ledgerId: currentLedger.id,
       userId,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      redirectCategoryError(error.code);
-    }
-    throw error;
+    return actionErrorState(error, categoryErrorCodes.createFailed, "create");
   }
 
   revalidateCategoryMutation();
   redirect(routePaths.categories);
 }
 
-export async function updateCategory(formData: FormData) {
+export async function updateCategory(
+  _previousState: CategoryActionState,
+  formData: FormData,
+): Promise<CategoryActionState> {
   const validation = parseUpdateCategoryForm(formData);
 
   if (!validation.ok) {
-    redirectCategoryError(validation.error, validation.categoryId);
+    return validationErrorState(validation.error);
   }
 
-  const { currentLedger, service, userId } = await getCategoryActionContext();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
 
   try {
+    const service = await getCategoryService();
     await service.update({
       ...validation.value,
       ledgerId: currentLedger.id,
       userId,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      redirectCategoryError(error.code, validation.value.categoryId);
-    }
-    throw error;
+    return actionErrorState(error, categoryErrorCodes.updateFailed, "update");
   }
 
   revalidateCategoryMutation();
   redirect(routePaths.categories);
 }
 
-export async function archiveCategory(formData: FormData) {
+export async function archiveCategory(
+  _previousState: CategoryActionState,
+  formData: FormData,
+): Promise<CategoryActionState> {
   const validation = parseArchiveCategoryForm(formData);
 
   if (!validation.ok) {
-    redirectCategoryError(validation.error);
+    return validationErrorState(validation.error);
   }
 
-  const { currentLedger, service, userId } = await getCategoryActionContext();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
 
   try {
+    const service = await getCategoryService();
     await service.archive({
       categoryId: validation.value.categoryId,
       ledgerId: currentLedger.id,
       userId,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      redirectCategoryError(error.code, validation.value.categoryId);
-    }
-    throw error;
+    return actionErrorState(error, categoryErrorCodes.archiveFailed, "archive");
   }
 
   revalidateCategoryMutation();
@@ -120,35 +135,26 @@ export async function archiveCategory(formData: FormData) {
 
 export async function reorderCategories(
   formData: FormData,
-): Promise<CategoryReorderActionResult> {
+): Promise<CategoryActionState> {
   const validation = parseReorderCategoriesForm(formData);
 
   if (!validation.ok) {
-    return { error: validation.error, ok: false };
+    return validationErrorState(validation.error);
   }
 
-  const { currentLedger, service, userId } = await getCategoryActionContext();
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
 
   try {
+    const service = await getCategoryService();
     await service.reorder({
       ...validation.value,
       ledgerId: currentLedger.id,
       userId,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      const categoryErrorValues = new Set<CategoryErrorCode>(
-        Object.values(categoryErrorCodes),
-      );
-      const errorCode = categoryErrorValues.has(error.code as CategoryErrorCode)
-        ? (error.code as CategoryErrorCode)
-        : categoryErrorCodes.reorderFailed;
-
-      return { error: errorCode, ok: false };
-    }
-    throw error;
+    return actionErrorState(error, categoryErrorCodes.reorderFailed, "reorder");
   }
 
   revalidateCategoryMutation();
-  return { ok: true };
+  return {};
 }

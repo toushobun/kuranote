@@ -1,5 +1,6 @@
 import {
   currentLedgerErrorCodes,
+  getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
 } from "internal/ledger/errors/currentLedger";
 import type { CurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
@@ -19,11 +20,14 @@ export type CurrentLedgerService = {
 };
 
 function toAppError(code: CurrentLedgerErrorCode): AppError {
+  const message =
+    getCurrentLedgerErrorMessage(code) ?? "账本切换失败，请稍后重试。";
+
   if (code === currentLedgerErrorCodes.ledgerInvalid) {
-    return new NotFoundError(code, "账本不存在或您不是该账本成员。");
+    return new NotFoundError(code, message);
   }
 
-  return new AppError(code, "账本切换失败，请稍后重试。");
+  return new AppError(code, message);
 }
 
 /**

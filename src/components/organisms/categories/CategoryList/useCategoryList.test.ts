@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PointerEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "internal/category";
 import type { CategoryReorderAction, CategoryTreeItem } from "types/categories";
 
 import { useCategoryList } from "./useCategoryList";
@@ -33,22 +32,25 @@ const categories: CategoryTreeItem[] = [
 function renderCategoryListHook(
   reorderCategoryAction: CategoryReorderAction,
   initialCategories = categories,
+  onReorderError = vi.fn(),
 ) {
-  return renderHook(
-    ({ categoryItems }: { categoryItems: CategoryTreeItem[] }) =>
-      useCategoryList({
-        categories: categoryItems,
-        reorderCategoryAction,
-      }),
-    { initialProps: { categoryItems: initialCategories } },
-  );
+  return {
+    ...renderHook(
+      ({ categoryItems }: { categoryItems: CategoryTreeItem[] }) =>
+        useCategoryList({
+          categories: categoryItems,
+          onReorderError,
+          reorderCategoryAction,
+        }),
+      { initialProps: { categoryItems: initialCategories } },
+    ),
+    onReorderError,
+  };
 }
 
 describe("useCategoryList", () => {
   it("编辑分类时使用去除 Emoji 前缀后的名称", () => {
-    const { result } = renderCategoryListHook(
-      vi.fn(async () => ({ ok: true as const })),
-    );
+    const { result } = renderCategoryListHook(vi.fn(async () => ({})));
 
     act(() => result.current.openEditor(categories[0]));
 
@@ -59,7 +61,7 @@ describe("useCategoryList", () => {
   it("移动分类时先更新当前列表并提交完整同级顺序", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;
-      return { ok: true as const };
+      return {};
     });
     const { result } = renderCategoryListHook(reorderCategoryAction);
 
@@ -81,7 +83,7 @@ describe("useCategoryList", () => {
   });
 
   it("第一项向上或最后一项向下时不提交排序", () => {
-    const reorderCategoryAction = vi.fn(async () => ({ ok: true as const }));
+    const reorderCategoryAction = vi.fn(async () => ({}));
     const { result } = renderCategoryListHook(reorderCategoryAction);
 
     act(() => {
@@ -95,56 +97,65 @@ describe("useCategoryList", () => {
     ).toEqual([categories[0].id, categories[1].id]);
   });
 
-  it("排序保存失败时恢复原顺序并显示错误", async () => {
+  it("排序保存失败时恢复原顺序并上抛 Service message", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: categoryErrorCodes.reorderFailed,
-      ok: false as const,
+      error: "分类排序保存失败，请稍后重试。",
+      errorKey: "reorder-error-1",
     }));
-    const { result } = renderCategoryListHook(reorderCategoryAction);
+    const { onReorderError, result } = renderCategoryListHook(
+      reorderCategoryAction,
+    );
 
     act(() => result.current.moveCategory(categories[0], 1));
 
     await waitFor(() =>
-      expect(result.current.reorderError).toBe(
-        "分类排序保存失败，请稍后重试。",
-      ),
+      expect(onReorderError).toHaveBeenCalledWith({
+        error: "分类排序保存失败，请稍后重试。",
+        errorKey: "reorder-error-1",
+      }),
     );
     expect(
       result.current.visibleCategories.map((category) => category.id),
     ).toEqual([categories[0].id, categories[1].id]);
   });
 
-  it("排序集合过期时恢复原顺序并提示刷新", async () => {
+  it("排序集合过期时恢复原顺序并上抛刷新提示", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: categoryErrorCodes.reorderConflict,
-      ok: false as const,
+      error: "分类列表已发生变化，请刷新页面后重试。",
+      errorKey: "reorder-error-2",
     }));
-    const { result } = renderCategoryListHook(reorderCategoryAction);
+    const { onReorderError, result } = renderCategoryListHook(
+      reorderCategoryAction,
+    );
 
     act(() => result.current.moveCategory(categories[0], 1));
 
     await waitFor(() =>
-      expect(result.current.reorderError).toBe(
-        "分类列表已发生变化，请刷新页面后重试。",
-      ),
+      expect(onReorderError).toHaveBeenCalledWith({
+        error: "分类列表已发生变化，请刷新页面后重试。",
+        errorKey: "reorder-error-2",
+      }),
     );
     expect(
       result.current.visibleCategories.map((category) => category.id),
     ).toEqual([categories[0].id, categories[1].id]);
   });
 
-  it("排序 Action 抛出异常时恢复原顺序并显示错误", async () => {
+  it("排序 Action 抛出异常时恢复原顺序并上抛通用错误", async () => {
     const reorderCategoryAction = vi.fn(async () => {
       throw new Error("network error");
     });
-    const { result } = renderCategoryListHook(reorderCategoryAction);
+    const { onReorderError, result } = renderCategoryListHook(
+      reorderCategoryAction,
+    );
 
     act(() => result.current.moveCategory(categories[0], 1));
 
     await waitFor(() =>
-      expect(result.current.reorderError).toBe(
-        "分类排序保存失败，请稍后重试。",
-      ),
+      expect(onReorderError).toHaveBeenCalledWith({
+        error: "分类排序保存失败，请稍后重试。",
+        errorKey: expect.any(String),
+      }),
     );
     expect(
       result.current.visibleCategories.map((category) => category.id),
@@ -162,7 +173,7 @@ describe("useCategoryList", () => {
       sort_order: 10,
       type: "income",
     };
-    const reorderCategoryAction = vi.fn(async () => ({ ok: true as const }));
+    const reorderCategoryAction = vi.fn(async () => ({}));
     const { result, rerender } = renderCategoryListHook(reorderCategoryAction);
 
     act(() => {
@@ -181,9 +192,7 @@ describe("useCategoryList", () => {
   });
 
   it("非主键按下时不启动拖动", () => {
-    const { result } = renderCategoryListHook(
-      vi.fn(async () => ({ ok: true as const })),
-    );
+    const { result } = renderCategoryListHook(vi.fn(async () => ({})));
     const event = {
       button: 2,
       currentTarget: { setPointerCapture: vi.fn() },

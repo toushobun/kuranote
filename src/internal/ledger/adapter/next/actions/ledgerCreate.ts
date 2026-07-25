@@ -2,32 +2,60 @@
 
 import { redirect } from "next/navigation";
 
-import { ledgerCreateErrorHref, routePaths } from "config/paths";
+import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
 import { createRequestContainer } from "internal/container";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
-import { AppError } from "internal/shared/errors/appError";
-import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import {
+  getLedgerCreateErrorMessage,
+  ledgerCreateErrorCodes,
+} from "internal/ledger/errors/ledgerCreate";
 import { validateCreateLedgerForm } from "internal/ledger/schema/ledgerCreateForm";
+import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import { AppError } from "internal/shared/errors/appError";
+import type { LedgerCreateActionState } from "types/ledgers";
 
-export async function createLedger(formData: FormData) {
+function createErrorState(message: string): LedgerCreateActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
+}
+
+function createValidationErrorState(code: string): LedgerCreateActionState {
+  return createErrorState(
+    getLedgerCreateErrorMessage(code) ?? "账本信息不正确，请确认后重试。",
+  );
+}
+
+function createActionErrorState(error: unknown): LedgerCreateActionState {
+  if (error instanceof AppError) {
+    return createErrorState(error.message);
+  }
+
+  console.error("[ledger] ledger create action failed unexpectedly", {
+    errorName: error instanceof Error ? error.name : "unknown",
+  });
+  return createErrorState(
+    getLedgerCreateErrorMessage(ledgerCreateErrorCodes.createFailed) ??
+      "账本创建失败，请稍后重试。",
+  );
+}
+
+export async function createLedger(
+  _previousState: LedgerCreateActionState,
+  formData: FormData,
+): Promise<LedgerCreateActionState> {
   await getCurrentLedgerContext();
   const validation = validateCreateLedgerForm(formData);
 
   if (!validation.ok) {
-    redirect(ledgerCreateErrorHref(validation.error));
+    return createValidationErrorState(validation.error);
   }
 
-  const dependencies = await createServerRequestDependencies();
-  const container = createRequestContainer(dependencies);
-
   try {
+    const dependencies = await createServerRequestDependencies();
+    const container = createRequestContainer(dependencies);
     await container.ledger.service.create(validation.value);
   } catch (error) {
-    if (error instanceof AppError) {
-      redirect(ledgerCreateErrorHref(error.code));
-    }
-    throw error;
+    return createActionErrorState(error);
   }
 
   revalidateLedgerMutation();
