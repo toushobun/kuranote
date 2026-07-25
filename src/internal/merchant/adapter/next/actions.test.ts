@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes } from "internal/merchant/errors";
-import { RepositoryError } from "internal/shared/errors/appError";
+import {
+  RepositoryError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 const mocks = vi.hoisted(() => ({
@@ -179,6 +182,36 @@ describe("Merchant Server Actions", () => {
     );
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret");
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("跨模块 AppError 不转发敏感文案并返回当前操作 fallback", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.updateMerchant.mockRejectedValue(
+      new ValidationError(
+        "account_name_required",
+        "password=secret database connection failed",
+      ),
+    );
+
+    const state = await runAction(updateMerchant);
+
+    expectErrorState(
+      state,
+      "商家更新失败。请确认商家名称是否重复，或稍后重试。",
+    );
+    expect(JSON.stringify(state)).not.toContain("secret");
+    expect(JSON.stringify(state)).not.toContain("database");
+    expect(consoleError).toHaveBeenCalledWith(
+      "[merchant] update action failed unexpectedly",
+      { errorName: "ValidationError" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("database");
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
 

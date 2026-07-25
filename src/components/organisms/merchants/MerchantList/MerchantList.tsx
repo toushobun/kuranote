@@ -11,6 +11,8 @@ type MerchantListProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
+  merchantAliasFormResetKeys?: Readonly<Record<string, string>>;
+  merchantEditFormResetKeys?: Readonly<Record<string, string>>;
   merchants: MerchantRow[];
   updateMerchantAction: ServerAction;
 };
@@ -20,6 +22,8 @@ export function MerchantList({
   archiveMerchantAction,
   canManageMerchants = true,
   createAliasAction,
+  merchantAliasFormResetKeys = {},
+  merchantEditFormResetKeys = {},
   merchants,
   updateMerchantAction,
 }: MerchantListProps) {
@@ -46,6 +50,12 @@ export function MerchantList({
           createAliasAction={createAliasAction}
           key={merchant.id}
           merchant={merchant}
+          merchantAliasFormResetKey={
+            merchantAliasFormResetKeys[merchant.id] ?? "initial"
+          }
+          merchantEditFormResetKey={
+            merchantEditFormResetKeys[merchant.id] ?? "initial"
+          }
           updateMerchantAction={updateMerchantAction}
         />
       ))}

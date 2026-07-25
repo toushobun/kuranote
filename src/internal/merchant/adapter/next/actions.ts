@@ -8,6 +8,7 @@ import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/curren
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
   getMerchantActionErrorMessage,
+  isMerchantActionErrorCode,
   merchantErrorCodes,
   type MerchantErrorCode,
 } from "internal/merchant/errors";
@@ -43,7 +44,7 @@ function actionErrorState(
   fallback: MerchantErrorCode,
   action: string,
 ): MerchantActionState {
-  if (error instanceof AppError) {
+  if (error instanceof AppError && isMerchantActionErrorCode(error.code)) {
     return createErrorState(error.message);
   }
 

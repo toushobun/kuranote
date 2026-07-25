@@ -96,6 +96,7 @@ describe("MerchantsPage", () => {
       keyword: "LIFE",
       ledgerName: "家庭账本",
       merchants: [],
+      renderKey: expect.any(String),
       updateMerchantAction: mocks.updateMerchant,
     });
     expect(element.props).not.toHaveProperty("errorMerchantId");

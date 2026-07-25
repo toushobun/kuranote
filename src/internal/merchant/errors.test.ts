@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getMerchantActionErrorMessage,
+  isMerchantActionErrorCode,
   merchantErrorCodes,
 } from "internal/merchant/errors";
 
@@ -22,5 +23,20 @@ describe("getMerchantActionErrorMessage", () => {
     expect(
       getMerchantActionErrorMessage(merchantErrorCodes.merchantReadFailed),
     ).toBeNull();
+  });
+});
+
+describe("isMerchantActionErrorCode", () => {
+  it("只接受商家 mutation Action 可展示的错误码", () => {
+    expect(isMerchantActionErrorCode(merchantErrorCodes.updateFailed)).toBe(
+      true,
+    );
+    expect(isMerchantActionErrorCode(merchantErrorCodes.nameRequired)).toBe(
+      true,
+    );
+    expect(
+      isMerchantActionErrorCode(merchantErrorCodes.merchantReadFailed),
+    ).toBe(false);
+    expect(isMerchantActionErrorCode("account_update_failed")).toBe(false);
   });
 });

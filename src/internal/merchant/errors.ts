@@ -33,6 +33,32 @@ export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.noteTooLong
   | typeof merchantErrorCodes.websiteUrlInvalid;
 
+export type MerchantActionErrorCode =
+  | MerchantValidationErrorCode
+  | typeof merchantErrorCodes.aliasArchiveFailed
+  | typeof merchantErrorCodes.aliasCreateFailed
+  | typeof merchantErrorCodes.archiveFailed
+  | typeof merchantErrorCodes.createFailed
+  | typeof merchantErrorCodes.permissionDenied
+  | typeof merchantErrorCodes.updateFailed;
+
+const merchantActionErrorCodeSet = new Set<string>([
+  merchantErrorCodes.aliasArchiveFailed,
+  merchantErrorCodes.aliasCreateFailed,
+  merchantErrorCodes.aliasInvalid,
+  merchantErrorCodes.aliasRequired,
+  merchantErrorCodes.aliasTooLong,
+  merchantErrorCodes.archiveFailed,
+  merchantErrorCodes.createFailed,
+  merchantErrorCodes.merchantInvalid,
+  merchantErrorCodes.nameRequired,
+  merchantErrorCodes.nameTooLong,
+  merchantErrorCodes.noteTooLong,
+  merchantErrorCodes.permissionDenied,
+  merchantErrorCodes.updateFailed,
+  merchantErrorCodes.websiteUrlInvalid,
+]);
+
 const merchantActionErrorMessages: Partial<Record<MerchantErrorCode, string>> =
   {
     [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",
@@ -55,6 +81,12 @@ const merchantActionErrorMessages: Partial<Record<MerchantErrorCode, string>> =
     [merchantErrorCodes.websiteUrlInvalid]:
       "商家网址必须以 http:// 或 https:// 开头。",
   };
+
+export function isMerchantActionErrorCode(
+  value: string,
+): value is MerchantActionErrorCode {
+  return merchantActionErrorCodeSet.has(value);
+}
 
 export function getMerchantActionErrorMessage(error: MerchantErrorCode) {
   return merchantActionErrorMessages[error] ?? null;

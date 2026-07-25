@@ -20,6 +20,8 @@ type MerchantCardProps = {
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
   merchant: MerchantRow;
+  merchantAliasFormResetKey?: string;
+  merchantEditFormResetKey?: string;
   updateMerchantAction: ServerAction;
 };
 
@@ -29,6 +31,8 @@ export function MerchantCard({
   canManageMerchants = true,
   createAliasAction,
   merchant,
+  merchantAliasFormResetKey = "initial",
+  merchantEditFormResetKey = "initial",
   updateMerchantAction,
 }: MerchantCardProps) {
   return (
@@ -128,10 +132,15 @@ export function MerchantCard({
         <>
           <MerchantAliasForm
             action={createAliasAction}
+            key={`alias-${merchantAliasFormResetKey}`}
             merchantId={merchant.id}
           />
           <Divider sx={{ my: 3 }} />
-          <MerchantEditForm action={updateMerchantAction} merchant={merchant} />
+          <MerchantEditForm
+            action={updateMerchantAction}
+            key={`edit-${merchantEditFormResetKey}`}
+            merchant={merchant}
+          />
         </>
       ) : null}
     </SoftCard>

@@ -16,8 +16,11 @@ type MerchantsTemplateProps = {
   canManageMerchants?: boolean;
   createMerchantAction: ServerAction;
   createMerchantAliasAction: ServerAction;
+  createMerchantFormResetKey?: string;
   keyword: string;
   ledgerName: string;
+  merchantAliasFormResetKeys?: Readonly<Record<string, string>>;
+  merchantEditFormResetKeys?: Readonly<Record<string, string>>;
   merchants: MerchantRow[];
   updateMerchantAction: ServerAction;
 };
@@ -28,8 +31,11 @@ export function MerchantsTemplate({
   canManageMerchants = true,
   createMerchantAction,
   createMerchantAliasAction,
+  createMerchantFormResetKey = "initial",
   keyword,
   ledgerName,
+  merchantAliasFormResetKeys = {},
+  merchantEditFormResetKeys = {},
   merchants,
   updateMerchantAction,
 }: MerchantsTemplateProps) {
@@ -69,13 +75,18 @@ export function MerchantsTemplate({
       </SectionCard>
 
       {canManageMerchants ? (
-        <MerchantForm action={createMerchantAction} />
+        <MerchantForm
+          action={createMerchantAction}
+          key={createMerchantFormResetKey}
+        />
       ) : null}
       <MerchantList
         archiveAliasAction={archiveMerchantAliasAction}
         archiveMerchantAction={archiveMerchantAction}
         canManageMerchants={canManageMerchants}
         createAliasAction={createMerchantAliasAction}
+        merchantAliasFormResetKeys={merchantAliasFormResetKeys}
+        merchantEditFormResetKeys={merchantEditFormResetKeys}
         merchants={merchants}
         updateMerchantAction={updateMerchantAction}
       />

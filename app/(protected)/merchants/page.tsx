@@ -34,6 +34,7 @@ export default async function MerchantsPage({
       keyword={params.q ?? ""}
       ledgerName={view.ledgerName}
       merchants={view.merchants}
+      renderKey={crypto.randomUUID()}
       updateMerchantAction={updateMerchant}
     />
   );

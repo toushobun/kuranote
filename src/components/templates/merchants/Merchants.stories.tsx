@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 
-import type { MerchantRow } from "types/merchants";
+import type { MerchantRow, MerchantStateAction } from "types/merchants";
 
-import { MerchantsTemplate } from "./Merchants";
+import { MerchantsActionStateTemplate } from "./MerchantsActionState";
 
 const merchants: MerchantRow[] = [
   {
@@ -35,20 +36,23 @@ const merchants: MerchantRow[] = [
   },
 ];
 
+const action: MerchantStateAction = async () => ({});
+
 const meta = {
-  title: "Templates/Merchants/MerchantsTemplate",
-  component: MerchantsTemplate,
+  title: "Templates/Merchants/MerchantsActionStateTemplate",
+  component: MerchantsActionStateTemplate,
   args: {
-    archiveMerchantAction: async () => {},
-    archiveMerchantAliasAction: async () => {},
-    createMerchantAction: async () => {},
-    createMerchantAliasAction: async () => {},
+    archiveMerchantAction: action,
+    archiveMerchantAliasAction: action,
+    createMerchantAction: action,
+    createMerchantAliasAction: action,
     merchants,
     keyword: "",
     ledgerName: "家庭账本",
-    updateMerchantAction: async () => {},
+    renderKey: "storybook-render",
+    updateMerchantAction: action,
   },
-} satisfies Meta<typeof MerchantsTemplate>;
+} satisfies Meta<typeof MerchantsActionStateTemplate>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -68,5 +72,28 @@ export const Empty: Story = {
   name: "无商家",
   args: {
     merchants: [],
+  },
+};
+
+export const CreateFailure: Story = {
+  name: "新增商家失败",
+  args: {
+    createMerchantAction: async () => ({
+      error: "商家新增失败。请确认商家名称是否重复，或稍后重试。",
+      errorKey: "storybook-create-failed",
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nameInput = canvas.getAllByRole("textbox", {
+      name: "商家名称",
+    })[0];
+    await userEvent.type(nameInput, "Storybook 失败商家");
+    await userEvent.click(canvas.getByRole("button", { name: "新增商家" }));
+
+    await within(document.body).findByRole("heading", {
+      name: "商家新增失败",
+    });
+    await expect(nameInput).toHaveValue("Storybook 失败商家");
   },
 };
