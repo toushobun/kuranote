@@ -1,5 +1,10 @@
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import type { Logger } from "internal/shared/logging/logger";
+import { ConflictError } from "internal/shared/errors/appError";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import type {
@@ -118,9 +123,13 @@ export function createSupabaseAccountRepository(
 
       if (error) {
         logError("failed to archive account", error, { accountId, ledgerId });
+        throw toRepositoryError(
+          "account_archive_failed",
+          "账户删除失败，请稍后重试。",
+        );
       }
 
-      return !error && count === 1;
+      return count === 1;
     },
 
     async create(input) {
@@ -140,10 +149,26 @@ export function createSupabaseAccountRepository(
         logError("failed to create account", error, {
           ledgerId: input.ledgerId,
         });
-        return null;
+        if (error.code === "23505") {
+          throw new ConflictError(
+            accountErrorCodes.createFailed,
+            getAccountErrorMessage(accountErrorCodes.createFailed) ??
+              "账户新增失败，请稍后重试。",
+          );
+        }
+        throw toRepositoryError(
+          "account_create_failed",
+          "账户新增失败，请稍后重试。",
+        );
       }
 
-      return typeof data === "string" ? data : null;
+      if (typeof data !== "string") {
+        throw toRepositoryError(
+          "account_create_result_invalid",
+          "账户新增失败，请稍后重试。",
+        );
+      }
+      return data;
     },
 
     async findSummariesByIds(ledgerId, accountIds) {
@@ -333,7 +358,17 @@ export function createSupabaseAccountRepository(
           accountId: input.accountId,
           ledgerId: input.ledgerId,
         });
-        return false;
+        if (error.code === "23505") {
+          throw new ConflictError(
+            accountErrorCodes.updateFailed,
+            getAccountErrorMessage(accountErrorCodes.updateFailed) ??
+              "账户更新失败，请稍后重试。",
+          );
+        }
+        throw toRepositoryError(
+          "account_update_failed",
+          "账户更新失败，请稍后重试。",
+        );
       }
 
       return data === input.accountId;

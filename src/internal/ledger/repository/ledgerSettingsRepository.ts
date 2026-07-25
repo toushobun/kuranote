@@ -5,7 +5,7 @@ import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
-import { mapRpcBusinessError } from "internal/shared/supabase/rpcError";
+import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -74,7 +74,10 @@ function toCurrentLedgerRole(role: unknown): CurrentLedgerRole {
     return role;
   }
 
-  return "member";
+  throw toRepositoryError(
+    "ledger_member_role_invalid",
+    "账本成员资料格式异常，请稍后重试。",
+  );
 }
 
 export function createSupabaseLedgerSettingsRepository(
@@ -95,7 +98,18 @@ export function createSupabaseLedgerSettingsRepository(
         .eq("status", "active")
         .maybeSingle();
 
-      if (error || !data) return null;
+      if (error) {
+        logger.error("[ledger] failed to load ledger member role", {
+          databaseCode: error.code,
+          ledgerId,
+          userId,
+        });
+        throw toRepositoryError(
+          "ledger_member_role_load_failed",
+          "账本成员权限读取失败，请稍后重试。",
+        );
+      }
+      if (!data) return null;
 
       return toCurrentLedgerRole(data.role);
     },
@@ -108,7 +122,17 @@ export function createSupabaseLedgerSettingsRepository(
         .eq("is_archived", false)
         .maybeSingle();
 
-      return !error && !!data;
+      if (error) {
+        logger.error("[ledger] failed to load ledger status", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "ledger_status_load_failed",
+          "账本信息读取失败，请稍后重试。",
+        );
+      }
+      return Boolean(data);
     },
 
     async listActiveMembers(ledgerId) {
@@ -216,7 +240,17 @@ export function createSupabaseLedgerSettingsRepository(
         .eq("id", ledgerId)
         .eq("is_archived", false);
 
-      if (error || count !== 1) {
+      if (error) {
+        logger.error("[ledger] failed to update ledger base settings", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "ledger_base_settings_update_failed",
+          "账本设置保存失败，请稍后重试。",
+        );
+      }
+      if (count !== 1) {
         return { code: ledgerSettingsErrorCodes.updateFailed, ok: false };
       }
 
@@ -233,12 +267,20 @@ export function createSupabaseLedgerSettingsRepository(
       });
 
       if (error) {
+        const code = findRpcBusinessError(error, memberSettingsRpcErrorMap);
+        if (!code) {
+          logger.error("[ledger] failed to update ledger member settings", {
+            databaseCode: error.code,
+            ledgerId: input.ledgerId,
+            userId: input.userId,
+          });
+          throw toRepositoryError(
+            "ledger_member_settings_update_failed",
+            "账本成员设置保存失败，请稍后重试。",
+          );
+        }
         return {
-          code: mapRpcBusinessError(
-            error,
-            memberSettingsRpcErrorMap,
-            ledgerSettingsErrorCodes.updateFailed,
-          ),
+          code,
           ok: false,
         };
       }

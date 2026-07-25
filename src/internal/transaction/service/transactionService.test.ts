@@ -3,7 +3,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  NotFoundError,
+} from "internal/shared/errors/appError";
+import { transactionErrorCodes } from "internal/transaction/errors";
 import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
 import { createTransactionService } from "internal/transaction/service/transactionService";
 
@@ -105,6 +109,16 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
+  it("非账本成员新增交易时返回账本不存在错误", async () => {
+    const { repository, service } = createService(null);
+
+    await expect(service.createNormal(normalInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.ledgerInvalid,
+      name: NotFoundError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
   it("viewer 不能修改交易", async () => {
     const { repository, service } = createService("viewer");
     await expect(
@@ -202,5 +216,26 @@ describe("TransactionService", () => {
       summary: { currency: "JPY", expense: "1200" },
       transactionCount: 1,
     });
+  });
+
+  it("非账本成员读取交易分组时返回账本不存在错误", async () => {
+    const { repository, service } = createService(null);
+
+    await expect(
+      service.getGroupPage(
+        {
+          baseCurrency: "JPY",
+          currentUserRole: "member",
+          id: ledgerId,
+          name: "家庭账本",
+        },
+        "merchant",
+        0,
+      ),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.ledgerInvalid,
+      name: NotFoundError.name,
+    });
+    expect(repository.loadGroupSummaries).not.toHaveBeenCalled();
   });
 });

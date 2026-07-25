@@ -9,6 +9,7 @@ export const transactionErrorCodes = {
   categoryInvalid: "category_invalid",
   createFailed: "create_failed",
   dateInvalid: "date_invalid",
+  ledgerInvalid: "ledger_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
   permissionDenied: "permission_denied",

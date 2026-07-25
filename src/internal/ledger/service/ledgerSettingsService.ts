@@ -13,7 +13,9 @@ import {
   AppError,
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
+  RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
@@ -77,8 +79,10 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
     case ledgerSettingsErrorCodes.nameTooLong:
     case ledgerSettingsErrorCodes.roleInvalid:
       return new ValidationError(code, message);
+    case ledgerSettingsErrorCodes.updateFailed:
+      return new ConflictError(code, message);
     default:
-      return new AppError(code, message);
+      return new RepositoryError(code, message);
   }
 }
 

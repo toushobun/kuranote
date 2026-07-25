@@ -3,11 +3,12 @@ import {
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 import {
-  mapRpcBusinessError,
+  findRpcBusinessError,
   type RpcErrorLike,
 } from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
+import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { isLedgerInviteRole, type LedgerInviteRole } from "types/ledgers";
 
 export type LedgerInviteWriteResult =
@@ -82,7 +83,14 @@ export function createSupabaseLedgerInviteRepository(
         .eq("status", "active")
         .maybeSingle();
 
-      if (error || !data) return null;
+      if (error) {
+        logUnexpectedRpcError(logger, "load ledger invite member role", error);
+        throw toRepositoryError(
+          "ledger_invite_member_role_load_failed",
+          "账本成员权限读取失败，请稍后重试。",
+        );
+      }
+      if (!data) return null;
       return data.role === "owner" ||
         data.role === "admin" ||
         data.role === "member" ||
@@ -97,16 +105,14 @@ export function createSupabaseLedgerInviteRepository(
       });
 
       if (error) {
-        const code = mapRpcBusinessError(
-          error,
-          inviteErrorMap,
-          ledgerInviteErrorCodes.acceptFailed,
-        );
-
-        if (code === ledgerInviteErrorCodes.acceptFailed) {
+        const code = findRpcBusinessError(error, inviteErrorMap);
+        if (!code) {
           logUnexpectedRpcError(logger, "accept_ledger_invite", error);
+          throw toRepositoryError(
+            "ledger_invite_accept_failed",
+            "加入账本失败，请稍后重试。",
+          );
         }
-
         return { code, ok: false };
       }
 
@@ -120,16 +126,14 @@ export function createSupabaseLedgerInviteRepository(
       });
 
       if (error) {
-        const code = mapRpcBusinessError(
-          error,
-          inviteErrorMap,
-          ledgerInviteErrorCodes.createFailed,
-        );
-
-        if (code === ledgerInviteErrorCodes.createFailed) {
+        const code = findRpcBusinessError(error, inviteErrorMap);
+        if (!code) {
           logUnexpectedRpcError(logger, "create_ledger_invite_v2", error);
+          throw toRepositoryError(
+            "ledger_invite_create_failed",
+            "邀请链接生成失败，请稍后重试。",
+          );
         }
-
         return { code, ok: false };
       }
 
@@ -144,7 +148,10 @@ export function createSupabaseLedgerInviteRepository(
           isArray: Array.isArray(data),
           rowCount: Array.isArray(data) ? data.length : null,
         });
-        return { code: ledgerInviteErrorCodes.createFailed, ok: false };
+        throw toRepositoryError(
+          "ledger_invite_create_result_invalid",
+          "邀请链接生成失败，请稍后重试。",
+        );
       }
 
       return {
@@ -162,16 +169,14 @@ export function createSupabaseLedgerInviteRepository(
       });
 
       if (error) {
-        const code = mapRpcBusinessError(
-          error,
-          inviteErrorMap,
-          ledgerInviteErrorCodes.revokeFailed,
-        );
-
-        if (code === ledgerInviteErrorCodes.revokeFailed) {
+        const code = findRpcBusinessError(error, inviteErrorMap);
+        if (!code) {
           logUnexpectedRpcError(logger, "revoke_ledger_invite", error);
+          throw toRepositoryError(
+            "ledger_invite_revoke_failed",
+            "邀请撤销失败，请稍后重试。",
+          );
         }
-
         return { code, ok: false };
       }
 
@@ -184,15 +189,20 @@ export function createSupabaseLedgerInviteRepository(
         { p_ledger_id: ledgerId },
       );
 
-      if (error || !Array.isArray(data)) {
-        const code = error
-          ? mapRpcBusinessError(
-              error,
-              inviteErrorMap,
-              ledgerInviteErrorCodes.loadFailed,
-            )
-          : ledgerInviteErrorCodes.loadFailed;
-        return { code, ok: false };
+      if (error) {
+        const code = findRpcBusinessError(error, inviteErrorMap);
+        if (code) return { code, ok: false };
+        logUnexpectedRpcError(logger, "list_pending_ledger_invites", error);
+        throw toRepositoryError(
+          "ledger_invite_list_failed",
+          "待接受邀请加载失败，请稍后重试。",
+        );
+      }
+      if (!Array.isArray(data)) {
+        throw toRepositoryError(
+          "ledger_invite_list_result_invalid",
+          "待接受邀请加载失败，请稍后重试。",
+        );
       }
 
       const invites = data.flatMap((row) => {

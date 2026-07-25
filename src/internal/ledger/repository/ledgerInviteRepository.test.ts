@@ -44,16 +44,17 @@ describe("createSupabaseLedgerInviteRepository", () => {
     expect(result).toEqual({ code: "invite_invalid", ok: false });
   });
 
-  it("RPC 返回未知错误时回退为 accept_failed", async () => {
+  it("RPC 返回未知错误时转换为安全 RepositoryError", async () => {
     const supabase = createSupabaseStub({
       data: null,
       error: { message: "unexpected" },
     });
     const repository = createSupabaseLedgerInviteRepository(supabase);
 
-    const result = await repository.accept("token-1");
-
-    expect(result).toEqual({ code: "accept_failed", ok: false });
+    await expect(repository.accept("token-1")).rejects.toMatchObject({
+      code: "ledger_invite_accept_failed",
+      message: "加入账本失败，请稍后重试。",
+    });
   });
 });
 
@@ -81,7 +82,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
     });
   });
 
-  it("RPC 返回畸形数据时返回 create_failed", async () => {
+  it("RPC 返回畸形数据时转换为安全 RepositoryError", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const supabase = createSupabaseStub({
       data: [{ invite_id: "invite-1", invite_role: "member" }],
@@ -89,9 +90,9 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
     });
     const repository = createSupabaseLedgerInviteRepository(supabase);
 
-    await expect(repository.create(ledgerId, "member")).resolves.toEqual({
-      code: ledgerInviteErrorCodes.createFailed,
-      ok: false,
+    await expect(repository.create(ledgerId, "member")).rejects.toMatchObject({
+      code: "ledger_invite_create_result_invalid",
+      message: "邀请链接生成失败，请稍后重试。",
     });
     vi.restoreAllMocks();
   });

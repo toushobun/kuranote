@@ -1,4 +1,5 @@
 import {
+  getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
@@ -48,22 +49,23 @@ export type LedgerInviteService = {
 };
 
 function toAppError(code: LedgerInviteErrorCode): AppError {
+  const message =
+    getLedgerInviteErrorMessage(code) ?? "邀请操作失败，请稍后重试。";
+
   switch (code) {
     case ledgerInviteErrorCodes.authRequired:
-      return new AuthenticationError(code, "请先登录。");
+      return new AuthenticationError(code, message);
     case ledgerInviteErrorCodes.permissionDenied:
-      return new AuthorizationError(code, "没有权限管理账本邀请。");
+      return new AuthorizationError(code, message);
     case ledgerInviteErrorCodes.inviteInvalid:
-      return new NotFoundError(code, "邀请不存在或已失效。");
+      return new NotFoundError(code, message);
     case ledgerInviteErrorCodes.inviteUsed:
     case ledgerInviteErrorCodes.inviteAlreadyRevoked:
-      return new ConflictError(code, "邀请状态已发生变化。");
+      return new ConflictError(code, message);
     case ledgerInviteErrorCodes.inviteRoleInvalid:
-      return new ValidationError(code, "邀请角色无效。");
-    case ledgerInviteErrorCodes.loadFailed:
-      return new RepositoryError(code, "邀请列表加载失败，请稍后重试。");
+      return new ValidationError(code, message);
     default:
-      return new AppError(code, "邀请操作失败，请稍后重试。");
+      return new RepositoryError(code, message);
   }
 }
 

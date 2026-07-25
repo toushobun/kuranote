@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapRpcBusinessError } from "./rpcError";
+import { findRpcBusinessError, mapRpcBusinessError } from "./rpcError";
 
 const errorMap = {
   permission_denied: "permission_denied",
@@ -57,5 +57,28 @@ describe("mapRpcBusinessError", () => {
 
   it("error 为空时返回 fallback", () => {
     expect(mapRpcBusinessError(null, errorMap, fallback)).toBe(fallback);
+  });
+});
+
+describe("findRpcBusinessError", () => {
+  it("只根据完全匹配的 details 识别业务错误", () => {
+    expect(
+      findRpcBusinessError(
+        {
+          details: "permission_denied",
+          message: "permission_denied",
+        },
+        errorMap,
+      ),
+    ).toBe("permission_denied");
+    expect(
+      findRpcBusinessError(
+        { details: "prefix permission_denied suffix" },
+        errorMap,
+      ),
+    ).toBeNull();
+    expect(
+      findRpcBusinessError({ message: "permission_denied" }, errorMap),
+    ).toBeNull();
   });
 });

@@ -57,15 +57,15 @@ describe("createSupabaseLedgerRepository.create", () => {
     });
   });
 
-  it("未知 details 时回退为 create_failed", async () => {
+  it("未知 details 时转换为安全 RepositoryError", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: { error: { details: "unexpected", message: "业务错误" } },
     });
     const repository = createSupabaseLedgerRepository(supabase.client as never);
 
-    await expect(repository.create(createInput)).resolves.toEqual({
-      code: ledgerCreateErrorCodes.createFailed,
-      ok: false,
+    await expect(repository.create(createInput)).rejects.toMatchObject({
+      code: "ledger_create_failed",
+      message: "账本创建失败，请稍后重试。",
     });
   });
 });

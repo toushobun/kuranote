@@ -12,7 +12,11 @@ import { accountRouter } from "internal/account/router";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  NotFoundError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
 import {
   errorHandlingMiddleware,
   openApiValidationErrorHook,
@@ -226,6 +230,59 @@ describe("account router", () => {
     );
 
     expect(response.status).toBe(403);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("资源不存在时真实入口返回统一 404", async () => {
+    const getView = vi
+      .fn()
+      .mockRejectedValue(
+        new NotFoundError("ledger_invalid", "账本不存在或无法访问。"),
+      );
+    const app = createApp(createContainer({ getView }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts`,
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "ledger_invalid",
+        message: "账本不存在或无法访问。",
+        requestId: "request-1",
+        status: 404,
+      },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("Repository 失败时真实入口返回安全 500", async () => {
+    const getView = vi
+      .fn()
+      .mockRejectedValue(
+        new RepositoryError(
+          "accounts_load_failed",
+          "账户列表加载失败，请稍后重试。",
+        ),
+      );
+    const app = createApp(createContainer({ getView }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts`,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body).toEqual({
+      error: {
+        code: "accounts_load_failed",
+        message: "账户列表加载失败，请稍后重试。",
+        requestId: "request-1",
+        status: 500,
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain("database");
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 

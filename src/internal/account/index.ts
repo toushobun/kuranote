@@ -1,5 +1,5 @@
 export {
   accountErrorCodes,
-  isAccountErrorCode,
+  getAccountErrorMessage,
   type AccountErrorCode,
 } from "internal/account/errors";

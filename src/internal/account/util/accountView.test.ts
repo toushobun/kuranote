@@ -111,14 +111,8 @@ describe("Account view builders", () => {
   it("持有人候选只包含有效用户并按最终显示名排序", () => {
     const holderOptions = buildHolderOptions({
       appUserById: new Map([
-        [
-          "user-a",
-          createAppUser({ displayName: "家庭账本淞文", userId: "user-a" }),
-        ],
-        [
-          "user-b",
-          createAppUser({ displayName: "全局成员", userId: "user-b" }),
-        ],
+        ["user-a", createAppUser({ displayName: "Alpha", userId: "user-a" })],
+        ["user-b", createAppUser({ displayName: "Beta", userId: "user-b" })],
         [
           "user-c",
           createAppUser({
@@ -136,8 +130,8 @@ describe("Account view builders", () => {
     });
 
     expect(holderOptions.map((option) => option.user_id)).toEqual([
-      "user-b",
       "user-a",
+      "user-b",
     ]);
   });
 

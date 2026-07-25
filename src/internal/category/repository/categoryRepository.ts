@@ -111,15 +111,12 @@ type CategoryReorderRpcErrorCode =
 function findCategoryReorderRpcErrorCode(
   error: CategoryReorderRpcError,
 ): CategoryReorderRpcErrorCode | null {
-  const messages = [error.details, error.message]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-
-  return (
-    categoryReorderRpcErrorCodes.find((code) =>
-      messages.some((message) => message === code || message.includes(code)),
-    ) ?? null
-  );
+  const businessErrorCode = error.details?.trim();
+  return categoryReorderRpcErrorCodes.includes(
+    businessErrorCode as CategoryReorderRpcErrorCode,
+  )
+    ? (businessErrorCode as CategoryReorderRpcErrorCode)
+    : null;
 }
 
 function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {

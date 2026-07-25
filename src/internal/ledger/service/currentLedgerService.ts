@@ -4,7 +4,11 @@ import {
   type CurrentLedgerErrorCode,
 } from "internal/ledger/errors/currentLedger";
 import type { CurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
-import { AppError, NotFoundError } from "internal/shared/errors/appError";
+import {
+  AppError,
+  ConflictError,
+  NotFoundError,
+} from "internal/shared/errors/appError";
 
 export type SwitchCurrentLedgerInput = {
   ledgerId: string;
@@ -27,7 +31,7 @@ function toAppError(code: CurrentLedgerErrorCode): AppError {
     return new NotFoundError(code, message);
   }
 
-  return new AppError(code, message);
+  return new ConflictError(code, message);
 }
 
 /**

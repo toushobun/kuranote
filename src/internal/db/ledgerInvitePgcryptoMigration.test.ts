@@ -9,7 +9,7 @@ const migrationSql = readFileSync(
     "supabase/migrations/20260714161000_fix_ledger_invite_pgcrypto_search_path.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 const inviteRpcSignatures = [
   "create_ledger_invite(uuid, text)",

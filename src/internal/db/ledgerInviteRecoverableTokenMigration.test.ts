@@ -9,7 +9,7 @@ const migrationSql = readFileSync(
     "supabase/migrations/20260716210000_restore_ledger_invite_token.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 describe("可恢复邀请 token migration", () => {
   it("新增明文 token 字段并约束其长度与生命周期", () => {

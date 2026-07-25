@@ -9,7 +9,7 @@ const migrationSql = readFileSync(
     "supabase/migrations/20260713010000_assign_ledger_member_display_colors.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 const orderedColors = [
   "amber",

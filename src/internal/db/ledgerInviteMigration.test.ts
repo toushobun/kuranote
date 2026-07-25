@@ -9,7 +9,7 @@ const inviteMigrationSql = readFileSync(
     "supabase/migrations/20260713011000_add_ledger_invites.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 const createTableBlock =
   inviteMigrationSql.match(
