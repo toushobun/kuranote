@@ -14,12 +14,12 @@ import {
   createMerchantAliasRequestSchema,
   createMerchantRequestSchema,
   errorResponseSchema,
-  merchantAliasIdParamsSchema,
-  merchantIdParamsSchema,
-  merchantLedgerQuerySchema,
+  merchantAliasParamsSchema,
+  merchantLedgerParamsSchema,
   merchantListQuerySchema,
   merchantListResponseSchema,
   merchantOptionsResponseSchema,
+  merchantParamsSchema,
   okResponseSchema,
   updateMerchantRequestSchema,
 } from "internal/merchant/schema";
@@ -36,8 +36,11 @@ const errorResponses = createOpenApiErrorResponses(
 
 export const listMerchantsRoute = createRoute({
   method: "get",
-  path: "/",
-  request: { query: merchantListQuerySchema },
+  path: "/{ledgerId}/merchants",
+  request: {
+    params: merchantLedgerParamsSchema,
+    query: merchantListQuerySchema,
+  },
   responses: {
     200: {
       content: { "application/json": { schema: merchantListResponseSchema } },
@@ -49,8 +52,8 @@ export const listMerchantsRoute = createRoute({
 
 export const listMerchantOptionsRoute = createRoute({
   method: "get",
-  path: "/options",
-  request: { query: merchantLedgerQuerySchema },
+  path: "/{ledgerId}/merchants/options",
+  request: { params: merchantLedgerParamsSchema },
   responses: {
     200: {
       content: {
@@ -64,8 +67,9 @@ export const listMerchantOptionsRoute = createRoute({
 
 export const createMerchantRoute = createRoute({
   method: "post",
-  path: "/",
+  path: "/{ledgerId}/merchants",
   request: {
+    params: merchantLedgerParamsSchema,
     body: {
       content: { "application/json": { schema: createMerchantRequestSchema } },
     },
@@ -81,9 +85,9 @@ export const createMerchantRoute = createRoute({
 
 export const updateMerchantRoute = createRoute({
   method: "patch",
-  path: "/{merchantId}",
+  path: "/{ledgerId}/merchants/{merchantId}",
   request: {
-    params: merchantIdParamsSchema,
+    params: merchantParamsSchema,
     body: {
       content: { "application/json": { schema: updateMerchantRequestSchema } },
     },
@@ -99,11 +103,8 @@ export const updateMerchantRoute = createRoute({
 
 export const archiveMerchantRoute = createRoute({
   method: "delete",
-  path: "/{merchantId}",
-  request: {
-    params: merchantIdParamsSchema,
-    query: merchantLedgerQuerySchema,
-  },
+  path: "/{ledgerId}/merchants/{merchantId}",
+  request: { params: merchantParamsSchema },
   responses: {
     200: {
       content: { "application/json": { schema: okResponseSchema } },
@@ -115,9 +116,9 @@ export const archiveMerchantRoute = createRoute({
 
 export const createMerchantAliasRoute = createRoute({
   method: "post",
-  path: "/{merchantId}/aliases",
+  path: "/{ledgerId}/merchants/{merchantId}/aliases",
   request: {
-    params: merchantIdParamsSchema,
+    params: merchantParamsSchema,
     body: {
       content: {
         "application/json": { schema: createMerchantAliasRequestSchema },
@@ -135,11 +136,8 @@ export const createMerchantAliasRoute = createRoute({
 
 export const archiveMerchantAliasRoute = createRoute({
   method: "delete",
-  path: "/aliases/{aliasId}",
-  request: {
-    params: merchantAliasIdParamsSchema,
-    query: merchantLedgerQuerySchema,
-  },
+  path: "/{ledgerId}/merchants/aliases/{aliasId}",
+  request: { params: merchantAliasParamsSchema },
   responses: {
     200: {
       content: { "application/json": { schema: okResponseSchema } },
