@@ -85,7 +85,7 @@ function createApp(
     await next();
   });
   app.onError(errorHandlingMiddleware);
-  app.route("/merchants", merchantRouter);
+  app.route("/ledgers", merchantRouter);
   return app;
 }
 
@@ -100,7 +100,7 @@ describe("merchant router", () => {
     const app = createApp(createService({ list }));
 
     const response = await app.request(
-      `https://kuranote.example/merchants?ledgerId=${ledgerId}&q=LIFE`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants?q=LIFE`,
     );
 
     expect(response.status).toBe(200);
@@ -119,7 +119,7 @@ describe("merchant router", () => {
     const app = createApp(createService({ listActiveOptions }));
 
     const response = await app.request(
-      `https://kuranote.example/merchants/options?ledgerId=${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/options`,
     );
 
     expect(response.status).toBe(200);
@@ -131,16 +131,18 @@ describe("merchant router", () => {
     const createMerchant = vi.fn();
     const app = createApp(createService({ createMerchant }));
 
-    const response = await app.request("https://kuranote.example/merchants", {
-      body: JSON.stringify({
-        ledgerId,
-        name: " LIFE ",
-        note: null,
-        siteUrl: "https://example.com",
-      }),
-      headers: writeHeaders,
-      method: "POST",
-    });
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants`,
+      {
+        body: JSON.stringify({
+          name: " LIFE ",
+          note: null,
+          siteUrl: "https://example.com",
+        }),
+        headers: writeHeaders,
+        method: "POST",
+      },
+    );
 
     expect(response.status).toBe(201);
     expect(createMerchant).toHaveBeenCalledWith({
@@ -156,16 +158,18 @@ describe("merchant router", () => {
     const createMerchant = vi.fn();
     const app = createApp(createService({ createMerchant }));
 
-    const response = await app.request("https://kuranote.example/merchants", {
-      body: JSON.stringify({
-        ledgerId,
-        name: "",
-        note: null,
-        siteUrl: null,
-      }),
-      headers: writeHeaders,
-      method: "POST",
-    });
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants`,
+      {
+        body: JSON.stringify({
+          name: "",
+          note: null,
+          siteUrl: null,
+        }),
+        headers: writeHeaders,
+        method: "POST",
+      },
+    );
 
     expect(response.status).toBe(400);
     expect(createMerchant).not.toHaveBeenCalled();
@@ -177,10 +181,9 @@ describe("merchant router", () => {
     const app = createApp(createService({ updateMerchant }));
 
     const response = await app.request(
-      `https://kuranote.example/merchants/${merchantId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
       {
         body: JSON.stringify({
-          ledgerId,
           name: "ライフ",
           note: null,
           siteUrl: null,
@@ -207,15 +210,15 @@ describe("merchant router", () => {
     const app = createApp(createService({ archiveAlias, createAlias }));
 
     const createResponse = await app.request(
-      `https://kuranote.example/merchants/${merchantId}/aliases`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}/aliases`,
       {
-        body: JSON.stringify({ alias: "来福", ledgerId }),
+        body: JSON.stringify({ alias: "来福" }),
         headers: writeHeaders,
         method: "POST",
       },
     );
     const archiveResponse = await app.request(
-      `https://kuranote.example/merchants/aliases/${aliasId}?ledgerId=${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/aliases/${aliasId}`,
       { headers: { origin: "https://kuranote.example" }, method: "DELETE" },
     );
 
@@ -234,19 +237,21 @@ describe("merchant router", () => {
     const createMerchant = vi.fn();
     const app = createApp(createService({ createMerchant }));
 
-    const response = await app.request("https://kuranote.example/merchants", {
-      body: JSON.stringify({
-        ledgerId,
-        name: "LIFE",
-        note: null,
-        siteUrl: null,
-      }),
-      headers: {
-        "content-type": "application/json",
-        origin: "https://evil.example",
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants`,
+      {
+        body: JSON.stringify({
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+        }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://evil.example",
+        },
+        method: "POST",
       },
-      method: "POST",
-    });
+    );
 
     expect(response.status).toBe(403);
     expect(createMerchant).not.toHaveBeenCalled();
@@ -260,7 +265,7 @@ describe("merchant router", () => {
     const app = createApp(createService({ archiveMerchant }));
 
     const response = await app.request(
-      `https://kuranote.example/merchants/${merchantId}?ledgerId=${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
       { headers: { origin: "https://kuranote.example" }, method: "DELETE" },
     );
 
@@ -277,7 +282,7 @@ describe("merchant router", () => {
     });
 
     const response = await app.request(
-      `https://kuranote.example/merchants?ledgerId=${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/merchants`,
     );
 
     expect(response.status).toBe(401);
