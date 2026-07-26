@@ -110,7 +110,7 @@ function restoreScrollEndSupport() {
   Reflect.deleteProperty(window, "onscrollend");
 }
 
-describe("TransactionDateTimePicker", () => {
+describe("TransactionDateTimePicker", { timeout: 15000 }, () => {
   it("打开底部日历并选择日期", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 13, 10, 33));

@@ -1,5 +1,6 @@
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import type { LedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
+import { NotFoundError } from "internal/shared/errors/appError";
 
 export type GetActiveLedgerMemberRoleInput = {
   ledgerId: string;
@@ -11,6 +12,22 @@ export interface LedgerAccessService {
   getActiveMemberRole(
     input: GetActiveLedgerMemberRoleInput,
   ): Promise<CurrentLedgerRole | null>;
+}
+
+export async function requireActiveLedgerMemberRole(
+  service: LedgerAccessService,
+  input: GetActiveLedgerMemberRoleInput,
+): Promise<CurrentLedgerRole> {
+  const role = await service.getActiveMemberRole(input);
+
+  if (!role) {
+    throw new NotFoundError(
+      "ledger_invalid",
+      "账本不存在、已归档或您无法访问。",
+    );
+  }
+
+  return role;
 }
 
 export function createLedgerAccessService(

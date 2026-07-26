@@ -200,7 +200,10 @@ export function createRequestContainer(
           currentLedgerService: createCurrentLedgerService({
             currentLedgerRepository,
           }),
-          inviteService: createLedgerInviteService({ ledgerInviteRepository }),
+          inviteService: createLedgerInviteService({
+            ledgerAccessService: getLedgerAccessService(),
+            ledgerInviteRepository,
+          }),
           invitePreviewService: createLedgerInvitePreviewService(
             ledgerInvitePreviewRepository,
           ),

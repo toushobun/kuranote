@@ -9,6 +9,7 @@ import { createMerchantService } from "internal/merchant/service/merchantService
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
@@ -213,7 +214,7 @@ describe("createMerchantService", () => {
     });
   });
 
-  it("商家更新或归档未命中时保留既有操作错误码", async () => {
+  it("商家更新或归档在前置检查后未命中时返回 409", async () => {
     const repository = createRepository({
       archiveMerchant: vi.fn().mockResolvedValue(false),
       updateMerchant: vi.fn().mockResolvedValue(false),
@@ -222,7 +223,7 @@ describe("createMerchantService", () => {
 
     await expect(
       service.archiveMerchant({ ledgerId, merchantId }),
-    ).rejects.toMatchObject({ code: merchantErrorCodes.archiveFailed });
+    ).rejects.toBeInstanceOf(ConflictError);
     await expect(
       service.updateMerchant({
         ledgerId,
@@ -231,7 +232,29 @@ describe("createMerchantService", () => {
         note: null,
         siteUrl: null,
       }),
-    ).rejects.toMatchObject({ code: merchantErrorCodes.updateFailed });
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("商家不存在或已归档时更新与归档返回 404", async () => {
+    const repository = createRepository({
+      findActiveMerchant: vi.fn().mockResolvedValue(false),
+    });
+    const service = createService(repository);
+
+    await expect(
+      service.archiveMerchant({ ledgerId, merchantId }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      service.updateMerchant({
+        ledgerId,
+        merchantId,
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.archiveMerchant).not.toHaveBeenCalled();
+    expect(repository.updateMerchant).not.toHaveBeenCalled();
   });
 
   it("Repository 异常保持内部错误，不伪装成权限错误", async () => {

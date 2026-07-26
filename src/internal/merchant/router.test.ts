@@ -13,7 +13,11 @@ import type { RequestContainer } from "internal/container";
 import { merchantRouter } from "internal/merchant/router";
 import type { MerchantService } from "internal/merchant/service/merchantService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+} from "internal/shared/errors/appError";
 import {
   errorHandlingMiddleware,
   openApiValidationErrorHook,
@@ -270,6 +274,63 @@ describe("merchant router", () => {
     );
 
     expect(response.status).toBe(403);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("商家不存在时真实入口返回统一 404", async () => {
+    const updateMerchant = vi
+      .fn()
+      .mockRejectedValue(
+        new NotFoundError("merchant_invalid", "商家指定不正确。"),
+      );
+    const app = createApp(createService({ updateMerchant }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
+      {
+        body: JSON.stringify({ name: "LIFE", note: null, siteUrl: null }),
+        headers: writeHeaders,
+        method: "PATCH",
+      },
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "merchant_invalid",
+        message: "商家指定不正确。",
+        requestId: "request-1",
+        status: 404,
+      },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("商家状态竞争时真实入口返回统一 409", async () => {
+    const archiveMerchant = vi
+      .fn()
+      .mockRejectedValue(
+        new ConflictError(
+          "merchant_operation_failed",
+          "商家操作失败，请重试。",
+        ),
+      );
+    const app = createApp(createService({ archiveMerchant }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
+      { headers: { origin: "https://kuranote.example" }, method: "DELETE" },
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "merchant_operation_failed",
+        message: "商家操作失败，请重试。",
+        requestId: "request-1",
+        status: 409,
+      },
+    });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
