@@ -44,6 +44,8 @@ function containerWithAccept(
         listPending: vi.fn(),
         revoke: vi.fn(),
       },
+      invitePreviewService:
+        {} as RequestContainer["ledger"]["invitePreviewService"],
       service: {} as RequestContainer["ledger"]["service"],
       settingsService: {} as RequestContainer["ledger"]["settingsService"],
     },
