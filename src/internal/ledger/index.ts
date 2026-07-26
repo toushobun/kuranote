@@ -22,3 +22,4 @@ export type {
   LedgerInviteStatus,
 } from "internal/ledger/entity/ledgerInvitePreview";
 export type { LedgerCreateDefaults } from "internal/ledger/service/ledgerService";
+export type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";

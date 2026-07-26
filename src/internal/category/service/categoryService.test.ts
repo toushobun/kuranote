@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { categoryErrorCodes } from "internal/category/categoryErrors";
 import type { CategoryRepository } from "internal/category/repository/categoryRepository";
 import { createCategoryService } from "internal/category/service/categoryService";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,

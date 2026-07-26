@@ -1,5 +1,5 @@
 import { canManageMasterData } from "lib/ledger/permissions";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantActionErrorMessage,

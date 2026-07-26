@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { accountErrorCodes } from "internal/account/errors";
 import type { AccountRepository } from "internal/account/repository/accountRepository";
 import { createAccountService } from "internal/account/service/accountService";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";

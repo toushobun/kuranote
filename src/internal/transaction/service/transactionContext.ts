@@ -1,7 +1,7 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import { canModifyTransaction } from "lib/ledger/permissions";
-import type { AccountQueryService } from "internal/account/service/accountService";
-import type { CategoryQueryService } from "internal/category/service/categoryService";
+import type { AccountQueryService } from "internal/account";
+import type { CategoryQueryService } from "internal/category";
 import type {
   AccountOptionDbRow,
   AppUserSummaryDbRow,
@@ -11,7 +11,7 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import { buildTransactionListItem } from "internal/transaction/util/buildTransactionListItem";
-import type { MerchantQueryService } from "internal/merchant/service/merchantService";
+import type { MerchantQueryService } from "internal/merchant";
 import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionListItem } from "types/transactions";
 
