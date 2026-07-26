@@ -9,10 +9,12 @@ import { createSupabaseCategoryRepository } from "internal/category/repository/c
 import { createCategoryService } from "internal/category/service/categoryService";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
+import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
 import { createSupabaseLedgerRepository } from "internal/ledger/repository/ledgerRepository";
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import { createCurrentLedgerService } from "internal/ledger/service/currentLedgerService";
 import { createLedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import { createLedgerInvitePreviewService } from "internal/ledger/service/ledgerInvitePreviewService";
 import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteService";
 import { createLedgerService } from "internal/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
@@ -51,6 +53,9 @@ export type RequestContainer = {
     >;
     readonly settingsService: ReturnType<typeof createLedgerSettingsService>;
     readonly inviteService: ReturnType<typeof createLedgerInviteService>;
+    readonly invitePreviewService: ReturnType<
+      typeof createLedgerInvitePreviewService
+    >;
   };
   readonly category: {
     readonly service: ReturnType<typeof createCategoryService>;
@@ -80,6 +85,25 @@ export function createRequestContainer(
   let statisticsContainer: RequestContainer["statistics"] | undefined;
   let transactionContainer: RequestContainer["transaction"] | undefined;
   let userContainer: RequestContainer["user"] | undefined;
+  let ledgerSettingsRepository:
+    | ReturnType<typeof createSupabaseLedgerSettingsRepository>
+    | undefined;
+  let ledgerAccessService:
+    | ReturnType<typeof createLedgerAccessService>
+    | undefined;
+
+  function getLedgerSettingsRepository() {
+    return (ledgerSettingsRepository ??= createSupabaseLedgerSettingsRepository(
+      dependencies.supabase,
+      dependencies.logger,
+    ));
+  }
+
+  function getLedgerAccessService() {
+    return (ledgerAccessService ??= createLedgerAccessService(
+      getLedgerSettingsRepository(),
+    ));
+  }
 
   return {
     get account() {
@@ -88,17 +112,10 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-
         accountContainer = {
           service: createAccountService({
             accountRepository,
-            ledgerAccessService: createLedgerAccessService(
-              ledgerSettingsRepository,
-            ),
+            ledgerAccessService: getLedgerAccessService(),
           }),
         };
       }
@@ -148,17 +165,10 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-
         categoryContainer = {
           service: createCategoryService({
             categoryRepository,
-            ledgerAccessService: createLedgerAccessService(
-              ledgerSettingsRepository,
-            ),
+            ledgerAccessService: getLedgerAccessService(),
           }),
         };
       }
@@ -176,23 +186,27 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         const ledgerInviteRepository = createSupabaseLedgerInviteRepository(
           dependencies.supabase,
           dependencies.logger,
         );
+        const ledgerInvitePreviewRepository =
+          createSupabaseLedgerInvitePreviewRepository(
+            dependencies.supabase,
+            dependencies.logger,
+          );
 
         ledgerContainer = {
           currentLedgerService: createCurrentLedgerService({
             currentLedgerRepository,
           }),
           inviteService: createLedgerInviteService({ ledgerInviteRepository }),
+          invitePreviewService: createLedgerInvitePreviewService(
+            ledgerInvitePreviewRepository,
+          ),
           service: createLedgerService({ ledgerRepository }),
           settingsService: createLedgerSettingsService({
-            ledgerSettingsRepository,
+            ledgerSettingsRepository: getLedgerSettingsRepository(),
           }),
         };
       }
@@ -206,19 +220,12 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-
         merchantContainer = {
           service: createMerchantService({
             currentUserId: dependencies.auth.isAuthenticated
               ? dependencies.auth.userId
               : null,
-            ledgerAccessService: createLedgerAccessService(
-              ledgerSettingsRepository,
-            ),
+            ledgerAccessService: getLedgerAccessService(),
             merchantRepository,
           }),
         };
@@ -249,13 +256,7 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-        const ledgerAccessService = createLedgerAccessService(
-          ledgerSettingsRepository,
-        );
+        const ledgerAccessService = getLedgerAccessService();
         const currentUserId = dependencies.auth.isAuthenticated
           ? dependencies.auth.userId
           : null;
@@ -312,14 +313,7 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
-        const ledgerSettingsRepository = createSupabaseLedgerSettingsRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-
-        const ledgerAccessService = createLedgerAccessService(
-          ledgerSettingsRepository,
-        );
+        const ledgerAccessService = getLedgerAccessService();
         const currentUserId = dependencies.auth.isAuthenticated
           ? dependencies.auth.userId
           : null;

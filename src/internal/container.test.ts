@@ -1,8 +1,40 @@
 // @vitest-environment node
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock(
+  "internal/ledger/repository/ledgerSettingsRepository",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("internal/ledger/repository/ledgerSettingsRepository")
+      >();
+    return {
+      ...actual,
+      createSupabaseLedgerSettingsRepository: vi.fn(
+        actual.createSupabaseLedgerSettingsRepository,
+      ),
+    };
+  },
+);
+
+vi.mock(
+  "internal/ledger/service/ledgerAccessService",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("internal/ledger/service/ledgerAccessService")
+      >();
+    return {
+      ...actual,
+      createLedgerAccessService: vi.fn(actual.createLedgerAccessService),
+    };
+  },
+);
 
 import { createRequestContainer } from "internal/container";
+import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
+import { createLedgerAccessService } from "internal/ledger/service/ledgerAccessService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 
 function createDependenciesStub(): RequestDependencies {
@@ -16,6 +48,10 @@ function createDependenciesStub(): RequestDependencies {
 }
 
 describe("createRequestContainer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("同一个 container 实例重复访问同一模块字段返回同一对象（惰性缓存）", () => {
     const container = createRequestContainer(createDependenciesStub());
 
@@ -29,6 +65,22 @@ describe("createRequestContainer", () => {
     const container = createRequestContainer(createDependenciesStub());
 
     expect(typeof container.ledger.inviteService.accept).toBe("function");
+  });
+
+  it("提供 ledger.invitePreviewService.load 方法", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(typeof container.ledger.invitePreviewService.load).toBe("function");
+  });
+
+  it("跨模块访问时只构造一次账本设置 Repository 与访问 Service", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    void container.account;
+    void container.statistics;
+
+    expect(createSupabaseLedgerSettingsRepository).toHaveBeenCalledTimes(1);
+    expect(createLedgerAccessService).toHaveBeenCalledTimes(1);
   });
 
   it("提供惰性缓存的 account.service 及账户 UseCase", () => {

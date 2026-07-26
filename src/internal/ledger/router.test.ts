@@ -35,6 +35,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
         listPending: vi.fn(),
         revoke: vi.fn(),
       },
+      invitePreviewService: { load: vi.fn() },
       service: {
         create: vi.fn(),
         getCreateDefaults: vi.fn(),
