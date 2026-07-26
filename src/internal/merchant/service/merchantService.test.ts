@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import { merchantErrorCodes } from "internal/merchant/errors";
 import type { MerchantRepository } from "internal/merchant/repository/merchantRepository";
 import { createMerchantService } from "internal/merchant/service/merchantService";

@@ -19,7 +19,7 @@ import {
   buildDisplayColorByUserId,
   buildHolderOptions,
 } from "internal/account/util/accountView";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,

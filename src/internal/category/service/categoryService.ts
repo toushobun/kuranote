@@ -7,7 +7,7 @@ import type {
   CategoryRepository,
   CategoryScope,
 } from "internal/category/repository/categoryRepository";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,

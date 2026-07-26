@@ -3,10 +3,10 @@ import {
   canWriteTransaction,
 } from "lib/ledger/permissions";
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import type { AccountQueryService } from "internal/account/service/accountService";
-import type { CategoryQueryService } from "internal/category/service/categoryService";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
-import type { MerchantQueryService } from "internal/merchant/service/merchantService";
+import type { AccountQueryService } from "internal/account";
+import type { CategoryQueryService } from "internal/category";
+import type { LedgerAccessService } from "internal/ledger";
+import type { MerchantQueryService } from "internal/merchant";
 import {
   AuthenticationError,
   AuthorizationError,

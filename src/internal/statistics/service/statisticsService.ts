@@ -1,5 +1,5 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import type { LedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import type { LedgerAccessService } from "internal/ledger";
 import {
   AuthenticationError,
   NotFoundError,
@@ -11,7 +11,7 @@ import type {
 } from "internal/statistics/repository/statisticsRepository";
 import { buildStatisticsViewData } from "internal/statistics/util/statistics";
 import { getDashboardDateRange } from "internal/statistics/util/dashboardDateRange";
-import type { TransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
+import type { TransactionDashboardQueryService } from "internal/transaction";
 import type { DashboardViewData } from "types/dashboard";
 import type { StatisticsViewData } from "types/statistics";
 import { getMonthBounds, normalizeMonth } from "utils/transactions";
