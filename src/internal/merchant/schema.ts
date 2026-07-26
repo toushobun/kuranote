@@ -192,21 +192,20 @@ const optionalWebsiteUrlSchema = z
   .refine(isHttpUrl, { message: "商家网址必须使用 HTTP 或 HTTPS。" })
   .nullable();
 
-export const merchantIdParamsSchema = z.object({
-  merchantId: z.string().uuid(),
-});
-export const merchantAliasIdParamsSchema = z.object({
-  aliasId: z.string().uuid(),
-});
-export const merchantLedgerQuerySchema = z.object({
+export const merchantLedgerParamsSchema = z.object({
   ledgerId: z.string().uuid(),
 });
-export const merchantListQuerySchema = merchantLedgerQuerySchema.extend({
+export const merchantParamsSchema = merchantLedgerParamsSchema.extend({
+  merchantId: z.string().uuid(),
+});
+export const merchantAliasParamsSchema = merchantLedgerParamsSchema.extend({
+  aliasId: z.string().uuid(),
+});
+export const merchantListQuerySchema = z.object({
   q: z.string().optional().default(""),
 });
 
 export const createMerchantRequestSchema = z.object({
-  ledgerId: z.string().uuid(),
   name: z.string().trim().min(1).max(merchantNameMaxLength),
   note: z.string().trim().max(merchantNoteMaxLength).nullable(),
   siteUrl: optionalWebsiteUrlSchema,
@@ -215,7 +214,6 @@ export const createMerchantRequestSchema = z.object({
 export const updateMerchantRequestSchema = createMerchantRequestSchema;
 export const createMerchantAliasRequestSchema = z.object({
   alias: z.string().trim().min(1).max(merchantAliasMaxLength),
-  ledgerId: z.string().uuid(),
 });
 
 export const merchantAliasSchema = z.object({

@@ -4,30 +4,34 @@ import { revalidateMerchantMutation } from "internal/merchant/adapter/next/reval
 import {
   createMerchantAliasRequestSchema,
   createMerchantRequestSchema,
-  merchantAliasIdParamsSchema,
-  merchantIdParamsSchema,
-  merchantLedgerQuerySchema,
+  merchantAliasParamsSchema,
+  merchantLedgerParamsSchema,
   merchantListQuerySchema,
+  merchantParamsSchema,
   updateMerchantRequestSchema,
 } from "internal/merchant/schema";
 import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
 import type { ControllerContext } from "internal/shared/http/controllerContext";
 
 type MerchantListQuery = z.infer<typeof merchantListQuerySchema>;
-type MerchantLedgerQuery = z.infer<typeof merchantLedgerQuerySchema>;
+type MerchantLedgerParams = z.infer<typeof merchantLedgerParamsSchema>;
 type CreateMerchantRequest = z.infer<typeof createMerchantRequestSchema>;
-type MerchantIdParams = z.infer<typeof merchantIdParamsSchema>;
+type MerchantParams = z.infer<typeof merchantParamsSchema>;
 type UpdateMerchantRequest = z.infer<typeof updateMerchantRequestSchema>;
 type CreateMerchantAliasRequest = z.infer<
   typeof createMerchantAliasRequestSchema
 >;
-type MerchantAliasIdParams = z.infer<typeof merchantAliasIdParamsSchema>;
+type MerchantAliasParams = z.infer<typeof merchantAliasParamsSchema>;
 
 export const listMerchantsHandler = async (
-  c: ControllerContext<{ query: MerchantListQuery }>,
+  c: ControllerContext<{
+    param: MerchantLedgerParams;
+    query: MerchantListQuery;
+  }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  const { ledgerId, q } = c.req.valid("query");
+  const { ledgerId } = c.req.valid("param");
+  const { q } = c.req.valid("query");
   const result = await c.get("container").merchant.service.list({
     keyword: q,
     ledgerId,
@@ -36,20 +40,26 @@ export const listMerchantsHandler = async (
 };
 
 export const listMerchantOptionsHandler = async (
-  c: ControllerContext<{ query: MerchantLedgerQuery }>,
+  c: ControllerContext<{ param: MerchantLedgerParams }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const merchants = await c
     .get("container")
-    .merchant.service.listActiveOptions(c.req.valid("query"));
+    .merchant.service.listActiveOptions(c.req.valid("param"));
   return c.json({ merchants }, 200);
 };
 
 export const createMerchantHandler = async (
-  c: ControllerContext<{ json: CreateMerchantRequest }>,
+  c: ControllerContext<{
+    json: CreateMerchantRequest;
+    param: MerchantLedgerParams;
+  }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").merchant.service.createMerchant(c.req.valid("json"));
+  await c.get("container").merchant.service.createMerchant({
+    ...c.req.valid("json"),
+    ...c.req.valid("param"),
+  });
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 201);
 };
@@ -57,30 +67,25 @@ export const createMerchantHandler = async (
 export const updateMerchantHandler = async (
   c: ControllerContext<{
     json: UpdateMerchantRequest;
-    param: MerchantIdParams;
+    param: MerchantParams;
   }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  const { merchantId } = c.req.valid("param");
   await c.get("container").merchant.service.updateMerchant({
     ...c.req.valid("json"),
-    merchantId,
+    ...c.req.valid("param"),
   });
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 200);
 };
 
 export const archiveMerchantHandler = async (
-  c: ControllerContext<{
-    param: MerchantIdParams;
-    query: MerchantLedgerQuery;
-  }>,
+  c: ControllerContext<{ param: MerchantParams }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").merchant.service.archiveMerchant({
-    ...c.req.valid("param"),
-    ...c.req.valid("query"),
-  });
+  await c
+    .get("container")
+    .merchant.service.archiveMerchant(c.req.valid("param"));
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 200);
 };
@@ -88,7 +93,7 @@ export const archiveMerchantHandler = async (
 export const createMerchantAliasHandler = async (
   c: ControllerContext<{
     json: CreateMerchantAliasRequest;
-    param: MerchantIdParams;
+    param: MerchantParams;
   }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
@@ -101,16 +106,10 @@ export const createMerchantAliasHandler = async (
 };
 
 export const archiveMerchantAliasHandler = async (
-  c: ControllerContext<{
-    param: MerchantAliasIdParams;
-    query: MerchantLedgerQuery;
-  }>,
+  c: ControllerContext<{ param: MerchantAliasParams }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").merchant.service.archiveAlias({
-    ...c.req.valid("param"),
-    ...c.req.valid("query"),
-  });
+  await c.get("container").merchant.service.archiveAlias(c.req.valid("param"));
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 200);
 };

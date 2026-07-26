@@ -13,7 +13,6 @@ import {
 
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const aliasId = "00000000-0000-4000-8000-000000001002";
-const ledgerId = "00000000-0000-4000-8000-000000000032";
 
 function createFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -46,7 +45,14 @@ describe("merchant schema", () => {
     });
   });
 
-  it("非法网址和超长名称会被拒绝", () => {
+  it("HTTP 请求体不要求账本 ID，非法网址和超长名称会被拒绝", () => {
+    expect(
+      createMerchantRequestSchema.safeParse({
+        name: "LIFE",
+        note: null,
+        siteUrl: "https://example.com",
+      }).success,
+    ).toBe(true);
     expect(
       validateCreateMerchantForm(
         createFormData({ websiteUrl: "ftp://example.com" }),
@@ -54,7 +60,6 @@ describe("merchant schema", () => {
     ).toEqual({ error: "website_url_invalid", ok: false });
     expect(
       createMerchantRequestSchema.safeParse({
-        ledgerId,
         name: "x".repeat(101),
         note: null,
         siteUrl: null,

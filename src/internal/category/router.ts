@@ -29,7 +29,7 @@ const errorResponses = createOpenApiErrorResponses(
 
 export const createCategoryRoute = createRoute({
   method: "post",
-  path: "/{ledgerId}",
+  path: "/{ledgerId}/categories",
   request: {
     params: categoryLedgerParamsSchema,
     body: {
@@ -49,7 +49,7 @@ export const createCategoryRoute = createRoute({
 
 export const updateCategoryRoute = createRoute({
   method: "patch",
-  path: "/{ledgerId}/{categoryId}",
+  path: "/{ledgerId}/categories/{categoryId}",
   request: {
     params: categoryParamsSchema,
     body: {
@@ -69,7 +69,7 @@ export const updateCategoryRoute = createRoute({
 
 export const archiveCategoryRoute = createRoute({
   method: "delete",
-  path: "/{ledgerId}/{categoryId}",
+  path: "/{ledgerId}/categories/{categoryId}",
   request: { params: categoryParamsSchema },
   responses: {
     200: {
@@ -82,7 +82,7 @@ export const archiveCategoryRoute = createRoute({
 
 export const reorderCategoriesRoute = createRoute({
   method: "put",
-  path: "/{ledgerId}/order",
+  path: "/{ledgerId}/categories/order",
   request: {
     params: categoryLedgerParamsSchema,
     body: {

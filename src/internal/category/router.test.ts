@@ -77,7 +77,7 @@ function createApp(
     await next();
   });
   app.onError(errorHandlingMiddleware);
-  app.route("/categories", categoryRouter);
+  app.route("/ledgers", categoryRouter);
   return app;
 }
 
@@ -89,7 +89,7 @@ describe("category router", () => {
     const app = createApp(createContainer({ create }));
 
     const response = await app.request(
-      `https://kuranote.example/categories/${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories`,
       {
         body: JSON.stringify({
           iconName: "🍽️",
@@ -119,7 +119,7 @@ describe("category router", () => {
     const app = createApp(createContainer({ create }));
 
     const response = await app.request(
-      `https://kuranote.example/categories/${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories`,
       {
         body: JSON.stringify({
           iconName: "unknown",
@@ -146,7 +146,7 @@ describe("category router", () => {
     });
 
     const response = await app.request(
-      `https://kuranote.example/categories/${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories`,
       {
         body: JSON.stringify({
           iconName: "🍽️",
@@ -169,7 +169,7 @@ describe("category router", () => {
     const app = createApp(createContainer({ create }));
 
     const response = await app.request(
-      `https://kuranote.example/categories/${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories`,
       {
         body: JSON.stringify({
           iconName: "🍽️",
@@ -194,7 +194,7 @@ describe("category router", () => {
     const app = createApp(createContainer({ archive, reorder, update }));
 
     const updateResponse = await app.request(
-      `https://kuranote.example/categories/${ledgerId}/${categoryId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories/${categoryId}`,
       {
         body: JSON.stringify({ iconName: "🍜", name: "外食" }),
         headers,
@@ -202,11 +202,11 @@ describe("category router", () => {
       },
     );
     const archiveResponse = await app.request(
-      `https://kuranote.example/categories/${ledgerId}/${categoryId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories/${categoryId}`,
       { headers: { origin: headers.origin }, method: "DELETE" },
     );
     const reorderResponse = await app.request(
-      `https://kuranote.example/categories/${ledgerId}/order`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories/order`,
       {
         body: JSON.stringify({
           categoryIds: [categoryId],
@@ -252,7 +252,7 @@ describe("category router", () => {
     const app = createApp(createContainer({ create }));
 
     const response = await app.request(
-      `https://kuranote.example/categories/${ledgerId}`,
+      `https://kuranote.example/ledgers/${ledgerId}/categories`,
       {
         body: JSON.stringify({
           iconName: "🍽️",
