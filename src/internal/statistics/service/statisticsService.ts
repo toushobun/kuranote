@@ -7,7 +7,6 @@ import {
   AuthenticationError,
   NotFoundError,
 } from "internal/shared/errors/appError";
-import { statisticsErrorCodes } from "internal/statistics/errors";
 import type {
   DashboardAccountSummaryRecord,
   StatisticsRepository,
@@ -58,8 +57,8 @@ export function createStatisticsService({
 
     if (!ledger) {
       throw new NotFoundError(
-        statisticsErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
+        "ledger_invalid",
+        "账本不存在、已归档或您无法访问。",
       );
     }
 
