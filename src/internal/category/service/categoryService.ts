@@ -7,7 +7,10 @@ import type {
   CategoryRepository,
   CategoryScope,
 } from "internal/category/repository/categoryRepository";
-import type { LedgerAccessService } from "internal/ledger";
+import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,
@@ -130,7 +133,7 @@ function nextSortOrder(
   return maxSortOrder + 10;
 }
 
-function operationError(
+function repositoryError(
   code:
     | typeof categoryErrorCodes.archiveFailed
     | typeof categoryErrorCodes.createFailed
@@ -140,6 +143,17 @@ function operationError(
   return new RepositoryError(
     code,
     getCategoryErrorMessage(code) ?? "分类操作失败，请稍后重试。",
+  );
+}
+
+function conflictError(
+  code:
+    | typeof categoryErrorCodes.archiveFailed
+    | typeof categoryErrorCodes.updateFailed,
+) {
+  return new ConflictError(
+    code,
+    getCategoryErrorMessage(code) ?? "分类状态已变化，请刷新后重试。",
   );
 }
 
@@ -155,7 +169,7 @@ async function withOperationError<T>(
     return await operation();
   } catch (error) {
     if (error instanceof RepositoryError) {
-      throw operationError(code);
+      throw repositoryError(code);
     }
     throw error;
   }
@@ -170,20 +184,10 @@ export function createCategoryService({
   ledgerAccessService,
 }: CategoryServiceDependencies): CategoryService {
   async function requireActiveMemberRole(ledgerId: string, userId: string) {
-    const role = await ledgerAccessService.getActiveMemberRole({
+    return requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
       userId,
     });
-
-    if (!role) {
-      throw new AuthorizationError(
-        categoryErrorCodes.permissionDenied,
-        getCategoryErrorMessage(categoryErrorCodes.permissionDenied) ??
-          "没有权限维护分类。",
-      );
-    }
-
-    return role;
   }
 
   async function requireManagePermission(ledgerId: string, userId: string) {
@@ -208,7 +212,7 @@ export function createCategoryService({
       return await categoryRepository.listActiveSiblings(scope);
     } catch (error) {
       if (error instanceof RepositoryError) {
-        throw operationError(operation);
+        throw repositoryError(operation);
       }
       throw error;
     }
@@ -244,7 +248,7 @@ export function createCategoryService({
       );
 
       if (archivedCount === 0) {
-        throw operationError(categoryErrorCodes.archiveFailed);
+        throw conflictError(categoryErrorCodes.archiveFailed);
       }
     },
 
@@ -383,7 +387,7 @@ export function createCategoryService({
       );
 
       if (!updated) {
-        throw operationError(categoryErrorCodes.updateFailed);
+        throw conflictError(categoryErrorCodes.updateFailed);
       }
     },
   };

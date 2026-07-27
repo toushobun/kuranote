@@ -5,10 +5,12 @@ import {
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
-import type { LedgerAccessService } from "internal/ledger";
+import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger";
 import type { MerchantQueryService } from "internal/merchant";
 import {
-  AuthenticationError,
   AuthorizationError,
   NotFoundError,
   RepositoryError,
@@ -34,8 +36,13 @@ import {
 import {
   buildTransactionListItemsFromContext,
   loadTransactionGroupLoaderContext,
-  type TransactionReadDependencies,
 } from "internal/transaction/service/transactionContext";
+import {
+  getTransactionReadDependencies,
+  requireTransactionReadLedger,
+  requireTransactionUserId,
+  type TransactionReadAccessDependencies,
+} from "internal/transaction/service/transactionReadAccess";
 import { loadTransactionFilterOptions } from "internal/transaction/service/options";
 import {
   buildTransactionSearchPage,
@@ -133,55 +140,30 @@ export function createTransactionService({
   merchantQueryService,
   transactionRepository,
 }: TransactionServiceDependencies): TransactionService {
-  function requireUserId(): string {
-    if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
-    }
-    return currentUserId;
-  }
+  const readAccessDependencies: TransactionReadAccessDependencies = {
+    accountQueryService,
+    categoryQueryService,
+    currentUserId,
+    ledgerAccessService,
+    merchantQueryService,
+    transactionRepository,
+  };
 
   async function requireWritePermission(ledgerId: string) {
-    const userId = requireUserId();
-    const role = await ledgerAccessService.getActiveMemberRole({
+    const userId = requireTransactionUserId(currentUserId);
+    const role = await requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
       userId,
     });
-    if (!role) {
-      throw new NotFoundError(
-        transactionErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
-      );
-    }
     if (!canWriteTransaction(role)) throw permissionError();
     return { role, userId };
   }
 
-  async function requireReadLedger(
-    currentLedger: CurrentLedger,
-  ): Promise<CurrentLedger> {
-    const userId = requireUserId();
-    const role = await ledgerAccessService.getActiveMemberRole({
-      ledgerId: currentLedger.id,
-      userId,
-    });
-    if (!role) {
-      throw new NotFoundError(
-        transactionErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
-      );
-    }
-    return { ...currentLedger, currentUserId: userId, currentUserRole: role };
-  }
+  const requireReadLedger = (currentLedger: CurrentLedger) =>
+    requireTransactionReadLedger(readAccessDependencies, currentLedger);
 
-  function getReadDependencies(): TransactionReadDependencies {
-    return {
-      accountQueryService,
-      categoryQueryService,
-      currentUserId: requireUserId(),
-      merchantQueryService,
-      transactionRepository,
-    };
-  }
+  const getReadDependencies = () =>
+    getTransactionReadDependencies(readAccessDependencies);
 
   async function requireModificationPermission(
     ledgerId: string,

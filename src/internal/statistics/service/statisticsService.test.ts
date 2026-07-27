@@ -82,13 +82,34 @@ describe("StatisticsService", () => {
     expect(repository.findLedger).not.toHaveBeenCalled();
   });
 
-  it("非账本成员不能读取统计数据", async () => {
+  it("非账本成员读取统计数据时返回统一的账本无效错误", async () => {
     const { repository, service } = createService({ role: null });
 
-    await expect(service.getDashboard({ ledgerId })).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(service.getDashboard({ ledgerId })).rejects.toMatchObject({
+      code: "ledger_invalid",
+      message: "账本不存在、已归档或您无法访问。",
+      name: NotFoundError.name,
+    });
     expect(repository.listDashboardAccounts).not.toHaveBeenCalled();
+  });
+
+  it("账本记录不存在时返回统一的账本无效错误", async () => {
+    const repository = createRepository({
+      findLedger: vi.fn().mockResolvedValue(null),
+    });
+    const { service, transactionDashboardQueryService } = createService({
+      repository,
+    });
+
+    await expect(service.getDashboard({ ledgerId })).rejects.toMatchObject({
+      code: "ledger_invalid",
+      message: "账本不存在、已归档或您无法访问。",
+      name: NotFoundError.name,
+    });
+    expect(repository.listDashboardAccounts).not.toHaveBeenCalled();
+    expect(
+      transactionDashboardQueryService.getDashboardData,
+    ).not.toHaveBeenCalled();
   });
 
   it("Dashboard 账户优先按最近使用顺序排列", async () => {

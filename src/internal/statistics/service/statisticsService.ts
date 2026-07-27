@@ -1,10 +1,12 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import type { LedgerAccessService } from "internal/ledger";
+import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger";
 import {
   AuthenticationError,
   NotFoundError,
 } from "internal/shared/errors/appError";
-import { statisticsErrorCodes } from "internal/statistics/errors";
 import type {
   DashboardAccountSummaryRecord,
   StatisticsRepository,
@@ -49,14 +51,14 @@ export function createStatisticsService({
   async function requireLedger(ledgerId: string): Promise<CurrentLedger> {
     const userId = requireUserId();
     const [role, ledger] = await Promise.all([
-      ledgerAccessService.getActiveMemberRole({ ledgerId, userId }),
+      requireActiveLedgerMemberRole(ledgerAccessService, { ledgerId, userId }),
       statisticsRepository.findLedger(ledgerId),
     ]);
 
-    if (!role || !ledger) {
+    if (!ledger) {
       throw new NotFoundError(
-        statisticsErrorCodes.ledgerInvalid,
-        "账本不存在或您不是该账本成员。",
+        "ledger_invalid",
+        "账本不存在、已归档或您无法访问。",
       );
     }
 

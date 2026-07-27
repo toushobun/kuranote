@@ -19,7 +19,10 @@ import {
   buildDisplayColorByUserId,
   buildHolderOptions,
 } from "internal/account/util/accountView";
-import type { LedgerAccessService } from "internal/ledger";
+import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,
@@ -202,19 +205,10 @@ export function createAccountService({
     ledgerId: string,
     userId: string,
   ): Promise<CurrentLedgerRole> {
-    const role = await ledgerAccessService.getActiveMemberRole({
+    return requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
       userId,
     });
-
-    if (!role) {
-      throw new NotFoundError(
-        accountErrorCodes.ledgerInvalid,
-        accountErrorMessage(accountErrorCodes.ledgerInvalid),
-      );
-    }
-
-    return role;
   }
 
   function requireManagement(role: CurrentLedgerRole): void {

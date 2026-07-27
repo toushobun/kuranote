@@ -8,6 +8,10 @@ import type {
   PendingLedgerInvite,
 } from "internal/ledger/repository/ledgerInviteRepository";
 import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger/service/ledgerAccessService";
+import {
   AppError,
   AuthenticationError,
   AuthorizationError,
@@ -19,6 +23,7 @@ import {
 import type { LedgerInviteRole } from "types/ledgers";
 
 export type LedgerInviteServiceDependencies = {
+  ledgerAccessService: LedgerAccessService;
   ledgerInviteRepository: LedgerInviteRepository;
 };
 
@@ -70,10 +75,13 @@ function toAppError(code: LedgerInviteErrorCode): AppError {
 }
 
 async function requireInviteManager(
-  repository: LedgerInviteRepository,
+  ledgerAccessService: LedgerAccessService,
   { ledgerId, userId }: ManageLedgerInviteInput,
 ): Promise<void> {
-  const role = await repository.getMemberRole(ledgerId, userId);
+  const role = await requireActiveLedgerMemberRole(ledgerAccessService, {
+    ledgerId,
+    userId,
+  });
 
   if (role !== "owner" && role !== "admin") {
     throw toAppError(ledgerInviteErrorCodes.permissionDenied);
@@ -85,6 +93,7 @@ async function requireInviteManager(
  * 校验 owner/admin 权限，不依赖 Router middleware 或 RPC 的隐式检查。
  */
 export function createLedgerInviteService({
+  ledgerAccessService,
   ledgerInviteRepository,
 }: LedgerInviteServiceDependencies): LedgerInviteService {
   return {
@@ -97,7 +106,7 @@ export function createLedgerInviteService({
     },
 
     async create(input) {
-      await requireInviteManager(ledgerInviteRepository, input);
+      await requireInviteManager(ledgerAccessService, input);
       const result = await ledgerInviteRepository.create(
         input.ledgerId,
         input.role,
@@ -115,7 +124,7 @@ export function createLedgerInviteService({
     },
 
     async listPending(input) {
-      await requireInviteManager(ledgerInviteRepository, input);
+      await requireInviteManager(ledgerAccessService, input);
       const result = await ledgerInviteRepository.listPending(input.ledgerId);
 
       if (!result.ok) {
@@ -126,7 +135,7 @@ export function createLedgerInviteService({
     },
 
     async revoke(input) {
-      await requireInviteManager(ledgerInviteRepository, input);
+      await requireInviteManager(ledgerAccessService, input);
       const result = await ledgerInviteRepository.revoke(
         input.ledgerId,
         input.inviteId,

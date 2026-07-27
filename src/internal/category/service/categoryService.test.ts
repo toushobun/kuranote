@@ -9,6 +9,7 @@ import type { LedgerAccessService } from "internal/ledger";
 import {
   AuthorizationError,
   ConflictError,
+  NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
 import type { CategoryRow } from "types/categories";
@@ -92,6 +93,16 @@ describe("createCategoryService", () => {
       ledgerName: "家庭账本",
       parentOptions: [{ id: categoryId, name: "餐饮", type: "expense" }],
     });
+  });
+
+  it("非活动账本成员读取分类时返回 404", async () => {
+    const repository = createRepository();
+    const service = createService(repository, null);
+
+    await expect(
+      service.getCategoriesView({ ledgerId, ledgerName: "家庭账本", userId }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.findActiveByLedgerId).not.toHaveBeenCalled();
   });
 
   it("非 owner/admin 不能执行写操作且 Repository 不会被调用", async () => {
@@ -300,5 +311,31 @@ describe("createCategoryService", () => {
       includeChildren: true,
       ledgerId,
     });
+  });
+
+  it("分类归档或更新在前置检查后未命中时返回 409", async () => {
+    const archiveRepository = createRepository({
+      archive: vi.fn().mockResolvedValue(0),
+    });
+    const updateRepository = createRepository({
+      updateDetails: vi.fn().mockResolvedValue(false),
+    });
+
+    await expect(
+      createService(archiveRepository).archive({
+        categoryId,
+        ledgerId,
+        userId,
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      createService(updateRepository).update({
+        categoryId,
+        iconName: "🍜",
+        ledgerId,
+        name: "外食",
+        userId,
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 });

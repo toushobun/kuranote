@@ -32,10 +32,6 @@ export type ListPendingLedgerInvitesResult =
 
 export interface LedgerInviteRepository {
   accept(token: string): Promise<LedgerInviteWriteResult>;
-  getMemberRole(
-    ledgerId: string,
-    userId: string,
-  ): Promise<"owner" | "admin" | "member" | "viewer" | null>;
   create(
     ledgerId: string,
     role: LedgerInviteRole,
@@ -74,31 +70,6 @@ export function createSupabaseLedgerInviteRepository(
   },
 ): LedgerInviteRepository {
   return {
-    async getMemberRole(ledgerId, userId) {
-      const { data, error } = await supabase
-        .from("ledger_member")
-        .select("role")
-        .eq("ledger_id", ledgerId)
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (error) {
-        logUnexpectedRpcError(logger, "load ledger invite member role", error);
-        throw toRepositoryError(
-          "ledger_invite_member_role_load_failed",
-          "账本成员权限读取失败，请稍后重试。",
-        );
-      }
-      if (!data) return null;
-      return data.role === "owner" ||
-        data.role === "admin" ||
-        data.role === "member" ||
-        data.role === "viewer"
-        ? data.role
-        : null;
-    },
-
     async accept(token) {
       const { error } = await supabase.rpc("accept_ledger_invite", {
         p_token: token,

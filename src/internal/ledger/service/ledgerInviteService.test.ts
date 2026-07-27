@@ -6,11 +6,12 @@ import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteS
 import {
   AuthorizationError,
   ConflictError,
+  NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 
-function createRepository(role: CurrentLedgerRole | null = "owner") {
+function createRepository() {
   return {
     accept: vi.fn().mockResolvedValue({ ok: true }),
     create: vi.fn().mockResolvedValue({
@@ -19,10 +20,21 @@ function createRepository(role: CurrentLedgerRole | null = "owner") {
       role: "member" as const,
       token: "a".repeat(64),
     }),
-    getMemberRole: vi.fn().mockResolvedValue(role),
     listPending: vi.fn().mockResolvedValue({ invites: [], ok: true }),
     revoke: vi.fn().mockResolvedValue({ ok: true }),
   };
+}
+
+function createService(
+  repository = createRepository(),
+  role: CurrentLedgerRole | null = "owner",
+) {
+  return createLedgerInviteService({
+    ledgerAccessService: {
+      getActiveMemberRole: vi.fn().mockResolvedValue(role),
+    },
+    ledgerInviteRepository: repository,
+  });
 }
 
 const actor = {
@@ -33,9 +45,7 @@ const actor = {
 describe("createLedgerInviteService.accept", () => {
   it("Repository 成功时正常完成", async () => {
     const repository = createRepository();
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: repository,
-    });
+    const service = createService(repository);
 
     await expect(service.accept("token")).resolves.toBeUndefined();
     expect(repository.accept).toHaveBeenCalledWith("token");
@@ -46,10 +56,8 @@ describe.each(["create", "revoke", "listPending"] as const)(
   "createLedgerInviteService.%s 权限",
   (operation) => {
     it.each(["owner", "admin"] as const)("%s 可以执行", async (role) => {
-      const repository = createRepository(role);
-      const service = createLedgerInviteService({
-        ledgerInviteRepository: repository,
-      });
+      const repository = createRepository();
+      const service = createService(repository, role);
 
       if (operation === "create") {
         await expect(
@@ -65,10 +73,8 @@ describe.each(["create", "revoke", "listPending"] as const)(
     });
 
     it.each(["member", "viewer"] as const)("%s 无权执行", async (role) => {
-      const repository = createRepository(role);
-      const service = createLedgerInviteService({
-        ledgerInviteRepository: repository,
-      });
+      const repository = createRepository();
+      const service = createService(repository, role);
 
       const action =
         operation === "create"
@@ -85,6 +91,16 @@ describe.each(["create", "revoke", "listPending"] as const)(
   },
 );
 
+it("已归档账本不能管理邀请", async () => {
+  const repository = createRepository();
+  const service = createService(repository, null);
+
+  await expect(service.listPending(actor)).rejects.toBeInstanceOf(
+    NotFoundError,
+  );
+  expect(repository.listPending).not.toHaveBeenCalled();
+});
+
 describe("createLedgerInviteService 错误映射", () => {
   it("撤销已使用邀请时抛出 ConflictError", async () => {
     const repository = createRepository();
@@ -92,9 +108,7 @@ describe("createLedgerInviteService 错误映射", () => {
       code: "invite_already_used",
       ok: false,
     });
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: repository,
-    });
+    const service = createService(repository);
 
     await expect(
       service.revoke({ ...actor, inviteId: "invite-1" }),
@@ -107,9 +121,7 @@ describe("createLedgerInviteService 错误映射", () => {
       code: "load_failed",
       ok: false,
     });
-    const service = createLedgerInviteService({
-      ledgerInviteRepository: repository,
-    });
+    const service = createService(repository);
 
     await expect(service.listPending(actor)).rejects.toBeInstanceOf(
       RepositoryError,

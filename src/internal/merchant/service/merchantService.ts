@@ -1,5 +1,8 @@
 import { canManageMasterData } from "lib/ledger/permissions";
-import type { LedgerAccessService } from "internal/ledger";
+import {
+  requireActiveLedgerMemberRole,
+  type LedgerAccessService,
+} from "internal/ledger";
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantActionErrorMessage,
@@ -14,8 +17,8 @@ import type {
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
-  RepositoryError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
 import type { MerchantRow } from "types/merchants";
@@ -83,13 +86,13 @@ function permissionError(): AuthorizationError {
   );
 }
 
-function operationError(
+function conflictError(
   code:
     | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.updateFailed,
-): RepositoryError {
-  return new RepositoryError(
+): ConflictError {
+  return new ConflictError(
     code,
     getMerchantActionErrorMessage(code) ?? "商家操作失败，请稍后重试。",
   );
@@ -116,18 +119,10 @@ export function createMerchantService({
     manage: boolean,
   ): Promise<{ role: CurrentLedgerRole; userId: string }> {
     const userId = requireUserId();
-    const role = await ledgerAccessService.getActiveMemberRole({
+    const role = await requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
       userId,
     });
-
-    if (!role) {
-      throw new NotFoundError(
-        merchantErrorCodes.ledgerInvalid,
-        getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid) ??
-          "账本不存在或无法访问。",
-      );
-    }
     if (manage && !canManageMasterData(role)) throw permissionError();
 
     return { role, userId };
@@ -187,20 +182,21 @@ export function createMerchantService({
         userId,
       });
       if (!archived) {
-        throw operationError(merchantErrorCodes.aliasArchiveFailed);
+        throw conflictError(merchantErrorCodes.aliasArchiveFailed);
       }
       return alias.merchantId;
     },
 
     async archiveMerchant({ ledgerId, merchantId }) {
       const { userId } = await requireLedgerRole(ledgerId, true);
+      await requireActiveMerchant(ledgerId, merchantId);
       const archived = await merchantRepository.archiveMerchant({
         ledgerId,
         merchantId,
         userId,
       });
       if (!archived) {
-        throw operationError(merchantErrorCodes.archiveFailed);
+        throw conflictError(merchantErrorCodes.archiveFailed);
       }
     },
 
@@ -240,12 +236,13 @@ export function createMerchantService({
 
     async updateMerchant(input) {
       const { userId } = await requireLedgerRole(input.ledgerId, true);
+      await requireActiveMerchant(input.ledgerId, input.merchantId);
       const updated = await merchantRepository.updateMerchant({
         ...input,
         userId,
       });
       if (!updated) {
-        throw operationError(merchantErrorCodes.updateFailed);
+        throw conflictError(merchantErrorCodes.updateFailed);
       }
     },
   };

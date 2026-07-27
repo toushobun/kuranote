@@ -8,14 +8,13 @@ import {
   buildTransactionListItemsFromContext,
   getTransactionGroupContextLookups,
   loadTransactionGroupLoaderContextForRecords,
-  type TransactionReadDependencies,
 } from "internal/transaction/service/transactionContext";
-import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
 import {
-  AuthenticationError,
-  NotFoundError,
-} from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+  getTransactionReadDependencies,
+  requireTransactionReadLedger,
+  type TransactionReadAccessDependencies,
+} from "internal/transaction/service/transactionReadAccess";
+import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
 import type {
   TransactionAmountSummary,
   TransactionListItem,
@@ -56,45 +55,21 @@ export function createTransactionDashboardQueryService({
   merchantQueryService,
   transactionRepository,
 }: TransactionDashboardQueryServiceDependencies): TransactionDashboardQueryService {
-  function requireUserId(): string {
-    if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
-    }
-    return currentUserId;
-  }
-
-  async function requireReadLedger(
-    currentLedger: CurrentLedger,
-  ): Promise<CurrentLedger> {
-    const userId = requireUserId();
-    const role = await ledgerAccessService.getActiveMemberRole({
-      ledgerId: currentLedger.id,
-      userId,
-    });
-
-    if (!role) {
-      throw new NotFoundError(
-        transactionErrorCodes.permissionDenied,
-        "账本不存在或您不是该账本成员。",
-      );
-    }
-
-    return { ...currentLedger, currentUserId: userId, currentUserRole: role };
-  }
-
-  function getReadDependencies(): TransactionReadDependencies {
-    return {
-      accountQueryService,
-      categoryQueryService,
-      currentUserId: requireUserId(),
-      merchantQueryService,
-      transactionRepository,
-    };
-  }
+  const readAccessDependencies: TransactionReadAccessDependencies = {
+    accountQueryService,
+    categoryQueryService,
+    currentUserId,
+    ledgerAccessService,
+    merchantQueryService,
+    transactionRepository,
+  };
 
   return {
     async getDashboardData({ currentLedger, dateEnd, dateStart }) {
-      const ledger = await requireReadLedger(currentLedger);
+      const ledger = await requireTransactionReadLedger(
+        readAccessDependencies,
+        currentLedger,
+      );
       const records = await transactionRepository.listRecords({
         dateEnd,
         dateStart,
@@ -105,7 +80,7 @@ export function createTransactionDashboardQueryService({
         (record) => record.type === "normal",
       );
       const context = await loadTransactionGroupLoaderContextForRecords(
-        getReadDependencies(),
+        getTransactionReadDependencies(readAccessDependencies),
         ledger,
         normalRecords,
       );
