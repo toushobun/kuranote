@@ -11,7 +11,9 @@ import {
   matchesParentCategory,
   recordMatchesGroup,
 } from "internal/transaction/util/grouping/groupMatching";
-import type { RawTagAssignment } from "internal/transaction/util/grouping/types";
+import type {
+  RawTagAssignment,
+} from "internal/transaction/util/grouping/types";
 
 const record: TransactionRecordDbRow = {
   created_at: "2026-07-20T01:00:00.000Z",
@@ -37,7 +39,9 @@ const categories: CategorySummaryDbRow[] = [
     type: "expense",
   },
 ];
-const categoryById = new Map(categories.map((category) => [category.id, category]));
+const categoryById = new Map(
+  categories.map((category) => [category.id, category]),
+);
 
 const item: TransactionItemDbRow = {
   account_id: "account-1",
