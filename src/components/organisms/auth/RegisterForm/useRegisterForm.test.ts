@@ -34,8 +34,7 @@ describe("useRegisterForm", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("邮箱格式无效时显示本地错误且不请求可用性检查", async () => {
-    const { checkEmailAvailabilityAction, result } =
-      renderRegisterFormHook();
+    const { checkEmailAvailabilityAction, result } = renderRegisterFormHook();
 
     act(() => result.current.handleEmailChange("invalid-email"));
     await act(async () => result.current.handleEmailBlur());
