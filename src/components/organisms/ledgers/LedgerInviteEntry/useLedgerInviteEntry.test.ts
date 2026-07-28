@@ -91,9 +91,7 @@ describe("useLedgerInviteEntry", () => {
       useLedgerInviteEntry({ actionState: {}, initialToken: "token-1" }),
     );
 
-    await act(async () =>
-      result.current.copyLink(result.current.draftLink),
-    );
+    await act(async () => result.current.copyLink(result.current.draftLink));
     expect(writeText).toHaveBeenCalledWith(
       `${window.location.origin}/invite/token-1`,
     );
@@ -101,9 +99,7 @@ describe("useLedgerInviteEntry", () => {
     expect(result.current.copyFailed).toBe(false);
 
     writeText.mockRejectedValueOnce(new Error("clipboard denied"));
-    await act(async () =>
-      result.current.copyLink(result.current.draftLink),
-    );
+    await act(async () => result.current.copyLink(result.current.draftLink));
     expect(result.current.copied).toBe(false);
     expect(result.current.copyFailed).toBe(true);
   });
