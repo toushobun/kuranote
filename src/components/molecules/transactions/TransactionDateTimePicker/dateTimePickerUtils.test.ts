@@ -20,7 +20,7 @@ describe("dateTimePickerUtils", () => {
     expect(days).toHaveLength(35);
     expect(days.slice(0, 4)).toEqual([null, null, null, null]);
     expect(days[4]?.value).toBe("2024-02-01");
-    expect(days.at(-2)?.value).toBe("2024-02-29");
+    expect(days[32]?.value).toBe("2024-02-29");
     expect(days.at(-1)).toBeNull();
   });
 
