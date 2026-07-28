@@ -3,9 +3,9 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { SectionCard } from "molecules/ui/SectionCard";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 
 const settingsLoadingGroupSizes = [1, 5, 3, 3] as const;
 

@@ -526,8 +526,6 @@ function colorSwatchSx(accent: string) {
 
 const automaticCardSx = {
   bgcolor: "var(--user-theme-card-bg)",
-  border: "1px solid",
-  borderColor: "var(--user-theme-card-border)",
   borderRadius: 2,
   boxShadow: "none",
   p: { xs: 1.7, sm: 2 },
