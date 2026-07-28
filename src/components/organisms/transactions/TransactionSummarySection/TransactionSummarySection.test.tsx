@@ -42,8 +42,8 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText(/餐饮.*午餐.*1200/)).toBeInTheDocument();
     expect(screen.getByText("未选择分类 / 未填写金额")).toBeInTheDocument();
     expect(screen.getByText("日常、食品")).toBeInTheDocument();
-    expect(screen.getByText(/2026.*07.*20.*10:30/)).toBeInTheDocument();
-    expect(screen.getByText(/1,200/)).toBeInTheDocument();
+    expect(screen.getByText("2026/07/20 10:30:00")).toBeInTheDocument();
+    expect(screen.getAllByText(/1200/)).toHaveLength(2);
   });
 
   it("未选择可选项时显示占位状态", () => {
@@ -57,7 +57,6 @@ describe("TransactionSummarySection", () => {
       />,
     );
 
-    expect(screen.getAllByText("未选择")).toHaveLength(3);
-    expect(screen.getByText("请选择日期和时间")).toBeInTheDocument();
+    expect(screen.getAllByText("未选择")).toHaveLength(4);
   });
 });
