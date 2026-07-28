@@ -1,3 +1,5 @@
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+
 export const smallIconButtonSx = {
   color: "text.secondary",
   height: 40,
@@ -35,7 +37,7 @@ export const transactionNoteFieldSx = {
 
 export const transactionSummarySurfaceSx = {
   bgcolor: "var(--user-theme-tx-summary-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.75,
   boxShadow: "none",
   px: 1.5,

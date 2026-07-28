@@ -8,6 +8,10 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { designTokens } from "theme/theme";
+import {
+  userThemeCardBorder,
+  userThemeCardBorderSx,
+} from "theme/userThemeCardSx";
 import type { StatisticsRankItem, StatisticsViewData } from "types/statistics";
 import { formatPlainAmount } from "utils/transactions";
 
@@ -283,7 +287,7 @@ const summarySectionSx = {
 
 const summaryCardSx = {
   backgroundColor: "var(--user-theme-tx-summary-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.5,
   flex: 1,
   minWidth: 0,
@@ -312,7 +316,7 @@ const rankingCountSx = {
 };
 
 const rankingRowSx = {
-  borderTop: "1px solid var(--user-theme-card-border)",
+  borderTop: userThemeCardBorder,
   py: 1.5,
   "&:first-of-type": {
     borderTop: 0,

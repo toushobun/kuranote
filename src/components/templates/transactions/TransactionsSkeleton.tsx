@@ -1,6 +1,8 @@
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
+import { userThemeCardBorder } from "theme/userThemeCardSx";
+
 export function TransactionsSkeleton() {
   return (
     <Stack spacing={1.2}>
@@ -9,7 +11,7 @@ export function TransactionsSkeleton() {
           key={index}
           spacing={1.2}
           sx={{
-            borderBottom: "1px solid var(--user-theme-card-border)",
+            borderBottom: userThemeCardBorder,
             py: 1.1,
           }}
         >

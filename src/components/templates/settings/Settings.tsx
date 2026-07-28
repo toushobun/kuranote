@@ -31,6 +31,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { typographyStyles } from "theme/typographyTokens";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type { ServerAction } from "types/actions";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
@@ -362,7 +363,7 @@ const settingsCardSx = {
 };
 
 const themePickerPanelSx = {
-  borderBottom: "1px solid var(--user-theme-card-border)",
+  borderBottom: userThemeCardBorder,
   px: 2,
   py: 1.25,
 };
@@ -372,7 +373,7 @@ function settingsEntryButtonSx(isLast: boolean) {
     alignItems: "center",
     backgroundColor: "transparent",
     border: 0,
-    borderBottom: isLast ? 0 : "1px solid var(--user-theme-card-border)",
+    borderBottom: isLast ? 0 : userThemeCardBorder,
     color: "text.primary",
     display: "flex",
     minHeight: 52,

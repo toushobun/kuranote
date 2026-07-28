@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import Box from "@mui/material/Box";
 
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+
 export function NewTransactionVisualFrame({
   children,
 }: {
@@ -64,7 +66,7 @@ const transactionPageFrameSx = {
   },
   "& .MuiPaper-outlined": {
     bgcolor: "var(--user-theme-card-bg)",
-    border: "1px solid var(--user-theme-card-border)",
+    ...userThemeCardBorderSx,
     borderRadius: 1.25,
     boxShadow: "none",
   },

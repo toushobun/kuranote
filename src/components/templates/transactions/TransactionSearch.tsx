@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import {
   TransactionSearchIllustration,
@@ -164,9 +165,7 @@ function SearchResultList({
         const isLastItem = itemIndex === items.length - 1;
         const rowSx = {
           ...searchResultRowSx,
-          borderBottom: isLastItem
-            ? "none"
-            : "1px solid var(--user-theme-card-border)",
+          borderBottom: isLastItem ? "none" : userThemeCardBorder,
         };
         const content = (
           <TransactionRow item={item} showAccount showTime showRecorder />
@@ -268,7 +267,7 @@ const headerActionSx = {
 const searchFormSx = {
   alignItems: "center",
   bgcolor: "background.paper",
-  border: "1px solid var(--user-theme-card-border)",
+  border: userThemeCardBorder,
   borderRadius: 999,
   display: "flex",
   flex: 1,

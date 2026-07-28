@@ -12,6 +12,7 @@ import {
 } from "organisms/transactions/TransactionForm/TransactionForm.styles";
 
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 type TransactionFormSkeletonProps = {
   mode?: "new" | "edit";
@@ -196,7 +197,7 @@ const typeNavigationSkeletonSx = {
 
 const fieldSkeletonSx = {
   bgcolor: "var(--user-theme-card-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.25,
 };
 
