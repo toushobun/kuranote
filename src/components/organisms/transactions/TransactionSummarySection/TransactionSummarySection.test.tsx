@@ -28,8 +28,16 @@ describe("TransactionSummarySection", () => {
     render(
       <TransactionSummarySection
         itemSummaries={itemSummaries}
-        selectedAccount={{ currency: "JPY", id: "account-1", name: "现金" }}
-        selectedMerchant={{ icon_url: null, id: "merchant-1", name: "便利店" }}
+        selectedAccount={{
+          currency: "JPY",
+          id: "account-1",
+          name: "现金",
+        }}
+        selectedMerchant={{
+          icon_url: null,
+          id: "merchant-1",
+          name: "便利店",
+        }}
         selectedTagNames={["日常", "食品"]}
         signedTotalAmount="-1200"
         transactionDate="2026-07-20"
