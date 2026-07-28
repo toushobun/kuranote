@@ -21,6 +21,7 @@ import {
   categoryEmojiOptions,
   type CategoryEmojiGroupId,
 } from "config/categoryEmojis";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 type CategoryIconFieldProps = {
   onChange: (emoji: string) => void;
@@ -73,8 +74,7 @@ export function CategoryIconField({ onChange, value }: CategoryIconFieldProps) {
             sx={{
               alignItems: "center",
               bgcolor: "var(--user-theme-icon-badge-bg)",
-              border: 1,
-              borderColor: "var(--user-theme-card-border)",
+              ...userThemeCardBorderSx,
               borderRadius: 3,
               display: "flex",
               fontSize: "2.5rem",

@@ -23,6 +23,7 @@ import type { PointerEvent, ReactNode } from "react";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   CategoryAction,
   CategoryActionState,
@@ -89,8 +90,7 @@ function CategoryRowItem({
     <Box
       data-category-row-id={category.id}
       sx={{
-        borderTop: nested ? 1 : 0,
-        borderColor: "var(--user-theme-card-border)",
+        borderTop: nested ? userThemeCardBorder : 0,
         opacity: dragging ? 0.58 : 1,
         px: nested ? { xs: 1, sm: 2 } : 0,
         transition: "opacity 120ms ease",

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import type { ReactNode } from "react";
 
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
@@ -20,44 +13,20 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  maxTransactionTagCount,
-  maxTransactionTagNameLength,
-} from "@/constants/transactions";
-import { routePaths } from "config/paths";
-import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
-import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
-import type {
-  TransactionAccountOption,
-  TransactionCategoryOption,
-  TransactionMerchantOption,
-  TransactionTagOption,
-  TransactionType,
-} from "types/transactions";
-import { getMerchantInitial } from "utils/merchants";
-import { transactionFormValidationMessages } from "utils/transactionMessages";
-import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
-import {
-  composeTransactionDateTimeLocalValue,
-  formatDateTimeLocalInputValue,
-  getNowDateTimeLocalValue,
-  splitDateTimeLocalValue,
-} from "utils/transactions";
 
+import { routePaths } from "config/paths";
+import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
+import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
+import { getMerchantInitial } from "utils/merchants";
+import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
-import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { TransactionItemsSection } from "../TransactionItemsSection/TransactionItemsSection";
-import type {
-  TransactionFieldErrors,
-  TransactionFormInitialValues,
-  TransactionFormItem,
-  TransactionItemSummary,
-  TransactionPickerErrors,
-} from "./TransactionForm.types";
+import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
 import {
-  buildCategoryPickerGroups,
-  isValidMoneyText,
-} from "./TransactionForm.utils";
+  TransactionSelectionValue,
+  transactionSelectionSelectSx,
+} from "../TransactionSelectionValue/TransactionSelectionValue";
+import { TransactionTagSection } from "../TransactionTagSection/TransactionTagSection";
 import {
   transactionFieldGroupSx,
   transactionFormStackSx,
@@ -65,34 +34,10 @@ import {
   transactionSectionTitleSx,
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
-import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
-import {
-  TransactionSelectionValue,
-  transactionSelectionSelectSx,
-} from "../TransactionSelectionValue/TransactionSelectionValue";
-import { TransactionTagSection } from "../TransactionTagSection/TransactionTagSection";
+import type { TransactionFormProps } from "./TransactionForm.types";
+import { useTransactionForm } from "./useTransactionForm";
 
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
-
-type TransactionFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
-  accountOptions: TransactionAccountOption[];
-  categoryOptions: TransactionCategoryOption[];
-  closeHref?: string;
-  errorMessage?: string | null;
-  formId?: string;
-  hideHeader?: boolean;
-  hideSubmitButton?: boolean;
-  initialType?: TransactionType;
-  initialValues?: TransactionFormInitialValues;
-  ledgerName?: string;
-  merchantOptions: TransactionMerchantOption[];
-  onSubmitDisabledChange?: (disabled: boolean) => void;
-  submitLabel?: string;
-  tagOptions: TransactionTagOption[];
-  title?: string;
-  typeNavigation?: ReactNode;
-};
 
 export function TransactionForm({
   action,
@@ -113,393 +58,62 @@ export function TransactionForm({
   title = "新增记账",
   typeNavigation,
 }: TransactionFormProps) {
-  const markEditDirty = useEditTransactionDirty();
-  const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
-  const merchantFieldRef = useRef<HTMLDivElement>(null);
-  const accountFieldRef = useRef<HTMLDivElement>(null);
-  const itemsFieldRef = useRef<HTMLDivElement>(null);
-  const tagsFieldRef = useRef<HTMLDivElement>(null);
-  const isFirstRenderRef = useRef(true);
-  const [selectedType, setSelectedType] = useState<TransactionType>(
-    initialValues?.type ?? initialType ?? "expense",
-  );
-  const [selectedAccountId, setSelectedAccountId] = useState(
-    initialValues?.accountId ?? "",
-  );
-  const [selectedMerchantId, setSelectedMerchantId] = useState(
-    initialValues?.merchantId ?? "",
-  );
-  const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
-  const [itemsByType, setItemsByType] = useState<
-    Record<TransactionType, TransactionFormItem[]>
-  >(() =>
-    createInitialItemsByType(
-      initialValues,
-      new Map(categoryOptions.map((c) => [c.id, c])),
-    ),
-  );
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
-  const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
-  const [pickerCategoryId, setPickerCategoryId] = useState("");
-  const [pickerAmount, setPickerAmount] = useState("");
-  const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
-  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(
-    initialValues?.tagNames ?? [],
-  );
-  const [newTagName, setNewTagName] = useState("");
-  const [transactionDate, setTransactionDate] = useState("");
-  const [transactionTime, setTransactionTime] = useState("");
-  const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
-
-  const allDisplayItems = [...itemsByType.expense, ...itemsByType.income];
-
-  useEffect(() => {
-    const localValue = initialValues?.transactionAt
-      ? formatDateTimeLocalInputValue(initialValues.transactionAt)
-      : getNowDateTimeLocalValue();
-    const nextDateTime = splitDateTimeLocalValue(localValue);
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 客户端挂载后同步本地时区时间，避免服务端水合差异。
-    setTransactionDate(nextDateTime.date);
-    setTransactionTime(nextDateTime.time);
-    setTimeZoneOffsetMinutes(String(new Date().getTimezoneOffset()));
-  }, [initialValues?.transactionAt]);
-
-  useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
-    if (!initialValues && initialType) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 新增页外层 tab 切换时同步内部类型，编辑页有 initialValues 时忽略。
-      setSelectedType(initialType);
-      setIsSheetOpen(false);
-      setEditingItemId(null);
-      setPickerCategoryId("");
-      setPickerAmount("");
-      setPickerErrors({});
-      setSelectedCategoryGroupId("");
-      setFieldErrors((prev) => ({ ...prev, items: undefined }));
-    }
-  }, [initialType, initialValues]);
-
-  const allNormalCategoryOptions = useMemo(
-    () =>
-      categoryOptions.filter(
-        (c) => c.type === "expense" || c.type === "income",
-      ),
-    [categoryOptions],
-  );
-  const categoryGroups = useMemo(
-    () => buildCategoryPickerGroups(allNormalCategoryOptions),
-    [allNormalCategoryOptions],
-  );
-  const categoryById = useMemo(
-    () => new Map(categoryOptions.map((category) => [category.id, category])),
-    [categoryOptions],
-  );
-
-  const effectiveCategoryGroupId = categoryGroups.some(
-    (group) => group.id === selectedCategoryGroupId,
-  )
-    ? selectedCategoryGroupId
-    : (categoryGroups[0]?.id ?? "");
-  const selectedCategoryGroup =
-    categoryGroups.find((group) => group.id === effectiveCategoryGroupId) ??
-    categoryGroups[0];
-  const selectedAccount = accountOptions.find(
-    (account) => account.id === selectedAccountId,
-  );
-  const selectedMerchant = merchantOptions.find(
-    (merchant) => merchant.id === selectedMerchantId,
-  );
-  const suggestedTagOptions = tagOptions.filter(
-    (tag) => !hasTagName(selectedTagNames, tag.name),
-  );
-  const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
-    (item) => ({
-      ...item,
-      category: categoryById.get(item.categoryId),
-    }),
-  );
-  const expenseTotal = itemsByType.expense.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
-    return sum + Number(item.amount);
-  }, 0);
-  const incomeTotal = itemsByType.income.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
-    return sum + Number(item.amount);
-  }, 0);
-  const hasValidItems =
-    allDisplayItems.length > 0 &&
-    allDisplayItems.every(
-      (item) => item.categoryId.length > 0 && isValidMoneyText(item.amount),
-    );
-  const hasValidTags = !getSelectedTagError(selectedTagNames);
-  const transactionAtValue = composeTransactionDateTimeLocalValue(
+  const {
+    accountFieldRef,
+    addTag,
+    allNormalCategoryOptions,
+    categoryGroups,
+    closeSheet,
+    editingItemId,
+    fieldErrors,
+    handleAccountChange,
+    handleDateChange,
+    handleMerchantChange,
+    handleNewTagNameChange,
+    handleNoteChange,
+    handlePickerAdd,
+    handlePickerAmountChange,
+    handlePickerCategoryToggle,
+    handlePickerGroupSelect,
+    handleSubmit,
+    handleTimeChange,
+    isSheetOpen,
+    isSubmitDisabled,
+    itemSummaries,
+    itemsFieldRef,
+    merchantFieldRef,
+    newTagName,
+    openItemSheet,
+    openSheet,
+    pickerAmount,
+    pickerCategoryId,
+    pickerErrors,
+    removeItem,
+    removeTag,
+    selectedAccount,
+    selectedAccountId,
+    selectedCategoryGroup,
+    selectedMerchant,
+    selectedMerchantId,
+    selectedTagNames,
+    selectedType,
+    signedTotalAmount,
+    suggestedTagOptions,
+    tagsFieldRef,
+    timeZoneOffsetMinutes,
+    transactionAtValue,
     transactionDate,
     transactionTime,
-  );
-  const isSubmitDisabled =
-    accountOptions.length === 0 ||
-    merchantOptions.length === 0 ||
-    allNormalCategoryOptions.length === 0 ||
-    !transactionAtValue ||
-    !hasValidTags;
-
-  useEffect(() => {
-    onSubmitDisabledChange?.(isSubmitDisabled);
-  }, [isSubmitDisabled, onSubmitDisabledChange]);
-
-  const signedTotalAmount =
-    allDisplayItems.length > 0
-      ? formatNetAmount(incomeTotal - expenseTotal)
-      : "未填写金额";
-
-  function addItem(categoryId: string, amount: string) {
-    markEditDirty?.();
-    const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
-    const itemId = nextItemIdRef.current;
-    nextItemIdRef.current += 1;
-    setItemsByType((current) => ({
-      ...current,
-      [categoryType]: [
-        ...current[categoryType],
-        { amount, categoryId, id: itemId },
-      ],
-    }));
-    if (fieldErrors.items) {
-      setFieldErrors((prev) => ({ ...prev, items: undefined }));
-    }
-  }
-
-  function updateItem(
-    itemId: number,
-    values: Partial<Omit<TransactionFormItem, "id">>,
-  ) {
-    markEditDirty?.();
-    setItemsByType((current) => ({
-      expense: current.expense.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
-      income: current.income.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
-    }));
-  }
-
-  function replaceItem(itemId: number, categoryId: string, amount: string) {
-    markEditDirty?.();
-    const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
-
-    setItemsByType((current) => {
-      const inExpense = current.expense.some((item) => item.id === itemId);
-      const sourceType: TransactionType = inExpense ? "expense" : "income";
-
-      if (sourceType === categoryType) {
-        return {
-          ...current,
-          [categoryType]: current[categoryType].map((item) =>
-            item.id === itemId ? { ...item, amount, categoryId } : item,
-          ),
-        };
-      }
-
-      const existingItem = current[sourceType].find(
-        (item) => item.id === itemId,
-      );
-      if (!existingItem) return current;
-
-      const moved: Record<TransactionType, TransactionFormItem[]> = {
-        expense: current.expense.filter((item) => item.id !== itemId),
-        income: current.income.filter((item) => item.id !== itemId),
-      };
-      moved[categoryType] = [
-        ...moved[categoryType],
-        { ...existingItem, amount, categoryId },
-      ];
-
-      return moved;
-    });
-  }
-
-  function removeItem(itemId: number) {
-    markEditDirty?.();
-    setItemsByType((current) => ({
-      expense: current.expense.filter((item) => item.id !== itemId),
-      income: current.income.filter((item) => item.id !== itemId),
-    }));
-    if (fieldErrors.items) {
-      setFieldErrors((prev) => ({ ...prev, items: undefined }));
-    }
-    if (editingItemId === itemId) {
-      setEditingItemId(null);
-      setPickerCategoryId("");
-      setPickerAmount("");
-      setPickerErrors({});
-    }
-  }
-
-  function addTag(tagName: string) {
-    const normalizedTagName = tagName.trim();
-
-    if (!normalizedTagName) return;
-
-    const tagError = getNextTagError(selectedTagNames, normalizedTagName);
-
-    if (tagError) {
-      setFieldErrors((prev) => ({ ...prev, tags: tagError }));
-      return;
-    }
-
-    markEditDirty?.();
-
-    setSelectedTagNames((currentTagNames) => [
-      ...currentTagNames,
-      normalizedTagName,
-    ]);
-    setNewTagName("");
-    if (fieldErrors.tags) {
-      setFieldErrors((prev) => ({ ...prev, tags: undefined }));
-    }
-  }
-
-  function removeTag(tagName: string) {
-    markEditDirty?.();
-    setSelectedTagNames((currentTagNames) =>
-      currentTagNames.filter(
-        (currentTagName) =>
-          currentTagName.toLowerCase() !== tagName.toLowerCase(),
-      ),
-    );
-    if (fieldErrors.tags) {
-      setFieldErrors((prev) => ({ ...prev, tags: undefined }));
-    }
-  }
-
-  function openSheet() {
-    setEditingItemId(null);
-    setPickerCategoryId("");
-    setPickerAmount("");
-    setPickerErrors({});
-    setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
-    setIsSheetOpen(true);
-  }
-
-  function openItemSheet(itemId: number) {
-    const item = allDisplayItems.find(
-      (currentItem) => currentItem.id === itemId,
-    );
-    if (!item) return;
-
-    const categoryGroup = categoryGroups.find((group) =>
-      group.categories.some((category) => category.id === item.categoryId),
-    );
-
-    setEditingItemId(itemId);
-    setPickerCategoryId(item.categoryId);
-    setPickerAmount(item.amount);
-    setPickerErrors({});
-    setSelectedCategoryGroupId(
-      categoryGroup?.id ?? categoryGroups[0]?.id ?? "",
-    );
-    setIsSheetOpen(true);
-  }
-
-  function closeSheet() {
-    setIsSheetOpen(false);
-    setEditingItemId(null);
-  }
-
-  function handlePickerGroupSelect(groupId: string) {
-    setSelectedCategoryGroupId(groupId);
-    setPickerCategoryId("");
-    setPickerErrors({});
-  }
-
-  function handlePickerCategoryToggle(categoryId: string) {
-    setPickerCategoryId((prev) => (prev === categoryId ? "" : categoryId));
-    if (pickerErrors.category) {
-      setPickerErrors((prev) => ({ ...prev, category: undefined }));
-    }
-  }
-
-  function handlePickerAmountChange(amount: string) {
-    setPickerAmount(amount);
-    if (pickerErrors.amount) {
-      setPickerErrors((prev) => ({ ...prev, amount: undefined }));
-    }
-  }
-
-  function handlePickerAdd() {
-    const errors: TransactionPickerErrors = {};
-    if (!pickerCategoryId) {
-      errors.category = transactionFormValidationMessages.categoryRequired;
-    }
-    if (!isValidMoneyText(pickerAmount)) {
-      errors.amount = transactionFormValidationMessages.amountInvalid;
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setPickerErrors(errors);
-      return false;
-    }
-
-    setPickerErrors({});
-    if (editingItemId === null) {
-      addItem(pickerCategoryId, pickerAmount);
-    } else {
-      replaceItem(editingItemId, pickerCategoryId, pickerAmount);
-    }
-    setEditingItemId(null);
-    setPickerCategoryId("");
-    setPickerAmount("");
-    return true;
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!transactionAtValue) {
-      cancelDefaultEvent(event);
-      return;
-    }
-
-    const errors: TransactionFieldErrors = {};
-    const tagError = getSelectedTagError(selectedTagNames);
-
-    if (!selectedMerchantId) {
-      errors.merchant = transactionFormValidationMessages.merchantRequired;
-    }
-    if (!selectedAccountId) {
-      errors.account = transactionFormValidationMessages.accountRequired;
-    }
-    if (!hasValidItems) {
-      errors.items = transactionFormValidationMessages.itemsRequired;
-    }
-    if (tagError) {
-      errors.tags = tagError;
-    }
-
-    if (Object.keys(errors).length > 0) {
-      cancelDefaultEvent(event);
-      setFieldErrors(errors);
-      setTimeout(() => {
-        const firstErrorRef = errors.merchant
-          ? merchantFieldRef
-          : errors.account
-            ? accountFieldRef
-            : errors.items
-              ? itemsFieldRef
-              : tagsFieldRef;
-        firstErrorRef.current?.scrollIntoView?.({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 0);
-    } else {
-      setFieldErrors({});
-    }
-  }
+    updateItem,
+  } = useTransactionForm({
+    accountOptions,
+    categoryOptions,
+    initialType,
+    initialValues,
+    merchantOptions,
+    onSubmitDisabledChange,
+    tagOptions,
+  });
 
   return (
     <form id={formId} action={action} onSubmit={handleSubmit}>
@@ -553,13 +167,7 @@ export function TransactionForm({
             }
             label="商家"
             name="merchantId"
-            onChange={(event) => {
-              markEditDirty?.();
-              setSelectedMerchantId(event.target.value);
-              if (fieldErrors.merchant) {
-                setFieldErrors((prev) => ({ ...prev, merchant: undefined }));
-              }
-            }}
+            onChange={(event) => handleMerchantChange(event.target.value)}
             select
             slotProps={{
               select: {
@@ -613,13 +221,7 @@ export function TransactionForm({
             }
             label="账户"
             name="accountId"
-            onChange={(event) => {
-              markEditDirty?.();
-              setSelectedAccountId(event.target.value);
-              if (fieldErrors.account) {
-                setFieldErrors((prev) => ({ ...prev, account: undefined }));
-              }
-            }}
+            onChange={(event) => handleAccountChange(event.target.value)}
             select
             slotProps={{
               select: {
@@ -670,12 +272,7 @@ export function TransactionForm({
           helperText={fieldErrors.tags ?? transactionTagValidationMessages.hint}
           newTagName={newTagName}
           onAddTag={addTag}
-          onNewTagNameChange={(tagName) => {
-            setNewTagName(tagName);
-            if (fieldErrors.tags) {
-              setFieldErrors((prev) => ({ ...prev, tags: undefined }));
-            }
-          }}
+          onNewTagNameChange={handleNewTagNameChange}
           onRemoveTag={removeTag}
           selectedTagNames={selectedTagNames}
           suggestedTagOptions={suggestedTagOptions}
@@ -690,7 +287,7 @@ export function TransactionForm({
             hiddenLabel
             multiline
             name="note"
-            onChange={() => markEditDirty?.()}
+            onChange={handleNoteChange}
             placeholder="记录这次生活的小片段…"
             rows={1}
             size="small"
@@ -700,14 +297,8 @@ export function TransactionForm({
 
         <TransactionDateTimePicker
           date={transactionDate}
-          onDateChange={(date) => {
-            markEditDirty?.();
-            setTransactionDate(date);
-          }}
-          onTimeChange={(time) => {
-            markEditDirty?.();
-            setTransactionTime(time);
-          }}
+          onDateChange={handleDateChange}
+          onTimeChange={handleTimeChange}
           time={transactionTime}
         />
 
@@ -760,73 +351,6 @@ function SectionTitle({ children }: { children: ReactNode }) {
     <Typography variant="subtitle1" sx={sectionTitleSx}>
       {children}
     </Typography>
-  );
-}
-
-function createInitialItemsByType(
-  initialValues?: TransactionFormInitialValues,
-  categoryById?: Map<string, TransactionCategoryOption>,
-): Record<TransactionType, TransactionFormItem[]> {
-  const result: Record<TransactionType, TransactionFormItem[]> = {
-    expense: [],
-    income: [],
-  };
-
-  if (!initialValues) return result;
-
-  initialValues.items.forEach((item, index) => {
-    const categoryType =
-      categoryById?.get(item.categoryId)?.type ?? initialValues.type;
-    result[categoryType].push({ ...item, id: index + 1 });
-  });
-
-  return result;
-}
-
-function cancelDefaultEvent(event: { preventDefault(): void }) {
-  event.preventDefault();
-}
-
-function formatNetAmount(net: number) {
-  const n = parseFloat(net.toFixed(2));
-  if (n === 0) return "0";
-  return n > 0 ? `+${n}` : `${n}`;
-}
-
-function getNextTagError(tagNames: string[], tagName: string) {
-  if (tagName.length > maxTransactionTagNameLength) {
-    return transactionTagValidationMessages.nameTooLong;
-  }
-
-  if (hasTagName(tagNames, tagName)) {
-    return transactionTagValidationMessages.duplicate;
-  }
-
-  // 新标签尚未追加，因此当前列表已满时拒绝第 11 个标签。
-  if (tagNames.length >= maxTransactionTagCount) {
-    return transactionTagValidationMessages.tooMany;
-  }
-
-  return null;
-}
-
-function getSelectedTagError(tagNames: string[]) {
-  if (tagNames.length > maxTransactionTagCount) {
-    return transactionTagValidationMessages.tooMany;
-  }
-
-  if (
-    tagNames.some((tagName) => tagName.length > maxTransactionTagNameLength)
-  ) {
-    return transactionTagValidationMessages.nameTooLong;
-  }
-
-  return null;
-}
-
-function hasTagName(tagNames: string[], tagName: string) {
-  return tagNames.some(
-    (currentTagName) => currentTagName.toLowerCase() === tagName.toLowerCase(),
   );
 }
 

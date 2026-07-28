@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionDateGroup,
   TransactionListItem,
@@ -36,10 +37,7 @@ export function TransactionGroupList({
       {groups.map((group, groupIndex) => (
         <Stack key={group.date} spacing={0.55}>
           {groupIndex > 0 ? (
-            <Box
-              aria-hidden="true"
-              sx={{ borderTop: "1px solid var(--user-theme-card-border)" }}
-            />
+            <Box aria-hidden="true" sx={{ borderTop: userThemeCardBorder }} />
           ) : null}
 
           <Stack
@@ -104,9 +102,7 @@ function TransactionListRow({
     <TransactionRow item={item} showAccount showTime showRecorder />
   );
   const sx = {
-    borderBottom: isLastItem
-      ? "none"
-      : "1px solid var(--user-theme-card-border)",
+    borderBottom: isLastItem ? "none" : userThemeCardBorder,
     color: "inherit",
     display: "block",
     outline: "none",

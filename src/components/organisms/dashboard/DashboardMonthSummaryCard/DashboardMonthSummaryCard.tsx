@@ -11,6 +11,7 @@ import Link from "next/link";
 import { IconBadge } from "atoms/ui/IconBadge";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type { DashboardAccountSummary } from "types/dashboard";
 import { formatAmount } from "utils/accounts";
 
@@ -66,7 +67,7 @@ export function DashboardMonthSummaryCard({
                 spacing={1.1}
                 sx={{
                   alignItems: "center",
-                  borderTop: "1px solid var(--user-theme-card-border)",
+                  borderTop: userThemeCardBorder,
                   minHeight: 40,
                   py: 0.75,
                 }}
@@ -117,7 +118,7 @@ function DashboardNoLedgerAccountState() {
       spacing={1.25}
       sx={{
         alignItems: "center",
-        borderTop: "1px solid var(--user-theme-card-border)",
+        borderTop: userThemeCardBorder,
         pb: 0.2,
         pt: 1.2,
       }}

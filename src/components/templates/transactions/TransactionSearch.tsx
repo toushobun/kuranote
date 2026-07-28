@@ -18,6 +18,10 @@ import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
 } from "molecules/transactions/TransactionSearchIllustration";
+import {
+  userThemeCardBorder,
+  userThemeCardBorderSx,
+} from "theme/userThemeCardSx";
 import type {
   TransactionListItem,
   TransactionSearchPage,
@@ -164,9 +168,7 @@ function SearchResultList({
         const isLastItem = itemIndex === items.length - 1;
         const rowSx = {
           ...searchResultRowSx,
-          borderBottom: isLastItem
-            ? "none"
-            : "1px solid var(--user-theme-card-border)",
+          borderBottom: isLastItem ? "none" : userThemeCardBorder,
         };
         const content = (
           <TransactionRow item={item} showAccount showTime showRecorder />
@@ -268,7 +270,7 @@ const headerActionSx = {
 const searchFormSx = {
   alignItems: "center",
   bgcolor: "background.paper",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 999,
   display: "flex",
   flex: 1,

@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,
@@ -181,9 +182,7 @@ function TransactionMonthListContent({
             <Box
               key={group.id}
               sx={{
-                borderBottom: isLastGroup
-                  ? "none"
-                  : "1px solid var(--user-theme-card-border)",
+                borderBottom: isLastGroup ? "none" : userThemeCardBorder,
               }}
             >
               <Box
@@ -285,7 +284,7 @@ function TransactionMonthListContent({
                 <Stack
                   spacing={1.4}
                   sx={{
-                    borderTop: "1px solid var(--user-theme-card-border)",
+                    borderTop: userThemeCardBorder,
                     px: 0.75,
                     py: 1.2,
                   }}

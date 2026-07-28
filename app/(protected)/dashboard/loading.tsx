@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { dashboardHeroLayout as heroLayout } from "templates/dashboard/dashboardLayout";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 
 export default function DashboardLoadingPage() {
   return (
@@ -247,7 +248,7 @@ const betweenSx = {
 
 const accountRowSkeletonSx = {
   alignItems: "center",
-  borderTop: "1px solid var(--user-theme-card-border)",
+  borderTop: userThemeCardBorder,
   minHeight: 40,
   py: 0.75,
 };
@@ -274,6 +275,6 @@ const recentListSkeletonSx = {
 
 const recentRowSkeletonSx = {
   alignItems: "center",
-  borderBottom: "1px solid var(--user-theme-card-border)",
+  borderBottom: userThemeCardBorder,
   py: 1.1,
 };

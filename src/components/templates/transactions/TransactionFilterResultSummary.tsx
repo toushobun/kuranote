@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { designTokens } from "theme/theme";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export function TransactionFilterResultSummary({
   chips,
@@ -88,7 +89,7 @@ export function TransactionFilterResultSummarySkeleton({
 
 const filterResultSx = {
   bgcolor: "var(--user-theme-filter-summary-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: `${designTokens.radius.sm}px`,
   px: 1.5,
   py: 1.25,
@@ -105,7 +106,7 @@ const clearButtonSx = {
 
 const resultChipSx = {
   bgcolor: "background.paper",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: `${designTokens.radius.sm}px`,
   boxShadow: 1,
   fontSize: 12,

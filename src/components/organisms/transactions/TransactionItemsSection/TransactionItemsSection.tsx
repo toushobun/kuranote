@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
 
 import type {
@@ -207,7 +208,7 @@ const sectionCardSx = {
 
 const itemsCardSx = {
   bgcolor: "var(--user-theme-card-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.25,
   overflow: "hidden",
 };
@@ -302,7 +303,7 @@ const futureStatusPlaceholderSx = {
 };
 
 const addItemButtonSx = {
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.5,
   color: "var(--user-theme-action-text)",
   fontSize: "0.9rem",

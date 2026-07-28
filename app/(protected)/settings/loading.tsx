@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 
 const settingsLoadingGroupSizes = [1, 5, 3, 3] as const;
 
@@ -46,7 +47,7 @@ const settingsLoadingCardSx = {
 function settingsLoadingRowSx(isLast: boolean) {
   return {
     alignItems: "center",
-    borderBottom: isLast ? 0 : "1px solid var(--user-theme-card-border)",
+    borderBottom: isLast ? 0 : userThemeCardBorder,
     minHeight: 52,
     px: 2,
     py: 1.25,

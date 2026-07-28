@@ -1,7 +1,32 @@
+import type { ReactNode } from "react";
+
 import type {
+  TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionMerchantOption,
+  TransactionTagOption,
   TransactionType,
 } from "types/transactions";
+
+export type TransactionFormProps = {
+  action: (formData: FormData) => void | Promise<void>;
+  accountOptions: TransactionAccountOption[];
+  categoryOptions: TransactionCategoryOption[];
+  closeHref?: string;
+  errorMessage?: string | null;
+  formId?: string;
+  hideHeader?: boolean;
+  hideSubmitButton?: boolean;
+  initialType?: TransactionType;
+  initialValues?: TransactionFormInitialValues;
+  ledgerName?: string;
+  merchantOptions: TransactionMerchantOption[];
+  onSubmitDisabledChange?: (disabled: boolean) => void;
+  submitLabel?: string;
+  tagOptions: TransactionTagOption[];
+  title?: string;
+  typeNavigation?: ReactNode;
+};
 
 export type TransactionFormInitialItem = {
   amount: string;

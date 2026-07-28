@@ -10,6 +10,7 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
 
@@ -196,7 +197,7 @@ const typeNavigationSkeletonSx = {
 
 const fieldSkeletonSx = {
   bgcolor: "var(--user-theme-card-bg)",
-  border: "1px solid var(--user-theme-card-border)",
+  ...userThemeCardBorderSx,
   borderRadius: 1.25,
 };
 
