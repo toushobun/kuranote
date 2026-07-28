@@ -18,7 +18,10 @@ import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
 } from "molecules/transactions/TransactionSearchIllustration";
-import { userThemeCardBorder, userThemeCardBorderSx } from "theme/userThemeCardSx";
+import {
+  userThemeCardBorder,
+  userThemeCardBorderSx,
+} from "theme/userThemeCardSx";
 import type {
   TransactionListItem,
   TransactionSearchPage,
