@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
+import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import { SectionCard } from "molecules/ui/SectionCard";
 import type { DashboardRecentTransaction } from "types/dashboard";
@@ -63,9 +64,16 @@ export function DashboardRecentTransactions({
           <DashboardNoLedgerRecentState />
         ) : transactions.length > 0 ? (
           <Stack spacing={0}>
-            {transactions.slice(0, 3).map((item) => (
-              <TransactionRow item={item} key={item.id} showAccount showTime />
-            ))}
+            {transactions
+              .slice(0, dashboardRecentTransactionCount)
+              .map((item) => (
+                <TransactionRow
+                  item={item}
+                  key={item.id}
+                  showAccount
+                  showTime
+                />
+              ))}
           </Stack>
         ) : (
           <Typography
@@ -73,7 +81,7 @@ export function DashboardRecentTransactions({
             sx={{ py: 4, textAlign: "center" }}
             variant="body2"
           >
-            本月还没有记账记录。
+            还没有记账记录。
           </Typography>
         )}
       </SectionCard>

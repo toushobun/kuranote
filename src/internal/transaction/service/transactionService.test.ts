@@ -39,6 +39,11 @@ function createRepository(
     listRecords: vi.fn().mockResolvedValue([]),
     listTagAssignments: vi.fn().mockResolvedValue([]),
     listTagsByIds: vi.fn().mockResolvedValue([]),
+    loadDashboardMonthSource: vi.fn().mockResolvedValue({
+      categories: [],
+      items: [],
+    }),
+    loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
     updateTransfer: vi.fn(),

@@ -22,7 +22,7 @@ describe("DashboardTemplate", () => {
     expect(screen.getByText("拍照记账")).toBeInTheDocument();
     expect(screen.getAllByText("敬请期待")).toHaveLength(2);
     expect(screen.getByText("近期记录")).toBeInTheDocument();
-    expect(screen.getByText("本月还没有记账记录。")).toBeInTheDocument();
+    expect(screen.getByText("还没有记账记录。")).toBeInTheDocument();
   });
 
   it("显示首页顶部猫咪插画头图装饰层", () => {

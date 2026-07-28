@@ -3,10 +3,12 @@ import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import type { LedgerAccessService } from "internal/ledger";
 import type { MerchantQueryService } from "internal/merchant";
-import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
+import type {
+  TransactionDashboardSummaryItem,
+  TransactionRepository,
+} from "internal/transaction/repository/transactionRepository";
 import {
   buildTransactionListItemsFromContext,
-  getTransactionGroupContextLookups,
   loadTransactionGroupLoaderContextForRecords,
 } from "internal/transaction/service/transactionContext";
 import {
@@ -15,6 +17,7 @@ import {
   type TransactionReadAccessDependencies,
 } from "internal/transaction/service/transactionReadAccess";
 import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
+import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import type {
   TransactionAmountSummary,
   TransactionListItem,
@@ -70,27 +73,31 @@ export function createTransactionDashboardQueryService({
         readAccessDependencies,
         currentLedger,
       );
-      const records = await transactionRepository.listRecords({
+      const monthSource = await transactionRepository.loadDashboardMonthSource({
         dateEnd,
         dateStart,
         ledgerId: ledger.id,
-        recordType: "all",
       });
-      const normalRecords = records.filter(
-        (record) => record.type === "normal",
+      const categoryById = new Map(
+        monthSource.categories.map((category) => [category.id, category]),
       );
-      const context = await loadTransactionGroupLoaderContextForRecords(
-        getTransactionReadDependencies(readAccessDependencies),
-        ledger,
-        normalRecords,
-      );
-      const lookups = getTransactionGroupContextLookups(context);
-      const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
+      const monthItemsByRecordId = new Map<
+        string,
+        TransactionDashboardSummaryItem[]
+      >();
 
-      for (const record of normalRecords) {
+      for (const item of monthSource.items) {
+        const items =
+          monthItemsByRecordId.get(item.transaction_record_id) ?? [];
+        items.push(item);
+        monthItemsByRecordId.set(item.transaction_record_id, items);
+      }
+
+      const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
+      for (const items of monthItemsByRecordId.values()) {
         const netAmount = calculateTransactionRecordNetAmount(
-          lookups.itemsByRecordId.get(record.id) ?? [],
-          lookups.categoryById,
+          items,
+          categoryById,
         );
 
         if (!Number.isFinite(netAmount) || netAmount === 0) continue;
@@ -104,36 +111,28 @@ export function createTransactionDashboardQueryService({
 
       const recentRecords = await transactionRepository.listRecords({
         ledgerId: ledger.id,
-        limit: 100,
-        recordType: "all",
+        limit: dashboardRecentTransactionCount,
+        recordType: "normal",
       });
-      const recentItems = await transactionRepository.listItems(
-        ledger.id,
-        recentRecords.map((record) => record.id),
+      const recentContext = await loadTransactionGroupLoaderContextForRecords(
+        getTransactionReadDependencies(readAccessDependencies),
+        ledger,
+        recentRecords,
       );
-      const accountIdsByRecordId = new Map<string, string[]>();
 
-      for (const item of recentItems) {
-        const accountIds =
-          accountIdsByRecordId.get(item.transaction_record_id) ?? [];
-        accountIds.push(item.account_id);
-        accountIdsByRecordId.set(item.transaction_record_id, accountIds);
-      }
-
-      const recentlyUsedAccountIds = new Set<string>();
-      for (const record of recentRecords) {
-        for (const accountId of accountIdsByRecordId.get(record.id) ?? []) {
-          recentlyUsedAccountIds.add(accountId);
-        }
-      }
+      const recentlyUsedAccountIds =
+        await transactionRepository.loadDashboardRecentlyUsedAccountIds({
+          ledgerId: ledger.id,
+          limit: 100,
+        });
 
       return {
         monthSummary,
         recentTransactions: buildTransactionListItemsFromContext(
-          normalRecords.slice(0, 5),
-          context,
+          recentRecords,
+          recentContext,
         ).map(toDashboardRecentTransaction),
-        recentlyUsedAccountIds: [...recentlyUsedAccountIds],
+        recentlyUsedAccountIds,
       };
     },
   };

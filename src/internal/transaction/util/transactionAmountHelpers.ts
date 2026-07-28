@@ -11,23 +11,30 @@ import {
   createTransactionAmountSummary,
 } from "utils/transactions";
 
+type TransactionAmountItem = Pick<
+  TransactionItemDbRow,
+  "amount" | "category_id"
+>;
+
+type TransactionAmountCategory = Pick<CategorySummaryDbRow, "id" | "type">;
+
 export function getSignedTransactionItemAmount(
-  item: TransactionItemDbRow,
-  categoryById: Map<string, CategorySummaryDbRow>,
+  item: TransactionAmountItem,
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ) {
   return getSignedItemAmount(item, categoryById);
 }
 
 export function calculateTransactionRecordNetAmount(
-  items: TransactionItemDbRow[],
-  categoryById: Map<string, CategorySummaryDbRow>,
+  items: TransactionAmountItem[],
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ) {
   return calculateRecordNetAmount(items, categoryById);
 }
 
 export function getTransactionRecordCategoryType(
-  items: TransactionItemDbRow[],
-  categoryById: Map<string, CategorySummaryDbRow>,
+  items: TransactionAmountItem[],
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ): TransactionCategoryType {
   const summary = getTransactionRecordAmountProfile(items, categoryById);
 
@@ -44,8 +51,8 @@ export function createSummary(currency: string): TransactionAmountSummary {
 }
 
 export function calculateRecordNetAmount(
-  items: TransactionItemDbRow[],
-  categoryById: Map<string, CategorySummaryDbRow>,
+  items: TransactionAmountItem[],
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ) {
   return items.reduce(
     (sum, item) => sum + getSignedItemAmount(item, categoryById),
@@ -78,8 +85,8 @@ export function normalizeSummary(
 }
 
 function getTransactionRecordAmountProfile(
-  items: TransactionItemDbRow[],
-  categoryById: Map<string, CategorySummaryDbRow>,
+  items: TransactionAmountItem[],
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ) {
   let expenseTotal = 0;
   let hasExpense = false;
@@ -118,8 +125,8 @@ function getTransactionRecordAmountProfile(
 }
 
 function getSignedItemAmount(
-  item: TransactionItemDbRow,
-  categoryById: Map<string, CategorySummaryDbRow>,
+  item: TransactionAmountItem,
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
 ) {
   const amount = Number(item.amount);
 
