@@ -86,9 +86,9 @@ describe("useTransactionForm", () => {
 
     await waitFor(() => expect(result.current.transactionDate).not.toBe(""));
     expect(result.current.itemSummaries).toHaveLength(2);
-    expect(result.current.itemSummaries.map((item) => item.category?.type)).toEqual(
-      ["expense", "income"],
-    );
+    expect(
+      result.current.itemSummaries.map((item) => item.category?.type),
+    ).toEqual(["expense", "income"]);
     expect(result.current.signedTotalAmount).toBe("-700");
     expect(result.current.selectedAccount?.name).toBe("现金");
     expect(result.current.selectedMerchant?.name).toBe("便利店");
@@ -139,7 +139,9 @@ describe("useTransactionForm", () => {
     const { result } = renderTransactionFormHook();
     const preventDefault = vi.fn();
 
-    await waitFor(() => expect(result.current.transactionAtValue).not.toBe(""));
+    await waitFor(() =>
+      expect(result.current.transactionAtValue).not.toBe(""),
+    );
     act(() =>
       result.current.handleSubmit({
         preventDefault,
