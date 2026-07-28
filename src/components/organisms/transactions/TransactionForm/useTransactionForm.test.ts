@@ -139,9 +139,7 @@ describe("useTransactionForm", () => {
     const { result } = renderTransactionFormHook();
     const preventDefault = vi.fn();
 
-    await waitFor(() =>
-      expect(result.current.transactionAtValue).not.toBe(""),
-    );
+    await waitFor(() => expect(result.current.transactionAtValue).not.toBe(""));
     act(() =>
       result.current.handleSubmit({
         preventDefault,
