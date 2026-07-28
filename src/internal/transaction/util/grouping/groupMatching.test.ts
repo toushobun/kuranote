@@ -11,9 +11,7 @@ import {
   matchesParentCategory,
   recordMatchesGroup,
 } from "internal/transaction/util/grouping/groupMatching";
-import type {
-  RawTagAssignment,
-} from "internal/transaction/util/grouping/types";
+import type { RawTagAssignment } from "internal/transaction/util/grouping/types";
 
 const record: TransactionRecordDbRow = {
   created_at: "2026-07-20T01:00:00.000Z",
