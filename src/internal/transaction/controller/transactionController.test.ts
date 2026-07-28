@@ -61,8 +61,8 @@ function createContext(
     .mockImplementation((body: unknown, status: number) => ({ body, status }));
   const valid = vi
     .fn()
-    .mockImplementation((target: "json" | "param" | "query") =>
-      validated[target],
+    .mockImplementation(
+      (target: "json" | "param" | "query") => validated[target],
     );
   const get = vi.fn().mockImplementation((key: string) => {
     if (key === "requestDependencies") {
