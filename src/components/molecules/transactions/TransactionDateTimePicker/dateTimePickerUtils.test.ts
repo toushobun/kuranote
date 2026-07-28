@@ -48,7 +48,11 @@ describe("dateTimePickerUtils", () => {
   });
 
   it("补齐秒数并把越界时间限制在合法范围", () => {
-    expect(splitTimeValue("09:08")).toEqual({ hour: 9, minute: 8, second: 0 });
+    expect(splitTimeValue("09:08")).toEqual({
+      hour: 9,
+      minute: 8,
+      second: 0,
+    });
     expect(splitTimeValue("99:88:77")).toEqual({
       hour: 23,
       minute: 59,
