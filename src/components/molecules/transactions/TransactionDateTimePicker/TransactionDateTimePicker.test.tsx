@@ -15,23 +15,18 @@ describe("TransactionDateTimePicker", () => {
       />,
     );
 
-    expect(
-      screen.getByText("2026年07月20日 10:30:00"),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "选择记账时间" }),
-    );
+    expect(screen.getByText("2026年07月20日 10:30:00")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
 
     expect(
       await screen.findByRole("grid", { name: "记账日期" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "选择时刻" }),
-    ).toHaveAttribute("aria-expanded", "false");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "2026年7月15日" }),
+    expect(screen.getByRole("button", { name: "选择时刻" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "2026年7月15日" }));
     expect(onDateChange).toHaveBeenCalledWith("2026-07-15");
   });
 
@@ -50,9 +45,7 @@ describe("TransactionDateTimePicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "选择记账日期" }));
 
     await screen.findByRole("grid", { name: "记账日期" });
-    expect(
-      screen.queryByRole("button", { name: "选择时刻" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "选择时刻" })).toBeNull();
   });
 
   it("完成按钮关闭抽屉", async () => {
@@ -64,17 +57,11 @@ describe("TransactionDateTimePicker", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "选择记账时间" }),
-    );
-    fireEvent.click(
-      await screen.findByRole("button", { name: "完成" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(await screen.findByRole("button", { name: "完成" }));
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole("grid", { name: "记账日期" }),
-      ).toBeNull(),
+      expect(screen.queryByRole("grid", { name: "记账日期" })).toBeNull(),
     );
   });
 });
