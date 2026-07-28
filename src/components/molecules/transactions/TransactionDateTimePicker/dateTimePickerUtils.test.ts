@@ -29,9 +29,7 @@ describe("dateTimePickerUtils", () => {
 
     expect(formatDateValue(date)).toBe("2026-07-08");
     expect(formatAccessibleDate(date)).toBe("2026年7月8日");
-    expect(formatFullDateLabel("2026-07-08")).toBe(
-      "2026年7月8日 星期三",
-    );
+    expect(formatFullDateLabel("2026-07-08")).toBe("2026年7月8日 星期三");
   });
 
   it("区分今天、普通日期和无效日期标签", () => {
