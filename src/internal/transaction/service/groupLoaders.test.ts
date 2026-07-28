@@ -4,12 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
-import type {
-  TransactionReadDependencies,
-} from "internal/transaction/service/transactionContext";
-import type {
-  TransactionGroupLoaderContext,
-} from "internal/transaction/util/grouping/types";
+import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 import { defaultTransactionFilters } from "types/transactions";
 
 const mocks = vi.hoisted(() => ({
