@@ -2,9 +2,13 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
+import {
+  createSupabaseLedgerInvitePreviewRepository,
+} from "internal/ledger/repository/ledgerInvitePreviewRepository";
 import type { Logger } from "internal/shared/logging/logger";
-import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
+import type {
+  AuthenticatedSupabaseClient,
+} from "internal/shared/supabase/authenticatedClient";
 
 function createSupabaseStub(result: { data: unknown; error: unknown }) {
   return {
