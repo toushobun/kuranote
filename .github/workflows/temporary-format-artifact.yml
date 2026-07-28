@@ -1,0 +1,35 @@
+name: Temporary format artifact
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  format-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            src/internal/ledger/repository/ledgerInvitePreviewRepository.test.ts \
+            src/internal/transaction/controller/transactionController.test.ts \
+            src/internal/transaction/service/groupLoaders.test.ts \
+            src/internal/transaction/util/grouping/groupMatching.test.ts
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-backend-tests
+          path: |
+            src/internal/ledger/repository/ledgerInvitePreviewRepository.test.ts
+            src/internal/transaction/controller/transactionController.test.ts
+            src/internal/transaction/service/groupLoaders.test.ts
+            src/internal/transaction/util/grouping/groupMatching.test.ts
