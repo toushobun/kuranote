@@ -27,9 +27,7 @@ const itemSummaries: TransactionItemSummary[] = [
 ];
 
 function renderSection(
-  overrides: Partial<
-    Parameters<typeof TransactionItemsSection>[0]
-  > = {},
+  overrides: Partial<Parameters<typeof TransactionItemsSection>[0]> = {},
 ) {
   const props: Parameters<typeof TransactionItemsSection>[0] = {
     hasCategoryOptions: true,
@@ -70,7 +68,7 @@ describe("TransactionItemsSection", () => {
     expect(screen.getByText(/大分类.*餐饮/)).toBeInTheDocument();
     expect(screen.getByText(/小分类.*午餐/)).toBeInTheDocument();
     expect(screen.getByText("请选择分类")).toBeInTheDocument();
-    expect(screen.getByText(/合计.*2,000/)).toBeInTheDocument();
+    expect(screen.getByText(/合计.*2000/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "编辑明细 1 分类" }));
     expect(props.onOpenItem).toHaveBeenCalledWith(1);
