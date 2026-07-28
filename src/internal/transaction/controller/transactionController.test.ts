@@ -56,7 +56,9 @@ function createContext(
   validated: Partial<Record<"json" | "param" | "query", unknown>>,
   service: RequestContainer["transaction"]["service"],
 ) {
-  const json = vi.fn().mockImplementation((body, status) => ({ body, status }));
+  const json = vi
+    .fn()
+    .mockImplementation((body: unknown, status: number) => ({ body, status }));
   const valid = vi
     .fn()
     .mockImplementation((target: "json" | "param" | "query") =>
