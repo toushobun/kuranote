@@ -13,12 +13,12 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
 } from "molecules/transactions/TransactionSearchIllustration";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type {
   TransactionListItem,
   TransactionSearchPage,
@@ -267,7 +267,7 @@ const headerActionSx = {
 const searchFormSx = {
   alignItems: "center",
   bgcolor: "background.paper",
-  border: userThemeCardBorder,
+  ...userThemeCardBorderSx,
   borderRadius: 999,
   display: "flex",
   flex: 1,

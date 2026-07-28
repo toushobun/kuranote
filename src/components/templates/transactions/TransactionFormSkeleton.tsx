@@ -10,9 +10,9 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
-import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 type TransactionFormSkeletonProps = {
   mode?: "new" | "edit";

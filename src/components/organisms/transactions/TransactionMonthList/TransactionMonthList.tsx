@@ -11,8 +11,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { EmptyState } from "molecules/ui/EmptyState";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,

@@ -8,8 +8,8 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { transactionEditHref } from "config/paths";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionDateGroup,
   TransactionListItem,

@@ -5,8 +5,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
-import type { TransactionType } from "types/transactions";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+import type { TransactionType } from "types/transactions";
 
 import type {
   TransactionFormItem,

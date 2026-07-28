@@ -8,16 +8,7 @@ import { useState, type ReactNode } from "react";
 
 import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
 import { accountTypeOptions, type AccountHolderOption } from "types/accounts";
-
-const commonCurrencyOptions = [
-  { label: "CNY 人民币", value: "CNY" },
-  { label: "JPY 日元", value: "JPY" },
-  { label: "USD 美元", value: "USD" },
-  { label: "EUR 欧元", value: "EUR" },
-  { label: "GBP 英镑", value: "GBP" },
-  { label: "KRW 韩元", value: "KRW" },
-  { label: "THB 泰铢", value: "THB" },
-] as const;
+import { ledgerCurrencyOptions } from "types/ledgers";
 
 type AccountFieldsProps = {
   balanceLabel: string;
@@ -46,13 +37,13 @@ export function AccountFields({
   selectedHolderUserIds = [],
   typePlaceholder,
 }: AccountFieldsProps) {
-  const currencyOptions = commonCurrencyOptions.some(
+  const currencyOptions = ledgerCurrencyOptions.some(
     (option) => option.value === defaultCurrency,
   )
-    ? commonCurrencyOptions
+    ? ledgerCurrencyOptions
     : [
         { label: defaultCurrency, value: defaultCurrency },
-        ...commonCurrencyOptions,
+        ...ledgerCurrencyOptions,
       ];
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
 
