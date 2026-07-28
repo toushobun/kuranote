@@ -34,8 +34,11 @@ function renderSection(
 describe("TransactionTagSection", () => {
   it("删除已选标签并添加前三个建议标签", () => {
     const props = renderSection();
+    const selectedChip = screen.getByText("已选择").closest(".MuiChip-root");
+    const deleteIcon = selectedChip?.querySelector(".MuiChip-deleteIcon");
+    if (!deleteIcon) throw new Error("未找到标签删除按钮");
 
-    fireEvent.click(screen.getByRole("button", { name: "删除 已选择" }));
+    fireEvent.click(deleteIcon);
     expect(props.onRemoveTag).toHaveBeenCalledWith("已选择");
 
     expect(screen.getByText("日常")).toBeInTheDocument();
