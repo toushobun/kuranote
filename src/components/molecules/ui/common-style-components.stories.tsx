@@ -1,6 +1,5 @@
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -12,8 +11,6 @@ import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
 import { EmptyState } from "./EmptyState";
-import { FieldCard } from "./FieldCard";
-import { ReceiptCard } from "./ReceiptCard";
 import { SectionCard } from "./SectionCard";
 import { SegmentTabs, type SegmentTabItem } from "./SegmentTabs";
 
@@ -90,43 +87,6 @@ function ComponentGallery() {
           />
         </Stack>
       </SectionCard>
-
-      <FieldCard
-        selected
-        title="常用商家"
-        description="用于表单中的账户、商家、分类、标签选择区。"
-        leading={
-          <IconBadge label="商家图标" size="sm">
-            <StorefrontRoundedIcon fontSize="small" />
-          </IconBadge>
-        }
-        action={<Button size="small">选择</Button>}
-      />
-
-      <FieldCard
-        disabled
-        title="不可选择项目"
-        description="用于展示表单项禁用状态。"
-        leading={
-          <IconBadge label="禁用图标" size="sm">
-            <StorefrontRoundedIcon fontSize="small" />
-          </IconBadge>
-        }
-      />
-
-      <ReceiptCard
-        header={
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <ReceiptLongRoundedIcon fontSize="small" />
-            <Typography sx={{ fontWeight: 900 }}>小票卡片</Typography>
-          </Stack>
-        }
-        footer="交易业务标记由 organisms/transactions 单独展示。"
-      >
-        <Typography variant="body2">
-          仅用于明细 / 小票语境，和普通 SectionCard 语义分离。
-        </Typography>
-      </ReceiptCard>
     </Stack>
   );
 }

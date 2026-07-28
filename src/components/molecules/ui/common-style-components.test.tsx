@@ -1,17 +1,8 @@
-import Button from "@mui/material/Button";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { IconBadge } from "atoms/ui/IconBadge";
 
-import { FieldCard } from "./FieldCard";
-import { ReceiptCard } from "./ReceiptCard";
 import { SegmentTabs } from "./SegmentTabs";
 
 afterEach(() => {
@@ -65,85 +56,5 @@ describe("SegmentTabs", () => {
     fireEvent.click(screen.getByRole("button", { name: "日" }));
 
     expect(onChange).toHaveBeenCalledWith("day");
-  });
-});
-
-describe("ReceiptCard", () => {
-  it("显示小票头部、内容和底部", () => {
-    const { container } = render(
-      <ReceiptCard header="小票头部" footer="合计 ¥1,200">
-        小票内容
-      </ReceiptCard>,
-    );
-
-    expect(within(container).getByText("小票头部")).toBeInTheDocument();
-    expect(within(container).getByText("小票内容")).toBeInTheDocument();
-    expect(within(container).getByText("合计 ¥1,200")).toBeInTheDocument();
-  });
-});
-
-describe("FieldCard", () => {
-  it("显示选择项标题和说明", () => {
-    const { container } = render(
-      <FieldCard title="现金账户" description="家庭日常支出账户" selected />,
-    );
-
-    expect(within(container).getByText("现金账户")).toBeInTheDocument();
-    expect(within(container).getByText("家庭日常支出账户")).toBeInTheDocument();
-    expect(container.querySelector("[data-selected='true']")).not.toBeNull();
-  });
-
-  it("点击选择项时触发操作", () => {
-    const onClick = vi.fn();
-    render(<FieldCard title="选择商家" onClick={onClick} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "选择商家" }));
-
-    expect(onClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("可点击选择项会表达选中状态", () => {
-    render(<FieldCard title="选择商家" selected onClick={() => undefined} />);
-
-    expect(screen.getByRole("button", { name: "选择商家" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-  });
-
-  it("未选中的可点击选择项会表达未选中状态", () => {
-    render(<FieldCard title="选择商家" onClick={() => undefined} />);
-
-    expect(screen.getByRole("button", { name: "选择商家" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
-  it("禁用时点击和键盘操作不触发", () => {
-    const onClick = vi.fn();
-    render(<FieldCard title="选择商家" disabled onClick={onClick} />);
-    const button = screen.getByRole("button", { name: "选择商家" });
-
-    fireEvent.click(button);
-    fireEvent.keyDown(button, { key: "Enter" });
-    fireEvent.keyDown(button, { key: " " });
-
-    expect(onClick).not.toHaveBeenCalled();
-  });
-
-  it("操作按钮不会被包进选择项按钮", () => {
-    render(
-      <FieldCard
-        title="选择商家"
-        onClick={() => undefined}
-        action={<Button>编辑</Button>}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: "选择商家" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
   });
 });
