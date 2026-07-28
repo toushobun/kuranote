@@ -9,6 +9,7 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import type {
   AppUserSummaryDbRow,
+  CategorySummaryDbRow,
   LedgerMemberDisplaySettingDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
@@ -69,6 +70,26 @@ export type RawTagAssignment = {
   transaction_record_id: string;
 };
 
+export type TransactionDashboardSummaryItem = Pick<
+  TransactionItemDbRow,
+  "amount" | "category_id" | "transaction_record_id"
+>;
+
+export type TransactionDashboardCategory = Pick<
+  CategorySummaryDbRow,
+  "id" | "type"
+>;
+
+export type TransactionDashboardMonthSource = {
+  categories: TransactionDashboardCategory[];
+  items: TransactionDashboardSummaryItem[];
+};
+
+type TransactionDashboardRecentAccountItem = Pick<
+  TransactionItemDbRow,
+  "account_id" | "transaction_record_id"
+>;
+
 export type TransactionRecordQuery = {
   dateEnd?: string;
   dateStart?: string;
@@ -78,7 +99,7 @@ export type TransactionRecordQuery = {
   memberId?: string;
   merchantId?: string;
   offset?: number;
-  recordType: TransactionFilterRecordType;
+  recordType: TransactionFilterRecordType | "normal";
 };
 
 export type TransactionGroupSummaryRow = {
@@ -119,6 +140,15 @@ export interface TransactionRepository {
     ledgerId: string,
     tagIds: string[],
   ): Promise<TransactionTagDbRow[]>;
+  loadDashboardMonthSource(input: {
+    dateEnd: string;
+    dateStart: string;
+    ledgerId: string;
+  }): Promise<TransactionDashboardMonthSource>;
+  loadDashboardRecentlyUsedAccountIds(input: {
+    ledgerId: string;
+    limit: number;
+  }): Promise<string[]>;
   loadGroupSummaries(input: {
     accountId?: string;
     categoryId?: string;
@@ -523,6 +553,152 @@ export function createSupabaseTransactionRepository(
       return (data ?? []) as TransactionItemDbRow[];
     },
 
+    async loadDashboardRecentlyUsedAccountIds({ ledgerId, limit }) {
+      const { data: recordData, error: recordError } = await supabase
+        .from("transaction_record")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("status", "active")
+        .in("type", ["normal", "transfer"])
+        .order("transaction_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(0, limit - 1);
+
+      if (recordError) {
+        logger.error(
+          "[transaction] failed to load dashboard recent account records",
+          {
+            databaseCode: recordError.code,
+            ledgerId,
+          },
+        );
+        throw toRepositoryError(
+          "transaction_dashboard_recent_accounts_load_failed",
+          "最近使用账户加载失败，请稍后重试。",
+        );
+      }
+
+      const recordIds = (recordData ?? []).map((record) => record.id);
+      if (recordIds.length === 0) return [];
+
+      const { data: itemData, error: itemError } = await supabase
+        .from("transaction_item")
+        .select("transaction_record_id, account_id")
+        .eq("ledger_id", ledgerId)
+        .in("transaction_record_id", recordIds)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (itemError) {
+        logger.error(
+          "[transaction] failed to load dashboard recent account items",
+          {
+            databaseCode: itemError.code,
+            ledgerId,
+          },
+        );
+        throw toRepositoryError(
+          "transaction_dashboard_recent_accounts_load_failed",
+          "最近使用账户加载失败，请稍后重试。",
+        );
+      }
+
+      const items = (itemData ?? []) as TransactionDashboardRecentAccountItem[];
+      const accountIdsByRecordId = new Map<string, string[]>();
+      for (const item of items) {
+        const accountIds =
+          accountIdsByRecordId.get(item.transaction_record_id) ?? [];
+        accountIds.push(item.account_id);
+        accountIdsByRecordId.set(item.transaction_record_id, accountIds);
+      }
+
+      const recentlyUsedAccountIds = new Set<string>();
+      for (const recordId of recordIds) {
+        for (const accountId of accountIdsByRecordId.get(recordId) ?? []) {
+          recentlyUsedAccountIds.add(accountId);
+        }
+      }
+      return [...recentlyUsedAccountIds];
+    },
+
+    async loadDashboardMonthSource({ dateEnd, dateStart, ledgerId }) {
+      const { data: recordData, error: recordError } = await supabase
+        .from("transaction_record")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("status", "active")
+        .eq("type", "normal")
+        .gte("transaction_at", dateStart)
+        .lt("transaction_at", dateEnd);
+
+      if (recordError) {
+        logger.error("[transaction] failed to load dashboard month records", {
+          databaseCode: recordError.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_dashboard_summary_load_failed",
+          "本月收支汇总加载失败，请稍后重试。",
+        );
+      }
+
+      const recordIds = (recordData ?? []).map((record) => record.id);
+      if (recordIds.length === 0) return { categories: [], items: [] };
+
+      const { data: itemData, error: itemError } = await supabase
+        .from("transaction_item")
+        .select("transaction_record_id, category_id, amount")
+        .eq("ledger_id", ledgerId)
+        .in("transaction_record_id", recordIds);
+
+      if (itemError) {
+        logger.error("[transaction] failed to load dashboard month items", {
+          databaseCode: itemError.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_dashboard_summary_load_failed",
+          "本月收支汇总加载失败，请稍后重试。",
+        );
+      }
+
+      const items = (itemData ?? []) as TransactionDashboardSummaryItem[];
+      const categoryIds = [
+        ...new Set(
+          items
+            .map((item) => item.category_id)
+            .filter((categoryId): categoryId is string => categoryId !== null),
+        ),
+      ];
+      if (categoryIds.length === 0) return { categories: [], items };
+
+      const { data: categoryData, error: categoryError } = await supabase
+        .from("category")
+        .select("id, type")
+        .eq("ledger_id", ledgerId)
+        .in("id", categoryIds);
+
+      if (categoryError) {
+        logger.error(
+          "[transaction] failed to load dashboard month category types",
+          {
+            databaseCode: categoryError.code,
+            ledgerId,
+          },
+        );
+        throw toRepositoryError(
+          "transaction_dashboard_summary_load_failed",
+          "本月收支汇总加载失败，请稍后重试。",
+        );
+      }
+
+      return {
+        categories: (categoryData ?? []) as TransactionDashboardCategory[],
+        items,
+      };
+    },
+
     async listRecords(input) {
       let query = supabase
         .from("transaction_record")
@@ -535,7 +711,11 @@ export function createSupabaseTransactionRepository(
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);
       if (input.recordType === "transfer") query = query.eq("type", "transfer");
-      if (input.recordType === "income" || input.recordType === "expense") {
+      if (
+        input.recordType === "normal" ||
+        input.recordType === "income" ||
+        input.recordType === "expense"
+      ) {
         query = query.eq("type", "normal");
       }
       if (input.merchantId) {

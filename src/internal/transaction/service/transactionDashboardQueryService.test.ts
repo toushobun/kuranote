@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import { NotFoundError } from "internal/shared/errors/appError";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 
@@ -17,25 +18,43 @@ const currentLedger = {
   name: "家庭账本",
 };
 
+function createRecord(id: string, transactionAt: string) {
+  return {
+    created_at: transactionAt,
+    created_by: otherUserId,
+    id,
+    merchant_id: "merchant-1",
+    note: null,
+    transaction_at: transactionAt,
+    type: "normal" as const,
+  };
+}
+
 describe("TransactionDashboardQueryService", () => {
-  it("复用 Transaction 权限并保持 Dashboard 原有可见字段", async () => {
-    const monthlyRecord = {
-      created_at: "2026-06-04T01:00:00.000Z",
-      created_by: otherUserId,
-      id: "record-1",
-      merchant_id: "merchant-1",
-      note: null,
-      transaction_at: "2026-06-04T01:00:00.000Z",
-      type: "normal" as const,
-    };
-    const monthlyItem = {
+  it("拆分本月汇总与近期记录并保持 Dashboard 可见字段", async () => {
+    const recentRecords = [
+      createRecord("recent-1", "2026-07-04T01:00:00.000Z"),
+      createRecord("recent-2", "2026-05-04T01:00:00.000Z"),
+      createRecord("recent-3", "2026-04-04T01:00:00.000Z"),
+    ];
+    const recentDisplayItems = recentRecords.map((record) => ({
       account_id: "account-1",
-      amount: "1200",
-      balance_delta: "-1200",
-      category_id: "category-1",
+      amount: "100",
+      balance_delta: "-100",
+      category_id: "recent-category",
       note: null,
-      transaction_record_id: "record-1",
-    };
+      transaction_record_id: record.id,
+    }));
+    const listRecords = vi.fn().mockResolvedValue(recentRecords);
+    const listItems = vi.fn().mockResolvedValue(recentDisplayItems);
+    const findSummariesByIds = vi.fn().mockResolvedValue([
+      {
+        id: "recent-category",
+        name: "餐饮",
+        parent_id: null,
+        type: "expense",
+      },
+    ]);
     const transactionRepository = {
       findUserSummaries: vi.fn().mockResolvedValue([
         {
@@ -44,22 +63,36 @@ describe("TransactionDashboardQueryService", () => {
           id: otherUserId,
         },
       ]),
-      listItems: vi
+      loadDashboardRecentlyUsedAccountIds: vi
         .fn()
-        .mockResolvedValueOnce([monthlyItem])
-        .mockResolvedValueOnce([monthlyItem]),
-      listRecords: vi
-        .fn()
-        .mockResolvedValueOnce([monthlyRecord])
-        .mockResolvedValueOnce([monthlyRecord]),
-      listTagAssignments: vi
-        .fn()
-        .mockResolvedValue([
-          { tag_id: "tag-1", transaction_record_id: "record-1" },
-        ]),
-      listTagsByIds: vi
-        .fn()
-        .mockResolvedValue([{ color: null, id: "tag-1", name: "外食" }]),
+        .mockResolvedValue(["account-2"]),
+      loadDashboardMonthSource: vi.fn().mockResolvedValue({
+        categories: [
+          { id: "month-income", type: "income" },
+          { id: "month-expense", type: "expense" },
+        ],
+        items: [
+          {
+            amount: "1500",
+            category_id: "month-income",
+            transaction_record_id: "month-mixed",
+          },
+          {
+            amount: "300",
+            category_id: "month-expense",
+            transaction_record_id: "month-mixed",
+          },
+          {
+            amount: "500",
+            category_id: "month-expense",
+            transaction_record_id: "month-expense-record",
+          },
+        ],
+      }),
+      listItems,
+      listRecords,
+      listTagAssignments: vi.fn().mockResolvedValue([]),
+      listTagsByIds: vi.fn().mockResolvedValue([]),
     };
     const service = createTransactionDashboardQueryService({
       accountQueryService: {
@@ -69,16 +102,7 @@ describe("TransactionDashboardQueryService", () => {
           showRecorder: true,
         }),
       } as never,
-      categoryQueryService: {
-        findSummariesByIds: vi.fn().mockResolvedValue([
-          {
-            id: "category-1",
-            name: "餐饮",
-            parent_id: null,
-            type: "expense",
-          },
-        ]),
-      } as never,
+      categoryQueryService: { findSummariesByIds } as never,
       currentUserId: userId,
       ledgerAccessService: {
         getActiveMemberRole: vi.fn().mockResolvedValue("member"),
@@ -100,11 +124,47 @@ describe("TransactionDashboardQueryService", () => {
     });
 
     expect(result.monthSummary).toEqual({
-      balance: "-1200",
+      balance: "700",
       currency: "JPY",
-      expense: "1200",
-      income: "0",
+      expense: "500",
+      income: "1200",
     });
+    expect(transactionRepository.loadDashboardMonthSource).toHaveBeenCalledWith(
+      {
+        dateEnd: "2026-06-30T15:00:00.000Z",
+        dateStart: "2026-05-31T15:00:00.000Z",
+        ledgerId,
+      },
+    );
+    expect(listRecords).toHaveBeenCalledOnce();
+    expect(listRecords).toHaveBeenCalledWith({
+      ledgerId,
+      limit: dashboardRecentTransactionCount,
+      recordType: "normal",
+    });
+    expect(listRecords.mock.calls[0]?.[0]).not.toHaveProperty("dateStart");
+    expect(listRecords.mock.calls[0]?.[0]).not.toHaveProperty("dateEnd");
+    expect(listItems).toHaveBeenCalledWith(ledgerId, [
+      "recent-1",
+      "recent-2",
+      "recent-3",
+    ]);
+    expect(findSummariesByIds).toHaveBeenCalledWith({
+      categoryIds: ["recent-category"],
+      ledgerId,
+      userId,
+    });
+    expect(
+      transactionRepository.loadDashboardRecentlyUsedAccountIds,
+    ).toHaveBeenCalledWith({ ledgerId, limit: 100 });
+    expect(result.recentTransactions).toHaveLength(
+      dashboardRecentTransactionCount,
+    );
+    expect(result.recentTransactions.map((item) => item.id)).toEqual([
+      "recent-1",
+      "recent-2",
+      "recent-3",
+    ]);
     expect(result.recentTransactions[0]).toMatchObject({
       account_color: null,
       canEdit: false,
@@ -114,10 +174,12 @@ describe("TransactionDashboardQueryService", () => {
       show_recorder: true,
       tagNames: [],
     });
-    expect(result.recentlyUsedAccountIds).toEqual(["account-1"]);
+    expect(result.recentlyUsedAccountIds).toEqual(["account-2"]);
   });
 
   it("非账本成员不能读取 Dashboard 交易数据", async () => {
+    const loadDashboardMonthSource = vi.fn();
+    const loadDashboardRecentlyUsedAccountIds = vi.fn();
     const listRecords = vi.fn();
     const service = createTransactionDashboardQueryService({
       accountQueryService: {} as never,
@@ -127,7 +189,11 @@ describe("TransactionDashboardQueryService", () => {
         getActiveMemberRole: vi.fn().mockResolvedValue(null),
       },
       merchantQueryService: {} as never,
-      transactionRepository: { listRecords } as never,
+      transactionRepository: {
+        loadDashboardMonthSource,
+        loadDashboardRecentlyUsedAccountIds,
+        listRecords,
+      } as never,
     });
 
     await expect(
@@ -137,6 +203,8 @@ describe("TransactionDashboardQueryService", () => {
         dateStart: "2026-05-31T15:00:00.000Z",
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
+    expect(loadDashboardMonthSource).not.toHaveBeenCalled();
+    expect(loadDashboardRecentlyUsedAccountIds).not.toHaveBeenCalled();
     expect(listRecords).not.toHaveBeenCalled();
   });
 });
