@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { TransactionDateTimePicker } from "./TransactionDateTimePicker";
@@ -63,6 +63,8 @@ describe("TransactionDateTimePicker", () => {
     );
     fireEvent.click(await screen.findByRole("button", { name: "完成" }));
 
-    expect(screen.queryByRole("grid", { name: "记账日期" })).toBeNull();
+    await waitFor(() =>
+      expect(screen.queryByRole("grid", { name: "记账日期" })).toBeNull(),
+    );
   });
 });
