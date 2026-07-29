@@ -16,97 +16,75 @@ function createLogger(): Logger {
 }
 
 function createRepository(options: {
-  listUsers?: ReturnType<typeof vi.fn>;
   queryResponses?: Partial<SupabaseMockResponse>[];
+  rpc?: ReturnType<typeof vi.fn>;
+  rpcResponse?: Partial<SupabaseMockResponse>;
 }) {
   const supabase = createSupabaseMock({
     queryResponses: options.queryResponses,
+    rpcResponse: options.rpcResponse,
   });
-  const listUsers =
-    options.listUsers ??
-    vi.fn().mockResolvedValue({
-      data: { nextPage: null, users: [] },
-      error: null,
-    });
+  const rpc = options.rpc ?? supabase.rpc;
   const logger = createLogger();
   const client = {
     ...supabase.client,
-    auth: { admin: { listUsers } },
+    rpc,
   };
 
   return {
-    listUsers,
     logger,
     repository: createSupabaseAuthSecurityRepository(
       logger,
       () => client as never,
     ),
+    rpc,
     supabase,
   };
 }
 
 describe("createSupabaseAuthSecurityRepository", () => {
-  it("分页检查注册邮箱，匹配时返回不可用", async () => {
-    const listUsers = vi
-      .fn()
-      .mockResolvedValueOnce({
-        data: {
-          nextPage: 2,
-          users: [{ email: "other@example.test" }],
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: {
-          nextPage: null,
-          users: [{ email: " User@Example.Test " }],
-        },
-        error: null,
-      });
-    const { repository } = createRepository({ listUsers });
+  it("注册邮箱已存在时返回不可用", async () => {
+    const { repository, rpc } = createRepository({
+      rpcResponse: { data: true },
+    });
 
     await expect(
-      repository.isRegisterEmailAvailable("user@example.test"),
+      repository.isRegisterEmailAvailable(" User@Example.Test "),
     ).resolves.toBe(false);
-    expect(listUsers).toHaveBeenNthCalledWith(1, {
-      page: 1,
-      perPage: 1000,
-    });
-    expect(listUsers).toHaveBeenNthCalledWith(2, {
-      page: 2,
-      perPage: 1000,
+    expect(rpc).toHaveBeenCalledWith("is_email_registered", {
+      p_email: "user@example.test",
     });
   });
 
   it("邮箱不存在时返回可用", async () => {
-    const { repository } = createRepository({});
+    const { repository } = createRepository({
+      rpcResponse: { data: false },
+    });
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
     ).resolves.toBe(true);
   });
 
-  it("管理员用户查询失败时记录错误并转换 RepositoryError", async () => {
-    const listUsers = vi.fn().mockResolvedValue({
-      data: { nextPage: null, users: [] },
-      error: { code: "service_error", message: "private details" },
+  it("邮箱查询失败时记录错误并转换 RepositoryError", async () => {
+    const { logger, repository } = createRepository({
+      rpcResponse: {
+        error: { code: "service_error", message: "private details" },
+      },
     });
-    const { logger, repository } = createRepository({ listUsers });
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
     ).rejects.toBeInstanceOf(RepositoryError);
     expect(logger.error).toHaveBeenCalledWith(
-      "[auth] failed to list users for email availability",
+      "[auth] failed to check register email availability",
       { code: "service_error" },
     );
   });
 
-  it("管理员查询抛异常时转换 RepositoryError 且不记录原始消息", async () => {
-    const listUsers = vi
-      .fn()
-      .mockRejectedValue(new Error("private network details"));
-    const { logger, repository } = createRepository({ listUsers });
+  it("邮箱查询抛异常时转换 RepositoryError 且不记录原始消息", async () => {
+    const rpc = vi.fn().mockRejectedValue(new Error("private network details"));
+    const { logger, repository } = createRepository({ rpc });
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
@@ -118,6 +96,16 @@ describe("createSupabaseAuthSecurityRepository", () => {
     expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain(
       "private network details",
     );
+  });
+
+  it("邮箱查询返回非布尔值时不误判为可用", async () => {
+    const { repository } = createRepository({
+      rpcResponse: { data: null },
+    });
+
+    await expect(
+      repository.isRegisterEmailAvailable("user@example.test"),
+    ).rejects.toBeInstanceOf(RepositoryError);
   });
 
   it("按邮箱维度读取成功发送时间并保留查询边界", async () => {
