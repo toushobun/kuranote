@@ -112,7 +112,7 @@ export function createTransactionDashboardQueryService({
       const recentRecords = await transactionRepository.listRecords({
         ledgerId: ledger.id,
         limit: dashboardRecentTransactionCount,
-        recordType: "normal",
+        recordType: "all",
       });
       const recentContext = await loadTransactionGroupLoaderContextForRecords(
         getTransactionReadDependencies(readAccessDependencies),
