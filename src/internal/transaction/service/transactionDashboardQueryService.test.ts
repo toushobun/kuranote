@@ -18,33 +18,89 @@ const currentLedger = {
   name: "家庭账本",
 };
 
-function createRecord(id: string, transactionAt: string) {
+function createRecord(
+  id: string,
+  transactionAt: string,
+  type: "normal" | "transfer" = "normal",
+) {
   return {
     created_at: transactionAt,
     created_by: otherUserId,
     id,
-    merchant_id: "merchant-1",
+    merchant_id: type === "transfer" ? null : "merchant-1",
     note: null,
     transaction_at: transactionAt,
-    type: "normal" as const,
+    type,
   };
 }
 
 describe("TransactionDashboardQueryService", () => {
-  it("拆分本月汇总与近期记录并保持 Dashboard 可见字段", async () => {
+  it("混合展示普通交易与转账并保持本月汇总口径", async () => {
     const recentRecords = [
-      createRecord("recent-1", "2026-07-04T01:00:00.000Z"),
-      createRecord("recent-2", "2026-05-04T01:00:00.000Z"),
-      createRecord("recent-3", "2026-04-04T01:00:00.000Z"),
+      createRecord("recent-1", "2026-07-05T01:00:00.000Z"),
+      createRecord("recent-2", "2026-07-04T01:00:00.000Z", "transfer"),
+      createRecord("recent-3", "2026-05-04T01:00:00.000Z"),
+      createRecord("recent-4", "2026-04-04T01:00:00.000Z", "transfer"),
+      createRecord("recent-5", "2026-03-04T01:00:00.000Z"),
     ];
-    const recentDisplayItems = recentRecords.map((record) => ({
-      account_id: "account-1",
-      amount: "100",
-      balance_delta: "-100",
-      category_id: "recent-category",
-      note: null,
-      transaction_record_id: record.id,
-    }));
+    const recentDisplayItems = [
+      {
+        account_id: "account-1",
+        amount: "100",
+        balance_delta: "-100",
+        category_id: "recent-category",
+        note: null,
+        transaction_record_id: "recent-1",
+      },
+      {
+        account_id: "account-1",
+        amount: "250",
+        balance_delta: "-250",
+        category_id: null,
+        note: null,
+        transaction_record_id: "recent-2",
+      },
+      {
+        account_id: "account-2",
+        amount: "250",
+        balance_delta: "250",
+        category_id: null,
+        note: null,
+        transaction_record_id: "recent-2",
+      },
+      {
+        account_id: "account-1",
+        amount: "100",
+        balance_delta: "-100",
+        category_id: "recent-category",
+        note: null,
+        transaction_record_id: "recent-3",
+      },
+      {
+        account_id: "account-2",
+        amount: "300",
+        balance_delta: "-300",
+        category_id: null,
+        note: null,
+        transaction_record_id: "recent-4",
+      },
+      {
+        account_id: "account-1",
+        amount: "300",
+        balance_delta: "300",
+        category_id: null,
+        note: null,
+        transaction_record_id: "recent-4",
+      },
+      {
+        account_id: "account-1",
+        amount: "100",
+        balance_delta: "-100",
+        category_id: "recent-category",
+        note: null,
+        transaction_record_id: "recent-5",
+      },
+    ];
     const listRecords = vi.fn().mockResolvedValue(recentRecords);
     const listItems = vi.fn().mockResolvedValue(recentDisplayItems);
     const findSummariesByIds = vi.fn().mockResolvedValue([
@@ -97,8 +153,14 @@ describe("TransactionDashboardQueryService", () => {
     const service = createTransactionDashboardQueryService({
       accountQueryService: {
         getTransactionContext: vi.fn().mockResolvedValue({
-          accountColorById: new Map([["account-1", "amber"]]),
-          accounts: [{ currency: "JPY", id: "account-1", name: "现金" }],
+          accountColorById: new Map([
+            ["account-1", "amber"],
+            ["account-2", "jade"],
+          ]),
+          accounts: [
+            { currency: "JPY", id: "account-1", name: "现金" },
+            { currency: "JPY", id: "account-2", name: "银行卡" },
+          ],
           showRecorder: true,
         }),
       } as never,
@@ -140,7 +202,7 @@ describe("TransactionDashboardQueryService", () => {
     expect(listRecords).toHaveBeenCalledWith({
       ledgerId,
       limit: dashboardRecentTransactionCount,
-      recordType: "normal",
+      recordType: "all",
     });
     expect(listRecords.mock.calls[0]?.[0]).not.toHaveProperty("dateStart");
     expect(listRecords.mock.calls[0]?.[0]).not.toHaveProperty("dateEnd");
@@ -148,6 +210,8 @@ describe("TransactionDashboardQueryService", () => {
       "recent-1",
       "recent-2",
       "recent-3",
+      "recent-4",
+      "recent-5",
     ]);
     expect(findSummariesByIds).toHaveBeenCalledWith({
       categoryIds: ["recent-category"],
@@ -164,6 +228,15 @@ describe("TransactionDashboardQueryService", () => {
       "recent-1",
       "recent-2",
       "recent-3",
+      "recent-4",
+      "recent-5",
+    ]);
+    expect(result.recentTransactions.map((item) => item.type)).toEqual([
+      "expense",
+      "transfer",
+      "expense",
+      "transfer",
+      "expense",
     ]);
     expect(result.recentTransactions[0]).toMatchObject({
       account_color: null,
@@ -173,6 +246,64 @@ describe("TransactionDashboardQueryService", () => {
       recorder_name: null,
       show_recorder: true,
       tagNames: [],
+    });
+    expect(result.recentTransactions[1]).toMatchObject({
+      account_color: null,
+      account_name: "现金 → 银行卡",
+      categoryItems: [],
+      merchant_name: null,
+      recorder_color: null,
+      recorder_name: null,
+      show_recorder: true,
+      tagNames: [],
+      type: "transfer",
+    });
+    expect(result.recentTransactions[2]).toMatchObject({
+      account_color: null,
+      account_name: "现金",
+      categoryItems: [
+        {
+          amount: "100",
+          categoryName: "餐饮",
+          categoryType: "expense",
+          parentCategoryName: null,
+        },
+      ],
+      merchant_name: "超市",
+      recorder_color: null,
+      recorder_name: null,
+      show_recorder: true,
+      tagNames: [],
+      type: "expense",
+    });
+    expect(result.recentTransactions[3]).toMatchObject({
+      account_color: null,
+      account_name: "银行卡 → 现金",
+      categoryItems: [],
+      merchant_name: null,
+      recorder_color: null,
+      recorder_name: null,
+      show_recorder: true,
+      tagNames: [],
+      type: "transfer",
+    });
+    expect(result.recentTransactions[4]).toMatchObject({
+      account_color: null,
+      account_name: "现金",
+      categoryItems: [
+        {
+          amount: "100",
+          categoryName: "餐饮",
+          categoryType: "expense",
+          parentCategoryName: null,
+        },
+      ],
+      merchant_name: "超市",
+      recorder_color: null,
+      recorder_name: null,
+      show_recorder: true,
+      tagNames: [],
+      type: "expense",
     });
     expect(result.recentlyUsedAccountIds).toEqual(["account-2"]);
   });

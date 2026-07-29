@@ -29,6 +29,30 @@ describe("DashboardRecentTransactions", () => {
     expect(screen.getByText(/测试备注/)).toBeInTheDocument();
   });
 
+  it("传入转账记录时保留并显示在近期记录中", () => {
+    render(
+      <DashboardRecentTransactions
+        hasLedger
+        transactions={[
+          createDashboardRecentTransaction({
+            account_name: "日元现金 → 日本银行卡",
+            categoryItems: [],
+            merchant_icon_url: null,
+            merchant_name: null,
+            note: "账户转账",
+            tagNames: [],
+            type: "transfer",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("账户周转")).toBeInTheDocument();
+    expect(screen.getByText("日元现金 → 日本银行卡")).toBeInTheDocument();
+    expect(screen.getByText("账户转账")).toBeInTheDocument();
+    expect(screen.queryByText(/餐饮/)).toBeNull();
+  });
+
   it("只显示统一常量指定的近期记录条数", () => {
     const transactions = Array.from(
       { length: dashboardRecentTransactionCount + 1 },

@@ -1,1 +1,1 @@
-export const dashboardRecentTransactionCount = 3;
+export const dashboardRecentTransactionCount = 5;
