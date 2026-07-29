@@ -91,7 +91,6 @@ async function withRepositoryBoundary<T>(
 }
 
 const attemptTable = "auth_otp_attempt";
-const usersPerPage = 1000;
 
 export function createSupabaseAuthSecurityRepository(
   logger: Logger,
@@ -181,35 +180,28 @@ export function createSupabaseAuthSecurityRepository(
         async () => {
           const normalizedEmail = email.trim().toLowerCase();
           const supabase = createClient();
-          let page = 1;
+          const { data, error } = await supabase.rpc("is_email_registered", {
+            p_email: normalizedEmail,
+          });
 
-          while (true) {
-            const { data, error } = await supabase.auth.admin.listUsers({
-              page,
-              perPage: usersPerPage,
-            });
-
-            if (error) {
-              logAndThrow(
-                logger,
-                "[auth] failed to list users for email availability",
-                error,
-                "register_email_check_failed",
-                "邮箱可用性检查失败，请稍后重试。",
-              );
-            }
-
-            if (
-              data.users.some(
-                (user) => user.email?.trim().toLowerCase() === normalizedEmail,
-              )
-            ) {
-              return false;
-            }
-
-            if (data.nextPage === null) return true;
-            page = data.nextPage;
+          if (error) {
+            logAndThrow(
+              logger,
+              "[auth] failed to check register email availability",
+              error,
+              "register_email_check_failed",
+              "邮箱可用性检查失败，请稍后重试。",
+            );
           }
+
+          if (typeof data !== "boolean") {
+            throw toRepositoryError(
+              "register_email_check_failed",
+              "邮箱可用性检查失败，请稍后重试。",
+            );
+          }
+
+          return !data;
         },
       );
     },
