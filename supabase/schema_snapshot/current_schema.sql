@@ -2381,6 +2381,25 @@ $$;
 ALTER FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."is_email_registered"("p_email" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select exists (
+        select 1
+        from auth.users u
+        where pg_catalog.lower(u.email) = pg_catalog.lower(pg_catalog.btrim(p_email))
+    );
+$$;
+
+
+ALTER FUNCTION "public"."is_email_registered"("p_email" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."is_email_registered"("p_email" "text") IS '供服务端注册流程精确判断邮箱是否已存在，仅允许 service_role 执行。';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") RETURNS TABLE("invite_id" "uuid", "invite_role" "text", "created_at" timestamp with time zone, "invite_token" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5768,6 +5787,11 @@ REVOKE ALL ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger
 
 
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "service_role";
 
 
 
