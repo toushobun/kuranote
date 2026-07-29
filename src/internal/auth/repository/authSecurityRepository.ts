@@ -196,7 +196,7 @@ export function createSupabaseAuthSecurityRepository(
 
           if (typeof data !== "boolean") {
             throw toRepositoryError(
-              "register_email_check_result_invalid",
+              "register_email_check_failed",
               "邮箱可用性检查失败，请稍后重试。",
             );
           }
