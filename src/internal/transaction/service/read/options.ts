@@ -1,6 +1,7 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
-import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type { TransactionFormOptions } from "internal/transaction/entity/transactionFormOptions";
+import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   TransactionCategoryOption,
   TransactionFilterOptions,
@@ -10,7 +11,7 @@ import type {
 export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies,
   currentLedger: CurrentLedger,
-) {
+): Promise<TransactionFormOptions> {
   const [accountOptions, categoryRows, merchantOptions, tagOptions] =
     await Promise.all([
       dependencies.accountQueryService.listTransactionOptions({

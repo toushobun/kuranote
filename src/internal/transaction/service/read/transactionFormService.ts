@@ -4,27 +4,22 @@ import {
   canWriteTransaction,
 } from "lib/ledger/permissions";
 import type { TransactionItemDbRow } from "internal/db-types";
-import { loadTransactionFormOptions } from "internal/transaction/service/options";
-import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type {
+  EditTransactionView,
+  NewTransactionView,
+} from "internal/transaction/entity/transactionView";
+import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
+import { loadTransactionFormOptions } from "internal/transaction/service/read/options";
+import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   TransactionCategoryOption,
   TransactionType,
 } from "types/transactions";
 
-export type TransferEditInitialValues = {
-  type: "transfer";
-  transactionRecordId: string;
-  transactionAt: string;
-  accountId: string;
-  transferTargetAccountId: string;
-  transferAmount: string;
-  note: string;
-};
-
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies,
   currentLedger: CurrentLedger,
-) {
+): Promise<NewTransactionView> {
   return {
     ...(await loadTransactionFormOptions(dependencies, currentLedger)),
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
@@ -36,7 +31,7 @@ export async function getEditTransactionView(
   dependencies: TransactionReadDependencies,
   currentLedger: CurrentLedger,
   transactionRecordId: string,
-) {
+): Promise<EditTransactionView | null> {
   const [options, record] = await Promise.all([
     loadTransactionFormOptions(dependencies, currentLedger),
     dependencies.transactionRepository.findActiveRecord(

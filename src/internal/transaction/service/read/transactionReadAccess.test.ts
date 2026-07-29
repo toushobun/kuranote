@@ -6,7 +6,7 @@ import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
   type TransactionReadAccessDependencies,
-} from "internal/transaction/service/transactionReadAccess";
+} from "internal/transaction/service/read/transactionReadAccess";
 import {
   AuthenticationError,
   NotFoundError,

@@ -24,10 +24,10 @@ import {
 
 import {
   buildTransactionListItemsFromContext,
-  getTransactionGroupContextLookups,
   loadTransactionGroupLoaderContextForRecords,
   type TransactionReadDependencies,
-} from "internal/transaction/service/transactionContext";
+} from "internal/transaction/service/read/transactionContext";
+import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
   filterTransactionRecords,
   normalizeTransactionFilters,

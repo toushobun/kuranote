@@ -2,27 +2,14 @@ import type { CurrentLedger } from "lib/ledger/current-ledger";
 import { canModifyTransaction } from "lib/ledger/permissions";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
-import type {
-  AccountOptionDbRow,
-  AppUserSummaryDbRow,
-  CategorySummaryDbRow,
-  MerchantSummaryDbRow,
-  TransactionItemDbRow,
-  TransactionRecordDbRow,
-} from "internal/db-types";
+import type { TransactionRecordDbRow } from "internal/db-types";
 import { buildTransactionListItem } from "internal/transaction/util/buildTransactionListItem";
 import type { MerchantQueryService } from "internal/merchant";
 import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionListItem } from "types/transactions";
 
-import {
-  groupItemsByRecordId,
-  groupRawTagsByRecordId,
-} from "internal/transaction/util/grouping/tagUtils";
-import {
-  type RawTagAssignment,
-  type TransactionGroupLoaderContext,
-} from "internal/transaction/util/grouping/types";
+import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
+import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
 export type TransactionReadDependencies = {
   accountQueryService: AccountQueryService;
@@ -31,51 +18,6 @@ export type TransactionReadDependencies = {
   merchantQueryService: MerchantQueryService;
   transactionRepository: TransactionRepository;
 };
-
-export type TransactionGroupContextLookups = {
-  accountById: Map<string, AccountOptionDbRow>;
-  categoryById: Map<string, CategorySummaryDbRow>;
-  itemsByRecordId: Map<string, TransactionItemDbRow[]>;
-  merchantById: Map<string, MerchantSummaryDbRow>;
-  recorderById: Map<string, AppUserSummaryDbRow>;
-  tagsByRecordId: Map<string, RawTagAssignment[]>;
-};
-
-const contextLookupsCache = new WeakMap<
-  TransactionGroupLoaderContext,
-  TransactionGroupContextLookups
->();
-
-/**
- * 同一个 context 对象在一次请求内可能被多个筛选 / 分组 / 明细构建步骤复用，
- * 用 WeakMap 按 context 身份缓存派生的查找表，避免重复重建。
- */
-export function getTransactionGroupContextLookups(
-  context: TransactionGroupLoaderContext,
-): TransactionGroupContextLookups {
-  const cached = contextLookupsCache.get(context);
-  if (cached) return cached;
-
-  const lookups: TransactionGroupContextLookups = {
-    accountById: new Map(
-      context.accounts.map((account) => [account.id, account] as const),
-    ),
-    categoryById: new Map(
-      context.categories.map((category) => [category.id, category] as const),
-    ),
-    itemsByRecordId: groupItemsByRecordId(context.items),
-    merchantById: new Map(
-      context.merchants.map((merchant) => [merchant.id, merchant] as const),
-    ),
-    recorderById: new Map(
-      context.recorders.map((user) => [user.id, user] as const),
-    ),
-    tagsByRecordId: groupRawTagsByRecordId(context.tagAssignments),
-  };
-
-  contextLookupsCache.set(context, lookups);
-  return lookups;
-}
 
 export async function loadTransactionGroupLoaderContext(
   dependencies: TransactionReadDependencies,

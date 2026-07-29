@@ -17,6 +17,10 @@ import {
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import type {
+  EditTransactionView,
+  NewTransactionView,
+} from "internal/transaction/entity/transactionView";
+import type {
   ConvertTransactionInput,
   CreateNormalTransactionInput,
   CreateTransferTransactionInput,
@@ -28,22 +32,22 @@ import {
   loadStep4TransactionGroupItems,
   loadStep4TransactionGroupPage,
   loadStep4TransactionGroupView,
-} from "internal/transaction/service/groupLoaders";
+} from "internal/transaction/service/read/groupLoaders";
 import {
   getEditTransactionView,
   getNewTransactionView,
-} from "internal/transaction/service/transactionFormService";
+} from "internal/transaction/service/read/transactionFormService";
 import {
   buildTransactionListItemsFromContext,
   loadTransactionGroupLoaderContext,
-} from "internal/transaction/service/transactionContext";
+} from "internal/transaction/service/read/transactionContext";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
   requireTransactionUserId,
   type TransactionReadAccessDependencies,
-} from "internal/transaction/service/transactionReadAccess";
-import { loadTransactionFilterOptions } from "internal/transaction/service/options";
+} from "internal/transaction/service/read/transactionReadAccess";
+import { loadTransactionFilterOptions } from "internal/transaction/service/read/options";
 import {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,
@@ -79,7 +83,7 @@ export interface TransactionService {
   getEditView(
     currentLedger: CurrentLedger,
     transactionRecordId: string,
-  ): ReturnType<typeof getEditTransactionView>;
+  ): Promise<EditTransactionView | null>;
   getFilterOptions(
     currentLedger: CurrentLedger,
   ): ReturnType<typeof loadTransactionFilterOptions>;
@@ -101,9 +105,7 @@ export interface TransactionService {
     groupBy?: TransactionGroupBy,
     filters?: TransactionFilters,
   ): Promise<TransactionTimeGroupViewData>;
-  getNewView(
-    currentLedger: CurrentLedger,
-  ): ReturnType<typeof getNewTransactionView>;
+  getNewView(currentLedger: CurrentLedger): Promise<NewTransactionView>;
   search(
     currentLedger: CurrentLedger,
     rawQuery: string,
