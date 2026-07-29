@@ -32,7 +32,7 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
-import type { UserDisplayNameSyncService } from "internal/user/service/userService";
+import type { UserDisplayNameSyncService } from "internal/user";
 
 function toSafeUnexpectedErrorContext(error: unknown): { errorName: string } {
   return { errorName: error instanceof Error ? error.name : "unknown" };

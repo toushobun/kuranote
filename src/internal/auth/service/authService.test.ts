@@ -18,7 +18,7 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
-import type { UserDisplayNameSyncService } from "internal/user/service/userService";
+import type { UserDisplayNameSyncService } from "internal/user";
 
 const now = new Date("2026-07-19T12:00:00.000Z");
 const userId = "00000000-0000-4000-8000-000000000031";
