@@ -1,3 +1,7 @@
+import type {
+  LedgerCreateDefaults,
+  LedgerCreateDefaultsInput,
+} from "internal/ledger/entity/ledgerCreateDefaults";
 import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
@@ -14,26 +18,10 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { ThemeColorKey } from "theme/themeColorTokens";
 import { ledgerCurrencyOptions } from "types/ledgers";
 
 export type LedgerServiceDependencies = {
   ledgerRepository: LedgerRepository;
-};
-
-export type LedgerCreateDefaultsInput = {
-  email: string;
-  inheritedCurrency?: string;
-  userId: string;
-};
-
-export type LedgerCreateDefaults = {
-  defaults: {
-    baseCurrency: string;
-    displayColor: ThemeColorKey;
-    displayName: string;
-    ledgerName: string;
-  };
 };
 
 export type LedgerService = {
