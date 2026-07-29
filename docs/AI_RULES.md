@@ -136,11 +136,10 @@
 本节明文记录 Service/Repository 的可注入边界表达方式，以及模块内部读取
 辅助逻辑、类型的归属规则。Issue #532 保留试点落地记录。
 
-- Repository 统一使用 `interface XxxRepository` + `createXxxRepository()`
+- Repository 统一使用 `interface XxxRepository`，并通过 `create...Repository()`
   工厂函数表达可注入边界；Service 使用显式命名的契约类型（`interface
-XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一）
-  - `createXxxService()` 工厂函数表达可注入边界（现状已经是这样，本条只
-    是明文记录，不改变现有实现）。
+  XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一），
+  并通过 `createXxxService()` 工厂函数表达可注入边界。
 - 模块内由一个或多个 Service 使用、**不持有构造注入依赖、无需独立实例
   生命周期**的读取/查询辅助逻辑放 `service/read/` 子目录，不进 `util/`（`util/`
   保持零 I/O、零权限判断的纯计算语义）；这些文件不注册进 DI 容器，也不
