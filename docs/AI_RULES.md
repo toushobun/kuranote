@@ -138,7 +138,7 @@
 
 - Repository 统一使用 `interface XxxRepository`，并通过 `create...Repository()`
   工厂函数表达可注入边界；Service 使用显式命名的契约类型（`interface
-  XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一），
+XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一），
   并通过 `createXxxService()` 工厂函数表达可注入边界。
 - 模块内由一个或多个 Service 使用、**不持有构造注入依赖、无需独立实例
   生命周期**的读取/查询辅助逻辑放 `service/read/` 子目录，不进 `util/`（`util/`
