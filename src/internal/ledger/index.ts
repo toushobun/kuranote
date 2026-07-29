@@ -17,11 +17,11 @@ export {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
+export type { LedgerCreateDefaults } from "internal/ledger/entity/ledgerCreateDefaults";
 export type {
   LedgerInvitePreview,
   LedgerInviteStatus,
 } from "internal/ledger/entity/ledgerInvitePreview";
-export type { LedgerCreateDefaults } from "internal/ledger/service/ledgerService";
 export {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,

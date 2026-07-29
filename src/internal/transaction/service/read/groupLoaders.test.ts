@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
-import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 import { defaultTransactionFilters } from "types/transactions";
 
@@ -14,18 +14,21 @@ const mocks = vi.hoisted(() => ({
   loadTransactionGroupLoaderContextForRecords: vi.fn(),
 }));
 
-vi.mock("internal/transaction/service/transactionContext", () => ({
+vi.mock("internal/transaction/service/read/transactionContext", () => ({
   buildTransactionListItemsFromContext:
     mocks.buildTransactionListItemsFromContext,
-  getTransactionGroupContextLookups: mocks.getTransactionGroupContextLookups,
   loadTransactionGroupLoaderContextForRecords:
     mocks.loadTransactionGroupLoaderContextForRecords,
+}));
+
+vi.mock("internal/transaction/util/grouping/contextLookups", () => ({
+  getTransactionGroupContextLookups: mocks.getTransactionGroupContextLookups,
 }));
 
 import {
   loadStep4TransactionGroupItems,
   loadStep4TransactionGroupPage,
-} from "internal/transaction/service/groupLoaders";
+} from "internal/transaction/service/read/groupLoaders";
 
 const currentLedger: CurrentLedger = {
   baseCurrency: "JPY",

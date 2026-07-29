@@ -131,6 +131,38 @@
   `Response` 观察的正常跳转需验证实际 `3xx` 与 `Location`。不得把
   `NEXT_REDIRECT` 单元测试冒充真实 HTTP 状态测试。
 
+## 后端分层导出与类型归属规则
+
+本节明文记录 Service/Repository 的可注入边界表达方式，以及模块内部读取
+辅助逻辑、类型的归属规则。Issue #532 保留试点落地记录。
+
+- Repository 统一使用 `interface XxxRepository`，并通过 `create...Repository()`
+  工厂函数表达可注入边界；Service 使用显式命名的契约类型（`interface
+XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一），
+  并通过 `createXxxService()` 工厂函数表达可注入边界。
+- 模块内由一个或多个 Service 使用、**不持有构造注入依赖、无需独立实例
+  生命周期**的读取/查询辅助逻辑放 `service/read/` 子目录，不进 `util/`（`util/`
+  保持零 I/O、零权限判断的纯计算语义）；这些文件不注册进 DI 容器，也不
+  从模块 `index.ts` 导出。
+- Controller 维持具名 handler 函数导出，不为了"一个文件一个 export"的
+  形式统一打包成对象——路由是应用启动时静态注册，此时还没有请求级
+  Container 可以注入，打包没有实际收益。
+- 模块公共 API 只由模块根 `index.ts` 决定，不按单文件 export 数量判断
+  "是否算公共"。
+- 类型归属规则：
+  - HTTP 请求/响应类型从 zod schema 推导，定义在 `schema.ts`。
+  - 数据库 Row 类型归 Repository。
+  - 作为模块公共契约（经模块 `index.ts` 导出），或被多个层
+    （Controller/Service/Repository/前端）稳定复用的业务/领域类型，放到
+    对应模块的 `entity/`。新建前应先确认是否已有表达同一业务概念、语义
+    一致的既存类型，**不得仅因字段形状相同就强行复用**——结构相同不代表
+    语义相同，例如两个 `{ id, name }` 可能分别代表账户选项和成员摘要，
+    不能因为 TS 结构类型一样就合并。
+  - 仅供 Service 内部多个实现文件共用、不构成模块公共契约的辅助类型，留
+    在 `service/read/` 内部，不必升级进 `entity/`。
+  - Service 构造依赖类型默认不 export。
+  - 只在一个函数签名里用一次的类型可以留在原地，不强行升级成共享类型。
+
 ## GitHub Issue 规则
 
 创建或编辑 GitHub Issue 时，必须遵循以下规则：

@@ -4,11 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
-import {
-  getEditTransactionView,
-  type TransferEditInitialValues,
-} from "internal/transaction/service/transactionFormService";
-import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
+import { getEditTransactionView } from "internal/transaction/service/read/transactionFormService";
+import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";

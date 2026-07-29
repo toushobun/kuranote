@@ -4,7 +4,7 @@ import {
   type LedgerAccessService,
 } from "internal/ledger";
 import { AuthenticationError } from "internal/shared/errors/appError";
-import type { TransactionReadDependencies } from "internal/transaction/service/transactionContext";
+import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 
 export type TransactionReadAccessDependencies = Omit<
   TransactionReadDependencies,

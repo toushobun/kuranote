@@ -10,12 +10,12 @@ import type {
 import {
   buildTransactionListItemsFromContext,
   loadTransactionGroupLoaderContextForRecords,
-} from "internal/transaction/service/transactionContext";
+} from "internal/transaction/service/read/transactionContext";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
   type TransactionReadAccessDependencies,
-} from "internal/transaction/service/transactionReadAccess";
+} from "internal/transaction/service/read/transactionReadAccess";
 import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
 import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import type {

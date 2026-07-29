@@ -12,7 +12,7 @@ import {
   isDateText as isDateKey,
 } from "utils/transactions";
 
-import { getTransactionGroupContextLookups } from "internal/transaction/service/transactionContext";
+import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import { matchesParentCategory } from "internal/transaction/util/grouping/groupMatching";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
