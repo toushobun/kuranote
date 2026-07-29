@@ -54,6 +54,7 @@ import {
   normalizeTransactionSearchQuery,
 } from "internal/transaction/util/transactionSearchHelpers";
 import type {
+  TransactionFilterOptions,
   TransactionFilters,
   TransactionGroupBy,
   TransactionGroupPage,
@@ -86,7 +87,7 @@ export interface TransactionService {
   ): Promise<EditTransactionView | null>;
   getFilterOptions(
     currentLedger: CurrentLedger,
-  ): ReturnType<typeof loadTransactionFilterOptions>;
+  ): Promise<TransactionFilterOptions>;
   getGroupItems(
     currentLedger: CurrentLedger,
     groupBy: TransactionGroupBy,
