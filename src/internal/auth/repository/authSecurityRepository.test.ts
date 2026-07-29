@@ -75,7 +75,11 @@ describe("createSupabaseAuthSecurityRepository", () => {
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    ).rejects.toMatchObject({
+      code: "register_email_check_failed",
+      message: "邮箱可用性检查失败，请稍后重试。",
+      name: RepositoryError.name,
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "[auth] failed to check register email availability",
       { code: "service_error" },
@@ -88,7 +92,11 @@ describe("createSupabaseAuthSecurityRepository", () => {
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    ).rejects.toMatchObject({
+      code: "register_email_check_failed",
+      message: "邮箱可用性检查失败，请稍后重试。",
+      name: RepositoryError.name,
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "[auth] register email availability query crashed",
       { errorName: "Error" },
@@ -105,7 +113,11 @@ describe("createSupabaseAuthSecurityRepository", () => {
 
     await expect(
       repository.isRegisterEmailAvailable("user@example.test"),
-    ).rejects.toBeInstanceOf(RepositoryError);
+    ).rejects.toMatchObject({
+      code: "register_email_check_failed",
+      message: "邮箱可用性检查失败，请稍后重试。",
+      name: RepositoryError.name,
+    });
   });
 
   it("按邮箱维度读取成功发送时间并保留查询边界", async () => {
