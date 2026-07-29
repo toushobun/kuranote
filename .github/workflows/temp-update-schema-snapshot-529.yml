@@ -40,6 +40,7 @@ jobs:
       - name: Commit schema snapshot
         shell: bash
         run: |
+          # 仅提交由 migration 回放生成的权威结构快照。
           if git diff --quiet -- supabase/schema_snapshot/current_schema.sql; then
             echo "数据库结构快照无需更新。"
             exit 0
