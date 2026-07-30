@@ -52,14 +52,14 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("lib/supabase/server", () => ({
-  createClient: mocks.createClient,
+vi.mock("internal/shared/supabase/authenticatedClient", () => ({
+  createAuthenticatedSupabaseClient: mocks.createClient,
 }));
 
 import {
   getCurrentLedgerContext,
   getCurrentLedgerOrRedirect,
-} from "./current-ledger";
+} from "./currentLedgerContext";
 
 function createSupabaseMock({
   claims = { email: "test@example.com", sub: "user-1" },

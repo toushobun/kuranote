@@ -6,7 +6,7 @@ import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerI
 import { updateLedgerSettings } from "internal/ledger/adapter/next/actions/ledgerSettings";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AuthorizationError } from "internal/shared/errors/appError";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { LedgerSettingsActionStateTemplate } from "templates/ledgers/LedgerSettingsActionState";
 import type { LedgerSettingsSaveResult } from "templates/ledgers/LedgerSettings";

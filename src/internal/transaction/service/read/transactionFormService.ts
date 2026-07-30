@@ -1,8 +1,5 @@
-import type { CurrentLedger } from "lib/ledger/current-ledger";
-import {
-  canModifyTransaction,
-  canWriteTransaction,
-} from "lib/ledger/permissions";
+import type { CurrentLedger } from "internal/ledger";
+import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { TransactionItemDbRow } from "internal/db-types";
 import type {
   EditTransactionView,

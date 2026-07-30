@@ -7,7 +7,7 @@ import {
   canModifyTransaction,
   canViewLedger,
   canWriteTransaction,
-} from "lib/ledger/permissions";
+} from "./ledgerPermissions";
 
 describe("账本成员权限判断", () => {
   it.each(["owner", "admin"] as const)(

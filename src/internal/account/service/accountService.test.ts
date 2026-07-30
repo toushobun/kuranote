@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole } from "internal/ledger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { accountErrorCodes } from "internal/account/errors";

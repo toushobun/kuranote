@@ -3,7 +3,7 @@
 import {
   getCurrentLedgerContext,
   getCurrentLedgerOrRedirect,
-} from "lib/ledger/current-ledger";
+} from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { getDashboardDateRange } from "internal/statistics/util/dashboardDateRange";

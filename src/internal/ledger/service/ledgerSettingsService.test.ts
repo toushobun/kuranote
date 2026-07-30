@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
 import type { LedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";

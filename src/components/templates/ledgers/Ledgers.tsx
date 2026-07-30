@@ -34,10 +34,7 @@ import { useFormStatus } from "react-dom";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSettingsHref, routePaths } from "config/paths";
-import type {
-  CurrentLedgerRole,
-  LedgerWithMemberCount,
-} from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,

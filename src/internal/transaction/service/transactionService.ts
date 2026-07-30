@@ -1,8 +1,5 @@
-import {
-  canModifyTransaction,
-  canWriteTransaction,
-} from "lib/ledger/permissions";
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
+import type { CurrentLedger } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import {
