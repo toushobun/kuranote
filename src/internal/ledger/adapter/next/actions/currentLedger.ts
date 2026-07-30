@@ -22,6 +22,7 @@ function createErrorState(message: string): CurrentLedgerActionState {
 function validationErrorState(): CurrentLedgerActionState {
   return createErrorState(
     getCurrentLedgerErrorMessage(currentLedgerErrorCodes.ledgerInvalid) ??
+      // 当前已知合法 code 不会走到此分支；兜底仅用于满足 string | null 返回类型，无需与权威文案逐字一致。
       "无法切换到该账本，请刷新页面后重试。",
   );
 }
@@ -36,6 +37,7 @@ function actionErrorState(error: unknown): CurrentLedgerActionState {
   });
   return createErrorState(
     getCurrentLedgerErrorMessage(currentLedgerErrorCodes.updateFailed) ??
+      // 当前已知合法 code 不会走到此分支；兜底仅用于满足 string | null 返回类型，无需与权威文案逐字一致。
       "账本操作失败，请稍后重试。",
   );
 }
