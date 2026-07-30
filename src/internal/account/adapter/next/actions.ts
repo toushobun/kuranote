@@ -9,7 +9,11 @@ import {
   parseUpdateAccountForm,
 } from "internal/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
-import { getAccountErrorMessage } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+  type AccountErrorCode,
+} from "internal/account/errors";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
@@ -34,7 +38,7 @@ function getValidationErrorState(
 
 function getActionErrorState(
   error: unknown,
-  fallback: string,
+  fallbackCode: AccountErrorCode,
 ): AccountActionState {
   if (error instanceof AppError) {
     return createErrorState(error.message);
@@ -43,7 +47,9 @@ function getActionErrorState(
   console.error("[account] account action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(fallback);
+  return createErrorState(
+    getAccountErrorMessage(fallbackCode) ?? "账户操作失败，请稍后重试。",
+  );
 }
 
 export async function createAccount(
@@ -68,10 +74,7 @@ export async function createAccount(
       userId,
     });
   } catch (error) {
-    return getActionErrorState(
-      error,
-      "账户新增失败。请确认账户名称是否重复，或稍后重试。",
-    );
+    return getActionErrorState(error, accountErrorCodes.createFailed);
   }
 
   revalidateAccountMutation();
@@ -100,10 +103,7 @@ export async function updateAccount(
       userId,
     });
   } catch (error) {
-    return getActionErrorState(
-      error,
-      "账户更新失败。请确认账户名称是否重复，或稍后重试。",
-    );
+    return getActionErrorState(error, accountErrorCodes.updateFailed);
   }
 
   revalidateAccountMutation();
@@ -132,7 +132,7 @@ export async function archiveAccount(
       userId,
     });
   } catch (error) {
-    return getActionErrorState(error, "账户删除失败，请稍后重试。");
+    return getActionErrorState(error, accountErrorCodes.archiveFailed);
   }
 
   revalidateAccountMutation();

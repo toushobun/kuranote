@@ -7,7 +7,7 @@ import { revalidateCategoryMutation } from "internal/category/adapter/next/reval
 import {
   categoryErrorCodes,
   getCategoryErrorMessage,
-} from "internal/category/categoryErrors";
+} from "internal/category/errors";
 import {
   parseArchiveCategoryForm,
   parseCreateCategoryForm,

@@ -1,4 +1,4 @@
-import { categoryErrorCodes } from "internal/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category/errors";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   AuthenticationError,

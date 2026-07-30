@@ -116,6 +116,10 @@
   破坏 `useActionState`。
 - Server Action 的解析失败、前置校验和 Service 失败文案必须来自对应模块的
   单一权威错误定义。页面和组件不得按错误码重复维护文案。
+- 模块错误定义默认集中在模块根目录的 `errors.ts`。当模块错误数量较多且可按
+  独立业务流程清晰拆分时，可以使用 `errors/` 目录，并以业务流程命名目录内
+  文件；不得使用 `categoryErrors.ts` 一类重复模块名前缀的命名。Service、
+  Server Action、页面和组件必须引用该权威定义，不得复制错误文案字面量。
 
 ### Redirect、查询参数与测试
 

@@ -36,7 +36,7 @@ function actionErrorState(error: unknown): CurrentLedgerActionState {
   });
   return createErrorState(
     getCurrentLedgerErrorMessage(currentLedgerErrorCodes.updateFailed) ??
-      "账本切换失败，请稍后重试。",
+      "账本操作失败，请稍后重试。",
   );
 }
 
