@@ -24,7 +24,10 @@ import type {
   ConvertTransactionInput,
   CreateNormalTransactionInput,
   CreateTransferTransactionInput,
-  TransactionRepository,
+  TransactionCommandRepository,
+  TransactionFilterOptionsRepository,
+  TransactionFormRepository,
+  TransactionGroupRepository,
   UpdateNormalTransactionInput,
   UpdateTransferTransactionInput,
 } from "internal/transaction/repository/transactionRepository";
@@ -70,7 +73,10 @@ export type TransactionServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantQueryService: MerchantQueryService;
-  transactionRepository: TransactionRepository;
+  transactionRepository: TransactionCommandRepository &
+    TransactionFilterOptionsRepository &
+    TransactionFormRepository &
+    TransactionGroupRepository;
 };
 
 export interface TransactionService {
@@ -143,7 +149,12 @@ export function createTransactionService({
   merchantQueryService,
   transactionRepository,
 }: TransactionServiceDependencies): TransactionService {
-  const readAccessDependencies: TransactionReadAccessDependencies = {
+  const readAccessDependencies: TransactionReadAccessDependencies<
+    TransactionCommandRepository &
+      TransactionFilterOptionsRepository &
+      TransactionFormRepository &
+      TransactionGroupRepository
+  > = {
     accountQueryService,
     categoryQueryService,
     currentUserId,

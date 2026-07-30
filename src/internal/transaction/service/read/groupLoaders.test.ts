@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
+import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 import { defaultTransactionFilters } from "types/transactions";
@@ -77,7 +78,7 @@ function createDependencies(listRecords: ReturnType<typeof vi.fn>) {
       listRecords,
       loadGroupSummaries: vi.fn(),
     },
-  } as unknown as TransactionReadDependencies;
+  } as unknown as TransactionReadDependencies<TransactionGroupRepository>;
 }
 
 function createMonthIso(offset: number) {

@@ -5,18 +5,23 @@ import type { CategoryQueryService } from "internal/category";
 import type { TransactionRecordDbRow } from "internal/db-types";
 import { buildTransactionListItem } from "internal/transaction/util/buildTransactionListItem";
 import type { MerchantQueryService } from "internal/merchant";
-import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
+import type { TransactionContextRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionListItem } from "types/transactions";
 
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
-export type TransactionReadDependencies = {
+type TransactionReadBaseDependencies = {
   accountQueryService: AccountQueryService;
   categoryQueryService: CategoryQueryService;
   currentUserId: string;
   merchantQueryService: MerchantQueryService;
-  transactionRepository: TransactionRepository;
+};
+
+export type TransactionReadDependencies<
+  TRepository = TransactionContextRepository,
+> = TransactionReadBaseDependencies & {
+  transactionRepository: TRepository;
 };
 
 export async function loadTransactionGroupLoaderContext(

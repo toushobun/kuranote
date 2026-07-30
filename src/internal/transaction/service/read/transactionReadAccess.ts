@@ -6,8 +6,8 @@ import {
 import { AuthenticationError } from "internal/shared/errors/appError";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 
-export type TransactionReadAccessDependencies = Omit<
-  TransactionReadDependencies,
+export type TransactionReadAccessDependencies<TRepository> = Omit<
+  TransactionReadDependencies<TRepository>,
   "currentUserId"
 > & {
   currentUserId: string | null;
@@ -22,13 +22,13 @@ export function requireTransactionUserId(currentUserId: string | null): string {
   return currentUserId;
 }
 
-export function getTransactionReadDependencies({
+export function getTransactionReadDependencies<TRepository>({
   accountQueryService,
   categoryQueryService,
   currentUserId,
   merchantQueryService,
   transactionRepository,
-}: TransactionReadAccessDependencies): TransactionReadDependencies {
+}: TransactionReadAccessDependencies<TRepository>): TransactionReadDependencies<TRepository> {
   return {
     accountQueryService,
     categoryQueryService,
@@ -39,7 +39,13 @@ export function getTransactionReadDependencies({
 }
 
 export async function requireTransactionReadLedger(
-  { currentUserId, ledgerAccessService }: TransactionReadAccessDependencies,
+  {
+    currentUserId,
+    ledgerAccessService,
+  }: Pick<
+    TransactionReadAccessDependencies<unknown>,
+    "currentUserId" | "ledgerAccessService"
+  >,
   currentLedger: CurrentLedger,
 ): Promise<CurrentLedger> {
   const userId = requireTransactionUserId(currentUserId);

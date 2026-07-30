@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "lib/ledger/current-ledger";
-import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
+import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
 import { getEditTransactionView } from "internal/transaction/service/read/transactionFormService";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
@@ -27,34 +27,19 @@ const currentLedger: CurrentLedger = {
 };
 
 function createRepository(
-  overrides: Partial<TransactionRepository> = {},
-): TransactionRepository {
+  overrides: Partial<TransactionFormRepository> = {},
+): TransactionFormRepository {
   return {
-    convert: vi.fn(),
-    createNormal: vi.fn(),
-    createTransfer: vi.fn(),
     findActiveRecord: vi.fn().mockResolvedValue(null),
-    findUserSummaries: vi.fn().mockResolvedValue([]),
-    listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listActiveTags: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
-    listRecords: vi.fn().mockResolvedValue([]),
     listTagAssignments: vi.fn().mockResolvedValue([]),
     listTagsByIds: vi.fn().mockResolvedValue([]),
-    loadDashboardMonthSource: vi.fn().mockResolvedValue({
-      categories: [],
-      items: [],
-    }),
-    loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
-    loadGroupSummaries: vi.fn().mockResolvedValue([]),
-    updateNormal: vi.fn(),
-    updateTransfer: vi.fn(),
-    void: vi.fn(),
     ...overrides,
   };
 }
 
-function createDependencies(repository: TransactionRepository) {
+function createDependencies(repository: TransactionFormRepository) {
   return {
     accountQueryService: {
       getTransactionContext: vi.fn(),
@@ -90,7 +75,7 @@ function createDependencies(repository: TransactionRepository) {
         ]),
     },
     transactionRepository: repository,
-  } satisfies TransactionReadDependencies;
+  } satisfies TransactionReadDependencies<TransactionFormRepository>;
 }
 
 describe("getEditTransactionView", () => {

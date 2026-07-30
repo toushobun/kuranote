@@ -1,5 +1,6 @@
 import type { CurrentLedger } from "lib/ledger/current-ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
+import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import {
   buildTransactionGroupSummaryPage,
   isTransactionTimeGroupBy,
@@ -52,7 +53,7 @@ const nonTimeTransactionGroupByValues = new Set<string>([
 const transactionGroupSummaryRpcPageSize = transactionPageSize + 1;
 
 export async function loadStep4TransactionGroupView(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionGroupBy = "month",
   filters: TransactionFilters = defaultTransactionFilters,
@@ -96,7 +97,7 @@ export async function loadStep4TransactionGroupView(
 }
 
 export async function loadStep4TransactionGroupPage(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionGroupBy,
   offset: number,
@@ -126,7 +127,7 @@ export async function loadStep4TransactionGroupPage(
 }
 
 async function loadStep4NonTimeGroupedTransactionGroupPage(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionGroupBy,
   offset: number,
@@ -183,7 +184,7 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
 }
 
 async function loadStep4TimeGroupedTransactionGroupPage(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionTimeGroupBy,
   offset: number,
@@ -249,7 +250,7 @@ async function loadStep4TimeGroupedTransactionGroupPage(
 }
 
 export async function loadStep4TransactionGroupItems(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionGroupBy,
   groupKey: string,
@@ -300,7 +301,7 @@ function normalizeRpcAmount(value: number | string | null | undefined) {
 }
 
 async function loadStep4TransactionGroupItemsPage(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionGroupRepository>,
   currentLedger: CurrentLedger,
   groupBy: TransactionGroupBy,
   groupKey: string,

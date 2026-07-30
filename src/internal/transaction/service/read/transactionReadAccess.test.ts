@@ -18,7 +18,7 @@ const userId = "00000000-0000-4000-8000-000000000031";
 function createDependencies(
   currentUserId: string | null = userId,
   role: "owner" | "admin" | "member" | "viewer" | null = "member",
-): TransactionReadAccessDependencies {
+): TransactionReadAccessDependencies<unknown> {
   return {
     accountQueryService: {} as never,
     categoryQueryService: {} as never,

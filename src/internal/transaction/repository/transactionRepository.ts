@@ -113,7 +113,7 @@ export type TransactionGroupSummaryRow = {
   transaction_count: number | string | null;
 };
 
-export interface TransactionRepository {
+export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
@@ -121,12 +121,16 @@ export interface TransactionRepository {
     ledgerId: string,
     transactionRecordId: string,
   ): Promise<TransactionRecordDbRow | null>;
+  updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
+  updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
+  void(ledgerId: string, transactionRecordId: string): Promise<void>;
+}
+
+export interface TransactionContextRepository {
   findUserSummaries(
     ledgerId: string,
     userIds: string[],
   ): Promise<AppUserSummaryDbRow[]>;
-  listActiveMemberIds(ledgerId: string): Promise<string[]>;
-  listActiveTags(ledgerId: string): Promise<TransactionTagDbRow[]>;
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
@@ -140,6 +144,38 @@ export interface TransactionRepository {
     ledgerId: string,
     tagIds: string[],
   ): Promise<TransactionTagDbRow[]>;
+}
+
+export interface TransactionFormRepository {
+  findActiveRecord(
+    ledgerId: string,
+    transactionRecordId: string,
+  ): Promise<TransactionRecordDbRow | null>;
+  listActiveTags(ledgerId: string): Promise<TransactionTagDbRow[]>;
+  listItems(
+    ledgerId: string,
+    transactionRecordIds: string[],
+  ): Promise<TransactionItemDbRow[]>;
+  listTagAssignments(
+    ledgerId: string,
+    transactionRecordIds: string[],
+  ): Promise<RawTagAssignment[]>;
+  listTagsByIds(
+    ledgerId: string,
+    tagIds: string[],
+  ): Promise<TransactionTagDbRow[]>;
+}
+
+export interface TransactionFilterOptionsRepository {
+  findUserSummaries(
+    ledgerId: string,
+    userIds: string[],
+  ): Promise<AppUserSummaryDbRow[]>;
+  listActiveMemberIds(ledgerId: string): Promise<string[]>;
+  listActiveTags(ledgerId: string): Promise<TransactionTagDbRow[]>;
+}
+
+export interface TransactionDashboardRepository extends TransactionContextRepository {
   loadDashboardMonthSource(input: {
     dateEnd: string;
     dateStart: string;
@@ -149,6 +185,9 @@ export interface TransactionRepository {
     ledgerId: string;
     limit: number;
   }): Promise<string[]>;
+}
+
+export interface TransactionGroupRepository extends TransactionContextRepository {
   loadGroupSummaries(input: {
     accountId?: string;
     categoryId?: string;
@@ -164,10 +203,15 @@ export interface TransactionRepository {
     recordType: TransactionFilterRecordType;
     tagId?: string;
   }): Promise<TransactionGroupSummaryRow[]>;
-  updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
-  updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
-  void(ledgerId: string, transactionRecordId: string): Promise<void>;
 }
+
+export interface SupabaseTransactionRepository
+  extends
+    TransactionCommandRepository,
+    TransactionDashboardRepository,
+    TransactionFilterOptionsRepository,
+    TransactionFormRepository,
+    TransactionGroupRepository {}
 
 type RpcError = {
   code?: string | null;
@@ -210,7 +254,7 @@ function findTransactionRpcErrorCode(
 export function createSupabaseTransactionRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
-): TransactionRepository {
+): SupabaseTransactionRepository {
   function throwRpcError(
     operation: string,
     fallbackCode: TransactionServiceErrorCode,
