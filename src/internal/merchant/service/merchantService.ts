@@ -1,4 +1,4 @@
-import { canManageMasterData } from "lib/ledger/permissions";
+import { canManageMasterData } from "internal/ledger";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -20,7 +20,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "internal/shared/errors/appError";
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole } from "internal/ledger";
 import type { MerchantRow } from "types/merchants";
 import { filterMerchantsByKeyword } from "utils/merchants";
 

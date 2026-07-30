@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 
-import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { getCurrentLedgerOrRedirect } from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import type {

@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("lib/ledger/current-ledger", () => ({
+vi.mock("internal/ledger/adapter/next/currentLedgerContext", () => ({
   getCurrentLedgerContext: mocks.getCurrentLedgerContext,
 }));
 

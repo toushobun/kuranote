@@ -6,7 +6,7 @@ import LedgerInviteRoute, { probeAuthentication } from "./page";
 const validToken = "a".repeat(64);
 
 const mocks = vi.hoisted(() => ({
-  createClient: vi.fn(),
+  createAuthenticatedSupabaseClient: vi.fn(),
   getUser: vi.fn(),
   loadLedgerInvitePreview: vi.fn(),
   redirect: vi.fn((path: string) => {
@@ -18,8 +18,8 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("lib/supabase/server", () => ({
-  createClient: mocks.createClient,
+vi.mock("internal/shared/supabase/authenticatedClient", () => ({
+  createAuthenticatedSupabaseClient: mocks.createAuthenticatedSupabaseClient,
 }));
 
 vi.mock("internal/ledger/adapter/next/loadLedgerInvitePreview", () => ({
@@ -44,7 +44,7 @@ vi.mock("templates/ledgers/LedgerInvite", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.createClient.mockResolvedValue({
+  mocks.createAuthenticatedSupabaseClient.mockResolvedValue({
     auth: { getUser: mocks.getUser },
   });
   mocks.loadLedgerInvitePreview.mockResolvedValue({
@@ -75,7 +75,7 @@ describe("LedgerInviteRoute", () => {
       "data-exit",
       "/",
     );
-    expect(mocks.createClient).not.toHaveBeenCalled();
+    expect(mocks.createAuthenticatedSupabaseClient).not.toHaveBeenCalled();
     expect(mocks.loadLedgerInvitePreview).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
@@ -96,7 +96,9 @@ describe("LedgerInviteRoute", () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    mocks.createClient.mockRejectedValue(new Error("secret invite token"));
+    mocks.createAuthenticatedSupabaseClient.mockRejectedValue(
+      new Error("secret invite token"),
+    );
 
     await expect(LedgerInviteRoute(createRouteProps())).rejects.toThrow(
       `NEXT_REDIRECT:/login?next=${encodeURIComponent(`/invite/${validToken}`)}`,
@@ -151,7 +153,9 @@ describe("probeAuthentication", () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    mocks.createClient.mockRejectedValue(new Error("secret invite token"));
+    mocks.createAuthenticatedSupabaseClient.mockRejectedValue(
+      new Error("secret invite token"),
+    );
 
     await expect(probeAuthentication()).resolves.toBe(false);
     expect(consoleError).toHaveBeenCalledWith(

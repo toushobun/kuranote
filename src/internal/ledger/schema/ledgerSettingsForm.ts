@@ -1,4 +1,4 @@
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,

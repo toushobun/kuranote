@@ -9,7 +9,7 @@ import {
   NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 
 function createRepository() {
   return {

@@ -1,5 +1,5 @@
-import { canManageMasterData } from "lib/ledger/permissions";
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import { canManageMasterData } from "internal/ledger";
+import type { CurrentLedgerRole } from "internal/ledger";
 import type { CategoryRow, CategoryTreeItem } from "types/categories";
 
 function buildCategoryTree(categories: CategoryRow[]): CategoryTreeItem[] {

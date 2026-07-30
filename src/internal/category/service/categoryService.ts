@@ -1,4 +1,4 @@
-import { canManageMasterData } from "lib/ledger/permissions";
+import { canManageMasterData } from "internal/ledger";
 import {
   categoryErrorCodes,
   getCategoryErrorMessage,

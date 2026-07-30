@@ -1,8 +1,5 @@
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
-import {
-  canManageMasterData,
-  canWriteTransaction,
-} from "lib/ledger/permissions";
+import type { CurrentLedgerRole } from "internal/ledger";
+import { canManageMasterData, canWriteTransaction } from "internal/ledger";
 import type {
   AccountLedgerMemberRecord,
   AccountLedgerSummary,

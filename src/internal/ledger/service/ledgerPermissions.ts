@@ -1,4 +1,4 @@
-import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 
 const ledgerAdminRoles = new Set<CurrentLedgerRole>(["owner", "admin"]);
 const ledgerWriteRoles = new Set<CurrentLedgerRole>([

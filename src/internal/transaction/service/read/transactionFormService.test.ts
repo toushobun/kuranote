@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { CurrentLedger } from "internal/ledger";
 import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
 import { getEditTransactionView } from "internal/transaction/service/read/transactionFormService";
