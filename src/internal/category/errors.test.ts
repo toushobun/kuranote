@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   categoryErrorCodes,
   getCategoryErrorMessage,
-} from "internal/category/categoryErrors";
+} from "internal/category/errors";
 
-describe("categoryErrors", () => {
+describe("category errors", () => {
   it("返回分类校验与业务错误的安全文案", () => {
     expect(getCategoryErrorMessage(categoryErrorCodes.nameRequired)).toBe(
       "请输入分类名称。",

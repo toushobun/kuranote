@@ -3,13 +3,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
+import { registerOtpMessages } from "internal/auth/errors";
 import type { AuthRepository } from "internal/auth/repository/authRepository";
 import type { AuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import type { TurnstileRepository } from "internal/auth/repository/turnstileRepository";
-import {
-  createAuthService,
-  registerOtpMessages,
-} from "internal/auth/service/authService";
+import { createAuthService } from "internal/auth/service/authService";
 import {
   AuthenticationError,
   ConflictError,

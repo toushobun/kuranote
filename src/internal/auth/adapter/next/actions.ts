@@ -15,7 +15,7 @@ import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
 import {
   registerErrorMessages,
   registerOtpMessages,
-} from "internal/auth/service/authService";
+} from "internal/auth/errors";
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";

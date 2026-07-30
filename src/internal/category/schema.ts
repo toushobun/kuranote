@@ -4,7 +4,7 @@ import { categoryEmojiValues } from "config/categoryEmojis";
 import {
   categoryErrorCodes,
   type CategoryValidationErrorCode,
-} from "internal/category/categoryErrors";
+} from "internal/category/errors";
 import {
   getCategoryStoredName,
   getUnicodeCharacterCount,

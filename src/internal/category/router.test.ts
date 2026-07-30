@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 
 import { routePaths } from "config/paths";
 import type { AppEnv } from "internal/appEnv";
-import { categoryErrorCodes } from "internal/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category/errors";
 import { categoryRouter } from "internal/category/router";
 import type { RequestContainer } from "internal/container";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";

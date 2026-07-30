@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { categoryErrorCodes } from "internal/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category/errors";
 import {
   createCategoryRequestSchema,
   parseCreateCategoryForm,

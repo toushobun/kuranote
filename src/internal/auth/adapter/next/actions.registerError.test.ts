@@ -6,7 +6,7 @@ import { requestRegisterOtp } from "internal/auth/adapter/next/actions";
 import {
   registerErrorMessages,
   registerOtpMessages,
-} from "internal/auth/service/authService";
+} from "internal/auth/errors";
 import {
   AuthorizationError,
   RepositoryError,

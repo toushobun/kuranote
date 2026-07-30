@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "internal/category/categoryErrors";
+import { categoryErrorCodes } from "internal/category/errors";
 import {
   ConflictError,
   NotFoundError,

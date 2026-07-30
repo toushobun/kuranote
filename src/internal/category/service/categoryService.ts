@@ -2,7 +2,7 @@ import { canManageMasterData } from "lib/ledger/permissions";
 import {
   categoryErrorCodes,
   getCategoryErrorMessage,
-} from "internal/category/categoryErrors";
+} from "internal/category/errors";
 import type {
   CategoryRepository,
   CategoryScope,
