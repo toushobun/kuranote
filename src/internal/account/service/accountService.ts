@@ -1,9 +1,5 @@
 import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
-import { buildSingleHolderAccountColorById } from "internal/account/util/accountHolderDisplayColors";
-import {
-  canManageMasterData,
-  canWriteTransaction,
-} from "lib/ledger/permissions";
+import { canManageMasterData } from "lib/ledger/permissions";
 import {
   accountErrorCodes,
   getAccountErrorMessage,
@@ -14,11 +10,8 @@ import type {
   CreateAccountInput as RepositoryCreateAccountInput,
   UpdateAccountInput as RepositoryUpdateAccountInput,
 } from "internal/account/repository/accountRepository";
-import {
-  buildAccountsWithHolders,
-  buildDisplayColorByUserId,
-  buildHolderOptions,
-} from "internal/account/util/accountView";
+import { buildAccountsView } from "internal/account/service/read/accountsView";
+import { buildTransactionAccountContext } from "internal/account/service/read/transactionContext";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -29,12 +22,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type {
-  AccountHolderOption,
-  AccountRow,
-  AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
-} from "types/accounts";
+import type { AccountHolderOption, AccountRow } from "types/accounts";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { TransactionAccountOption } from "types/transactions";
 import { accountTypeOptions, type AccountType } from "types/accounts";
@@ -172,26 +160,6 @@ function normalizeInitialBalance(initialBalance: number): number {
   return initialBalance;
 }
 
-function mergeLedgerDisplayNames(
-  users: AppUserRecord[],
-  settings: LedgerMemberDisplaySettingRecord[],
-): AppUserRecord[] {
-  const settingByUserId = new Map(
-    settings.map((setting) => [setting.user_id, setting] as const),
-  );
-
-  return users.map((user) => {
-    const ledgerDisplayName = settingByUserId
-      .get(user.id)
-      ?.display_name?.trim();
-
-    return {
-      ...user,
-      display_name: ledgerDisplayName || user.display_name,
-    };
-  });
-}
-
 /**
  * Account 模块 UseCase。读取和写入均独立确认账本、成员资格与权限，
  * 不假设调用方一定经过 Router middleware 或当前账本页面边界。
@@ -309,19 +277,12 @@ export function createAccountService({
         accountRepository.listHolders(ledgerId, uniqueAccountIds),
         accountRepository.listDisplaySettings(ledgerId),
       ]);
-      return {
-        accountColorById: buildSingleHolderAccountColorById({
-          activeMemberUserIds: new Set(members.map((member) => member.user_id)),
-          holders,
-          settings,
-        }),
-        accounts: accounts.map(({ currency, id, name }) => ({
-          currency,
-          id,
-          name,
-        })),
-        showRecorder: members.length > 1,
-      };
+      return buildTransactionAccountContext({
+        accounts,
+        holders,
+        members,
+        settings,
+      });
     },
 
     async listTransactionOptions({ ledgerId, userId }) {
@@ -357,28 +318,17 @@ export function createAccountService({
           ...holders.map((holder) => holder.user_id),
         ]),
       ];
-      const users = mergeLedgerDisplayNames(
-        await accountRepository.listUsers(userIds),
-        displaySettings,
-      );
-      const appUserById = new Map(users.map((user) => [user.id, user]));
+      const users = await accountRepository.listUsers(userIds);
 
-      return {
-        accounts: buildAccountsWithHolders({
-          accounts,
-          appUserById,
-          displayColorByUserId: buildDisplayColorByUserId({
-            members,
-            settings: displaySettings,
-          }),
-          holders,
-        }),
-        baseCurrency: ledger.baseCurrency,
-        canManageAccounts: canManageMasterData(role),
-        canWriteTransactions: canWriteTransaction(role),
-        holderOptions: buildHolderOptions({ appUserById, members }),
-        ledgerName: ledger.name,
-      };
+      return buildAccountsView({
+        accounts,
+        displaySettings,
+        holders,
+        ledger,
+        members,
+        role,
+        users,
+      });
     },
 
     async update(input) {
