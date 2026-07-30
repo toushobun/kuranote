@@ -1,12 +1,18 @@
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
-import { createAccountService } from "internal/account/service/accountService";
+import {
+  createAccountService,
+  type AccountQueryService,
+} from "internal/account/service/accountService";
 import { isGoogleAuthEnabled } from "internal/auth/googleAuthConfig";
 import { createSupabaseAuthRepository } from "internal/auth/repository/authRepository";
 import { createSupabaseAuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import { createCloudflareTurnstileRepository } from "internal/auth/repository/turnstileRepository";
 import { createAuthService } from "internal/auth/service/authService";
 import { createSupabaseCategoryRepository } from "internal/category/repository/categoryRepository";
-import { createCategoryService } from "internal/category/service/categoryService";
+import {
+  createCategoryService,
+  type CategoryQueryService,
+} from "internal/category/service/categoryService";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
@@ -19,7 +25,10 @@ import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteS
 import { createLedgerService } from "internal/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
-import { createMerchantService } from "internal/merchant/service/merchantService";
+import {
+  createMerchantService,
+  type MerchantQueryService,
+} from "internal/merchant/service/merchantService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 import { createSupabaseStatisticsRepository } from "internal/statistics/repository/statisticsRepository";
 import { createStatisticsService } from "internal/statistics/service/statisticsService";
@@ -85,12 +94,69 @@ export function createRequestContainer(
   let statisticsContainer: RequestContainer["statistics"] | undefined;
   let transactionContainer: RequestContainer["transaction"] | undefined;
   let userContainer: RequestContainer["user"] | undefined;
+  let accountRepository:
+    | ReturnType<typeof createSupabaseAccountRepository>
+    | undefined;
+  let accountQueryService: AccountQueryService | undefined;
+  let categoryRepository:
+    | ReturnType<typeof createSupabaseCategoryRepository>
+    | undefined;
+  let categoryQueryService: CategoryQueryService | undefined;
+  let merchantRepository:
+    | ReturnType<typeof createSupabaseMerchantRepository>
+    | undefined;
+  let merchantQueryService: MerchantQueryService | undefined;
   let ledgerSettingsRepository:
     | ReturnType<typeof createSupabaseLedgerSettingsRepository>
     | undefined;
   let ledgerAccessService:
     | ReturnType<typeof createLedgerAccessService>
     | undefined;
+
+  function getAccountRepository() {
+    return (accountRepository ??= createSupabaseAccountRepository(
+      dependencies.supabase,
+      dependencies.logger,
+    ));
+  }
+
+  function getAccountQueryService() {
+    return (accountQueryService ??= createAccountService({
+      accountRepository: getAccountRepository(),
+      ledgerAccessService: getLedgerAccessService(),
+    }));
+  }
+
+  function getCategoryRepository() {
+    return (categoryRepository ??= createSupabaseCategoryRepository(
+      dependencies.supabase,
+      dependencies.logger,
+    ));
+  }
+
+  function getCategoryQueryService() {
+    return (categoryQueryService ??= createCategoryService({
+      categoryRepository: getCategoryRepository(),
+      ledgerAccessService: getLedgerAccessService(),
+    }));
+  }
+
+  function getMerchantRepository() {
+    return (merchantRepository ??= createSupabaseMerchantRepository(
+      dependencies.supabase,
+      dependencies.logger,
+    ));
+  }
+
+  function getMerchantQueryService() {
+    return (merchantQueryService ??= createMerchantService({
+      currentUserId: dependencies.auth.isAuthenticated
+        ? dependencies.auth.userId
+        : null,
+      ledgerAccessService: getLedgerAccessService(),
+      merchantRepository: getMerchantRepository(),
+    }));
+  }
 
   function getLedgerSettingsRepository() {
     return (ledgerSettingsRepository ??= createSupabaseLedgerSettingsRepository(
@@ -108,13 +174,9 @@ export function createRequestContainer(
   return {
     get account() {
       if (!accountContainer) {
-        const accountRepository = createSupabaseAccountRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         accountContainer = {
           service: createAccountService({
-            accountRepository,
+            accountRepository: getAccountRepository(),
             ledgerAccessService: getLedgerAccessService(),
           }),
         };
@@ -161,13 +223,9 @@ export function createRequestContainer(
 
     get category() {
       if (!categoryContainer) {
-        const categoryRepository = createSupabaseCategoryRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         categoryContainer = {
           service: createCategoryService({
-            categoryRepository,
+            categoryRepository: getCategoryRepository(),
             ledgerAccessService: getLedgerAccessService(),
           }),
         };
@@ -219,17 +277,13 @@ export function createRequestContainer(
 
     get merchant() {
       if (!merchantContainer) {
-        const merchantRepository = createSupabaseMerchantRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         merchantContainer = {
           service: createMerchantService({
             currentUserId: dependencies.auth.isAuthenticated
               ? dependencies.auth.userId
               : null,
             ledgerAccessService: getLedgerAccessService(),
-            merchantRepository,
+            merchantRepository: getMerchantRepository(),
           }),
         };
       }
@@ -239,18 +293,6 @@ export function createRequestContainer(
 
     get statistics() {
       if (!statisticsContainer) {
-        const accountRepository = createSupabaseAccountRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-        const categoryRepository = createSupabaseCategoryRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-        const merchantRepository = createSupabaseMerchantRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         const statisticsRepository = createSupabaseStatisticsRepository(
           dependencies.supabase,
           dependencies.logger,
@@ -263,19 +305,6 @@ export function createRequestContainer(
         const currentUserId = dependencies.auth.isAuthenticated
           ? dependencies.auth.userId
           : null;
-        const accountQueryService = createAccountService({
-          accountRepository,
-          ledgerAccessService,
-        });
-        const categoryQueryService = createCategoryService({
-          categoryRepository,
-          ledgerAccessService,
-        });
-        const merchantQueryService = createMerchantService({
-          currentUserId,
-          ledgerAccessService,
-          merchantRepository,
-        });
 
         statisticsContainer = {
           service: createStatisticsService({
@@ -284,11 +313,11 @@ export function createRequestContainer(
             statisticsRepository,
             transactionDashboardQueryService:
               createTransactionDashboardQueryService({
-                accountQueryService,
-                categoryQueryService,
+                accountQueryService: getAccountQueryService(),
+                categoryQueryService: getCategoryQueryService(),
                 currentUserId,
                 ledgerAccessService,
-                merchantQueryService,
+                merchantQueryService: getMerchantQueryService(),
                 transactionRepository,
               }),
           }),
@@ -300,18 +329,6 @@ export function createRequestContainer(
 
     get transaction() {
       if (!transactionContainer) {
-        const accountRepository = createSupabaseAccountRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-        const categoryRepository = createSupabaseCategoryRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
-        const merchantRepository = createSupabaseMerchantRepository(
-          dependencies.supabase,
-          dependencies.logger,
-        );
         const transactionRepository = createSupabaseTransactionRepository(
           dependencies.supabase,
           dependencies.logger,
@@ -323,21 +340,11 @@ export function createRequestContainer(
 
         transactionContainer = {
           service: createTransactionService({
-            accountQueryService: createAccountService({
-              accountRepository,
-              ledgerAccessService,
-            }),
-            categoryQueryService: createCategoryService({
-              categoryRepository,
-              ledgerAccessService,
-            }),
+            accountQueryService: getAccountQueryService(),
+            categoryQueryService: getCategoryQueryService(),
             currentUserId,
             ledgerAccessService,
-            merchantQueryService: createMerchantService({
-              currentUserId,
-              ledgerAccessService,
-              merchantRepository,
-            }),
+            merchantQueryService: getMerchantQueryService(),
             transactionRepository,
           }),
         };

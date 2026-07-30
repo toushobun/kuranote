@@ -3,6 +3,60 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock(
+  "internal/account/repository/accountRepository",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("internal/account/repository/accountRepository")
+      >();
+    return {
+      ...actual,
+      createSupabaseAccountRepository: vi.fn(
+        actual.createSupabaseAccountRepository,
+      ),
+    };
+  },
+);
+
+vi.mock("internal/account/service/accountService", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("internal/account/service/accountService")
+    >();
+  return {
+    ...actual,
+    createAccountService: vi.fn(actual.createAccountService),
+  };
+});
+
+vi.mock(
+  "internal/category/repository/categoryRepository",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("internal/category/repository/categoryRepository")
+      >();
+    return {
+      ...actual,
+      createSupabaseCategoryRepository: vi.fn(
+        actual.createSupabaseCategoryRepository,
+      ),
+    };
+  },
+);
+
+vi.mock("internal/category/service/categoryService", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("internal/category/service/categoryService")
+    >();
+  return {
+    ...actual,
+    createCategoryService: vi.fn(actual.createCategoryService),
+  };
+});
+
+vi.mock(
   "internal/ledger/repository/ledgerSettingsRepository",
   async (importOriginal) => {
     const actual =
@@ -32,9 +86,42 @@ vi.mock(
   },
 );
 
+vi.mock(
+  "internal/merchant/repository/merchantRepository",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("internal/merchant/repository/merchantRepository")
+      >();
+    return {
+      ...actual,
+      createSupabaseMerchantRepository: vi.fn(
+        actual.createSupabaseMerchantRepository,
+      ),
+    };
+  },
+);
+
+vi.mock("internal/merchant/service/merchantService", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("internal/merchant/service/merchantService")
+    >();
+  return {
+    ...actual,
+    createMerchantService: vi.fn(actual.createMerchantService),
+  };
+});
+
+import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
+import { createAccountService } from "internal/account/service/accountService";
+import { createSupabaseCategoryRepository } from "internal/category/repository/categoryRepository";
+import { createCategoryService } from "internal/category/service/categoryService";
 import { createRequestContainer } from "internal/container";
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import { createLedgerAccessService } from "internal/ledger/service/ledgerAccessService";
+import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
+import { createMerchantService } from "internal/merchant/service/merchantService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 
 function createDependenciesStub(): RequestDependencies {
@@ -81,6 +168,23 @@ describe("createRequestContainer", () => {
 
     expect(createSupabaseLedgerSettingsRepository).toHaveBeenCalledTimes(1);
     expect(createLedgerAccessService).toHaveBeenCalledTimes(1);
+  });
+
+  it("跨统计与交易模块共享叶子依赖但独立创建模块正式 Service", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    void container.statistics;
+    void container.transaction;
+    void container.account;
+    void container.category;
+    void container.merchant;
+
+    expect(createSupabaseAccountRepository).toHaveBeenCalledTimes(1);
+    expect(createSupabaseCategoryRepository).toHaveBeenCalledTimes(1);
+    expect(createSupabaseMerchantRepository).toHaveBeenCalledTimes(1);
+    expect(createAccountService).toHaveBeenCalledTimes(2);
+    expect(createCategoryService).toHaveBeenCalledTimes(2);
+    expect(createMerchantService).toHaveBeenCalledTimes(2);
   });
 
   it("提供惰性缓存的 account.service 及账户 UseCase", () => {
