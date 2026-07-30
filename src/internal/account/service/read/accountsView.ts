@@ -1,0 +1,84 @@
+import type { CurrentLedgerRole } from "lib/ledger/current-ledger";
+import {
+  canManageMasterData,
+  canWriteTransaction,
+} from "lib/ledger/permissions";
+import type {
+  AccountLedgerMemberRecord,
+  AccountLedgerSummary,
+  AccountRepository,
+} from "internal/account/repository/accountRepository";
+import {
+  buildAccountsWithHolders,
+  buildDisplayColorByUserId,
+  buildHolderOptions,
+} from "internal/account/util/accountView";
+import type {
+  AppUserRecord,
+  LedgerMemberDisplaySettingRecord,
+} from "types/accounts";
+
+type AccountsViewInput = {
+  accounts: Awaited<ReturnType<AccountRepository["listAccounts"]>>;
+  displaySettings: LedgerMemberDisplaySettingRecord[];
+  holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
+  ledger: AccountLedgerSummary;
+  members: AccountLedgerMemberRecord[];
+  role: CurrentLedgerRole;
+  users: AppUserRecord[];
+};
+
+export function mergeLedgerDisplayNames(
+  users: AppUserRecord[],
+  settings: LedgerMemberDisplaySettingRecord[],
+): AppUserRecord[] {
+  const settingByUserId = new Map(
+    settings.map((setting) => [setting.user_id, setting] as const),
+  );
+
+  return users.map((user) => {
+    const ledgerDisplayName = settingByUserId
+      .get(user.id)
+      ?.display_name?.trim();
+
+    return {
+      ...user,
+      display_name: ledgerDisplayName || user.display_name,
+    };
+  });
+}
+
+export function buildAccountsView({
+  accounts,
+  displaySettings,
+  holders,
+  ledger,
+  members,
+  role,
+  users,
+}: AccountsViewInput) {
+  const usersWithLedgerDisplayNames = mergeLedgerDisplayNames(
+    users,
+    displaySettings,
+  );
+  const appUserById = new Map(
+    usersWithLedgerDisplayNames.map((user) => [user.id, user]),
+  );
+
+  return {
+    accounts: buildAccountsWithHolders({
+      accounts,
+      appUserById,
+      displayColorByUserId: buildDisplayColorByUserId({
+        members,
+        settings: displaySettings,
+      }),
+      holders,
+    }),
+    baseCurrency: ledger.baseCurrency,
+    canManageAccounts: canManageMasterData(role),
+    canWriteTransactions: canWriteTransaction(role),
+    holderOptions: buildHolderOptions({ appUserById, members }),
+    ledgerName: ledger.name,
+  };
+}

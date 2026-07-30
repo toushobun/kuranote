@@ -7,6 +7,11 @@ import type {
   CategoryRepository,
   CategoryScope,
 } from "internal/category/repository/categoryRepository";
+import { buildCategoriesView } from "internal/category/service/read/categoriesView";
+import {
+  getNextCategorySortOrder,
+  hasDuplicateCategoryName,
+} from "internal/category/service/read/categorySiblings";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -18,16 +23,9 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type {
-  CategoriesViewData,
-  CategoryRow,
-  CategoryTreeItem,
-} from "types/categories";
+import type { CategoriesViewData } from "types/categories";
 import type { CategorySummaryDbRow } from "internal/db-types";
-import {
-  getCategoryDisplayName,
-  getCategoryStoredName,
-} from "utils/categoryNames";
+import { getCategoryStoredName } from "utils/categoryNames";
 
 export type CategoriesView = CategoriesViewData & {
   canManageCategories: boolean;
@@ -86,51 +84,6 @@ export interface CategoryService extends CategoryQueryService {
   }): Promise<CategoriesView>;
   reorder(input: ReorderCategoriesInput): Promise<void>;
   update(input: UpdateCategoryInput): Promise<void>;
-}
-
-function buildCategoryTree(categories: CategoryRow[]): CategoryTreeItem[] {
-  const roots: CategoryTreeItem[] = categories
-    .filter((category) => category.parent_id === null)
-    .map((category) => ({ ...category, children: [] }));
-  const rootById = new Map(roots.map((category) => [category.id, category]));
-
-  for (const category of categories) {
-    if (category.parent_id === null) continue;
-    rootById.get(category.parent_id)?.children.push(category);
-  }
-
-  return roots;
-}
-
-function normalizeCategoryDisplayName(name: string, iconName?: string | null) {
-  return getCategoryDisplayName(name, iconName).trim().toLowerCase();
-}
-
-function isDuplicateName(
-  siblings: Awaited<ReturnType<CategoryRepository["listActiveSiblings"]>>,
-  name: string,
-  excludeCategoryId?: string,
-) {
-  const normalizedName = normalizeCategoryDisplayName(name);
-
-  return siblings.some(
-    (category) =>
-      category.id !== excludeCategoryId &&
-      normalizeCategoryDisplayName(category.name, category.iconName) ===
-        normalizedName,
-  );
-}
-
-function nextSortOrder(
-  siblings: Awaited<ReturnType<CategoryRepository["listActiveSiblings"]>>,
-) {
-  const maxSortOrder = Math.max(
-    0,
-    ...siblings.map((category) =>
-      Number.isFinite(category.sortOrder) ? category.sortOrder : 0,
-    ),
-  );
-  return maxSortOrder + 10;
 }
 
 function repositoryError(
@@ -279,7 +232,7 @@ export function createCategoryService({
         input,
         categoryErrorCodes.createFailed,
       );
-      if (isDuplicateName(siblings, input.name)) {
+      if (hasDuplicateCategoryName(siblings, input.name)) {
         throw new ConflictError(
           categoryErrorCodes.createFailed,
           getCategoryErrorMessage(categoryErrorCodes.createFailed) ??
@@ -294,7 +247,7 @@ export function createCategoryService({
           ledgerId: input.ledgerId,
           name: getCategoryStoredName(input.name, input.iconName),
           parentId: input.parentId,
-          sortOrder: nextSortOrder(siblings),
+          sortOrder: getNextCategorySortOrder(siblings),
           type: input.type,
         }),
       );
@@ -309,18 +262,7 @@ export function createCategoryService({
       const role = await requireActiveMemberRole(ledgerId, userId);
       const categories =
         await categoryRepository.findActiveByLedgerId(ledgerId);
-      const roots = buildCategoryTree(categories);
-
-      return {
-        canManageCategories: canManageMasterData(role),
-        categories: roots,
-        ledgerName,
-        parentOptions: roots.map((category) => ({
-          id: category.id,
-          name: category.name,
-          type: category.type,
-        })),
-      };
+      return buildCategoriesView({ categories, ledgerName, role });
     },
 
     async listActiveSummaries({ ledgerId, userId }) {
@@ -366,7 +308,7 @@ export function createCategoryService({
         },
         categoryErrorCodes.updateFailed,
       );
-      if (isDuplicateName(siblings, name, categoryId)) {
+      if (hasDuplicateCategoryName(siblings, name, categoryId)) {
         throw new ConflictError(
           categoryErrorCodes.updateFailed,
           getCategoryErrorMessage(categoryErrorCodes.updateFailed) ??
