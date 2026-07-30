@@ -131,37 +131,133 @@
   `Response` 观察的正常跳转需验证实际 `3xx` 与 `Location`。不得把
   `NEXT_REDIRECT` 单元测试冒充真实 HTTP 状态测试。
 
-## 后端分层导出与类型归属规则
+## 后端架构模型
 
-本节明文记录 Service/Repository 的可注入边界表达方式，以及模块内部读取
-辅助逻辑、类型的归属规则。Issue #532 保留试点落地记录。
+本节是 kuranote 后端分层模型的权威说明。模型从 Next.js App Router、Supabase、
+Hono 与请求级 DI 的实际约束出发，不照搬任何单一语言或框架的既有惯例。
+Issue #532、#533 保留 `service/read/` 与类型归属的试点落地记录。
 
-- Repository 统一使用 `interface XxxRepository`，并通过 `create...Repository()`
-  工厂函数表达可注入边界；Service 使用显式命名的契约类型（`interface
-XxxService` 或对象字面量 `type XxxService`，两种写法均可，不强制统一），
-  并通过 `createXxxService()` 工厂函数表达可注入边界。
-- 模块内由一个或多个 Service 使用、**不持有构造注入依赖、无需独立实例
-  生命周期**的读取/查询辅助逻辑放 `service/read/` 子目录，不进 `util/`（`util/`
-  保持零 I/O、零权限判断的纯计算语义）；这些文件不注册进 DI 容器，也不
-  从模块 `index.ts` 导出。
-- Controller 维持具名 handler 函数导出，不为了"一个文件一个 export"的
-  形式统一打包成对象——路由是应用启动时静态注册，此时还没有请求级
-  Container 可以注入，打包没有实际收益。
-- 模块公共 API 只由模块根 `index.ts` 决定，不按单文件 export 数量判断
-  "是否算公共"。
-- 类型归属规则：
-  - HTTP 请求/响应类型从 zod schema 推导，定义在 `schema.ts`。
-  - 数据库 Row 类型归 Repository。
-  - 作为模块公共契约（经模块 `index.ts` 导出），或被多个层
-    （Controller/Service/Repository/前端）稳定复用的业务/领域类型，放到
-    对应模块的 `entity/`。新建前应先确认是否已有表达同一业务概念、语义
-    一致的既存类型，**不得仅因字段形状相同就强行复用**——结构相同不代表
-    语义相同，例如两个 `{ id, name }` 可能分别代表账户选项和成员摘要，
-    不能因为 TS 结构类型一样就合并。
-  - 仅供 Service 内部多个实现文件共用、不构成模块公共契约的辅助类型，留
-    在 `service/read/` 内部，不必升级进 `entity/`。
-  - Service 构造依赖类型默认不 export。
-  - 只在一个函数签名里用一次的类型可以留在原地，不强行升级成共享类型。
+### 模块内部分层（`src/internal/<module>/`）
+
+```text
+<module>/
+├── index.ts                  # 模块唯一公共入口
+├── router.ts                 # 路由 path → handler 静态表（不是所有模块都需要）
+├── controller/               # HTTP handler
+├── service/
+│   ├── <module>Service.ts    # 主 Service：显式契约 + 工厂
+│   └── read/                 # 模块内部共享读取逻辑
+├── repository/               # interface + 工厂，唯一碰 Supabase client 的地方
+├── entity/                   # 模块公共领域类型
+├── schema.ts                 # zod 边界契约 + Server Action 表单解析
+├── errors.ts                 # 模块错误定义（具体文件组织约定见 #535）
+├── adapter/next/             # Next.js 专属胶水
+└── util/                     # 零 I/O 纯函数
+```
+
+各层职责如下：
+
+- **`index.ts`**：模块唯一公共入口，只导出真正需要跨模块或跨层使用的窄
+  Service 接口、`entity/` 类型、错误码，以及从 `schema.ts` 推导出的公共类型。
+  模块外代码不得绕过它深度导入实现文件。模块公共 API 只由此入口决定，不按
+  单个文件 export 的数量判断某个符号是否公共。
+- **`router.ts`**：声明路由 path、method 与 handler 的静态映射，不包含业务
+  逻辑，也不负责输入校验；不是每个模块都必须有 HTTP 路由。统一 request
+  context 与错误处理中间件的挂载规则见上文「统一错误处理」。
+- **`controller/`**：读取 `schema` 校验结果、调用 Service，并封装成功状态码
+  与响应，不包含业务逻辑。Controller 维持具名 handler 分别导出，不打包成
+  对象；路由在应用启动时静态注册，此时还没有请求级 Container 可以注入，
+  打包没有实际收益。异常职责统一引用上文「统一错误处理」，不得另建协议。
+- **`service/<module>Service.ts`**：使用显式命名的契约类型（`interface
+XxxService` 或对象字面量 `type XxxService` 均可，不强制机械统一）与
+  `createXxxService()` 工厂表达可注入边界，负责业务编排、权限判断，以及只
+  通过目标模块 `index.ts` 窄接口进行的跨模块调用。错误语义与安全文案规则见
+  上文「统一错误处理」。Service 构造依赖类型默认不 export。
+- **`service/read/`**：放置由本模块一个或多个 Service 使用、**不持有构造
+  注入依赖、无需独立实例生命周期**的读取、查询或聚合辅助逻辑。这些文件不
+  注册进 DI 容器，也不从模块 `index.ts` 导出。
+- **`repository/`**：统一使用 `interface XxxRepository` 与
+  `createXxxRepository()` 工厂表达可注入边界，是模块内唯一直接接触
+  Supabase client 的层，负责 Query / RPC、数据库 Row 与领域类型的转换。
+  数据库异常转换规则统一引用上文「统一错误处理」，此处不重复维护。
+- **`entity/`**：只放两类类型：经 `index.ts` 导出的模块公共契约类型；或被
+  Controller、Service、Repository、前端中至少两层稳定复用的业务概念类型。
+  不得因为「两个文件用了」或字段形状相同就放入 `entity/`；结构相同不代表
+  语义相同，例如两个 `{ id, name }` 可能分别代表账户选项和成员摘要。新建前
+  必须先确认是否已经存在表达同一业务概念且语义一致的类型。仅供 Service
+  内部多个实现文件共用、不构成模块公共契约的辅助类型留在 `service/read/`。
+- **`schema.ts`**：用一份 zod schema 同时提供运行时校验、OpenAPI 文档与
+  编译期类型，并放置 Server Action 的表单解析函数。需要新增手写类型前，先
+  判断能否从 schema 推导。HTTP 请求与响应类型应从这里的 schema 推导。
+- **`errors.ts`**：集中模块错误码与安全、可直接展示的错误文案；单一权威
+  定义及其消费规则见上文「统一错误处理」，具体文件组织约定由 #535 定型。
+- **`adapter/next/`**：Next.js 专属胶水。Server Component 的 loader 直接调用
+  `createRequestContainer(...).xxx.service`，不向自身发送 HTTP 请求；Server
+  Action 负责校验、调用与 `revalidate`，其失败状态规则见上文「统一错误处理」。
+- **`util/`**：只放零 I/O、零权限判断的纯计算逻辑，可被包括前端在内的调用方
+  安全复用。不要把符合 `service/read/` 语义的读取辅助放入 `util/`。
+
+数据库 Row 类型归 Repository；只在一个函数签名中使用一次的类型可以留在
+原地，不强行升级为共享类型。
+
+### 跨模块协作
+
+- 跨模块调用只能依赖目标模块 `index.ts` 导出的窄接口，禁止深度导入。
+- `container.ts` 是组合根，也是唯一允许深度导入各模块具体工厂函数的地方。
+- 模块之间不得出现双向依赖。
+
+### DI 与 RequestContainer
+
+- 每个请求拥有一个 `RequestContainer`，其中的模块字段按需惰性构造。Supabase
+  client 绑定当前用户登录态，不能跨请求复用，因此不能照搬「应用启动时装配
+  一次、长期存活」的容器模型。
+- 多个模块共用的叶子依赖（例如 `ledgerAccessService`）通过容器顶层闭包变量
+  惰性构造并共享一次，不得在每个模块字段内重复构造。
+- 不引入 Wire 一类编译期 DI 生成器；当前请求级容器已经足够轻量。
+
+### 安全边界：RLS 与 Service 双重防线
+
+- Supabase RLS 是第一道防线，保证即使代码权限判断出现缺陷，数据库也不会
+  越权返回数据；每张业务表都必须具备这一层保护。
+- Service 的权限判断是第二道防线，负责角色、账本归属等「业务规则是否允许
+  操作」的判断。它与 RLS 互补，两层都必须能够独立生效，不能只依赖其中一层。
+
+### 前端与服务端读取路径
+
+前端继续使用 Atomic Design（`atoms`、`molecules`、`organisms`、`templates`），
+业务组件按模块归属放置，复杂组件采用「组件 + hook」，配套文件收进组件自己的
+子目录；完整规则见下文「当前前端骨架方针」「组件与 Hook 拆分规则」。Server
+Component 优先直接调用 `loadXxxView()`，不向自身发送 HTTP 请求；需要交互的
+操作使用 Server Action。
+
+### 新场景的判断准则
+
+1. 逻辑是否需要构造时注入依赖，或是否拥有独立生命周期？有则放入正式
+   Service；没有但被多处复用则放入 `service/read/`；没有且只有一个调用点则
+   就地内联。
+2. 类型是否是模块对外的承诺？会被其他模块或前端依赖则放入 `entity/`；只在
+   当前文件使用一次则内联；只在同层内部的几个文件间传递则留在原地或
+   `service/read/`。
+3. 两个类型形状相同，是否确实代表同一个业务概念？不确定时不要合并，宁可
+   暂时保留两份。
+4. 操作是否真的需要经过 HTTP？Server Component 的读取路径默认直接连接
+   Service，并非默认都要创建 Controller 与 Router。
+5. 规则能否由 RLS 兜底？能则 RLS 与 Service 两道防线都实现；不能则必须在
+   Service 层显式处理。
+6. 无法判断时，不要问「某个参考过的 Go 项目会怎么做」，而要问「一个只懂
+   Next.js、Supabase、Hono，没见过 Go 的人会怎么做」。RLS、zod 单一来源、
+   Server Component 直连 Service 等技术栈本身的惯用法才是参照系，而不是
+   任何单一语言的既有习惯。
+
+### 已明确否决的做法
+
+- **新增 UseCase 层**：当前跨模块编排通过 Service 依赖目标模块窄接口已经
+  足够，不需要在 Controller 与 Service 之间再增加一层。
+- **把 Controller 包装为构造注入类**：路由在应用启动时静态注册，此时没有
+  请求级 Container 可供注入；套用该模式只是没有实际注入对象的包装。
+- **机械规定「一个文件只 export 一个符号」**：Service 的契约、工厂与紧密
+  关联的输入输出类型放在同一文件具有正确的高内聚性，不应为满足 export 数量
+  而拆散。
 
 ## GitHub Issue 规则
 
