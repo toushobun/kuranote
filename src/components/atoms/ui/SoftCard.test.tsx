@@ -22,9 +22,6 @@ describe("SoftCard", () => {
     );
     expect(container.querySelector("[data-testid='soft-card']")).not.toBeNull();
   });
-  afterEach(() => {
-    cleanup();
-  });
   it("SoftCard 使用共通圆角 token", () => {
     const { container } = render(
       <SoftCard data-testid="soft-card">内容</SoftCard>,
