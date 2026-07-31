@@ -14,6 +14,16 @@ import {
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import type {
+  TransactionFilters,
+  TransactionGroupBy,
+} from "internal/transaction/entity/transactionGrouping";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
+import type {
+  TransactionGroupPage,
+  TransactionMonthPage,
+  TransactionSearchPage,
+} from "internal/transaction/entity/transactionReadModels";
+import type {
   ConvertTransactionInput,
   CreateNormalTransactionInput,
   CreateTransferTransactionInput,
@@ -53,14 +63,8 @@ import type {
   EditTransactionView,
   NewTransactionView,
   TransactionFilterOptions,
-  TransactionFilters,
-  TransactionGroupBy,
-  TransactionGroupPage,
-  TransactionMonthPage,
-  TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "internal/transaction/service/read/transactionReadModels";
-import { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
 
 export type TransactionServiceDependencies = {
   accountQueryService: AccountQueryService;

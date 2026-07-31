@@ -1,31 +1,8 @@
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
+import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
-import type {
-  TransactionFilterRecordType,
-  TransactionGroupBy,
-} from "internal/transaction/repository/transactionRepository";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-
-export type {
-  TransactionFilterRecordType,
-  TransactionGroupBy,
-} from "internal/transaction/repository/transactionRepository";
-
-export type TransactionFilters = {
-  accountId?: string;
-  categoryId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  memberId?: string;
-  merchantId?: string;
-  parentCategoryId?: string;
-  recordType: TransactionFilterRecordType;
-};
-
-export const defaultTransactionFilters = {
-  recordType: "all",
-} satisfies TransactionFilters;
 
 export type TransactionCategorySummaryItem = {
   amount: string;
@@ -99,29 +76,12 @@ export type TransactionDateGroup = {
   summary: TransactionAmountSummary;
 };
 
-export type TransactionMonthPage = {
-  groups: TransactionDateGroup[];
-  nextOffset: number | null;
-};
-
-export type TransactionSearchPage = {
-  items: TransactionListItem[];
-  nextOffset: number | null;
-  totalCount: number;
-};
-
 export type TransactionGroupSummaryItem = {
   id: string;
   key: string;
   label: string;
   summary: TransactionAmountSummary;
   transactionCount: number;
-};
-
-export type TransactionGroupPage = {
-  groupBy: TransactionGroupBy;
-  groups: TransactionGroupSummaryItem[];
-  nextOffset: number | null;
 };
 
 export type TransactionTimeGroupViewData = {

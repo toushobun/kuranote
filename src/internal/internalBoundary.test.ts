@@ -416,6 +416,34 @@ describe("internal backend boundary", () => {
     expect(violations).toEqual([]);
   });
 
+  it("模块内 adapter/next 不深导入本模块 Service 或 Repository 实现", () => {
+    // Current Ledger Context 必须先从请求认证 claims 确认用户及可访问账本，之后才能建立依赖已确认认证态的 RequestContainer。
+    // 因此该请求初始化入口需要直接构造本模块 Repository；这是架构先后关系，不是一般性的 adapter 便捷豁免。
+    const allowlist = new Set(["ledger/adapter/next/currentLedgerContext.ts"]);
+    const files = collectFiles(internalRoot, sourceExtensions).filter(
+      (file) =>
+        isAdapterNextFile(file) &&
+        !allowlist.has(relative(internalRoot, file).split(sep).join("/")),
+    );
+    const violations = collectImportViolations(
+      files,
+      (moduleSpecifier, file) => {
+        const [moduleName] = relative(internalRoot, file).split(sep);
+        const servicePath = `internal/${moduleName}/service`;
+        const repositoryPath = `internal/${moduleName}/repository`;
+
+        return (
+          moduleSpecifier === servicePath ||
+          moduleSpecifier.startsWith(`${servicePath}/`) ||
+          moduleSpecifier === repositoryPath ||
+          moduleSpecifier.startsWith(`${repositoryPath}/`)
+        );
+      },
+    );
+
+    expect(violations).toEqual([]);
+  });
+
   it("adapter/next 以外的 internal 代码不依赖前端 types", () => {
     const files = collectFiles(internalRoot, sourceExtensions).filter(
       (file) => !isAdapterNextFile(file),

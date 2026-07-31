@@ -1,5 +1,14 @@
 import type { CurrentLedger } from "internal/ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
+import type {
+  TransactionFilters,
+  TransactionGroupBy,
+} from "internal/transaction/entity/transactionGrouping";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
+import type {
+  TransactionGroupPage,
+  TransactionMonthPage,
+} from "internal/transaction/entity/transactionReadModels";
 import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import {
   buildTransactionGroupSummaryPage,
@@ -9,14 +18,7 @@ import {
   getTransactionTimeGroupInfo,
   type TransactionTimeGroupBy,
 } from "internal/transaction/util/transactionListGroupTime";
-import type {
-  TransactionFilters,
-  TransactionGroupBy,
-  TransactionGroupPage,
-  TransactionMonthPage,
-  TransactionTimeGroupViewData,
-} from "internal/transaction/service/read/transactionReadModels";
-import { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
+import type { TransactionTimeGroupViewData } from "internal/transaction/service/read/transactionReadModels";
 import {
   getMonthBounds,
   groupTransactionItemsByDate,

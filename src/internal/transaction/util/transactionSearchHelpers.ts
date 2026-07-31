@@ -1,8 +1,6 @@
 import { transactionPageSize } from "internal/transaction/util/grouping/types";
-import type {
-  TransactionListItem,
-  TransactionSearchPage,
-} from "internal/transaction/service/read/transactionReadModels";
+import type { TransactionSearchPage } from "internal/transaction/entity/transactionReadModels";
+import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import { paginateItems } from "utils/collections";
 
 const searchQueryMaxLength = 80;
