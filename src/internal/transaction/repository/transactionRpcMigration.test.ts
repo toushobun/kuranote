@@ -76,6 +76,22 @@ describe("普通记账 normal 类型后端规则", () => {
     expect(migration).not.toContain("p_tag_id");
   });
 
+  it("重建账本初始化函数时使用安全 search_path", () => {
+    const migration = readMigration(removeTagsMigrationPath);
+    const functionStart = migration.indexOf(
+      "create or replace function public.initialize_ledger_default_data",
+    );
+    const functionEnd = migration.indexOf("$$;", functionStart);
+    const functionDefinition = migration.slice(functionStart, functionEnd);
+
+    expect(functionStart).toBeGreaterThanOrEqual(0);
+    expect(functionEnd).toBeGreaterThan(functionStart);
+    expect(functionDefinition).toContain(
+      "set search_path = pg_catalog, pg_temp",
+    );
+    expect(functionDefinition).not.toContain("set search_path = public");
+  });
+
   it("最终物理删除 transaction_item.stat_type", () => {
     const migration = readMigration(dropStatTypeMigrationPath);
 
