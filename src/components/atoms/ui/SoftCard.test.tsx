@@ -1,30 +1,52 @@
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-
 import { SoftCard } from "./SoftCard";
+import { designTokens } from "theme/theme";
 
-afterEach(() => {
-  cleanup();
-});
-
-describe("SoftCard", () => {
-  it("渲染子元素内容", () => {
-    const { container } = render(
-      <SoftCard>
-        <span>卡片内容</span>
-      </SoftCard>,
-    );
-
-    expect(within(container).getByText("卡片内容")).toBeInTheDocument();
+describe("SoftCard.test.tsx", () => {
+  afterEach(() => {
+    cleanup();
   });
 
-  it("透传额外的 sx 属性", () => {
-    const { container } = render(
-      <SoftCard data-testid="soft-card" sx={{ mt: 2 }}>
-        内容
-      </SoftCard>,
-    );
+  describe("SoftCard", () => {
+    it("渲染子元素内容", () => {
+      const { container } = render(
+        <SoftCard>
+          <span>卡片内容</span>
+        </SoftCard>,
+      );
 
-    expect(container.querySelector("[data-testid='soft-card']")).not.toBeNull();
+      expect(within(container).getByText("卡片内容")).toBeInTheDocument();
+    });
+
+    it("透传额外的 sx 属性", () => {
+      const { container } = render(
+        <SoftCard data-testid="soft-card" sx={{ mt: 2 }}>
+          内容
+        </SoftCard>,
+      );
+
+      expect(
+        container.querySelector("[data-testid='soft-card']"),
+      ).not.toBeNull();
+    });
+  });
+});
+
+describe("style-token-components.test.tsx", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  describe("style token components", () => {
+    it("SoftCard 使用共通圆角 token", () => {
+      const { container } = render(
+        <SoftCard data-testid="soft-card">内容</SoftCard>,
+      );
+
+      expect(container.querySelector("[data-testid='soft-card']")).toHaveStyle({
+        borderRadius: `${designTokens.radius.lg}px`,
+      });
+    });
   });
 });

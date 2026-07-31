@@ -356,6 +356,7 @@ PR merge 后需要回收相关状态：
 - 新增或修改含有业务逻辑的 `.ts` 文件时，原则上需要补充 Vitest 单元测试。
 - 类型定义文件、常量文件、纯配置文件不强制要求测试。
 - 新增或修改 `.tsx` 组件时，原则上需要补充 Vitest 组件测试。
+- 同一个源文件只保留一个与源文件同名的 `.test.ts` 或 `.test.tsx` 文件；不同场景使用 `describe` 分组组织，禁止再按 `regression`、`edit`、`pending` 等场景后缀拆分测试文件。migration / RPC 行为测试不对应单一同名源文件，不适用本规则。
 - 可复用 UI 组件需要补充 Storybook。
 - 新 UI 优先复用 MUI 和现有组件，不要重复造基础组件。
 - 页面基础结构优先复用 Theme、PageShell、PageHeader、SectionCard、EmptyState、LoadingState、ErrorState。

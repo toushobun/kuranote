@@ -2,49 +2,12 @@ import Button from "@mui/material/Button";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { EmptyState } from "./EmptyState";
 import { ErrorRetryButton, ErrorState } from "./ErrorState";
 import { FormActions } from "./FormActions";
 import { LoadingState } from "./LoadingState";
-import { SectionCard } from "./SectionCard";
 
 afterEach(() => {
   cleanup();
-});
-
-describe("SectionCard", () => {
-  it("显示内容", () => {
-    const { container } = render(<SectionCard>区块内容</SectionCard>);
-
-    expect(within(container).getByText("区块内容")).toBeInTheDocument();
-  });
-});
-
-describe("EmptyState", () => {
-  it("显示空状态标题和说明", () => {
-    const { container } = render(
-      <EmptyState title="还没有账户" description="请先新增一个账户。" />,
-    );
-
-    expect(within(container).getByText("还没有账户")).toBeInTheDocument();
-    expect(
-      within(container).getByText("请先新增一个账户。"),
-    ).toBeInTheDocument();
-  });
-
-  it("显示操作区域", () => {
-    const { container } = render(
-      <EmptyState
-        title="还没有账户"
-        description="请先新增一个账户。"
-        action={<Button>新增账户</Button>}
-      />,
-    );
-
-    expect(
-      within(container).getByRole("button", { name: "新增账户" }),
-    ).toBeInTheDocument();
-  });
 });
 
 describe("LoadingState", () => {
