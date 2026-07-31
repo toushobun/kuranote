@@ -15,6 +15,7 @@ import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = process.cwd();
+const sourceRoot = join(repositoryRoot, "src");
 const internalRoot = join(repositoryRoot, "src", "internal");
 const testFile = join(internalRoot, "internalBoundary.test.ts");
 const ignoredDirectories = new Set([
@@ -146,7 +147,7 @@ function getModuleSpecifier(
 }
 
 /**
- * 把 "@/internal/..." 别名和相对路径 import 归一化为 "internal/..." 形式，
+ * 把 "@/..." 别名和 src 内的相对路径 import 归一化为 src 相对路径，
  * 避免边界检查因为 import 写法不同（而非实际指向不同）而被绕过。
  */
 function normalizeModuleSpecifier(
@@ -160,15 +161,12 @@ function normalizeModuleSpecifier(
   if (moduleSpecifier.startsWith(".")) {
     const resolved = resolve(dirname(containingFile), moduleSpecifier);
     if (
-      resolved !== internalRoot &&
-      !resolved.startsWith(`${internalRoot}${sep}`)
+      resolved !== sourceRoot &&
+      !resolved.startsWith(`${sourceRoot}${sep}`)
     ) {
       return moduleSpecifier;
     }
-    const relativeToInternal = relative(internalRoot, resolved)
-      .split(sep)
-      .join("/");
-    return relativeToInternal ? `internal/${relativeToInternal}` : "internal";
+    return relative(sourceRoot, resolved).split(sep).join("/");
   }
 
   return moduleSpecifier;
@@ -339,6 +337,24 @@ function isAllowedExternalModuleImport(moduleSpecifier: string): boolean {
   );
 }
 
+function isAdapterNextFile(file: string): boolean {
+  return /^[^/]+\/adapter\/next(?:\/|$)/.test(
+    relative(internalRoot, file).split(sep).join("/"),
+  );
+}
+
+function collectImportViolations(
+  files: string[],
+  isForbidden: (moduleSpecifier: string, file: string) => boolean,
+): string[] {
+  return files.flatMap((file) => {
+    const filePath = relative(repositoryRoot, file);
+    return collectModuleSpecifiers(createSourceFile(file))
+      .filter((moduleSpecifier) => isForbidden(moduleSpecifier, file))
+      .map((moduleSpecifier) => `${filePath}: 禁止依赖 ${moduleSpecifier}`);
+  });
+}
+
 describe("internal backend boundary", () => {
   it("不再保留 src/server 目录", () => {
     expect(existsSync(join(repositoryRoot, "src", "server"))).toBe(false);
@@ -396,6 +412,50 @@ describe("internal backend boundary", () => {
             (moduleSpecifier) => `${filePath}: 绕过模块入口 ${moduleSpecifier}`,
           );
       });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("adapter/next 以外的 internal 代码不依赖前端 types", () => {
+    const files = collectFiles(internalRoot, sourceExtensions).filter(
+      (file) => !isAdapterNextFile(file),
+    );
+    const violations = collectImportViolations(
+      files,
+      (moduleSpecifier) =>
+        moduleSpecifier === "types" || moduleSpecifier.startsWith("types/"),
+    );
+
+    expect(violations).toEqual([]);
+  });
+
+  it("internal 代码不重新依赖旧 ledger 路径", () => {
+    const violations = collectImportViolations(
+      collectFiles(internalRoot, sourceExtensions),
+      (moduleSpecifier) =>
+        moduleSpecifier === "lib/ledger" ||
+        (moduleSpecifier.startsWith("lib/ledger/") &&
+          moduleSpecifier !== "lib/ledger/inviteToken"),
+    );
+
+    expect(violations).toEqual([]);
+  });
+
+  it("旧 Supabase 文件保持删除且 internal 代码不重新依赖其路径", () => {
+    expect(existsSync(join(sourceRoot, "lib", "supabase", "server.ts"))).toBe(
+      false,
+    );
+    expect(
+      existsSync(join(sourceRoot, "lib", "supabase", "serviceRole.ts")),
+    ).toBe(false);
+
+    const violations = collectImportViolations(
+      collectFiles(internalRoot, sourceExtensions),
+      (moduleSpecifier) =>
+        /^lib\/supabase\/(?:server|serviceRole)(?:$|[./])/.test(
+          moduleSpecifier,
+        ),
+    );
 
     expect(violations).toEqual([]);
   });
