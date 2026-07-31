@@ -6,6 +6,7 @@ import type {
   NewTransactionView,
 } from "internal/transaction/entity/transactionView";
 import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
+import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import { loadTransactionFormOptions } from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
@@ -14,7 +15,7 @@ import type {
 } from "types/transactions";
 
 export async function getNewTransactionView(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
   return {
@@ -25,7 +26,7 @@ export async function getNewTransactionView(
 }
 
 export async function getEditTransactionView(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {

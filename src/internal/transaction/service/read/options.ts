@@ -1,6 +1,10 @@
 import type { CurrentLedger } from "internal/ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
 import type { TransactionFormOptions } from "internal/transaction/entity/transactionFormOptions";
+import type {
+  TransactionFilterOptionsRepository,
+  TransactionFormRepository,
+} from "internal/transaction/repository/transactionRepository";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   TransactionCategoryOption,
@@ -9,7 +13,7 @@ import type {
 } from "types/transactions";
 
 export async function loadTransactionFormOptions(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFormOptions> {
   const [accountOptions, categoryRows, merchantOptions, tagOptions] =
@@ -37,7 +41,7 @@ export async function loadTransactionFormOptions(
 }
 
 export async function loadTransactionFilterOptions(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFilterOptionsRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFilterOptions> {
   const [accounts, categoryRows, merchants, tags, memberIds] =
@@ -72,7 +76,7 @@ export async function loadTransactionFilterOptions(
 }
 
 async function loadMemberOptions(
-  dependencies: TransactionReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFilterOptionsRepository>,
   ledgerId: string,
   memberUserIds: string[],
 ): Promise<TransactionMemberOption[]> {

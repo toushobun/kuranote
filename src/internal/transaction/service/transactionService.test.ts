@@ -8,8 +8,10 @@ import {
   NotFoundError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
-import type { TransactionRepository } from "internal/transaction/repository/transactionRepository";
-import { createTransactionService } from "internal/transaction/service/transactionService";
+import {
+  createTransactionService,
+  type TransactionServiceDependencies,
+} from "internal/transaction/service/transactionService";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -17,8 +19,10 @@ const otherUserId = "00000000-0000-4000-8000-000000000099";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 
 function createRepository(
-  overrides: Partial<TransactionRepository> = {},
-): TransactionRepository {
+  overrides: Partial<
+    TransactionServiceDependencies["transactionRepository"]
+  > = {},
+): TransactionServiceDependencies["transactionRepository"] {
   return {
     convert: vi.fn(),
     createNormal: vi.fn(),
@@ -39,11 +43,6 @@ function createRepository(
     listRecords: vi.fn().mockResolvedValue([]),
     listTagAssignments: vi.fn().mockResolvedValue([]),
     listTagsByIds: vi.fn().mockResolvedValue([]),
-    loadDashboardMonthSource: vi.fn().mockResolvedValue({
-      categories: [],
-      items: [],
-    }),
-    loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
     updateTransfer: vi.fn(),

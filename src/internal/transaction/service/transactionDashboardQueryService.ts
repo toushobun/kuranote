@@ -4,8 +4,8 @@ import type { CategoryQueryService } from "internal/category";
 import type { LedgerAccessService } from "internal/ledger";
 import type { MerchantQueryService } from "internal/merchant";
 import type {
+  TransactionDashboardRepository,
   TransactionDashboardSummaryItem,
-  TransactionRepository,
 } from "internal/transaction/repository/transactionRepository";
 import {
   buildTransactionListItemsFromContext,
@@ -47,7 +47,7 @@ type TransactionDashboardQueryServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantQueryService: MerchantQueryService;
-  transactionRepository: TransactionRepository;
+  transactionRepository: TransactionDashboardRepository;
 };
 
 export function createTransactionDashboardQueryService({
@@ -58,14 +58,15 @@ export function createTransactionDashboardQueryService({
   merchantQueryService,
   transactionRepository,
 }: TransactionDashboardQueryServiceDependencies): TransactionDashboardQueryService {
-  const readAccessDependencies: TransactionReadAccessDependencies = {
-    accountQueryService,
-    categoryQueryService,
-    currentUserId,
-    ledgerAccessService,
-    merchantQueryService,
-    transactionRepository,
-  };
+  const readAccessDependencies: TransactionReadAccessDependencies<TransactionDashboardRepository> =
+    {
+      accountQueryService,
+      categoryQueryService,
+      currentUserId,
+      ledgerAccessService,
+      merchantQueryService,
+      transactionRepository,
+    };
 
   return {
     async getDashboardData({ currentLedger, dateEnd, dateStart }) {
