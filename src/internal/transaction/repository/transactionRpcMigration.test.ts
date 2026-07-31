@@ -62,10 +62,13 @@ describe("普通记账 normal 类型后端规则", () => {
     const recordTagTableDropIndex = migration.indexOf(
       "drop table if exists public.transaction_record_tag",
     );
+    const tagTableDropIndex = migration.indexOf(
+      "drop table if exists public.transaction_tag",
+    );
 
     expect(policyDropIndex).toBeGreaterThanOrEqual(0);
     expect(recordTagTableDropIndex).toBeGreaterThan(policyDropIndex);
-    expect(migration).toContain("drop table if exists public.transaction_tag");
+    expect(tagTableDropIndex).toBeGreaterThan(recordTagTableDropIndex);
     expect(migration).toContain("public.create_transaction(");
     expect(migration).toContain("public.update_transaction(");
     expect(migration).toContain("public.convert_transaction_type(");
