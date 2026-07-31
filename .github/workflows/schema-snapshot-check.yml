@@ -4,20 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "supabase/migrations/**"
-      - "supabase/schema_snapshot/**"
-      - "supabase/config.toml"
-      - "scripts/generate-schema-snapshot.sh"
-      - "scripts/update-schema-snapshot.sh"
-      - "scripts/check-schema-snapshot.sh"
-      - "scripts/check-security-definer-search-path.mjs"
-      - "scripts/check-security-definer-search-path-cases.mjs"
-      - "scripts/security-definer-smoke.sql"
-      - ".supabase-version"
-      - "package.json"
-      - ".github/workflows/schema-snapshot-check.yml"
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
 
 jobs:
   schema-snapshot-check:
@@ -32,7 +19,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check schema snapshot scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
+            supabase/migrations \
+            supabase/schema_snapshot \
+            supabase/config.toml \
+            scripts/generate-schema-snapshot.sh \
+            scripts/update-schema-snapshot.sh \
+            scripts/check-schema-snapshot.sh \
+            scripts/check-security-definer-search-path.mjs \
+            scripts/check-security-definer-search-path-cases.mjs \
+            scripts/security-definer-smoke.sql \
+            .supabase-version \
+            package.json \
+            .github/workflows/schema-snapshot-check.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check maintenance scripts
+        if: steps.scope.outputs.run == 'true'
         run: |
           bash -n scripts/generate-schema-snapshot.sh
           bash -n scripts/update-schema-snapshot.sh
@@ -46,6 +58,7 @@ jobs:
           npm run db:security-definer:check
 
       - name: Check migration-first configuration
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           if ! grep -Eq '^[[:space:]]*schema_paths[[:space:]]*=[[:space:]]*\[[[:space:]]*\][[:space:]]*$' supabase/config.toml; then
@@ -54,10 +67,11 @@ jobs:
           fi
 
       - name: Check migration history is append-only
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           changed_migrations="$(git diff --name-only --diff-filter=MDR \
-            "${{ github.event.pull_request.base.sha }}" HEAD -- supabase/migrations/)"
+            "${{ github.event.pull_request.base.sha }}...HEAD" -- supabase/migrations/)"
           if [[ -n "${changed_migrations}" ]]; then
             echo "已经合入 main 的 migration 不允许修改、删除或重命名：" >&2
             echo "${changed_migrations}" >&2
@@ -66,6 +80,7 @@ jobs:
           fi
 
       - name: Read Supabase CLI version
+        if: steps.scope.outputs.run == 'true'
         id: supabase_version
         shell: bash
         run: |
@@ -78,20 +93,24 @@ jobs:
           echo "version=${version}" >>"${GITHUB_OUTPUT}"
 
       - name: Setup Supabase CLI
+        if: steps.scope.outputs.run == 'true'
         uses: supabase/setup-cli@v2
         with:
           version: ${{ steps.supabase_version.outputs.version }}
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
+        if: steps.scope.outputs.run == 'true'
         run: supabase start
 
       - name: Compare migrations with schema snapshot
+        if: steps.scope.outputs.run == 'true'
         run: npm run db:schema:snapshot:check
         env:
           ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
 
       - name: Smoke test SECURITY DEFINER RPC
+        if: steps.scope.outputs.run == 'true'
         run: |
           psql \
             "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
@@ -99,7 +118,7 @@ jobs:
             --file scripts/security-definer-smoke.sql
 
       - name: Upload generated snapshot
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: current-schema-snapshot
@@ -107,5 +126,5 @@ jobs:
           if-no-files-found: ignore
 
       - name: Stop local Supabase
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         run: supabase stop --no-backup

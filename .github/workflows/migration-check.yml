@@ -4,12 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    # paths 未命中时不会创建 workflow，因此不要将 Migration check 设为全局 required check。
-    paths:
-      - "supabase/migrations/**"
-      - "supabase/tests/database/**"
-      - ".github/workflows/migration-check.yml"
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
 
 jobs:
   migration-check:
@@ -26,17 +21,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check migration check scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
+            supabase/migrations \
+            supabase/tests/database \
+            .github/workflows/migration-check.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Check SECURITY DEFINER search_path
+        if: steps.scope.outputs.run == 'true'
         run: npm run db:security-definer:check
 
       - name: Setup Supabase CLI
+        if: steps.scope.outputs.run == 'true'
         uses: supabase/setup-cli@v2
         with:
           version: v2.106.0
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           if ! supabase start > /tmp/supabase-start.log 2>&1; then
@@ -45,6 +60,7 @@ jobs:
           fi
 
       - name: Run database tests
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           supabase test db
@@ -52,10 +68,11 @@ jobs:
           bash supabase/tests/database/category_reorder_write_concurrency.sh
 
       - name: Stop local Supabase
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         run: supabase stop --no-backup > /dev/null 2>&1
 
       - name: Check required configuration
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
@@ -72,7 +89,9 @@ jobs:
           fi
 
       - name: Link Supabase project
+        if: steps.scope.outputs.run == 'true'
         run: supabase link --project-ref "${SUPABASE_PROJECT_REF}"
 
       - name: Check migrations dry run
+        if: steps.scope.outputs.run == 'true'
         run: supabase db push --dry-run
