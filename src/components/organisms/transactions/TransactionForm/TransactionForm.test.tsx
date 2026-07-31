@@ -21,7 +21,6 @@ import {
   TransactionForm,
   type TransactionFormInitialValues,
 } from "./TransactionForm";
-
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -36,8 +35,7 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
-
-describe("TransactionForm.test.tsx", () => {
+describe("TransactionForm", () => {
   const accountOptions = [
     {
       id: "00000000-0000-4000-8000-000000000045",
@@ -45,7 +43,6 @@ describe("TransactionForm.test.tsx", () => {
       currency: "JPY",
     },
   ];
-
   const categoryOptions = [
     {
       id: "00000000-0000-4000-8000-000000005072",
@@ -76,7 +73,6 @@ describe("TransactionForm.test.tsx", () => {
       type: "income" as const,
     },
   ];
-
   const merchantOptions = [
     {
       id: "00000000-0000-4000-8000-000000001001",
@@ -84,12 +80,10 @@ describe("TransactionForm.test.tsx", () => {
       icon_url: null,
     },
   ];
-
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
   });
-
   function renderForm(
     props: Partial<React.ComponentProps<typeof TransactionForm>> = {},
   ) {
@@ -103,24 +97,19 @@ describe("TransactionForm.test.tsx", () => {
         {...props}
       />,
     );
-
     return { action, ...view };
   }
-
   function getCombobox(container: HTMLElement, name: string) {
     return within(container).getByRole("combobox", { name });
   }
-
   function openSheet(container: HTMLElement) {
     fireEvent.click(
       within(container).getByRole("button", { name: "添加明细" }),
     );
   }
-
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
   }
-
   function addItemViaSheet(
     container: HTMLElement,
     categoryName: string,
@@ -135,17 +124,13 @@ describe("TransactionForm.test.tsx", () => {
     });
     clickSheetAddButton();
   }
-
   function getSubmittedTransactionAt(container: HTMLElement) {
     const input = container.querySelector<HTMLInputElement>(
       'input[name="transactionAt"]',
     );
-
     if (!input) throw new Error("发生时间提交字段不存在");
-
     return input.value;
   }
-
   function createInitialValues() {
     return {
       accountId: accountOptions[0].id,
@@ -157,369 +142,293 @@ describe("TransactionForm.test.tsx", () => {
       type: "expense" as const,
     };
   }
-
   function formatExpectedDateTimeParts(value: string) {
     const date = new Date(value);
     const pad = (part: number) => String(part).padStart(2, "0");
-    const dateValue = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-      date.getDate(),
-    )}`;
-    const timeValue = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
-      date.getSeconds(),
-    )}`;
-
+    const dateValue = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const timeValue = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     return { dateValue, timeValue };
   }
-
-  describe("TransactionForm", () => {
-    it("显示移动端记账顶部操作区", () => {
-      const { container } = renderForm({ ledgerName: "家庭账本" });
-
-      expect(
-        within(container).getByRole("heading", { name: "新增记账" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container)
-          .getByRole("link", { name: "关闭" })
-          .getAttribute("href"),
-      ).toBe(routePaths.transactions);
-      expect(
-        within(container).getByRole("button", { name: "保存" }),
-      ).toBeInTheDocument();
+  it("显示移动端记账顶部操作区", () => {
+    const { container } = renderForm({ ledgerName: "家庭账本" });
+    expect(
+      within(container).getByRole("heading", { name: "新增记账" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container)
+        .getByRole("link", { name: "关闭" })
+        .getAttribute("href"),
+    ).toBe(routePaths.transactions);
+    expect(
+      within(container).getByRole("button", { name: "保存" }),
+    ).toBeInTheDocument();
+  });
+  it("传入错误信息时显示 Alert", () => {
+    const errorMessage = "保存失败，请稍后重试。";
+    renderForm({ errorMessage });
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+  });
+  it("编辑模式下回填发生日期和时间", () => {
+    const transactionAt = "2026-06-05T03:20:10.000Z";
+    const expected = formatExpectedDateTimeParts(transactionAt);
+    const { container } = renderForm({
+      initialValues: createInitialValues(),
     });
-
-    it("传入错误信息时显示 Alert", () => {
-      const errorMessage = "保存失败，请稍后重试。";
-      renderForm({ errorMessage });
-
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "选择记账时间" }),
+    ).toHaveTextContent(expected.timeValue);
+    expect(getSubmittedTransactionAt(container)).toBe(
+      `${expected.dateValue}T${expected.timeValue}`,
+    );
+  });
+  it("时刻默认开启并保留具体时间", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 10, 9, 8, 7));
+    const { container } = renderForm();
+    expect(getSubmittedTransactionAt(container)).toBe("2026-06-10T09:08:07");
+    expect(
+      within(container).getByRole("button", { name: "选择记账时间" }),
+    ).toHaveTextContent("09:08:07");
+  });
+  it("账户选项中显示币种", () => {
+    const { container } = renderForm();
+    fireEvent.mouseDown(getCombobox(container, "账户"));
+    expect(screen.getByText("日元现金（JPY）")).toBeInTheDocument();
+  });
+  it("弹框同时显示支出和收入分类", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    expect(
+      screen.getByRole("heading", { name: "添加明细" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "食材/调料" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "固定收入" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("button", { name: "食材/调料" })).getByTestId(
+        "DragIndicatorRoundedIcon",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加大分类" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "添加小分类" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "搜索小分类" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("特殊标记")).toBeNull();
+    expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
+  });
+  it("搜索小分类后同步筛选父子分类并可选中", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
+      target: { value: "电车" },
     });
-
-    it("编辑模式下回填发生日期和时间", () => {
-      const transactionAt = "2026-06-05T03:20:10.000Z";
-      const expected = formatExpectedDateTimeParts(transactionAt);
-      const { container } = renderForm({
-        initialValues: createInitialValues(),
-      });
-
-      expect(
-        within(container).getByRole("button", { name: "选择记账时间" }),
-      ).toHaveTextContent(expected.timeValue);
-      expect(getSubmittedTransactionAt(container)).toBe(
-        `${expected.dateValue}T${expected.timeValue}`,
-      );
+    expect(
+      screen.getByRole("button", { name: "交通出行" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "电车" }));
+    expect(screen.getByText("已选：交通出行 > 电车")).toBeInTheDocument();
+  });
+  it("可使用完整拼音和拼音首字母搜索小分类", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    const searchInput = screen.getByRole("textbox", { name: "搜索小分类" });
+    fireEvent.change(searchInput, { target: { value: "canyin" } });
+    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "电车" })).toBeNull();
+    fireEvent.change(searchInput, { target: { value: "dc" } });
+    expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "清空搜索" }));
+    expect(searchInput).toHaveValue("");
+    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "清空搜索" })).toBeNull();
+  });
+  it("添加明细弹框层级高于底部导航并为 safe-area 预留底部空间", () => {
+    const theme = createTheme();
+    expect(itemPickerDrawerSx.zIndex).toBe(appZIndex.bottomSheet);
+    expect(itemPickerDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
+    );
+    expect(itemPickerDrawerSx.zIndex).toBeLessThan(appZIndex.snackbar);
+    // 防止未来通过 paper bottom offset 避让底部导航，导致弹框和导航之间出现空隙。
+    expect("bottom" in itemPickerDrawerPaperSx).toBe(false);
+    expect(drawerFooterSx.pb(theme)).toBe(
+      `calc(${theme.spacing(2)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
+    );
+  });
+  it("切换大分类后右侧显示对应的小分类", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
+    expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
+    expect(
+      screen.getByText("已选：交通出行 > 请选择小分类"),
+    ).toBeInTheDocument();
+  });
+  it("切换大分类和小分类时保留已输入金额", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    const amountInput = screen.getByRole("textbox", { name: "金额" });
+    fireEvent.change(amountInput, { target: { value: "286" } });
+    fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
+    fireEvent.click(screen.getByRole("button", { name: "日用品" }));
+    expect(amountInput).toHaveValue("286");
+    fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
+    fireEvent.click(screen.getByRole("button", { name: "电车" }));
+    expect(amountInput).toHaveValue("286");
+  });
+  it("追加明细后合计同步更新", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "286");
+    addItemViaSheet(container, "日用品", "45");
+    expect(within(container).getByText("消费明细（2）")).toBeInTheDocument();
+    expect(within(container).getByText("本次合计")).toBeInTheDocument();
+    expect(within(container).getByText("合计 - 331")).toBeInTheDocument();
+  });
+  it("点击明细分类可在同一弹框更新原明细", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "286");
+    const editCategoryButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="编辑明细 1 分类"]',
+    );
+    if (!editCategoryButton) throw new Error("明细分类编辑按钮不存在");
+    fireEvent.click(editCategoryButton);
+    expect(
+      screen.getByRole("heading", { name: "编辑明细" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "金额" })).toHaveValue("286");
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "320" },
     });
-
-    it("时刻默认开启并保留具体时间", () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date(2026, 5, 10, 9, 8, 7));
-
-      const { container } = renderForm();
-
-      expect(getSubmittedTransactionAt(container)).toBe("2026-06-10T09:08:07");
-      expect(
-        within(container).getByRole("button", { name: "选择记账时间" }),
-      ).toHaveTextContent("09:08:07");
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    expect(within(container).getByText("消费明细（1）")).toBeInTheDocument();
+    expect(
+      container.querySelector('button[aria-label="编辑明细 1 金额"]'),
+    ).toHaveTextContent("320");
+    expect(
+      within(container).queryByRole("button", { name: "删除明细 1" }),
+    ).toBeNull();
+    expect(within(container).getByText("合计 - 320")).toBeInTheDocument();
+  });
+  it("收入明细和合计显示正号与账户币种", () => {
+    const { container } = renderForm({ initialType: "income" });
+    fireEvent.mouseDown(getCombobox(container, "账户"));
+    fireEvent.click(screen.getByText("日元现金（JPY）"));
+    openSheet(container);
+    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+    addItemViaSheet(container, "工资", "68.9");
+    expect(
+      container.querySelector('button[aria-label="编辑明细 1 金额"]'),
+    ).toHaveTextContent("+ ¥ 68.9");
+    expect(within(container).getByText("合计 + ¥ 68.9")).toBeInTheDocument();
+  });
+  it("未选小分类时点击追加显示错误提示", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "500" },
     });
-
-    it("账户选项中显示币种", () => {
-      const { container } = renderForm();
-
-      fireEvent.mouseDown(getCombobox(container, "账户"));
-
-      expect(screen.getByText("日元现金（JPY）")).toBeInTheDocument();
+    clickSheetAddButton();
+    expect(
+      screen.getByText(transactionFormValidationMessages.categoryRequired),
+    ).toBeInTheDocument();
+  });
+  it("保存前汇总显示商家、账户和明细", () => {
+    const { container } = renderForm();
+    fireEvent.mouseDown(getCombobox(container, "商家"));
+    fireEvent.click(screen.getByText("便利店"));
+    fireEvent.mouseDown(getCombobox(container, "账户"));
+    fireEvent.click(screen.getByText("日元现金（JPY）"));
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "1200");
+    expect(within(container).getByText("保存前汇总")).toBeInTheDocument();
+    expect(within(container).getAllByText("便利店")).toHaveLength(2);
+    expect(within(container).getAllByText("日元现金（JPY）")).toHaveLength(2);
+    expect(
+      within(container).getByText("食材/调料 / 餐饮 / 1200"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getAllByText("- ¥ 1200", { exact: true }),
+    ).toHaveLength(2);
+  });
+  it("时间字段显示在保存前汇总上面", () => {
+    const { container } = renderForm();
+    const dateTimeButton = within(container).getByRole("button", {
+      name: "选择记账时间",
     });
-
-    it("弹框同时显示支出和收入分类", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-
-      expect(
-        screen.getByRole("heading", { name: "添加明细" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "食材/调料" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "固定收入" }),
-      ).toBeInTheDocument();
-      expect(
-        within(screen.getByRole("button", { name: "食材/调料" })).getByTestId(
-          "DragIndicatorRoundedIcon",
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "添加大分类" }),
-      ).toHaveAttribute("aria-disabled", "true");
-      expect(
-        screen.getByRole("button", { name: "添加小分类" }),
-      ).toHaveAttribute("aria-disabled", "true");
-      expect(
-        screen.getByRole("textbox", { name: "搜索小分类" }),
-      ).toBeInTheDocument();
-      expect(screen.queryByText("特殊标记")).toBeNull();
-      expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
-    });
-
-    it("搜索小分类后同步筛选父子分类并可选中", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
-        target: { value: "电车" },
-      });
-
-      expect(
-        screen.getByRole("button", { name: "交通出行" }),
-      ).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
-      fireEvent.click(screen.getByRole("button", { name: "电车" }));
-      expect(screen.getByText("已选：交通出行 > 电车")).toBeInTheDocument();
-    });
-
-    it("可使用完整拼音和拼音首字母搜索小分类", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      const searchInput = screen.getByRole("textbox", { name: "搜索小分类" });
-      fireEvent.change(searchInput, { target: { value: "canyin" } });
-      expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "电车" })).toBeNull();
-
-      fireEvent.change(searchInput, { target: { value: "dc" } });
-      expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
-
-      fireEvent.click(screen.getByRole("button", { name: "清空搜索" }));
-      expect(searchInput).toHaveValue("");
-      expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "清空搜索" })).toBeNull();
-    });
-
-    it("添加明细弹框层级高于底部导航并为 safe-area 预留底部空间", () => {
-      const theme = createTheme();
-
-      expect(itemPickerDrawerSx.zIndex).toBe(appZIndex.bottomSheet);
-      expect(itemPickerDrawerSx.zIndex).toBeGreaterThan(
-        bottomNavigationLayout.navigationZIndex,
-      );
-      expect(itemPickerDrawerSx.zIndex).toBeLessThan(appZIndex.snackbar);
-      // 防止未来通过 paper bottom offset 避让底部导航，导致弹框和导航之间出现空隙。
-      expect("bottom" in itemPickerDrawerPaperSx).toBe(false);
-      expect(drawerFooterSx.pb(theme)).toBe(
-        `calc(${theme.spacing(2)} + ${bottomNavigationLayout.safeAreaPaddingBottom})`,
-      );
-    });
-
-    it("切换大分类后右侧显示对应的小分类", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
-
-      expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
-      expect(
-        screen.getByText("已选：交通出行 > 请选择小分类"),
-      ).toBeInTheDocument();
-    });
-
-    it("切换大分类和小分类时保留已输入金额", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      const amountInput = screen.getByRole("textbox", { name: "金额" });
-      fireEvent.change(amountInput, { target: { value: "286" } });
-      fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
-      fireEvent.click(screen.getByRole("button", { name: "日用品" }));
-
-      expect(amountInput).toHaveValue("286");
-
-      fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
-      fireEvent.click(screen.getByRole("button", { name: "电车" }));
-
-      expect(amountInput).toHaveValue("286");
-    });
-
-    it("追加明细后合计同步更新", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      addItemViaSheet(container, "餐饮", "286");
-      addItemViaSheet(container, "日用品", "45");
-
-      expect(within(container).getByText("消费明细（2）")).toBeInTheDocument();
-      expect(within(container).getByText("本次合计")).toBeInTheDocument();
-      expect(within(container).getByText("合计 - 331")).toBeInTheDocument();
-    });
-
-    it("点击明细分类可在同一弹框更新原明细", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      addItemViaSheet(container, "餐饮", "286");
-
-      const editCategoryButton = container.querySelector<HTMLButtonElement>(
-        'button[aria-label="编辑明细 1 分类"]',
-      );
-      if (!editCategoryButton) throw new Error("明细分类编辑按钮不存在");
-      fireEvent.click(editCategoryButton);
-
-      expect(
-        screen.getByRole("heading", { name: "编辑明细" }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("textbox", { name: "金额" })).toHaveValue("286");
-
-      fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-        target: { value: "320" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-
-      expect(within(container).getByText("消费明细（1）")).toBeInTheDocument();
-      expect(
-        container.querySelector('button[aria-label="编辑明细 1 金额"]'),
-      ).toHaveTextContent("320");
-      expect(
-        within(container).queryByRole("button", { name: "删除明细 1" }),
-      ).toBeNull();
-      expect(within(container).getByText("合计 - 320")).toBeInTheDocument();
-    });
-
-    it("收入明细和合计显示正号与账户币种", () => {
-      const { container } = renderForm({ initialType: "income" });
-
-      fireEvent.mouseDown(getCombobox(container, "账户"));
-      fireEvent.click(screen.getByText("日元现金（JPY）"));
-      openSheet(container);
-      fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
-      addItemViaSheet(container, "工资", "68.9");
-
-      expect(
-        container.querySelector('button[aria-label="编辑明细 1 金额"]'),
-      ).toHaveTextContent("+ ¥ 68.9");
-      expect(within(container).getByText("合计 + ¥ 68.9")).toBeInTheDocument();
-    });
-
-    it("未选小分类时点击追加显示错误提示", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-        target: { value: "500" },
-      });
-      clickSheetAddButton();
-
-      expect(
-        screen.getByText(transactionFormValidationMessages.categoryRequired),
-      ).toBeInTheDocument();
-    });
-
-    it("保存前汇总显示商家、账户和明细", () => {
-      const { container } = renderForm();
-
-      fireEvent.mouseDown(getCombobox(container, "商家"));
-      fireEvent.click(screen.getByText("便利店"));
-      fireEvent.mouseDown(getCombobox(container, "账户"));
-      fireEvent.click(screen.getByText("日元现金（JPY）"));
-      openSheet(container);
-      addItemViaSheet(container, "餐饮", "1200");
-
-      expect(within(container).getByText("保存前汇总")).toBeInTheDocument();
-      expect(within(container).getAllByText("便利店")).toHaveLength(2);
-      expect(within(container).getAllByText("日元现金（JPY）")).toHaveLength(2);
-      expect(
-        within(container).getByText("食材/调料 / 餐饮 / 1200"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getAllByText("- ¥ 1200", { exact: true }),
-      ).toHaveLength(2);
-    });
-
-    it("时间字段显示在保存前汇总上面", () => {
-      const { container } = renderForm();
-
-      const dateTimeButton = within(container).getByRole("button", {
-        name: "选择记账时间",
-      });
-      const summaryHeading = within(container).getByText("保存前汇总");
-
-      expect(dateTimeButton.compareDocumentPosition(summaryHeading)).toBe(4);
-    });
-
-    it("没有账户时保存按钮不可用", () => {
-      const { container } = renderForm({ accountOptions: [] });
-
-      expect(
-        within(container).getByRole("button", { name: "保存" }),
-      ).toHaveProperty("disabled", true);
-      expect(
-        within(container).getByRole("button", { name: "保存记账" }),
-      ).toHaveProperty("disabled", true);
-    });
-
-    it("商家下拉显示占位项和商家名称", () => {
-      const { container } = renderForm();
-
-      fireEvent.mouseDown(getCombobox(container, "商家"));
-
-      expect(screen.getByText("请选择商家")).toBeInTheDocument();
-      expect(screen.getByText("便利店")).toBeInTheDocument();
-    });
-
-    it("initialType=income 时，hidden type 应为 income", () => {
-      const { container } = renderForm({ initialType: "income" });
-
-      const typeInput =
-        container.querySelector<HTMLInputElement>('input[name="type"]');
-
-      expect(typeInput?.value).toBe("income");
-    });
-
-    it("initialType 从 expense 切换为 income 后，hidden type 应为 income", () => {
-      const action = vi.fn(async () => undefined);
-      const baseProps = {
-        action,
-        accountOptions,
-        categoryOptions,
-        merchantOptions,
-      };
-      const { container, rerender } = render(
-        <TransactionForm {...baseProps} initialType="expense" />,
-      );
-
-      rerender(<TransactionForm {...baseProps} initialType="income" />);
-
-      const typeInput =
-        container.querySelector<HTMLInputElement>('input[name="type"]');
-
-      expect(typeInput?.value).toBe("income");
-    });
-
-    it("initialType income 再切换回 expense 后，hidden type 应为 expense", () => {
-      const action = vi.fn(async () => undefined);
-      const baseProps = {
-        action,
-        accountOptions,
-        categoryOptions,
-        merchantOptions,
-      };
-      const { container, rerender } = render(
-        <TransactionForm {...baseProps} initialType="expense" />,
-      );
-
-      rerender(<TransactionForm {...baseProps} initialType="income" />);
-      rerender(<TransactionForm {...baseProps} initialType="expense" />);
-
-      const typeInput =
-        container.querySelector<HTMLInputElement>('input[name="type"]');
-
-      expect(typeInput?.value).toBe("expense");
-    });
+    const summaryHeading = within(container).getByText("保存前汇总");
+    expect(dateTimeButton.compareDocumentPosition(summaryHeading)).toBe(4);
+  });
+  it("没有账户时保存按钮不可用", () => {
+    const { container } = renderForm({ accountOptions: [] });
+    expect(
+      within(container).getByRole("button", { name: "保存" }),
+    ).toHaveProperty("disabled", true);
+    expect(
+      within(container).getByRole("button", { name: "保存记账" }),
+    ).toHaveProperty("disabled", true);
+  });
+  it("商家下拉显示占位项和商家名称", () => {
+    const { container } = renderForm();
+    fireEvent.mouseDown(getCombobox(container, "商家"));
+    expect(screen.getByText("请选择商家")).toBeInTheDocument();
+    expect(screen.getByText("便利店")).toBeInTheDocument();
+  });
+  it("initialType=income 时，hidden type 应为 income", () => {
+    const { container } = renderForm({ initialType: "income" });
+    const typeInput =
+      container.querySelector<HTMLInputElement>('input[name="type"]');
+    expect(typeInput?.value).toBe("income");
+  });
+  it("initialType 从 expense 切换为 income 后，hidden type 应为 income", () => {
+    const action = vi.fn(async () => undefined);
+    const baseProps = {
+      action,
+      accountOptions,
+      categoryOptions,
+      merchantOptions,
+    };
+    const { container, rerender } = render(
+      <TransactionForm {...baseProps} initialType="expense" />,
+    );
+    rerender(<TransactionForm {...baseProps} initialType="income" />);
+    const typeInput =
+      container.querySelector<HTMLInputElement>('input[name="type"]');
+    expect(typeInput?.value).toBe("income");
+  });
+  it("initialType income 再切换回 expense 后，hidden type 应为 expense", () => {
+    const action = vi.fn(async () => undefined);
+    const baseProps = {
+      action,
+      accountOptions,
+      categoryOptions,
+      merchantOptions,
+    };
+    const { container, rerender } = render(
+      <TransactionForm {...baseProps} initialType="expense" />,
+    );
+    rerender(<TransactionForm {...baseProps} initialType="income" />);
+    rerender(<TransactionForm {...baseProps} initialType="expense" />);
+    const typeInput =
+      container.querySelector<HTMLInputElement>('input[name="type"]');
+    expect(typeInput?.value).toBe("expense");
   });
 });
-
-describe("TransactionForm.editTypeSwitch.test.tsx", () => {
+describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
   const accountOptions = [
     {
       id: "00000000-0000-4000-8000-000000000045",
@@ -527,11 +436,8 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       currency: "JPY",
     },
   ];
-
   const expenseCategoryId = "00000000-0000-4000-8000-000000005072";
-
   const incomeCategoryId = "00000000-0000-4000-8000-000000005073";
-
   const categoryOptions = [
     {
       id: expenseCategoryId,
@@ -548,7 +454,6 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       type: "income" as const,
     },
   ];
-
   const merchantOptions = [
     {
       id: "00000000-0000-4000-8000-000000001001",
@@ -556,11 +461,9 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       icon_url: null,
     },
   ];
-
   afterEach(() => {
     cleanup();
   });
-
   function renderForm(
     props: Partial<ComponentProps<typeof TransactionForm>> = {},
   ) {
@@ -574,7 +477,6 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       />,
     );
   }
-
   function renderEditFormWithTypeSwitch(
     baseInitialValues: TransactionFormInitialValues,
   ) {
@@ -616,7 +518,6 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
     }
     return render(<Wrapper />);
   }
-
   function createInitialValues(
     type: "expense" | "income" = "expense",
   ): TransactionFormInitialValues {
@@ -635,17 +536,13 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       type,
     };
   }
-
   function getHiddenInput(container: HTMLElement, name: string) {
     const input = container.querySelector<HTMLInputElement>(
       `input[name="${name}"]`,
     );
-
     if (!input) throw new Error(`${name} hidden input 不存在`);
-
     return input;
   }
-
   function getSubmittedCategoryIds(container: HTMLElement) {
     return Array.from(
       container.querySelectorAll<HTMLInputElement>(
@@ -653,17 +550,14 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
       ),
     ).map((input) => input.value);
   }
-
   function openSheet(container: HTMLElement) {
     fireEvent.click(
       within(container).getByRole("button", { name: "添加明细" }),
     );
   }
-
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
   }
-
   function addItemViaSheet(
     container: HTMLElement,
     categoryName: string,
@@ -678,110 +572,81 @@ describe("TransactionForm.editTypeSwitch.test.tsx", () => {
     });
     clickSheetAddButton();
   }
-
-  describe("TransactionForm 编辑类型切换", () => {
-    it("编辑支出时 hidden type 默认为 expense", () => {
-      const { container } = renderForm({
-        initialValues: createInitialValues(),
-      });
-
-      expect(getHiddenInput(container, "type").value).toBe("expense");
+  it("编辑支出时 hidden type 默认为 expense", () => {
+    const { container } = renderForm({
+      initialValues: createInitialValues(),
     });
-
-    it("编辑收入时 hidden type 默认为 income", () => {
-      const { container } = renderForm({
-        initialValues: createInitialValues("income"),
-      });
-
-      expect(getHiddenInput(container, "type").value).toBe("income");
+    expect(getHiddenInput(container, "type").value).toBe("expense");
+  });
+  it("编辑收入时 hidden type 默认为 income", () => {
+    const { container } = renderForm({
+      initialValues: createInitialValues("income"),
     });
-
-    it("编辑支出点击收入后 hidden type 变为 income，且旧支出分类不会继续提交", () => {
-      const { container } = renderEditFormWithTypeSwitch(createInitialValues());
-
-      expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
-
-      fireEvent.click(within(container).getByRole("button", { name: "收入" }));
-
-      expect(getHiddenInput(container, "type").value).toBe("income");
-      expect(getSubmittedCategoryIds(container)).toEqual([]);
+    expect(getHiddenInput(container, "type").value).toBe("income");
+  });
+  it("编辑支出点击收入后 hidden type 变为 income，且旧支出分类不会继续提交", () => {
+    const { container } = renderEditFormWithTypeSwitch(createInitialValues());
+    expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
+    fireEvent.click(within(container).getByRole("button", { name: "收入" }));
+    expect(getHiddenInput(container, "type").value).toBe("income");
+    expect(getSubmittedCategoryIds(container)).toEqual([]);
+  });
+  it("编辑收入点击支出后 hidden type 变为 expense，且旧收入分类不会继续提交", () => {
+    const { container } = renderEditFormWithTypeSwitch(
+      createInitialValues("income"),
+    );
+    expect(getSubmittedCategoryIds(container)).toEqual([incomeCategoryId]);
+    fireEvent.click(within(container).getByRole("button", { name: "支出" }));
+    expect(getHiddenInput(container, "type").value).toBe("expense");
+    expect(getSubmittedCategoryIds(container)).toEqual([]);
+  });
+  it("明细抽屉同时显示支出和收入分类，可混合追加", () => {
+    const { container } = renderForm({
+      initialValues: createInitialValues(),
     });
-
-    it("编辑收入点击支出后 hidden type 变为 expense，且旧收入分类不会继续提交", () => {
-      const { container } = renderEditFormWithTypeSwitch(
-        createInitialValues("income"),
-      );
-
-      expect(getSubmittedCategoryIds(container)).toEqual([incomeCategoryId]);
-
-      fireEvent.click(within(container).getByRole("button", { name: "支出" }));
-
-      expect(getHiddenInput(container, "type").value).toBe("expense");
-      expect(getSubmittedCategoryIds(container)).toEqual([]);
-    });
-
-    it("明细抽屉同时显示支出和收入分类，可混合追加", () => {
-      const { container } = renderForm({
-        initialValues: createInitialValues(),
-      });
-
-      openSheet(container);
-
-      expect(
-        screen.getByRole("button", { name: "食材/调料" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "固定收入" }),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
-      addItemViaSheet(container, "工资", "300000");
-
-      expect(getSubmittedCategoryIds(container)).toEqual([
-        expenseCategoryId,
-        incomeCategoryId,
-      ]);
-    });
-
-    it("编辑切换到支出后弹框显示所有分类，可追加支出明细", () => {
-      const { container } = renderEditFormWithTypeSwitch(
-        createInitialValues("income"),
-      );
-
-      fireEvent.click(within(container).getByRole("button", { name: "支出" }));
-      openSheet(container);
-
-      expect(
-        screen.getByRole("button", { name: "食材/调料" }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "固定收入" }),
-      ).toBeInTheDocument();
-
-      addItemViaSheet(container, "餐饮", "800");
-
-      expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
-    });
-
-    it("新增记账可同时添加支出和收入明细，两者均会提交", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      addItemViaSheet(container, "餐饮", "500");
-
-      fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
-      addItemViaSheet(container, "工资", "300000");
-
-      expect(getSubmittedCategoryIds(container)).toEqual([
-        expenseCategoryId,
-        incomeCategoryId,
-      ]);
-    });
+    openSheet(container);
+    expect(
+      screen.getByRole("button", { name: "食材/调料" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "固定收入" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+    addItemViaSheet(container, "工资", "300000");
+    expect(getSubmittedCategoryIds(container)).toEqual([
+      expenseCategoryId,
+      incomeCategoryId,
+    ]);
+  });
+  it("编辑切换到支出后弹框显示所有分类，可追加支出明细", () => {
+    const { container } = renderEditFormWithTypeSwitch(
+      createInitialValues("income"),
+    );
+    fireEvent.click(within(container).getByRole("button", { name: "支出" }));
+    openSheet(container);
+    expect(
+      screen.getByRole("button", { name: "食材/调料" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "固定收入" }),
+    ).toBeInTheDocument();
+    addItemViaSheet(container, "餐饮", "800");
+    expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
+  });
+  it("新增记账可同时添加支出和收入明细，两者均会提交", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "500");
+    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+    addItemViaSheet(container, "工资", "300000");
+    expect(getSubmittedCategoryIds(container)).toEqual([
+      expenseCategoryId,
+      incomeCategoryId,
+    ]);
   });
 });
-
-describe("TransactionForm.regression.test.tsx", () => {
+describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
   const accountOptions = [
     {
       id: "11111111-1111-4111-8111-111111111111",
@@ -789,7 +654,6 @@ describe("TransactionForm.regression.test.tsx", () => {
       currency: "JPY",
     },
   ];
-
   const merchantOptions = [
     {
       id: "22222222-2222-4222-8222-222222222222",
@@ -797,7 +661,6 @@ describe("TransactionForm.regression.test.tsx", () => {
       icon_url: null,
     },
   ];
-
   const expenseCategories = [
     {
       id: "33333333-3333-4333-8333-333333333331",
@@ -814,7 +677,6 @@ describe("TransactionForm.regression.test.tsx", () => {
       type: "expense" as const,
     },
   ];
-
   const incomeCategories = [
     {
       id: "44444444-4444-4444-8444-444444444441",
@@ -824,9 +686,7 @@ describe("TransactionForm.regression.test.tsx", () => {
       type: "income" as const,
     },
   ];
-
   afterEach(() => cleanup());
-
   function renderForm(
     props: Partial<React.ComponentProps<typeof TransactionForm>> = {},
   ) {
@@ -840,17 +700,14 @@ describe("TransactionForm.regression.test.tsx", () => {
       />,
     );
   }
-
   function openSheet(container: HTMLElement) {
     fireEvent.click(
       within(container).getByRole("button", { name: "添加明细" }),
     );
   }
-
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
   }
-
   function addItemViaSheet(
     container: HTMLElement,
     categoryName: string,
@@ -865,7 +722,6 @@ describe("TransactionForm.regression.test.tsx", () => {
     });
     clickSheetAddButton();
   }
-
   const trafficCategories = [
     {
       id: "33333333-3333-4333-8333-333333333341",
@@ -875,109 +731,87 @@ describe("TransactionForm.regression.test.tsx", () => {
       type: "expense" as const,
     },
   ];
-
-  describe("TransactionForm regression", () => {
-    it("小数明细合计正确舍入显示，不出现浮点精度问题", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      addItemViaSheet(container, "餐饮", "0.10");
-      addItemViaSheet(container, "日用品", "0.20");
-
-      expect(within(container).getByText("合计 - 0.3")).toBeInTheDocument();
+  it("小数明细合计正确舍入显示，不出现浮点精度问题", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "0.10");
+    addItemViaSheet(container, "日用品", "0.20");
+    expect(within(container).getByText("合计 - 0.3")).toBeInTheDocument();
+  });
+  it("打开添加明细时金额默认是空，显式输入 0 可追加", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    expect(screen.getByRole("textbox", { name: "金额" })).toHaveProperty(
+      "value",
+      "",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "0" },
     });
-
-    it("打开添加明细时金额默认是空，显式输入 0 可追加", () => {
-      const { container } = renderForm();
-
-      openSheet(container);
-      expect(screen.getByRole("textbox", { name: "金额" })).toHaveProperty(
-        "value",
-        "",
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
-      fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-        target: { value: "0" },
-      });
-      clickSheetAddButton();
-
-      expect(
-        screen.queryByText(transactionFormValidationMessages.amountInvalid),
-      ).toBeNull();
-      expect(container.querySelector('input[name="itemAmount"]')).toHaveValue(
-        "0",
-      );
+    clickSheetAddButton();
+    expect(
+      screen.queryByText(transactionFormValidationMessages.amountInvalid),
+    ).toBeNull();
+    expect(container.querySelector('input[name="itemAmount"]')).toHaveValue(
+      "0",
+    );
+  });
+  it("分类列表为空时保存按钮不可用", () => {
+    const { container } = renderForm({ categoryOptions: [] });
+    expect(
+      within(container).getByRole("button", { name: "保存记账" }),
+    ).toBeDisabled();
+  });
+  it("编辑已有明细后明细在列表中的顺序不变", () => {
+    const { container } = renderForm();
+    addItemViaSheet(container, "餐饮", "100");
+    addItemViaSheet(container, "日用品", "200");
+    const itemInputsBefore = Array.from(
+      container.querySelectorAll<HTMLInputElement>(
+        'input[name="itemCategoryId"]',
+      ),
+    ).map((input) => input.value);
+    expect(itemInputsBefore[0]).toBe(expenseCategories[0].id);
+    expect(itemInputsBefore[1]).toBe(expenseCategories[1].id);
+    // 打开第一条明细进行编辑，修改金额（同类型），不改变分类
+    fireEvent.click(screen.getByLabelText("编辑明细 1 分类"));
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "150" },
     });
-
-    it("分类列表为空时保存按钮不可用", () => {
-      const { container } = renderForm({ categoryOptions: [] });
-
-      expect(
-        within(container).getByRole("button", { name: "保存记账" }),
-      ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    const itemInputsAfter = Array.from(
+      container.querySelectorAll<HTMLInputElement>(
+        'input[name="itemCategoryId"]',
+      ),
+    ).map((input) => input.value);
+    expect(itemInputsAfter[0]).toBe(expenseCategories[0].id);
+    expect(itemInputsAfter[1]).toBe(expenseCategories[1].id);
+  });
+  it("搜索状态下选择其他大分类的小分类后清空搜索仍显示该大分类", () => {
+    const allCategories = [
+      ...expenseCategories,
+      ...incomeCategories,
+      ...trafficCategories,
+    ];
+    const { container } = renderForm({ categoryOptions: allCategories });
+    openSheet(container);
+    // 搜索"电车"，命中交通出行大分类
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
+      target: { value: "电车" },
     });
-
-    it("编辑已有明细后明细在列表中的顺序不变", () => {
-      const { container } = renderForm();
-
-      addItemViaSheet(container, "餐饮", "100");
-      addItemViaSheet(container, "日用品", "200");
-
-      const itemInputsBefore = Array.from(
-        container.querySelectorAll<HTMLInputElement>(
-          'input[name="itemCategoryId"]',
-        ),
-      ).map((input) => input.value);
-      expect(itemInputsBefore[0]).toBe(expenseCategories[0].id);
-      expect(itemInputsBefore[1]).toBe(expenseCategories[1].id);
-
-      // 打开第一条明细进行编辑，修改金额（同类型），不改变分类
-      fireEvent.click(screen.getByLabelText("编辑明细 1 分类"));
-      fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-        target: { value: "150" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-
-      const itemInputsAfter = Array.from(
-        container.querySelectorAll<HTMLInputElement>(
-          'input[name="itemCategoryId"]',
-        ),
-      ).map((input) => input.value);
-      expect(itemInputsAfter[0]).toBe(expenseCategories[0].id);
-      expect(itemInputsAfter[1]).toBe(expenseCategories[1].id);
+    // 右侧显示的电车按钮存在（交通出行大分类下）
+    expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "电车" }));
+    // 清空搜索
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
+      target: { value: "" },
     });
-
-    it("搜索状态下选择其他大分类的小分类后清空搜索仍显示该大分类", () => {
-      const allCategories = [
-        ...expenseCategories,
-        ...incomeCategories,
-        ...trafficCategories,
-      ];
-      const { container } = renderForm({ categoryOptions: allCategories });
-
-      openSheet(container);
-
-      // 搜索"电车"，命中交通出行大分类
-      fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
-        target: { value: "电车" },
-      });
-
-      // 右侧显示的电车按钮存在（交通出行大分类下）
-      expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "电车" }));
-
-      // 清空搜索
-      fireEvent.change(screen.getByRole("textbox", { name: "搜索小分类" }), {
-        target: { value: "" },
-      });
-
-      // 左侧大分类应显示交通出行为选中状态（完全一致名称以避免与快捷分类 chip 冲突）
-      expect(
-        screen.getByRole("button", { name: "交通出行" }),
-      ).toBeInTheDocument();
-      // 右侧应仍显示电车（交通出行下的小分类）
-      expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
-    });
+    // 左侧大分类应显示交通出行为选中状态（完全一致名称以避免与快捷分类 chip 冲突）
+    expect(
+      screen.getByRole("button", { name: "交通出行" }),
+    ).toBeInTheDocument();
+    // 右侧应仍显示电车（交通出行下的小分类）
+    expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
   });
 });

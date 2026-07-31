@@ -1,5 +1,4 @@
 // @vitest-environment node
-
 import { describe, expect, it, vi } from "vitest";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
 import { readFileSync } from "node:fs";
@@ -11,24 +10,18 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-
-describe("transactionRepository.test.ts", () => {
+describe("TransactionRepository", () => {
   const ledgerId = "00000000-0000-4000-8000-000000000032";
-
   const userId = "00000000-0000-4000-8000-000000000031";
-
   const transactionRecordId = "00000000-0000-4000-8000-000000009999";
-
   const accountId = "00000000-0000-4000-8000-000000000045";
-
   const targetAccountId = "00000000-0000-4000-8000-000000000046";
-
   const categoryId = "00000000-0000-4000-8000-000000005072";
-
   const merchantId = "00000000-0000-4000-8000-000000001001";
-
-  type QueryResult = { data: unknown; error: unknown | null };
-
+  type QueryResult = {
+    data: unknown;
+    error: unknown | null;
+  };
   function createQuery(result: QueryResult = { data: [], error: null }) {
     const query = {
       eq: vi.fn(),
@@ -55,7 +48,6 @@ describe("transactionRepository.test.ts", () => {
     query.select.mockReturnValue(query);
     return query;
   }
-
   function createRepository({
     queries = {},
     rpc = vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -72,7 +64,6 @@ describe("transactionRepository.test.ts", () => {
     );
     return { defaultQuery, from, logger, repository, rpc };
   }
-
   const normalInput = {
     accountId,
     items: [{ amount: 1200, categoryId }],
@@ -82,7 +73,6 @@ describe("transactionRepository.test.ts", () => {
     transactionAt: "2026-06-04T01:00:00.000Z",
     type: "expense" as const,
   };
-
   const transferInput = {
     accountId,
     ledgerId,
@@ -91,380 +81,349 @@ describe("transactionRepository.test.ts", () => {
     transferAmount: 1200,
     transferTargetAccountId: targetAccountId,
   };
-
-  describe("TransactionRepository", () => {
-    it("普通交易创建继续调用原子 RPC", async () => {
-      const { repository, rpc } = createRepository();
-      await repository.createNormal(normalInput);
-      expect(rpc).toHaveBeenCalledWith("create_transaction", {
+  it("普通交易创建继续调用原子 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.createNormal(normalInput);
+    expect(rpc).toHaveBeenCalledWith("create_transaction", {
+      p_account_id: accountId,
+      p_items: normalInput.items,
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+      p_note: null,
+      p_transaction_at: normalInput.transactionAt,
+      p_type: "expense",
+    });
+  });
+  it("转账创建映射原子 RPC 参数", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.createTransfer(transferInput);
+    expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
+      p_amount: 1200,
+      p_from_account_id: accountId,
+      p_ledger_id: ledgerId,
+      p_note: "转账",
+      p_to_account_id: targetAccountId,
+      p_transaction_at: transferInput.transactionAt,
+    });
+  });
+  it("普通交易和转账更新映射各自 RPC 参数", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.updateNormal({ ...normalInput, transactionRecordId });
+    await repository.updateTransfer({
+      ...transferInput,
+      transactionRecordId,
+    });
+    expect(rpc).toHaveBeenNthCalledWith(
+      1,
+      "update_transaction",
+      expect.objectContaining({
         p_account_id: accountId,
-        p_items: normalInput.items,
         p_ledger_id: ledgerId,
-        p_merchant_id: merchantId,
-        p_note: null,
-        p_transaction_at: normalInput.transactionAt,
+        p_transaction_record_id: transactionRecordId,
         p_type: "expense",
-      });
+      }),
+    );
+    expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
+      p_amount: 1200,
+      p_from_account_id: accountId,
+      p_ledger_id: ledgerId,
+      p_note: "转账",
+      p_to_account_id: targetAccountId,
+      p_transaction_at: transferInput.transactionAt,
+      p_transaction_record_id: transactionRecordId,
     });
-
-    it("转账创建映射原子 RPC 参数", async () => {
-      const { repository, rpc } = createRepository();
-      await repository.createTransfer(transferInput);
-      expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
-        p_amount: 1200,
-        p_from_account_id: accountId,
-        p_ledger_id: ledgerId,
-        p_note: "转账",
-        p_to_account_id: targetAccountId,
-        p_transaction_at: transferInput.transactionAt,
-      });
+  });
+  it("普通交易和转账转换映射互斥 RPC 参数", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.convert({
+      ...normalInput,
+      targetType: "income",
+      transactionRecordId,
     });
-
-    it("普通交易和转账更新映射各自 RPC 参数", async () => {
-      const { repository, rpc } = createRepository();
-      await repository.updateNormal({ ...normalInput, transactionRecordId });
-      await repository.updateTransfer({
-        ...transferInput,
-        transactionRecordId,
-      });
-
-      expect(rpc).toHaveBeenNthCalledWith(
-        1,
-        "update_transaction",
-        expect.objectContaining({
-          p_account_id: accountId,
-          p_ledger_id: ledgerId,
-          p_transaction_record_id: transactionRecordId,
-          p_type: "expense",
-        }),
-      );
-      expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
-        p_amount: 1200,
-        p_from_account_id: accountId,
-        p_ledger_id: ledgerId,
-        p_note: "转账",
-        p_to_account_id: targetAccountId,
-        p_transaction_at: transferInput.transactionAt,
-        p_transaction_record_id: transactionRecordId,
-      });
+    await repository.convert({
+      ...transferInput,
+      targetType: "transfer",
+      transactionRecordId,
     });
-
-    it("普通交易和转账转换映射互斥 RPC 参数", async () => {
-      const { repository, rpc } = createRepository();
-      await repository.convert({
-        ...normalInput,
-        targetType: "income",
-        transactionRecordId,
-      });
-      await repository.convert({
-        ...transferInput,
-        targetType: "transfer",
-        transactionRecordId,
-      });
-
-      expect(rpc).toHaveBeenNthCalledWith(
-        1,
-        "convert_transaction_type",
-        expect.objectContaining({
-          p_account_id: accountId,
-          p_from_account_id: null,
-          p_target_type: "income",
-          p_to_account_id: null,
-          p_transfer_amount: null,
-        }),
-      );
-      expect(rpc).toHaveBeenNthCalledWith(
-        2,
-        "convert_transaction_type",
-        expect.objectContaining({
-          p_account_id: null,
-          p_from_account_id: accountId,
-          p_items: null,
-          p_target_type: "transfer",
-          p_to_account_id: targetAccountId,
-          p_transfer_amount: 1200,
-        }),
-      );
-    });
-
-    it("作废交易映射账本和交易 ID", async () => {
-      const { repository, rpc } = createRepository();
-      await repository.void(ledgerId, transactionRecordId);
-      expect(rpc).toHaveBeenCalledWith("void_transaction", {
-        p_ledger_id: ledgerId,
-        p_transaction_record_id: transactionRecordId,
-      });
-    });
-
-    it("分组摘要完整映射筛选和分页参数", async () => {
-      const rpc = vi.fn().mockResolvedValue({
-        data: [
-          {
-            balance: "800",
-            expense: "200",
-            group_id: merchantId,
-            group_key: merchantId,
-            group_label: "便利店",
-            income: "1000",
-            latest_transaction_at: normalInput.transactionAt,
-            transaction_count: 2,
-          },
-        ],
-        error: null,
-      });
-      const { repository } = createRepository({ rpc });
-      const result = await repository.loadGroupSummaries({
-        accountId,
-        categoryId,
-        dateEnd: "2026-07-01T00:00:00.000Z",
-        dateStart: "2026-06-01T00:00:00.000Z",
-        groupBy: "merchant",
-        ledgerId,
-        limit: 20,
-        memberId: userId,
-        merchantId,
-        offset: 20,
-        parentCategoryId: categoryId,
-        recordType: "expense",
-      });
-
-      expect(result).toHaveLength(1);
-      expect(rpc).toHaveBeenCalledWith("load_transaction_group_summaries", {
+    expect(rpc).toHaveBeenNthCalledWith(
+      1,
+      "convert_transaction_type",
+      expect.objectContaining({
         p_account_id: accountId,
-        p_category_id: categoryId,
-        p_date_end: "2026-07-01T00:00:00.000Z",
-        p_date_start: "2026-06-01T00:00:00.000Z",
-        p_group_by: "merchant",
-        p_ledger_id: ledgerId,
-        p_limit: 20,
-        p_member_id: userId,
-        p_merchant_id: merchantId,
-        p_offset: 20,
-        p_parent_category_id: categoryId,
-        p_record_type: "expense",
-      });
+        p_from_account_id: null,
+        p_target_type: "income",
+        p_to_account_id: null,
+        p_transfer_amount: null,
+      }),
+    );
+    expect(rpc).toHaveBeenNthCalledWith(
+      2,
+      "convert_transaction_type",
+      expect.objectContaining({
+        p_account_id: null,
+        p_from_account_id: accountId,
+        p_items: null,
+        p_target_type: "transfer",
+        p_to_account_id: targetAccountId,
+        p_transfer_amount: 1200,
+      }),
+    );
+  });
+  it("作废交易映射账本和交易 ID", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.void(ledgerId, transactionRecordId);
+    expect(rpc).toHaveBeenCalledWith("void_transaction", {
+      p_ledger_id: ledgerId,
+      p_transaction_record_id: transactionRecordId,
     });
-
-    it("交易列表应用日期、类型、成员、商户筛选和分页", async () => {
-      const record = {
-        created_at: normalInput.transactionAt,
-        created_by: userId,
-        id: transactionRecordId,
-        merchant_id: merchantId,
-        note: null,
-        transaction_at: normalInput.transactionAt,
-        type: "normal",
-      };
-      const query = createQuery({ data: [record], error: null });
-      const { repository } = createRepository({
-        queries: { transaction_record: query },
-      });
-      const result = await repository.listRecords({
-        dateEnd: "2026-07-01T00:00:00.000Z",
-        dateStart: "2026-06-01T00:00:00.000Z",
-        ledgerId,
-        limit: 20,
-        memberId: userId,
-        merchantId,
-        offset: 20,
-        recordType: "expense",
-      });
-
-      expect(result).toEqual([record]);
-      expect(query.gte).toHaveBeenCalledWith(
-        "transaction_at",
-        "2026-06-01T00:00:00.000Z",
-      );
-      expect(query.lt).toHaveBeenCalledWith(
-        "transaction_at",
-        "2026-07-01T00:00:00.000Z",
-      );
-      expect(query.eq).toHaveBeenCalledWith("type", "normal");
-      expect(query.eq).toHaveBeenCalledWith("merchant_id", merchantId);
-      expect(query.eq).toHaveBeenCalledWith("created_by", userId);
-      expect(query.range).toHaveBeenCalledWith(20, 39);
-    });
-
-    it("交易列表对未知商户和成员分组使用空值筛选", async () => {
-      const merchantQuery = createQuery();
-      const memberQuery = createQuery();
-      const from = vi
-        .fn()
-        .mockReturnValueOnce(merchantQuery)
-        .mockReturnValueOnce(memberQuery);
-      const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
-      const repository = createSupabaseTransactionRepository(
-        { from, rpc: vi.fn() } as never,
-        logger,
-      );
-
-      await repository.listRecords({
-        groupKeyPushDown: { groupBy: "merchant", groupKey: "unknown" },
-        ledgerId,
-        recordType: "all",
-      });
-      await repository.listRecords({
-        groupKeyPushDown: { groupBy: "member", groupKey: "unknown" },
-        ledgerId,
-        recordType: "all",
-      });
-
-      expect(merchantQuery.is).toHaveBeenCalledWith("merchant_id", null);
-      expect(memberQuery.is).toHaveBeenCalledWith("created_by", null);
-    });
-
-    it("读取交易关联数据时限定账本并去重 ID", async () => {
-      const memberQuery = createQuery({
-        data: [{ user_id: userId }],
-        error: null,
-      });
-      const itemQuery = createQuery({
-        data: [{ amount: 1200, transaction_record_id: transactionRecordId }],
-        error: null,
-      });
-      const { repository } = createRepository({
-        queries: {
-          ledger_member: memberQuery,
-          transaction_item: itemQuery,
+  });
+  it("分组摘要完整映射筛选和分页参数", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          balance: "800",
+          expense: "200",
+          group_id: merchantId,
+          group_key: merchantId,
+          group_label: "便利店",
+          income: "1000",
+          latest_transaction_at: normalInput.transactionAt,
+          transaction_count: 2,
         },
-      });
-
-      await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
-        userId,
-      ]);
-      await expect(
-        repository.listItems(ledgerId, [
-          transactionRecordId,
-          transactionRecordId,
-        ]),
-      ).resolves.toHaveLength(1);
-
-      expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
+      ],
+      error: null,
+    });
+    const { repository } = createRepository({ rpc });
+    const result = await repository.loadGroupSummaries({
+      accountId,
+      categoryId,
+      dateEnd: "2026-07-01T00:00:00.000Z",
+      dateStart: "2026-06-01T00:00:00.000Z",
+      groupBy: "merchant",
+      ledgerId,
+      limit: 20,
+      memberId: userId,
+      merchantId,
+      offset: 20,
+      parentCategoryId: categoryId,
+      recordType: "expense",
+    });
+    expect(result).toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith("load_transaction_group_summaries", {
+      p_account_id: accountId,
+      p_category_id: categoryId,
+      p_date_end: "2026-07-01T00:00:00.000Z",
+      p_date_start: "2026-06-01T00:00:00.000Z",
+      p_group_by: "merchant",
+      p_ledger_id: ledgerId,
+      p_limit: 20,
+      p_member_id: userId,
+      p_merchant_id: merchantId,
+      p_offset: 20,
+      p_parent_category_id: categoryId,
+      p_record_type: "expense",
+    });
+  });
+  it("交易列表应用日期、类型、成员、商户筛选和分页", async () => {
+    const record = {
+      created_at: normalInput.transactionAt,
+      created_by: userId,
+      id: transactionRecordId,
+      merchant_id: merchantId,
+      note: null,
+      transaction_at: normalInput.transactionAt,
+      type: "normal",
+    };
+    const query = createQuery({ data: [record], error: null });
+    const { repository } = createRepository({
+      queries: { transaction_record: query },
+    });
+    const result = await repository.listRecords({
+      dateEnd: "2026-07-01T00:00:00.000Z",
+      dateStart: "2026-06-01T00:00:00.000Z",
+      ledgerId,
+      limit: 20,
+      memberId: userId,
+      merchantId,
+      offset: 20,
+      recordType: "expense",
+    });
+    expect(result).toEqual([record]);
+    expect(query.gte).toHaveBeenCalledWith(
+      "transaction_at",
+      "2026-06-01T00:00:00.000Z",
+    );
+    expect(query.lt).toHaveBeenCalledWith(
+      "transaction_at",
+      "2026-07-01T00:00:00.000Z",
+    );
+    expect(query.eq).toHaveBeenCalledWith("type", "normal");
+    expect(query.eq).toHaveBeenCalledWith("merchant_id", merchantId);
+    expect(query.eq).toHaveBeenCalledWith("created_by", userId);
+    expect(query.range).toHaveBeenCalledWith(20, 39);
+  });
+  it("交易列表对未知商户和成员分组使用空值筛选", async () => {
+    const merchantQuery = createQuery();
+    const memberQuery = createQuery();
+    const from = vi
+      .fn()
+      .mockReturnValueOnce(merchantQuery)
+      .mockReturnValueOnce(memberQuery);
+    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+    const repository = createSupabaseTransactionRepository(
+      { from, rpc: vi.fn() } as never,
+      logger,
+    );
+    await repository.listRecords({
+      groupKeyPushDown: { groupBy: "merchant", groupKey: "unknown" },
+      ledgerId,
+      recordType: "all",
+    });
+    await repository.listRecords({
+      groupKeyPushDown: { groupBy: "member", groupKey: "unknown" },
+      ledgerId,
+      recordType: "all",
+    });
+    expect(merchantQuery.is).toHaveBeenCalledWith("merchant_id", null);
+    expect(memberQuery.is).toHaveBeenCalledWith("created_by", null);
+  });
+  it("读取交易关联数据时限定账本并去重 ID", async () => {
+    const memberQuery = createQuery({
+      data: [{ user_id: userId }],
+      error: null,
+    });
+    const itemQuery = createQuery({
+      data: [{ amount: 1200, transaction_record_id: transactionRecordId }],
+      error: null,
+    });
+    const { repository } = createRepository({
+      queries: {
+        ledger_member: memberQuery,
+        transaction_item: itemQuery,
+      },
+    });
+    await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
+      userId,
+    ]);
+    await expect(
+      repository.listItems(ledgerId, [
         transactionRecordId,
-      ]);
+        transactionRecordId,
+      ]),
+    ).resolves.toHaveLength(1);
+    expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
+      transactionRecordId,
+    ]);
+  });
+  it("合并用户资料和账本成员显示设置", async () => {
+    const userQuery = createQuery({
+      data: [{ display_name: "系统昵称", id: userId }],
+      error: null,
     });
-
-    it("合并用户资料和账本成员显示设置", async () => {
-      const userQuery = createQuery({
-        data: [{ display_name: "系统昵称", id: userId }],
-        error: null,
-      });
-      const settingQuery = createQuery({
-        data: [
-          {
-            display_color: "jade",
-            display_name: "账本昵称",
-            user_id: userId,
-          },
-        ],
-        error: null,
-      });
-      const { repository } = createRepository({
-        queries: {
-          app_user: userQuery,
-          ledger_member_display_setting: settingQuery,
-        },
-      });
-
-      await expect(
-        repository.findUserSummaries(ledgerId, [userId, userId]),
-      ).resolves.toEqual([
+    const settingQuery = createQuery({
+      data: [
         {
           display_color: "jade",
           display_name: "账本昵称",
-          id: userId,
+          user_id: userId,
         },
-      ]);
-      expect(userQuery.in).toHaveBeenCalledWith("id", [userId]);
-      expect(settingQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+      ],
+      error: null,
     });
-
-    it("空关联 ID 不发起数据库查询", async () => {
-      const { from, repository } = createRepository();
-      await expect(repository.findUserSummaries(ledgerId, [])).resolves.toEqual(
-        [],
-      );
-      await expect(repository.listItems(ledgerId, [])).resolves.toEqual([]);
-      expect(from).not.toHaveBeenCalled();
+    const { repository } = createRepository({
+      queries: {
+        app_user: userQuery,
+        ledger_member_display_setting: settingQuery,
+      },
     });
-
-    it("RPC 权限错误只转换为安全应用错误", async () => {
-      const rpc = vi.fn().mockResolvedValue({
-        data: null,
-        error: { details: "permission_denied", message: "database details" },
-      });
-      const { logger, repository } = createRepository({ rpc });
-      await expect(
-        repository.void(ledgerId, transactionRecordId),
-      ).rejects.toMatchObject({
-        code: "permission_denied",
-        message: "没有权限执行此交易操作。",
-      });
-      expect(logger.error).toHaveBeenCalledOnce();
+    await expect(
+      repository.findUserSummaries(ledgerId, [userId, userId]),
+    ).resolves.toEqual([
+      {
+        display_color: "jade",
+        display_name: "账本昵称",
+        id: userId,
+      },
+    ]);
+    expect(userQuery.in).toHaveBeenCalledWith("id", [userId]);
+    expect(settingQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+  });
+  it("空关联 ID 不发起数据库查询", async () => {
+    const { from, repository } = createRepository();
+    await expect(repository.findUserSummaries(ledgerId, [])).resolves.toEqual(
+      [],
+    );
+    await expect(repository.listItems(ledgerId, [])).resolves.toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+  it("RPC 权限错误只转换为安全应用错误", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { details: "permission_denied", message: "database details" },
     });
-
-    it("查询错误转换为安全应用错误", async () => {
-      const query = createQuery({
-        data: null,
-        error: { code: "db_error", message: "database details" },
-      });
-      const { logger, repository } = createRepository({
-        queries: { transaction_record: query },
-      });
-      await expect(
-        repository.listRecords({ ledgerId, recordType: "all" }),
-      ).rejects.toMatchObject({
-        code: "transaction_records_load_failed",
-        message: "交易记录加载失败，请稍后重试。",
-      });
-      expect(logger.error).toHaveBeenCalledOnce();
+    const { logger, repository } = createRepository({ rpc });
+    await expect(
+      repository.void(ledgerId, transactionRecordId),
+    ).rejects.toMatchObject({
+      code: "permission_denied",
+      message: "没有权限执行此交易操作。",
     });
-
-    it("权限读取限定账本、有效状态与交易 ID", async () => {
-      const record = {
-        created_at: normalInput.transactionAt,
-        created_by: userId,
-        id: transactionRecordId,
-        merchant_id: null,
-        note: null,
-        transaction_at: normalInput.transactionAt,
-        type: "normal",
-      };
-      const query = createQuery({ data: record, error: null });
-      const { repository } = createRepository({
-        queries: { transaction_record: query },
-      });
-      await expect(
-        repository.findActiveRecord(ledgerId, transactionRecordId),
-      ).resolves.toMatchObject({ id: transactionRecordId, type: "normal" });
-      expect(query.eq).toHaveBeenCalledWith("id", transactionRecordId);
-      expect(query.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
-      expect(query.eq).toHaveBeenCalledWith("status", "active");
+    expect(logger.error).toHaveBeenCalledOnce();
+  });
+  it("查询错误转换为安全应用错误", async () => {
+    const query = createQuery({
+      data: null,
+      error: { code: "db_error", message: "database details" },
     });
+    const { logger, repository } = createRepository({
+      queries: { transaction_record: query },
+    });
+    await expect(
+      repository.listRecords({ ledgerId, recordType: "all" }),
+    ).rejects.toMatchObject({
+      code: "transaction_records_load_failed",
+      message: "交易记录加载失败，请稍后重试。",
+    });
+    expect(logger.error).toHaveBeenCalledOnce();
+  });
+  it("权限读取限定账本、有效状态与交易 ID", async () => {
+    const record = {
+      created_at: normalInput.transactionAt,
+      created_by: userId,
+      id: transactionRecordId,
+      merchant_id: null,
+      note: null,
+      transaction_at: normalInput.transactionAt,
+      type: "normal",
+    };
+    const query = createQuery({ data: record, error: null });
+    const { repository } = createRepository({
+      queries: { transaction_record: query },
+    });
+    await expect(
+      repository.findActiveRecord(ledgerId, transactionRecordId),
+    ).resolves.toMatchObject({ id: transactionRecordId, type: "normal" });
+    expect(query.eq).toHaveBeenCalledWith("id", transactionRecordId);
+    expect(query.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(query.eq).toHaveBeenCalledWith("status", "active");
   });
 });
-
-describe("transactionDashboardRepository.test.ts", () => {
+describe("TransactionDashboardRepository", () => {
   const ledgerId = "00000000-0000-4000-8000-000000000032";
-
   const recordId = "00000000-0000-4000-8000-000000009001";
-
   const categoryId = "00000000-0000-4000-8000-000000005072";
-
   const accountId = "00000000-0000-4000-8000-000000000045";
-
   const secondAccountId = "00000000-0000-4000-8000-000000000046";
-
   const secondRecordId = "00000000-0000-4000-8000-000000009002";
-
   const dashboardMonthInput = {
     dateEnd: "2026-07-01T00:00:00.000Z",
     dateStart: "2026-06-01T00:00:00.000Z",
     ledgerId,
   };
-
-  type QueryResult = { data: unknown; error: unknown | null };
-
+  type QueryResult = {
+    data: unknown;
+    error: unknown | null;
+  };
   function createQuery(result: QueryResult = { data: [], error: null }) {
     const query = {
       eq: vi.fn(),
@@ -488,13 +447,11 @@ describe("transactionDashboardRepository.test.ts", () => {
     query.select.mockReturnValue(query);
     return query;
   }
-
   type DashboardErrorCase = {
     expectedLog: string;
     queries: Record<string, ReturnType<typeof createQuery>>;
     stage: string;
   };
-
   function createRepository(
     queries: Record<string, ReturnType<typeof createQuery>>,
   ) {
@@ -506,7 +463,6 @@ describe("transactionDashboardRepository.test.ts", () => {
     );
     return { from, logger, repository };
   }
-
   const dashboardErrorCases: DashboardErrorCase[] = [
     {
       expectedLog: "[transaction] failed to load dashboard month records",
@@ -558,192 +514,170 @@ describe("transactionDashboardRepository.test.ts", () => {
       stage: "分类",
     },
   ];
-
-  describe("TransactionDashboardRepository", () => {
-    it("本月汇总只读取记录 ID、金额、分类 ID 与分类类型", async () => {
-      const recordQuery = createQuery({
-        data: [{ id: recordId }],
-        error: null,
-      });
-      const itemQuery = createQuery({
-        data: [
-          {
-            amount: "1200",
-            category_id: categoryId,
-            transaction_record_id: recordId,
-          },
-        ],
-        error: null,
-      });
-      const categoryQuery = createQuery({
-        data: [{ id: categoryId, type: "expense" }],
-        error: null,
-      });
-      const { repository } = createRepository({
-        category: categoryQuery,
-        transaction_item: itemQuery,
-        transaction_record: recordQuery,
-      });
-
-      await expect(
-        repository.loadDashboardMonthSource(dashboardMonthInput),
-      ).resolves.toEqual({
-        categories: [{ id: categoryId, type: "expense" }],
-        items: [
-          {
-            amount: "1200",
-            category_id: categoryId,
-            transaction_record_id: recordId,
-          },
-        ],
-      });
-      expect(recordQuery.select).toHaveBeenCalledWith("id");
-      expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
-      expect(recordQuery.gte).toHaveBeenCalledWith(
-        "transaction_at",
-        dashboardMonthInput.dateStart,
-      );
-      expect(recordQuery.lt).toHaveBeenCalledWith(
-        "transaction_at",
-        dashboardMonthInput.dateEnd,
-      );
-      expect(itemQuery.select).toHaveBeenCalledWith(
-        "transaction_record_id, category_id, amount",
-      );
-      expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
+  it("本月汇总只读取记录 ID、金额、分类 ID 与分类类型", async () => {
+    const recordQuery = createQuery({
+      data: [{ id: recordId }],
+      error: null,
     });
-
-    it("没有本月记录时不查询明细和分类", async () => {
-      const recordQuery = createQuery();
-      const { from, repository } = createRepository({
-        transaction_record: recordQuery,
-      });
-
-      await expect(
-        repository.loadDashboardMonthSource(dashboardMonthInput),
-      ).resolves.toEqual({ categories: [], items: [] });
-      expect(from).toHaveBeenCalledTimes(1);
+    const itemQuery = createQuery({
+      data: [
+        {
+          amount: "1200",
+          category_id: categoryId,
+          transaction_record_id: recordId,
+        },
+      ],
+      error: null,
     });
-
-    it("明细没有分类时跳过分类查询", async () => {
-      const recordQuery = createQuery({
-        data: [{ id: recordId }],
-        error: null,
-      });
-      const item = {
-        amount: "1200",
-        category_id: null,
-        transaction_record_id: recordId,
-      };
-      const itemQuery = createQuery({ data: [item], error: null });
-      const { from, repository } = createRepository({
-        transaction_item: itemQuery,
-        transaction_record: recordQuery,
-      });
-
-      await expect(
-        repository.loadDashboardMonthSource(dashboardMonthInput),
-      ).resolves.toEqual({ categories: [], items: [item] });
-      expect(from).toHaveBeenCalledTimes(2);
-      expect(from).not.toHaveBeenCalledWith("category");
+    const categoryQuery = createQuery({
+      data: [{ id: categoryId, type: "expense" }],
+      error: null,
     });
-
-    it.each(dashboardErrorCases)(
-      "$stage 查询失败时转换为安全应用错误",
-      async ({ expectedLog, queries }) => {
-        const { logger, repository } = createRepository(queries);
-
-        await expect(
-          repository.loadDashboardMonthSource(dashboardMonthInput),
-        ).rejects.toMatchObject({
-          code: "transaction_dashboard_summary_load_failed",
-          message: "本月收支汇总加载失败，请稍后重试。",
-        });
-        expect(logger.error).toHaveBeenCalledOnce();
-        expect(logger.error).toHaveBeenCalledWith(
-          expectedLog,
-          expect.objectContaining({ ledgerId }),
-        );
-      },
+    const { repository } = createRepository({
+      category: categoryQuery,
+      transaction_item: itemQuery,
+      transaction_record: recordQuery,
+    });
+    await expect(
+      repository.loadDashboardMonthSource(dashboardMonthInput),
+    ).resolves.toEqual({
+      categories: [{ id: categoryId, type: "expense" }],
+      items: [
+        {
+          amount: "1200",
+          category_id: categoryId,
+          transaction_record_id: recordId,
+        },
+      ],
+    });
+    expect(recordQuery.select).toHaveBeenCalledWith("id");
+    expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
+    expect(recordQuery.gte).toHaveBeenCalledWith(
+      "transaction_at",
+      dashboardMonthInput.dateStart,
     );
-
-    it("最近使用账户只读取必要字段并按记录顺序去重", async () => {
-      const recordQuery = createQuery({
-        data: [{ id: recordId }, { id: secondRecordId }],
-        error: null,
-      });
-      const itemQuery = createQuery({
-        data: [
-          {
-            account_id: secondAccountId,
-            transaction_record_id: secondRecordId,
-          },
-          { account_id: accountId, transaction_record_id: recordId },
-          { account_id: secondAccountId, transaction_record_id: recordId },
-        ],
-        error: null,
-      });
-      const { repository } = createRepository({
-        transaction_item: itemQuery,
-        transaction_record: recordQuery,
-      });
-
+    expect(recordQuery.lt).toHaveBeenCalledWith(
+      "transaction_at",
+      dashboardMonthInput.dateEnd,
+    );
+    expect(itemQuery.select).toHaveBeenCalledWith(
+      "transaction_record_id, category_id, amount",
+    );
+    expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
+  });
+  it("没有本月记录时不查询明细和分类", async () => {
+    const recordQuery = createQuery();
+    const { from, repository } = createRepository({
+      transaction_record: recordQuery,
+    });
+    await expect(
+      repository.loadDashboardMonthSource(dashboardMonthInput),
+    ).resolves.toEqual({ categories: [], items: [] });
+    expect(from).toHaveBeenCalledTimes(1);
+  });
+  it("明细没有分类时跳过分类查询", async () => {
+    const recordQuery = createQuery({
+      data: [{ id: recordId }],
+      error: null,
+    });
+    const item = {
+      amount: "1200",
+      category_id: null,
+      transaction_record_id: recordId,
+    };
+    const itemQuery = createQuery({ data: [item], error: null });
+    const { from, repository } = createRepository({
+      transaction_item: itemQuery,
+      transaction_record: recordQuery,
+    });
+    await expect(
+      repository.loadDashboardMonthSource(dashboardMonthInput),
+    ).resolves.toEqual({ categories: [], items: [item] });
+    expect(from).toHaveBeenCalledTimes(2);
+    expect(from).not.toHaveBeenCalledWith("category");
+  });
+  it.each(dashboardErrorCases)(
+    "$stage 查询失败时转换为安全应用错误",
+    async ({ expectedLog, queries }) => {
+      const { logger, repository } = createRepository(queries);
       await expect(
-        repository.loadDashboardRecentlyUsedAccountIds({
-          ledgerId,
-          limit: 100,
-        }),
-      ).resolves.toEqual([accountId, secondAccountId]);
-      expect(recordQuery.select).toHaveBeenCalledWith("id");
-      expect(recordQuery.in).toHaveBeenCalledWith("type", [
-        "normal",
-        "transfer",
-      ]);
-      expect(recordQuery.range).toHaveBeenCalledWith(0, 99);
-      expect(itemQuery.select).toHaveBeenCalledWith(
-        "transaction_record_id, account_id",
+        repository.loadDashboardMonthSource(dashboardMonthInput),
+      ).rejects.toMatchObject({
+        code: "transaction_dashboard_summary_load_failed",
+        message: "本月收支汇总加载失败，请稍后重试。",
+      });
+      expect(logger.error).toHaveBeenCalledOnce();
+      expect(logger.error).toHaveBeenCalledWith(
+        expectedLog,
+        expect.objectContaining({ ledgerId }),
       );
+    },
+  );
+  it("最近使用账户只读取必要字段并按记录顺序去重", async () => {
+    const recordQuery = createQuery({
+      data: [{ id: recordId }, { id: secondRecordId }],
+      error: null,
     });
-
-    it("最近使用账户没有记录时不查询明细", async () => {
-      const recordQuery = createQuery();
-      const { from, repository } = createRepository({
-        transaction_record: recordQuery,
-      });
-
-      await expect(
-        repository.loadDashboardRecentlyUsedAccountIds({
-          ledgerId,
-          limit: 100,
-        }),
-      ).resolves.toEqual([]);
-      expect(from).toHaveBeenCalledTimes(1);
+    const itemQuery = createQuery({
+      data: [
+        {
+          account_id: secondAccountId,
+          transaction_record_id: secondRecordId,
+        },
+        { account_id: accountId, transaction_record_id: recordId },
+        { account_id: secondAccountId, transaction_record_id: recordId },
+      ],
+      error: null,
     });
-
-    it("normal 记录类型在查询阶段排除转账", async () => {
-      const recordQuery = createQuery();
-      const { repository } = createRepository({
-        transaction_record: recordQuery,
-      });
-
-      await repository.listRecords({
+    const { repository } = createRepository({
+      transaction_item: itemQuery,
+      transaction_record: recordQuery,
+    });
+    await expect(
+      repository.loadDashboardRecentlyUsedAccountIds({
         ledgerId,
-        limit: 3,
-        recordType: "normal",
-      });
-
-      expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
-      expect(recordQuery.range).toHaveBeenCalledWith(0, 2);
+        limit: 100,
+      }),
+    ).resolves.toEqual([accountId, secondAccountId]);
+    expect(recordQuery.select).toHaveBeenCalledWith("id");
+    expect(recordQuery.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
+    expect(recordQuery.range).toHaveBeenCalledWith(0, 99);
+    expect(itemQuery.select).toHaveBeenCalledWith(
+      "transaction_record_id, account_id",
+    );
+  });
+  it("最近使用账户没有记录时不查询明细", async () => {
+    const recordQuery = createQuery();
+    const { from, repository } = createRepository({
+      transaction_record: recordQuery,
     });
+    await expect(
+      repository.loadDashboardRecentlyUsedAccountIds({
+        ledgerId,
+        limit: 100,
+      }),
+    ).resolves.toEqual([]);
+    expect(from).toHaveBeenCalledTimes(1);
+  });
+  it("normal 记录类型在查询阶段排除转账", async () => {
+    const recordQuery = createQuery();
+    const { repository } = createRepository({
+      transaction_record: recordQuery,
+    });
+    await repository.listRecords({
+      ledgerId,
+      limit: 3,
+      recordType: "normal",
+    });
+    expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
+    expect(recordQuery.range).toHaveBeenCalledWith(0, 2);
   });
 });
-
-describe("transactionResourceBoundary.test.ts", () => {
+describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
   const migrationPath = path.join(
     process.cwd(),
     "supabase/migrations/20260630020000_drop_transaction_item_stat_type.sql",
   );
-
   const normalInput = {
     accountId: "00000000-0000-4000-8000-000000000045",
     items: [
@@ -758,7 +692,6 @@ describe("transactionResourceBoundary.test.ts", () => {
     transactionAt: "2026-06-04T01:00:00.000Z",
     type: "expense" as const,
   };
-
   function readFunctionBody(functionName: string) {
     const migration = readFileSync(migrationPath, "utf8");
     const startMarker = `create or replace function public.${functionName}(`;
@@ -769,7 +702,6 @@ describe("transactionResourceBoundary.test.ts", () => {
     if (end < 0) throw new Error(`${functionName} body was not terminated`);
     return migration.slice(start, end);
   }
-
   function createRepositoryWithRpcError({
     code,
     databaseError,
@@ -790,10 +722,8 @@ describe("transactionResourceBoundary.test.ts", () => {
       { from: vi.fn(), rpc } as never,
       logger,
     );
-
     return { logger, repository };
   }
-
   /**
    * Transaction Service 负责认证、成员角色和交易创建者权限。
    * 跨资源归属、归档状态及组合完整性必须由事务型 RPC 在同一数据库事务内复核，
@@ -804,7 +734,6 @@ describe("transactionResourceBoundary.test.ts", () => {
       "%s 在事务内校验账户、商户和分类归属及归档状态",
       (functionName) => {
         const body = readFunctionBody(functionName);
-
         expect(body).toContain("a.ledger_id = p_ledger_id");
         expect(body).toContain("a.is_archived = false");
         expect(body).toContain("m.ledger_id = p_ledger_id");
@@ -818,12 +747,10 @@ describe("transactionResourceBoundary.test.ts", () => {
         expect(body).toContain("raise exception 'category_invalid'");
       },
     );
-
     it.each(["create_transfer_transaction", "update_transfer_transaction"])(
       "%s 在事务内校验转出与转入账户",
       (functionName) => {
         const body = readFunctionBody(functionName);
-
         expect(body).toContain("p_from_account_id = p_to_account_id");
         expect(body).toContain("a.ledger_id = p_ledger_id");
         expect(body).toContain("raise exception 'from_account_invalid'");
@@ -834,11 +761,9 @@ describe("transactionResourceBoundary.test.ts", () => {
         expect(body).toContain("raise exception 'transfer_currency_invalid'");
       },
     );
-
     it("更新 RPC 将目标交易限定在当前账本且只允许 active 记录", () => {
       const normalBody = readFunctionBody("update_transaction");
       const transferBody = readFunctionBody("update_transfer_transaction");
-
       for (const body of [normalBody, transferBody]) {
         expect(body).toContain("tr.ledger_id = p_ledger_id");
         expect(body).toContain("tr.status = 'active'");
@@ -846,7 +771,6 @@ describe("transactionResourceBoundary.test.ts", () => {
       }
     });
   });
-
   describe("Transaction Repository RPC 错误边界", () => {
     it.each([
       ["account_invalid", "account_invalid", "账户信息不正确，请确认后重试。"],
@@ -882,11 +806,9 @@ describe("transactionResourceBoundary.test.ts", () => {
           code: "22023",
           databaseError,
         });
-
         const error = await repository
           .createNormal(normalInput)
           .catch((value) => Promise.resolve(value));
-
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchObject({
           code: expectedCode,
@@ -903,7 +825,6 @@ describe("transactionResourceBoundary.test.ts", () => {
         );
       },
     );
-
     it.each([
       ["not_authenticated", "28000", AuthenticationError, "auth_required"],
       ["ledger_forbidden", "42501", AuthorizationError, "permission_denied"],
@@ -921,27 +842,22 @@ describe("transactionResourceBoundary.test.ts", () => {
           code: databaseCode,
           databaseError,
         });
-
         const error = await repository
           .createNormal(normalInput)
           .catch((value) => Promise.resolve(value));
-
         expect(error).toBeInstanceOf(ErrorType);
         expect(error).toMatchObject({ code: expectedCode });
         expect(String(error)).not.toContain("raw database message");
       },
     );
-
     it("未知数据库异常保留为安全的 RepositoryError", async () => {
       const { repository } = createRepositoryWithRpcError({
         code: "XX000",
         databaseError: "unexpected_database_failure",
       });
-
       const error = await repository
         .createNormal(normalInput)
         .catch((value) => Promise.resolve(value));
-
       expect(error).toBeInstanceOf(RepositoryError);
       expect(error).toMatchObject({
         code: "create_failed",

@@ -15,7 +15,6 @@ import {
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
 import { UserThemeProvider } from "theme/UserThemeProvider";
-
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     errorMessage,
@@ -25,12 +24,13 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   }: {
     errorMessage: string | null;
     formId?: string;
-    initialValues?: { type: "expense" | "income" };
+    initialValues?: {
+      type: "expense" | "income";
+    };
     initialType?: "expense" | "income";
   }): ReactNode => {
     const type = initialValues?.type ?? initialType ?? "expense";
     const label = type === "income" ? "收入" : "支出";
-
     if (initialValues) {
       return (
         <form id={formId}>
@@ -42,7 +42,6 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
         </form>
       );
     }
-
     return (
       <div data-testid={`transaction-form-${type}`}>
         <input aria-label={`${label}临时输入`} defaultValue="" />
@@ -52,7 +51,6 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     );
   },
 }));
-
 vi.mock(
   "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
   () => ({
@@ -71,7 +69,6 @@ vi.mock(
           </form>
         );
       }
-
       return (
         <div data-testid="transfer-transaction-form">
           <input aria-label="转账临时输入" defaultValue="" />
@@ -81,14 +78,12 @@ vi.mock(
     },
   }),
 );
-
 vi.mock(
   "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher",
   () => ({
     TransactionAmountKeypadLauncher: (): ReactNode => null,
   }),
 );
-
 vi.mock(
   "organisms/transactions/TransactionFormHeader/TransactionFormHeader",
   () => ({
@@ -107,12 +102,10 @@ vi.mock(
     ),
   }),
 );
-
-describe("TransactionFormPage.test.tsx", () => {
+describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
   afterEach(() => {
     cleanup();
   });
-
   const baseProps = {
     accountOptions: [],
     action: vi.fn(async () => ({})),
@@ -121,19 +114,15 @@ describe("TransactionFormPage.test.tsx", () => {
     ledgerName: "家庭账本",
     merchantOptions: [],
   };
-
   describe("NewTransactionTemplate", () => {
     it("显示新增记账页面标题", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       expect(
         within(container).getByRole("heading", { name: "记一笔" }),
       ).toBeInTheDocument();
     });
-
     it("显示关闭入口且不显示当前账本名称", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       expect(
         within(container).getByRole("link", { name: "关闭" }),
       ).toBeInTheDocument();
@@ -141,10 +130,8 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).queryByText("当前账本：家庭账本"),
       ).not.toBeInTheDocument();
     });
-
     it("只显示一套包含转账的记账类型导航", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       expect(
         within(container).getAllByRole("group", { name: "记账类型" }),
       ).toHaveLength(1);
@@ -161,10 +148,8 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).queryByRole("button", { name: "支出" }),
       ).toBeNull();
     });
-
     it("默认激活支出表单并保留其他类型面板", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       expect(
         within(container).getByTestId("transaction-form-expense"),
       ).toBeInTheDocument();
@@ -181,22 +166,18 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-transfer"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("initialType=expense 时激活支出表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="expense" />,
       );
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-expense"),
       ).toHaveAttribute("aria-hidden", "false");
     });
-
     it("initialType=income 时激活收入表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="income" />,
       );
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-income"),
       ).toHaveAttribute("aria-hidden", "false");
@@ -204,12 +185,10 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-expense"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("initialType=transfer 时激活转账表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="transfer" />,
       );
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-transfer"),
       ).toHaveAttribute("aria-hidden", "false");
@@ -217,12 +196,9 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-expense"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("点击转账 tab 切换到转账面板", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-transfer"),
       ).toHaveAttribute("aria-hidden", "false");
@@ -230,14 +206,11 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-expense"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("点击收支 tab 切换回普通记账面板", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="transfer" />,
       );
-
       fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-expense"),
       ).toHaveAttribute("aria-hidden", "false");
@@ -245,15 +218,12 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-transfer"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("initialType=income 时切到转账后再回到收支仍显示收入面板", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="income" />,
       );
-
       fireEvent.click(within(container).getByRole("button", { name: "转账" }));
       fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-
       expect(
         within(container).getByTestId("transaction-type-slide-panel-income"),
       ).toHaveAttribute("aria-hidden", "false");
@@ -261,10 +231,8 @@ describe("TransactionFormPage.test.tsx", () => {
         within(container).getByTestId("transaction-type-slide-panel-transfer"),
       ).toHaveAttribute("aria-hidden", "true");
     });
-
     it("切换类型后保留已挂载表单的输入状态", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
-
       fireEvent.change(within(container).getByLabelText("支出临时输入"), {
         target: { value: "保留支出输入" },
       });
@@ -273,12 +241,10 @@ describe("TransactionFormPage.test.tsx", () => {
         target: { value: "保留转账输入" },
       });
       fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-
       expect(within(container).getByLabelText("支出临时输入")).toHaveValue(
         "保留支出输入",
       );
     });
-
     it("传入错误信息时当前表单内显示错误提示", () => {
       const { container } = render(
         <NewTransactionTemplate
@@ -289,13 +255,11 @@ describe("TransactionFormPage.test.tsx", () => {
       const activePanel = within(container).getByTestId(
         "transaction-type-slide-panel-expense",
       );
-
       expect(within(activePanel).getByRole("alert")).toBeInTheDocument();
       expect(
         within(activePanel).getByText("新增记账失败。请稍后重试。"),
       ).toBeInTheDocument();
     });
-
     it("transfer 类型且带错误信息时保持转账表单", () => {
       const { container } = render(
         <NewTransactionTemplate
@@ -307,32 +271,25 @@ describe("TransactionFormPage.test.tsx", () => {
       const activePanel = within(container).getByTestId(
         "transaction-type-slide-panel-transfer",
       );
-
       expect(activePanel).toHaveAttribute("aria-hidden", "false");
       expect(within(activePanel).getByRole("alert")).toBeInTheDocument();
     });
-
     it("默认渲染时当前普通表单 hidden type 为 expense", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
       const activePanel = within(container).getByTestId(
         "transaction-type-slide-panel-expense",
       );
-
       const hiddenInput = within(activePanel).getByDisplayValue("expense");
-
       expect(hiddenInput).toHaveAttribute("name", "type");
       expect(hiddenInput).toHaveAttribute("type", "hidden");
     });
-
     it("initialType=income 时收支 tab 对应收入表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="income" />,
       );
-
       expect(
         within(container).getByRole("button", { name: "收支" }),
       ).toHaveAttribute("aria-pressed", "true");
-
       const activePanel = within(container).getByTestId(
         "transaction-type-slide-panel-income",
       );
@@ -341,13 +298,11 @@ describe("TransactionFormPage.test.tsx", () => {
       expect(hiddenInput).toHaveAttribute("type", "hidden");
     });
   });
-
   describe("TransactionPermissionDenied", () => {
     it("显示当前操作的权限提示和返回入口", () => {
       const { container } = render(
         <TransactionPermissionDenied operation="create" />,
       );
-
       expect(within(container).getByRole("alert")).toHaveTextContent(
         "无法新增记账",
       );
@@ -360,21 +315,17 @@ describe("TransactionFormPage.test.tsx", () => {
     });
   });
 });
-
-describe("TransactionFormPage.edit.test.tsx", () => {
+describe("EditTransactionTemplate", () => {
   const storageScope = "edit-transaction-template-test";
-
   function renderWithTheme(ui: ReactNode) {
     return render(
       <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
     );
   }
-
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
   });
-
   const accountOptions = [
     {
       id: "00000000-0000-4000-8000-000000000045",
@@ -382,7 +333,6 @@ describe("TransactionFormPage.edit.test.tsx", () => {
       currency: "JPY",
     },
   ];
-
   const categoryOptions = [
     {
       id: "00000000-0000-4000-8000-000000005072",
@@ -392,7 +342,6 @@ describe("TransactionFormPage.edit.test.tsx", () => {
       type: "expense" as const,
     },
   ];
-
   const merchantOptions = [
     {
       id: "00000000-0000-4000-8000-000000001001",
@@ -400,7 +349,6 @@ describe("TransactionFormPage.edit.test.tsx", () => {
       icon_url: null,
     },
   ];
-
   function createProps(type: "expense" | "income" = "expense") {
     return {
       accountOptions,
@@ -426,184 +374,152 @@ describe("TransactionFormPage.edit.test.tsx", () => {
       merchantOptions,
     };
   }
-
-  describe("EditTransactionTemplate", () => {
-    it("普通编辑页默认显示编辑记账标题", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      expect(
-        within(container).getByRole("heading", { name: "编辑记账" }),
-      ).toBeInTheDocument();
+  it("普通编辑页默认显示编辑记账标题", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    expect(
+      within(container).getByRole("heading", { name: "编辑记账" }),
+    ).toBeInTheDocument();
+  });
+  it("普通支出编辑页渲染收支 / 转账切换，并激活支出面板", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    expect(
+      within(container).getByRole("button", { name: "收支" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-expense"),
+    ).toHaveAttribute("aria-hidden", "false");
+  });
+  it("普通收入编辑页渲染收支 / 转账切换，并激活收入面板", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps("income")} />,
+    );
+    expect(
+      within(container).getByRole("button", { name: "收支" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-income"),
+    ).toHaveAttribute("aria-hidden", "false");
+  });
+  it("普通编辑页显示转账切换 tab", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(container).getByTestId("transaction-form-expense"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transfer-transaction-form"),
+    ).toBeInTheDocument();
+  });
+  it("点击转账 tab 后激活转账编辑面板，并保持编辑记账标题", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    fireEvent.click(within(container).getByRole("button", { name: "转账" }));
+    expect(
+      within(container).getByRole("heading", { name: "编辑记账" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-transfer"),
+    ).toHaveAttribute("aria-hidden", "false");
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-expense"),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+  it("普通编辑切换类型后保留已挂载表单输入状态", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
+      target: { value: "保留普通编辑输入" },
     });
-
-    it("普通支出编辑页渲染收支 / 转账切换，并激活支出面板", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      expect(
-        within(container).getByRole("button", { name: "收支" }),
-      ).toHaveAttribute("aria-pressed", "true");
-      expect(
-        within(container).getByRole("button", { name: "转账" }),
-      ).toHaveAttribute("aria-pressed", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "false");
+    fireEvent.click(within(container).getByRole("button", { name: "转账" }));
+    fireEvent.click(within(container).getByRole("button", { name: "收支" }));
+    expect(within(container).getByLabelText("支出编辑临时输入")).toHaveValue(
+      "保留普通编辑输入",
+    );
+  });
+  it("普通编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
     });
-
-    it("普通收入编辑页渲染收支 / 转账切换，并激活收入面板", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps("income")} />,
-      );
-
-      expect(
-        within(container).getByRole("button", { name: "收支" }),
-      ).toHaveAttribute("aria-pressed", "true");
-      expect(
-        within(container).getByRole("button", { name: "转账" }),
-      ).toHaveAttribute("aria-pressed", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-income"),
-      ).toHaveAttribute("aria-hidden", "false");
+    expect(deleteButton).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toHaveAttribute("form", "edit-expense-transaction-form");
+    fireEvent.click(deleteButton);
+    const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+    expect(
+      within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+  it("内容修改后退出时提示保存、放弃或继续编辑", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
+      target: { value: "已修改" },
     });
-
-    it("普通编辑页显示转账切换 tab", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      expect(
-        within(container).getByRole("button", { name: "转账" }),
-      ).toHaveAttribute("aria-pressed", "false");
-      expect(
-        within(container).getByTestId("transaction-form-expense"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transfer-transaction-form"),
-      ).toBeInTheDocument();
+    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    expect(
+      screen.getByText("修正的内容尚未保存，是否保存？"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
+      "href",
+      routePaths.transactions,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(
+      screen.getByText("修正的内容尚未保存，是否保存？"),
+    ).not.toBeVisible();
+  });
+  it("未保存提示中点击保存会提交当前编辑表单", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
+      target: { value: "已修改" },
     });
-
-    it("点击转账 tab 后激活转账编辑面板，并保持编辑记账标题", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-
-      expect(
-        within(container).getByRole("heading", { name: "编辑记账" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-
-    it("普通编辑切换类型后保留已挂载表单输入状态", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
-        target: { value: "保留普通编辑输入" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-
-      expect(within(container).getByLabelText("支出编辑临时输入")).toHaveValue(
-        "保留普通编辑输入",
-      );
-    });
-
-    it("普通编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
-      const requestSubmit = vi
-        .spyOn(HTMLFormElement.prototype, "requestSubmit")
-        .mockImplementation(() => undefined);
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      const deleteButton = within(container).getByRole("button", {
-        name: "删除",
-      });
-      expect(deleteButton).toBeInTheDocument();
-      expect(
-        within(container).getByRole("button", { name: "保存修改" }),
-      ).toHaveAttribute("form", "edit-expense-transaction-form");
-
-      fireEvent.click(deleteButton);
-
-      const dialog = screen.getByRole("dialog", { name: "删除记账？" });
-      expect(
-        within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
-      ).toBeInTheDocument();
-      fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
-
-      expect(requestSubmit).toHaveBeenCalledTimes(1);
-    });
-
-    it("内容修改后退出时提示保存、放弃或继续编辑", () => {
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
-        target: { value: "已修改" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
-
-      expect(
-        screen.getByText("修正的内容尚未保存，是否保存？"),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-        "href",
-        routePaths.transactions,
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
-      expect(
-        screen.getByText("修正的内容尚未保存，是否保存？"),
-      ).not.toBeVisible();
-    });
-
-    it("未保存提示中点击保存会提交当前编辑表单", () => {
-      const requestSubmit = vi
-        .spyOn(HTMLFormElement.prototype, "requestSubmit")
-        .mockImplementation(() => undefined);
-      const { container } = renderWithTheme(
-        <EditTransactionTemplate {...createProps()} />,
-      );
-
-      fireEvent.change(within(container).getByLabelText("支出编辑临时输入"), {
-        target: { value: "已修改" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
-      fireEvent.click(screen.getByRole("button", { name: "保存" }));
-
-      expect(requestSubmit).toHaveBeenCalledTimes(1);
-    });
+    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
   });
 });
-
-describe("TransferEditTemplate.test.tsx", () => {
+describe("EditTransferTransactionTemplate", () => {
   const storageScope = "edit-transfer-template-test";
-
   function renderWithTheme(ui: ReactNode) {
     return render(
       <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
     );
   }
-
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
   });
-
   function renderTemplate() {
     return renderWithTheme(
       <EditTransferTransactionTemplate
@@ -632,100 +548,82 @@ describe("TransferEditTemplate.test.tsx", () => {
       />,
     );
   }
-
-  describe("EditTransferTransactionTemplate", () => {
-    it("转账编辑页默认激活转账编辑表单，并显示编辑记账标题", () => {
-      const { container } = renderTemplate();
-
-      expect(
-        within(container).getByRole("heading", { name: "编辑记账" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transfer-transaction-form"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-form-expense"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-form-income"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByRole("button", { name: "收支" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByRole("button", { name: "转账" }),
-      ).toHaveAttribute("aria-pressed", "true");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "false");
+  it("转账编辑页默认激活转账编辑表单，并显示编辑记账标题", () => {
+    const { container } = renderTemplate();
+    expect(
+      within(container).getByRole("heading", { name: "编辑记账" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transfer-transaction-form"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transaction-form-expense"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transaction-form-income"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "收支" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-transfer"),
+    ).toHaveAttribute("aria-hidden", "false");
+  });
+  it("转账编辑页点击收支 tab 后激活支出转换面板", () => {
+    const { container } = renderTemplate();
+    fireEvent.click(within(container).getByRole("button", { name: "收支" }));
+    expect(
+      within(container).getByRole("heading", { name: "编辑记账" }),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-expense"),
+    ).toHaveAttribute("aria-hidden", "false");
+    expect(
+      within(container).getByTestId("transaction-type-slide-panel-transfer"),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+  it("转账编辑切换类型后保留已挂载表单输入状态", () => {
+    const { container } = renderTemplate();
+    fireEvent.change(within(container).getByLabelText("转账转换临时输入"), {
+      target: { value: "保留转账编辑输入" },
     });
-
-    it("转账编辑页点击收支 tab 后激活支出转换面板", () => {
-      const { container } = renderTemplate();
-
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-
-      expect(
-        within(container).getByRole("heading", { name: "编辑记账" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(within(container).getByRole("button", { name: "收支" }));
+    fireEvent.click(within(container).getByRole("button", { name: "转账" }));
+    expect(within(container).getByLabelText("转账转换临时输入")).toHaveValue(
+      "保留转账编辑输入",
+    );
+  });
+  it("转账编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
+    const requestSubmit = vi
+      .spyOn(HTMLFormElement.prototype, "requestSubmit")
+      .mockImplementation(() => undefined);
+    const { container } = renderTemplate();
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
     });
-
-    it("转账编辑切换类型后保留已挂载表单输入状态", () => {
-      const { container } = renderTemplate();
-
-      fireEvent.change(within(container).getByLabelText("转账转换临时输入"), {
-        target: { value: "保留转账编辑输入" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-
-      expect(within(container).getByLabelText("转账转换临时输入")).toHaveValue(
-        "保留转账编辑输入",
-      );
+    expect(deleteButton).toBeInTheDocument();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toHaveAttribute("form", "edit-transfer-transaction-form");
+    fireEvent.click(deleteButton);
+    const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+    expect(
+      within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+  it("转账内容修改后退出时显示未保存提示", () => {
+    const { container } = renderTemplate();
+    fireEvent.change(within(container).getByLabelText("转账转换临时输入"), {
+      target: { value: "已修改" },
     });
-
-    it("转账编辑页底部显示删除和保存修改按钮，删除前要求确认", () => {
-      const requestSubmit = vi
-        .spyOn(HTMLFormElement.prototype, "requestSubmit")
-        .mockImplementation(() => undefined);
-      const { container } = renderTemplate();
-
-      const deleteButton = within(container).getByRole("button", {
-        name: "删除",
-      });
-      expect(deleteButton).toBeInTheDocument();
-      expect(
-        within(container).getByRole("button", { name: "保存修改" }),
-      ).toHaveAttribute("form", "edit-transfer-transaction-form");
-
-      fireEvent.click(deleteButton);
-
-      const dialog = screen.getByRole("dialog", { name: "删除记账？" });
-      expect(
-        within(dialog).getByText("删除后这笔记账会从明细页移除，是否继续？"),
-      ).toBeInTheDocument();
-      fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
-
-      expect(requestSubmit).toHaveBeenCalledTimes(1);
-    });
-
-    it("转账内容修改后退出时显示未保存提示", () => {
-      const { container } = renderTemplate();
-
-      fireEvent.change(within(container).getByLabelText("转账转换临时输入"), {
-        target: { value: "已修改" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
-
-      expect(
-        screen.getByText("修正的内容尚未保存，是否保存？"),
-      ).toBeInTheDocument();
-    });
+    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    expect(
+      screen.getByText("修正的内容尚未保存，是否保存？"),
+    ).toBeInTheDocument();
   });
 });
