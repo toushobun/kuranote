@@ -1,4 +1,4 @@
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { CurrentLedger } from "internal/ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
 import type { TransactionFormOptions } from "internal/transaction/entity/transactionFormOptions";
 import type {

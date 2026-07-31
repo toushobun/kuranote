@@ -6,20 +6,20 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: createSupabaseClientMock,
 }));
 
-import { createServiceRoleClient } from "./serviceRole";
+import { createServiceRoleSupabaseClient } from "./serviceRoleClient";
 
 afterEach(() => {
   vi.unstubAllEnvs();
   createSupabaseClientMock.mockReset();
 });
 
-describe("createServiceRoleClient", () => {
+describe("createServiceRoleSupabaseClient", () => {
   it("优先使用 service role key", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
     vi.stubEnv("SUPABASE_SECRET_KEY", "secret-key");
 
-    createServiceRoleClient();
+    createServiceRoleSupabaseClient();
 
     expect(createSupabaseClientMock).toHaveBeenCalledWith(
       "http://127.0.0.1:54321",
@@ -33,7 +33,7 @@ describe("createServiceRoleClient", () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("SUPABASE_SECRET_KEY", "secret-key");
 
-    createServiceRoleClient();
+    createServiceRoleSupabaseClient();
 
     expect(createSupabaseClientMock).toHaveBeenCalledWith(
       "http://127.0.0.1:54321",
@@ -47,7 +47,7 @@ describe("createServiceRoleClient", () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("SUPABASE_SECRET_KEY", "");
 
-    expect(() => createServiceRoleClient()).toThrow(
+    expect(() => createServiceRoleSupabaseClient()).toThrow(
       "Supabase service role environment variables are missing.",
     );
   });

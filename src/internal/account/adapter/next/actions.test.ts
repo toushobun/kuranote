@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("lib/ledger/current-ledger", () => ({
+vi.mock("internal/ledger/adapter/next/currentLedgerContext", () => ({
   getCurrentLedgerContext: mocks.getCurrentLedgerContext,
 }));
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({

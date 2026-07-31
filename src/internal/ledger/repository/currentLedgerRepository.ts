@@ -1,3 +1,10 @@
+import type { QueryData } from "@supabase/supabase-js";
+
+import type {
+  CurrentLedger,
+  CurrentLedgerContext,
+  CurrentLedgerRole,
+} from "internal/ledger/entity/currentLedger";
 import {
   currentLedgerErrorCodes,
   type CurrentLedgerErrorCode,
@@ -15,6 +22,10 @@ export type UpdateCurrentLedgerResult =
   | { ok: true }
   | { ok: false; code: CurrentLedgerErrorCode };
 
+export interface CurrentLedgerContextRepository {
+  getContext(userId: string, email: string): Promise<CurrentLedgerContext>;
+}
+
 export interface CurrentLedgerRepository {
   isActiveMember(ledgerId: string, userId: string): Promise<boolean>;
   isLedgerActive(ledgerId: string): Promise<boolean>;
@@ -30,8 +41,125 @@ export function createSupabaseCurrentLedgerRepository(
     info: () => undefined,
     warn: () => undefined,
   },
-): CurrentLedgerRepository {
+): CurrentLedgerRepository & CurrentLedgerContextRepository {
   return {
+    async getContext(userId, email) {
+      const appUserQuery = supabase
+        .from("app_user")
+        .select("current_ledger_id")
+        .eq("id", userId);
+      type AppUserRows = QueryData<typeof appUserQuery>;
+
+      const { data: appUserData, error: appUserError } = await appUserQuery;
+
+      if (appUserError) {
+        console.error("Failed to load current app user.", appUserError);
+        throw new Error(
+          `Failed to load current app user: ${appUserError.message}`,
+        );
+      }
+
+      const appUserRows: AppUserRows = appUserData ?? [];
+      const storedCurrentLedgerId = appUserRows.find(
+        (row) => typeof row.current_ledger_id === "string",
+      )?.current_ledger_id;
+
+      const memberQuery = supabase
+        .from("ledger_member")
+        .select("ledger_id, role")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("joined_at", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .order("ledger_id", { ascending: true });
+      type LedgerMemberRows = QueryData<typeof memberQuery>;
+
+      const { data: memberData, error: memberError } = await memberQuery;
+
+      if (memberError) {
+        console.error("Failed to load current ledger members.", memberError);
+        throw new Error(
+          `Failed to load current ledger members: ${memberError.message}`,
+        );
+      }
+
+      const memberRows: LedgerMemberRows = memberData ?? [];
+      const ledgerIds = memberRows
+        .map((row) => row.ledger_id)
+        .filter(
+          (ledgerId): ledgerId is string =>
+            typeof ledgerId === "string" && ledgerId.length > 0,
+        );
+
+      if (ledgerIds.length === 0) {
+        return {
+          userId,
+          email,
+          ledgers: [],
+          currentLedger: null,
+        };
+      }
+
+      const ledgerQuery = supabase
+        .from("ledger")
+        .select("id, name, base_currency")
+        .in("id", ledgerIds)
+        .eq("is_archived", false);
+      type LedgerRows = QueryData<typeof ledgerQuery>;
+
+      const { data: ledgerData, error: ledgerError } = await ledgerQuery;
+
+      if (ledgerError) {
+        console.error("Failed to load current ledgers.", ledgerError);
+        throw new Error(
+          `Failed to load current ledgers: ${ledgerError.message}`,
+        );
+      }
+
+      const roleByLedgerId = new Map<string, CurrentLedgerRole>();
+
+      for (const row of memberRows) {
+        if (typeof row.ledger_id !== "string" || row.ledger_id.length === 0) {
+          continue;
+        }
+
+        roleByLedgerId.set(
+          row.ledger_id,
+          toCurrentLedgerRole(typeof row.role === "string" ? row.role : null),
+        );
+      }
+
+      const ledgerRows: LedgerRows = ledgerData ?? [];
+      const ledgerById = new Map(
+        ledgerRows.map((ledger) => [
+          ledger.id,
+          {
+            id: ledger.id,
+            name: ledger.name,
+            baseCurrency: ledger.base_currency,
+            currentUserId: userId,
+            currentUserRole:
+              roleByLedgerId.get(ledger.id) ?? fallbackCurrentLedgerRole,
+          },
+        ]),
+      );
+
+      const ledgers: CurrentLedger[] = ledgerIds.flatMap((ledgerId) => {
+        const ledger = ledgerById.get(ledgerId);
+        return ledger ? [ledger] : [];
+      });
+      const currentLedger = storedCurrentLedgerId
+        ? (ledgers.find((ledger) => ledger.id === storedCurrentLedgerId) ??
+          null)
+        : null;
+
+      return {
+        userId,
+        email,
+        ledgers,
+        currentLedger: currentLedger ?? ledgers[0] ?? null,
+      };
+    },
     async isActiveMember(ledgerId, userId) {
       const { data, error } = await supabase
         .from("ledger_member")
@@ -107,4 +235,19 @@ export function createSupabaseCurrentLedgerRepository(
       return { ok: true };
     },
   };
+}
+
+const fallbackCurrentLedgerRole: CurrentLedgerRole = "member";
+
+function toCurrentLedgerRole(role: string | null): CurrentLedgerRole {
+  if (
+    role === "owner" ||
+    role === "admin" ||
+    role === "member" ||
+    role === "viewer"
+  ) {
+    return role;
+  }
+
+  return fallbackCurrentLedgerRole;
 }

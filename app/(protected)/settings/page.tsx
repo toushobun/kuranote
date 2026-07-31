@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { logout } from "internal/auth/adapter/next/actions";
 import { SettingsTemplate } from "templates/settings/Settings";
 

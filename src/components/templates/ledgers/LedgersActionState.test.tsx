@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LedgerWithMemberCount } from "lib/ledger/current-ledger";
+import type { LedgerWithMemberCount } from "internal/ledger";
 import type {
   CurrentLedgerActionState,
   CurrentLedgerStateAction,

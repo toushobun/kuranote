@@ -1,4 +1,4 @@
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { CurrentLedger } from "internal/ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
 import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import {

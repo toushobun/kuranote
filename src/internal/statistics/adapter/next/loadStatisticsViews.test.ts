@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   getMonthly: vi.fn(),
 }));
 
-vi.mock("lib/ledger/current-ledger", () => ({
+vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   getCurrentLedgerContext: mocks.getCurrentLedgerContext,
   getCurrentLedgerOrRedirect: mocks.getCurrentLedgerOrRedirect,
 }));

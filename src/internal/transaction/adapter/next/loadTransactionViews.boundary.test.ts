@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound }));
-vi.mock("lib/ledger/current-ledger", () => ({
+vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   getCurrentLedgerOrRedirect: mocks.getCurrentLedgerOrRedirect,
 }));
 vi.mock("internal/container", () => ({

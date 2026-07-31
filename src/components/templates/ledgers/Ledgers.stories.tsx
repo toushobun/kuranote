@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { LedgerWithMemberCount } from "lib/ledger/current-ledger";
+import type { LedgerWithMemberCount } from "internal/ledger";
 
 import { LedgersTemplate } from "./Ledgers";
 

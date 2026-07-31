@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { routePaths, routeWithQuery } from "config/paths";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
-import { createClient } from "lib/supabase/server";
+import { createAuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import {
   loadLedgerInvitePreview,
   type LedgerInvitePreview,
@@ -47,7 +47,7 @@ export default async function LedgerInviteRoute({
 
 export async function probeAuthentication(): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = await createAuthenticatedSupabaseClient();
     const { data, error } = await supabase.auth.getUser();
     return error === null && data.user !== null;
   } catch {

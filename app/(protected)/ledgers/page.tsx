@@ -8,7 +8,7 @@ import {
 import { createRequestContainer } from "internal/container";
 import { updateCurrentLedger } from "internal/ledger/adapter/next/actions/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { LedgersActionStateTemplate } from "templates/ledgers/LedgersActionState";
 
 function getLedgerSwitchResult(

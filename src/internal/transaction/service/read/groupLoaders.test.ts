@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CurrentLedger } from "lib/ledger/current-ledger";
+import type { CurrentLedger } from "internal/ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
 import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";

@@ -1,7 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 
 import { transactionResultValues } from "config/paths";
-import { getCurrentLedgerOrRedirect } from "lib/ledger/current-ledger";
+import { getCurrentLedgerOrRedirect } from "internal/ledger/adapter/next/currentLedger";
 import {
   loadStep4TransactionGroupItems,
   loadStep4TransactionGroupPage,

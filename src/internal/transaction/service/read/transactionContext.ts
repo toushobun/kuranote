@@ -1,5 +1,5 @@
-import type { CurrentLedger } from "lib/ledger/current-ledger";
-import { canModifyTransaction } from "lib/ledger/permissions";
+import type { CurrentLedger } from "internal/ledger";
+import { canModifyTransaction } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import type { TransactionRecordDbRow } from "internal/db-types";

@@ -1,5 +1,5 @@
 import { routePaths } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
 import { createLedger } from "internal/ledger/adapter/next/actions/ledgerCreate";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";

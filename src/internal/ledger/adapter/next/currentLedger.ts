@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedgerContext";
+
+export {
+  getCurrentLedgerContext,
+  getCurrentLedgerOrRedirect,
+} from "internal/ledger/adapter/next/currentLedgerContext";
 
 export async function requireCurrentUserAndLedger() {
   const context = await getCurrentLedgerContext();

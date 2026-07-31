@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { ledgerSettingsHref } from "config/paths";
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { createRequestContainer } from "internal/container";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";

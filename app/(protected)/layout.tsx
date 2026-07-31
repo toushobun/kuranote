@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { getCurrentLedgerContext } from "lib/ledger/current-ledger";
-import { canWriteTransaction } from "lib/ledger/permissions";
+import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
+import { canWriteTransaction } from "internal/ledger";
 import { ProtectedLayoutShell } from "templates/protected/ProtectedLayoutShell";
 
 export default async function ProtectedLayout({
