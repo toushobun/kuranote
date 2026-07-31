@@ -76,7 +76,7 @@ const categories = [
   },
 ];
 
-describe("statistics util", () => {
+describe("buildStatisticsViewData", () => {
   it("按月份交易生成基础汇总和支出排行榜", () => {
     const view = buildStatisticsViewData({
       categories,

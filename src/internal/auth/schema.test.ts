@@ -2,12 +2,14 @@
 
 import { describe, expect, it } from "vitest";
 
+import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
 import {
   loginRequestSchema,
   registerRouteRequestSchema,
   requestRegisterOtpRequestSchema,
   sessionResponseSchema,
+  startGoogleAuthRequestSchema,
   submitRegisterOtpRequestSchema,
 } from "internal/auth/schema";
 
@@ -85,6 +87,24 @@ describe("auth schema", () => {
       sessionResponseSchema.safeParse({
         authenticated: false,
         user: { displayName: null, email: null, id: crypto.randomUUID() },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("Google OAuth nextPath 接受上限长度并拒绝超长路径", () => {
+    const maxLengthNextPath = `/${"x".repeat(googleAuthNextPathMaxLength - 1)}`;
+    const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
+
+    expect(
+      startGoogleAuthRequestSchema.safeParse({
+        nextPath: maxLengthNextPath,
+        source: "login",
+      }).success,
+    ).toBe(true);
+    expect(
+      startGoogleAuthRequestSchema.safeParse({
+        nextPath: oversizedNextPath,
+        source: "login",
       }).success,
     ).toBe(false);
   });

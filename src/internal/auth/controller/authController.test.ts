@@ -3,6 +3,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import type { AppEnv } from "internal/appEnv";
 import {
   checkRegisterEmailAvailabilityHandler,
@@ -339,6 +340,24 @@ describe("auth controller", () => {
         status: 500,
       },
     });
+  });
+
+  it("Google OAuth nextPath 超长时返回 400 且不调用 Service", async () => {
+    const startGoogleAuth = vi.fn();
+    const app = createControllerApp(createAuthService({ startGoogleAuth }));
+    const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
+
+    const response = await app.request(
+      "https://kuranote.test/oauth/google/start",
+      {
+        body: JSON.stringify({ nextPath: oversizedNextPath, source: "login" }),
+        headers: { ...jsonHeaders, origin: "https://kuranote.test" },
+        method: "POST",
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(startGoogleAuth).not.toHaveBeenCalled();
   });
 
   it("Session 读取和登出 Controller 返回稳定响应", async () => {

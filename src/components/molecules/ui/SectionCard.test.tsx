@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { SectionCard } from "./SectionCard";
@@ -26,5 +26,11 @@ describe("SectionCard", () => {
       opacity: "0.5",
       padding: "0px",
     });
+  });
+
+  it("显示内容", () => {
+    const { container } = render(<SectionCard>区块内容</SectionCard>);
+
+    expect(within(container).getByText("区块内容")).toBeInTheDocument();
   });
 });
