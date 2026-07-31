@@ -1,4 +1,5 @@
 import { categoryErrorCodes } from "internal/category/errors";
+import type { CategoryType } from "internal/category/entity/categoryType";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   AuthenticationError,
@@ -9,20 +10,17 @@ import {
 } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type { CategorySummaryDbRow } from "internal/db-types";
-import type { CategoryRow } from "types/categories";
-import type { TransactionType } from "types/transactions";
 
 export type CategoryScope = {
   ledgerId: string;
   parentId: string | null;
-  type: TransactionType;
+  type: CategoryType;
 };
 
 export type CategoryRecord = {
   id: string;
   parentId: string | null;
-  type: TransactionType;
+  type: CategoryType;
 };
 
 export type CategorySibling = {
@@ -30,6 +28,23 @@ export type CategorySibling = {
   id: string;
   name: string;
   sortOrder: number;
+};
+
+export type CategoryData = {
+  created_at: string;
+  icon_name: string | null;
+  id: string;
+  name: string;
+  parent_id: string | null;
+  sort_order: number;
+  type: CategoryType;
+};
+
+export type CategorySummary = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  type: CategoryType;
 };
 
 export type InsertCategoryInput = CategoryScope & {
@@ -65,15 +80,15 @@ export interface CategoryRepository {
     categoryId: string;
     ledgerId: string;
   }): Promise<CategoryRecord | null>;
-  findActiveByLedgerId(ledgerId: string): Promise<CategoryRow[]>;
+  findActiveByLedgerId(ledgerId: string): Promise<CategoryData[]>;
   findByIdsWithParents(
     ledgerId: string,
     categoryIds: string[],
-  ): Promise<CategorySummaryDbRow[]>;
+  ): Promise<CategorySummary[]>;
   findActiveRootById(input: {
     categoryId: string;
     ledgerId: string;
-    type: TransactionType;
+    type: CategoryType;
   }): Promise<CategoryRecord | null>;
   insert(input: InsertCategoryInput): Promise<void>;
   listActiveSiblings(scope: CategoryScope): Promise<CategorySibling[]>;
@@ -84,7 +99,24 @@ export interface CategoryRepository {
 type CategoryRecordRow = {
   id: string;
   parent_id: string | null;
-  type: TransactionType;
+  type: CategoryType;
+};
+
+type CategoryRow = {
+  created_at: string;
+  icon_name: string | null;
+  id: string;
+  name: string;
+  parent_id: string | null;
+  sort_order: number;
+  type: CategoryType;
+};
+
+type CategorySummaryRow = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  type: CategoryType;
 };
 
 type CategoryReorderRpcError = {
@@ -123,6 +155,27 @@ function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {
   return {
     id: row.id,
     parentId: row.parent_id,
+    type: row.type,
+  };
+}
+
+function toCategoryData(row: CategoryRow): CategoryData {
+  return {
+    created_at: row.created_at,
+    icon_name: row.icon_name,
+    id: row.id,
+    name: row.name,
+    parent_id: row.parent_id,
+    sort_order: row.sort_order,
+    type: row.type,
+  };
+}
+
+function toCategorySummary(row: CategorySummaryRow): CategorySummary {
+  return {
+    id: row.id,
+    name: row.name,
+    parent_id: row.parent_id,
     type: row.type,
   };
 }
@@ -296,7 +349,7 @@ export function createSupabaseCategoryRepository(
         );
       }
 
-      return (data ?? []) as CategoryRow[];
+      return ((data ?? []) as CategoryRow[]).map(toCategoryData);
     },
 
     async findByIdsWithParents(ledgerId, categoryIds) {
@@ -317,15 +370,15 @@ export function createSupabaseCategoryRepository(
           { ledgerId },
         );
       }
-      const categories = (data ?? []) as CategorySummaryDbRow[];
+      const categoryRows = (data ?? []) as CategorySummaryRow[];
       const parentIds = [
         ...new Set(
-          categories
+          categoryRows
             .map((category) => category.parent_id)
             .filter((id): id is string => Boolean(id)),
         ),
       ].filter((id) => !uniqueCategoryIds.includes(id));
-      if (parentIds.length === 0) return categories;
+      if (parentIds.length === 0) return categoryRows.map(toCategorySummary);
 
       const { data: parentData, error: parentError } = await supabase
         .from("category")
@@ -341,7 +394,10 @@ export function createSupabaseCategoryRepository(
           { ledgerId },
         );
       }
-      return [...categories, ...((parentData ?? []) as CategorySummaryDbRow[])];
+      return [
+        ...categoryRows,
+        ...((parentData ?? []) as CategorySummaryRow[]),
+      ].map(toCategorySummary);
     },
 
     async findActiveRootById({ categoryId, ledgerId, type }) {

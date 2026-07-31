@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { AccountRow } from "types/accounts";
+import type { Account } from "types/accounts";
 
 import { AccountSummaryCard } from "./AccountSummaryCard";
 
-const accounts: AccountRow[] = [
+const accounts: Account[] = [
   {
     id: "00000000-0000-4000-8000-000000000001",
     name: "三菱UFJ银行",

@@ -5,13 +5,16 @@ import {
   type ThemeColorKey,
 } from "theme/themeColorTokens";
 import type {
+  AccountData,
+  AccountHolderData,
+  AccountLedgerMember,
+  AccountMemberDisplaySetting,
+  AccountUser,
+} from "internal/account/repository/accountRepository";
+import type {
+  Account,
+  AccountHolder,
   AccountHolderOption,
-  AccountHolderRecord,
-  AccountHolderRow,
-  AccountRow,
-  AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
-  LedgerMemberRecord,
 } from "types/accounts";
 
 export function buildAccountsWithHolders({
@@ -20,12 +23,12 @@ export function buildAccountsWithHolders({
   displayColorByUserId,
   holders,
 }: {
-  accounts: Omit<AccountRow, "holders">[];
-  appUserById: Map<string, AppUserRecord>;
+  accounts: AccountData[];
+  appUserById: Map<string, AccountUser>;
   displayColorByUserId: Map<string, ThemeColorKey>;
-  holders: AccountHolderRecord[];
-}) {
-  const holdersByAccountId = new Map<string, AccountHolderRow[]>();
+  holders: AccountHolderData[];
+}): Account[] {
+  const holdersByAccountId = new Map<string, AccountHolder[]>();
 
   for (const holder of holders) {
     const appUser = appUserById.get(holder.user_id);
@@ -61,8 +64,8 @@ export function buildHolderOptions({
   appUserById,
   members,
 }: {
-  appUserById: Map<string, AppUserRecord>;
-  members: LedgerMemberRecord[];
+  appUserById: Map<string, AccountUser>;
+  members: AccountLedgerMember[];
 }) {
   return members
     .map((member): AccountHolderOption | null => {
@@ -90,8 +93,8 @@ export function buildDisplayColorByUserId({
   members,
   settings,
 }: {
-  members: LedgerMemberRecord[];
-  settings: LedgerMemberDisplaySettingRecord[];
+  members: AccountLedgerMember[];
+  settings: AccountMemberDisplaySetting[];
 }) {
   const displayColorByUserId = new Map<string, ThemeColorKey>();
   const sortedMembers = [...members].sort((a, b) => {

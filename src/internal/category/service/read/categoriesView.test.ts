@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { CategoryRow } from "types/categories";
+import type { Category } from "types/categories";
 
 import { buildCategoriesView } from "./categoriesView";
 
@@ -18,7 +18,7 @@ const baseRow = {
 
 describe("categoriesView", () => {
   it("按 parent_id 组装分类树并从根分类派生父级选项", () => {
-    const categories: CategoryRow[] = [
+    const categories: Category[] = [
       { ...baseRow, id: parentId, name: "餐饮", parent_id: null },
       { ...baseRow, id: childId, name: "外食", parent_id: parentId },
     ];
@@ -38,7 +38,7 @@ describe("categoriesView", () => {
   });
 
   it("普通成员不能管理分类且孤立子分类不会进入分类树", () => {
-    const orphan: CategoryRow = {
+    const orphan: Category = {
       ...baseRow,
       id: childId,
       name: "孤立分类",

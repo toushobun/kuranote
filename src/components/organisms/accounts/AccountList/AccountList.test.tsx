@@ -2,16 +2,12 @@ import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { AccountRow } from "types/accounts";
+import type { Account } from "types/accounts";
 
 import { AccountList } from "./AccountList";
 
 vi.mock("../AccountEditDialog/AccountEditDialog", () => ({
-  AccountEditDialog: ({
-    account,
-  }: {
-    account: AccountRow | null;
-  }): ReactNode =>
+  AccountEditDialog: ({ account }: { account: Account | null }): ReactNode =>
     account ? (
       <div data-testid="account-edit-dialog">{account.name}</div>
     ) : null,
@@ -21,7 +17,7 @@ afterEach(() => {
   cleanup();
 });
 
-const baseAccount: AccountRow = {
+const baseAccount: Account = {
   id: "00000000-0000-4000-8000-000000000001",
   name: "三菱UFJ银行",
   type: "bank",
@@ -73,7 +69,7 @@ describe("AccountList", () => {
   });
 
   it("有多个账户时全部显示", () => {
-    const account2: AccountRow = {
+    const account2: Account = {
       ...baseAccount,
       id: "00000000-0000-4000-8000-000000000002",
       name: "PayPay",

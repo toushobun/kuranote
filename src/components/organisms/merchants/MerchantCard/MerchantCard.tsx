@@ -11,7 +11,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { MerchantAliasForm } from "organisms/merchants/MerchantAliasForm/MerchantAliasForm";
 import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
 import type { ServerAction } from "types/actions";
-import type { MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 import { getMerchantInitial } from "utils/merchants";
 
 type MerchantCardProps = {
@@ -20,7 +20,7 @@ type MerchantCardProps = {
   canManageMerchants?: boolean;
   createAliasAction: ServerAction;
   createAliasPending?: boolean;
-  merchant: MerchantRow;
+  merchant: Merchant;
   merchantAliasFormResetKey?: string;
   merchantEditFormResetKey?: string;
   updateMerchantPending?: boolean;

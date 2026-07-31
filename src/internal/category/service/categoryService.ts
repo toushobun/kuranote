@@ -6,6 +6,7 @@ import {
 import type {
   CategoryRepository,
   CategoryScope,
+  CategorySummary,
 } from "internal/category/repository/categoryRepository";
 import { buildCategoriesView } from "internal/category/service/read/categoriesView";
 import {
@@ -24,7 +25,6 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { CategoriesViewData } from "types/categories";
-import type { CategorySummaryDbRow } from "internal/db-types";
 import { getCategoryStoredName } from "utils/categoryNames";
 
 export type CategoriesView = CategoriesViewData & {
@@ -67,11 +67,11 @@ export interface CategoryQueryService {
     categoryIds: string[];
     ledgerId: string;
     userId: string;
-  }): Promise<CategorySummaryDbRow[]>;
+  }): Promise<CategorySummary[]>;
   listActiveSummaries(input: {
     ledgerId: string;
     userId: string;
-  }): Promise<CategorySummaryDbRow[]>;
+  }): Promise<CategorySummary[]>;
 }
 
 export interface CategoryService extends CategoryQueryService {

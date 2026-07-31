@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
 
-import type { MerchantRow, MerchantStateAction } from "types/merchants";
+import type { Merchant, MerchantStateAction } from "types/merchants";
 
 import { MerchantsActionStateTemplate } from "./MerchantsActionState";
 
-const merchants: MerchantRow[] = [
+const merchants: Merchant[] = [
   {
     id: "00000000-0000-4000-8000-000000001001",
     name: "LIFE超市",

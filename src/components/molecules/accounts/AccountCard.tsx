@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { themeColorTokens } from "theme/themeColorTokens";
 
-import type { AccountHolderRow, AccountType } from "types/accounts";
+import type { AccountHolder, AccountType } from "types/accounts";
 import {
   formatAmount,
   getAccountHolderLabel,
@@ -26,7 +26,7 @@ type AccountCardProps = {
   type: AccountType;
   currency: string;
   currentBalance: number | string;
-  holders?: AccountHolderRow[];
+  holders?: AccountHolder[];
   actions?: ReactNode;
   footer?: ReactNode;
   onClick?: () => void;

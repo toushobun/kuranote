@@ -9,7 +9,7 @@ import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type { ServerAction } from "types/actions";
-import type { MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 
 type MerchantsTemplateProps = {
   archiveMerchantAction: ServerAction;
@@ -21,9 +21,9 @@ type MerchantsTemplateProps = {
   createMerchantPending?: boolean;
   keyword: string;
   ledgerName: string;
-  merchants: MerchantRow[];
+  merchants: Merchant[];
   renderCreateMerchantForm?: () => ReactNode;
-  renderMerchantCard?: (merchant: MerchantRow) => ReactNode;
+  renderMerchantCard?: (merchant: Merchant) => ReactNode;
   updateMerchantAction?: ServerAction;
 };
 

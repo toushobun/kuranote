@@ -18,6 +18,10 @@ export {
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 export type { LedgerCreateDefaults } from "internal/ledger/entity/ledgerCreateDefaults";
+export {
+  ledgerCurrencies,
+  type LedgerCurrency,
+} from "internal/ledger/entity/ledgerCurrency";
 export type {
   CurrentLedger,
   CurrentLedgerContext,

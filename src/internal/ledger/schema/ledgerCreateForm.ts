@@ -2,8 +2,8 @@ import {
   ledgerCreateErrorCodes,
   type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
+import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import { isThemeColorKey, type ThemeColorKey } from "theme/themeColorTokens";
-import { ledgerCurrencyOptions } from "types/ledgers";
 import { getFormText } from "utils/formData";
 
 import {
@@ -43,11 +43,7 @@ export function validateCreateLedgerForm(
     return currencyResult;
   }
 
-  if (
-    !ledgerCurrencyOptions.some(
-      (currency) => currency.value === currencyResult.value,
-    )
-  ) {
+  if (!ledgerCurrencies.some((currency) => currency === currencyResult.value)) {
     return invalid(ledgerCreateErrorCodes.currencyInvalid);
   }
 

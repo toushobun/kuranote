@@ -1,11 +1,11 @@
 import { isThemeColorKey, type ThemeColorKey } from "theme/themeColorTokens";
 
-export type AccountHolderDisplayColorRow = {
+export type AccountHolderDisplayColor = {
   account_id: string;
   user_id: string;
 };
 
-export type LedgerMemberDisplayColorRow = {
+export type LedgerMemberDisplayColor = {
   display_color: string | null;
   user_id: string;
 };
@@ -16,8 +16,8 @@ export function buildSingleHolderAccountColorById({
   settings,
 }: {
   activeMemberUserIds: Set<string>;
-  holders: AccountHolderDisplayColorRow[];
-  settings: LedgerMemberDisplayColorRow[];
+  holders: AccountHolderDisplayColor[];
+  settings: LedgerMemberDisplayColor[];
 }) {
   const holderUserIdsByAccountId = new Map<string, Set<string>>();
   const displayColorByUserId = new Map<string, ThemeColorKey>();

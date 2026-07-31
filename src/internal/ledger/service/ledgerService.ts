@@ -2,6 +2,7 @@ import type {
   LedgerCreateDefaults,
   LedgerCreateDefaultsInput,
 } from "internal/ledger/entity/ledgerCreateDefaults";
+import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
@@ -18,7 +19,6 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { ledgerCurrencyOptions } from "types/ledgers";
 
 export type LedgerServiceDependencies = {
   ledgerRepository: LedgerRepository;
@@ -89,9 +89,7 @@ export function createLedgerService({
       const emailName = email.split("@")[0]?.trim();
       const baseCurrency =
         inheritedCurrency &&
-        ledgerCurrencyOptions.some(
-          (option) => option.value === inheritedCurrency,
-        )
+        ledgerCurrencies.some((currency) => currency === inheritedCurrency)
           ? inheritedCurrency
           : "JPY";
 

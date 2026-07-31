@@ -12,11 +12,11 @@ import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import type { AccountRow } from "types/accounts";
+import type { Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";
 
 type AccountSummaryCardProps = {
-  accounts: AccountRow[];
+  accounts: Account[];
   baseCurrency: string;
 };
 

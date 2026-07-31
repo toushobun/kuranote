@@ -6,13 +6,13 @@ import { useMemo, useState } from "react";
 import { AccountCard } from "molecules/accounts/AccountCard";
 import { EmptyState } from "molecules/ui/EmptyState";
 import type { AccountSaveResult } from "templates/accounts/Accounts";
-import type { AccountHolderOption, AccountRow } from "types/accounts";
+import type { AccountHolderOption, Account } from "types/accounts";
 import type { ServerAction } from "types/actions";
 
 import { AccountEditDialog } from "../AccountEditDialog/AccountEditDialog";
 
 type AccountListProps = {
-  accounts: AccountRow[];
+  accounts: Account[];
   archiveAccountAction: ServerAction;
   canManageAccounts?: boolean;
   emptyDescription?: string;

@@ -27,7 +27,7 @@ import {
   accountTypeOptions,
   type AccountActionState,
   type AccountHolderOption,
-  type AccountRow,
+  type Account,
   type AccountStateAction,
   type AccountType,
 } from "types/accounts";
@@ -40,7 +40,7 @@ type ErrorFeedback = {
 };
 
 type AccountsTemplateProps = {
-  accounts: AccountRow[];
+  accounts: Account[];
   archiveAccountAction: AccountStateAction;
   baseCurrency: string;
   canManageAccounts?: boolean;

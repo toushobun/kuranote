@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog";
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption, AccountRow } from "types/accounts";
+import type { AccountHolderOption, Account } from "types/accounts";
 
 import {
   AccountEditForm,
@@ -14,7 +14,7 @@ import {
 } from "../AccountFormDialogShell/AccountFormDialogShell";
 
 type AccountEditDialogProps = {
-  account: AccountRow | null;
+  account: Account | null;
   archiveAccountAction: ServerAction;
   holderOptions: AccountHolderOption[];
   onClose: () => void;

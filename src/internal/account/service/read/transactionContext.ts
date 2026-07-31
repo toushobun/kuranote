@@ -1,15 +1,15 @@
 import type {
-  AccountLedgerMemberRecord,
+  AccountLedgerMember,
+  AccountMemberDisplaySetting,
   AccountRepository,
 } from "internal/account/repository/accountRepository";
 import { buildSingleHolderAccountColorById } from "internal/account/util/accountHolderDisplayColors";
-import type { LedgerMemberDisplaySettingRecord } from "types/accounts";
 
 type TransactionAccountContextInput = {
   accounts: Awaited<ReturnType<AccountRepository["findSummariesByIds"]>>;
   holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
-  members: AccountLedgerMemberRecord[];
-  settings: LedgerMemberDisplaySettingRecord[];
+  members: AccountLedgerMember[];
+  settings: AccountMemberDisplaySetting[];
 };
 
 export function buildTransactionAccountContext({

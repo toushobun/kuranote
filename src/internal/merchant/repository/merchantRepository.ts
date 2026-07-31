@@ -4,8 +4,49 @@ import { ConflictError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type { MerchantAliasRow, MerchantRow } from "types/merchants";
-import { attachAliases } from "utils/merchants";
+
+type MerchantRow = {
+  created_at: string;
+  icon_url: string | null;
+  id: string;
+  name: string;
+  note: string | null;
+  sort_order: number;
+  website_url: string | null;
+};
+
+type MerchantAliasRow = {
+  alias: string;
+  created_at: string;
+  id: string;
+  merchant_id: string;
+  sort_order: number;
+};
+
+type MerchantSummaryRow = {
+  icon_url: string | null;
+  id: string;
+  name: string;
+};
+
+export type MerchantAliasData = {
+  alias: string;
+  created_at: string;
+  id: string;
+  merchant_id: string;
+  sort_order: number;
+};
+
+export type MerchantData = {
+  aliases: MerchantAliasData[];
+  created_at: string;
+  icon_url: string | null;
+  id: string;
+  name: string;
+  note: string | null;
+  sort_order: number;
+  website_url: string | null;
+};
 
 export type CreateMerchantInput = {
   ledgerId: string;
@@ -42,7 +83,7 @@ export interface MerchantRepository {
     ledgerId: string,
     merchantIds: string[],
   ): Promise<MerchantSummary[]>;
-  listActive(ledgerId: string): Promise<MerchantRow[]>;
+  listActive(ledgerId: string): Promise<MerchantData[]>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
   updateMerchant(input: UpdateMerchantInput): Promise<boolean>;
 }
@@ -50,6 +91,55 @@ export interface MerchantRepository {
 const merchantColumns =
   "id, name, website_url, icon_url, note, sort_order, created_at";
 const merchantSummaryColumns = "id, name, icon_url";
+
+function toMerchantData(row: MerchantRow): MerchantData {
+  return {
+    aliases: [],
+    created_at: row.created_at,
+    icon_url: row.icon_url,
+    id: row.id,
+    name: row.name,
+    note: row.note,
+    sort_order: row.sort_order,
+    website_url: row.website_url,
+  };
+}
+
+function toMerchantAliasData(row: MerchantAliasRow): MerchantAliasData {
+  return {
+    alias: row.alias,
+    created_at: row.created_at,
+    id: row.id,
+    merchant_id: row.merchant_id,
+    sort_order: row.sort_order,
+  };
+}
+
+function toMerchantSummary(row: MerchantSummaryRow): MerchantSummary {
+  return {
+    icon_url: row.icon_url,
+    id: row.id,
+    name: row.name,
+  };
+}
+
+function attachMerchantAliases(
+  merchants: MerchantData[],
+  aliases: MerchantAliasData[],
+): MerchantData[] {
+  const aliasesByMerchantId = new Map<string, MerchantAliasData[]>();
+
+  for (const alias of aliases) {
+    const currentAliases = aliasesByMerchantId.get(alias.merchant_id) ?? [];
+    currentAliases.push(alias);
+    aliasesByMerchantId.set(alias.merchant_id, currentAliases);
+  }
+
+  return merchants.map((merchant) => ({
+    ...merchant,
+    aliases: aliasesByMerchantId.get(merchant.id) ?? [],
+  }));
+}
 
 export function createSupabaseMerchantRepository(
   supabase: AuthenticatedSupabaseClient,
@@ -234,7 +324,7 @@ export function createSupabaseMerchantRepository(
           error,
         );
       }
-      return (data ?? []) as MerchantSummary[];
+      return ((data ?? []) as MerchantSummaryRow[]).map(toMerchantSummary);
     },
 
     async listActive(ledgerId) {
@@ -256,10 +346,9 @@ export function createSupabaseMerchantRepository(
         );
       }
 
-      const merchants = (merchantData ?? []).map((merchant) => ({
-        ...merchant,
-        aliases: [],
-      })) as MerchantRow[];
+      const merchants = ((merchantData ?? []) as MerchantRow[]).map(
+        toMerchantData,
+      );
       const merchantIds = merchants.map((merchant) => merchant.id);
       if (merchantIds.length === 0) return merchants;
 
@@ -281,7 +370,10 @@ export function createSupabaseMerchantRepository(
         );
       }
 
-      return attachAliases(merchants, (aliasData ?? []) as MerchantAliasRow[]);
+      return attachMerchantAliases(
+        merchants,
+        ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
+      );
     },
 
     async listActiveSummaries(ledgerId) {
@@ -302,7 +394,7 @@ export function createSupabaseMerchantRepository(
           error,
         );
       }
-      return (data ?? []) as MerchantSummary[];
+      return ((data ?? []) as MerchantSummaryRow[]).map(toMerchantSummary);
     },
 
     async updateMerchant(input) {
