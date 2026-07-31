@@ -24,12 +24,9 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { CategoriesViewData } from "types/categories";
 import { getCategoryStoredName } from "utils/categoryNames";
 
-export type CategoriesView = CategoriesViewData & {
-  canManageCategories: boolean;
-};
+export type CategoriesView = ReturnType<typeof buildCategoriesView>;
 
 export type CreateCategoryInput = CategoryScope & {
   iconName: string;

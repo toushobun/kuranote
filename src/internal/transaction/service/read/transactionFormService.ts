@@ -1,18 +1,16 @@
 import type { CurrentLedger } from "internal/ledger";
 import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { TransactionItemDbRow } from "internal/db-types";
-import type {
-  EditTransactionView,
-  NewTransactionView,
-} from "internal/transaction/entity/transactionView";
-import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import { loadTransactionFormOptions } from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
+  EditTransactionView,
   TransactionCategoryOption,
-  TransactionType,
-} from "types/transactions";
+  TransferEditInitialValues,
+  NewTransactionView,
+} from "internal/transaction/service/read/transactionReadModels";
+import type { TransactionType } from "internal/transaction/entity/transactionType";
 
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,

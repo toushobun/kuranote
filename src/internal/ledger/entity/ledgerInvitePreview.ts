@@ -1,4 +1,4 @@
-import type { LedgerInviteRole } from "types/ledgers";
+import type { LedgerInviteRole } from "internal/ledger/entity/ledgerInviteRole";
 
 export type LedgerInviteStatus =
   | "valid"

@@ -13,8 +13,8 @@ import {
 } from "internal/ledger/errors/ledgerInvite";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import { isLedgerInviteRole } from "internal/ledger";
 import {
-  isLedgerInviteRole,
   type LedgerInviteActionOperation,
   type LedgerInviteActionState,
 } from "types/ledgers";

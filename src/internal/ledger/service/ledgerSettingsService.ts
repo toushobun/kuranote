@@ -23,15 +23,11 @@ import {
   isThemeColorKey,
   type ThemeColorKey,
 } from "theme/themeColorTokens";
-import type { LedgerSettingsView as LedgerSettingsViewData } from "types/ledgers";
+import type { LedgerSettingsView } from "internal/ledger/service/read/ledgerSettingsView";
 
 export type LedgerSettingsServiceDependencies = {
   ledgerSettingsRepository: LedgerSettingsRepository;
 };
-
-// Service 只负责账本基础信息和成员信息；pendingInvites 由 ledgerInviteService
-// 单独提供，调用方（页面）负责组合成完整的 LedgerSettingsView。
-export type LedgerSettingsView = Omit<LedgerSettingsViewData, "pendingInvites">;
 
 export type GetLedgerSettingsViewInput = {
   currentLedger: CurrentLedger;

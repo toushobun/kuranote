@@ -24,7 +24,7 @@ import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
-import type { TransferEditInitialValues } from "internal/transaction";
+import type { TransferEditInitialValues } from "types/transactions";
 import type {
   TransactionAccountOption,
   TransactionRecordType,

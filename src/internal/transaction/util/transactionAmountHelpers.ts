@@ -2,10 +2,8 @@ import type {
   CategorySummaryDbRow,
   TransactionItemDbRow,
 } from "internal/db-types";
-import type {
-  TransactionAmountSummary,
-  TransactionCategoryType,
-} from "types/transactions";
+import type { CategoryType } from "internal/category";
+import type { TransactionAmountSummary } from "internal/transaction/service/read/transactionReadModels";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,
@@ -35,7 +33,7 @@ export function calculateTransactionRecordNetAmount(
 export function getTransactionRecordCategoryType(
   items: TransactionAmountItem[],
   categoryById: ReadonlyMap<string, TransactionAmountCategory>,
-): TransactionCategoryType {
+): CategoryType {
   const summary = getTransactionRecordAmountProfile(items, categoryById);
 
   if (summary.netAmount > 0) return "income";

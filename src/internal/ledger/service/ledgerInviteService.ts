@@ -20,7 +20,7 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { LedgerInviteRole } from "types/ledgers";
+import type { LedgerInviteRole } from "internal/ledger/entity/ledgerInviteRole";
 
 export type LedgerInviteServiceDependencies = {
   ledgerAccessService: LedgerAccessService;

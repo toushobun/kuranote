@@ -6,7 +6,12 @@ export {
   type VoidTransactionValidationErrorCode,
 } from "internal/transaction/errors";
 export * from "internal/transaction/schema";
-export type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
+export {
+  transactionRecordStorageTypes,
+  transactionTypes,
+  type TransactionRecordStorageType,
+  type TransactionType,
+} from "internal/transaction/entity/transactionType";
 export type { TransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 export {
   buildTransactionSearchPage,

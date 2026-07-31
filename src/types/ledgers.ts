@@ -1,5 +1,10 @@
 import type { CurrentLedgerRole } from "internal/ledger";
 import type { LedgerCurrency } from "internal/ledger";
+import {
+  isLedgerInviteRole,
+  ledgerInviteRoles,
+  type LedgerInviteRole,
+} from "internal/ledger";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
@@ -58,13 +63,7 @@ export type PendingLedgerInvite = {
   token: string | null;
 };
 
-export const ledgerInviteRoles = ["admin", "member", "viewer"] as const;
-
-export type LedgerInviteRole = (typeof ledgerInviteRoles)[number];
-
-export function isLedgerInviteRole(value: unknown): value is LedgerInviteRole {
-  return ledgerInviteRoles.some((role) => role === value);
-}
+export { isLedgerInviteRole, ledgerInviteRoles, type LedgerInviteRole };
 
 export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
   admin: "管理员（Admin）",

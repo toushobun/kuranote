@@ -1,6 +1,5 @@
 import type { CurrentLedger } from "internal/ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
-import type { TransactionFormOptions } from "internal/transaction/entity/transactionFormOptions";
 import type {
   TransactionFilterOptionsRepository,
   TransactionFormRepository,
@@ -9,8 +8,9 @@ import type { TransactionReadDependencies } from "internal/transaction/service/r
 import type {
   TransactionCategoryOption,
   TransactionFilterOptions,
+  TransactionFormOptions,
   TransactionMemberOption,
-} from "types/transactions";
+} from "internal/transaction/service/read/transactionReadModels";
 
 export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,

@@ -6,8 +6,8 @@ import {
 } from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import type { DashboardViewData } from "internal/statistics/service/read/dashboardView";
 import { getDashboardDateRange } from "internal/statistics/util/dashboardDateRange";
-import type { DashboardViewData } from "types/dashboard";
 import { createTransactionAmountSummary } from "utils/transactions";
 
 async function getStatisticsService() {

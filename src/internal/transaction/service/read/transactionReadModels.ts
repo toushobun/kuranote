@@ -1,45 +1,16 @@
 import type { CategoryType } from "internal/category";
+import type { MerchantSummary } from "internal/merchant";
+import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type {
-  TransactionRecordStorageType,
-  TransactionType,
-} from "internal/transaction";
+  TransactionFilterRecordType,
+  TransactionGroupBy,
+} from "internal/transaction/repository/transactionRepository";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { BaseActionState } from "types/auth";
 
-export type TransactionActionState = BaseActionState;
-
-export type TransactionStateAction = (
-  previousState: TransactionActionState,
-  formData: FormData,
-) => Promise<TransactionActionState>;
-
-export const transactionTypeOptions = [
-  { label: "支出", value: "expense" },
-  { label: "收入", value: "income" },
-] as const;
-
-export type { TransactionRecordStorageType, TransactionType };
-export type TransactionRecordType = TransactionType | "transfer";
-// 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的展示类型区分。
-export type TransactionCategoryType = CategoryType;
-
-export type TransactionGroupBy =
-  | "year"
-  | "quarter"
-  | "month"
-  | "week"
-  | "day"
-  | "merchant"
-  | "account"
-  | "parentCategory"
-  | "category"
-  | "member";
-
-export type TransactionFilterRecordType =
-  | "all"
-  | "income"
-  | "expense"
-  | "transfer";
+export type {
+  TransactionFilterRecordType,
+  TransactionGroupBy,
+} from "internal/transaction/repository/transactionRepository";
 
 export type TransactionFilters = {
   accountId?: string;
@@ -56,35 +27,36 @@ export const defaultTransactionFilters = {
   recordType: "all",
 } satisfies TransactionFilters;
 
-export type CategorySummaryItem = {
-  categoryName: string;
-  parentCategoryName: string | null;
+export type TransactionCategorySummaryItem = {
   amount: string;
-  categoryType?: TransactionCategoryType;
+  categoryName: string;
+  categoryType?: CategoryType;
+  parentCategoryName: string | null;
 };
 
-export type TransactionRowItem = {
-  id: string;
-  type: TransactionRecordType;
-  transaction_at: string;
-  amount: string;
-  account_name: string;
-  account_currency: string;
+export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
+  account_currency: string;
+  account_name: string;
+  amount: string;
   canEdit?: boolean;
-  categoryItems: CategorySummaryItem[];
-  merchant_name: string | null;
+  categoryItems: TransactionCategorySummaryItem[];
+  created_at: string;
+  id: string;
   merchant_icon_url: string | null;
-  note?: string | null;
+  merchant_name: string | null;
+  note: string | null;
   recorder_color?: ThemeColorKey | null;
-  recorder_name?: string | null;
+  recorder_name: string | null;
   show_recorder?: boolean;
+  transaction_at: string;
+  type: TransactionType | "transfer";
 };
 
 export type TransactionAccountOption = {
+  currency: string;
   id: string;
   name: string;
-  currency: string;
 };
 
 export type TransactionCategoryOption = {
@@ -92,13 +64,7 @@ export type TransactionCategoryOption = {
   name: string;
   parentId: string | null;
   parentName: string | null;
-  type: TransactionCategoryType;
-};
-
-export type TransactionMerchantOption = {
-  id: string;
-  name: string;
-  icon_url: string | null;
+  type: CategoryType;
 };
 
 export type TransactionMemberOption = {
@@ -110,51 +76,37 @@ export type TransactionFilterOptions = {
   accounts: TransactionAccountOption[];
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
-  merchants: TransactionMerchantOption[];
+  merchants: MerchantSummary[];
 };
 
-export type TransactionListItem = TransactionRowItem & {
-  note: string | null;
-  recorder_name: string | null;
-  created_at: string;
+export type TransactionFormOptions = {
+  accountOptions: TransactionAccountOption[];
+  categoryOptions: TransactionCategoryOption[];
+  merchantOptions: MerchantSummary[];
 };
 
 export type TransactionAmountSummary = {
-  income: string;
-  expense: string;
   balance: string;
   currency: string;
+  expense: string;
+  income: string;
 };
 
 export type TransactionDateGroup = {
   date: string;
+  items: TransactionListItem[];
   label: string;
   summary: TransactionAmountSummary;
-  items: TransactionListItem[];
 };
-
-export type TransactionMonthViewData = {
-  month: string;
-  monthLabel: string;
-  previousMonth: string;
-  nextMonth: string;
-  groups: TransactionDateGroup[];
-  nextOffset: number | null;
-};
-
-export type TransactionMonthView = TransactionMonthViewData;
 
 export type TransactionMonthPage = {
   groups: TransactionDateGroup[];
   nextOffset: number | null;
 };
 
-export type TransactionListPage = {
+export type TransactionSearchPage = {
   items: TransactionListItem[];
   nextOffset: number | null;
-};
-
-export type TransactionSearchPage = TransactionListPage & {
   totalCount: number;
 };
 
@@ -189,4 +141,25 @@ export type TransferEditInitialValues = {
   transferAmount: string;
   transferTargetAccountId: string;
   type: "transfer";
+};
+
+export type NewTransactionView = TransactionFormOptions & {
+  canWriteTransactions: boolean;
+  ledgerName: string;
+};
+
+export type EditTransactionView = TransactionFormOptions & {
+  canEdit: boolean;
+  initialValues:
+    | TransferEditInitialValues
+    | {
+        accountId: string;
+        items: { amount: string; categoryId: string }[];
+        merchantId: string;
+        note: string;
+        transactionAt: string;
+        transactionRecordId: string;
+        type: TransactionType;
+      };
+  ledgerName: string;
 };

@@ -1,8 +1,6 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type {
-  TransactionCategoryType,
-  TransactionRecordStorageType,
-} from "types/transactions";
+import type { CategoryType } from "internal/category";
+import type { TransactionRecordStorageType } from "internal/transaction";
 
 export type TransactionRecordDbRow = {
   id: string;
@@ -33,7 +31,7 @@ export type CategorySummaryDbRow = {
   id: string;
   name: string;
   parent_id: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 export type CategoryOptionDbRow = CategorySummaryDbRow;

@@ -1,14 +1,36 @@
-import type { StatisticsRankItem, StatisticsViewData } from "types/statistics";
-import type {
-  TransactionCategoryType,
-  TransactionRecordStorageType,
-} from "types/transactions";
+import type { CategoryType } from "internal/category";
+import type { TransactionRecordStorageType } from "internal/transaction";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,
   formatMonthLabel,
   shiftMonth,
 } from "utils/transactions";
+
+export type StatisticsRankItem = {
+  amount: string;
+  id: string;
+  name: string;
+  transactionCount: number;
+};
+
+type StatisticsAmountSummary = {
+  balance: string;
+  currency: string;
+  expense: string;
+  income: string;
+};
+
+export type StatisticsViewData = {
+  categoryExpenseRanking: StatisticsRankItem[];
+  ledgerName: string;
+  merchantExpenseRanking: StatisticsRankItem[];
+  month: string;
+  monthLabel: string;
+  nextMonth: string;
+  previousMonth: string;
+  summary: StatisticsAmountSummary;
+};
 
 type StatisticsRecordInput = {
   id: string;
@@ -31,7 +53,7 @@ type StatisticsCategoryInput = {
   id: string;
   name: string;
   parent_id: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 type BuildStatisticsViewDataParams = {

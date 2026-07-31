@@ -1,5 +1,5 @@
 import { serverFallbackTimeZone } from "config/dateTime";
-import type { TransactionGroupBy } from "types/transactions";
+import type { TransactionGroupBy } from "internal/transaction/service/read/transactionReadModels";
 import { getDateKeyInTimeZone } from "utils/transactions";
 
 export const timeGroupByValues = [

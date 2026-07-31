@@ -6,10 +6,9 @@ import {
   type VoidTransactionValidationErrorCode,
 } from "internal/transaction/errors";
 import {
-  transactionTypeOptions,
-  type TransactionRecordType,
+  transactionTypes,
   type TransactionType,
-} from "types/transactions";
+} from "internal/transaction/entity/transactionType";
 import { getFormText } from "utils/formData";
 
 import {
@@ -25,13 +24,9 @@ import {
 
 export type { TransactionValidationErrorCode };
 
-const transactionTypeValues = transactionTypeOptions.map(
-  (option) => option.value,
-);
-const createTransactionTypeValues = [
-  ...transactionTypeValues,
-  "transfer",
-] as const;
+type TransactionRecordType = TransactionType | "transfer";
+
+const createTransactionTypeValues = [...transactionTypes, "transfer"] as const;
 const transactionRecordTypeValues = ["expense", "income", "transfer"] as const;
 
 export type TransactionFormValues = {

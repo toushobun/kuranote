@@ -5,8 +5,8 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import { getTransactionRecordCategoryType } from "internal/transaction/util/transactionAmountHelpers";
-import type { TransactionFilters } from "types/transactions";
-import { defaultTransactionFilters } from "types/transactions";
+import type { TransactionFilters } from "internal/transaction/service/read/transactionReadModels";
+import { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
 import {
   getDateKeyInTimeZone,
   isDateText as isDateKey,

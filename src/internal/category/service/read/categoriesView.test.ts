@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { Category } from "types/categories";
+import type { CategoryData as Category } from "internal/category/repository/categoryRepository";
 
 import { buildCategoriesView } from "./categoriesView";
 

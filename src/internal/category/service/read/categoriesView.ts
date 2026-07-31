@@ -1,8 +1,12 @@
 import { canManageMasterData } from "internal/ledger";
 import type { CurrentLedgerRole } from "internal/ledger";
-import type { Category, CategoryTreeItem } from "types/categories";
+import type { CategoryData } from "internal/category/repository/categoryRepository";
 
-function buildCategoryTree(categories: Category[]): CategoryTreeItem[] {
+type CategoryTreeItem = CategoryData & {
+  children: CategoryData[];
+};
+
+function buildCategoryTree(categories: CategoryData[]): CategoryTreeItem[] {
   const roots: CategoryTreeItem[] = categories
     .filter((category) => category.parent_id === null)
     .map((category) => ({ ...category, children: [] }));
@@ -21,7 +25,7 @@ export function buildCategoriesView({
   ledgerName,
   role,
 }: {
-  categories: Category[];
+  categories: CategoryData[];
   ledgerName: string;
   role: CurrentLedgerRole;
 }) {

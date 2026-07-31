@@ -18,12 +18,26 @@ import {
   transactionErrorCodes,
   type TransactionServiceErrorCode,
 } from "internal/transaction/errors";
+import type { TransactionType } from "internal/transaction/entity/transactionType";
 import { isThemeColorKey } from "theme/themeColorTokens";
-import type {
-  TransactionFilterRecordType,
-  TransactionGroupBy,
-  TransactionType,
-} from "types/transactions";
+
+export type TransactionGroupBy =
+  | "year"
+  | "quarter"
+  | "month"
+  | "week"
+  | "day"
+  | "merchant"
+  | "account"
+  | "parentCategory"
+  | "category"
+  | "member";
+
+export type TransactionFilterRecordType =
+  | "all"
+  | "income"
+  | "expense"
+  | "transfer";
 
 export type TransactionItemInput = {
   amount: number;

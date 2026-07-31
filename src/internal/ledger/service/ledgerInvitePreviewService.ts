@@ -4,7 +4,7 @@ import {
   type LedgerInviteStatus,
 } from "internal/ledger/entity/ledgerInvitePreview";
 import type { LedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
-import { isLedgerInviteRole } from "types/ledgers";
+import { isLedgerInviteRole } from "internal/ledger/entity/ledgerInviteRole";
 
 export interface LedgerInvitePreviewService {
   load(token: string): Promise<LedgerInvitePreview>;

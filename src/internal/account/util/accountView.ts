@@ -11,11 +11,27 @@ import type {
   AccountMemberDisplaySetting,
   AccountUser,
 } from "internal/account/repository/accountRepository";
-import type {
-  Account,
-  AccountHolder,
-  AccountHolderOption,
-} from "types/accounts";
+import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
+
+type AccountHolderView = {
+  display_color: ThemeColorKey;
+  display_name: string;
+  email: string | null;
+  id: string;
+  role: AccountHolderRole;
+  share_ratio: number | string | null;
+  user_id: string;
+};
+
+type AccountView = AccountData & {
+  holders: AccountHolderView[];
+};
+
+type AccountHolderOptionView = {
+  display_name: string;
+  email: string | null;
+  user_id: string;
+};
 
 export function buildAccountsWithHolders({
   accounts,
@@ -27,8 +43,8 @@ export function buildAccountsWithHolders({
   appUserById: Map<string, AccountUser>;
   displayColorByUserId: Map<string, ThemeColorKey>;
   holders: AccountHolderData[];
-}): Account[] {
-  const holdersByAccountId = new Map<string, AccountHolder[]>();
+}): AccountView[] {
+  const holdersByAccountId = new Map<string, AccountHolderView[]>();
 
   for (const holder of holders) {
     const appUser = appUserById.get(holder.user_id);
@@ -68,7 +84,7 @@ export function buildHolderOptions({
   members: AccountLedgerMember[];
 }) {
   return members
-    .map((member): AccountHolderOption | null => {
+    .map((member): AccountHolderOptionView | null => {
       const appUser = appUserById.get(member.user_id);
 
       if (!appUser || appUser.status !== "active") {
@@ -81,7 +97,7 @@ export function buildHolderOptions({
         email: appUser.email,
       };
     })
-    .filter((option): option is AccountHolderOption => option !== null)
+    .filter((option): option is AccountHolderOptionView => option !== null)
     .sort((a, b) =>
       (a.display_name || a.email || "").localeCompare(
         b.display_name || b.email || "",
