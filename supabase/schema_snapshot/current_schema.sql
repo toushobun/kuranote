@@ -1886,7 +1886,7 @@ ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_root record;

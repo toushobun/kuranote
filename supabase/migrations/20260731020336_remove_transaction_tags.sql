@@ -9,7 +9,7 @@ create or replace function public.initialize_ledger_default_data(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = pg_catalog, pg_temp
 as $$
 declare
     v_root record;
