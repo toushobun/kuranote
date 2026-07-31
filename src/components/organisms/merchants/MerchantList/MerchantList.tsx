@@ -3,7 +3,7 @@ import { Fragment, type ReactNode } from "react";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import type { ServerAction } from "types/actions";
-import type { MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 
 import { MerchantCard } from "../MerchantCard/MerchantCard";
 
@@ -12,8 +12,8 @@ type MerchantListProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
   createAliasAction?: ServerAction;
-  merchants: MerchantRow[];
-  renderMerchantCard?: (merchant: MerchantRow) => ReactNode;
+  merchants: Merchant[];
+  renderMerchantCard?: (merchant: Merchant) => ReactNode;
   updateMerchantAction?: ServerAction;
 };
 

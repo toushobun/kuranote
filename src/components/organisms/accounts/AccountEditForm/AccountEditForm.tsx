@@ -10,7 +10,7 @@ import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption, AccountRow } from "types/accounts";
+import type { AccountHolderOption, Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";
 
 export function getAccountEditFormId(accountId: string) {
@@ -22,7 +22,7 @@ export function getAccountArchiveFormId(accountId: string) {
 }
 
 type AccountEditFormProps = {
-  account: AccountRow;
+  account: Account;
   archiveAccountAction?: ServerAction;
   holderOptions: AccountHolderOption[];
   illustrationSlot?: ReactNode;

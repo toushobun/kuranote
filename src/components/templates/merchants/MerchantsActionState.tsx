@@ -8,7 +8,7 @@ import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
 import type { ServerAction } from "types/actions";
 import type {
   MerchantActionState,
-  MerchantRow,
+  Merchant,
   MerchantStateAction,
 } from "types/merchants";
 
@@ -39,7 +39,7 @@ type MerchantCardActionStateProps = {
   archiveMerchantAction: ServerAction;
   canManageMerchants: boolean;
   createMerchantAliasAction: MerchantStateAction;
-  merchant: MerchantRow;
+  merchant: Merchant;
   updateMerchantAction: MerchantStateAction;
 };
 

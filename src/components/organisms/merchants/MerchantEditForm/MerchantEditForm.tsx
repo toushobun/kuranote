@@ -6,11 +6,11 @@ import TextField from "@mui/material/TextField";
 import { useState } from "react";
 
 import type { ServerAction } from "types/actions";
-import type { MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 
 type MerchantEditFormProps = {
   action: ServerAction;
-  merchant: MerchantRow;
+  merchant: Merchant;
   pending?: boolean;
 };
 

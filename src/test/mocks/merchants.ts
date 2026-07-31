@@ -1,8 +1,8 @@
-import type { MerchantAliasRow, MerchantRow } from "types/merchants";
+import type { MerchantAlias, Merchant } from "types/merchants";
 
 export function createMerchantAliasRow(
-  overrides: Partial<MerchantAliasRow> = {},
-): MerchantAliasRow {
+  overrides: Partial<MerchantAlias> = {},
+): MerchantAlias {
   return {
     alias: "来福",
     created_at: "2026-01-01T00:00:00.000Z",
@@ -13,9 +13,7 @@ export function createMerchantAliasRow(
   };
 }
 
-export function createMerchantRow(
-  overrides: Partial<MerchantRow> = {},
-): MerchantRow {
+export function createMerchantRow(overrides: Partial<Merchant> = {}): Merchant {
   return {
     aliases: [],
     created_at: "2026-01-01T00:00:00.000Z",

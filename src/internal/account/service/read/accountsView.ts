@@ -1,34 +1,32 @@
 import type { CurrentLedgerRole } from "internal/ledger";
 import { canManageMasterData, canWriteTransaction } from "internal/ledger";
 import type {
-  AccountLedgerMemberRecord,
+  AccountLedgerMember,
   AccountLedgerSummary,
+  AccountMemberDisplaySetting,
   AccountRepository,
+  AccountUser,
 } from "internal/account/repository/accountRepository";
 import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
   buildHolderOptions,
 } from "internal/account/util/accountView";
-import type {
-  AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
-} from "types/accounts";
 
 type AccountsViewInput = {
   accounts: Awaited<ReturnType<AccountRepository["listAccounts"]>>;
-  displaySettings: LedgerMemberDisplaySettingRecord[];
+  displaySettings: AccountMemberDisplaySetting[];
   holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
   ledger: AccountLedgerSummary;
-  members: AccountLedgerMemberRecord[];
+  members: AccountLedgerMember[];
   role: CurrentLedgerRole;
-  users: AppUserRecord[];
+  users: AccountUser[];
 };
 
 export function mergeLedgerDisplayNames(
-  users: AppUserRecord[],
-  settings: LedgerMemberDisplaySettingRecord[],
-): AppUserRecord[] {
+  users: AccountUser[],
+  settings: AccountMemberDisplaySetting[],
+): AccountUser[] {
   const settingByUserId = new Map(
     settings.map((setting) => [setting.user_id, setting] as const),
   );

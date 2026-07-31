@@ -12,7 +12,7 @@ import {
   NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
-import type { CategoryRow } from "types/categories";
+import type { Category } from "types/categories";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -72,7 +72,7 @@ const baseRow = {
 
 describe("createCategoryService", () => {
   it("SSR 读取直接组装分类树并按真实成员角色返回管理权限", async () => {
-    const rows: CategoryRow[] = [
+    const rows: Category[] = [
       { ...baseRow, id: categoryId, name: "餐饮", parent_id: null },
       { ...baseRow, id: secondCategoryId, name: "外食", parent_id: categoryId },
     ];

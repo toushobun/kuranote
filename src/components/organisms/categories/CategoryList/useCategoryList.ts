@@ -6,13 +6,13 @@ import { defaultCategoryEmoji } from "config/categoryEmojis";
 import type {
   CategoryActionState,
   CategoryReorderAction,
-  CategoryRow,
+  Category,
   CategoryTreeItem,
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
-type DraggedCategory = Pick<CategoryRow, "id" | "parent_id" | "type">;
+type DraggedCategory = Pick<Category, "id" | "parent_id" | "type">;
 
 type UseCategoryListParams = {
   categories: CategoryTreeItem[];
@@ -90,9 +90,7 @@ export function useCategoryList({
           .map((category) => category.id),
       ),
   );
-  const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(
-    null,
-  );
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
   const draggedCategoryRef = useRef<DraggedCategory | null>(null);
@@ -109,7 +107,7 @@ export function useCategoryList({
     0,
   );
 
-  function getSiblings(category: Pick<CategoryRow, "parent_id" | "type">) {
+  function getSiblings(category: Pick<Category, "parent_id" | "type">) {
     return category.parent_id === null
       ? orderedCategories.filter(
           (candidate) =>
@@ -164,7 +162,7 @@ export function useCategoryList({
     });
   }
 
-  function openEditor(category: CategoryRow) {
+  function openEditor(category: Category) {
     setEditingCategory(category);
     setEditingName(getCategoryDisplayName(category.name, category.icon_name));
     setEditingIconName(category.icon_name ?? defaultCategoryEmoji);
@@ -189,7 +187,7 @@ export function useCategoryList({
 
   function startDrag(
     event: PointerEvent<HTMLButtonElement>,
-    category: CategoryRow,
+    category: Category,
   ) {
     if (event.button !== 0 || isPending) return;
 
@@ -210,7 +208,7 @@ export function useCategoryList({
 
   function finishDrag(
     event: PointerEvent<HTMLButtonElement>,
-    sourceCategory: CategoryRow,
+    sourceCategory: Category,
   ) {
     const draggedCategory = draggedCategoryRef.current;
     const targetElement = document
@@ -269,10 +267,7 @@ export function useCategoryList({
     cancelDrag();
   }
 
-  function moveCategory(
-    category: CategoryRow,
-    direction: CategoryMoveDirection,
-  ) {
+  function moveCategory(category: Category, direction: CategoryMoveDirection) {
     if (isPending) return;
 
     const orderedIds = getSiblings(category).map((sibling) => sibling.id);

@@ -1,4 +1,5 @@
 import type { CurrentLedgerRole } from "internal/ledger";
+import type { LedgerCurrency } from "internal/ledger";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
@@ -10,7 +11,10 @@ export const ledgerCurrencyOptions = [
   { label: "GBP 英镑", value: "GBP" },
   { label: "KRW 韩元", value: "KRW" },
   { label: "THB 泰铢", value: "THB" },
-] as const;
+] as const satisfies readonly {
+  label: string;
+  value: LedgerCurrency;
+}[];
 
 export const ledgerMemberColorOptions = [
   "amber",

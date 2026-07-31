@@ -21,12 +21,12 @@ import {
   NotFoundError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "internal/ledger";
-import type { MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 import { filterMerchantsByKeyword } from "utils/merchants";
 
 export type MerchantListResult = {
   canManageMerchants: boolean;
-  merchants: MerchantRow[];
+  merchants: Merchant[];
 };
 
 export type MerchantsView = MerchantListResult & {

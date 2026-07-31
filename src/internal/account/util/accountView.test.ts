@@ -8,14 +8,14 @@ import {
   buildHolderOptions,
 } from "internal/account/util/accountView";
 import type {
-  AccountHolderRecord,
-  AccountRow,
-  AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
-  LedgerMemberRecord,
-} from "types/accounts";
+  AccountData,
+  AccountHolderData,
+  AccountLedgerMember,
+  AccountMemberDisplaySetting,
+  AccountUser,
+} from "internal/account/repository/accountRepository";
 
-function createAccount(id: string): Omit<AccountRow, "holders"> {
+function createAccount(id: string): AccountData {
   return {
     created_at: "2026-07-01T00:00:00.000Z",
     currency: "JPY",
@@ -34,9 +34,9 @@ function createAppUser({
   userId,
 }: {
   displayName: string;
-  status?: AppUserRecord["status"];
+  status?: AccountUser["status"];
   userId: string;
-}): AppUserRecord {
+}): AccountUser {
   return {
     display_name: displayName,
     email: `${userId}@example.com`,
@@ -53,7 +53,7 @@ function createHolder({
   accountId: string;
   holderId: string;
   userId: string;
-}): AccountHolderRecord {
+}): AccountHolderData {
   return {
     account_id: accountId,
     id: holderId,
@@ -66,10 +66,11 @@ function createHolder({
 function createMember(
   userId: string,
   joinedAt: string | null = null,
-): LedgerMemberRecord {
+): AccountLedgerMember {
   return {
     created_at: "2026-07-01T00:00:00.000Z",
     joined_at: joinedAt,
+    role: "member",
     user_id: userId,
   };
 }
@@ -136,7 +137,7 @@ describe("Account view builders", () => {
   });
 
   it("显示颜色先按成员稳定顺序分配，再由合法设置覆盖", () => {
-    const settings: LedgerMemberDisplaySettingRecord[] = [
+    const settings: AccountMemberDisplaySetting[] = [
       {
         display_color: "sky",
         display_name: null,

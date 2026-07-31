@@ -5,7 +5,7 @@ import {
   getAccountErrorMessage,
 } from "internal/account/errors";
 import type {
-  AccountLedgerMemberRecord,
+  AccountLedgerMember,
   AccountRepository,
   CreateAccountInput as RepositoryCreateAccountInput,
   UpdateAccountInput as RepositoryUpdateAccountInput,
@@ -22,13 +22,16 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { AccountHolderOption, AccountRow } from "types/accounts";
+import type { Account, AccountHolderOption } from "types/accounts";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { TransactionAccountOption } from "types/transactions";
-import { accountTypeOptions, type AccountType } from "types/accounts";
+import {
+  accountTypes,
+  type AccountType,
+} from "internal/account/entity/accountType";
 
 export type AccountsView = {
-  accounts: AccountRow[];
+  accounts: Account[];
   baseCurrency: string;
   canManageAccounts: boolean;
   canWriteTransactions: boolean;
@@ -91,9 +94,7 @@ export type AccountServiceDependencies = {
   now?: () => Date;
 };
 
-const accountTypeValues = new Set<AccountType>(
-  accountTypeOptions.map((option) => option.value),
-);
+const accountTypeValues = new Set<AccountType>(accountTypes);
 
 function accountErrorMessage(code: string): string {
   return getAccountErrorMessage(code) ?? "账户操作失败，请稍后重试。";
@@ -190,7 +191,7 @@ export function createAccountService({
 
   async function requireValidHolders(
     holderUserIds: string[],
-    members: AccountLedgerMemberRecord[],
+    members: AccountLedgerMember[],
   ): Promise<string[]> {
     const normalized = normalizeHolderUserIds(holderUserIds);
     const activeMemberIds = new Set(members.map((member) => member.user_id));

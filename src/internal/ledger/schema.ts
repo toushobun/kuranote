@@ -1,16 +1,12 @@
 import { z } from "@hono/zod-openapi";
 
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
+import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import { themeColorKeys } from "theme/themeColorTokens";
-import { ledgerCurrencyOptions, ledgerInviteRoles } from "types/ledgers";
+import { ledgerInviteRoles } from "types/ledgers";
 
 const uuidSchema = z.string().uuid();
-const currencySchema = z.enum(
-  ledgerCurrencyOptions.map((option) => option.value) as [
-    (typeof ledgerCurrencyOptions)[number]["value"],
-    ...(typeof ledgerCurrencyOptions)[number]["value"][],
-  ],
-);
+const currencySchema = z.enum(ledgerCurrencies);
 const themeColorSchema = z.enum(themeColorKeys);
 const memberRoleSchema = z.enum(["owner", "admin", "member", "viewer"]);
 const inviteRoleSchema = z.enum(ledgerInviteRoles);

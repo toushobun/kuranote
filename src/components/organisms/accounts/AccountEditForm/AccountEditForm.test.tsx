@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserThemeProvider } from "theme/UserThemeProvider";
-import type { AccountRow } from "types/accounts";
+import type { Account } from "types/accounts";
 
 import { AccountEditForm, getAccountArchiveFormId } from "./AccountEditForm";
 
@@ -27,7 +27,7 @@ function renderWithUserTheme(children: ReactNode) {
   );
 }
 
-const account: AccountRow = {
+const account: Account = {
   id: "00000000-0000-4000-8000-000000000001",
   name: "三菱UFJ银行",
   type: "bank",

@@ -28,7 +28,7 @@ import type {
   CategoryAction,
   CategoryActionState,
   CategoryReorderAction,
-  CategoryRow,
+  Category,
   CategoryTreeItem,
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
@@ -48,7 +48,7 @@ type CategoryListProps = {
 
 type CategoryRowItemProps = {
   canManageCategories: boolean;
-  category: CategoryRow;
+  category: Category;
   childCount?: number;
   expanded?: boolean;
   isPending: boolean;
@@ -57,14 +57,14 @@ type CategoryRowItemProps = {
   onPointerCancel: () => void;
   onPointerDown: (
     event: PointerEvent<HTMLButtonElement>,
-    category: CategoryRow,
+    category: Category,
   ) => void;
   onPointerUp: (
     event: PointerEvent<HTMLButtonElement>,
-    category: CategoryRow,
+    category: Category,
   ) => void;
-  onEdit: (category: CategoryRow) => void;
-  onMove: (category: CategoryRow, direction: CategoryMoveDirection) => void;
+  onEdit: (category: Category) => void;
+  onMove: (category: Category, direction: CategoryMoveDirection) => void;
   onToggle?: () => void;
 };
 

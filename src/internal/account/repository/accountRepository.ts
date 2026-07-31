@@ -1,4 +1,5 @@
 import type { CurrentLedgerRole } from "internal/ledger";
+import type { AccountType } from "internal/account/entity/accountType";
 import type { Logger } from "internal/shared/logging/logger";
 import { ConflictError } from "internal/shared/errors/appError";
 import {
@@ -7,14 +8,79 @@ import {
 } from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type {
-  AccountHolderRecord,
-  AccountRow,
-  AppUserRecord,
-  LedgerMemberDisplaySettingRecord,
-  LedgerMemberRecord,
-} from "types/accounts";
-import type { AccountType } from "types/accounts";
+
+type AccountRow = {
+  created_at: string;
+  currency: string;
+  current_balance: number | string;
+  id: string;
+  initial_balance: number | string;
+  name: string;
+  sort_order: number;
+  type: AccountType;
+};
+
+type AccountHolderRow = {
+  account_id: string;
+  id: string;
+  role: AccountHolderRole;
+  share_ratio: number | string | null;
+  user_id: string;
+};
+
+type AppUserRow = {
+  display_name: string;
+  email: string | null;
+  id: string;
+  status: string;
+};
+
+type LedgerMemberRow = {
+  created_at: string;
+  joined_at: string | null;
+  role: unknown;
+  user_id: string;
+};
+
+type LedgerMemberDisplaySettingRow = {
+  display_color: string;
+  display_name: string | null;
+  user_id: string;
+};
+
+export type AccountHolderRole = "owner" | "co_owner";
+
+export type AccountData = {
+  created_at: string;
+  currency: string;
+  current_balance: number | string;
+  id: string;
+  initial_balance: number | string;
+  name: string;
+  sort_order: number;
+  type: AccountType;
+};
+
+export type AccountHolderData = {
+  account_id: string;
+  id: string;
+  role: AccountHolderRole;
+  share_ratio: number | string | null;
+  user_id: string;
+};
+
+export type AccountUser = {
+  display_name: string;
+  email: string | null;
+  id: string;
+  status: string;
+};
+
+export type AccountMemberDisplaySetting = {
+  display_color: string;
+  display_name: string | null;
+  user_id: string;
+};
 
 export type AccountLedgerSummary = {
   baseCurrency: string;
@@ -22,8 +88,17 @@ export type AccountLedgerSummary = {
   name: string;
 };
 
-export type AccountLedgerMemberRecord = LedgerMemberRecord & {
+export type AccountLedgerMember = {
+  created_at: string;
+  joined_at: string | null;
   role: CurrentLedgerRole;
+  user_id: string;
+};
+
+export type AccountSummary = {
+  currency: string;
+  id: string;
+  name: string;
 };
 
 export type CreateAccountInput = {
@@ -57,19 +132,17 @@ export interface AccountRepository {
   findSummariesByIds(
     ledgerId: string,
     accountIds: string[],
-  ): Promise<Pick<AccountRow, "currency" | "id" | "name">[]>;
+  ): Promise<AccountSummary[]>;
   findActiveLedger(ledgerId: string): Promise<AccountLedgerSummary | null>;
   isActiveAccount(ledgerId: string, accountId: string): Promise<boolean>;
-  listAccounts(ledgerId: string): Promise<Omit<AccountRow, "holders">[]>;
-  listActiveMembers(ledgerId: string): Promise<AccountLedgerMemberRecord[]>;
-  listDisplaySettings(
-    ledgerId: string,
-  ): Promise<LedgerMemberDisplaySettingRecord[]>;
+  listAccounts(ledgerId: string): Promise<AccountData[]>;
+  listActiveMembers(ledgerId: string): Promise<AccountLedgerMember[]>;
+  listDisplaySettings(ledgerId: string): Promise<AccountMemberDisplaySetting[]>;
   listHolders(
     ledgerId: string,
     accountIds: string[],
-  ): Promise<AccountHolderRecord[]>;
-  listUsers(userIds: string[]): Promise<AppUserRecord[]>;
+  ): Promise<AccountHolderData[]>;
+  listUsers(userIds: string[]): Promise<AccountUser[]>;
   update(input: UpdateAccountInput): Promise<boolean>;
 }
 
@@ -186,7 +259,11 @@ export function createSupabaseAccountRepository(
           "账户信息加载失败，请稍后重试。",
         );
       }
-      return data ?? [];
+      return (data ?? []).map((row) => ({
+        currency: row.currency,
+        id: row.id,
+        name: row.name,
+      }));
     },
 
     async findActiveLedger(ledgerId) {
@@ -253,7 +330,16 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return (data ?? []) as Omit<AccountRow, "holders">[];
+      return ((data ?? []) as AccountRow[]).map((row) => ({
+        created_at: row.created_at,
+        currency: row.currency,
+        current_balance: row.current_balance,
+        id: row.id,
+        initial_balance: row.initial_balance,
+        name: row.name,
+        sort_order: row.sort_order,
+        type: row.type,
+      }));
     },
 
     async listActiveMembers(ledgerId) {
@@ -274,7 +360,7 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return (data ?? []).map((member) => ({
+      return ((data ?? []) as LedgerMemberRow[]).map((member) => ({
         created_at: member.created_at,
         joined_at: member.joined_at,
         role: toCurrentLedgerRole(member.role),
@@ -298,7 +384,13 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return (data ?? []) as LedgerMemberDisplaySettingRecord[];
+      return ((data ?? []) as LedgerMemberDisplaySettingRow[]).map(
+        (setting) => ({
+          display_color: setting.display_color,
+          display_name: setting.display_name,
+          user_id: setting.user_id,
+        }),
+      );
     },
 
     async listHolders(ledgerId, accountIds) {
@@ -318,7 +410,13 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return (data ?? []) as AccountHolderRecord[];
+      return ((data ?? []) as AccountHolderRow[]).map((holder) => ({
+        account_id: holder.account_id,
+        id: holder.id,
+        role: holder.role,
+        share_ratio: holder.share_ratio,
+        user_id: holder.user_id,
+      }));
     },
 
     async listUsers(userIds) {
@@ -337,7 +435,12 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return (data ?? []) as AppUserRecord[];
+      return ((data ?? []) as AppUserRow[]).map((user) => ({
+        display_name: user.display_name,
+        email: user.email,
+        id: user.id,
+        status: user.status,
+      }));
     },
 
     async update(input) {

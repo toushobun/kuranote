@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { AccountRow } from "types/accounts";
+import type { Account } from "types/accounts";
 
 import { AccountSummaryCard } from "./AccountSummaryCard";
 
@@ -9,7 +9,7 @@ afterEach(() => {
   cleanup();
 });
 
-const accounts: AccountRow[] = [
+const accounts: Account[] = [
   {
     id: "00000000-0000-4000-8000-000000000001",
     name: "三菱UFJ银行",
@@ -86,7 +86,7 @@ describe("AccountSummaryCard", () => {
   });
 
   it("存在外币账户时总余额只统计本位币账户并展示说明", () => {
-    const accountsWithForeignCurrency: AccountRow[] = [
+    const accountsWithForeignCurrency: Account[] = [
       ...accounts,
       {
         id: "00000000-0000-4000-8000-000000000003",

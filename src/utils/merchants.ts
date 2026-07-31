@@ -1,4 +1,4 @@
-import type { MerchantAliasRow, MerchantRow } from "types/merchants";
+import type { Merchant } from "types/merchants";
 
 export function getMerchantInitial(name: string | null, fallback = "?") {
   const trimmedName = name?.trim() ?? "";
@@ -41,26 +41,8 @@ export function parseWebsiteUrl(value: unknown): string | null | undefined {
   }
 }
 
-export function attachAliases(
-  merchants: MerchantRow[],
-  aliases: MerchantAliasRow[],
-): MerchantRow[] {
-  const aliasesByMerchantId = new Map<string, MerchantAliasRow[]>();
-
-  for (const alias of aliases) {
-    const currentAliases = aliasesByMerchantId.get(alias.merchant_id) ?? [];
-    currentAliases.push(alias);
-    aliasesByMerchantId.set(alias.merchant_id, currentAliases);
-  }
-
-  return merchants.map((merchant) => ({
-    ...merchant,
-    aliases: aliasesByMerchantId.get(merchant.id) ?? [],
-  }));
-}
-
 export function filterMerchantsByKeyword(
-  merchants: MerchantRow[],
+  merchants: Merchant[],
   keyword: string,
 ) {
   const normalizedKeyword = normalizeSearchText(keyword);

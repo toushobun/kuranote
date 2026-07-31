@@ -9,7 +9,7 @@ export type MerchantStateAction = (
   formData: FormData,
 ) => Promise<MerchantActionState>;
 
-export type MerchantAliasRow = {
+export type MerchantAlias = {
   id: string;
   merchant_id: string;
   alias: string;
@@ -17,7 +17,7 @@ export type MerchantAliasRow = {
   created_at: string;
 };
 
-export type MerchantRow = {
+export type Merchant = {
   id: string;
   name: string;
   website_url: string | null;
@@ -25,5 +25,5 @@ export type MerchantRow = {
   note: string | null;
   sort_order: number;
   created_at: string;
-  aliases: MerchantAliasRow[];
+  aliases: MerchantAlias[];
 };
