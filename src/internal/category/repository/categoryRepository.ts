@@ -1,4 +1,5 @@
 import { categoryErrorCodes } from "internal/category/errors";
+import type { CategoryType } from "internal/category/entity/categoryType";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   AuthenticationError,
@@ -9,18 +10,17 @@ import {
 } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type { TransactionCategoryType } from "types/transactions";
 
 export type CategoryScope = {
   ledgerId: string;
   parentId: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 export type CategoryRecord = {
   id: string;
   parentId: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 export type CategorySibling = {
@@ -37,14 +37,14 @@ export type CategoryData = {
   name: string;
   parent_id: string | null;
   sort_order: number;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 export type CategorySummary = {
   id: string;
   name: string;
   parent_id: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 export type InsertCategoryInput = CategoryScope & {
@@ -88,7 +88,7 @@ export interface CategoryRepository {
   findActiveRootById(input: {
     categoryId: string;
     ledgerId: string;
-    type: TransactionCategoryType;
+    type: CategoryType;
   }): Promise<CategoryRecord | null>;
   insert(input: InsertCategoryInput): Promise<void>;
   listActiveSiblings(scope: CategoryScope): Promise<CategorySibling[]>;
@@ -99,7 +99,7 @@ export interface CategoryRepository {
 type CategoryRecordRow = {
   id: string;
   parent_id: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 type CategoryRow = {
@@ -109,14 +109,14 @@ type CategoryRow = {
   name: string;
   parent_id: string | null;
   sort_order: number;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 type CategorySummaryRow = {
   id: string;
   name: string;
   parent_id: string | null;
-  type: TransactionCategoryType;
+  type: CategoryType;
 };
 
 type CategoryReorderRpcError = {

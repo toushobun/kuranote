@@ -1,3 +1,4 @@
+import type { CategoryType } from "internal/category";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
@@ -17,7 +18,7 @@ export type TransactionType = (typeof transactionTypeOptions)[number]["value"];
 export type TransactionRecordStorageType = "normal" | "transfer";
 export type TransactionRecordType = TransactionType | "transfer";
 // 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的展示类型区分。
-export type TransactionCategoryType = TransactionType;
+export type TransactionCategoryType = CategoryType;
 
 export type TransactionGroupBy =
   | "year"
