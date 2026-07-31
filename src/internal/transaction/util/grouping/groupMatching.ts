@@ -3,11 +3,11 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,
 } from "internal/transaction/util/transactionListGroups";
-import type { TransactionGroupBy } from "internal/transaction/service/read/transactionReadModels";
 
 export function recordMatchesGroup({
   categoryById,

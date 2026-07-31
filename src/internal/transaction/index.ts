@@ -16,11 +16,13 @@ export type { TransactionDashboardQueryService } from "internal/transaction/serv
 export type {
   TransactionFilters,
   TransactionGroupBy,
+} from "internal/transaction/entity/transactionGrouping";
+export { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
+export type {
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionSearchPage,
-} from "internal/transaction/service/read/transactionReadModels";
-export { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
+} from "internal/transaction/entity/transactionReadModels";
 export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,

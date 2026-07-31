@@ -4,10 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "internal/ledger";
 import type { TransactionRecordDbRow } from "internal/db-types";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionGroupRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
-import { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
 
 const mocks = vi.hoisted(() => ({
   buildTransactionListItemsFromContext: vi.fn(),

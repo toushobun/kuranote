@@ -5,11 +5,9 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
-import type {
-  TransactionAmountSummary,
-  TransactionGroupBy,
-  TransactionGroupPage,
-} from "internal/transaction/service/read/transactionReadModels";
+import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
+import type { TransactionGroupPage } from "internal/transaction/entity/transactionReadModels";
+import type { TransactionAmountSummary } from "internal/transaction/service/read/transactionReadModels";
 import { paginateItems } from "utils/collections";
 
 import {
