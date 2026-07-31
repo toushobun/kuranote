@@ -124,9 +124,9 @@ Parent：#380
 
 ## 本次新增或扩展的回归测试
 
-- `src/internal/db/currentLedgerBoundaryAudit.test.ts`
+- `src/internal/dbMigrations/currentLedgerBoundaryAudit.test.ts`
   - current ledger、角色判断、交易 RPC、业务对象归属和权限 trigger。
-- `src/internal/db/ledgerInviteCurrentLedgerMigration.test.ts`
+- `src/internal/dbMigrations/ledgerInviteCurrentLedgerMigration.test.ts`
   - 接受邀请统一更新 `app_user.current_ledger_id`，不再写入 `user_setting`。
 - `src/internal/account/adapter/next/actions.test.ts`
   - 创建账户忽略客户端伪造的 `ledgerId`。
