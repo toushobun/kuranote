@@ -223,8 +223,7 @@ begin
         ),
         v_account_id,
         v_merchant_id,
-        'SECURITY DEFINER Smoke',
-        '[]'::jsonb
+        'SECURITY DEFINER Smoke'
     )
       into v_transaction_id;
 
