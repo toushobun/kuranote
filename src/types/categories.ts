@@ -1,13 +1,13 @@
-import type { CategoryType } from "internal/category";
 import type { BaseActionState } from "types/auth";
 import type { ServerAction } from "types/actions";
+import type { TransactionCategoryType } from "types/transactions";
 
 export const categoryTypeOptions = [
   { label: "支出", value: "expense" },
   { label: "收入", value: "income" },
 ] as const satisfies ReadonlyArray<{
   label: string;
-  value: CategoryType;
+  value: TransactionCategoryType;
 }>;
 
 export type CategoryAction = ServerAction;
@@ -32,7 +32,7 @@ export type Category = {
   name: string;
   parent_id: string | null;
   sort_order: number;
-  type: CategoryType;
+  type: TransactionCategoryType;
 };
 
 export type CategoryTreeItem = Category & {
@@ -42,7 +42,7 @@ export type CategoryTreeItem = Category & {
 export type CategoryParentOption = {
   id: string;
   name: string;
-  type: CategoryType;
+  type: TransactionCategoryType;
 };
 
 export type CategoriesViewData = {
