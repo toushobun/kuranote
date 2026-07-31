@@ -81,7 +81,6 @@ const baseProps = {
   errorMessage: null,
   ledgerName: "家庭账本",
   merchantOptions: [],
-  tagOptions: [],
 };
 
 describe("NewTransactionTemplate", () => {

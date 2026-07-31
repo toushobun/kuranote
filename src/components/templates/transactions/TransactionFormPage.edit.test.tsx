@@ -120,14 +120,12 @@ function createProps(type: "expense" | "income" = "expense") {
       ],
       merchantId: merchantOptions[0].id,
       note: "编辑前备注",
-      tagNames: [],
       transactionAt: "2026-06-05T03:20:10.000Z",
       transactionRecordId: "00000000-0000-4000-8000-000000009001",
       type,
     },
     ledgerName: "家庭账本",
     merchantOptions,
-    tagOptions: [],
   };
 }
 

@@ -42,7 +42,6 @@ export default async function TransactionEditPage({
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}
-          tagOptions={view.tagOptions}
         />
       </NewTransactionVisualFrame>
     );
@@ -59,7 +58,6 @@ export default async function TransactionEditPage({
         initialValues={initialValues}
         ledgerName={view.ledgerName}
         merchantOptions={view.merchantOptions}
-        tagOptions={view.tagOptions}
       />
     </NewTransactionVisualFrame>
   );

@@ -26,9 +26,9 @@ describe("KuraIcon", () => {
   });
 
   it("有 label 时设置可访问名称", () => {
-    render(<KuraIcon name="tag" label="自定义标签" />);
-    const img = screen.getByRole("img", { name: "自定义标签" });
-    expect(img).toHaveAttribute("alt", "自定义标签");
+    render(<KuraIcon name="category" label="自定义分类" />);
+    const img = screen.getByRole("img", { name: "自定义分类" });
+    expect(img).toHaveAttribute("alt", "自定义分类");
     expect(img).not.toHaveAttribute("aria-hidden");
   });
 
@@ -56,7 +56,6 @@ describe("kuraIconRegistry", () => {
       "profile",
       "account",
       "category",
-      "tag",
       "merchant",
       "settings",
     ];

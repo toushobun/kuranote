@@ -1,17 +1,9 @@
-import {
-  maxTransactionTagCount,
-  maxTransactionTagNameLength,
-} from "@/constants/transactions";
-
-const transactionTagInvalidMessage = `标签最多 ${maxTransactionTagCount} 个，单个标签不能超过 ${maxTransactionTagNameLength} 个字符。`;
-
 export const transactionFormValidationMessages = {
   accountRequired: "请选择账户。",
   amountInvalid: "请输入有效金额。",
   categoryRequired: "请选择一个小分类。",
   itemsRequired: "请至少添加一条明细。",
   merchantRequired: "请选择商家。",
-  tagInvalid: transactionTagInvalidMessage,
 } as const;
 
 export const transactionListPageErrorMessages = {

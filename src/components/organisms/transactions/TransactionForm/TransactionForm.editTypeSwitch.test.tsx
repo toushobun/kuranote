@@ -64,14 +64,6 @@ const merchantOptions = [
   },
 ];
 
-const tagOptions = [
-  {
-    id: "00000000-0000-4000-8000-000000003001",
-    name: "日常",
-    color: null,
-  },
-];
-
 afterEach(() => {
   cleanup();
 });
@@ -85,7 +77,6 @@ function renderForm(
       accountOptions={accountOptions}
       categoryOptions={categoryOptions}
       merchantOptions={merchantOptions}
-      tagOptions={tagOptions}
       {...props}
     />,
   );
@@ -125,7 +116,6 @@ function renderEditFormWithTypeSwitch(
         accountOptions={accountOptions}
         categoryOptions={categoryOptions}
         merchantOptions={merchantOptions}
-        tagOptions={tagOptions}
         initialValues={currentInitialValues}
         typeNavigation={typeNavigation}
       />
@@ -147,7 +137,6 @@ function createInitialValues(
     ],
     merchantId: merchantOptions[0].id,
     note: "编辑前备注",
-    tagNames: ["日常"],
     transactionAt: "2026-06-05T03:20:10.000Z",
     transactionRecordId: "00000000-0000-4000-8000-000000009001",
     type,

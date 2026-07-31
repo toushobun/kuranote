@@ -75,5 +75,4 @@ const emptyFilterOptions: TransactionFilterOptions = {
   categories: [],
   members: [],
   merchants: [],
-  tags: [],
 };

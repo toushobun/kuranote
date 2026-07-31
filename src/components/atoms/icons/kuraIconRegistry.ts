@@ -12,7 +12,6 @@ export const KURA_ICON_NAMES = [
   "profile",
   "account",
   "category",
-  "tag",
   "merchant",
   "settings",
 ] as const;
@@ -51,10 +50,6 @@ export const kuraIconRegistry: Record<KuraIconName, KuraIconEntry> = {
   statistics: {
     label: "统计",
     src: "/assets/kura-icons/statistics.png",
-  },
-  tag: {
-    label: "标签",
-    src: "/assets/kura-icons/tag.png",
   },
   transactions: {
     label: "明细",

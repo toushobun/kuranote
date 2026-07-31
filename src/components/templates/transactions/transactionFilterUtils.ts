@@ -29,7 +29,6 @@ export function getGroupDisplayLabel(groupBy: TransactionGroupBy) {
     month: "按月显示",
     parentCategory: "按大分类显示",
     quarter: "按季显示",
-    tag: "按标签显示",
     week: "按周显示",
     year: "按年显示",
   };
@@ -44,7 +43,6 @@ export function hasActiveTransactionFilters(filters: TransactionFilters) {
     Boolean(filters.dateTo) ||
     Boolean(filters.merchantId) ||
     Boolean(filters.accountId) ||
-    Boolean(filters.tagId) ||
     Boolean(filters.parentCategoryId) ||
     Boolean(filters.categoryId) ||
     Boolean(filters.memberId)
@@ -69,7 +67,6 @@ export function buildActiveFilterChips(
 
   pushOptionChip(chips, filterOptions.merchants, filters.merchantId, "name");
   pushOptionChip(chips, filterOptions.accounts, filters.accountId, "name");
-  pushOptionChip(chips, filterOptions.tags, filters.tagId, "name");
   pushCategoryChip(chips, filterOptions, filters.parentCategoryId);
   pushCategoryChip(chips, filterOptions, filters.categoryId);
   pushOptionChip(chips, filterOptions.members, filters.memberId, "name");
@@ -84,7 +81,6 @@ export function serializeTransactionFilters(filters: TransactionFilters) {
     filters.dateTo ?? "",
     filters.merchantId ?? "",
     filters.accountId ?? "",
-    filters.tagId ?? "",
     filters.parentCategoryId ?? "",
     filters.categoryId ?? "",
     filters.memberId ?? "",

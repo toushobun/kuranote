@@ -9,22 +9,18 @@ import {
 } from "internal/transaction/util/transactionListGroups";
 import type { TransactionGroupBy } from "types/transactions";
 
-import type { RawTagAssignment } from "internal/transaction/util/grouping/types";
-
 export function recordMatchesGroup({
   categoryById,
   groupBy,
   groupKey,
   items,
   record,
-  tags,
 }: {
   categoryById: Map<string, CategorySummaryDbRow>;
   groupBy: TransactionGroupBy;
   groupKey: string;
   items: TransactionItemDbRow[];
   record: TransactionRecordDbRow;
-  tags: RawTagAssignment[];
 }) {
   if (isTransactionTimeGroupBy(groupBy)) {
     return (
@@ -38,11 +34,6 @@ export function recordMatchesGroup({
   }
   if (groupBy === "member") {
     return (record.created_by ?? "unknown") === groupKey;
-  }
-
-  if (groupBy === "tag") {
-    if (tags.length === 0) return groupKey === "untagged";
-    return tags.some((tag) => tag.tag_id === groupKey);
   }
 
   if (groupBy === "account") {

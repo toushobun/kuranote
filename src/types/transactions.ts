@@ -30,7 +30,6 @@ export type TransactionGroupBy =
   | "account"
   | "parentCategory"
   | "category"
-  | "tag"
   | "member";
 
 export type TransactionFilterRecordType =
@@ -48,7 +47,6 @@ export type TransactionFilters = {
   merchantId?: string;
   parentCategoryId?: string;
   recordType: TransactionFilterRecordType;
-  tagId?: string;
 };
 
 export const defaultTransactionFilters = {
@@ -78,7 +76,6 @@ export type TransactionRowItem = {
   recorder_color?: ThemeColorKey | null;
   recorder_name?: string | null;
   show_recorder?: boolean;
-  tagNames: string[];
 };
 
 export type TransactionAccountOption = {
@@ -101,12 +98,6 @@ export type TransactionMerchantOption = {
   icon_url: string | null;
 };
 
-export type TransactionTagOption = {
-  id: string;
-  name: string;
-  color: string | null;
-};
-
 export type TransactionMemberOption = {
   id: string;
   name: string;
@@ -117,7 +108,6 @@ export type TransactionFilterOptions = {
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
   merchants: TransactionMerchantOption[];
-  tags: TransactionTagOption[];
 };
 
 export type TransactionListItem = TransactionRowItem & {

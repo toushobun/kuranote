@@ -51,19 +51,6 @@ const merchantOptions = [
   },
 ];
 
-const tagOptions = [
-  {
-    id: "00000000-0000-4000-8000-000000003001",
-    name: "日常",
-    color: null,
-  },
-  {
-    id: "00000000-0000-4000-8000-000000003002",
-    name: "公司",
-    color: "#176A66",
-  },
-];
-
 async function noopAction() {
   return {};
 }
@@ -75,7 +62,6 @@ const baseArgs = {
   errorMessage: null,
   ledgerName: "家庭账本",
   merchantOptions,
-  tagOptions,
 };
 
 const meta = {
@@ -116,7 +102,6 @@ export const EmptyOptions: Story = {
     accountOptions: [],
     categoryOptions: [],
     merchantOptions: [],
-    tagOptions: [],
   },
 };
 
@@ -136,7 +121,6 @@ export const EditExpenseConvert: Story = {
         ],
         merchantId: "00000000-0000-4000-8000-000000001001",
         note: "普通交易编辑示例",
-        tagNames: ["日常"],
         transactionAt: "2026-06-05T03:20:10.000Z",
         transactionRecordId: "00000000-0000-4000-8000-000000009001",
         type: "expense",
@@ -161,7 +145,6 @@ export const EditIncomeConvert: Story = {
         ],
         merchantId: "00000000-0000-4000-8000-000000001002",
         note: "收入交易编辑示例",
-        tagNames: ["公司"],
         transactionAt: "2026-06-05T03:20:10.000Z",
         transactionRecordId: "00000000-0000-4000-8000-000000009002",
         type: "income",

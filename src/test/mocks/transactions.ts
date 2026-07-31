@@ -21,7 +21,6 @@ export function createTransactionListItem(
     merchant_name: "便利店",
     note: "测试备注",
     recorder_name: null,
-    tagNames: [],
     transaction_at: "2026-05-29T03:20:10.000Z",
     type: "expense",
     ...overrides,

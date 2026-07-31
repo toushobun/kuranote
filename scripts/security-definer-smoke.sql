@@ -208,7 +208,7 @@ begin
         raise exception 'default expense category fixture setup failed';
     end if;
 
-    -- 交易 RPC 会进一步执行余额同步、标签同步及交易表 trigger。
+    -- 交易 RPC 会进一步执行余额同步及交易表 trigger。
     select public.create_transaction(
         v_ledger_id,
         'expense',
@@ -223,8 +223,7 @@ begin
         ),
         v_account_id,
         v_merchant_id,
-        'SECURITY DEFINER Smoke',
-        '[]'::jsonb
+        'SECURITY DEFINER Smoke'
     )
       into v_transaction_id;
 

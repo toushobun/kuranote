@@ -9,7 +9,6 @@ import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ImportExportOutlinedIcon from "@mui/icons-material/ImportExportOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
-import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
@@ -92,7 +91,6 @@ function createSettingsEntryGroups(
           kind: "link",
           label: "分类管理",
         },
-        { icon: LocalOfferOutlinedIcon, kind: "comingSoon", label: "标签管理" },
         { icon: StorefrontOutlinedIcon, kind: "comingSoon", label: "商家管理" },
       ],
     },

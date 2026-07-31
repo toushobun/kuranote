@@ -24,12 +24,6 @@ import {
   isTransactionTimeGroupBy,
 } from "./transactionListGroupTime";
 
-export type TransactionGroupTagAssignment = {
-  tagId: string;
-  tagName: string;
-  transactionRecordId: string;
-};
-
 export type BuildTransactionGroupSummaryPageParams = {
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
@@ -41,7 +35,6 @@ export type BuildTransactionGroupSummaryPageParams = {
   pageSize: number;
   records: TransactionRecordDbRow[];
   recorders: AppUserSummaryDbRow[];
-  tagAssignments: TransactionGroupTagAssignment[];
 };
 
 type MutableGroup = {
@@ -64,7 +57,6 @@ export function buildTransactionGroupSummaryPage({
   pageSize,
   records,
   recorders,
-  tagAssignments,
 }: BuildTransactionGroupSummaryPageParams): TransactionGroupPage {
   const itemsByRecordId = groupItemsByRecordId(items);
   const accountById = new Map(accounts.map((account) => [account.id, account]));
@@ -77,7 +69,6 @@ export function buildTransactionGroupSummaryPage({
   const recorderById = new Map(
     recorders.map((recorder) => [recorder.id, recorder]),
   );
-  const tagAssignmentsByRecordId = groupTagsByRecordId(tagAssignments);
   const groups = new Map<string, MutableGroup>();
 
   for (const record of records) {
@@ -121,19 +112,6 @@ export function buildTransactionGroupSummaryPage({
         recorderById,
       });
       addRecordToGroup(group, record, recordItems, categoryById);
-      continue;
-    }
-
-    if (groupBy === "tag") {
-      addTagGroups({
-        categoryById,
-        currency,
-        groupBy,
-        groups,
-        record,
-        recordItems,
-        tags: tagAssignmentsByRecordId.get(record.id),
-      });
       continue;
     }
 
@@ -220,44 +198,6 @@ function getMemberGroup({
   });
 }
 
-function addTagGroups({
-  categoryById,
-  currency,
-  groupBy,
-  groups,
-  record,
-  recordItems,
-  tags,
-}: {
-  categoryById: Map<string, CategorySummaryDbRow>;
-  currency: string;
-  groupBy: TransactionGroupBy;
-  groups: Map<string, MutableGroup>;
-  record: TransactionRecordDbRow;
-  recordItems: TransactionItemDbRow[];
-  tags: TransactionGroupTagAssignment[] | undefined;
-}) {
-  const recordTags = tags ?? [
-    {
-      tagId: "untagged",
-      tagName: "无标签",
-      transactionRecordId: record.id,
-    },
-  ];
-
-  for (const tag of recordTags) {
-    const group = getOrCreateGroup({
-      currency,
-      groupBy,
-      groups,
-      key: tag.tagId,
-      label: tag.tagName,
-      transactionAt: record.transaction_at,
-    });
-    addRecordToGroup(group, record, recordItems, categoryById);
-  }
-}
-
 function addItemGroups({
   accountById,
   categoryById,
@@ -335,22 +275,6 @@ function groupItemsByRecordId(items: TransactionItemDbRow[]) {
   }
 
   return itemsByRecordId;
-}
-
-function groupTagsByRecordId(tagAssignments: TransactionGroupTagAssignment[]) {
-  const tagAssignmentsByRecordId = new Map<
-    string,
-    TransactionGroupTagAssignment[]
-  >();
-
-  for (const assignment of tagAssignments) {
-    const recordTags =
-      tagAssignmentsByRecordId.get(assignment.transactionRecordId) ?? [];
-    recordTags.push(assignment);
-    tagAssignmentsByRecordId.set(assignment.transactionRecordId, recordTags);
-  }
-
-  return tagAssignmentsByRecordId;
 }
 
 function getOrCreateGroup({

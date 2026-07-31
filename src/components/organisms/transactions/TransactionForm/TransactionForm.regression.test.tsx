@@ -54,10 +54,6 @@ const incomeCategories = [
   },
 ];
 
-const tagOptions = [
-  { id: "55555555-5555-4555-8555-555555555555", name: "日常", color: null },
-];
-
 afterEach(() => cleanup());
 
 function renderForm(
@@ -69,7 +65,6 @@ function renderForm(
       accountOptions={accountOptions}
       categoryOptions={[...expenseCategories, ...incomeCategories]}
       merchantOptions={merchantOptions}
-      tagOptions={tagOptions}
       {...props}
     />,
   );

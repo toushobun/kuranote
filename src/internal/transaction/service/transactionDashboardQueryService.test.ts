@@ -245,7 +245,6 @@ describe("TransactionDashboardQueryService", () => {
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
-      tagNames: [],
     });
     expect(result.recentTransactions[1]).toMatchObject({
       account_color: null,
@@ -255,7 +254,6 @@ describe("TransactionDashboardQueryService", () => {
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
-      tagNames: [],
       type: "transfer",
     });
     expect(result.recentTransactions[2]).toMatchObject({
@@ -273,7 +271,6 @@ describe("TransactionDashboardQueryService", () => {
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
-      tagNames: [],
       type: "expense",
     });
     expect(result.recentTransactions[3]).toMatchObject({
@@ -284,7 +281,6 @@ describe("TransactionDashboardQueryService", () => {
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
-      tagNames: [],
       type: "transfer",
     });
     expect(result.recentTransactions[4]).toMatchObject({
@@ -302,7 +298,6 @@ describe("TransactionDashboardQueryService", () => {
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
-      tagNames: [],
       type: "expense",
     });
     expect(result.recentlyUsedAccountIds).toEqual(["account-2"]);

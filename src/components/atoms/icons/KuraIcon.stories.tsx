@@ -91,7 +91,7 @@ export const WithLabel: Story = {
 export const Decorative: Story = {
   name: "装饰图标（decorative）",
   args: {
-    name: "tag",
+    name: "category",
     decorative: true,
     size: "lg",
   },

@@ -24,7 +24,7 @@ const itemSummaries = [
 ];
 
 describe("TransactionSummarySection", () => {
-  it("汇总已选择的商家、账户、明细、标签、时间和金额", () => {
+  it("汇总已选择的商家、账户、明细、时间和金额", () => {
     render(
       <TransactionSummarySection
         itemSummaries={itemSummaries}
@@ -38,7 +38,6 @@ describe("TransactionSummarySection", () => {
           id: "merchant-1",
           name: "便利店",
         }}
-        selectedTagNames={["日常", "食品"]}
         signedTotalAmount="-1200"
         transactionDate="2026-07-20"
         transactionTime="10:30:00"
@@ -49,7 +48,6 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText("现金（JPY）")).toBeInTheDocument();
     expect(screen.getByText(/餐饮.*午餐.*1200/)).toBeInTheDocument();
     expect(screen.getByText("未选择分类 / 未填写金额")).toBeInTheDocument();
-    expect(screen.getByText("日常、食品")).toBeInTheDocument();
     expect(screen.getByText("2026/07/20 10:30:00")).toBeInTheDocument();
     expect(screen.getAllByText(/1200/)).toHaveLength(2);
   });
@@ -58,13 +56,12 @@ describe("TransactionSummarySection", () => {
     render(
       <TransactionSummarySection
         itemSummaries={[]}
-        selectedTagNames={[]}
         signedTotalAmount="0"
         transactionDate=""
         transactionTime=""
       />,
     );
 
-    expect(screen.getAllByText("未选择")).toHaveLength(4);
+    expect(screen.getAllByText("未选择")).toHaveLength(3);
   });
 });

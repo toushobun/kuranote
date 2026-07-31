@@ -30,7 +30,6 @@ const normalInput = {
   ledgerId: "00000000-0000-4000-8000-000000000032",
   merchantId: "00000000-0000-4000-8000-000000001001",
   note: null,
-  tagNames: [],
   transactionAt: "2026-06-04T01:00:00.000Z",
   type: "expense" as const,
 };

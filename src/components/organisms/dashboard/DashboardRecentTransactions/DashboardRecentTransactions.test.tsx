@@ -40,7 +40,6 @@ describe("DashboardRecentTransactions", () => {
             merchant_icon_url: null,
             merchant_name: null,
             note: "账户转账",
-            tagNames: [],
             type: "transfer",
           }),
         ]}

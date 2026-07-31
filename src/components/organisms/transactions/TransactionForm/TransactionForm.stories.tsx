@@ -52,24 +52,6 @@ const merchantOptions = [
   },
 ];
 
-const tagOptions = [
-  {
-    id: "00000000-0000-4000-8000-000000003001",
-    name: "日常",
-    color: null,
-  },
-  {
-    id: "00000000-0000-4000-8000-000000003002",
-    name: "公司",
-    color: "#176A66",
-  },
-  {
-    id: "00000000-0000-4000-8000-000000003003",
-    name: "结婚",
-    color: "#A45230",
-  },
-];
-
 async function noopAction() {}
 
 const meta = {
@@ -81,7 +63,6 @@ const meta = {
     categoryOptions,
     ledgerName: "家庭账本",
     merchantOptions,
-    tagOptions,
   },
 } satisfies Meta<typeof TransactionForm>;
 
@@ -102,8 +83,7 @@ export const WithTags: Story = {
         },
       ],
       merchantId: "00000000-0000-4000-8000-000000001001",
-      note: "带标签的记账示例",
-      tagNames: ["日常", "结婚"],
+      note: "记账示例",
       transactionAt: "2026-06-05T03:20:10.000Z",
       type: "expense",
     },
@@ -122,7 +102,6 @@ export const CustomDateTime: Story = {
       ],
       merchantId: "00000000-0000-4000-8000-000000001002",
       note: "自定义发生时间示例",
-      tagNames: [],
       transactionAt: "2026-06-01T12:34:56.000Z",
       type: "expense",
     },
@@ -146,7 +125,6 @@ export const EditMode: Story = {
       ],
       merchantId: "00000000-0000-4000-8000-000000001001",
       note: "编辑前已有备注",
-      tagNames: ["日常"],
       transactionAt: "2026-06-05T03:20:10.000Z",
       transactionRecordId: "00000000-0000-4000-8000-000000009001",
       type: "expense",
@@ -169,7 +147,6 @@ export const EditIncomeMode: Story = {
       ],
       merchantId: "00000000-0000-4000-8000-000000001002",
       note: "编辑前已有收入备注",
-      tagNames: ["公司"],
       transactionAt: "2026-06-05T03:20:10.000Z",
       transactionRecordId: "00000000-0000-4000-8000-000000009002",
       type: "income",
@@ -190,6 +167,5 @@ export const EmptyOptions: Story = {
     accountOptions: [],
     categoryOptions: [],
     merchantOptions: [],
-    tagOptions: [],
   },
 };

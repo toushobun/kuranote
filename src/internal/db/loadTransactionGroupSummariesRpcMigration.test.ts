@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import migration from "../../../supabase/migrations/20260704043000_load_transaction_group_summaries.sql?raw";
+import migration from "../../../supabase/migrations/20260731020336_remove_transaction_tags.sql?raw";
+
+function getFunctionSql(functionName: string) {
+  const start = migration.indexOf(
+    `create or replace function public.${functionName}`,
+  );
+  const end = migration.indexOf("\n$$;", start);
+
+  if (start < 0 || end < 0) {
+    throw new Error(`migration 中没有找到函数：${functionName}`);
+  }
+
+  return migration.slice(start, end);
+}
 
 describe("load_transaction_group_summaries RPC migration", () => {
-  it("创建非时间分组聚合 RPC 并限制执行权限", () => {
+  it("重建非时间分组聚合 RPC 并限制执行权限", () => {
     expect(migration).toContain(
       "create or replace function public.load_transaction_group_summaries",
     );
@@ -15,16 +28,21 @@ describe("load_transaction_group_summaries RPC migration", () => {
     expect(migration).toContain("from anon");
   });
 
-  it("覆盖商家、账户、分类、标签、成员分组", () => {
+  it("仅覆盖商家、账户、分类和成员分组", () => {
+    const functionSql = getFunctionSql("load_transaction_group_summaries");
+
     for (const groupBy of [
       "merchant",
       "account",
       "parentCategory",
       "category",
-      "tag",
       "member",
     ]) {
-      expect(migration).toContain(groupBy);
+      expect(functionSql).toContain(groupBy);
     }
+
+    expect(functionSql).not.toContain("'tag'");
+    expect(functionSql).not.toContain("p_tag_id");
+    expect(functionSql).not.toContain("transaction_record_tag");
   });
 });

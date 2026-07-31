@@ -16,27 +16,24 @@ export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFormOptions> {
-  const [accountOptions, categoryRows, merchantOptions, tagOptions] =
-    await Promise.all([
-      dependencies.accountQueryService.listTransactionOptions({
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-      dependencies.categoryQueryService.listActiveSummaries({
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-      dependencies.merchantQueryService.listActiveOptions({
-        ledgerId: currentLedger.id,
-      }),
-      dependencies.transactionRepository.listActiveTags(currentLedger.id),
-    ]);
+  const [accountOptions, categoryRows, merchantOptions] = await Promise.all([
+    dependencies.accountQueryService.listTransactionOptions({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.categoryQueryService.listActiveSummaries({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.merchantQueryService.listActiveOptions({
+      ledgerId: currentLedger.id,
+    }),
+  ]);
 
   return {
     accountOptions,
     categoryOptions: buildFormCategoryOptions(categoryRows),
     merchantOptions,
-    tagOptions,
   };
 }
 
@@ -44,22 +41,20 @@ export async function loadTransactionFilterOptions(
   dependencies: TransactionReadDependencies<TransactionFilterOptionsRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFilterOptions> {
-  const [accounts, categoryRows, merchants, tags, memberIds] =
-    await Promise.all([
-      dependencies.accountQueryService.listTransactionOptions({
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-      dependencies.categoryQueryService.listActiveSummaries({
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-      dependencies.merchantQueryService.listActiveOptions({
-        ledgerId: currentLedger.id,
-      }),
-      dependencies.transactionRepository.listActiveTags(currentLedger.id),
-      dependencies.transactionRepository.listActiveMemberIds(currentLedger.id),
-    ]);
+  const [accounts, categoryRows, merchants, memberIds] = await Promise.all([
+    dependencies.accountQueryService.listTransactionOptions({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.categoryQueryService.listActiveSummaries({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.merchantQueryService.listActiveOptions({
+      ledgerId: currentLedger.id,
+    }),
+    dependencies.transactionRepository.listActiveMemberIds(currentLedger.id),
+  ]);
   const members = await loadMemberOptions(
     dependencies,
     currentLedger.id,
@@ -71,7 +66,6 @@ export async function loadTransactionFilterOptions(
     categories: buildFilterCategoryOptions(categoryRows),
     members,
     merchants,
-    tags,
   };
 }
 

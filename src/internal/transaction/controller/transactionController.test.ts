@@ -26,7 +26,6 @@ const normalInput = {
   ledgerId,
   merchantId: null,
   note: "午餐",
-  tagNames: ["工作日"],
   transactionAt: "2026-07-20T01:00:00.000Z",
   type: "expense" as const,
 };

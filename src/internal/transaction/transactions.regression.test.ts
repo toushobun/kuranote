@@ -50,7 +50,6 @@ describe("validateTransactionForm regression", () => {
         ],
         merchantId,
         note: "测试备注",
-        tagNames: [],
         transactionAt: "2026-06-05T03:20:10.000Z",
         type: "expense",
       },
@@ -91,7 +90,6 @@ describe("validateUpdateTransactionForm regression", () => {
     const formData = createFormData({ transactionRecordId });
     formData.append("itemCategoryId", secondCategoryId);
     formData.append("itemAmount", "45");
-    formData.append("tagName", "结婚");
 
     expect(validateUpdateTransactionForm(formData)).toEqual({
       ok: true,
@@ -103,7 +101,6 @@ describe("validateUpdateTransactionForm regression", () => {
         ],
         merchantId,
         note: "测试备注",
-        tagNames: ["结婚"],
         transactionAt: "2026-06-05T03:20:10.000Z",
         transactionRecordId,
         type: "expense",

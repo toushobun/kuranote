@@ -59,8 +59,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
       records: [],
       recorders: [],
       showRecorder: false,
-      tagAssignments: [],
-      tagById: new Map<string, string>(),
     };
   }
 
@@ -91,37 +89,26 @@ export async function loadTransactionGroupLoaderContextForRecords(
     ),
   ];
 
-  const [accountContext, categories, merchants, recorders, tagAssignments] =
-    await Promise.all([
-      dependencies.accountQueryService.getTransactionContext({
-        accountIds,
-        ledgerId: currentLedger.id,
-        userId: currentUserId,
-      }),
-      dependencies.categoryQueryService.findSummariesByIds({
-        categoryIds,
-        ledgerId: currentLedger.id,
-        userId: currentUserId,
-      }),
-      dependencies.merchantQueryService.findSummariesByIds({
-        ledgerId: currentLedger.id,
-        merchantIds,
-      }),
-      dependencies.transactionRepository.findUserSummaries(
-        currentLedger.id,
-        recorderIds,
-      ),
-      dependencies.transactionRepository.listTagAssignments(
-        currentLedger.id,
-        recordIds,
-      ),
-    ]);
-  const tags = await dependencies.transactionRepository.listTagsByIds(
-    currentLedger.id,
-    tagAssignments.map((assignment) => assignment.tag_id),
-  );
-  const tagById = new Map(tags.map((tag) => [tag.id, tag.name]));
-
+  const [accountContext, categories, merchants, recorders] = await Promise.all([
+    dependencies.accountQueryService.getTransactionContext({
+      accountIds,
+      ledgerId: currentLedger.id,
+      userId: currentUserId,
+    }),
+    dependencies.categoryQueryService.findSummariesByIds({
+      categoryIds,
+      ledgerId: currentLedger.id,
+      userId: currentUserId,
+    }),
+    dependencies.merchantQueryService.findSummariesByIds({
+      ledgerId: currentLedger.id,
+      merchantIds,
+    }),
+    dependencies.transactionRepository.findUserSummaries(
+      currentLedger.id,
+      recorderIds,
+    ),
+  ]);
   return {
     accountColorById: accountContext.accountColorById,
     accounts: accountContext.accounts,
@@ -133,8 +120,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
     records,
     recorders,
     showRecorder: accountContext.showRecorder,
-    tagAssignments,
-    tagById,
   };
 }
 
@@ -143,17 +128,6 @@ export function buildTransactionListItemsFromContext(
   context: TransactionGroupLoaderContext,
 ): TransactionListItem[] {
   const lookups = getTransactionGroupContextLookups(context);
-  const tagNamesByRecordId = new Map<string, string[]>();
-
-  for (const record of records) {
-    const recordTags = lookups.tagsByRecordId.get(record.id) ?? [];
-    const names = recordTags
-      .map((assignment) => context.tagById.get(assignment.tag_id))
-      .filter((name): name is string => Boolean(name));
-
-    if (names.length > 0) tagNamesByRecordId.set(record.id, names);
-  }
-
   return records.map((record) =>
     buildTransactionListItem({
       accountById: lookups.accountById,
@@ -172,7 +146,6 @@ export function buildTransactionListItemsFromContext(
       recorderById: lookups.recorderById,
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
       showRecorder: context.showRecorder ?? true,
-      tagNamesByRecordId,
     }),
   );
 }

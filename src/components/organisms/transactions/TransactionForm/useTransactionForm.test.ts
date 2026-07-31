@@ -5,7 +5,6 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
-  TransactionTagOption,
 } from "types/transactions";
 
 import { useTransactionForm } from "./useTransactionForm";
@@ -46,10 +45,6 @@ const categoryOptions: TransactionCategoryOption[] = [
 const merchantOptions: TransactionMerchantOption[] = [
   { icon_url: null, id: "merchant-1", name: "便利店" },
 ];
-const tagOptions: TransactionTagOption[] = [
-  { color: null, id: "tag-1", name: "日常" },
-  { color: null, id: "tag-2", name: "工作" },
-];
 
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
@@ -59,7 +54,6 @@ function renderTransactionFormHook(
       accountOptions,
       categoryOptions,
       merchantOptions,
-      tagOptions,
       ...overrides,
     }),
   );
@@ -78,7 +72,6 @@ describe("useTransactionForm", () => {
         ],
         merchantId: "merchant-1",
         note: "混合收支",
-        tagNames: ["日常"],
         transactionAt: "2026-07-20T01:30:00.000Z",
         type: "expense",
       },
@@ -121,18 +114,6 @@ describe("useTransactionForm", () => {
     });
     expect(result.current.signedTotalAmount).toBe("-1200");
     expect(mocks.markEditDirty).toHaveBeenCalled();
-  });
-
-  it("新增标签时去除空格并阻止大小写重复", () => {
-    const { result } = renderTransactionFormHook();
-
-    act(() => result.current.addTag("  日常  "));
-    expect(result.current.selectedTagNames).toEqual(["日常"]);
-    expect(result.current.newTagName).toBe("");
-
-    act(() => result.current.addTag("日常"));
-    expect(result.current.selectedTagNames).toEqual(["日常"]);
-    expect(result.current.fieldErrors.tags).toBeTruthy();
   });
 
   it("提交缺少必填业务字段的表单时阻止提交并返回字段错误", async () => {

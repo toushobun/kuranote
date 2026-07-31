@@ -11,7 +11,6 @@ const accountId = "00000000-0000-4000-8000-000000000045";
 const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
-const tagId = "00000000-0000-4000-8000-000000003001";
 
 type QueryResult = { data: unknown; error: unknown | null };
 
@@ -65,7 +64,6 @@ const normalInput = {
   ledgerId,
   merchantId,
   note: null,
-  tagNames: ["日常"],
   transactionAt: "2026-06-04T01:00:00.000Z",
   type: "expense" as const,
 };
@@ -89,7 +87,6 @@ describe("TransactionRepository", () => {
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_note: null,
-      p_tag_names: ["日常"],
       p_transaction_at: normalInput.transactionAt,
       p_type: "expense",
     });
@@ -211,7 +208,6 @@ describe("TransactionRepository", () => {
       offset: 20,
       parentCategoryId: categoryId,
       recordType: "expense",
-      tagId,
     });
 
     expect(result).toHaveLength(1);
@@ -228,7 +224,6 @@ describe("TransactionRepository", () => {
       p_offset: 20,
       p_parent_category_id: categoryId,
       p_record_type: "expense",
-      p_tag_id: tagId,
     });
   });
 
@@ -300,64 +295,35 @@ describe("TransactionRepository", () => {
     expect(memberQuery.is).toHaveBeenCalledWith("created_by", null);
   });
 
-  it("读取交易关联数据时限定账本、去重 ID 并保持排序", async () => {
+  it("读取交易关联数据时限定账本并去重 ID", async () => {
     const memberQuery = createQuery({
       data: [{ user_id: userId }],
-      error: null,
-    });
-    const activeTagQuery = createQuery({
-      data: [{ color: null, id: tagId, name: "日常" }],
       error: null,
     });
     const itemQuery = createQuery({
       data: [{ amount: 1200, transaction_record_id: transactionRecordId }],
       error: null,
     });
-    const assignmentQuery = createQuery({
-      data: [{ tag_id: tagId, transaction_record_id: transactionRecordId }],
-      error: null,
-    });
-    const tagByIdQuery = createQuery({
-      data: [{ color: null, id: tagId, name: "日常" }],
-      error: null,
-    });
     const { repository } = createRepository({
       queries: {
         ledger_member: memberQuery,
         transaction_item: itemQuery,
-        transaction_record_tag: assignmentQuery,
-        transaction_tag: activeTagQuery,
       },
     });
 
     await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
       userId,
     ]);
-    await expect(repository.listActiveTags(ledgerId)).resolves.toHaveLength(1);
     await expect(
       repository.listItems(ledgerId, [
         transactionRecordId,
         transactionRecordId,
       ]),
     ).resolves.toHaveLength(1);
-    await expect(
-      repository.listTagAssignments(ledgerId, [transactionRecordId]),
-    ).resolves.toHaveLength(1);
-
-    const { repository: tagsRepository } = createRepository({
-      queries: { transaction_tag: tagByIdQuery },
-    });
-    await expect(
-      tagsRepository.listTagsByIds(ledgerId, [tagId, tagId]),
-    ).resolves.toHaveLength(1);
 
     expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
       transactionRecordId,
     ]);
-    expect(assignmentQuery.order).toHaveBeenCalledWith("sort_order", {
-      ascending: true,
-    });
-    expect(tagByIdQuery.in).toHaveBeenCalledWith("id", [tagId]);
   });
 
   it("合并用户资料和账本成员显示设置", async () => {
@@ -401,10 +367,6 @@ describe("TransactionRepository", () => {
       [],
     );
     await expect(repository.listItems(ledgerId, [])).resolves.toEqual([]);
-    await expect(repository.listTagAssignments(ledgerId, [])).resolves.toEqual(
-      [],
-    );
-    await expect(repository.listTagsByIds(ledgerId, [])).resolves.toEqual([]);
     expect(from).not.toHaveBeenCalled();
   });
 

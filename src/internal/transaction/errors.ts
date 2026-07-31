@@ -1,8 +1,3 @@
-import {
-  maxTransactionTagCount,
-  maxTransactionTagNameLength,
-} from "@/constants/transactions";
-
 export const transactionErrorCodes = {
   accountInvalid: "account_invalid",
   amountInvalid: "amount_invalid",
@@ -13,7 +8,6 @@ export const transactionErrorCodes = {
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
   permissionDenied: "permission_denied",
-  tagInvalid: "tag_invalid",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
   updateInvalid: "update_invalid",
@@ -28,7 +22,6 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
-  | typeof transactionErrorCodes.tagInvalid
   | typeof transactionErrorCodes.typeInvalid;
 
 export type UpdateTransactionValidationErrorCode =
@@ -54,7 +47,6 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
-  [transactionErrorCodes.tagInvalid]: `标签最多 ${maxTransactionTagCount} 个，单个标签不能超过 ${maxTransactionTagNameLength} 个字符。`,
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

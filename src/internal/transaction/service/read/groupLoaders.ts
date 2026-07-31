@@ -34,7 +34,6 @@ import {
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
 import { recordMatchesGroup } from "internal/transaction/util/grouping/groupMatching";
-import { buildGroupTagAssignments } from "internal/transaction/util/grouping/tagUtils";
 import {
   transactionPageSize,
   type TransactionGroupLoaderContext,
@@ -46,7 +45,6 @@ const nonTimeTransactionGroupByValues = new Set<string>([
   "account",
   "parentCategory",
   "category",
-  "tag",
   "member",
 ]);
 
@@ -116,7 +114,7 @@ export async function loadStep4TransactionGroupPage(
   }
 
   // 非时间维度分组的记录会分散在整个 ledger 历史中，必须由 SQL/RPC 聚合完整分组，
-  // 避免在 loader 中拉取全部交易记录、明细与标签后再做内存聚合。
+  // 避免在 loader 中拉取全部交易记录与明细后再做内存聚合。
   return loadStep4NonTimeGroupedTransactionGroupPage(
     dependencies,
     currentLedger,
@@ -158,7 +156,6 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
     offset: safeOffset,
     parentCategoryId: normalizedFilters.parentCategoryId,
     recordType: normalizedFilters.recordType,
-    tagId: normalizedFilters.tagId,
   });
   const groups = pageRows.slice(0, transactionPageSize).map((row) => ({
     id: row.group_id,
@@ -290,7 +287,6 @@ function buildStep4TransactionGroupPageFromContext(
     pageSize: transactionPageSize,
     records: filteredRecords,
     recorders: context.recorders,
-    tagAssignments: buildGroupTagAssignments(context),
   });
 }
 
@@ -386,7 +382,7 @@ function filterRecordsByGroup(
   groupBy: TransactionGroupBy,
   groupKey: string,
 ) {
-  const { categoryById, itemsByRecordId, tagsByRecordId } =
+  const { categoryById, itemsByRecordId } =
     getTransactionGroupContextLookups(context);
 
   return records.filter((record) =>
@@ -396,7 +392,6 @@ function filterRecordsByGroup(
       groupKey,
       items: itemsByRecordId.get(record.id) ?? [],
       record,
-      tags: tagsByRecordId.get(record.id) ?? [],
     }),
   );
 }

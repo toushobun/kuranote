@@ -25,7 +25,6 @@ export const otherGroupOptions = [
   { label: "大分类", value: "parentCategory" },
   { label: "小分类", value: "category" },
   { label: "账户", value: "account" },
-  { label: "标签", value: "tag" },
   { label: "商家", value: "merchant" },
   { label: "成员", value: "member" },
 ] as const satisfies readonly GroupOption[];

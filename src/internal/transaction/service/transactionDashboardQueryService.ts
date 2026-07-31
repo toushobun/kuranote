@@ -149,6 +149,5 @@ function toDashboardRecentTransaction(
     recorder_color: null,
     recorder_name: null,
     show_recorder: true,
-    tagNames: [],
   };
 }

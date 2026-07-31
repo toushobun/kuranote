@@ -77,7 +77,6 @@ describe("buildTransactionGroupSummaryPage", () => {
       pageSize: 20,
       records,
       recorders,
-      tagAssignments: [],
     });
 
     expect(page.groups).toHaveLength(1);
@@ -105,7 +104,6 @@ describe("buildTransactionGroupSummaryPage", () => {
       pageSize: 20,
       records,
       recorders,
-      tagAssignments: [],
     });
 
     expect(page.groups[0].transactionCount).toBe(1);
@@ -135,7 +133,6 @@ describe("buildTransactionGroupSummaryPage", () => {
       pageSize: 20,
       records,
       recorders,
-      tagAssignments: [],
     });
 
     expect(page.groups[0].transactionCount).toBe(1);
@@ -170,7 +167,6 @@ describe("buildTransactionGroupSummaryPage", () => {
       pageSize: 2,
       records,
       recorders,
-      tagAssignments: [],
     });
 
     expect(page.groups.map((group) => group.key)).toEqual([

@@ -5,7 +5,6 @@ export {
 export {
   buildTransactionGroupSummaryPage,
   type BuildTransactionGroupSummaryPageParams,
-  type TransactionGroupTagAssignment,
 } from "./transactionGroupBuilder";
 export {
   getTransactionTimeGroupInfo,

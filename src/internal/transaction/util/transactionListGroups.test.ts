@@ -96,7 +96,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.nextOffset).toBe(1);
@@ -132,7 +131,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     };
 
     const quarterResult = buildTransactionGroupSummaryPage({
@@ -181,7 +179,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.groups).toEqual([
@@ -225,7 +222,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.groups[0]).toMatchObject({
@@ -263,7 +259,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.groups[0]).toMatchObject({
@@ -306,7 +301,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.groups).toEqual([
@@ -366,7 +360,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     });
 
     expect(result.groups).toHaveLength(2);
@@ -416,7 +409,6 @@ describe("transactionListGroups", () => {
         }),
       ],
       recorders,
-      tagAssignments: [],
     };
 
     const parentCategoryResult = buildTransactionGroupSummaryPage({
@@ -440,45 +432,6 @@ describe("transactionListGroups", () => {
     });
   });
 
-  it("按标签分组时未打标签记录进入无标签分组", () => {
-    const result = buildTransactionGroupSummaryPage({
-      accounts,
-      categories,
-      currency: "JPY",
-      groupBy: "tag",
-      items: [
-        item({ amount: "120", transaction_record_id: "daily" }),
-        item({ amount: "30", transaction_record_id: "untagged" }),
-      ],
-      merchants,
-      offset: 0,
-      pageSize: 20,
-      records: [
-        record({
-          id: "daily",
-          transaction_at: "2026-06-28T10:00:00.000Z",
-        }),
-        record({
-          id: "untagged",
-          transaction_at: "2026-06-27T10:00:00.000Z",
-        }),
-      ],
-      recorders,
-      tagAssignments: [
-        {
-          tagId: "tag-daily",
-          tagName: "日常",
-          transactionRecordId: "daily",
-        },
-      ],
-    });
-
-    expect(result.groups.map((group) => group.label)).toEqual([
-      "日常",
-      "无标签",
-    ]);
-  });
-
   it("按月分组时以 Asia/Tokyo 时区日期归入月份", () => {
     const commonParams = {
       accounts,
@@ -488,7 +441,6 @@ describe("transactionListGroups", () => {
       offset: 0,
       pageSize: 20,
       recorders,
-      tagAssignments: [],
     };
 
     // 2026-06-30T15:30:00Z = 2026-07-01T00:30:00+09:00 → 应归入 2026-07
@@ -551,7 +503,6 @@ describe("transactionListGroups", () => {
       pageSize: 20,
       records: manyRecords,
       recorders,
-      tagAssignments: [],
     });
 
     // 全 25 笔都在同一个月，summary 应基于全部数据，与 pageSize 无关

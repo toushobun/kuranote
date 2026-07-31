@@ -13,7 +13,6 @@ import type {
   LedgerMemberDisplaySettingDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
-  TransactionTagDbRow,
 } from "internal/db-types";
 import {
   transactionErrorCodes,
@@ -37,7 +36,6 @@ export type CreateNormalTransactionInput = {
   ledgerId: string;
   merchantId: string;
   note: string | null;
-  tagNames: string[];
   transactionAt: string;
   type: TransactionType;
 };
@@ -64,11 +62,6 @@ export type ConvertTransactionInput =
       targetType: TransactionType;
     })
   | (UpdateTransferTransactionInput & { targetType: "transfer" });
-
-export type RawTagAssignment = {
-  tag_id: string;
-  transaction_record_id: string;
-};
 
 export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
@@ -136,14 +129,6 @@ export interface TransactionContextRepository {
     transactionRecordIds: string[],
   ): Promise<TransactionItemDbRow[]>;
   listRecords(input: TransactionRecordQuery): Promise<TransactionRecordDbRow[]>;
-  listTagAssignments(
-    ledgerId: string,
-    transactionRecordIds: string[],
-  ): Promise<RawTagAssignment[]>;
-  listTagsByIds(
-    ledgerId: string,
-    tagIds: string[],
-  ): Promise<TransactionTagDbRow[]>;
 }
 
 export interface TransactionFormRepository {
@@ -151,19 +136,10 @@ export interface TransactionFormRepository {
     ledgerId: string,
     transactionRecordId: string,
   ): Promise<TransactionRecordDbRow | null>;
-  listActiveTags(ledgerId: string): Promise<TransactionTagDbRow[]>;
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
   ): Promise<TransactionItemDbRow[]>;
-  listTagAssignments(
-    ledgerId: string,
-    transactionRecordIds: string[],
-  ): Promise<RawTagAssignment[]>;
-  listTagsByIds(
-    ledgerId: string,
-    tagIds: string[],
-  ): Promise<TransactionTagDbRow[]>;
 }
 
 export interface TransactionFilterOptionsRepository {
@@ -172,7 +148,6 @@ export interface TransactionFilterOptionsRepository {
     userIds: string[],
   ): Promise<AppUserSummaryDbRow[]>;
   listActiveMemberIds(ledgerId: string): Promise<string[]>;
-  listActiveTags(ledgerId: string): Promise<TransactionTagDbRow[]>;
 }
 
 export interface TransactionDashboardRepository extends TransactionContextRepository {
@@ -201,7 +176,6 @@ export interface TransactionGroupRepository extends TransactionContextRepository
     offset: number;
     parentCategoryId?: string;
     recordType: TransactionFilterRecordType;
-    tagId?: string;
   }): Promise<TransactionGroupSummaryRow[]>;
 }
 
@@ -381,7 +355,6 @@ export function createSupabaseTransactionRepository(
               p_ledger_id: input.ledgerId,
               p_merchant_id: null,
               p_note: input.note,
-              p_tag_names: [],
               p_target_type: "transfer" as const,
               p_to_account_id: input.transferTargetAccountId,
               p_transaction_at: input.transactionAt,
@@ -395,7 +368,6 @@ export function createSupabaseTransactionRepository(
               p_ledger_id: input.ledgerId,
               p_merchant_id: input.merchantId,
               p_note: input.note,
-              p_tag_names: input.tagNames,
               p_target_type: input.targetType,
               p_to_account_id: null,
               p_transaction_at: input.transactionAt,
@@ -426,7 +398,6 @@ export function createSupabaseTransactionRepository(
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
-        p_tag_names: input.tagNames,
         p_transaction_at: input.transactionAt,
         p_type: input.type,
       });
@@ -549,27 +520,6 @@ export function createSupabaseTransactionRepository(
         );
       }
       return (data ?? []).map((row) => row.user_id);
-    },
-
-    async listActiveTags(ledgerId) {
-      const { data, error } = await supabase
-        .from("transaction_tag")
-        .select("id, name, color")
-        .eq("ledger_id", ledgerId)
-        .eq("is_archived", false)
-        .order("name", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (error) {
-        logger.error("[transaction] failed to load active tags", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_tags_load_failed",
-          "交易标签加载失败，请稍后重试。",
-        );
-      }
-      return (data ?? []) as TransactionTagDbRow[];
     },
 
     async listItems(ledgerId, transactionRecordIds) {
@@ -800,49 +750,6 @@ export function createSupabaseTransactionRepository(
       return (data ?? []) as TransactionRecordDbRow[];
     },
 
-    async listTagAssignments(ledgerId, transactionRecordIds) {
-      const uniqueIds = [...new Set(transactionRecordIds)];
-      if (uniqueIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("transaction_record_tag")
-        .select("tag_id, transaction_record_id")
-        .eq("ledger_id", ledgerId)
-        .in("transaction_record_id", uniqueIds)
-        .order("sort_order", { ascending: true });
-      if (error) {
-        logger.error("[transaction] failed to load tag assignments", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_tag_assignments_load_failed",
-          "交易标签加载失败，请稍后重试。",
-        );
-      }
-      return (data ?? []) as RawTagAssignment[];
-    },
-
-    async listTagsByIds(ledgerId, tagIds) {
-      const uniqueIds = [...new Set(tagIds)];
-      if (uniqueIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("transaction_tag")
-        .select("id, name, color")
-        .eq("ledger_id", ledgerId)
-        .in("id", uniqueIds);
-      if (error) {
-        logger.error("[transaction] failed to load tags by ids", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_tags_load_failed",
-          "交易标签加载失败，请稍后重试。",
-        );
-      }
-      return (data ?? []) as TransactionTagDbRow[];
-    },
-
     async loadGroupSummaries(input) {
       const { data, error } = await supabase.rpc(
         "load_transaction_group_summaries",
@@ -859,7 +766,6 @@ export function createSupabaseTransactionRepository(
           p_offset: input.offset,
           p_parent_category_id: input.parentCategoryId ?? null,
           p_record_type: input.recordType,
-          p_tag_id: input.tagId ?? null,
         },
       );
       if (error) {
@@ -883,7 +789,6 @@ export function createSupabaseTransactionRepository(
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
-        p_tag_names: input.tagNames,
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
         p_type: input.type,
