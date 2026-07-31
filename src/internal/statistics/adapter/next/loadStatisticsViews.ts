@@ -6,7 +6,6 @@ import {
 } from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import type { DashboardViewData } from "internal/statistics/service/read/dashboardView";
 import { getDashboardDateRange } from "internal/statistics/util/dashboardDateRange";
 import { createTransactionAmountSummary } from "utils/transactions";
 
@@ -15,7 +14,7 @@ async function getStatisticsService() {
   return createRequestContainer(dependencies).statistics.service;
 }
 
-export async function loadDashboardView(): Promise<DashboardViewData> {
+export async function loadDashboardView() {
   const context = await getCurrentLedgerContext();
 
   if (!context.currentLedger) {
