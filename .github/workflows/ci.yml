@@ -103,11 +103,29 @@ jobs:
   # Stage 2: 依赖 Stage 1，单一 job 内先跑快速测试，再按需跑 RSC 测试
   test:
     name: Test
-    if: *run_code_ci
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
     needs: [format-check, type-check, lint]
     runs-on: ubuntu-latest
 
     steps:
+      - name: Verify prerequisite checks
+        env:
+          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
+          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+        run: |
+          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
+             [ "$TYPE_CHECK_RESULT" != "success" ] || \
+             [ "$LINT_RESULT" != "success" ]; then
+            echo "Format check: $FORMAT_CHECK_RESULT"
+            echo "Type check: $TYPE_CHECK_RESULT"
+            echo "Lint: $LINT_RESULT"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -138,7 +156,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
             src/internal/shared/context/createServerRequestDependencies.ts \
             tests/rsc \
             package.json \

@@ -25,7 +25,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
             supabase/migrations \
             supabase/schema_snapshot \
             supabase/config.toml \
@@ -71,7 +71,7 @@ jobs:
         shell: bash
         run: |
           changed_migrations="$(git diff --name-only --diff-filter=MDR \
-            "${{ github.event.pull_request.base.sha }}" HEAD -- supabase/migrations/)"
+            "${{ github.event.pull_request.base.sha }}...HEAD" -- supabase/migrations/)"
           if [[ -n "${changed_migrations}" ]]; then
             echo "已经合入 main 的 migration 不允许修改、删除或重命名：" >&2
             echo "${changed_migrations}" >&2
