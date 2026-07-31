@@ -33,7 +33,6 @@ function createItem(
     merchant_name: isExpense ? "便利店" : "共達",
     note: index % 3 === 0 ? `Storybook 月度记录 #${index}` : null,
     recorder_name: null,
-    tagNames: [],
     transaction_at: new Date(
       Date.UTC(2026, 4, index <= 3 ? 29 : 28, 3 + index, 15, 0),
     ).toISOString(),

@@ -2,7 +2,6 @@
 
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
@@ -28,24 +27,12 @@ export type TransactionRowProps = {
   showTime?: boolean;
 };
 
-type TagItem = { name: string; color?: string | null };
-
-type ReceiptTransactionRowItem = TransactionRowItem & {
-  tagNames?: string[];
-  tagItems?: TagItem[];
+type MetaSegment = {
+  color: string;
+  key: string;
+  kind: "text";
+  label: string;
 };
-
-type MetaSegment =
-  | {
-      color: string;
-      key: string;
-      kind: "text";
-      label: string;
-    }
-  | {
-      key: "tags";
-      kind: "tags";
-    };
 
 const textColor = "var(--user-theme-tx-name)";
 const mutedText = "var(--user-theme-tx-meta)";
@@ -60,7 +47,6 @@ export function TransactionRow({
   showRecorder = false,
   showTime = false,
 }: TransactionRowProps) {
-  const receiptItem = item as ReceiptTransactionRowItem;
   const isTransfer = item.type === "transfer";
   const shouldShowRecorder = showRecorder && (item.show_recorder ?? true);
   const merchantName = isTransfer
@@ -83,12 +69,6 @@ export function TransactionRow({
     .filter(Boolean)
     .join(" | ");
 
-  const resolvedTagItems: TagItem[] = receiptItem.tagItems
-    ? receiptItem.tagItems
-    : (receiptItem.tagNames ?? []).map((name) => ({ name, color: null }));
-  const uniqueTagItems = Array.from(
-    new Map(resolvedTagItems.map((tag) => [tag.name, tag])).values(),
-  );
   const metaSegments = [
     showAccount
       ? {
@@ -105,9 +85,6 @@ export function TransactionRow({
           kind: "text" as const,
           label: item.recorder_name,
         }
-      : null,
-    uniqueTagItems.length > 0
-      ? { key: "tags" as const, kind: "tags" as const }
       : null,
     showTime
       ? {
@@ -196,51 +173,12 @@ export function TransactionRow({
                       {"|"}
                     </Typography>
                   )}
-                  {segment.kind === "tags" ? (
-                    <Stack
-                      direction="row"
-                      spacing={0.5}
-                      sx={{
-                        alignItems: "center",
-                        minWidth: 0,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {uniqueTagItems.map((tag) => (
-                        <Box
-                          key={tag.name}
-                          sx={{
-                            bgcolor: tag.color ?? mutedText,
-                            border: "1px solid",
-                            borderColor: "rgba(0,0,0,0.12)",
-                            borderRadius: "999px",
-                            flexShrink: 0,
-                            px: 0.75,
-                            py: 0.1,
-                          }}
-                        >
-                          <Typography
-                            noWrap
-                            sx={{
-                              color: getTagTextColor(tag.color),
-                              fontSize: 10,
-                              fontWeight: 700,
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {tag.name}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Typography
-                      noWrap
-                      sx={{ color: segment.color, fontSize: 11 }}
-                    >
-                      {segment.label}
-                    </Typography>
-                  )}
+                  <Typography
+                    noWrap
+                    sx={{ color: segment.color, fontSize: 11 }}
+                  >
+                    {segment.label}
+                  </Typography>
                 </Fragment>
               ))}
             </Stack>
@@ -356,18 +294,6 @@ function getMemberColor(
     | TransactionRowItem["recorder_color"],
 ) {
   return colorKey ? themeColorTokens[colorKey].chipText : mutedText;
-}
-
-function getTagTextColor(bgColor: string | null | undefined): string {
-  if (!bgColor || !bgColor.startsWith("#") || bgColor.length < 7) {
-    return "#ffffff";
-  }
-  const r = parseInt(bgColor.slice(1, 3), 16);
-  const g = parseInt(bgColor.slice(3, 5), 16);
-  const b = parseInt(bgColor.slice(5, 7), 16);
-  // relative luminance (simplified)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.55 ? "#000000" : "#ffffff";
 }
 
 function subscribeToTimeZone() {

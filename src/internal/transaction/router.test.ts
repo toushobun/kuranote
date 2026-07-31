@@ -66,7 +66,6 @@ const body = {
   ledgerId,
   merchantId,
   note: null,
-  tagNames: [],
   transactionAt: "2026-06-04T01:00:00.000Z",
   type: "expense",
 };

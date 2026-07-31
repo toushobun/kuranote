@@ -66,7 +66,6 @@ function createItem(
     merchant_name: "便利店",
     note: null,
     recorder_name: "成员",
-    tagNames: [],
     transaction_at: "2026-06-01T09:00:00.000Z",
     type: "expense",
     ...overrides,

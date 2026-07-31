@@ -83,17 +83,6 @@ export async function getEditTransactionView(
 
   if (record.type !== "normal" || items.length === 0) return null;
 
-  const tagAssignments =
-    await dependencies.transactionRepository.listTagAssignments(
-      currentLedger.id,
-      [transactionRecordId],
-    );
-  const tags = await dependencies.transactionRepository.listTagsByIds(
-    currentLedger.id,
-    tagAssignments.map((assignment) => assignment.tag_id),
-  );
-  const tagNameById = new Map(tags.map((tag) => [tag.id, tag.name]));
-
   return {
     ...options,
     canEdit,
@@ -105,10 +94,6 @@ export async function getEditTransactionView(
       })),
       merchantId: record.merchant_id ?? "",
       note: record.note ?? "",
-      tagNames: tagAssignments.flatMap((assignment) => {
-        const name = tagNameById.get(assignment.tag_id);
-        return name ? [name] : [];
-      }),
       transactionAt: record.transaction_at,
       transactionRecordId: record.id,
       type: resolveNormalTransactionDisplayType(items, options.categoryOptions),

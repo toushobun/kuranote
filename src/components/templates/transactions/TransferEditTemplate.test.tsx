@@ -98,7 +98,6 @@ function renderTemplate() {
       }}
       ledgerName="家庭账本"
       merchantOptions={[]}
-      tagOptions={[]}
     />,
   );
 }

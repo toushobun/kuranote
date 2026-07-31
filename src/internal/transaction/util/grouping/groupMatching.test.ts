@@ -11,7 +11,6 @@ import {
   matchesParentCategory,
   recordMatchesGroup,
 } from "internal/transaction/util/grouping/groupMatching";
-import type { RawTagAssignment } from "internal/transaction/util/grouping/types";
 
 const record: TransactionRecordDbRow = {
   created_at: "2026-07-20T01:00:00.000Z",
@@ -59,7 +58,6 @@ function matches(
     groupKey,
     items: [item],
     record,
-    tags: [],
     ...overrides,
   });
 }
@@ -86,21 +84,6 @@ describe("recordMatchesGroup", () => {
         record: { ...record, created_by: null },
       }),
     ).toBe(true);
-  });
-
-  it("按标签分组时把无标签交易归入 untagged", () => {
-    expect(matches("tag", "untagged")).toBe(true);
-    expect(matches("tag", "tag-1")).toBe(false);
-  });
-
-  it("按标签分组时匹配任意一个已分配标签", () => {
-    const tags: RawTagAssignment[] = [
-      { tag_id: "tag-1", transaction_record_id: record.id },
-      { tag_id: "tag-2", transaction_record_id: record.id },
-    ];
-
-    expect(matches("tag", "tag-2", { tags })).toBe(true);
-    expect(matches("tag", "tag-3", { tags })).toBe(false);
   });
 
   it("按账户分组时匹配任意一个交易明细账户", () => {

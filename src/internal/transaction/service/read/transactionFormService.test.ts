@@ -17,7 +17,6 @@ const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const parentCategoryId = "00000000-0000-4000-8000-000000005001";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
-const tagId = "00000000-0000-4000-8000-000000003001";
 
 const currentLedger: CurrentLedger = {
   baseCurrency: "JPY",
@@ -31,10 +30,7 @@ function createRepository(
 ): TransactionFormRepository {
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
-    listActiveTags: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
-    listTagAssignments: vi.fn().mockResolvedValue([]),
-    listTagsByIds: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -79,7 +75,7 @@ function createDependencies(repository: TransactionFormRepository) {
 }
 
 describe("getEditTransactionView", () => {
-  it("普通交易还原表单、历史标签和编辑权限", async () => {
+  it("普通交易还原表单和编辑权限", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({
         created_at: "2026-06-04T01:00:00.000Z",
@@ -100,14 +96,6 @@ describe("getEditTransactionView", () => {
           transaction_record_id: transactionRecordId,
         },
       ]),
-      listTagAssignments: vi
-        .fn()
-        .mockResolvedValue([
-          { tag_id: tagId, transaction_record_id: transactionRecordId },
-        ]),
-      listTagsByIds: vi
-        .fn()
-        .mockResolvedValue([{ color: null, id: tagId, name: "已归档标签" }]),
     });
 
     const view = await getEditTransactionView(
@@ -124,13 +112,11 @@ describe("getEditTransactionView", () => {
         items: [{ amount: "1200", categoryId }],
         merchantId,
         note: "午餐",
-        tagNames: ["已归档标签"],
         transactionRecordId,
         type: "expense",
       },
       ledgerName: "家庭账本",
     });
-    expect(repository.listTagsByIds).toHaveBeenCalledWith(ledgerId, [tagId]);
   });
 
   it("正确还原转账的转出、转入账户和金额", async () => {

@@ -49,7 +49,6 @@ const baseView = {
   categoryOptions: [],
   ledgerName: "家庭账本",
   merchantOptions: [],
-  tagOptions: [],
 };
 
 describe("TransactionsNewPage", () => {

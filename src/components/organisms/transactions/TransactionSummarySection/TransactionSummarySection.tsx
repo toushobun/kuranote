@@ -20,7 +20,6 @@ type TransactionSummarySectionProps = {
   itemSummaries: TransactionItemSummary[];
   selectedAccount?: TransactionAccountOption;
   selectedMerchant?: TransactionMerchantOption;
-  selectedTagNames: string[];
   signedTotalAmount: string;
   transactionDate: string;
   transactionTime: string;
@@ -30,7 +29,6 @@ export function TransactionSummarySection({
   itemSummaries,
   selectedAccount,
   selectedMerchant,
-  selectedTagNames,
   signedTotalAmount,
   transactionDate,
   transactionTime,
@@ -57,12 +55,6 @@ export function TransactionSummarySection({
             value={`${item.category ? formatCategoryName(item.category) : "未选择分类"} / ${item.amount || "未填写金额"}`}
           />
         ))}
-        <SummaryRow
-          label="标签"
-          value={
-            selectedTagNames.length > 0 ? selectedTagNames.join("、") : "未选择"
-          }
-        />
         <SummaryRow
           label="时间"
           value={formatSummaryDateTime(transactionDate, transactionTime)}

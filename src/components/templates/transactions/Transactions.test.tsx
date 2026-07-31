@@ -87,7 +87,6 @@ const filterOptions: TransactionFilterOptions = {
   categories: [],
   members: [],
   merchants: [],
-  tags: [],
 };
 
 const loadGroupItemsAction = vi.fn(

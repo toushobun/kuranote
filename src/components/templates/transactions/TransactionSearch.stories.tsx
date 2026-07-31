@@ -142,7 +142,6 @@ function createStoryItem({
     merchant_name: merchantName,
     note,
     recorder_name: recorderName,
-    tagNames: ["日常"],
     transaction_at: time,
     type: "expense",
   };

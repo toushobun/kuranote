@@ -356,7 +356,7 @@ $$;
 ALTER FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -553,9 +553,6 @@ begin
     where ti.transaction_record_id = p_transaction_record_id
       and ti.ledger_id = p_ledger_id;
 
-    delete from public.transaction_record_tag trt
-    where trt.transaction_record_id = p_transaction_record_id
-      and trt.ledger_id = p_ledger_id;
 
     if v_target_record_type = 'transfer' then
         update public.transaction_record tr
@@ -677,12 +674,6 @@ begin
             v_sort_order := v_sort_order + 1;
         end loop;
 
-        perform public.sync_transaction_record_tags(
-            p_ledger_id,
-            p_transaction_record_id,
-            coalesce(p_tag_names, '[]'::jsonb),
-            v_user_id
-        );
     end if;
 
     return p_transaction_record_id;
@@ -690,7 +681,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_tag_names" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
@@ -1097,7 +1088,7 @@ $$;
 ALTER FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1234,19 +1225,13 @@ begin
         v_sort_order := v_sort_order + 1;
     end loop;
 
-    perform public.sync_transaction_record_tags(
-        p_ledger_id,
-        v_transaction_record_id,
-        p_tag_names,
-        v_user_id
-    );
 
     return v_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_tag_names" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -1901,7 +1886,7 @@ ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    SET "search_path" TO 'public'
     AS $$
 declare
     v_root record;
@@ -1928,38 +1913,6 @@ begin
     ) then
         raise exception 'ledger_forbidden' using errcode = '42501';
     end if;
-
-    insert into public.transaction_tag (
-        ledger_id,
-        name,
-        color,
-        created_by,
-        updated_by
-    )
-    select
-        p_ledger_id,
-        default_tag.name,
-        default_tag.color,
-        p_user_id,
-        p_user_id
-    from (
-        values
-        ('日常', '#E0F2FE', 10),
-        ('腐败', '#FCE7F3', 20),
-        ('公司', '#D1FAE5', 30),
-        ('人情', '#BBF7D0', 40),
-        ('孩子', '#FED7AA', 50),
-        ('旅游', '#DBEAFE', 60),
-        ('装修', '#DDD6FE', 70),
-        ('结婚', '#FDE68A', 80)
-    ) as default_tag(name, color, sort_order)
-    where not exists (
-        select 1
-        from public.transaction_tag tt
-        where tt.ledger_id = p_ledger_id
-          and tt.is_archived = false
-          and lower(tt.name) = lower(default_tag.name)
-    );
 
     insert into public.merchant (
         ledger_id,
@@ -2449,7 +2402,7 @@ $$;
 ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_tag_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone)
+CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -2510,7 +2463,6 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
             'account',
             'parentCategory',
             'category',
-            'tag',
             'member'
         )
           and p_record_type in ('all', 'income', 'expense', 'transfer')
@@ -2558,16 +2510,6 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
                     and coalesce(parent.id, c.id) = p_parent_category_id
               )
           )
-          and (
-              p_tag_id is null
-              or exists (
-                  select 1
-                  from public.transaction_record_tag trt
-                  where trt.ledger_id = p_ledger_id
-                    and trt.transaction_record_id = rp.id
-                    and trt.tag_id = p_tag_id
-              )
-          )
     ),
     record_group_rows as (
         select
@@ -2599,54 +2541,6 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
           on lmds.ledger_id = p_ledger_id
          and lmds.user_id = fr.created_by
         where p_group_by in ('merchant', 'member')
-    ),
-    active_record_tags as (
-        select
-            trt.transaction_record_id,
-            tt.id as tag_id,
-            tt.name as tag_name
-        from public.transaction_record_tag trt
-        join public.transaction_tag tt
-          on tt.id = trt.tag_id
-         and tt.ledger_id = trt.ledger_id
-         and tt.is_archived = false
-        where trt.ledger_id = p_ledger_id
-    ),
-    tag_group_rows as (
-        select
-            'tag:' || art.tag_id::text as group_id,
-            art.tag_id::text as group_key,
-            art.tag_name as group_label,
-            fr.id as transaction_record_id,
-            fr.transaction_at,
-            case
-                when fr.type = 'transfer' then 0
-                else fr.net_amount
-            end as signed_amount
-        from filtered_records fr
-        join active_record_tags art
-          on art.transaction_record_id = fr.id
-        where p_group_by = 'tag'
-
-        union all
-
-        select
-            'tag:untagged' as group_id,
-            'untagged' as group_key,
-            '无标签' as group_label,
-            fr.id as transaction_record_id,
-            fr.transaction_at,
-            case
-                when fr.type = 'transfer' then 0
-                else fr.net_amount
-            end as signed_amount
-        from filtered_records fr
-        where p_group_by = 'tag'
-          and not exists (
-              select 1
-              from active_record_tags art
-              where art.transaction_record_id = fr.id
-          )
     ),
     item_group_rows as (
         select
@@ -2691,8 +2585,6 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
     all_group_rows as (
         select * from record_group_rows
         union all
-        select * from tag_group_rows
-        union all
         select * from item_group_rows
     ),
     aggregated_groups as (
@@ -2728,7 +2620,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
 $$;
 
 
-ALTER FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_tag_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
+ALTER FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."normalize_transaction_record_type_for_compat"() RETURNS "trigger"
@@ -3138,144 +3030,6 @@ $$;
 ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_max_tag_count constant integer := 10;
-    v_max_tag_name_length constant integer := 40;
-    v_raw_tag jsonb;
-    v_tag_name text;
-    v_tag_names text[] := '{}';
-    v_tag_id uuid;
-    v_tag_ids uuid[] := '{}';
-    v_sort_order integer := 0;
-begin
-    if p_tag_names is null then
-        p_tag_names := '[]'::jsonb;
-    end if;
-
-    if jsonb_typeof(p_tag_names) <> 'array' then
-        raise exception 'tag_names_invalid' using errcode = '22023';
-    end if;
-
-    for v_raw_tag in select * from jsonb_array_elements(p_tag_names)
-    loop
-        v_tag_name := nullif(trim(v_raw_tag #>> '{}'), '');
-
-        if v_tag_name is null then
-            continue;
-        end if;
-
-        if length(v_tag_name) > v_max_tag_name_length then
-            raise exception 'tag_name_invalid' using errcode = '22023';
-        end if;
-
-        if not exists (
-            select 1
-            from unnest(v_tag_names) as existing_tag(name)
-            where lower(existing_tag.name) = lower(v_tag_name)
-        ) then
-            if coalesce(array_length(v_tag_names, 1), 0) >= v_max_tag_count then
-                raise exception 'tag_count_invalid' using errcode = '22023';
-            end if;
-
-            v_tag_names := array_append(v_tag_names, v_tag_name);
-        end if;
-    end loop;
-
-    foreach v_tag_name in array v_tag_names
-    loop
-        v_tag_id := null;
-
-        -- 编辑保存时优先复用当前记录已关联的同名标签，包含已归档标签。
-        -- 这样 no-op 编辑不会把历史归档标签重新创建为 active 标签。
-        select tt.id
-        into v_tag_id
-        from public.transaction_record_tag trt
-        join public.transaction_tag tt
-          on tt.id = trt.tag_id
-         and tt.ledger_id = trt.ledger_id
-        where trt.ledger_id = p_ledger_id
-          and trt.transaction_record_id = p_transaction_record_id
-          and lower(tt.name) = lower(v_tag_name)
-        order by trt.sort_order asc
-        limit 1;
-
-        if v_tag_id is null then
-            select tt.id
-            into v_tag_id
-            from public.transaction_tag tt
-            where tt.ledger_id = p_ledger_id
-              and tt.is_archived = false
-              and lower(tt.name) = lower(v_tag_name)
-            limit 1;
-        end if;
-
-        if v_tag_id is null then
-            begin
-                insert into public.transaction_tag (
-                    ledger_id,
-                    name,
-                    created_by,
-                    updated_by
-                ) values (
-                    p_ledger_id,
-                    v_tag_name,
-                    p_user_id,
-                    p_user_id
-                )
-                returning id into v_tag_id;
-            exception when unique_violation then
-                select tt.id
-                into v_tag_id
-                from public.transaction_tag tt
-                where tt.ledger_id = p_ledger_id
-                  and tt.is_archived = false
-                  and lower(tt.name) = lower(v_tag_name)
-                limit 1;
-            end;
-        end if;
-
-        -- 极端竞态下（INSERT 冲突后对方立即删除）兜底
-        if v_tag_id is null then
-            raise exception 'tag_sync_failed' using errcode = '22023';
-        end if;
-
-        v_tag_ids := array_append(v_tag_ids, v_tag_id);
-    end loop;
-
-    delete from public.transaction_record_tag trt
-    where trt.ledger_id = p_ledger_id
-      and trt.transaction_record_id = p_transaction_record_id;
-
-    foreach v_tag_id in array v_tag_ids
-    loop
-        insert into public.transaction_record_tag (
-            ledger_id,
-            transaction_record_id,
-            tag_id,
-            sort_order,
-            created_by
-        ) values (
-            p_ledger_id,
-            p_transaction_record_id,
-            v_tag_id,
-            v_sort_order,
-            p_user_id
-        )
-        on conflict do nothing;
-
-        v_sort_order := v_sort_order + 1;
-    end loop;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3523,7 +3277,7 @@ $$;
 ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_tag_names" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -3684,19 +3438,13 @@ begin
         v_sort_order := v_sort_order + 1;
     end loop;
 
-    perform public.sync_transaction_record_tags(
-        p_ledger_id,
-        p_transaction_record_id,
-        p_tag_names,
-        v_user_id
-    );
 
     return p_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_tag_names" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -4540,40 +4288,6 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_record" (
 ALTER TABLE "public"."transaction_record" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."transaction_record_tag" (
-    "ledger_id" "uuid" NOT NULL,
-    "transaction_record_id" "uuid" NOT NULL,
-    "tag_id" "uuid" NOT NULL,
-    "sort_order" integer DEFAULT 0 NOT NULL,
-    "created_by" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."transaction_record_tag" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."transaction_tag" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "ledger_id" "uuid" NOT NULL,
-    "name" "text" NOT NULL,
-    "color" "text",
-    "is_archived" boolean DEFAULT false NOT NULL,
-    "archived_by" "uuid",
-    "archived_at" timestamp with time zone,
-    "created_by" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_by" "uuid",
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "transaction_tag_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
-    CONSTRAINT "transaction_tag_color_check" CHECK ((("color" IS NULL) OR ("color" ~ '^#[0-9A-Fa-f]{6}$'::"text"))),
-    CONSTRAINT "transaction_tag_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 40)))
-);
-
-
-ALTER TABLE "public"."transaction_tag" OWNER TO "postgres";
-
-
 ALTER TABLE ONLY "public"."auth_otp_attempt" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."auth_otp_attempt_id_seq"'::"regclass");
 
 
@@ -4700,21 +4414,6 @@ ALTER TABLE ONLY "public"."transaction_record"
 
 ALTER TABLE ONLY "public"."transaction_record"
     ADD CONSTRAINT "transaction_record_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_record_tag"
-    ADD CONSTRAINT "transaction_record_tag_pkey" PRIMARY KEY ("ledger_id", "transaction_record_id", "tag_id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_id_ledger_id_unique" UNIQUE ("id", "ledger_id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_pkey" PRIMARY KEY ("id");
 
 
 
@@ -4890,18 +4589,6 @@ CREATE INDEX "transaction_record_merchant_id_idx" ON "public"."transaction_recor
 
 
 
-CREATE INDEX "transaction_record_tag_tag_idx" ON "public"."transaction_record_tag" USING "btree" ("ledger_id", "tag_id");
-
-
-
-CREATE INDEX "transaction_tag_active_idx" ON "public"."transaction_tag" USING "btree" ("ledger_id", "id") WHERE ("is_archived" = false);
-
-
-
-CREATE UNIQUE INDEX "transaction_tag_active_name_unique" ON "public"."transaction_tag" USING "btree" ("ledger_id", "lower"("name")) WHERE ("is_archived" = false);
-
-
-
 CREATE OR REPLACE TRIGGER "account_holder_require_management_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."account_holder" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_ledger_management_permission"('ledger_id');
 
 
@@ -5054,19 +4741,7 @@ CREATE OR REPLACE TRIGGER "transaction_record_set_updated_at" BEFORE UPDATE ON "
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_record_tag_require_write_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_record_tag" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_transaction_child_permission"();
-
-
-
 CREATE OR REPLACE TRIGGER "transaction_record_validate" BEFORE INSERT OR UPDATE ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record"();
-
-
-
-CREATE OR REPLACE TRIGGER "transaction_tag_require_management_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_tag" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_ledger_management_permission"('ledger_id');
-
-
-
-CREATE OR REPLACE TRIGGER "transaction_tag_set_updated_at" BEFORE UPDATE ON "public"."transaction_tag" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
@@ -5360,43 +5035,8 @@ ALTER TABLE ONLY "public"."transaction_record"
 
 
 
-ALTER TABLE ONLY "public"."transaction_record_tag"
-    ADD CONSTRAINT "transaction_record_tag_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_record_tag"
-    ADD CONSTRAINT "transaction_record_tag_record_same_ledger_fk" FOREIGN KEY ("transaction_record_id", "ledger_id") REFERENCES "public"."transaction_record"("id", "ledger_id") ON DELETE RESTRICT;
-
-
-
-ALTER TABLE ONLY "public"."transaction_record_tag"
-    ADD CONSTRAINT "transaction_record_tag_tag_same_ledger_fk" FOREIGN KEY ("tag_id", "ledger_id") REFERENCES "public"."transaction_tag"("id", "ledger_id") ON DELETE RESTRICT;
-
-
-
 ALTER TABLE ONLY "public"."transaction_record"
     ADD CONSTRAINT "transaction_record_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_archived_by_fkey" FOREIGN KEY ("archived_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_ledger_id_fkey" FOREIGN KEY ("ledger_id") REFERENCES "public"."ledger"("id") ON DELETE RESTRICT;
-
-
-
-ALTER TABLE ONLY "public"."transaction_tag"
-    ADD CONSTRAINT "transaction_tag_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."app_user"("id");
 
 
 
@@ -5604,48 +5244,7 @@ CREATE POLICY "transaction_record_select_active_member" ON "public"."transaction
 
 
 
-ALTER TABLE "public"."transaction_record_tag" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "transaction_record_tag_delete_authorized" ON "public"."transaction_record_tag" FOR DELETE TO "authenticated" USING ("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id"));
-
-
-
-CREATE POLICY "transaction_record_tag_insert_authorized" ON "public"."transaction_record_tag" FOR INSERT TO "authenticated" WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id") AND (EXISTS ( SELECT 1
-   FROM "public"."transaction_tag" "tt"
-  WHERE (("tt"."id" = "transaction_record_tag"."tag_id") AND ("tt"."ledger_id" = "transaction_record_tag"."ledger_id") AND ("tt"."is_archived" = false))))));
-
-
-
-CREATE POLICY "transaction_record_tag_select_active_record" ON "public"."transaction_record_tag" FOR SELECT TO "authenticated" USING (("public"."current_user_is_active_ledger_member"("ledger_id") AND (EXISTS ( SELECT 1
-   FROM "public"."transaction_record" "tr"
-  WHERE (("tr"."id" = "transaction_record_tag"."transaction_record_id") AND ("tr"."ledger_id" = "transaction_record_tag"."ledger_id") AND ("tr"."status" = 'active'::"text"))))));
-
-
-
 CREATE POLICY "transaction_record_update_authorized" ON "public"."transaction_record" FOR UPDATE TO "authenticated" USING ("public"."current_user_can_mutate_transaction"("ledger_id", "id")) WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "id") AND ((NOT ("created_by" IS DISTINCT FROM "auth"."uid"())) OR "public"."current_user_can_manage_ledger"("ledger_id"))));
-
-
-
-ALTER TABLE "public"."transaction_tag" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "transaction_tag_insert_admin" ON "public"."transaction_tag" FOR INSERT TO "authenticated" WITH CHECK (("public"."current_user_can_manage_ledger"("ledger_id") AND ("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)));
-
-
-
-CREATE POLICY "transaction_tag_select_active_member" ON "public"."transaction_tag" FOR SELECT TO "authenticated" USING ((("is_archived" = false) AND "public"."current_user_is_active_ledger_member"("ledger_id")));
-
-
-
-CREATE POLICY "transaction_tag_select_assigned_archived" ON "public"."transaction_tag" FOR SELECT TO "authenticated" USING (("public"."current_user_is_active_ledger_member"("ledger_id") AND (EXISTS ( SELECT 1
-   FROM ("public"."transaction_record_tag" "trt"
-     JOIN "public"."transaction_record" "tr" ON ((("tr"."id" = "trt"."transaction_record_id") AND ("tr"."ledger_id" = "trt"."ledger_id"))))
-  WHERE (("trt"."tag_id" = "transaction_tag"."id") AND ("trt"."ledger_id" = "transaction_tag"."ledger_id") AND ("tr"."status" = 'active'::"text"))))));
-
-
-
-CREATE POLICY "transaction_tag_update_admin" ON "public"."transaction_tag" FOR UPDATE TO "authenticated" USING ("public"."current_user_can_manage_ledger"("ledger_id")) WITH CHECK ("public"."current_user_can_manage_ledger"("ledger_id"));
 
 
 
@@ -5685,7 +5284,8 @@ REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() F
 
 
 
-GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_tag_names" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
 
 
 
@@ -5713,7 +5313,8 @@ GRANT ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "tex
 
 
 
-GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_tag_names" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
@@ -5800,8 +5401,8 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 
 
-REVOKE ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_tag_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_tag_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) TO "authenticated";
 
 
 
@@ -5823,10 +5424,6 @@ GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_i
 
 
 
-REVOKE ALL ON FUNCTION "public"."sync_transaction_record_tags"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_tag_names" "jsonb", "p_user_id" "uuid") FROM PUBLIC;
-
-
-
 REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "authenticated";
 
@@ -5837,7 +5434,8 @@ GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uu
 
 
 
-GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_tag_names" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
@@ -5909,18 +5507,6 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item" 
 
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."transaction_record" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record" TO "service_role";
-
-
-
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record_tag" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record_tag" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record_tag" TO "service_role";
-
-
-
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_tag" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_tag" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_tag" TO "service_role";
 
 
 

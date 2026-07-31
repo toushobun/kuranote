@@ -101,15 +101,6 @@ describe("current ledger 数据边界", () => {
     }
   });
 
-  it("标签同步只读取和写入目标账本内的标签及关联", () => {
-    const functionSql = getFunctionSql("sync_transaction_record_tags");
-
-    expect(functionSql).toContain("trt.ledger_id = p_ledger_id");
-    expect(functionSql).toContain("tt.ledger_id = p_ledger_id");
-    expect(functionSql).toContain("p_ledger_id,");
-    expect(functionSql).toContain("p_transaction_record_id");
-  });
-
   it("非时间维度交易分组 RPC 只读取 active 成员可访问的目标账本", () => {
     const functionSql = getFunctionSql("load_transaction_group_summaries");
 
@@ -118,14 +109,13 @@ describe("current ledger 数据边界", () => {
       "current_user_is_active_ledger_member(p_ledger_id)",
     );
     expect(functionSql).toContain("ti.ledger_id = p_ledger_id");
-    expect(functionSql).toContain("trt.ledger_id = p_ledger_id");
+    expect(functionSql).not.toContain("transaction_record_tag");
   });
 
   it.each([
     ["account", "account_require_management_permission"],
     ["category", "category_require_management_permission"],
     ["merchant", "merchant_require_management_permission"],
-    ["transaction_tag", "transaction_tag_require_management_permission"],
   ])("基础数据表 %s 的写入由管理权限 trigger 兜底", (table, trigger) => {
     expect(permissionMigrationSql).toContain(
       `create trigger ${trigger}\nbefore insert or update or delete on public.${table}\nfor each row execute function public.enforce_ledger_management_permission('ledger_id');`,
@@ -135,10 +125,6 @@ describe("current ledger 数据边界", () => {
   it.each([
     ["transaction_record", "transaction_record_require_write_permission"],
     ["transaction_item", "transaction_item_require_write_permission"],
-    [
-      "transaction_record_tag",
-      "transaction_record_tag_require_write_permission",
-    ],
   ])("交易表 %s 的写入由交易权限 trigger 兜底", (table, trigger) => {
     const permissionFunction =
       table === "transaction_record"

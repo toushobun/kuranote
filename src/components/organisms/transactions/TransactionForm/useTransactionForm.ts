@@ -2,17 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
-import {
-  maxTransactionTagCount,
-  maxTransactionTagNameLength,
-} from "@/constants/transactions";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import type {
   TransactionCategoryOption,
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
-import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 import {
   composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
@@ -41,7 +36,6 @@ type UseTransactionFormOptions = Pick<
   | "initialValues"
   | "merchantOptions"
   | "onSubmitDisabledChange"
-  | "tagOptions"
 >;
 
 export function useTransactionForm({
@@ -51,14 +45,12 @@ export function useTransactionForm({
   initialValues,
   merchantOptions,
   onSubmitDisabledChange,
-  tagOptions,
 }: UseTransactionFormOptions) {
   const markEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
   const merchantFieldRef = useRef<HTMLDivElement>(null);
   const accountFieldRef = useRef<HTMLDivElement>(null);
   const itemsFieldRef = useRef<HTMLDivElement>(null);
-  const tagsFieldRef = useRef<HTMLDivElement>(null);
   const isFirstRenderRef = useRef(true);
   const [selectedType, setSelectedType] = useState<TransactionType>(
     initialValues?.type ?? initialType ?? "expense",
@@ -84,10 +76,6 @@ export function useTransactionForm({
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
-  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(
-    initialValues?.tagNames ?? [],
-  );
-  const [newTagName, setNewTagName] = useState("");
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
@@ -154,9 +142,6 @@ export function useTransactionForm({
   const selectedMerchant = merchantOptions.find(
     (merchant) => merchant.id === selectedMerchantId,
   );
-  const suggestedTagOptions = tagOptions.filter(
-    (tag) => !hasTagName(selectedTagNames, tag.name),
-  );
   const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
     (item) => ({
       ...item,
@@ -176,7 +161,6 @@ export function useTransactionForm({
     allDisplayItems.every(
       (item) => item.categoryId.length > 0 && isValidMoneyText(item.amount),
     );
-  const hasValidTags = !getSelectedTagError(selectedTagNames);
   const transactionAtValue = composeTransactionDateTimeLocalValue(
     transactionDate,
     transactionTime,
@@ -185,8 +169,7 @@ export function useTransactionForm({
     accountOptions.length === 0 ||
     merchantOptions.length === 0 ||
     allNormalCategoryOptions.length === 0 ||
-    !transactionAtValue ||
-    !hasValidTags;
+    !transactionAtValue;
 
   useEffect(() => {
     onSubmitDisabledChange?.(isSubmitDisabled);
@@ -278,39 +261,6 @@ export function useTransactionForm({
       setPickerCategoryId("");
       setPickerAmount("");
       setPickerErrors({});
-    }
-  }
-
-  function addTag(tagName: string) {
-    const normalizedTagName = tagName.trim();
-
-    if (!normalizedTagName) return;
-
-    const tagError = getNextTagError(selectedTagNames, normalizedTagName);
-
-    if (tagError) {
-      setFieldErrors((current) => ({ ...current, tags: tagError }));
-      return;
-    }
-
-    markEditDirty?.();
-    setSelectedTagNames((current) => [...current, normalizedTagName]);
-    setNewTagName("");
-    if (fieldErrors.tags) {
-      setFieldErrors((current) => ({ ...current, tags: undefined }));
-    }
-  }
-
-  function removeTag(tagName: string) {
-    markEditDirty?.();
-    setSelectedTagNames((current) =>
-      current.filter(
-        (currentTagName) =>
-          currentTagName.toLowerCase() !== tagName.toLowerCase(),
-      ),
-    );
-    if (fieldErrors.tags) {
-      setFieldErrors((current) => ({ ...current, tags: undefined }));
     }
   }
 
@@ -412,13 +362,6 @@ export function useTransactionForm({
     }
   }
 
-  function handleNewTagNameChange(tagName: string) {
-    setNewTagName(tagName);
-    if (fieldErrors.tags) {
-      setFieldErrors((current) => ({ ...current, tags: undefined }));
-    }
-  }
-
   function handleNoteChange() {
     markEditDirty?.();
   }
@@ -440,8 +383,6 @@ export function useTransactionForm({
     }
 
     const errors: TransactionFieldErrors = {};
-    const tagError = getSelectedTagError(selectedTagNames);
-
     if (!selectedMerchantId) {
       errors.merchant = transactionFormValidationMessages.merchantRequired;
     }
@@ -450,9 +391,6 @@ export function useTransactionForm({
     }
     if (!hasValidItems) {
       errors.items = transactionFormValidationMessages.itemsRequired;
-    }
-    if (tagError) {
-      errors.tags = tagError;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -463,9 +401,7 @@ export function useTransactionForm({
           ? merchantFieldRef
           : errors.account
             ? accountFieldRef
-            : errors.items
-              ? itemsFieldRef
-              : tagsFieldRef;
+            : itemsFieldRef;
         firstErrorRef.current?.scrollIntoView?.({
           behavior: "smooth",
           block: "center",
@@ -486,7 +422,6 @@ export function useTransactionForm({
     handleAccountChange,
     handleDateChange,
     handleMerchantChange,
-    handleNewTagNameChange,
     handleNoteChange,
     handlePickerAdd,
     handlePickerAmountChange,
@@ -499,30 +434,24 @@ export function useTransactionForm({
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
-    newTagName,
     openItemSheet,
     openSheet,
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
     removeItem,
-    removeTag,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
-    selectedTagNames,
     selectedType,
     signedTotalAmount,
-    suggestedTagOptions,
-    tagsFieldRef,
     timeZoneOffsetMinutes,
     transactionAtValue,
     transactionDate,
     transactionTime,
     updateItem,
-    addTag,
   };
 }
 
@@ -554,41 +483,4 @@ function formatNetAmount(net: number) {
   const value = parseFloat(net.toFixed(2));
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
-}
-
-function getNextTagError(tagNames: string[], tagName: string) {
-  if (tagName.length > maxTransactionTagNameLength) {
-    return transactionTagValidationMessages.nameTooLong;
-  }
-
-  if (hasTagName(tagNames, tagName)) {
-    return transactionTagValidationMessages.duplicate;
-  }
-
-  // 新标签尚未追加，因此当前列表已满时拒绝第 11 个标签。
-  if (tagNames.length >= maxTransactionTagCount) {
-    return transactionTagValidationMessages.tooMany;
-  }
-
-  return null;
-}
-
-function getSelectedTagError(tagNames: string[]) {
-  if (tagNames.length > maxTransactionTagCount) {
-    return transactionTagValidationMessages.tooMany;
-  }
-
-  if (
-    tagNames.some((tagName) => tagName.length > maxTransactionTagNameLength)
-  ) {
-    return transactionTagValidationMessages.nameTooLong;
-  }
-
-  return null;
-}
-
-function hasTagName(tagNames: string[], tagName: string) {
-  return tagNames.some(
-    (currentTagName) => currentTagName.toLowerCase() === tagName.toLowerCase(),
-  );
 }

@@ -1,6 +1,3 @@
-export const maxTransactionTagCount = 10;
-export const maxTransactionTagNameLength = 40;
-
 export const transactionDateTimePickerMessages = {
   calendarLabel: "记账日期",
   close: "完成",

@@ -28,7 +28,6 @@ type StoryItemOptions = {
   merchantName: string | null;
   note?: string | null;
   recorderName?: string | null;
-  tagNames?: string[];
   time: string;
   type?: TransactionListItem["type"];
 };
@@ -45,7 +44,6 @@ function createStoryItem({
   merchantName,
   note = null,
   recorderName = "我",
-  tagNames = [],
   time,
   type = "expense",
 }: StoryItemOptions): TransactionListItem {
@@ -60,7 +58,6 @@ function createStoryItem({
     merchant_name: merchantName,
     note,
     recorder_name: recorderName,
-    tagNames,
     transaction_at: time,
     type,
   } as TransactionListItem;
@@ -115,7 +112,6 @@ const currentMonthDateGroups = [
         idSuffix: "941001",
         merchantName: "松本清",
         note: "买完发现又忘了带优惠券",
-        tagNames: ["腐败", "日常", "孩子"],
         time: atTime(today, 9, 41),
       }),
       createStoryItem({
@@ -135,7 +131,6 @@ const currentMonthDateGroups = [
         idSuffix: "941002",
         merchantName: "伊藤洋华堂",
         recorderName: "妻",
-        tagNames: ["日常", "腐败"],
         time: atTime(today, 14, 15),
       }),
       createStoryItem({
@@ -151,7 +146,6 @@ const currentMonthDateGroups = [
         idSuffix: "941004",
         merchantName: "测试公司",
         recorderName: "我",
-        tagNames: ["公司"],
         time: atTime(today, 10, 10),
         type: "income",
       }),
@@ -179,7 +173,6 @@ const currentMonthDateGroups = [
         ],
         idSuffix: "941003",
         merchantName: null,
-        tagNames: [],
         time: atTime(yesterday, 9, 20),
       }),
     ],
@@ -214,7 +207,6 @@ const previousMonthDateGroups = [
         idSuffix: "951001",
         merchantName: "家附近商店",
         recorderName: "我",
-        tagNames: ["孩子", "腐败"],
         time: atTime(oneMonthAgo, 18, 35),
       }),
       createStoryItem({
@@ -224,7 +216,6 @@ const previousMonthDateGroups = [
         idSuffix: "951002",
         merchantName: null,
         recorderName: "我",
-        tagNames: [],
         time: atTime(oneMonthAgo, 20, 15),
         type: "transfer",
       }),

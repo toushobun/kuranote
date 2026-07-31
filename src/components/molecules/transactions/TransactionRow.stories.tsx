@@ -6,9 +6,7 @@ import type { TransactionRowItem } from "types/transactions";
 import { TransactionRow } from "./TransactionRow";
 
 // seed 9001: 業務スーパー 2026-06-05, expense, 2858 JPY, 4 categories
-const expenseItem: TransactionRowItem & {
-  tagItems?: { name: string; color: string }[];
-} = {
+const expenseItem: TransactionRowItem = {
   id: "00000000-0000-4000-8000-000000009001",
   type: "expense",
   transaction_at: "2026-06-05T10:30:00.000Z",
@@ -45,8 +43,6 @@ const expenseItem: TransactionRowItem & {
   merchant_icon_url: null,
   note: "猪肉・鸡腿・蔬菜",
   recorder_name: "淞文",
-  tagNames: [],
-  tagItems: [{ name: "日常", color: "#DBEAFE" }],
 };
 
 // seed 9016: 株式会社共逹 2026-06-01, income, 323000 JPY, 4 categories
@@ -87,7 +83,6 @@ const incomeItem: TransactionRowItem = {
   merchant_icon_url: null,
   note: null,
   recorder_name: null,
-  tagNames: [],
 };
 
 const transferItem: TransactionRowItem = {
@@ -102,7 +97,6 @@ const transferItem: TransactionRowItem = {
   merchant_icon_url: null,
   note: null,
   recorder_name: "淞文",
-  tagNames: [],
 };
 
 const meta = {
@@ -145,50 +139,12 @@ export const Transfer: Story = {
   },
 };
 
-export const MultipleTags: Story = {
-  name: "多标签",
-  args: {
-    item: {
-      ...expenseItem,
-      tagItems: [
-        { name: "日常", color: "#DBEAFE" },
-        { name: "孩子", color: "#FCE7F3" },
-        { name: "公司", color: "#D1FAE5" },
-        { name: "旅行", color: "#FEF3C7" },
-        { name: "外食", color: "#FEE2E2" },
-      ],
-    } as TransactionRowItem,
-  },
-};
-
-export const ManyTags: Story = {
-  name: "标签特别多",
-  args: {
-    item: {
-      ...expenseItem,
-      tagItems: [
-        { name: "日常", color: "#DBEAFE" },
-        { name: "孩子", color: "#FCE7F3" },
-        { name: "公司", color: "#D1FAE5" },
-        { name: "腐败", color: "#FEF3C7" },
-        { name: "旅行", color: "#FEE2E2" },
-        { name: "猫粮", color: "#EDE9FE" },
-        { name: "外食", color: "#ECFDF5" },
-        { name: "药局", color: "#FFF7ED" },
-        { name: "交通", color: "#EFF6FF" },
-        { name: "长标签名称测试", color: "#F0FDF4" },
-      ],
-    } as TransactionRowItem,
-  },
-};
-
 export const NoMetaRow: Story = {
   name: "第二行全部为空",
   args: {
     item: {
       ...expenseItem,
       recorder_name: null,
-      tagNames: [],
     },
     showAccount: false,
     showRecorder: false,
@@ -332,17 +288,13 @@ export const ManyIncomeCategories: Story = {
 };
 
 export const LongText: Story = {
-  name: "长商家名 / 长备注 / 长标签",
+  name: "长商家名 / 长备注",
   args: {
     item: {
       ...expenseItem,
       merchant_name:
         "非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的商家名称便利店",
       note: "这是一条非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的备注内容",
-      tagItems: [
-        { name: "非常长的标签名称会被截断", color: "#DBEAFE" },
-        { name: "日常", color: "#FCE7F3" },
-      ],
     } as TransactionRowItem,
   },
 };

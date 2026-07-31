@@ -13,7 +13,6 @@ import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
-import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 
 import {
   drawerFooterSx,
@@ -84,19 +83,6 @@ const merchantOptions = [
   },
 ];
 
-const tagOptions = [
-  {
-    id: "00000000-0000-4000-8000-000000003001",
-    name: "日常",
-    color: null,
-  },
-  {
-    id: "00000000-0000-4000-8000-000000003002",
-    name: "公司",
-    color: "#176A66",
-  },
-];
-
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -112,7 +98,6 @@ function renderForm(
       accountOptions={accountOptions}
       categoryOptions={categoryOptions}
       merchantOptions={merchantOptions}
-      tagOptions={tagOptions}
       {...props}
     />,
   );
@@ -132,10 +117,6 @@ function clickSheetAddButton() {
   fireEvent.click(screen.getByRole("button", { name: "确定" }));
 }
 
-function openTagInput(container: HTMLElement) {
-  fireEvent.click(within(container).getByRole("button", { name: "追加" }));
-}
-
 function addItemViaSheet(
   container: HTMLElement,
   categoryName: string,
@@ -151,12 +132,6 @@ function addItemViaSheet(
   clickSheetAddButton();
 }
 
-function getSubmittedTagNames(container: HTMLElement) {
-  return Array.from(
-    container.querySelectorAll<HTMLInputElement>('input[name="tagName"]'),
-  ).map((input) => input.value);
-}
-
 function getSubmittedTransactionAt(container: HTMLElement) {
   const input = container.querySelector<HTMLInputElement>(
     'input[name="transactionAt"]',
@@ -167,13 +142,12 @@ function getSubmittedTransactionAt(container: HTMLElement) {
   return input.value;
 }
 
-function createInitialValues(tagNames: string[] = []) {
+function createInitialValues() {
   return {
     accountId: accountOptions[0].id,
     items: [{ amount: "1200", categoryId: categoryOptions[0].id }],
     merchantId: merchantOptions[0].id,
     note: "",
-    tagNames,
     transactionAt: "2026-06-05T03:20:10.000Z",
     transactionRecordId: "00000000-0000-4000-8000-000000009001",
     type: "expense" as const,
@@ -217,11 +191,11 @@ describe("TransactionForm", () => {
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  it("编辑模式下回填发生日期、时间和标签", () => {
+  it("编辑模式下回填发生日期和时间", () => {
     const transactionAt = "2026-06-05T03:20:10.000Z";
     const expected = formatExpectedDateTimeParts(transactionAt);
     const { container } = renderForm({
-      initialValues: createInitialValues(["日常"]),
+      initialValues: createInitialValues(),
     });
 
     expect(
@@ -230,7 +204,6 @@ describe("TransactionForm", () => {
     expect(getSubmittedTransactionAt(container)).toBe(
       `${expected.dateValue}T${expected.timeValue}`,
     );
-    expect(getSubmittedTagNames(container)).toEqual(["日常"]);
   });
 
   it("时刻默认开启并保留具体时间", () => {
@@ -461,84 +434,6 @@ describe("TransactionForm", () => {
     ).toHaveLength(2);
   });
 
-  it("可选择已有标签并随表单提交", () => {
-    const { container } = renderForm();
-
-    fireEvent.click(within(container).getByRole("button", { name: "日常" }));
-
-    expect(getSubmittedTagNames(container)).toEqual(["日常"]);
-    expect(within(container).getByText("标签")).toBeInTheDocument();
-  });
-
-  it("可输入新标签，重复标签会显示提示且不会重复提交", () => {
-    const { container } = renderForm();
-    openTagInput(container);
-    const tagInput = within(container).getByRole("textbox", {
-      name: "新增标签",
-    });
-    const tagAddButton = within(container).getByRole("button", {
-      name: "追加",
-    });
-
-    fireEvent.change(tagInput, { target: { value: " 结婚 " } });
-    fireEvent.click(tagAddButton);
-    fireEvent.change(tagInput, { target: { value: "结婚" } });
-    fireEvent.click(tagAddButton);
-
-    expect(getSubmittedTagNames(container)).toEqual(["结婚"]);
-    expect(
-      within(container).getByText(transactionTagValidationMessages.duplicate),
-    ).toBeInTheDocument();
-  });
-
-  it("标签超过长度限制时显示独立错误", () => {
-    const { container } = renderForm();
-    openTagInput(container);
-
-    fireEvent.change(
-      within(container).getByRole("textbox", { name: "新增标签" }),
-      { target: { value: "あ".repeat(41) } },
-    );
-    fireEvent.click(within(container).getByRole("button", { name: "追加" }));
-
-    expect(
-      within(container).getByText(transactionTagValidationMessages.nameTooLong),
-    ).toBeInTheDocument();
-  });
-
-  it("标签超过 10 个时阻断第 11 个并显示独立错误", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues(
-        Array.from({ length: 10 }, (_, index) => `标签${index + 1}`),
-      ),
-    });
-    openTagInput(container);
-
-    fireEvent.change(
-      within(container).getByRole("textbox", { name: "新增标签" }),
-      { target: { value: "第 11 个" } },
-    );
-    fireEvent.click(within(container).getByRole("button", { name: "追加" }));
-
-    expect(getSubmittedTagNames(container)).toHaveLength(10);
-    expect(
-      within(container).getByText(transactionTagValidationMessages.tooMany),
-    ).toBeInTheDocument();
-  });
-
-  it("初始标签非法时禁用保存按钮", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues(["あ".repeat(41)]),
-    });
-
-    expect(
-      within(container).getByRole("button", { name: "保存" }),
-    ).toHaveProperty("disabled", true);
-    expect(
-      within(container).getByRole("button", { name: "保存记账" }),
-    ).toHaveProperty("disabled", true);
-  });
-
   it("时间字段显示在保存前汇总上面", () => {
     const { container } = renderForm();
 
@@ -586,7 +481,6 @@ describe("TransactionForm", () => {
       accountOptions,
       categoryOptions,
       merchantOptions,
-      tagOptions,
     };
     const { container, rerender } = render(
       <TransactionForm {...baseProps} initialType="expense" />,
@@ -607,7 +501,6 @@ describe("TransactionForm", () => {
       accountOptions,
       categoryOptions,
       merchantOptions,
-      tagOptions,
     };
     const { container, rerender } = render(
       <TransactionForm {...baseProps} initialType="expense" />,

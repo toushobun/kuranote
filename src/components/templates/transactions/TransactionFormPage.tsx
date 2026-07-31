@@ -47,7 +47,6 @@ import type {
   TransactionMerchantOption,
   TransactionRecordType,
   TransactionStateAction,
-  TransactionTagOption,
   TransactionType,
 } from "types/transactions";
 
@@ -59,7 +58,6 @@ export type TransactionFormTemplateProps = {
   initialType?: TransactionRecordType;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
-  tagOptions: TransactionTagOption[];
 };
 
 type EditTransactionTemplateProps = Omit<
@@ -235,7 +233,6 @@ function NewTransactionFormView({
   errorMessage,
   initialType,
   merchantOptions,
-  tagOptions,
 }: TransactionFormTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -279,7 +276,6 @@ function NewTransactionFormView({
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, expense: disabled }))
           }
-          tagOptions={tagOptions}
         />
       ),
       income: (
@@ -295,7 +291,6 @@ function NewTransactionFormView({
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
           }
-          tagOptions={tagOptions}
         />
       ),
       transfer: (
@@ -317,7 +312,6 @@ function NewTransactionFormView({
       categoryOptions,
       activeErrorMessage,
       merchantOptions,
-      tagOptions,
     ],
   );
 
@@ -574,7 +568,6 @@ export function EditTransferTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
-  tagOptions,
 }: EditTransferTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -615,7 +608,6 @@ export function EditTransferTransactionTemplate({
               }))
             }
             submitLabel="保存修改"
-            tagOptions={tagOptions}
           />
         </>
       ),
@@ -645,7 +637,6 @@ export function EditTransferTransactionTemplate({
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
             submitLabel="保存修改"
-            tagOptions={tagOptions}
           />
         </>
       ),
@@ -672,7 +663,6 @@ export function EditTransferTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
-      tagOptions,
     ],
   );
 
@@ -698,7 +688,6 @@ export function EditTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
-  tagOptions,
 }: EditTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -740,7 +729,6 @@ export function EditTransactionTemplate({
               }))
             }
             submitLabel="保存修改"
-            tagOptions={tagOptions}
           />
         </>
       ),
@@ -770,7 +758,6 @@ export function EditTransactionTemplate({
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
             submitLabel="保存修改"
-            tagOptions={tagOptions}
           />
         </>
       ),
@@ -800,7 +787,6 @@ export function EditTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
-      tagOptions,
     ],
   );
 
@@ -860,7 +846,6 @@ function createNormalInitialValuesFromTransfer(
     items: [],
     merchantId: "",
     note: initialValues.note,
-    tagNames: [],
     transactionAt: initialValues.transactionAt,
     transactionRecordId: initialValues.transactionRecordId,
     type: targetType,

@@ -35,7 +35,6 @@ function createItem(
     merchant_icon_url: null,
     note: null,
     recorder_name: null,
-    tagNames: [],
     ...overrides,
   };
 }
@@ -336,23 +335,6 @@ describe("TransactionRow", () => {
     expect(screen.getByText("餐饮")).toBeInTheDocument();
     expect(screen.queryByText("饮食 > 餐饮")).toBeNull();
     expect(screen.queryByText("餐饮等")).toBeNull();
-  });
-
-  it("显示标签且去重后保留全部标签", () => {
-    render(
-      <TransactionRow
-        item={createItem({
-          tagNames: ["日常", "孩子", "公司", "旅行", "日常", "多余"],
-        })}
-      />,
-    );
-
-    expect(screen.getByText("日常")).toBeInTheDocument();
-    expect(screen.getByText("孩子")).toBeInTheDocument();
-    expect(screen.getByText("公司")).toBeInTheDocument();
-    expect(screen.getByText("旅行")).toBeInTheDocument();
-    expect(screen.getByText("多余")).toBeInTheDocument();
-    expect(screen.queryByText("日常、孩子、公司、旅行、多余")).toBeNull();
   });
 
   it("长商家名仍可渲染", () => {

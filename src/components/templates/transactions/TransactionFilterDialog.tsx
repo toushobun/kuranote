@@ -158,17 +158,6 @@ export function TransactionFilterDialog({
               }
             />
             <TransactionFilterSelect
-              label="标签"
-              options={filterOptions.tags.map((tag) => ({
-                label: tag.name,
-                value: tag.id,
-              }))}
-              value={draftFilters.tagId}
-              onChange={(value) =>
-                onChangeFilters({ ...draftFilters, tagId: value })
-              }
-            />
-            <TransactionFilterSelect
               label="分类"
               options={filterOptions.categories.map((category) => ({
                 label: category.parentName

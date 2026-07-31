@@ -4,7 +4,6 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
-  TransactionTagOption,
   TransactionType,
 } from "types/transactions";
 
@@ -23,7 +22,6 @@ export type TransactionFormProps = {
   merchantOptions: TransactionMerchantOption[];
   onSubmitDisabledChange?: (disabled: boolean) => void;
   submitLabel?: string;
-  tagOptions: TransactionTagOption[];
   title?: string;
   typeNavigation?: ReactNode;
 };
@@ -38,7 +36,6 @@ export type TransactionFormInitialValues = {
   items: TransactionFormInitialItem[];
   merchantId: string;
   note: string;
-  tagNames: string[];
   transactionAt: string;
   transactionRecordId?: string;
   type: TransactionType;
@@ -64,7 +61,6 @@ export type TransactionFieldErrors = {
   account?: string;
   items?: string;
   merchant?: string;
-  tags?: string;
 };
 
 export type TransactionPickerErrors = {

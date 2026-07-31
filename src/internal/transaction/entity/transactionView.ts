@@ -16,7 +16,6 @@ export type EditTransactionView = TransactionFormOptions & {
         items: { amount: string; categoryId: string }[];
         merchantId: string;
         note: string;
-        tagNames: string[];
         transactionAt: string;
         transactionRecordId: string;
         type: TransactionType;

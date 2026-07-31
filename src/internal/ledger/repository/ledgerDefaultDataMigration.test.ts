@@ -11,6 +11,14 @@ const migrationSql = readFileSync(
   "utf8",
 );
 
+const removeTagsMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260731020336_remove_transaction_tags.sql",
+  ),
+  "utf8",
+);
+
 const currentLedgerMigrationSql = readFileSync(
   join(
     process.cwd(),
@@ -40,29 +48,25 @@ describe("账本默认数据初始化 migration", () => {
     );
   });
 
-  it("默认标签是 8 个，且包含指定的生产初始化集合", () => {
-    const tagBlock = extractValuesBlock(migrationSql, "default_tag");
-    const tagRows = Array.from(
-      tagBlock.matchAll(/\(\s*'[^']+'\s*,\s*'#[0-9A-Fa-f]{6}'\s*,\s*\d+\s*\)/g),
+  it("移除标签后账本初始化不再创建默认标签", () => {
+    const functionStart = removeTagsMigrationSql.indexOf(
+      "create or replace function public.initialize_ledger_default_data",
+    );
+    const functionEnd = removeTagsMigrationSql.indexOf("\n$$;", functionStart);
+    const functionSql = removeTagsMigrationSql.slice(
+      functionStart,
+      functionEnd,
     );
 
-    expect(tagRows).toHaveLength(8);
-    expect(tagBlock).toContain("('日常', '#E0F2FE', 10)");
-    expect(tagBlock).toContain("('腐败', '#FCE7F3', 20)");
-    expect(tagBlock).toContain("('公司', '#D1FAE5', 30)");
-    expect(tagBlock).toContain("('人情', '#BBF7D0', 40)");
-    expect(tagBlock).toContain("('孩子', '#FED7AA', 50)");
-    expect(tagBlock).toContain("('旅游', '#DBEAFE', 60)");
-    expect(tagBlock).toContain("('装修', '#DDD6FE', 70)");
-    expect(tagBlock).toContain("('结婚', '#FDE68A', 80)");
-  });
-
-  it("migration 不包含旧中间态标签", () => {
-    expect(migrationSql).not.toContain("'旅行'");
-    expect(migrationSql).not.toContain("'医疗'");
-    expect(migrationSql).not.toContain("'固定支出'");
-    expect(migrationSql).not.toContain("'临时'");
-    expect(migrationSql).not.toContain("'报销'");
+    expect(functionStart).toBeGreaterThanOrEqual(0);
+    expect(functionEnd).toBeGreaterThan(functionStart);
+    expect(functionSql).not.toContain("transaction_tag");
+    expect(removeTagsMigrationSql).toContain(
+      "drop table if exists public.transaction_record_tag",
+    );
+    expect(removeTagsMigrationSql).toContain(
+      "drop table if exists public.transaction_tag",
+    );
   });
 
   it("商家别名初始化条数与 seed 覆盖数量保持一致，都是 110", () => {

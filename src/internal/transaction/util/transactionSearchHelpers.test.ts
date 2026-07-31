@@ -145,7 +145,6 @@ function createItem({
     merchant_name: merchantName,
     note,
     recorder_name: recorderName,
-    tagNames: ["日常"],
     transaction_at: transactionAt,
     type: "expense",
   };

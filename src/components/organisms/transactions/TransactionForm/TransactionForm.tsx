@@ -18,7 +18,6 @@ import { routePaths } from "config/paths";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { getMerchantInitial } from "utils/merchants";
-import { transactionTagValidationMessages } from "utils/transactionTagValidationMessages";
 import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import { TransactionItemsSection } from "../TransactionItemsSection/TransactionItemsSection";
 import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
@@ -26,7 +25,6 @@ import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
 } from "../TransactionSelectionValue/TransactionSelectionValue";
-import { TransactionTagSection } from "../TransactionTagSection/TransactionTagSection";
 import {
   transactionFieldGroupSx,
   transactionFormStackSx,
@@ -54,13 +52,11 @@ export function TransactionForm({
   merchantOptions,
   onSubmitDisabledChange,
   submitLabel = "保存记账",
-  tagOptions,
   title = "新增记账",
   typeNavigation,
 }: TransactionFormProps) {
   const {
     accountFieldRef,
-    addTag,
     allNormalCategoryOptions,
     categoryGroups,
     closeSheet,
@@ -69,7 +65,6 @@ export function TransactionForm({
     handleAccountChange,
     handleDateChange,
     handleMerchantChange,
-    handleNewTagNameChange,
     handleNoteChange,
     handlePickerAdd,
     handlePickerAmountChange,
@@ -82,24 +77,19 @@ export function TransactionForm({
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
-    newTagName,
     openItemSheet,
     openSheet,
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
     removeItem,
-    removeTag,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
-    selectedTagNames,
     selectedType,
     signedTotalAmount,
-    suggestedTagOptions,
-    tagsFieldRef,
     timeZoneOffsetMinutes,
     transactionAtValue,
     transactionDate,
@@ -112,7 +102,6 @@ export function TransactionForm({
     initialValues,
     merchantOptions,
     onSubmitDisabledChange,
-    tagOptions,
   });
 
   return (
@@ -151,9 +140,6 @@ export function TransactionForm({
           />
         ) : null}
         <input name="type" type="hidden" value={selectedType} />
-        {selectedTagNames.map((tagName) => (
-          <input key={tagName} name="tagName" type="hidden" value={tagName} />
-        ))}
 
         <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
           <SectionTitle>商家</SectionTitle>
@@ -267,18 +253,6 @@ export function TransactionForm({
           signedTotalAmount={signedTotalAmount}
         />
 
-        <TransactionTagSection
-          fieldError={fieldErrors.tags}
-          helperText={fieldErrors.tags ?? transactionTagValidationMessages.hint}
-          newTagName={newTagName}
-          onAddTag={addTag}
-          onNewTagNameChange={handleNewTagNameChange}
-          onRemoveTag={removeTag}
-          selectedTagNames={selectedTagNames}
-          suggestedTagOptions={suggestedTagOptions}
-          tagsFieldRef={tagsFieldRef}
-        />
-
         <Box sx={transactionFieldGroupSx}>
           <SectionTitle>备注</SectionTitle>
           <TextField
@@ -306,7 +280,6 @@ export function TransactionForm({
           itemSummaries={itemSummaries}
           selectedAccount={selectedAccount}
           selectedMerchant={selectedMerchant}
-          selectedTagNames={selectedTagNames}
           signedTotalAmount={signedTotalAmount}
           transactionDate={transactionDate}
           transactionTime={transactionTime}

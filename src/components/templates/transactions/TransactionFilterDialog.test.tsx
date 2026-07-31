@@ -23,7 +23,6 @@ const filterOptions = {
   ],
   members: [],
   merchants: [],
-  tags: [],
 };
 
 describe("TransactionFilterDialog", () => {

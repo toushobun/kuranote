@@ -46,12 +46,11 @@ describe("transfer transaction validators", () => {
     });
   });
 
-  it("转账不要求商家、分类和标签", () => {
+  it("转账不要求商家和分类", () => {
     const formData = createTransferFormData({ merchantId: "" });
 
     formData.append("itemCategoryId", categoryId);
     formData.append("itemAmount", "1200");
-    formData.append("tagName", "很长的标签名".repeat(10));
 
     expect(validateTransactionForm(formData)).toEqual({
       ok: true,

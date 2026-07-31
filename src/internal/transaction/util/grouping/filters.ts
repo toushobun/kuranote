@@ -22,11 +22,10 @@ export function filterTransactionRecords(
 ) {
   const normalizedFilters = normalizeTransactionFilters(filters);
   const lookups = getTransactionGroupContextLookups(context);
-  const { categoryById, itemsByRecordId, tagsByRecordId } = lookups;
+  const { categoryById, itemsByRecordId } = lookups;
 
   return context.records.filter((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
-    const recordTags = tagsByRecordId.get(record.id) ?? [];
 
     if (!matchesDateRange(record, normalizedFilters)) return false;
     if (
@@ -74,12 +73,6 @@ export function filterTransactionRecords(
     ) {
       return false;
     }
-    if (
-      normalizedFilters.tagId &&
-      !recordTags.some((tag) => tag.tag_id === normalizedFilters.tagId)
-    ) {
-      return false;
-    }
 
     return true;
   });
@@ -98,7 +91,6 @@ export function normalizeTransactionFilters(
     memberId: normalizeOptionalValue(filters.memberId),
     merchantId: normalizeOptionalValue(filters.merchantId),
     parentCategoryId: normalizeOptionalValue(filters.parentCategoryId),
-    tagId: normalizeOptionalValue(filters.tagId),
   };
 }
 

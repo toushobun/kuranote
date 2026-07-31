@@ -7,6 +7,10 @@ const migrationPath = path.join(
   process.cwd(),
   "supabase/migrations/20260630010000_refactor_transaction_type_model.sql",
 );
+const removeTagsMigrationPath = path.join(
+  process.cwd(),
+  "supabase/migrations/20260731020336_remove_transaction_tags.sql",
+);
 const dropStatTypeMigrationPath = path.join(
   process.cwd(),
   "supabase/migrations/20260630020000_drop_transaction_item_stat_type.sql",
@@ -46,13 +50,27 @@ describe("普通记账 normal 类型后端规则", () => {
     expect(migration).toContain("category_prevent_used_type_change");
   });
 
-  it("保留带标签参数的 create / update RPC 签名", () => {
-    const migration = readMigration(migrationPath);
+  it("移除整体标签 RPC 参数、同步函数和数据表", () => {
+    const migration = readMigration(removeTagsMigrationPath);
 
-    expect(migration).toContain("p_tag_names jsonb default '[]'::jsonb");
-    expect(migration).toContain("public.sync_transaction_record_tags(");
+    expect(migration).toContain(
+      "drop function if exists public.sync_transaction_record_tags",
+    );
+    const policyDropIndex = migration.indexOf(
+      'drop policy if exists "transaction_tag_select_assigned_archived"',
+    );
+    const recordTagTableDropIndex = migration.indexOf(
+      "drop table if exists public.transaction_record_tag",
+    );
+
+    expect(policyDropIndex).toBeGreaterThanOrEqual(0);
+    expect(recordTagTableDropIndex).toBeGreaterThan(policyDropIndex);
+    expect(migration).toContain("drop table if exists public.transaction_tag");
     expect(migration).toContain("public.create_transaction(");
     expect(migration).toContain("public.update_transaction(");
+    expect(migration).toContain("public.convert_transaction_type(");
+    expect(migration).not.toContain("p_tag_names");
+    expect(migration).not.toContain("p_tag_id");
   });
 
   it("最终物理删除 transaction_item.stat_type", () => {

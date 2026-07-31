@@ -24,7 +24,6 @@ export function buildTransactionListItem({
   recorderById,
   recordItems,
   showRecorder = true,
-  tagNamesByRecordId,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
@@ -36,7 +35,6 @@ export function buildTransactionListItem({
   recorderById?: Map<string, AppUserSummaryDbRow>;
   recordItems: TransactionItemDbRow[];
   showRecorder?: boolean;
-  tagNamesByRecordId?: Map<string, string[]>;
 }): TransactionListItem {
   const recorder =
     record.created_by && recorderById
@@ -105,7 +103,6 @@ export function buildTransactionListItem({
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
     show_recorder: showRecorder,
-    tagNames: tagNamesByRecordId?.get(record.id) ?? [],
     transaction_at: record.transaction_at,
     type: displayType,
   };
@@ -180,7 +177,6 @@ function buildTransferListItem({
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
     show_recorder: showRecorder,
-    tagNames: [],
     transaction_at: record.transaction_at,
     type: "transfer",
   };

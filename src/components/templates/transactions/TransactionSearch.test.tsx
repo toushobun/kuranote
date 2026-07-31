@@ -292,7 +292,6 @@ function createItem({
     merchant_name: merchantName,
     note: null,
     recorder_name: "我",
-    tagNames: ["日常"],
     transaction_at: "2026-07-01T10:00:00.000Z",
     type: "expense",
   };

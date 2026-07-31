@@ -46,7 +46,6 @@ export function createDashboardRecentTransaction(
     merchant_name: "便利店",
     note: "测试备注",
     recorder_name: null,
-    tagNames: [],
     transaction_at: "2026-06-05T03:20:10.000Z",
     type: "expense",
     ...overrides,

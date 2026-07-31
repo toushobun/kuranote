@@ -24,7 +24,6 @@ const item: TransactionRowItem = {
   note: null,
   recorder_color: "amber",
   recorder_name: "淞文",
-  tagNames: [],
   transaction_at: "2026-06-05T10:30:00.000Z",
   type: "expense",
 };

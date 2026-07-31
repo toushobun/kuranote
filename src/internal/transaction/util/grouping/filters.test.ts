@@ -36,8 +36,6 @@ function createContext(
     merchants: [],
     records,
     recorders: [],
-    tagAssignments: [],
-    tagById: new Map(),
   };
 }
 

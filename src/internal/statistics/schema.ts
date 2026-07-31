@@ -40,7 +40,6 @@ const transactionListItemSchema = z.object({
   recorder_color: z.string().nullable().optional(),
   recorder_name: z.string().nullable(),
   show_recorder: z.boolean().optional(),
-  tagNames: z.array(z.string()),
   transaction_at: z.string(),
   type: z.enum(["expense", "income", "transfer"]),
 });

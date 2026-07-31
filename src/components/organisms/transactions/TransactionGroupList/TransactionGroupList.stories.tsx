@@ -33,7 +33,6 @@ const groups: TransactionDateGroup[] = [
         merchant_icon_url: null,
         note: null,
         recorder_name: null,
-        tagNames: [],
         created_at: "2026-06-05T03:20:10.000Z",
       },
     ],

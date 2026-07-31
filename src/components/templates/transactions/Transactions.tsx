@@ -272,7 +272,6 @@ const emptyFilterOptions: TransactionFilterOptions = {
   categories: [],
   members: [],
   merchants: [],
-  tags: [],
 };
 
 const saveSuccessDialogTextByResult: Record<

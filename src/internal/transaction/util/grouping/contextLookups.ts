@@ -6,14 +6,7 @@ import type {
   TransactionItemDbRow,
 } from "internal/db-types";
 
-import {
-  groupItemsByRecordId,
-  groupRawTagsByRecordId,
-} from "internal/transaction/util/grouping/tagUtils";
-import {
-  type RawTagAssignment,
-  type TransactionGroupLoaderContext,
-} from "internal/transaction/util/grouping/types";
+import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
 export type TransactionGroupContextLookups = {
   accountById: Map<string, AccountOptionDbRow>;
@@ -21,7 +14,6 @@ export type TransactionGroupContextLookups = {
   itemsByRecordId: Map<string, TransactionItemDbRow[]>;
   merchantById: Map<string, MerchantSummaryDbRow>;
   recorderById: Map<string, AppUserSummaryDbRow>;
-  tagsByRecordId: Map<string, RawTagAssignment[]>;
 };
 
 const contextLookupsCache = new WeakMap<
@@ -53,9 +45,20 @@ export function getTransactionGroupContextLookups(
     recorderById: new Map(
       context.recorders.map((user) => [user.id, user] as const),
     ),
-    tagsByRecordId: groupRawTagsByRecordId(context.tagAssignments),
   };
 
   contextLookupsCache.set(context, lookups);
   return lookups;
+}
+
+function groupItemsByRecordId(items: TransactionItemDbRow[]) {
+  const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
+
+  for (const item of items) {
+    const recordItems = itemsByRecordId.get(item.transaction_record_id) ?? [];
+    recordItems.push(item);
+    itemsByRecordId.set(item.transaction_record_id, recordItems);
+  }
+
+  return itemsByRecordId;
 }

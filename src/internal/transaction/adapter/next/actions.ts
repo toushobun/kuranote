@@ -181,7 +181,6 @@ export async function convertTransactionType(
         ledgerId: currentLedger.id,
         merchantId: values.merchantId,
         note: values.note,
-        tagNames: values.tagNames,
         targetType: values.targetType,
         transactionAt: values.transactionAt,
         transactionRecordId: values.transactionRecordId,

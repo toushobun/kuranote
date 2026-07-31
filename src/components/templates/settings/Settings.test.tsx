@@ -43,7 +43,6 @@ describe("SettingsTemplate", () => {
     for (const label of [
       "个人主页",
       "主题换装",
-      "标签管理",
       "商家管理",
       "语言设置",
       "数据导入导出",
@@ -84,7 +83,7 @@ describe("SettingsTemplate", () => {
     const { container } = renderSettingsTemplate();
 
     fireEvent.click(
-      within(container).getByRole("button", { name: /标签管理/ }),
+      within(container).getByRole("button", { name: /商家管理/ }),
     );
 
     expect(screen.getByText("正在准备中")).toBeInTheDocument();
