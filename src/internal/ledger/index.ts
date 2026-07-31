@@ -33,6 +33,11 @@ export type {
   LedgerInviteStatus,
 } from "internal/ledger/entity/ledgerInvitePreview";
 export {
+  isLedgerInviteRole,
+  ledgerInviteRoles,
+  type LedgerInviteRole,
+} from "internal/ledger/entity/ledgerInviteRole";
+export {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
 } from "internal/ledger/service/ledgerAccessService";

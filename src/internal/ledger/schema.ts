@@ -2,8 +2,8 @@ import { z } from "@hono/zod-openapi";
 
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
+import { ledgerInviteRoles } from "internal/ledger/entity/ledgerInviteRole";
 import { themeColorKeys } from "theme/themeColorTokens";
-import { ledgerInviteRoles } from "types/ledgers";
 
 const uuidSchema = z.string().uuid();
 const currencySchema = z.enum(ledgerCurrencies);

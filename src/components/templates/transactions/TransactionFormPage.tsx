@@ -40,7 +40,7 @@ import {
 } from "organisms/transactions/TransactionForm/TransactionForm";
 import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm/TransactionForm.styles";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
-import type { TransferEditInitialValues } from "internal/transaction";
+import type { TransferEditInitialValues } from "types/transactions";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,

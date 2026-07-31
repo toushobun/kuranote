@@ -11,7 +11,7 @@ import {
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { TransactionListItem } from "types/transactions";
+import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 export function buildTransactionListItem({
   accountById,

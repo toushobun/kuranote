@@ -1,13 +1,9 @@
 import { z } from "@hono/zod-openapi";
 
+import { accountHolderRoles } from "internal/account/entity/accountHolderRole";
+import { accountTypes } from "internal/account/entity/accountType";
 import { themeColorKeys } from "theme/themeColorTokens";
-import { accountTypeOptions } from "types/accounts";
 
-const accountTypeValues = accountTypeOptions.map((option) => option.value) as [
-  (typeof accountTypeOptions)[number]["value"],
-  ...(typeof accountTypeOptions)[number]["value"][],
-];
-const accountHolderRoleValues = ["owner", "co_owner"] as const;
 const moneyValueSchema = z.union([z.number(), z.string()]);
 
 export const accountLedgerParamsSchema = z.object({
@@ -25,7 +21,7 @@ const accountFieldsSchema = z.object({
     .regex(/^[A-Z]{3}$/),
   holderUserIds: z.array(z.string().uuid()).min(1),
   name: z.string().trim().min(1),
-  type: z.enum(accountTypeValues),
+  type: z.enum(accountTypes),
 });
 
 export const createAccountRequestSchema = accountFieldsSchema.extend({
@@ -39,7 +35,7 @@ const accountHolderSchema = z.object({
   display_name: z.string(),
   email: z.string().email().nullable(),
   id: z.string().uuid(),
-  role: z.enum(accountHolderRoleValues),
+  role: z.enum(accountHolderRoles),
   share_ratio: moneyValueSchema.nullable(),
   user_id: z.string().uuid(),
 });
@@ -53,7 +49,7 @@ const accountSchema = z.object({
   initial_balance: moneyValueSchema,
   name: z.string(),
   sort_order: z.number(),
-  type: z.enum(accountTypeValues),
+  type: z.enum(accountTypes),
 });
 
 const holderOptionSchema = z.object({

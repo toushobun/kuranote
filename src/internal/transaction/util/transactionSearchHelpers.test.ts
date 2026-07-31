@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TransactionListItem } from "types/transactions";
+import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 import {
   buildTransactionSearchPage,

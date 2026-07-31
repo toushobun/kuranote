@@ -21,7 +21,7 @@ import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import type {
   TransactionAmountSummary,
   TransactionListItem,
-} from "types/transactions";
+} from "internal/transaction/service/read/transactionReadModels";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,

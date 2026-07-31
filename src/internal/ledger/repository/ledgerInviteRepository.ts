@@ -9,7 +9,10 @@ import {
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import { isLedgerInviteRole, type LedgerInviteRole } from "types/ledgers";
+import {
+  isLedgerInviteRole,
+  type LedgerInviteRole,
+} from "internal/ledger/entity/ledgerInviteRole";
 
 export type LedgerInviteWriteResult =
   | { ok: true }

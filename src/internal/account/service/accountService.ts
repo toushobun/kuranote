@@ -10,6 +10,7 @@ import type {
   CreateAccountInput as RepositoryCreateAccountInput,
   UpdateAccountInput as RepositoryUpdateAccountInput,
 } from "internal/account/repository/accountRepository";
+import type { AccountSummary } from "internal/account/entity/accountSummary";
 import { buildAccountsView } from "internal/account/service/read/accountsView";
 import { buildTransactionAccountContext } from "internal/account/service/read/transactionContext";
 import {
@@ -22,22 +23,13 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { Account, AccountHolderOption } from "types/accounts";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { TransactionAccountOption } from "types/transactions";
 import {
   accountTypes,
   type AccountType,
 } from "internal/account/entity/accountType";
 
-export type AccountsView = {
-  accounts: Account[];
-  baseCurrency: string;
-  canManageAccounts: boolean;
-  canWriteTransactions: boolean;
-  holderOptions: AccountHolderOption[];
-  ledgerName: string;
-};
+export type AccountsView = Awaited<ReturnType<typeof buildAccountsView>>;
 
 export type GetAccountsViewInput = {
   ledgerId: string;
@@ -64,7 +56,7 @@ export type ArchiveAccountInput = {
 
 export type TransactionAccountContext = {
   accountColorById: Map<string, ThemeColorKey>;
-  accounts: TransactionAccountOption[];
+  accounts: AccountSummary[];
   showRecorder: boolean;
 };
 
@@ -78,7 +70,7 @@ export interface AccountQueryService {
   listTransactionOptions(input: {
     ledgerId: string;
     userId: string;
-  }): Promise<TransactionAccountOption[]>;
+  }): Promise<AccountSummary[]>;
 }
 
 export interface AccountService extends AccountQueryService {

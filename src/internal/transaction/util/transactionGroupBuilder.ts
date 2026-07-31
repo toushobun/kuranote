@@ -9,7 +9,7 @@ import type {
   TransactionAmountSummary,
   TransactionGroupBy,
   TransactionGroupPage,
-} from "types/transactions";
+} from "internal/transaction/service/read/transactionReadModels";
 import { paginateItems } from "utils/collections";
 
 import {

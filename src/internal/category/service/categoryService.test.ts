@@ -12,7 +12,7 @@ import {
   NotFoundError,
   RepositoryError,
 } from "internal/shared/errors/appError";
-import type { Category } from "types/categories";
+import type { CategoryData as Category } from "internal/category/repository/categoryRepository";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";

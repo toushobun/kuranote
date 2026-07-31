@@ -11,11 +11,13 @@ import type {
   DashboardAccountSummaryRecord,
   StatisticsRepository,
 } from "internal/statistics/repository/statisticsRepository";
-import { buildStatisticsViewData } from "internal/statistics/util/statistics";
+import type { DashboardViewData } from "internal/statistics/service/read/dashboardView";
+import {
+  buildStatisticsViewData,
+  type StatisticsViewData,
+} from "internal/statistics/service/read/statisticsView";
 import { getDashboardDateRange } from "internal/statistics/util/dashboardDateRange";
 import type { TransactionDashboardQueryService } from "internal/transaction";
-import type { DashboardViewData } from "types/dashboard";
-import type { StatisticsViewData } from "types/statistics";
 import { getMonthBounds, normalizeMonth } from "utils/transactions";
 
 export interface StatisticsService {

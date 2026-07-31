@@ -1,5 +1,7 @@
 import type { CurrentLedgerRole } from "internal/ledger";
 import type { AccountType } from "internal/account/entity/accountType";
+import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
+import type { AccountSummary } from "internal/account/entity/accountSummary";
 import type { Logger } from "internal/shared/logging/logger";
 import { ConflictError } from "internal/shared/errors/appError";
 import {
@@ -48,8 +50,6 @@ type LedgerMemberDisplaySettingRow = {
   user_id: string;
 };
 
-export type AccountHolderRole = "owner" | "co_owner";
-
 export type AccountData = {
   created_at: string;
   currency: string;
@@ -93,12 +93,6 @@ export type AccountLedgerMember = {
   joined_at: string | null;
   role: CurrentLedgerRole;
   user_id: string;
-};
-
-export type AccountSummary = {
-  currency: string;
-  id: string;
-  name: string;
 };
 
 export type CreateAccountInput = {

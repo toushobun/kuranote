@@ -2,7 +2,7 @@ import { transactionPageSize } from "internal/transaction/util/grouping/types";
 import type {
   TransactionListItem,
   TransactionSearchPage,
-} from "types/transactions";
+} from "internal/transaction/service/read/transactionReadModels";
 import { paginateItems } from "utils/collections";
 
 const searchQueryMaxLength = 80;

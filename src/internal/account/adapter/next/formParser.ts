@@ -1,5 +1,8 @@
 import { accountErrorCodes } from "internal/account/errors";
-import { accountTypeOptions, type AccountType } from "types/accounts";
+import {
+  accountTypes,
+  type AccountType,
+} from "internal/account/entity/accountType";
 import { getFormText, isUuid } from "utils/formData";
 
 export type AccountFormParseResult<T> =
@@ -32,9 +35,7 @@ function parseAccountFields(
   if (!name) return invalid(accountErrorCodes.nameRequired);
 
   const type = getFormText(formData, "type").trim();
-  const accountType = accountTypeOptions.find(
-    (option) => option.value === type,
-  )?.value;
+  const accountType = accountTypes.find((accountType) => accountType === type);
   if (!accountType) return invalid(accountErrorCodes.typeInvalid);
 
   const currency = getFormText(formData, "currency").trim().toUpperCase();

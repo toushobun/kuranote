@@ -1,4 +1,4 @@
-import type { AccountType } from "internal/account";
+import type { AccountHolderRole, AccountType } from "internal/account";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
@@ -10,7 +10,7 @@ export const accountTypeOptions = [
   { label: "其他", value: "other" },
 ] as const;
 
-export type { AccountType };
+export type { AccountHolderRole, AccountType };
 
 export type AccountActionState = BaseActionState & {
   errorKey?: string;
@@ -20,8 +20,6 @@ export type AccountStateAction = (
   previousState: AccountActionState,
   formData: FormData,
 ) => Promise<AccountActionState>;
-
-export type AccountHolderRole = "owner" | "co_owner";
 
 export type AccountHolder = {
   id: string;

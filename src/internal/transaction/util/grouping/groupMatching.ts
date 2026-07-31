@@ -7,7 +7,7 @@ import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,
 } from "internal/transaction/util/transactionListGroups";
-import type { TransactionGroupBy } from "types/transactions";
+import type { TransactionGroupBy } from "internal/transaction/service/read/transactionReadModels";
 
 export function recordMatchesGroup({
   categoryById,

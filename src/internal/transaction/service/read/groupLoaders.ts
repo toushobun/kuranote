@@ -15,8 +15,8 @@ import type {
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionTimeGroupViewData,
-} from "types/transactions";
-import { defaultTransactionFilters } from "types/transactions";
+} from "internal/transaction/service/read/transactionReadModels";
+import { defaultTransactionFilters } from "internal/transaction/service/read/transactionReadModels";
 import {
   getMonthBounds,
   groupTransactionItemsByDate,

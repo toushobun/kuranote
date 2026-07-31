@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedger } from "internal/ledger";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
-import type { TransferEditInitialValues } from "internal/transaction/entity/transferEditInitialValues";
+import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
 import { getEditTransactionView } from "internal/transaction/service/read/transactionFormService";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 

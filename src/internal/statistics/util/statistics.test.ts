@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildStatisticsViewData } from "internal/statistics/util/statistics";
+import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
 
 const records = [
   { id: "expense-1", merchant_id: "merchant-super", type: "normal" as const },
