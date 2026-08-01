@@ -391,6 +391,23 @@ describe("TransactionForm", () => {
     ).toBeNull();
     expect(within(container).getByText("合计 - 320")).toBeInTheDocument();
   });
+  it("编辑明细时默认展开分类列表", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "286");
+    const editCategoryButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="编辑明细 1 分类"]',
+    );
+    if (!editCategoryButton) throw new Error("明细分类编辑按钮不存在");
+    fireEvent.click(editCategoryButton);
+    expect(
+      screen.getByRole("button", { name: "收起分类列表" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "餐饮" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
   it("收入明细和合计显示正号与账户币种", () => {
     const { container } = renderForm({ initialType: "income" });
     fireEvent.mouseDown(getCombobox(container, "账户"));

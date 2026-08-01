@@ -63,7 +63,16 @@ export function TransactionItemPickerDrawer({
   selectedCategoryGroup,
 }: TransactionItemPickerDrawerProps) {
   const [searchText, setSearchText] = useState("");
-  const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(false);
+  const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
+    editingItemId !== null,
+  );
+  // Drawer 的内容不会在 open 切换时卸载重挂，所以用"渲染期间对比上一次 open"的方式
+  // 在每次真正打开时重新决定展开态，而不是用 useEffect 里 setState（会触发级联渲染）。
+  const [previousOpen, setPreviousOpen] = useState(open);
+  if (open !== previousOpen) {
+    setPreviousOpen(open);
+    if (open) setIsCategoryListExpanded(editingItemId !== null);
+  }
   const amountCurrencySymbol = getCurrencySymbol(selectedAccountCurrency);
   const displayedGroups = useMemo(() => {
     if (!searchText.trim()) return categoryGroups;
