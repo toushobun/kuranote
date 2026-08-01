@@ -102,10 +102,16 @@ describe("TransactionForm", () => {
   function getCombobox(container: HTMLElement, name: string) {
     return within(container).getByRole("combobox", { name });
   }
-  function openSheet(container: HTMLElement) {
+  function openSheet(container: HTMLElement, expandCategoryList = true) {
     fireEvent.click(
-      within(container).getByRole("button", { name: "添加明细" }),
+      within(container).getByRole("button", {
+        hidden: true,
+        name: "添加明细",
+      }),
     );
+    if (expandCategoryList) {
+      fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
+    }
   }
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
@@ -118,6 +124,10 @@ describe("TransactionForm", () => {
     if (!screen.queryByRole("heading", { name: "添加明细" })) {
       openSheet(container);
     }
+    const categoryListToggle = screen.queryByRole("button", {
+      name: "选择更多分类",
+    });
+    if (categoryListToggle) fireEvent.click(categoryListToggle);
     fireEvent.click(screen.getByRole("button", { name: categoryName }));
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: amount },
@@ -195,36 +205,86 @@ describe("TransactionForm", () => {
     fireEvent.mouseDown(getCombobox(container, "账户"));
     expect(screen.getByText("日元现金（JPY）")).toBeInTheDocument();
   });
-  it("弹框同时显示支出和收入分类", () => {
+  it("分类列表默认收起并可互斥切换展开和收起状态", () => {
     const { container } = renderForm();
-    openSheet(container);
+    openSheet(container, false);
     expect(
       screen.getByRole("heading", { name: "添加明细" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择更多分类" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "收起分类列表" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
+    expect(
+      screen.getByRole("button", { name: "收起分类列表" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("button", { name: "选择更多分类" })).toBeNull();
     expect(
       screen.getByRole("button", { name: "食材/调料" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "固定收入" }),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("button", { name: "食材/调料" })).getByTestId(
-        "DragIndicatorRoundedIcon",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "添加大分类" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: "添加小分类" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    expect(screen.queryByTestId("DragIndicatorRoundedIcon")).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加大分类" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加小分类" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "排序" })).toBeNull();
     expect(
       screen.getByRole("textbox", { name: "搜索小分类" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("特殊标记")).toBeNull();
     expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "收起分类列表" }));
+    expect(
+      screen.getByRole("button", { name: "选择更多分类" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "收起分类列表" })).toBeNull();
+  });
+  it("金额输入框位于搜索和分类选择器上方", () => {
+    const { container } = renderForm();
+    openSheet(container, false);
+    const amountInput = screen.getByRole("textbox", { name: "金额" });
+    const searchInput = screen.getByRole("textbox", { name: "搜索小分类" });
+    const categoryToggle = screen.getByRole("button", {
+      name: "选择更多分类",
+    });
+    expect(amountInput.compareDocumentPosition(searchInput)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(searchInput.compareDocumentPosition(categoryToggle)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+  it("分类列表按收支类型分组且不提供分类管理入口", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    const expenseGroup = screen.getByRole("button", { name: "交通出行" });
+    const incomeLabel = screen.getByText("收入分类");
+    expect(screen.getByText("支出分类")).toBeInTheDocument();
+    expect(expenseGroup.compareDocumentPosition(incomeLabel)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(
+      screen.getByRole("button", { name: "食材/调料 · 餐饮" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "固定收入 · 工资" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+    expect(
+      screen.getByRole("button", { name: "固定收入 · 工资" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "食材/调料 · 餐饮" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加大分类" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加小分类" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "排序" })).toBeNull();
   });
   it("搜索小分类后同步筛选父子分类并可选中", () => {
     const { container } = renderForm();
@@ -237,7 +297,12 @@ describe("TransactionForm", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "食材/调料" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "电车" }));
-    expect(screen.getByText("已选：交通出行 > 电车")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "电车" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("CheckRoundedIcon")).toBeInTheDocument();
+    expect(screen.queryByText(/已选：/)).toBeNull();
   });
   it("可使用完整拼音和拼音首字母搜索小分类", () => {
     const { container } = renderForm();
@@ -273,9 +338,11 @@ describe("TransactionForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
     expect(screen.getByRole("button", { name: "电车" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "餐饮" })).toBeNull();
-    expect(
-      screen.getByText("已选：交通出行 > 请选择小分类"),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "交通出行" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.queryByText(/已选：/)).toBeNull();
   });
   it("切换大分类和小分类时保留已输入金额", () => {
     const { container } = renderForm();
@@ -323,6 +390,23 @@ describe("TransactionForm", () => {
       within(container).queryByRole("button", { name: "删除明细 1" }),
     ).toBeNull();
     expect(within(container).getByText("合计 - 320")).toBeInTheDocument();
+  });
+  it("编辑明细时默认展开分类列表", () => {
+    const { container } = renderForm();
+    openSheet(container);
+    addItemViaSheet(container, "餐饮", "286");
+    const editCategoryButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="编辑明细 1 分类"]',
+    );
+    if (!editCategoryButton) throw new Error("明细分类编辑按钮不存在");
+    fireEvent.click(editCategoryButton);
+    expect(
+      screen.getByRole("button", { name: "收起分类列表" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "餐饮" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
   it("收入明细和合计显示正号与账户币种", () => {
     const { container } = renderForm({ initialType: "income" });
@@ -552,8 +636,12 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
   }
   function openSheet(container: HTMLElement) {
     fireEvent.click(
-      within(container).getByRole("button", { name: "添加明细" }),
+      within(container).getByRole("button", {
+        hidden: true,
+        name: "添加明细",
+      }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
   }
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
@@ -566,6 +654,10 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
     if (!screen.queryByRole("heading", { name: "添加明细" })) {
       openSheet(container);
     }
+    const categoryListToggle = screen.queryByRole("button", {
+      name: "选择更多分类",
+    });
+    if (categoryListToggle) fireEvent.click(categoryListToggle);
     fireEvent.click(screen.getByRole("button", { name: categoryName }));
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: amount },
@@ -638,6 +730,7 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
     const { container } = renderForm();
     openSheet(container);
     addItemViaSheet(container, "餐饮", "500");
+    openSheet(container);
     fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
     addItemViaSheet(container, "工资", "300000");
     expect(getSubmittedCategoryIds(container)).toEqual([
@@ -702,8 +795,12 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
   }
   function openSheet(container: HTMLElement) {
     fireEvent.click(
-      within(container).getByRole("button", { name: "添加明细" }),
+      within(container).getByRole("button", {
+        hidden: true,
+        name: "添加明细",
+      }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
   }
   function clickSheetAddButton() {
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
@@ -716,6 +813,10 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
     if (!screen.queryByRole("heading", { name: "添加明细" })) {
       openSheet(container);
     }
+    const categoryListToggle = screen.queryByRole("button", {
+      name: "选择更多分类",
+    });
+    if (categoryListToggle) fireEvent.click(categoryListToggle);
     fireEvent.click(screen.getByRole("button", { name: categoryName }));
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: amount },

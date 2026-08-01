@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseIcon from "@mui/icons-material/Close";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
+import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
+import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -62,6 +63,16 @@ export function TransactionItemPickerDrawer({
   selectedCategoryGroup,
 }: TransactionItemPickerDrawerProps) {
   const [searchText, setSearchText] = useState("");
+  const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
+    editingItemId !== null,
+  );
+  // Drawer 的内容不会在 open 切换时卸载重挂，所以用"渲染期间对比上一次 open"的方式
+  // 在每次真正打开时重新决定展开态，而不是用 useEffect 里 setState（会触发级联渲染）。
+  const [previousOpen, setPreviousOpen] = useState(open);
+  if (open !== previousOpen) {
+    setPreviousOpen(open);
+    if (open) setIsCategoryListExpanded(editingItemId !== null);
+  }
   const amountCurrencySymbol = getCurrencySymbol(selectedAccountCurrency);
   const displayedGroups = useMemo(() => {
     if (!searchText.trim()) return categoryGroups;
@@ -81,15 +92,26 @@ export function TransactionItemPickerDrawer({
   const activeCategoryGroup =
     displayedGroups.find((group) => group.id === selectedCategoryGroup?.id) ??
     displayedGroups[0];
-  const selectedCategory = categoryGroups
-    .flatMap((group) => group.categories)
-    .find((category) => category.id === pickerCategoryId);
-  const selectedPath = selectedCategory
-    ? `${selectedCategory.parentName ?? activeCategoryGroup?.name ?? ""} > ${selectedCategory.name}`
-    : activeCategoryGroup
-      ? `${activeCategoryGroup.name} > 请选择小分类`
-      : "请选择分类";
+  const displayedGroupSections = [
+    {
+      groups: displayedGroups.filter(
+        (group) => group.categories[0]?.type === "expense",
+      ),
+      label: "支出分类",
+    },
+    {
+      groups: displayedGroups.filter(
+        (group) => group.categories[0]?.type === "income",
+      ),
+      label: "收入分类",
+    },
+  ].filter((section) => section.groups.length > 0);
+  const activeCategoryType = activeCategoryGroup?.categories[0]?.type;
   const quickCategories = categoryGroups
+    .filter(
+      (group) =>
+        !activeCategoryType || group.categories[0]?.type === activeCategoryType,
+    )
     .flatMap((group) =>
       group.categories.map((category) => ({ category, group })),
     )
@@ -112,6 +134,7 @@ export function TransactionItemPickerDrawer({
 
   function closeDrawer() {
     setSearchText("");
+    setIsCategoryListExpanded(false);
     onClose();
   }
 
@@ -138,8 +161,37 @@ export function TransactionItemPickerDrawer({
 
       <Box sx={drawerBodySx}>
         <TextField
+          error={!!pickerErrors.amount}
           fullWidth
-          onChange={(event) => setSearchText(event.target.value)}
+          helperText={pickerErrors.amount}
+          onChange={(event) => onAmountChange(event.target.value)}
+          placeholder="0.00"
+          slotProps={{
+            htmlInput: {
+              "aria-label": "金额",
+              "data-amount-currency": selectedAccountCurrency ?? "",
+              "data-amount-input": "true",
+              inputMode: "decimal" as const,
+            },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  {amountCurrencySymbol}
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={amountFieldSx}
+          type="text"
+          value={pickerAmount}
+        />
+
+        <TextField
+          fullWidth
+          onChange={(event) => {
+            setSearchText(event.target.value);
+            if (event.target.value.trim()) setIsCategoryListExpanded(true);
+          }}
           placeholder="搜索小分类"
           size="small"
           slotProps={{
@@ -186,102 +238,103 @@ export function TransactionItemPickerDrawer({
               ))}
             </Stack>
 
-            <Stack direction="row" sx={categoryLabelRowSx}>
-              <SectionLabel>分类选择</SectionLabel>
-              <Typography color="text.secondary" variant="caption">
-                （同时选择）
-              </Typography>
-            </Stack>
+            <Button
+              aria-expanded={isCategoryListExpanded}
+              endIcon={
+                isCategoryListExpanded ? (
+                  <KeyboardArrowUpRoundedIcon />
+                ) : (
+                  <KeyboardArrowRightRoundedIcon />
+                )
+              }
+              fullWidth
+              onClick={() => setIsCategoryListExpanded((current) => !current)}
+              type="button"
+              sx={categoryListToggleSx}
+            >
+              {isCategoryListExpanded ? "收起分类列表" : "选择更多分类"}
+            </Button>
 
-            {displayedGroups.length === 0 ? (
-              <Box sx={emptySearchSx}>
-                <Typography color="text.secondary" variant="body2">
-                  没有匹配的小分类
-                </Typography>
-              </Box>
-            ) : (
-              <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
-                <Stack sx={categoryColumnSx}>
-                  {displayedGroups.map((group) => {
-                    const isSelected = activeCategoryGroup?.id === group.id;
+            {isCategoryListExpanded ? (
+              displayedGroups.length === 0 ? (
+                <Box sx={emptySearchSx}>
+                  <Typography color="text.secondary" variant="body2">
+                    没有匹配的小分类
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
+                  <Stack sx={categoryColumnSx}>
+                    <Box sx={categoryOptionsSx}>
+                      {displayedGroupSections.map((section) => (
+                        <Box key={section.label}>
+                          <Typography
+                            sx={categoryTypeLabelSx}
+                            variant="caption"
+                          >
+                            {section.label}
+                          </Typography>
+                          {section.groups.map((group) => {
+                            const isSelected =
+                              activeCategoryGroup?.id === group.id;
 
-                    return (
-                      <Button
-                        key={group.id}
-                        onClick={() => onGroupSelect(group.id)}
-                        type="button"
-                        sx={categoryOptionSx(isSelected)}
-                      >
-                        <DragIndicatorRoundedIcon sx={categoryDragHandleSx} />
-                        {group.name}
-                      </Button>
-                    );
-                  })}
-                  <CategoryAddButton>添加大分类</CategoryAddButton>
+                            return (
+                              <Button
+                                aria-pressed={isSelected}
+                                key={group.id}
+                                onClick={() => onGroupSelect(group.id)}
+                                type="button"
+                                sx={categoryGroupOptionSx(isSelected)}
+                              >
+                                {group.name}
+                              </Button>
+                            );
+                          })}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Stack>
+
+                  <Stack sx={categoryColumnSx}>
+                    <Box sx={categoryOptionsSx}>
+                      {activeCategoryGroup?.categories.map((category) => {
+                        const isSelected = pickerCategoryId === category.id;
+
+                        return (
+                          <Button
+                            aria-pressed={isSelected}
+                            endIcon={
+                              isSelected ? (
+                                <CheckRoundedIcon fontSize="small" />
+                              ) : null
+                            }
+                            key={category.id}
+                            onClick={() =>
+                              activeCategoryGroup
+                                ? selectCategory(
+                                    activeCategoryGroup.id,
+                                    category.id,
+                                  )
+                                : onCategoryToggle(category.id)
+                            }
+                            type="button"
+                            sx={categoryOptionSx(isSelected)}
+                          >
+                            {category.name}
+                          </Button>
+                        );
+                      })}
+                    </Box>
+                  </Stack>
                 </Stack>
-
-                <Stack sx={categoryColumnSx}>
-                  {activeCategoryGroup?.categories.map((category) => (
-                    <Button
-                      key={category.id}
-                      onClick={() =>
-                        activeCategoryGroup
-                          ? selectCategory(activeCategoryGroup.id, category.id)
-                          : onCategoryToggle(category.id)
-                      }
-                      type="button"
-                      sx={categoryOptionSx(pickerCategoryId === category.id)}
-                    >
-                      <DragIndicatorRoundedIcon sx={categoryDragHandleSx} />
-                      {category.name}
-                    </Button>
-                  ))}
-                  <CategoryAddButton>添加小分类</CategoryAddButton>
-                </Stack>
-              </Stack>
-            )}
+              )
+            ) : null}
 
             {pickerErrors.category ? (
               <Typography color="error" variant="caption">
                 {pickerErrors.category}
               </Typography>
             ) : null}
-
-            <Typography sx={selectedPathSx} variant="body2">
-              已选：{selectedPath}
-            </Typography>
-
-            <Stack direction="row" spacing={1} sx={amountRowSx}>
-              <Typography sx={fieldLabelSx} variant="body2">
-                金额
-              </Typography>
-              <TextField
-                error={!!pickerErrors.amount}
-                fullWidth
-                helperText={pickerErrors.amount}
-                onChange={(event) => onAmountChange(event.target.value)}
-                placeholder="0.00"
-                size="small"
-                slotProps={{
-                  htmlInput: {
-                    "aria-label": "金额",
-                    "data-amount-currency": selectedAccountCurrency ?? "",
-                    "data-amount-input": "true",
-                    inputMode: "decimal" as const,
-                  },
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        {amountCurrencySymbol}
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-                sx={amountFieldSx}
-                type="text"
-                value={pickerAmount}
-              />
-            </Stack>
           </>
         )}
       </Box>
@@ -317,20 +370,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Typography sx={sectionLabelSx} variant="subtitle2">
       {children}
     </Typography>
-  );
-}
-
-function CategoryAddButton({ children }: { children: React.ReactNode }) {
-  return (
-    <Button
-      aria-disabled="true"
-      startIcon={<AddRoundedIcon fontSize="small" />}
-      sx={categoryAddButtonSx}
-      tabIndex={-1}
-      type="button"
-    >
-      {children}
-    </Button>
   );
 }
 
@@ -372,6 +411,7 @@ const closeButtonSx = { color: "text.secondary", mr: -1 };
 
 const drawerBodySx = {
   flex: 1,
+  minHeight: 0,
   overflowY: "auto",
   overscrollBehaviorY: "none",
   px: 2.5,
@@ -380,6 +420,7 @@ const drawerBodySx = {
 
 const searchFieldSx = {
   mb: 1,
+  mt: 1.5,
   "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
 };
 
@@ -393,9 +434,18 @@ const quickCategoryChipSx = {
   fontWeight: 600,
 };
 
-const categoryLabelRowSx = { alignItems: "baseline", mt: 0.5 };
+const categoryListToggleSx = {
+  border: 1,
+  borderColor: "divider",
+  borderRadius: 2,
+  justifyContent: "space-between",
+  mt: 1.5,
+  px: 1.5,
+  py: 1,
+  textTransform: "none",
+};
 
-const categoryColumnsSx = { minHeight: 184 };
+const categoryColumnsSx = { mt: 1, minHeight: 184 };
 
 const categoryColumnSx = {
   border: 1,
@@ -404,8 +454,36 @@ const categoryColumnSx = {
   flex: 1,
   minWidth: 0,
   overflow: "hidden",
-  py: 0.25,
 };
+
+const categoryOptionsSx = { flex: 1, overflowY: "auto", py: 0.25 };
+
+const categoryTypeLabelSx = {
+  color: "text.secondary",
+  display: "block",
+  fontWeight: 700,
+  px: 1.5,
+  pb: 0.25,
+  pt: 0.75,
+};
+
+const categoryGroupOptionSx = (selected: boolean) => (theme: Theme) => ({
+  bgcolor: selected
+    ? `var(--user-theme-field-card-selected-bg, ${alpha(theme.palette.primary.main, 0.12)})`
+    : "transparent",
+  borderRadius: 0.75,
+  color: selected
+    ? `var(--user-theme-action-text, ${theme.palette.primary.main})`
+    : theme.palette.text.primary,
+  fontWeight: selected ? 800 : 500,
+  justifyContent: "flex-start",
+  minHeight: 30,
+  mx: 0.25,
+  px: 1.5,
+  py: 0.25,
+  textTransform: "none",
+  width: "calc(100% - 4px)",
+});
 
 const categoryOptionSx = (selected: boolean) => (theme: Theme) => ({
   bgcolor: selected
@@ -426,27 +504,9 @@ const categoryOptionSx = (selected: boolean) => (theme: Theme) => ({
   px: 1.5,
   py: 0.25,
   textTransform: "none",
+  width: "calc(100% - 4px)",
+  "& .MuiButton-endIcon": { ml: "auto" },
 });
-
-const categoryDragHandleSx = {
-  color: "text.disabled",
-  flexShrink: 0,
-  fontSize: "1.125rem",
-  mr: 0.75,
-};
-
-const categoryAddButtonSx = {
-  borderRadius: 0,
-  borderTop: 1,
-  borderColor: "divider",
-  color: "primary.main",
-  flexShrink: 0,
-  justifyContent: "flex-start",
-  minHeight: 36,
-  mt: "auto",
-  px: 1.5,
-  textTransform: "none",
-};
 
 const emptySearchSx = {
   alignItems: "center",
@@ -458,14 +518,18 @@ const emptySearchSx = {
   minHeight: 184,
 };
 
-const selectedPathSx = { fontWeight: 700, mt: 0.75 };
-
-const amountRowSx = { alignItems: "flex-start", mt: 0.75 };
-
-const fieldLabelSx = { fontWeight: 800, minWidth: 44, pt: 1 };
-
 const amountFieldSx = {
-  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+  "& .MuiInputAdornment-root": {
+    color: "text.primary",
+    fontSize: "2rem",
+    fontWeight: 700,
+  },
+  "& .MuiOutlinedInput-input": {
+    fontSize: "2rem",
+    fontWeight: 700,
+    py: 1.75,
+  },
+  "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
 };
 
 export const drawerFooterSx = {
