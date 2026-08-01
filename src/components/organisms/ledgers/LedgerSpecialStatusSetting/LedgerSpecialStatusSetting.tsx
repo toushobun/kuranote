@@ -1,0 +1,132 @@
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
+import Typography from "@mui/material/Typography";
+
+import { SoftCard } from "atoms/ui/SoftCard";
+import { TransactionBusinessBadge } from "organisms/transactions/TransactionBusinessBadge/TransactionBusinessBadge";
+import { transactionBusinessBadgeStatuses } from "organisms/transactions/TransactionBusinessBadge/transactionBusinessBadgeConfig";
+
+type LedgerSpecialStatusSettingProps = {
+  canEdit?: boolean;
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+  onRetry?: () => void;
+  state?: "error" | "loading" | "ready";
+};
+
+export function LedgerSpecialStatusSetting({
+  canEdit = true,
+  enabled,
+  onChange,
+  onRetry,
+  state = "ready",
+}: LedgerSpecialStatusSettingProps) {
+  return (
+    <Stack component="section" spacing={0.9}>
+      <Typography component="h2" sx={sectionTitleSx}>
+        明细特殊状态
+      </Typography>
+      <SoftCard sx={cardSx}>
+        {state === "loading" ? (
+          <Stack aria-live="polite" direction="row" role="status" sx={stateSx}>
+            <CircularProgress size={22} />
+            <Typography color="text.secondary" variant="body2">
+              正在加载功能设置…
+            </Typography>
+          </Stack>
+        ) : null}
+
+        {state === "error" ? (
+          <Alert
+            action={
+              onRetry ? (
+                <Button color="inherit" onClick={onRetry} size="small">
+                  重试
+                </Button>
+              ) : undefined
+            }
+            severity="error"
+          >
+            功能设置加载失败，请稍后重试。
+          </Alert>
+        ) : null}
+
+        {state === "ready" ? (
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1.4} sx={{ alignItems: "center" }}>
+              <Box sx={iconBoxSx}>
+                <ReceiptLongRoundedIcon />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={titleSx}>启用特殊状态</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  在每条明细上标记报销、退款或不计入支出。
+                </Typography>
+              </Box>
+              <Switch
+                checked={enabled}
+                disabled={!canEdit}
+                onChange={(event) => onChange(event.target.checked)}
+                slotProps={{ input: { "aria-label": "启用特殊状态" } }}
+              />
+            </Stack>
+
+            {enabled ? (
+              <Stack direction="row" sx={badgeListSx}>
+                {transactionBusinessBadgeStatuses.map((status) => (
+                  <TransactionBusinessBadge key={status} status={status} />
+                ))}
+              </Stack>
+            ) : (
+              <Typography color="text.secondary" variant="body2">
+                关闭后不显示设置入口；已有状态保留，重新启用后恢复显示。
+              </Typography>
+            )}
+
+            {!canEdit ? (
+              <Typography color="text.secondary" variant="caption">
+                只有管理员或所有者可以修改此设置。
+              </Typography>
+            ) : null}
+          </Stack>
+        ) : null}
+      </SoftCard>
+    </Stack>
+  );
+}
+
+const sectionTitleSx = {
+  fontSize: { xs: 18, sm: 19 },
+  fontWeight: 900,
+  px: 0.35,
+};
+
+const cardSx = { borderRadius: 2, p: { xs: 1.5, sm: 1.75 } };
+
+const stateSx = {
+  alignItems: "center",
+  gap: 1,
+  justifyContent: "center",
+  minHeight: 96,
+};
+
+const iconBoxSx = {
+  alignItems: "center",
+  bgcolor: "var(--user-theme-icon-badge-bg)",
+  borderRadius: "50%",
+  color: "var(--user-theme-icon-badge-color)",
+  display: "inline-flex",
+  flexShrink: 0,
+  height: 46,
+  justifyContent: "center",
+  width: 46,
+};
+
+const titleSx = { fontWeight: 800 };
+
+const badgeListSx = { flexWrap: "wrap", gap: 0.75, pl: 7.5 };

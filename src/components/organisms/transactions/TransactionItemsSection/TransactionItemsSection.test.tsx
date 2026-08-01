@@ -11,6 +11,7 @@ const itemSummaries: TransactionItemSummary[] = [
     amount: "1200",
     categoryId: "category-lunch",
     id: 1,
+    specialStatus: "pendingReimbursement",
     category: {
       id: "category-lunch",
       name: "午餐",
@@ -68,6 +69,7 @@ describe("TransactionItemsSection", () => {
     expect(screen.getByText(/大分类.*餐饮/)).toBeInTheDocument();
     expect(screen.getByText(/小分类.*午餐/)).toBeInTheDocument();
     expect(screen.getByText("请选择分类")).toBeInTheDocument();
+    expect(screen.getByText("待报销")).toBeInTheDocument();
     expect(screen.getByText(/合计.*2000/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "编辑明细 1 分类" }));

@@ -6,6 +6,7 @@ import type {
   TransactionMerchantOption,
   TransactionType,
 } from "types/transactions";
+import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
 
 export type TransactionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -45,6 +46,7 @@ export type TransactionFormItem = {
   amount: string;
   categoryId: string;
   id: number;
+  specialStatus?: TransactionSpecialStatusValue;
 };
 
 export type CategoryPickerGroup = {

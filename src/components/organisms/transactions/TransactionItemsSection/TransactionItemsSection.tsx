@@ -12,6 +12,7 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
 } from "../TransactionForm/TransactionForm.types";
+import { TransactionBusinessBadge } from "../TransactionBusinessBadge/TransactionBusinessBadge";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
@@ -132,8 +133,12 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {/* TODO: 未来实现报销/退款功能。 */}
-                      <Box aria-hidden sx={futureStatusPlaceholderSx} />
+                      {item.specialStatus ? (
+                        <TransactionBusinessBadge
+                          status={item.specialStatus}
+                          sx={itemStatusBadgeSx}
+                        />
+                      ) : null}
                     </Box>
                   </Box>
                 </Box>
@@ -268,7 +273,7 @@ const amountColumnSx = {
   alignItems: "flex-end",
   display: "flex",
   flexDirection: "column",
-  position: "relative",
+  gap: 0.25,
 };
 
 const hiddenAmountInputStyle = {
@@ -293,13 +298,10 @@ const amountButtonSx = {
   textAlign: "right",
 };
 
-const futureStatusPlaceholderSx = {
-  bottom: 0,
+const itemStatusBadgeSx = {
+  fontSize: "0.625rem",
   height: 20,
-  pointerEvents: "none",
-  position: "absolute",
-  right: 0,
-  width: 52,
+  "& .MuiChip-label": { px: 0.75 },
 };
 
 const addItemButtonSx = {
