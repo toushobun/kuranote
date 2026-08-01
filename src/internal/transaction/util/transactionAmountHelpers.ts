@@ -11,7 +11,7 @@ import {
 
 type TransactionAmountItem = Pick<
   TransactionItemDbRow,
-  "amount" | "category_id"
+  "amount" | "category_id" | "special_status"
 >;
 
 type TransactionAmountCategory = Pick<CategorySummaryDbRow, "id" | "type">;
@@ -108,7 +108,10 @@ function getTransactionRecordAmountProfile(
 
     if (categoryType === "income") {
       incomeTotal += amount;
-    } else if (categoryType === "expense") {
+    } else if (
+      categoryType === "expense" &&
+      item.special_status !== "excluded"
+    ) {
       expenseTotal += amount;
     }
   }
@@ -135,6 +138,7 @@ function getSignedItemAmount(
     : undefined;
 
   if (categoryType === "income") return amount;
+  if (item.special_status === "excluded") return 0;
   if (categoryType === "expense") return -amount;
 
   return 0;

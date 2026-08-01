@@ -1,6 +1,7 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
+import type { TransactionSpecialStatusStorageValue } from "internal/transaction";
 
 export type TransactionRecordDbRow = {
   id: string;
@@ -19,6 +20,7 @@ export type TransactionItemDbRow = {
   amount: string;
   balance_delta?: string;
   note?: string | null;
+  special_status?: TransactionSpecialStatusStorageValue | null;
 };
 
 export type AccountOptionDbRow = {

@@ -22,12 +22,18 @@ import type {
   TransactionFilterRecordType,
   TransactionGroupBy,
 } from "internal/transaction/entity/transactionGrouping";
+import type { TransactionSpecialStatusFilterValue } from "internal/transaction/entity/transactionSpecialStatus";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import {
+  toTransactionSpecialStatusStorageValue,
+  type TransactionSpecialStatus,
+} from "internal/transaction/entity/transactionSpecialStatus";
 import { isThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionItemInput = {
   amount: number;
   categoryId: string;
+  specialStatus?: TransactionSpecialStatus | null;
 };
 
 export type CreateNormalTransactionInput = {
@@ -65,7 +71,7 @@ export type ConvertTransactionInput =
 
 export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
-  "amount" | "category_id" | "transaction_record_id"
+  "amount" | "category_id" | "special_status" | "transaction_record_id"
 >;
 
 export type TransactionDashboardCategory = Pick<
@@ -176,6 +182,7 @@ export interface TransactionGroupRepository extends TransactionContextRepository
     offset: number;
     parentCategoryId?: string;
     recordType: TransactionFilterRecordType;
+    specialStatuses?: TransactionSpecialStatusFilterValue[];
   }): Promise<TransactionGroupSummaryRow[]>;
 }
 
@@ -364,7 +371,7 @@ export function createSupabaseTransactionRepository(
           : {
               p_account_id: input.accountId,
               p_from_account_id: null,
-              p_items: input.items,
+              p_items: toTransactionRpcItems(input.items),
               p_ledger_id: input.ledgerId,
               p_merchant_id: input.merchantId,
               p_note: input.note,
@@ -375,7 +382,7 @@ export function createSupabaseTransactionRepository(
               p_transfer_amount: null,
             };
       const { error } = await supabase.rpc(
-        "convert_transaction_type",
+        "convert_transaction_type_with_special_status",
         rpcParams,
       );
       if (error) {
@@ -394,7 +401,7 @@ export function createSupabaseTransactionRepository(
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
         p_account_id: input.accountId,
-        p_items: input.items,
+        p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
@@ -528,7 +535,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item")
         .select(
-          "transaction_record_id, account_id, category_id, amount, balance_delta, note",
+          "transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -642,7 +649,7 @@ export function createSupabaseTransactionRepository(
 
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item")
-        .select("transaction_record_id, category_id, amount")
+        .select("transaction_record_id, category_id, amount, special_status")
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds);
 
@@ -752,7 +759,7 @@ export function createSupabaseTransactionRepository(
 
     async loadGroupSummaries(input) {
       const { data, error } = await supabase.rpc(
-        "load_transaction_group_summaries",
+        "load_transaction_group_summaries_with_special_status",
         {
           p_account_id: input.accountId ?? null,
           p_category_id: input.categoryId ?? null,
@@ -766,6 +773,11 @@ export function createSupabaseTransactionRepository(
           p_offset: input.offset,
           p_parent_category_id: input.parentCategoryId ?? null,
           p_record_type: input.recordType,
+          p_special_statuses: input.specialStatuses?.map((status) =>
+            status === "none"
+              ? "none"
+              : toTransactionSpecialStatusStorageValue(status),
+          ),
         },
       );
       if (error) {
@@ -785,7 +797,7 @@ export function createSupabaseTransactionRepository(
     async updateNormal(input) {
       const { error } = await supabase.rpc("update_transaction", {
         p_account_id: input.accountId,
-        p_items: input.items,
+        p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
@@ -844,4 +856,14 @@ export function createSupabaseTransactionRepository(
       }
     },
   };
+}
+
+function toTransactionRpcItems(items: TransactionItemInput[]) {
+  return items.map((item) => ({
+    amount: item.amount,
+    categoryId: item.categoryId,
+    specialStatus: toTransactionSpecialStatusStorageValue(
+      item.specialStatus ?? null,
+    ),
+  }));
 }

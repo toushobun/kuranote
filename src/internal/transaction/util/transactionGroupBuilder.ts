@@ -42,6 +42,28 @@ type MutableGroup = {
   latestTransactionAt: string;
   recordIds: Set<string>;
   summary: TransactionAmountSummary;
+  itemCount: number;
+};
+
+const specialStatusGroupOrder = [
+  "pending_reimbursement",
+  "pending_refund",
+  "reimbursed",
+  "refunded",
+  "excluded",
+  "none",
+] as const;
+
+const specialStatusGroupLabels: Record<
+  (typeof specialStatusGroupOrder)[number],
+  string
+> = {
+  excluded: "不计入支出（不计入合计）",
+  none: "无特殊状态",
+  pending_refund: "待退款",
+  pending_reimbursement: "待报销",
+  refunded: "已退款",
+  reimbursed: "已报销",
 };
 
 export function buildTransactionGroupSummaryPage({
@@ -125,6 +147,16 @@ export function buildTransactionGroupSummaryPage({
   }
 
   const sortedGroups = [...groups.values()].sort((a, b) => {
+    if (groupBy === "specialStatus") {
+      return (
+        specialStatusGroupOrder.indexOf(
+          a.key as (typeof specialStatusGroupOrder)[number],
+        ) -
+        specialStatusGroupOrder.indexOf(
+          b.key as (typeof specialStatusGroupOrder)[number],
+        )
+      );
+    }
     if (a.latestTransactionAt !== b.latestTransactionAt) {
       return b.latestTransactionAt.localeCompare(a.latestTransactionAt);
     }
@@ -140,7 +172,8 @@ export function buildTransactionGroupSummaryPage({
       key: group.key,
       label: group.label,
       summary: normalizeSummary(group.summary),
-      transactionCount: group.recordIds.size,
+      transactionCount:
+        groupBy === "specialStatus" ? group.itemCount : group.recordIds.size,
     })),
     nextOffset: groupPage.nextOffset,
   };
@@ -259,6 +292,20 @@ function addItemGroups({
         transactionAt: record.transaction_at,
       });
       addItemToGroup(group, record, item, categoryById);
+      continue;
+    }
+
+    if (groupBy === "specialStatus") {
+      const key = item.special_status ?? "none";
+      const group = getOrCreateGroup({
+        currency,
+        groupBy,
+        groups,
+        key,
+        label: specialStatusGroupLabels[key],
+        transactionAt: record.transaction_at,
+      });
+      addItemToGroup(group, record, item, categoryById, key === "excluded");
     }
   }
 }
@@ -293,6 +340,7 @@ function getOrCreateGroup({
   const id = `${groupBy}:${key}`;
   const group = groups.get(id) ?? {
     id,
+    itemCount: 0,
     key,
     label,
     latestTransactionAt: transactionAt,
@@ -327,13 +375,15 @@ function addItemToGroup(
   record: TransactionRecordDbRow,
   item: TransactionItemDbRow,
   categoryById: Map<string, CategorySummaryDbRow>,
+  showExcludedOriginalAmount = false,
 ) {
   group.recordIds.add(record.id);
+  group.itemCount += 1;
 
   if (record.type === "transfer") return;
 
-  addSignedAmount(
-    group.summary,
-    getSignedTransactionItemAmount(item, categoryById),
-  );
+  const signedAmount = showExcludedOriginalAmount
+    ? -Number(item.amount)
+    : getSignedTransactionItemAmount(item, categoryById);
+  addSignedAmount(group.summary, signedAmount);
 }

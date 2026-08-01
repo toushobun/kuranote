@@ -80,6 +80,11 @@ export function TransactionItemsSection({
                       type="hidden"
                       value={item.categoryId}
                     />
+                    <input
+                      name="itemSpecialStatus"
+                      type="hidden"
+                      value={item.specialStatus ?? ""}
+                    />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}
                       onClick={() => onOpenItem(item.id)}

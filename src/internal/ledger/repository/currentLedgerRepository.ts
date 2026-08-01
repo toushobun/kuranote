@@ -102,7 +102,9 @@ export function createSupabaseCurrentLedgerRepository(
 
       const ledgerQuery = supabase
         .from("ledger")
-        .select("id, name, base_currency")
+        .select(
+          "id, name, base_currency, transaction_item_special_status_enabled",
+        )
         .in("id", ledgerIds)
         .eq("is_archived", false);
       type LedgerRows = QueryData<typeof ledgerQuery>;
@@ -140,6 +142,8 @@ export function createSupabaseCurrentLedgerRepository(
             currentUserId: userId,
             currentUserRole:
               roleByLedgerId.get(ledger.id) ?? fallbackCurrentLedgerRole,
+            transactionItemSpecialStatusEnabled:
+              ledger.transaction_item_special_status_enabled,
           },
         ]),
       );

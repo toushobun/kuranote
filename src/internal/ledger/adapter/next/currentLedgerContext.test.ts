@@ -275,7 +275,12 @@ describe("getCurrentLedgerContext", () => {
     });
     expect(supabase.queries[2]).toEqual({
       calls: [
-        { args: ["id, name, base_currency"], method: "select" },
+        {
+          args: [
+            "id, name, base_currency, transaction_item_special_status_enabled",
+          ],
+          method: "select",
+        },
         { args: ["id", ["ledger-2", "ledger-1"]], method: "in" },
         { args: ["is_archived", false], method: "eq" },
       ],

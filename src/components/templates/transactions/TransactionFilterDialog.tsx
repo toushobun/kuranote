@@ -20,6 +20,7 @@ import { TransactionFilterSelect } from "./TransactionFilterSelect";
 import {
   otherGroupOptions,
   recordTypeOptions,
+  specialStatusFilterOptions,
   timeGroupOptions,
 } from "./transactionFilterConfig";
 
@@ -84,7 +85,11 @@ export function TransactionFilterDialog({
             />
             <TransactionFilterGroupSelector
               label="其他分组"
-              options={otherGroupOptions}
+              options={otherGroupOptions.filter(
+                (option) =>
+                  option.value !== "specialStatus" ||
+                  filterOptions.transactionItemSpecialStatusEnabled,
+              )}
               selected={draftGroupBy}
               onSelect={onChangeGroupBy}
             />
@@ -190,6 +195,41 @@ export function TransactionFilterDialog({
                 onChangeFilters({ ...draftFilters, memberId: value })
               }
             />
+
+            {filterOptions.transactionItemSpecialStatusEnabled ? (
+              <Stack spacing={0.75}>
+                <Typography color="text.secondary" variant="body2">
+                  特殊状态
+                </Typography>
+                <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
+                  {specialStatusFilterOptions.map((option) => {
+                    const selected =
+                      draftFilters.specialStatuses?.includes(option.value) ??
+                      false;
+                    return (
+                      <TransactionFilterChip
+                        key={option.value}
+                        label={option.label}
+                        selected={selected}
+                        onClick={() =>
+                          onChangeFilters({
+                            ...draftFilters,
+                            specialStatuses: selected
+                              ? draftFilters.specialStatuses?.filter(
+                                  (value) => value !== option.value,
+                                )
+                              : [
+                                  ...(draftFilters.specialStatuses ?? []),
+                                  option.value,
+                                ],
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </Stack>
+              </Stack>
+            ) : null}
 
             {errorMessage ? (
               <Typography color="error" role="alert" sx={errorMessageSx}>

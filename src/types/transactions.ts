@@ -1,6 +1,7 @@
 import type { CategoryType } from "internal/category";
 import type {
   TransactionRecordStorageType,
+  TransactionSpecialStatusFilterValue,
   TransactionType,
 } from "internal/transaction";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -33,7 +34,8 @@ export type TransactionGroupBy =
   | "account"
   | "parentCategory"
   | "category"
-  | "member";
+  | "member"
+  | "specialStatus";
 
 export type TransactionFilterRecordType =
   | "all"
@@ -50,6 +52,7 @@ export type TransactionFilters = {
   merchantId?: string;
   parentCategoryId?: string;
   recordType: TransactionFilterRecordType;
+  specialStatuses?: TransactionSpecialStatusFilterValue[];
 };
 
 export const defaultTransactionFilters = {
@@ -111,7 +114,10 @@ export type TransactionFilterOptions = {
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
   merchants: TransactionMerchantOption[];
+  transactionItemSpecialStatusEnabled?: boolean;
 };
+
+export type { TransactionSpecialStatusFilterValue };
 
 export type TransactionListItem = TransactionRowItem & {
   note: string | null;

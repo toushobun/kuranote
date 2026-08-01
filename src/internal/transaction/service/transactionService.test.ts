@@ -6,6 +6,7 @@ import type { CurrentLedgerRole } from "internal/ledger";
 import {
   AuthorizationError,
   NotFoundError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import {
@@ -60,7 +61,7 @@ function createService(
         listTransactionOptions: vi.fn(),
       },
       categoryQueryService: {
-        findSummariesByIds: vi.fn(),
+        findSummariesByIds: vi.fn().mockResolvedValue([]),
         listActiveSummaries: vi.fn(),
       },
       currentUserId: userId,
@@ -117,6 +118,64 @@ describe("TransactionService", () => {
       name: NotFoundError.name,
     });
     expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("不计入支出只能保存到支出分类", async () => {
+    const { repository, service } = createService("member");
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            specialStatus: "excluded",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("支出分类允许保存不计入支出状态", async () => {
+    const repository = createRepository();
+    const service = createTransactionService({
+      accountQueryService: {
+        getTransactionContext: vi.fn(),
+        listTransactionOptions: vi.fn(),
+      },
+      categoryQueryService: {
+        findSummariesByIds: vi.fn().mockResolvedValue([
+          {
+            id: normalInput.items[0].categoryId,
+            name: "餐饮",
+            parent_id: null,
+            type: "expense",
+          },
+        ]),
+        listActiveSummaries: vi.fn(),
+      },
+      currentUserId: userId,
+      ledgerAccessService: {
+        getActiveMemberRole: vi.fn().mockResolvedValue("member"),
+      },
+      merchantQueryService: {
+        findSummariesByIds: vi.fn(),
+        listActiveOptions: vi.fn(),
+      },
+      transactionRepository: repository,
+    });
+    const input = {
+      ...normalInput,
+      items: [{ ...normalInput.items[0], specialStatus: "excluded" as const }],
+    };
+
+    await service.createNormal(input);
+
+    expect(repository.createNormal).toHaveBeenCalledWith(input);
   });
 
   it("viewer 不能修改交易", async () => {

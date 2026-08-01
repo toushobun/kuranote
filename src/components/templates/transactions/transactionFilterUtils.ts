@@ -4,7 +4,10 @@ import type {
   TransactionGroupBy,
 } from "types/transactions";
 
-import { recordTypeOptions } from "./transactionFilterConfig";
+import {
+  recordTypeOptions,
+  specialStatusFilterOptions,
+} from "./transactionFilterConfig";
 
 export function getResultLabel(
   groupBy: TransactionGroupBy,
@@ -31,6 +34,7 @@ export function getGroupDisplayLabel(groupBy: TransactionGroupBy) {
     quarter: "按季显示",
     week: "按周显示",
     year: "按年显示",
+    specialStatus: "按特殊状态显示",
   };
 
   return labelByGroup[groupBy];
@@ -45,7 +49,8 @@ export function hasActiveTransactionFilters(filters: TransactionFilters) {
     Boolean(filters.accountId) ||
     Boolean(filters.parentCategoryId) ||
     Boolean(filters.categoryId) ||
-    Boolean(filters.memberId)
+    Boolean(filters.memberId) ||
+    Boolean(filters.specialStatuses?.length)
   );
 }
 
@@ -70,6 +75,12 @@ export function buildActiveFilterChips(
   pushCategoryChip(chips, filterOptions, filters.parentCategoryId);
   pushCategoryChip(chips, filterOptions, filters.categoryId);
   pushOptionChip(chips, filterOptions.members, filters.memberId, "name");
+  for (const value of filters.specialStatuses ?? []) {
+    const label = specialStatusFilterOptions.find(
+      (option) => option.value === value,
+    )?.label;
+    if (label) chips.push(label);
+  }
 
   return chips;
 }
@@ -84,6 +95,7 @@ export function serializeTransactionFilters(filters: TransactionFilters) {
     filters.parentCategoryId ?? "",
     filters.categoryId ?? "",
     filters.memberId ?? "",
+    [...(filters.specialStatuses ?? [])].sort().join(","),
   ].join(":");
 }
 

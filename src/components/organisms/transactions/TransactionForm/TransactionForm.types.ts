@@ -24,12 +24,14 @@ export type TransactionFormProps = {
   onSubmitDisabledChange?: (disabled: boolean) => void;
   submitLabel?: string;
   title?: string;
+  transactionItemSpecialStatusEnabled?: boolean;
   typeNavigation?: ReactNode;
 };
 
 export type TransactionFormInitialItem = {
   amount: string;
   categoryId: string;
+  specialStatus?: TransactionSpecialStatusValue | null;
 };
 
 export type TransactionFormInitialValues = {

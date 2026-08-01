@@ -33,6 +33,7 @@ import {
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
   filterTransactionRecords,
+  filterTransactionItems,
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
 import { recordMatchesGroup } from "internal/transaction/util/grouping/groupMatching";
@@ -48,6 +49,7 @@ const nonTimeTransactionGroupByValues = new Set<string>([
   "parentCategory",
   "category",
   "member",
+  "specialStatus",
 ]);
 
 const transactionGroupSummaryRpcPageSize = transactionPageSize + 1;
@@ -158,6 +160,7 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
     offset: safeOffset,
     parentCategoryId: normalizedFilters.parentCategoryId,
     recordType: normalizedFilters.recordType,
+    specialStatuses: normalizedFilters.specialStatuses,
   });
   const groups = pageRows.slice(0, transactionPageSize).map((row) => ({
     id: row.group_id,
@@ -274,8 +277,8 @@ function buildStep4TransactionGroupPageFromContext(
 ): TransactionGroupPage {
   const filteredRecords = filterTransactionRecords(context, filters);
   const filteredRecordIds = new Set(filteredRecords.map((record) => record.id));
-  const filteredItems = context.items.filter((item) =>
-    filteredRecordIds.has(item.transaction_record_id),
+  const filteredItems = filterTransactionItems(context, filters).filter(
+    (item) => filteredRecordIds.has(item.transaction_record_id),
   );
 
   return buildTransactionGroupSummaryPage({
@@ -367,7 +370,14 @@ async function loadStep4TransactionGroupItemsPage(
     currentLedger,
     pageRecords,
   );
-  const items = buildTransactionListItemsFromContext(pageRecords, pageContext);
+  const filteredPageContext = {
+    ...pageContext,
+    items: filterTransactionItems(pageContext, filters),
+  };
+  const items = buildTransactionListItemsFromContext(
+    pageRecords,
+    filteredPageContext,
+  );
 
   return {
     groups: groupTransactionItemsByDate(items, currentLedger.baseCurrency),

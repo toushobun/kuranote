@@ -6,6 +6,7 @@ export type CurrentLedger = {
   baseCurrency: string;
   currentUserId?: string;
   currentUserRole: CurrentLedgerRole;
+  transactionItemSpecialStatusEnabled?: boolean;
 };
 
 export type LedgerWithMemberCount = CurrentLedger & {

@@ -19,6 +19,8 @@ import Typography from "@mui/material/Typography";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
 import type { TransactionCategoryOption } from "types/transactions";
+import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
+import { TransactionSpecialStatusSelector } from "../TransactionSpecialStatusSelector/TransactionSpecialStatusSelector";
 
 import type {
   CategoryPickerGroup,
@@ -37,12 +39,15 @@ type TransactionItemPickerDrawerProps = {
   onGroupSelect: (groupId: string) => void;
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
+  onSpecialStatusChange?: (value: TransactionSpecialStatusValue) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
+  pickerSpecialStatus?: TransactionSpecialStatusValue;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
+  specialStatusEnabled?: boolean;
 };
 
 export function TransactionItemPickerDrawer({
@@ -55,12 +60,15 @@ export function TransactionItemPickerDrawer({
   onGroupSelect,
   onPickerAdd,
   onRemoveItem,
+  onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
+  pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
+  specialStatusEnabled = false,
 }: TransactionItemPickerDrawerProps) {
   const [searchText, setSearchText] = useState("");
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
@@ -337,6 +345,13 @@ export function TransactionItemPickerDrawer({
             ) : null}
           </>
         )}
+
+        {specialStatusEnabled ? (
+          <TransactionSpecialStatusSelector
+            onChange={onSpecialStatusChange}
+            value={pickerSpecialStatus}
+          />
+        ) : null}
       </Box>
 
       <Box sx={drawerFooterSx}>

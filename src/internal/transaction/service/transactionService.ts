@@ -11,6 +11,7 @@ import {
   AuthorizationError,
   NotFoundError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import type {
@@ -204,6 +205,36 @@ export function createTransactionService({
     }
   }
 
+  async function validateSpecialStatuses(input: {
+    items: CreateNormalTransactionInput["items"];
+    ledgerId: string;
+  }) {
+    const excludedCategoryIds = input.items
+      .filter((item) => item.specialStatus === "excluded")
+      .map((item) => item.categoryId);
+    if (excludedCategoryIds.length === 0) return;
+
+    const categories = await categoryQueryService.findSummariesByIds({
+      categoryIds: excludedCategoryIds,
+      ledgerId: input.ledgerId,
+      userId: requireTransactionUserId(currentUserId),
+    });
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    if (
+      excludedCategoryIds.some(
+        (categoryId) => categoryById.get(categoryId)?.type !== "expense",
+      )
+    ) {
+      throw new ValidationError(
+        transactionErrorCodes.specialStatusInvalid,
+        "不计入支出只能用于支出明细。",
+      );
+    }
+  }
+
   return {
     async canModify({ ledgerId, transactionRecordId }) {
       try {
@@ -225,6 +256,9 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      if (input.targetType !== "transfer") {
+        await validateSpecialStatuses(input);
+      }
       try {
         await transactionRepository.convert(input);
       } catch (error) {
@@ -234,6 +268,7 @@ export function createTransactionService({
 
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
+      await validateSpecialStatuses(input);
       try {
         await transactionRepository.createNormal(input);
       } catch (error) {
@@ -337,6 +372,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      await validateSpecialStatuses(input);
       try {
         await transactionRepository.updateNormal(input);
       } catch (error) {

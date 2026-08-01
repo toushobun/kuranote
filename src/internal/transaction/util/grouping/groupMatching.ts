@@ -55,6 +55,10 @@ export function recordMatchesGroup({
     });
   }
 
+  if (groupBy === "specialStatus") {
+    return items.some((item) => (item.special_status ?? "none") === groupKey);
+  }
+
   return false;
 }
 

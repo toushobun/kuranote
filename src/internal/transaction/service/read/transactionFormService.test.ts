@@ -23,6 +23,7 @@ const currentLedger: CurrentLedger = {
   currentUserRole: "member",
   id: ledgerId,
   name: "家庭账本",
+  transactionItemSpecialStatusEnabled: true,
 };
 
 function createRepository(
@@ -93,6 +94,7 @@ describe("getEditTransactionView", () => {
           balance_delta: "-1200.00",
           category_id: categoryId,
           note: null,
+          special_status: "pending_reimbursement",
           transaction_record_id: transactionRecordId,
         },
       ]),
@@ -109,13 +111,16 @@ describe("getEditTransactionView", () => {
       canEdit: false,
       initialValues: {
         accountId,
-        items: [{ amount: "1200", categoryId }],
+        items: [
+          { amount: "1200", categoryId, specialStatus: "pendingReimbursement" },
+        ],
         merchantId,
         note: "午餐",
         transactionRecordId,
         type: "expense",
       },
       ledgerName: "家庭账本",
+      transactionItemSpecialStatusEnabled: true,
     });
   });
 

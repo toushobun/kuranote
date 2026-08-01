@@ -8,6 +8,7 @@ export const transactionErrorCodes = {
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
   permissionDenied: "permission_denied",
+  specialStatusInvalid: "special_status_invalid",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
   updateInvalid: "update_invalid",
@@ -22,6 +23,7 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.specialStatusInvalid
   | typeof transactionErrorCodes.typeInvalid;
 
 export type UpdateTransactionValidationErrorCode =
@@ -47,6 +49,8 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
+  [transactionErrorCodes.specialStatusInvalid]:
+    "特殊状态不正确；不计入支出只能用于支出明细。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

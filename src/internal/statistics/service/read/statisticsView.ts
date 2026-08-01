@@ -1,5 +1,6 @@
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
+import type { TransactionSpecialStatusStorageValue } from "internal/transaction";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,
@@ -42,6 +43,7 @@ type StatisticsItemInput = {
   amount: string;
   category_id: string | null;
   transaction_record_id: string;
+  special_status?: TransactionSpecialStatusStorageValue | null;
 };
 
 type StatisticsMerchantInput = {
@@ -106,9 +108,13 @@ export function buildStatisticsViewData({
 
     if (!category) continue;
 
-    addTransactionAmount(summary, category.type, item.amount);
+    if (!(category.type === "expense" && item.special_status === "excluded")) {
+      addTransactionAmount(summary, category.type, item.amount);
+    }
 
-    if (category.type !== "expense") continue;
+    if (category.type !== "expense" || item.special_status === "excluded") {
+      continue;
+    }
 
     const merchantId = record.merchant_id;
 

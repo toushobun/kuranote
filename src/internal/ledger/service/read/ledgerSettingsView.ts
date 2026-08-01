@@ -23,6 +23,7 @@ export type LedgerSettingsView = {
     id: string;
     isCurrent: boolean;
     name: string;
+    transactionItemSpecialStatusEnabled: boolean;
   };
   members: LedgerSettingsMemberView[];
 };

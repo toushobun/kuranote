@@ -75,6 +75,8 @@ export function useTransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
+  const [pickerSpecialStatus, setPickerSpecialStatus] =
+    useState<TransactionFormItem["specialStatus"]>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
@@ -106,6 +108,7 @@ export function useTransactionForm({
       setEditingItemId(null);
       setPickerCategoryId("");
       setPickerAmount("");
+      setPickerSpecialStatus(null);
       setPickerErrors({});
       setSelectedCategoryGroupId("");
       setFieldErrors((current) => ({ ...current, items: undefined }));
@@ -149,6 +152,7 @@ export function useTransactionForm({
     }),
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
+    if (item.specialStatus === "excluded") return sum;
     if (!isValidMoneyText(item.amount)) return sum;
     return sum + Number(item.amount);
   }, 0);
@@ -180,7 +184,11 @@ export function useTransactionForm({
       ? formatNetAmount(incomeTotal - expenseTotal)
       : "未填写金额";
 
-  function addItem(categoryId: string, amount: string) {
+  function addItem(
+    categoryId: string,
+    amount: string,
+    specialStatus: TransactionFormItem["specialStatus"],
+  ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const itemId = nextItemIdRef.current;
@@ -189,7 +197,7 @@ export function useTransactionForm({
       ...current,
       [categoryType]: [
         ...current[categoryType],
-        { amount, categoryId, id: itemId },
+        { amount, categoryId, id: itemId, specialStatus },
       ],
     }));
     if (fieldErrors.items) {
@@ -212,7 +220,12 @@ export function useTransactionForm({
     }));
   }
 
-  function replaceItem(itemId: number, categoryId: string, amount: string) {
+  function replaceItem(
+    itemId: number,
+    categoryId: string,
+    amount: string,
+    specialStatus: TransactionFormItem["specialStatus"],
+  ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
 
@@ -224,7 +237,9 @@ export function useTransactionForm({
         return {
           ...current,
           [categoryType]: current[categoryType].map((item) =>
-            item.id === itemId ? { ...item, amount, categoryId } : item,
+            item.id === itemId
+              ? { ...item, amount, categoryId, specialStatus }
+              : item,
           ),
         };
       }
@@ -240,7 +255,7 @@ export function useTransactionForm({
       };
       moved[categoryType] = [
         ...moved[categoryType],
-        { ...existingItem, amount, categoryId },
+        { ...existingItem, amount, categoryId, specialStatus },
       ];
 
       return moved;
@@ -260,6 +275,7 @@ export function useTransactionForm({
       setEditingItemId(null);
       setPickerCategoryId("");
       setPickerAmount("");
+      setPickerSpecialStatus(null);
       setPickerErrors({});
     }
   }
@@ -268,6 +284,7 @@ export function useTransactionForm({
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
+    setPickerSpecialStatus(null);
     setPickerErrors({});
     setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
     setIsSheetOpen(true);
@@ -286,6 +303,7 @@ export function useTransactionForm({
     setEditingItemId(itemId);
     setPickerCategoryId(item.categoryId);
     setPickerAmount(item.amount);
+    setPickerSpecialStatus(item.specialStatus);
     setPickerErrors({});
     setSelectedCategoryGroupId(
       categoryGroup?.id ?? categoryGroups[0]?.id ?? "",
@@ -336,13 +354,19 @@ export function useTransactionForm({
 
     setPickerErrors({});
     if (editingItemId === null) {
-      addItem(pickerCategoryId, pickerAmount);
+      addItem(pickerCategoryId, pickerAmount, pickerSpecialStatus);
     } else {
-      replaceItem(editingItemId, pickerCategoryId, pickerAmount);
+      replaceItem(
+        editingItemId,
+        pickerCategoryId,
+        pickerAmount,
+        pickerSpecialStatus,
+      );
     }
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
+    setPickerSpecialStatus(null);
     return true;
   }
 
@@ -439,6 +463,7 @@ export function useTransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
+    pickerSpecialStatus,
     removeItem,
     selectedAccount,
     selectedAccountId,
@@ -446,6 +471,7 @@ export function useTransactionForm({
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerSpecialStatus,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,

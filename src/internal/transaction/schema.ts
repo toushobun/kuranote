@@ -9,6 +9,10 @@ import {
   transactionTypes,
   type TransactionType,
 } from "internal/transaction/entity/transactionType";
+import {
+  transactionSpecialStatuses,
+  type TransactionSpecialStatus,
+} from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
 
 import {
@@ -54,6 +58,7 @@ export type CreateTransactionFormValues =
 export type TransactionFormItemValues = {
   amount: number;
   categoryId: string;
+  specialStatus?: TransactionSpecialStatus | null;
 };
 
 export type UpdateTransactionValues = TransactionFormValues & {
@@ -146,10 +151,16 @@ function parseTransactionItems(
 > {
   const categoryValues = formData.getAll("itemCategoryId");
   const amountValues = formData.getAll("itemAmount");
+  const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
+  const specialStatusValues =
+    submittedSpecialStatusValues.length === 0
+      ? categoryValues.map(() => "")
+      : submittedSpecialStatusValues;
 
   if (
     categoryValues.length === 0 ||
-    categoryValues.length !== amountValues.length
+    categoryValues.length !== amountValues.length ||
+    categoryValues.length !== specialStatusValues.length
   ) {
     return invalid(transactionErrorCodes.amountInvalid);
   }
@@ -176,9 +187,23 @@ function parseTransactionItems(
       return amountResult;
     }
 
+    const specialStatusText = String(specialStatusValues[index] ?? "").trim();
+    let specialStatus: TransactionSpecialStatus | null = null;
+    if (specialStatusText) {
+      if (
+        !(transactionSpecialStatuses as readonly string[]).includes(
+          specialStatusText,
+        )
+      ) {
+        return invalid(transactionErrorCodes.specialStatusInvalid);
+      }
+      specialStatus = specialStatusText as TransactionSpecialStatus;
+    }
+
     items.push({
       amount: amountResult.value,
       categoryId: categoryResult.value,
+      ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
   }
 
@@ -499,6 +524,7 @@ const transactionItemRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   categoryId: z.string().uuid(),
+  specialStatus: z.enum(transactionSpecialStatuses).nullable().optional(),
 });
 
 const normalTransactionRequestSchema = z.object({

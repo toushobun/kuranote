@@ -105,6 +105,15 @@ describe("recordMatchesGroup", () => {
     ).toBe(true);
   });
 
+  it("按特殊状态分组时匹配明细状态和无状态组", () => {
+    expect(
+      matches("specialStatus", "pending_reimbursement", {
+        items: [{ ...item, special_status: "pending_reimbursement" }],
+      }),
+    ).toBe(true);
+    expect(matches("specialStatus", "none")).toBe(true);
+  });
+
   it("未知分组方式不会匹配记录", () => {
     expect(matches("month", "invalid")).toBe(false);
   });

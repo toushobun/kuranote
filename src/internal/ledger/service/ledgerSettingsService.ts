@@ -132,6 +132,8 @@ export function createLedgerSettingsService({
           id: ledger.id,
           isCurrent: currentLedger.id === ledger.id,
           name: ledger.name,
+          transactionItemSpecialStatusEnabled:
+            ledger.transactionItemSpecialStatusEnabled ?? false,
         },
         members: members.map((member) => ({
           avatarUrl: member.avatarUrl,

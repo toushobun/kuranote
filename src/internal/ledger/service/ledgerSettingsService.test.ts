@@ -157,6 +157,30 @@ describe("createLedgerSettingsService.update — ledger 意图", () => {
     });
   });
 
+  it("admin 可以更新账本特殊状态开关", async () => {
+    const { service, ledgerSettingsRepository } = createService({
+      getMemberRole: vi.fn().mockResolvedValue("admin"),
+    });
+    const input = {
+      ...ledgerSettingsInput,
+      settings: {
+        ...ledgerSettingsInput.settings,
+        transactionItemSpecialStatusEnabled: true,
+      },
+    };
+
+    await service.update(input);
+
+    expect(
+      ledgerSettingsRepository.updateLedgerBaseSettings,
+    ).toHaveBeenCalledWith(ledgerId, {
+      baseCurrency: "USD",
+      ledgerName: "新名称",
+      transactionItemSpecialStatusEnabled: true,
+      updatedBy: userId,
+    });
+  });
+
   it("Repository 更新失败时抛出映射后的错误", async () => {
     const { service } = createService({
       updateLedgerBaseSettings: vi.fn().mockResolvedValue({

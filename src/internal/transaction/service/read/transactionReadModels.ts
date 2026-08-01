@@ -2,6 +2,7 @@ import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import type { TransactionSpecialStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionCategorySummaryItem = {
@@ -54,12 +55,14 @@ export type TransactionFilterOptions = {
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
   merchants: MerchantSummary[];
+  transactionItemSpecialStatusEnabled?: boolean;
 };
 
 export type TransactionFormOptions = {
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
   merchantOptions: MerchantSummary[];
+  transactionItemSpecialStatusEnabled: boolean;
 };
 
 export type TransactionAmountSummary = {
@@ -114,7 +117,11 @@ export type EditTransactionView = TransactionFormOptions & {
     | TransferEditInitialValues
     | {
         accountId: string;
-        items: { amount: string; categoryId: string }[];
+        items: {
+          amount: string;
+          categoryId: string;
+          specialStatus: TransactionSpecialStatus | null;
+        }[];
         merchantId: string;
         note: string;
         transactionAt: string;

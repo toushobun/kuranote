@@ -86,7 +86,7 @@ describe("TransactionRepository", () => {
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
-      p_items: normalInput.items,
+      p_items: [{ ...normalInput.items[0], specialStatus: null }],
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_note: null,
@@ -147,7 +147,7 @@ describe("TransactionRepository", () => {
     });
     expect(rpc).toHaveBeenNthCalledWith(
       1,
-      "convert_transaction_type",
+      "convert_transaction_type_with_special_status",
       expect.objectContaining({
         p_account_id: accountId,
         p_from_account_id: null,
@@ -158,7 +158,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(
       2,
-      "convert_transaction_type",
+      "convert_transaction_type_with_special_status",
       expect.objectContaining({
         p_account_id: null,
         p_from_account_id: accountId,
@@ -209,20 +209,24 @@ describe("TransactionRepository", () => {
       recordType: "expense",
     });
     expect(result).toHaveLength(1);
-    expect(rpc).toHaveBeenCalledWith("load_transaction_group_summaries", {
-      p_account_id: accountId,
-      p_category_id: categoryId,
-      p_date_end: "2026-07-01T00:00:00.000Z",
-      p_date_start: "2026-06-01T00:00:00.000Z",
-      p_group_by: "merchant",
-      p_ledger_id: ledgerId,
-      p_limit: 20,
-      p_member_id: userId,
-      p_merchant_id: merchantId,
-      p_offset: 20,
-      p_parent_category_id: categoryId,
-      p_record_type: "expense",
-    });
+    expect(rpc).toHaveBeenCalledWith(
+      "load_transaction_group_summaries_with_special_status",
+      {
+        p_account_id: accountId,
+        p_category_id: categoryId,
+        p_date_end: "2026-07-01T00:00:00.000Z",
+        p_date_start: "2026-06-01T00:00:00.000Z",
+        p_group_by: "merchant",
+        p_ledger_id: ledgerId,
+        p_limit: 20,
+        p_member_id: userId,
+        p_merchant_id: merchantId,
+        p_offset: 20,
+        p_parent_category_id: categoryId,
+        p_record_type: "expense",
+        p_special_statuses: undefined,
+      },
+    );
   });
   it("交易列表应用日期、类型、成员、商户筛选和分页", async () => {
     const record = {
@@ -561,7 +565,7 @@ describe("TransactionDashboardRepository", () => {
       dashboardMonthInput.dateEnd,
     );
     expect(itemQuery.select).toHaveBeenCalledWith(
-      "transaction_record_id, category_id, amount",
+      "transaction_record_id, category_id, amount, special_status",
     );
     expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
   });

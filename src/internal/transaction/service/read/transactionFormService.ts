@@ -11,6 +11,7 @@ import type {
   NewTransactionView,
 } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import { fromTransactionSpecialStatusStorageValue } from "internal/transaction/entity/transactionSpecialStatus";
 
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
@@ -89,6 +90,9 @@ export async function getEditTransactionView(
       items: items.map((item) => ({
         amount: formatEditableAmount(item.amount),
         categoryId: item.category_id ?? "",
+        specialStatus: fromTransactionSpecialStatusStorageValue(
+          item.special_status ?? null,
+        ),
       })),
       merchantId: record.merchant_id ?? "",
       note: record.note ?? "",

@@ -151,4 +151,51 @@ describe("buildStatisticsViewData", () => {
     expect(view.merchantExpenseRanking).toEqual([]);
     expect(view.categoryExpenseRanking).toEqual([]);
   });
+
+  it("不计入支出的明细从月度汇总和排行榜中排除", () => {
+    const view = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          special_status: "excluded" as const,
+          transaction_record_id: "expense-1",
+        },
+        {
+          amount: "300",
+          category_id: "category-daily",
+          special_status: "pending_reimbursement" as const,
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+
+    expect(view.summary).toMatchObject({
+      balance: "-300",
+      expense: "300",
+      income: "0",
+    });
+    expect(view.merchantExpenseRanking).toEqual([
+      {
+        amount: "300",
+        id: "merchant-super",
+        name: "超市",
+        transactionCount: 1,
+      },
+    ]);
+    expect(view.categoryExpenseRanking).toEqual([
+      {
+        amount: "300",
+        id: "category-daily",
+        name: "日用品",
+        transactionCount: 1,
+      },
+    ]);
+  });
 });

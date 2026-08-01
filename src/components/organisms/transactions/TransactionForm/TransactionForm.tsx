@@ -53,6 +53,7 @@ export function TransactionForm({
   onSubmitDisabledChange,
   submitLabel = "保存记账",
   title = "新增记账",
+  transactionItemSpecialStatusEnabled = false,
   typeNavigation,
 }: TransactionFormProps) {
   const {
@@ -82,6 +83,7 @@ export function TransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
+    pickerSpecialStatus,
     removeItem,
     selectedAccount,
     selectedAccountId,
@@ -89,6 +91,7 @@ export function TransactionForm({
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerSpecialStatus,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -312,8 +315,11 @@ export function TransactionForm({
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
+        pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
+        specialStatusEnabled={transactionItemSpecialStatusEnabled}
+        onSpecialStatusChange={setPickerSpecialStatus}
       />
     </form>
   );

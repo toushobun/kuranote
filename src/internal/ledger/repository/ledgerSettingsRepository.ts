@@ -24,6 +24,7 @@ export type UpdateLedgerBaseSettingsInput = {
   baseCurrency: string;
   ledgerName: string;
   updatedBy: string;
+  transactionItemSpecialStatusEnabled?: boolean;
 };
 
 export type UpdateLedgerMemberSettingsInput = {
@@ -233,6 +234,12 @@ export function createSupabaseLedgerSettingsRepository(
           {
             base_currency: input.baseCurrency,
             name: input.ledgerName,
+            ...(input.transactionItemSpecialStatusEnabled === undefined
+              ? {}
+              : {
+                  transaction_item_special_status_enabled:
+                    input.transactionItemSpecialStatusEnabled,
+                }),
             updated_by: input.updatedBy,
           },
           { count: "exact" },

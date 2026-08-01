@@ -37,6 +37,10 @@ function item(categoryId: string | null, amount: string): TransactionItemDbRow {
   };
 }
 
+function excludedExpense(amount: string): TransactionItemDbRow {
+  return { ...item("expense-category", amount), special_status: "excluded" };
+}
+
 describe("getTransactionRecordCategoryType", () => {
   it("净额为正时归为收入", () => {
     expect(
@@ -78,6 +82,15 @@ describe("getTransactionRecordCategoryType", () => {
     expect(
       getTransactionRecordCategoryType(
         [item("income-category", "0")],
+        categoryById,
+      ),
+    ).toBe("income");
+  });
+
+  it("不计入支出的明细不参与净额计算", () => {
+    expect(
+      getTransactionRecordCategoryType(
+        [item("income-category", "200"), excludedExpense("1200")],
         categoryById,
       ),
     ).toBe("income");
