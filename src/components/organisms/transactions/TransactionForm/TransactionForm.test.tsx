@@ -229,14 +229,9 @@ describe("TransactionForm", () => {
       screen.getByRole("button", { name: "固定收入" }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("DragIndicatorRoundedIcon")).toBeNull();
-    expect(screen.getByRole("button", { name: "添加大分类" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: "添加小分类" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    expect(screen.queryByRole("button", { name: "添加大分类" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加小分类" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "排序" })).toBeNull();
     expect(
       screen.getByRole("textbox", { name: "搜索小分类" }),
     ).toBeInTheDocument();
@@ -264,15 +259,32 @@ describe("TransactionForm", () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
-  it("分类列表按收支类型分组并提供分类排序入口", () => {
+  it("分类列表按收支类型分组且不提供分类管理入口", () => {
     const { container } = renderForm();
     openSheet(container);
+    const expenseGroup = screen.getByRole("button", { name: "交通出行" });
+    const incomeLabel = screen.getByText("收入分类");
     expect(screen.getByText("支出分类")).toBeInTheDocument();
-    expect(screen.getByText("收入分类")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "排序" })).toHaveAttribute(
-      "href",
-      routePaths.categories,
+    expect(expenseGroup.compareDocumentPosition(incomeLabel)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    expect(
+      screen.getByRole("button", { name: "食材/调料 · 餐饮" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "固定收入 · 工资" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+    expect(
+      screen.getByRole("button", { name: "固定收入 · 工资" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "食材/调料 · 餐饮" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加大分类" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加小分类" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "排序" })).toBeNull();
   });
   it("搜索小分类后同步筛选父子分类并可选中", () => {
     const { container } = renderForm();

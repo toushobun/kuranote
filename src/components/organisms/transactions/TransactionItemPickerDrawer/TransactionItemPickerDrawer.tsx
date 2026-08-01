@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
 
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import SwapVertRoundedIcon from "@mui/icons-material/SwapVertRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -17,9 +15,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
-import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
 import type { TransactionCategoryOption } from "types/transactions";
@@ -288,17 +284,6 @@ export function TransactionItemPickerDrawer({
                         </Box>
                       ))}
                     </Box>
-                    <Stack direction="row" sx={categoryActionsSx}>
-                      <CategoryAddButton>添加大分类</CategoryAddButton>
-                      <Button
-                        component={Link}
-                        href={routePaths.categories}
-                        startIcon={<SwapVertRoundedIcon fontSize="small" />}
-                        sx={categorySortButtonSx}
-                      >
-                        排序
-                      </Button>
-                    </Stack>
                   </Stack>
 
                   <Stack sx={categoryColumnSx}>
@@ -330,9 +315,6 @@ export function TransactionItemPickerDrawer({
                           </Button>
                         );
                       })}
-                    </Box>
-                    <Box sx={categoryActionsSx}>
-                      <CategoryAddButton>添加小分类</CategoryAddButton>
                     </Box>
                   </Stack>
                 </Stack>
@@ -379,20 +361,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Typography sx={sectionLabelSx} variant="subtitle2">
       {children}
     </Typography>
-  );
-}
-
-function CategoryAddButton({ children }: { children: React.ReactNode }) {
-  return (
-    <Button
-      aria-disabled="true"
-      startIcon={<AddRoundedIcon fontSize="small" />}
-      sx={categoryAddButtonSx}
-      tabIndex={-1}
-      type="button"
-    >
-      {children}
-    </Button>
   );
 }
 
@@ -530,37 +498,6 @@ const categoryOptionSx = (selected: boolean) => (theme: Theme) => ({
   width: "calc(100% - 4px)",
   "& .MuiButton-endIcon": { ml: "auto" },
 });
-
-const categoryAddButtonSx = {
-  borderRadius: 0,
-  color: "primary.main",
-  flexShrink: 0,
-  fontSize: "0.75rem",
-  justifyContent: "flex-start",
-  minHeight: 36,
-  minWidth: 0,
-  px: 0.75,
-  textTransform: "none",
-  whiteSpace: "nowrap",
-  "& .MuiButton-startIcon": { mr: 0.25 },
-};
-
-const categoryActionsSx = {
-  borderTop: 1,
-  borderColor: "divider",
-  mt: "auto",
-};
-
-const categorySortButtonSx = {
-  color: "primary.main",
-  fontSize: "0.75rem",
-  ml: "auto",
-  minWidth: 0,
-  px: 0.5,
-  textTransform: "none",
-  whiteSpace: "nowrap",
-  "& .MuiButton-startIcon": { mr: 0.125 },
-};
 
 const emptySearchSx = {
   alignItems: "center",
