@@ -191,14 +191,14 @@ describe("buildStatisticsViewData", () => {
     expect(view.categoryExpenseRanking).toEqual([
       {
         amount: "300",
-        id: "category-food",
-        name: `${categories[0].name} / ${categories[1].name}`,
+        id: "category-daily",
+        name: categories[2].name,
         transactionCount: 1,
       },
       {
         amount: "300",
-        id: "category-daily",
-        name: categories[2].name,
+        id: "category-food",
+        name: `${categories[0].name} / ${categories[1].name}`,
         transactionCount: 1,
       },
     ]);
