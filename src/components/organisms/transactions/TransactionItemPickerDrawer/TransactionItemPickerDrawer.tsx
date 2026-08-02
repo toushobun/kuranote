@@ -75,6 +75,7 @@ type TransactionItemPickerDrawerProps = {
     offset: number,
   ) => Promise<TransactionSearchPage>;
   specialStatusEnabled?: boolean;
+  incomeLinksEnabled?: boolean;
 };
 
 export function TransactionItemPickerDrawer({
@@ -105,6 +106,7 @@ export function TransactionItemPickerDrawer({
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
   specialStatusEnabled = false,
+  incomeLinksEnabled = true,
 }: TransactionItemPickerDrawerProps) {
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
@@ -396,7 +398,9 @@ export function TransactionItemPickerDrawer({
           />
         ) : null}
 
-        {specialStatusEnabled && selectedCategoryType === "income" ? (
+        {specialStatusEnabled &&
+        incomeLinksEnabled &&
+        selectedCategoryType === "income" ? (
           <>
             <TransactionReimbursementLinkPicker
               candidates={reimbursementCandidates}

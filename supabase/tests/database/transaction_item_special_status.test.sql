@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(22);
+select plan(26);
 
 select has_type(
     'public',
@@ -116,6 +116,27 @@ from (
 ) ti
 cross join (values (30::numeric), (40::numeric), (50::numeric), (50::numeric)) values_to_insert(amount);
 
+insert into public.account (
+    id, ledger_id, name, type, currency, initial_balance,
+    current_balance, sort_order, created_by, updated_by
+)
+select
+    '55110100-0000-4000-8000-000000000001',
+    a.ledger_id,
+    '退款币种不一致测试账户',
+    a.type,
+    case when a.currency = 'USD' then 'JPY' else 'USD' end,
+    0,
+    0,
+    (select coalesce(max(existing.sort_order), 0) + 1 from public.account existing where existing.ledger_id = a.ledger_id),
+    a.created_by,
+    a.updated_by
+from public.account a
+join public.transaction_item ti
+  on ti.account_id = a.id
+ and ti.ledger_id = a.ledger_id
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
 update public.transaction_item
 set special_status = 'pending_reimbursement'
 where id in (
@@ -177,6 +198,49 @@ select is(
     2,
     '多对一报销关联字段都指向同一收入明细'
 );
+
+select set_config(
+    'request.jwt.claim.sub',
+    (select created_by::text from public.transaction_item where id = '55120000-0000-4000-8000-000000000001'),
+    true
+);
+set local role authenticated;
+
+select throws_ok(
+    $$
+        select public.update_transaction(
+            (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001'),
+            (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001'),
+            'income',
+            now(),
+            jsonb_build_array(jsonb_build_object(
+                'amount', 30,
+                'categoryId', (select category_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001')
+            )),
+            (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001'),
+            null,
+            null
+        )
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '结算其他明细的收入交易不能编辑'
+);
+
+select throws_ok(
+    $$
+        select public.void_transaction(
+            (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001'),
+            (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000001')
+        )
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '结算其他明细的收入交易不能作废'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
 
 -- 创建确定性的其他账本支出明细，避免依赖 seed 是否包含跨账本交易。
 insert into public.ledger (
@@ -277,6 +341,28 @@ insert into public.transaction_item (
     '00000000-0000-4000-8000-000000000031'
 );
 
+select set_config(
+    'request.jwt.claim.sub',
+    '00000000-0000-4000-8000-000000000034',
+    true
+);
+set local role authenticated;
+
+select is(
+    (
+        select count(*)::integer
+        from public.load_transaction_group_summaries_with_special_status(
+            '55190000-0000-4000-8000-000000000001',
+            'merchant'
+        )
+    ),
+    0,
+    '非账本成员不能读取特殊状态交易分组汇总'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
 select throws_ok(
     $$
         select public.apply_transaction_item_links(
@@ -365,6 +451,24 @@ select throws_ok(
     '22023',
     'refund_amount_exceeded',
     '超过剩余可退金额时拒绝退款关联'
+);
+
+update public.transaction_item
+set account_id = '55110100-0000-4000-8000-000000000001'
+where id = '55120000-0000-4000-8000-000000000004';
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000002'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000002'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'refund_currency_mismatch',
+    '退款收入与被退款支出账户币种不一致时拒绝关联'
 );
 
 select * from finish();

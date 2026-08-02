@@ -341,6 +341,7 @@ export function TransactionForm({
         loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
         loadRefundSearchPageAction={loadRefundSearchPageAction}
         specialStatusEnabled={transactionItemSpecialStatusEnabled}
+        incomeLinksEnabled={!initialValues?.transactionRecordId}
         onSpecialStatusChange={setPickerSpecialStatus}
       />
     </form>

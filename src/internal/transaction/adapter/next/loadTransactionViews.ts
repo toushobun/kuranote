@@ -42,10 +42,7 @@ export async function loadEditTransactionView(transactionRecordId: string) {
   const { currentLedger, service } = await getContext();
   const view = await service.getEditView(currentLedger, transactionRecordId);
   if (!view) notFound();
-  const refundPickerView = await service.getGroupView(currentLedger, "month", {
-    recordType: "expense",
-  });
-  return { ...view, refundPickerView };
+  return view;
 }
 
 export async function loadTransactionFilterOptions() {

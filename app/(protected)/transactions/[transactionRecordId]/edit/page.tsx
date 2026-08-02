@@ -2,12 +2,7 @@ import {
   saveEditTransaction,
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
-import {
-  loadEditTransactionView,
-  loadRefundPickerGroupItems,
-  loadRefundPickerGroupPage,
-  loadRefundPickerSearchPage,
-} from "internal/transaction/adapter/next/loadTransactionViews";
+import { loadEditTransactionView } from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
@@ -47,11 +42,6 @@ export default async function TransactionEditPage({
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}
-          refundPickerView={view.refundPickerView}
-          loadRefundGroupItemsAction={loadRefundPickerGroupItems}
-          loadRefundMoreGroupsAction={loadRefundPickerGroupPage}
-          loadRefundSearchPageAction={loadRefundPickerSearchPage}
-          reimbursementCandidates={view.reimbursementCandidates}
           transactionItemSpecialStatusEnabled={
             view.transactionItemSpecialStatusEnabled
           }
@@ -71,11 +61,6 @@ export default async function TransactionEditPage({
         initialValues={initialValues}
         ledgerName={view.ledgerName}
         merchantOptions={view.merchantOptions}
-        refundPickerView={view.refundPickerView}
-        loadRefundGroupItemsAction={loadRefundPickerGroupItems}
-        loadRefundMoreGroupsAction={loadRefundPickerGroupPage}
-        loadRefundSearchPageAction={loadRefundPickerSearchPage}
-        reimbursementCandidates={view.reimbursementCandidates}
         transactionItemSpecialStatusEnabled={
           view.transactionItemSpecialStatusEnabled
         }

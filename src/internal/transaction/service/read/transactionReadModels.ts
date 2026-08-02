@@ -136,5 +136,4 @@ export type EditTransactionView = TransactionFormOptions & {
         type: TransactionType;
       };
   ledgerName: string;
-  reimbursementCandidates: TransactionReimbursementCandidate[];
 };

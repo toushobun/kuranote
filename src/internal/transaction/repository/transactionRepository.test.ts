@@ -851,6 +851,16 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "转账账户币种必须一致。",
       ],
       [
+        "refund_currency_mismatch",
+        transactionErrorCodes.refundLinkInvalid,
+        "退款收入与支出明细的账户币种必须一致。",
+      ],
+      [
+        "income_links_create_only",
+        transactionErrorCodes.updateInvalid,
+        "报销和退款关联只能在新建收入交易时设置。",
+      ],
+      [
         "merchant_invalid",
         "merchant_invalid",
         "商家信息不正确，请确认后重试。",
@@ -874,6 +884,11 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         expect(error).toMatchObject({
           code: expectedCode,
           message: expectedMessage,
+        });
+        if (!(error instanceof ValidationError)) throw error;
+        expect(appErrorToResponseBody(error)).toMatchObject({
+          body: { error: { status: 400 } },
+          status: 400,
         });
         expect(String(error)).not.toContain("raw database message");
         expect(logger.error).toHaveBeenCalledWith(

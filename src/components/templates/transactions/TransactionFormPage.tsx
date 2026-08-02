@@ -615,11 +615,6 @@ export function EditTransferTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
-  reimbursementCandidates = [],
-  refundPickerView,
-  loadRefundGroupItemsAction,
-  loadRefundMoreGroupsAction,
-  loadRefundSearchPageAction,
   transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
@@ -654,11 +649,6 @@ export function EditTransferTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
-            reimbursementCandidates={reimbursementCandidates}
-            refundPickerView={refundPickerView}
-            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-            loadRefundSearchPageAction={loadRefundSearchPageAction}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -694,11 +684,6 @@ export function EditTransferTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
-            reimbursementCandidates={reimbursementCandidates}
-            refundPickerView={refundPickerView}
-            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-            loadRefundSearchPageAction={loadRefundSearchPageAction}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -732,11 +717,6 @@ export function EditTransferTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
-      reimbursementCandidates,
-      refundPickerView,
-      loadRefundGroupItemsAction,
-      loadRefundMoreGroupsAction,
-      loadRefundSearchPageAction,
       transactionItemSpecialStatusEnabled,
     ],
   );
@@ -763,11 +743,6 @@ export function EditTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
-  reimbursementCandidates = [],
-  refundPickerView,
-  loadRefundGroupItemsAction,
-  loadRefundMoreGroupsAction,
-  loadRefundSearchPageAction,
   transactionItemSpecialStatusEnabled,
 }: EditTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
@@ -803,11 +778,6 @@ export function EditTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
-            reimbursementCandidates={reimbursementCandidates}
-            refundPickerView={refundPickerView}
-            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-            loadRefundSearchPageAction={loadRefundSearchPageAction}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -843,11 +813,6 @@ export function EditTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
-            reimbursementCandidates={reimbursementCandidates}
-            refundPickerView={refundPickerView}
-            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-            loadRefundSearchPageAction={loadRefundSearchPageAction}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -884,11 +849,6 @@ export function EditTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
-      reimbursementCandidates,
-      refundPickerView,
-      loadRefundGroupItemsAction,
-      loadRefundMoreGroupsAction,
-      loadRefundSearchPageAction,
       transactionItemSpecialStatusEnabled,
     ],
   );

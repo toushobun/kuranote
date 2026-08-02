@@ -711,6 +711,17 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
     });
     expect(getHiddenInput(container, "type").value).toBe("income");
   });
+  it("编辑收入时不显示报销和退款关联选择器", () => {
+    const { container } = renderForm({
+      initialValues: createInitialValues("income"),
+      transactionItemSpecialStatusEnabled: true,
+    });
+
+    openSheet(container);
+
+    expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
+    expect(screen.queryByText("退款关联")).not.toBeInTheDocument();
+  });
   it("编辑支出点击收入后 hidden type 变为 income，且旧支出分类不会继续提交", () => {
     const { container } = renderEditFormWithTypeSwitch(createInitialValues());
     expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);

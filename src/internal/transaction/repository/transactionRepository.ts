@@ -241,7 +241,9 @@ const transactionRpcErrorCodes = [
   "income_link_category_invalid",
   "income_link_conflict",
   "refunded_item_invalid",
+  "refund_currency_mismatch",
   "refund_amount_exceeded",
+  "income_links_create_only",
   "linked_transaction_edit_forbidden",
 ] as const;
 
@@ -391,10 +393,24 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (rpcErrorCode === "refund_currency_mismatch") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款收入与支出明细的账户币种必须一致。",
+      );
+    }
+
+    if (rpcErrorCode === "income_links_create_only") {
+      throw new ValidationError(
+        transactionErrorCodes.updateInvalid,
+        "报销和退款关联只能在新建收入交易时设置。",
+      );
+    }
+
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {
       throw new ConflictError(
         transactionErrorCodes.updateInvalid,
-        "已有关联报销或退款的交易暂不能直接修改明细。",
+        "已有关联报销或退款的交易暂不能修改或作废。",
       );
     }
 

@@ -32,6 +32,7 @@ export async function getNewTransactionView(
       pendingItems,
       options.accountOptions,
       options.categoryOptions,
+      currentLedger.baseCurrency,
     ),
   };
 }
@@ -41,14 +42,11 @@ export async function getEditTransactionView(
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {
-  const [options, record, pendingItems] = await Promise.all([
+  const [options, record] = await Promise.all([
     loadTransactionFormOptions(dependencies, currentLedger),
     dependencies.transactionRepository.findActiveRecord(
       currentLedger.id,
       transactionRecordId,
-    ),
-    dependencies.transactionRepository.listPendingReimbursementItems(
-      currentLedger.id,
     ),
   ]);
   if (!record) return null;
@@ -92,11 +90,6 @@ export async function getEditTransactionView(
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
-      reimbursementCandidates: buildReimbursementCandidates(
-        pendingItems,
-        options.accountOptions,
-        options.categoryOptions,
-      ),
     };
   }
 
@@ -123,11 +116,6 @@ export async function getEditTransactionView(
       type: resolveNormalTransactionDisplayType(items, options.categoryOptions),
     },
     ledgerName: currentLedger.name,
-    reimbursementCandidates: buildReimbursementCandidates(
-      pendingItems,
-      options.accountOptions,
-      options.categoryOptions,
-    ),
   };
 }
 
@@ -137,13 +125,15 @@ function buildReimbursementCandidates(
   >,
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
 ) {
   const accountById = new Map(accounts.map((account) => [account.id, account]));
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
   );
   return items.map((item) => ({
-    accountCurrency: accountById.get(item.account_id)?.currency ?? "JPY",
+    accountCurrency:
+      accountById.get(item.account_id)?.currency ?? fallbackCurrency,
     amount: item.amount,
     categoryName: categoryById.get(item.category_id)?.name ?? "未知分类",
     id: item.id,

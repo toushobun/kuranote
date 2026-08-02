@@ -303,19 +303,24 @@ CREATE OR REPLACE FUNCTION "public"."apply_transaction_item_links"("p_ledger_id"
 declare
     v_income_amount numeric(14,2);
     v_income_category_type text;
+    v_income_currency text;
     v_refunded_item_id uuid;
     v_refunded_amount numeric(14,2);
     v_refunded_category_type text;
+    v_refunded_currency text;
     v_reimbursement_ids uuid[];
     v_requested_count integer;
     v_updated_count integer;
 begin
-    select ti.amount, c.type
-    into v_income_amount, v_income_category_type
+    select ti.amount, c.type, a.currency
+    into v_income_amount, v_income_category_type, v_income_currency
     from public.transaction_item ti
     join public.category c
       on c.id = ti.category_id
      and c.ledger_id = ti.ledger_id
+    join public.account a
+      on a.id = ti.account_id
+     and a.ledger_id = ti.ledger_id
     where ti.id = p_income_item_id
       and ti.ledger_id = p_ledger_id;
 
@@ -374,18 +379,26 @@ begin
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        select ti.amount, c.type
-        into v_refunded_amount, v_refunded_category_type
+        select ti.amount, c.type, a.currency
+        into v_refunded_amount, v_refunded_category_type, v_refunded_currency
         from public.transaction_item ti
         join public.category c
           on c.id = ti.category_id
          and c.ledger_id = ti.ledger_id
+        join public.account a
+          on a.id = ti.account_id
+         and a.ledger_id = ti.ledger_id
         where ti.id = v_refunded_item_id
           and ti.ledger_id = p_ledger_id;
 
         if v_refunded_category_type <> 'expense' then
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
+        end if;
+
+        if v_income_currency is distinct from v_refunded_currency then
+            raise exception 'refund_currency_mismatch'
+                using errcode = '22023', detail = 'refund_currency_mismatch';
         end if;
 
         if v_income_amount > v_refunded_amount - coalesce((
@@ -2826,6 +2839,7 @@ with base_items as (
     where tr.ledger_id = p_ledger_id
       and tr.status = 'active'
       and tr.type in ('normal', 'transfer')
+      and public.current_user_is_active_ledger_member(p_ledger_id)
       and (p_date_start is null or tr.transaction_at >= p_date_start)
       and (p_date_end is null or tr.transaction_at < p_date_end)
       and (p_merchant_id is null or tr.merchant_id = p_merchant_id)
@@ -3011,6 +3025,46 @@ $$;
 
 
 ALTER FUNCTION "public"."prevent_ledger_member_identity_change"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."prevent_linked_transaction_void"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if old.status = 'active'
+       and new.status = 'deleted'
+       and exists (
+           select 1
+           from public.transaction_item ti
+           where ti.transaction_record_id = old.id
+             and ti.ledger_id = old.ledger_id
+             and (
+                 ti.special_status = 'reimbursed'
+                 or ti.settled_by_item_id is not null
+                 or exists (
+                     select 1
+                     from public.transaction_item settled_item
+                     where settled_item.settled_by_item_id = ti.id
+                 )
+                 or exists (
+                     select 1
+                     from public.transaction_item_refund_link link
+                     where link.refunded_item_id = ti.id
+                        or link.refund_income_item_id = ti.id
+                 )
+             )
+       ) then
+        raise exception 'linked_transaction_edit_forbidden'
+            using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."prevent_linked_transaction_void"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."prevent_merchant_alias_identity_change"() RETURNS "trigger"
@@ -3657,6 +3711,11 @@ begin
           and (
               ti.special_status = 'reimbursed'
               or ti.settled_by_item_id is not null
+              or exists (
+                  select 1
+                  from public.transaction_item settled_item
+                  where settled_item.settled_by_item_id = ti.id
+              )
               or exists (
                   select 1
                   from public.transaction_item_refund_link link
@@ -5196,6 +5255,10 @@ CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status" BEFORE INSE
 
 
 CREATE OR REPLACE TRIGGER "transaction_record_normalize_type_for_compat" BEFORE INSERT OR UPDATE OF "type" ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."normalize_transaction_record_type_for_compat"();
+
+
+
+CREATE OR REPLACE TRIGGER "transaction_record_prevent_linked_void" BEFORE UPDATE OF "status" ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_linked_transaction_void"();
 
 
 
