@@ -24,7 +24,7 @@ as $$
 declare
     v_category_type text;
 begin
-    if new.special_status <> 'excluded' then
+    if new.special_status is distinct from 'excluded' then
         return new;
     end if;
 

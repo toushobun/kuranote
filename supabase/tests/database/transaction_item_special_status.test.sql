@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(8);
+select plan(10);
 
 select has_type(
     'public',
@@ -88,6 +88,32 @@ select ok(
         'EXECUTE'
     ),
     '认证用户可调用支持特殊状态的交易类型转换 RPC'
+);
+
+select ok(
+    exists (
+        select 1
+        from public.transaction_item ti
+        join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+        where c.type = 'income'
+          and ti.special_status is null
+    ),
+    'seed 中存在无特殊状态的收入明细'
+);
+
+select lives_ok(
+    $$
+        update public.transaction_item ti
+        set special_status = null
+        from public.category c
+        where c.id = ti.category_id
+          and c.ledger_id = ti.ledger_id
+          and c.type = 'income'
+          and ti.special_status is null
+    $$,
+    '无特殊状态的收入明细不会触发 excluded 分类校验'
 );
 
 select * from finish();
