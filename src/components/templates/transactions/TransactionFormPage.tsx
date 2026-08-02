@@ -58,6 +58,7 @@ export type TransactionFormTemplateProps = {
   initialType?: TransactionRecordType;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
+  transactionItemSpecialStatusEnabled: boolean;
 };
 
 type EditTransactionTemplateProps = Omit<
@@ -233,6 +234,7 @@ function NewTransactionFormView({
   errorMessage,
   initialType,
   merchantOptions,
+  transactionItemSpecialStatusEnabled,
 }: TransactionFormTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -273,6 +275,9 @@ function NewTransactionFormView({
           hideHeader
           initialType="expense"
           merchantOptions={merchantOptions}
+          transactionItemSpecialStatusEnabled={
+            transactionItemSpecialStatusEnabled
+          }
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, expense: disabled }))
           }
@@ -288,6 +293,9 @@ function NewTransactionFormView({
           hideHeader
           initialType="income"
           merchantOptions={merchantOptions}
+          transactionItemSpecialStatusEnabled={
+            transactionItemSpecialStatusEnabled
+          }
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
           }
@@ -312,6 +320,7 @@ function NewTransactionFormView({
       categoryOptions,
       activeErrorMessage,
       merchantOptions,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 
@@ -568,6 +577,7 @@ export function EditTransferTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
+  transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -601,6 +611,9 @@ export function EditTransferTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({
                 ...prev,
@@ -633,6 +646,9 @@ export function EditTransferTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
@@ -663,6 +679,7 @@ export function EditTransferTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 
@@ -688,6 +705,7 @@ export function EditTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
+  transactionItemSpecialStatusEnabled,
 }: EditTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -722,6 +740,9 @@ export function EditTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({
                 ...prev,
@@ -754,6 +775,9 @@ export function EditTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
@@ -787,6 +811,7 @@ export function EditTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 

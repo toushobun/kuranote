@@ -5,7 +5,7 @@ import {
   within,
   screen,
 } from "@testing-library/react";
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   NewTransactionTemplate,
@@ -21,6 +21,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     formId,
     initialValues,
     initialType,
+    transactionItemSpecialStatusEnabled,
   }: {
     errorMessage: string | null;
     formId?: string;
@@ -28,9 +29,21 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
       type: "expense" | "income";
     };
     initialType?: "expense" | "income";
+    transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
+    const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
     const type = initialValues?.type ?? initialType ?? "expense";
     const label = type === "income" ? "收入" : "支出";
+    const itemPicker = (
+      <>
+        <button onClick={() => setIsItemPickerOpen(true)} type="button">
+          添加明细
+        </button>
+        {isItemPickerOpen && transactionItemSpecialStatusEnabled ? (
+          <section aria-label="特殊状态">特殊状态</section>
+        ) : null}
+      </>
+    );
     if (initialValues) {
       return (
         <form id={formId}>
@@ -38,6 +51,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
             <input aria-label={`${label}编辑临时输入`} defaultValue="" />
             <input aria-label={`${label}转换临时输入`} defaultValue="" />
             <input name="type" type="hidden" value={type} />
+            {itemPicker}
           </div>
         </form>
       );
@@ -46,6 +60,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
       <div data-testid={`transaction-form-${type}`}>
         <input aria-label={`${label}临时输入`} defaultValue="" />
         <input name="type" type="hidden" value={type} />
+        {itemPicker}
         {errorMessage ? <div role="alert">{errorMessage}</div> : null}
       </div>
     );
@@ -113,6 +128,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
     errorMessage: null,
     ledgerName: "家庭账本",
     merchantOptions: [],
+    transactionItemSpecialStatusEnabled: false,
   };
   describe("NewTransactionTemplate", () => {
     it("显示新增记账页面标题", () => {
@@ -283,6 +299,23 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       expect(hiddenInput).toHaveAttribute("name", "type");
       expect(hiddenInput).toHaveAttribute("type", "hidden");
     });
+    it("账本启用明细特殊状态后新增模板的明细弹层显示特殊状态选择区", () => {
+      const { container } = render(
+        <NewTransactionTemplate
+          {...baseProps}
+          transactionItemSpecialStatusEnabled
+        />,
+      );
+      const activePanel = within(container).getByTestId(
+        "transaction-type-slide-panel-expense",
+      );
+      fireEvent.click(
+        within(activePanel).getByRole("button", { name: "添加明细" }),
+      );
+      expect(
+        within(activePanel).getByRole("region", { name: "特殊状态" }),
+      ).toBeInTheDocument();
+    });
     it("initialType=income 时收支 tab 对应收入表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="income" />,
@@ -372,6 +405,7 @@ describe("EditTransactionTemplate", () => {
       },
       ledgerName: "家庭账本",
       merchantOptions,
+      transactionItemSpecialStatusEnabled: false,
     };
   }
   it("普通编辑页默认显示编辑记账标题", () => {
@@ -422,6 +456,23 @@ describe("EditTransactionTemplate", () => {
     ).toBeInTheDocument();
     expect(
       within(container).getByTestId("transfer-transaction-form"),
+    ).toBeInTheDocument();
+  });
+  it("账本启用明细特殊状态后编辑模板的明细弹层显示特殊状态选择区", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate
+        {...createProps()}
+        transactionItemSpecialStatusEnabled
+      />,
+    );
+    const activePanel = within(container).getByTestId(
+      "transaction-type-slide-panel-expense",
+    );
+    fireEvent.click(
+      within(activePanel).getByRole("button", { name: "添加明细" }),
+    );
+    expect(
+      within(activePanel).getByRole("region", { name: "特殊状态" }),
     ).toBeInTheDocument();
   });
   it("点击转账 tab 后激活转账编辑面板，并保持编辑记账标题", () => {
@@ -545,6 +596,7 @@ describe("EditTransferTransactionTemplate", () => {
         }}
         ledgerName="家庭账本"
         merchantOptions={[]}
+        transactionItemSpecialStatusEnabled={false}
       />,
     );
   }

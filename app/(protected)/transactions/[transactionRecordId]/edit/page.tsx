@@ -42,6 +42,9 @@ export default async function TransactionEditPage({
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}
+          transactionItemSpecialStatusEnabled={
+            view.transactionItemSpecialStatusEnabled
+          }
         />
       </NewTransactionVisualFrame>
     );
@@ -58,6 +61,9 @@ export default async function TransactionEditPage({
         initialValues={initialValues}
         ledgerName={view.ledgerName}
         merchantOptions={view.merchantOptions}
+        transactionItemSpecialStatusEnabled={
+          view.transactionItemSpecialStatusEnabled
+        }
       />
     </NewTransactionVisualFrame>
   );

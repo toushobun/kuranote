@@ -62,6 +62,7 @@ const baseArgs = {
   errorMessage: null,
   ledgerName: "家庭账本",
   merchantOptions,
+  transactionItemSpecialStatusEnabled: true,
 };
 
 const meta = {
