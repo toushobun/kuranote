@@ -4040,7 +4040,7 @@ CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_special_status"()
 declare
     v_category_type text;
 begin
-    if new.special_status <> 'excluded' then
+    if new.special_status is distinct from 'excluded' then
         return new;
     end if;
 
