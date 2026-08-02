@@ -1,6 +1,7 @@
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
+import type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type { TransactionSpecialStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -66,13 +67,6 @@ export type TransactionFormOptions = {
   categoryOptions: TransactionCategoryOption[];
   merchantOptions: MerchantSummary[];
   transactionItemSpecialStatusEnabled: boolean;
-};
-
-export type TransactionReimbursementCandidate = {
-  amount: string;
-  categoryName: string;
-  id: string;
-  transactionAt: string;
 };
 
 export type TransactionAmountSummary = {

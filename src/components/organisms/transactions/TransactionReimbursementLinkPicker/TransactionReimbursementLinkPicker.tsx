@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 import type { TransactionReimbursementCandidate } from "types/transactions";
+import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 type TransactionReimbursementLinkPickerProps = {
@@ -57,7 +58,8 @@ export function TransactionReimbursementLinkPicker({
                   label={
                     <Stack>
                       <Typography sx={{ fontWeight: 800 }} variant="body2">
-                        {candidate.categoryName} · ¥
+                        {candidate.categoryName} ·{" "}
+                        {getCurrencySymbol(candidate.accountCurrency)}
                         {formatNumber(candidate.amount)}
                       </Typography>
                       <Typography color="text.secondary" variant="caption">

@@ -6,6 +6,7 @@ import { loadTransactionFormOptions } from "internal/transaction/service/read/op
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   EditTransactionView,
+  TransactionAccountOption,
   TransactionCategoryOption,
   TransferEditInitialValues,
   NewTransactionView,
@@ -29,6 +30,7 @@ export async function getNewTransactionView(
     ledgerName: currentLedger.name,
     reimbursementCandidates: buildReimbursementCandidates(
       pendingItems,
+      options.accountOptions,
       options.categoryOptions,
     ),
   };
@@ -92,6 +94,7 @@ export async function getEditTransactionView(
       ledgerName: currentLedger.name,
       reimbursementCandidates: buildReimbursementCandidates(
         pendingItems,
+        options.accountOptions,
         options.categoryOptions,
       ),
     };
@@ -122,6 +125,7 @@ export async function getEditTransactionView(
     ledgerName: currentLedger.name,
     reimbursementCandidates: buildReimbursementCandidates(
       pendingItems,
+      options.accountOptions,
       options.categoryOptions,
     ),
   };
@@ -131,12 +135,15 @@ function buildReimbursementCandidates(
   items: Awaited<
     ReturnType<TransactionFormRepository["listPendingReimbursementItems"]>
   >,
+  accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
 ) {
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
   );
   return items.map((item) => ({
+    accountCurrency: accountById.get(item.account_id)?.currency ?? "JPY",
     amount: item.amount,
     categoryName: categoryById.get(item.category_id)?.name ?? "未知分类",
     id: item.id,

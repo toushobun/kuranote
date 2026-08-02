@@ -352,4 +352,60 @@ describe("TransactionMonthList", () => {
 
     expect(loadMoreGroupsAction).toHaveBeenCalledTimes(2);
   });
+
+  it("退款选择模式透传选择回调并隐藏分组汇总", () => {
+    const onSelectRefundItem = vi.fn();
+    const refundDateGroup = createDateGroup({
+      items: [
+        createItem({
+          account_currency: "USD",
+          amount: "100",
+          categoryItems: [
+            {
+              amount: "100",
+              categoryName: "午餐",
+              categoryType: "expense",
+              id: "refund-item-1",
+              parentCategoryName: "饮食",
+              refundedAmount: "40",
+              remainingRefundableAmount: "60",
+            },
+          ],
+        }),
+      ],
+      summary: {
+        balance: "-100",
+        currency: "USD",
+        expense: "100",
+        income: "0",
+      },
+    });
+
+    render(
+      <TransactionMonthList
+        loadGroupItemsAction={async () => ({
+          groups: [],
+          nextOffset: null,
+        })}
+        loadMoreGroupsAction={async () => emptyGroupPage}
+        onSelectRefundItem={onSelectRefundItem}
+        refundSelectionMode
+        timeGroupView={createView({
+          initialDateGroupsByGroupId: {
+            [juneGroup.id]: [refundDateGroup],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("支出 $100")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细 午餐" }));
+    expect(onSelectRefundItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountCurrency: "USD",
+        id: "refund-item-1",
+        remainingRefundableAmount: "60",
+      }),
+    );
+  });
 });

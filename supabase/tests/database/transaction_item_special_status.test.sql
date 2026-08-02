@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(19);
+select plan(22);
 
 select has_type(
     'public',
@@ -176,6 +176,157 @@ select is(
     ),
     2,
     '多对一报销关联字段都指向同一收入明细'
+);
+
+-- 创建确定性的其他账本支出明细，避免依赖 seed 是否包含跨账本交易。
+insert into public.ledger (
+    id, name, base_currency, owner_user_id, created_by, updated_by
+) values (
+    '55190000-0000-4000-8000-000000000001',
+    '跨账本退款测试',
+    'JPY',
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+insert into public.account (
+    id, ledger_id, name, type, currency, initial_balance,
+    current_balance, sort_order, created_by, updated_by
+) values (
+    '55190100-0000-4000-8000-000000000001',
+    '55190000-0000-4000-8000-000000000001',
+    '跨账本测试账户',
+    'cash',
+    'JPY',
+    0,
+    0,
+    0,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+insert into public.category (
+    id, ledger_id, parent_id, type, name, sort_order,
+    created_by, updated_by
+) values
+    (
+        '55190200-0000-4000-8000-000000000001',
+        '55190000-0000-4000-8000-000000000001',
+        null,
+        'expense',
+        '跨账本支出',
+        0,
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031'
+    ),
+    (
+        '55190200-0000-4000-8000-000000000002',
+        '55190000-0000-4000-8000-000000000001',
+        '55190200-0000-4000-8000-000000000001',
+        'expense',
+        '跨账本支出明细',
+        0,
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031'
+    );
+
+insert into public.merchant (
+    id, ledger_id, name, sort_order, created_by, updated_by
+) values (
+    '55190250-0000-4000-8000-000000000001',
+    '55190000-0000-4000-8000-000000000001',
+    '跨账本测试商家',
+    0,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+) values (
+    '55190300-0000-4000-8000-000000000001',
+    '55190000-0000-4000-8000-000000000001',
+    'normal',
+    'active',
+    now(),
+    '55190250-0000-4000-8000-000000000001',
+    '跨账本退款测试记录',
+    null,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    created_by, updated_by
+) values (
+    '55190400-0000-4000-8000-000000000001',
+    '55190000-0000-4000-8000-000000000001',
+    '55190300-0000-4000-8000-000000000001',
+    '55190100-0000-4000-8000-000000000001',
+    '55190200-0000-4000-8000-000000000002',
+    100,
+    0,
+    -100,
+    null,
+    0,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object(
+                'refundedItemId', '55190400-0000-4000-8000-000000000001'
+            ),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'refunded_item_invalid',
+    '跨账本伪造退款目标明细时拒绝关联'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object(
+                'reimbursementItemIds',
+                jsonb_build_array('55110000-0000-4000-8000-000000000001')
+            ),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    'P0001',
+    'reimbursement_item_invalid',
+    '已报销明细不能被重复关联'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object(
+                'reimbursementItemIds',
+                jsonb_build_array('55110000-0000-4000-8000-000000000001'),
+                'refundedItemId',
+                '55110000-0000-4000-8000-000000000001'
+            ),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'income_link_conflict',
+    '同一收入明细不能同时设置报销和退款关联'
 );
 
 select lives_ok(

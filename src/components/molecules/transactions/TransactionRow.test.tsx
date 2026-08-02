@@ -311,6 +311,77 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
+  it("合计多条明细的部分退款金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          account_currency: "USD",
+          amount: "150",
+          categoryItems: [
+            {
+              amount: "100",
+              categoryName: "服装",
+              categoryType: "expense",
+              parentCategoryName: "购物",
+              refundedAmount: "40",
+            },
+            {
+              amount: "50",
+              categoryName: "日用品",
+              categoryType: "expense",
+              parentCategoryName: "购物",
+              refundedAmount: "10",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("已退款 $50")).toBeInTheDocument();
+  });
+
+  it("刚好全部退款时显示完整退款金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          account_currency: "USD",
+          amount: "100",
+          categoryItems: [
+            {
+              amount: "100",
+              categoryName: "服装",
+              categoryType: "expense",
+              parentCategoryName: "购物",
+              refundedAmount: "100",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("已退款 $100")).toBeInTheDocument();
+  });
+
+  it("没有退款时不显示退款文案", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          categoryItems: [
+            {
+              amount: "1234",
+              categoryName: "餐饮",
+              categoryType: "expense",
+              parentCategoryName: "饮食",
+              refundedAmount: "0",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/^已退款/)).not.toBeInTheDocument();
+  });
+
   function stubBrowserTimeZone(timeZone: string) {
     const mockedIntl = Object.create(Intl) as typeof Intl;
     mockedIntl.DateTimeFormat = function DateTimeFormat(

@@ -5,12 +5,14 @@ import { TransactionReimbursementLinkPicker } from "./TransactionReimbursementLi
 
 const candidates = [
   {
+    accountCurrency: "JPY",
     amount: "1200",
     categoryName: "交通费",
     id: "00000000-0000-4000-8000-000000000001",
     transactionAt: "2026-08-01T00:00:00.000Z",
   },
   {
+    accountCurrency: "JPY",
     amount: "3480",
     categoryName: "住宿费",
     id: "00000000-0000-4000-8000-000000000002",

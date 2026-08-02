@@ -18,6 +18,7 @@ import type {
   TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
+import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 type TransactionRefundLinkPickerProps = {
@@ -58,10 +59,12 @@ export function TransactionRefundLinkPicker({
         <Stack direction="row" sx={selectedSx}>
           <Stack>
             <Typography sx={{ fontWeight: 800 }} variant="body2">
-              {value.categoryName} · ¥{formatNumber(value.amount)}
+              {value.categoryName} · {getCurrencySymbol(value.accountCurrency)}
+              {formatNumber(value.amount)}
             </Typography>
             <Typography color="text.secondary" variant="caption">
-              剩余可退 ¥{formatNumber(value.remainingRefundableAmount)}
+              剩余可退 {getCurrencySymbol(value.accountCurrency)}
+              {formatNumber(value.remainingRefundableAmount)}
             </Typography>
           </Stack>
           <Button onClick={() => onChange(null)}>取消关联</Button>

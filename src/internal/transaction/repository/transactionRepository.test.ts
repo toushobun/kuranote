@@ -1,11 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
+import { transactionErrorCodes } from "internal/transaction/errors";
+import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   RepositoryError,
   ValidationError,
@@ -381,6 +384,53 @@ describe("TransactionRepository", () => {
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
+  it.each([
+    {
+      expectedCode: transactionErrorCodes.refundAmountExceeded,
+      rpcCode: "refund_amount_exceeded",
+    },
+    {
+      expectedCode: transactionErrorCodes.reimbursementLinkInvalid,
+      rpcCode: "reimbursement_item_invalid",
+    },
+    {
+      expectedCode: transactionErrorCodes.reimbursementLinkInvalid,
+      rpcCode: "reimbursement_income_invalid",
+    },
+    {
+      expectedCode: transactionErrorCodes.updateInvalid,
+      rpcCode: "linked_transaction_edit_forbidden",
+    },
+  ] as const)(
+    "RPC 业务错误 $rpcCode 映射为 409 冲突",
+    async ({ expectedCode, rpcCode }) => {
+      const rpc = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "P0001",
+          details: rpcCode,
+          message: "database details",
+        },
+      });
+      const { repository } = createRepository({ rpc });
+      try {
+        await repository.createNormal(normalInput);
+        throw new Error("预期抛出 ConflictError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConflictError);
+        expect(error).toMatchObject({
+          code: expectedCode,
+          name: ConflictError.name,
+        });
+        if (!(error instanceof ConflictError)) throw error;
+        expect(appErrorToResponseBody(error)).toMatchObject({
+          body: { error: { status: 409 } },
+          status: 409,
+        });
+      }
+    },
+  );
+
   it("查询错误转换为安全应用错误", async () => {
     const query = createQuery({
       data: null,

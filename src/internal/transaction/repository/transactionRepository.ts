@@ -2,6 +2,7 @@ import type { Logger } from "internal/shared/logging/logger";
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -119,6 +120,7 @@ export type TransactionGroupSummaryRow = {
 };
 
 export type PendingReimbursementItemRow = {
+  account_id: string;
   amount: string;
   category_id: string;
   id: string;
@@ -369,14 +371,14 @@ export function createSupabaseTransactionRepository(
       rpcErrorCode === "reimbursement_item_invalid" ||
       rpcErrorCode === "reimbursement_income_invalid"
     ) {
-      throw new ValidationError(
+      throw new ConflictError(
         transactionErrorCodes.reimbursementLinkInvalid,
         "待报销明细已被处理或不属于当前账本，请刷新后重试。",
       );
     }
 
     if (rpcErrorCode === "refund_amount_exceeded") {
-      throw new ValidationError(
+      throw new ConflictError(
         transactionErrorCodes.refundAmountExceeded,
         "退款金额超过该明细的剩余可退金额，请调整金额后重试。",
       );
@@ -390,7 +392,7 @@ export function createSupabaseTransactionRepository(
     }
 
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {
-      throw new ValidationError(
+      throw new ConflictError(
         transactionErrorCodes.updateInvalid,
         "已有关联报销或退款的交易暂不能直接修改明细。",
       );
@@ -612,7 +614,7 @@ export function createSupabaseTransactionRepository(
     async listPendingReimbursementItems(ledgerId) {
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item")
-        .select("id, transaction_record_id, category_id, amount")
+        .select("id, transaction_record_id, account_id, category_id, amount")
         .eq("ledger_id", ledgerId)
         .eq("special_status", "pending_reimbursement")
         .is("settled_by_item_id", null)

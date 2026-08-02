@@ -53,6 +53,7 @@ function createRepository(
 function createService(
   role: CurrentLedgerRole | null,
   repository = createRepository(),
+  categoryType?: "expense" | "income",
 ) {
   return {
     repository,
@@ -62,7 +63,18 @@ function createService(
         listTransactionOptions: vi.fn(),
       },
       categoryQueryService: {
-        findSummariesByIds: vi.fn().mockResolvedValue([]),
+        findSummariesByIds: vi.fn().mockResolvedValue(
+          categoryType
+            ? [
+                {
+                  id: normalInput.items[0].categoryId,
+                  name: "测试分类",
+                  parent_id: null,
+                  type: categoryType,
+                },
+              ]
+            : [],
+        ),
         listActiveSummaries: vi.fn(),
       },
       currentUserId: userId,
@@ -133,6 +145,105 @@ describe("TransactionService", () => {
             specialStatus: "reimbursed",
           },
         ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("收入分类不能设置待报销状态", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            specialStatus: "pendingReimbursement",
+          },
+        ],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("支出分类不能设置报销关联", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "expense",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            reimbursementItemIds: ["00000000-0000-4000-8000-000000005073"],
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("支出分类不能设置退款关联", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "expense",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            refundedItemId: "00000000-0000-4000-8000-000000005073",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("同一收入明细不能同时设置报销和退款关联", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            refundedItemId: "00000000-0000-4000-8000-000000005073",
+            reimbursementItemIds: ["00000000-0000-4000-8000-000000005074"],
+          },
+        ],
+        type: "income",
       }),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.specialStatusInvalid,

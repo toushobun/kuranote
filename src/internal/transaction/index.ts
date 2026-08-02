@@ -32,7 +32,7 @@ export type {
   TransactionMonthPage,
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
-export type { TransactionReimbursementCandidate } from "internal/transaction/service/read/transactionReadModels";
+export type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,

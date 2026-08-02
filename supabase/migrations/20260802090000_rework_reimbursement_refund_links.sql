@@ -224,6 +224,11 @@ begin
           and ti.ledger_id = p_ledger_id
         for update;
 
+        if not found then
+            raise exception 'refunded_item_invalid'
+                using errcode = '22023', detail = 'refunded_item_invalid';
+        end if;
+
         select ti.amount, c.type
         into v_refunded_amount, v_refunded_category_type
         from public.transaction_item ti

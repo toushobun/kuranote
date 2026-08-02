@@ -1,8 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { TransactionDateGroup } from "types/transactions";
+import type {
+  TransactionDateGroup,
+  TransactionListItem,
+} from "types/transactions";
 
-import { TransactionGroupList } from "./TransactionGroupList";
+import {
+  TransactionGroupList,
+  TransactionRefundCandidateList,
+} from "./TransactionGroupList";
 
 const groups: TransactionDateGroup[] = [
   {
@@ -39,6 +45,42 @@ const groups: TransactionDateGroup[] = [
   },
 ];
 
+const refundCandidateItems: TransactionListItem[] = [
+  {
+    account_currency: "USD",
+    account_name: "信用卡",
+    amount: "200",
+    categoryItems: [
+      {
+        amount: "120",
+        categoryName: "服装",
+        categoryType: "expense",
+        id: "partial-item",
+        parentCategoryName: "购物",
+        refundedAmount: "20",
+        remainingRefundableAmount: "100",
+      },
+      {
+        amount: "80",
+        categoryName: "日用品",
+        categoryType: "expense",
+        id: "completed-item",
+        parentCategoryName: "购物",
+        refundedAmount: "80",
+        remainingRefundableAmount: "0",
+      },
+    ],
+    created_at: "2026-08-01T00:00:00.000Z",
+    id: "record-1",
+    merchant_icon_url: null,
+    merchant_name: "商店",
+    note: null,
+    recorder_name: null,
+    transaction_at: "2026-08-01T00:00:00.000Z",
+    type: "expense",
+  },
+];
+
 const meta = {
   title: "Organisms/Transactions/TransactionGroupList",
   component: TransactionGroupList,
@@ -52,4 +94,14 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   name: "按日期分组的记账列表",
+};
+
+export const RefundCandidateStates: Story = {
+  name: "退款候选的部分退款与已退完状态",
+  render: () => (
+    <TransactionRefundCandidateList
+      items={refundCandidateItems}
+      onSelect={() => undefined}
+    />
+  ),
 };

@@ -160,7 +160,11 @@ export function TransactionItemsSection({
                       ) : null}
                       {Number(item.refundedAmount ?? 0) > 0 ? (
                         <Typography color="text.secondary" variant="caption">
-                          已退款 ¥{Number(item.refundedAmount).toLocaleString()}
+                          已退款{" "}
+                          {formatSignedCurrencyAmount(
+                            String(item.refundedAmount),
+                            selectedAccountCurrency,
+                          )}
                         </Typography>
                       ) : null}
                     </Box>

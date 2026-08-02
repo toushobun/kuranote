@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { TransactionReimbursementLinkPicker } from "./TransactionReimbursementLinkPicker";
 
 const candidate = {
+  accountCurrency: "JPY",
   amount: "1200",
   categoryName: "交通费",
   id: "00000000-0000-4000-8000-000000000001",
