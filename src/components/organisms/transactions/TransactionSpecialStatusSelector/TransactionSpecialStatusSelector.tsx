@@ -6,6 +6,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
@@ -25,8 +26,6 @@ type TransactionSpecialStatusSelectorProps = {
   value: TransactionSpecialStatusValue;
 };
 
-const noStatusValue = "none";
-
 export function TransactionSpecialStatusSelector({
   disabled = false,
   onChange,
@@ -34,22 +33,34 @@ export function TransactionSpecialStatusSelector({
   state = "ready",
   value,
 }: TransactionSpecialStatusSelectorProps) {
+  const isEnabled = value !== null;
+
   return (
     <Stack component="section" spacing={1} sx={selectorSx}>
-      <Box>
-        <Typography component="h3" sx={titleSx}>
-          特殊状态
-        </Typography>
-        <Typography color="text.secondary" variant="body2">
-          只标记当前这条明细，角落徽标仅用于展示。
-        </Typography>
-      </Box>
+      <Stack direction="row" sx={headerSx}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography component="h3" sx={titleSx}>
+            状态标签
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            只标记当前这条明细，角落徽标仅用于展示。
+          </Typography>
+        </Box>
+        <Switch
+          checked={isEnabled}
+          disabled={disabled || state !== "ready"}
+          onChange={(event) =>
+            onChange(event.target.checked ? "pendingReimbursement" : null)
+          }
+          slotProps={{ input: { "aria-label": "启用状态标签" } }}
+        />
+      </Stack>
 
       {state === "loading" ? (
         <Stack aria-live="polite" direction="row" role="status" sx={stateSx}>
           <CircularProgress size={20} />
           <Typography color="text.secondary" variant="body2">
-            正在加载特殊状态…
+            正在加载状态标签…
           </Typography>
         </Stack>
       ) : null}
@@ -65,28 +76,18 @@ export function TransactionSpecialStatusSelector({
           }
           severity="error"
         >
-          特殊状态加载失败，请稍后重试。
+          状态标签加载失败，请稍后重试。
         </Alert>
       ) : null}
 
-      {state === "ready" ? (
+      {state === "ready" && isEnabled ? (
         <RadioGroup
-          aria-label="特殊状态"
+          aria-label="状态标签"
           onChange={(event) =>
-            onChange(
-              event.target.value === noStatusValue
-                ? null
-                : (event.target.value as TransactionBusinessBadgeStatus),
-            )
+            onChange(event.target.value as TransactionBusinessBadgeStatus)
           }
-          value={value ?? noStatusValue}
+          value={value}
         >
-          <StatusOption
-            description="按普通明细处理"
-            disabled={disabled}
-            label="无特殊状态"
-            value={noStatusValue}
-          />
           {transactionBusinessBadgeStatuses.map((status) => {
             const config = transactionBusinessBadgeConfig[status];
             return (
@@ -145,6 +146,8 @@ const selectorSx = {
 };
 
 const titleSx = { fontSize: "0.95rem", fontWeight: 800 };
+
+const headerSx = { alignItems: "center", gap: 1 };
 
 const stateSx = {
   alignItems: "center",

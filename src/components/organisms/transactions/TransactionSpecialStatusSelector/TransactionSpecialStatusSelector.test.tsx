@@ -4,27 +4,68 @@ import { describe, expect, it, vi } from "vitest";
 import { TransactionSpecialStatusSelector } from "./TransactionSpecialStatusSelector";
 
 describe("TransactionSpecialStatusSelector", () => {
-  it("显示固定状态并允许选择和清空", () => {
+  it("没有状态标签时默认折叠", () => {
+    render(
+      <TransactionSpecialStatusSelector onChange={vi.fn()} value={null} />,
+    );
+
+    expect(
+      screen.getByRole("switch", { name: "启用状态标签" }),
+    ).not.toBeChecked();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByText("待报销")).toBeNull();
+  });
+
+  it("打开开关后展开并默认选择待报销", () => {
     const onChange = vi.fn();
     const { rerender } = render(
       <TransactionSpecialStatusSelector onChange={onChange} value={null} />,
     );
 
-    expect(screen.getByRole("radio", { name: /无特殊状态/ })).toBeChecked();
-    expect(screen.getByText("待报销")).toBeInTheDocument();
-    expect(screen.getByText("不计入支出")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("radio", { name: /待退款/ }));
-    expect(onChange).toHaveBeenCalledWith("pendingRefund");
+    fireEvent.click(screen.getByRole("switch", { name: "启用状态标签" }));
+    expect(onChange).toHaveBeenCalledWith("pendingReimbursement");
 
     rerender(
+      <TransactionSpecialStatusSelector
+        onChange={onChange}
+        value="pendingReimbursement"
+      />,
+    );
+
+    expect(screen.getByRole("switch", { name: "启用状态标签" })).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(5);
+    expect(screen.getByRole("radio", { name: /待报销/ })).toBeChecked();
+  });
+
+  it("关闭开关后收起并清空选择", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
       <TransactionSpecialStatusSelector
         onChange={onChange}
         value="pendingRefund"
       />,
     );
-    fireEvent.click(screen.getByRole("radio", { name: /无特殊状态/ }));
-    expect(onChange).toHaveBeenLastCalledWith(null);
+
+    fireEvent.click(screen.getByRole("switch", { name: "启用状态标签" }));
+    expect(onChange).toHaveBeenCalledWith(null);
+
+    rerender(
+      <TransactionSpecialStatusSelector onChange={onChange} value={null} />,
+    );
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+  });
+
+  it("允许切换到其他状态标签", () => {
+    const onChange = vi.fn();
+    render(
+      <TransactionSpecialStatusSelector
+        onChange={onChange}
+        value="pendingReimbursement"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /待退款/ }));
+    expect(onChange).toHaveBeenCalledWith("pendingRefund");
   });
 
   it("加载时不显示选择项", () => {
@@ -36,7 +77,7 @@ describe("TransactionSpecialStatusSelector", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("正在加载特殊状态");
+    expect(screen.getByRole("status")).toHaveTextContent("正在加载状态标签");
     expect(screen.queryByRole("radiogroup")).toBeNull();
   });
 
@@ -51,7 +92,7 @@ describe("TransactionSpecialStatusSelector", () => {
       />,
     );
 
-    expect(screen.getByText(/特殊状态加载失败/)).toBeInTheDocument();
+    expect(screen.getByText(/状态标签加载失败/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "重试" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });

@@ -7,13 +7,15 @@ import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/
 import { TransactionSpecialStatusSelector } from "./TransactionSpecialStatusSelector";
 
 function InteractivePreview() {
-  const [value, setValue] = useState<TransactionSpecialStatusValue>(null);
+  const [value, setValue] = useState<TransactionSpecialStatusValue>(
+    "pendingReimbursement",
+  );
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 460 }}>
       <TransactionSpecialStatusSelector onChange={setValue} value={value} />
       <Typography color="text.secondary" variant="body2">
-        当前选择：{value ?? "无特殊状态"}
+        当前选择：{value ?? "未启用"}
       </Typography>
     </Stack>
   );
@@ -31,13 +33,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Interactive: Story = {
-  name: "可交互选择",
-  render: () => <InteractivePreview />,
+export const Collapsed: Story = {
+  name: "折叠态",
 };
 
-export const Empty: Story = {
-  name: "无特殊状态",
+export const Expanded: Story = {
+  name: "展开态（默认待报销）",
+  args: { value: "pendingReimbursement" },
+};
+
+export const Interactive: Story = {
+  name: "切换到其他状态",
+  render: () => <InteractivePreview />,
 };
 
 export const Loading: Story = {
