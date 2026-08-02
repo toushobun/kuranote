@@ -110,7 +110,7 @@ begin
 
     if tg_op = 'INSERT'
        or old.special_status is distinct from 'pending_reimbursement'
-       or current_setting('kuranote.reimbursement_link_flow', true) <> 'on'
+       or current_setting('kuranote.reimbursement_link_flow', true) is distinct from 'on'
        or new.settled_by_item_id is null then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';

@@ -30,6 +30,16 @@ export function calculateTransactionRecordNetAmount(
   return calculateRecordNetAmount(items, categoryById);
 }
 
+export function calculateTransactionRecordDisplayAmount(
+  items: TransactionAmountItem[],
+  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
+) {
+  return items.reduce(
+    (sum, item) => sum + getSignedItemAmount(item, categoryById, false),
+    0,
+  );
+}
+
 export function getTransactionRecordCategoryType(
   items: TransactionAmountItem[],
   categoryById: ReadonlyMap<string, TransactionAmountCategory>,
@@ -125,6 +135,7 @@ function getTransactionRecordAmountProfile(
 function getSignedItemAmount(
   item: TransactionAmountItem,
   categoryById: ReadonlyMap<string, TransactionAmountCategory>,
+  deductRefundedAmount = true,
 ) {
   const amount = Number(item.amount);
 
@@ -136,7 +147,10 @@ function getSignedItemAmount(
 
   if (categoryType === "income") return item.is_refund_income ? 0 : amount;
   if (categoryType === "expense") {
-    return -Math.max(0, amount - Number(item.refunded_amount ?? 0));
+    const refundedAmount = deductRefundedAmount
+      ? Number(item.refunded_amount ?? 0)
+      : 0;
+    return -Math.max(0, amount - refundedAmount);
   }
 
   return 0;

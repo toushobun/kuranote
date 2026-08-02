@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(26);
+select plan(27);
 
 select has_type(
     'public',
@@ -153,6 +153,18 @@ select throws_ok(
     '42501',
     'reimbursed_transition_forbidden',
     '不能直接把待报销明细改成已报销'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'reimbursed',
+            settled_by_item_id = '55120000-0000-4000-8000-000000000001'
+        where id = '55110000-0000-4000-8000-000000000001'
+    $$,
+    '42501',
+    'reimbursed_transition_forbidden',
+    '不能通过同时设置结算明细绕过报销关联流程'
 );
 
 select lives_ok(

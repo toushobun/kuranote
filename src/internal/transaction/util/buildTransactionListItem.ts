@@ -7,7 +7,7 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import {
-  calculateTransactionRecordNetAmount,
+  calculateTransactionRecordDisplayAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -59,7 +59,7 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
-  const netAmount = calculateTransactionRecordNetAmount(
+  const displayAmount = calculateTransactionRecordDisplayAmount(
     recordItems,
     categoryById,
   );
@@ -104,7 +104,7 @@ export function buildTransactionListItem({
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
-    amount: String(Math.abs(netAmount)),
+    amount: String(Math.abs(displayAmount)),
     canEdit,
     categoryItems,
     created_at: record.created_at,

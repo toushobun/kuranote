@@ -5,7 +5,11 @@ import type {
   TransactionItemDbRow,
 } from "internal/db-types";
 
-import { getTransactionRecordCategoryType } from "./transactionAmountHelpers";
+import {
+  calculateTransactionRecordDisplayAmount,
+  calculateTransactionRecordNetAmount,
+  getTransactionRecordCategoryType,
+} from "./transactionAmountHelpers";
 
 const categoryById = new Map<string, CategorySummaryDbRow>([
   [
@@ -96,5 +100,21 @@ describe("getTransactionRecordCategoryType", () => {
         categoryById,
       ),
     ).toBe("income");
+  });
+});
+
+describe("transaction record amount", () => {
+  it("统计金额扣除退款但列表金额保留原始支出", () => {
+    const refundedExpense = {
+      ...item("expense-category", "1200"),
+      refunded_amount: "400",
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount([refundedExpense], categoryById),
+    ).toBe(-800);
+    expect(
+      calculateTransactionRecordDisplayAmount([refundedExpense], categoryById),
+    ).toBe(-1200);
   });
 });

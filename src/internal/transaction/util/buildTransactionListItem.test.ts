@@ -185,6 +185,51 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("1200");
   });
 
+  it("退款后列表仍显示原始支出金额并保留退款标注数据", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          id: "item-refunded",
+          refunded_amount: "400",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+    expect(item.categoryItems[0]?.refundedAmount).toBe("400");
+  });
+
+  it("全额退款后列表仍显示原始支出金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          id: "item-fully-refunded",
+          refunded_amount: "1200",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+  });
+
   it("分类摘要按 category.type 构建金额和展示方向", () => {
     const item = buildTransactionListItem({
       accountById,
