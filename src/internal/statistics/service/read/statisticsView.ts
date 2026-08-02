@@ -169,7 +169,7 @@ function addRankingAmount(
 ) {
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) return;
+  if (!Number.isFinite(value) || value === 0) return;
 
   const ranking = rankingById.get(id) ?? {
     amount: 0,

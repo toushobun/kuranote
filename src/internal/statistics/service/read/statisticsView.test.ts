@@ -188,19 +188,49 @@ describe("buildStatisticsViewData", () => {
         transactionCount: 1,
       },
     ]);
-    expect(view.categoryExpenseRanking).toEqual([
-      {
-        amount: "300",
-        id: "category-daily",
-        name: categories[2].name,
-        transactionCount: 1,
-      },
-      {
-        amount: "300",
-        id: "category-food",
-        name: `${categories[0].name} / ${categories[1].name}`,
-        transactionCount: 1,
-      },
-    ]);
+    expect(view.categoryExpenseRanking).toHaveLength(2);
+    expect(view.categoryExpenseRanking).toEqual(
+      expect.arrayContaining([
+        {
+          amount: "300",
+          id: "category-daily",
+          name: categories[2].name,
+          transactionCount: 1,
+        },
+        {
+          amount: "300",
+          id: "category-food",
+          name: `${categories[0].name} / ${categories[1].name}`,
+          transactionCount: 1,
+        },
+      ]),
+    );
+  });
+
+  it("全额退款支出不生成零金额排行榜条目", () => {
+    const view = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          refunded_amount: "1200",
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+
+    expect(view.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+    expect(view.merchantExpenseRanking).toEqual([]);
+    expect(view.categoryExpenseRanking).toEqual([]);
   });
 });

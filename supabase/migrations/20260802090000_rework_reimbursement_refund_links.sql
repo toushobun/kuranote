@@ -82,6 +82,16 @@ declare
     v_category_type text;
     v_settling_item_is_income boolean;
 begin
+    if tg_op = 'UPDATE'
+       and old.special_status = 'reimbursed'
+       and (
+           new.special_status is distinct from old.special_status
+           or new.settled_by_item_id is distinct from old.settled_by_item_id
+       ) then
+        raise exception 'reimbursed_transition_forbidden'
+            using errcode = '42501', detail = 'reimbursed_transition_forbidden';
+    end if;
+
     if new.special_status is null then
         if new.settled_by_item_id is not null then
             raise exception 'special_status_invalid'

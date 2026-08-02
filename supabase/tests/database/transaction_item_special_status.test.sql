@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(27);
+select plan(28);
 
 select has_type(
     'public',
@@ -209,6 +209,18 @@ select is(
     ),
     2,
     '多对一报销关联字段都指向同一收入明细'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = null,
+            settled_by_item_id = null
+        where id = '55110000-0000-4000-8000-000000000001'
+    $$,
+    '42501',
+    'reimbursed_transition_forbidden',
+    '不能直接清空已报销明细的状态和结算关联'
 );
 
 select set_config(
