@@ -65,7 +65,7 @@ export function LedgerSpecialStatusSetting({
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={titleSx}>启用特殊状态</Typography>
                 <Typography color="text.secondary" variant="body2">
-                  在每条明细上标记报销、退款或不计入支出。
+                  标记待报销支出，并在收入到账时完成关联。
                 </Typography>
               </Box>
               <Switch

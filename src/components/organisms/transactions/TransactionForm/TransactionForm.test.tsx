@@ -408,12 +408,12 @@ describe("TransactionForm", () => {
       "true",
     );
   });
-  it("启用后回填、修改并提交明细特殊状态，且不计入支出从本次合计排除", () => {
+  it("启用后回填、取消并重新勾选待报销", () => {
     const initialValues = createInitialValues();
     initialValues.items = [
       {
         ...initialValues.items[0],
-        specialStatus: "excluded",
+        specialStatus: "pendingReimbursement",
       },
     ];
     const { container } = renderForm({
@@ -421,18 +421,20 @@ describe("TransactionForm", () => {
       transactionItemSpecialStatusEnabled: true,
     });
 
-    expect(within(container).getByText("合计 ¥ 0")).toBeInTheDocument();
+    expect(within(container).getByText("合计 - ¥ 1200")).toBeInTheDocument();
     expect(
       container.querySelector<HTMLInputElement>(
         'input[name="itemSpecialStatus"]',
       )?.value,
-    ).toBe("excluded");
+    ).toBe("pendingReimbursement");
 
     fireEvent.click(
       within(container).getByRole("button", { name: "编辑明细 1 分类" }),
     );
-    expect(screen.getByRole("radio", { name: /不计入支出/ })).toBeChecked();
-    fireEvent.click(screen.getByRole("radio", { name: /待报销/ }));
+    const checkbox = screen.getByRole("checkbox", { name: "待报销" });
+    expect(checkbox).toBeChecked();
+    fireEvent.click(checkbox);
+    fireEvent.click(checkbox);
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
 
     expect(
@@ -440,7 +442,6 @@ describe("TransactionForm", () => {
         'input[name="itemSpecialStatus"]',
       )?.value,
     ).toBe("pendingReimbursement");
-    expect(within(container).getByText("合计 - ¥ 1200")).toBeInTheDocument();
   });
   it("收入明细和合计显示正号与账户币种", () => {
     const { container } = renderForm({ initialType: "income" });

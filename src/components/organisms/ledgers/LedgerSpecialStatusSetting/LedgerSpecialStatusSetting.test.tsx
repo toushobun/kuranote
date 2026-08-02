@@ -11,7 +11,7 @@ describe("LedgerSpecialStatusSetting", () => {
     );
 
     expect(screen.getByText("待报销")).toBeInTheDocument();
-    expect(screen.getByText("不计入支出")).toBeInTheDocument();
+    expect(screen.getByText("已报销")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "启用特殊状态" }));
     expect(onChange).toHaveBeenCalledWith(false);
   });

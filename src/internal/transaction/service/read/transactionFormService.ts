@@ -17,10 +17,20 @@ export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
+  const [options, pendingItems] = await Promise.all([
+    loadTransactionFormOptions(dependencies, currentLedger),
+    dependencies.transactionRepository.listPendingReimbursementItems(
+      currentLedger.id,
+    ),
+  ]);
   return {
-    ...(await loadTransactionFormOptions(dependencies, currentLedger)),
+    ...options,
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
     ledgerName: currentLedger.name,
+    reimbursementCandidates: buildReimbursementCandidates(
+      pendingItems,
+      options.categoryOptions,
+    ),
   };
 }
 
@@ -29,11 +39,14 @@ export async function getEditTransactionView(
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {
-  const [options, record] = await Promise.all([
+  const [options, record, pendingItems] = await Promise.all([
     loadTransactionFormOptions(dependencies, currentLedger),
     dependencies.transactionRepository.findActiveRecord(
       currentLedger.id,
       transactionRecordId,
+    ),
+    dependencies.transactionRepository.listPendingReimbursementItems(
+      currentLedger.id,
     ),
   ]);
   if (!record) return null;
@@ -77,6 +90,10 @@ export async function getEditTransactionView(
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
+      reimbursementCandidates: buildReimbursementCandidates(
+        pendingItems,
+        options.categoryOptions,
+      ),
     };
   }
 
@@ -90,6 +107,8 @@ export async function getEditTransactionView(
       items: items.map((item) => ({
         amount: formatEditableAmount(item.amount),
         categoryId: item.category_id ?? "",
+        id: item.id,
+        refundedAmount: item.refunded_amount ?? "0",
         specialStatus: fromTransactionSpecialStatusStorageValue(
           item.special_status ?? null,
         ),
@@ -101,7 +120,28 @@ export async function getEditTransactionView(
       type: resolveNormalTransactionDisplayType(items, options.categoryOptions),
     },
     ledgerName: currentLedger.name,
+    reimbursementCandidates: buildReimbursementCandidates(
+      pendingItems,
+      options.categoryOptions,
+    ),
   };
+}
+
+function buildReimbursementCandidates(
+  items: Awaited<
+    ReturnType<TransactionFormRepository["listPendingReimbursementItems"]>
+  >,
+  categories: TransactionCategoryOption[],
+) {
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  return items.map((item) => ({
+    amount: item.amount,
+    categoryName: categoryById.get(item.category_id)?.name ?? "未知分类",
+    id: item.id,
+    transactionAt: item.transaction_at,
+  }));
 }
 
 function isValidTransferPair(

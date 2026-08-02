@@ -95,12 +95,12 @@
 
 ### 报销
 
-| 项目 | 设计 |
-| --- | --- |
-| `transaction_item.special_status` | 专用 enum `transaction_item_special_status`，只保留两个值：`pending_reimbursement`、`reimbursed` |
-| 默认值 | `NULL`（无待报销标记） |
-| 自动流转字段 | 新增 `settled_by_item_id`，可空，自引用 `transaction_item.id`，指向完成报销的那笔收入明细；多对一（一笔报销收入可以结清多条待报销明细） |
-| 写入权限 | `pending_reimbursement` 由用户在支出明细里手动勾选／取消；`reimbursed` 只能由报销关联流程在同一个数据库事务里写入，不对外暴露可以直接设置这个值的入口 |
+| 项目                              | 设计                                                                                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transaction_item.special_status` | 专用 enum `transaction_item_special_status`，只保留两个值：`pending_reimbursement`、`reimbursed`                                                      |
+| 默认值                            | `NULL`（无待报销标记）                                                                                                                                |
+| 自动流转字段                      | 新增 `settled_by_item_id`，可空，自引用 `transaction_item.id`，指向完成报销的那笔收入明细；多对一（一笔报销收入可以结清多条待报销明细）               |
+| 写入权限                          | `pending_reimbursement` 由用户在支出明细里手动勾选／取消；`reimbursed` 只能由报销关联流程在同一个数据库事务里写入，不对外暴露可以直接设置这个值的入口 |
 
 不再需要 `pending_refund`、`refunded`、`excluded` 这三个枚举值，`excluded`
 （不计入支出）本轮范围里整体去掉，不做了。
@@ -182,7 +182,7 @@ null default false`，账本 owner / admin 可改，其他成员只读，关闭�
 1. **支出的添加 / 编辑明细抽屉**（已有 `TransactionItemPickerDrawer`）——
    增补：一个"待报销"勾选框。
 2. **收入的添加 / 编辑明细抽屉**（同一个组件）——增补："报销关联"内嵌列表
-   + "退款关联"入口。
+   - "退款关联"入口。
 3. **报销关联列表**——是第 2 项里的一个可展开区块，不是独立页面。
 4. **退款关联选择器**——唯一的新页面/大弹层，复用月份分组浏览 + 搜索组件
    做成选择模式。

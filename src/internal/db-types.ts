@@ -14,6 +14,7 @@ export type TransactionRecordDbRow = {
 };
 
 export type TransactionItemDbRow = {
+  id?: string;
   transaction_record_id: string;
   account_id: string;
   category_id: string | null;
@@ -21,6 +22,8 @@ export type TransactionItemDbRow = {
   balance_delta?: string;
   note?: string | null;
   special_status?: TransactionSpecialStatusStorageValue | null;
+  refunded_amount?: string;
+  is_refund_income?: boolean;
 };
 
 export type AccountOptionDbRow = {

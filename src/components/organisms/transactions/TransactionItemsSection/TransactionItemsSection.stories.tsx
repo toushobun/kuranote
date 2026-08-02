@@ -44,7 +44,7 @@ export const AllStatuses: Story = {
 };
 
 export const NoStatus: Story = {
-  name: "无特殊状态",
+  name: "无徽标",
   args: {
     itemSummaries: itemSummaries.slice(0, 1).map((item) => ({
       ...item,

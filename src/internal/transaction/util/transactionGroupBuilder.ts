@@ -47,22 +47,14 @@ type MutableGroup = {
 
 const specialStatusGroupOrder = [
   "pending_reimbursement",
-  "pending_refund",
   "reimbursed",
-  "refunded",
-  "excluded",
-  "none",
 ] as const;
 
 const specialStatusGroupLabels: Record<
   (typeof specialStatusGroupOrder)[number],
   string
 > = {
-  excluded: "不计入支出（不计入合计）",
-  none: "无特殊状态",
-  pending_refund: "待退款",
   pending_reimbursement: "待报销",
-  refunded: "已退款",
   reimbursed: "已报销",
 };
 
@@ -296,7 +288,8 @@ function addItemGroups({
     }
 
     if (groupBy === "specialStatus") {
-      const key = item.special_status ?? "none";
+      const key = item.special_status;
+      if (!key) continue;
       const group = getOrCreateGroup({
         currency,
         groupBy,
@@ -305,7 +298,7 @@ function addItemGroups({
         label: specialStatusGroupLabels[key],
         transactionAt: record.transaction_at,
       });
-      addItemToGroup(group, record, item, categoryById, key === "excluded");
+      addItemToGroup(group, record, item, categoryById);
     }
   }
 }
@@ -375,15 +368,12 @@ function addItemToGroup(
   record: TransactionRecordDbRow,
   item: TransactionItemDbRow,
   categoryById: Map<string, CategorySummaryDbRow>,
-  showExcludedOriginalAmount = false,
 ) {
   group.recordIds.add(record.id);
   group.itemCount += 1;
 
   if (record.type === "transfer") return;
 
-  const signedAmount = showExcludedOriginalAmount
-    ? -Number(item.amount)
-    : getSignedTransactionItemAmount(item, categoryById);
+  const signedAmount = getSignedTransactionItemAmount(item, categoryById);
   addSignedAmount(group.summary, signedAmount);
 }

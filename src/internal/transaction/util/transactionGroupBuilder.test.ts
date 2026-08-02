@@ -178,11 +178,11 @@ describe("buildTransactionGroupSummaryPage", () => {
     expect(page.nextOffset).toBe(2);
   });
 
-  it("特殊状态分组按固定顺序统计明细，并保留不计入支出的原始金额", () => {
+  it("特殊状态分组只展示待报销和已报销", () => {
     const records = [record("r1", "2026-06-10T00:00:00.000Z")];
     const items = [
-      item("r1", expenseCategory.id, "100", "excluded"),
-      item("r1", expenseCategory.id, "200", "pending_refund"),
+      item("r1", expenseCategory.id, "100", "reimbursed"),
+      item("r1", expenseCategory.id, "200", "pending_reimbursement"),
       item("r1", expenseCategory.id, "300", null),
     ];
 
@@ -200,13 +200,10 @@ describe("buildTransactionGroupSummaryPage", () => {
     });
 
     expect(page.groups.map((group) => group.key)).toEqual([
-      "pending_refund",
-      "excluded",
-      "none",
+      "pending_reimbursement",
+      "reimbursed",
     ]);
-    expect(page.groups.map((group) => group.transactionCount)).toEqual([
-      1, 1, 1,
-    ]);
+    expect(page.groups.map((group) => group.transactionCount)).toEqual([1, 1]);
     expect(page.groups[1].summary.expense).toBe("100");
   });
 });

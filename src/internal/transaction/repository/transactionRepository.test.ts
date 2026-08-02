@@ -86,7 +86,14 @@ describe("TransactionRepository", () => {
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
-      p_items: [{ ...normalInput.items[0], specialStatus: null }],
+      p_items: [
+        {
+          ...normalInput.items[0],
+          refundedItemId: null,
+          reimbursementItemIds: [],
+          specialStatus: null,
+        },
+      ],
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_note: null,
@@ -303,7 +310,7 @@ describe("TransactionRepository", () => {
     const { repository } = createRepository({
       queries: {
         ledger_member: memberQuery,
-        transaction_item: itemQuery,
+        transaction_item_with_refund: itemQuery,
       },
     });
     await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
@@ -481,7 +488,7 @@ describe("TransactionDashboardRepository", () => {
     {
       expectedLog: "[transaction] failed to load dashboard month items",
       queries: {
-        transaction_item: createQuery({
+        transaction_item_with_refund: createQuery({
           data: null,
           error: { code: "item_error", message: "database details" },
         }),
@@ -500,7 +507,7 @@ describe("TransactionDashboardRepository", () => {
           data: null,
           error: { code: "category_error", message: "database details" },
         }),
-        transaction_item: createQuery({
+        transaction_item_with_refund: createQuery({
           data: [
             {
               amount: "1200",
@@ -539,7 +546,7 @@ describe("TransactionDashboardRepository", () => {
     });
     const { repository } = createRepository({
       category: categoryQuery,
-      transaction_item: itemQuery,
+      transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
     });
     await expect(
@@ -565,7 +572,7 @@ describe("TransactionDashboardRepository", () => {
       dashboardMonthInput.dateEnd,
     );
     expect(itemQuery.select).toHaveBeenCalledWith(
-      "transaction_record_id, category_id, amount, special_status",
+      "id, transaction_record_id, category_id, amount, refunded_amount, is_refund_income",
     );
     expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
   });
@@ -591,7 +598,7 @@ describe("TransactionDashboardRepository", () => {
     };
     const itemQuery = createQuery({ data: [item], error: null });
     const { from, repository } = createRepository({
-      transaction_item: itemQuery,
+      transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
     });
     await expect(

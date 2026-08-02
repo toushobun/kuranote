@@ -1,6 +1,7 @@
 import type { CategoryType } from "internal/category";
 import type {
   TransactionRecordStorageType,
+  TransactionReimbursementCandidate,
   TransactionSpecialStatusFilterValue,
   TransactionType,
 } from "internal/transaction";
@@ -64,6 +65,9 @@ export type CategorySummaryItem = {
   parentCategoryName: string | null;
   amount: string;
   categoryType?: TransactionCategoryType;
+  id?: string;
+  refundedAmount?: string;
+  remainingRefundableAmount?: string;
 };
 
 export type TransactionRowItem = {
@@ -118,11 +122,24 @@ export type TransactionFilterOptions = {
 };
 
 export type { TransactionSpecialStatusFilterValue };
+export type { TransactionReimbursementCandidate };
 
 export type TransactionListItem = TransactionRowItem & {
   note: string | null;
   recorder_name: string | null;
   created_at: string;
+};
+
+export type TransactionRefundCandidate = {
+  accountCurrency: string;
+  amount: string;
+  categoryName: string;
+  id: string;
+  parentCategoryName: string | null;
+  refundedAmount: string;
+  remainingRefundableAmount: string;
+  transactionAt: string;
+  transactionRecordId: string;
 };
 
 export type TransactionAmountSummary = {

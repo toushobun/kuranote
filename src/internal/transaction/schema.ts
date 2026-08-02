@@ -10,7 +10,7 @@ import {
   type TransactionType,
 } from "internal/transaction/entity/transactionType";
 import {
-  transactionSpecialStatuses,
+  transactionWritableSpecialStatuses,
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
@@ -58,6 +58,8 @@ export type CreateTransactionFormValues =
 export type TransactionFormItemValues = {
   amount: number;
   categoryId: string;
+  refundedItemId?: string | null;
+  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -152,6 +154,10 @@ function parseTransactionItems(
   const categoryValues = formData.getAll("itemCategoryId");
   const amountValues = formData.getAll("itemAmount");
   const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
+  const submittedReimbursementValues = formData.getAll(
+    "itemReimbursementItemIds",
+  );
+  const submittedRefundedItemValues = formData.getAll("itemRefundedItemId");
   const specialStatusValues =
     submittedSpecialStatusValues.length === 0
       ? categoryValues.map(() => "")
@@ -160,7 +166,11 @@ function parseTransactionItems(
   if (
     categoryValues.length === 0 ||
     categoryValues.length !== amountValues.length ||
-    categoryValues.length !== specialStatusValues.length
+    categoryValues.length !== specialStatusValues.length ||
+    (submittedReimbursementValues.length > 0 &&
+      categoryValues.length !== submittedReimbursementValues.length) ||
+    (submittedRefundedItemValues.length > 0 &&
+      categoryValues.length !== submittedRefundedItemValues.length)
   ) {
     return invalid(transactionErrorCodes.amountInvalid);
   }
@@ -191,7 +201,7 @@ function parseTransactionItems(
     let specialStatus: TransactionSpecialStatus | null = null;
     if (specialStatusText) {
       if (
-        !(transactionSpecialStatuses as readonly string[]).includes(
+        !(transactionWritableSpecialStatuses as readonly string[]).includes(
           specialStatusText,
         )
       ) {
@@ -200,14 +210,55 @@ function parseTransactionItems(
       specialStatus = specialStatusText as TransactionSpecialStatus;
     }
 
+    const reimbursementItemIds = parseUuidArray(
+      submittedReimbursementValues[index],
+    );
+    if (reimbursementItemIds === null) {
+      return invalid(transactionErrorCodes.specialStatusInvalid);
+    }
+    const refundedItemIdText = String(
+      submittedRefundedItemValues[index] ?? "",
+    ).trim();
+    const refundedItemIdResult = parseOptionalUuidText(
+      refundedItemIdText,
+      transactionErrorCodes.specialStatusInvalid,
+    );
+    if (!refundedItemIdResult.ok) return refundedItemIdResult;
+
     items.push({
       amount: amountResult.value,
       categoryId: categoryResult.value,
+      ...(reimbursementItemIds.length > 0 ? { reimbursementItemIds } : {}),
+      ...(refundedItemIdResult.value
+        ? { refundedItemId: refundedItemIdResult.value }
+        : {}),
       ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
   }
 
   return valid(items);
+}
+
+function parseUuidArray(
+  value: FormDataEntryValue | undefined,
+): string[] | null {
+  if (value === undefined || String(value).trim() === "") return [];
+  try {
+    const parsed: unknown = JSON.parse(String(value));
+    if (!Array.isArray(parsed) || parsed.length > 100) return null;
+    const ids = [...new Set(parsed)];
+    if (
+      ids.some(
+        (id) =>
+          typeof id !== "string" || !z.string().uuid().safeParse(id).success,
+      )
+    ) {
+      return null;
+    }
+    return ids as string[];
+  } catch {
+    return null;
+  }
 }
 
 export function validateTransactionForm(
@@ -524,7 +575,12 @@ const transactionItemRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   categoryId: z.string().uuid(),
-  specialStatus: z.enum(transactionSpecialStatuses).nullable().optional(),
+  refundedItemId: z.string().uuid().nullable().optional(),
+  reimbursementItemIds: z.array(z.string().uuid()).max(100).optional(),
+  specialStatus: z
+    .enum(transactionWritableSpecialStatuses)
+    .nullable()
+    .optional(),
 });
 
 const normalTransactionRequestSchema = z.object({

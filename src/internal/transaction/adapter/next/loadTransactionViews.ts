@@ -30,7 +30,11 @@ async function getContext() {
 
 export async function loadNewTransactionView() {
   const { currentLedger, service } = await getContext();
-  return service.getNewView(currentLedger);
+  const [view, refundPickerView] = await Promise.all([
+    service.getNewView(currentLedger),
+    service.getGroupView(currentLedger, "month", { recordType: "expense" }),
+  ]);
+  return { ...view, refundPickerView };
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {
@@ -38,7 +42,10 @@ export async function loadEditTransactionView(transactionRecordId: string) {
   const { currentLedger, service } = await getContext();
   const view = await service.getEditView(currentLedger, transactionRecordId);
   if (!view) notFound();
-  return view;
+  const refundPickerView = await service.getGroupView(currentLedger, "month", {
+    recordType: "expense",
+  });
+  return { ...view, refundPickerView };
 }
 
 export async function loadTransactionFilterOptions() {
@@ -85,4 +92,40 @@ export async function loadTransactionSearchPage(
 ): Promise<TransactionSearchPage> {
   const { currentLedger, service } = await getContext();
   return service.search(currentLedger, rawQuery, offset);
+}
+
+const refundPickerFilters = { recordType: "expense" } as const;
+
+export async function loadRefundPickerGroupPage(
+  offset: number,
+): Promise<TransactionGroupPage> {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupPage(
+    currentLedger,
+    "month",
+    offset,
+    refundPickerFilters,
+  );
+}
+
+export async function loadRefundPickerGroupItems(
+  groupKey: string,
+  offset: number,
+): Promise<TransactionMonthPage> {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupItems(
+    currentLedger,
+    "month",
+    groupKey,
+    offset,
+    refundPickerFilters,
+  );
+}
+
+export async function loadRefundPickerSearchPage(
+  rawQuery: string,
+  offset = 0,
+): Promise<TransactionSearchPage> {
+  const { currentLedger, service } = await getContext();
+  return service.search(currentLedger, rawQuery, offset, refundPickerFilters);
 }

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import type {
   TransactionCategoryOption,
+  TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
@@ -77,6 +78,11 @@ export function useTransactionForm({
   const [pickerAmount, setPickerAmount] = useState("");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
+  const [pickerReimbursementItemIds, setPickerReimbursementItemIds] = useState<
+    string[]
+  >([]);
+  const [pickerRefundCandidate, setPickerRefundCandidate] =
+    useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
@@ -109,6 +115,8 @@ export function useTransactionForm({
       setPickerCategoryId("");
       setPickerAmount("");
       setPickerSpecialStatus(null);
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
       setPickerErrors({});
       setSelectedCategoryGroupId("");
       setFieldErrors((current) => ({ ...current, items: undefined }));
@@ -152,7 +160,6 @@ export function useTransactionForm({
     }),
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
-    if (item.specialStatus === "excluded") return sum;
     if (!isValidMoneyText(item.amount)) return sum;
     return sum + Number(item.amount);
   }, 0);
@@ -183,11 +190,21 @@ export function useTransactionForm({
     allDisplayItems.length > 0
       ? formatNetAmount(incomeTotal - expenseTotal)
       : "未填写金额";
+  const refundedTotal = allDisplayItems.reduce(
+    (sum, item) => sum + Number(item.refundedAmount ?? 0),
+    0,
+  );
+  const refundAfterTotalAmount =
+    refundedTotal > 0
+      ? formatNetAmount(incomeTotal - expenseTotal + refundedTotal)
+      : null;
 
   function addItem(
     categoryId: string,
     amount: string,
     specialStatus: TransactionFormItem["specialStatus"],
+    reimbursementItemIds: string[],
+    refundedItemId: string | null,
   ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
@@ -197,7 +214,15 @@ export function useTransactionForm({
       ...current,
       [categoryType]: [
         ...current[categoryType],
-        { amount, categoryId, id: itemId, specialStatus },
+        {
+          amount,
+          categoryId,
+          id: itemId,
+          refundedItemId,
+          refundCandidate: pickerRefundCandidate,
+          reimbursementItemIds,
+          specialStatus,
+        },
       ],
     }));
     if (fieldErrors.items) {
@@ -225,6 +250,8 @@ export function useTransactionForm({
     categoryId: string,
     amount: string,
     specialStatus: TransactionFormItem["specialStatus"],
+    reimbursementItemIds: string[],
+    refundedItemId: string | null,
   ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
@@ -238,7 +265,15 @@ export function useTransactionForm({
           ...current,
           [categoryType]: current[categoryType].map((item) =>
             item.id === itemId
-              ? { ...item, amount, categoryId, specialStatus }
+              ? {
+                  ...item,
+                  amount,
+                  categoryId,
+                  refundedItemId,
+                  refundCandidate: pickerRefundCandidate,
+                  reimbursementItemIds,
+                  specialStatus,
+                }
               : item,
           ),
         };
@@ -255,7 +290,15 @@ export function useTransactionForm({
       };
       moved[categoryType] = [
         ...moved[categoryType],
-        { ...existingItem, amount, categoryId, specialStatus },
+        {
+          ...existingItem,
+          amount,
+          categoryId,
+          refundedItemId,
+          refundCandidate: pickerRefundCandidate,
+          reimbursementItemIds,
+          specialStatus,
+        },
       ];
 
       return moved;
@@ -276,6 +319,8 @@ export function useTransactionForm({
       setPickerCategoryId("");
       setPickerAmount("");
       setPickerSpecialStatus(null);
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
       setPickerErrors({});
     }
   }
@@ -285,6 +330,8 @@ export function useTransactionForm({
     setPickerCategoryId("");
     setPickerAmount("");
     setPickerSpecialStatus(null);
+    setPickerReimbursementItemIds([]);
+    setPickerRefundCandidate(null);
     setPickerErrors({});
     setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
     setIsSheetOpen(true);
@@ -304,6 +351,8 @@ export function useTransactionForm({
     setPickerCategoryId(item.categoryId);
     setPickerAmount(item.amount);
     setPickerSpecialStatus(item.specialStatus);
+    setPickerReimbursementItemIds(item.reimbursementItemIds ?? []);
+    setPickerRefundCandidate(item.refundCandidate ?? null);
     setPickerErrors({});
     setSelectedCategoryGroupId(
       categoryGroup?.id ?? categoryGroups[0]?.id ?? "",
@@ -326,6 +375,13 @@ export function useTransactionForm({
     setPickerCategoryId((current) =>
       current === categoryId ? "" : categoryId,
     );
+    const categoryType = categoryById.get(categoryId)?.type;
+    if (categoryType === "income") {
+      setPickerSpecialStatus(null);
+    } else if (categoryType === "expense") {
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
+    }
     if (pickerErrors.category) {
       setPickerErrors((current) => ({ ...current, category: undefined }));
     }
@@ -354,19 +410,29 @@ export function useTransactionForm({
 
     setPickerErrors({});
     if (editingItemId === null) {
-      addItem(pickerCategoryId, pickerAmount, pickerSpecialStatus);
+      addItem(
+        pickerCategoryId,
+        pickerAmount,
+        pickerSpecialStatus,
+        pickerReimbursementItemIds,
+        pickerRefundCandidate?.id ?? null,
+      );
     } else {
       replaceItem(
         editingItemId,
         pickerCategoryId,
         pickerAmount,
         pickerSpecialStatus,
+        pickerReimbursementItemIds,
+        pickerRefundCandidate?.id ?? null,
       );
     }
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
     setPickerSpecialStatus(null);
+    setPickerReimbursementItemIds([]);
+    setPickerRefundCandidate(null);
     return true;
   }
 
@@ -463,8 +529,12 @@ export function useTransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
+    pickerRefundCandidate,
+    pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
+    refundAfterTotalAmount,
+    refundedTotal,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
@@ -472,6 +542,8 @@ export function useTransactionForm({
     selectedMerchantId,
     selectedType,
     setPickerSpecialStatus,
+    setPickerRefundCandidate,
+    setPickerReimbursementItemIds,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -495,7 +567,11 @@ function createInitialItemsByType(
   initialValues.items.forEach((item, index) => {
     const categoryType =
       categoryById?.get(item.categoryId)?.type ?? initialValues.type;
-    result[categoryType].push({ ...item, id: index + 1 });
+    result[categoryType].push({
+      ...item,
+      id: index + 1,
+      persistedId: item.id,
+    });
   });
 
   return result;

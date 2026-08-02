@@ -1,34 +1,30 @@
 export const transactionSpecialStatuses = [
   "pendingReimbursement",
-  "pendingRefund",
   "reimbursed",
-  "refunded",
-  "excluded",
 ] as const;
 
 export type TransactionSpecialStatus =
   (typeof transactionSpecialStatuses)[number];
 
-export type TransactionSpecialStatusFilterValue =
-  | TransactionSpecialStatus
-  | "none";
+export const transactionWritableSpecialStatuses = [
+  "pendingReimbursement",
+] as const;
+
+export type TransactionWritableSpecialStatus =
+  (typeof transactionWritableSpecialStatuses)[number];
+
+export type TransactionSpecialStatusFilterValue = TransactionSpecialStatus;
 
 export const transactionSpecialStatusStorageValues = [
   "pending_reimbursement",
-  "pending_refund",
   "reimbursed",
-  "refunded",
-  "excluded",
 ] as const;
 
 export type TransactionSpecialStatusStorageValue =
   (typeof transactionSpecialStatusStorageValues)[number];
 
 const storageValueByStatus = {
-  excluded: "excluded",
-  pendingRefund: "pending_refund",
   pendingReimbursement: "pending_reimbursement",
-  refunded: "refunded",
   reimbursed: "reimbursed",
 } as const satisfies Record<
   TransactionSpecialStatus,

@@ -28,12 +28,14 @@ export type UseTransactionSearchParams = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
+  syncUrl?: boolean;
 };
 
 export function useTransactionSearch({
   initialPage,
   initialQuery,
   loadSearchPageAction,
+  syncUrl = true,
 }: UseTransactionSearchParams) {
   const router = useRouter();
   const requestVersionRef = useRef(0);
@@ -68,11 +70,38 @@ export function useTransactionSearch({
     const nextQuery = inputValue.trim();
     requestVersionRef.current += 1;
 
-    router.replace(
-      nextQuery
-        ? transactionsSearchHref(nextQuery)
-        : routePaths.transactionsSearch,
-    );
+    if (syncUrl) {
+      router.replace(
+        nextQuery
+          ? transactionsSearchHref(nextQuery)
+          : routePaths.transactionsSearch,
+      );
+      return;
+    }
+    setSubmittedQuery(nextQuery);
+    setLoadMoreError(null);
+    if (!nextQuery || !loadSearchPageAction) {
+      setItems([]);
+      setNextOffset(null);
+      setTotalCount(0);
+      return;
+    }
+    const requestVersion = requestVersionRef.current;
+    startTransition(async () => {
+      try {
+        const page = await loadSearchPageAction(nextQuery, 0);
+        if (requestVersionRef.current !== requestVersion) return;
+        setItems(page.items);
+        setNextOffset(page.nextOffset);
+        setTotalCount(page.totalCount);
+      } catch {
+        if (requestVersionRef.current !== requestVersion) return;
+        setItems([]);
+        setNextOffset(null);
+        setTotalCount(0);
+        setLoadMoreError(transactionSearchPageErrorMessages.loadMoreFailed);
+      }
+    });
   }
 
   function clearSearch() {
@@ -83,7 +112,7 @@ export function useTransactionSearch({
     setNextOffset(null);
     setTotalCount(0);
     setLoadMoreError(null);
-    router.replace(routePaths.transactionsSearch);
+    if (syncUrl) router.replace(routePaths.transactionsSearch);
   }
 
   function getEditHref(item: TransactionListItem) {

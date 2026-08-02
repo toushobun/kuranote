@@ -6,10 +6,7 @@ import type { TransactionBusinessBadgeStatus } from "./transactionBusinessBadgeC
 
 const badgeStatuses: TransactionBusinessBadgeStatus[] = [
   "pendingReimbursement",
-  "pendingRefund",
   "reimbursed",
-  "refunded",
-  "excluded",
 ];
 
 function TransactionBusinessBadgePreview() {

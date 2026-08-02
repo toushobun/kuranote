@@ -40,6 +40,7 @@ function createRepository(
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
+    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
@@ -120,7 +121,7 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("不计入支出只能保存到支出分类", async () => {
+  it("不能手动设置已报销状态", async () => {
     const { repository, service } = createService("member");
 
     await expect(
@@ -129,7 +130,7 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            specialStatus: "excluded",
+            specialStatus: "reimbursed",
           },
         ],
       }),
@@ -140,7 +141,7 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("支出分类允许保存不计入支出状态", async () => {
+  it("支出分类允许保存待报销状态", async () => {
     const repository = createRepository();
     const service = createTransactionService({
       accountQueryService: {
@@ -170,7 +171,12 @@ describe("TransactionService", () => {
     });
     const input = {
       ...normalInput,
-      items: [{ ...normalInput.items[0], specialStatus: "excluded" as const }],
+      items: [
+        {
+          ...normalInput.items[0],
+          specialStatus: "pendingReimbursement" as const,
+        },
+      ],
     };
 
     await service.createNormal(input);

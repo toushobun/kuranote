@@ -33,6 +33,8 @@ import { isThemeColorKey } from "theme/themeColorTokens";
 export type TransactionItemInput = {
   amount: number;
   categoryId: string;
+  refundedItemId?: string | null;
+  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -71,7 +73,11 @@ export type ConvertTransactionInput =
 
 export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
-  "amount" | "category_id" | "special_status" | "transaction_record_id"
+  | "amount"
+  | "category_id"
+  | "is_refund_income"
+  | "refunded_amount"
+  | "transaction_record_id"
 >;
 
 export type TransactionDashboardCategory = Pick<
@@ -112,6 +118,14 @@ export type TransactionGroupSummaryRow = {
   transaction_count: number | string | null;
 };
 
+export type PendingReimbursementItemRow = {
+  amount: string;
+  category_id: string;
+  id: string;
+  transaction_at: string;
+  transaction_record_id: string;
+};
+
 export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
@@ -146,6 +160,9 @@ export interface TransactionFormRepository {
     ledgerId: string,
     transactionRecordIds: string[],
   ): Promise<TransactionItemDbRow[]>;
+  listPendingReimbursementItems(
+    ledgerId: string,
+  ): Promise<PendingReimbursementItemRow[]>;
 }
 
 export interface TransactionFilterOptionsRepository {
@@ -217,6 +234,13 @@ const transactionRpcErrorCodes = [
   "to_account_invalid",
   "transfer_currency_invalid",
   "transaction_type_not_changed",
+  "reimbursement_item_invalid",
+  "reimbursement_income_invalid",
+  "income_link_category_invalid",
+  "income_link_conflict",
+  "refunded_item_invalid",
+  "refund_amount_exceeded",
+  "linked_transaction_edit_forbidden",
 ] as const;
 
 type TransactionRpcErrorCode = (typeof transactionRpcErrorCodes)[number];
@@ -338,6 +362,37 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
         "交易类型没有发生变化，请刷新页面后重试。",
+      );
+    }
+
+    if (
+      rpcErrorCode === "reimbursement_item_invalid" ||
+      rpcErrorCode === "reimbursement_income_invalid"
+    ) {
+      throw new ValidationError(
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "待报销明细已被处理或不属于当前账本，请刷新后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "refund_amount_exceeded") {
+      throw new ValidationError(
+        transactionErrorCodes.refundAmountExceeded,
+        "退款金额超过该明细的剩余可退金额，请调整金额后重试。",
+      );
+    }
+
+    if (rpcErrorCode === "refunded_item_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款关联的支出明细无效，请重新选择。",
+      );
+    }
+
+    if (rpcErrorCode === "linked_transaction_edit_forbidden") {
+      throw new ValidationError(
+        transactionErrorCodes.updateInvalid,
+        "已有关联报销或退款的交易暂不能直接修改明细。",
       );
     }
 
@@ -533,9 +588,9 @@ export function createSupabaseTransactionRepository(
       const uniqueIds = [...new Set(transactionRecordIds)];
       if (uniqueIds.length === 0) return [];
       const { data, error } = await supabase
-        .from("transaction_item")
+        .from("transaction_item_with_refund")
         .select(
-          "transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status",
+          "id, transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status, refunded_amount, is_refund_income",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -552,6 +607,61 @@ export function createSupabaseTransactionRepository(
         );
       }
       return (data ?? []) as TransactionItemDbRow[];
+    },
+
+    async listPendingReimbursementItems(ledgerId) {
+      const { data: itemData, error: itemError } = await supabase
+        .from("transaction_item")
+        .select("id, transaction_record_id, category_id, amount")
+        .eq("ledger_id", ledgerId)
+        .eq("special_status", "pending_reimbursement")
+        .is("settled_by_item_id", null)
+        .order("created_at", { ascending: false });
+      if (itemError) {
+        logger.error("[transaction] failed to load pending reimbursements", {
+          databaseCode: itemError.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "pending_reimbursements_load_failed",
+          "待报销明细加载失败，请稍后重试。",
+        );
+      }
+
+      const recordIds = [
+        ...new Set((itemData ?? []).map((item) => item.transaction_record_id)),
+      ];
+      if (recordIds.length === 0) return [];
+      const { data: recordData, error: recordError } = await supabase
+        .from("transaction_record")
+        .select("id, transaction_at")
+        .eq("ledger_id", ledgerId)
+        .eq("status", "active")
+        .in("id", recordIds);
+      if (recordError) {
+        logger.error("[transaction] failed to load reimbursement records", {
+          databaseCode: recordError.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "pending_reimbursements_load_failed",
+          "待报销明细加载失败，请稍后重试。",
+        );
+      }
+      const transactionAtById = new Map(
+        (recordData ?? []).map((record) => [record.id, record.transaction_at]),
+      );
+      return (itemData ?? []).flatMap((item) => {
+        const transactionAt = transactionAtById.get(item.transaction_record_id);
+        if (!transactionAt || !item.category_id) return [];
+        return [
+          {
+            ...item,
+            category_id: item.category_id,
+            transaction_at: transactionAt,
+          },
+        ];
+      });
     },
 
     async loadDashboardRecentlyUsedAccountIds({ ledgerId, limit }) {
@@ -648,8 +758,10 @@ export function createSupabaseTransactionRepository(
       if (recordIds.length === 0) return { categories: [], items: [] };
 
       const { data: itemData, error: itemError } = await supabase
-        .from("transaction_item")
-        .select("transaction_record_id, category_id, amount, special_status")
+        .from("transaction_item_with_refund")
+        .select(
+          "id, transaction_record_id, category_id, amount, refunded_amount, is_refund_income",
+        )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds);
 
@@ -774,9 +886,7 @@ export function createSupabaseTransactionRepository(
           p_parent_category_id: input.parentCategoryId ?? null,
           p_record_type: input.recordType,
           p_special_statuses: input.specialStatuses?.map((status) =>
-            status === "none"
-              ? "none"
-              : toTransactionSpecialStatusStorageValue(status),
+            toTransactionSpecialStatusStorageValue(status),
           ),
         },
       );
@@ -862,6 +972,8 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
   return items.map((item) => ({
     amount: item.amount,
     categoryId: item.categoryId,
+    refundedItemId: item.refundedItemId ?? null,
+    reimbursementItemIds: item.reimbursementItemIds ?? [],
     specialStatus: toTransactionSpecialStatusStorageValue(
       item.specialStatus ?? null,
     ),

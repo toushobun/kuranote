@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
     error ? `新建错误:${error}` : null,
   ),
   loadNewTransactionView: vi.fn(),
+  loadRefundPickerGroupItems: vi.fn(),
+  loadRefundPickerGroupPage: vi.fn(),
+  loadRefundPickerSearchPage: vi.fn(),
   NewTransactionTemplate: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
@@ -27,6 +30,9 @@ vi.mock("internal/transaction/adapter/next/actions", () => ({
 
 vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadNewTransactionView: mocks.loadNewTransactionView,
+  loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
+  loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
+  loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({

@@ -9,7 +9,10 @@ export type TransactionCategorySummaryItem = {
   amount: string;
   categoryName: string;
   categoryType?: CategoryType;
+  id?: string;
   parentCategoryName: string | null;
+  refundedAmount?: string;
+  remainingRefundableAmount?: string;
 };
 
 export type TransactionListItem = {
@@ -65,6 +68,13 @@ export type TransactionFormOptions = {
   transactionItemSpecialStatusEnabled: boolean;
 };
 
+export type TransactionReimbursementCandidate = {
+  amount: string;
+  categoryName: string;
+  id: string;
+  transactionAt: string;
+};
+
 export type TransactionAmountSummary = {
   balance: string;
   currency: string;
@@ -109,6 +119,7 @@ export type TransferEditInitialValues = {
 export type NewTransactionView = TransactionFormOptions & {
   canWriteTransactions: boolean;
   ledgerName: string;
+  reimbursementCandidates: TransactionReimbursementCandidate[];
 };
 
 export type EditTransactionView = TransactionFormOptions & {
@@ -120,6 +131,8 @@ export type EditTransactionView = TransactionFormOptions & {
         items: {
           amount: string;
           categoryId: string;
+          id?: string;
+          refundedAmount?: string;
           specialStatus: TransactionSpecialStatus | null;
         }[];
         merchantId: string;
@@ -129,4 +142,5 @@ export type EditTransactionView = TransactionFormOptions & {
         type: TransactionType;
       };
   ledgerName: string;
+  reimbursementCandidates: TransactionReimbursementCandidate[];
 };

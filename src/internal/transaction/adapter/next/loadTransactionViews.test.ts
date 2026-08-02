@@ -80,7 +80,12 @@ describe("Transaction \u7F16\u8F91 SSR \u8FB9\u754C", () => {
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
     mocks.createServerRequestDependencies.mockResolvedValue({});
     mocks.createRequestContainer.mockReturnValue({
-      transaction: { service: { getEditView: mocks.getEditView } },
+      transaction: {
+        service: {
+          getEditView: mocks.getEditView,
+          getGroupView: mocks.getGroupView,
+        },
+      },
     });
   });
   it("交易 ID 不是 UUID 时直接 notFound", async () => {

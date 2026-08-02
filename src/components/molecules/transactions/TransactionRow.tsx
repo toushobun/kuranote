@@ -14,7 +14,9 @@ import type {
   TransactionRowItem,
 } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
+import { getCurrencySymbol } from "utils/currency";
 import {
+  formatNumber,
   formatTransactionRowAmount,
   formatTransactionTime,
 } from "utils/transactions";
@@ -57,6 +59,10 @@ export function TransactionRow({
     : item.type === "income"
       ? incomeColor
       : expenseColor;
+  const refundedAmount = item.categoryItems.reduce(
+    (sum, category) => sum + Number(category.refundedAmount ?? 0),
+    0,
+  );
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
     getBrowserTimeZone,
@@ -140,18 +146,25 @@ export function TransactionRow({
               {merchantName}
             </Typography>
 
-            <Typography
-              sx={{
-                color: amountColor,
-                flexShrink: 0,
-                fontSize: receiptCard ? 18 : 15,
-                fontWeight: 900,
-                lineHeight: 1.15,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {signedAmount}
-            </Typography>
+            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
+              <Typography
+                sx={{
+                  color: amountColor,
+                  fontSize: receiptCard ? 18 : 15,
+                  fontWeight: 900,
+                  lineHeight: 1.15,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {signedAmount}
+              </Typography>
+              {refundedAmount > 0 ? (
+                <Typography color="text.secondary" variant="caption">
+                  已退款 {getCurrencySymbol(item.account_currency)}
+                  {formatNumber(String(refundedAmount))}
+                </Typography>
+              ) : null}
+            </Stack>
           </Stack>
 
           {metaSegments.length > 0 ? (

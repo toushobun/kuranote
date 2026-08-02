@@ -88,7 +88,7 @@ export function normalizeTransactionFilters(
 function normalizeSpecialStatuses(
   values: TransactionFilters["specialStatuses"],
 ) {
-  const validValues = new Set<string>(["none", ...transactionSpecialStatuses]);
+  const validValues = new Set<string>(transactionSpecialStatuses);
   return [...new Set(values ?? [])].filter((value) => validValues.has(value));
 }
 
@@ -121,14 +121,12 @@ function filterItems(
       return false;
     }
     if (filters.specialStatuses?.length) {
-      const itemStatus = item.special_status ?? "none";
+      const itemStatus = item.special_status;
       if (
         !filters.specialStatuses.some((status) =>
           status === "pendingReimbursement"
             ? itemStatus === "pending_reimbursement"
-            : status === "pendingRefund"
-              ? itemStatus === "pending_refund"
-              : status === itemStatus,
+            : status === itemStatus,
         )
       ) {
         return false;

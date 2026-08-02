@@ -447,18 +447,22 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
         ok: false,
       });
     });
-    it("逐条解析特殊状态并保留无特殊状态", () => {
+    it("逐条解析待报销状态并保留未勾选状态", () => {
       const formData = createFormData();
       formData.append("itemCategoryId", secondCategoryId);
       formData.append("itemAmount", "45");
-      formData.append("itemSpecialStatus", "excluded");
+      formData.append("itemSpecialStatus", "pendingReimbursement");
       formData.append("itemSpecialStatus", "");
 
       expect(validateTransactionForm(formData)).toMatchObject({
         ok: true,
         value: {
           items: [
-            { amount: 1200, categoryId, specialStatus: "excluded" },
+            {
+              amount: 1200,
+              categoryId,
+              specialStatus: "pendingReimbursement",
+            },
             {
               amount: 45,
               categoryId: secondCategoryId,

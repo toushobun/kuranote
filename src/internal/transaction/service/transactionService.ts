@@ -49,6 +49,10 @@ import {
   loadTransactionGroupLoaderContext,
 } from "internal/transaction/service/read/transactionContext";
 import {
+  filterTransactionItems,
+  filterTransactionRecords,
+} from "internal/transaction/util/grouping/filters";
+import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
   requireTransactionUserId,
@@ -117,6 +121,7 @@ export interface TransactionService {
     currentLedger: CurrentLedger,
     rawQuery: string,
     offset?: number,
+    filters?: TransactionFilters,
   ): Promise<TransactionSearchPage>;
   updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
   updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
@@ -209,13 +214,18 @@ export function createTransactionService({
     items: CreateNormalTransactionInput["items"];
     ledgerId: string;
   }) {
-    const excludedCategoryIds = input.items
-      .filter((item) => item.specialStatus === "excluded")
-      .map((item) => item.categoryId);
-    if (excludedCategoryIds.length === 0) return;
+    if (input.items.some((item) => item.specialStatus === "reimbursed")) {
+      throw new ValidationError(
+        transactionErrorCodes.specialStatusInvalid,
+        "已报销状态只能通过收入的报销关联自动设置。",
+      );
+    }
+    const categoryIds = [
+      ...new Set(input.items.map((item) => item.categoryId)),
+    ];
 
     const categories = await categoryQueryService.findSummariesByIds({
-      categoryIds: excludedCategoryIds,
+      categoryIds,
       ledgerId: input.ledgerId,
       userId: requireTransactionUserId(currentUserId),
     });
@@ -223,15 +233,34 @@ export function createTransactionService({
       categories.map((category) => [category.id, category]),
     );
 
-    if (
-      excludedCategoryIds.some(
-        (categoryId) => categoryById.get(categoryId)?.type !== "expense",
-      )
-    ) {
-      throw new ValidationError(
-        transactionErrorCodes.specialStatusInvalid,
-        "不计入支出只能用于支出明细。",
-      );
+    for (const item of input.items) {
+      const categoryType = categoryById.get(item.categoryId)?.type;
+      if (
+        item.specialStatus === "pendingReimbursement" &&
+        categoryType !== "expense"
+      ) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "待报销只能用于支出明细。",
+        );
+      }
+      const hasReimbursementLinks = Boolean(item.reimbursementItemIds?.length);
+      const hasRefundLink = Boolean(item.refundedItemId);
+      if (
+        (hasReimbursementLinks || hasRefundLink) &&
+        categoryType !== "income"
+      ) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "报销或退款关联只能设置在收入明细上。",
+        );
+      }
+      if (hasReimbursementLinks && hasRefundLink) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "同一条收入明细不能同时作为报销和退款。",
+        );
+      }
     }
   }
 
@@ -352,7 +381,12 @@ export function createTransactionService({
       );
     },
 
-    async search(currentLedger, rawQuery, offset = 0) {
+    async search(
+      currentLedger,
+      rawQuery,
+      offset = 0,
+      filters = defaultTransactionFilters,
+    ) {
       const query = normalizeTransactionSearchQuery(rawQuery);
       if (!query) return emptyTransactionSearchPage;
       const ledger = await requireReadLedger(currentLedger);
@@ -360,8 +394,16 @@ export function createTransactionService({
         getReadDependencies(),
         ledger,
       );
+      const records = filterTransactionRecords(context, filters);
+      const recordIds = new Set(records.map((record) => record.id));
+      const filteredContext = {
+        ...context,
+        items: filterTransactionItems(context, filters).filter((item) =>
+          recordIds.has(item.transaction_record_id),
+        ),
+      };
       return buildTransactionSearchPage(
-        buildTransactionListItemsFromContext(context.records, context),
+        buildTransactionListItemsFromContext(records, filteredContext),
         query,
         offset,
       );

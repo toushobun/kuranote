@@ -1,6 +1,5 @@
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
-import type { TransactionSpecialStatusStorageValue } from "internal/transaction";
 import {
   addTransactionAmount,
   createTransactionAmountSummary,
@@ -42,8 +41,9 @@ type StatisticsRecordInput = {
 type StatisticsItemInput = {
   amount: string;
   category_id: string | null;
+  refunded_amount?: string;
+  is_refund_income?: boolean;
   transaction_record_id: string;
-  special_status?: TransactionSpecialStatusStorageValue | null;
 };
 
 type StatisticsMerchantInput = {
@@ -108,11 +108,22 @@ export function buildStatisticsViewData({
 
     if (!category) continue;
 
-    if (!(category.type === "expense" && item.special_status === "excluded")) {
-      addTransactionAmount(summary, category.type, item.amount);
+    const effectiveAmount =
+      category.type === "expense"
+        ? String(
+            Math.max(
+              0,
+              Number(item.amount) - Number(item.refunded_amount ?? 0),
+            ),
+          )
+        : item.is_refund_income
+          ? "0"
+          : item.amount;
+    if (Number(effectiveAmount) !== 0) {
+      addTransactionAmount(summary, category.type, effectiveAmount);
     }
 
-    if (category.type !== "expense" || item.special_status === "excluded") {
+    if (category.type !== "expense") {
       continue;
     }
 
@@ -123,7 +134,7 @@ export function buildStatisticsViewData({
         merchantRankingById,
         merchantId,
         merchantById.get(merchantId)?.name ?? "未指定商家",
-        item.amount,
+        effectiveAmount,
         record.id,
       );
     }
@@ -132,7 +143,7 @@ export function buildStatisticsViewData({
       categoryRankingById,
       categoryId,
       getCategoryDisplayName(category, categoryById),
-      item.amount,
+      effectiveAmount,
       record.id,
     );
   }

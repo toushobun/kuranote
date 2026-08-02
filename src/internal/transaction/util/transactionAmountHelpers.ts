@@ -11,7 +11,7 @@ import {
 
 type TransactionAmountItem = Pick<
   TransactionItemDbRow,
-  "amount" | "category_id" | "special_status"
+  "amount" | "category_id" | "is_refund_income" | "refunded_amount"
 >;
 
 type TransactionAmountCategory = Pick<CategorySummaryDbRow, "id" | "type">;
@@ -106,13 +106,10 @@ function getTransactionRecordAmountProfile(
 
     if (!Number.isFinite(amount)) continue;
 
-    if (categoryType === "income") {
+    if (categoryType === "income" && !item.is_refund_income) {
       incomeTotal += amount;
-    } else if (
-      categoryType === "expense" &&
-      item.special_status !== "excluded"
-    ) {
-      expenseTotal += amount;
+    } else if (categoryType === "expense") {
+      expenseTotal += Math.max(0, amount - Number(item.refunded_amount ?? 0));
     }
   }
 
@@ -137,9 +134,10 @@ function getSignedItemAmount(
     ? categoryById.get(item.category_id)?.type
     : undefined;
 
-  if (categoryType === "income") return amount;
-  if (item.special_status === "excluded") return 0;
-  if (categoryType === "expense") return -amount;
+  if (categoryType === "income") return item.is_refund_income ? 0 : amount;
+  if (categoryType === "expense") {
+    return -Math.max(0, amount - Number(item.refunded_amount ?? 0));
+  }
 
   return 0;
 }

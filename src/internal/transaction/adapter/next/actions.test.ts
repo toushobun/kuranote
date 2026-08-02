@@ -169,7 +169,7 @@ describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
   });
   it("更新普通交易成功后刷新缓存并跳转", async () => {
     const formData = createNormalFormData();
-    formData.append("itemSpecialStatus", "pendingRefund");
+    formData.append("itemSpecialStatus", "pendingReimbursement");
     await expect(updateTransaction({}, formData)).rejects.toThrow(
       "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
     );
@@ -181,7 +181,7 @@ describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
           {
             amount: 1200,
             categoryId,
-            specialStatus: "pendingRefund",
+            specialStatus: "pendingReimbursement",
           },
         ],
         transactionRecordId,

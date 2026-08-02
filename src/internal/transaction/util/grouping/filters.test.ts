@@ -121,13 +121,13 @@ describe("特殊状态明细筛选", () => {
     items,
   };
 
-  it("同一维度内按 OR 匹配无状态与待报销", () => {
+  it("特殊状态筛选只匹配待报销明细", () => {
     expect(
       filterTransactionItems(context, {
         recordType: "all",
-        specialStatuses: ["none", "pendingReimbursement"],
+        specialStatuses: ["pendingReimbursement"],
       }),
-    ).toEqual(items);
+    ).toEqual([items[0]]);
   });
 
   it("分类与特殊状态按同一条明细执行 AND", () => {

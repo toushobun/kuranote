@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionDateGroup,
   TransactionListItem,
+  TransactionRefundCandidate,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import {
@@ -23,11 +25,15 @@ import {
 
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
+  onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  refundSelectionMode?: boolean;
   showSummary?: boolean;
 };
 
 export function TransactionGroupList({
   groups,
+  onSelectRefundItem,
+  refundSelectionMode = false,
   showSummary = true,
 }: TransactionGroupListProps) {
   useDateGroupLabelRefresh();
@@ -77,16 +83,98 @@ export function TransactionGroupList({
           </Stack>
 
           <Box>
-            {group.items.map((item, itemIndex) => (
-              <TransactionListRow
-                isLastItem={itemIndex === group.items.length - 1}
-                item={item}
-                key={item.id}
+            {refundSelectionMode && onSelectRefundItem ? (
+              <TransactionRefundCandidateList
+                items={group.items}
+                onSelect={onSelectRefundItem}
               />
-            ))}
+            ) : (
+              group.items.map((item, itemIndex) => (
+                <TransactionListRow
+                  isLastItem={itemIndex === group.items.length - 1}
+                  item={item}
+                  key={item.id}
+                />
+              ))
+            )}
           </Box>
         </Stack>
       ))}
+    </Stack>
+  );
+}
+
+export function TransactionRefundCandidateList({
+  items,
+  onSelect,
+}: {
+  items: TransactionListItem[];
+  onSelect: (item: TransactionRefundCandidate) => void;
+}) {
+  const candidates = items.flatMap((record) =>
+    record.categoryItems.flatMap((item) => {
+      if (item.categoryType !== "expense" || !item.id) return [];
+      return [
+        {
+          accountCurrency: record.account_currency,
+          amount: item.amount,
+          categoryName: item.categoryName,
+          id: item.id,
+          parentCategoryName: item.parentCategoryName,
+          refundedAmount: item.refundedAmount ?? "0",
+          remainingRefundableAmount:
+            item.remainingRefundableAmount ?? item.amount,
+          transactionAt: record.transaction_at,
+          transactionRecordId: record.id,
+        } satisfies TransactionRefundCandidate,
+      ];
+    }),
+  );
+
+  return (
+    <Stack>
+      {candidates.map((candidate, index) => {
+        const disabled = Number(candidate.remainingRefundableAmount) <= 0;
+        const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
+        return (
+          <ButtonBase
+            aria-label={`选择退款明细 ${candidate.categoryName}`}
+            disabled={disabled}
+            key={candidate.id}
+            onClick={() => onSelect(candidate)}
+            sx={{
+              ...refundCandidateSx,
+              borderBottom:
+                index === candidates.length - 1 ? "none" : userThemeCardBorder,
+              opacity: disabled ? 0.45 : 1,
+            }}
+          >
+            <Stack sx={{ minWidth: 0, textAlign: "left" }}>
+              <Typography sx={{ fontWeight: 800 }} variant="body2">
+                {candidate.parentCategoryName
+                  ? `${candidate.parentCategoryName} / ${candidate.categoryName}`
+                  : candidate.categoryName}
+              </Typography>
+              <Typography color="text.secondary" variant="caption">
+                原始金额 {currencySymbol}
+                {formatNumber(candidate.amount)}
+              </Typography>
+            </Stack>
+            <Stack sx={{ alignItems: "flex-end" }}>
+              <Typography sx={{ fontWeight: 900 }} variant="body2">
+                剩余可退 {currencySymbol}
+                {formatNumber(candidate.remainingRefundableAmount)}
+              </Typography>
+              {Number(candidate.refundedAmount) > 0 ? (
+                <Typography color="text.secondary" variant="caption">
+                  已退款 {currencySymbol}
+                  {formatNumber(candidate.refundedAmount)}
+                </Typography>
+              ) : null}
+            </Stack>
+          </ButtonBase>
+        );
+      })}
     </Stack>
   );
 }
@@ -145,6 +233,16 @@ function useDateGroupLabelRefresh() {
     };
   }, []);
 }
+
+const refundCandidateSx = {
+  alignItems: "center",
+  display: "flex",
+  justifyContent: "space-between",
+  minHeight: 64,
+  px: 0.75,
+  py: 0.75,
+  width: "100%",
+};
 
 function getGroupSummaryText(group: TransactionDateGroup) {
   const expense = Number(group.summary.expense);

@@ -82,6 +82,18 @@ export function buildTransactionListItem({
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
+        ...(item.id
+          ? {
+              id: item.id,
+              refundedAmount: item.refunded_amount ?? "0",
+              remainingRefundableAmount: String(
+                Math.max(
+                  0,
+                  Number(item.amount) - Number(item.refunded_amount ?? 0),
+                ),
+              ),
+            }
+          : {}),
       },
     ];
   });

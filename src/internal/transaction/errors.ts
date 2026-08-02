@@ -7,6 +7,9 @@ export const transactionErrorCodes = {
   ledgerInvalid: "ledger_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
+  refundAmountExceeded: "refund_amount_exceeded",
+  refundLinkInvalid: "refund_link_invalid",
+  reimbursementLinkInvalid: "reimbursement_link_invalid",
   permissionDenied: "permission_denied",
   specialStatusInvalid: "special_status_invalid",
   typeInvalid: "type_invalid",
@@ -50,7 +53,7 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
   [transactionErrorCodes.specialStatusInvalid]:
-    "特殊状态不正确；不计入支出只能用于支出明细。",
+    "特殊状态不正确；待报销只能用于支出明细，已报销只能通过收入关联自动设置。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

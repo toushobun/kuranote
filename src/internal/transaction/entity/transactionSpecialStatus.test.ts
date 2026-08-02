@@ -15,14 +15,11 @@ describe("transactionSpecialStatus", () => {
       ]),
     ).toEqual([
       ["pendingReimbursement", "pending_reimbursement"],
-      ["pendingRefund", "pending_refund"],
       ["reimbursed", "reimbursed"],
-      ["refunded", "refunded"],
-      ["excluded", "excluded"],
     ]);
     expect(fromTransactionSpecialStatusStorageValue(null)).toBeNull();
-    expect(fromTransactionSpecialStatusStorageValue("pending_refund")).toBe(
-      "pendingRefund",
-    );
+    expect(
+      fromTransactionSpecialStatusStorageValue("pending_reimbursement"),
+    ).toBe("pendingReimbursement");
   });
 });

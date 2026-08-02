@@ -152,7 +152,7 @@ describe("buildStatisticsViewData", () => {
     expect(view.categoryExpenseRanking).toEqual([]);
   });
 
-  it("不计入支出的明细从月度汇总和排行榜中排除", () => {
+  it("退款金额从月度支出汇总和排行榜中扣除", () => {
     const view = buildStatisticsViewData({
       categories,
       currency: "JPY",
@@ -160,13 +160,12 @@ describe("buildStatisticsViewData", () => {
         {
           amount: "1200",
           category_id: "category-food",
-          special_status: "excluded" as const,
+          refunded_amount: "900",
           transaction_record_id: "expense-1",
         },
         {
           amount: "300",
           category_id: "category-daily",
-          special_status: "pending_reimbursement" as const,
           transaction_record_id: "expense-1",
         },
       ],
@@ -177,13 +176,13 @@ describe("buildStatisticsViewData", () => {
     });
 
     expect(view.summary).toMatchObject({
-      balance: "-300",
-      expense: "300",
+      balance: "-600",
+      expense: "600",
       income: "0",
     });
     expect(view.merchantExpenseRanking).toEqual([
       {
-        amount: "300",
+        amount: "600",
         id: "merchant-super",
         name: "超市",
         transactionCount: 1,
@@ -192,8 +191,14 @@ describe("buildStatisticsViewData", () => {
     expect(view.categoryExpenseRanking).toEqual([
       {
         amount: "300",
+        id: "category-food",
+        name: `${categories[0].name} / ${categories[1].name}`,
+        transactionCount: 1,
+      },
+      {
+        amount: "300",
         id: "category-daily",
-        name: "日用品",
+        name: categories[2].name,
         transactionCount: 1,
       },
     ]);

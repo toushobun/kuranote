@@ -4,6 +4,12 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
+  TransactionGroupPage,
+  TransactionMonthPage,
+  TransactionRefundCandidate,
+  TransactionReimbursementCandidate,
+  TransactionSearchPage,
+  TransactionTimeGroupViewData,
   TransactionType,
 } from "types/transactions";
 import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
@@ -21,6 +27,19 @@ export type TransactionFormProps = {
   initialValues?: TransactionFormInitialValues;
   ledgerName?: string;
   merchantOptions: TransactionMerchantOption[];
+  reimbursementCandidates?: TransactionReimbursementCandidate[];
+  refundPickerView?: TransactionTimeGroupViewData;
+  loadRefundGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadRefundMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
   onSubmitDisabledChange?: (disabled: boolean) => void;
   submitLabel?: string;
   title?: string;
@@ -31,6 +50,8 @@ export type TransactionFormProps = {
 export type TransactionFormInitialItem = {
   amount: string;
   categoryId: string;
+  id?: string;
+  refundedAmount?: string;
   specialStatus?: TransactionSpecialStatusValue | null;
 };
 
@@ -48,6 +69,11 @@ export type TransactionFormItem = {
   amount: string;
   categoryId: string;
   id: number;
+  persistedId?: string;
+  refundedAmount?: string;
+  refundedItemId?: string | null;
+  refundCandidate?: TransactionRefundCandidate | null;
+  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatusValue;
 };
 

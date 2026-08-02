@@ -32,6 +32,7 @@ function createRepository(
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
     listItems: vi.fn().mockResolvedValue([]),
+    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

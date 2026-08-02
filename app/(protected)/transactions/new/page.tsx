@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 
 import { transactionEditHref } from "config/paths";
 import { createTransaction } from "internal/transaction/adapter/next/actions";
-import { loadNewTransactionView } from "internal/transaction/adapter/next/loadTransactionViews";
+import {
+  loadNewTransactionView,
+  loadRefundPickerGroupItems,
+  loadRefundPickerGroupPage,
+  loadRefundPickerSearchPage,
+} from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   NewTransactionTemplate,
   TransactionPermissionDenied,
@@ -45,6 +50,9 @@ export default async function TransactionsNewPage({
         action={createTransaction}
         errorMessage={null}
         initialType={parseInitialType(params.type)}
+        loadRefundGroupItemsAction={loadRefundPickerGroupItems}
+        loadRefundMoreGroupsAction={loadRefundPickerGroupPage}
+        loadRefundSearchPageAction={loadRefundPickerSearchPage}
         {...view}
       />
     </NewTransactionVisualFrame>

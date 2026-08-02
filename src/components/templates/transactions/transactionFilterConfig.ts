@@ -43,7 +43,6 @@ export const recordTypeOptions = [
 ] as const satisfies readonly RecordTypeOption[];
 
 export const specialStatusFilterOptions = [
-  { label: "无特殊状态", value: "none" },
   ...transactionBusinessBadgeStatuses.map((value) => ({
     label: transactionBusinessBadgeConfig[value].label,
     value,
