@@ -2,6 +2,7 @@ import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
@@ -10,6 +11,24 @@ import Typography from "@mui/material/Typography";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { TransactionBusinessBadge } from "organisms/transactions/TransactionBusinessBadge/TransactionBusinessBadge";
 import { transactionBusinessBadgeStatuses } from "organisms/transactions/TransactionBusinessBadge/transactionBusinessBadgeConfig";
+
+// 退款不是 transaction_item.special_status 里的一个状态（它通过金额关联表
+// transaction_item_refund_link 表达，明细上展示的是"已退款 ¥X"这种带金额的
+// 标注，不是固定徽标），所以这两项只在这里作为功能说明用的预览 Chip，不接入
+// TransactionBusinessBadge 那套真实状态徽标体系，避免误导成"可以手动选择的
+// 第三、第四种状态"。
+const refundPreviewChips = [
+  {
+    backgroundColor: "var(--user-theme-business-refund-bg)",
+    color: "var(--user-theme-business-refund-text)",
+    label: "待退款",
+  },
+  {
+    backgroundColor: "var(--user-theme-business-completed-bg)",
+    color: "var(--user-theme-business-completed-text)",
+    label: "已退款",
+  },
+] as const;
 
 type LedgerSpecialStatusSettingProps = {
   canEdit?: boolean;
@@ -65,7 +84,7 @@ export function LedgerSpecialStatusSetting({
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={titleSx}>启用特殊状态</Typography>
                 <Typography color="text.secondary" variant="body2">
-                  标记待报销支出，并在收入到账时完成关联。
+                  标记待报销支出，报销 / 退款到账时在收入页完成关联。
                 </Typography>
               </Box>
               <Switch
@@ -80,6 +99,18 @@ export function LedgerSpecialStatusSetting({
               <Stack direction="row" sx={badgeListSx}>
                 {transactionBusinessBadgeStatuses.map((status) => (
                   <TransactionBusinessBadge key={status} status={status} />
+                ))}
+                {refundPreviewChips.map((chip) => (
+                  <Chip
+                    key={chip.label}
+                    label={chip.label}
+                    size="small"
+                    sx={{
+                      backgroundColor: chip.backgroundColor,
+                      color: chip.color,
+                      fontWeight: 800,
+                    }}
+                  />
                 ))}
               </Stack>
             ) : (
