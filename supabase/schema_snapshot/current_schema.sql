@@ -310,6 +310,7 @@ declare
     v_refunded_account_id uuid;
     v_refunded_category_type text;
     v_refunded_currency text;
+    v_refunded_special_status text;
     v_reimbursement_ids uuid[];
     v_reimbursement_amount numeric(14,2);
     v_reimbursement_currency text;
@@ -334,7 +335,8 @@ begin
     select l.transaction_item_special_status_enabled
     into v_special_status_enabled
     from public.ledger l
-    where l.id = p_ledger_id;
+    where l.id = p_ledger_id
+    for update;
 
     if v_special_status_enabled is distinct from true then
         raise exception 'special_status_invalid'
@@ -382,6 +384,19 @@ begin
               and ti.id = any(v_reimbursement_ids)
               and ti.special_status = 'pending_reimbursement'
               and ti.settled_by_item_id is null
+              and not exists (
+                  select 1
+                  from public.transaction_item_refund_link link
+                  join public.transaction_item refund_income
+                    on refund_income.id = link.refund_income_item_id
+                   and refund_income.ledger_id = link.ledger_id
+                  join public.transaction_record refund_record
+                    on refund_record.id = refund_income.transaction_record_id
+                   and refund_record.ledger_id = refund_income.ledger_id
+                  where link.ledger_id = p_ledger_id
+                    and link.refunded_item_id = ti.id
+                    and refund_record.status = 'active'
+              )
             for update of ti, tr, a
         )
         select
@@ -426,9 +441,9 @@ begin
     end if;
 
     if v_refunded_item_id is not null then
-        select ti.amount, ti.account_id, c.type, a.currency
+        select ti.amount, ti.account_id, c.type, a.currency, ti.special_status
         into v_refunded_amount, v_refunded_account_id,
-             v_refunded_category_type, v_refunded_currency
+             v_refunded_category_type, v_refunded_currency, v_refunded_special_status
         from public.transaction_item ti
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
@@ -447,6 +462,11 @@ begin
         if not found or v_refunded_category_type is distinct from 'expense' then
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
+        end if;
+
+        if v_refunded_special_status is not null then
+            raise exception 'refunded_item_special_status_conflict'
+                using errcode = '22023', detail = 'refunded_item_special_status_conflict';
         end if;
 
         if v_income_currency is distinct from v_refunded_currency then
@@ -4370,12 +4390,14 @@ declare
     v_category_type text;
     v_settling_item_is_income boolean;
     v_special_status_enabled boolean;
+    v_has_active_refund_link boolean;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
         into v_special_status_enabled
         from public.ledger l
-        where l.id = new.ledger_id;
+        where l.id = new.ledger_id
+        for update;
 
         if v_special_status_enabled is distinct from true then
             raise exception 'special_status_invalid'
@@ -4416,6 +4438,26 @@ begin
             raise exception 'special_status_invalid'
                 using errcode = '22023', detail = 'special_status_invalid';
         end if;
+
+        select exists (
+            select 1
+            from public.transaction_item_refund_link link
+            join public.transaction_item refund_income
+              on refund_income.id = link.refund_income_item_id
+             and refund_income.ledger_id = link.ledger_id
+            join public.transaction_record refund_record
+              on refund_record.id = refund_income.transaction_record_id
+             and refund_record.ledger_id = refund_income.ledger_id
+            where link.ledger_id = new.ledger_id
+              and link.refunded_item_id = new.id
+              and refund_record.status = 'active'
+        ) into v_has_active_refund_link;
+
+        if v_has_active_refund_link then
+            raise exception 'special_status_refund_conflict'
+                using errcode = '22023', detail = 'special_status_refund_conflict';
+        end if;
+
         return new;
     end if;
 

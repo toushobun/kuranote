@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(57);
+select plan(59);
 
 select has_type(
     'public',
@@ -757,26 +757,94 @@ select throws_ok(
     '同一收入明细不能同时设置报销和退款关联'
 );
 
-select lives_ok(
+-- 退款关联专用的两条独立支出明细：001/002 在上面的流程中已经走完报销，
+-- 退款机制本身（分批累计、超额、币种）改用未报销的明细验证，
+-- 避免同一笔支出被同时判定为已报销又建立退款关联。
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id, amount,
+    discount_amount, balance_delta, note, sort_order, created_by, updated_by
+)
+select
+    '55110000-0000-4000-8000-000000000003',
+    ti.ledger_id,
+    ti.transaction_record_id,
+    ti.account_id,
+    ti.category_id,
+    100,
+    0,
+    -100,
+    null,
+    (select coalesce(max(existing.sort_order), 0) + 100 from public.transaction_item existing where existing.transaction_record_id = ti.transaction_record_id),
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id, amount,
+    discount_amount, balance_delta, note, sort_order, created_by, updated_by
+)
+select
+    '55110000-0000-4000-8000-000000000004',
+    ti.ledger_id,
+    ti.transaction_record_id,
+    ti.account_id,
+    ti.category_id,
+    75,
+    0,
+    -75,
+    null,
+    (select coalesce(max(existing.sort_order), 0) + 100 from public.transaction_item existing where existing.transaction_record_id = ti.transaction_record_id),
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000002';
+
+select throws_ok(
     $$
         select public.apply_transaction_item_links(
             (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
             '55120000-0000-4000-8000-000000000002',
             jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000002')
+        )
+    $$,
+    '22023',
+    'refunded_item_special_status_conflict',
+    '已报销的支出明细不能再建立退款关联'
+);
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000003'),
+            '55120000-0000-4000-8000-000000000002',
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000003'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000002')
         );
         select public.apply_transaction_item_links(
-            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000003'),
             '55120000-0000-4000-8000-000000000003',
-            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000003'),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000003')
         )
     $$,
     '同一条支出明细支持多笔分批退款'
 );
 
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '55110000-0000-4000-8000-000000000003'
+    $$,
+    '22023',
+    'special_status_refund_conflict',
+    '已建立退款关联的支出明细不能再标记为待报销'
+);
+
 select is(
-    (select refunded_amount::text from public.transaction_item_with_refund where id = '55110000-0000-4000-8000-000000000001'),
+    (select refunded_amount::text from public.transaction_item_with_refund where id = '55110000-0000-4000-8000-000000000003'),
     '90.00',
     '退款金额通过关联表实时聚合'
 );
@@ -784,9 +852,9 @@ select is(
 select throws_ok(
     $$
         select public.apply_transaction_item_links(
-            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000003'),
             '55120000-0000-4000-8000-000000000004',
-            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000003'),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
         )
     $$,
@@ -802,9 +870,9 @@ where id = '55120000-0000-4000-8000-000000000004';
 select throws_ok(
     $$
         select public.apply_transaction_item_links(
-            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000002'),
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000004'),
             '55120000-0000-4000-8000-000000000004',
-            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000002'),
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000004'),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
         )
     $$,
@@ -846,7 +914,7 @@ select throws_ok(
     $$
         update public.transaction_item
         set amount = amount + 1
-        where id = '55110000-0000-4000-8000-000000000001'
+        where id = '55110000-0000-4000-8000-000000000003'
     $$,
     'P0001',
     'linked_transaction_edit_forbidden',
@@ -890,7 +958,7 @@ select throws_ok(
     $$
         update public.transaction_item
         set category_id = null
-        where id = '55110000-0000-4000-8000-000000000001'
+        where id = '55110000-0000-4000-8000-000000000003'
     $$,
     'P0001',
     'linked_transaction_edit_forbidden',
@@ -901,7 +969,7 @@ select throws_ok(
     $$
         update public.transaction_item
         set account_id = '55110100-0000-4000-8000-000000000002'
-        where id = '55110000-0000-4000-8000-000000000001'
+        where id = '55110000-0000-4000-8000-000000000003'
     $$,
     'P0001',
     'linked_transaction_edit_forbidden',
@@ -1045,9 +1113,9 @@ where id = '55120000-0000-4000-8000-000000000004';
 select throws_ok(
     $$
         select public.apply_transaction_item_links(
-            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000003'),
             '55120000-0000-4000-8000-000000000004',
-            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000003'),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
         )
     $$,
