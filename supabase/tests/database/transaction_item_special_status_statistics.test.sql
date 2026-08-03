@@ -22,7 +22,7 @@ join lateral (
     select account.id
     from public.account account
     where account.ledger_id = l.id
-      and account.status = 'active'
+      and account.is_archived = false
     order by account.created_at
     limit 1
 ) a on true
@@ -31,7 +31,7 @@ join lateral (
     from public.category category
     where category.ledger_id = l.id
       and category.type = 'expense'
-      and category.status = 'active'
+      and category.is_archived = false
     order by category.created_at
     limit 1
 ) expense_category on true
@@ -40,7 +40,7 @@ join lateral (
     from public.category category
     where category.ledger_id = l.id
       and category.type = 'income'
-      and category.status = 'active'
+      and category.is_archived = false
     order by category.created_at
     limit 1
 ) income_category on true
