@@ -32,16 +32,20 @@ jobs:
           python - <<'PY'
           import base64
           import gzip
+          import hashlib
           from pathlib import Path
 
-          encoded = "".join(
-              Path(path).read_text().strip()
-              for path in (
-                  '.github/codex/pr568-patch-00.b64',
-                  '.github/codex/pr568-patch-01.b64',
-                  '.github/codex/pr568-patch-02.b64',
-              )
+          paths = (
+              '.github/codex/pr568-patch-00.b64',
+              '.github/codex/pr568-patch-01.b64',
+              '.github/codex/pr568-patch-02.b64',
           )
+          parts = []
+          for path in paths:
+              part = ''.join(Path(path).read_text().split())
+              print(path, len(part), hashlib.sha256(part.encode()).hexdigest())
+              parts.append(part)
+          encoded = ''.join(parts)
           Path('/tmp/codex_pr568_fix.py').write_bytes(
               gzip.decompress(base64.b64decode(encoded))
           )
