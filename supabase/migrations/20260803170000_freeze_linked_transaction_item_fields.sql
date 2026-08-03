@@ -46,7 +46,11 @@ from public, anon, authenticated;
 drop trigger if exists transaction_item_validate_linked_amount
 on public.transaction_item;
 
-create trigger transaction_item_validate_linked_amount
+-- 命名为 freeze_linked_mutation（而非 validate_...）是为了让它在同名前缀的
+-- BEFORE 触发器按字母序执行时排在 transaction_item_validate_category_shape
+-- 之前，避免关联明细的 category_id 置空先触发分类校验，掩盖本应抛出的
+-- linked_transaction_edit_forbidden。
+create trigger transaction_item_freeze_linked_mutation
 before update of amount, account_id, category_id
 on public.transaction_item
 for each row execute function public.validate_linked_transaction_item_mutation();
