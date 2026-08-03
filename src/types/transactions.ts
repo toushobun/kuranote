@@ -78,7 +78,7 @@ export type TransactionRowItem = {
   amount: string;
   account_name: string;
   account_currency: string;
-  account_id: string;
+  account_id?: string;
   account_color?: ThemeColorKey | null;
   canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
