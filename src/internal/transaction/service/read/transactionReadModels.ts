@@ -7,6 +7,7 @@ import type { TransactionSpecialStatus } from "internal/transaction/entity/trans
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionCategorySummaryItem = {
+  accountId?: string;
   amount: string;
   categoryName: string;
   categoryType?: CategoryType;
@@ -19,7 +20,6 @@ export type TransactionCategorySummaryItem = {
 export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
   account_currency: string;
-  account_id: string;
   account_name: string;
   amount: string;
   canEdit?: boolean;
