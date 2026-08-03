@@ -17,6 +17,7 @@ import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,
   TransactionMonthPage,
+  TransactionRefundCandidate,
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
@@ -31,6 +32,8 @@ type TransactionMonthListProps = {
     offset: number,
   ) => Promise<TransactionMonthPage>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
+  onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  refundSelectionMode?: boolean;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -48,6 +51,8 @@ export function TransactionMonthList(props: TransactionMonthListProps) {
 function TransactionMonthListContent({
   loadGroupItemsAction,
   loadMoreGroupsAction,
+  onSelectRefundItem,
+  refundSelectionMode = false,
   timeGroupView,
 }: TransactionMonthListProps) {
   const [groups, setGroups] = useState(timeGroupView.groups);
@@ -227,6 +232,19 @@ function TransactionMonthListContent({
                     {group.label}
                   </Typography>
 
+                  {timeGroupView.groupBy === "specialStatus" ? (
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        flexShrink: 0,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {group.transactionCount} 条
+                    </Typography>
+                  ) : null}
+
                   <Stack
                     spacing={0.9}
                     sx={{
@@ -235,33 +253,35 @@ function TransactionMonthListContent({
                       justifyContent: "center",
                     }}
                   >
-                    <SummaryLine
-                      label="结余"
-                      labelColor="text.secondary"
-                      labelFontWeight={400}
-                      value={formatSignedSummaryAmount(
-                        group.summary.balance,
-                        group.summary.currency,
-                      )}
-                    />
-                    <Stack direction="row" spacing={0.8} sx={{ minWidth: 0 }}>
+                    <>
                       <SummaryLine
-                        label="收入"
-                        labelColor="var(--user-theme-income-amount)"
-                        value={formatUnsignedSummaryAmount(
-                          group.summary.income,
+                        label="结余"
+                        labelColor="text.secondary"
+                        labelFontWeight={400}
+                        value={formatSignedSummaryAmount(
+                          group.summary.balance,
                           group.summary.currency,
                         )}
                       />
-                      <SummaryLine
-                        label="支出"
-                        labelColor="var(--user-theme-negative-amount)"
-                        value={formatUnsignedSummaryAmount(
-                          group.summary.expense,
-                          group.summary.currency,
-                        )}
-                      />
-                    </Stack>
+                      <Stack direction="row" spacing={0.8} sx={{ minWidth: 0 }}>
+                        <SummaryLine
+                          label="收入"
+                          labelColor="var(--user-theme-income-amount)"
+                          value={formatUnsignedSummaryAmount(
+                            group.summary.income,
+                            group.summary.currency,
+                          )}
+                        />
+                        <SummaryLine
+                          label="支出"
+                          labelColor="var(--user-theme-negative-amount)"
+                          value={formatUnsignedSummaryAmount(
+                            group.summary.expense,
+                            group.summary.currency,
+                          )}
+                        />
+                      </Stack>
+                    </>
                   </Stack>
 
                   <KeyboardArrowDownRoundedIcon
@@ -293,6 +313,8 @@ function TransactionMonthListContent({
                     dateGroups.length > 0 ? (
                       <TransactionGroupList
                         groups={dateGroups}
+                        onSelectRefundItem={onSelectRefundItem}
+                        refundSelectionMode={refundSelectionMode}
                         showSummary={false}
                       />
                     ) : (

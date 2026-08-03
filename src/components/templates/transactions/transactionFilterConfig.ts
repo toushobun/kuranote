@@ -1,7 +1,12 @@
 import type {
   TransactionFilterRecordType,
   TransactionGroupBy,
+  TransactionSpecialStatusFilterValue,
 } from "types/transactions";
+import {
+  transactionBusinessBadgeConfig,
+  transactionBusinessBadgeStatuses,
+} from "organisms/transactions/TransactionBusinessBadge/transactionBusinessBadgeConfig";
 
 type GroupOption = {
   label: string;
@@ -27,6 +32,7 @@ export const otherGroupOptions = [
   { label: "账户", value: "account" },
   { label: "商家", value: "merchant" },
   { label: "成员", value: "member" },
+  { label: "特殊状态", value: "specialStatus" },
 ] as const satisfies readonly GroupOption[];
 
 export const recordTypeOptions = [
@@ -35,3 +41,13 @@ export const recordTypeOptions = [
   { label: "支出", value: "expense" },
   { label: "转账", value: "transfer" },
 ] as const satisfies readonly RecordTypeOption[];
+
+export const specialStatusFilterOptions = [
+  ...transactionBusinessBadgeStatuses.map((value) => ({
+    label: transactionBusinessBadgeConfig[value].label,
+    value,
+  })),
+] satisfies readonly {
+  label: string;
+  value: TransactionSpecialStatusFilterValue;
+}[];

@@ -6,12 +6,12 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import {
-  calculateTransactionRecordNetAmount,
+  calculateTransactionRecordDisplayAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 export function buildTransactionListItem({
   accountById,
@@ -59,7 +59,7 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
-  const netAmount = calculateTransactionRecordNetAmount(
+  const displayAmount = calculateTransactionRecordDisplayAmount(
     recordItems,
     categoryById,
   );
@@ -78,10 +78,23 @@ export function buildTransactionListItem({
 
     return [
       {
+        accountId: item.account_id,
         amount: item.amount,
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
+        ...(item.id
+          ? {
+              id: item.id,
+              refundedAmount: item.refunded_amount ?? "0",
+              remainingRefundableAmount: String(
+                Math.max(
+                  0,
+                  Number(item.amount) - Number(item.refunded_amount ?? 0),
+                ),
+              ),
+            }
+          : {}),
       },
     ];
   });
@@ -92,7 +105,7 @@ export function buildTransactionListItem({
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
-    amount: String(Math.abs(netAmount)),
+    amount: String(Math.abs(displayAmount)),
     canEdit,
     categoryItems,
     created_at: record.created_at,

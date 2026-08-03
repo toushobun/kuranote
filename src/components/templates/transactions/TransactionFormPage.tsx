@@ -45,6 +45,11 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
+  TransactionGroupPage,
+  TransactionMonthPage,
+  TransactionReimbursementCandidate,
+  TransactionSearchPage,
+  TransactionTimeGroupViewData,
   TransactionRecordType,
   TransactionStateAction,
   TransactionType,
@@ -58,6 +63,20 @@ export type TransactionFormTemplateProps = {
   initialType?: TransactionRecordType;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
+  reimbursementCandidates?: TransactionReimbursementCandidate[];
+  refundPickerView?: TransactionTimeGroupViewData;
+  loadRefundGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadRefundMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  transactionItemSpecialStatusEnabled: boolean;
 };
 
 type EditTransactionTemplateProps = Omit<
@@ -201,17 +220,24 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
 
 export function TransactionPermissionDenied({
   operation,
+  reason = "permission",
 }: {
   operation: "edit" | "create";
+  reason?: "linked" | "permission";
 }) {
   const operationLabel = operation === "create" ? "新增" : "编辑";
+  const isLinked = operation === "edit" && reason === "linked";
 
   return (
     <Stack spacing={2}>
       <TransactionPageTopBar title={`${operationLabel}记账`} />
       <ErrorState
-        title={`无法${operationLabel}记账`}
-        description={`当前账本角色没有${operationLabel}记账的权限。`}
+        title={isLinked ? "该交易不能编辑" : `无法${operationLabel}记账`}
+        description={
+          isLinked
+            ? "该交易已关联报销或退款，不能编辑。"
+            : `当前账本角色没有${operationLabel}记账的权限。`
+        }
         action={
           <Button
             component={Link}
@@ -233,6 +259,12 @@ function NewTransactionFormView({
   errorMessage,
   initialType,
   merchantOptions,
+  reimbursementCandidates = [],
+  refundPickerView,
+  loadRefundGroupItemsAction,
+  loadRefundMoreGroupsAction,
+  loadRefundSearchPageAction,
+  transactionItemSpecialStatusEnabled,
 }: TransactionFormTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -273,6 +305,14 @@ function NewTransactionFormView({
           hideHeader
           initialType="expense"
           merchantOptions={merchantOptions}
+          reimbursementCandidates={reimbursementCandidates}
+          refundPickerView={refundPickerView}
+          loadRefundGroupItemsAction={loadRefundGroupItemsAction}
+          loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
+          loadRefundSearchPageAction={loadRefundSearchPageAction}
+          transactionItemSpecialStatusEnabled={
+            transactionItemSpecialStatusEnabled
+          }
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, expense: disabled }))
           }
@@ -288,6 +328,14 @@ function NewTransactionFormView({
           hideHeader
           initialType="income"
           merchantOptions={merchantOptions}
+          reimbursementCandidates={reimbursementCandidates}
+          refundPickerView={refundPickerView}
+          loadRefundGroupItemsAction={loadRefundGroupItemsAction}
+          loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
+          loadRefundSearchPageAction={loadRefundSearchPageAction}
+          transactionItemSpecialStatusEnabled={
+            transactionItemSpecialStatusEnabled
+          }
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
           }
@@ -312,6 +360,12 @@ function NewTransactionFormView({
       categoryOptions,
       activeErrorMessage,
       merchantOptions,
+      reimbursementCandidates,
+      refundPickerView,
+      loadRefundGroupItemsAction,
+      loadRefundMoreGroupsAction,
+      loadRefundSearchPageAction,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 
@@ -568,6 +622,7 @@ export function EditTransferTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
+  transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -601,6 +656,9 @@ export function EditTransferTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({
                 ...prev,
@@ -633,6 +691,9 @@ export function EditTransferTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
@@ -663,6 +724,7 @@ export function EditTransferTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 
@@ -688,6 +750,7 @@ export function EditTransactionTemplate({
   errorMessage,
   initialValues,
   merchantOptions,
+  transactionItemSpecialStatusEnabled,
 }: EditTransactionTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
   const activeErrorMessage = actionState.error ?? errorMessage;
@@ -722,6 +785,9 @@ export function EditTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({
                 ...prev,
@@ -754,6 +820,9 @@ export function EditTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
+            }
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
@@ -787,6 +856,7 @@ export function EditTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      transactionItemSpecialStatusEnabled,
     ],
   );
 

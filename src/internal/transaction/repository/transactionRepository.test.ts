@@ -1,11 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
+import { transactionErrorCodes } from "internal/transaction/errors";
+import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   RepositoryError,
   ValidationError,
@@ -86,7 +89,14 @@ describe("TransactionRepository", () => {
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
-      p_items: normalInput.items,
+      p_items: [
+        {
+          ...normalInput.items[0],
+          refundedItemId: null,
+          reimbursementItemIds: [],
+          specialStatus: null,
+        },
+      ],
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_note: null,
@@ -147,7 +157,7 @@ describe("TransactionRepository", () => {
     });
     expect(rpc).toHaveBeenNthCalledWith(
       1,
-      "convert_transaction_type",
+      "convert_transaction_type_with_special_status",
       expect.objectContaining({
         p_account_id: accountId,
         p_from_account_id: null,
@@ -158,7 +168,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(
       2,
-      "convert_transaction_type",
+      "convert_transaction_type_with_special_status",
       expect.objectContaining({
         p_account_id: null,
         p_from_account_id: accountId,
@@ -209,20 +219,24 @@ describe("TransactionRepository", () => {
       recordType: "expense",
     });
     expect(result).toHaveLength(1);
-    expect(rpc).toHaveBeenCalledWith("load_transaction_group_summaries", {
-      p_account_id: accountId,
-      p_category_id: categoryId,
-      p_date_end: "2026-07-01T00:00:00.000Z",
-      p_date_start: "2026-06-01T00:00:00.000Z",
-      p_group_by: "merchant",
-      p_ledger_id: ledgerId,
-      p_limit: 20,
-      p_member_id: userId,
-      p_merchant_id: merchantId,
-      p_offset: 20,
-      p_parent_category_id: categoryId,
-      p_record_type: "expense",
-    });
+    expect(rpc).toHaveBeenCalledWith(
+      "load_transaction_group_summaries_with_special_status",
+      {
+        p_account_id: accountId,
+        p_category_id: categoryId,
+        p_date_end: "2026-07-01T00:00:00.000Z",
+        p_date_start: "2026-06-01T00:00:00.000Z",
+        p_group_by: "merchant",
+        p_ledger_id: ledgerId,
+        p_limit: 20,
+        p_member_id: userId,
+        p_merchant_id: merchantId,
+        p_offset: 20,
+        p_parent_category_id: categoryId,
+        p_record_type: "expense",
+        p_special_statuses: undefined,
+      },
+    );
   });
   it("交易列表应用日期、类型、成员、商户筛选和分页", async () => {
     const record = {
@@ -299,7 +313,7 @@ describe("TransactionRepository", () => {
     const { repository } = createRepository({
       queries: {
         ledger_member: memberQuery,
-        transaction_item: itemQuery,
+        transaction_item_with_refund: itemQuery,
       },
     });
     await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
@@ -370,6 +384,53 @@ describe("TransactionRepository", () => {
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
+  it.each([
+    {
+      expectedCode: transactionErrorCodes.refundAmountExceeded,
+      rpcCode: "refund_amount_exceeded",
+    },
+    {
+      expectedCode: transactionErrorCodes.reimbursementLinkInvalid,
+      rpcCode: "reimbursement_item_invalid",
+    },
+    {
+      expectedCode: transactionErrorCodes.reimbursementLinkInvalid,
+      rpcCode: "reimbursement_income_invalid",
+    },
+    {
+      expectedCode: transactionErrorCodes.updateInvalid,
+      rpcCode: "linked_transaction_edit_forbidden",
+    },
+  ] as const)(
+    "RPC 业务错误 $rpcCode 映射为 409 冲突",
+    async ({ expectedCode, rpcCode }) => {
+      const rpc = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "P0001",
+          details: rpcCode,
+          message: "database details",
+        },
+      });
+      const { repository } = createRepository({ rpc });
+      try {
+        await repository.createNormal(normalInput);
+        throw new Error("预期抛出 ConflictError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConflictError);
+        expect(error).toMatchObject({
+          code: expectedCode,
+          name: ConflictError.name,
+        });
+        if (!(error instanceof ConflictError)) throw error;
+        expect(appErrorToResponseBody(error)).toMatchObject({
+          body: { error: { status: 409 } },
+          status: 409,
+        });
+      }
+    },
+  );
+
   it("查询错误转换为安全应用错误", async () => {
     const query = createQuery({
       data: null,
@@ -477,7 +538,7 @@ describe("TransactionDashboardRepository", () => {
     {
       expectedLog: "[transaction] failed to load dashboard month items",
       queries: {
-        transaction_item: createQuery({
+        transaction_item_with_refund: createQuery({
           data: null,
           error: { code: "item_error", message: "database details" },
         }),
@@ -496,7 +557,7 @@ describe("TransactionDashboardRepository", () => {
           data: null,
           error: { code: "category_error", message: "database details" },
         }),
-        transaction_item: createQuery({
+        transaction_item_with_refund: createQuery({
           data: [
             {
               amount: "1200",
@@ -535,7 +596,7 @@ describe("TransactionDashboardRepository", () => {
     });
     const { repository } = createRepository({
       category: categoryQuery,
-      transaction_item: itemQuery,
+      transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
     });
     await expect(
@@ -561,7 +622,7 @@ describe("TransactionDashboardRepository", () => {
       dashboardMonthInput.dateEnd,
     );
     expect(itemQuery.select).toHaveBeenCalledWith(
-      "transaction_record_id, category_id, amount",
+      "id, transaction_record_id, category_id, amount, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income",
     );
     expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
   });
@@ -587,7 +648,7 @@ describe("TransactionDashboardRepository", () => {
     };
     const itemQuery = createQuery({ data: [item], error: null });
     const { from, repository } = createRepository({
-      transaction_item: itemQuery,
+      transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
     });
     await expect(
@@ -790,6 +851,46 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "转账账户币种必须一致。",
       ],
       [
+        "refund_currency_mismatch",
+        transactionErrorCodes.refundLinkInvalid,
+        "退款收入与支出明细的账户币种必须一致。",
+      ],
+      [
+        "reimbursement_currency_mismatch",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入与待报销明细的账户币种必须一致。",
+      ],
+      [
+        "reimbursement_amount_mismatch",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入金额必须与所选待报销明细合计金额一致。",
+      ],
+      [
+        "refunded_item_special_status_conflict",
+        transactionErrorCodes.refundLinkInvalid,
+        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
+      ],
+      [
+        "special_status_refund_conflict",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "该支出明细已有退款关联，不能再标记为待报销。",
+      ],
+      [
+        "income_link_category_invalid",
+        "income_link_category_invalid",
+        "只有收入明细才能关联报销或退款。",
+      ],
+      [
+        "income_link_conflict",
+        "income_link_conflict",
+        "报销关联和退款关联不能同时设置。",
+      ],
+      [
+        "income_links_create_only",
+        transactionErrorCodes.updateInvalid,
+        "报销和退款关联只能在新建收入交易时设置。",
+      ],
+      [
         "merchant_invalid",
         "merchant_invalid",
         "商家信息不正确，请确认后重试。",
@@ -814,6 +915,11 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
           code: expectedCode,
           message: expectedMessage,
         });
+        if (!(error instanceof ValidationError)) throw error;
+        expect(appErrorToResponseBody(error)).toMatchObject({
+          body: { error: { status: 400 } },
+          status: 400,
+        });
         expect(String(error)).not.toContain("raw database message");
         expect(logger.error).toHaveBeenCalledWith(
           "[transaction] failed to create transaction",
@@ -825,6 +931,48 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
+    it("退款关联唯一约束冲突（23505）转换为安全的 ConflictError", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "23505",
+        databaseError:
+          'duplicate key value violates unique constraint "transaction_item_refund_link_income_unique"',
+      });
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toMatchObject({
+        code: transactionErrorCodes.refundLinkInvalid,
+        message: "该收入明细已经关联过一笔退款，请刷新后重试。",
+      });
+      if (!(error instanceof ConflictError)) throw error;
+      expect(appErrorToResponseBody(error)).toMatchObject({
+        body: { error: { status: 409 } },
+        status: 409,
+      });
+      expect(String(error)).not.toContain("transaction_item_refund_link");
+    });
+    it("退款关联 check 约束冲突（23514）转换为安全的 ValidationError", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "23514",
+        databaseError:
+          'new row for relation "transaction_item_refund_link" violates check constraint "transaction_item_refund_link_different_items_check"',
+      });
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchObject({
+        code: transactionErrorCodes.refundLinkInvalid,
+        message: "退款关联的金额或明细不正确，请确认后重试。",
+      });
+      if (!(error instanceof ValidationError)) throw error;
+      expect(appErrorToResponseBody(error)).toMatchObject({
+        body: { error: { status: 400 } },
+        status: 400,
+      });
+      expect(String(error)).not.toContain("transaction_item_refund_link");
+    });
     it.each([
       ["not_authenticated", "28000", AuthenticationError, "auth_required"],
       ["ledger_forbidden", "42501", AuthorizationError, "permission_denied"],

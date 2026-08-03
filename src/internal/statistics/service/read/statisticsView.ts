@@ -41,6 +41,10 @@ type StatisticsRecordInput = {
 type StatisticsItemInput = {
   amount: string;
   category_id: string | null;
+  refunded_amount?: string;
+  is_refund_income?: boolean;
+  is_reimbursement_income?: boolean;
+  special_status?: string | null;
   transaction_record_id: string;
 };
 
@@ -106,9 +110,26 @@ export function buildStatisticsViewData({
 
     if (!category) continue;
 
-    addTransactionAmount(summary, category.type, item.amount);
+    const effectiveAmount =
+      category.type === "expense"
+        ? item.special_status === "reimbursed"
+          ? "0"
+          : String(
+              Math.max(
+                0,
+                Number(item.amount) - Number(item.refunded_amount ?? 0),
+              ),
+            )
+        : item.is_refund_income || item.is_reimbursement_income
+          ? "0"
+          : item.amount;
+    if (Number(effectiveAmount) !== 0) {
+      addTransactionAmount(summary, category.type, effectiveAmount);
+    }
 
-    if (category.type !== "expense") continue;
+    if (category.type !== "expense") {
+      continue;
+    }
 
     const merchantId = record.merchant_id;
 
@@ -117,7 +138,7 @@ export function buildStatisticsViewData({
         merchantRankingById,
         merchantId,
         merchantById.get(merchantId)?.name ?? "未指定商家",
-        item.amount,
+        effectiveAmount,
         record.id,
       );
     }
@@ -126,7 +147,7 @@ export function buildStatisticsViewData({
       categoryRankingById,
       categoryId,
       getCategoryDisplayName(category, categoryById),
-      item.amount,
+      effectiveAmount,
       record.id,
     );
   }
@@ -152,7 +173,7 @@ function addRankingAmount(
 ) {
   const value = Number(amount);
 
-  if (!Number.isFinite(value)) return;
+  if (!Number.isFinite(value) || value === 0) return;
 
   const ranking = rankingById.get(id) ?? {
     amount: 0,

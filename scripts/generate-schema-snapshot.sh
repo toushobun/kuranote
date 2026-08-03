@@ -44,9 +44,11 @@ cd "${ROOT_DIR}"
 
 "${SUPABASE[@]}" db reset --local --no-seed
 "${SUPABASE[@]}" db dump --local --schema public --file "${PUBLIC_DUMP_PATH}"
+perl -0pi -e 's/\r\n/\n/g' "${PUBLIC_DUMP_PATH}"
 perl -0pi -e 's/[[:space:]]+\z/\n/' "${PUBLIC_DUMP_PATH}"
 
 "${SUPABASE[@]}" db dump --local --schema auth --file "${AUTH_DUMP_PATH}"
+perl -0pi -e 's/\r\n/\n/g' "${AUTH_DUMP_PATH}"
 
 # 固定版本的 Supabase CLI（pg_dump）会将 trigger 定义输出为单行。
 # 格式变化、零匹配或多匹配均拒绝生成，避免遗漏应用维护的 auth.users trigger。
@@ -69,4 +71,5 @@ mkdir -p "$(dirname "${OUTPUT_PATH}")"
   echo "-- 应用维护的非 public 对象：auth.users trigger"
   cat "${AUTH_TRIGGER_PATH}"
 } >"${OUTPUT_PATH}"
+perl -0pi -e 's/\r\n/\n/g' "${OUTPUT_PATH}"
 perl -0pi -e 's/[[:space:]]+\z/\n/' "${OUTPUT_PATH}"

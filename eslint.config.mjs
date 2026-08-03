@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Storybook build output:
     "storybook-static/**",
+    // Supabase CLI generated runtime files:
+    "supabase/.temp/**",
   ]),
   ...storybook.configs["flat/recommended"],
 ]);

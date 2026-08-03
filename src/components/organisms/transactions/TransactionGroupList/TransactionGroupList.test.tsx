@@ -1,4 +1,11 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,7 +15,10 @@ import {
 } from "@/test/mocks/transactions";
 import type { TransactionRowProps } from "molecules/transactions/TransactionRow";
 
-import { TransactionGroupList } from "./TransactionGroupList";
+import {
+  TransactionGroupList,
+  TransactionRefundCandidateList,
+} from "./TransactionGroupList";
 
 const stableDateLabelTestTime = new Date("2026-06-20T03:00:00.000Z");
 
@@ -154,5 +164,74 @@ describe("TransactionGroupList", () => {
         "收入 ¥260,000 / 支出 ¥3,130 / 合计 +¥256,870",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe("TransactionRefundCandidateList", () => {
+  function createRefundRecord(
+    refundedAmount: string,
+    remainingRefundableAmount: string,
+  ) {
+    return createTransactionListItem({
+      account_currency: "USD",
+      amount: "100",
+      categoryItems: [
+        {
+          accountId: "account-1",
+          amount: "100",
+          categoryName: "服装",
+          categoryType: "expense",
+          id: "refund-item-1",
+          parentCategoryName: "购物",
+          refundedAmount,
+          remainingRefundableAmount,
+        },
+      ],
+    });
+  }
+
+  it("显示部分退款金额并允许选择", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <TransactionRefundCandidateList
+        items={[createRefundRecord("40", "60")]}
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByText("原始金额 $100")).toBeInTheDocument();
+    expect(screen.getByText("剩余可退 $60")).toBeInTheDocument();
+    expect(screen.getByText("已退款 $40")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细 服装" }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountCurrency: "USD",
+        id: "refund-item-1",
+        remainingRefundableAmount: "60",
+      }),
+    );
+  });
+
+  it("刚好退完时禁用选择", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <TransactionRefundCandidateList
+        items={[createRefundRecord("100", "0")]}
+        onSelect={onSelect}
+      />,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "选择退款明细 服装",
+    });
+    expect(button).toBeDisabled();
+    expect(screen.getByText("剩余可退 $0")).toBeInTheDocument();
+    expect(screen.getByText("已退款 $100")).toBeInTheDocument();
+
+    fireEvent.click(button);
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

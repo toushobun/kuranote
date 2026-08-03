@@ -1,3 +1,5 @@
+import type { TransactionSpecialStatusFilterValue } from "internal/transaction/entity/transactionSpecialStatus";
+
 export type TransactionGroupBy =
   | "year"
   | "quarter"
@@ -8,12 +10,14 @@ export type TransactionGroupBy =
   | "account"
   | "parentCategory"
   | "category"
-  | "member";
+  | "member"
+  | "specialStatus";
 
 export type TransactionFilterRecordType =
   | "all"
   | "income"
   | "expense"
+  | "refundableExpense"
   | "transfer";
 
 export type TransactionFilters = {
@@ -25,6 +29,7 @@ export type TransactionFilters = {
   merchantId?: string;
   parentCategoryId?: string;
   recordType: TransactionFilterRecordType;
+  specialStatuses?: TransactionSpecialStatusFilterValue[];
 };
 
 export const defaultTransactionFilters = {

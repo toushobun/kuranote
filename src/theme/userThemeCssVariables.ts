@@ -149,8 +149,6 @@ export function getUserThemeCssVariables(themeKey: UserThemeKey) {
     "--user-theme-business-refund-text": semantic.transfer,
     "--user-theme-business-completed-bg": semantic.successBg,
     "--user-theme-business-completed-text": semantic.success,
-    "--user-theme-business-excluded-bg": semantic.neutralBg,
-    "--user-theme-business-excluded-text": semantic.neutral,
     "--user-theme-tx-name": palette.text,
     "--user-theme-tx-meta": palette.textMuted,
     "--user-theme-tx-summary-bg": palette.surfaceAlt,

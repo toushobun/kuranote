@@ -50,9 +50,15 @@ export function TransactionForm({
   initialValues,
   ledgerName,
   merchantOptions,
+  loadRefundGroupItemsAction,
+  loadRefundMoreGroupsAction,
+  loadRefundSearchPageAction,
+  reimbursementCandidates = [],
+  refundPickerView,
   onSubmitDisabledChange,
   submitLabel = "保存记账",
   title = "新增记账",
+  transactionItemSpecialStatusEnabled = false,
   typeNavigation,
 }: TransactionFormProps) {
   const {
@@ -74,6 +80,7 @@ export function TransactionForm({
     handleTimeChange,
     isSheetOpen,
     isSubmitDisabled,
+    linkNotice,
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
@@ -82,13 +89,21 @@ export function TransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
+    pickerRefundCandidate,
+    pickerReimbursementItemIds,
+    pickerSpecialStatus,
     removeItem,
+    refundAfterTotalAmount,
+    refundedTotal,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerSpecialStatus,
+    setPickerRefundCandidate,
+    setPickerReimbursementItemIds,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -119,6 +134,7 @@ export function TransactionForm({
         {typeNavigation}
 
         {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+        {linkNotice ? <Alert severity="info">{linkNotice}</Alert> : null}
 
         <input
           name="timeZoneOffsetMinutes"
@@ -251,6 +267,8 @@ export function TransactionForm({
           selectedAccountCurrency={selectedAccount?.currency}
           selectedType={selectedType}
           signedTotalAmount={signedTotalAmount}
+          refundAfterTotalAmount={refundAfterTotalAmount}
+          refundedTotal={refundedTotal}
         />
 
         <Box sx={transactionFieldGroupSx}>
@@ -308,12 +326,25 @@ export function TransactionForm({
         onGroupSelect={handlePickerGroupSelect}
         onPickerAdd={handlePickerAdd}
         onRemoveItem={removeItem}
+        onReimbursementItemIdsChange={setPickerReimbursementItemIds}
+        onRefundItemChange={setPickerRefundCandidate}
         open={isSheetOpen}
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
+        pickerReimbursementItemIds={pickerReimbursementItemIds}
+        pickerRefundCandidate={pickerRefundCandidate}
+        pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
+        reimbursementCandidates={reimbursementCandidates}
+        refundPickerView={refundPickerView}
+        loadRefundGroupItemsAction={loadRefundGroupItemsAction}
+        loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
+        loadRefundSearchPageAction={loadRefundSearchPageAction}
+        specialStatusEnabled={transactionItemSpecialStatusEnabled}
+        incomeLinksEnabled={!initialValues?.transactionRecordId}
+        onSpecialStatusChange={setPickerSpecialStatus}
       />
     </form>
   );

@@ -211,6 +211,33 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
     ).resolves.toEqual({ ok: true });
   });
 
+  it("更新账本基础设置时一并保存特殊状态开关", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await repository.updateLedgerBaseSettings(ledgerId, {
+      baseCurrency: "JPY",
+      ledgerName: "家庭账本",
+      transactionItemSpecialStatusEnabled: true,
+      updatedBy: userId,
+    });
+
+    expect(supabase.queries[0]?.calls[0]).toEqual({
+      args: [
+        {
+          base_currency: "JPY",
+          name: "家庭账本",
+          transaction_item_special_status_enabled: true,
+          updated_by: userId,
+        },
+        { count: "exact" },
+      ],
+      method: "update",
+    });
+  });
+
   it("count 不为 1 时返回 update_failed", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 0 }] });
     const repository = createSupabaseLedgerSettingsRepository(
@@ -225,6 +252,34 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
       }),
     ).resolves.toEqual({
       code: ledgerSettingsErrorCodes.updateFailed,
+      ok: false,
+    });
+  });
+
+  it("存在特殊状态明细时返回可识别的业务错误", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          error: {
+            details: " special_status_has_active_items ",
+            message: "database validation failed",
+          },
+        },
+      ],
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.updateLedgerBaseSettings(ledgerId, {
+        baseCurrency: "JPY",
+        ledgerName: "家庭账本",
+        transactionItemSpecialStatusEnabled: false,
+        updatedBy: userId,
+      }),
+    ).resolves.toEqual({
+      code: ledgerSettingsErrorCodes.specialStatusHasActiveItems,
       ok: false,
     });
   });

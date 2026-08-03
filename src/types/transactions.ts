@@ -1,6 +1,8 @@
 import type { CategoryType } from "internal/category";
 import type {
   TransactionRecordStorageType,
+  TransactionReimbursementCandidate,
+  TransactionSpecialStatusFilterValue,
   TransactionType,
 } from "internal/transaction";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -33,12 +35,14 @@ export type TransactionGroupBy =
   | "account"
   | "parentCategory"
   | "category"
-  | "member";
+  | "member"
+  | "specialStatus";
 
 export type TransactionFilterRecordType =
   | "all"
   | "income"
   | "expense"
+  | "refundableExpense"
   | "transfer";
 
 export type TransactionFilters = {
@@ -50,6 +54,7 @@ export type TransactionFilters = {
   merchantId?: string;
   parentCategoryId?: string;
   recordType: TransactionFilterRecordType;
+  specialStatuses?: TransactionSpecialStatusFilterValue[];
 };
 
 export const defaultTransactionFilters = {
@@ -57,10 +62,14 @@ export const defaultTransactionFilters = {
 } satisfies TransactionFilters;
 
 export type CategorySummaryItem = {
+  accountId?: string;
   categoryName: string;
   parentCategoryName: string | null;
   amount: string;
   categoryType?: TransactionCategoryType;
+  id?: string;
+  refundedAmount?: string;
+  remainingRefundableAmount?: string;
 };
 
 export type TransactionRowItem = {
@@ -111,12 +120,29 @@ export type TransactionFilterOptions = {
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
   merchants: TransactionMerchantOption[];
+  transactionItemSpecialStatusEnabled?: boolean;
 };
+
+export type { TransactionSpecialStatusFilterValue };
+export type { TransactionReimbursementCandidate };
 
 export type TransactionListItem = TransactionRowItem & {
   note: string | null;
   recorder_name: string | null;
   created_at: string;
+};
+
+export type TransactionRefundCandidate = {
+  accountCurrency: string;
+  accountId: string;
+  amount: string;
+  categoryName: string;
+  id: string;
+  parentCategoryName: string | null;
+  refundedAmount: string;
+  remainingRefundableAmount: string;
+  transactionAt: string;
+  transactionRecordId: string;
 };
 
 export type TransactionAmountSummary = {

@@ -88,6 +88,24 @@ describe("transactionRouter", () => {
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 
+  it("拒绝通过通用 HTTP 写入口直接设置已报销", async () => {
+    const { app, service } = createApp();
+    const response = await app.request("/transactions", {
+      body: JSON.stringify({
+        ...body,
+        items: [{ amount: 1200, categoryId, specialStatus: "reimbursed" }],
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost",
+      },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(400);
+    expect(service.createNormal).not.toHaveBeenCalled();
+  });
+
   it("更新交易后返回 200 并刷新缓存", async () => {
     const { app, service } = createApp({ updateNormal: vi.fn() });
     const response = await app.request(`/transactions/${transactionRecordId}`, {

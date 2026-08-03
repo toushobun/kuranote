@@ -141,7 +141,7 @@ describe("TransactionForm", () => {
     if (!input) throw new Error("发生时间提交字段不存在");
     return input.value;
   }
-  function createInitialValues() {
+  function createInitialValues(): TransactionFormInitialValues {
     return {
       accountId: accountOptions[0].id,
       items: [{ amount: "1200", categoryId: categoryOptions[0].id }],
@@ -407,6 +407,41 @@ describe("TransactionForm", () => {
       "aria-pressed",
       "true",
     );
+  });
+  it("启用后回填、取消并重新勾选待报销", () => {
+    const initialValues = createInitialValues();
+    initialValues.items = [
+      {
+        ...initialValues.items[0],
+        specialStatus: "pendingReimbursement",
+      },
+    ];
+    const { container } = renderForm({
+      initialValues,
+      transactionItemSpecialStatusEnabled: true,
+    });
+
+    expect(within(container).getByText("合计 - ¥ 1200")).toBeInTheDocument();
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[name="itemSpecialStatus"]',
+      )?.value,
+    ).toBe("pendingReimbursement");
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: "编辑明细 1 分类" }),
+    );
+    const checkbox = screen.getByRole("checkbox", { name: "待报销" });
+    expect(checkbox).toBeChecked();
+    fireEvent.click(checkbox);
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[name="itemSpecialStatus"]',
+      )?.value,
+    ).toBe("pendingReimbursement");
   });
   it("收入明细和合计显示正号与账户币种", () => {
     const { container } = renderForm({ initialType: "income" });
@@ -675,6 +710,17 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
       initialValues: createInitialValues("income"),
     });
     expect(getHiddenInput(container, "type").value).toBe("income");
+  });
+  it("编辑收入时不显示报销和退款关联选择器", () => {
+    const { container } = renderForm({
+      initialValues: createInitialValues("income"),
+      transactionItemSpecialStatusEnabled: true,
+    });
+
+    openSheet(container);
+
+    expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
+    expect(screen.queryByText("退款关联")).not.toBeInTheDocument();
   });
   it("编辑支出点击收入后 hidden type 变为 income，且旧支出分类不会继续提交", () => {
     const { container } = renderEditFormWithTypeSwitch(createInitialValues());

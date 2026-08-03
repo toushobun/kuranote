@@ -6,20 +6,39 @@ import { loadTransactionFormOptions } from "internal/transaction/service/read/op
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   EditTransactionView,
+  TransactionAccountOption,
   TransactionCategoryOption,
   TransferEditInitialValues,
   NewTransactionView,
 } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import { fromTransactionSpecialStatusStorageValue } from "internal/transaction/entity/transactionSpecialStatus";
 
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
+  const [options, pendingItems] = await Promise.all([
+    loadTransactionFormOptions(dependencies, currentLedger),
+    specialStatusEnabled
+      ? dependencies.transactionRepository.listPendingReimbursementItems(
+          currentLedger.id,
+        )
+      : Promise.resolve([]),
+  ]);
   return {
-    ...(await loadTransactionFormOptions(dependencies, currentLedger)),
+    ...options,
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
     ledgerName: currentLedger.name,
+    reimbursementCandidates: buildReimbursementCandidates(
+      pendingItems,
+      options.accountOptions,
+      options.categoryOptions,
+      currentLedger.baseCurrency,
+    ),
   };
 }
 
@@ -37,7 +56,7 @@ export async function getEditTransactionView(
   ]);
   if (!record) return null;
 
-  const canEdit = canModifyTransaction({
+  const canModify = canModifyTransaction({
     createdBy: record.created_by ?? null,
     role: currentLedger.currentUserRole,
     userId: dependencies.currentUserId,
@@ -46,6 +65,20 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
+  const hasLinkedItem = items.some(
+    (item) =>
+      item.special_status === "reimbursed" ||
+      (item.settled_by_item_id !== null &&
+        item.settled_by_item_id !== undefined) ||
+      item.is_reimbursement_income ||
+      item.has_refund_link,
+  );
+  const canEdit = canModify && !hasLinkedItem;
+  const editRestriction = !canModify
+    ? "permission"
+    : hasLinkedItem
+      ? "linked"
+      : null;
 
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
@@ -66,6 +99,7 @@ export async function getEditTransactionView(
     return {
       ...options,
       canEdit,
+      editRestriction,
       initialValues: {
         accountId: fromItem.account_id,
         note: record.note ?? "",
@@ -84,11 +118,17 @@ export async function getEditTransactionView(
   return {
     ...options,
     canEdit,
+    editRestriction,
     initialValues: {
       accountId: items[0]?.account_id ?? "",
       items: items.map((item) => ({
         amount: formatEditableAmount(item.amount),
         categoryId: item.category_id ?? "",
+        id: item.id,
+        refundedAmount: item.refunded_amount ?? "0",
+        specialStatus: fromTransactionSpecialStatusStorageValue(
+          item.special_status ?? null,
+        ),
       })),
       merchantId: record.merchant_id ?? "",
       note: record.note ?? "",
@@ -98,6 +138,28 @@ export async function getEditTransactionView(
     },
     ledgerName: currentLedger.name,
   };
+}
+
+function buildReimbursementCandidates(
+  items: Awaited<
+    ReturnType<TransactionFormRepository["listPendingReimbursementItems"]>
+  >,
+  accounts: TransactionAccountOption[],
+  categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
+) {
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  return items.map((item) => ({
+    accountCurrency:
+      accountById.get(item.account_id)?.currency ?? fallbackCurrency,
+    amount: item.amount,
+    categoryName: categoryById.get(item.category_id)?.name ?? "未知分类",
+    id: item.id,
+    transactionAt: item.transaction_at,
+  }));
 }
 
 function isValidTransferPair(

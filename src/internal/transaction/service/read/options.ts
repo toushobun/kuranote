@@ -34,6 +34,8 @@ export async function loadTransactionFormOptions(
     accountOptions,
     categoryOptions: buildFormCategoryOptions(categoryRows),
     merchantOptions,
+    transactionItemSpecialStatusEnabled:
+      currentLedger.transactionItemSpecialStatusEnabled ?? false,
   };
 }
 
@@ -66,6 +68,8 @@ export async function loadTransactionFilterOptions(
     categories: buildFilterCategoryOptions(categoryRows),
     members,
     merchants,
+    transactionItemSpecialStatusEnabled:
+      currentLedger.transactionItemSpecialStatusEnabled ?? false,
   };
 }
 

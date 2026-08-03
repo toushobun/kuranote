@@ -4,10 +4,16 @@ export const transactionErrorCodes = {
   categoryInvalid: "category_invalid",
   createFailed: "create_failed",
   dateInvalid: "date_invalid",
+  incomeLinkCategoryInvalid: "income_link_category_invalid",
+  incomeLinkConflict: "income_link_conflict",
   ledgerInvalid: "ledger_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
+  refundAmountExceeded: "refund_amount_exceeded",
+  refundLinkInvalid: "refund_link_invalid",
+  reimbursementLinkInvalid: "reimbursement_link_invalid",
   permissionDenied: "permission_denied",
+  specialStatusInvalid: "special_status_invalid",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
   updateInvalid: "update_invalid",
@@ -22,6 +28,8 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.refundLinkInvalid
+  | typeof transactionErrorCodes.specialStatusInvalid
   | typeof transactionErrorCodes.typeInvalid;
 
 export type UpdateTransactionValidationErrorCode =
@@ -47,6 +55,9 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
+  [transactionErrorCodes.refundLinkInvalid]: "退款金额必须大于 0。",
+  [transactionErrorCodes.specialStatusInvalid]:
+    "特殊状态不正确；待报销只能用于支出明细，已报销只能通过收入关联自动设置。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

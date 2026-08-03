@@ -174,7 +174,11 @@ describe("updateLedgerSettings", () => {
   });
 
   it("保存成功后刷新相关页面并返回成功状态", async () => {
-    await expect(runAction(createLedgerFormData())).rejects.toThrow(
+    await expect(
+      runAction(
+        createLedgerFormData({ transactionItemSpecialStatusEnabled: "true" }),
+      ),
+    ).rejects.toThrow(
       `NEXT_REDIRECT:/ledgers/${ledgerId}/settings?result=${ledgerSettingsResultValues.updated}`,
     );
 
@@ -184,6 +188,7 @@ describe("updateLedgerSettings", () => {
       settings: {
         baseCurrency: "JPY",
         ledgerName: "家庭账本",
+        transactionItemSpecialStatusEnabled: true,
       },
       userId,
     });

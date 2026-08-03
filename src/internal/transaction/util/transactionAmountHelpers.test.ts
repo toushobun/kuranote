@@ -5,7 +5,11 @@ import type {
   TransactionItemDbRow,
 } from "internal/db-types";
 
-import { getTransactionRecordCategoryType } from "./transactionAmountHelpers";
+import {
+  calculateTransactionRecordDisplayAmount,
+  calculateTransactionRecordNetAmount,
+  getTransactionRecordCategoryType,
+} from "./transactionAmountHelpers";
 
 const categoryById = new Map<string, CategorySummaryDbRow>([
   [
@@ -81,5 +85,93 @@ describe("getTransactionRecordCategoryType", () => {
         categoryById,
       ),
     ).toBe("income");
+  });
+
+  it("退款后的剩余支出参与净额计算", () => {
+    expect(
+      getTransactionRecordCategoryType(
+        [
+          item("income-category", "200"),
+          {
+            ...item("expense-category", "1200"),
+            refunded_amount: "1100",
+          },
+        ],
+        categoryById,
+      ),
+    ).toBe("income");
+  });
+});
+
+describe("transaction record amount", () => {
+  it("统计金额扣除退款但列表金额保留原始支出", () => {
+    const refundedExpense = {
+      ...item("expense-category", "1200"),
+      refunded_amount: "400",
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount([refundedExpense], categoryById),
+    ).toBe(-800);
+    expect(
+      calculateTransactionRecordDisplayAmount([refundedExpense], categoryById),
+    ).toBe(-1200);
+  });
+
+  it("退款收入仅从净额统计中排除，列表金额保留原始收入", () => {
+    const refundIncome = {
+      ...item("income-category", "1200"),
+      is_refund_income: true,
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount([refundIncome], categoryById),
+    ).toBe(0);
+    expect(
+      calculateTransactionRecordDisplayAmount([refundIncome], categoryById),
+    ).toBe(1200);
+  });
+});
+
+describe("reimbursement amount", () => {
+  it("已报销支出和对应收入都从统计净额中排除", () => {
+    const reimbursedExpense = {
+      ...item("expense-category", "10000"),
+      id: "expense-item",
+      settled_by_item_id: "income-item",
+      special_status: "reimbursed" as const,
+    };
+    const reimbursementIncome = {
+      ...item("income-category", "10000"),
+      id: "income-item",
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount(
+        [reimbursedExpense, reimbursementIncome],
+        categoryById,
+      ),
+    ).toBe(0);
+    expect(
+      calculateTransactionRecordDisplayAmount(
+        [reimbursedExpense, reimbursementIncome],
+        categoryById,
+      ),
+    ).toBe(0);
+  });
+
+  it("跨交易读取到报销结算收入标记时从统计中排除", () => {
+    expect(
+      calculateTransactionRecordNetAmount(
+        [
+          {
+            ...item("income-category", "10000"),
+            id: "income-item",
+            is_reimbursement_income: true,
+          },
+        ],
+        categoryById,
+      ),
+    ).toBe(0);
   });
 });

@@ -5,6 +5,7 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import type { TransactionFilters } from "internal/transaction/entity/transactionGrouping";
+import { transactionSpecialStatuses } from "internal/transaction/entity/transactionSpecialStatus";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { getTransactionRecordCategoryType } from "internal/transaction/util/transactionAmountHelpers";
 import {
@@ -26,6 +27,11 @@ export function filterTransactionRecords(
 
   return context.records.filter((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
+    const matchingItems = filterItems(
+      recordItems,
+      categoryById,
+      normalizedFilters,
+    );
 
     if (!matchesDateRange(record, normalizedFilters)) return false;
     if (
@@ -45,37 +51,21 @@ export function filterTransactionRecords(
     ) {
       return false;
     }
-    if (
-      normalizedFilters.accountId &&
-      !recordItems.some(
-        (item) => item.account_id === normalizedFilters.accountId,
-      )
-    ) {
-      return false;
-    }
-    if (
-      normalizedFilters.parentCategoryId &&
-      !recordItems.some((item) =>
-        matchesParentCategory(
-          item,
-          categoryById,
-          normalizedFilters.parentCategoryId,
-        ),
-      )
-    ) {
-      return false;
-    }
-    if (
-      normalizedFilters.categoryId &&
-      !recordItems.some(
-        (item) => item.category_id === normalizedFilters.categoryId,
-      )
-    ) {
+    if (hasItemFilters(normalizedFilters) && matchingItems.length === 0) {
       return false;
     }
 
     return true;
   });
+}
+
+export function filterTransactionItems(
+  context: TransactionGroupLoaderContext,
+  filters: TransactionFilters,
+) {
+  const normalizedFilters = normalizeTransactionFilters(filters);
+  const { categoryById } = getTransactionGroupContextLookups(context);
+  return filterItems(context.items, categoryById, normalizedFilters);
 }
 
 export function normalizeTransactionFilters(
@@ -91,7 +81,71 @@ export function normalizeTransactionFilters(
     memberId: normalizeOptionalValue(filters.memberId),
     merchantId: normalizeOptionalValue(filters.merchantId),
     parentCategoryId: normalizeOptionalValue(filters.parentCategoryId),
+    specialStatuses: normalizeSpecialStatuses(filters.specialStatuses),
   };
+}
+
+function normalizeSpecialStatuses(
+  values: TransactionFilters["specialStatuses"],
+) {
+  const validValues = new Set<string>(transactionSpecialStatuses);
+  return [...new Set(values ?? [])].filter((value) => validValues.has(value));
+}
+
+function hasItemFilters(filters: TransactionFilters) {
+  return Boolean(
+    filters.accountId ||
+    filters.parentCategoryId ||
+    filters.categoryId ||
+    filters.specialStatuses?.length ||
+    filters.recordType === "refundableExpense",
+  );
+}
+
+function filterItems(
+  items: TransactionItemDbRow[],
+  categoryById: Map<string, CategorySummaryDbRow>,
+  filters: TransactionFilters,
+) {
+  if (!hasItemFilters(filters)) return items;
+
+  return items.filter((item) => {
+    if (filters.recordType === "refundableExpense") {
+      const categoryType = item.category_id
+        ? categoryById.get(item.category_id)?.type
+        : undefined;
+      if (
+        categoryType !== "expense" ||
+        Number(item.amount) <= Number(item.refunded_amount ?? 0)
+      ) {
+        return false;
+      }
+    }
+    if (filters.accountId && item.account_id !== filters.accountId)
+      return false;
+    if (
+      filters.parentCategoryId &&
+      !matchesParentCategory(item, categoryById, filters.parentCategoryId)
+    ) {
+      return false;
+    }
+    if (filters.categoryId && item.category_id !== filters.categoryId) {
+      return false;
+    }
+    if (filters.specialStatuses?.length) {
+      const itemStatus = item.special_status;
+      if (
+        !filters.specialStatuses.some((status) =>
+          status === "pendingReimbursement"
+            ? itemStatus === "pending_reimbursement"
+            : status === itemStatus,
+        )
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 export function normalizeOptionalValue(value: string | undefined) {
@@ -131,6 +185,17 @@ function matchesRecordType(
   if (filters.recordType === "all") return true;
   if (filters.recordType === "transfer") return record.type === "transfer";
   if (record.type !== "normal") return false;
+  if (filters.recordType === "refundableExpense") {
+    return items.some((item) => {
+      const categoryType = item.category_id
+        ? categoryById.get(item.category_id)?.type
+        : undefined;
+      return (
+        categoryType === "expense" &&
+        Number(item.amount) > Number(item.refunded_amount ?? 0)
+      );
+    });
+  }
 
   return (
     getTransactionRecordCategoryType(items, categoryById) === filters.recordType

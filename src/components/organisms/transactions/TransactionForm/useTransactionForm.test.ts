@@ -5,6 +5,7 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionMerchantOption,
+  TransactionRefundCandidate,
 } from "types/transactions";
 
 import { useTransactionForm } from "./useTransactionForm";
@@ -18,6 +19,7 @@ vi.mock(
 
 const accountOptions: TransactionAccountOption[] = [
   { currency: "JPY", id: "account-1", name: "现金" },
+  { currency: "JPY", id: "account-2", name: "银行卡" },
 ];
 const categoryOptions: TransactionCategoryOption[] = [
   {
@@ -46,6 +48,19 @@ const merchantOptions: TransactionMerchantOption[] = [
   { icon_url: null, id: "merchant-1", name: "便利店" },
 ];
 
+const refundCandidate: TransactionRefundCandidate = {
+  accountCurrency: "JPY",
+  accountId: "account-1",
+  amount: "1200",
+  categoryName: "午餐",
+  id: "refund-item-1",
+  parentCategoryName: "餐饮",
+  refundedAmount: "0",
+  remainingRefundableAmount: "1200",
+  transactionAt: "2026-07-20T01:30:00.000Z",
+  transactionRecordId: "refund-record-1",
+};
+
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
 ) {
@@ -57,6 +72,17 @@ function renderTransactionFormHook(
       ...overrides,
     }),
   );
+}
+
+function createInitialValues() {
+  return {
+    accountId: "account-1",
+    items: [{ amount: "1200", categoryId: "income-category" }],
+    merchantId: "merchant-1",
+    note: "",
+    transactionAt: "2026-07-20T01:30:00.000Z",
+    type: "income" as const,
+  };
 }
 
 describe("useTransactionForm", () => {
@@ -133,5 +159,53 @@ describe("useTransactionForm", () => {
       items: expect.any(String),
       merchant: expect.any(String),
     });
+  });
+
+  it("报销和退款候选保持互斥，后选项清空先选项", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+
+    act(() => result.current.setPickerReimbursementItemIds(["item-1"]));
+    expect(result.current.pickerReimbursementItemIds).toEqual(["item-1"]);
+
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
+    expect(result.current.pickerReimbursementItemIds).toEqual([]);
+
+    act(() => result.current.setPickerReimbursementItemIds(["item-2"]));
+    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.pickerReimbursementItemIds).toEqual(["item-2"]);
+  });
+
+  it("首次选择跨账户退款候选时立即拒绝并提示重新选择", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        accountId: "account-2",
+      }),
+    );
+
+    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.linkNotice).toContain("账户一致");
+  });
+
+  it("切换收款账户后清空不匹配的退款候选", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
+
+    act(() => result.current.handleAccountChange("account-2"));
+
+    expect(result.current.selectedAccountId).toBe("account-2");
+    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.linkNotice).toContain("账户已变更");
   });
 });

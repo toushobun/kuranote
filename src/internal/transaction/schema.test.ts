@@ -239,6 +239,31 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it("拒绝 0 元收入明细发起退款关联", () => {
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 0,
+            categoryId,
+            refundedItemId: "00000000-0000-4000-8000-000000000201",
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          transactionErrorCodes.refundLinkInvalid,
+        );
+      }
+    });
   });
 });
 describe("validateConvertTransactionTypeForm", () => {
@@ -444,6 +469,40 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
         validateTransactionForm(createFormData({ itemAmount: "-1" })),
       ).toEqual({
         error: transactionErrorCodes.amountInvalid,
+        ok: false,
+      });
+    });
+    it("逐条解析待报销状态并保留未勾选状态", () => {
+      const formData = createFormData();
+      formData.append("itemCategoryId", secondCategoryId);
+      formData.append("itemAmount", "45");
+      formData.append("itemSpecialStatus", "pendingReimbursement");
+      formData.append("itemSpecialStatus", "");
+
+      expect(validateTransactionForm(formData)).toMatchObject({
+        ok: true,
+        value: {
+          items: [
+            {
+              amount: 1200,
+              categoryId,
+              specialStatus: "pendingReimbursement",
+            },
+            {
+              amount: 45,
+              categoryId: secondCategoryId,
+              specialStatus: null,
+            },
+          ],
+        },
+      });
+    });
+    it("拒绝未知的特殊状态", () => {
+      const formData = createFormData();
+      formData.append("itemSpecialStatus", "unknown");
+
+      expect(validateTransactionForm(formData)).toEqual({
+        error: transactionErrorCodes.specialStatusInvalid,
         ok: false,
       });
     });
@@ -732,6 +791,38 @@ describe("validateUpdateTransactionForm", () => {
       validateUpdateTransactionForm(createFormData({ type: "transfer" })),
     ).toEqual({
       error: "update_invalid",
+      ok: false,
+    });
+  });
+});
+
+describe("退款关联 FormData 校验", () => {
+  const refundTargetId = "00000000-0000-4000-8000-000000000201";
+
+  function createRefundFormData() {
+    const formData = new FormData();
+    formData.set("type", "income");
+    formData.set("transactionAt", "2026-06-04T10:30:05");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", "00000000-0000-4000-8000-000000000041");
+    formData.append("itemCategoryId", "00000000-0000-4000-8000-000000000101");
+    formData.append("itemAmount", "0");
+    formData.append("itemRefundedItemId", refundTargetId);
+    formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
+    formData.set("transactionRecordId", "00000000-0000-4000-8000-000000002001");
+    return formData;
+  }
+
+  it("FormData 路径拒绝 0 元退款关联", () => {
+    expect(validateTransactionForm(createRefundFormData())).toEqual({
+      error: transactionErrorCodes.refundLinkInvalid,
+      ok: false,
+    });
+  });
+
+  it("编辑 FormData 路径拒绝 0 元退款关联", () => {
+    expect(validateUpdateTransactionForm(createRefundFormData())).toEqual({
+      error: transactionErrorCodes.refundLinkInvalid,
       ok: false,
     });
   });

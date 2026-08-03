@@ -16,13 +16,16 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
-  const { canEdit, ...view } =
+  const { canEdit, editRestriction, ...view } =
     await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
     return (
       <NewTransactionVisualFrame>
-        <TransactionPermissionDenied operation="edit" />
+        <TransactionPermissionDenied
+          operation="edit"
+          reason={editRestriction ?? "permission"}
+        />
       </NewTransactionVisualFrame>
     );
   }
@@ -42,6 +45,9 @@ export default async function TransactionEditPage({
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}
+          transactionItemSpecialStatusEnabled={
+            view.transactionItemSpecialStatusEnabled
+          }
         />
       </NewTransactionVisualFrame>
     );
@@ -58,6 +64,9 @@ export default async function TransactionEditPage({
         initialValues={initialValues}
         ledgerName={view.ledgerName}
         merchantOptions={view.merchantOptions}
+        transactionItemSpecialStatusEnabled={
+          view.transactionItemSpecialStatusEnabled
+        }
       />
     </NewTransactionVisualFrame>
   );

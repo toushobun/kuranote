@@ -53,6 +53,19 @@ describe("ledger settings validators", () => {
     });
   });
 
+  it("解析账本特殊状态开关", () => {
+    expect(
+      validateUpdateLedgerSettingsForm(
+        createLedgerFormData({ transactionItemSpecialStatusEnabled: "true" }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        ledgerSettings: { transactionItemSpecialStatusEnabled: true },
+      },
+    });
+  });
+
   it("成员设置表单校验通过", () => {
     expect(validateUpdateLedgerSettingsForm(createMemberFormData())).toEqual({
       ok: true,

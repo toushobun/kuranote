@@ -34,6 +34,7 @@ import {
   AccountFormDialogShell,
 } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
+import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
@@ -86,6 +87,9 @@ export function LedgerSettingsTemplate({
     useState<LedgerSettingsMember | null>(null);
   const [ledgerName, setLedgerName] = useState(ledger.name);
   const [baseCurrency, setBaseCurrency] = useState(ledger.baseCurrency);
+  const [specialStatusEnabled, setSpecialStatusEnabled] = useState(
+    ledger.transactionItemSpecialStatusEnabled ?? false,
+  );
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const router = useRouter();
@@ -233,6 +237,17 @@ export function LedgerSettingsTemplate({
               </Stack>
             </SoftCard>
           </SettingsSection>
+
+          <input
+            name="transactionItemSpecialStatusEnabled"
+            type="hidden"
+            value={String(specialStatusEnabled)}
+          />
+          <LedgerSpecialStatusSetting
+            canEdit={canEditLedger}
+            enabled={specialStatusEnabled}
+            onChange={setSpecialStatusEnabled}
+          />
 
           <SettingsSection title="成员">
             <SoftCard sx={sectionCardSx}>

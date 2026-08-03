@@ -1,14 +1,20 @@
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
+import type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import type { TransactionSpecialStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionCategorySummaryItem = {
+  accountId?: string;
   amount: string;
   categoryName: string;
   categoryType?: CategoryType;
+  id?: string;
   parentCategoryName: string | null;
+  refundedAmount?: string;
+  remainingRefundableAmount?: string;
 };
 
 export type TransactionListItem = {
@@ -54,12 +60,14 @@ export type TransactionFilterOptions = {
   categories: TransactionCategoryOption[];
   members: TransactionMemberOption[];
   merchants: MerchantSummary[];
+  transactionItemSpecialStatusEnabled?: boolean;
 };
 
 export type TransactionFormOptions = {
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
   merchantOptions: MerchantSummary[];
+  transactionItemSpecialStatusEnabled: boolean;
 };
 
 export type TransactionAmountSummary = {
@@ -106,15 +114,23 @@ export type TransferEditInitialValues = {
 export type NewTransactionView = TransactionFormOptions & {
   canWriteTransactions: boolean;
   ledgerName: string;
+  reimbursementCandidates: TransactionReimbursementCandidate[];
 };
 
 export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
+  editRestriction: "linked" | "permission" | null;
   initialValues:
     | TransferEditInitialValues
     | {
         accountId: string;
-        items: { amount: string; categoryId: string }[];
+        items: {
+          amount: string;
+          categoryId: string;
+          id?: string;
+          refundedAmount?: string;
+          specialStatus: TransactionSpecialStatus | null;
+        }[];
         merchantId: string;
         note: string;
         transactionAt: string;

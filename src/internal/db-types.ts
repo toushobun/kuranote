@@ -1,6 +1,7 @@
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
+import type { TransactionSpecialStatusStorageValue } from "internal/transaction";
 
 export type TransactionRecordDbRow = {
   id: string;
@@ -13,12 +14,19 @@ export type TransactionRecordDbRow = {
 };
 
 export type TransactionItemDbRow = {
+  id?: string;
   transaction_record_id: string;
   account_id: string;
   category_id: string | null;
   amount: string;
   balance_delta?: string;
   note?: string | null;
+  special_status?: TransactionSpecialStatusStorageValue | null;
+  refunded_amount?: string;
+  has_refund_link?: boolean;
+  is_refund_income?: boolean;
+  is_reimbursement_income?: boolean;
+  settled_by_item_id?: string | null;
 };
 
 export type AccountOptionDbRow = {

@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { TransactionRefundCandidateList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
 import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
@@ -24,6 +25,7 @@ import {
 } from "theme/userThemeCardSx";
 import type {
   TransactionListItem,
+  TransactionRefundCandidate,
   TransactionSearchPage,
 } from "types/transactions";
 
@@ -43,6 +45,9 @@ export type TransactionSearchTemplateProps = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
+  onClose?: () => void;
+  onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  refundSelectionMode?: boolean;
 };
 
 export function TransactionSearchTemplate({
@@ -51,11 +56,15 @@ export function TransactionSearchTemplate({
   initialQuery,
   isLoading = false,
   loadSearchPageAction,
+  onClose,
+  onSelectRefundItem,
+  refundSelectionMode = false,
 }: TransactionSearchTemplateProps) {
   const search = useTransactionSearch({
     initialPage,
     initialQuery,
     loadSearchPageAction,
+    syncUrl: !refundSelectionMode,
   });
 
   return (
@@ -64,8 +73,9 @@ export function TransactionSearchTemplate({
         <Stack direction="row" sx={searchHeaderSx}>
           <IconButton
             aria-label="返回明细页"
-            component={Link}
-            href={routePaths.transactions}
+            {...(onClose
+              ? { onClick: onClose }
+              : { component: Link, href: routePaths.transactions })}
             sx={headerActionSx}
           >
             <ArrowBackRoundedIcon />
@@ -99,8 +109,9 @@ export function TransactionSearchTemplate({
           </Box>
 
           <Button
-            component={Link}
-            href={routePaths.transactions}
+            {...(onClose
+              ? { onClick: onClose }
+              : { component: Link, href: routePaths.transactions })}
             sx={cancelButtonSx}
           >
             取消
@@ -128,10 +139,17 @@ export function TransactionSearchTemplate({
             <Typography sx={resultCountSx}>
               共 {search.totalCount} 条结果
             </Typography>
-            <SearchResultList
-              getEditHref={search.getEditHref}
-              items={search.items}
-            />
+            {refundSelectionMode && onSelectRefundItem ? (
+              <TransactionRefundCandidateList
+                items={search.items}
+                onSelect={onSelectRefundItem}
+              />
+            ) : (
+              <SearchResultList
+                getEditHref={search.getEditHref}
+                items={search.items}
+              />
+            )}
 
             {search.nextOffset !== null ? (
               <Button

@@ -168,13 +168,22 @@ describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
   it("更新普通交易成功后刷新缓存并跳转", async () => {
-    await expect(updateTransaction({}, createNormalFormData())).rejects.toThrow(
+    const formData = createNormalFormData();
+    formData.append("itemSpecialStatus", "pendingReimbursement");
+    await expect(updateTransaction({}, formData)).rejects.toThrow(
       "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
     );
     expect(mocks.updateNormal).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId,
         ledgerId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            specialStatus: "pendingReimbursement",
+          },
+        ],
         transactionRecordId,
         type: "expense",
       }),

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import type {
   TransactionCategoryOption,
+  TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
@@ -75,7 +76,15 @@ export function useTransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
+  const [pickerSpecialStatus, setPickerSpecialStatus] =
+    useState<TransactionFormItem["specialStatus"]>(null);
+  const [pickerReimbursementItemIds, setPickerReimbursementItemIds] = useState<
+    string[]
+  >([]);
+  const [pickerRefundCandidate, setPickerRefundCandidate] =
+    useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
@@ -106,6 +115,9 @@ export function useTransactionForm({
       setEditingItemId(null);
       setPickerCategoryId("");
       setPickerAmount("");
+      setPickerSpecialStatus(null);
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
       setPickerErrors({});
       setSelectedCategoryGroupId("");
       setFieldErrors((current) => ({ ...current, items: undefined }));
@@ -179,8 +191,22 @@ export function useTransactionForm({
     allDisplayItems.length > 0
       ? formatNetAmount(incomeTotal - expenseTotal)
       : "未填写金额";
+  const refundedTotal = allDisplayItems.reduce(
+    (sum, item) => sum + Number(item.refundedAmount ?? 0),
+    0,
+  );
+  const refundAfterTotalAmount =
+    refundedTotal > 0
+      ? formatNetAmount(incomeTotal - expenseTotal + refundedTotal)
+      : null;
 
-  function addItem(categoryId: string, amount: string) {
+  function addItem(
+    categoryId: string,
+    amount: string,
+    specialStatus: TransactionFormItem["specialStatus"],
+    reimbursementItemIds: string[],
+    refundedItemId: string | null,
+  ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const itemId = nextItemIdRef.current;
@@ -189,7 +215,15 @@ export function useTransactionForm({
       ...current,
       [categoryType]: [
         ...current[categoryType],
-        { amount, categoryId, id: itemId },
+        {
+          amount,
+          categoryId,
+          id: itemId,
+          refundedItemId,
+          refundCandidate: pickerRefundCandidate,
+          reimbursementItemIds,
+          specialStatus,
+        },
       ],
     }));
     if (fieldErrors.items) {
@@ -212,7 +246,14 @@ export function useTransactionForm({
     }));
   }
 
-  function replaceItem(itemId: number, categoryId: string, amount: string) {
+  function replaceItem(
+    itemId: number,
+    categoryId: string,
+    amount: string,
+    specialStatus: TransactionFormItem["specialStatus"],
+    reimbursementItemIds: string[],
+    refundedItemId: string | null,
+  ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
 
@@ -224,7 +265,17 @@ export function useTransactionForm({
         return {
           ...current,
           [categoryType]: current[categoryType].map((item) =>
-            item.id === itemId ? { ...item, amount, categoryId } : item,
+            item.id === itemId
+              ? {
+                  ...item,
+                  amount,
+                  categoryId,
+                  refundedItemId,
+                  refundCandidate: pickerRefundCandidate,
+                  reimbursementItemIds,
+                  specialStatus,
+                }
+              : item,
           ),
         };
       }
@@ -240,7 +291,15 @@ export function useTransactionForm({
       };
       moved[categoryType] = [
         ...moved[categoryType],
-        { ...existingItem, amount, categoryId },
+        {
+          ...existingItem,
+          amount,
+          categoryId,
+          refundedItemId,
+          refundCandidate: pickerRefundCandidate,
+          reimbursementItemIds,
+          specialStatus,
+        },
       ];
 
       return moved;
@@ -260,6 +319,9 @@ export function useTransactionForm({
       setEditingItemId(null);
       setPickerCategoryId("");
       setPickerAmount("");
+      setPickerSpecialStatus(null);
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
       setPickerErrors({});
     }
   }
@@ -268,6 +330,9 @@ export function useTransactionForm({
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
+    setPickerSpecialStatus(null);
+    setPickerReimbursementItemIds([]);
+    setPickerRefundCandidate(null);
     setPickerErrors({});
     setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
     setIsSheetOpen(true);
@@ -286,6 +351,9 @@ export function useTransactionForm({
     setEditingItemId(itemId);
     setPickerCategoryId(item.categoryId);
     setPickerAmount(item.amount);
+    setPickerSpecialStatus(item.specialStatus);
+    setPickerReimbursementItemIds(item.reimbursementItemIds ?? []);
+    setPickerRefundCandidate(item.refundCandidate ?? null);
     setPickerErrors({});
     setSelectedCategoryGroupId(
       categoryGroup?.id ?? categoryGroups[0]?.id ?? "",
@@ -308,6 +376,13 @@ export function useTransactionForm({
     setPickerCategoryId((current) =>
       current === categoryId ? "" : categoryId,
     );
+    const categoryType = categoryById.get(categoryId)?.type;
+    if (categoryType === "income") {
+      setPickerSpecialStatus(null);
+    } else if (categoryType === "expense") {
+      setPickerReimbursementItemIds([]);
+      setPickerRefundCandidate(null);
+    }
     if (pickerErrors.category) {
       setPickerErrors((current) => ({ ...current, category: undefined }));
     }
@@ -336,13 +411,29 @@ export function useTransactionForm({
 
     setPickerErrors({});
     if (editingItemId === null) {
-      addItem(pickerCategoryId, pickerAmount);
+      addItem(
+        pickerCategoryId,
+        pickerAmount,
+        pickerSpecialStatus,
+        pickerReimbursementItemIds,
+        pickerRefundCandidate?.id ?? null,
+      );
     } else {
-      replaceItem(editingItemId, pickerCategoryId, pickerAmount);
+      replaceItem(
+        editingItemId,
+        pickerCategoryId,
+        pickerAmount,
+        pickerSpecialStatus,
+        pickerReimbursementItemIds,
+        pickerRefundCandidate?.id ?? null,
+      );
     }
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
+    setPickerSpecialStatus(null);
+    setPickerReimbursementItemIds([]);
+    setPickerRefundCandidate(null);
     return true;
   }
 
@@ -357,6 +448,21 @@ export function useTransactionForm({
   function handleAccountChange(accountId: string) {
     markEditDirty?.();
     setSelectedAccountId(accountId);
+    setItemsByType((current) => ({
+      ...current,
+      income: current.income.map((item) =>
+        item.refundCandidate && item.refundCandidate.accountId !== accountId
+          ? { ...item, refundedItemId: null, refundCandidate: null }
+          : item,
+      ),
+    }));
+    if (
+      pickerRefundCandidate &&
+      pickerRefundCandidate.accountId !== accountId
+    ) {
+      setPickerRefundCandidate(null);
+      setLinkNotice("账户已变更，请重新选择退款明细。");
+    }
     if (fieldErrors.account) {
       setFieldErrors((current) => ({ ...current, account: undefined }));
     }
@@ -431,6 +537,7 @@ export function useTransactionForm({
     handleTimeChange,
     isSheetOpen,
     isSubmitDisabled,
+    linkNotice,
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
@@ -439,13 +546,36 @@ export function useTransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
+    pickerRefundCandidate,
+    pickerReimbursementItemIds,
+    pickerSpecialStatus,
     removeItem,
+    refundAfterTotalAmount,
+    refundedTotal,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerSpecialStatus,
+    setPickerRefundCandidate: (
+      candidate: TransactionRefundCandidate | null,
+    ) => {
+      if (candidate && candidate.accountId !== selectedAccountId) {
+        setPickerRefundCandidate(null);
+        setLinkNotice("退款明细必须与收款账户一致，请重新选择。");
+        return;
+      }
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementItemIds([]);
+      setLinkNotice(null);
+    },
+    setPickerReimbursementItemIds: (ids: string[]) => {
+      setPickerReimbursementItemIds(ids);
+      if (ids.length > 0) setPickerRefundCandidate(null);
+      setLinkNotice(null);
+    },
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -469,7 +599,11 @@ function createInitialItemsByType(
   initialValues.items.forEach((item, index) => {
     const categoryType =
       categoryById?.get(item.categoryId)?.type ?? initialValues.type;
-    result[categoryType].push({ ...item, id: index + 1 });
+    result[categoryType].push({
+      ...item,
+      id: index + 1,
+      persistedId: item.id,
+    });
   });
 
   return result;

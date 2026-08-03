@@ -26,6 +26,16 @@ describe("getLedgerSettingsErrorMessage", () => {
     ).toBe("你没有权限修改该账本或成员设置。");
   });
 
+  it("返回关闭特殊状态功能前需要清理明细的提示", () => {
+    expect(
+      getLedgerSettingsErrorMessage(
+        ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+      ),
+    ).toBe(
+      "账本内还有待报销或已报销的明细，需要先处理完这些明细才能关闭该功能。",
+    );
+  });
+
   it("未知或空错误码返回 null", () => {
     expect(getLedgerSettingsErrorMessage("unknown")).toBeNull();
     expect(getLedgerSettingsErrorMessage()).toBeNull();

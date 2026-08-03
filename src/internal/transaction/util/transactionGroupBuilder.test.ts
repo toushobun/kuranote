@@ -49,11 +49,13 @@ function item(
   recordId: string,
   categoryId: string | null,
   amount: string,
+  specialStatus?: TransactionItemDbRow["special_status"],
 ): TransactionItemDbRow {
   return {
     account_id: "account-1",
     amount,
     category_id: categoryId,
+    special_status: specialStatus,
     transaction_record_id: recordId,
   };
 }
@@ -174,5 +176,34 @@ describe("buildTransactionGroupSummaryPage", () => {
       "2026-05",
     ]);
     expect(page.nextOffset).toBe(2);
+  });
+
+  it("特殊状态分组只展示待报销和已报销", () => {
+    const records = [record("r1", "2026-06-10T00:00:00.000Z")];
+    const items = [
+      item("r1", expenseCategory.id, "100", "reimbursed"),
+      item("r1", expenseCategory.id, "200", "pending_reimbursement"),
+      item("r1", expenseCategory.id, "300", null),
+    ];
+
+    const page = buildTransactionGroupSummaryPage({
+      accounts,
+      categories,
+      currency: "JPY",
+      groupBy: "specialStatus",
+      items,
+      merchants,
+      offset: 0,
+      pageSize: 20,
+      records,
+      recorders,
+    });
+
+    expect(page.groups.map((group) => group.key)).toEqual([
+      "pending_reimbursement",
+      "reimbursed",
+    ]);
+    expect(page.groups.map((group) => group.transactionCount)).toEqual([1, 1]);
+    expect(page.groups[1].summary.expense).toBe("0");
   });
 });

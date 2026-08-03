@@ -128,6 +128,8 @@ describe("TransactionEditPage", () => {
       deleteAction: mocks.voidTransaction,
       errorMessage: null,
     });
+    expect(child.props).not.toHaveProperty("reimbursementCandidates");
+    expect(child.props).not.toHaveProperty("refundPickerView");
   });
 
   it("没有 error 参数时正常显示编辑画面", async () => {

@@ -30,7 +30,18 @@ async function getContext() {
 
 export async function loadNewTransactionView() {
   const { currentLedger, service } = await getContext();
-  return service.getNewView(currentLedger);
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
+  const [view, refundPickerView] = await Promise.all([
+    service.getNewView(currentLedger),
+    specialStatusEnabled
+      ? service.getGroupView(currentLedger, "month", {
+          recordType: "refundableExpense",
+        })
+      : Promise.resolve(undefined),
+  ]);
+  return { ...view, refundPickerView };
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {
@@ -85,4 +96,40 @@ export async function loadTransactionSearchPage(
 ): Promise<TransactionSearchPage> {
   const { currentLedger, service } = await getContext();
   return service.search(currentLedger, rawQuery, offset);
+}
+
+const refundPickerFilters = { recordType: "refundableExpense" } as const;
+
+export async function loadRefundPickerGroupPage(
+  offset: number,
+): Promise<TransactionGroupPage> {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupPage(
+    currentLedger,
+    "month",
+    offset,
+    refundPickerFilters,
+  );
+}
+
+export async function loadRefundPickerGroupItems(
+  groupKey: string,
+  offset: number,
+): Promise<TransactionMonthPage> {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupItems(
+    currentLedger,
+    "month",
+    groupKey,
+    offset,
+    refundPickerFilters,
+  );
+}
+
+export async function loadRefundPickerSearchPage(
+  rawQuery: string,
+  offset = 0,
+): Promise<TransactionSearchPage> {
+  const { currentLedger, service } = await getContext();
+  return service.search(currentLedger, rawQuery, offset, refundPickerFilters);
 }

@@ -12,6 +12,7 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
 } from "../TransactionForm/TransactionForm.types";
+import { TransactionBusinessBadge } from "../TransactionBusinessBadge/TransactionBusinessBadge";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
@@ -30,6 +31,8 @@ type TransactionItemsSectionProps = {
   ) => void;
   selectedAccountCurrency?: string;
   selectedType: TransactionType;
+  refundAfterTotalAmount?: string | null;
+  refundedTotal?: number;
   signedTotalAmount: string;
 };
 
@@ -43,6 +46,8 @@ export function TransactionItemsSection({
   onUpdateItem,
   selectedAccountCurrency,
   selectedType,
+  refundAfterTotalAmount = null,
+  refundedTotal = 0,
   signedTotalAmount,
 }: TransactionItemsSectionProps) {
   return (
@@ -78,6 +83,21 @@ export function TransactionItemsSection({
                       name="itemCategoryId"
                       type="hidden"
                       value={item.categoryId}
+                    />
+                    <input
+                      name="itemSpecialStatus"
+                      type="hidden"
+                      value={item.specialStatus ?? ""}
+                    />
+                    <input
+                      name="itemReimbursementItemIds"
+                      type="hidden"
+                      value={JSON.stringify(item.reimbursementItemIds ?? [])}
+                    />
+                    <input
+                      name="itemRefundedItemId"
+                      type="hidden"
+                      value={item.refundedItemId ?? ""}
                     />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}
@@ -132,8 +152,21 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {/* TODO: 未来实现报销/退款功能。 */}
-                      <Box aria-hidden sx={futureStatusPlaceholderSx} />
+                      {item.specialStatus ? (
+                        <TransactionBusinessBadge
+                          status={item.specialStatus}
+                          sx={itemStatusBadgeSx}
+                        />
+                      ) : null}
+                      {Number(item.refundedAmount ?? 0) > 0 ? (
+                        <Typography color="text.secondary" variant="caption">
+                          已退款{" "}
+                          {formatSignedCurrencyAmount(
+                            String(item.refundedAmount),
+                            selectedAccountCurrency,
+                          )}
+                        </Typography>
+                      ) : null}
                     </Box>
                   </Box>
                 </Box>
@@ -155,19 +188,29 @@ export function TransactionItemsSection({
 
         {itemSummaries.length > 0 ? (
           <Box sx={summaryBoxSx}>
-            <Typography sx={{ fontWeight: 700 }}>本次合计</Typography>
-            <Typography
-              sx={{
-                color: "var(--user-theme-action-text)",
-                fontWeight: 800,
-              }}
-            >
-              合计{" "}
-              {formatSignedCurrencyAmount(
-                signedTotalAmount,
-                selectedAccountCurrency,
-              )}
+            <Typography sx={{ fontWeight: 700 }}>
+              {refundedTotal > 0 ? "金额汇总" : "本次合计"}
             </Typography>
+            <Stack sx={{ alignItems: "flex-end" }}>
+              {refundedTotal > 0 ? (
+                <Typography color="text.secondary" variant="caption">
+                  退款前总金额{" "}
+                  {formatSignedCurrencyAmount(
+                    signedTotalAmount,
+                    selectedAccountCurrency,
+                  )}
+                </Typography>
+              ) : null}
+              <Typography
+                sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
+              >
+                {refundedTotal > 0 ? "退款后金额" : "合计"}{" "}
+                {formatSignedCurrencyAmount(
+                  refundAfterTotalAmount ?? signedTotalAmount,
+                  selectedAccountCurrency,
+                )}
+              </Typography>
+            </Stack>
           </Box>
         ) : null}
       </Stack>
@@ -268,7 +311,7 @@ const amountColumnSx = {
   alignItems: "flex-end",
   display: "flex",
   flexDirection: "column",
-  position: "relative",
+  gap: 0.25,
 };
 
 const hiddenAmountInputStyle = {
@@ -293,13 +336,10 @@ const amountButtonSx = {
   textAlign: "right",
 };
 
-const futureStatusPlaceholderSx = {
-  bottom: 0,
+const itemStatusBadgeSx = {
+  fontSize: "0.625rem",
   height: 20,
-  pointerEvents: "none",
-  position: "absolute",
-  right: 0,
-  width: 52,
+  "& .MuiChip-label": { px: 0.75 },
 };
 
 const addItemButtonSx = {

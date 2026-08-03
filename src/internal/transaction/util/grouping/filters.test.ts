@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { TransactionRecordDbRow } from "internal/db-types";
+import type {
+  CategorySummaryDbRow,
+  TransactionItemDbRow,
+  TransactionRecordDbRow,
+} from "internal/db-types";
 
-import { filterTransactionRecords } from "./filters";
+import { filterTransactionItems, filterTransactionRecords } from "./filters";
 import type { TransactionGroupLoaderContext } from "./types";
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
@@ -76,5 +80,70 @@ describe("filterTransactionRecords - 日期筛选校验", () => {
     });
 
     expect(filtered.map((r) => r.id)).toEqual(["r1", "r2"]);
+  });
+});
+
+describe("特殊状态明细筛选", () => {
+  const categories: CategorySummaryDbRow[] = [
+    {
+      id: "food",
+      name: "餐饮",
+      parent_id: null,
+      type: "expense",
+    },
+    {
+      id: "daily",
+      name: "日用",
+      parent_id: null,
+      type: "expense",
+    },
+  ];
+  const records = [record("r1", "2026-06-10T00:00:00.000Z")];
+  const items: TransactionItemDbRow[] = [
+    {
+      account_id: "account-1",
+      amount: "100",
+      category_id: "food",
+      special_status: "pending_reimbursement",
+      transaction_record_id: "r1",
+    },
+    {
+      account_id: "account-1",
+      amount: "200",
+      category_id: "daily",
+      special_status: null,
+      transaction_record_id: "r1",
+    },
+  ];
+  const context: TransactionGroupLoaderContext = {
+    ...createContext(records),
+    categories,
+    items,
+  };
+
+  it("特殊状态筛选只匹配待报销明细", () => {
+    expect(
+      filterTransactionItems(context, {
+        recordType: "all",
+        specialStatuses: ["pendingReimbursement"],
+      }),
+    ).toEqual([items[0]]);
+  });
+
+  it("分类与特殊状态按同一条明细执行 AND", () => {
+    expect(
+      filterTransactionItems(context, {
+        categoryId: "daily",
+        recordType: "all",
+        specialStatuses: ["pendingReimbursement"],
+      }),
+    ).toEqual([]);
+    expect(
+      filterTransactionRecords(context, {
+        categoryId: "daily",
+        recordType: "all",
+        specialStatuses: ["pendingReimbursement"],
+      }),
+    ).toEqual([]);
   });
 });

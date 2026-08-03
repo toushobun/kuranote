@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { CurrentLedger } from "internal/ledger";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
-import { getEditTransactionView } from "internal/transaction/service/read/transactionFormService";
+import {
+  getEditTransactionView,
+  getNewTransactionView,
+} from "internal/transaction/service/read/transactionFormService";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -23,6 +26,7 @@ const currentLedger: CurrentLedger = {
   currentUserRole: "member",
   id: ledgerId,
   name: "家庭账本",
+  transactionItemSpecialStatusEnabled: true,
 };
 
 function createRepository(
@@ -31,6 +35,7 @@ function createRepository(
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
     listItems: vi.fn().mockResolvedValue([]),
+    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -93,6 +98,7 @@ describe("getEditTransactionView", () => {
           balance_delta: "-1200.00",
           category_id: categoryId,
           note: null,
+          special_status: "pending_reimbursement",
           transaction_record_id: transactionRecordId,
         },
       ]),
@@ -109,13 +115,16 @@ describe("getEditTransactionView", () => {
       canEdit: false,
       initialValues: {
         accountId,
-        items: [{ amount: "1200", categoryId }],
+        items: [
+          { amount: "1200", categoryId, specialStatus: "pendingReimbursement" },
+        ],
         merchantId,
         note: "午餐",
         transactionRecordId,
         type: "expense",
       },
       ledgerName: "家庭账本",
+      transactionItemSpecialStatusEnabled: true,
     });
   });
 
@@ -198,5 +207,28 @@ describe("getEditTransactionView", () => {
         transactionRecordId,
       ),
     ).resolves.toBeNull();
+  });
+});
+
+describe("getNewTransactionView", () => {
+  it("报销候选账户缺失时使用账本基准货币", async () => {
+    const repository = createRepository({
+      listPendingReimbursementItems: vi.fn().mockResolvedValue([
+        {
+          account_id: "00000000-0000-4000-8000-000000000099",
+          amount: "1200.00",
+          category_id: categoryId,
+          id: "00000000-0000-4000-8000-000000009998",
+          transaction_at: "2026-06-04T01:30:05.000Z",
+        },
+      ]),
+    });
+
+    const view = await getNewTransactionView(createDependencies(repository), {
+      ...currentLedger,
+      baseCurrency: "USD",
+    });
+
+    expect(view.reimbursementCandidates[0]?.accountCurrency).toBe("USD");
   });
 });

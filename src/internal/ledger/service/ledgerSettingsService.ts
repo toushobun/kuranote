@@ -75,6 +75,7 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
     case ledgerSettingsErrorCodes.nameTooLong:
     case ledgerSettingsErrorCodes.roleInvalid:
       return new ValidationError(code, message);
+    case ledgerSettingsErrorCodes.specialStatusHasActiveItems:
     case ledgerSettingsErrorCodes.updateFailed:
       return new ConflictError(code, message);
     default:
@@ -132,6 +133,8 @@ export function createLedgerSettingsService({
           id: ledger.id,
           isCurrent: currentLedger.id === ledger.id,
           name: ledger.name,
+          transactionItemSpecialStatusEnabled:
+            ledger.transactionItemSpecialStatusEnabled ?? false,
         },
         members: members.map((member) => ({
           avatarUrl: member.avatarUrl,

@@ -29,6 +29,7 @@ export type UpdateLedgerMemberSettingsValues = {
 export type UpdateLedgerBaseSettingsValues = {
   baseCurrency: string;
   ledgerName: string;
+  transactionItemSpecialStatusEnabled?: boolean;
 };
 
 export type UpdateLedgerSettingsValues = {
@@ -105,9 +106,24 @@ function validateLedgerBaseSettingsForm(
     return currencyResult;
   }
 
+  const specialStatusEnabled = getFormText(
+    formData,
+    "transactionItemSpecialStatusEnabled",
+  );
+  if (
+    specialStatusEnabled &&
+    specialStatusEnabled !== "true" &&
+    specialStatusEnabled !== "false"
+  ) {
+    return invalid(ledgerSettingsErrorCodes.updateFailed);
+  }
+
   return valid({
     baseCurrency: currencyResult.value,
     ledgerName: ledgerNameResult.value,
+    ...(specialStatusEnabled
+      ? { transactionItemSpecialStatusEnabled: specialStatusEnabled === "true" }
+      : {}),
   });
 }
 

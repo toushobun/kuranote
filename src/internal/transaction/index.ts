@@ -12,6 +12,15 @@ export {
   type TransactionRecordStorageType,
   type TransactionType,
 } from "internal/transaction/entity/transactionType";
+export {
+  fromTransactionSpecialStatusStorageValue,
+  toTransactionSpecialStatusStorageValue,
+  transactionSpecialStatuses,
+  transactionSpecialStatusStorageValues,
+  type TransactionSpecialStatus,
+  type TransactionSpecialStatusFilterValue,
+  type TransactionSpecialStatusStorageValue,
+} from "internal/transaction/entity/transactionSpecialStatus";
 export type { TransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 export type {
   TransactionFilters,
@@ -23,6 +32,7 @@ export type {
   TransactionMonthPage,
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
+export type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,

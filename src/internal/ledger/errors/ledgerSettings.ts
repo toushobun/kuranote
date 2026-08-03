@@ -10,6 +10,7 @@ export const ledgerSettingsErrorCodes = {
   nameTooLong: "name_too_long",
   permissionDenied: "permission_denied",
   roleInvalid: "role_invalid",
+  specialStatusHasActiveItems: "special_status_has_active_items",
   updateFailed: "update_failed",
 } as const;
 
@@ -31,6 +32,8 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
   [ledgerSettingsErrorCodes.permissionDenied]:
     "你没有权限修改该账本或成员设置。",
   [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
+  [ledgerSettingsErrorCodes.specialStatusHasActiveItems]:
+    "账本内还有待报销或已报销的明细，需要先处理完这些明细才能关闭该功能。",
   [ledgerSettingsErrorCodes.updateFailed]:
     "账本设置保存失败。请确认内容后稍后重试。",
 };

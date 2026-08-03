@@ -18,7 +18,19 @@ import Typography from "@mui/material/Typography";
 
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
-import type { TransactionCategoryOption } from "types/transactions";
+import type {
+  TransactionCategoryOption,
+  TransactionGroupPage,
+  TransactionMonthPage,
+  TransactionRefundCandidate,
+  TransactionReimbursementCandidate,
+  TransactionSearchPage,
+  TransactionTimeGroupViewData,
+} from "types/transactions";
+import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
+import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
+import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
+import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
 
 import type {
   CategoryPickerGroup,
@@ -37,12 +49,33 @@ type TransactionItemPickerDrawerProps = {
   onGroupSelect: (groupId: string) => void;
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
+  onReimbursementItemIdsChange?: (ids: string[]) => void;
+  onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
+  onSpecialStatusChange?: (value: TransactionSpecialStatusValue) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
+  pickerReimbursementItemIds?: string[];
+  pickerRefundCandidate?: TransactionRefundCandidate | null;
+  pickerSpecialStatus?: TransactionSpecialStatusValue;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
+  reimbursementCandidates?: TransactionReimbursementCandidate[];
+  refundPickerView?: TransactionTimeGroupViewData;
+  loadRefundGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadRefundMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  specialStatusEnabled?: boolean;
+  incomeLinksEnabled?: boolean;
 };
 
 export function TransactionItemPickerDrawer({
@@ -55,13 +88,29 @@ export function TransactionItemPickerDrawer({
   onGroupSelect,
   onPickerAdd,
   onRemoveItem,
+  onReimbursementItemIdsChange = () => undefined,
+  onRefundItemChange = () => undefined,
+  onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
+  pickerReimbursementItemIds = [],
+  pickerRefundCandidate = null,
+  pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
+  reimbursementCandidates = [],
+  refundPickerView,
+  loadRefundGroupItemsAction,
+  loadRefundMoreGroupsAction,
+  loadRefundSearchPageAction,
+  specialStatusEnabled = false,
+  incomeLinksEnabled = true,
 }: TransactionItemPickerDrawerProps) {
+  const selectedCategoryType = filteredCategoryOptions.find(
+    (category) => category.id === pickerCategoryId,
+  )?.type;
   const [searchText, setSearchText] = useState("");
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
     editingItemId !== null,
@@ -120,6 +169,16 @@ export function TransactionItemPickerDrawer({
   function selectCategory(groupId: string, categoryId: string) {
     if (selectedCategoryGroup?.id !== groupId) onGroupSelect(groupId);
     onCategoryToggle(categoryId);
+  }
+
+  function handleReimbursementChange(ids: string[]) {
+    onReimbursementItemIdsChange(ids);
+    if (ids.length > 0) onRefundItemChange(null);
+  }
+
+  function handleRefundChange(item: TransactionRefundCandidate | null) {
+    onRefundItemChange(item);
+    if (item) onReimbursementItemIdsChange([]);
   }
 
   function handleConfirm() {
@@ -337,6 +396,41 @@ export function TransactionItemPickerDrawer({
             ) : null}
           </>
         )}
+
+        {specialStatusEnabled &&
+        selectedCategoryType === "expense" &&
+        pickerSpecialStatus !== "reimbursed" ? (
+          <TransactionPendingReimbursementCheckbox
+            checked={pickerSpecialStatus === "pendingReimbursement"}
+            onChange={(checked) =>
+              onSpecialStatusChange(checked ? "pendingReimbursement" : null)
+            }
+          />
+        ) : null}
+
+        {specialStatusEnabled &&
+        incomeLinksEnabled &&
+        selectedCategoryType === "income" ? (
+          <>
+            {pickerRefundCandidate ? null : (
+              <TransactionReimbursementLinkPicker
+                candidates={reimbursementCandidates}
+                onChange={handleReimbursementChange}
+                selectedIds={pickerReimbursementItemIds}
+              />
+            )}
+            {pickerReimbursementItemIds.length > 0 ? null : (
+              <TransactionRefundLinkPicker
+                loadGroupItemsAction={loadRefundGroupItemsAction}
+                loadMoreGroupsAction={loadRefundMoreGroupsAction}
+                loadSearchPageAction={loadRefundSearchPageAction}
+                onChange={handleRefundChange}
+                timeGroupView={refundPickerView}
+                value={pickerRefundCandidate}
+              />
+            )}
+          </>
+        ) : null}
       </Box>
 
       <Box sx={drawerFooterSx}>

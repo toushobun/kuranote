@@ -185,6 +185,73 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("1200");
   });
 
+  it("退款后列表仍显示原始支出金额并保留退款标注数据", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          id: "item-refunded",
+          refunded_amount: "400",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+    expect(item.categoryItems[0]?.refundedAmount).toBe("400");
+  });
+
+  it("全额退款后列表仍显示原始支出金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          id: "item-fully-refunded",
+          refunded_amount: "1200",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+  });
+
+  it("退款收入交易在列表中显示原始收入金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryB.id,
+          is_refund_income: true,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+    expect(item.type).toBe("income");
+  });
+
   it("分类摘要按 category.type 构建金额和展示方向", () => {
     const item = buildTransactionListItem({
       accountById,
@@ -215,12 +282,14 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("258800");
     expect(item.categoryItems).toEqual([
       {
+        accountId: "acct-a",
         amount: "1200",
         categoryName: "餐饮",
         categoryType: "expense",
         parentCategoryName: null,
       },
       {
+        accountId: "acct-a",
         amount: "260000",
         categoryName: "工资",
         categoryType: "income",

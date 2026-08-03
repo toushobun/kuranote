@@ -151,4 +151,134 @@ describe("buildStatisticsViewData", () => {
     expect(view.merchantExpenseRanking).toEqual([]);
     expect(view.categoryExpenseRanking).toEqual([]);
   });
+
+  it("退款金额从月度支出汇总和排行榜中扣除", () => {
+    const view = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          refunded_amount: "900",
+          transaction_record_id: "expense-1",
+        },
+        {
+          amount: "300",
+          category_id: "category-daily",
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+
+    expect(view.summary).toMatchObject({
+      balance: "-600",
+      expense: "600",
+      income: "0",
+    });
+    expect(view.merchantExpenseRanking).toEqual([
+      {
+        amount: "600",
+        id: "merchant-super",
+        name: "超市",
+        transactionCount: 1,
+      },
+    ]);
+    expect(view.categoryExpenseRanking).toHaveLength(2);
+    expect(view.categoryExpenseRanking).toEqual(
+      expect.arrayContaining([
+        {
+          amount: "300",
+          id: "category-daily",
+          name: categories[2].name,
+          transactionCount: 1,
+        },
+        {
+          amount: "300",
+          id: "category-food",
+          name: `${categories[0].name} / ${categories[1].name}`,
+          transactionCount: 1,
+        },
+      ]),
+    );
+  });
+
+  it("全额退款支出不生成零金额排行榜条目", () => {
+    const view = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          refunded_amount: "1200",
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+
+    expect(view.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+    expect(view.merchantExpenseRanking).toEqual([]);
+    expect(view.categoryExpenseRanking).toEqual([]);
+  });
+
+  it("跨月报销不重复计入支出和收入", () => {
+    const expenseMonth = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          special_status: "reimbursed",
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+    const reimbursementMonth = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-salary",
+          is_reimbursement_income: true,
+          transaction_record_id: "income-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-07",
+      records,
+    });
+
+    expect(expenseMonth.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+    expect(expenseMonth.merchantExpenseRanking).toEqual([]);
+    expect(expenseMonth.categoryExpenseRanking).toEqual([]);
+    expect(reimbursementMonth.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+  });
 });

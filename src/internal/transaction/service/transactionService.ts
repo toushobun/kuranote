@@ -11,6 +11,7 @@ import {
   AuthorizationError,
   NotFoundError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import type {
@@ -47,6 +48,10 @@ import {
   buildTransactionListItemsFromContext,
   loadTransactionGroupLoaderContext,
 } from "internal/transaction/service/read/transactionContext";
+import {
+  filterTransactionItems,
+  filterTransactionRecords,
+} from "internal/transaction/util/grouping/filters";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
@@ -116,6 +121,7 @@ export interface TransactionService {
     currentLedger: CurrentLedger,
     rawQuery: string,
     offset?: number,
+    filters?: TransactionFilters,
   ): Promise<TransactionSearchPage>;
   updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
   updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
@@ -204,6 +210,76 @@ export function createTransactionService({
     }
   }
 
+  async function validateSpecialStatuses(input: {
+    items: CreateNormalTransactionInput["items"];
+    ledgerId: string;
+  }) {
+    const hasSpecialStatusInput = input.items.some(
+      (item) =>
+        (item.specialStatus !== undefined && item.specialStatus !== null) ||
+        Boolean(item.reimbursementItemIds?.length) ||
+        Boolean(item.refundedItemId),
+    );
+    if (
+      hasSpecialStatusInput &&
+      !(await transactionRepository.isSpecialStatusEnabled(input.ledgerId))
+    ) {
+      throw new ValidationError(
+        transactionErrorCodes.specialStatusInvalid,
+        "当前账本未启用特殊状态功能。",
+      );
+    }
+
+    if (input.items.some((item) => item.specialStatus === "reimbursed")) {
+      throw new ValidationError(
+        transactionErrorCodes.specialStatusInvalid,
+        "已报销状态只能通过收入的报销关联自动设置。",
+      );
+    }
+    const categoryIds = [
+      ...new Set(input.items.map((item) => item.categoryId)),
+    ];
+
+    const categories = await categoryQueryService.findSummariesByIds({
+      categoryIds,
+      ledgerId: input.ledgerId,
+      userId: requireTransactionUserId(currentUserId),
+    });
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    for (const item of input.items) {
+      const categoryType = categoryById.get(item.categoryId)?.type;
+      if (
+        item.specialStatus === "pendingReimbursement" &&
+        categoryType !== "expense"
+      ) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "待报销只能用于支出明细。",
+        );
+      }
+      const hasReimbursementLinks = Boolean(item.reimbursementItemIds?.length);
+      const hasRefundLink = Boolean(item.refundedItemId);
+      if (
+        (hasReimbursementLinks || hasRefundLink) &&
+        categoryType !== "income"
+      ) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "报销或退款关联只能设置在收入明细上。",
+        );
+      }
+      if (hasReimbursementLinks && hasRefundLink) {
+        throw new ValidationError(
+          transactionErrorCodes.specialStatusInvalid,
+          "同一条收入明细不能同时作为报销和退款。",
+        );
+      }
+    }
+  }
+
   return {
     async canModify({ ledgerId, transactionRecordId }) {
       try {
@@ -225,6 +301,9 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      if (input.targetType !== "transfer") {
+        await validateSpecialStatuses(input);
+      }
       try {
         await transactionRepository.convert(input);
       } catch (error) {
@@ -234,6 +313,7 @@ export function createTransactionService({
 
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
+      await validateSpecialStatuses(input);
       try {
         await transactionRepository.createNormal(input);
       } catch (error) {
@@ -317,7 +397,12 @@ export function createTransactionService({
       );
     },
 
-    async search(currentLedger, rawQuery, offset = 0) {
+    async search(
+      currentLedger,
+      rawQuery,
+      offset = 0,
+      filters = defaultTransactionFilters,
+    ) {
       const query = normalizeTransactionSearchQuery(rawQuery);
       if (!query) return emptyTransactionSearchPage;
       const ledger = await requireReadLedger(currentLedger);
@@ -325,8 +410,16 @@ export function createTransactionService({
         getReadDependencies(),
         ledger,
       );
+      const records = filterTransactionRecords(context, filters);
+      const recordIds = new Set(records.map((record) => record.id));
+      const filteredContext = {
+        ...context,
+        items: filterTransactionItems(context, filters).filter((item) =>
+          recordIds.has(item.transaction_record_id),
+        ),
+      };
       return buildTransactionSearchPage(
-        buildTransactionListItemsFromContext(context.records, context),
+        buildTransactionListItemsFromContext(records, filteredContext),
         query,
         offset,
       );
@@ -337,6 +430,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      await validateSpecialStatuses(input);
       try {
         await transactionRepository.updateNormal(input);
       } catch (error) {
