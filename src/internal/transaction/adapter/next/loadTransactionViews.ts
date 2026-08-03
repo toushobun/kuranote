@@ -36,7 +36,9 @@ export async function loadNewTransactionView() {
   const [view, refundPickerView] = await Promise.all([
     service.getNewView(currentLedger),
     specialStatusEnabled
-      ? service.getGroupView(currentLedger, "month", { recordType: "expense" })
+      ? service.getGroupView(currentLedger, "month", {
+          recordType: "refundableExpense",
+        })
       : Promise.resolve(undefined),
   ]);
   return { ...view, refundPickerView };
@@ -96,7 +98,7 @@ export async function loadTransactionSearchPage(
   return service.search(currentLedger, rawQuery, offset);
 }
 
-const refundPickerFilters = { recordType: "expense" } as const;
+const refundPickerFilters = { recordType: "refundableExpense" } as const;
 
 export async function loadRefundPickerGroupPage(
   offset: number,

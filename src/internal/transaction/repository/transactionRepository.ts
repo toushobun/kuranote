@@ -77,7 +77,9 @@ export type TransactionDashboardSummaryItem = Pick<
   | "amount"
   | "category_id"
   | "is_refund_income"
+  | "is_reimbursement_income"
   | "refunded_amount"
+  | "settled_by_item_id"
   | "transaction_record_id"
 >;
 
@@ -132,6 +134,7 @@ export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
+  isSpecialStatusEnabled(ledgerId: string): Promise<boolean>;
   findActiveRecord(
     ledgerId: string,
     transactionRecordId: string,
@@ -242,6 +245,7 @@ const transactionRpcErrorCodes = [
   "income_link_conflict",
   "refunded_item_invalid",
   "refund_currency_mismatch",
+  "refund_account_mismatch",
   "refund_amount_exceeded",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
@@ -400,6 +404,13 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (rpcErrorCode === "refund_account_mismatch") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款收入与支出明细必须使用同一账户。",
+      );
+    }
+
     if (rpcErrorCode === "income_link_category_invalid") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkCategoryInvalid,
@@ -524,6 +535,25 @@ export function createSupabaseTransactionRepository(
       }
     },
 
+    async isSpecialStatusEnabled(ledgerId) {
+      const { data, error } = await supabase
+        .from("ledger")
+        .select("transaction_item_special_status_enabled")
+        .eq("id", ledgerId)
+        .maybeSingle();
+      if (error) {
+        logger.error("[transaction] failed to load special status setting", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_special_status_setting_load_failed",
+          "账本特殊状态设置读取失败，请稍后重试。",
+        );
+      }
+      return Boolean(data?.transaction_item_special_status_enabled);
+    },
+
     async findActiveRecord(ledgerId, transactionRecordId) {
       const { data, error } = await supabase
         .from("transaction_record")
@@ -622,7 +652,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status, refunded_amount, is_refund_income",
+          "id, transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -792,7 +822,7 @@ export function createSupabaseTransactionRepository(
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, category_id, amount, refunded_amount, is_refund_income",
+          "id, transaction_record_id, category_id, amount, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds);
@@ -859,7 +889,8 @@ export function createSupabaseTransactionRepository(
       if (
         input.recordType === "normal" ||
         input.recordType === "income" ||
-        input.recordType === "expense"
+        input.recordType === "expense" ||
+        input.recordType === "refundableExpense"
       ) {
         query = query.eq("type", "normal");
       }

@@ -56,7 +56,7 @@ export async function getEditTransactionView(
   ]);
   if (!record) return null;
 
-  const canEdit = canModifyTransaction({
+  const canModify = canModifyTransaction({
     createdBy: record.created_by ?? null,
     role: currentLedger.currentUserRole,
     userId: dependencies.currentUserId,
@@ -65,6 +65,20 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
+  const hasLinkedItem = items.some(
+    (item) =>
+      item.special_status === "reimbursed" ||
+      (item.settled_by_item_id !== null &&
+        item.settled_by_item_id !== undefined) ||
+      item.is_reimbursement_income ||
+      item.has_refund_link,
+  );
+  const canEdit = canModify && !hasLinkedItem;
+  const editRestriction = !canModify
+    ? "permission"
+    : hasLinkedItem
+      ? "linked"
+      : null;
 
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
@@ -85,6 +99,7 @@ export async function getEditTransactionView(
     return {
       ...options,
       canEdit,
+      editRestriction,
       initialValues: {
         accountId: fromItem.account_id,
         note: record.note ?? "",
@@ -103,6 +118,7 @@ export async function getEditTransactionView(
   return {
     ...options,
     canEdit,
+    editRestriction,
     initialValues: {
       accountId: items[0]?.account_id ?? "",
       items: items.map((item) => ({

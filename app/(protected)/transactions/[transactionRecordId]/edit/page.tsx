@@ -16,13 +16,16 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
-  const { canEdit, ...view } =
+  const { canEdit, editRestriction, ...view } =
     await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
     return (
       <NewTransactionVisualFrame>
-        <TransactionPermissionDenied operation="edit" />
+        <TransactionPermissionDenied
+          operation="edit"
+          reason={editRestriction ?? "permission"}
+        />
       </NewTransactionVisualFrame>
     );
   }

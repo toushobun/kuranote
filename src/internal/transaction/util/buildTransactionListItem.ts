@@ -103,6 +103,7 @@ export function buildTransactionListItem({
       ? (accountColorById?.get(firstItem.account_id) ?? null)
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
+    account_id: firstItem?.account_id ?? "",
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
     canEdit,
@@ -177,6 +178,7 @@ function buildTransferListItem({
   return {
     account_color: accountColor,
     account_currency: currency,
+    account_id: fromItem?.account_id ?? fallbackItem?.account_id ?? "",
     account_name: accountName,
     amount,
     canEdit,

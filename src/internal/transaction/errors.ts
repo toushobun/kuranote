@@ -28,6 +28,7 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.refundLinkInvalid
   | typeof transactionErrorCodes.specialStatusInvalid
   | typeof transactionErrorCodes.typeInvalid;
 
@@ -54,6 +55,7 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
+  [transactionErrorCodes.refundLinkInvalid]: "退款金额必须大于 0。",
   [transactionErrorCodes.specialStatusInvalid]:
     "特殊状态不正确；待报销只能用于支出明细，已报销只能通过收入关联自动设置。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",

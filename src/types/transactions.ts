@@ -42,6 +42,7 @@ export type TransactionFilterRecordType =
   | "all"
   | "income"
   | "expense"
+  | "refundableExpense"
   | "transfer";
 
 export type TransactionFilters = {
@@ -77,6 +78,7 @@ export type TransactionRowItem = {
   amount: string;
   account_name: string;
   account_currency: string;
+  account_id: string;
   account_color?: ThemeColorKey | null;
   canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
@@ -132,6 +134,7 @@ export type TransactionListItem = TransactionRowItem & {
 
 export type TransactionRefundCandidate = {
   accountCurrency: string;
+  accountId: string;
   amount: string;
   categoryName: string;
   id: string;

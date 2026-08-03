@@ -117,6 +117,7 @@ export function TransactionRefundCandidateList({
       return [
         {
           accountCurrency: record.account_currency,
+          accountId: record.account_id,
           amount: item.amount,
           categoryName: item.categoryName,
           id: item.id,

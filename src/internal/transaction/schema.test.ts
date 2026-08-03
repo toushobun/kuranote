@@ -795,3 +795,35 @@ describe("validateUpdateTransactionForm", () => {
     });
   });
 });
+
+describe("退款关联 FormData 校验", () => {
+  const refundTargetId = "00000000-0000-4000-8000-000000000201";
+
+  function createRefundFormData() {
+    const formData = new FormData();
+    formData.set("type", "income");
+    formData.set("transactionAt", "2026-06-04T10:30:05");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", "00000000-0000-4000-8000-000000000041");
+    formData.append("itemCategoryId", "00000000-0000-4000-8000-000000000101");
+    formData.append("itemAmount", "0");
+    formData.append("itemRefundedItemId", refundTargetId);
+    formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
+    formData.set("transactionRecordId", "00000000-0000-4000-8000-000000002001");
+    return formData;
+  }
+
+  it("FormData 路径拒绝 0 元退款关联", () => {
+    expect(validateTransactionForm(createRefundFormData())).toEqual({
+      error: transactionErrorCodes.refundLinkInvalid,
+      ok: false,
+    });
+  });
+
+  it("编辑 FormData 路径拒绝 0 元退款关联", () => {
+    expect(validateUpdateTransactionForm(createRefundFormData())).toEqual({
+      error: transactionErrorCodes.refundLinkInvalid,
+      ok: false,
+    });
+  });
+});

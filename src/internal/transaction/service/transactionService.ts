@@ -214,6 +214,22 @@ export function createTransactionService({
     items: CreateNormalTransactionInput["items"];
     ledgerId: string;
   }) {
+    const hasSpecialStatusInput = input.items.some(
+      (item) =>
+        (item.specialStatus !== undefined && item.specialStatus !== null) ||
+        Boolean(item.reimbursementItemIds?.length) ||
+        Boolean(item.refundedItemId),
+    );
+    if (
+      hasSpecialStatusInput &&
+      !(await transactionRepository.isSpecialStatusEnabled(input.ledgerId))
+    ) {
+      throw new ValidationError(
+        transactionErrorCodes.specialStatusInvalid,
+        "当前账本未启用特殊状态功能。",
+      );
+    }
+
     if (input.items.some((item) => item.specialStatus === "reimbursed")) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,

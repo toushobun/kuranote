@@ -28,6 +28,7 @@ function createRepository(
     convert: vi.fn(),
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
+    isSpecialStatusEnabled: vi.fn().mockResolvedValue(true),
     findActiveRecord: vi.fn().mockResolvedValue({
       created_at: "2026-06-04T01:00:00.000Z",
       created_by: userId,
@@ -413,5 +414,30 @@ describe("TransactionService", () => {
       name: NotFoundError.name,
     });
     expect(repository.loadGroupSummaries).not.toHaveBeenCalled();
+  });
+});
+
+describe("特殊状态功能开关", () => {
+  it("账本关闭特殊状态时拒绝特殊状态写入", async () => {
+    const repository = createRepository({
+      isSpecialStatusEnabled: vi.fn().mockResolvedValue(false),
+    });
+    const { service } = createService("member", repository, "expense");
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            specialStatus: "pendingReimbursement",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
   });
 });

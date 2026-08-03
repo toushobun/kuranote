@@ -19,6 +19,7 @@ export type TransactionCategorySummaryItem = {
 export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
   account_currency: string;
+  account_id: string;
   account_name: string;
   amount: string;
   canEdit?: boolean;
@@ -118,6 +119,7 @@ export type NewTransactionView = TransactionFormOptions & {
 
 export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
+  editRestriction: "linked" | "permission" | null;
   initialValues:
     | TransferEditInitialValues
     | {

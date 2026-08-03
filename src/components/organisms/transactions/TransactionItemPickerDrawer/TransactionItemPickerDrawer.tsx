@@ -171,6 +171,16 @@ export function TransactionItemPickerDrawer({
     onCategoryToggle(categoryId);
   }
 
+  function handleReimbursementChange(ids: string[]) {
+    onReimbursementItemIdsChange(ids);
+    if (ids.length > 0) onRefundItemChange(null);
+  }
+
+  function handleRefundChange(item: TransactionRefundCandidate | null) {
+    onRefundItemChange(item);
+    if (item) onReimbursementItemIdsChange([]);
+  }
+
   function handleConfirm() {
     if (onPickerAdd()) closeDrawer();
   }
@@ -402,19 +412,23 @@ export function TransactionItemPickerDrawer({
         incomeLinksEnabled &&
         selectedCategoryType === "income" ? (
           <>
-            <TransactionReimbursementLinkPicker
-              candidates={reimbursementCandidates}
-              onChange={onReimbursementItemIdsChange}
-              selectedIds={pickerReimbursementItemIds}
-            />
-            <TransactionRefundLinkPicker
-              loadGroupItemsAction={loadRefundGroupItemsAction}
-              loadMoreGroupsAction={loadRefundMoreGroupsAction}
-              loadSearchPageAction={loadRefundSearchPageAction}
-              onChange={onRefundItemChange}
-              timeGroupView={refundPickerView}
-              value={pickerRefundCandidate}
-            />
+            {pickerRefundCandidate ? null : (
+              <TransactionReimbursementLinkPicker
+                candidates={reimbursementCandidates}
+                onChange={handleReimbursementChange}
+                selectedIds={pickerReimbursementItemIds}
+              />
+            )}
+            {pickerReimbursementItemIds.length > 0 ? null : (
+              <TransactionRefundLinkPicker
+                loadGroupItemsAction={loadRefundGroupItemsAction}
+                loadMoreGroupsAction={loadRefundMoreGroupsAction}
+                loadSearchPageAction={loadRefundSearchPageAction}
+                onChange={handleRefundChange}
+                timeGroupView={refundPickerView}
+                value={pickerRefundCandidate}
+              />
+            )}
           </>
         ) : null}
       </Box>

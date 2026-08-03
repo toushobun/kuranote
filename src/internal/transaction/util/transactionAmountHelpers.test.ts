@@ -132,3 +132,46 @@ describe("transaction record amount", () => {
     ).toBe(1200);
   });
 });
+
+describe("reimbursement amount", () => {
+  it("已报销支出和对应收入都从统计净额中排除", () => {
+    const reimbursedExpense = {
+      ...item("expense-category", "10000"),
+      id: "expense-item",
+      settled_by_item_id: "income-item",
+      special_status: "reimbursed" as const,
+    };
+    const reimbursementIncome = {
+      ...item("income-category", "10000"),
+      id: "income-item",
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount(
+        [reimbursedExpense, reimbursementIncome],
+        categoryById,
+      ),
+    ).toBe(0);
+    expect(
+      calculateTransactionRecordDisplayAmount(
+        [reimbursedExpense, reimbursementIncome],
+        categoryById,
+      ),
+    ).toBe(0);
+  });
+
+  it("跨交易读取到报销结算收入标记时从统计中排除", () => {
+    expect(
+      calculateTransactionRecordNetAmount(
+        [
+          {
+            ...item("income-category", "10000"),
+            id: "income-item",
+            is_reimbursement_income: true,
+          },
+        ],
+        categoryById,
+      ),
+    ).toBe(0);
+  });
+});

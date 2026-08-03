@@ -224,6 +224,9 @@ function parseTransactionItems(
       transactionErrorCodes.specialStatusInvalid,
     );
     if (!refundedItemIdResult.ok) return refundedItemIdResult;
+    if (refundedItemIdResult.value && amountResult.value <= 0) {
+      return invalid(transactionErrorCodes.refundLinkInvalid);
+    }
 
     items.push({
       amount: amountResult.value,

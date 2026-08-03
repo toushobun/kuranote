@@ -97,7 +97,8 @@ function hasItemFilters(filters: TransactionFilters) {
     filters.accountId ||
     filters.parentCategoryId ||
     filters.categoryId ||
-    filters.specialStatuses?.length,
+    filters.specialStatuses?.length ||
+    filters.recordType === "refundableExpense",
   );
 }
 
@@ -109,6 +110,17 @@ function filterItems(
   if (!hasItemFilters(filters)) return items;
 
   return items.filter((item) => {
+    if (filters.recordType === "refundableExpense") {
+      const categoryType = item.category_id
+        ? categoryById.get(item.category_id)?.type
+        : undefined;
+      if (
+        categoryType !== "expense" ||
+        Number(item.amount) <= Number(item.refunded_amount ?? 0)
+      ) {
+        return false;
+      }
+    }
     if (filters.accountId && item.account_id !== filters.accountId)
       return false;
     if (
@@ -173,6 +185,17 @@ function matchesRecordType(
   if (filters.recordType === "all") return true;
   if (filters.recordType === "transfer") return record.type === "transfer";
   if (record.type !== "normal") return false;
+  if (filters.recordType === "refundableExpense") {
+    return items.some((item) => {
+      const categoryType = item.category_id
+        ? categoryById.get(item.category_id)?.type
+        : undefined;
+      return (
+        categoryType === "expense" &&
+        Number(item.amount) > Number(item.refunded_amount ?? 0)
+      );
+    });
+  }
 
   return (
     getTransactionRecordCategoryType(items, categoryById) === filters.recordType

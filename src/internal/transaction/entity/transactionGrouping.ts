@@ -17,6 +17,7 @@ export type TransactionFilterRecordType =
   | "all"
   | "income"
   | "expense"
+  | "refundableExpense"
   | "transfer";
 
 export type TransactionFilters = {

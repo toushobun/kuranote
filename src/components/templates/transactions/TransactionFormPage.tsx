@@ -220,17 +220,24 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
 
 export function TransactionPermissionDenied({
   operation,
+  reason = "permission",
 }: {
   operation: "edit" | "create";
+  reason?: "linked" | "permission";
 }) {
   const operationLabel = operation === "create" ? "新增" : "编辑";
+  const isLinked = operation === "edit" && reason === "linked";
 
   return (
     <Stack spacing={2}>
       <TransactionPageTopBar title={`${operationLabel}记账`} />
       <ErrorState
-        title={`无法${operationLabel}记账`}
-        description={`当前账本角色没有${operationLabel}记账的权限。`}
+        title={isLinked ? "该交易不能编辑" : `无法${operationLabel}记账`}
+        description={
+          isLinked
+            ? "该交易已关联报销或退款，不能编辑。"
+            : `当前账本角色没有${operationLabel}记账的权限。`
+        }
         action={
           <Button
             component={Link}

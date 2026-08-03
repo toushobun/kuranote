@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(45);
+select plan(50);
 
 select has_type(
     'public',
@@ -237,6 +237,13 @@ select throws_ok(
     '22023',
     'refunded_item_invalid',
     '转账明细不能作为被退款支出明细'
+);
+
+update public.ledger
+set transaction_item_special_status_enabled = true
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
 );
 
 update public.transaction_item
@@ -787,6 +794,126 @@ select is(
 
 reset role;
 select set_config('request.jwt.claim.sub', '', true);
+
+-- 评审回归：作废目标、跨账户退款和功能开关。
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+)
+select
+    '55193000-0000-4000-8000-000000000001',
+    tr.ledger_id,
+    'normal',
+    'deleted',
+    tr.transaction_at,
+    tr.merchant_id,
+    '已作废关联目标',
+    null,
+    tr.created_by,
+    tr.updated_by
+from public.transaction_record tr
+join public.transaction_item ti on ti.transaction_record_id = tr.id
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '55193100-0000-4000-8000-000000000001',
+    ti.ledger_id,
+    '55193000-0000-4000-8000-000000000001',
+    ti.account_id,
+    ti.category_id,
+    20,
+    0,
+    -20,
+    null,
+    0,
+    'pending_reimbursement',
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55193100-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('reimbursementItemIds', jsonb_build_array('55193100-0000-4000-8000-000000000001')),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    'P0001',
+    'reimbursement_item_invalid',
+    '已作废支出不能再建立报销关联'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55193100-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('refundedItemId', '55193100-0000-4000-8000-000000000001'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'refunded_item_invalid',
+    '已作废支出不能再建立退款关联'
+);
+
+update public.transaction_item
+set account_id = '55110100-0000-4000-8000-000000000002'
+where id = '55120000-0000-4000-8000-000000000004';
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'refund_account_mismatch',
+    '同币种不同账户不能建立退款关联'
+);
+
+update public.ledger
+set transaction_item_special_status_enabled = false
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '55120000-0000-4000-8000-000000000004'
+    $$,
+    '22023',
+    'special_status_invalid',
+    '账本关闭特殊状态后数据库触发器拒绝写入状态'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'special_status_invalid',
+    '账本关闭特殊状态后数据库函数拒绝建立关联'
+);
 
 select * from finish();
 

@@ -80,6 +80,7 @@ export function TransactionForm({
     handleTimeChange,
     isSheetOpen,
     isSubmitDisabled,
+    linkNotice,
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
@@ -133,6 +134,7 @@ export function TransactionForm({
         {typeNavigation}
 
         {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+        {linkNotice ? <Alert severity="info">{linkNotice}</Alert> : null}
 
         <input
           name="timeZoneOffsetMinutes"

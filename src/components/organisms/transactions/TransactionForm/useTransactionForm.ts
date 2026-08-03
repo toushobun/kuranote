@@ -84,6 +84,7 @@ export function useTransactionForm({
   const [pickerRefundCandidate, setPickerRefundCandidate] =
     useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
@@ -447,6 +448,21 @@ export function useTransactionForm({
   function handleAccountChange(accountId: string) {
     markEditDirty?.();
     setSelectedAccountId(accountId);
+    setItemsByType((current) => ({
+      ...current,
+      income: current.income.map((item) =>
+        item.refundCandidate && item.refundCandidate.accountId !== accountId
+          ? { ...item, refundedItemId: null, refundCandidate: null }
+          : item,
+      ),
+    }));
+    if (
+      pickerRefundCandidate &&
+      pickerRefundCandidate.accountId !== accountId
+    ) {
+      setPickerRefundCandidate(null);
+      setLinkNotice("账户已变更，请重新选择退款明细。");
+    }
     if (fieldErrors.account) {
       setFieldErrors((current) => ({ ...current, account: undefined }));
     }
@@ -521,6 +537,7 @@ export function useTransactionForm({
     handleTimeChange,
     isSheetOpen,
     isSubmitDisabled,
+    linkNotice,
     itemSummaries,
     itemsFieldRef,
     merchantFieldRef,
@@ -542,8 +559,18 @@ export function useTransactionForm({
     selectedMerchantId,
     selectedType,
     setPickerSpecialStatus,
-    setPickerRefundCandidate,
-    setPickerReimbursementItemIds,
+    setPickerRefundCandidate: (
+      candidate: TransactionRefundCandidate | null,
+    ) => {
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementItemIds([]);
+      setLinkNotice(null);
+    },
+    setPickerReimbursementItemIds: (ids: string[]) => {
+      setPickerReimbursementItemIds(ids);
+      if (ids.length > 0) setPickerRefundCandidate(null);
+      setLinkNotice(null);
+    },
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
