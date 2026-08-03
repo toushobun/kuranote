@@ -337,7 +337,7 @@ begin
         return;
     end if;
 
-    if v_income_category_type <> 'income' then
+    if v_income_category_type is distinct from 'income' then
         raise exception 'income_link_category_invalid'
             using errcode = '22023', detail = 'income_link_category_invalid';
     end if;
@@ -391,7 +391,7 @@ begin
         where ti.id = v_refunded_item_id
           and ti.ledger_id = p_ledger_id;
 
-        if v_refunded_category_type <> 'expense' then
+        if v_refunded_category_type is distinct from 'expense' then
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;

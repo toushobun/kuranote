@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(35);
+select plan(37);
 
 select has_type(
     'public',
@@ -209,6 +209,34 @@ select throws_ok(
     '22023',
     'special_status_invalid',
     '没有分类的转账明细不能设置为待报销'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55130100-0000-4000-8000-000000000001'),
+            '55130100-0000-4000-8000-000000000001',
+            jsonb_build_object('refundedItemId', '55110000-0000-4000-8000-000000000001'),
+            (select created_by from public.transaction_item where id = '55130100-0000-4000-8000-000000000001')
+        )
+    $$,
+    '22023',
+    'income_link_category_invalid',
+    '转账明细不能作为报销或退款收入明细'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55130100-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object('refundedItemId', '55130100-0000-4000-8000-000000000001'),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    '22023',
+    'refunded_item_invalid',
+    '转账明细不能作为被退款支出明细'
 );
 
 update public.transaction_item
