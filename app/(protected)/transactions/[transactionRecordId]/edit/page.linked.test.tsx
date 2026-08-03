@@ -66,7 +66,10 @@ describe("TransactionEditPage linked restriction", () => {
     >;
 
     expect(child.type).toBe(mocks.TransactionPermissionDenied);
-    expect(child.props).toEqual({ operation: "edit", reason: "linked" });
+    expect(child.props).toEqual({
+      operation: "edit",
+      reason: "linked",
+    });
     expect(mocks.EditTransactionTemplate).not.toHaveBeenCalled();
     expect(mocks.EditTransferTransactionTemplate).not.toHaveBeenCalled();
   });
