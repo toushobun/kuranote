@@ -145,7 +145,9 @@ function getSignedItemAmount(
     ? categoryById.get(item.category_id)?.type
     : undefined;
 
-  if (categoryType === "income") return item.is_refund_income ? 0 : amount;
+  if (categoryType === "income") {
+    return deductRefundedAmount && item.is_refund_income ? 0 : amount;
+  }
   if (categoryType === "expense") {
     const refundedAmount = deductRefundedAmount
       ? Number(item.refunded_amount ?? 0)

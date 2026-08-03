@@ -402,14 +402,14 @@ export function createSupabaseTransactionRepository(
 
     if (rpcErrorCode === "income_link_category_invalid") {
       throw new ValidationError(
-        "income_link_category_invalid",
+        transactionErrorCodes.incomeLinkCategoryInvalid,
         "只有收入明细才能关联报销或退款。",
       );
     }
 
     if (rpcErrorCode === "income_link_conflict") {
       throw new ValidationError(
-        "income_link_conflict",
+        transactionErrorCodes.incomeLinkConflict,
         "报销关联和退款关联不能同时设置。",
       );
     }

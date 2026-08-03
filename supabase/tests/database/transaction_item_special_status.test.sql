@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(37);
+select plan(45);
 
 select has_type(
     'public',
@@ -533,6 +533,23 @@ select throws_ok(
             '55120000-0000-4000-8000-000000000004',
             jsonb_build_object(
                 'reimbursementItemIds',
+                jsonb_build_array('55190400-0000-4000-8000-000000000001')
+            ),
+            (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
+        )
+    $$,
+    'P0001',
+    'reimbursement_item_invalid',
+    '跨账本伪造待报销明细时拒绝关联'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55120000-0000-4000-8000-000000000004',
+            jsonb_build_object(
+                'reimbursementItemIds',
                 jsonb_build_array('55110000-0000-4000-8000-000000000001')
             ),
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000004')
@@ -669,6 +686,72 @@ select throws_ok(
     '已建立退款关联的收入明细不能直接修改金额'
 );
 
+select throws_ok(
+    $$
+        update public.transaction_item
+        set category_id = null
+        where id = '55110000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已报销的支出明细不能直接修改分类'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set account_id = '55110100-0000-4000-8000-000000000002'
+        where id = '55110000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已报销的支出明细不能直接修改账户'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set category_id = null
+        where id = '55110000-0000-4000-8000-000000000001'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已建立退款关联的支出明细不能直接修改分类'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set account_id = '55110100-0000-4000-8000-000000000002'
+        where id = '55110000-0000-4000-8000-000000000001'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已建立退款关联的支出明细不能直接修改账户'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set category_id = null
+        where id = '55120000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已作为退款收入的收入明细不能直接修改分类'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set account_id = '55110100-0000-4000-8000-000000000002'
+        where id = '55120000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已作为退款收入的收入明细不能直接修改账户'
+);
+
 select lives_ok(
     $$
         update public.transaction_item
@@ -676,6 +759,30 @@ select lives_ok(
         where id = '55120000-0000-4000-8000-000000000004'
     $$,
     '未关联的普通明细仍可直接修改金额'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
+update public.app_user
+set status = 'disabled'
+where id = (
+    select created_by
+    from public.transaction_item
+    where id = '55120000-0000-4000-8000-000000000002'
+);
+
+select set_config(
+    'request.jwt.claim.sub',
+    (select created_by::text from public.transaction_item where id = '55120000-0000-4000-8000-000000000002'),
+    true
+);
+set local role authenticated;
+
+select is(
+    (select count(*)::integer from public.transaction_item_refund_link),
+    0,
+    '被停用用户即使账本成员仍为 active 也不能读取退款关联'
 );
 
 reset role;

@@ -30,9 +30,14 @@ async function getContext() {
 
 export async function loadNewTransactionView() {
   const { currentLedger, service } = await getContext();
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
   const [view, refundPickerView] = await Promise.all([
     service.getNewView(currentLedger),
-    service.getGroupView(currentLedger, "month", { recordType: "expense" }),
+    specialStatusEnabled
+      ? service.getGroupView(currentLedger, "month", { recordType: "expense" })
+      : Promise.resolve(undefined),
   ]);
   return { ...view, refundPickerView };
 }

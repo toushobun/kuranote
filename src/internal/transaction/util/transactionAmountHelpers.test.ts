@@ -117,4 +117,18 @@ describe("transaction record amount", () => {
       calculateTransactionRecordDisplayAmount([refundedExpense], categoryById),
     ).toBe(-1200);
   });
+
+  it("退款收入仅从净额统计中排除，列表金额保留原始收入", () => {
+    const refundIncome = {
+      ...item("income-category", "1200"),
+      is_refund_income: true,
+    };
+
+    expect(
+      calculateTransactionRecordNetAmount([refundIncome], categoryById),
+    ).toBe(0);
+    expect(
+      calculateTransactionRecordDisplayAmount([refundIncome], categoryById),
+    ).toBe(1200);
+  });
 });

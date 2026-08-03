@@ -230,6 +230,28 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("1200");
   });
 
+  it("退款收入交易在列表中显示原始收入金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryB.id,
+          is_refund_income: true,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("1200");
+    expect(item.type).toBe("income");
+  });
+
   it("分类摘要按 category.type 构建金额和展示方向", () => {
     const item = buildTransactionListItem({
       accountById,

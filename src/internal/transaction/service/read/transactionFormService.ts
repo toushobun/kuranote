@@ -18,11 +18,16 @@ export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
   const [options, pendingItems] = await Promise.all([
     loadTransactionFormOptions(dependencies, currentLedger),
-    dependencies.transactionRepository.listPendingReimbursementItems(
-      currentLedger.id,
-    ),
+    specialStatusEnabled
+      ? dependencies.transactionRepository.listPendingReimbursementItems(
+          currentLedger.id,
+        )
+      : Promise.resolve([]),
   ]);
   return {
     ...options,
