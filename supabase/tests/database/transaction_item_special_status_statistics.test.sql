@@ -46,6 +46,8 @@ join lateral (
 ) income_category on true
 limit 1;
 
+grant select on test_special_status_context to authenticated;
+
 update public.ledger
 set transaction_item_special_status_enabled = true
 where id = (select ledger_id from test_special_status_context);
