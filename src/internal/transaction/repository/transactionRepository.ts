@@ -249,6 +249,10 @@ const transactionRpcErrorCodes = [
   "refund_currency_mismatch",
   "refund_account_mismatch",
   "refund_amount_exceeded",
+  "reimbursement_currency_mismatch",
+  "reimbursement_amount_mismatch",
+  "refunded_item_special_status_conflict",
+  "special_status_refund_conflict",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
 ] as const;
@@ -410,6 +414,34 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
         "退款收入与支出明细必须使用同一账户。",
+      );
+    }
+
+    if (rpcErrorCode === "reimbursement_currency_mismatch") {
+      throw new ValidationError(
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入与待报销明细的账户币种必须一致。",
+      );
+    }
+
+    if (rpcErrorCode === "reimbursement_amount_mismatch") {
+      throw new ValidationError(
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入金额必须与所选待报销明细合计金额一致。",
+      );
+    }
+
+    if (rpcErrorCode === "refunded_item_special_status_conflict") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
+      );
+    }
+
+    if (rpcErrorCode === "special_status_refund_conflict") {
+      throw new ValidationError(
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "该支出明细已有退款关联，不能再标记为待报销。",
       );
     }
 

@@ -856,6 +856,26 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "退款收入与支出明细的账户币种必须一致。",
       ],
       [
+        "reimbursement_currency_mismatch",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入与待报销明细的账户币种必须一致。",
+      ],
+      [
+        "reimbursement_amount_mismatch",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "报销收入金额必须与所选待报销明细合计金额一致。",
+      ],
+      [
+        "refunded_item_special_status_conflict",
+        transactionErrorCodes.refundLinkInvalid,
+        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
+      ],
+      [
+        "special_status_refund_conflict",
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "该支出明细已有退款关联，不能再标记为待报销。",
+      ],
+      [
         "income_link_category_invalid",
         "income_link_category_invalid",
         "只有收入明细才能关联报销或退款。",
