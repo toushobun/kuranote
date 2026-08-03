@@ -34,9 +34,13 @@ jobs:
           import gzip
           from pathlib import Path
 
-          encoded = (
-              Path('.github/codex/pr568-patch-00.b64').read_text().strip()
-              + Path('.github/codex/pr568-patch-01.b64').read_text().strip()
+          encoded = "".join(
+              Path(path).read_text().strip()
+              for path in (
+                  '.github/codex/pr568-patch-00.b64',
+                  '.github/codex/pr568-patch-01.b64',
+                  '.github/codex/pr568-patch-02.b64',
+              )
           )
           Path('/tmp/codex_pr568_fix.py').write_bytes(
               gzip.decompress(base64.b64decode(encoded))
@@ -64,10 +68,11 @@ jobs:
       - name: Commit fixes and remove temporary workflows
         shell: bash
         run: |
-          git show HEAD^:.github/workflows/migration-check.yml > .github/workflows/migration-check.yml
+          git show 7d77420b655ba943e6d17c61d83304816374c177:.github/workflows/migration-check.yml > .github/workflows/migration-check.yml
           git rm \
             .github/codex/pr568-patch-00.b64 \
             .github/codex/pr568-patch-01.b64 \
+            .github/codex/pr568-patch-02.b64 \
             .github/workflows/codex-pr568-apply.yml \
             .github/workflows/codex-pr568-fix.yml
           git config user.name github-actions[bot]
