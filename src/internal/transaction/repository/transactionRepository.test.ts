@@ -931,6 +931,48 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
+    it("退款关联唯一约束冲突（23505）转换为安全的 ConflictError", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "23505",
+        databaseError:
+          'duplicate key value violates unique constraint "transaction_item_refund_link_income_unique"',
+      });
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toMatchObject({
+        code: transactionErrorCodes.refundLinkInvalid,
+        message: "该收入明细已经关联过一笔退款，请刷新后重试。",
+      });
+      if (!(error instanceof ConflictError)) throw error;
+      expect(appErrorToResponseBody(error)).toMatchObject({
+        body: { error: { status: 409 } },
+        status: 409,
+      });
+      expect(String(error)).not.toContain("transaction_item_refund_link");
+    });
+    it("退款关联 check 约束冲突（23514）转换为安全的 ValidationError", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "23514",
+        databaseError:
+          'new row for relation "transaction_item_refund_link" violates check constraint "transaction_item_refund_link_different_items_check"',
+      });
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchObject({
+        code: transactionErrorCodes.refundLinkInvalid,
+        message: "退款关联的金额或明细不正确，请确认后重试。",
+      });
+      if (!(error instanceof ValidationError)) throw error;
+      expect(appErrorToResponseBody(error)).toMatchObject({
+        body: { error: { status: 400 } },
+        status: 400,
+      });
+      expect(String(error)).not.toContain("transaction_item_refund_link");
+    });
     it.each([
       ["not_authenticated", "28000", AuthenticationError, "auth_required"],
       ["ledger_forbidden", "42501", AuthorizationError, "permission_denied"],

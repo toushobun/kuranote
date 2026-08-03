@@ -480,6 +480,20 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (error.code === "23505") {
+      throw new ConflictError(
+        transactionErrorCodes.refundLinkInvalid,
+        "该收入明细已经关联过一笔退款，请刷新后重试。",
+      );
+    }
+
+    if (error.code === "23514") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款关联的金额或明细不正确，请确认后重试。",
+      );
+    }
+
     throw toRepositoryError(fallbackCode, "交易操作失败，请稍后重试。");
   }
 
