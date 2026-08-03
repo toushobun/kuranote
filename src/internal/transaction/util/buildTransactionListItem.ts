@@ -6,12 +6,12 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import {
   calculateTransactionRecordDisplayAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 export function buildTransactionListItem({
   accountById,
@@ -78,6 +78,7 @@ export function buildTransactionListItem({
 
     return [
       {
+        accountId: item.account_id,
         amount: item.amount,
         categoryName: category?.name ?? "",
         categoryType: category?.type,
@@ -103,7 +104,6 @@ export function buildTransactionListItem({
       ? (accountColorById?.get(firstItem.account_id) ?? null)
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
-    account_id: firstItem?.account_id ?? "",
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
     canEdit,
@@ -178,7 +178,6 @@ function buildTransferListItem({
   return {
     account_color: accountColor,
     account_currency: currency,
-    account_id: fromItem?.account_id ?? fallbackItem?.account_id ?? "",
     account_name: accountName,
     amount,
     canEdit,
