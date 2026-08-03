@@ -1,0 +1,60 @@
+name: Codex PR 568 apply
+
+on:
+  push:
+    branches:
+      - feature/551_transaction_item_special_status
+    paths:
+      - .github/workflows/codex-pr568-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/551_transaction_item_special_status
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64, gzip, re
+          from pathlib import Path
+          workflow = Path('.github/workflows/codex-pr568-fix.yml').read_text()
+          match = re.search(r"echo '([^']+)' \| base64", workflow)
+          if not match:
+              raise SystemExit('embedded patch not found')
+          Path('/tmp/codex_pr568_fix.py').write_bytes(gzip.decompress(base64.b64decode(match.group(1))))
+          PY
+          python /tmp/codex_pr568_fix.py
+      - name: Format changes
+        shell: bash
+        run: |
+          npm ci
+          npx prettier --write \
+            supabase/migrations/20260803190000_fix_transaction_item_special_status_review.sql \
+            supabase/tests/database/transaction_item_special_status.test.sql \
+            src/internal/db-types.ts src/internal/transaction \
+            src/types/transactions.ts \
+            app/'(protected)'/transactions/'[transactionRecordId]'/edit/page.tsx \
+            src/components/templates/transactions/TransactionFormPage.tsx \
+            src/components/organisms/transactions/TransactionGroupList/TransactionGroupList.tsx \
+            src/components/organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer.tsx \
+            src/components/organisms/transactions/TransactionForm/useTransactionForm.ts \
+            src/components/organisms/transactions/TransactionForm/TransactionForm.tsx
+      - name: Commit changes
+        shell: bash
+        run: |
+          git rm .github/workflows/codex-pr568-apply.yml .github/workflows/codex-pr568-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'fix: 修复交易明细特殊状态评审问题'
+          git push origin HEAD:feature/551_transaction_item_special_status
