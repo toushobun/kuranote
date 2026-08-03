@@ -200,6 +200,13 @@ select
 from public.transaction_item ti
 where ti.id = '55110000-0000-4000-8000-000000000001';
 
+update public.ledger
+set transaction_item_special_status_enabled = true
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
+);
+
 select throws_ok(
     $$
         update public.transaction_item
@@ -798,7 +805,7 @@ select set_config('request.jwt.claim.sub', '', true);
 -- 评审回归：作废目标、跨账户退款和功能开关。
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
-    title, note, created_by, updated_by
+    title, note, deleted_at, deleted_by, created_by, updated_by
 )
 select
     '55193000-0000-4000-8000-000000000001',
@@ -809,6 +816,8 @@ select
     tr.merchant_id,
     '已作废关联目标',
     null,
+    now(),
+    tr.created_by,
     tr.created_by,
     tr.updated_by
 from public.transaction_record tr

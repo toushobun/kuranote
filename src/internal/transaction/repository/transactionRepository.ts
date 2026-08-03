@@ -76,10 +76,12 @@ export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
   | "amount"
   | "category_id"
+  | "id"
   | "is_refund_income"
   | "is_reimbursement_income"
   | "refunded_amount"
   | "settled_by_item_id"
+  | "special_status"
   | "transaction_record_id"
 >;
 

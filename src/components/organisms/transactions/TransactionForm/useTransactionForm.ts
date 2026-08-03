@@ -562,6 +562,11 @@ export function useTransactionForm({
     setPickerRefundCandidate: (
       candidate: TransactionRefundCandidate | null,
     ) => {
+      if (candidate && candidate.accountId !== selectedAccountId) {
+        setPickerRefundCandidate(null);
+        setLinkNotice("退款明细必须与收款账户一致，请重新选择。");
+        return;
+      }
       setPickerRefundCandidate(candidate);
       if (candidate) setPickerReimbursementItemIds([]);
       setLinkNotice(null);
