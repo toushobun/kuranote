@@ -50,6 +50,17 @@ update public.ledger
 set transaction_item_special_status_enabled = true
 where id = (select ledger_id from test_special_status_context);
 
+insert into public.merchant (
+    id, ledger_id, name, created_by, updated_by
+)
+select
+    '55194900-0000-4000-8000-000000000001',
+    context.ledger_id,
+    '统计回归测试商家',
+    context.user_id,
+    context.user_id
+from test_special_status_context context;
+
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
     title, note, created_by, updated_by
@@ -60,7 +71,7 @@ select
     'normal',
     'active',
     values_to_insert.transaction_at,
-    null,
+    '55194900-0000-4000-8000-000000000001',
     values_to_insert.title,
     null,
     context.user_id,
