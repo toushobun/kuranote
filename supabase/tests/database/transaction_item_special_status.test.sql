@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(33);
+select plan(35);
 
 select has_type(
     'public',
@@ -137,6 +137,80 @@ join public.transaction_item ti
  and ti.ledger_id = a.ledger_id
 where ti.id = '55110000-0000-4000-8000-000000000001';
 
+insert into public.account (
+    id, ledger_id, name, type, currency, initial_balance,
+    current_balance, sort_order, created_by, updated_by
+)
+select
+    '55110100-0000-4000-8000-000000000002',
+    a.ledger_id,
+    '交易类型转换测试账户',
+    a.type,
+    a.currency,
+    0,
+    0,
+    (select coalesce(max(existing.sort_order), 0) + 1 from public.account existing where existing.ledger_id = a.ledger_id),
+    a.created_by,
+    a.updated_by
+from public.account a
+join public.transaction_item ti
+  on ti.account_id = a.id
+ and ti.ledger_id = a.ledger_id
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+)
+select
+    '55130000-0000-4000-8000-000000000001',
+    tr.ledger_id,
+    'transfer',
+    'active',
+    tr.transaction_at,
+    null,
+    '特殊状态 NULL 比较测试',
+    null,
+    tr.created_by,
+    tr.updated_by
+from public.transaction_record tr
+join public.transaction_item ti
+  on ti.transaction_record_id = tr.id
+ and ti.ledger_id = tr.ledger_id
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    created_by, updated_by
+)
+select
+    '55130100-0000-4000-8000-000000000001',
+    ti.ledger_id,
+    '55130000-0000-4000-8000-000000000001',
+    ti.account_id,
+    null,
+    10,
+    0,
+    -10,
+    null,
+    0,
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '55130100-0000-4000-8000-000000000001'
+    $$,
+    '22023',
+    'special_status_invalid',
+    '没有分类的转账明细不能设置为待报销'
+);
+
 update public.transaction_item
 set special_status = 'pending_reimbursement'
 where id in (
@@ -261,6 +335,27 @@ select throws_ok(
     'P0001',
     'linked_transaction_edit_forbidden',
     '结算其他明细的收入交易不能作废'
+);
+
+select throws_ok(
+    $$
+        select public.convert_transaction_type(
+            (select ledger_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            (select transaction_record_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            'transfer',
+            now(),
+            null,
+            null,
+            null,
+            null,
+            (select account_id from public.transaction_item where id = '55110000-0000-4000-8000-000000000001'),
+            '55110100-0000-4000-8000-000000000002',
+            100
+        )
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已关联交易不能通过类型转换删除明细'
 );
 
 reset role;

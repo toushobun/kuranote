@@ -4189,12 +4189,12 @@ $$;
 ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_amount"() RETURNS "trigger"
+CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_mutation"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    if new.amount is not distinct from old.amount then
+    if tg_op = 'UPDATE' and new.amount is not distinct from old.amount then
         return new;
     end if;
 
@@ -4218,12 +4218,16 @@ begin
             using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
     end if;
 
+    if tg_op = 'DELETE' then
+        return old;
+    end if;
+
     return new;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."validate_linked_transaction_item_amount"() OWNER TO "postgres";
+ALTER FUNCTION "public"."validate_linked_transaction_item_mutation"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_category_shape"() RETURNS "trigger"
@@ -4290,7 +4294,7 @@ begin
     where c.id = new.category_id
       and c.ledger_id = new.ledger_id;
 
-    if v_category_type <> 'expense' then
+    if v_category_type is distinct from 'expense' then
         raise exception 'special_status_invalid'
             using errcode = '22023', detail = 'special_status_invalid';
     end if;
@@ -5285,6 +5289,10 @@ CREATE OR REPLACE TRIGGER "merchant_set_updated_at" BEFORE UPDATE ON "public"."m
 
 
 
+CREATE OR REPLACE TRIGGER "transaction_item_prevent_linked_delete" BEFORE DELETE ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
+
+
+
 CREATE OR REPLACE TRIGGER "transaction_item_require_write_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_transaction_child_permission"();
 
 
@@ -5297,7 +5305,7 @@ CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSE
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_item_validate_linked_amount" BEFORE UPDATE OF "amount" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_amount"();
+CREATE OR REPLACE TRIGGER "transaction_item_validate_linked_amount" BEFORE UPDATE OF "amount" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
 
 
 
@@ -6075,7 +6083,7 @@ REVOKE ALL ON FUNCTION "public"."validate_transaction_item_category_shape"() FRO
 
 
 
-REVOKE ALL ON FUNCTION "public"."validate_linked_transaction_item_amount"() FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."validate_linked_transaction_item_mutation"() FROM PUBLIC;
 
 
 
