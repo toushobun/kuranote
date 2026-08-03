@@ -4189,6 +4189,43 @@ $$;
 ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_amount"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if new.amount is not distinct from old.amount then
+        return new;
+    end if;
+
+    if old.special_status = 'reimbursed'
+       or exists (
+           select 1
+           from public.transaction_item settled_item
+           where settled_item.ledger_id = old.ledger_id
+             and settled_item.settled_by_item_id = old.id
+       )
+       or exists (
+           select 1
+           from public.transaction_item_refund_link refund_link
+           where refund_link.ledger_id = old.ledger_id
+             and (
+                 refund_link.refunded_item_id = old.id
+                 or refund_link.refund_income_item_id = old.id
+             )
+       ) then
+        raise exception 'linked_transaction_edit_forbidden'
+            using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_linked_transaction_item_amount"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_category_shape"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5260,6 +5297,10 @@ CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSE
 
 
 
+CREATE OR REPLACE TRIGGER "transaction_item_validate_linked_amount" BEFORE UPDATE OF "amount" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_amount"();
+
+
+
 CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status" BEFORE INSERT OR UPDATE OF "special_status", "settled_by_item_id", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_special_status"();
 
 
@@ -6031,6 +6072,10 @@ GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid
 
 
 REVOKE ALL ON FUNCTION "public"."validate_transaction_item_category_shape"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_linked_transaction_item_amount"() FROM PUBLIC;
 
 
 

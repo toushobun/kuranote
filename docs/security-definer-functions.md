@@ -78,11 +78,11 @@ order by p.oid::regprocedure::text;
 
 ## Issue #435 盘点结果
 
-- Issue #435 当时最终生效的 `SECURITY DEFINER` 函数共 41 个；Issue #551 新增 3 个后当前共 44 个。
+- Issue #435 当时最终生效的 `SECURITY DEFINER` 函数共 41 个；Issue #551 新增 4 个后当前共 45 个。
 - 36 个函数原为 `search_path = public`，由 `20260722093000_harden_security_definer_search_path.sql` 向前整改。
 - 5 个函数原本已使用 `pg_catalog, pg_temp`，保持不变。
 - 整改后 41 个函数全部使用 `pg_catalog, pg_temp`。
-- Issue #551 新增的 3 个 `SECURITY DEFINER` 函数（`apply_transaction_item_links`、`convert_transaction_type_with_special_status`、`load_transaction_group_summaries_with_special_status`）也直接声明 `pg_catalog, pg_temp`；`validate_transaction_item_special_status` 为默认 `SECURITY INVOKER`。
+- Issue #551 新增的 4 个 `SECURITY DEFINER` 函数（`apply_transaction_item_links`、`convert_transaction_type_with_special_status`、`load_transaction_group_summaries_with_special_status`、`validate_linked_transaction_item_amount`）也直接声明 `pg_catalog, pg_temp`；`validate_transaction_item_special_status` 为默认 `SECURITY INVOKER`。
 - 全部函数 owner 均为 `postgres`，本次不修改 owner。
 - 函数体中的应用表、视图和应用函数均已使用 `public.*` / `auth.*` 完整限定名，未发现依赖隐式 `public` 解析的对象引用。
 - `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 依赖 pgcrypto，并已显式调用 `extensions.digest()` / `extensions.gen_random_bytes()`。
@@ -132,6 +132,7 @@ order by p.oid::regprocedure::text;
 | `update_transaction`                                    | `public`              | 无                                                     | 默认 PUBLIC EXECUTE；authenticated | RPC：`src/internal/transaction/repository/transactionRepository.ts`                                                                                                                                                                                                              |
 | `update_transfer_transaction`                           | `public`              | 无                                                     | 默认 PUBLIC EXECUTE；authenticated | RPC：`src/internal/transaction/repository/transactionRepository.ts`                                                                                                                                                                                                              |
 | `validate_ledger_member_display_setting_member`         | `public`              | 无                                                     | 默认 PUBLIC EXECUTE                | 触发器：`ledger_member_display_setting_validate_member`                                                                                                                                                                                                                          |
+| `validate_linked_transaction_item_amount`               | `pg_catalog, pg_temp` | 无                                                     | PUBLIC 撤销                        | 触发器：`transaction_item_validate_linked_amount`                                                                                                                                                                                                                                |
 | `validate_transaction_item_category_shape`              | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`transaction_item_validate_category_shape`                                                                                                                                                                                                                               |
 | `void_transaction`                                      | `public`              | 无                                                     | 默认 PUBLIC EXECUTE；authenticated | RPC：`src/internal/transaction/repository/transactionRepository.ts`                                                                                                                                                                                                              |
 

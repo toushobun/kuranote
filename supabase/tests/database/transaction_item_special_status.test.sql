@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(28);
+select plan(33);
 
 select has_type(
     'public',
@@ -494,6 +494,69 @@ select throws_ok(
     'refund_currency_mismatch',
     '退款收入与被退款支出账户币种不一致时拒绝关联'
 );
+
+select set_config(
+    'request.jwt.claim.sub',
+    (select created_by::text from public.transaction_item where id = '55120000-0000-4000-8000-000000000004'),
+    true
+);
+set local role authenticated;
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set amount = amount + 1
+        where id = '55110000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已报销明细不能直接修改金额'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set amount = amount + 1
+        where id = '55120000-0000-4000-8000-000000000001'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '结算其他明细的收入明细不能直接修改金额'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set amount = amount + 1
+        where id = '55110000-0000-4000-8000-000000000001'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已建立退款关联的支出明细不能直接修改金额'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set amount = amount + 1
+        where id = '55120000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '已建立退款关联的收入明细不能直接修改金额'
+);
+
+select lives_ok(
+    $$
+        update public.transaction_item
+        set amount = amount + 1
+        where id = '55120000-0000-4000-8000-000000000004'
+    $$,
+    '未关联的普通明细仍可直接修改金额'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
 
 select * from finish();
 

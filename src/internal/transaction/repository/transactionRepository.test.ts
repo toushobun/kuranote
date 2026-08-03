@@ -856,6 +856,16 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "退款收入与支出明细的账户币种必须一致。",
       ],
       [
+        "income_link_category_invalid",
+        "income_link_category_invalid",
+        "只有收入明细才能关联报销或退款。",
+      ],
+      [
+        "income_link_conflict",
+        "income_link_conflict",
+        "报销关联和退款关联不能同时设置。",
+      ],
+      [
         "income_links_create_only",
         transactionErrorCodes.updateInvalid,
         "报销和退款关联只能在新建收入交易时设置。",
