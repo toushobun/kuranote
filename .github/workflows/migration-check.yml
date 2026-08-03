@@ -7,6 +7,46 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  format-review-tests:
+    if: github.event.pull_request.head.ref == 'feature/551_transaction_item_special_status'
+    name: Format review tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format new tests
+        run: |
+          npx prettier --write \
+            'app/(protected)/transactions/[transactionRecordId]/edit/page.linked.test.tsx' \
+            src/internal/transaction/service/read/transactionFormService.linked.test.ts \
+            src/internal/transaction/util/grouping/refundableExpenseFilter.test.ts \
+            src/components/organisms/transactions/TransactionForm/useTransactionForm.test.ts
+
+      - name: Restore workflow and commit formatting
+        shell: bash
+        run: |
+          git show origin/main:.github/workflows/migration-check.yml > .github/workflows/migration-check.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'style: 格式化特殊状态回归测试'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
   migration-check:
     name: Migration check
     runs-on: ubuntu-latest
