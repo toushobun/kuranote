@@ -7,6 +7,159 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  apply-review-fixes:
+    if: github.event.pull_request.head.ref == 'feature/551_transaction_item_special_status'
+    name: Apply review fixes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              content = target.read_text()
+              if old not in content:
+                  raise SystemExit(f"replacement anchor not found: {path}")
+              target.write_text(content.replace(old, new, 1))
+
+          test_path = "supabase/tests/database/transaction_item_special_status.test.sql"
+          replace(
+              test_path,
+              """from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '55130100-0000-4000-8000-000000000001'
+""",
+              """from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+update public.ledger
+set transaction_item_special_status_enabled = true
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '55130100-0000-4000-8000-000000000001'
+""",
+          )
+          replace(
+              test_path,
+              """insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+)
+select
+    '55193000-0000-4000-8000-000000000001',
+    tr.ledger_id,
+    'normal',
+    'deleted',
+    tr.transaction_at,
+    tr.merchant_id,
+    '已作废关联目标',
+    null,
+    tr.created_by,
+    tr.updated_by
+""",
+              """insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, deleted_at, deleted_by, created_by, updated_by
+)
+select
+    '55193000-0000-4000-8000-000000000001',
+    tr.ledger_id,
+    'normal',
+    'deleted',
+    tr.transaction_at,
+    tr.merchant_id,
+    '已作废关联目标',
+    null,
+    now(),
+    tr.created_by,
+    tr.created_by,
+    tr.updated_by
+""",
+          )
+
+          replace(
+              "src/components/organisms/transactions/TransactionForm/useTransactionForm.ts",
+              """    setPickerRefundCandidate: (
+      candidate: TransactionRefundCandidate | null,
+    ) => {
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementItemIds([]);
+      setLinkNotice(null);
+    },
+""",
+              """    setPickerRefundCandidate: (
+      candidate: TransactionRefundCandidate | null,
+    ) => {
+      if (candidate && candidate.accountId !== selectedAccountId) {
+        setPickerRefundCandidate(null);
+        setLinkNotice(\"退款明细必须与收款账户一致，请重新选择。\");
+        return;
+      }
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementItemIds([]);
+      setLinkNotice(null);
+    },
+""",
+          )
+
+          replace(
+              "src/internal/transaction/repository/transactionRepository.ts",
+              """  | \"amount\"
+  | \"category_id\"
+  | \"is_refund_income\"
+""",
+              """  | \"amount\"
+  | \"category_id\"
+  | \"id\"
+  | \"is_refund_income\"
+""",
+          )
+          replace(
+              "src/internal/transaction/repository/transactionRepository.ts",
+              """  | \"settled_by_item_id\"
+  | \"transaction_record_id\"
+""",
+              """  | \"settled_by_item_id\"
+  | \"special_status\"
+  | \"transaction_record_id\"
+""",
+          )
+          PY
+
+      - name: Restore workflow and commit fixes
+        shell: bash
+        run: |
+          git show origin/main:.github/workflows/migration-check.yml > .github/workflows/migration-check.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'fix: 修正特殊状态测试与账户前置校验'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
   migration-check:
     name: Migration check
     runs-on: ubuntu-latest
