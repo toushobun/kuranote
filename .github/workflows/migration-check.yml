@@ -7,6 +7,72 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  apply-review-fixes:
+    if: github.event.pull_request.head.ref == 'feature/551_transaction_item_special_status'
+    name: Apply PR 568 review fixes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply reviewed fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          import gzip
+          import re
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/codex-pr568-fix.yml').read_text()
+          match = re.search(r"echo '([^']+)' \| base64", workflow)
+          if not match:
+              raise SystemExit('embedded patch not found')
+          Path('/tmp/codex_pr568_fix.py').write_bytes(
+              gzip.decompress(base64.b64decode(match.group(1)))
+          )
+          PY
+          python /tmp/codex_pr568_fix.py
+
+      - name: Install dependencies and format
+        shell: bash
+        run: |
+          npm ci
+          npx prettier --write \
+            supabase/migrations/20260803190000_fix_transaction_item_special_status_review.sql \
+            supabase/tests/database/transaction_item_special_status.test.sql \
+            src/internal/db-types.ts \
+            src/internal/transaction \
+            src/types/transactions.ts \
+            app/'(protected)'/transactions/'[transactionRecordId]'/edit/page.tsx \
+            src/components/templates/transactions/TransactionFormPage.tsx \
+            src/components/organisms/transactions/TransactionGroupList/TransactionGroupList.tsx \
+            src/components/organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer.tsx \
+            src/components/organisms/transactions/TransactionForm/useTransactionForm.ts \
+            src/components/organisms/transactions/TransactionForm/TransactionForm.tsx
+
+      - name: Commit fixes and remove temporary workflows
+        shell: bash
+        run: |
+          git show HEAD^:.github/workflows/migration-check.yml > .github/workflows/migration-check.yml
+          git rm .github/workflows/codex-pr568-apply.yml .github/workflows/codex-pr568-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'fix: 修复交易明细特殊状态评审问题'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
   migration-check:
     name: Migration check
     runs-on: ubuntu-latest
