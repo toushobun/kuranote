@@ -61,9 +61,7 @@ describe("TransactionEditPage linked restriction", () => {
       params: Promise.resolve({ transactionRecordId }),
     });
     const frame = result as ReactElement<Record<string, unknown>>;
-    const child = frame.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = frame.props.children as ReactElement<Record<string, unknown>>;
 
     expect(child.type).toBe(mocks.TransactionPermissionDenied);
     expect(child.props).toEqual({
