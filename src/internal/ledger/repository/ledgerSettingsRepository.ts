@@ -49,6 +49,21 @@ const memberSettingsRpcErrorMap = {
   role_invalid: ledgerSettingsErrorCodes.roleInvalid,
 } as const satisfies Readonly<Record<string, LedgerSettingsErrorCode>>;
 
+const ledgerBaseSettingsErrorCodes = [
+  ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+] as const;
+
+function findLedgerBaseSettingsErrorCode(
+  details: string | null | undefined,
+): LedgerSettingsErrorCode | null {
+  const normalizedDetails = details?.trim();
+
+  return (
+    ledgerBaseSettingsErrorCodes.find((code) => code === normalizedDetails) ??
+    null
+  );
+}
+
 export interface LedgerSettingsRepository {
   getMemberRole(
     ledgerId: string,
@@ -248,6 +263,11 @@ export function createSupabaseLedgerSettingsRepository(
         .eq("is_archived", false);
 
       if (error) {
+        const code = findLedgerBaseSettingsErrorCode(error.details);
+        if (code) {
+          return { code, ok: false };
+        }
+
         logger.error("[ledger] failed to update ledger base settings", {
           databaseCode: error.code,
           ledgerId,

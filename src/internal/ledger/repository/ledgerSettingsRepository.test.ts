@@ -255,6 +255,34 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
       ok: false,
     });
   });
+
+  it("存在特殊状态明细时返回可识别的业务错误", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          error: {
+            details: " special_status_has_active_items ",
+            message: "database validation failed",
+          },
+        },
+      ],
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.updateLedgerBaseSettings(ledgerId, {
+        baseCurrency: "JPY",
+        ledgerName: "家庭账本",
+        transactionItemSpecialStatusEnabled: false,
+        updatedBy: userId,
+      }),
+    ).resolves.toEqual({
+      code: ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+      ok: false,
+    });
+  });
 });
 
 describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {

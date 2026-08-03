@@ -115,7 +115,7 @@ export function LedgerSpecialStatusSetting({
               </Stack>
             ) : (
               <Typography color="text.secondary" variant="body2">
-                关闭后不显示设置入口；已有状态保留，重新启用后恢复显示。
+                如果账本内还有待报销或已报销的明细，将无法关闭；请先处理完这些明细。
               </Typography>
             )}
 

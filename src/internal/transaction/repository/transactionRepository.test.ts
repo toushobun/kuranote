@@ -622,7 +622,7 @@ describe("TransactionDashboardRepository", () => {
       dashboardMonthInput.dateEnd,
     );
     expect(itemQuery.select).toHaveBeenCalledWith(
-      "id, transaction_record_id, category_id, amount, refunded_amount, is_refund_income",
+      "id, transaction_record_id, category_id, amount, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income",
     );
     expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
   });

@@ -362,6 +362,7 @@ describe("TransactionMonthList", () => {
           amount: "100",
           categoryItems: [
             {
+              accountId: "account-1",
               amount: "100",
               categoryName: "午餐",
               categoryType: "expense",

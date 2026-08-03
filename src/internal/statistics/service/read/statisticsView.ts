@@ -43,6 +43,8 @@ type StatisticsItemInput = {
   category_id: string | null;
   refunded_amount?: string;
   is_refund_income?: boolean;
+  is_reimbursement_income?: boolean;
+  special_status?: string | null;
   transaction_record_id: string;
 };
 
@@ -110,13 +112,15 @@ export function buildStatisticsViewData({
 
     const effectiveAmount =
       category.type === "expense"
-        ? String(
-            Math.max(
-              0,
-              Number(item.amount) - Number(item.refunded_amount ?? 0),
-            ),
-          )
-        : item.is_refund_income
+        ? item.special_status === "reimbursed"
+          ? "0"
+          : String(
+              Math.max(
+                0,
+                Number(item.amount) - Number(item.refunded_amount ?? 0),
+              ),
+            )
+        : item.is_refund_income || item.is_reimbursement_income
           ? "0"
           : item.amount;
     if (Number(effectiveAmount) !== 0) {

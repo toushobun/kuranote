@@ -233,4 +233,52 @@ describe("buildStatisticsViewData", () => {
     expect(view.merchantExpenseRanking).toEqual([]);
     expect(view.categoryExpenseRanking).toEqual([]);
   });
+
+  it("跨月报销不重复计入支出和收入", () => {
+    const expenseMonth = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-food",
+          special_status: "reimbursed",
+          transaction_record_id: "expense-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-06",
+      records,
+    });
+    const reimbursementMonth = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: [
+        {
+          amount: "1200",
+          category_id: "category-salary",
+          is_reimbursement_income: true,
+          transaction_record_id: "income-1",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants,
+      month: "2026-07",
+      records,
+    });
+
+    expect(expenseMonth.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+    expect(expenseMonth.merchantExpenseRanking).toEqual([]);
+    expect(expenseMonth.categoryExpenseRanking).toEqual([]);
+    expect(reimbursementMonth.summary).toMatchObject({
+      balance: "0",
+      expense: "0",
+      income: "0",
+    });
+  });
 });

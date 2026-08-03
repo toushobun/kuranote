@@ -282,12 +282,14 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("258800");
     expect(item.categoryItems).toEqual([
       {
+        accountId: "acct-a",
         amount: "1200",
         categoryName: "餐饮",
         categoryType: "expense",
         parentCategoryName: null,
       },
       {
+        accountId: "acct-a",
         amount: "260000",
         categoryName: "工资",
         categoryType: "income",

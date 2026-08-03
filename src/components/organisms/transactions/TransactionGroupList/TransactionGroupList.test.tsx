@@ -177,6 +177,7 @@ describe("TransactionRefundCandidateList", () => {
       amount: "100",
       categoryItems: [
         {
+          accountId: "account-1",
           amount: "100",
           categoryName: "服装",
           categoryType: "expense",
