@@ -113,12 +113,12 @@ export function TransactionRefundCandidateList({
 }) {
   const candidates = items.flatMap((record) =>
     record.categoryItems.flatMap((item) => {
-      if (item.categoryType !== "expense" || !item.id || !record.account_id)
+      if (item.categoryType !== "expense" || !item.id || !item.accountId)
         return [];
       return [
         {
           accountCurrency: record.account_currency,
-          accountId: record.account_id,
+          accountId: item.accountId,
           amount: item.amount,
           categoryName: item.categoryName,
           id: item.id,
