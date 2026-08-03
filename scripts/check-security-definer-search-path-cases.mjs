@@ -106,3 +106,20 @@ test("检测向前 migration 中的不安全 ALTER FUNCTION", () => {
     ),
   );
 });
+
+test("与 search_path 无关的 ALTER FUNCTION 不应跨语句误判后续函数定义", () => {
+  const root = createRepository({
+    migration: `alter function public.old_name()
+rename to safe_function;
+
+create or replace function public.safe_function()
+returns boolean
+language sql
+security definer
+set search_path = pg_catalog, pg_temp
+as $$ select true; $$;
+`,
+    snapshot: safeSnapshot,
+  });
+  assert.deepEqual(analyzeRepository({ root, baseline }), []);
+});

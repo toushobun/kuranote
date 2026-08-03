@@ -259,7 +259,7 @@ function analyzeAlterFunctionStatements(sql, fileLabel) {
   const errors = [];
   const normalizedSql = stripSqlComments(sql);
   const searchPathPattern =
-    /\balter\s+function\s+([\s\S]*?)\s+set\s+"?search_path"?\s*(?:=|to)\s*([^;]+);/gi;
+    /\balter\s+function\s+([^;]*?)\s+set\s+"?search_path"?\s*(?:=|to)\s*([^;]+);/gi;
   let match;
 
   while ((match = searchPathPattern.exec(normalizedSql)) !== null) {
@@ -268,7 +268,7 @@ function analyzeAlterFunctionStatements(sql, fileLabel) {
   }
 
   const securityDefinerPattern =
-    /\balter\s+function\s+([\s\S]*?)\s+security\s+definer\s*;/gi;
+    /\balter\s+function\s+([^;]*?)\s+security\s+definer\s*;/gi;
   while ((match = securityDefinerPattern.exec(normalizedSql)) !== null) {
     const statement = match[0];
     if (!/\bset\s+"?search_path"?/i.test(statement)) {
