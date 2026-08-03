@@ -62,6 +62,7 @@ export const defaultTransactionFilters = {
 } satisfies TransactionFilters;
 
 export type CategorySummaryItem = {
+  accountId?: string;
   categoryName: string;
   parentCategoryName: string | null;
   amount: string;
@@ -78,7 +79,6 @@ export type TransactionRowItem = {
   amount: string;
   account_name: string;
   account_currency: string;
-  account_id?: string;
   account_color?: ThemeColorKey | null;
   canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
