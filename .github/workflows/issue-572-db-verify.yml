@@ -39,11 +39,20 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
+        id: supabase_start
+        continue-on-error: true
+        run: supabase start > /tmp/supabase-start.log 2>&1
+
+      - name: Publish Supabase startup failure
+        if: steps.supabase_start.outcome == 'failure'
         run: |
-          if ! supabase start > /tmp/supabase-start.log 2>&1; then
-            cat /tmp/supabase-start.log
-            exit 1
-          fi
+          tail -n 300 /tmp/supabase-start.log > .github/issue-572-supabase-start.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/issue-572-supabase-start.log
+          git commit -m "chore: 记录 Supabase 启动失败"
+          git push origin HEAD:feature/572_refund_multi_item_allocation
+          exit 1
 
       - name: Run pgTAP suite
         run: supabase test db
@@ -56,7 +65,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           rm -f .github/scripts/issue-572-db-fix.py \
-            .github/workflows/issue-572-db-verify.yml
+            .github/workflows/issue-572-db-verify.yml \
+            .github/issue-572-supabase-start.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
