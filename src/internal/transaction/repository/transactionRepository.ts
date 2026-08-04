@@ -34,6 +34,7 @@ import { isThemeColorKey } from "theme/themeColorTokens";
 export type TransactionItemInput = {
   amount: number;
   categoryId: string;
+  id?: string;
   refundedItemId?: string | null;
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
@@ -1083,6 +1084,7 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
   return items.map((item) => ({
     amount: item.amount,
     categoryId: item.categoryId,
+    id: item.id ?? null,
     refundedItemId: item.refundedItemId ?? null,
     reimbursementItemIds: item.reimbursementItemIds ?? [],
     specialStatus: toTransactionSpecialStatusStorageValue(

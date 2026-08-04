@@ -347,6 +347,13 @@ begin
     for v_item in select * from jsonb_array_elements(p_items)
     loop
         begin
+            v_transaction_item_id := nullif(v_item ->> 'id', '')::uuid;
+        exception when invalid_text_representation then
+            raise exception 'items_invalid'
+                using errcode = '22023', detail = 'items_invalid';
+        end;
+
+        begin
             v_item_amount := (v_item ->> 'amount')::numeric(14,2);
             v_item_category_id := (v_item ->> 'categoryId')::uuid;
             v_item_special_status := nullif(
@@ -400,7 +407,13 @@ begin
             else v_item_amount
         end;
 
-        v_transaction_item_id := v_existing_item_ids[v_sort_order + 1];
+        if v_transaction_item_id is not null and (
+            not (v_transaction_item_id = any(v_existing_item_ids))
+            or v_transaction_item_id = any(v_used_item_ids)
+        ) then
+            raise exception 'items_invalid'
+                using errcode = '22023', detail = 'items_invalid';
+        end if;
 
         if v_transaction_item_id is null then
             insert into public.transaction_item (

@@ -86,6 +86,11 @@ export function TransactionItemsSection({
                       value={item.categoryId}
                     />
                     <input
+                      name="itemPersistedId"
+                      type="hidden"
+                      value={item.persistedId ?? ""}
+                    />
+                    <input
                       name="itemSpecialStatus"
                       type="hidden"
                       value={item.specialStatus ?? ""}
