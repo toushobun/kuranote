@@ -121,7 +121,8 @@ export function createSupabaseTransactionIncomeLinkRepository(
         );
       }
 
-      const refundedItems = (refundedItemResult.data ?? []) as LinkedItemRow[];
+      const refundedItems = (refundedItemResult.data ??
+        []) as LinkedItemRow[];
       const allItems = [...reimbursementItems, ...refundedItems];
       const transactionRecordIds = [
         ...new Set(allItems.map((item) => item.transaction_record_id)),
