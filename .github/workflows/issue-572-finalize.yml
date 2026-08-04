@@ -24,6 +24,9 @@ jobs:
           ref: feature/572_refund_multi_item_allocation
           fetch-depth: 0
 
+      - name: Remove temporary reports
+        run: rm -f .github/issue-572-vitest.json
+
       - name: Apply final tests
         run: python .github/scripts/issue-572-finalize.py
 
@@ -77,12 +80,16 @@ jobs:
 
       - name: Stop local Supabase
         if: always()
-        run: supabase stop --no-backup > /dev/null 2>&1
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase stop --no-backup > /dev/null 2>&1 || true
+          fi
 
       - name: Commit final tests and snapshot
         if: github.event_name == 'pull_request'
         run: |
-          rm -f .github/scripts/issue-572-finalize.py \
+          rm -f .github/issue-572-vitest.json \
+            .github/scripts/issue-572-finalize.py \
             .github/workflows/issue-572-finalize.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
