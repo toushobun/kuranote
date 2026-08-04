@@ -78,7 +78,7 @@ export type TransactionServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantQueryService: MerchantQueryService;
-  transactionIncomeLinkRepository: TransactionIncomeLinkRepository;
+  transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
   transactionRepository: TransactionCommandRepository &
     TransactionFilterOptionsRepository &
     TransactionFormRepository &
