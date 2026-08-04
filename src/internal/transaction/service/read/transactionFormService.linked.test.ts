@@ -100,7 +100,10 @@ describe("getEditTransactionView linked restriction", () => {
         settled_by_item_id: "00000000-0000-4000-8000-000000008003",
       },
     ],
-    ["作为退款对象", { has_refund_link: true, is_refund_income: false }],
+    [
+      "作为退款对象",
+      { has_refund_link: true, is_refund_income: false },
+    ],
   ])("%s 返回整体只读态", async (_label, itemOverrides) => {
     const view = await getEditTransactionView(
       createDependencies({ itemOverrides }),
