@@ -97,7 +97,8 @@ export function createSupabaseTransactionIncomeLinkRepository(
       }
 
       const refundLinks = (refundLinkResult.data ?? []) as RefundLinkRow[];
-      const reimbursementItems = (reimbursementResult.data ?? []) as LinkedItemRow[];
+      const reimbursementData = reimbursementResult.data ?? [];
+      const reimbursementItems = reimbursementData as LinkedItemRow[];
       const refundedItemIds = [
         ...new Set(refundLinks.map((link) => link.refunded_item_id)),
       ];
@@ -192,7 +193,9 @@ function buildLinkedItem(
   item: LinkedItemRow,
   transactionAtByRecordId: Map<string, string>,
 ): TransactionIncomeLinkedItem | null {
-  const transactionAt = transactionAtByRecordId.get(item.transaction_record_id);
+  const transactionAt = transactionAtByRecordId.get(
+    item.transaction_record_id,
+  );
   if (!transactionAt || !item.category_id) return null;
 
   return {
