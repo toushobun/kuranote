@@ -72,6 +72,7 @@ export function TransactionItemsSection({
               const categoryLabel = item.category
                 ? formatCategoryName(item.category)
                 : "请选择分类";
+              const businessStatus = item.businessStatus ?? item.specialStatus;
 
               return (
                 <Box
@@ -152,9 +153,9 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {item.specialStatus ? (
+                      {businessStatus ? (
                         <TransactionBusinessBadge
-                          status={item.specialStatus}
+                          status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />
                       ) : null}
