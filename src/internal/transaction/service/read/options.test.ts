@@ -74,4 +74,37 @@ describe("buildFormCategoryOptions", () => {
       },
     ]);
   });
+
+  it("父分类不存在时仍保留子分类", () => {
+    const rows = [
+      createCategory({
+        id: "orphan-child",
+        name: "孤立分类",
+        parent_id: "missing-parent",
+      }),
+      createCategory({
+        id: "food-lunch",
+        name: "午饭",
+        parent_id: "food",
+      }),
+      createCategory({ id: "food", name: "食品" }),
+    ];
+
+    expect(buildFormCategoryOptions(rows)).toEqual([
+      {
+        id: "food-lunch",
+        name: "午饭",
+        parentId: "food",
+        parentName: "食品",
+        type: "expense",
+      },
+      {
+        id: "orphan-child",
+        name: "孤立分类",
+        parentId: "missing-parent",
+        parentName: null,
+        type: "expense",
+      },
+    ]);
+  });
 });
