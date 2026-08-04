@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type {
   TransactionAccountOption,
+  TransactionBusinessStatus,
   TransactionCategoryOption,
   TransactionMerchantOption,
   TransactionGroupPage,
@@ -49,9 +50,13 @@ export type TransactionFormProps = {
 
 export type TransactionFormInitialItem = {
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id?: string;
+  refundCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
+  refundedItemId?: string | null;
+  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatusValue | null;
 };
 
@@ -67,6 +72,7 @@ export type TransactionFormInitialValues = {
 
 export type TransactionFormItem = {
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id: number;
   persistedId?: string;
