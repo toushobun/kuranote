@@ -22,7 +22,7 @@ jobs:
       - name: Check finalization scope
         id: scope
         run: |
-          if [ -f supabase/migrations/20260805020000_support_refund_allocation_edit.sql ]; then
+          if grep -q "export function toRefundMinorUnits" src/internal/transaction/util/refundAllocation.ts; then
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
@@ -36,13 +36,58 @@ jobs:
           git checkout -- .github/workflows/migration-check.yml
           python - <<'PY'
           from pathlib import Path
-          path = Path('.github/scripts/issue-572-self-review.py')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace('      message: "报销和退款关联只能在新建收入交易时设置。",', '        "报销和退款关联只能在新建收入交易时设置。",')
-          text = text.replace('      message: "报销关联只能在新建收入交易时设置。",', '        "报销关联只能在新建收入交易时设置。",')
-          path.write_text(text, encoding='utf-8')
+
+          script_path = Path('.github/scripts/issue-572-self-review.py')
+          script = script_path.read_text(encoding='utf-8')
+          script = script.replace(
+              '      message: "报销和退款关联只能在新建收入交易时设置。",',
+              '        "报销和退款关联只能在新建收入交易时设置。",',
+          )
+          script = script.replace(
+              '      message: "报销关联只能在新建收入交易时设置。",',
+              '        "报销关联只能在新建收入交易时设置。",',
+          )
+          script_path.write_text(script, encoding='utf-8')
           PY
           python .github/scripts/issue-572-self-review.py
+          rm -f supabase/migrations/20260805020000_support_refund_allocation_edit.sql
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/refund_allocation_edit.test.sql')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              '    income_category.id as income_category_id,\n    expense_item.created_by as user_id',
+              '    income_category.id as income_category_id,\n    merchant.id as merchant_id,\n    expense_item.created_by as user_id',
+          )
+          text = text.replace(
+              ') income_category on true\nlimit 1;',
+              ") income_category on true\njoin lateral (\n"
+              "    select m.id\n"
+              "    from public.merchant m\n"
+              "    where m.ledger_id = expense_item.ledger_id\n"
+              "      and m.is_archived = false\n"
+              "    limit 1\n"
+              ") merchant on true\nlimit 1;",
+          )
+          text = text.replace(
+              "    null,\n    '退款编辑测试',",
+              "    merchant_id,\n    '退款编辑测试',",
+          )
+          text = text.replace(
+              "            null,\n            '编辑后'",
+              "            (select merchant_id from test_refund_edit_context),\n            '编辑后'",
+          )
+          text = text.replace(
+              "            null,\n            '无效编辑'",
+              "            (select merchant_id from test_refund_edit_context),\n            '无效编辑'",
+          )
+          text = text.replace(
+              "            null,\n            '取消退款关联'",
+              "            (select merchant_id from test_refund_edit_context),\n            '取消退款关联'",
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
 
       - uses: actions/setup-node@v4
         if: steps.scope.outputs.run == 'true'
