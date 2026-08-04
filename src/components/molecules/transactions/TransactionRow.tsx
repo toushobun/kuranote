@@ -6,7 +6,9 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
 
+import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { serverFallbackTimeZone } from "config/dateTime";
+import type { TransactionBusinessStatus } from "internal/transaction";
 import { themeColorTokens } from "theme/themeColorTokens";
 import type {
   CategorySummaryItem,
@@ -63,6 +65,7 @@ export function TransactionRow({
     (sum, category) => sum + Number(category.refundedAmount ?? 0),
     0,
   );
+  const businessStatuses = getBusinessStatuses(item.categoryItems);
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
     getBrowserTimeZone,
@@ -211,8 +214,34 @@ export function TransactionRow({
           {detailText}
         </Typography>
       ) : null}
+
+      {businessStatuses.length > 0 ? (
+        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+          {businessStatuses.map((status) => (
+            <TransactionBusinessBadge
+              key={status}
+              status={status}
+              sx={businessBadgeSx}
+            />
+          ))}
+        </Stack>
+      ) : null}
     </Stack>
   );
+}
+
+function getBusinessStatuses(
+  categoryItems: CategorySummaryItem[],
+): TransactionBusinessStatus[] {
+  return [
+    ...new Set(
+      categoryItems
+        .map((category) => category.businessStatus)
+        .filter(
+          (status): status is TransactionBusinessStatus => status !== null && status !== undefined,
+        ),
+    ),
+  ];
 }
 
 function formatRowAmount(item: TransactionRowItem) {
@@ -320,3 +349,9 @@ function getBrowserTimeZone() {
 function getServerTimeZone() {
   return serverFallbackTimeZone;
 }
+
+const businessBadgeSx = {
+  fontSize: "0.625rem",
+  height: 20,
+  "& .MuiChip-label": { px: 0.75 },
+};
