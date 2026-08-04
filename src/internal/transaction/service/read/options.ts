@@ -107,14 +107,15 @@ export function buildFormCategoryOptions(
     childRowsByParentId.set(row.parent_id, [row]);
   }
 
-  const categoryOptions = parentRows.flatMap((parentRow) =>
-    (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      parentId: parentRow.id,
-      parentName: parentRow.name,
-      type: row.type,
-    })),
+  const categoryOptions: TransactionCategoryOption[] = parentRows.flatMap(
+    (parentRow) =>
+      (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        parentId: parentRow.id,
+        parentName: parentRow.name,
+        type: row.type,
+      })),
   );
 
   for (const row of rows) {
