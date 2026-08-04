@@ -1,5 +1,6 @@
 import type { CategoryType } from "internal/category";
 import type {
+  TransactionBusinessStatus,
   TransactionRecordStorageType,
   TransactionReimbursementCandidate,
   TransactionSpecialStatusFilterValue,
@@ -20,6 +21,7 @@ export const transactionTypeOptions = [
   { label: "收入", value: "income" },
 ] as const;
 
+export type { TransactionBusinessStatus };
 export type { TransactionRecordStorageType, TransactionType };
 export type TransactionRecordType = TransactionType | "transfer";
 // 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的展示类型区分。
@@ -63,11 +65,12 @@ export const defaultTransactionFilters = {
 
 export type CategorySummaryItem = {
   accountId?: string;
-  categoryName: string;
-  parentCategoryName: string | null;
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
+  categoryName: string;
   categoryType?: TransactionCategoryType;
   id?: string;
+  parentCategoryName: string | null;
   refundedAmount?: string;
   remainingRefundableAmount?: string;
 };
