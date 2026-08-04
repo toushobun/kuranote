@@ -266,12 +266,16 @@ select throws_ok(
     '转账明细不能作为被退款支出明细'
 );
 
+-- 该文件后续会单独验证“存在活跃状态时禁止关闭”。此处仅建立
+-- 功能关闭场景，因此绕过关闭保护触发器，避免本地种子状态干扰前置条件。
+set local session_replication_role = replica;
 update public.ledger
 set transaction_item_special_status_enabled = false
 where id = (
     select ledger_id from public.transaction_item
     where id = '55110000-0000-4000-8000-000000000001'
 );
+set local session_replication_role = origin;
 
 select throws_ok(
     $$

@@ -31,7 +31,7 @@ declare
     v_requested_count integer;
     v_updated_count integer;
     v_special_status_enabled boolean;
-    v_refund_allocations jsonb := coalesce(p_item -> 'refundAllocations', '[]'::jsonb);
+    v_refund_allocations jsonb;
     v_refund_count integer := 0;
     v_refund_distinct_count integer := 0;
     v_refund_total numeric(14,2) := 0;
@@ -39,6 +39,32 @@ declare
     v_locked_count integer := 0;
     v_invalid_count integer := 0;
 begin
+    v_refund_allocations := p_item -> 'refundAllocations';
+
+    -- 数据库迁移与前端发布并非原子操作。旧页面仍可能提交单个
+    -- refundedItemId，因此在数据库边界将其规范化为全额单目标分摊。
+    if v_refund_allocations is null
+       and nullif(p_item ->> 'refundedItemId', '') is not null then
+        select ti.amount
+        into v_income_amount
+        from public.transaction_item ti
+        join public.transaction_record tr
+          on tr.id = ti.transaction_record_id
+         and tr.ledger_id = ti.ledger_id
+         and tr.status = 'active'
+        where ti.id = p_income_item_id
+          and ti.ledger_id = p_ledger_id;
+
+        v_refund_allocations := jsonb_build_array(
+            jsonb_build_object(
+                'refundedItemId', p_item ->> 'refundedItemId',
+                'refundAmount', v_income_amount
+            )
+        );
+    end if;
+
+    v_refund_allocations := coalesce(v_refund_allocations, '[]'::jsonb);
+
     v_reimbursement_ids := array(
         select value::uuid
         from jsonb_array_elements_text(
@@ -229,7 +255,7 @@ begin
         if exists (
             select 1
             from public.transaction_item ti
-            join public.category c
+            left join public.category c
               on c.id = ti.category_id
              and c.ledger_id = ti.ledger_id
             join public.account a
