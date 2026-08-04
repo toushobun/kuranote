@@ -81,18 +81,27 @@ export function useTransactionSearch({
       return;
     }
     setSubmittedQuery(nextQuery);
-    setSearchError(null);
-    setLoadMoreError(null);
     if (!nextQuery || !loadSearchPageAction) {
+      setSearchError(null);
+      setLoadMoreError(null);
       setItems([]);
       setNextOffset(null);
       setTotalCount(0);
       return;
     }
+    loadFirstPage(nextQuery);
+  }
+
+  function loadFirstPage(query: string) {
+    const loadPage = loadSearchPageAction;
+    if (!loadPage) return;
+
     const requestVersion = requestVersionRef.current;
+    setSearchError(null);
+    setLoadMoreError(null);
     startTransition(async () => {
       try {
-        const page = await loadSearchPageAction(nextQuery, 0);
+        const page = await loadPage(query, 0);
         if (requestVersionRef.current !== requestVersion) return;
         setItems(page.items);
         setNextOffset(page.nextOffset);
@@ -105,6 +114,13 @@ export function useTransactionSearch({
         setSearchError(transactionSearchPageErrorMessages.initialLoadFailed);
       }
     });
+  }
+
+  function retrySearch() {
+    if (!submittedQuery || !loadSearchPageAction || isPending) return;
+
+    requestVersionRef.current += 1;
+    loadFirstPage(submittedQuery);
   }
 
   function clearSearch() {
@@ -162,6 +178,7 @@ export function useTransactionSearch({
     loadMoreError,
     loadMoreResults,
     nextOffset,
+    retrySearch,
     searchError,
     setInputValue,
     submitSearch,

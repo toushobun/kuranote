@@ -95,6 +95,14 @@ export type TransactionDashboardSummaryItem = Pick<
   | "transaction_record_id"
 >;
 
+type TransactionDashboardSummaryRepositoryRow = Omit<
+  TransactionDashboardSummaryItem,
+  "amount" | "refunded_amount"
+> & {
+  amount: number | string;
+  refunded_amount?: number | string | null;
+};
+
 export type TransactionDashboardCategory = Pick<
   CategorySummaryDbRow,
   "id" | "type"
@@ -898,7 +906,11 @@ export function createSupabaseTransactionRepository(
         );
       }
 
-      const items = (itemData ?? []) as TransactionDashboardSummaryItem[];
+      const items = (itemData ?? []).map((row) =>
+        toTransactionDashboardSummaryItem(
+          row as TransactionDashboardSummaryRepositoryRow,
+        ),
+      );
       const categoryIds = [
         ...new Set(
           items
@@ -1112,10 +1124,30 @@ function toTransactionItemDbRow({
 }: TransactionItemRepositoryRow): TransactionItemDbRow {
   return {
     ...row,
-    amount: String(amount),
-    ...(balanceDelta == null ? {} : { balance_delta: String(balanceDelta) }),
+    amount: toTransactionAmountText(amount),
+    ...(balanceDelta == null
+      ? {}
+      : { balance_delta: toTransactionAmountText(balanceDelta) }),
     ...(refundedAmount == null
       ? {}
-      : { refunded_amount: String(refundedAmount) }),
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
   };
+}
+
+function toTransactionDashboardSummaryItem({
+  amount,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionDashboardSummaryRepositoryRow): TransactionDashboardSummaryItem {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+  };
+}
+
+function toTransactionAmountText(value: number | string) {
+  return String(value);
 }

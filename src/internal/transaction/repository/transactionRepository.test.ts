@@ -633,8 +633,9 @@ describe("TransactionDashboardRepository", () => {
     const itemQuery = createQuery({
       data: [
         {
-          amount: "1200",
+          amount: 1200,
           category_id: categoryId,
+          refunded_amount: 200,
           transaction_record_id: recordId,
         },
       ],
@@ -657,6 +658,7 @@ describe("TransactionDashboardRepository", () => {
         {
           amount: "1200",
           category_id: categoryId,
+          refunded_amount: "200",
           transaction_record_id: recordId,
         },
       ],

@@ -134,8 +134,11 @@ describe("TransactionRefundLinkPicker", () => {
     expect(screen.getByText("输入关键词，快速查找流水")).toBeInTheDocument();
   });
 
-  it("搜索读取失败时显示共享错误态", async () => {
-    const loadSearchPageAction = vi.fn().mockRejectedValue(new Error("failed"));
+  it("搜索读取失败后只重试当前搜索请求", async () => {
+    const loadSearchPageAction = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("failed"))
+      .mockResolvedValueOnce(searchPage);
     render(
       <TransactionRefundLinkPicker
         loadSearchPageAction={loadSearchPageAction}
@@ -155,5 +158,12 @@ describe("TransactionRefundLinkPicker", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("搜索读取失败")).toBeInTheDocument();
     expect(loadSearchPageAction).toHaveBeenCalledWith("7930", 0);
+
+    fireEvent.click(screen.getByRole("button", { name: "重新读取" }));
+
+    expect(
+      await screen.findByRole("button", { name: "选择退款明细 午餐" }),
+    ).toBeInTheDocument();
+    expect(loadSearchPageAction).toHaveBeenNthCalledWith(2, "7930", 0);
   });
 });
