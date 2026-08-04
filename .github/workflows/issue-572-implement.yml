@@ -35,6 +35,7 @@ jobs:
           from pathlib import Path
           path = Path('.github/scripts/issue-572-implement.py')
           text = path.read_text()
+          text = text.replace('if count < minimum:', 'if count == 0:')
           text = text.replace(
               'replace_all(path, "= null,", "= [],", minimum=1)',
               'replace_once(path, "  pickerRefundCandidates = null,\\n", "  pickerRefundCandidates = [],\\n")',
