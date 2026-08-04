@@ -12,9 +12,14 @@ export type TransactionIncomeLinkedItem = {
   transactionRecordId: string;
 };
 
+export type TransactionIncomeRefundAllocation = {
+  refundAmount: string;
+  refundedItem: TransactionIncomeLinkedItem;
+};
+
 export type TransactionIncomeLinkData = {
   incomeItemId: string;
-  refundedItem: TransactionIncomeLinkedItem | null;
+  refundAllocations: TransactionIncomeRefundAllocation[];
   reimbursementItems: TransactionIncomeLinkedItem[];
 };
 
@@ -26,6 +31,7 @@ export interface TransactionIncomeLinkRepository {
 }
 
 type RefundLinkRow = {
+  refund_amount: string;
   refund_income_item_id: string;
   refunded_item_id: string;
 };
@@ -69,7 +75,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
       const [refundLinkResult, reimbursementResult] = await Promise.all([
         supabase
           .from("transaction_item_refund_link")
-          .select("refund_income_item_id, refunded_item_id")
+          .select("refund_income_item_id, refunded_item_id, refund_amount")
           .eq("ledger_id", ledgerId)
           .in("refund_income_item_id", uniqueIncomeItemIds),
         supabase
@@ -97,8 +103,8 @@ export function createSupabaseTransactionIncomeLinkRepository(
       }
 
       const refundLinks = (refundLinkResult.data ?? []) as RefundLinkRow[];
-      const reimbursementData = reimbursementResult.data ?? [];
-      const reimbursementItems = reimbursementData as LinkedItemRow[];
+      const reimbursementItems = (reimbursementResult.data ??
+        []) as LinkedItemRow[];
       const refundedItemIds = [
         ...new Set(refundLinks.map((link) => link.refunded_item_id)),
       ];
@@ -156,9 +162,13 @@ export function createSupabaseTransactionIncomeLinkRepository(
           return linkedItem ? [[linkedItem.id, linkedItem] as const] : [];
         }),
       );
-      const refundLinkByIncomeItemId = new Map(
-        refundLinks.map((link) => [link.refund_income_item_id, link]),
-      );
+      const refundLinksByIncomeItemId = new Map<string, RefundLinkRow[]>();
+      for (const link of refundLinks) {
+        const current =
+          refundLinksByIncomeItemId.get(link.refund_income_item_id) ?? [];
+        current.push(link);
+        refundLinksByIncomeItemId.set(link.refund_income_item_id, current);
+      }
       const reimbursementItemsByIncomeItemId = new Map<
         string,
         TransactionIncomeLinkedItem[]
@@ -174,17 +184,21 @@ export function createSupabaseTransactionIncomeLinkRepository(
         reimbursementItemsByIncomeItemId.set(item.settled_by_item_id, current);
       }
 
-      return uniqueIncomeItemIds.map((incomeItemId) => {
-        const refundLink = refundLinkByIncomeItemId.get(incomeItemId);
-        return {
-          incomeItemId,
-          refundedItem: refundLink
-            ? (linkedItemById.get(refundLink.refunded_item_id) ?? null)
-            : null,
-          reimbursementItems:
-            reimbursementItemsByIncomeItemId.get(incomeItemId) ?? [],
-        };
-      });
+      return uniqueIncomeItemIds.map((incomeItemId) => ({
+        incomeItemId,
+        refundAllocations: (refundLinksByIncomeItemId.get(incomeItemId) ?? [])
+          .flatMap((link) => {
+            const refundedItem = linkedItemById.get(link.refunded_item_id);
+            return refundedItem
+              ? [{ refundAmount: link.refund_amount, refundedItem }]
+              : [];
+          })
+          .sort((left, right) =>
+            left.refundedItem.id.localeCompare(right.refundedItem.id),
+          ),
+        reimbursementItems:
+          reimbursementItemsByIncomeItemId.get(incomeItemId) ?? [],
+      }));
     },
   };
 }

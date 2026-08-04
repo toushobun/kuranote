@@ -223,7 +223,7 @@ export function createTransactionService({
       (item) =>
         (item.specialStatus !== undefined && item.specialStatus !== null) ||
         Boolean(item.reimbursementItemIds?.length) ||
-        Boolean(item.refundedItemId),
+        Boolean(item.refundAllocations?.length),
     );
     if (
       hasSpecialStatusInput &&
@@ -266,7 +266,7 @@ export function createTransactionService({
         );
       }
       const hasReimbursementLinks = Boolean(item.reimbursementItemIds?.length);
-      const hasRefundLink = Boolean(item.refundedItemId);
+      const hasRefundLink = Boolean(item.refundAllocations?.length);
       if (
         (hasReimbursementLinks || hasRefundLink) &&
         categoryType !== "income"
@@ -281,6 +281,30 @@ export function createTransactionService({
           transactionErrorCodes.specialStatusInvalid,
           "同一条收入明细不能同时作为报销和退款。",
         );
+      }
+      if (hasRefundLink) {
+        const allocations = item.refundAllocations ?? [];
+        const targetIds = new Set(
+          allocations.map((allocation) => allocation.refundedItemId),
+        );
+        const totalUnits = allocations.reduce(
+          (sum, allocation) => sum + Math.round(allocation.refundAmount * 100),
+          0,
+        );
+        if (
+          targetIds.size !== allocations.length ||
+          allocations.some(
+            (allocation) =>
+              allocation.refundAmount <= 0 ||
+              !Number.isSafeInteger(allocation.refundAmount * 100),
+          ) ||
+          totalUnits !== Math.round(item.amount * 100)
+        ) {
+          throw new ValidationError(
+            transactionErrorCodes.refundLinkInvalid,
+            "退款分摊金额不正确，请重新选择退款明细。",
+          );
+        }
       }
     }
   }

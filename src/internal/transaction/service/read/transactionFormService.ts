@@ -182,9 +182,8 @@ export async function getEditTransactionView(
         const incomeLink = item.id
           ? incomeLinkByItemId.get(item.id)
           : undefined;
-        const refundCandidate = buildRefundCandidate(
+        const refundCandidates = buildRefundCandidates(
           incomeLink,
-          item,
           options.accountOptions,
           options.categoryOptions,
           currentLedger.baseCurrency,
@@ -199,9 +198,8 @@ export async function getEditTransactionView(
           }),
           categoryId: item.category_id ?? "",
           id: item.id,
-          refundCandidate,
+          refundCandidates,
           refundedAmount: item.refunded_amount ?? "0",
-          refundedItemId: refundCandidate?.id ?? null,
           reimbursementItemIds:
             incomeLink?.reimbursementItems.map((linkedItem) => linkedItem.id) ??
             [],
@@ -268,42 +266,41 @@ function deduplicateCandidates<T extends { id: string }>(items: T[]): T[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
 }
 
-function buildRefundCandidate(
+function buildRefundCandidates(
   incomeLink: TransactionIncomeLinkData | undefined,
-  incomeItem: TransactionItemDbRow,
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
 ) {
-  const refundedItem = incomeLink?.refundedItem;
-  if (!refundedItem) return null;
+  return (incomeLink?.refundAllocations ?? []).map(
+    ({ refundAmount, refundedItem }) => {
+      const account = accounts.find(
+        (option) => option.id === refundedItem.accountId,
+      );
+      const category = categories.find(
+        (option) => option.id === refundedItem.categoryId,
+      );
+      const remainingRefundableAmount = Math.max(
+        0,
+        Number(refundedItem.amount) -
+          Number(refundedItem.refundedAmount) +
+          Number(refundAmount),
+      );
 
-  const account = accounts.find(
-    (option) => option.id === refundedItem.accountId,
+      return {
+        accountCurrency: account?.currency ?? fallbackCurrency,
+        accountId: refundedItem.accountId,
+        amount: refundedItem.amount,
+        categoryName: category?.name ?? "未知分类",
+        id: refundedItem.id,
+        parentCategoryName: category?.parentName ?? null,
+        refundedAmount: refundedItem.refundedAmount,
+        remainingRefundableAmount: String(remainingRefundableAmount),
+        transactionAt: refundedItem.transactionAt,
+        transactionRecordId: refundedItem.transactionRecordId,
+      };
+    },
   );
-  const category = categories.find(
-    (option) => option.id === refundedItem.categoryId,
-  );
-  const refundedAmount = Number(refundedItem.refundedAmount);
-  const incomeAmount = Number(incomeItem.amount);
-  const originalAmount = Number(refundedItem.amount);
-  const remainingRefundableAmount = Math.max(
-    0,
-    originalAmount - refundedAmount + incomeAmount,
-  );
-
-  return {
-    accountCurrency: account?.currency ?? fallbackCurrency,
-    accountId: refundedItem.accountId,
-    amount: refundedItem.amount,
-    categoryName: category?.name ?? "未知分类",
-    id: refundedItem.id,
-    parentCategoryName: category?.parentName ?? null,
-    refundedAmount: refundedItem.refundedAmount,
-    remainingRefundableAmount: String(remainingRefundableAmount),
-    transactionAt: refundedItem.transactionAt,
-    transactionRecordId: refundedItem.transactionRecordId,
-  };
 }
 
 function isValidTransferPair(

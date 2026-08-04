@@ -220,7 +220,12 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundedItemId: "00000000-0000-4000-8000-000000005073",
+            refundAllocations: [
+              {
+                refundAmount: 1200,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+            ],
           },
         ],
       }),
@@ -244,7 +249,12 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundedItemId: "00000000-0000-4000-8000-000000005073",
+            refundAllocations: [
+              {
+                refundAmount: 1200,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+            ],
             reimbursementItemIds: ["00000000-0000-4000-8000-000000005074"],
           },
         ],

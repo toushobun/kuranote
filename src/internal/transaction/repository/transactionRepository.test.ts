@@ -94,7 +94,7 @@ describe("TransactionRepository", () => {
         {
           ...normalInput.items[0],
           id: null,
-          refundedItemId: null,
+          refundAllocations: [],
           reimbursementItemIds: [],
           specialStatus: null,
         },
@@ -138,7 +138,7 @@ describe("TransactionRepository", () => {
           {
             ...normalInput.items[0],
             id: transactionItemId,
-            refundedItemId: null,
+            refundAllocations: [],
             reimbursementItemIds: [],
             specialStatus: null,
           },
@@ -987,7 +987,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       const { repository } = createRepositoryWithRpcError({
         code: "23505",
         databaseError:
-          'duplicate key value violates unique constraint "transaction_item_refund_link_income_unique"',
+          'duplicate key value violates unique constraint "transaction_item_refund_link_income_target_unique"',
       });
       const error = await repository
         .createNormal(normalInput)
@@ -995,7 +995,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ConflictError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.refundLinkInvalid,
-        message: "该收入明细已经关联过一笔退款，请刷新后重试。",
+        message: "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
       });
       if (!(error instanceof ConflictError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({

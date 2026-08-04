@@ -819,7 +819,15 @@ describe("退款关联 FormData 校验", () => {
     formData.set("accountId", "00000000-0000-4000-8000-000000000041");
     formData.append("itemCategoryId", "00000000-0000-4000-8000-000000000101");
     formData.append("itemAmount", "0");
-    formData.append("itemRefundedItemId", refundTargetId);
+    formData.append(
+      "itemRefundAllocations",
+      JSON.stringify([
+        {
+          refundAmount: 0,
+          refundedItemId: refundTargetId,
+        },
+      ]),
+    );
     formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
     formData.set("transactionRecordId", "00000000-0000-4000-8000-000000002001");
     return formData;

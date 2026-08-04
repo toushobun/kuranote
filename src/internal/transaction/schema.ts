@@ -14,6 +14,7 @@ import {
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
+import type { TransactionRefundAllocation } from "internal/transaction/util/refundAllocation";
 
 import {
   invalid,
@@ -59,7 +60,7 @@ export type TransactionFormItemValues = {
   amount: number;
   categoryId: string;
   id?: string;
-  refundedItemId?: string | null;
+  refundAllocations?: TransactionRefundAllocation[];
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
@@ -159,7 +160,9 @@ function parseTransactionItems(
   const submittedReimbursementValues = formData.getAll(
     "itemReimbursementItemIds",
   );
-  const submittedRefundedItemValues = formData.getAll("itemRefundedItemId");
+  const submittedRefundAllocationValues = formData.getAll(
+    "itemRefundAllocations",
+  );
   const specialStatusValues =
     submittedSpecialStatusValues.length === 0
       ? categoryValues.map(() => "")
@@ -173,8 +176,8 @@ function parseTransactionItems(
       categoryValues.length !== submittedPersistedIdValues.length) ||
     (submittedReimbursementValues.length > 0 &&
       categoryValues.length !== submittedReimbursementValues.length) ||
-    (submittedRefundedItemValues.length > 0 &&
-      categoryValues.length !== submittedRefundedItemValues.length)
+    (submittedRefundAllocationValues.length > 0 &&
+      categoryValues.length !== submittedRefundAllocationValues.length)
   ) {
     return invalid(transactionErrorCodes.amountInvalid);
   }
@@ -226,15 +229,21 @@ function parseTransactionItems(
     if (reimbursementItemIds === null) {
       return invalid(transactionErrorCodes.specialStatusInvalid);
     }
-    const refundedItemIdText = String(
-      submittedRefundedItemValues[index] ?? "",
-    ).trim();
-    const refundedItemIdResult = parseOptionalUuidText(
-      refundedItemIdText,
-      transactionErrorCodes.specialStatusInvalid,
+    const refundAllocations = parseRefundAllocations(
+      submittedRefundAllocationValues[index],
     );
-    if (!refundedItemIdResult.ok) return refundedItemIdResult;
-    if (refundedItemIdResult.value && amountResult.value <= 0) {
+    if (refundAllocations === null) {
+      return invalid(transactionErrorCodes.refundLinkInvalid);
+    }
+    if (
+      refundAllocations.length > 0 &&
+      toMinorUnits(
+        refundAllocations.reduce(
+          (sum, allocation) => sum + allocation.refundAmount,
+          0,
+        ),
+      ) !== toMinorUnits(amountResult.value)
+    ) {
       return invalid(transactionErrorCodes.refundLinkInvalid);
     }
 
@@ -243,14 +252,58 @@ function parseTransactionItems(
       categoryId: categoryResult.value,
       ...(persistedIdResult.value ? { id: persistedIdResult.value } : {}),
       ...(reimbursementItemIds.length > 0 ? { reimbursementItemIds } : {}),
-      ...(refundedItemIdResult.value
-        ? { refundedItemId: refundedItemIdResult.value }
-        : {}),
+      ...(refundAllocations.length > 0 ? { refundAllocations } : {}),
       ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
   }
 
   return valid(items);
+}
+
+function parseRefundAllocations(
+  value: FormDataEntryValue | undefined,
+): TransactionRefundAllocation[] | null {
+  if (value === undefined || String(value).trim() === "") return [];
+
+  try {
+    const parsed: unknown = JSON.parse(String(value));
+    if (!Array.isArray(parsed) || parsed.length > 100) return null;
+
+    const allocations: TransactionRefundAllocation[] = [];
+    const ids = new Set<string>();
+    for (const allocation of parsed) {
+      if (!allocation || typeof allocation !== "object") return null;
+      const record = allocation as Record<string, unknown>;
+      const refundedItemId = record.refundedItemId;
+      const refundAmount = record.refundAmount;
+      if (
+        typeof refundedItemId !== "string" ||
+        !z.string().uuid().safeParse(refundedItemId).success ||
+        ids.has(refundedItemId) ||
+        (typeof refundAmount !== "number" && typeof refundAmount !== "string")
+      ) {
+        return null;
+      }
+      const numericAmount = Number(refundAmount);
+      if (
+        !Number.isFinite(numericAmount) ||
+        numericAmount <= 0 ||
+        toMinorUnits(numericAmount) === null
+      ) {
+        return null;
+      }
+      ids.add(refundedItemId);
+      allocations.push({ refundedItemId, refundAmount: numericAmount });
+    }
+    return allocations;
+  } catch {
+    return null;
+  }
+}
+
+function toMinorUnits(value: number) {
+  const units = value * 100;
+  return Number.isSafeInteger(units) ? units : null;
 }
 
 function parseUuidArray(

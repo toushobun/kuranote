@@ -381,15 +381,20 @@ describe("getEditTransactionView income links", () => {
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
           incomeItemId,
-          refundedItem: {
-            accountId,
-            amount: "3000",
-            categoryId,
-            id: linkedExpenseItemId,
-            refundedAmount: "1000",
-            transactionAt: "2026-08-01T01:00:00.000Z",
-            transactionRecordId: "00000000-0000-4000-8000-000000009998",
-          },
+          refundAllocations: [
+            {
+              refundAmount: "1000",
+              refundedItem: {
+                accountId,
+                amount: "3000",
+                categoryId,
+                id: linkedExpenseItemId,
+                refundedAmount: "1000",
+                transactionAt: "2026-08-01T01:00:00.000Z",
+                transactionRecordId: "00000000-0000-4000-8000-000000009998",
+              },
+            },
+          ],
           reimbursementItems: [],
         },
       ]),
@@ -416,11 +421,12 @@ describe("getEditTransactionView income links", () => {
         items: [
           {
             businessStatus: "refund",
-            refundedItemId: linkedExpenseItemId,
-            refundCandidate: {
-              id: linkedExpenseItemId,
-              remainingRefundableAmount: "3000",
-            },
+            refundCandidates: [
+              {
+                id: linkedExpenseItemId,
+                remainingRefundableAmount: "3000",
+              },
+            ],
           },
         ],
       },

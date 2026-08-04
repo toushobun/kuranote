@@ -8,6 +8,7 @@ import type { MouseEvent, RefObject } from "react";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
+import { allocateRefundAmount } from "internal/transaction";
 
 import type {
   TransactionFormItem,
@@ -101,9 +102,14 @@ export function TransactionItemsSection({
                       value={JSON.stringify(item.reimbursementItemIds ?? [])}
                     />
                     <input
-                      name="itemRefundedItemId"
+                      name="itemRefundAllocations"
                       type="hidden"
-                      value={item.refundedItemId ?? ""}
+                      value={JSON.stringify(
+                        allocateRefundAmount(
+                          item.amount,
+                          item.refundCandidates ?? [],
+                        ) ?? [],
+                      )}
                     />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}

@@ -25,6 +25,7 @@ import type {
 } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionSpecialStatusFilterValue } from "internal/transaction/entity/transactionSpecialStatus";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import type { TransactionRefundAllocation } from "internal/transaction/util/refundAllocation";
 import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
@@ -35,7 +36,7 @@ export type TransactionItemInput = {
   amount: number;
   categoryId: string;
   id?: string;
-  refundedItemId?: string | null;
+  refundAllocations?: TransactionRefundAllocation[];
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
@@ -267,6 +268,7 @@ const transactionRpcErrorCodes = [
   "refund_currency_mismatch",
   "refund_account_mismatch",
   "refund_amount_exceeded",
+  "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
   "reimbursement_amount_mismatch",
   "refunded_item_special_status_conflict",
@@ -410,7 +412,14 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "refund_amount_exceeded") {
       throw new ConflictError(
         transactionErrorCodes.refundAmountExceeded,
-        "退款金额超过该明细的剩余可退金额，请调整金额后重试。",
+        "退款金额超过所选明细的剩余可退金额，请重新选择。",
+      );
+    }
+
+    if (rpcErrorCode === "refund_allocation_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款分摊结果不正确，请重新选择退款明细。",
       );
     }
 
@@ -501,7 +510,7 @@ export function createSupabaseTransactionRepository(
     if (error.code === "23505") {
       throw new ConflictError(
         transactionErrorCodes.refundLinkInvalid,
-        "该收入明细已经关联过一笔退款，请刷新后重试。",
+        "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
       );
     }
 
@@ -1108,7 +1117,7 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
     amount: item.amount,
     categoryId: item.categoryId,
     id: item.id ?? null,
-    refundedItemId: item.refundedItemId ?? null,
+    refundAllocations: item.refundAllocations ?? [],
     reimbursementItemIds: item.reimbursementItemIds ?? [],
     specialStatus: toTransactionSpecialStatusStorageValue(
       item.specialStatus ?? null,

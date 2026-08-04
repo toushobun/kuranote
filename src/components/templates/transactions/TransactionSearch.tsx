@@ -48,6 +48,7 @@ export type TransactionSearchTemplateProps = {
   onClose?: () => void;
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  selectedRefundItemIds?: string[];
 };
 
 export function TransactionSearchTemplate({
@@ -59,6 +60,7 @@ export function TransactionSearchTemplate({
   onClose,
   onSelectRefundItem,
   refundSelectionMode = false,
+  selectedRefundItemIds = [],
 }: TransactionSearchTemplateProps) {
   const search = useTransactionSearch({
     initialPage,
@@ -150,6 +152,7 @@ export function TransactionSearchTemplate({
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectRefundItem}
+                selectedIds={selectedRefundItemIds}
               />
             ) : (
               <SearchResultList
