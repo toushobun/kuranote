@@ -7,11 +7,12 @@ on:
     paths:
       - supabase/migrations/20260805010000_support_refund_multi_item_allocation.sql
       - supabase/tests/database/**
+      - .github/scripts/issue-572-db-fix.py
       - .github/workflows/issue-572-db-verify.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -22,6 +23,12 @@ jobs:
         with:
           ref: feature/572_refund_multi_item_allocation
           fetch-depth: 0
+
+      - name: Apply compatibility fix
+        run: python .github/scripts/issue-572-db-fix.py
+
+      - name: Check SQL diff
+        run: git diff --check
 
       - uses: supabase/setup-cli@v2
         with:
@@ -41,3 +48,12 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup > /dev/null 2>&1
+
+      - name: Commit compatibility fix
+        run: |
+          rm -f .github/scripts/issue-572-db-fix.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: 兼容旧退款单选载荷"
+          git push origin HEAD:feature/572_refund_multi_item_allocation
