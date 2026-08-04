@@ -6,10 +6,8 @@ on:
       - feature/572_refund_multi_item_allocation
     paths:
       - .github/scripts/issue-572-finalize.py
+      - .github/scripts/issue-572-self-review.py
       - .github/workflows/issue-572-finalize.yml
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -24,11 +22,12 @@ jobs:
           ref: feature/572_refund_multi_item_allocation
           fetch-depth: 0
 
-      - name: Remove temporary reports
-        run: rm -f .github/issue-572-vitest.json
-
-      - name: Apply final tests
-        run: python .github/scripts/issue-572-finalize.py
+      - name: Prepare tests and self-review fixes
+        run: |
+          rm -f .github/issue-572-vitest.json
+          python .github/scripts/issue-572-finalize.py
+          git checkout -- .github/workflows/migration-check.yml
+          python .github/scripts/issue-572-self-review.py
 
       - uses: actions/setup-node@v4
         with:
@@ -39,7 +38,7 @@ jobs:
         run: npm ci
 
       - name: Format
-        run: npx prettier --write src .github/workflows/migration-check.yml
+        run: npx prettier --write src
 
       - name: Check diff
         run: git diff --check
@@ -85,14 +84,10 @@ jobs:
             supabase stop --no-backup > /dev/null 2>&1 || true
           fi
 
-      - name: Commit final tests and snapshot
-        if: github.event_name == 'pull_request'
+      - name: Commit implementation and tests
         run: |
-          rm -f .github/issue-572-vitest.json \
-            .github/scripts/issue-572-finalize.py \
-            .github/workflows/issue-572-finalize.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "test: 补充退款多明细分摊测试与数据库快照"
+          git add src supabase
+          git commit -m "fix: 完善退款分摊编辑与金额校验"
           git push origin HEAD:feature/572_refund_multi_item_allocation
