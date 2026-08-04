@@ -34,6 +34,14 @@ jobs:
           rm -f .github/issue-572-vitest.json
           python .github/scripts/issue-572-finalize.py
           git checkout -- .github/workflows/migration-check.yml
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/issue-572-self-review.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('      message: "报销和退款关联只能在新建收入交易时设置。",', '        "报销和退款关联只能在新建收入交易时设置。",')
+          text = text.replace('      message: "报销关联只能在新建收入交易时设置。",', '        "报销关联只能在新建收入交易时设置。",')
+          path.write_text(text, encoding='utf-8')
+          PY
           python .github/scripts/issue-572-self-review.py
 
       - uses: actions/setup-node@v4
