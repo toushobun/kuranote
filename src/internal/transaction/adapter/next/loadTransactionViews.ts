@@ -47,9 +47,19 @@ export async function loadNewTransactionView() {
 export async function loadEditTransactionView(transactionRecordId: string) {
   if (!uuidPattern.test(transactionRecordId)) notFound();
   const { currentLedger, service } = await getContext();
-  const view = await service.getEditView(currentLedger, transactionRecordId);
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
+  const [view, refundPickerView] = await Promise.all([
+    service.getEditView(currentLedger, transactionRecordId),
+    specialStatusEnabled
+      ? service.getGroupView(currentLedger, "month", {
+          recordType: "refundableExpense",
+        })
+      : Promise.resolve(undefined),
+  ]);
   if (!view) notFound();
-  return view;
+  return { ...view, refundPickerView };
 }
 
 export async function loadTransactionFilterOptions() {
