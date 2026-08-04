@@ -4,13 +4,14 @@ import Stack from "@mui/material/Stack";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 
 const accountLoadingRows = 4;
 
 export default function AccountsLoadingPage() {
   return (
     <Box aria-busy="true" aria-label="账户数据加载中" role="status">
-      <Box aria-hidden="true" sx={pageBackgroundSx} />
+      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
       <PageShell maxWidth="xs">
         <Stack spacing={1.35}>
           <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
@@ -68,10 +69,3 @@ export default function AccountsLoadingPage() {
     </Box>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};

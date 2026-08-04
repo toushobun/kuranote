@@ -23,6 +23,7 @@ import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/Accoun
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import {
   accountTypeOptions,
   type AccountActionState,
@@ -169,7 +170,7 @@ export function AccountsTemplate({
       <Box
         aria-hidden="true"
         data-testid="accounts-page-background"
-        sx={pageBackgroundSx}
+        sx={fullViewportPageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={accountsPageShellSx}>
         <Stack spacing={1.35}>
@@ -303,13 +304,6 @@ function AccountTypeFilterChip({
 const headerIconButtonSx = {
   color: "text.primary",
   mt: 0.2,
-};
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
 };
 
 const accountsPageShellSx = {
