@@ -7,6 +7,9 @@ on:
     paths:
       - .github/scripts/issue-572-implement.py
       - .github/workflows/issue-572-implement.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -67,6 +70,7 @@ jobs:
         run: npm run build
 
       - name: Commit implementation
+        if: github.event_name == 'pull_request'
         run: |
           rm -f .github/scripts/issue-572-implement.py .github/workflows/issue-572-implement.yml
           git config user.name "github-actions[bot]"
