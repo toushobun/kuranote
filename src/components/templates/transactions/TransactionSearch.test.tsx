@@ -96,7 +96,9 @@ describe("TransactionSearchTemplate", () => {
   it("显示搜索框和搜索结果条数", () => {
     renderSearch();
 
-    expect(screen.getByLabelText("搜索关键词")).toHaveValue("便利店");
+    const input = screen.getByLabelText("搜索关键词");
+    expect(input).toHaveValue("便利店");
+    expect(input.parentElement).toHaveStyle({ fontSize: "16px" });
     expect(screen.getByText("共 1 条结果")).toBeInTheDocument();
     expect(screen.getByText("便利店")).toBeInTheDocument();
   });
