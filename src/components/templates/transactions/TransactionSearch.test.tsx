@@ -142,6 +142,19 @@ describe("TransactionSearchTemplate", () => {
     );
   });
 
+  it("输入关键词时等待表单提交后再搜索", () => {
+    renderSearch();
+    const input = screen.getByLabelText("搜索关键词");
+
+    fireEvent.change(input, { target: { value: "7930" } });
+
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+    expect(routerReplaceMock).toHaveBeenCalledWith(
+      "/transactions/search?q=7930",
+    );
+  });
+
   it("清除按钮清空搜索词", () => {
     renderSearch();
 

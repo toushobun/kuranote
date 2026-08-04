@@ -126,3 +126,23 @@ export const EmptySearchResults: Story = {
     await screen.findByText("没有找到相关流水");
   },
 };
+
+export const SearchError: Story = {
+  name: "搜索读取失败",
+  args: {
+    loadSearchPageAction: async () => {
+      throw new Error("storybook search failure");
+    },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "选择退款明细" }),
+    );
+    await userEvent.click(await screen.findByRole("tab", { name: "搜索" }));
+    await userEvent.type(screen.getByLabelText("搜索关键词"), "7930{Enter}");
+    await screen.findByText("搜索结果读取失败，请稍后重新读取。");
+  },
+};

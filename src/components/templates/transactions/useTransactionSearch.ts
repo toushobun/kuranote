@@ -46,6 +46,7 @@ export function useTransactionSearch({
   const [items, setItems] = useState(initialPage.items);
   const [nextOffset, setNextOffset] = useState(initialPage.nextOffset);
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const hasSubmittedQuery = submittedQuery.length > 0;
@@ -58,6 +59,7 @@ export function useTransactionSearch({
     setItems(initialPage.items);
     setNextOffset(initialPage.nextOffset);
     setTotalCount(initialPage.totalCount);
+    setSearchError(null);
     setLoadMoreError(null);
   }
 
@@ -79,17 +81,27 @@ export function useTransactionSearch({
       return;
     }
     setSubmittedQuery(nextQuery);
-    setLoadMoreError(null);
     if (!nextQuery || !loadSearchPageAction) {
+      setSearchError(null);
+      setLoadMoreError(null);
       setItems([]);
       setNextOffset(null);
       setTotalCount(0);
       return;
     }
+    loadFirstPage(nextQuery);
+  }
+
+  function loadFirstPage(query: string) {
+    const loadPage = loadSearchPageAction;
+    if (!loadPage) return;
+
     const requestVersion = requestVersionRef.current;
+    setSearchError(null);
+    setLoadMoreError(null);
     startTransition(async () => {
       try {
-        const page = await loadSearchPageAction(nextQuery, 0);
+        const page = await loadPage(query, 0);
         if (requestVersionRef.current !== requestVersion) return;
         setItems(page.items);
         setNextOffset(page.nextOffset);
@@ -99,9 +111,16 @@ export function useTransactionSearch({
         setItems([]);
         setNextOffset(null);
         setTotalCount(0);
-        setLoadMoreError(transactionSearchPageErrorMessages.loadMoreFailed);
+        setSearchError(transactionSearchPageErrorMessages.initialLoadFailed);
       }
     });
+  }
+
+  function retrySearch() {
+    if (!submittedQuery || !loadSearchPageAction || isPending) return;
+
+    requestVersionRef.current += 1;
+    loadFirstPage(submittedQuery);
   }
 
   function clearSearch() {
@@ -111,6 +130,7 @@ export function useTransactionSearch({
     setItems([]);
     setNextOffset(null);
     setTotalCount(0);
+    setSearchError(null);
     setLoadMoreError(null);
     if (syncUrl) router.replace(routePaths.transactionsSearch);
   }
@@ -158,6 +178,8 @@ export function useTransactionSearch({
     loadMoreError,
     loadMoreResults,
     nextOffset,
+    retrySearch,
+    searchError,
     setInputValue,
     submitSearch,
     submittedQuery,

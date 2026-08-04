@@ -40,6 +40,15 @@ export type TransactionItemInput = {
   specialStatus?: TransactionSpecialStatus | null;
 };
 
+type TransactionItemRepositoryRow = Omit<
+  TransactionItemDbRow,
+  "amount" | "balance_delta" | "refunded_amount"
+> & {
+  amount: number | string;
+  balance_delta?: number | string | null;
+  refunded_amount?: number | string | null;
+};
+
 export type CreateNormalTransactionInput = {
   accountId: string;
   items: TransactionItemInput[];
@@ -85,6 +94,14 @@ export type TransactionDashboardSummaryItem = Pick<
   | "special_status"
   | "transaction_record_id"
 >;
+
+type TransactionDashboardSummaryRepositoryRow = Omit<
+  TransactionDashboardSummaryItem,
+  "amount" | "refunded_amount"
+> & {
+  amount: number | string;
+  refunded_amount?: number | string | null;
+};
 
 export type TransactionDashboardCategory = Pick<
   CategorySummaryDbRow,
@@ -717,7 +734,9 @@ export function createSupabaseTransactionRepository(
           "交易明细加载失败，请稍后重试。",
         );
       }
-      return (data ?? []) as TransactionItemDbRow[];
+      return (data ?? []).map((row) =>
+        toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+      );
     },
 
     async listPendingReimbursementItems(ledgerId) {
@@ -887,7 +906,11 @@ export function createSupabaseTransactionRepository(
         );
       }
 
-      const items = (itemData ?? []) as TransactionDashboardSummaryItem[];
+      const items = (itemData ?? []).map((row) =>
+        toTransactionDashboardSummaryItem(
+          row as TransactionDashboardSummaryRepositoryRow,
+        ),
+      );
       const categoryIds = [
         ...new Set(
           items
@@ -1091,4 +1114,40 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
       item.specialStatus ?? null,
     ),
   }));
+}
+
+function toTransactionItemDbRow({
+  amount,
+  balance_delta: balanceDelta,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionItemRepositoryRow): TransactionItemDbRow {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    ...(balanceDelta == null
+      ? {}
+      : { balance_delta: toTransactionAmountText(balanceDelta) }),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+  };
+}
+
+function toTransactionDashboardSummaryItem({
+  amount,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionDashboardSummaryRepositoryRow): TransactionDashboardSummaryItem {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+  };
+}
+
+function toTransactionAmountText(value: number | string) {
+  return String(value);
 }
