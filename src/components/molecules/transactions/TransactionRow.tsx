@@ -216,7 +216,12 @@ export function TransactionRow({
       ) : null}
 
       {businessStatuses.length > 0 ? (
-        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          useFlexGap
+          sx={{ flexWrap: "wrap" }}
+        >
           {businessStatuses.map((status) => (
             <TransactionBusinessBadge
               key={status}
@@ -238,7 +243,8 @@ function getBusinessStatuses(
       categoryItems
         .map((category) => category.businessStatus)
         .filter(
-          (status): status is TransactionBusinessStatus => status !== null && status !== undefined,
+          (status): status is TransactionBusinessStatus =>
+            status !== null && status !== undefined,
         ),
     ),
   ];
