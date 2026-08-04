@@ -1,4 +1,4 @@
-name: Finalize issue 572
+name: Diagnose issue 572 database tests
 
 on:
   pull_request:
@@ -7,29 +7,19 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feature/572_refund_multi_item_allocation
           fetch-depth: 0
 
-      - name: Check finalization scope
-        id: scope
-        run: |
-          if grep -q "export function toRefundMinorUnits" src/internal/transaction/util/refundAllocation.ts; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Prepare tests and self-review fixes
-        if: steps.scope.outputs.run == 'true'
+      - name: Prepare implementation and tests
         run: |
           rm -f .github/issue-572-vitest.json
           python .github/scripts/issue-572-finalize.py
@@ -89,78 +79,39 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
-      - uses: actions/setup-node@v4
-        if: steps.scope.outputs.run == 'true'
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        if: steps.scope.outputs.run == 'true'
-        run: npm ci
-
-      - name: Format
-        if: steps.scope.outputs.run == 'true'
-        run: npx prettier --write src
-
-      - name: Check diff
-        if: steps.scope.outputs.run == 'true'
-        run: git diff --check
-
-      - name: Lint
-        if: steps.scope.outputs.run == 'true'
-        run: npm run lint
-
-      - name: Type check
-        if: steps.scope.outputs.run == 'true'
-        run: npm run type-check
-
-      - name: Unit tests
-        if: steps.scope.outputs.run == 'true'
-        run: npm run test -- --run
-
-      - name: Build
-        if: steps.scope.outputs.run == 'true'
-        run: npm run build
-
       - uses: supabase/setup-cli@v2
-        if: steps.scope.outputs.run == 'true'
         with:
           version: v2.106.0
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
-        if: steps.scope.outputs.run == 'true'
         run: |
           if ! supabase start > /tmp/supabase-start.log 2>&1; then
             cat /tmp/supabase-start.log
             exit 1
           fi
 
-      - name: Database tests
-        if: steps.scope.outputs.run == 'true'
+      - name: Run pgTAP with compact failure output
+        shell: bash
         run: |
-          supabase test db
-          bash supabase/tests/database/refund_allocation_concurrency.sh
+          if ! supabase test db > /tmp/issue-572-pgtap.log 2>&1; then
+            echo "===== pgTAP failure summary ====="
+            grep -E -B 4 -A 10 'not ok|FAILED|ERROR|Bail out|psql:' /tmp/issue-572-pgtap.log | tail -n 240 || true
+            echo "===== pgTAP log tail ====="
+            tail -n 160 /tmp/issue-572-pgtap.log
+            exit 1
+          fi
+          cat /tmp/issue-572-pgtap.log
 
-      - name: Update schema snapshot
-        if: steps.scope.outputs.run == 'true'
-        env:
-          CI: "true"
-        run: bash scripts/update-schema-snapshot.sh
+      - name: Run concurrency test with compact failure output
+        shell: bash
+        run: |
+          if ! bash supabase/tests/database/refund_allocation_concurrency.sh > /tmp/issue-572-concurrency.log 2>&1; then
+            cat /tmp/issue-572-concurrency.log
+            exit 1
+          fi
+          cat /tmp/issue-572-concurrency.log
 
       - name: Stop local Supabase
-        if: always() && steps.scope.outputs.run == 'true'
-        run: |
-          if command -v supabase >/dev/null 2>&1; then
-            supabase stop --no-backup > /dev/null 2>&1 || true
-          fi
-
-      - name: Commit implementation and tests
-        if: steps.scope.outputs.run == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src supabase
-          git commit -m "fix: 完善退款分摊编辑与金额校验"
-          git push origin HEAD:feature/572_refund_multi_item_allocation
+        if: always()
+        run: supabase stop --no-backup > /dev/null 2>&1 || true
