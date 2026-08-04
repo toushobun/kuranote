@@ -39,6 +39,15 @@ jobs:
               'replace_all(path, "= null,", "= [],", minimum=1)',
               'replace_once(path, "  pickerRefundCandidates = null,\\n", "  pickerRefundCandidates = [],\\n")',
           )
+          text = text.replace(
+              '''replace_once(
+              path,
+              "      if (ids.length > 0) setPickerRefundCandidates(null);\\n",
+              "      if (ids.length > 0) setPickerRefundCandidates([]);\\n",
+          )
+          ''',
+              '',
+          )
           marker = '# ---------------------------------------------------------------------------\n# 单元测试的现有夹具 API 迁移'
           if marker in text:
               text = text[:text.index(marker)] + 'print("Issue #572 source transformations completed")\n'
