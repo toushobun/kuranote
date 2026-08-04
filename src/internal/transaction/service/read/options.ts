@@ -92,6 +92,7 @@ export function buildFormCategoryOptions(
   rows: CategorySummaryDbRow[],
 ): TransactionCategoryOption[] {
   const parentRows = rows.filter((row) => row.parent_id === null);
+  const parentIds = new Set(parentRows.map((row) => row.id));
   const childRowsByParentId = new Map<string, CategorySummaryDbRow[]>();
 
   for (const row of rows) {
@@ -106,7 +107,7 @@ export function buildFormCategoryOptions(
     childRowsByParentId.set(row.parent_id, [row]);
   }
 
-  return parentRows.flatMap((parentRow) =>
+  const categoryOptions = parentRows.flatMap((parentRow) =>
     (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
       id: row.id,
       name: row.name,
@@ -115,6 +116,20 @@ export function buildFormCategoryOptions(
       type: row.type,
     })),
   );
+
+  for (const row of rows) {
+    if (row.parent_id === null || parentIds.has(row.parent_id)) continue;
+
+    categoryOptions.push({
+      id: row.id,
+      name: row.name,
+      parentId: row.parent_id,
+      parentName: null,
+      type: row.type,
+    });
+  }
+
+  return categoryOptions;
 }
 
 export function buildFilterCategoryOptions(
