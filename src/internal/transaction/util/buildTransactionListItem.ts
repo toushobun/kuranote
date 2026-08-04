@@ -11,6 +11,7 @@ import {
   calculateTransactionRecordDisplayAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
+import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export function buildTransactionListItem({
@@ -80,6 +81,11 @@ export function buildTransactionListItem({
       {
         accountId: item.account_id,
         amount: item.amount,
+        businessStatus: resolveTransactionBusinessStatus({
+          isRefundIncome: item.is_refund_income,
+          isReimbursementIncome: item.is_reimbursement_income,
+          specialStatus: item.special_status ?? null,
+        }),
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
