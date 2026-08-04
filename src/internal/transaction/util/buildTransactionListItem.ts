@@ -76,16 +76,17 @@ export function buildTransactionListItem({
     const parent = category?.parent_id
       ? categoryById.get(category.parent_id)
       : undefined;
+    const businessStatus = resolveTransactionBusinessStatus({
+      isRefundIncome: item.is_refund_income,
+      isReimbursementIncome: item.is_reimbursement_income,
+      specialStatus: item.special_status ?? null,
+    });
 
     return [
       {
         accountId: item.account_id,
         amount: item.amount,
-        businessStatus: resolveTransactionBusinessStatus({
-          isRefundIncome: item.is_refund_income,
-          isReimbursementIncome: item.is_reimbursement_income,
-          specialStatus: item.special_status ?? null,
-        }),
+        ...(businessStatus ? { businessStatus } : {}),
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
