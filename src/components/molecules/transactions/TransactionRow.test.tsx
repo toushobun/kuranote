@@ -382,6 +382,110 @@ describe("TransactionRow", () => {
     expect(screen.queryByText(/^已退款/)).not.toBeInTheDocument();
   });
 
+  describe("业务标签", () => {
+    it("单条明细带业务状态时显示对应标签", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "1234",
+                businessStatus: "refund",
+                categoryName: "退款收入",
+                categoryType: "income",
+                parentCategoryName: "其他收入",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("退款")).toBeInTheDocument();
+    });
+
+    it("多条明细的业务状态重复时只显示一个标签", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: "reimbursement",
+                categoryName: "报销收入一",
+                categoryType: "income",
+                parentCategoryName: "其他收入",
+              },
+              {
+                amount: "634",
+                businessStatus: "reimbursement",
+                categoryName: "报销收入二",
+                categoryType: "income",
+                parentCategoryName: "其他收入",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getAllByText("报销")).toHaveLength(1);
+    });
+
+    it("多条明细带不同业务状态时显示全部对应标签", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: "refund",
+                categoryName: "退款收入",
+                categoryType: "income",
+                parentCategoryName: "其他收入",
+              },
+              {
+                amount: "634",
+                businessStatus: "reimbursement",
+                categoryName: "报销收入",
+                categoryType: "income",
+                parentCategoryName: "其他收入",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("退款")).toBeInTheDocument();
+      expect(screen.getByText("报销")).toBeInTheDocument();
+    });
+
+    it("所有明细都没有业务状态时不显示业务标签", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: null,
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.queryByText("退款")).not.toBeInTheDocument();
+      expect(screen.queryByText("报销")).not.toBeInTheDocument();
+    });
+  });
+
   function stubBrowserTimeZone(timeZone: string) {
     const mockedIntl = Object.create(Intl) as typeof Intl;
     mockedIntl.DateTimeFormat = function DateTimeFormat(

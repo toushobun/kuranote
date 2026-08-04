@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { transactionBusinessStatuses } from "internal/transaction";
 import type { TransactionRowItem } from "types/transactions";
 
 import { TransactionRow } from "./TransactionRow";
@@ -85,6 +86,30 @@ const incomeItem: TransactionRowItem = {
   recorder_name: null,
 };
 
+const [, , refundStatus, reimbursementStatus] = transactionBusinessStatuses;
+
+const businessStatusItem: TransactionRowItem = {
+  ...incomeItem,
+  amount: "35000",
+  categoryItems: [
+    {
+      amount: "15000",
+      businessStatus: refundStatus,
+      categoryName: "退款收入",
+      parentCategoryName: "其他收入",
+      categoryType: "income",
+    },
+    {
+      amount: "20000",
+      businessStatus: reimbursementStatus,
+      categoryName: "报销收入",
+      parentCategoryName: "其他收入",
+      categoryType: "income",
+    },
+  ],
+  merchant_name: "关联收入",
+};
+
 const transferItem: TransactionRowItem = {
   id: "00000000-0000-4000-8000-000000009003",
   type: "transfer",
@@ -129,6 +154,13 @@ export const Income: Story = {
   name: "收入记录",
   args: {
     item: incomeItem,
+  },
+};
+
+export const BusinessStatuses: Story = {
+  name: "退款与报销业务标签",
+  args: {
+    item: businessStatusItem,
   },
 };
 
