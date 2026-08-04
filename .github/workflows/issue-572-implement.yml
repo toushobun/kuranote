@@ -205,7 +205,49 @@ jobs:
         run: npm run lint
 
       - name: Unit tests
-        run: npm run test -- --run
+        id: unit_tests
+        continue-on-error: true
+        run: npm run test -- --run --reporter=json --outputFile=.github/issue-572-vitest.json
+
+      - name: Publish unit test failure summary
+        if: steps.unit_tests.outcome == 'failure'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('.github/issue-572-vitest.json').read_text())
+          lines = []
+          for suite in report.get('testResults', []):
+              failed = [
+                  assertion
+                  for assertion in suite.get('assertionResults', [])
+                  if assertion.get('status') == 'failed'
+              ]
+              if not failed:
+                  continue
+              lines.append(suite.get('name', '<unknown suite>'))
+              for assertion in failed:
+                  title = ' > '.join(
+                      [*assertion.get('ancestorTitles', []), assertion.get('title', '')]
+                  )
+                  lines.append(f'- {title}')
+                  for message in assertion.get('failureMessages', []):
+                      lines.append(message[:4000])
+          Path('.github/issue-572-vitest-summary.txt').write_text(
+              '\n\n'.join(lines) + '\n',
+              encoding='utf-8',
+          )
+          Path('.github/issue-572-vitest.json').unlink(missing_ok=True)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/issue-572-vitest-summary.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 记录退款多选测试失败"
+            git push origin HEAD:feature/572_refund_multi_item_allocation
+          fi
+          exit 1
 
       - name: Build
         run: npm run build
@@ -213,7 +255,9 @@ jobs:
       - name: Commit implementation
         if: github.event_name == 'pull_request'
         run: |
-          rm -f .github/scripts/issue-572-implement.py .github/workflows/issue-572-implement.yml
+          rm -f .github/scripts/issue-572-implement.py \
+            .github/workflows/issue-572-implement.yml \
+            .github/issue-572-vitest-summary.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
