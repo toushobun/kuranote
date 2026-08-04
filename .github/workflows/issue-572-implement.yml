@@ -1,0 +1,76 @@
+name: Implement issue 572
+
+on:
+  push:
+    branches:
+      - feature/572_refund_multi_item_allocation
+    paths:
+      - .github/scripts/issue-572-implement.py
+      - .github/workflows/issue-572-implement.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/572_refund_multi_item_allocation
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare transformation script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/issue-572-implement.py')
+          text = path.read_text()
+          text = text.replace(
+              'replace_all(path, "= null,", "= [],", minimum=1)',
+              'replace_once(path, "  pickerRefundCandidates = null,\\n", "  pickerRefundCandidates = [],\\n")',
+          )
+          marker = '# ---------------------------------------------------------------------------\n# 单元测试的现有夹具 API 迁移'
+          if marker in text:
+              text = text[:text.index(marker)] + 'print("Issue #572 source transformations completed")\n'
+          path.write_text(text)
+          PY
+
+      - name: Apply implementation
+        run: python .github/scripts/issue-572-implement.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format generated changes
+        run: npx prettier --write src supabase/migrations/20260805010000_support_refund_multi_item_allocation.sql
+
+      - name: Check generated diff
+        run: git diff --check
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test -- --run
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit implementation
+        run: |
+          rm -f .github/scripts/issue-572-implement.py .github/workflows/issue-572-implement.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: 支持退款多明细按比例分摊"
+          git push origin HEAD:feature/572_refund_multi_item_allocation
