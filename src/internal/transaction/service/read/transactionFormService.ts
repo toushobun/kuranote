@@ -81,7 +81,8 @@ export async function getEditTransactionView(
   const hasProtectedLinkedItem = items.some(
     (item) =>
       item.special_status === "reimbursed" ||
-      item.settled_by_item_id !== null ||
+      (item.settled_by_item_id !== null &&
+        item.settled_by_item_id !== undefined) ||
       (item.has_refund_link && !item.is_refund_income),
   );
   const canEdit = canModify && !hasProtectedLinkedItem;
