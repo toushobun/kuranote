@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(59);
+select plan(60);
 
 select has_type(
     'public',
@@ -483,20 +483,93 @@ select throws_ok(
         select public.update_transaction(
             (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
             (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
-            'income',
+            'expense',
             now(),
-            jsonb_build_array(jsonb_build_object(
-                'amount', 175,
-                'categoryId', (select category_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005')
-            )),
+            (
+                select jsonb_agg(
+                    jsonb_build_object(
+                        'amount', ti.amount,
+                        'categoryId', ti.category_id,
+                        'refundedItemId', (
+                            select link.refunded_item_id
+                            from public.transaction_item_refund_link link
+                            where link.refund_income_item_id = ti.id
+                        ),
+                        'reimbursementItemIds', coalesce((
+                            select jsonb_agg(settled_item.id order by settled_item.id)
+                            from public.transaction_item settled_item
+                            where settled_item.settled_by_item_id = ti.id
+                        ), '[]'::jsonb),
+                        'specialStatus', ti.special_status
+                    )
+                    order by ti.sort_order, ti.id
+                )
+                from public.transaction_item ti
+                where ti.transaction_record_id = (
+                    select transaction_record_id
+                    from public.transaction_item
+                    where id = '55120000-0000-4000-8000-000000000005'
+                )
+            ),
             (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
-            null,
+            (
+                select tr.merchant_id
+                from public.transaction_record tr
+                join public.transaction_item ti on ti.transaction_record_id = tr.id
+                where ti.id = '55120000-0000-4000-8000-000000000005'
+            ),
             null
         )
     $$,
     'P0001',
     'linked_transaction_edit_forbidden',
-    '结算其他明细的收入交易不能编辑'
+    '完整前端 payload 不能绕过普通编辑流程的收入关联保护'
+);
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            'income',
+            now(),
+            (
+                select jsonb_agg(
+                    jsonb_build_object(
+                        'amount', ti.amount,
+                        'categoryId', ti.category_id,
+                        'refundedItemId', (
+                            select link.refunded_item_id
+                            from public.transaction_item_refund_link link
+                            where link.refund_income_item_id = ti.id
+                        ),
+                        'reimbursementItemIds', coalesce((
+                            select jsonb_agg(settled_item.id order by settled_item.id)
+                            from public.transaction_item settled_item
+                            where settled_item.settled_by_item_id = ti.id
+                        ), '[]'::jsonb),
+                        'specialStatus', ti.special_status
+                    )
+                    order by ti.sort_order, ti.id
+                )
+                from public.transaction_item ti
+                where ti.transaction_record_id = (
+                    select transaction_record_id
+                    from public.transaction_item
+                    where id = '55120000-0000-4000-8000-000000000005'
+                )
+            ),
+            (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            (
+                select tr.merchant_id
+                from public.transaction_record tr
+                join public.transaction_item ti on ti.transaction_record_id = tr.id
+                where ti.id = '55120000-0000-4000-8000-000000000005'
+            ),
+            null
+        )
+    $$,
+    '收入编辑流程可以使用完整前端 payload 维护既有关联'
 );
 
 select throws_ok(

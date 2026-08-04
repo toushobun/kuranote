@@ -3842,14 +3842,7 @@ begin
         raise exception 'items_invalid' using errcode = '22023';
     end if;
 
-    v_is_income_link_edit_request := not exists (
-        select 1
-        from jsonb_array_elements(p_items) item
-        where not (
-            item ? 'reimbursementItemIds'
-            and item ? 'refundedItemId'
-        )
-    );
+    v_is_income_link_edit_request := p_type = 'income';
 
     if not exists (
         select 1 from public.account a
@@ -3882,7 +3875,7 @@ begin
     end if;
 
     -- 被报销、作为报销对象或作为退款对象的支出仍然不可编辑。
-    -- 仅允许维护当前交易中收入明细发起的关联。
+    -- 仅收入编辑流程允许维护当前交易中收入明细发起的关联。
     if exists (
         select 1
         from public.transaction_item ti
