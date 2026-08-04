@@ -33,6 +33,7 @@ import {
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
 import type { TransactionFormProps } from "./TransactionForm.types";
+import { useTransactionIncomeLinks } from "./TransactionIncomeLinksContext";
 import { useTransactionForm } from "./useTransactionForm";
 
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
@@ -61,6 +62,20 @@ export function TransactionForm({
   transactionItemSpecialStatusEnabled = false,
   typeNavigation,
 }: TransactionFormProps) {
+  const incomeLinksContext = useTransactionIncomeLinks();
+  const activeReimbursementCandidates =
+    incomeLinksContext?.reimbursementCandidates ?? reimbursementCandidates;
+  const activeRefundPickerView =
+    incomeLinksContext?.refundPickerView ?? refundPickerView;
+  const activeLoadRefundGroupItemsAction =
+    incomeLinksContext?.loadRefundGroupItemsAction ??
+    loadRefundGroupItemsAction;
+  const activeLoadRefundMoreGroupsAction =
+    incomeLinksContext?.loadRefundMoreGroupsAction ??
+    loadRefundMoreGroupsAction;
+  const activeLoadRefundSearchPageAction =
+    incomeLinksContext?.loadRefundSearchPageAction ??
+    loadRefundSearchPageAction;
   const {
     accountFieldRef,
     allNormalCategoryOptions,
@@ -337,13 +352,13 @@ export function TransactionForm({
         pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
-        reimbursementCandidates={reimbursementCandidates}
-        refundPickerView={refundPickerView}
-        loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-        loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-        loadRefundSearchPageAction={loadRefundSearchPageAction}
+        reimbursementCandidates={activeReimbursementCandidates}
+        refundPickerView={activeRefundPickerView}
+        loadRefundGroupItemsAction={activeLoadRefundGroupItemsAction}
+        loadRefundMoreGroupsAction={activeLoadRefundMoreGroupsAction}
+        loadRefundSearchPageAction={activeLoadRefundSearchPageAction}
         specialStatusEnabled={transactionItemSpecialStatusEnabled}
-        incomeLinksEnabled={!initialValues?.transactionRecordId}
+        incomeLinksEnabled
         onSpecialStatusChange={setPickerSpecialStatus}
       />
     </form>
