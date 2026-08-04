@@ -131,11 +131,11 @@ export async function getEditTransactionView(
   const specialStatusEnabled = Boolean(
     currentLedger.transactionItemSpecialStatusEnabled,
   );
-  const incomeItemIds = items
-    .filter(
-      (item) => item.is_refund_income || item.is_reimbursement_income,
-    )
-    .map((item) => item.id);
+  const incomeItemIds = items.flatMap((item) =>
+    item.id && (item.is_refund_income || item.is_reimbursement_income)
+      ? [item.id]
+      : [],
+  );
   const incomeLinksPromise =
     incomeItemIds.length > 0 && dependencies.transactionIncomeLinkRepository
       ? dependencies.transactionIncomeLinkRepository.listByIncomeItemIds(
@@ -179,7 +179,9 @@ export async function getEditTransactionView(
     initialValues: {
       accountId: items[0]?.account_id ?? "",
       items: items.map((item) => {
-        const incomeLink = incomeLinkByItemId.get(item.id);
+        const incomeLink = item.id
+          ? incomeLinkByItemId.get(item.id)
+          : undefined;
         const refundCandidate = buildRefundCandidate(
           incomeLink,
           item,
