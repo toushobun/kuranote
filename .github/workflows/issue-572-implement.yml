@@ -88,17 +88,19 @@ jobs:
                   'setPickerRefundCandidates(refundCandidate)',
                   'setPickerRefundCandidates([refundCandidate])',
               )
-              text = text.replace(
-                  '''result.current.setPickerRefundCandidates({
-                    ...refundCandidate,
-                    accountId: "account-2",
-                  }),''',
+              text = re.sub(
+                  r'''result\.current\.setPickerRefundCandidates\(\{\s+
+                  \.\.\.refundCandidate,\s+
+                  accountId:\s*"account-2",\s+
+                  \}\)''',
                   '''result.current.setPickerRefundCandidates([
                     {
                       ...refundCandidate,
                       accountId: "account-2",
                     },
-                  ]),''',
+                  ])''',
+                  text,
+                  flags=re.VERBOSE,
               )
               text = text.replace(
                   'expect(result.current.pickerRefundCandidates).toEqual(refundCandidate);',
@@ -143,6 +145,31 @@ jobs:
           patch(
               'src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.tsx',
               update_picker,
+          )
+
+          def update_picker_test(text: str) -> str:
+              text = text.replace(
+                  '''fireEvent.click(screen.getByRole("button", { name: "选择退款明细 午餐" }));
+              expect(onChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                  id: "refund-item-1",
+                  remainingRefundableAmount: "1000",
+                }),
+              );''',
+                  '''fireEvent.click(screen.getByRole("button", { name: "选择退款明细 午餐" }));
+              fireEvent.click(screen.getByRole("button", { name: "完成（1）" }));
+              expect(onChange).toHaveBeenCalledWith([
+                expect.objectContaining({
+                  id: "refund-item-1",
+                  remainingRefundableAmount: "1000",
+                }),
+              ]);''',
+              )
+              return text
+
+          patch(
+              'src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx',
+              update_picker_test,
           )
 
           def update_service_test(text: str) -> str:
