@@ -322,7 +322,14 @@ describe("TransactionRepository", () => {
       error: null,
     });
     const itemQuery = createQuery({
-      data: [{ amount: 1200, transaction_record_id: transactionRecordId }],
+      data: [
+        {
+          amount: 7930,
+          balance_delta: -7930,
+          refunded_amount: 120,
+          transaction_record_id: transactionRecordId,
+        },
+      ],
       error: null,
     });
     const { repository } = createRepository({
@@ -339,10 +346,38 @@ describe("TransactionRepository", () => {
         transactionRecordId,
         transactionRecordId,
       ]),
-    ).resolves.toHaveLength(1);
+    ).resolves.toEqual([
+      {
+        amount: "7930",
+        balance_delta: "-7930",
+        refunded_amount: "120",
+        transaction_record_id: transactionRecordId,
+      },
+    ]);
     expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
       transactionRecordId,
     ]);
+  });
+  it("交易明细查询失败时记录日志并抛出安全仓储错误", async () => {
+    const itemQuery = createQuery({
+      data: null,
+      error: { code: "database_failure", message: "raw database details" },
+    });
+    const { logger, repository } = createRepository({
+      queries: { transaction_item_with_refund: itemQuery },
+    });
+
+    await expect(
+      repository.listItems(ledgerId, [transactionRecordId]),
+    ).rejects.toMatchObject({
+      code: "transaction_items_load_failed",
+      message: "交易明细加载失败，请稍后重试。",
+      name: RepositoryError.name,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[transaction] failed to load transaction items",
+      { databaseCode: "database_failure", ledgerId },
+    );
   });
   it("合并用户资料和账本成员显示设置", async () => {
     const userQuery = createQuery({

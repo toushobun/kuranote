@@ -46,6 +46,7 @@ export function useTransactionSearch({
   const [items, setItems] = useState(initialPage.items);
   const [nextOffset, setNextOffset] = useState(initialPage.nextOffset);
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const hasSubmittedQuery = submittedQuery.length > 0;
@@ -58,6 +59,7 @@ export function useTransactionSearch({
     setItems(initialPage.items);
     setNextOffset(initialPage.nextOffset);
     setTotalCount(initialPage.totalCount);
+    setSearchError(null);
     setLoadMoreError(null);
   }
 
@@ -79,6 +81,7 @@ export function useTransactionSearch({
       return;
     }
     setSubmittedQuery(nextQuery);
+    setSearchError(null);
     setLoadMoreError(null);
     if (!nextQuery || !loadSearchPageAction) {
       setItems([]);
@@ -99,7 +102,7 @@ export function useTransactionSearch({
         setItems([]);
         setNextOffset(null);
         setTotalCount(0);
-        setLoadMoreError(transactionSearchPageErrorMessages.loadMoreFailed);
+        setSearchError(transactionSearchPageErrorMessages.initialLoadFailed);
       }
     });
   }
@@ -111,6 +114,7 @@ export function useTransactionSearch({
     setItems([]);
     setNextOffset(null);
     setTotalCount(0);
+    setSearchError(null);
     setLoadMoreError(null);
     if (syncUrl) router.replace(routePaths.transactionsSearch);
   }
@@ -158,6 +162,7 @@ export function useTransactionSearch({
     loadMoreError,
     loadMoreResults,
     nextOffset,
+    searchError,
     setInputValue,
     submitSearch,
     submittedQuery,

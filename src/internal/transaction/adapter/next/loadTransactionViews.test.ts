@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  loadRefundPickerSearchPage,
   loadStep4TransactionGroupView,
   loadTransactionSearchPage,
   loadEditTransactionView,
@@ -53,7 +54,7 @@ describe("Transaction SSR adapter", () => {
       recordType: "all",
     });
   });
-  it("搜索读取不请求自身 API", async () => {
+  it("两个搜索入口都用纯数字关键词直接调用 Service", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mocks.search.mockResolvedValue({
@@ -61,8 +62,12 @@ describe("Transaction SSR adapter", () => {
       nextOffset: null,
       totalCount: 0,
     });
-    await loadTransactionSearchPage("咖啡", 20);
-    expect(mocks.search).toHaveBeenCalledWith(currentLedger, "咖啡", 20);
+    await loadTransactionSearchPage("7930", 20);
+    await loadRefundPickerSearchPage("7930", 0);
+    expect(mocks.search).toHaveBeenNthCalledWith(1, currentLedger, "7930", 20);
+    expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
+      recordType: "refundableExpense",
+    });
     expect(fetchMock).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });

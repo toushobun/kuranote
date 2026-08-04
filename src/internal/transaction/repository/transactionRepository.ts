@@ -40,6 +40,15 @@ export type TransactionItemInput = {
   specialStatus?: TransactionSpecialStatus | null;
 };
 
+type TransactionItemRepositoryRow = Omit<
+  TransactionItemDbRow,
+  "amount" | "balance_delta" | "refunded_amount"
+> & {
+  amount: number | string;
+  balance_delta?: number | string | null;
+  refunded_amount?: number | string | null;
+};
+
 export type CreateNormalTransactionInput = {
   accountId: string;
   items: TransactionItemInput[];
@@ -717,7 +726,9 @@ export function createSupabaseTransactionRepository(
           "交易明细加载失败，请稍后重试。",
         );
       }
-      return (data ?? []) as TransactionItemDbRow[];
+      return (data ?? []).map((row) =>
+        toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+      );
     },
 
     async listPendingReimbursementItems(ledgerId) {
@@ -1091,4 +1102,20 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
       item.specialStatus ?? null,
     ),
   }));
+}
+
+function toTransactionItemDbRow({
+  amount,
+  balance_delta: balanceDelta,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionItemRepositoryRow): TransactionItemDbRow {
+  return {
+    ...row,
+    amount: String(amount),
+    ...(balanceDelta == null ? {} : { balance_delta: String(balanceDelta) }),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: String(refundedAmount) }),
+  };
 }

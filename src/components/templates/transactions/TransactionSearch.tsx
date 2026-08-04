@@ -66,6 +66,7 @@ export function TransactionSearchTemplate({
     loadSearchPageAction,
     syncUrl: !refundSelectionMode,
   });
+  const displayErrorMessage = errorMessage ?? search.searchError;
 
   return (
     <Box sx={transactionPageFrameSx}>
@@ -120,8 +121,8 @@ export function TransactionSearchTemplate({
 
         {isLoading ? (
           <SearchLoadingState />
-        ) : errorMessage ? (
-          <SearchErrorState errorMessage={errorMessage} />
+        ) : displayErrorMessage ? (
+          <SearchErrorState errorMessage={displayErrorMessage} />
         ) : !search.hasSubmittedQuery ? (
           <SearchEmptyState
             description={searchText.guideDescription}

@@ -133,4 +133,27 @@ describe("TransactionRefundLinkPicker", () => {
     expect(screen.getByLabelText("搜索关键词")).toHaveValue("");
     expect(screen.getByText("输入关键词，快速查找流水")).toBeInTheDocument();
   });
+
+  it("搜索读取失败时显示共享错误态", async () => {
+    const loadSearchPageAction = vi.fn().mockRejectedValue(new Error("failed"));
+    render(
+      <TransactionRefundLinkPicker
+        loadSearchPageAction={loadSearchPageAction}
+        onChange={vi.fn()}
+        value={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
+    fireEvent.click(screen.getByRole("tab", { name: "搜索" }));
+    const input = screen.getByLabelText("搜索关键词");
+    fireEvent.change(input, { target: { value: "7930" } });
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+
+    expect(
+      await screen.findByText("搜索结果读取失败，请稍后重新读取。"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("搜索读取失败")).toBeInTheDocument();
+    expect(loadSearchPageAction).toHaveBeenCalledWith("7930", 0);
+  });
 });

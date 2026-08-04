@@ -60,7 +60,11 @@ function createService(
     repository,
     service: createTransactionService({
       accountQueryService: {
-        getTransactionContext: vi.fn(),
+        getTransactionContext: vi.fn().mockResolvedValue({
+          accountColorById: new Map(),
+          accounts: [],
+          showRecorder: false,
+        }),
         listTransactionOptions: vi.fn(),
       },
       categoryQueryService: {
@@ -83,7 +87,7 @@ function createService(
         getActiveMemberRole: vi.fn().mockResolvedValue(role),
       },
       merchantQueryService: {
-        findSummariesByIds: vi.fn(),
+        findSummariesByIds: vi.fn().mockResolvedValue([]),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,
@@ -392,6 +396,47 @@ describe("TransactionService", () => {
       key: "merchant-1",
       summary: { currency: "JPY", expense: "1200" },
       transactionCount: 1,
+    });
+  });
+
+  it("纯数字关键词 7930 返回金额匹配结果", async () => {
+    const repository = createRepository({
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: "00000000-0000-4000-8000-000000000045",
+          amount: "7930",
+          category_id: normalInput.items[0].categoryId,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listRecords: vi.fn().mockResolvedValue([
+        {
+          created_at: "2026-08-01T10:00:00.000Z",
+          created_by: userId,
+          id: transactionRecordId,
+          merchant_id: null,
+          note: null,
+          transaction_at: "2026-08-01T10:00:00.000Z",
+          type: "normal",
+        },
+      ]),
+    });
+    const { service } = createService("member", repository, "expense");
+
+    const page = await service.search(
+      {
+        baseCurrency: "JPY",
+        currentUserRole: "member",
+        id: ledgerId,
+        name: "家庭账本",
+      },
+      "7930",
+    );
+
+    expect(page).toMatchObject({ nextOffset: null, totalCount: 1 });
+    expect(page.items[0]).toMatchObject({
+      amount: "7930",
+      id: transactionRecordId,
     });
   });
 
