@@ -9,6 +9,9 @@ on:
       - supabase/tests/database/**
       - .github/scripts/issue-572-db-fix.py
       - .github/workflows/issue-572-db-verify.yml
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -50,6 +53,7 @@ jobs:
         run: supabase stop --no-backup > /dev/null 2>&1
 
       - name: Commit compatibility fix
+        if: github.event_name == 'pull_request'
         run: |
           rm -f .github/scripts/issue-572-db-fix.py
           git config user.name "github-actions[bot]"
