@@ -37,6 +37,7 @@ import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInv
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
@@ -137,7 +138,7 @@ export function LedgerSettingsTemplate({
       <Box
         aria-hidden="true"
         data-testid="ledger-settings-page-background"
-        sx={pageBackgroundSx}
+        sx={fullViewportPageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack
@@ -680,13 +681,6 @@ function getVisibleColorOptions(currentColor: ThemeColorKey) {
     ? ledgerMemberColorOptions
     : ([currentColor, ...ledgerMemberColorOptions] as const);
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 0.75 },

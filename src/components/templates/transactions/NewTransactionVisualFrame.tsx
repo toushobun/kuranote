@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import Box from "@mui/material/Box";
 
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export function NewTransactionVisualFrame({
@@ -32,11 +33,8 @@ const transactionPageFrameSx = {
   pt: { xs: 1, sm: 1.5 },
   width: "100%",
   "&::before": {
-    bgcolor: "var(--user-theme-card-bg)",
+    ...fullViewportPageBackgroundSx,
     content: '\"\"',
-    inset: 0,
-    position: "fixed",
-    zIndex: -1,
   },
   "& .MuiToggleButtonGroup-root": {
     bgcolor: "var(--user-theme-segment-bg)",

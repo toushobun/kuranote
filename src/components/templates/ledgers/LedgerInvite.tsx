@@ -20,6 +20,7 @@ import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import type { LedgerInvitePreview } from "internal/ledger";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import type { LedgerInviteRole } from "types/ledgers";
 
 const inviteRoleDescriptions: Record<LedgerInviteRole, string> = {
@@ -95,7 +96,7 @@ export function LedgerInviteTemplate({
 
   return (
     <>
-      <Box aria-hidden="true" sx={pageBackgroundSx} />
+      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack spacing={2.5} sx={{ minHeight: "100dvh", py: 2 }}>
           <Box
@@ -211,13 +212,6 @@ export function LedgerInviteTemplate({
     </>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 1.5, sm: 2 },

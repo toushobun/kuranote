@@ -93,7 +93,11 @@ describe("AccountsTemplate", () => {
 
     expect(
       within(container).getByTestId("accounts-page-background"),
-    ).toBeInTheDocument();
+    ).toHaveStyle({
+      background: "var(--user-theme-page-bg)",
+      inset: "0",
+      position: "fixed",
+    });
   });
 
   it("传入错误信息时显示错误反馈弹窗", () => {
