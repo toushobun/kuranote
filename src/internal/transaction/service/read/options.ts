@@ -91,20 +91,30 @@ async function loadMemberOptions(
 export function buildFormCategoryOptions(
   rows: CategorySummaryDbRow[],
 ): TransactionCategoryOption[] {
-  const parentNameById = new Map(
-    rows
-      .filter((row) => row.parent_id === null)
-      .map((row) => [row.id, row.name]),
-  );
-  return rows
-    .filter((row) => row.parent_id !== null)
-    .map((row) => ({
+  const parentRows = rows.filter((row) => row.parent_id === null);
+  const childRowsByParentId = new Map<string, CategorySummaryDbRow[]>();
+
+  for (const row of rows) {
+    if (row.parent_id === null) continue;
+
+    const childRows = childRowsByParentId.get(row.parent_id);
+    if (childRows) {
+      childRows.push(row);
+      continue;
+    }
+
+    childRowsByParentId.set(row.parent_id, [row]);
+  }
+
+  return parentRows.flatMap((parentRow) =>
+    (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
       id: row.id,
       name: row.name,
-      parentId: row.parent_id,
-      parentName: parentNameById.get(row.parent_id as string) ?? null,
+      parentId: parentRow.id,
+      parentName: parentRow.name,
       type: row.type,
-    }));
+    })),
+  );
 }
 
 export function buildFilterCategoryOptions(
