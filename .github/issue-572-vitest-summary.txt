@@ -1,0 +1,108 @@
+/home/runner/work/kuranote/kuranote/src/internal/transaction/schema.test.ts
+
+- 退款关联 FormData 校验 > FormData 路径拒绝 0 元退款关联
+
+AssertionError: expected { ok: true, value: { …(6) } } to deeply equal { error: 'refund_link_invalid', …(1) }
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/schema.test.ts:829:61
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64
+
+- 退款关联 FormData 校验 > 编辑 FormData 路径拒绝 0 元退款关联
+
+AssertionError: expected { ok: true, value: { …(7) } } to deeply equal { error: 'refund_link_invalid', …(1) }
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/schema.test.ts:836:67
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64
+
+/home/runner/work/kuranote/kuranote/src/internal/transaction/repository/transactionRepository.test.ts
+
+- TransactionRepository > 普通交易创建继续调用原子 RPC
+
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'create_transaction', { …(7) } ][90m
+
+Received:
+
+[1m  1st vi.fn() call:
+
+[22m[33m@@ -5,11 +5,11 @@[90m
+[2m      "p_items": [[22m
+[2m        {[22m
+[2m          "amount": 1200,[22m
+[2m          "categoryId": "00000000-0000-4000-8000-000000005072",[22m
+[2m          "id": null,[22m
+[32m-         "refundedItemId": null,[90m
+[31m+         "refundAllocations": [],[90m
+[2m          "reimbursementItemIds": [],[22m
+[2m          "specialStatus": null,[22m
+[2m        },[22m
+[2m      ],[22m
+[2m      "p_ledger_id": "00000000-0000-4000-8000-000000000032",[22m
+[39m[90m
+
+Number of calls: [1m1[22m
+[39m
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1487:10)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/runner/work/kuranote/kuranote/node_modules/chai/index.js:1700:25)
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/repository/transactionRepository.test.ts:91:17
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+- TransactionRepository > 普通交易和转账更新映射各自 RPC 参数
+
+AssertionError: expected 1st "vi.fn()" call to have been called with [ 'update_transaction', …(1) ]
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/repository/transactionRepository.test.ts:132:17
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+- TransactionRepository 资源边界 > Transaction Repository RPC 错误边界 > 退款关联唯一约束冲突（23505）转换为安全的 ConflictError
+
+AssertionError: expected ConflictError: 同一退款收入不能重复关联同一支出明细，请刷新后重试。 { …(2) } to match object { code: 'refund_link_invalid', …(1) }
+(2 matching properties omitted from actual)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1283:10)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/runner/work/kuranote/kuranote/node_modules/chai/index.js:1700:25)
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/repository/transactionRepository.test.ts:996:21
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+/home/runner/work/kuranote/kuranote/src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx
+
+- TransactionRefundLinkPicker > 父组件重新渲染后保留搜索结果并可选择退款明细
+
+AssertionError: expected "vi.fn()" to be called with arguments: [ [ ObjectContaining{…} ] ][90m
+
+Number of calls: [1m0[22m
+[39m
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1487:10)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/runner/work/kuranote/kuranote/node_modules/chai/index.js:1700:25)
+    at /home/runner/work/kuranote/kuranote/src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx:93:22
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+/home/runner/work/kuranote/kuranote/src/internal/transaction/service/read/transactionFormService.test.ts
+
+- getEditTransactionView income links > 退款收入允许编辑并回填退款对象
+
+AssertionError: expected { accountOptions: [ { …(3) } ], …(8) } to match object { canEdit: true, …(2) }
+(19 matching properties omitted from actual)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1283:10)
+    at Proxy.<anonymous> (file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/expect/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/runner/work/kuranote/kuranote/node_modules/chai/index.js:1700:25)
+    at /home/runner/work/kuranote/kuranote/src/internal/transaction/service/read/transactionFormService.test.ts:412:18
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at file:///home/runner/work/kuranote/kuranote/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
