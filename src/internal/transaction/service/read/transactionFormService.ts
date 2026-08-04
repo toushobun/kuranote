@@ -24,11 +24,11 @@ import {
 
 type TransactionFormReadDependencies =
   TransactionReadDependencies<TransactionFormRepository> & {
-    transactionIncomeLinkRepository: TransactionIncomeLinkRepository;
+    transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
   };
 
 export async function getNewTransactionView(
-  dependencies: TransactionFormReadDependencies,
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
   const specialStatusEnabled = Boolean(
@@ -135,18 +135,20 @@ export async function getEditTransactionView(
       (item) => item.is_refund_income || item.is_reimbursement_income,
     )
     .map((item) => item.id);
+  const incomeLinksPromise =
+    incomeItemIds.length > 0 && dependencies.transactionIncomeLinkRepository
+      ? dependencies.transactionIncomeLinkRepository.listByIncomeItemIds(
+          currentLedger.id,
+          incomeItemIds,
+        )
+      : Promise.resolve([]);
   const [pendingItems, incomeLinks] = await Promise.all([
     specialStatusEnabled
       ? dependencies.transactionRepository.listPendingReimbursementItems(
           currentLedger.id,
         )
       : Promise.resolve([]),
-    incomeItemIds.length > 0
-      ? dependencies.transactionIncomeLinkRepository.listByIncomeItemIds(
-          currentLedger.id,
-          incomeItemIds,
-        )
-      : Promise.resolve([]),
+    incomeLinksPromise,
   ]);
   const incomeLinkByItemId = new Map(
     incomeLinks.map((link) => [link.incomeItemId, link]),
