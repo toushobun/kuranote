@@ -3,12 +3,16 @@ import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
-import type { TransactionSpecialStatus } from "internal/transaction/entity/transactionSpecialStatus";
+import type {
+  TransactionBusinessStatus,
+  TransactionSpecialStatus,
+} from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionCategorySummaryItem = {
   accountId?: string;
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
   categoryName: string;
   categoryType?: CategoryType;
   id?: string;
@@ -126,9 +130,24 @@ export type EditTransactionView = TransactionFormOptions & {
         accountId: string;
         items: {
           amount: string;
+          businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
           id?: string;
+          refundCandidate?: {
+            accountCurrency: string;
+            accountId: string;
+            amount: string;
+            categoryName: string;
+            id: string;
+            parentCategoryName: string | null;
+            refundedAmount: string;
+            remainingRefundableAmount: string;
+            transactionAt: string;
+            transactionRecordId: string;
+          } | null;
           refundedAmount?: string;
+          refundedItemId?: string | null;
+          reimbursementItemIds?: string[];
           specialStatus: TransactionSpecialStatus | null;
         }[];
         merchantId: string;
@@ -138,4 +157,5 @@ export type EditTransactionView = TransactionFormOptions & {
         type: TransactionType;
       };
   ledgerName: string;
+  reimbursementCandidates: TransactionReimbursementCandidate[];
 };
