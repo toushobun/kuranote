@@ -8,9 +8,9 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 
+import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { SoftCard } from "atoms/ui/SoftCard";
-import { TransactionBusinessBadge } from "organisms/transactions/TransactionBusinessBadge/TransactionBusinessBadge";
-import { transactionBusinessBadgeStatuses } from "organisms/transactions/TransactionBusinessBadge/transactionBusinessBadgeConfig";
+import { transactionSpecialStatuses } from "internal/transaction";
 
 // 退款不是 transaction_item.special_status 里的一个状态（它通过金额关联表
 // transaction_item_refund_link 表达，明细上展示的是"已退款 ¥X"这种带金额的
@@ -97,7 +97,7 @@ export function LedgerSpecialStatusSetting({
 
             {enabled ? (
               <Stack direction="row" sx={badgeListSx}>
-                {transactionBusinessBadgeStatuses.map((status) => (
+                {transactionSpecialStatuses.map((status) => (
                   <TransactionBusinessBadge key={status} status={status} />
                 ))}
                 {refundPreviewChips.map((chip) => (

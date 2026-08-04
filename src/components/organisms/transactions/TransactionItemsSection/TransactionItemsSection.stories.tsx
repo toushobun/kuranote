@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { createRef } from "react";
 
+import { transactionSpecialStatuses } from "internal/transaction";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
-import { transactionBusinessBadgeStatuses } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
 import { TransactionItemsSection } from "./TransactionItemsSection";
 
-const itemSummaries: TransactionItemSummary[] =
-  transactionBusinessBadgeStatuses.map((specialStatus, index) => ({
+const itemSummaries: TransactionItemSummary[] = transactionSpecialStatuses.map(
+  (specialStatus, index) => ({
     amount: String((index + 1) * 500),
     category: {
       id: `category-${index}`,
@@ -18,7 +18,8 @@ const itemSummaries: TransactionItemSummary[] =
     categoryId: `category-${index}`,
     id: index + 1,
     specialStatus,
-  }));
+  }),
+);
 
 const meta = {
   title: "Organisms/Transactions/TransactionItemsSection",

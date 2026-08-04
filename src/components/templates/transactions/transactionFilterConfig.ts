@@ -3,10 +3,8 @@ import type {
   TransactionGroupBy,
   TransactionSpecialStatusFilterValue,
 } from "types/transactions";
-import {
-  transactionBusinessBadgeConfig,
-  transactionBusinessBadgeStatuses,
-} from "organisms/transactions/TransactionBusinessBadge/transactionBusinessBadgeConfig";
+import { transactionBusinessBadgeConfig } from "atoms/TransactionBusinessBadge/transactionBusinessBadgeConfig";
+import { transactionSpecialStatuses } from "internal/transaction";
 
 type GroupOption = {
   label: string;
@@ -43,7 +41,7 @@ export const recordTypeOptions = [
 ] as const satisfies readonly RecordTypeOption[];
 
 export const specialStatusFilterOptions = [
-  ...transactionBusinessBadgeStatuses.map((value) => ({
+  ...transactionSpecialStatuses.map((value) => ({
     label: transactionBusinessBadgeConfig[value].label,
     value,
   })),

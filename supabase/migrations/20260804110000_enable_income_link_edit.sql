@@ -9,13 +9,15 @@ declare
     v_category_type text;
     v_settling_item_is_income boolean;
     v_special_status_enabled boolean;
+    v_has_active_refund_link boolean;
     v_is_controlled_unlink boolean;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
         into v_special_status_enabled
         from public.ledger l
-        where l.id = new.ledger_id;
+        where l.id = new.ledger_id
+        for update;
 
         if v_special_status_enabled is distinct from true then
             raise exception 'special_status_invalid'
@@ -29,7 +31,8 @@ begin
         and new.special_status = 'pending_reimbursement'
         and new.settled_by_item_id is null
         and current_user = 'postgres'
-        and current_setting('kuranote.income_link_edit_flow', true) = 'on';
+        and current_setting('kuranote.income_link_edit_flow', true)
+            is not distinct from 'on';
 
     if tg_op = 'UPDATE'
        and old.special_status = 'reimbursed'
@@ -65,6 +68,26 @@ begin
             raise exception 'special_status_invalid'
                 using errcode = '22023', detail = 'special_status_invalid';
         end if;
+
+        select exists (
+            select 1
+            from public.transaction_item_refund_link link
+            join public.transaction_item refund_income
+              on refund_income.id = link.refund_income_item_id
+             and refund_income.ledger_id = link.ledger_id
+            join public.transaction_record refund_record
+              on refund_record.id = refund_income.transaction_record_id
+             and refund_record.ledger_id = refund_income.ledger_id
+            where link.ledger_id = new.ledger_id
+              and link.refunded_item_id = new.id
+              and refund_record.status = 'active'
+        ) into v_has_active_refund_link;
+
+        if v_has_active_refund_link then
+            raise exception 'special_status_refund_conflict'
+                using errcode = '22023', detail = 'special_status_refund_conflict';
+        end if;
+
         return new;
     end if;
 
@@ -179,6 +202,7 @@ declare
     v_transaction_item_id uuid;
     v_balance_delta numeric(14,2);
     v_sort_order integer := 0;
+    v_is_income_link_edit_request boolean;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -199,6 +223,15 @@ begin
     if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
         raise exception 'items_invalid' using errcode = '22023';
     end if;
+
+    v_is_income_link_edit_request := not exists (
+        select 1
+        from jsonb_array_elements(p_items) item
+        where not (
+            item ? 'reimbursementItemIds'
+            and item ? 'refundedItemId'
+        )
+    );
 
     if not exists (
         select 1 from public.account a
@@ -245,6 +278,23 @@ begin
                   from public.transaction_item_refund_link link
                   where link.ledger_id = ti.ledger_id
                     and link.refunded_item_id = ti.id
+              )
+              or (
+                  not v_is_income_link_edit_request
+                  and (
+                      exists (
+                          select 1
+                          from public.transaction_item settled_item
+                          where settled_item.ledger_id = ti.ledger_id
+                            and settled_item.settled_by_item_id = ti.id
+                      )
+                      or exists (
+                          select 1
+                          from public.transaction_item_refund_link link
+                          where link.ledger_id = ti.ledger_id
+                            and link.refund_income_item_id = ti.id
+                      )
+                  )
               )
           )
     ) then

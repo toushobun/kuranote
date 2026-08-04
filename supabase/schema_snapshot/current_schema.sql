@@ -586,6 +586,51 @@ $$;
 ALTER FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_income_category_type text;
+begin
+    select c.type
+    into v_income_category_type
+    from public.transaction_item income_item
+    join public.category c
+      on c.id = income_item.category_id
+     and c.ledger_id = income_item.ledger_id
+    where income_item.id = p_income_item_id
+      and income_item.ledger_id = p_ledger_id
+    for update of income_item;
+
+    if not found or v_income_category_type is distinct from 'income' then
+        raise exception 'income_link_category_invalid'
+            using errcode = '22023', detail = 'income_link_category_invalid';
+    end if;
+
+    perform set_config('kuranote.income_link_edit_flow', 'on', true);
+
+    update public.transaction_item settled_item
+    set special_status = 'pending_reimbursement',
+        settled_by_item_id = null,
+        updated_by = p_user_id,
+        updated_at = now()
+    where settled_item.ledger_id = p_ledger_id
+      and settled_item.settled_by_item_id = p_income_item_id
+      and settled_item.special_status = 'reimbursed';
+
+    delete from public.transaction_item_refund_link refund_link
+    where refund_link.ledger_id = p_ledger_id
+      and refund_link.refund_income_item_id = p_income_item_id;
+
+    perform set_config('kuranote.income_link_edit_flow', 'off', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3761,13 +3806,21 @@ declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
     v_existing_item public.transaction_item;
+    v_existing_item_ids uuid[] := array[]::uuid[];
+    v_used_item_ids uuid[] := array[]::uuid[];
+    v_transaction_item_ids uuid[] := array[]::uuid[];
+    v_item_payloads jsonb[] := array[]::jsonb[];
     v_item jsonb;
+    v_item_index integer;
+    v_item_count integer;
     v_item_amount numeric(14,2);
     v_item_category_id uuid;
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
+    v_transaction_item_id uuid;
     v_balance_delta numeric(14,2);
     v_sort_order integer := 0;
+    v_is_income_link_edit_request boolean;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -3788,6 +3841,15 @@ begin
     if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
         raise exception 'items_invalid' using errcode = '22023';
     end if;
+
+    v_is_income_link_edit_request := not exists (
+        select 1
+        from jsonb_array_elements(p_items) item
+        where not (
+            item ? 'reimbursementItemIds'
+            and item ? 'refundedItemId'
+        )
+    );
 
     if not exists (
         select 1 from public.account a
@@ -3819,6 +3881,8 @@ begin
         raise exception 'transaction_not_found' using errcode = '22023';
     end if;
 
+    -- 被报销、作为报销对象或作为退款对象的支出仍然不可编辑。
+    -- 仅允许维护当前交易中收入明细发起的关联。
     if exists (
         select 1
         from public.transaction_item ti
@@ -3829,14 +3893,26 @@ begin
               or ti.settled_by_item_id is not null
               or exists (
                   select 1
-                  from public.transaction_item settled_item
-                  where settled_item.settled_by_item_id = ti.id
-              )
-              or exists (
-                  select 1
                   from public.transaction_item_refund_link link
-                  where link.refunded_item_id = ti.id
-                     or link.refund_income_item_id = ti.id
+                  where link.ledger_id = ti.ledger_id
+                    and link.refunded_item_id = ti.id
+              )
+              or (
+                  not v_is_income_link_edit_request
+                  and (
+                      exists (
+                          select 1
+                          from public.transaction_item settled_item
+                          where settled_item.ledger_id = ti.ledger_id
+                            and settled_item.settled_by_item_id = ti.id
+                      )
+                      or exists (
+                          select 1
+                          from public.transaction_item_refund_link link
+                          where link.ledger_id = ti.ledger_id
+                            and link.refund_income_item_id = ti.id
+                      )
+                  )
               )
           )
     ) then
@@ -3851,17 +3927,36 @@ begin
         order by ti.sort_order, ti.id
         for update
     loop
+        v_existing_item_ids := array_append(
+            v_existing_item_ids,
+            v_existing_item.id
+        );
+
         perform public.apply_account_balance_delta(
             p_ledger_id,
             v_existing_item.account_id,
             -v_existing_item.balance_delta,
             v_user_id
         );
-    end loop;
 
-    delete from public.transaction_item ti
-    where ti.transaction_record_id = p_transaction_record_id
-      and ti.ledger_id = p_ledger_id;
+        if exists (
+            select 1
+            from public.transaction_item settled_item
+            where settled_item.ledger_id = p_ledger_id
+              and settled_item.settled_by_item_id = v_existing_item.id
+        ) or exists (
+            select 1
+            from public.transaction_item_refund_link refund_link
+            where refund_link.ledger_id = p_ledger_id
+              and refund_link.refund_income_item_id = v_existing_item.id
+        ) then
+            perform public.clear_transaction_item_income_links(
+                p_ledger_id,
+                v_existing_item.id,
+                v_user_id
+            );
+        end if;
+    end loop;
 
     update public.transaction_record tr
     set type = 'normal',
@@ -3879,7 +3974,10 @@ begin
         begin
             v_item_amount := (v_item ->> 'amount')::numeric(14,2);
             v_item_category_id := (v_item ->> 'categoryId')::uuid;
-            v_item_special_status := nullif(v_item ->> 'specialStatus', '')::public.transaction_item_special_status;
+            v_item_special_status := nullif(
+                v_item ->> 'specialStatus',
+                ''
+            )::public.transaction_item_special_status;
         exception when invalid_text_representation then
             raise exception 'special_status_invalid'
                 using errcode = '22023', detail = 'special_status_invalid';
@@ -3909,10 +4007,17 @@ begin
                 using errcode = '22023', detail = 'special_status_invalid';
         end if;
 
-        if coalesce(jsonb_array_length(coalesce(v_item -> 'reimbursementItemIds', '[]'::jsonb)), 0) > 0
-           or nullif(v_item ->> 'refundedItemId', '') is not null then
-            raise exception 'income_links_create_only'
-                using errcode = '22023', detail = 'income_links_create_only';
+        if (
+            coalesce(
+                jsonb_array_length(
+                    coalesce(v_item -> 'reimbursementItemIds', '[]'::jsonb)
+                ),
+                0
+            ) > 0
+            or nullif(v_item ->> 'refundedItemId', '') is not null
+        ) and v_item_category_type <> 'income' then
+            raise exception 'income_link_category_invalid'
+                using errcode = '22023', detail = 'income_link_category_invalid';
         end if;
 
         v_balance_delta := case
@@ -3920,22 +4025,87 @@ begin
             else v_item_amount
         end;
 
-        insert into public.transaction_item (
-            ledger_id, transaction_record_id, account_id, category_id, amount,
-            discount_amount, balance_delta, note, sort_order, special_status,
-            created_by, updated_by
-        ) values (
-            p_ledger_id, p_transaction_record_id, p_account_id,
-            v_item_category_id, v_item_amount, 0, v_balance_delta, null,
-            v_sort_order, v_item_special_status, v_user_id, v_user_id
+        v_transaction_item_id := v_existing_item_ids[v_sort_order + 1];
+
+        if v_transaction_item_id is null then
+            insert into public.transaction_item (
+                ledger_id,
+                transaction_record_id,
+                account_id,
+                category_id,
+                amount,
+                discount_amount,
+                balance_delta,
+                note,
+                sort_order,
+                special_status,
+                created_by,
+                updated_by
+            ) values (
+                p_ledger_id,
+                p_transaction_record_id,
+                p_account_id,
+                v_item_category_id,
+                v_item_amount,
+                0,
+                v_balance_delta,
+                null,
+                v_sort_order,
+                v_item_special_status,
+                v_user_id,
+                v_user_id
+            ) returning id into v_transaction_item_id;
+        else
+            update public.transaction_item ti
+            set account_id = p_account_id,
+                category_id = v_item_category_id,
+                amount = v_item_amount,
+                discount_amount = 0,
+                balance_delta = v_balance_delta,
+                note = null,
+                sort_order = v_sort_order,
+                special_status = v_item_special_status,
+                updated_by = v_user_id,
+                updated_at = now()
+            where ti.id = v_transaction_item_id
+              and ti.ledger_id = p_ledger_id
+              and ti.transaction_record_id = p_transaction_record_id;
+        end if;
+
+        v_used_item_ids := array_append(v_used_item_ids, v_transaction_item_id);
+        v_transaction_item_ids := array_append(
+            v_transaction_item_ids,
+            v_transaction_item_id
         );
+        v_item_payloads := array_append(v_item_payloads, v_item);
 
         perform public.apply_account_balance_delta(
-            p_ledger_id, p_account_id, v_balance_delta, v_user_id
+            p_ledger_id,
+            p_account_id,
+            v_balance_delta,
+            v_user_id
         );
 
         v_sort_order := v_sort_order + 1;
     end loop;
+
+    delete from public.transaction_item ti
+    where ti.transaction_record_id = p_transaction_record_id
+      and ti.ledger_id = p_ledger_id
+      and not (ti.id = any(v_used_item_ids));
+
+    v_item_count := coalesce(array_length(v_transaction_item_ids, 1), 0);
+    if v_item_count > 0 then
+        for v_item_index in 1..v_item_count
+        loop
+            perform public.apply_transaction_item_links(
+                p_ledger_id,
+                v_transaction_item_ids[v_item_index],
+                v_item_payloads[v_item_index],
+                v_user_id
+            );
+        end loop;
+    end if;
 
     return p_transaction_record_id;
 end;
@@ -4391,6 +4561,7 @@ declare
     v_settling_item_is_income boolean;
     v_special_status_enabled boolean;
     v_has_active_refund_link boolean;
+    v_is_controlled_unlink boolean;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
@@ -4405,12 +4576,22 @@ begin
         end if;
     end if;
 
+    v_is_controlled_unlink :=
+        tg_op = 'UPDATE'
+        and old.special_status = 'reimbursed'
+        and new.special_status = 'pending_reimbursement'
+        and new.settled_by_item_id is null
+        and current_user = 'postgres'
+        and current_setting('kuranote.income_link_edit_flow', true)
+            is not distinct from 'on';
+
     if tg_op = 'UPDATE'
        and old.special_status = 'reimbursed'
        and (
            new.special_status is distinct from old.special_status
            or new.settled_by_item_id is distinct from old.settled_by_item_id
-       ) then
+       )
+       and not v_is_controlled_unlink then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
     end if;
@@ -6070,6 +6251,10 @@ REVOKE ALL ON FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uu
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
 

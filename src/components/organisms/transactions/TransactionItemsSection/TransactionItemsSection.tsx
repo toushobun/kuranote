@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
+import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
 
@@ -12,7 +13,6 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
 } from "../TransactionForm/TransactionForm.types";
-import { TransactionBusinessBadge } from "../TransactionBusinessBadge/TransactionBusinessBadge";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
