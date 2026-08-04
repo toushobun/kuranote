@@ -1,0 +1,91 @@
+name: Finalize issue 572
+
+on:
+  push:
+    branches:
+      - feature/572_refund_multi_item_allocation
+    paths:
+      - .github/scripts/issue-572-finalize.py
+      - .github/workflows/issue-572-finalize.yml
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/572_refund_multi_item_allocation
+          fetch-depth: 0
+
+      - name: Apply final tests
+        run: python .github/scripts/issue-572-finalize.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format
+        run: npx prettier --write src .github/workflows/migration-check.yml
+
+      - name: Check diff
+        run: git diff --check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Unit tests
+        run: npm run test -- --run
+
+      - name: Build
+        run: npm run build
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: v2.106.0
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: |
+          if ! supabase start > /tmp/supabase-start.log 2>&1; then
+            cat /tmp/supabase-start.log
+            exit 1
+          fi
+
+      - name: Database tests
+        run: |
+          supabase test db
+          bash supabase/tests/database/refund_allocation_concurrency.sh
+
+      - name: Update schema snapshot
+        env:
+          CI: "true"
+        run: bash scripts/update-schema-snapshot.sh
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup > /dev/null 2>&1
+
+      - name: Commit final tests and snapshot
+        if: github.event_name == 'pull_request'
+        run: |
+          rm -f .github/scripts/issue-572-finalize.py \
+            .github/workflows/issue-572-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: 补充退款多明细分摊测试与数据库快照"
+          git push origin HEAD:feature/572_refund_multi_item_allocation
