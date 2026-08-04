@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
+import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
 
@@ -12,7 +13,6 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
 } from "../TransactionForm/TransactionForm.types";
-import { TransactionBusinessBadge } from "../TransactionBusinessBadge/TransactionBusinessBadge";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
@@ -72,6 +72,7 @@ export function TransactionItemsSection({
               const categoryLabel = item.category
                 ? formatCategoryName(item.category)
                 : "请选择分类";
+              const businessStatus = item.businessStatus ?? item.specialStatus;
 
               return (
                 <Box
@@ -83,6 +84,11 @@ export function TransactionItemsSection({
                       name="itemCategoryId"
                       type="hidden"
                       value={item.categoryId}
+                    />
+                    <input
+                      name="itemPersistedId"
+                      type="hidden"
+                      value={item.persistedId ?? ""}
                     />
                     <input
                       name="itemSpecialStatus"
@@ -152,9 +158,9 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {item.specialStatus ? (
+                      {businessStatus ? (
                         <TransactionBusinessBadge
-                          status={item.specialStatus}
+                          status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />
                       ) : null}

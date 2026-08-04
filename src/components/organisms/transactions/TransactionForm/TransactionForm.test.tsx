@@ -191,6 +191,18 @@ describe("TransactionForm", () => {
       `${expected.dateValue}T${expected.timeValue}`,
     );
   });
+  it("编辑模式提交已有明细的持久化 ID", () => {
+    const initialValues = createInitialValues();
+    const persistedId = "00000000-0000-4000-8000-000000000201";
+    initialValues.items[0].id = persistedId;
+    const { container } = renderForm({ initialValues });
+
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[name="itemPersistedId"]',
+      ),
+    ).toHaveValue(persistedId);
+  });
   it("时刻默认开启并保留具体时间", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 10, 9, 8, 7));

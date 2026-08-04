@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
+import type { TransactionSpecialStatus } from "internal/transaction";
 import type {
   TransactionAccountOption,
+  TransactionBusinessStatus,
   TransactionCategoryOption,
   TransactionMerchantOption,
   TransactionGroupPage,
@@ -12,7 +14,6 @@ import type {
   TransactionTimeGroupViewData,
   TransactionType,
 } from "types/transactions";
-import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
 
 export type TransactionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -49,10 +50,14 @@ export type TransactionFormProps = {
 
 export type TransactionFormInitialItem = {
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id?: string;
+  refundCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
-  specialStatus?: TransactionSpecialStatusValue | null;
+  refundedItemId?: string | null;
+  reimbursementItemIds?: string[];
+  specialStatus?: TransactionSpecialStatus | null;
 };
 
 export type TransactionFormInitialValues = {
@@ -67,6 +72,7 @@ export type TransactionFormInitialValues = {
 
 export type TransactionFormItem = {
   amount: string;
+  businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id: number;
   persistedId?: string;
@@ -74,7 +80,7 @@ export type TransactionFormItem = {
   refundedItemId?: string | null;
   refundCandidate?: TransactionRefundCandidate | null;
   reimbursementItemIds?: string[];
-  specialStatus?: TransactionSpecialStatusValue;
+  specialStatus?: TransactionSpecialStatus | null;
 };
 
 export type CategoryPickerGroup = {

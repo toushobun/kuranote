@@ -16,6 +16,7 @@ import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
+import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
 import type {
@@ -27,7 +28,6 @@ import type {
   TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
-import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
 import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
@@ -51,14 +51,14 @@ type TransactionItemPickerDrawerProps = {
   onRemoveItem: (itemId: number) => void;
   onReimbursementItemIdsChange?: (ids: string[]) => void;
   onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
-  onSpecialStatusChange?: (value: TransactionSpecialStatusValue) => void;
+  onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerReimbursementItemIds?: string[];
   pickerRefundCandidate?: TransactionRefundCandidate | null;
-  pickerSpecialStatus?: TransactionSpecialStatusValue;
+  pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
   reimbursementCandidates?: TransactionReimbursementCandidate[];

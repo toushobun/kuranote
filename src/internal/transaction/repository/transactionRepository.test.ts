@@ -20,6 +20,7 @@ describe("TransactionRepository", () => {
   const accountId = "00000000-0000-4000-8000-000000000045";
   const targetAccountId = "00000000-0000-4000-8000-000000000046";
   const categoryId = "00000000-0000-4000-8000-000000005072";
+  const transactionItemId = "00000000-0000-4000-8000-000000000201";
   const merchantId = "00000000-0000-4000-8000-000000001001";
   type QueryResult = {
     data: unknown;
@@ -92,6 +93,7 @@ describe("TransactionRepository", () => {
       p_items: [
         {
           ...normalInput.items[0],
+          id: null,
           refundedItemId: null,
           reimbursementItemIds: [],
           specialStatus: null,
@@ -118,7 +120,11 @@ describe("TransactionRepository", () => {
   });
   it("普通交易和转账更新映射各自 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
-    await repository.updateNormal({ ...normalInput, transactionRecordId });
+    await repository.updateNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], id: transactionItemId }],
+      transactionRecordId,
+    });
     await repository.updateTransfer({
       ...transferInput,
       transactionRecordId,
@@ -128,6 +134,15 @@ describe("TransactionRepository", () => {
       "update_transaction",
       expect.objectContaining({
         p_account_id: accountId,
+        p_items: [
+          {
+            ...normalInput.items[0],
+            id: transactionItemId,
+            refundedItemId: null,
+            reimbursementItemIds: [],
+            specialStatus: null,
+          },
+        ],
         p_ledger_id: ledgerId,
         p_transaction_record_id: transactionRecordId,
         p_type: "expense",

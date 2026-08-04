@@ -738,6 +738,7 @@ describe("validateUpdateTransferTransactionForm", () => {
 describe("validateUpdateTransactionForm", () => {
   const accountId = "00000000-0000-4000-8000-000000000041";
   const categoryId = "00000000-0000-4000-8000-000000000101";
+  const itemId = "00000000-0000-4000-8000-000000000201";
   const merchantId = "00000000-0000-4000-8000-000000001001";
   const transactionRecordId = "00000000-0000-4000-8000-000000002001";
   function createFormData(overrides: Record<string, string> = {}) {
@@ -783,6 +784,17 @@ describe("validateUpdateTransactionForm", () => {
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         type: "income",
+      },
+    });
+  });
+  it("编辑普通交易时保留已有明细 ID", () => {
+    const formData = createFormData();
+    formData.append("itemPersistedId", itemId);
+
+    expect(validateUpdateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: {
+        items: [{ amount: 1200, categoryId, id: itemId }],
       },
     });
   });

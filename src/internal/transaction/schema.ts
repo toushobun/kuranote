@@ -58,6 +58,7 @@ export type CreateTransactionFormValues =
 export type TransactionFormItemValues = {
   amount: number;
   categoryId: string;
+  id?: string;
   refundedItemId?: string | null;
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
@@ -153,6 +154,7 @@ function parseTransactionItems(
 > {
   const categoryValues = formData.getAll("itemCategoryId");
   const amountValues = formData.getAll("itemAmount");
+  const submittedPersistedIdValues = formData.getAll("itemPersistedId");
   const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
   const submittedReimbursementValues = formData.getAll(
     "itemReimbursementItemIds",
@@ -167,6 +169,8 @@ function parseTransactionItems(
     categoryValues.length === 0 ||
     categoryValues.length !== amountValues.length ||
     categoryValues.length !== specialStatusValues.length ||
+    (submittedPersistedIdValues.length > 0 &&
+      categoryValues.length !== submittedPersistedIdValues.length) ||
     (submittedReimbursementValues.length > 0 &&
       categoryValues.length !== submittedReimbursementValues.length) ||
     (submittedRefundedItemValues.length > 0 &&
@@ -196,6 +200,12 @@ function parseTransactionItems(
     if (!amountResult.ok) {
       return amountResult;
     }
+
+    const persistedIdResult = parseOptionalUuidText(
+      String(submittedPersistedIdValues[index] ?? "").trim(),
+      transactionErrorCodes.categoryInvalid,
+    );
+    if (!persistedIdResult.ok) return persistedIdResult;
 
     const specialStatusText = String(specialStatusValues[index] ?? "").trim();
     let specialStatus: TransactionSpecialStatus | null = null;
@@ -231,6 +241,7 @@ function parseTransactionItems(
     items.push({
       amount: amountResult.value,
       categoryId: categoryResult.value,
+      ...(persistedIdResult.value ? { id: persistedIdResult.value } : {}),
       ...(reimbursementItemIds.length > 0 ? { reimbursementItemIds } : {}),
       ...(refundedItemIdResult.value
         ? { refundedItemId: refundedItemIdResult.value }
@@ -579,6 +590,7 @@ const transactionItemRequestSchema = z
       message: transactionErrorCodes.amountInvalid,
     }),
     categoryId: z.string().uuid(),
+    id: z.string().uuid().optional(),
     refundedItemId: z.string().uuid().nullable().optional(),
     reimbursementItemIds: z.array(z.string().uuid()).max(100).optional(),
     specialStatus: z

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import type {
+  TransactionBusinessStatus,
   TransactionCategoryOption,
   TransactionRefundCandidate,
   TransactionType,
@@ -217,6 +218,11 @@ export function useTransactionForm({
         ...current[categoryType],
         {
           amount,
+          businessStatus: getFormItemBusinessStatus(
+            specialStatus,
+            reimbursementItemIds,
+            pickerRefundCandidate,
+          ),
           categoryId,
           id: itemId,
           refundedItemId,
@@ -256,6 +262,11 @@ export function useTransactionForm({
   ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
+    const businessStatus = getFormItemBusinessStatus(
+      specialStatus,
+      reimbursementItemIds,
+      pickerRefundCandidate,
+    );
 
     setItemsByType((current) => {
       const inExpense = current.expense.some((item) => item.id === itemId);
@@ -269,6 +280,7 @@ export function useTransactionForm({
               ? {
                   ...item,
                   amount,
+                  businessStatus,
                   categoryId,
                   refundedItemId,
                   refundCandidate: pickerRefundCandidate,
@@ -294,6 +306,7 @@ export function useTransactionForm({
         {
           ...existingItem,
           amount,
+          businessStatus,
           categoryId,
           refundedItemId,
           refundCandidate: pickerRefundCandidate,
@@ -452,7 +465,16 @@ export function useTransactionForm({
       ...current,
       income: current.income.map((item) =>
         item.refundCandidate && item.refundCandidate.accountId !== accountId
-          ? { ...item, refundedItemId: null, refundCandidate: null }
+          ? {
+              ...item,
+              businessStatus: getFormItemBusinessStatus(
+                item.specialStatus,
+                item.reimbursementItemIds ?? [],
+                null,
+              ),
+              refundedItemId: null,
+              refundCandidate: null,
+            }
           : item,
       ),
     }));
@@ -607,6 +629,16 @@ function createInitialItemsByType(
   });
 
   return result;
+}
+
+function getFormItemBusinessStatus(
+  specialStatus: TransactionFormItem["specialStatus"],
+  reimbursementItemIds: string[],
+  refundCandidate: TransactionRefundCandidate | null,
+): TransactionBusinessStatus | null {
+  if (refundCandidate) return "refund";
+  if (reimbursementItemIds.length > 0) return "reimbursement";
+  return specialStatus ?? null;
 }
 
 function cancelDefaultEvent(event: { preventDefault(): void }) {

@@ -32,6 +32,7 @@ import {
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 import { createSupabaseStatisticsRepository } from "internal/statistics/repository/statisticsRepository";
 import { createStatisticsService } from "internal/statistics/service/statisticsService";
+import { createSupabaseTransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 import { createTransactionService } from "internal/transaction/service/transactionService";
@@ -333,6 +334,11 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
+        const transactionIncomeLinkRepository =
+          createSupabaseTransactionIncomeLinkRepository(
+            dependencies.supabase,
+            dependencies.logger,
+          );
         const ledgerAccessService = getLedgerAccessService();
         const currentUserId = dependencies.auth.isAuthenticated
           ? dependencies.auth.userId
@@ -345,6 +351,7 @@ export function createRequestContainer(
             currentUserId,
             ledgerAccessService,
             merchantQueryService: getMerchantQueryService(),
+            transactionIncomeLinkRepository,
             transactionRepository,
           }),
         };
