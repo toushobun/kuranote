@@ -211,6 +211,8 @@ export const theme = createTheme({
           boxShadow: designTokens.shadow.dialog,
         },
         paperFullScreen: {
+          borderRadius: 0,
+          boxShadow: "none",
           paddingBottom: "var(--app-safe-area-inset-bottom)",
           paddingTop: "var(--app-safe-area-inset-top)",
         },

@@ -36,6 +36,12 @@ type TransactionRefundLinkPickerProps = {
   value: TransactionRefundCandidate | null;
 };
 
+const emptySearchPage: TransactionSearchPage = {
+  items: [],
+  nextOffset: null,
+  totalCount: 0,
+};
+
 export function TransactionRefundLinkPicker({
   loadGroupItemsAction,
   loadMoreGroupsAction,
@@ -113,7 +119,7 @@ export function TransactionRefundLinkPicker({
           ) : (
             <TransactionSearchTemplate
               errorMessage={null}
-              initialPage={{ items: [], nextOffset: null, totalCount: 0 }}
+              initialPage={emptySearchPage}
               initialQuery=""
               loadSearchPageAction={loadSearchPageAction}
               onClose={close}
