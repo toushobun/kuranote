@@ -76,6 +76,14 @@ jobs:
               "            null,\n            '取消退款关联'",
               "            (select merchant_id from test_refund_edit_context),\n            '取消退款关联'",
           )
+          text = text.replace(
+              "set local role authenticated;",
+              "grant select on test_refund_edit_context to authenticated;\nset local role authenticated;",
+          )
+          text = text.replace(
+              "jsonb_build_object(\n                    'amount',",
+              "jsonb_build_object(\n                    'id', '57242000-0000-4000-8000-000000000002',\n                    'amount',",
+          )
           path.write_text(text, encoding='utf-8')
           PY
 
