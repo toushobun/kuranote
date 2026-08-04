@@ -24,6 +24,7 @@ import type {
   TransactionMonthPage,
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
+import type { TransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type {
   ConvertTransactionInput,
   CreateNormalTransactionInput,
@@ -77,6 +78,7 @@ export type TransactionServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantQueryService: MerchantQueryService;
+  transactionIncomeLinkRepository: TransactionIncomeLinkRepository;
   transactionRepository: TransactionCommandRepository &
     TransactionFilterOptionsRepository &
     TransactionFormRepository &
@@ -152,6 +154,7 @@ export function createTransactionService({
   currentUserId,
   ledgerAccessService,
   merchantQueryService,
+  transactionIncomeLinkRepository,
   transactionRepository,
 }: TransactionServiceDependencies): TransactionService {
   const readAccessDependencies: TransactionReadAccessDependencies<
@@ -181,8 +184,10 @@ export function createTransactionService({
   const requireReadLedger = (currentLedger: CurrentLedger) =>
     requireTransactionReadLedger(readAccessDependencies, currentLedger);
 
-  const getReadDependencies = () =>
-    getTransactionReadDependencies(readAccessDependencies);
+  const getReadDependencies = () => ({
+    ...getTransactionReadDependencies(readAccessDependencies),
+    transactionIncomeLinkRepository,
+  });
 
   async function requireModificationPermission(
     ledgerId: string,
