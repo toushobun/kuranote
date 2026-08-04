@@ -14,9 +14,12 @@ export {
 } from "internal/transaction/entity/transactionType";
 export {
   fromTransactionSpecialStatusStorageValue,
+  resolveTransactionBusinessStatus,
   toTransactionSpecialStatusStorageValue,
+  transactionBusinessStatuses,
   transactionSpecialStatuses,
   transactionSpecialStatusStorageValues,
+  type TransactionBusinessStatus,
   type TransactionSpecialStatus,
   type TransactionSpecialStatusFilterValue,
   type TransactionSpecialStatusStorageValue,
