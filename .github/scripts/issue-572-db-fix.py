@@ -126,6 +126,56 @@ insert into public.merchant (
 if statistics.count(old_statistics_anchor) != 1:
     raise RuntimeError("statistics isolation anchor not found")
 statistics = statistics.replace(old_statistics_anchor, new_statistics_anchor, 1)
+
+old_summary_close = """        ) summary
+    ),
+"""
+new_summary_close = """        ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
+    ),
+"""
+if statistics.count(old_summary_close) != 4:
+    raise RuntimeError(
+        f"expected four statistics summary queries, found {statistics.count(old_summary_close)}"
+    )
+statistics = statistics.replace(old_summary_close, new_summary_close)
 statistics_path.write_text(statistics, encoding="utf-8")
 
-print("Issue #572 database compatibility and validation fixes applied")
+special_status_path = Path(
+    "supabase/tests/database/transaction_item_special_status.test.sql"
+)
+special_status = special_status_path.read_text(encoding="utf-8")
+old_disable_setup = """update public.ledger
+set transaction_item_special_status_enabled = false
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+"""
+new_disable_setup = """-- 该文件后续会单独验证“存在活跃状态时禁止关闭”。此处仅建立
+-- 功能关闭场景，因此绕过关闭保护触发器，避免本地种子状态干扰前置条件。
+set local session_replication_role = replica;
+update public.ledger
+set transaction_item_special_status_enabled = false
+where id = (
+    select ledger_id from public.transaction_item
+    where id = '55110000-0000-4000-8000-000000000001'
+);
+set local session_replication_role = origin;
+
+select throws_ok(
+    $$
+        update public.transaction_item
+"""
+if special_status.count(old_disable_setup) != 1:
+    raise RuntimeError("special status disabled setup pattern not found")
+special_status = special_status.replace(old_disable_setup, new_disable_setup, 1)
+special_status_path.write_text(special_status, encoding="utf-8")
+
+print("Issue #572 database compatibility, validation and test isolation fixes applied")
