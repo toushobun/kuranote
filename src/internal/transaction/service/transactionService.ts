@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
+import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -287,18 +288,20 @@ export function createTransactionService({
         const targetIds = new Set(
           allocations.map((allocation) => allocation.refundedItemId),
         );
-        const totalUnits = allocations.reduce(
-          (sum, allocation) => sum + Math.round(allocation.refundAmount * 100),
-          0,
+        const allocationUnits = allocations.map((allocation) =>
+          toRefundMinorUnits(allocation.refundAmount),
         );
+        const itemAmountUnits = toRefundMinorUnits(item.amount);
         if (
           targetIds.size !== allocations.length ||
-          allocations.some(
-            (allocation) =>
-              allocation.refundAmount <= 0 ||
-              !Number.isSafeInteger(allocation.refundAmount * 100),
+          itemAmountUnits === null ||
+          allocationUnits.some(
+            (units) => units === null || units <= BigInt(0),
           ) ||
-          totalUnits !== Math.round(item.amount * 100)
+          (allocationUnits as bigint[]).reduce(
+            (sum, units) => sum + units,
+            BigInt(0),
+          ) !== itemAmountUnits
         ) {
           throw new ValidationError(
             transactionErrorCodes.refundLinkInvalid,

@@ -383,13 +383,13 @@ describe("getEditTransactionView income links", () => {
           incomeItemId,
           refundAllocations: [
             {
-              refundAmount: "1000",
+              refundAmount: "0.1",
               refundedItem: {
                 accountId,
-                amount: "3000",
+                amount: "0.3",
                 categoryId,
                 id: linkedExpenseItemId,
-                refundedAmount: "1000",
+                refundedAmount: "0.2",
                 transactionAt: "2026-08-01T01:00:00.000Z",
                 transactionRecordId: "00000000-0000-4000-8000-000000009998",
               },
@@ -424,7 +424,7 @@ describe("getEditTransactionView income links", () => {
             refundCandidates: [
               {
                 id: linkedExpenseItemId,
-                remainingRefundableAmount: "3000",
+                remainingRefundableAmount: "0.2",
               },
             ],
           },

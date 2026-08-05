@@ -305,12 +305,6 @@ declare
     v_income_account_id uuid;
     v_income_category_type text;
     v_income_currency text;
-    v_refunded_item_id uuid;
-    v_refunded_amount numeric(14,2);
-    v_refunded_account_id uuid;
-    v_refunded_category_type text;
-    v_refunded_currency text;
-    v_refunded_special_status text;
     v_reimbursement_ids uuid[];
     v_reimbursement_amount numeric(14,2);
     v_reimbursement_currency text;
@@ -318,7 +312,40 @@ declare
     v_requested_count integer;
     v_updated_count integer;
     v_special_status_enabled boolean;
+    v_refund_allocations jsonb;
+    v_refund_count integer := 0;
+    v_refund_distinct_count integer := 0;
+    v_refund_total numeric(14,2) := 0;
+    v_refund_target_ids uuid[] := array[]::uuid[];
+    v_locked_count integer := 0;
+    v_invalid_count integer := 0;
 begin
+    v_refund_allocations := p_item -> 'refundAllocations';
+
+    -- 数据库迁移与前端发布并非原子操作。旧页面仍可能提交单个
+    -- refundedItemId，因此在数据库边界将其规范化为全额单目标分摊。
+    if v_refund_allocations is null
+       and nullif(p_item ->> 'refundedItemId', '') is not null then
+        select ti.amount
+        into v_income_amount
+        from public.transaction_item ti
+        join public.transaction_record tr
+          on tr.id = ti.transaction_record_id
+         and tr.ledger_id = ti.ledger_id
+         and tr.status = 'active'
+        where ti.id = p_income_item_id
+          and ti.ledger_id = p_ledger_id;
+
+        v_refund_allocations := jsonb_build_array(
+            jsonb_build_object(
+                'refundedItemId', p_item ->> 'refundedItemId',
+                'refundAmount', v_income_amount
+            )
+        );
+    end if;
+
+    v_refund_allocations := coalesce(v_refund_allocations, '[]'::jsonb);
+
     v_reimbursement_ids := array(
         select value::uuid
         from jsonb_array_elements_text(
@@ -326,9 +353,56 @@ begin
         ) as value
     );
     v_requested_count := coalesce(array_length(v_reimbursement_ids, 1), 0);
-    v_refunded_item_id := nullif(p_item ->> 'refundedItemId', '')::uuid;
 
-    if v_requested_count = 0 and v_refunded_item_id is null then
+    if jsonb_typeof(v_refund_allocations) is distinct from 'array' then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    if jsonb_array_length(v_refund_allocations) > 100 then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    begin
+        select
+            count(*)::integer,
+            count(distinct (allocation ->> 'refundedItemId')::uuid)::integer,
+            coalesce(sum((allocation ->> 'refundAmount')::numeric), 0),
+            coalesce(
+                array_agg(
+                    (allocation ->> 'refundedItemId')::uuid
+                    order by (allocation ->> 'refundedItemId')::uuid
+                ),
+                array[]::uuid[]
+            )
+        into
+            v_refund_count,
+            v_refund_distinct_count,
+            v_refund_total,
+            v_refund_target_ids
+        from jsonb_array_elements(v_refund_allocations) allocation;
+    exception
+        when invalid_text_representation or numeric_value_out_of_range then
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
+    end;
+
+    if exists (
+        select 1
+        from jsonb_array_elements(v_refund_allocations) allocation
+        where jsonb_typeof(allocation) is distinct from 'object'
+           or nullif(allocation ->> 'refundedItemId', '') is null
+           or nullif(allocation ->> 'refundAmount', '') is null
+           or (allocation ->> 'refundAmount')::numeric <= 0
+           or (allocation ->> 'refundAmount')::numeric
+                <> round((allocation ->> 'refundAmount')::numeric, 2)
+    ) or v_refund_count <> v_refund_distinct_count then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    if v_requested_count = 0 and v_refund_count = 0 then
         return;
     end if;
 
@@ -364,7 +438,7 @@ begin
             using errcode = '22023', detail = 'income_link_category_invalid';
     end if;
 
-    if v_requested_count > 0 and v_refunded_item_id is not null then
+    if v_requested_count > 0 and v_refund_count > 0 then
         raise exception 'income_link_conflict'
             using errcode = '22023', detail = 'income_link_conflict';
     end if;
@@ -440,47 +514,97 @@ begin
           and ti.settled_by_item_id is null;
     end if;
 
-    if v_refunded_item_id is not null then
-        select ti.amount, ti.account_id, c.type, a.currency, ti.special_status
-        into v_refunded_amount, v_refunded_account_id,
-             v_refunded_category_type, v_refunded_currency, v_refunded_special_status
+    if v_refund_count > 0 then
+        if v_refund_total is distinct from v_income_amount then
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
+        end if;
+
+        perform 1
         from public.transaction_item ti
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
          and tr.ledger_id = ti.ledger_id
          and tr.status = 'active'
-        join public.category c
-          on c.id = ti.category_id
-         and c.ledger_id = ti.ledger_id
-        join public.account a
-          on a.id = ti.account_id
-         and a.ledger_id = ti.ledger_id
-        where ti.id = v_refunded_item_id
-          and ti.ledger_id = p_ledger_id
+        where ti.ledger_id = p_ledger_id
+          and ti.id = any(v_refund_target_ids)
+        order by ti.id
         for update of ti, tr;
 
-        if not found or v_refunded_category_type is distinct from 'expense' then
+        get diagnostics v_locked_count = row_count;
+        if v_locked_count <> v_refund_count then
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        if v_refunded_special_status is not null then
-            raise exception 'refunded_item_special_status_conflict'
-                using errcode = '22023', detail = 'refunded_item_special_status_conflict';
+        if exists (
+            select 1
+            from public.transaction_item ti
+            left join public.category c
+              on c.id = ti.category_id
+             and c.ledger_id = ti.ledger_id
+            join public.account a
+              on a.id = ti.account_id
+             and a.ledger_id = ti.ledger_id
+            where ti.ledger_id = p_ledger_id
+              and ti.id = any(v_refund_target_ids)
+              and (
+                  c.type is distinct from 'expense'
+                  or ti.special_status is not null
+                  or a.currency is distinct from v_income_currency
+                  or ti.account_id is distinct from v_income_account_id
+              )
+        ) then
+            if exists (
+                select 1
+                from public.transaction_item ti
+                join public.account a
+                  on a.id = ti.account_id
+                 and a.ledger_id = ti.ledger_id
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and a.currency is distinct from v_income_currency
+            ) then
+                raise exception 'refund_currency_mismatch'
+                    using errcode = '22023', detail = 'refund_currency_mismatch';
+            end if;
+
+            if exists (
+                select 1
+                from public.transaction_item ti
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and ti.account_id is distinct from v_income_account_id
+            ) then
+                raise exception 'refund_account_mismatch'
+                    using errcode = '22023', detail = 'refund_account_mismatch';
+            end if;
+
+            if exists (
+                select 1
+                from public.transaction_item ti
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and ti.special_status is not null
+            ) then
+                raise exception 'refunded_item_special_status_conflict'
+                    using errcode = '22023', detail = 'refunded_item_special_status_conflict';
+            end if;
+
+            raise exception 'refunded_item_invalid'
+                using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        if v_income_currency is distinct from v_refunded_currency then
-            raise exception 'refund_currency_mismatch'
-                using errcode = '22023', detail = 'refund_currency_mismatch';
-        end if;
-
-        if v_income_account_id is distinct from v_refunded_account_id then
-            raise exception 'refund_account_mismatch'
-                using errcode = '22023', detail = 'refund_account_mismatch';
-        end if;
-
-        if v_income_amount > v_refunded_amount - coalesce((
-            select sum(link.refund_amount)
+        with requested as (
+            select
+                (allocation ->> 'refundedItemId')::uuid as refunded_item_id,
+                round((allocation ->> 'refundAmount')::numeric * 100)::bigint
+                    as requested_units
+            from jsonb_array_elements(v_refund_allocations) allocation
+        ), existing_refunds as (
+            select
+                link.refunded_item_id,
+                coalesce(sum(link.refund_amount), 0) as refunded_amount
             from public.transaction_item_refund_link link
             join public.transaction_item refund_income
               on refund_income.id = link.refund_income_item_id
@@ -489,11 +613,95 @@ begin
               on refund_record.id = refund_income.transaction_record_id
              and refund_record.ledger_id = refund_income.ledger_id
             where link.ledger_id = p_ledger_id
-              and link.refunded_item_id = v_refunded_item_id
+              and link.refunded_item_id = any(v_refund_target_ids)
+              and link.refund_income_item_id <> p_income_item_id
               and refund_record.status = 'active'
-        ), 0) then
-            raise exception 'refund_amount_exceeded'
-                using errcode = '22023', detail = 'refund_amount_exceeded';
+            group by link.refunded_item_id
+        ), targets as (
+            select
+                requested.refunded_item_id,
+                requested.requested_units,
+                round(
+                    (ti.amount - coalesce(existing_refunds.refunded_amount, 0)) * 100
+                )::bigint as remaining_units
+            from requested
+            join public.transaction_item ti
+              on ti.id = requested.refunded_item_id
+             and ti.ledger_id = p_ledger_id
+            left join existing_refunds
+              on existing_refunds.refunded_item_id = requested.refunded_item_id
+        ), allocation_base as (
+            select
+                targets.*,
+                sum(remaining_units) over () as total_remaining_units,
+                floor(
+                    round(v_income_amount * 100)::numeric * remaining_units
+                    / nullif(sum(remaining_units) over (), 0)
+                )::bigint as base_units,
+                mod(
+                    round(v_income_amount * 100)::bigint * remaining_units,
+                    nullif(sum(remaining_units) over (), 0)
+                ) as remainder_units
+            from targets
+        ), ranked as (
+            select
+                allocation_base.*,
+                row_number() over (
+                    order by remainder_units desc, refunded_item_id
+                ) as remainder_rank,
+                round(v_income_amount * 100)::bigint
+                    - sum(base_units) over () as tail_units
+            from allocation_base
+        ), expected as (
+            select
+                *,
+                base_units + case when remainder_rank <= tail_units then 1 else 0 end
+                    as expected_units
+            from ranked
+        )
+        select count(*)::integer
+        into v_invalid_count
+        from expected
+        where total_remaining_units < round(v_income_amount * 100)::bigint
+           or expected_units <= 0
+           or expected_units > remaining_units
+           or requested_units <> expected_units;
+
+        if v_invalid_count > 0 then
+            if exists (
+                with existing_refunds as (
+                    select
+                        link.refunded_item_id,
+                        coalesce(sum(link.refund_amount), 0) as refunded_amount
+                    from public.transaction_item_refund_link link
+                    join public.transaction_item refund_income
+                      on refund_income.id = link.refund_income_item_id
+                     and refund_income.ledger_id = link.ledger_id
+                    join public.transaction_record refund_record
+                      on refund_record.id = refund_income.transaction_record_id
+                     and refund_record.ledger_id = refund_income.ledger_id
+                    where link.ledger_id = p_ledger_id
+                      and link.refunded_item_id = any(v_refund_target_ids)
+                      and link.refund_income_item_id <> p_income_item_id
+                      and refund_record.status = 'active'
+                    group by link.refunded_item_id
+                )
+                select 1
+                from public.transaction_item ti
+                left join existing_refunds
+                  on existing_refunds.refunded_item_id = ti.id
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                having sum(
+                    ti.amount - coalesce(existing_refunds.refunded_amount, 0)
+                ) < v_income_amount
+            ) then
+                raise exception 'refund_amount_exceeded'
+                    using errcode = '22023', detail = 'refund_amount_exceeded';
+            end if;
+
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
 
         insert into public.transaction_item_refund_link (
@@ -502,13 +710,15 @@ begin
             refund_income_item_id,
             refund_amount,
             created_by
-        ) values (
+        )
+        select
             p_ledger_id,
-            v_refunded_item_id,
+            (allocation ->> 'refundedItemId')::uuid,
             p_income_item_id,
-            v_income_amount,
+            (allocation ->> 'refundAmount')::numeric(14,2),
             p_user_id
-        );
+        from jsonb_array_elements(v_refund_allocations) allocation
+        order by (allocation ->> 'refundedItemId')::uuid;
     end if;
 end;
 $$;
@@ -5306,7 +5516,7 @@ ALTER TABLE ONLY "public"."transaction_item"
 
 
 ALTER TABLE ONLY "public"."transaction_item_refund_link"
-    ADD CONSTRAINT "transaction_item_refund_link_income_unique" UNIQUE ("refund_income_item_id");
+    ADD CONSTRAINT "transaction_item_refund_link_income_target_unique" UNIQUE ("refund_income_item_id", "refunded_item_id");
 
 
 

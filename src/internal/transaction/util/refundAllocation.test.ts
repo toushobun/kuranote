@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { allocateRefundAmount } from "./refundAllocation";
+import {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "./refundAllocation";
+
+describe("refund amount minor units", () => {
+  it("小数金额不经过浮点运算即可精确转换", () => {
+    expect(toRefundMinorUnits(0.1)).toBe(BigInt(10));
+    expect(toRefundMinorUnits("0.20")).toBe(BigInt(20));
+    expect(formatRefundMinorUnits(BigInt(30))).toBe("0.3");
+  });
+});
 
 describe("allocateRefundAmount", () => {
   it("按剩余可退金额比例分摊", () => {

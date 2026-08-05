@@ -73,8 +73,12 @@ begin
     );
     v_requested_count := coalesce(array_length(v_reimbursement_ids, 1), 0);
 
-    if jsonb_typeof(v_refund_allocations) is distinct from 'array'
-       or jsonb_array_length(v_refund_allocations) > 100 then
+    if jsonb_typeof(v_refund_allocations) is distinct from 'array' then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    if jsonb_array_length(v_refund_allocations) > 100 then
         raise exception 'refund_allocation_invalid'
             using errcode = '22023', detail = 'refund_allocation_invalid';
     end if;

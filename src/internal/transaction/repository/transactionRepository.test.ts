@@ -106,6 +106,37 @@ describe("TransactionRepository", () => {
       p_type: "expense",
     });
   });
+  it("退款收入将多目标分摊数组原样传给原子 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    const refundAllocations = [
+      {
+        refundAmount: 300,
+        refundedItemId: "00000000-0000-4000-8000-000000005073",
+      },
+      {
+        refundAmount: 900,
+        refundedItemId: "00000000-0000-4000-8000-000000005074",
+      },
+    ];
+
+    await repository.createNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], refundAllocations }],
+      type: "income",
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "create_transaction",
+      expect.objectContaining({
+        p_items: [
+          expect.objectContaining({
+            refundAllocations,
+          }),
+        ],
+      }),
+    );
+  });
+
   it("转账创建映射原子 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
     await repository.createTransfer(transferInput);
@@ -118,6 +149,38 @@ describe("TransactionRepository", () => {
       p_transaction_at: transferInput.transactionAt,
     });
   });
+  it("退款收入更新将多目标分摊数组传给更新 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    const refundAllocations = [
+      {
+        refundAmount: 300,
+        refundedItemId: "00000000-0000-4000-8000-000000005073",
+      },
+      {
+        refundAmount: 900,
+        refundedItemId: "00000000-0000-4000-8000-000000005074",
+      },
+    ];
+
+    await repository.updateNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], refundAllocations }],
+      transactionRecordId,
+      type: "income",
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "update_transaction",
+      expect.objectContaining({
+        p_items: [
+          expect.objectContaining({
+            refundAllocations,
+          }),
+        ],
+      }),
+    );
+  });
+
   it("普通交易和转账更新映射各自 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
     await repository.updateNormal({
@@ -940,7 +1003,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       [
         "income_links_create_only",
         transactionErrorCodes.updateInvalid,
-        "报销和退款关联只能在新建收入交易时设置。",
+        "报销关联只能在新建收入交易时设置。",
       ],
       [
         "merchant_invalid",

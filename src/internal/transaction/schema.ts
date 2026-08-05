@@ -14,7 +14,10 @@ import {
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
-import type { TransactionRefundAllocation } from "internal/transaction/util/refundAllocation";
+import {
+  toRefundMinorUnits,
+  type TransactionRefundAllocation,
+} from "internal/transaction/util/refundAllocation";
 
 import {
   invalid,
@@ -235,16 +238,21 @@ function parseTransactionItems(
     if (refundAllocations === null) {
       return invalid(transactionErrorCodes.refundLinkInvalid);
     }
-    if (
-      refundAllocations.length > 0 &&
-      toMinorUnits(
-        refundAllocations.reduce(
-          (sum, allocation) => sum + allocation.refundAmount,
-          0,
-        ),
-      ) !== toMinorUnits(amountResult.value)
-    ) {
-      return invalid(transactionErrorCodes.refundLinkInvalid);
+    if (refundAllocations.length > 0) {
+      const itemAmountUnits = toRefundMinorUnits(amountResult.value);
+      const allocationUnits = refundAllocations.map((allocation) =>
+        toRefundMinorUnits(allocation.refundAmount),
+      );
+      if (
+        itemAmountUnits === null ||
+        allocationUnits.some((units) => units === null) ||
+        (allocationUnits as bigint[]).reduce(
+          (sum, units) => sum + units,
+          BigInt(0),
+        ) !== itemAmountUnits
+      ) {
+        return invalid(transactionErrorCodes.refundLinkInvalid);
+      }
     }
 
     items.push({
@@ -284,11 +292,12 @@ function parseRefundAllocations(
       ) {
         return null;
       }
+      const refundAmountUnits = toRefundMinorUnits(refundAmount);
       const numericAmount = Number(refundAmount);
       if (
-        !Number.isFinite(numericAmount) ||
-        numericAmount <= 0 ||
-        toMinorUnits(numericAmount) === null
+        refundAmountUnits === null ||
+        refundAmountUnits <= BigInt(0) ||
+        !Number.isFinite(numericAmount)
       ) {
         return null;
       }
@@ -299,11 +308,6 @@ function parseRefundAllocations(
   } catch {
     return null;
   }
-}
-
-function toMinorUnits(value: number) {
-  const units = value * 100;
-  return Number.isSafeInteger(units) ? units : null;
 }
 
 function parseUuidArray(

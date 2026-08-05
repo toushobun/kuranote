@@ -489,7 +489,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "income_links_create_only") {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        "报销和退款关联只能在新建收入交易时设置。",
+        "报销关联只能在新建收入交易时设置。",
       );
     }
 

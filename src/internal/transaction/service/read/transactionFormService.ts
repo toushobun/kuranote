@@ -21,6 +21,10 @@ import {
   fromTransactionSpecialStatusStorageValue,
   resolveTransactionBusinessStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
+import {
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction/util/refundAllocation";
 
 type TransactionFormReadDependencies =
   TransactionReadDependencies<TransactionFormRepository> & {
@@ -280,11 +284,21 @@ function buildRefundCandidates(
       const category = categories.find(
         (option) => option.id === refundedItem.categoryId,
       );
-      const remainingRefundableAmount = Math.max(
-        0,
-        Number(refundedItem.amount) -
-          Number(refundedItem.refundedAmount) +
-          Number(refundAmount),
+      const originalAmountUnits = toRefundMinorUnits(refundedItem.amount);
+      const refundedAmountUnits = toRefundMinorUnits(
+        refundedItem.refundedAmount,
+      );
+      const currentAllocationUnits = toRefundMinorUnits(refundAmount);
+      const calculatedRemainingUnits =
+        originalAmountUnits !== null &&
+        refundedAmountUnits !== null &&
+        currentAllocationUnits !== null
+          ? originalAmountUnits - refundedAmountUnits + currentAllocationUnits
+          : BigInt(0);
+      const remainingRefundableAmount = formatRefundMinorUnits(
+        calculatedRemainingUnits > BigInt(0)
+          ? calculatedRemainingUnits
+          : BigInt(0),
       );
 
       return {
@@ -295,7 +309,7 @@ function buildRefundCandidates(
         id: refundedItem.id,
         parentCategoryName: category?.parentName ?? null,
         refundedAmount: refundedItem.refundedAmount,
-        remainingRefundableAmount: String(remainingRefundableAmount),
+        remainingRefundableAmount,
         transactionAt: refundedItem.transactionAt,
         transactionRecordId: refundedItem.transactionRecordId,
       };

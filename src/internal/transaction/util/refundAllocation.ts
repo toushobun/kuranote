@@ -8,6 +8,38 @@ export type TransactionRefundAllocationTarget = {
   remainingRefundableAmount: string;
 };
 
+const minorUnitScale = BigInt(100);
+
+/**
+ * 金额を 0.01 单位の整数に変换する。
+ * 浮動小数点演算を経由せず、入力文字列の小数桁を直接解釈する。
+ */
+export function toRefundMinorUnits(value: number | string): bigint | null {
+  const text = String(value).trim();
+  const match = text.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!match) return null;
+
+  const whole = match[1];
+  const fraction = (match[2] ?? "").padEnd(2, "0");
+  try {
+    return BigInt(whole) * minorUnitScale + BigInt(fraction);
+  } catch {
+    return null;
+  }
+}
+
+/** 0.01 单位の整数を、末尾の不要な 0 を除いた金额文字列に戻す。 */
+export function formatRefundMinorUnits(units: bigint): string {
+  const negative = units < BigInt(0);
+  const absoluteUnits = negative ? -units : units;
+  const whole = absoluteUnits / minorUnitScale;
+  const fraction = String(absoluteUnits % minorUnitScale).padStart(2, "0");
+  const trimmedFraction = fraction.replace(/0+$/, "");
+  return `${negative ? "-" : ""}${whole}${
+    trimmedFraction ? `.${trimmedFraction}` : ""
+  }`;
+}
+
 /**
  * 以 0.01 为最小货币单位，按剩余可退金额比例分摊。
  *
@@ -19,13 +51,13 @@ export function allocateRefundAmount(
   totalAmount: number | string,
   targets: TransactionRefundAllocationTarget[],
 ): TransactionRefundAllocation[] | null {
-  const totalUnits = toMinorUnits(totalAmount);
+  const totalUnits = toRefundMinorUnits(totalAmount);
   if (totalUnits === null || totalUnits <= BigInt(0) || targets.length === 0) {
     return null;
   }
 
   const sortedTargets = [...targets].sort((left, right) =>
-    left.id.localeCompare(right.id),
+    compareStableText(left.id, right.id),
   );
   if (
     new Set(sortedTargets.map((target) => target.id)).size !== targets.length
@@ -35,7 +67,7 @@ export function allocateRefundAmount(
 
   const targetUnits = sortedTargets.map((target) => ({
     id: target.id,
-    units: toMinorUnits(target.remainingRefundableAmount),
+    units: toRefundMinorUnits(target.remainingRefundableAmount),
   }));
   if (
     targetUnits.some(
@@ -69,7 +101,7 @@ export function allocateRefundAmount(
   const tailOrder = [...provisional].sort(
     (left, right) =>
       compareBigInt(right.remainder, left.remainder) ||
-      left.id.localeCompare(right.id),
+      compareStableText(left.id, right.id),
   );
 
   for (const target of tailOrder) {
@@ -90,28 +122,19 @@ export function allocateRefundAmount(
   }
 
   return provisional
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort((left, right) => compareStableText(left.id, right.id))
     .map((target) => ({
-      refundAmount: Number(target.allocatedUnits) / 100,
+      refundAmount: Number(formatRefundMinorUnits(target.allocatedUnits)),
       refundedItemId: target.id,
     }));
 }
 
-function toMinorUnits(value: number | string): bigint | null {
-  const text = String(value).trim();
-  const match = text.match(/^(\d+)(?:\.(\d{1,2}))?$/);
-  if (!match) return null;
-
-  const whole = match[1];
-  const fraction = (match[2] ?? "").padEnd(2, "0");
-  try {
-    return BigInt(whole) * BigInt(100) + BigInt(fraction);
-  } catch {
-    return null;
-  }
+function compareBigInt(left: bigint, right: bigint) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
 }
 
-function compareBigInt(left: bigint, right: bigint) {
+function compareStableText(left: string, right: string) {
   if (left === right) return 0;
   return left < right ? -1 : 1;
 }
