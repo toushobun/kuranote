@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(59);
+select plan(65);
 
 select has_type(
     'public',
@@ -266,6 +266,47 @@ select throws_ok(
     '转账明细不能作为被退款支出明细'
 );
 
+-- 该文件后续会用自己插入的明细验证“存在活跃状态时禁止关闭”。
+-- 先在当前测试事务内解除共享账本的既有报销关联并清空待报销状态，
+-- 避免种子数据改变下方功能关闭场景的前置条件。
+do $$
+declare
+    reimbursement_link record;
+begin
+    for reimbursement_link in
+        select distinct
+            settled_item.ledger_id,
+            settled_item.settled_by_item_id as income_item_id,
+            income_item.updated_by as user_id
+        from public.transaction_item settled_item
+        join public.transaction_item income_item
+          on income_item.id = settled_item.settled_by_item_id
+         and income_item.ledger_id = settled_item.ledger_id
+        where settled_item.ledger_id = (
+            select ledger_id
+            from public.transaction_item
+            where id = '55110000-0000-4000-8000-000000000001'
+        )
+          and settled_item.settled_by_item_id is not null
+    loop
+        perform public.clear_transaction_item_income_links(
+            reimbursement_link.ledger_id,
+            reimbursement_link.income_item_id,
+            reimbursement_link.user_id
+        );
+    end loop;
+
+    update public.transaction_item
+    set special_status = null
+    where ledger_id = (
+        select ledger_id
+        from public.transaction_item
+        where id = '55110000-0000-4000-8000-000000000001'
+    )
+      and special_status = 'pending_reimbursement';
+end;
+$$;
+
 update public.ledger
 set transaction_item_special_status_enabled = false
 where id = (
@@ -483,20 +524,95 @@ select throws_ok(
         select public.update_transaction(
             (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
             (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
-            'income',
+            'expense',
             now(),
-            jsonb_build_array(jsonb_build_object(
-                'amount', 175,
-                'categoryId', (select category_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005')
-            )),
+            (
+                select jsonb_agg(
+                    jsonb_build_object(
+                        'amount', ti.amount,
+                        'categoryId', ti.category_id,
+                        'id', ti.id,
+                        'refundedItemId', (
+                            select link.refunded_item_id
+                            from public.transaction_item_refund_link link
+                            where link.refund_income_item_id = ti.id
+                        ),
+                        'reimbursementItemIds', coalesce((
+                            select jsonb_agg(settled_item.id order by settled_item.id)
+                            from public.transaction_item settled_item
+                            where settled_item.settled_by_item_id = ti.id
+                        ), '[]'::jsonb),
+                        'specialStatus', ti.special_status
+                    )
+                    order by ti.sort_order, ti.id
+                )
+                from public.transaction_item ti
+                where ti.transaction_record_id = (
+                    select transaction_record_id
+                    from public.transaction_item
+                    where id = '55120000-0000-4000-8000-000000000005'
+                )
+            ),
             (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
-            null,
+            (
+                select tr.merchant_id
+                from public.transaction_record tr
+                join public.transaction_item ti on ti.transaction_record_id = tr.id
+                where ti.id = '55120000-0000-4000-8000-000000000005'
+            ),
             null
         )
     $$,
     'P0001',
     'linked_transaction_edit_forbidden',
-    '结算其他明细的收入交易不能编辑'
+    '完整前端 payload 不能绕过普通编辑流程的收入关联保护'
+);
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            (select ledger_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            (select transaction_record_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            'income',
+            now(),
+            (
+                select jsonb_agg(
+                    jsonb_build_object(
+                        'amount', ti.amount,
+                        'categoryId', ti.category_id,
+                        'id', ti.id,
+                        'refundedItemId', (
+                            select link.refunded_item_id
+                            from public.transaction_item_refund_link link
+                            where link.refund_income_item_id = ti.id
+                        ),
+                        'reimbursementItemIds', coalesce((
+                            select jsonb_agg(settled_item.id order by settled_item.id)
+                            from public.transaction_item settled_item
+                            where settled_item.settled_by_item_id = ti.id
+                        ), '[]'::jsonb),
+                        'specialStatus', ti.special_status
+                    )
+                    order by ti.sort_order, ti.id
+                )
+                from public.transaction_item ti
+                where ti.transaction_record_id = (
+                    select transaction_record_id
+                    from public.transaction_item
+                    where id = '55120000-0000-4000-8000-000000000005'
+                )
+            ),
+            (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+            (
+                select tr.merchant_id
+                from public.transaction_record tr
+                join public.transaction_item ti on ti.transaction_record_id = tr.id
+                where ti.id = '55120000-0000-4000-8000-000000000005'
+            ),
+            null
+        )
+    $$,
+    '收入编辑流程可以使用完整前端 payload 维护既有关联'
 );
 
 select throws_ok(
@@ -1122,6 +1238,254 @@ select throws_ok(
     '22023',
     'refund_account_mismatch',
     '同币种不同账户不能建立退款关联'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
+update public.app_user
+set status = 'active'
+where id = (
+    select created_by
+    from public.transaction_item
+    where id = '55120000-0000-4000-8000-000000000005'
+);
+
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+)
+select
+    fixture.id,
+    tr.ledger_id,
+    'normal',
+    'active',
+    tr.transaction_at,
+    tr.merchant_id,
+    fixture.title,
+    null,
+    tr.created_by,
+    tr.updated_by
+from public.transaction_record tr
+join public.transaction_item ti on ti.transaction_record_id = tr.id
+cross join (values
+    ('57900000-0000-4000-8000-000000000001'::uuid, '删除明细 ID 保留测试'),
+    ('57900000-0000-4000-8000-000000000002'::uuid, '混合明细重排测试'),
+    ('57900000-0000-4000-8000-000000000003'::uuid, '报销目标测试')
+) fixture(id, title)
+where ti.id = '55120000-0000-4000-8000-000000000005';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '57910000-0000-4000-8000-000000000001',
+    ti.ledger_id,
+    '57900000-0000-4000-8000-000000000001',
+    ti.account_id,
+    ti.category_id,
+    10,
+    0,
+    10,
+    null,
+    0,
+    null,
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55120000-0000-4000-8000-000000000005';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '57910000-0000-4000-8000-000000000002',
+    ti.ledger_id,
+    '57900000-0000-4000-8000-000000000001',
+    ti.account_id,
+    ti.category_id,
+    50,
+    0,
+    50,
+    null,
+    1,
+    null,
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55120000-0000-4000-8000-000000000005';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '57920000-0000-4000-8000-000000000001',
+    ti.ledger_id,
+    '57900000-0000-4000-8000-000000000003',
+    (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+    ti.category_id,
+    50,
+    0,
+    -50,
+    null,
+    0,
+    'pending_reimbursement',
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+select public.apply_transaction_item_links(
+    (select ledger_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+    '57910000-0000-4000-8000-000000000002',
+    jsonb_build_object(
+        'reimbursementItemIds',
+        jsonb_build_array('57920000-0000-4000-8000-000000000001')
+    ),
+    (select created_by from public.transaction_item where id = '57910000-0000-4000-8000-000000000002')
+);
+
+select set_config(
+    'request.jwt.claim.sub',
+    (select created_by::text from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+    true
+);
+set local role authenticated;
+
+select public.update_transaction(
+    (select ledger_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+    '57900000-0000-4000-8000-000000000001',
+    'income',
+    now(),
+    jsonb_build_array(jsonb_build_object(
+        'amount', 50,
+        'categoryId', (select category_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+        'id', '57910000-0000-4000-8000-000000000002',
+        'refundedItemId', null,
+        'reimbursementItemIds', jsonb_build_array('57920000-0000-4000-8000-000000000001'),
+        'specialStatus', null
+    )),
+    (select account_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+    (select merchant_id from public.transaction_record where id = '57900000-0000-4000-8000-000000000001'),
+    null
+);
+
+select is(
+    (select count(*)::integer from public.transaction_item where id = '57910000-0000-4000-8000-000000000002'),
+    1,
+    '删除前置明细后保留关联收入明细的原 ID'
+);
+
+select is(
+    (select settled_by_item_id from public.transaction_item where id = '57920000-0000-4000-8000-000000000001'),
+    '57910000-0000-4000-8000-000000000002'::uuid,
+    '删除前置明细后报销关联仍指向原收入明细 ID'
+);
+
+select is(
+    (select count(*)::integer from public.transaction_item where id = '57910000-0000-4000-8000-000000000001'),
+    0,
+    '被删除的普通明细没有变成保留明细的数据载体'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '57910000-0000-4000-8000-000000000003',
+    ti.ledger_id,
+    '57900000-0000-4000-8000-000000000002',
+    ti.account_id,
+    ti.category_id,
+    60,
+    0,
+    60,
+    null,
+    0,
+    null,
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55120000-0000-4000-8000-000000000005';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, note, sort_order,
+    special_status, created_by, updated_by
+)
+select
+    '57910000-0000-4000-8000-000000000004',
+    ti.ledger_id,
+    '57900000-0000-4000-8000-000000000002',
+    (select account_id from public.transaction_item where id = '55120000-0000-4000-8000-000000000005'),
+    ti.category_id,
+    20,
+    0,
+    -20,
+    null,
+    1,
+    null,
+    ti.created_by,
+    ti.updated_by
+from public.transaction_item ti
+where ti.id = '55110000-0000-4000-8000-000000000001';
+
+select set_config(
+    'request.jwt.claim.sub',
+    (select created_by::text from public.transaction_item where id = '57910000-0000-4000-8000-000000000003'),
+    true
+);
+set local role authenticated;
+
+select public.update_transaction(
+    (select ledger_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000003'),
+    '57900000-0000-4000-8000-000000000002',
+    'expense',
+    now(),
+    jsonb_build_array(
+        jsonb_build_object(
+            'amount', 20,
+            'categoryId', (select category_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000004'),
+            'id', '57910000-0000-4000-8000-000000000004',
+            'refundedItemId', null,
+            'reimbursementItemIds', jsonb_build_array(),
+            'specialStatus', null
+        ),
+        jsonb_build_object(
+            'amount', 60,
+            'categoryId', (select category_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000003'),
+            'id', '57910000-0000-4000-8000-000000000003',
+            'refundedItemId', null,
+            'reimbursementItemIds', jsonb_build_array(),
+            'specialStatus', null
+        )
+    ),
+    (select account_id from public.transaction_item where id = '57910000-0000-4000-8000-000000000003'),
+    (select merchant_id from public.transaction_record where id = '57900000-0000-4000-8000-000000000002'),
+    null
+);
+
+select is(
+    (select amount::text from public.transaction_item where id = '57910000-0000-4000-8000-000000000003'),
+    '60.00',
+    '混合明细按类型重排提交后收入数据仍保留在原 ID'
+);
+
+select is(
+    (select amount::text from public.transaction_item where id = '57910000-0000-4000-8000-000000000004'),
+    '20.00',
+    '混合明细按类型重排提交后支出数据仍保留在原 ID'
 );
 
 select * from finish();

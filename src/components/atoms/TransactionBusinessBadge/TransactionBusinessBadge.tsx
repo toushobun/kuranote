@@ -1,14 +1,12 @@
 import Chip, { type ChipProps } from "@mui/material/Chip";
+import type { TransactionBusinessStatus } from "internal/transaction";
 import type { ReactNode } from "react";
 
-import {
-  transactionBusinessBadgeConfig,
-  type TransactionBusinessBadgeStatus,
-} from "./transactionBusinessBadgeConfig";
+import { transactionBusinessBadgeConfig } from "./transactionBusinessBadgeConfig";
 
 type TransactionBusinessBadgeProps = Omit<ChipProps, "color" | "label"> & {
   label?: ReactNode;
-  status: TransactionBusinessBadgeStatus;
+  status: TransactionBusinessStatus;
 };
 
 export function TransactionBusinessBadge({

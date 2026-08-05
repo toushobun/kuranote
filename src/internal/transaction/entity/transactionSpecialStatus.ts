@@ -6,6 +6,15 @@ export const transactionSpecialStatuses = [
 export type TransactionSpecialStatus =
   (typeof transactionSpecialStatuses)[number];
 
+export const transactionBusinessStatuses = [
+  ...transactionSpecialStatuses,
+  "refund",
+  "reimbursement",
+] as const;
+
+export type TransactionBusinessStatus =
+  (typeof transactionBusinessStatuses)[number];
+
 export const transactionWritableSpecialStatuses = [
   "pendingReimbursement",
 ] as const;
@@ -48,4 +57,18 @@ export function fromTransactionSpecialStatusStorageValue(
   value: TransactionSpecialStatusStorageValue | null,
 ): TransactionSpecialStatus | null {
   return value === null ? null : statusByStorageValue[value];
+}
+
+export function resolveTransactionBusinessStatus({
+  isRefundIncome = false,
+  isReimbursementIncome = false,
+  specialStatus = null,
+}: {
+  isRefundIncome?: boolean;
+  isReimbursementIncome?: boolean;
+  specialStatus?: TransactionSpecialStatusStorageValue | null;
+}): TransactionBusinessStatus | null {
+  if (isRefundIncome) return "refund";
+  if (isReimbursementIncome) return "reimbursement";
+  return fromTransactionSpecialStatusStorageValue(specialStatus);
 }

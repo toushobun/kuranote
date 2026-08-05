@@ -172,6 +172,8 @@ select set_config(
 );
 set local role authenticated;
 
+-- 汇总函数会返回账本内所有账户的分组；这里只断言测试数据使用的账户，
+-- 避免同账本其它账户的种子交易改变预期金额。
 select is(
     (
         select coalesce(sum(summary.expense), 0)
@@ -181,6 +183,9 @@ select is(
             '2026-07-01 00:00:00+00',
             '2026-08-01 00:00:00+00'
         ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
     ),
     0::numeric,
     '报销完成后七月原支出不再计入统计'
@@ -195,6 +200,9 @@ select is(
             '2026-08-01 00:00:00+00',
             '2026-09-01 00:00:00+00'
         ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
     ),
     0::numeric,
     '报销完成后八月结算收入不再计入统计'
@@ -209,6 +217,9 @@ select is(
             '2026-09-01 00:00:00+00',
             '2026-10-01 00:00:00+00'
         ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
     ),
     7000::numeric,
     '退款仍按原支出减去已退款金额统计'
@@ -223,6 +234,9 @@ select is(
             '2026-10-01 00:00:00+00',
             '2026-11-01 00:00:00+00'
         ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
     ),
     0::numeric,
     '退款收入仍不重复计入收入统计'

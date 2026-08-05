@@ -25,6 +25,7 @@ import type {
 } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionSpecialStatusFilterValue } from "internal/transaction/entity/transactionSpecialStatus";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
+import type { TransactionRefundAllocation } from "internal/transaction/util/refundAllocation";
 import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
@@ -34,9 +35,19 @@ import { isThemeColorKey } from "theme/themeColorTokens";
 export type TransactionItemInput = {
   amount: number;
   categoryId: string;
-  refundedItemId?: string | null;
+  id?: string;
+  refundAllocations?: TransactionRefundAllocation[];
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
+};
+
+type TransactionItemRepositoryRow = Omit<
+  TransactionItemDbRow,
+  "amount" | "balance_delta" | "refunded_amount"
+> & {
+  amount: number | string;
+  balance_delta?: number | string | null;
+  refunded_amount?: number | string | null;
 };
 
 export type CreateNormalTransactionInput = {
@@ -84,6 +95,14 @@ export type TransactionDashboardSummaryItem = Pick<
   | "special_status"
   | "transaction_record_id"
 >;
+
+type TransactionDashboardSummaryRepositoryRow = Omit<
+  TransactionDashboardSummaryItem,
+  "amount" | "refunded_amount"
+> & {
+  amount: number | string;
+  refunded_amount?: number | string | null;
+};
 
 export type TransactionDashboardCategory = Pick<
   CategorySummaryDbRow,
@@ -249,6 +268,7 @@ const transactionRpcErrorCodes = [
   "refund_currency_mismatch",
   "refund_account_mismatch",
   "refund_amount_exceeded",
+  "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
   "reimbursement_amount_mismatch",
   "refunded_item_special_status_conflict",
@@ -392,7 +412,14 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "refund_amount_exceeded") {
       throw new ConflictError(
         transactionErrorCodes.refundAmountExceeded,
-        "退款金额超过该明细的剩余可退金额，请调整金额后重试。",
+        "退款金额超过所选明细的剩余可退金额，请重新选择。",
+      );
+    }
+
+    if (rpcErrorCode === "refund_allocation_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.refundLinkInvalid,
+        "退款分摊结果不正确，请重新选择退款明细。",
       );
     }
 
@@ -462,7 +489,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "income_links_create_only") {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        "报销和退款关联只能在新建收入交易时设置。",
+        "报销关联只能在新建收入交易时设置。",
       );
     }
 
@@ -483,7 +510,7 @@ export function createSupabaseTransactionRepository(
     if (error.code === "23505") {
       throw new ConflictError(
         transactionErrorCodes.refundLinkInvalid,
-        "该收入明细已经关联过一笔退款，请刷新后重试。",
+        "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
       );
     }
 
@@ -716,7 +743,9 @@ export function createSupabaseTransactionRepository(
           "交易明细加载失败，请稍后重试。",
         );
       }
-      return (data ?? []) as TransactionItemDbRow[];
+      return (data ?? []).map((row) =>
+        toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+      );
     },
 
     async listPendingReimbursementItems(ledgerId) {
@@ -886,7 +915,11 @@ export function createSupabaseTransactionRepository(
         );
       }
 
-      const items = (itemData ?? []) as TransactionDashboardSummaryItem[];
+      const items = (itemData ?? []).map((row) =>
+        toTransactionDashboardSummaryItem(
+          row as TransactionDashboardSummaryRepositoryRow,
+        ),
+      );
       const categoryIds = [
         ...new Set(
           items
@@ -1083,10 +1116,47 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
   return items.map((item) => ({
     amount: item.amount,
     categoryId: item.categoryId,
-    refundedItemId: item.refundedItemId ?? null,
+    id: item.id ?? null,
+    refundAllocations: item.refundAllocations ?? [],
     reimbursementItemIds: item.reimbursementItemIds ?? [],
     specialStatus: toTransactionSpecialStatusStorageValue(
       item.specialStatus ?? null,
     ),
   }));
+}
+
+function toTransactionItemDbRow({
+  amount,
+  balance_delta: balanceDelta,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionItemRepositoryRow): TransactionItemDbRow {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    ...(balanceDelta == null
+      ? {}
+      : { balance_delta: toTransactionAmountText(balanceDelta) }),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+  };
+}
+
+function toTransactionDashboardSummaryItem({
+  amount,
+  refunded_amount: refundedAmount,
+  ...row
+}: TransactionDashboardSummaryRepositoryRow): TransactionDashboardSummaryItem {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    ...(refundedAmount == null
+      ? {}
+      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+  };
+}
+
+function toTransactionAmountText(value: number | string) {
+  return String(value);
 }

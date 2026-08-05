@@ -448,6 +448,38 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
         },
       });
     });
+    it("精确接受 0.1 与 0.2 合计为 0.3 的退款分摊", () => {
+      const formData = createFormData({
+        itemAmount: "0.3",
+        type: "income",
+      });
+      formData.append(
+        "itemRefundAllocations",
+        JSON.stringify([
+          {
+            refundAmount: 0.1,
+            refundedItemId: "00000000-0000-4000-8000-000000000201",
+          },
+          {
+            refundAmount: 0.2,
+            refundedItemId: "00000000-0000-4000-8000-000000000202",
+          },
+        ]),
+      );
+
+      expect(validateTransactionForm(formData)).toMatchObject({
+        ok: true,
+        value: {
+          items: [
+            {
+              amount: 0.3,
+              refundAllocations: [{ refundAmount: 0.1 }, { refundAmount: 0.2 }],
+            },
+          ],
+        },
+      });
+    });
+
     it("商家为空时校验失败", () => {
       expect(
         validateTransactionForm(createFormData({ merchantId: "" })),
@@ -738,6 +770,7 @@ describe("validateUpdateTransferTransactionForm", () => {
 describe("validateUpdateTransactionForm", () => {
   const accountId = "00000000-0000-4000-8000-000000000041";
   const categoryId = "00000000-0000-4000-8000-000000000101";
+  const itemId = "00000000-0000-4000-8000-000000000201";
   const merchantId = "00000000-0000-4000-8000-000000001001";
   const transactionRecordId = "00000000-0000-4000-8000-000000002001";
   function createFormData(overrides: Record<string, string> = {}) {
@@ -786,6 +819,17 @@ describe("validateUpdateTransactionForm", () => {
       },
     });
   });
+  it("编辑普通交易时保留已有明细 ID", () => {
+    const formData = createFormData();
+    formData.append("itemPersistedId", itemId);
+
+    expect(validateUpdateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: {
+        items: [{ amount: 1200, categoryId, id: itemId }],
+      },
+    });
+  });
   it("update 普通交易拒绝 type=transfer", () => {
     expect(
       validateUpdateTransactionForm(createFormData({ type: "transfer" })),
@@ -807,7 +851,15 @@ describe("退款关联 FormData 校验", () => {
     formData.set("accountId", "00000000-0000-4000-8000-000000000041");
     formData.append("itemCategoryId", "00000000-0000-4000-8000-000000000101");
     formData.append("itemAmount", "0");
-    formData.append("itemRefundedItemId", refundTargetId);
+    formData.append(
+      "itemRefundAllocations",
+      JSON.stringify([
+        {
+          refundAmount: 0,
+          refundedItemId: refundTargetId,
+        },
+      ]),
+    );
     formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
     formData.set("transactionRecordId", "00000000-0000-4000-8000-000000002001");
     return formData;

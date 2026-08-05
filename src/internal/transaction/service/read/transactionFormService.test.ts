@@ -2,7 +2,9 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionItemDbRow } from "internal/db-types";
 import type { CurrentLedger } from "internal/ledger";
+import type { TransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
 import {
@@ -19,6 +21,9 @@ const accountId = "00000000-0000-4000-8000-000000000045";
 const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const parentCategoryId = "00000000-0000-4000-8000-000000005001";
 const categoryId = "00000000-0000-4000-8000-000000005072";
+const incomeCategoryId = "00000000-0000-4000-8000-000000005073";
+const incomeItemId = "00000000-0000-4000-8000-000000008001";
+const linkedExpenseItemId = "00000000-0000-4000-8000-000000008002";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 
 const currentLedger: CurrentLedger = {
@@ -77,6 +82,72 @@ function createDependencies(repository: TransactionFormRepository) {
     },
     transactionRepository: repository,
   } satisfies TransactionReadDependencies<TransactionFormRepository>;
+}
+
+function createLinkedDependencies({
+  incomeLinkRepository,
+  itemOverrides,
+}: {
+  incomeLinkRepository?: TransactionIncomeLinkRepository;
+  itemOverrides: Partial<TransactionItemDbRow>;
+}) {
+  const repository: TransactionFormRepository = {
+    findActiveRecord: vi.fn().mockResolvedValue({
+      created_at: "2026-08-03T01:00:00.000Z",
+      created_by: userId,
+      id: transactionRecordId,
+      merchant_id: null,
+      note: null,
+      transaction_at: "2026-08-03T01:00:00.000Z",
+      type: "normal",
+    }),
+    listItems: vi.fn().mockResolvedValue([
+      {
+        account_id: accountId,
+        amount: "1000",
+        balance_delta: "-1000",
+        category_id: categoryId,
+        id: incomeItemId,
+        note: null,
+        transaction_record_id: transactionRecordId,
+        ...itemOverrides,
+      },
+    ]),
+    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
+  };
+
+  return {
+    accountQueryService: {
+      getTransactionContext: vi.fn(),
+      listTransactionOptions: vi
+        .fn()
+        .mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]),
+    },
+    categoryQueryService: {
+      findSummariesByIds: vi.fn(),
+      listActiveSummaries: vi.fn().mockResolvedValue([
+        {
+          id: categoryId,
+          name: "餐饮",
+          parent_id: null,
+          type: "expense",
+        },
+        {
+          id: incomeCategoryId,
+          name: "退款收入",
+          parent_id: null,
+          type: "income",
+        },
+      ]),
+    },
+    currentUserId: userId,
+    merchantQueryService: {
+      findSummariesByIds: vi.fn(),
+      listActiveOptions: vi.fn().mockResolvedValue([]),
+    },
+    transactionIncomeLinkRepository: incomeLinkRepository,
+    transactionRepository: repository,
+  };
 }
 
 describe("getEditTransactionView", () => {
@@ -230,5 +301,135 @@ describe("getNewTransactionView", () => {
     });
 
     expect(view.reimbursementCandidates[0]?.accountCurrency).toBe("USD");
+  });
+});
+
+describe("getEditTransactionView income links", () => {
+  it.each([
+    ["已报销支出", { special_status: "reimbursed" as const }],
+    [
+      "作为报销对象",
+      {
+        settled_by_item_id: "00000000-0000-4000-8000-000000008003",
+      },
+    ],
+    ["作为退款对象", { has_refund_link: true, is_refund_income: false }],
+  ])("%s 返回整体只读态", async (_label, itemOverrides) => {
+    const view = await getEditTransactionView(
+      createLinkedDependencies({ itemOverrides }),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "linked",
+    });
+  });
+
+  it("报销收入允许编辑并回填已选支出", async () => {
+    const incomeLinkRepository: TransactionIncomeLinkRepository = {
+      listByIncomeItemIds: vi.fn().mockResolvedValue([
+        {
+          incomeItemId,
+          refundedItem: null,
+          reimbursementItems: [
+            {
+              accountId,
+              amount: "1000",
+              categoryId,
+              id: linkedExpenseItemId,
+              refundedAmount: "0",
+              transactionAt: "2026-08-01T01:00:00.000Z",
+              transactionRecordId: "00000000-0000-4000-8000-000000009998",
+            },
+          ],
+        },
+      ]),
+    };
+
+    const view = await getEditTransactionView(
+      createLinkedDependencies({
+        incomeLinkRepository,
+        itemOverrides: {
+          balance_delta: "1000",
+          category_id: incomeCategoryId,
+          is_reimbursement_income: true,
+        },
+      }),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: true,
+      editRestriction: null,
+      initialValues: {
+        items: [
+          {
+            businessStatus: "reimbursement",
+            reimbursementItemIds: [linkedExpenseItemId],
+          },
+        ],
+      },
+      reimbursementCandidates: [{ id: linkedExpenseItemId }],
+    });
+  });
+
+  it("退款收入允许编辑并回填退款对象", async () => {
+    const incomeLinkRepository: TransactionIncomeLinkRepository = {
+      listByIncomeItemIds: vi.fn().mockResolvedValue([
+        {
+          incomeItemId,
+          refundAllocations: [
+            {
+              refundAmount: "0.1",
+              refundedItem: {
+                accountId,
+                amount: "0.3",
+                categoryId,
+                id: linkedExpenseItemId,
+                refundedAmount: "0.2",
+                transactionAt: "2026-08-01T01:00:00.000Z",
+                transactionRecordId: "00000000-0000-4000-8000-000000009998",
+              },
+            },
+          ],
+          reimbursementItems: [],
+        },
+      ]),
+    };
+
+    const view = await getEditTransactionView(
+      createLinkedDependencies({
+        incomeLinkRepository,
+        itemOverrides: {
+          balance_delta: "1000",
+          category_id: incomeCategoryId,
+          has_refund_link: true,
+          is_refund_income: true,
+        },
+      }),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: true,
+      editRestriction: null,
+      initialValues: {
+        items: [
+          {
+            businessStatus: "refund",
+            refundCandidates: [
+              {
+                id: linkedExpenseItemId,
+                remainingRefundableAmount: "0.2",
+              },
+            ],
+          },
+        ],
+      },
+    });
   });
 });

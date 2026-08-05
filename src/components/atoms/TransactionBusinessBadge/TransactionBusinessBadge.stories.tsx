@@ -2,17 +2,12 @@ import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { TransactionBusinessBadge } from "./TransactionBusinessBadge";
-import type { TransactionBusinessBadgeStatus } from "./transactionBusinessBadgeConfig";
-
-const badgeStatuses: TransactionBusinessBadgeStatus[] = [
-  "pendingReimbursement",
-  "reimbursed",
-];
+import { transactionBusinessBadgeStatuses } from "./transactionBusinessBadgeConfig";
 
 function TransactionBusinessBadgePreview() {
   return (
     <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-      {badgeStatuses.map((status) => (
+      {transactionBusinessBadgeStatuses.map((status) => (
         <TransactionBusinessBadge key={status} status={status} />
       ))}
     </Stack>
@@ -20,12 +15,12 @@ function TransactionBusinessBadgePreview() {
 }
 
 const meta = {
-  title: "Organisms/Transactions/TransactionBusinessBadge",
+  title: "Atoms/TransactionBusinessBadge",
   component: TransactionBusinessBadge,
   argTypes: {
     status: {
       control: "select",
-      options: badgeStatuses,
+      options: transactionBusinessBadgeStatuses,
     },
   },
 } satisfies Meta<typeof TransactionBusinessBadge>;
@@ -34,7 +29,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "默认状态",
+  name: "全部业务状态",
   args: {
     status: "pendingReimbursement",
   },

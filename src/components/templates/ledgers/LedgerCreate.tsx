@@ -25,6 +25,7 @@ import type { LedgerCreateDefaults } from "internal/ledger";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
 import {
@@ -97,7 +98,7 @@ export function LedgerCreateTemplate({
       <Box
         aria-hidden="true"
         data-testid="ledger-create-page-background"
-        sx={pageBackgroundSx}
+        sx={fullViewportPageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
@@ -409,13 +410,6 @@ function CreateSubmitButton() {
     </Button>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 0.75 },

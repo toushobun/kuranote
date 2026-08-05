@@ -14,6 +14,10 @@ import {
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
+import {
+  toRefundMinorUnits,
+  type TransactionRefundAllocation,
+} from "internal/transaction/util/refundAllocation";
 
 import {
   invalid,
@@ -58,7 +62,8 @@ export type CreateTransactionFormValues =
 export type TransactionFormItemValues = {
   amount: number;
   categoryId: string;
-  refundedItemId?: string | null;
+  id?: string;
+  refundAllocations?: TransactionRefundAllocation[];
   reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
@@ -153,11 +158,14 @@ function parseTransactionItems(
 > {
   const categoryValues = formData.getAll("itemCategoryId");
   const amountValues = formData.getAll("itemAmount");
+  const submittedPersistedIdValues = formData.getAll("itemPersistedId");
   const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
   const submittedReimbursementValues = formData.getAll(
     "itemReimbursementItemIds",
   );
-  const submittedRefundedItemValues = formData.getAll("itemRefundedItemId");
+  const submittedRefundAllocationValues = formData.getAll(
+    "itemRefundAllocations",
+  );
   const specialStatusValues =
     submittedSpecialStatusValues.length === 0
       ? categoryValues.map(() => "")
@@ -167,10 +175,12 @@ function parseTransactionItems(
     categoryValues.length === 0 ||
     categoryValues.length !== amountValues.length ||
     categoryValues.length !== specialStatusValues.length ||
+    (submittedPersistedIdValues.length > 0 &&
+      categoryValues.length !== submittedPersistedIdValues.length) ||
     (submittedReimbursementValues.length > 0 &&
       categoryValues.length !== submittedReimbursementValues.length) ||
-    (submittedRefundedItemValues.length > 0 &&
-      categoryValues.length !== submittedRefundedItemValues.length)
+    (submittedRefundAllocationValues.length > 0 &&
+      categoryValues.length !== submittedRefundAllocationValues.length)
   ) {
     return invalid(transactionErrorCodes.amountInvalid);
   }
@@ -197,6 +207,12 @@ function parseTransactionItems(
       return amountResult;
     }
 
+    const persistedIdResult = parseOptionalUuidText(
+      String(submittedPersistedIdValues[index] ?? "").trim(),
+      transactionErrorCodes.categoryInvalid,
+    );
+    if (!persistedIdResult.ok) return persistedIdResult;
+
     const specialStatusText = String(specialStatusValues[index] ?? "").trim();
     let specialStatus: TransactionSpecialStatus | null = null;
     if (specialStatusText) {
@@ -216,30 +232,82 @@ function parseTransactionItems(
     if (reimbursementItemIds === null) {
       return invalid(transactionErrorCodes.specialStatusInvalid);
     }
-    const refundedItemIdText = String(
-      submittedRefundedItemValues[index] ?? "",
-    ).trim();
-    const refundedItemIdResult = parseOptionalUuidText(
-      refundedItemIdText,
-      transactionErrorCodes.specialStatusInvalid,
+    const refundAllocations = parseRefundAllocations(
+      submittedRefundAllocationValues[index],
     );
-    if (!refundedItemIdResult.ok) return refundedItemIdResult;
-    if (refundedItemIdResult.value && amountResult.value <= 0) {
+    if (refundAllocations === null) {
       return invalid(transactionErrorCodes.refundLinkInvalid);
+    }
+    if (refundAllocations.length > 0) {
+      const itemAmountUnits = toRefundMinorUnits(amountResult.value);
+      const allocationUnits = refundAllocations.map((allocation) =>
+        toRefundMinorUnits(allocation.refundAmount),
+      );
+      if (
+        itemAmountUnits === null ||
+        allocationUnits.some((units) => units === null) ||
+        (allocationUnits as bigint[]).reduce(
+          (sum, units) => sum + units,
+          BigInt(0),
+        ) !== itemAmountUnits
+      ) {
+        return invalid(transactionErrorCodes.refundLinkInvalid);
+      }
     }
 
     items.push({
       amount: amountResult.value,
       categoryId: categoryResult.value,
+      ...(persistedIdResult.value ? { id: persistedIdResult.value } : {}),
       ...(reimbursementItemIds.length > 0 ? { reimbursementItemIds } : {}),
-      ...(refundedItemIdResult.value
-        ? { refundedItemId: refundedItemIdResult.value }
-        : {}),
+      ...(refundAllocations.length > 0 ? { refundAllocations } : {}),
       ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
   }
 
   return valid(items);
+}
+
+function parseRefundAllocations(
+  value: FormDataEntryValue | undefined,
+): TransactionRefundAllocation[] | null {
+  if (value === undefined || String(value).trim() === "") return [];
+
+  try {
+    const parsed: unknown = JSON.parse(String(value));
+    if (!Array.isArray(parsed) || parsed.length > 100) return null;
+
+    const allocations: TransactionRefundAllocation[] = [];
+    const ids = new Set<string>();
+    for (const allocation of parsed) {
+      if (!allocation || typeof allocation !== "object") return null;
+      const record = allocation as Record<string, unknown>;
+      const refundedItemId = record.refundedItemId;
+      const refundAmount = record.refundAmount;
+      if (
+        typeof refundedItemId !== "string" ||
+        !z.string().uuid().safeParse(refundedItemId).success ||
+        ids.has(refundedItemId) ||
+        (typeof refundAmount !== "number" && typeof refundAmount !== "string")
+      ) {
+        return null;
+      }
+      const refundAmountUnits = toRefundMinorUnits(refundAmount);
+      const numericAmount = Number(refundAmount);
+      if (
+        refundAmountUnits === null ||
+        refundAmountUnits <= BigInt(0) ||
+        !Number.isFinite(numericAmount)
+      ) {
+        return null;
+      }
+      ids.add(refundedItemId);
+      allocations.push({ refundedItemId, refundAmount: numericAmount });
+    }
+    return allocations;
+  } catch {
+    return null;
+  }
 }
 
 function parseUuidArray(
@@ -579,6 +647,7 @@ const transactionItemRequestSchema = z
       message: transactionErrorCodes.amountInvalid,
     }),
     categoryId: z.string().uuid(),
+    id: z.string().uuid().optional(),
     refundedItemId: z.string().uuid().nullable().optional(),
     reimbursementItemIds: z.array(z.string().uuid()).max(100).optional(),
     specialStatus: z

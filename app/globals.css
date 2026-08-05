@@ -1,4 +1,6 @@
 :root {
+  --app-safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --app-safe-area-inset-top: env(safe-area-inset-top, 0px);
   color-scheme: light;
 }
 
@@ -19,6 +21,11 @@ html {
 body {
   background: var(--user-theme-page-bg);
   transition: background 0.5s ease;
+}
+
+#app-root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 * {

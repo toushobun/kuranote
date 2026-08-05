@@ -48,6 +48,7 @@ export type TransactionSearchTemplateProps = {
   onClose?: () => void;
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  selectedRefundItemIds?: string[];
 };
 
 export function TransactionSearchTemplate({
@@ -59,6 +60,7 @@ export function TransactionSearchTemplate({
   onClose,
   onSelectRefundItem,
   refundSelectionMode = false,
+  selectedRefundItemIds = [],
 }: TransactionSearchTemplateProps) {
   const search = useTransactionSearch({
     initialPage,
@@ -66,6 +68,10 @@ export function TransactionSearchTemplate({
     loadSearchPageAction,
     syncUrl: !refundSelectionMode,
   });
+  const displayErrorMessage = errorMessage ?? search.searchError;
+  const isSearchLoading =
+    isLoading ||
+    (search.isPending && search.hasSubmittedQuery && search.items.length === 0);
 
   return (
     <Box sx={transactionPageFrameSx}>
@@ -118,10 +124,13 @@ export function TransactionSearchTemplate({
           </Button>
         </Stack>
 
-        {isLoading ? (
+        {isSearchLoading ? (
           <SearchLoadingState />
-        ) : errorMessage ? (
-          <SearchErrorState errorMessage={errorMessage} />
+        ) : displayErrorMessage ? (
+          <SearchErrorState
+            errorMessage={displayErrorMessage}
+            {...(search.searchError ? { onRetry: search.retrySearch } : {})}
+          />
         ) : !search.hasSubmittedQuery ? (
           <SearchEmptyState
             description={searchText.guideDescription}
@@ -143,6 +152,7 @@ export function TransactionSearchTemplate({
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectRefundItem}
+                selectedIds={selectedRefundItemIds}
               />
             ) : (
               <SearchResultList
@@ -248,12 +258,18 @@ function SearchLoadingState() {
   );
 }
 
-function SearchErrorState({ errorMessage }: { errorMessage: string }) {
+function SearchErrorState({
+  errorMessage,
+  onRetry = () => globalThis.location.reload(),
+}: {
+  errorMessage: string;
+  onRetry?: () => void;
+}) {
   return (
     <Stack spacing={1.2} sx={emptyStateSx}>
       <Typography sx={emptyTitleSx}>搜索读取失败</Typography>
       <Typography sx={emptyDescriptionSx}>{errorMessage}</Typography>
-      <Button onClick={() => globalThis.location.reload()} sx={pillButtonSx}>
+      <Button onClick={onRetry} sx={pillButtonSx}>
         重新读取
       </Button>
     </Stack>
@@ -306,7 +322,7 @@ const searchIconSx = {
 
 const searchInputSx = {
   flex: 1,
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 700,
   minWidth: 0,
   "& .MuiInputBase-input": {

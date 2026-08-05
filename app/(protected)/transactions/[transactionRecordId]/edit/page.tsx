@@ -2,7 +2,13 @@ import {
   saveEditTransaction,
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
-import { loadEditTransactionView } from "internal/transaction/adapter/next/loadTransactionViews";
+import {
+  loadEditTransactionView,
+  loadRefundPickerGroupItems,
+  loadRefundPickerGroupPage,
+  loadRefundPickerSearchPage,
+} from "internal/transaction/adapter/next/loadTransactionViews";
+import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
@@ -16,8 +22,13 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
-  const { canEdit, editRestriction, ...view } =
-    await loadEditTransactionView(transactionRecordId);
+  const {
+    canEdit,
+    editRestriction,
+    reimbursementCandidates,
+    refundPickerView,
+    ...view
+  } = await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
     return (
@@ -32,11 +43,40 @@ export default async function TransactionEditPage({
 
   const errorMessage = null;
   const initialValues = view.initialValues;
+  const incomeLinksValue = {
+    loadRefundGroupItemsAction: loadRefundPickerGroupItems,
+    loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
+    loadRefundSearchPageAction: loadRefundPickerSearchPage,
+    reimbursementCandidates,
+    refundPickerView,
+  };
 
   if (initialValues.type === "transfer") {
     return (
       <NewTransactionVisualFrame>
-        <EditTransferTransactionTemplate
+        <TransactionIncomeLinksProvider value={incomeLinksValue}>
+          <EditTransferTransactionTemplate
+            accountOptions={view.accountOptions}
+            action={saveEditTransaction}
+            categoryOptions={view.categoryOptions}
+            deleteAction={voidTransaction}
+            errorMessage={errorMessage}
+            initialValues={initialValues}
+            ledgerName={view.ledgerName}
+            merchantOptions={view.merchantOptions}
+            transactionItemSpecialStatusEnabled={
+              view.transactionItemSpecialStatusEnabled
+            }
+          />
+        </TransactionIncomeLinksProvider>
+      </NewTransactionVisualFrame>
+    );
+  }
+
+  return (
+    <NewTransactionVisualFrame>
+      <TransactionIncomeLinksProvider value={incomeLinksValue}>
+        <EditTransactionTemplate
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
           categoryOptions={view.categoryOptions}
@@ -49,25 +89,7 @@ export default async function TransactionEditPage({
             view.transactionItemSpecialStatusEnabled
           }
         />
-      </NewTransactionVisualFrame>
-    );
-  }
-
-  return (
-    <NewTransactionVisualFrame>
-      <EditTransactionTemplate
-        accountOptions={view.accountOptions}
-        action={saveEditTransaction}
-        categoryOptions={view.categoryOptions}
-        deleteAction={voidTransaction}
-        errorMessage={errorMessage}
-        initialValues={initialValues}
-        ledgerName={view.ledgerName}
-        merchantOptions={view.merchantOptions}
-        transactionItemSpecialStatusEnabled={
-          view.transactionItemSpecialStatusEnabled
-        }
-      />
+      </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );
 }

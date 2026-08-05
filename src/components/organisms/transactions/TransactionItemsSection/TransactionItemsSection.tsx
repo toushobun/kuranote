@@ -5,14 +5,15 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
+import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
+import { allocateRefundAmount } from "internal/transaction";
 
 import type {
   TransactionFormItem,
   TransactionItemSummary,
 } from "../TransactionForm/TransactionForm.types";
-import { TransactionBusinessBadge } from "../TransactionBusinessBadge/TransactionBusinessBadge";
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
@@ -72,6 +73,7 @@ export function TransactionItemsSection({
               const categoryLabel = item.category
                 ? formatCategoryName(item.category)
                 : "请选择分类";
+              const businessStatus = item.businessStatus ?? item.specialStatus;
 
               return (
                 <Box
@@ -85,6 +87,11 @@ export function TransactionItemsSection({
                       value={item.categoryId}
                     />
                     <input
+                      name="itemPersistedId"
+                      type="hidden"
+                      value={item.persistedId ?? ""}
+                    />
+                    <input
                       name="itemSpecialStatus"
                       type="hidden"
                       value={item.specialStatus ?? ""}
@@ -95,9 +102,14 @@ export function TransactionItemsSection({
                       value={JSON.stringify(item.reimbursementItemIds ?? [])}
                     />
                     <input
-                      name="itemRefundedItemId"
+                      name="itemRefundAllocations"
                       type="hidden"
-                      value={item.refundedItemId ?? ""}
+                      value={JSON.stringify(
+                        allocateRefundAmount(
+                          item.amount,
+                          item.refundCandidates ?? [],
+                        ) ?? [],
+                      )}
                     />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}
@@ -152,9 +164,9 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {item.specialStatus ? (
+                      {businessStatus ? (
                         <TransactionBusinessBadge
-                          status={item.specialStatus}
+                          status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />
                       ) : null}

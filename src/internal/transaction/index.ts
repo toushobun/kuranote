@@ -14,9 +14,12 @@ export {
 } from "internal/transaction/entity/transactionType";
 export {
   fromTransactionSpecialStatusStorageValue,
+  resolveTransactionBusinessStatus,
   toTransactionSpecialStatusStorageValue,
+  transactionBusinessStatuses,
   transactionSpecialStatuses,
   transactionSpecialStatusStorageValues,
+  type TransactionBusinessStatus,
   type TransactionSpecialStatus,
   type TransactionSpecialStatusFilterValue,
   type TransactionSpecialStatusStorageValue,
@@ -33,6 +36,13 @@ export type {
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
 export type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
+export {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+  type TransactionRefundAllocation,
+  type TransactionRefundAllocationTarget,
+} from "internal/transaction/util/refundAllocation";
 export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,

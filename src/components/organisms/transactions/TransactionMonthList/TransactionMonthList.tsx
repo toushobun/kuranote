@@ -34,6 +34,7 @@ type TransactionMonthListProps = {
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  selectedRefundItemIds?: string[];
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -53,6 +54,7 @@ function TransactionMonthListContent({
   loadMoreGroupsAction,
   onSelectRefundItem,
   refundSelectionMode = false,
+  selectedRefundItemIds = [],
   timeGroupView,
 }: TransactionMonthListProps) {
   const [groups, setGroups] = useState(timeGroupView.groups);
@@ -315,6 +317,7 @@ function TransactionMonthListContent({
                         groups={dateGroups}
                         onSelectRefundItem={onSelectRefundItem}
                         refundSelectionMode={refundSelectionMode}
+                        selectedRefundItemIds={selectedRefundItemIds}
                         showSummary={false}
                       />
                     ) : (

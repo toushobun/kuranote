@@ -305,12 +305,6 @@ declare
     v_income_account_id uuid;
     v_income_category_type text;
     v_income_currency text;
-    v_refunded_item_id uuid;
-    v_refunded_amount numeric(14,2);
-    v_refunded_account_id uuid;
-    v_refunded_category_type text;
-    v_refunded_currency text;
-    v_refunded_special_status text;
     v_reimbursement_ids uuid[];
     v_reimbursement_amount numeric(14,2);
     v_reimbursement_currency text;
@@ -318,7 +312,40 @@ declare
     v_requested_count integer;
     v_updated_count integer;
     v_special_status_enabled boolean;
+    v_refund_allocations jsonb;
+    v_refund_count integer := 0;
+    v_refund_distinct_count integer := 0;
+    v_refund_total numeric(14,2) := 0;
+    v_refund_target_ids uuid[] := array[]::uuid[];
+    v_locked_count integer := 0;
+    v_invalid_count integer := 0;
 begin
+    v_refund_allocations := p_item -> 'refundAllocations';
+
+    -- 数据库迁移与前端发布并非原子操作。旧页面仍可能提交单个
+    -- refundedItemId，因此在数据库边界将其规范化为全额单目标分摊。
+    if v_refund_allocations is null
+       and nullif(p_item ->> 'refundedItemId', '') is not null then
+        select ti.amount
+        into v_income_amount
+        from public.transaction_item ti
+        join public.transaction_record tr
+          on tr.id = ti.transaction_record_id
+         and tr.ledger_id = ti.ledger_id
+         and tr.status = 'active'
+        where ti.id = p_income_item_id
+          and ti.ledger_id = p_ledger_id;
+
+        v_refund_allocations := jsonb_build_array(
+            jsonb_build_object(
+                'refundedItemId', p_item ->> 'refundedItemId',
+                'refundAmount', v_income_amount
+            )
+        );
+    end if;
+
+    v_refund_allocations := coalesce(v_refund_allocations, '[]'::jsonb);
+
     v_reimbursement_ids := array(
         select value::uuid
         from jsonb_array_elements_text(
@@ -326,9 +353,56 @@ begin
         ) as value
     );
     v_requested_count := coalesce(array_length(v_reimbursement_ids, 1), 0);
-    v_refunded_item_id := nullif(p_item ->> 'refundedItemId', '')::uuid;
 
-    if v_requested_count = 0 and v_refunded_item_id is null then
+    if jsonb_typeof(v_refund_allocations) is distinct from 'array' then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    if jsonb_array_length(v_refund_allocations) > 100 then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    begin
+        select
+            count(*)::integer,
+            count(distinct (allocation ->> 'refundedItemId')::uuid)::integer,
+            coalesce(sum((allocation ->> 'refundAmount')::numeric), 0),
+            coalesce(
+                array_agg(
+                    (allocation ->> 'refundedItemId')::uuid
+                    order by (allocation ->> 'refundedItemId')::uuid
+                ),
+                array[]::uuid[]
+            )
+        into
+            v_refund_count,
+            v_refund_distinct_count,
+            v_refund_total,
+            v_refund_target_ids
+        from jsonb_array_elements(v_refund_allocations) allocation;
+    exception
+        when invalid_text_representation or numeric_value_out_of_range then
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
+    end;
+
+    if exists (
+        select 1
+        from jsonb_array_elements(v_refund_allocations) allocation
+        where jsonb_typeof(allocation) is distinct from 'object'
+           or nullif(allocation ->> 'refundedItemId', '') is null
+           or nullif(allocation ->> 'refundAmount', '') is null
+           or (allocation ->> 'refundAmount')::numeric <= 0
+           or (allocation ->> 'refundAmount')::numeric
+                <> round((allocation ->> 'refundAmount')::numeric, 2)
+    ) or v_refund_count <> v_refund_distinct_count then
+        raise exception 'refund_allocation_invalid'
+            using errcode = '22023', detail = 'refund_allocation_invalid';
+    end if;
+
+    if v_requested_count = 0 and v_refund_count = 0 then
         return;
     end if;
 
@@ -364,7 +438,7 @@ begin
             using errcode = '22023', detail = 'income_link_category_invalid';
     end if;
 
-    if v_requested_count > 0 and v_refunded_item_id is not null then
+    if v_requested_count > 0 and v_refund_count > 0 then
         raise exception 'income_link_conflict'
             using errcode = '22023', detail = 'income_link_conflict';
     end if;
@@ -440,47 +514,97 @@ begin
           and ti.settled_by_item_id is null;
     end if;
 
-    if v_refunded_item_id is not null then
-        select ti.amount, ti.account_id, c.type, a.currency, ti.special_status
-        into v_refunded_amount, v_refunded_account_id,
-             v_refunded_category_type, v_refunded_currency, v_refunded_special_status
+    if v_refund_count > 0 then
+        if v_refund_total is distinct from v_income_amount then
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
+        end if;
+
+        perform 1
         from public.transaction_item ti
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
          and tr.ledger_id = ti.ledger_id
          and tr.status = 'active'
-        join public.category c
-          on c.id = ti.category_id
-         and c.ledger_id = ti.ledger_id
-        join public.account a
-          on a.id = ti.account_id
-         and a.ledger_id = ti.ledger_id
-        where ti.id = v_refunded_item_id
-          and ti.ledger_id = p_ledger_id
+        where ti.ledger_id = p_ledger_id
+          and ti.id = any(v_refund_target_ids)
+        order by ti.id
         for update of ti, tr;
 
-        if not found or v_refunded_category_type is distinct from 'expense' then
+        get diagnostics v_locked_count = row_count;
+        if v_locked_count <> v_refund_count then
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        if v_refunded_special_status is not null then
-            raise exception 'refunded_item_special_status_conflict'
-                using errcode = '22023', detail = 'refunded_item_special_status_conflict';
+        if exists (
+            select 1
+            from public.transaction_item ti
+            left join public.category c
+              on c.id = ti.category_id
+             and c.ledger_id = ti.ledger_id
+            join public.account a
+              on a.id = ti.account_id
+             and a.ledger_id = ti.ledger_id
+            where ti.ledger_id = p_ledger_id
+              and ti.id = any(v_refund_target_ids)
+              and (
+                  c.type is distinct from 'expense'
+                  or ti.special_status is not null
+                  or a.currency is distinct from v_income_currency
+                  or ti.account_id is distinct from v_income_account_id
+              )
+        ) then
+            if exists (
+                select 1
+                from public.transaction_item ti
+                join public.account a
+                  on a.id = ti.account_id
+                 and a.ledger_id = ti.ledger_id
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and a.currency is distinct from v_income_currency
+            ) then
+                raise exception 'refund_currency_mismatch'
+                    using errcode = '22023', detail = 'refund_currency_mismatch';
+            end if;
+
+            if exists (
+                select 1
+                from public.transaction_item ti
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and ti.account_id is distinct from v_income_account_id
+            ) then
+                raise exception 'refund_account_mismatch'
+                    using errcode = '22023', detail = 'refund_account_mismatch';
+            end if;
+
+            if exists (
+                select 1
+                from public.transaction_item ti
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                  and ti.special_status is not null
+            ) then
+                raise exception 'refunded_item_special_status_conflict'
+                    using errcode = '22023', detail = 'refunded_item_special_status_conflict';
+            end if;
+
+            raise exception 'refunded_item_invalid'
+                using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        if v_income_currency is distinct from v_refunded_currency then
-            raise exception 'refund_currency_mismatch'
-                using errcode = '22023', detail = 'refund_currency_mismatch';
-        end if;
-
-        if v_income_account_id is distinct from v_refunded_account_id then
-            raise exception 'refund_account_mismatch'
-                using errcode = '22023', detail = 'refund_account_mismatch';
-        end if;
-
-        if v_income_amount > v_refunded_amount - coalesce((
-            select sum(link.refund_amount)
+        with requested as (
+            select
+                (allocation ->> 'refundedItemId')::uuid as refunded_item_id,
+                round((allocation ->> 'refundAmount')::numeric * 100)::bigint
+                    as requested_units
+            from jsonb_array_elements(v_refund_allocations) allocation
+        ), existing_refunds as (
+            select
+                link.refunded_item_id,
+                coalesce(sum(link.refund_amount), 0) as refunded_amount
             from public.transaction_item_refund_link link
             join public.transaction_item refund_income
               on refund_income.id = link.refund_income_item_id
@@ -489,11 +613,95 @@ begin
               on refund_record.id = refund_income.transaction_record_id
              and refund_record.ledger_id = refund_income.ledger_id
             where link.ledger_id = p_ledger_id
-              and link.refunded_item_id = v_refunded_item_id
+              and link.refunded_item_id = any(v_refund_target_ids)
+              and link.refund_income_item_id <> p_income_item_id
               and refund_record.status = 'active'
-        ), 0) then
-            raise exception 'refund_amount_exceeded'
-                using errcode = '22023', detail = 'refund_amount_exceeded';
+            group by link.refunded_item_id
+        ), targets as (
+            select
+                requested.refunded_item_id,
+                requested.requested_units,
+                round(
+                    (ti.amount - coalesce(existing_refunds.refunded_amount, 0)) * 100
+                )::bigint as remaining_units
+            from requested
+            join public.transaction_item ti
+              on ti.id = requested.refunded_item_id
+             and ti.ledger_id = p_ledger_id
+            left join existing_refunds
+              on existing_refunds.refunded_item_id = requested.refunded_item_id
+        ), allocation_base as (
+            select
+                targets.*,
+                sum(remaining_units) over () as total_remaining_units,
+                floor(
+                    round(v_income_amount * 100)::numeric * remaining_units
+                    / nullif(sum(remaining_units) over (), 0)
+                )::bigint as base_units,
+                mod(
+                    round(v_income_amount * 100)::numeric * remaining_units,
+                    nullif(sum(remaining_units) over (), 0)
+                ) as remainder_units
+            from targets
+        ), ranked as (
+            select
+                allocation_base.*,
+                row_number() over (
+                    order by remainder_units desc, refunded_item_id
+                ) as remainder_rank,
+                round(v_income_amount * 100)::bigint
+                    - sum(base_units) over () as tail_units
+            from allocation_base
+        ), expected as (
+            select
+                *,
+                base_units + case when remainder_rank <= tail_units then 1 else 0 end
+                    as expected_units
+            from ranked
+        )
+        select count(*)::integer
+        into v_invalid_count
+        from expected
+        where total_remaining_units < round(v_income_amount * 100)::bigint
+           or expected_units <= 0
+           or expected_units > remaining_units
+           or requested_units <> expected_units;
+
+        if v_invalid_count > 0 then
+            if exists (
+                with existing_refunds as (
+                    select
+                        link.refunded_item_id,
+                        coalesce(sum(link.refund_amount), 0) as refunded_amount
+                    from public.transaction_item_refund_link link
+                    join public.transaction_item refund_income
+                      on refund_income.id = link.refund_income_item_id
+                     and refund_income.ledger_id = link.ledger_id
+                    join public.transaction_record refund_record
+                      on refund_record.id = refund_income.transaction_record_id
+                     and refund_record.ledger_id = refund_income.ledger_id
+                    where link.ledger_id = p_ledger_id
+                      and link.refunded_item_id = any(v_refund_target_ids)
+                      and link.refund_income_item_id <> p_income_item_id
+                      and refund_record.status = 'active'
+                    group by link.refunded_item_id
+                )
+                select 1
+                from public.transaction_item ti
+                left join existing_refunds
+                  on existing_refunds.refunded_item_id = ti.id
+                where ti.ledger_id = p_ledger_id
+                  and ti.id = any(v_refund_target_ids)
+                having sum(
+                    ti.amount - coalesce(existing_refunds.refunded_amount, 0)
+                ) < v_income_amount
+            ) then
+                raise exception 'refund_amount_exceeded'
+                    using errcode = '22023', detail = 'refund_amount_exceeded';
+            end if;
+
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
 
         insert into public.transaction_item_refund_link (
@@ -502,13 +710,15 @@ begin
             refund_income_item_id,
             refund_amount,
             created_by
-        ) values (
+        )
+        select
             p_ledger_id,
-            v_refunded_item_id,
+            (allocation ->> 'refundedItemId')::uuid,
             p_income_item_id,
-            v_income_amount,
+            (allocation ->> 'refundAmount')::numeric(14,2),
             p_user_id
-        );
+        from jsonb_array_elements(v_refund_allocations) allocation
+        order by (allocation ->> 'refundedItemId')::uuid;
     end if;
 end;
 $$;
@@ -584,6 +794,51 @@ $$;
 
 
 ALTER FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_income_category_type text;
+begin
+    select c.type
+    into v_income_category_type
+    from public.transaction_item income_item
+    join public.category c
+      on c.id = income_item.category_id
+     and c.ledger_id = income_item.ledger_id
+    where income_item.id = p_income_item_id
+      and income_item.ledger_id = p_ledger_id
+    for update of income_item;
+
+    if not found or v_income_category_type is distinct from 'income' then
+        raise exception 'income_link_category_invalid'
+            using errcode = '22023', detail = 'income_link_category_invalid';
+    end if;
+
+    perform set_config('kuranote.income_link_edit_flow', 'on', true);
+
+    update public.transaction_item settled_item
+    set special_status = 'pending_reimbursement',
+        settled_by_item_id = null,
+        updated_by = p_user_id,
+        updated_at = now()
+    where settled_item.ledger_id = p_ledger_id
+      and settled_item.settled_by_item_id = p_income_item_id
+      and settled_item.special_status = 'reimbursed';
+
+    delete from public.transaction_item_refund_link refund_link
+    where refund_link.ledger_id = p_ledger_id
+      and refund_link.refund_income_item_id = p_income_item_id;
+
+    perform set_config('kuranote.income_link_edit_flow', 'off', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
@@ -3761,13 +4016,21 @@ declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
     v_existing_item public.transaction_item;
+    v_existing_item_ids uuid[] := array[]::uuid[];
+    v_used_item_ids uuid[] := array[]::uuid[];
+    v_transaction_item_ids uuid[] := array[]::uuid[];
+    v_item_payloads jsonb[] := array[]::jsonb[];
     v_item jsonb;
+    v_item_index integer;
+    v_item_count integer;
     v_item_amount numeric(14,2);
     v_item_category_id uuid;
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
+    v_transaction_item_id uuid;
     v_balance_delta numeric(14,2);
     v_sort_order integer := 0;
+    v_is_income_link_edit_request boolean;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -3788,6 +4051,8 @@ begin
     if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
         raise exception 'items_invalid' using errcode = '22023';
     end if;
+
+    v_is_income_link_edit_request := p_type = 'income';
 
     if not exists (
         select 1 from public.account a
@@ -3819,6 +4084,8 @@ begin
         raise exception 'transaction_not_found' using errcode = '22023';
     end if;
 
+    -- 被报销、作为报销对象或作为退款对象的支出仍然不可编辑。
+    -- 仅收入编辑流程允许维护当前交易中收入明细发起的关联。
     if exists (
         select 1
         from public.transaction_item ti
@@ -3829,14 +4096,26 @@ begin
               or ti.settled_by_item_id is not null
               or exists (
                   select 1
-                  from public.transaction_item settled_item
-                  where settled_item.settled_by_item_id = ti.id
-              )
-              or exists (
-                  select 1
                   from public.transaction_item_refund_link link
-                  where link.refunded_item_id = ti.id
-                     or link.refund_income_item_id = ti.id
+                  where link.ledger_id = ti.ledger_id
+                    and link.refunded_item_id = ti.id
+              )
+              or (
+                  not v_is_income_link_edit_request
+                  and (
+                      exists (
+                          select 1
+                          from public.transaction_item settled_item
+                          where settled_item.ledger_id = ti.ledger_id
+                            and settled_item.settled_by_item_id = ti.id
+                      )
+                      or exists (
+                          select 1
+                          from public.transaction_item_refund_link link
+                          where link.ledger_id = ti.ledger_id
+                            and link.refund_income_item_id = ti.id
+                      )
+                  )
               )
           )
     ) then
@@ -3851,17 +4130,36 @@ begin
         order by ti.sort_order, ti.id
         for update
     loop
+        v_existing_item_ids := array_append(
+            v_existing_item_ids,
+            v_existing_item.id
+        );
+
         perform public.apply_account_balance_delta(
             p_ledger_id,
             v_existing_item.account_id,
             -v_existing_item.balance_delta,
             v_user_id
         );
-    end loop;
 
-    delete from public.transaction_item ti
-    where ti.transaction_record_id = p_transaction_record_id
-      and ti.ledger_id = p_ledger_id;
+        if exists (
+            select 1
+            from public.transaction_item settled_item
+            where settled_item.ledger_id = p_ledger_id
+              and settled_item.settled_by_item_id = v_existing_item.id
+        ) or exists (
+            select 1
+            from public.transaction_item_refund_link refund_link
+            where refund_link.ledger_id = p_ledger_id
+              and refund_link.refund_income_item_id = v_existing_item.id
+        ) then
+            perform public.clear_transaction_item_income_links(
+                p_ledger_id,
+                v_existing_item.id,
+                v_user_id
+            );
+        end if;
+    end loop;
 
     update public.transaction_record tr
     set type = 'normal',
@@ -3877,9 +4175,19 @@ begin
     for v_item in select * from jsonb_array_elements(p_items)
     loop
         begin
+            v_transaction_item_id := nullif(v_item ->> 'id', '')::uuid;
+        exception when invalid_text_representation then
+            raise exception 'items_invalid'
+                using errcode = '22023', detail = 'items_invalid';
+        end;
+
+        begin
             v_item_amount := (v_item ->> 'amount')::numeric(14,2);
             v_item_category_id := (v_item ->> 'categoryId')::uuid;
-            v_item_special_status := nullif(v_item ->> 'specialStatus', '')::public.transaction_item_special_status;
+            v_item_special_status := nullif(
+                v_item ->> 'specialStatus',
+                ''
+            )::public.transaction_item_special_status;
         exception when invalid_text_representation then
             raise exception 'special_status_invalid'
                 using errcode = '22023', detail = 'special_status_invalid';
@@ -3909,10 +4217,17 @@ begin
                 using errcode = '22023', detail = 'special_status_invalid';
         end if;
 
-        if coalesce(jsonb_array_length(coalesce(v_item -> 'reimbursementItemIds', '[]'::jsonb)), 0) > 0
-           or nullif(v_item ->> 'refundedItemId', '') is not null then
-            raise exception 'income_links_create_only'
-                using errcode = '22023', detail = 'income_links_create_only';
+        if (
+            coalesce(
+                jsonb_array_length(
+                    coalesce(v_item -> 'reimbursementItemIds', '[]'::jsonb)
+                ),
+                0
+            ) > 0
+            or nullif(v_item ->> 'refundedItemId', '') is not null
+        ) and v_item_category_type <> 'income' then
+            raise exception 'income_link_category_invalid'
+                using errcode = '22023', detail = 'income_link_category_invalid';
         end if;
 
         v_balance_delta := case
@@ -3920,22 +4235,93 @@ begin
             else v_item_amount
         end;
 
-        insert into public.transaction_item (
-            ledger_id, transaction_record_id, account_id, category_id, amount,
-            discount_amount, balance_delta, note, sort_order, special_status,
-            created_by, updated_by
-        ) values (
-            p_ledger_id, p_transaction_record_id, p_account_id,
-            v_item_category_id, v_item_amount, 0, v_balance_delta, null,
-            v_sort_order, v_item_special_status, v_user_id, v_user_id
+        if v_transaction_item_id is not null and (
+            not (v_transaction_item_id = any(v_existing_item_ids))
+            or v_transaction_item_id = any(v_used_item_ids)
+        ) then
+            raise exception 'items_invalid'
+                using errcode = '22023', detail = 'items_invalid';
+        end if;
+
+        if v_transaction_item_id is null then
+            insert into public.transaction_item (
+                ledger_id,
+                transaction_record_id,
+                account_id,
+                category_id,
+                amount,
+                discount_amount,
+                balance_delta,
+                note,
+                sort_order,
+                special_status,
+                created_by,
+                updated_by
+            ) values (
+                p_ledger_id,
+                p_transaction_record_id,
+                p_account_id,
+                v_item_category_id,
+                v_item_amount,
+                0,
+                v_balance_delta,
+                null,
+                v_sort_order,
+                v_item_special_status,
+                v_user_id,
+                v_user_id
+            ) returning id into v_transaction_item_id;
+        else
+            update public.transaction_item ti
+            set account_id = p_account_id,
+                category_id = v_item_category_id,
+                amount = v_item_amount,
+                discount_amount = 0,
+                balance_delta = v_balance_delta,
+                note = null,
+                sort_order = v_sort_order,
+                special_status = v_item_special_status,
+                updated_by = v_user_id,
+                updated_at = now()
+            where ti.id = v_transaction_item_id
+              and ti.ledger_id = p_ledger_id
+              and ti.transaction_record_id = p_transaction_record_id;
+        end if;
+
+        v_used_item_ids := array_append(v_used_item_ids, v_transaction_item_id);
+        v_transaction_item_ids := array_append(
+            v_transaction_item_ids,
+            v_transaction_item_id
         );
+        v_item_payloads := array_append(v_item_payloads, v_item);
 
         perform public.apply_account_balance_delta(
-            p_ledger_id, p_account_id, v_balance_delta, v_user_id
+            p_ledger_id,
+            p_account_id,
+            v_balance_delta,
+            v_user_id
         );
 
         v_sort_order := v_sort_order + 1;
     end loop;
+
+    delete from public.transaction_item ti
+    where ti.transaction_record_id = p_transaction_record_id
+      and ti.ledger_id = p_ledger_id
+      and not (ti.id = any(v_used_item_ids));
+
+    v_item_count := coalesce(array_length(v_transaction_item_ids, 1), 0);
+    if v_item_count > 0 then
+        for v_item_index in 1..v_item_count
+        loop
+            perform public.apply_transaction_item_links(
+                p_ledger_id,
+                v_transaction_item_ids[v_item_index],
+                v_item_payloads[v_item_index],
+                v_user_id
+            );
+        end loop;
+    end if;
 
     return p_transaction_record_id;
 end;
@@ -4391,6 +4777,7 @@ declare
     v_settling_item_is_income boolean;
     v_special_status_enabled boolean;
     v_has_active_refund_link boolean;
+    v_is_controlled_unlink boolean;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
@@ -4405,12 +4792,22 @@ begin
         end if;
     end if;
 
+    v_is_controlled_unlink :=
+        tg_op = 'UPDATE'
+        and old.special_status = 'reimbursed'
+        and new.special_status = 'pending_reimbursement'
+        and new.settled_by_item_id is null
+        and current_user = 'postgres'
+        and current_setting('kuranote.income_link_edit_flow', true)
+            is not distinct from 'on';
+
     if tg_op = 'UPDATE'
        and old.special_status = 'reimbursed'
        and (
            new.special_status is distinct from old.special_status
            or new.settled_by_item_id is distinct from old.settled_by_item_id
-       ) then
+       )
+       and not v_is_controlled_unlink then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
     end if;
@@ -5119,7 +5516,7 @@ ALTER TABLE ONLY "public"."transaction_item"
 
 
 ALTER TABLE ONLY "public"."transaction_item_refund_link"
-    ADD CONSTRAINT "transaction_item_refund_link_income_unique" UNIQUE ("refund_income_item_id");
+    ADD CONSTRAINT "transaction_item_refund_link_income_target_unique" UNIQUE ("refund_income_item_id", "refunded_item_id");
 
 
 
@@ -6070,6 +6467,10 @@ REVOKE ALL ON FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uu
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
 

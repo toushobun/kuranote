@@ -16,6 +16,7 @@ import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
+import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
 import type {
@@ -27,7 +28,6 @@ import type {
   TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
-import type { TransactionSpecialStatusValue } from "../TransactionBusinessBadge/transactionBusinessBadgeConfig";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
 import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
@@ -50,15 +50,15 @@ type TransactionItemPickerDrawerProps = {
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
   onReimbursementItemIdsChange?: (ids: string[]) => void;
-  onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
-  onSpecialStatusChange?: (value: TransactionSpecialStatusValue) => void;
+  onRefundItemsChange?: (item: TransactionRefundCandidate[]) => void;
+  onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerReimbursementItemIds?: string[];
-  pickerRefundCandidate?: TransactionRefundCandidate | null;
-  pickerSpecialStatus?: TransactionSpecialStatusValue;
+  pickerRefundCandidates?: TransactionRefundCandidate[];
+  pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
   reimbursementCandidates?: TransactionReimbursementCandidate[];
@@ -89,14 +89,14 @@ export function TransactionItemPickerDrawer({
   onPickerAdd,
   onRemoveItem,
   onReimbursementItemIdsChange = () => undefined,
-  onRefundItemChange = () => undefined,
+  onRefundItemsChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
   pickerReimbursementItemIds = [],
-  pickerRefundCandidate = null,
+  pickerRefundCandidates = [],
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
@@ -173,12 +173,12 @@ export function TransactionItemPickerDrawer({
 
   function handleReimbursementChange(ids: string[]) {
     onReimbursementItemIdsChange(ids);
-    if (ids.length > 0) onRefundItemChange(null);
+    if (ids.length > 0) onRefundItemsChange([]);
   }
 
-  function handleRefundChange(item: TransactionRefundCandidate | null) {
-    onRefundItemChange(item);
-    if (item) onReimbursementItemIdsChange([]);
+  function handleRefundsChange(items: TransactionRefundCandidate[]) {
+    onRefundItemsChange(items);
+    if (items.length > 0) onReimbursementItemIdsChange([]);
   }
 
   function handleConfirm() {
@@ -412,7 +412,7 @@ export function TransactionItemPickerDrawer({
         incomeLinksEnabled &&
         selectedCategoryType === "income" ? (
           <>
-            {pickerRefundCandidate ? null : (
+            {pickerRefundCandidates.length > 0 ? null : (
               <TransactionReimbursementLinkPicker
                 candidates={reimbursementCandidates}
                 onChange={handleReimbursementChange}
@@ -424,9 +424,10 @@ export function TransactionItemPickerDrawer({
                 loadGroupItemsAction={loadRefundGroupItemsAction}
                 loadMoreGroupsAction={loadRefundMoreGroupsAction}
                 loadSearchPageAction={loadRefundSearchPageAction}
-                onChange={handleRefundChange}
+                onChange={handleRefundsChange}
                 timeGroupView={refundPickerView}
-                value={pickerRefundCandidate}
+                refundAmount={pickerAmount}
+                value={pickerRefundCandidates}
               />
             )}
           </>

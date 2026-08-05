@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
+import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -24,6 +25,7 @@ import type {
   TransactionMonthPage,
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
+import type { TransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type {
   ConvertTransactionInput,
   CreateNormalTransactionInput,
@@ -77,6 +79,7 @@ export type TransactionServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantQueryService: MerchantQueryService;
+  transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
   transactionRepository: TransactionCommandRepository &
     TransactionFilterOptionsRepository &
     TransactionFormRepository &
@@ -152,6 +155,7 @@ export function createTransactionService({
   currentUserId,
   ledgerAccessService,
   merchantQueryService,
+  transactionIncomeLinkRepository,
   transactionRepository,
 }: TransactionServiceDependencies): TransactionService {
   const readAccessDependencies: TransactionReadAccessDependencies<
@@ -181,8 +185,10 @@ export function createTransactionService({
   const requireReadLedger = (currentLedger: CurrentLedger) =>
     requireTransactionReadLedger(readAccessDependencies, currentLedger);
 
-  const getReadDependencies = () =>
-    getTransactionReadDependencies(readAccessDependencies);
+  const getReadDependencies = () => ({
+    ...getTransactionReadDependencies(readAccessDependencies),
+    transactionIncomeLinkRepository,
+  });
 
   async function requireModificationPermission(
     ledgerId: string,
@@ -218,7 +224,7 @@ export function createTransactionService({
       (item) =>
         (item.specialStatus !== undefined && item.specialStatus !== null) ||
         Boolean(item.reimbursementItemIds?.length) ||
-        Boolean(item.refundedItemId),
+        Boolean(item.refundAllocations?.length),
     );
     if (
       hasSpecialStatusInput &&
@@ -261,7 +267,7 @@ export function createTransactionService({
         );
       }
       const hasReimbursementLinks = Boolean(item.reimbursementItemIds?.length);
-      const hasRefundLink = Boolean(item.refundedItemId);
+      const hasRefundLink = Boolean(item.refundAllocations?.length);
       if (
         (hasReimbursementLinks || hasRefundLink) &&
         categoryType !== "income"
@@ -276,6 +282,32 @@ export function createTransactionService({
           transactionErrorCodes.specialStatusInvalid,
           "同一条收入明细不能同时作为报销和退款。",
         );
+      }
+      if (hasRefundLink) {
+        const allocations = item.refundAllocations ?? [];
+        const targetIds = new Set(
+          allocations.map((allocation) => allocation.refundedItemId),
+        );
+        const allocationUnits = allocations.map((allocation) =>
+          toRefundMinorUnits(allocation.refundAmount),
+        );
+        const itemAmountUnits = toRefundMinorUnits(item.amount);
+        if (
+          targetIds.size !== allocations.length ||
+          itemAmountUnits === null ||
+          allocationUnits.some(
+            (units) => units === null || units <= BigInt(0),
+          ) ||
+          (allocationUnits as bigint[]).reduce(
+            (sum, units) => sum + units,
+            BigInt(0),
+          ) !== itemAmountUnits
+        ) {
+          throw new ValidationError(
+            transactionErrorCodes.refundLinkInvalid,
+            "退款分摊金额不正确，请重新选择退款明细。",
+          );
+        }
       }
     }
   }

@@ -6,13 +6,14 @@ import Stack from "@mui/material/Stack";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 
 const ledgerLoadingRows = 4;
 
 export default function LedgersLoadingPage() {
   return (
     <Box aria-busy="true" aria-label="账本数据加载中" role="status">
-      <Box aria-hidden="true" sx={pageBackgroundSx} />
+      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack spacing={1.5}>
           <Stack spacing={0.45}>
@@ -77,13 +78,6 @@ export default function LedgersLoadingPage() {
     </Box>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 0.75 },

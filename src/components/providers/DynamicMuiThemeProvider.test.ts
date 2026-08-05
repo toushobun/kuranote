@@ -55,4 +55,20 @@ describe("createDynamicMuiTheme", () => {
       dynamicTheme.components?.MuiPopover?.styleOverrides?.paper,
     );
   });
+
+  it("全屏弹框内容避开顶部与底部安全区", () => {
+    expect(
+      baseTheme.components?.MuiDialog?.styleOverrides?.paperFullScreen,
+    ).toMatchObject({
+      paddingBottom: "var(--app-safe-area-inset-bottom)",
+      paddingTop: "var(--app-safe-area-inset-top)",
+    });
+  });
+
+  it("CssBaseline 不会用固定颜色覆盖用户主题画布", () => {
+    expect(baseTheme.components?.MuiCssBaseline?.styleOverrides).toMatchObject({
+      body: { background: "var(--user-theme-page-bg)" },
+      html: { background: "var(--user-theme-page-bg)" },
+    });
+  });
 });

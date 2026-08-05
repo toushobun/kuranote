@@ -96,7 +96,9 @@ describe("TransactionSearchTemplate", () => {
   it("显示搜索框和搜索结果条数", () => {
     renderSearch();
 
-    expect(screen.getByLabelText("搜索关键词")).toHaveValue("便利店");
+    const input = screen.getByLabelText("搜索关键词");
+    expect(input).toHaveValue("便利店");
+    expect(input.parentElement).toHaveStyle({ fontSize: "16px" });
     expect(screen.getByText("共 1 条结果")).toBeInTheDocument();
     expect(screen.getByText("便利店")).toBeInTheDocument();
   });
@@ -137,6 +139,19 @@ describe("TransactionSearchTemplate", () => {
 
     expect(routerReplaceMock).toHaveBeenCalledWith(
       "/transactions/search?q=%E5%92%96%E5%95%A1+%E5%8D%88%E9%A4%90",
+    );
+  });
+
+  it("输入关键词时等待表单提交后再搜索", () => {
+    renderSearch();
+    const input = screen.getByLabelText("搜索关键词");
+
+    fireEvent.change(input, { target: { value: "7930" } });
+
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+    expect(routerReplaceMock).toHaveBeenCalledWith(
+      "/transactions/search?q=7930",
     );
   });
 

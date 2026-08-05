@@ -7,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 
 const colorOptionCount = 6;
 const automaticItemCount = 4;
@@ -14,7 +15,7 @@ const automaticItemCount = 4;
 export default function LedgerCreateLoadingPage() {
   return (
     <Box aria-busy="true" aria-label="账本创建页面加载中" role="status">
-      <Box aria-hidden="true" sx={pageBackgroundSx} />
+      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack spacing={1.6} sx={formSx}>
           <Stack spacing={1.2} sx={headerSx}>
@@ -97,13 +98,6 @@ function LoadingField({ showHelper = false }: { showHelper?: boolean }) {
     </Stack>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 0.75 },

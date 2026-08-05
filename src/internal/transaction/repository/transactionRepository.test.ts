@@ -20,6 +20,7 @@ describe("TransactionRepository", () => {
   const accountId = "00000000-0000-4000-8000-000000000045";
   const targetAccountId = "00000000-0000-4000-8000-000000000046";
   const categoryId = "00000000-0000-4000-8000-000000005072";
+  const transactionItemId = "00000000-0000-4000-8000-000000000201";
   const merchantId = "00000000-0000-4000-8000-000000001001";
   type QueryResult = {
     data: unknown;
@@ -92,7 +93,8 @@ describe("TransactionRepository", () => {
       p_items: [
         {
           ...normalInput.items[0],
-          refundedItemId: null,
+          id: null,
+          refundAllocations: [],
           reimbursementItemIds: [],
           specialStatus: null,
         },
@@ -104,6 +106,37 @@ describe("TransactionRepository", () => {
       p_type: "expense",
     });
   });
+  it("退款收入将多目标分摊数组原样传给原子 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    const refundAllocations = [
+      {
+        refundAmount: 300,
+        refundedItemId: "00000000-0000-4000-8000-000000005073",
+      },
+      {
+        refundAmount: 900,
+        refundedItemId: "00000000-0000-4000-8000-000000005074",
+      },
+    ];
+
+    await repository.createNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], refundAllocations }],
+      type: "income",
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "create_transaction",
+      expect.objectContaining({
+        p_items: [
+          expect.objectContaining({
+            refundAllocations,
+          }),
+        ],
+      }),
+    );
+  });
+
   it("转账创建映射原子 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
     await repository.createTransfer(transferInput);
@@ -116,9 +149,45 @@ describe("TransactionRepository", () => {
       p_transaction_at: transferInput.transactionAt,
     });
   });
+  it("退款收入更新将多目标分摊数组传给更新 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    const refundAllocations = [
+      {
+        refundAmount: 300,
+        refundedItemId: "00000000-0000-4000-8000-000000005073",
+      },
+      {
+        refundAmount: 900,
+        refundedItemId: "00000000-0000-4000-8000-000000005074",
+      },
+    ];
+
+    await repository.updateNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], refundAllocations }],
+      transactionRecordId,
+      type: "income",
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "update_transaction",
+      expect.objectContaining({
+        p_items: [
+          expect.objectContaining({
+            refundAllocations,
+          }),
+        ],
+      }),
+    );
+  });
+
   it("普通交易和转账更新映射各自 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
-    await repository.updateNormal({ ...normalInput, transactionRecordId });
+    await repository.updateNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], id: transactionItemId }],
+      transactionRecordId,
+    });
     await repository.updateTransfer({
       ...transferInput,
       transactionRecordId,
@@ -128,6 +197,15 @@ describe("TransactionRepository", () => {
       "update_transaction",
       expect.objectContaining({
         p_account_id: accountId,
+        p_items: [
+          {
+            ...normalInput.items[0],
+            id: transactionItemId,
+            refundAllocations: [],
+            reimbursementItemIds: [],
+            specialStatus: null,
+          },
+        ],
         p_ledger_id: ledgerId,
         p_transaction_record_id: transactionRecordId,
         p_type: "expense",
@@ -307,7 +385,14 @@ describe("TransactionRepository", () => {
       error: null,
     });
     const itemQuery = createQuery({
-      data: [{ amount: 1200, transaction_record_id: transactionRecordId }],
+      data: [
+        {
+          amount: 7930,
+          balance_delta: -7930,
+          refunded_amount: 120,
+          transaction_record_id: transactionRecordId,
+        },
+      ],
       error: null,
     });
     const { repository } = createRepository({
@@ -324,10 +409,38 @@ describe("TransactionRepository", () => {
         transactionRecordId,
         transactionRecordId,
       ]),
-    ).resolves.toHaveLength(1);
+    ).resolves.toEqual([
+      {
+        amount: "7930",
+        balance_delta: "-7930",
+        refunded_amount: "120",
+        transaction_record_id: transactionRecordId,
+      },
+    ]);
     expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
       transactionRecordId,
     ]);
+  });
+  it("交易明细查询失败时记录日志并抛出安全仓储错误", async () => {
+    const itemQuery = createQuery({
+      data: null,
+      error: { code: "database_failure", message: "raw database details" },
+    });
+    const { logger, repository } = createRepository({
+      queries: { transaction_item_with_refund: itemQuery },
+    });
+
+    await expect(
+      repository.listItems(ledgerId, [transactionRecordId]),
+    ).rejects.toMatchObject({
+      code: "transaction_items_load_failed",
+      message: "交易明细加载失败，请稍后重试。",
+      name: RepositoryError.name,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[transaction] failed to load transaction items",
+      { databaseCode: "database_failure", ledgerId },
+    );
   });
   it("合并用户资料和账本成员显示设置", async () => {
     const userQuery = createQuery({
@@ -583,8 +696,9 @@ describe("TransactionDashboardRepository", () => {
     const itemQuery = createQuery({
       data: [
         {
-          amount: "1200",
+          amount: 1200,
           category_id: categoryId,
+          refunded_amount: 200,
           transaction_record_id: recordId,
         },
       ],
@@ -607,6 +721,7 @@ describe("TransactionDashboardRepository", () => {
         {
           amount: "1200",
           category_id: categoryId,
+          refunded_amount: "200",
           transaction_record_id: recordId,
         },
       ],
@@ -888,7 +1003,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       [
         "income_links_create_only",
         transactionErrorCodes.updateInvalid,
-        "报销和退款关联只能在新建收入交易时设置。",
+        "报销关联只能在新建收入交易时设置。",
       ],
       [
         "merchant_invalid",
@@ -935,7 +1050,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       const { repository } = createRepositoryWithRpcError({
         code: "23505",
         databaseError:
-          'duplicate key value violates unique constraint "transaction_item_refund_link_income_unique"',
+          'duplicate key value violates unique constraint "transaction_item_refund_link_income_target_unique"',
       });
       const error = await repository
         .createNormal(normalInput)
@@ -943,7 +1058,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ConflictError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.refundLinkInvalid,
-        message: "该收入明细已经关联过一笔退款，请刷新后重试。",
+        message: "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
       });
       if (!(error instanceof ConflictError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({

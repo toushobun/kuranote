@@ -41,6 +41,7 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 
@@ -134,7 +135,7 @@ export function LedgersTemplate({
       <Box
         aria-hidden="true"
         data-testid="ledgers-page-background"
-        sx={pageBackgroundSx}
+        sx={fullViewportPageBackgroundSx}
       />
       <PageShell maxWidth="xs" sx={ledgersPageShellSx}>
         <Stack spacing={2.1}>
@@ -448,13 +449,6 @@ const headerIconButtonSx = {
   "& .MuiSvgIcon-root": {
     fontSize: 26,
   },
-};
-
-const pageBackgroundSx = {
-  bgcolor: "background.default",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
 };
 
 const ledgersPageShellSx = {

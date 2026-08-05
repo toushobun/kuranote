@@ -4,11 +4,12 @@ import Stack from "@mui/material/Stack";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 
 export default function LedgerInviteLoadingPage() {
   return (
     <Box aria-busy="true" aria-label="邀请确认页加载中" role="status">
-      <Box aria-hidden="true" sx={pageBackgroundSx} />
+      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
       <PageShell maxWidth="xs" sx={pageShellSx}>
         <Stack spacing={2.5} sx={{ minHeight: "100dvh", py: 2 }}>
           <Skeleton height={40} variant="circular" width={40} />
@@ -34,13 +35,6 @@ export default function LedgerInviteLoadingPage() {
     </Box>
   );
 }
-
-const pageBackgroundSx = {
-  bgcolor: "background.paper",
-  inset: 0,
-  position: "fixed",
-  zIndex: -1,
-};
 
 const pageShellSx = {
   px: { xs: 1.5, sm: 2 },

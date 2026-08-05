@@ -60,7 +60,11 @@ function createService(
     repository,
     service: createTransactionService({
       accountQueryService: {
-        getTransactionContext: vi.fn(),
+        getTransactionContext: vi.fn().mockResolvedValue({
+          accountColorById: new Map(),
+          accounts: [],
+          showRecorder: false,
+        }),
         listTransactionOptions: vi.fn(),
       },
       categoryQueryService: {
@@ -83,7 +87,7 @@ function createService(
         getActiveMemberRole: vi.fn().mockResolvedValue(role),
       },
       merchantQueryService: {
-        findSummariesByIds: vi.fn(),
+        findSummariesByIds: vi.fn().mockResolvedValue([]),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,
@@ -216,7 +220,12 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundedItemId: "00000000-0000-4000-8000-000000005073",
+            refundAllocations: [
+              {
+                refundAmount: 1200,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+            ],
           },
         ],
       }),
@@ -240,7 +249,12 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundedItemId: "00000000-0000-4000-8000-000000005073",
+            refundAllocations: [
+              {
+                refundAmount: 1200,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+            ],
             reimbursementItemIds: ["00000000-0000-4000-8000-000000005074"],
           },
         ],
@@ -251,6 +265,169 @@ describe("TransactionService", () => {
       name: ValidationError.name,
     });
     expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("收入分类允许保存多目标退款分摊", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+    const input = {
+      ...normalInput,
+      items: [
+        {
+          ...normalInput.items[0],
+          refundAllocations: [
+            {
+              refundAmount: 300,
+              refundedItemId: "00000000-0000-4000-8000-000000005073",
+            },
+            {
+              refundAmount: 900,
+              refundedItemId: "00000000-0000-4000-8000-000000005074",
+            },
+          ],
+        },
+      ],
+      type: "income" as const,
+    };
+
+    await service.createNormal(input);
+
+    expect(repository.createNormal).toHaveBeenCalledWith(input);
+  });
+
+  it("退款分摊目标重复时拒绝写入", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            refundAllocations: [
+              {
+                refundAmount: 600,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+              {
+                refundAmount: 600,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+            ],
+          },
+        ],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.refundLinkInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("退款分摊合计与收入金额不一致时拒绝写入", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            refundAllocations: [
+              {
+                refundAmount: 300,
+                refundedItemId: "00000000-0000-4000-8000-000000005073",
+              },
+              {
+                refundAmount: 899.99,
+                refundedItemId: "00000000-0000-4000-8000-000000005074",
+              },
+            ],
+          },
+        ],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.refundLinkInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("0.1 与 0.2 的退款分摊可精确匹配 0.3 收入", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+    const input = {
+      ...normalInput,
+      items: [
+        {
+          ...normalInput.items[0],
+          amount: 0.3,
+          refundAllocations: [
+            {
+              refundAmount: 0.1,
+              refundedItemId: "00000000-0000-4000-8000-000000005073",
+            },
+            {
+              refundAmount: 0.2,
+              refundedItemId: "00000000-0000-4000-8000-000000005074",
+            },
+          ],
+        },
+      ],
+      type: "income" as const,
+    };
+
+    await service.createNormal(input);
+
+    expect(repository.createNormal).toHaveBeenCalledWith(input);
+  });
+
+  it("退款收入编辑允许重新提交多目标分摊", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+    const input = {
+      ...normalInput,
+      items: [
+        {
+          ...normalInput.items[0],
+          refundAllocations: [
+            {
+              refundAmount: 300,
+              refundedItemId: "00000000-0000-4000-8000-000000005073",
+            },
+            {
+              refundAmount: 900,
+              refundedItemId: "00000000-0000-4000-8000-000000005074",
+            },
+          ],
+        },
+      ],
+      transactionRecordId,
+      type: "income" as const,
+    };
+
+    await service.updateNormal(input);
+
+    expect(repository.updateNormal).toHaveBeenCalledWith(input);
   });
 
   it("支出分类允许保存待报销状态", async () => {
@@ -392,6 +569,47 @@ describe("TransactionService", () => {
       key: "merchant-1",
       summary: { currency: "JPY", expense: "1200" },
       transactionCount: 1,
+    });
+  });
+
+  it("纯数字关键词 7930 返回金额匹配结果", async () => {
+    const repository = createRepository({
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: "00000000-0000-4000-8000-000000000045",
+          amount: "7930",
+          category_id: normalInput.items[0].categoryId,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listRecords: vi.fn().mockResolvedValue([
+        {
+          created_at: "2026-08-01T10:00:00.000Z",
+          created_by: userId,
+          id: transactionRecordId,
+          merchant_id: null,
+          note: null,
+          transaction_at: "2026-08-01T10:00:00.000Z",
+          type: "normal",
+        },
+      ]),
+    });
+    const { service } = createService("member", repository, "expense");
+
+    const page = await service.search(
+      {
+        baseCurrency: "JPY",
+        currentUserRole: "member",
+        id: ledgerId,
+        name: "家庭账本",
+      },
+      "7930",
+    );
+
+    expect(page).toMatchObject({ nextOffset: null, totalCount: 1 });
+    expect(page.items[0]).toMatchObject({
+      amount: "7930",
+      id: transactionRecordId,
     });
   });
 

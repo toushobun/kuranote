@@ -33,9 +33,17 @@ export async function RootLayoutShell({ children }: RootLayoutShellProps) {
       suppressHydrationWarning
     >
       <body>
-        <AppRouterCacheProvider>
-          <AppProviders>{children}</AppProviders>
-        </AppRouterCacheProvider>
+        <div
+          id="app-root"
+          style={{
+            background: "var(--user-theme-page-bg)",
+            paddingTop: "var(--app-safe-area-inset-top)",
+          }}
+        >
+          <AppRouterCacheProvider>
+            <AppProviders>{children}</AppProviders>
+          </AppRouterCacheProvider>
+        </div>
       </body>
     </html>
   );

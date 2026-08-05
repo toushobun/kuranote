@@ -1,9 +1,4 @@
-export type TransactionBusinessBadgeStatus =
-  | "pendingReimbursement"
-  | "reimbursed";
-
-export type TransactionSpecialStatusValue =
-  TransactionBusinessBadgeStatus | null;
+import type { TransactionBusinessStatus } from "internal/transaction";
 
 type TransactionBusinessBadgeConfig = {
   backgroundColor: string;
@@ -15,7 +10,9 @@ type TransactionBusinessBadgeConfig = {
 export const transactionBusinessBadgeStatuses = [
   "pendingReimbursement",
   "reimbursed",
-] as const satisfies readonly TransactionBusinessBadgeStatus[];
+  "refund",
+  "reimbursement",
+] as const satisfies readonly TransactionBusinessStatus[];
 
 export const transactionBusinessBadgeConfig = {
   pendingReimbursement: {
@@ -30,7 +27,19 @@ export const transactionBusinessBadgeConfig = {
     description: "这笔支出已经完成报销",
     label: "已报销",
   },
+  refund: {
+    backgroundColor: "var(--user-theme-income-bg)",
+    color: "var(--user-theme-income-amount)",
+    description: "这笔收入来自退款关联",
+    label: "退款",
+  },
+  reimbursement: {
+    backgroundColor: "var(--user-theme-business-completed-bg)",
+    color: "var(--user-theme-business-completed-text)",
+    description: "这笔收入来自报销关联",
+    label: "报销",
+  },
 } as const satisfies Record<
-  TransactionBusinessBadgeStatus,
+  TransactionBusinessStatus,
   TransactionBusinessBadgeConfig
 >;

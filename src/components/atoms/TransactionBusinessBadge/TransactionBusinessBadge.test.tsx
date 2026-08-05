@@ -8,10 +8,15 @@ afterEach(() => {
 });
 
 describe("TransactionBusinessBadge", () => {
-  it("按业务状态显示默认标签", () => {
-    render(<TransactionBusinessBadge status="pendingReimbursement" />);
+  it.each([
+    ["pendingReimbursement", "待报销"],
+    ["reimbursed", "已报销"],
+    ["refund", "退款"],
+    ["reimbursement", "报销"],
+  ] as const)("%s 显示 %s 标签", (status, label) => {
+    render(<TransactionBusinessBadge status={status} />);
 
-    expect(screen.getByText("待报销")).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 
   it("允许覆盖标签文案", () => {

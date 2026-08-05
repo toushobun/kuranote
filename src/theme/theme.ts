@@ -139,8 +139,11 @@ export const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        html: {
+          background: "var(--user-theme-page-bg)",
+        },
         body: {
-          backgroundColor: designTokens.color.background.app,
+          background: "var(--user-theme-page-bg)",
         },
       },
     },
@@ -206,6 +209,12 @@ export const theme = createTheme({
         paper: {
           borderRadius: designTokens.radius.lg,
           boxShadow: designTokens.shadow.dialog,
+        },
+        paperFullScreen: {
+          borderRadius: 0,
+          boxShadow: "none",
+          paddingBottom: "var(--app-safe-area-inset-bottom)",
+          paddingTop: "var(--app-safe-area-inset-top)",
         },
       },
     },

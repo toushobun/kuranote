@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
+import Checkbox from "@mui/material/Checkbox";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -27,6 +28,7 @@ type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  selectedRefundItemIds?: string[];
   showSummary?: boolean;
 };
 
@@ -34,6 +36,7 @@ export function TransactionGroupList({
   groups,
   onSelectRefundItem,
   refundSelectionMode = false,
+  selectedRefundItemIds = [],
   showSummary = true,
 }: TransactionGroupListProps) {
   useDateGroupLabelRefresh();
@@ -87,6 +90,7 @@ export function TransactionGroupList({
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectRefundItem}
+                selectedIds={selectedRefundItemIds}
               />
             ) : (
               group.items.map((item, itemIndex) => (
@@ -107,9 +111,11 @@ export function TransactionGroupList({
 export function TransactionRefundCandidateList({
   items,
   onSelect,
+  selectedIds = [],
 }: {
   items: TransactionListItem[];
   onSelect: (item: TransactionRefundCandidate) => void;
+  selectedIds?: string[];
 }) {
   const candidates = items.flatMap((record) =>
     record.categoryItems.flatMap((item) => {
@@ -137,10 +143,12 @@ export function TransactionRefundCandidateList({
     <Stack>
       {candidates.map((candidate, index) => {
         const disabled = Number(candidate.remainingRefundableAmount) <= 0;
+        const selected = selectedIds.includes(candidate.id);
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         return (
           <ButtonBase
             aria-label={`选择退款明细 ${candidate.categoryName}`}
+            aria-pressed={selected}
             disabled={disabled}
             key={candidate.id}
             onClick={() => onSelect(candidate)}
@@ -151,7 +159,8 @@ export function TransactionRefundCandidateList({
               opacity: disabled ? 0.45 : 1,
             }}
           >
-            <Stack sx={{ minWidth: 0, textAlign: "left" }}>
+            <Checkbox checked={selected} tabIndex={-1} />
+            <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <Typography sx={{ fontWeight: 800 }} variant="body2">
                 {candidate.parentCategoryName
                   ? `${candidate.parentCategoryName} / ${candidate.categoryName}`
@@ -239,6 +248,7 @@ function useDateGroupLabelRefresh() {
 const refundCandidateSx = {
   alignItems: "center",
   display: "flex",
+  gap: 0.75,
   justifyContent: "space-between",
   minHeight: 64,
   px: 0.75,

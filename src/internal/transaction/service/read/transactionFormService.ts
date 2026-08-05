@@ -1,18 +1,35 @@
 import type { CurrentLedger } from "internal/ledger";
 import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { TransactionItemDbRow } from "internal/db-types";
+import type {
+  TransactionIncomeLinkData,
+  TransactionIncomeLinkedItem,
+  TransactionIncomeLinkRepository,
+} from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import { loadTransactionFormOptions } from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   EditTransactionView,
+  NewTransactionView,
   TransactionAccountOption,
   TransactionCategoryOption,
   TransferEditInitialValues,
-  NewTransactionView,
 } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
-import { fromTransactionSpecialStatusStorageValue } from "internal/transaction/entity/transactionSpecialStatus";
+import {
+  fromTransactionSpecialStatusStorageValue,
+  resolveTransactionBusinessStatus,
+} from "internal/transaction/entity/transactionSpecialStatus";
+import {
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction/util/refundAllocation";
+
+type TransactionFormReadDependencies =
+  TransactionReadDependencies<TransactionFormRepository> & {
+    transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
+  };
 
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
@@ -43,7 +60,7 @@ export async function getNewTransactionView(
 }
 
 export async function getEditTransactionView(
-  dependencies: TransactionReadDependencies<TransactionFormRepository>,
+  dependencies: TransactionFormReadDependencies,
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {
@@ -65,18 +82,17 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
-  const hasLinkedItem = items.some(
+  const hasProtectedLinkedItem = items.some(
     (item) =>
       item.special_status === "reimbursed" ||
       (item.settled_by_item_id !== null &&
         item.settled_by_item_id !== undefined) ||
-      item.is_reimbursement_income ||
-      item.has_refund_link,
+      (item.has_refund_link && !item.is_refund_income),
   );
-  const canEdit = canModify && !hasLinkedItem;
+  const canEdit = canModify && !hasProtectedLinkedItem;
   const editRestriction = !canModify
     ? "permission"
-    : hasLinkedItem
+    : hasProtectedLinkedItem
       ? "linked"
       : null;
 
@@ -110,10 +126,55 @@ export async function getEditTransactionView(
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
+      reimbursementCandidates: [],
     };
   }
 
   if (record.type !== "normal" || items.length === 0) return null;
+
+  const specialStatusEnabled = Boolean(
+    currentLedger.transactionItemSpecialStatusEnabled,
+  );
+  const incomeItemIds = items.flatMap((item) =>
+    item.id && (item.is_refund_income || item.is_reimbursement_income)
+      ? [item.id]
+      : [],
+  );
+  const incomeLinksPromise =
+    incomeItemIds.length > 0 && dependencies.transactionIncomeLinkRepository
+      ? dependencies.transactionIncomeLinkRepository.listByIncomeItemIds(
+          currentLedger.id,
+          incomeItemIds,
+        )
+      : Promise.resolve([]);
+  const [pendingItems, incomeLinks] = await Promise.all([
+    specialStatusEnabled
+      ? dependencies.transactionRepository.listPendingReimbursementItems(
+          currentLedger.id,
+        )
+      : Promise.resolve([]),
+    incomeLinksPromise,
+  ]);
+  const incomeLinkByItemId = new Map(
+    incomeLinks.map((link) => [link.incomeItemId, link]),
+  );
+  const linkedReimbursementItems = incomeLinks.flatMap(
+    (link) => link.reimbursementItems,
+  );
+  const reimbursementCandidates = deduplicateCandidates([
+    ...buildReimbursementCandidates(
+      pendingItems,
+      options.accountOptions,
+      options.categoryOptions,
+      currentLedger.baseCurrency,
+    ),
+    ...buildLinkedReimbursementCandidates(
+      linkedReimbursementItems,
+      options.accountOptions,
+      options.categoryOptions,
+      currentLedger.baseCurrency,
+    ),
+  ]);
 
   return {
     ...options,
@@ -121,15 +182,36 @@ export async function getEditTransactionView(
     editRestriction,
     initialValues: {
       accountId: items[0]?.account_id ?? "",
-      items: items.map((item) => ({
-        amount: formatEditableAmount(item.amount),
-        categoryId: item.category_id ?? "",
-        id: item.id,
-        refundedAmount: item.refunded_amount ?? "0",
-        specialStatus: fromTransactionSpecialStatusStorageValue(
-          item.special_status ?? null,
-        ),
-      })),
+      items: items.map((item) => {
+        const incomeLink = item.id
+          ? incomeLinkByItemId.get(item.id)
+          : undefined;
+        const refundCandidates = buildRefundCandidates(
+          incomeLink,
+          options.accountOptions,
+          options.categoryOptions,
+          currentLedger.baseCurrency,
+        );
+
+        return {
+          amount: formatEditableAmount(item.amount),
+          businessStatus: resolveTransactionBusinessStatus({
+            isRefundIncome: item.is_refund_income,
+            isReimbursementIncome: item.is_reimbursement_income,
+            specialStatus: item.special_status ?? null,
+          }),
+          categoryId: item.category_id ?? "",
+          id: item.id,
+          refundCandidates,
+          refundedAmount: item.refunded_amount ?? "0",
+          reimbursementItemIds:
+            incomeLink?.reimbursementItems.map((linkedItem) => linkedItem.id) ??
+            [],
+          specialStatus: fromTransactionSpecialStatusStorageValue(
+            item.special_status ?? null,
+          ),
+        };
+      }),
       merchantId: record.merchant_id ?? "",
       note: record.note ?? "",
       transactionAt: record.transaction_at,
@@ -137,6 +219,7 @@ export async function getEditTransactionView(
       type: resolveNormalTransactionDisplayType(items, options.categoryOptions),
     },
     ledgerName: currentLedger.name,
+    reimbursementCandidates,
   };
 }
 
@@ -160,6 +243,78 @@ function buildReimbursementCandidates(
     id: item.id,
     transactionAt: item.transaction_at,
   }));
+}
+
+function buildLinkedReimbursementCandidates(
+  items: TransactionIncomeLinkedItem[],
+  accounts: TransactionAccountOption[],
+  categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
+) {
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+
+  return items.map((item) => ({
+    accountCurrency:
+      accountById.get(item.accountId)?.currency ?? fallbackCurrency,
+    amount: item.amount,
+    categoryName: categoryById.get(item.categoryId)?.name ?? "未知分类",
+    id: item.id,
+    transactionAt: item.transactionAt,
+  }));
+}
+
+function deduplicateCandidates<T extends { id: string }>(items: T[]): T[] {
+  return [...new Map(items.map((item) => [item.id, item])).values()];
+}
+
+function buildRefundCandidates(
+  incomeLink: TransactionIncomeLinkData | undefined,
+  accounts: TransactionAccountOption[],
+  categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
+) {
+  return (incomeLink?.refundAllocations ?? []).map(
+    ({ refundAmount, refundedItem }) => {
+      const account = accounts.find(
+        (option) => option.id === refundedItem.accountId,
+      );
+      const category = categories.find(
+        (option) => option.id === refundedItem.categoryId,
+      );
+      const originalAmountUnits = toRefundMinorUnits(refundedItem.amount);
+      const refundedAmountUnits = toRefundMinorUnits(
+        refundedItem.refundedAmount,
+      );
+      const currentAllocationUnits = toRefundMinorUnits(refundAmount);
+      const calculatedRemainingUnits =
+        originalAmountUnits !== null &&
+        refundedAmountUnits !== null &&
+        currentAllocationUnits !== null
+          ? originalAmountUnits - refundedAmountUnits + currentAllocationUnits
+          : BigInt(0);
+      const remainingRefundableAmount = formatRefundMinorUnits(
+        calculatedRemainingUnits > BigInt(0)
+          ? calculatedRemainingUnits
+          : BigInt(0),
+      );
+
+      return {
+        accountCurrency: account?.currency ?? fallbackCurrency,
+        accountId: refundedItem.accountId,
+        amount: refundedItem.amount,
+        categoryName: category?.name ?? "未知分类",
+        id: refundedItem.id,
+        parentCategoryName: category?.parentName ?? null,
+        refundedAmount: refundedItem.refundedAmount,
+        remainingRefundableAmount,
+        transactionAt: refundedItem.transactionAt,
+        transactionRecordId: refundedItem.transactionRecordId,
+      };
+    },
+  );
 }
 
 function isValidTransferPair(
