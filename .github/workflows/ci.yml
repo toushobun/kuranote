@@ -6,6 +6,9 @@ on:
       - main
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: write
+
 env:
   RUN_CODE_CI: &run_code_ci >-
     github.event_name != 'pull_request' ||
