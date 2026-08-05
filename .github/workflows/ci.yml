@@ -170,6 +170,257 @@ jobs:
         if: steps.rsc-scope.outputs.run_rsc == 'true'
         run: npm run test:rsc
 
+  schema-snapshot-check:
+    name: Schema snapshot check
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
+    needs: [format-check, type-check, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Verify prerequisite checks
+        env:
+          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
+          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+        run: |
+          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
+             [ "$TYPE_CHECK_RESULT" != "success" ] || \
+             [ "$LINT_RESULT" != "success" ]; then
+            echo "Format check: $FORMAT_CHECK_RESULT"
+            echo "Type check: $TYPE_CHECK_RESULT"
+            echo "Lint: $LINT_RESULT"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check schema snapshot scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
+            supabase/migrations \
+            supabase/schema_snapshot \
+            supabase/config.toml \
+            scripts/generate-schema-snapshot.sh \
+            scripts/update-schema-snapshot.sh \
+            scripts/check-schema-snapshot.sh \
+            scripts/check-security-definer-search-path.mjs \
+            scripts/check-security-definer-search-path-cases.mjs \
+            scripts/security-definer-smoke.sql \
+            .supabase-version \
+            package.json \
+            .github/workflows/schema-snapshot-check.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check maintenance scripts
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          bash -n scripts/generate-schema-snapshot.sh
+          bash -n scripts/update-schema-snapshot.sh
+          bash -n scripts/check-schema-snapshot.sh
+          shellcheck \
+            scripts/generate-schema-snapshot.sh \
+            scripts/update-schema-snapshot.sh \
+            scripts/check-schema-snapshot.sh
+          node --check scripts/check-security-definer-search-path.mjs
+          npm run db:security-definer:test
+          npm run db:security-definer:check
+
+      - name: Check migration-first configuration
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          if ! grep -Eq '^[[:space:]]*schema_paths[[:space:]]*=[[:space:]]*\[[[:space:]]*\][[:space:]]*$' supabase/config.toml; then
+            echo "supabase/config.toml 的 schema_paths 必须保持为空，结构快照不得参与 migration 生成。" >&2
+            exit 1
+          fi
+
+      - name: Check migration history is append-only
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          changed_migrations="$(git diff --name-only --diff-filter=MDR \
+            "${{ github.event.pull_request.base.sha }}...HEAD" -- supabase/migrations/)"
+          if [[ -n "${changed_migrations}" ]]; then
+            echo "已经合入 main 的 migration 不允许修改、删除或重命名：" >&2
+            echo "${changed_migrations}" >&2
+            echo "请新增向前 migration 表达数据库变更。" >&2
+            exit 1
+          fi
+
+      - name: Read Supabase CLI version
+        if: steps.scope.outputs.run == 'true'
+        id: supabase_version
+        shell: bash
+        run: |
+          version="$(<.supabase-version)"
+          version="${version%$'\r'}"
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo ".supabase-version 内容异常，应为形如 2.106.0 的版本号。" >&2
+            exit 1
+          fi
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+
+      - name: Setup Supabase CLI
+        if: steps.scope.outputs.run == 'true'
+        uses: supabase/setup-cli@v2
+        with:
+          version: ${{ steps.supabase_version.outputs.version }}
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        if: steps.scope.outputs.run == 'true'
+        run: supabase start
+
+      - name: Compare migrations with schema snapshot
+        if: steps.scope.outputs.run == 'true'
+        run: npm run db:schema:snapshot:check
+        env:
+          ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
+
+      - name: Smoke test SECURITY DEFINER RPC
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            --set ON_ERROR_STOP=1 \
+            --file scripts/security-definer-smoke.sql
+
+      - name: Upload generated snapshot
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-schema-snapshot
+          path: /tmp/kuranote-current-schema.sql
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase
+        if: always() && steps.scope.outputs.run == 'true'
+        run: supabase stop --no-backup
+
+  migration-check:
+    name: Migration check
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
+    needs: [format-check, type-check, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+    steps:
+      - name: Verify prerequisite checks
+        env:
+          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
+          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+        run: |
+          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
+             [ "$TYPE_CHECK_RESULT" != "success" ] || \
+             [ "$LINT_RESULT" != "success" ]; then
+            echo "Format check: $FORMAT_CHECK_RESULT"
+            echo "Type check: $TYPE_CHECK_RESULT"
+            echo "Lint: $LINT_RESULT"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check migration check scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
+            supabase/migrations \
+            supabase/tests/database \
+            .github/workflows/migration-check.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check SECURITY DEFINER search_path
+        if: steps.scope.outputs.run == 'true'
+        run: npm run db:security-definer:check
+
+      - name: Setup Supabase CLI
+        if: steps.scope.outputs.run == 'true'
+        uses: supabase/setup-cli@v2
+        with:
+          version: v2.106.0
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          if ! supabase start > /tmp/supabase-start.log 2>&1; then
+            cat /tmp/supabase-start.log
+            exit 1
+          fi
+
+      - name: Run database tests
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          supabase test db
+          bash supabase/tests/database/category_reorder_concurrency.sh
+          bash supabase/tests/database/category_reorder_write_concurrency.sh
+
+      - name: Stop local Supabase
+        if: always() && steps.scope.outputs.run == 'true'
+        run: supabase stop --no-backup > /dev/null 2>&1
+
+      - name: Check required configuration
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
+            echo "SUPABASE_ACCESS_TOKEN is not set."
+            exit 1
+          fi
+          if [ -z "${SUPABASE_DB_PASSWORD}" ]; then
+            echo "SUPABASE_DB_PASSWORD is not set."
+            exit 1
+          fi
+          if [ -z "${SUPABASE_PROJECT_REF}" ]; then
+            echo "SUPABASE_PROJECT_REF is not set."
+            exit 1
+          fi
+
+      - name: Link Supabase project
+        if: steps.scope.outputs.run == 'true'
+        run: supabase link --project-ref "${SUPABASE_PROJECT_REF}"
+
+      - name: Check migrations dry run
+        if: steps.scope.outputs.run == 'true'
+        run: supabase db push --dry-run
+
   # Stage 3: build 和 storybook-build 并行，只等待测试完成
   build:
     name: Build
