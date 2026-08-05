@@ -639,7 +639,7 @@ begin
                     / nullif(sum(remaining_units) over (), 0)
                 )::bigint as base_units,
                 mod(
-                    round(v_income_amount * 100)::bigint * remaining_units,
+                    round(v_income_amount * 100)::numeric * remaining_units,
                     nullif(sum(remaining_units) over (), 0)
                 ) as remainder_units
             from targets
