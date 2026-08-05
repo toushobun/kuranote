@@ -309,11 +309,19 @@ Component 优先直接调用 `loadXxxView()`，不向自身发送 HTTP 请求；
 
 - PR 不需要添加 label。Issue label 规则仅适用于 Issue，除非人工明确要求，否则 AI Agent 不应为 PR 添加 label。
 
-PR merge 后需要回收相关状态：
+### Issue / PR 关闭前置条件
 
-- 确认对应 Issue / PR 中相关 TODO checkbox 已勾选。
-- 更新对应 Issue 的状态、说明或后续事项。
-- 如 PR 描述中有未完成事项、Storybook / 测试说明或 follow-up，merge 后同步更新。
+- 在手动关闭任何 Issue / PR，或合并会通过 `Closes` / `Fixes` / `Resolves` 自动关闭 Issue 的 PR 之前，必须先检查关联 Issue / PR 正文中的所有 TODO checkbox。
+- 只要仍存在未勾选的 checkbox，就禁止关闭 Issue / PR；也禁止通过 merge、`Closes` / `Fixes` / `Resolves` 等方式让关联 Issue 自动关闭。
+- 已完成事项必须有实现、测试、人工验收或明确记录作为依据后才能勾选，禁止为了关闭而虚假勾选。
+- 对于不再实施、不适用、拆分到其他 Issue 或改为后续处理的事项，必须先在原正文记录处理结果与去向，并将对应 checkbox 更新为已处理状态；不得保留未更新 checkbox 后直接关闭。
+- 关闭前还必须同步更新说明、后续事项和关联 PR / Issue 链接。该检查适用于 `completed`、`not planned`、`duplicate` 等任何关闭原因。
+
+PR merge 前后需要回收相关状态：
+
+- merge 前按上述关闭前置条件检查关联 Issue / PR，确保不存在未更新的 checkbox。
+- merge 后更新对应 Issue 的状态、说明或后续事项。
+- 如 PR 描述中有 Storybook / 测试说明或 follow-up，merge 后同步更新。
 - 确认关联关系正确，例如 PR 正文包含 `Closes #N` 或在 Issue 中补充对应 PR 链接。
 
 ## 依赖管理
