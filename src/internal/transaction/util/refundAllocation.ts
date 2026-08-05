@@ -11,8 +11,8 @@ export type TransactionRefundAllocationTarget = {
 const minorUnitScale = BigInt(100);
 
 /**
- * 金额を 0.01 单位の整数に変换する。
- * 浮動小数点演算を経由せず、入力文字列の小数桁を直接解釈する。
+ * 将金额转换为以 0.01 为单位的整数。
+ * 不经过浮点运算，直接解析输入字符串的小数位。
  */
 export function toRefundMinorUnits(value: number | string): bigint | null {
   const text = String(value).trim();
@@ -28,7 +28,7 @@ export function toRefundMinorUnits(value: number | string): bigint | null {
   }
 }
 
-/** 0.01 单位の整数を、末尾の不要な 0 を除いた金额文字列に戻す。 */
+/** 将以 0.01 为单位的整数转换为金额字符串，并移除末尾多余的 0。 */
 export function formatRefundMinorUnits(units: bigint): string {
   const negative = units < BigInt(0);
   const absoluteUnits = negative ? -units : units;
