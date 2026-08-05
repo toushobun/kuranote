@@ -266,16 +266,53 @@ select throws_ok(
     '转账明细不能作为被退款支出明细'
 );
 
--- 该文件后续会单独验证“存在活跃状态时禁止关闭”。此处仅建立
--- 功能关闭场景，因此绕过关闭保护触发器，避免本地种子状态干扰前置条件。
-set local session_replication_role = replica;
+-- 该文件后续会用自己插入的明细验证“存在活跃状态时禁止关闭”。
+-- 先在当前测试事务内解除共享账本的既有报销关联并清空待报销状态，
+-- 避免种子数据改变下方功能关闭场景的前置条件。
+do $$
+declare
+    reimbursement_link record;
+begin
+    for reimbursement_link in
+        select distinct
+            settled_item.ledger_id,
+            settled_item.settled_by_item_id as income_item_id,
+            income_item.updated_by as user_id
+        from public.transaction_item settled_item
+        join public.transaction_item income_item
+          on income_item.id = settled_item.settled_by_item_id
+         and income_item.ledger_id = settled_item.ledger_id
+        where settled_item.ledger_id = (
+            select ledger_id
+            from public.transaction_item
+            where id = '55110000-0000-4000-8000-000000000001'
+        )
+          and settled_item.settled_by_item_id is not null
+    loop
+        perform public.clear_transaction_item_income_links(
+            reimbursement_link.ledger_id,
+            reimbursement_link.income_item_id,
+            reimbursement_link.user_id
+        );
+    end loop;
+
+    update public.transaction_item
+    set special_status = null
+    where ledger_id = (
+        select ledger_id
+        from public.transaction_item
+        where id = '55110000-0000-4000-8000-000000000001'
+    )
+      and special_status = 'pending_reimbursement';
+end;
+$$;
+
 update public.ledger
 set transaction_item_special_status_enabled = false
 where id = (
     select ledger_id from public.transaction_item
     where id = '55110000-0000-4000-8000-000000000001'
 );
-set local session_replication_role = origin;
 
 select throws_ok(
     $$
