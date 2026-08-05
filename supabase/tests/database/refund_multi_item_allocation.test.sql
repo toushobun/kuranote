@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(10);
+select plan(11);
 
 create temporary table test_refund_multi_context as
 select
@@ -65,7 +65,9 @@ select
 from test_refund_multi_context context
 cross join (values
     ('57210000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
-    ('57210000-0000-4000-8000-000000000002'::uuid, 300::numeric, 2)
+    ('57210000-0000-4000-8000-000000000002'::uuid, 300::numeric, 2),
+    ('57210000-0000-4000-8000-000000000003'::uuid, 100000000::numeric, 3),
+    ('57210000-0000-4000-8000-000000000004'::uuid, 300000000::numeric, 4)
 ) values_to_insert(id, amount, sort_order);
 
 insert into public.transaction_item (
@@ -90,7 +92,8 @@ cross join (values
     ('57220000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
     ('57220000-0000-4000-8000-000000000002'::uuid, 30::numeric, 2),
     ('57220000-0000-4000-8000-000000000003'::uuid, 100::numeric, 3),
-    ('57220000-0000-4000-8000-000000000004'::uuid, 100::numeric, 4)
+    ('57220000-0000-4000-8000-000000000004'::uuid, 100::numeric, 4),
+    ('57220000-0000-4000-8000-000000000005'::uuid, 100000000::numeric, 5)
 ) values_to_insert(id, amount, sort_order);
 
 select lives_ok(
@@ -223,6 +226,30 @@ select throws_ok(
     '22023',
     'refund_allocation_invalid',
     '数据库拒绝重复退款目标'
+);
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from test_refund_multi_context),
+            '57220000-0000-4000-8000-000000000005',
+            jsonb_build_object(
+                'refundAllocations',
+                jsonb_build_array(
+                    jsonb_build_object(
+                        'refundedItemId', '57210000-0000-4000-8000-000000000003',
+                        'refundAmount', 25000000
+                    ),
+                    jsonb_build_object(
+                        'refundedItemId', '57210000-0000-4000-8000-000000000004',
+                        'refundAmount', 75000000
+                    )
+                )
+            ),
+            (select user_id from test_refund_multi_context)
+        )
+    $$,
+    '大金额分摊不会因 bigint 中间乘法溢出'
 );
 
 select * from finish();
