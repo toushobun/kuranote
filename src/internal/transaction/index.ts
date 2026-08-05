@@ -37,6 +37,13 @@ export type {
 } from "internal/transaction/entity/transactionReadModels";
 export type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 export {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+  type TransactionRefundAllocation,
+  type TransactionRefundAllocationTarget,
+} from "internal/transaction/util/refundAllocation";
+export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,

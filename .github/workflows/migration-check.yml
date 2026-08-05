@@ -66,6 +66,7 @@ jobs:
           supabase test db
           bash supabase/tests/database/category_reorder_concurrency.sh
           bash supabase/tests/database/category_reorder_write_concurrency.sh
+          bash supabase/tests/database/refund_allocation_concurrency.sh
 
       - name: Stop local Supabase
         if: always() && steps.scope.outputs.run == 'true'

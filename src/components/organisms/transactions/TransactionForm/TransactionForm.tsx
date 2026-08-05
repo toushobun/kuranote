@@ -104,7 +104,7 @@ export function TransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
-    pickerRefundCandidate,
+    pickerRefundCandidates,
     pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
@@ -117,7 +117,7 @@ export function TransactionForm({
     selectedMerchantId,
     selectedType,
     setPickerSpecialStatus,
-    setPickerRefundCandidate,
+    setPickerRefundCandidates,
     setPickerReimbursementItemIds,
     signedTotalAmount,
     timeZoneOffsetMinutes,
@@ -342,13 +342,13 @@ export function TransactionForm({
         onPickerAdd={handlePickerAdd}
         onRemoveItem={removeItem}
         onReimbursementItemIdsChange={setPickerReimbursementItemIds}
-        onRefundItemChange={setPickerRefundCandidate}
+        onRefundItemsChange={setPickerRefundCandidates}
         open={isSheetOpen}
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
         pickerReimbursementItemIds={pickerReimbursementItemIds}
-        pickerRefundCandidate={pickerRefundCandidate}
+        pickerRefundCandidates={pickerRefundCandidates}
         pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}

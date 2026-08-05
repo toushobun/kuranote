@@ -169,12 +169,12 @@ describe("useTransactionForm", () => {
     act(() => result.current.setPickerReimbursementItemIds(["item-1"]));
     expect(result.current.pickerReimbursementItemIds).toEqual(["item-1"]);
 
-    act(() => result.current.setPickerRefundCandidate(refundCandidate));
-    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
+    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
+    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
     expect(result.current.pickerReimbursementItemIds).toEqual([]);
 
     act(() => result.current.setPickerReimbursementItemIds(["item-2"]));
-    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.pickerReimbursementItemIds).toEqual(["item-2"]);
   });
 
@@ -184,13 +184,15 @@ describe("useTransactionForm", () => {
     });
 
     act(() =>
-      result.current.setPickerRefundCandidate({
-        ...refundCandidate,
-        accountId: "account-2",
-      }),
+      result.current.setPickerRefundCandidates([
+        {
+          ...refundCandidate,
+          accountId: "account-2",
+        },
+      ]),
     );
 
-    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.linkNotice).toContain("账户一致");
   });
 
@@ -199,13 +201,13 @@ describe("useTransactionForm", () => {
       initialValues: createInitialValues(),
     });
 
-    act(() => result.current.setPickerRefundCandidate(refundCandidate));
-    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
+    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
+    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
 
     act(() => result.current.handleAccountChange("account-2"));
 
     expect(result.current.selectedAccountId).toBe("account-2");
-    expect(result.current.pickerRefundCandidate).toBeNull();
+    expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.linkNotice).toContain("账户已变更");
   });
 });

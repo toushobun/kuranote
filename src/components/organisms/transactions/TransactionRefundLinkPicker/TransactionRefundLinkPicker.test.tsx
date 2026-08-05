@@ -62,6 +62,7 @@ describe("TransactionRefundLinkPicker", () => {
       <TransactionRefundLinkPicker
         loadSearchPageAction={loadSearchPageAction}
         onChange={onChange}
+        refundAmount="1000"
         value={null}
       />,
     );
@@ -83,18 +84,20 @@ describe("TransactionRefundLinkPicker", () => {
       <TransactionRefundLinkPicker
         loadSearchPageAction={loadSearchPageAction}
         onChange={onChange}
+        refundAmount="1000"
         value={null}
       />,
     );
 
     expect(screen.getByLabelText("搜索关键词")).toHaveValue("咖啡");
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细 午餐" }));
-    expect(onChange).toHaveBeenCalledWith(
+    fireEvent.click(screen.getByRole("button", { name: "完成（1）" }));
+    expect(onChange).toHaveBeenCalledWith([
       expect.objectContaining({
         id: "refund-item-1",
         remainingRefundableAmount: "1000",
       }),
-    );
+    ]);
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });

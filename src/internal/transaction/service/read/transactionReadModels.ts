@@ -133,7 +133,7 @@ export type EditTransactionView = TransactionFormOptions & {
           businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
           id?: string;
-          refundCandidate?: {
+          refundCandidates?: {
             accountCurrency: string;
             accountId: string;
             amount: string;
@@ -144,9 +144,8 @@ export type EditTransactionView = TransactionFormOptions & {
             remainingRefundableAmount: string;
             transactionAt: string;
             transactionRecordId: string;
-          } | null;
+          }[];
           refundedAmount?: string;
-          refundedItemId?: string | null;
           reimbursementItemIds?: string[];
           specialStatus: TransactionSpecialStatus | null;
         }[];
