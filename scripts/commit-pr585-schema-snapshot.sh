@@ -2,7 +2,7 @@
 set -euo pipefail
 
 branch="feature/572_refund_multi_item_allocation"
-artifact_url='https://sdmntprjapaneast.oaiusercontent.com/files/00000000-3754-8209-b2db-b0a0c07258c5/raw?se=2026-08-05T01:36:32Z&sp=r&sv=2026-02-06&sr=b&scid=8d56aa49-ae19-5ad6-8f89-9b9a22a6caf0&skoid=03727f49-62d3-42ac-8350-1c0e6559d238&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-04T23:58:43Z&ske=2026-08-05T23:58:43Z&sks=b&skv=2026-02-06&sig=suE3um9mttkxMYEg4vLP7w9fCjv6dNkJpl3TfUaQCwo%3D'
+artifact_url='https://sdmntprjapaneast.oaiusercontent.com/files/00000000-045c-8209-b299-3e7f968b52cb/raw?se=2026-08-05T01:43:32Z&sp=r&sv=2026-02-06&sr=b&scid=ed12cdf3-616a-5451-bbcf-44b6143c49fe&skoid=03727f49-62d3-42ac-8350-1c0e6559d238&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-04T23:51:10Z&ske=2026-08-05T23:51:10Z&sks=b&skv=2026-02-06&sig=MeyKcdmfui0/yG5nj6hSEcyM/1hoH9/I6JOa7OxYwNU%3D'
 archive="$(mktemp --suffix=.zip)"
 extract_dir="$(mktemp -d)"
 trap 'rm -f "$archive"; rm -rf "$extract_dir"' EXIT
