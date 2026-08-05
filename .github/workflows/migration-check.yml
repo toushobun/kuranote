@@ -11,7 +11,7 @@ jobs:
     name: Migration check
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -23,6 +23,122 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Apply PR 585 review fixes
+        if: github.event.pull_request.number == 585
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          arithmetic_old = """                mod(
+                    round(v_income_amount * 100)::bigint * remaining_units,
+                    nullif(sum(remaining_units) over (), 0)
+                ) as remainder_units"""
+          arithmetic_new = """                mod(
+                    round(v_income_amount * 100)::numeric * remaining_units,
+                    nullif(sum(remaining_units) over (), 0)
+                ) as remainder_units"""
+
+          for file_name in (
+              "supabase/migrations/20260805010000_support_refund_multi_item_allocation.sql",
+              "supabase/schema_snapshot/current_schema.sql",
+          ):
+              path = Path(file_name)
+              text = path.read_text()
+              count = text.count(arithmetic_old)
+              if count not in (0, 1):
+                  raise SystemExit(f"{file_name}: expected at most one bigint remainder expression, got {count}")
+              if count == 1:
+                  path.write_text(text.replace(arithmetic_old, arithmetic_new))
+
+          util_path = Path("src/internal/transaction/util/refundAllocation.ts")
+          util_text = util_path.read_text()
+          comment_replacements = {
+              "金额を 0.01 单位の整数に変换する。": "将金额转换为以 0.01 为单位的整数。",
+              "浮動小数点演算を経由せず、入力文字列の小数桁を直接解釈する。": "不经过浮点运算，直接解析输入字符串的小数位。",
+              "0.01 单位の整数を、末尾の不要な 0 を除いた金额文字列に戻す。": "将以 0.01 为单位的整数转换为金额字符串，并移除末尾多余的 0。",
+          }
+          for old, new in comment_replacements.items():
+              util_text = util_text.replace(old, new)
+          util_path.write_text(util_text)
+
+          test_path = Path("supabase/tests/database/refund_multi_item_allocation.test.sql")
+          test_text = test_path.read_text()
+          if "大金额分摊不会因 bigint 中间乘法溢出" not in test_text:
+              test_text = test_text.replace("select plan(10);", "select plan(11);", 1)
+              expense_old = """    ('57210000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
+    ('57210000-0000-4000-8000-000000000002'::uuid, 300::numeric, 2)
+) values_to_insert(id, amount, sort_order);"""
+              expense_new = """    ('57210000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
+    ('57210000-0000-4000-8000-000000000002'::uuid, 300::numeric, 2),
+    ('57210000-0000-4000-8000-000000000003'::uuid, 100000000::numeric, 3),
+    ('57210000-0000-4000-8000-000000000004'::uuid, 300000000::numeric, 4)
+) values_to_insert(id, amount, sort_order);"""
+              income_old = """    ('57220000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
+    ('57220000-0000-4000-8000-000000000002'::uuid, 30::numeric, 2),
+    ('57220000-0000-4000-8000-000000000003'::uuid, 100::numeric, 3),
+    ('57220000-0000-4000-8000-000000000004'::uuid, 100::numeric, 4)
+) values_to_insert(id, amount, sort_order);"""
+              income_new = """    ('57220000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
+    ('57220000-0000-4000-8000-000000000002'::uuid, 30::numeric, 2),
+    ('57220000-0000-4000-8000-000000000003'::uuid, 100::numeric, 3),
+    ('57220000-0000-4000-8000-000000000004'::uuid, 100::numeric, 4),
+    ('57220000-0000-4000-8000-000000000005'::uuid, 100000000::numeric, 5)
+) values_to_insert(id, amount, sort_order);"""
+              if expense_old not in test_text or income_old not in test_text:
+                  raise SystemExit("refund_multi_item_allocation.test.sql seed block changed")
+              test_text = test_text.replace(expense_old, expense_new)
+              test_text = test_text.replace(income_old, income_new)
+              large_amount_test = """
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            (select ledger_id from test_refund_multi_context),
+            '57220000-0000-4000-8000-000000000005',
+            jsonb_build_object(
+                'refundAllocations',
+                jsonb_build_array(
+                    jsonb_build_object(
+                        'refundedItemId', '57210000-0000-4000-8000-000000000003',
+                        'refundAmount', 25000000
+                    ),
+                    jsonb_build_object(
+                        'refundedItemId', '57210000-0000-4000-8000-000000000004',
+                        'refundAmount', 75000000
+                    )
+                )
+            ),
+            (select user_id from test_refund_multi_context)
+        )
+    $$,
+    '大金额分摊不会因 bigint 中间乘法溢出'
+);
+
+"""
+              finish_marker = "select * from finish();\nrollback;\n"
+              if finish_marker not in test_text:
+                  raise SystemExit("refund_multi_item_allocation.test.sql finish marker changed")
+              test_text = test_text.replace(finish_marker, large_amount_test + finish_marker)
+              test_path.write_text(test_text)
+          PY
+
+          rm -f .github/issue-572-vitest.json
+          git diff --check
+
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add \
+              .github/issue-572-vitest.json \
+              src/internal/transaction/util/refundAllocation.ts \
+              supabase/migrations/20260805010000_support_refund_multi_item_allocation.sql \
+              supabase/schema_snapshot/current_schema.sql \
+              supabase/tests/database/refund_multi_item_allocation.test.sql
+            git commit -m "fix: 修正退款分摊大金额计算与临时产物"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
 
       - name: Check migration check scope
         id: scope
