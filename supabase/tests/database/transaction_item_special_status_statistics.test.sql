@@ -52,34 +52,6 @@ update public.ledger
 set transaction_item_special_status_enabled = true
 where id = (select ledger_id from test_special_status_context);
 
--- 使用专用账户隔离统计断言，避免本地种子交易影响整月合计。
-insert into public.account (
-    id, ledger_id, name, type, currency, initial_balance,
-    current_balance, sort_order, created_by, updated_by
-)
-select
-    '55194800-0000-4000-8000-000000000001',
-    context.ledger_id,
-    '特殊状态统计隔离账户',
-    source_account.type,
-    source_account.currency,
-    0,
-    0,
-    (
-        select coalesce(max(existing.sort_order), 0) + 1
-        from public.account existing
-        where existing.ledger_id = context.ledger_id
-    ),
-    context.user_id,
-    context.user_id
-from test_special_status_context context
-join public.account source_account
-  on source_account.id = context.account_id
- and source_account.ledger_id = context.ledger_id;
-
-update test_special_status_context
-set account_id = '55194800-0000-4000-8000-000000000001';
-
 insert into public.merchant (
     id, ledger_id, name, created_by, updated_by
 )
@@ -200,6 +172,8 @@ select set_config(
 );
 set local role authenticated;
 
+-- 汇总函数会返回账本内所有账户的分组；这里只断言测试数据使用的账户，
+-- 避免同账本其它账户的种子交易改变预期金额。
 select is(
     (
         select coalesce(sum(summary.expense), 0)
