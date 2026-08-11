@@ -50,6 +50,7 @@ export type TransactionFormProps = {
 
 export type TransactionFormInitialItem = {
   amount: string;
+  businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id?: string;
@@ -71,6 +72,7 @@ export type TransactionFormInitialValues = {
 
 export type TransactionFormItem = {
   amount: string;
+  businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id: number;

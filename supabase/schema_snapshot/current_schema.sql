@@ -3154,16 +3154,14 @@ with base_items as (
         ti.category_id,
         ti.special_status,
         ti.amount,
+        ti.business_net_amount,
         ti.refunded_amount,
         c.type as category_type,
         c.parent_id,
         case
             when tr.type = 'transfer' then 0::numeric
-            when c.type = 'expense' and ti.special_status = 'reimbursed' then 0::numeric
-            when c.type = 'income' and ti.is_refund_income then 0::numeric
-            when c.type = 'income' and ti.is_reimbursement_income then 0::numeric
-            when c.type = 'income' then ti.amount
-            when c.type = 'expense' then -greatest(ti.amount - ti.refunded_amount, 0)
+            when c.type = 'income' then ti.business_net_amount
+            when c.type = 'expense' then -ti.business_net_amount
             else 0::numeric
         end as signed_amount
     from public.transaction_record tr
@@ -5373,24 +5371,43 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."updated_at",
     "ti"."special_status",
     "ti"."settled_by_item_id",
-    (COALESCE("refunds"."refunded_amount", (0)::numeric))::numeric(14,2) AS "refunded_amount",
-    (EXISTS ( SELECT 1
-           FROM ("public"."transaction_item_refund_link" "income_link"
-             JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "ti"."transaction_record_id") AND ("income_record"."ledger_id" = "ti"."ledger_id"))))
-          WHERE (("income_link"."refund_income_item_id" = "ti"."id") AND ("income_link"."ledger_id" = "ti"."ledger_id") AND ("income_record"."status" = 'active'::"text")))) AS "is_refund_income",
-    (EXISTS ( SELECT 1
-           FROM ("public"."transaction_item" "settled_item"
-             JOIN "public"."transaction_record" "settled_record" ON ((("settled_record"."id" = "settled_item"."transaction_record_id") AND ("settled_record"."ledger_id" = "settled_item"."ledger_id"))))
-          WHERE (("settled_item"."settled_by_item_id" = "ti"."id") AND ("settled_item"."ledger_id" = "ti"."ledger_id") AND ("settled_record"."status" = 'active'::"text")))) AS "is_reimbursement_income",
+    (COALESCE("expense_refunds"."refunded_amount", (0)::numeric))::numeric(14,2) AS "refunded_amount",
+    (COALESCE("income_refunds"."refunded_amount", (0)::numeric) > (0)::numeric) AS "is_refund_income",
+    (COALESCE("income_reimbursements"."reimbursed_amount", (0)::numeric) > (0)::numeric) AS "is_reimbursement_income",
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_refund_link" "link"
-          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."refunded_item_id" = "ti"."id") OR ("link"."refund_income_item_id" = "ti"."id"))))) AS "has_refund_link"
-   FROM ("public"."transaction_item" "ti"
+          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."refunded_item_id" = "ti"."id") OR ("link"."refund_income_item_id" = "ti"."id"))))) AS "has_refund_link",
+    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount"
+   FROM (((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"
              JOIN "public"."transaction_item" "refund_income" ON ((("refund_income"."id" = "link"."refund_income_item_id") AND ("refund_income"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "refund_record" ON ((("refund_record"."id" = "refund_income"."transaction_record_id") AND ("refund_record"."ledger_id" = "refund_income"."ledger_id"))))
-          WHERE (("link"."refunded_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("refund_record"."status" = 'active'::"text"))) "refunds" ON (true));
+          WHERE (("link"."refunded_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("refund_record"."status" = 'active'::"text"))) "expense_refunds" ON (true))
+     LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
+           FROM (("public"."transaction_item_refund_link" "link"
+             JOIN "public"."transaction_item" "refunded_item" ON ((("refunded_item"."id" = "link"."refunded_item_id") AND ("refunded_item"."ledger_id" = "link"."ledger_id"))))
+             JOIN "public"."transaction_record" "refunded_record" ON ((("refunded_record"."id" = "refunded_item"."transaction_record_id") AND ("refunded_record"."ledger_id" = "refunded_item"."ledger_id"))))
+          WHERE (("link"."refund_income_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("refunded_record"."status" = 'active'::"text"))) "income_refunds" ON (true))
+     LEFT JOIN LATERAL ( SELECT "sum"("settled_item"."amount") AS "reimbursed_amount"
+           FROM ("public"."transaction_item" "settled_item"
+             JOIN "public"."transaction_record" "settled_record" ON ((("settled_record"."id" = "settled_item"."transaction_record_id") AND ("settled_record"."ledger_id" = "settled_item"."ledger_id"))))
+          WHERE (("settled_item"."settled_by_item_id" = "ti"."id") AND ("settled_item"."ledger_id" = "ti"."ledger_id") AND ("settled_record"."status" = 'active'::"text"))) "income_reimbursements" ON (true))
+     LEFT JOIN LATERAL ( SELECT "sum"("offsets"."amount") AS "offset_amount"
+           FROM ( SELECT COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "amount"
+                UNION ALL
+                 SELECT COALESCE("income_refunds"."refunded_amount", (0)::numeric) AS "coalesce"
+                UNION ALL
+                 SELECT COALESCE("income_reimbursements"."reimbursed_amount", (0)::numeric) AS "coalesce"
+                UNION ALL
+                 SELECT
+                        CASE
+                            WHEN (EXISTS ( SELECT 1
+                               FROM ("public"."transaction_item" "settling_income"
+                                 JOIN "public"."transaction_record" "settling_record" ON ((("settling_record"."id" = "settling_income"."transaction_record_id") AND ("settling_record"."ledger_id" = "settling_income"."ledger_id"))))
+                              WHERE (("settling_income"."id" = "ti"."settled_by_item_id") AND ("settling_income"."ledger_id" = "ti"."ledger_id") AND ("settling_record"."status" = 'active'::"text")))) THEN "ti"."amount"
+                            ELSE (0)::numeric
+                        END AS "case") "offsets") "business_offsets" ON (true));
 
 
 ALTER VIEW "public"."transaction_item_with_refund" OWNER TO "postgres";

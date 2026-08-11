@@ -87,6 +87,26 @@ describe("TransactionItemsSection", () => {
     expect(input).toHaveFocus();
   });
 
+  it("以业务净额为主并弱化显示原金额和原始合计", () => {
+    renderSection({
+      businessTotalAmount: "-300",
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          businessNetAmount: "300",
+        },
+      ],
+      signedTotalAmount: "-1200",
+    });
+
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额" }),
+    ).toHaveTextContent("300");
+    expect(screen.getByText(/原金额.*1200/)).toBeInTheDocument();
+    expect(screen.getByText(/原始合计.*1200/)).toBeInTheDocument();
+    expect(screen.getByText(/业务净额.*300/)).toBeInTheDocument();
+  });
+
   it("点击追加按钮时打开明细选择器", () => {
     const props = renderSection();
 

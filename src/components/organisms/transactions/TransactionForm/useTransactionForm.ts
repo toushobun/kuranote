@@ -199,14 +199,22 @@ export function useTransactionForm({
     allDisplayItems.length > 0
       ? formatNetAmount(incomeTotal - expenseTotal)
       : "未填写金额";
-  const refundedTotal = allDisplayItems.reduce(
-    (sum, item) => sum + Number(item.refundedAmount ?? 0),
+  const businessExpenseTotal = itemsByType.expense.reduce(
+    (sum, item) => sum + getFormItemBusinessAmount(item),
     0,
   );
-  const refundAfterTotalAmount =
-    refundedTotal > 0
-      ? formatNetAmount(incomeTotal - expenseTotal + refundedTotal)
-      : null;
+  const businessIncomeTotal = itemsByType.income.reduce(
+    (sum, item) => sum + getFormItemBusinessAmount(item),
+    0,
+  );
+  const hasBusinessNetAmount = allDisplayItems.some(
+    (item) =>
+      item.businessNetAmount !== undefined &&
+      Number(item.businessNetAmount) !== Number(item.amount),
+  );
+  const businessTotalAmount = hasBusinessNetAmount
+    ? formatNetAmount(businessIncomeTotal - businessExpenseTotal)
+    : null;
 
   function addItem(
     categoryId: string,
@@ -225,6 +233,10 @@ export function useTransactionForm({
         ...current[categoryType],
         {
           amount,
+          businessNetAmount: getNewItemBusinessNetAmount(
+            reimbursementItemIds,
+            refundCandidates,
+          ),
           businessStatus: getFormItemBusinessStatus(
             specialStatus,
             reimbursementItemIds,
@@ -286,6 +298,10 @@ export function useTransactionForm({
               ? {
                   ...item,
                   amount,
+                  businessNetAmount: getNewItemBusinessNetAmount(
+                    reimbursementItemIds,
+                    refundCandidates,
+                  ),
                   businessStatus,
                   categoryId,
                   refundCandidates,
@@ -311,6 +327,10 @@ export function useTransactionForm({
         {
           ...existingItem,
           amount,
+          businessNetAmount: getNewItemBusinessNetAmount(
+            reimbursementItemIds,
+            refundCandidates,
+          ),
           businessStatus,
           categoryId,
           refundCandidates,
@@ -583,8 +603,7 @@ export function useTransactionForm({
     pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
-    refundAfterTotalAmount,
-    refundedTotal,
+    businessTotalAmount,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
@@ -662,4 +681,18 @@ function formatNetAmount(net: number) {
   const value = parseFloat(net.toFixed(2));
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
+}
+
+function getFormItemBusinessAmount(item: TransactionFormItem) {
+  const amount = Number(item.businessNetAmount ?? item.amount);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function getNewItemBusinessNetAmount(
+  reimbursementItemIds: string[],
+  refundCandidates: TransactionRefundCandidate[],
+) {
+  return reimbursementItemIds.length > 0 || refundCandidates.length > 0
+    ? "0"
+    : undefined;
 }

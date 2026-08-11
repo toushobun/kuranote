@@ -311,12 +311,13 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
-  it("合计多条明细的部分退款金额", () => {
+  it("部分抵消时显示业务净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
           account_currency: "USD",
-          amount: "150",
+          amount: "100",
+          originalAmount: "150",
           categoryItems: [
             {
               amount: "100",
@@ -337,15 +338,17 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("已退款 $50")).toBeInTheDocument();
+    expect(screen.getByText("- $ 100")).toBeInTheDocument();
+    expect(screen.getByText("原金额 $150")).toBeInTheDocument();
   });
 
-  it("刚好全部退款时显示完整退款金额", () => {
+  it("完全抵消时显示零业务净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
           account_currency: "USD",
-          amount: "100",
+          amount: "0",
+          originalAmount: "100",
           categoryItems: [
             {
               amount: "100",
@@ -359,10 +362,11 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("已退款 $100")).toBeInTheDocument();
+    expect(screen.getByText("$ 0")).toBeInTheDocument();
+    expect(screen.getByText("原金额 $100")).toBeInTheDocument();
   });
 
-  it("没有退款时不显示退款文案", () => {
+  it("没有抵消时不显示原金额文案", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -379,7 +383,7 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.queryByText(/^已退款/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
   });
 
   describe("业务标签", () => {

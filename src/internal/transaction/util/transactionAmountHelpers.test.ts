@@ -94,6 +94,7 @@ describe("getTransactionRecordCategoryType", () => {
           item("income-category", "200"),
           {
             ...item("expense-category", "1200"),
+            business_net_amount: "100",
             refunded_amount: "1100",
           },
         ],
@@ -107,6 +108,7 @@ describe("transaction record amount", () => {
   it("统计金额扣除退款但列表金额保留原始支出", () => {
     const refundedExpense = {
       ...item("expense-category", "1200"),
+      business_net_amount: "800",
       refunded_amount: "400",
     };
 
@@ -118,9 +120,10 @@ describe("transaction record amount", () => {
     ).toBe(-1200);
   });
 
-  it("退款收入仅从净额统计中排除，列表金额保留原始收入", () => {
+  it("退款收入按已分配金额计算业务净额并保留原始收入", () => {
     const refundIncome = {
       ...item("income-category", "1200"),
+      business_net_amount: "0",
       is_refund_income: true,
     };
 
@@ -131,19 +134,44 @@ describe("transaction record amount", () => {
       calculateTransactionRecordDisplayAmount([refundIncome], categoryById),
     ).toBe(1200);
   });
+
+  it("部分分配的退款收入保留未冲抵金额", () => {
+    expect(
+      calculateTransactionRecordNetAmount(
+        [
+          {
+            ...item("income-category", "500"),
+            business_net_amount: "200",
+          },
+        ],
+        categoryById,
+      ),
+    ).toBe(200);
+  });
+
+  it("混合收支记录按各明细业务净额汇总", () => {
+    expect(
+      calculateTransactionRecordNetAmount(
+        [
+          { ...item("expense-category", "500"), business_net_amount: "200" },
+          { ...item("income-category", "300"), business_net_amount: "0" },
+          item("income-category", "80"),
+        ],
+        categoryById,
+      ),
+    ).toBe(-120);
+  });
 });
 
 describe("reimbursement amount", () => {
   it("已报销支出和对应收入都从统计净额中排除", () => {
     const reimbursedExpense = {
       ...item("expense-category", "10000"),
-      id: "expense-item",
-      settled_by_item_id: "income-item",
-      special_status: "reimbursed" as const,
+      business_net_amount: "0",
     };
     const reimbursementIncome = {
       ...item("income-category", "10000"),
-      id: "income-item",
+      business_net_amount: "0",
     };
 
     expect(
@@ -160,14 +188,13 @@ describe("reimbursement amount", () => {
     ).toBe(0);
   });
 
-  it("跨交易读取到报销结算收入标记时从统计中排除", () => {
+  it("跨交易读取到报销收入业务净额时从统计中排除", () => {
     expect(
       calculateTransactionRecordNetAmount(
         [
           {
             ...item("income-category", "10000"),
-            id: "income-item",
-            is_reimbursement_income: true,
+            business_net_amount: "0",
           },
         ],
         categoryById,

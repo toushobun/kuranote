@@ -113,6 +113,28 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedMerchant?.name).toBe("便利店");
   });
 
+  it("退款报销后的表单合计使用业务净额并保留原始合计", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    expect(result.current.signedTotalAmount).toBe("-500");
+    expect(result.current.businessTotalAmount).toBe("-300");
+  });
+
   it("明细选择器先返回校验错误，再追加有效明细", () => {
     const { result } = renderTransactionFormHook();
 

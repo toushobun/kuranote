@@ -64,4 +64,21 @@ describe("TransactionSummarySection", () => {
 
     expect(screen.getAllByText("未选择")).toHaveLength(3);
   });
+
+  it("有抵消金额时同时显示业务净额和原始合计", () => {
+    render(
+      <TransactionSummarySection
+        businessTotalAmount="-300"
+        itemSummaries={[{ ...itemSummaries[0], businessNetAmount: "300" }]}
+        signedTotalAmount="-1200"
+        transactionDate="2026-07-20"
+        transactionTime="10:30:00"
+      />,
+    );
+
+    expect(screen.getByText("原始合计")).toBeInTheDocument();
+    expect(screen.getByText("业务净额")).toBeInTheDocument();
+    expect(screen.getByText("- 300")).toBeInTheDocument();
+    expect(screen.getByText(/原金额 1200/)).toBeInTheDocument();
+  });
 });

@@ -26,6 +26,7 @@ export type TransactionListItem = {
   account_currency: string;
   account_name: string;
   amount: string;
+  originalAmount?: string;
   canEdit?: boolean;
   categoryItems: TransactionCategorySummaryItem[];
   created_at: string;
@@ -130,6 +131,7 @@ export type EditTransactionView = TransactionFormOptions & {
         accountId: string;
         items: {
           amount: string;
+          businessNetAmount?: string;
           businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
           id?: string;

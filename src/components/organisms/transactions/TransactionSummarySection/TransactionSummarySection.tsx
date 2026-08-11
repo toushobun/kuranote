@@ -17,6 +17,7 @@ import {
 } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionSummarySectionProps = {
+  businessTotalAmount?: string | null;
   itemSummaries: TransactionItemSummary[];
   selectedAccount?: TransactionAccountOption;
   selectedMerchant?: TransactionMerchantOption;
@@ -26,6 +27,7 @@ type TransactionSummarySectionProps = {
 };
 
 export function TransactionSummarySection({
+  businessTotalAmount = null,
   itemSummaries,
   selectedAccount,
   selectedMerchant,
@@ -52,7 +54,7 @@ export function TransactionSummarySection({
           <SummaryRow
             key={item.id}
             label={`明细 ${index + 1}`}
-            value={`${item.category ? formatCategoryName(item.category) : "未选择分类"} / ${item.amount || "未填写金额"}`}
+            value={`${item.category ? formatCategoryName(item.category) : "未选择分类"} / ${formatItemSummaryAmount(item)}`}
           />
         ))}
         <SummaryRow
@@ -60,10 +62,19 @@ export function TransactionSummarySection({
           value={formatSummaryDateTime(transactionDate, transactionTime)}
         />
         <Divider />
+        {businessTotalAmount ? (
+          <SummaryRow
+            label="原始合计"
+            value={formatSignedCurrencyAmount(
+              signedTotalAmount,
+              selectedAccount?.currency,
+            )}
+          />
+        ) : null}
         <SummaryRow
-          label="合计金额"
+          label={businessTotalAmount ? "业务净额" : "合计金额"}
           value={formatSignedCurrencyAmount(
-            signedTotalAmount,
+            businessTotalAmount ?? signedTotalAmount,
             selectedAccount?.currency,
           )}
           strong
@@ -113,3 +124,15 @@ const summaryTitleSx = {
 const summaryLabelSx = {
   fontSize: "0.75rem",
 };
+
+function formatItemSummaryAmount(item: TransactionItemSummary) {
+  const businessAmount = item.businessNetAmount ?? item.amount;
+  if (!businessAmount) return "未填写金额";
+  if (
+    item.businessNetAmount === undefined ||
+    Number(item.businessNetAmount) === Number(item.amount)
+  ) {
+    return businessAmount;
+  }
+  return `${businessAmount}（原金额 ${item.amount}）`;
+}

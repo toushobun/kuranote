@@ -61,10 +61,6 @@ export function TransactionRow({
     : item.type === "income"
       ? incomeColor
       : expenseColor;
-  const refundedAmount = item.categoryItems.reduce(
-    (sum, category) => sum + Number(category.refundedAmount ?? 0),
-    0,
-  );
   const businessStatuses = getBusinessStatuses(item.categoryItems);
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
@@ -161,10 +157,10 @@ export function TransactionRow({
               >
                 {signedAmount}
               </Typography>
-              {refundedAmount > 0 ? (
+              {item.originalAmount !== undefined ? (
                 <Typography color="text.secondary" variant="caption">
-                  已退款 {getCurrencySymbol(item.account_currency)}
-                  {formatNumber(String(refundedAmount))}
+                  原金额 {getCurrencySymbol(item.account_currency)}
+                  {formatNumber(item.originalAmount)}
                 </Typography>
               ) : null}
             </Stack>

@@ -43,10 +43,11 @@ export type TransactionItemInput = {
 
 type TransactionItemRepositoryRow = Omit<
   TransactionItemDbRow,
-  "amount" | "balance_delta" | "refunded_amount"
+  "amount" | "balance_delta" | "business_net_amount" | "refunded_amount"
 > & {
   amount: number | string;
   balance_delta?: number | string | null;
+  business_net_amount?: number | string | null;
   refunded_amount?: number | string | null;
 };
 
@@ -85,23 +86,15 @@ export type ConvertTransactionInput =
 
 export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
-  | "amount"
-  | "category_id"
-  | "id"
-  | "is_refund_income"
-  | "is_reimbursement_income"
-  | "refunded_amount"
-  | "settled_by_item_id"
-  | "special_status"
-  | "transaction_record_id"
+  "amount" | "business_net_amount" | "category_id" | "transaction_record_id"
 >;
 
 type TransactionDashboardSummaryRepositoryRow = Omit<
   TransactionDashboardSummaryItem,
-  "amount" | "refunded_amount"
+  "amount" | "business_net_amount"
 > & {
   amount: number | string;
-  refunded_amount?: number | string | null;
+  business_net_amount?: number | string | null;
 };
 
 export type TransactionDashboardCategory = Pick<
@@ -727,7 +720,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link",
+          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -899,7 +892,7 @@ export function createSupabaseTransactionRepository(
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, category_id, amount, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income",
+          "transaction_record_id, category_id, amount, business_net_amount",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds);
@@ -1128,12 +1121,16 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
 function toTransactionItemDbRow({
   amount,
   balance_delta: balanceDelta,
+  business_net_amount: businessNetAmount,
   refunded_amount: refundedAmount,
   ...row
 }: TransactionItemRepositoryRow): TransactionItemDbRow {
   return {
     ...row,
     amount: toTransactionAmountText(amount),
+    ...(businessNetAmount == null
+      ? {}
+      : { business_net_amount: toTransactionAmountText(businessNetAmount) }),
     ...(balanceDelta == null
       ? {}
       : { balance_delta: toTransactionAmountText(balanceDelta) }),
@@ -1145,15 +1142,15 @@ function toTransactionItemDbRow({
 
 function toTransactionDashboardSummaryItem({
   amount,
-  refunded_amount: refundedAmount,
+  business_net_amount: businessNetAmount,
   ...row
 }: TransactionDashboardSummaryRepositoryRow): TransactionDashboardSummaryItem {
   return {
     ...row,
     amount: toTransactionAmountText(amount),
-    ...(refundedAmount == null
+    ...(businessNetAmount == null
       ? {}
-      : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+      : { business_net_amount: toTransactionAmountText(businessNetAmount) }),
   };
 }
 

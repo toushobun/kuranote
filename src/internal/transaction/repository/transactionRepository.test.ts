@@ -697,8 +697,8 @@ describe("TransactionDashboardRepository", () => {
       data: [
         {
           amount: 1200,
+          business_net_amount: 1000,
           category_id: categoryId,
-          refunded_amount: 200,
           transaction_record_id: recordId,
         },
       ],
@@ -720,8 +720,8 @@ describe("TransactionDashboardRepository", () => {
       items: [
         {
           amount: "1200",
+          business_net_amount: "1000",
           category_id: categoryId,
-          refunded_amount: "200",
           transaction_record_id: recordId,
         },
       ],
@@ -737,7 +737,7 @@ describe("TransactionDashboardRepository", () => {
       dashboardMonthInput.dateEnd,
     );
     expect(itemQuery.select).toHaveBeenCalledWith(
-      "id, transaction_record_id, category_id, amount, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income",
+      "transaction_record_id, category_id, amount, business_net_amount",
     );
     expect(categoryQuery.select).toHaveBeenCalledWith("id, type");
   });

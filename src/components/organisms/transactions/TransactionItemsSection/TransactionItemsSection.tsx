@@ -32,8 +32,7 @@ type TransactionItemsSectionProps = {
   ) => void;
   selectedAccountCurrency?: string;
   selectedType: TransactionType;
-  refundAfterTotalAmount?: string | null;
-  refundedTotal?: number;
+  businessTotalAmount?: string | null;
   signedTotalAmount: string;
 };
 
@@ -47,8 +46,7 @@ export function TransactionItemsSection({
   onUpdateItem,
   selectedAccountCurrency,
   selectedType,
-  refundAfterTotalAmount = null,
-  refundedTotal = 0,
+  businessTotalAmount = null,
   signedTotalAmount,
 }: TransactionItemsSectionProps) {
   return (
@@ -160,7 +158,7 @@ export function TransactionItemsSection({
                       >
                         {formatDisplayAmount(
                           item.category?.type ?? selectedType,
-                          item.amount,
+                          item.businessNetAmount ?? item.amount,
                           selectedAccountCurrency,
                         )}
                       </Button>
@@ -170,11 +168,13 @@ export function TransactionItemsSection({
                           sx={itemStatusBadgeSx}
                         />
                       ) : null}
-                      {Number(item.refundedAmount ?? 0) > 0 ? (
+                      {item.businessNetAmount !== undefined &&
+                      Number(item.businessNetAmount) !== Number(item.amount) ? (
                         <Typography color="text.secondary" variant="caption">
-                          已退款{" "}
-                          {formatSignedCurrencyAmount(
-                            String(item.refundedAmount),
+                          原金额{" "}
+                          {formatDisplayAmount(
+                            item.category?.type ?? selectedType,
+                            item.amount,
                             selectedAccountCurrency,
                           )}
                         </Typography>
@@ -201,12 +201,12 @@ export function TransactionItemsSection({
         {itemSummaries.length > 0 ? (
           <Box sx={summaryBoxSx}>
             <Typography sx={{ fontWeight: 700 }}>
-              {refundedTotal > 0 ? "金额汇总" : "本次合计"}
+              {businessTotalAmount ? "金额汇总" : "本次合计"}
             </Typography>
             <Stack sx={{ alignItems: "flex-end" }}>
-              {refundedTotal > 0 ? (
+              {businessTotalAmount ? (
                 <Typography color="text.secondary" variant="caption">
-                  退款前总金额{" "}
+                  原始合计{" "}
                   {formatSignedCurrencyAmount(
                     signedTotalAmount,
                     selectedAccountCurrency,
@@ -216,9 +216,9 @@ export function TransactionItemsSection({
               <Typography
                 sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
               >
-                {refundedTotal > 0 ? "退款后金额" : "合计"}{" "}
+                {businessTotalAmount ? "业务净额" : "合计"}{" "}
                 {formatSignedCurrencyAmount(
-                  refundAfterTotalAmount ?? signedTotalAmount,
+                  businessTotalAmount ?? signedTotalAmount,
                   selectedAccountCurrency,
                 )}
               </Typography>

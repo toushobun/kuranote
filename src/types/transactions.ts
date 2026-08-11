@@ -81,6 +81,7 @@ export type TransactionRowItem = {
   type: TransactionRecordType;
   transaction_at: string;
   amount: string;
+  originalAmount?: string;
   account_name: string;
   account_currency: string;
   account_color?: ThemeColorKey | null;

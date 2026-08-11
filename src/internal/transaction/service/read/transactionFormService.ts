@@ -195,6 +195,9 @@ export async function getEditTransactionView(
 
         return {
           amount: formatEditableAmount(item.amount),
+          businessNetAmount: formatEditableAmount(
+            item.business_net_amount ?? item.amount,
+          ),
           businessStatus: resolveTransactionBusinessStatus({
             isRefundIncome: item.is_refund_income,
             isReimbursementIncome: item.is_reimbursement_income,

@@ -164,6 +164,41 @@ export const BusinessStatuses: Story = {
   },
 };
 
+export const PartiallyOffset: Story = {
+  name: "部分抵消与原金额",
+  args: {
+    item: {
+      ...expenseItem,
+      amount: "1658",
+      originalAmount: "2858",
+    },
+  },
+};
+
+export const FullyOffsetRefundIncome: Story = {
+  name: "完全抵消的退款收入",
+  args: {
+    item: {
+      ...businessStatusItem,
+      amount: "0",
+      originalAmount: "15000",
+      categoryItems: businessStatusItem.categoryItems.slice(0, 1),
+    },
+  },
+};
+
+export const FullyOffsetReimbursementIncome: Story = {
+  name: "完全抵消的报销收入",
+  args: {
+    item: {
+      ...businessStatusItem,
+      amount: "0",
+      originalAmount: "20000",
+      categoryItems: businessStatusItem.categoryItems.slice(1),
+    },
+  },
+};
+
 export const Transfer: Story = {
   name: "转账记录",
   args: {

@@ -181,7 +181,10 @@ describe("buildTransactionGroupSummaryPage", () => {
   it("特殊状态分组只展示待报销和已报销", () => {
     const records = [record("r1", "2026-06-10T00:00:00.000Z")];
     const items = [
-      item("r1", expenseCategory.id, "100", "reimbursed"),
+      {
+        ...item("r1", expenseCategory.id, "100", "reimbursed"),
+        business_net_amount: "0",
+      },
       item("r1", expenseCategory.id, "200", "pending_reimbursement"),
       item("r1", expenseCategory.id, "300", null),
     ];

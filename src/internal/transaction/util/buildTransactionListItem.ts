@@ -9,6 +9,7 @@ import type {
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import {
   calculateTransactionRecordDisplayAmount,
+  calculateTransactionRecordNetAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
@@ -60,7 +61,11 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
-  const displayAmount = calculateTransactionRecordDisplayAmount(
+  const originalAmount = calculateTransactionRecordDisplayAmount(
+    recordItems,
+    categoryById,
+  );
+  const displayAmount = calculateTransactionRecordNetAmount(
     recordItems,
     categoryById,
   );
@@ -113,6 +118,9 @@ export function buildTransactionListItem({
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
+    ...(displayAmount === originalAmount
+      ? {}
+      : { originalAmount: String(Math.abs(originalAmount)) }),
     canEdit,
     categoryItems,
     created_at: record.created_at,

@@ -159,8 +159,8 @@ describe("buildStatisticsViewData", () => {
       items: [
         {
           amount: "1200",
+          business_net_amount: "300",
           category_id: "category-food",
-          refunded_amount: "900",
           transaction_record_id: "expense-1",
         },
         {
@@ -214,8 +214,8 @@ describe("buildStatisticsViewData", () => {
       items: [
         {
           amount: "1200",
+          business_net_amount: "0",
           category_id: "category-food",
-          refunded_amount: "1200",
           transaction_record_id: "expense-1",
         },
       ],
@@ -241,8 +241,8 @@ describe("buildStatisticsViewData", () => {
       items: [
         {
           amount: "1200",
+          business_net_amount: "0",
           category_id: "category-food",
-          special_status: "reimbursed",
           transaction_record_id: "expense-1",
         },
       ],
@@ -257,8 +257,8 @@ describe("buildStatisticsViewData", () => {
       items: [
         {
           amount: "1200",
+          business_net_amount: "0",
           category_id: "category-salary",
-          is_reimbursement_income: true,
           transaction_record_id: "income-1",
         },
       ],
