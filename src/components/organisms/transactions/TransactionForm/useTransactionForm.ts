@@ -260,13 +260,16 @@ export function useTransactionForm({
     values: Partial<Omit<TransactionFormItem, "id">>,
   ) {
     markEditDirty?.();
+    const mergeValues = (item: TransactionFormItem) => {
+      if (item.id !== itemId) return item;
+      const nextItem = { ...item, ...values };
+      return values.amount !== undefined && !hasBusinessNetOffset(nextItem)
+        ? { ...nextItem, businessNetAmount: undefined }
+        : nextItem;
+    };
     setItemsByType((current) => ({
-      expense: current.expense.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
-      income: current.income.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
+      expense: current.expense.map(mergeValues),
+      income: current.income.map(mergeValues),
     }));
   }
 
@@ -503,6 +506,10 @@ export function useTransactionForm({
                 item.reimbursementItemIds ?? [],
                 [],
               ),
+              businessNetAmount: getNewItemBusinessNetAmount(
+                item.reimbursementItemIds ?? [],
+                [],
+              ),
               refundCandidates: [],
             }
           : item,
@@ -686,6 +693,15 @@ function formatNetAmount(net: number) {
 function getFormItemBusinessAmount(item: TransactionFormItem) {
   const amount = Number(item.businessNetAmount ?? item.amount);
   return Number.isFinite(amount) ? amount : 0;
+}
+
+function hasBusinessNetOffset(item: TransactionFormItem) {
+  return (
+    (item.refundCandidates?.length ?? 0) > 0 ||
+    (item.reimbursementItemIds?.length ?? 0) > 0 ||
+    Number(item.refundedAmount ?? 0) > 0 ||
+    item.specialStatus === "reimbursed"
+  );
 }
 
 function getNewItemBusinessNetAmount(

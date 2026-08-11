@@ -192,12 +192,16 @@ export async function getEditTransactionView(
           options.categoryOptions,
           currentLedger.baseCurrency,
         );
+        const amount = formatEditableAmount(item.amount);
+        const businessNetAmount =
+          item.business_net_amount !== undefined &&
+          Number(item.business_net_amount) !== Number(item.amount)
+            ? formatEditableAmount(item.business_net_amount)
+            : undefined;
 
         return {
-          amount: formatEditableAmount(item.amount),
-          businessNetAmount: formatEditableAmount(
-            item.business_net_amount ?? item.amount,
-          ),
+          amount,
+          ...(businessNetAmount === undefined ? {} : { businessNetAmount }),
           businessStatus: resolveTransactionBusinessStatus({
             isRefundIncome: item.is_refund_income,
             isReimbursementIncome: item.is_reimbursement_income,

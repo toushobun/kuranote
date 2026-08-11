@@ -135,6 +135,31 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-300");
   });
 
+  it("普通既有交易修改金额时不保留等额业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "500",
+            categoryId: "expense-child",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "普通支出",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "600" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({ amount: "600" });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
+  });
+
   it("明细选择器先返回校验错误，再追加有效明细", () => {
     const { result } = renderTransactionFormHook();
 
@@ -231,5 +256,33 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccountId).toBe("account-2");
     expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.linkNotice).toContain("账户已变更");
+  });
+
+  it("退款收入因账户变化解除关联时清理业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        ...createInitialValues(),
+        items: [
+          {
+            amount: "200",
+            businessNetAmount: "0",
+            businessStatus: "refund",
+            categoryId: "income-category",
+            refundCandidates: [refundCandidate],
+          },
+        ],
+      },
+    });
+
+    expect(result.current.businessTotalAmount).toBe("0");
+    act(() => result.current.handleAccountChange("account-2"));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "200",
+      businessStatus: null,
+      refundCandidates: [],
+    });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
   });
 });
