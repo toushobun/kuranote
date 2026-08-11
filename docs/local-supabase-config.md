@@ -52,6 +52,7 @@ enabled = false
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55431
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/postgres
 ```
 
 publishable key、service key 等值不要手写固定值。
