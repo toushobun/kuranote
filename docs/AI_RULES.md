@@ -308,21 +308,28 @@ Component 优先直接调用 `loadXxxView()`，不向自身发送 HTTP 请求；
 创建 PR 时，正文必须遵循 `.github/pull_request_template.md`。
 
 - PR 不需要添加 label。Issue label 规则仅适用于 Issue，除非人工明确要求，否则 AI Agent 不应为 PR 添加 label。
+- PR 关联 Issue 时统一使用 `Refs #N`，只建立关联，不触发自动关闭。
+- 禁止在 PR 正文中使用 GitHub 自动关闭 Issue 的关键字，包括 `Closes` / `Fixes` / `Resolves` 及其等价形式。
 
-### Issue / PR 关闭前置条件
+### Issue / PR 关联与关闭规则
 
-- 在手动关闭任何 Issue / PR，或合并会通过 `Closes` / `Fixes` / `Resolves` 自动关闭 Issue 的 PR 之前，必须先检查关联 Issue / PR 正文中的所有 TODO checkbox。
-- 只要仍存在未勾选的 checkbox，就禁止关闭 Issue / PR；也禁止通过 merge、`Closes` / `Fixes` / `Resolves` 等方式让关联 Issue 自动关闭。
+- PR merge 与 Issue close 是两个独立步骤。PR merge 后不得自动视为 Issue 已完成，也不得依赖 GitHub 自动关闭关联 Issue。
+- PR 自身如果包含 TODO checkbox，在 merge 或手动关闭 PR 前必须全部按实际结果处理；存在未经处理的 checkbox 时禁止 merge / 关闭 PR。
+- 关联 Issue 可以在 PR merge 时保留待验收或待回收的 checkbox；这些 checkbox 不因 PR merge 自动视为完成。merge 后必须根据实际合并内容更新对应 checkbox、说明和关联 PR。
 - 已完成事项必须有实现、测试、人工验收或明确记录作为依据后才能勾选，禁止为了关闭而虚假勾选。
-- 对于不再实施、不适用、拆分到其他 Issue 或改为后续处理的事项，必须先在原正文记录处理结果与去向，并将对应 checkbox 更新为已处理状态；不得保留未更新 checkbox 后直接关闭。
-- 关闭前还必须同步更新说明、后续事项和关联 PR / Issue 链接。该检查适用于 `completed`、`not planned`、`duplicate` 等任何关闭原因。
+- 对于不再实施、不适用、拆分到其他 Issue 或改为后续处理的事项，必须先在原正文记录处理结果与去向，再将对应 checkbox 标记为已处理；不得通过删除历史或直接关闭来掩盖剩余事项。
+- 涉及 UI、真机、业务流程等人工验收的事项，必须在人工验收通过后再勾选对应验收 checkbox。
+- 只要 Issue 仍存在未经处理的 checkbox，就必须保持 open。
+- Issue 仅在相关 PR 已 merge（或事项已明确决定不实施 / 转交）、必要自动化验证完成、必要人工验收通过、所有 checkbox 已处理后，由维护者人工关闭。
+- closed Issue / PR 不允许残留未经处理的 checkbox。该规则适用于 `completed`、`not planned`、`duplicate` 等任何关闭原因。
 
 PR merge 前后需要回收相关状态：
 
-- merge 前按上述关闭前置条件检查关联 Issue / PR，确保不存在未更新的 checkbox。
-- merge 后更新对应 Issue 的状态、说明或后续事项。
+- merge 前检查 PR 自身的 TODO checkbox 和说明是否已经处理完；关联 Issue 的 post-merge 验收项可以保持未勾选，但不得使用自动关闭关键字。
+- merge 前确认 PR 正文通过 `Refs #N` 正确关联 Issue。
+- merge 后更新对应 Issue 的 checkbox、状态说明、完成记录、后续事项和关联 PR 链接。
 - 如 PR 描述中有 Storybook / 测试说明或 follow-up，merge 后同步更新。
-- 确认关联关系正确，例如 PR 正文包含 `Closes #N` 或在 Issue 中补充对应 PR 链接。
+- 完成必要人工验收后，再次确认 Issue 不存在未经处理的 checkbox；满足关闭条件时人工关闭，否则继续保持 open。
 
 ## 依赖管理
 
