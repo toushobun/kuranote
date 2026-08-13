@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(14);
+select plan(15);
 
 create temporary table test_business_net_context on commit drop as
 select
@@ -84,7 +84,8 @@ cross join (values
     ('57300000-0000-4000-8000-000000000006'::uuid, '2026-08-04 01:00:00+00'::timestamptz, '报销支出 A'),
     ('57300000-0000-4000-8000-000000000007'::uuid, '2026-08-04 02:00:00+00'::timestamptz, '报销支出 B'),
     ('57300000-0000-4000-8000-000000000008'::uuid, '2026-08-05 01:00:00+00'::timestamptz, '多明细报销收入'),
-    ('57300000-0000-4000-8000-000000000009'::uuid, '2026-08-06 01:00:00+00'::timestamptz, '普通收入')
+    ('57300000-0000-4000-8000-000000000009'::uuid, '2026-08-06 01:00:00+00'::timestamptz, '普通收入'),
+    ('57300000-0000-4000-8000-000000000010'::uuid, '2026-08-07 01:00:00+00'::timestamptz, '仍待报销支出')
 ) values_to_insert(id, transaction_at, title);
 
 insert into public.transaction_item (
@@ -122,7 +123,8 @@ cross join (values
     ('57310000-0000-4000-8000-000000000006'::uuid, '57300000-0000-4000-8000-000000000006'::uuid, 'expense', 200::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000007'::uuid, '57300000-0000-4000-8000-000000000007'::uuid, 'expense', 300::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000008'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 500::numeric, null),
-    ('57310000-0000-4000-8000-000000000009'::uuid, '57300000-0000-4000-8000-000000000009'::uuid, 'income', 80::numeric, null)
+    ('57310000-0000-4000-8000-000000000009'::uuid, '57300000-0000-4000-8000-000000000009'::uuid, 'income', 80::numeric, null),
+    ('57310000-0000-4000-8000-000000000010'::uuid, '57300000-0000-4000-8000-000000000010'::uuid, 'expense', 120::numeric, 'pending_reimbursement')
 ) values_to_insert(id, record_id, category_type, amount, special_status);
 
 insert into public.transaction_item_refund_link (
@@ -201,6 +203,12 @@ select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000009'),
     80::numeric,
     '普通收入保持原始业务金额'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000010'),
+    0::numeric,
+    '仍待报销的支出不计入业务支出'
 );
 
 select is(

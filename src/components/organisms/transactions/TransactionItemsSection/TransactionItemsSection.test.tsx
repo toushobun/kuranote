@@ -87,7 +87,7 @@ describe("TransactionItemsSection", () => {
     expect(input).toHaveFocus();
   });
 
-  it("以业务净额为主并弱化显示原金额和原始合计", () => {
+  it("以净额为主并在下方弱化显示原金额", () => {
     renderSection({
       businessTotalAmount: "-300",
       itemSummaries: [
@@ -102,9 +102,21 @@ describe("TransactionItemsSection", () => {
     expect(
       screen.getByRole("button", { name: "编辑明细 1 金额" }),
     ).toHaveTextContent("300");
-    expect(screen.getByText(/原金额.*1200/)).toBeInTheDocument();
-    expect(screen.getByText(/原始合计.*1200/)).toBeInTheDocument();
-    expect(screen.getByText(/业务净额.*300/)).toBeInTheDocument();
+    const originalAmounts = screen.getAllByText(/原金额.*1200/);
+    expect(originalAmounts[0]).toHaveStyle({
+      color: "rgba(0, 0, 0, 0.38)",
+      fontWeight: "400",
+    });
+    const businessTotal = screen.getByText(/净额.*300/);
+    const originalTotal = originalAmounts[originalAmounts.length - 1]!;
+    expect(originalTotal).toHaveStyle({
+      color: "rgba(0, 0, 0, 0.38)",
+      fontWeight: "400",
+    });
+    expect(
+      businessTotal.compareDocumentPosition(originalTotal) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("点击追加按钮时打开明细选择器", () => {

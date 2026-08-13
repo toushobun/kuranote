@@ -311,7 +311,7 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
-  it("部分抵消时显示业务净额和原金额", () => {
+  it("部分抵消时显示净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -339,10 +339,13 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.getByText("- $ 100")).toBeInTheDocument();
-    expect(screen.getByText("原金额 $150")).toBeInTheDocument();
+    expect(screen.getByText("原金额 $150")).toHaveStyle({
+      color: "rgba(0, 0, 0, 0.38)",
+      fontWeight: "400",
+    });
   });
 
-  it("完全抵消时显示零业务净额和原金额", () => {
+  it("完全抵消时显示零净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({

@@ -7,6 +7,7 @@ import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import type { TransactionType } from "types/transactions";
 import { allocateRefundAmount } from "internal/transaction";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
@@ -173,7 +174,10 @@ export function TransactionItemsSection({
                         item.amount,
                         item.businessNetAmount,
                       ) ? (
-                        <Typography color="text.secondary" variant="caption">
+                        <Typography
+                          sx={transactionOriginalAmountTextSx}
+                          variant="caption"
+                        >
                           原金额{" "}
                           {formatDisplayAmount(
                             item.category?.type ?? selectedType,
@@ -207,24 +211,27 @@ export function TransactionItemsSection({
               {businessTotalAmount ? "金额汇总" : "本次合计"}
             </Typography>
             <Stack sx={{ alignItems: "flex-end" }}>
+              <Typography
+                sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
+              >
+                {businessTotalAmount ? "净额" : "合计"}{" "}
+                {formatSignedCurrencyAmount(
+                  businessTotalAmount ?? signedTotalAmount,
+                  selectedAccountCurrency,
+                )}
+              </Typography>
               {businessTotalAmount ? (
-                <Typography color="text.secondary" variant="caption">
-                  原始合计{" "}
+                <Typography
+                  sx={transactionOriginalAmountTextSx}
+                  variant="caption"
+                >
+                  原金额{" "}
                   {formatSignedCurrencyAmount(
                     signedTotalAmount,
                     selectedAccountCurrency,
                   )}
                 </Typography>
               ) : null}
-              <Typography
-                sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
-              >
-                {businessTotalAmount ? "业务净额" : "合计"}{" "}
-                {formatSignedCurrencyAmount(
-                  businessTotalAmount ?? signedTotalAmount,
-                  selectedAccountCurrency,
-                )}
-              </Typography>
             </Stack>
           </Box>
         ) : null}

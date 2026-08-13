@@ -5377,7 +5377,10 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_refund_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."refunded_item_id" = "ti"."id") OR ("link"."refund_income_item_id" = "ti"."id"))))) AS "has_refund_link",
-    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount"
+    (CASE
+        WHEN ("ti"."special_status" = 'pending_reimbursement'::"public"."transaction_item_special_status") THEN (0)::numeric
+        ELSE GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric)
+    END)::numeric(14,2) AS "business_net_amount"
    FROM (((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"

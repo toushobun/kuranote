@@ -65,7 +65,7 @@ describe("TransactionSummarySection", () => {
     expect(screen.getAllByText("未选择")).toHaveLength(3);
   });
 
-  it("有抵消金额时同时显示业务净额和原始合计", () => {
+  it("有抵消金额时先显示净额并在下方弱化显示原金额", () => {
     render(
       <TransactionSummarySection
         businessTotalAmount="-300"
@@ -76,9 +76,19 @@ describe("TransactionSummarySection", () => {
       />,
     );
 
-    expect(screen.getByText("原始合计")).toBeInTheDocument();
-    expect(screen.getByText("业务净额")).toBeInTheDocument();
+    expect(screen.getByText("净额")).toBeInTheDocument();
+    expect(screen.getByText("原金额")).toBeInTheDocument();
     expect(screen.getByText("- 300")).toBeInTheDocument();
-    expect(screen.getByText(/原金额 1200/)).toBeInTheDocument();
+    const itemOriginalAmount = screen.getByText(/原金额 1200/);
+    expect(itemOriginalAmount).toHaveStyle({
+      color: "rgba(0, 0, 0, 0.38)",
+      fontWeight: "400",
+    });
+    expect(
+      screen
+        .getByText("净额")
+        .compareDocumentPosition(screen.getByText("原金额")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

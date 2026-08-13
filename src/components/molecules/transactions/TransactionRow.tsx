@@ -10,6 +10,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { themeColorTokens } from "theme/themeColorTokens";
+import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -158,7 +159,10 @@ export function TransactionRow({
                 {signedAmount}
               </Typography>
               {item.originalAmount !== undefined ? (
-                <Typography color="text.secondary" variant="caption">
+                <Typography
+                  sx={transactionOriginalAmountTextSx}
+                  variant="caption"
+                >
                   原金额 {getCurrencySymbol(item.account_currency)}
                   {formatNumber(item.originalAmount)}
                 </Typography>
