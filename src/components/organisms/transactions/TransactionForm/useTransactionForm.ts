@@ -237,6 +237,7 @@ export function useTransactionForm({
         {
           amount,
           businessNetAmount: getNewItemBusinessNetAmount(
+            specialStatus,
             reimbursementItemIds,
             refundCandidates,
           ),
@@ -514,6 +515,7 @@ export function useTransactionForm({
                 [],
               ),
               businessNetAmount: getNewItemBusinessNetAmount(
+                item.specialStatus,
                 item.reimbursementItemIds ?? [],
                 [],
               ),
@@ -703,10 +705,14 @@ function getFormItemBusinessAmount(item: TransactionFormItem) {
 }
 
 function getNewItemBusinessNetAmount(
+  specialStatus: TransactionFormItem["specialStatus"],
   reimbursementItemIds: string[],
   refundCandidates: TransactionRefundCandidate[],
 ) {
-  return reimbursementItemIds.length > 0 || refundCandidates.length > 0
+  return specialStatus === "pendingReimbursement" ||
+    specialStatus === "reimbursed" ||
+    reimbursementItemIds.length > 0 ||
+    refundCandidates.length > 0
     ? "0"
     : undefined;
 }
@@ -717,11 +723,17 @@ function getUpdatedItemBusinessNetAmount(
 ) {
   if (categoryType === "income") {
     return getNewItemBusinessNetAmount(
+      item.specialStatus,
       item.reimbursementItemIds ?? [],
       item.refundCandidates ?? [],
     );
   }
-  if (item.specialStatus === "reimbursed") return "0";
+  if (
+    item.specialStatus === "pendingReimbursement" ||
+    item.specialStatus === "reimbursed"
+  ) {
+    return "0";
+  }
 
   const amountUnits = toRefundMinorUnits(item.amount);
   const refundedAmountUnits = toRefundMinorUnits(item.refundedAmount ?? "0");

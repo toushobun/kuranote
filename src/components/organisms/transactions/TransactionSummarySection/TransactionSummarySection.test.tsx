@@ -46,10 +46,10 @@ describe("TransactionSummarySection", () => {
 
     expect(screen.getByText("便利店")).toBeInTheDocument();
     expect(screen.getByText("现金（JPY）")).toBeInTheDocument();
-    expect(screen.getByText(/餐饮.*午餐.*1200/)).toBeInTheDocument();
+    expect(screen.getByText(/餐饮.*午餐.*1,200/)).toBeInTheDocument();
     expect(screen.getByText("未选择分类 / 未填写金额")).toBeInTheDocument();
     expect(screen.getByText("2026/07/20 10:30:00")).toBeInTheDocument();
-    expect(screen.getAllByText(/1200/)).toHaveLength(2);
+    expect(screen.getByText("- ¥ 1200")).toBeInTheDocument();
   });
 
   it("未选择可选项时显示占位状态", () => {
@@ -79,7 +79,7 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText("净额")).toBeInTheDocument();
     expect(screen.getByText("原金额")).toBeInTheDocument();
     expect(screen.getByText("- 300")).toBeInTheDocument();
-    const itemOriginalAmount = screen.getByText(/原金额 1200/);
+    const itemOriginalAmount = screen.getByText(/原金额 - 1,200/);
     expect(itemOriginalAmount).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",

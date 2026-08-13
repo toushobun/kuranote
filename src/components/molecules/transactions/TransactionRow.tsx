@@ -11,15 +11,14 @@ import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { themeColorTokens } from "theme/themeColorTokens";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
+import { transactionAmountMessages } from "utils/transactionMessages";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
   TransactionRowItem,
 } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
-import { getCurrencySymbol } from "utils/currency";
 import {
-  formatNumber,
   formatTransactionRowAmount,
   formatTransactionTime,
 } from "utils/transactions";
@@ -163,8 +162,12 @@ export function TransactionRow({
                   sx={transactionOriginalAmountTextSx}
                   variant="caption"
                 >
-                  原金额 {getCurrencySymbol(item.account_currency)}
-                  {formatNumber(item.originalAmount)}
+                  {transactionAmountMessages.originalAmount}{" "}
+                  {formatTransactionRowAmount(
+                    item.type,
+                    item.originalAmount,
+                    item.account_currency,
+                  )}
                 </Typography>
               ) : null}
             </Stack>

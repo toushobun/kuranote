@@ -9,7 +9,11 @@ import type {
   TransactionAccountOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import { hasBusinessNetAmountOffset } from "utils/transactions";
+import {
+  formatTransactionRowAmount,
+  hasBusinessNetAmountOffset,
+} from "utils/transactions";
+import { transactionAmountMessages } from "utils/transactionMessages";
 
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import { transactionSummarySurfaceSx } from "../TransactionForm/TransactionForm.styles";
@@ -57,7 +61,12 @@ export function TransactionSummarySection({
           <SummaryRow
             key={item.id}
             label={`明细 ${index + 1}`}
-            value={<ItemSummaryValue item={item} />}
+            value={
+              <ItemSummaryValue
+                currency={selectedAccount?.currency}
+                item={item}
+              />
+            }
           />
         ))}
         <SummaryRow
@@ -66,7 +75,11 @@ export function TransactionSummarySection({
         />
         <Divider />
         <SummaryRow
-          label={businessTotalAmount ? "净额" : "合计金额"}
+          label={
+            businessTotalAmount
+              ? transactionAmountMessages.netAmount
+              : "合计金额"
+          }
           value={formatSignedCurrencyAmount(
             businessTotalAmount ?? signedTotalAmount,
             selectedAccount?.currency,
@@ -75,7 +88,7 @@ export function TransactionSummarySection({
         />
         {businessTotalAmount ? (
           <SummaryRow
-            label="原金额"
+            label={transactionAmountMessages.originalAmount}
             muted
             value={formatSignedCurrencyAmount(
               signedTotalAmount,
@@ -138,21 +151,34 @@ const summaryLabelSx = {
   fontSize: "0.75rem",
 };
 
-function ItemSummaryValue({ item }: { item: TransactionItemSummary }) {
+function ItemSummaryValue({
+  currency,
+  item,
+}: {
+  currency?: string;
+  item: TransactionItemSummary;
+}) {
   const businessAmount = item.businessNetAmount ?? item.amount;
   const categoryName = item.category
     ? formatCategoryName(item.category)
     : "未选择分类";
   if (!businessAmount) return `${categoryName} / 未填写金额`;
+  const categoryType = item.category?.type ?? "expense";
+  const formattedBusinessAmount = formatTransactionRowAmount(
+    categoryType,
+    businessAmount,
+    currency,
+  );
   if (!hasBusinessNetAmountOffset(item.amount, item.businessNetAmount)) {
-    return `${categoryName} / ${businessAmount}`;
+    return `${categoryName} / ${formattedBusinessAmount}`;
   }
 
   return (
     <>
-      {categoryName} / {businessAmount}
+      {categoryName} / {formattedBusinessAmount}
       <Box component="span" sx={transactionOriginalAmountTextSx}>
-        （原金额 {item.amount}）
+        （{transactionAmountMessages.originalAmount}{" "}
+        {formatTransactionRowAmount(categoryType, item.amount, currency)}）
       </Box>
     </>
   );

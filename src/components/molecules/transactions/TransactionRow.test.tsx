@@ -339,7 +339,7 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.getByText("- $ 100")).toBeInTheDocument();
-    expect(screen.getByText("原金额 $150")).toHaveStyle({
+    expect(screen.getByText("原金额 - $ 150")).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",
     });
@@ -366,7 +366,7 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.getByText("$ 0")).toBeInTheDocument();
-    expect(screen.getByText("原金额 $100")).toBeInTheDocument();
+    expect(screen.getByText("原金额 - $ 100")).toBeInTheDocument();
   });
 
   it("没有抵消时不显示原金额文案", () => {

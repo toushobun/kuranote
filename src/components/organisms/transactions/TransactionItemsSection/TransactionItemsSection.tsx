@@ -8,9 +8,13 @@ import type { MouseEvent, RefObject } from "react";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
+import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { allocateRefundAmount } from "internal/transaction";
-import { hasBusinessNetAmountOffset } from "utils/transactions";
+import {
+  formatTransactionRowAmount,
+  hasBusinessNetAmountOffset,
+} from "utils/transactions";
 
 import type {
   TransactionFormItem,
@@ -178,7 +182,7 @@ export function TransactionItemsSection({
                           sx={transactionOriginalAmountTextSx}
                           variant="caption"
                         >
-                          原金额{" "}
+                          {transactionAmountMessages.originalAmount}{" "}
                           {formatDisplayAmount(
                             item.category?.type ?? selectedType,
                             item.amount,
@@ -214,7 +218,9 @@ export function TransactionItemsSection({
               <Typography
                 sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
               >
-                {businessTotalAmount ? "净额" : "合计"}{" "}
+                {businessTotalAmount
+                  ? transactionAmountMessages.netAmount
+                  : "合计"}{" "}
                 {formatSignedCurrencyAmount(
                   businessTotalAmount ?? signedTotalAmount,
                   selectedAccountCurrency,
@@ -225,7 +231,7 @@ export function TransactionItemsSection({
                   sx={transactionOriginalAmountTextSx}
                   variant="caption"
                 >
-                  原金额{" "}
+                  {transactionAmountMessages.originalAmount}{" "}
                   {formatSignedCurrencyAmount(
                     signedTotalAmount,
                     selectedAccountCurrency,
@@ -254,8 +260,7 @@ function formatDisplayAmount(
   amount: string,
   currency?: string,
 ) {
-  const sign = type === "expense" ? "-" : "+";
-  return formatSignedCurrencyAmount(`${sign}${amount.trim() || "0"}`, currency);
+  return formatTransactionRowAmount(type, amount.trim() || "0", currency);
 }
 
 function getItemPaperSx(index: number, itemCount: number) {
