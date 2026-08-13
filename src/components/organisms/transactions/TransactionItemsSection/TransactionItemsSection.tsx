@@ -9,6 +9,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionType } from "types/transactions";
 import { allocateRefundAmount } from "internal/transaction";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 import type {
   TransactionFormItem,
@@ -168,8 +169,10 @@ export function TransactionItemsSection({
                           sx={itemStatusBadgeSx}
                         />
                       ) : null}
-                      {item.businessNetAmount !== undefined &&
-                      Number(item.businessNetAmount) !== Number(item.amount) ? (
+                      {hasBusinessNetAmountOffset(
+                        item.amount,
+                        item.businessNetAmount,
+                      ) ? (
                         <Typography color="text.secondary" variant="caption">
                           原金额{" "}
                           {formatDisplayAmount(

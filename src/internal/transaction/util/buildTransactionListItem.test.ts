@@ -282,6 +282,35 @@ describe("buildTransactionListItem", () => {
     expect(item.type).toBe("income");
   });
 
+  it("收支明细冲销量相抵时仍保留记录原金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "500",
+          business_net_amount: "300",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountA.id,
+          amount: "200",
+          business_net_amount: "0",
+          category_id: categoryB.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("300");
+    expect(item.originalAmount).toBe("300");
+  });
+
   it("分类摘要按 category.type 构建金额和展示方向", () => {
     const item = buildTransactionListItem({
       accountById,

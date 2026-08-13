@@ -7,6 +7,7 @@ import type {
   TransactionAccountOption,
   TransactionMerchantOption,
 } from "types/transactions";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import { transactionSummarySurfaceSx } from "../TransactionForm/TransactionForm.styles";
@@ -128,10 +129,7 @@ const summaryLabelSx = {
 function formatItemSummaryAmount(item: TransactionItemSummary) {
   const businessAmount = item.businessNetAmount ?? item.amount;
   if (!businessAmount) return "未填写金额";
-  if (
-    item.businessNetAmount === undefined ||
-    Number(item.businessNetAmount) === Number(item.amount)
-  ) {
+  if (!hasBusinessNetAmountOffset(item.amount, item.businessNetAmount)) {
     return businessAmount;
   }
   return `${businessAmount}（原金额 ${item.amount}）`;

@@ -10,11 +10,16 @@ import type {
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
-import { allocateRefundAmount } from "internal/transaction";
+import {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction";
 import {
   composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
   getNowDateTimeLocalValue,
+  hasBusinessNetAmountOffset,
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
@@ -207,10 +212,8 @@ export function useTransactionForm({
     (sum, item) => sum + getFormItemBusinessAmount(item),
     0,
   );
-  const hasBusinessNetAmount = allDisplayItems.some(
-    (item) =>
-      item.businessNetAmount !== undefined &&
-      Number(item.businessNetAmount) !== Number(item.amount),
+  const hasBusinessNetAmount = allDisplayItems.some((item) =>
+    hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
   );
   const businessTotalAmount = hasBusinessNetAmount
     ? formatNetAmount(businessIncomeTotal - businessExpenseTotal)
@@ -263,9 +266,15 @@ export function useTransactionForm({
     const mergeValues = (item: TransactionFormItem) => {
       if (item.id !== itemId) return item;
       const nextItem = { ...item, ...values };
-      return values.amount !== undefined && !hasBusinessNetOffset(nextItem)
-        ? { ...nextItem, businessNetAmount: undefined }
-        : nextItem;
+      if (values.amount === undefined) return nextItem;
+      const categoryType = categoryById.get(nextItem.categoryId)?.type;
+      return {
+        ...nextItem,
+        businessNetAmount: getUpdatedItemBusinessNetAmount(
+          nextItem,
+          categoryType,
+        ),
+      };
     };
     setItemsByType((current) => ({
       expense: current.expense.map(mergeValues),
@@ -298,19 +307,18 @@ export function useTransactionForm({
           ...current,
           [categoryType]: current[categoryType].map((item) =>
             item.id === itemId
-              ? {
-                  ...item,
-                  amount,
-                  businessNetAmount: getNewItemBusinessNetAmount(
-                    reimbursementItemIds,
+              ? withUpdatedItemBusinessNetAmount(
+                  {
+                    ...item,
+                    amount,
+                    businessStatus,
+                    categoryId,
                     refundCandidates,
-                  ),
-                  businessStatus,
-                  categoryId,
-                  refundCandidates,
-                  reimbursementItemIds,
-                  specialStatus,
-                }
+                    reimbursementItemIds,
+                    specialStatus,
+                  },
+                  categoryType,
+                )
               : item,
           ),
         };
@@ -327,19 +335,18 @@ export function useTransactionForm({
       };
       moved[categoryType] = [
         ...moved[categoryType],
-        {
-          ...existingItem,
-          amount,
-          businessNetAmount: getNewItemBusinessNetAmount(
-            reimbursementItemIds,
+        withUpdatedItemBusinessNetAmount(
+          {
+            ...existingItem,
+            amount,
+            businessStatus,
+            categoryId,
             refundCandidates,
-          ),
-          businessStatus,
-          categoryId,
-          refundCandidates,
-          reimbursementItemIds,
-          specialStatus,
-        },
+            reimbursementItemIds,
+            specialStatus,
+          },
+          categoryType,
+        ),
       ];
 
       return moved;
@@ -695,15 +702,6 @@ function getFormItemBusinessAmount(item: TransactionFormItem) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
-function hasBusinessNetOffset(item: TransactionFormItem) {
-  return (
-    (item.refundCandidates?.length ?? 0) > 0 ||
-    (item.reimbursementItemIds?.length ?? 0) > 0 ||
-    Number(item.refundedAmount ?? 0) > 0 ||
-    item.specialStatus === "reimbursed"
-  );
-}
-
 function getNewItemBusinessNetAmount(
   reimbursementItemIds: string[],
   refundCandidates: TransactionRefundCandidate[],
@@ -711,4 +709,43 @@ function getNewItemBusinessNetAmount(
   return reimbursementItemIds.length > 0 || refundCandidates.length > 0
     ? "0"
     : undefined;
+}
+
+function getUpdatedItemBusinessNetAmount(
+  item: TransactionFormItem,
+  categoryType?: TransactionType,
+) {
+  if (categoryType === "income") {
+    return getNewItemBusinessNetAmount(
+      item.reimbursementItemIds ?? [],
+      item.refundCandidates ?? [],
+    );
+  }
+  if (item.specialStatus === "reimbursed") return "0";
+
+  const amountUnits = toRefundMinorUnits(item.amount);
+  const refundedAmountUnits = toRefundMinorUnits(item.refundedAmount ?? "0");
+  if (
+    amountUnits === null ||
+    refundedAmountUnits === null ||
+    refundedAmountUnits <= BigInt(0)
+  ) {
+    return undefined;
+  }
+
+  return formatRefundMinorUnits(
+    amountUnits > refundedAmountUnits
+      ? amountUnits - refundedAmountUnits
+      : BigInt(0),
+  );
+}
+
+function withUpdatedItemBusinessNetAmount(
+  item: TransactionFormItem,
+  categoryType?: TransactionType,
+) {
+  return {
+    ...item,
+    businessNetAmount: getUpdatedItemBusinessNetAmount(item, categoryType),
+  };
 }

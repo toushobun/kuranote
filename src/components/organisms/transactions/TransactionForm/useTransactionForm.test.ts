@@ -160,6 +160,93 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBeNull();
   });
 
+  it("行内修改部分退款支出金额时重新计算业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+            refundedAmount: "200",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "600" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "600",
+      businessNetAmount: "400",
+    });
+    expect(result.current.businessTotalAmount).toBe("-400");
+  });
+
+  it("通过明细选择器保存部分退款支出时保留业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+            refundedAmount: "200",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.openItemSheet(1));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "500",
+      businessNetAmount: "300",
+    });
+    expect(result.current.businessTotalAmount).toBe("-300");
+  });
+
+  it("通过明细选择器保存已报销支出时保留零业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "0",
+            categoryId: "expense-child",
+            specialStatus: "reimbursed",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "已报销",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.openItemSheet(1));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("0");
+    expect(result.current.businessTotalAmount).toBe("0");
+  });
+
   it("明细选择器先返回校验错误，再追加有效明细", () => {
     const { result } = renderTransactionFormHook();
 

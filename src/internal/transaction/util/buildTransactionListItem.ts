@@ -14,6 +14,7 @@ import {
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 export function buildTransactionListItem({
   accountById,
@@ -73,6 +74,9 @@ export function buildTransactionListItem({
     recordItems,
     categoryById,
   );
+  const hasBusinessNetOffset = recordItems.some((item) =>
+    hasBusinessNetAmountOffset(item.amount, item.business_net_amount),
+  );
 
   const categoryItems = recordItems.flatMap((item) => {
     if (item.category_id === null) return [];
@@ -118,9 +122,9 @@ export function buildTransactionListItem({
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
-    ...(displayAmount === originalAmount
-      ? {}
-      : { originalAmount: String(Math.abs(originalAmount)) }),
+    ...(hasBusinessNetOffset
+      ? { originalAmount: String(Math.abs(originalAmount)) }
+      : {}),
     canEdit,
     categoryItems,
     created_at: record.created_at,

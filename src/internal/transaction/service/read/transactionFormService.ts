@@ -25,6 +25,7 @@ import {
   formatRefundMinorUnits,
   toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 type TransactionFormReadDependencies =
   TransactionReadDependencies<TransactionFormRepository> & {
@@ -193,11 +194,12 @@ export async function getEditTransactionView(
           currentLedger.baseCurrency,
         );
         const amount = formatEditableAmount(item.amount);
-        const businessNetAmount =
-          item.business_net_amount !== undefined &&
-          Number(item.business_net_amount) !== Number(item.amount)
-            ? formatEditableAmount(item.business_net_amount)
-            : undefined;
+        const businessNetAmount = hasBusinessNetAmountOffset(
+          item.amount,
+          item.business_net_amount,
+        )
+          ? formatEditableAmount(item.business_net_amount)
+          : undefined;
 
         return {
           amount,
