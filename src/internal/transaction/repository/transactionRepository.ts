@@ -447,7 +447,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "reimbursement_amount_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入金额必须与所选待报销明细合计金额一致。",
+        "报销收入金额不能小于所选待报销明细合计金额。",
       );
     }
 

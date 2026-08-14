@@ -207,8 +207,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000010'),
-    0::numeric,
-    '仍待报销的支出不计入业务支出'
+    120::numeric,
+    '仍待报销的支出在实际结清前保留原始业务金额'
 );
 
 select is(

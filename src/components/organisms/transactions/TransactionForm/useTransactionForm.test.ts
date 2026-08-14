@@ -264,7 +264,7 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("0");
   });
 
-  it("通过明细选择器新增待报销支出时业务净额为零", () => {
+  it("通过明细选择器新增待报销支出时仍保留原始业务金额", () => {
     const { result } = renderTransactionFormHook();
 
     act(() => {
@@ -279,13 +279,13 @@ describe("useTransactionForm", () => {
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "500",
-      businessNetAmount: "0",
       specialStatus: "pendingReimbursement",
     });
-    expect(result.current.businessTotalAmount).toBe("0");
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
   });
 
-  it("修改待报销支出金额时仍保留零业务净额", () => {
+  it("修改待报销支出金额时恢复为当前原始业务金额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
         accountId: "account-1",
@@ -308,9 +308,9 @@ describe("useTransactionForm", () => {
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "600",
-      businessNetAmount: "0",
     });
-    expect(result.current.businessTotalAmount).toBe("0");
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
   });
 
   it("新增报销收入时按所选待报销明细合计计算业务净额", () => {

@@ -721,11 +721,7 @@ function getNewItemBusinessNetAmount(
   refundCandidates: TransactionRefundCandidate[],
   reimbursementCandidates: TransactionReimbursementCandidate[],
 ) {
-  if (
-    specialStatus === "pendingReimbursement" ||
-    specialStatus === "reimbursed" ||
-    refundCandidates.length > 0
-  ) {
+  if (specialStatus === "reimbursed" || refundCandidates.length > 0) {
     return "0";
   }
   if (reimbursementItemIds.length === 0) return undefined;
@@ -763,10 +759,7 @@ function getUpdatedItemBusinessNetAmount(
       reimbursementCandidates,
     );
   }
-  if (
-    item.specialStatus === "pendingReimbursement" ||
-    item.specialStatus === "reimbursed"
-  ) {
+  if (item.specialStatus === "reimbursed") {
     return "0";
   }
 

@@ -978,7 +978,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       [
         "reimbursement_amount_mismatch",
         transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入金额必须与所选待报销明细合计金额一致。",
+        "报销收入金额不能小于所选待报销明细合计金额。",
       ],
       [
         "refunded_item_special_status_conflict",
