@@ -56,8 +56,8 @@ export function selectFrequentCategoryIds(
       if (countDifference !== 0) return countDifference;
 
       const orderDifference =
-        (manualOrderById.get(left.categoryId) ?? Number.MAX_SAFE_INTEGER) -
-        (manualOrderById.get(right.categoryId) ?? Number.MAX_SAFE_INTEGER);
+        manualOrderById.get(left.categoryId)! -
+        manualOrderById.get(right.categoryId)!;
       if (orderDifference !== 0) return orderDifference;
 
       return left.categoryId.localeCompare(right.categoryId);
