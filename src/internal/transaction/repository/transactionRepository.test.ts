@@ -442,70 +442,32 @@ describe("TransactionRepository", () => {
       { databaseCode: "database_failure", ledgerId },
     );
   });
-  it("常用分类只读取指定月份内有效普通记账的明细行", async () => {
-    const recordQuery = createQuery({
-      data: [{ id: transactionRecordId }],
+  it("常用分类通过一次 RPC 读取按月累计后的聚合计数", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{ category_id: categoryId, occurrence_count: "26" }],
       error: null,
     });
-    const itemQuery = createQuery({
-      data: [{ category_id: categoryId }, { category_id: null }],
-      error: null,
-    });
-    const { repository } = createRepository({
-      queries: {
-        transaction_item: itemQuery,
-        transaction_record: recordQuery,
-      },
-    });
+    const { repository } = createRepository({ rpc });
 
     await expect(
-      repository.listActiveNormalCategoryIdsByMonth({
+      repository.loadFrequentCategoryCounts({
         dateEnd: "2026-08-31T15:00:00.000Z",
         dateStart: "2026-07-31T15:00:00.000Z",
         ledgerId,
+        minimumItemCount: 20,
       }),
-    ).resolves.toEqual([categoryId]);
+    ).resolves.toEqual([{ categoryId, count: 26 }]);
 
-    expect(recordQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
-    expect(recordQuery.eq).toHaveBeenCalledWith("status", "active");
-    expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
-    expect(recordQuery.gte).toHaveBeenCalledWith(
-      "transaction_at",
-      "2026-07-31T15:00:00.000Z",
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith(
+      "load_frequent_transaction_category_counts",
+      {
+        p_date_end: "2026-08-31T15:00:00.000Z",
+        p_date_start: "2026-07-31T15:00:00.000Z",
+        p_ledger_id: ledgerId,
+        p_minimum_item_count: 20,
+      },
     );
-    expect(recordQuery.lt).toHaveBeenCalledWith(
-      "transaction_at",
-      "2026-08-31T15:00:00.000Z",
-    );
-    expect(itemQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
-    expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
-      transactionRecordId,
-    ]);
-  });
-  it("常用分类回溯只定位更早的有效普通记账", async () => {
-    const recordQuery = createQuery({
-      data: [{ transaction_at: "2026-07-15T03:00:00.000Z" }],
-      error: null,
-    });
-    const { repository } = createRepository({
-      queries: { transaction_record: recordQuery },
-    });
-
-    await expect(
-      repository.findLatestActiveNormalTransactionAtBefore(
-        ledgerId,
-        "2026-07-31T15:00:00.000Z",
-      ),
-    ).resolves.toBe("2026-07-15T03:00:00.000Z");
-
-    expect(recordQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
-    expect(recordQuery.eq).toHaveBeenCalledWith("status", "active");
-    expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
-    expect(recordQuery.lt).toHaveBeenCalledWith(
-      "transaction_at",
-      "2026-07-31T15:00:00.000Z",
-    );
-    expect(recordQuery.range).toHaveBeenCalledWith(0, 0);
   });
   it("合并用户资料和账本成员显示设置", async () => {
     const userQuery = createQuery({

@@ -1,9 +1,9 @@
-import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
-import {
-  formatDateKey,
-  getMonthBounds,
-  normalizeMonth,
-} from "utils/transactions";
+import { RepositoryError } from "internal/shared/errors/appError";
+import type {
+  FrequentCategoryCount,
+  TransactionFormRepository,
+} from "internal/transaction/repository/transactionRepository";
+import { getMonthBounds, normalizeMonth } from "utils/transactions";
 
 const minimumHistoryItemCount = 20;
 const frequentCategoryLimit = 5;
@@ -13,8 +13,7 @@ type LoadFrequentCategoryHistoryInput = {
   ledgerId: string;
   transactionRepository: Pick<
     TransactionFormRepository,
-    | "findLatestActiveNormalTransactionAtBefore"
-    | "listActiveNormalCategoryIdsByMonth"
+    "loadFrequentCategoryCounts"
   >;
 };
 
@@ -22,63 +21,47 @@ export async function loadFrequentCategoryHistory({
   currentMonth = normalizeMonth(),
   ledgerId,
   transactionRepository,
-}: LoadFrequentCategoryHistoryInput): Promise<string[] | null> {
-  const categoryIds: string[] = [];
-  let month = currentMonth;
+}: LoadFrequentCategoryHistoryInput): Promise<FrequentCategoryCount[] | null> {
+  const { endIso, startIso } = getMonthBounds(currentMonth);
 
-  while (true) {
-    const { endIso, startIso } = getMonthBounds(month);
-    categoryIds.push(
-      ...(await transactionRepository.listActiveNormalCategoryIdsByMonth({
-        dateEnd: endIso,
-        dateStart: startIso,
-        ledgerId,
-      })),
-    );
-
-    if (categoryIds.length >= minimumHistoryItemCount) return categoryIds;
-
-    const previousTransactionAt =
-      await transactionRepository.findLatestActiveNormalTransactionAtBefore(
-        ledgerId,
-        startIso,
-      );
-    if (!previousTransactionAt) return null;
-
-    month = formatDateKey(previousTransactionAt).slice(0, 7);
+  try {
+    const counts = await transactionRepository.loadFrequentCategoryCounts({
+      dateEnd: endIso,
+      dateStart: startIso,
+      ledgerId,
+      minimumItemCount: minimumHistoryItemCount,
+    });
+    return counts.length === 0 ? null : counts;
+  } catch (error) {
+    if (error instanceof RepositoryError) return null;
+    throw error;
   }
 }
 
 export function selectFrequentCategoryIds(
-  historyCategoryIds: string[] | null,
+  categoryCounts: FrequentCategoryCount[] | null,
   manualCategoryIds: string[],
 ): string[] {
-  if (historyCategoryIds === null) {
+  if (categoryCounts === null) {
     return manualCategoryIds.slice(0, frequentCategoryLimit);
   }
 
   const manualOrderById = new Map(
     manualCategoryIds.map((categoryId, index) => [categoryId, index]),
   );
-  const countsById = new Map<string, number>();
-
-  for (const categoryId of historyCategoryIds) {
-    if (!manualOrderById.has(categoryId)) continue;
-    countsById.set(categoryId, (countsById.get(categoryId) ?? 0) + 1);
-  }
-
-  return [...countsById.entries()]
-    .sort(([leftId, leftCount], [rightId, rightCount]) => {
-      const countDifference = rightCount - leftCount;
+  return categoryCounts
+    .filter(({ categoryId }) => manualOrderById.has(categoryId))
+    .sort((left, right) => {
+      const countDifference = right.count - left.count;
       if (countDifference !== 0) return countDifference;
 
       const orderDifference =
-        (manualOrderById.get(leftId) ?? Number.MAX_SAFE_INTEGER) -
-        (manualOrderById.get(rightId) ?? Number.MAX_SAFE_INTEGER);
+        (manualOrderById.get(left.categoryId) ?? Number.MAX_SAFE_INTEGER) -
+        (manualOrderById.get(right.categoryId) ?? Number.MAX_SAFE_INTEGER);
       if (orderDifference !== 0) return orderDifference;
 
-      return leftId.localeCompare(rightId);
+      return left.categoryId.localeCompare(right.categoryId);
     })
     .slice(0, frequentCategoryLimit)
-    .map(([categoryId]) => categoryId);
+    .map(({ categoryId }) => categoryId);
 }
