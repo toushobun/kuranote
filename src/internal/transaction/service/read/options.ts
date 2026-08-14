@@ -12,11 +12,21 @@ import type {
   TransactionMemberOption,
 } from "internal/transaction/service/read/transactionReadModels";
 
+import {
+  loadFrequentCategoryHistory,
+  selectFrequentCategoryIds,
+} from "./frequentCategories";
+
 export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFormOptions> {
-  const [accountOptions, categoryRows, merchantOptions] = await Promise.all([
+  const [
+    accountOptions,
+    categoryRows,
+    frequentCategoryHistory,
+    merchantOptions,
+  ] = await Promise.all([
     dependencies.accountQueryService.listTransactionOptions({
       ledgerId: currentLedger.id,
       userId: dependencies.currentUserId,
@@ -25,14 +35,23 @@ export async function loadTransactionFormOptions(
       ledgerId: currentLedger.id,
       userId: dependencies.currentUserId,
     }),
+    loadFrequentCategoryHistory({
+      ledgerId: currentLedger.id,
+      transactionRepository: dependencies.transactionRepository,
+    }),
     dependencies.merchantQueryService.listActiveOptions({
       ledgerId: currentLedger.id,
     }),
   ]);
+  const categoryOptions = buildFormCategoryOptions(categoryRows);
 
   return {
     accountOptions,
-    categoryOptions: buildFormCategoryOptions(categoryRows),
+    categoryOptions,
+    frequentCategoryIds: selectFrequentCategoryIds(
+      frequentCategoryHistory,
+      categoryOptions.map((category) => category.id),
+    ),
     merchantOptions,
     transactionItemSpecialStatusEnabled:
       currentLedger.transactionItemSpecialStatusEnabled ?? false,

@@ -144,6 +144,12 @@ export type PendingReimbursementItemRow = {
   transaction_record_id: string;
 };
 
+export type FrequentCategoryMonthQuery = {
+  dateEnd: string;
+  dateStart: string;
+  ledgerId: string;
+};
+
 export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
@@ -179,6 +185,13 @@ export interface TransactionFormRepository {
     ledgerId: string,
     transactionRecordIds: string[],
   ): Promise<TransactionItemDbRow[]>;
+  findLatestActiveNormalTransactionAtBefore(
+    ledgerId: string,
+    dateEnd: string,
+  ): Promise<string | null>;
+  listActiveNormalCategoryIdsByMonth(
+    input: FrequentCategoryMonthQuery,
+  ): Promise<string[]>;
   listPendingReimbursementItems(
     ledgerId: string,
   ): Promise<PendingReimbursementItemRow[]>;
@@ -738,6 +751,87 @@ export function createSupabaseTransactionRepository(
       }
       return (data ?? []).map((row) =>
         toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+      );
+    },
+
+    async findLatestActiveNormalTransactionAtBefore(ledgerId, dateEnd) {
+      const { data, error } = await supabase
+        .from("transaction_record")
+        .select("transaction_at")
+        .eq("ledger_id", ledgerId)
+        .eq("status", "active")
+        .eq("type", "normal")
+        .lt("transaction_at", dateEnd)
+        .order("transaction_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(0, 0);
+
+      if (error) {
+        logger.error(
+          "[transaction] failed to load previous frequent category month",
+          {
+            databaseCode: error.code,
+            dateEnd,
+            ledgerId,
+          },
+        );
+        throw toRepositoryError(
+          "transaction_frequent_categories_load_failed",
+          "常用分类加载失败，请稍后重试。",
+        );
+      }
+
+      return data?.[0]?.transaction_at ?? null;
+    },
+
+    async listActiveNormalCategoryIdsByMonth({ dateEnd, dateStart, ledgerId }) {
+      const { data: recordData, error: recordError } = await supabase
+        .from("transaction_record")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("status", "active")
+        .eq("type", "normal")
+        .gte("transaction_at", dateStart)
+        .lt("transaction_at", dateEnd);
+
+      if (recordError) {
+        logger.error("[transaction] failed to load frequent category records", {
+          databaseCode: recordError.code,
+          dateEnd,
+          dateStart,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_frequent_categories_load_failed",
+          "常用分类加载失败，请稍后重试。",
+        );
+      }
+
+      const recordIds = (recordData ?? []).map((record) => record.id);
+      if (recordIds.length === 0) return [];
+
+      const { data: itemData, error: itemError } = await supabase
+        .from("transaction_item")
+        .select("category_id")
+        .eq("ledger_id", ledgerId)
+        .in("transaction_record_id", recordIds);
+
+      if (itemError) {
+        logger.error("[transaction] failed to load frequent category items", {
+          databaseCode: itemError.code,
+          dateEnd,
+          dateStart,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_frequent_categories_load_failed",
+          "常用分类加载失败，请稍后重试。",
+        );
+      }
+
+      return (itemData ?? []).flatMap((item) =>
+        item.category_id ? [item.category_id] : [],
       );
     },
 

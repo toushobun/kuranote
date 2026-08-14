@@ -61,6 +61,7 @@ const meta = {
   args: {
     categoryGroups,
     filteredCategoryOptions: categoryOptions,
+    frequentCategoryIds: ["expense-game", "expense-tip", "income-salary"],
     onAmountChange: () => undefined,
     onCategoryToggle: () => undefined,
     onClose: () => undefined,

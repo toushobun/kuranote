@@ -43,6 +43,7 @@ type TransactionItemPickerDrawerProps = {
   categoryGroups: CategoryPickerGroup[];
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
+  frequentCategoryIds: string[];
   onAmountChange: (amount: string) => void;
   onCategoryToggle: (categoryId: string) => void;
   onClose: () => void;
@@ -82,6 +83,7 @@ export function TransactionItemPickerDrawer({
   categoryGroups,
   editingItemId = null,
   filteredCategoryOptions,
+  frequentCategoryIds,
   onAmountChange,
   onCategoryToggle,
   onClose,
@@ -155,16 +157,15 @@ export function TransactionItemPickerDrawer({
       label: "收入分类",
     },
   ].filter((section) => section.groups.length > 0);
-  const activeCategoryType = activeCategoryGroup?.categories[0]?.type;
-  const quickCategories = categoryGroups
-    .filter(
-      (group) =>
-        !activeCategoryType || group.categories[0]?.type === activeCategoryType,
-    )
-    .flatMap((group) =>
-      group.categories.map((category) => ({ category, group })),
-    )
-    .slice(0, 5);
+  const categoryWithGroupById = new Map(
+    categoryGroups.flatMap((group) =>
+      group.categories.map((category) => [category.id, { category, group }]),
+    ),
+  );
+  const quickCategories = frequentCategoryIds.flatMap((categoryId) => {
+    const categoryWithGroup = categoryWithGroupById.get(categoryId);
+    return categoryWithGroup ? [categoryWithGroup] : [];
+  });
 
   function selectCategory(groupId: string, categoryId: string) {
     if (selectedCategoryGroup?.id !== groupId) onGroupSelect(groupId);

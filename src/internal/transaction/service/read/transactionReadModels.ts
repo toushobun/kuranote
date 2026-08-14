@@ -72,6 +72,7 @@ export type TransactionFilterOptions = {
 export type TransactionFormOptions = {
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
+  frequentCategoryIds: string[];
   merchantOptions: MerchantSummary[];
   transactionItemSpecialStatusEnabled: boolean;
 };

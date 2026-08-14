@@ -60,6 +60,7 @@ export type TransactionFormTemplateProps = {
   action: TransactionStateAction;
   categoryOptions: TransactionCategoryOption[];
   errorMessage: string | null;
+  frequentCategoryIds: string[];
   initialType?: TransactionRecordType;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
@@ -257,6 +258,7 @@ function NewTransactionFormView({
   action,
   categoryOptions,
   errorMessage,
+  frequentCategoryIds,
   initialType,
   merchantOptions,
   reimbursementCandidates = [],
@@ -301,6 +303,7 @@ function NewTransactionFormView({
           accountOptions={accountOptions}
           categoryOptions={categoryOptions}
           errorMessage={activeErrorMessage}
+          frequentCategoryIds={frequentCategoryIds}
           formId="new-expense-transaction-form"
           hideHeader
           initialType="expense"
@@ -324,6 +327,7 @@ function NewTransactionFormView({
           accountOptions={accountOptions}
           categoryOptions={categoryOptions}
           errorMessage={activeErrorMessage}
+          frequentCategoryIds={frequentCategoryIds}
           formId="new-income-transaction-form"
           hideHeader
           initialType="income"
@@ -358,6 +362,7 @@ function NewTransactionFormView({
       formAction,
       accountOptions,
       categoryOptions,
+      frequentCategoryIds,
       activeErrorMessage,
       merchantOptions,
       reimbursementCandidates,
@@ -620,6 +625,7 @@ export function EditTransferTransactionTemplate({
   categoryOptions,
   deleteAction,
   errorMessage,
+  frequentCategoryIds,
   initialValues,
   merchantOptions,
   transactionItemSpecialStatusEnabled,
@@ -648,6 +654,7 @@ export function EditTransferTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
             formId={editTransactionFormId("expense")}
             hideHeader
             hideSubmitButton
@@ -683,6 +690,7 @@ export function EditTransferTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
             formId={editTransactionFormId("income")}
             hideHeader
             hideSubmitButton
@@ -721,6 +729,7 @@ export function EditTransferTransactionTemplate({
       formAction,
       accountOptions,
       categoryOptions,
+      frequentCategoryIds,
       activeErrorMessage,
       initialValues,
       merchantOptions,
@@ -748,6 +757,7 @@ export function EditTransactionTemplate({
   categoryOptions,
   deleteAction,
   errorMessage,
+  frequentCategoryIds,
   initialValues,
   merchantOptions,
   transactionItemSpecialStatusEnabled,
@@ -777,6 +787,7 @@ export function EditTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
             formId={editTransactionFormId("expense")}
             hideHeader
             hideSubmitButton
@@ -812,6 +823,7 @@ export function EditTransactionTemplate({
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
             formId={editTransactionFormId("income")}
             hideHeader
             hideSubmitButton
@@ -853,6 +865,7 @@ export function EditTransactionTemplate({
       formAction,
       accountOptions,
       categoryOptions,
+      frequentCategoryIds,
       activeErrorMessage,
       initialValues,
       merchantOptions,
