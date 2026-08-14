@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
-import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
+import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import type {
   TransactionAccountOption,
   TransactionMerchantOption,
@@ -176,10 +176,10 @@ function ItemSummaryValue({
   return (
     <>
       {categoryName} / {formattedBusinessAmount}
-      <Box component="span" sx={transactionOriginalAmountTextSx}>
-        （{transactionAmountMessages.originalAmount}{" "}
-        {formatTransactionRowAmount(categoryType, item.amount, currency)}）
-      </Box>
+      <TransactionOriginalAmount
+        amount={formatTransactionRowAmount(categoryType, item.amount, currency)}
+        parenthesized
+      />
     </>
   );
 }

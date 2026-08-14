@@ -7,11 +7,10 @@ import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
+import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { themeColorTokens } from "theme/themeColorTokens";
-import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
-import { transactionAmountMessages } from "utils/transactionMessages";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -158,17 +157,13 @@ export function TransactionRow({
                 {signedAmount}
               </Typography>
               {item.originalAmount !== undefined ? (
-                <Typography
-                  sx={transactionOriginalAmountTextSx}
-                  variant="caption"
-                >
-                  {transactionAmountMessages.originalAmount}{" "}
-                  {formatTransactionRowAmount(
+                <TransactionOriginalAmount
+                  amount={formatTransactionRowAmount(
                     item.originalType ?? item.type,
                     item.originalAmount,
                     item.account_currency,
                   )}
-                </Typography>
+                />
               ) : null}
             </Stack>
           </Stack>

@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(5);
+select plan(6);
 
 create temporary table test_special_status_context on commit drop as
 select
@@ -83,7 +83,8 @@ cross join (values
     ('55194000-0000-4000-8000-000000000001'::uuid, '2026-07-15 12:00:00+00'::timestamptz, '跨月报销支出'),
     ('55194000-0000-4000-8000-000000000002'::uuid, '2026-08-15 12:00:00+00'::timestamptz, '跨月报销收入'),
     ('55194000-0000-4000-8000-000000000003'::uuid, '2026-09-15 12:00:00+00'::timestamptz, '退款原支出'),
-    ('55194000-0000-4000-8000-000000000004'::uuid, '2026-10-15 12:00:00+00'::timestamptz, '退款收入')
+    ('55194000-0000-4000-8000-000000000004'::uuid, '2026-10-15 12:00:00+00'::timestamptz, '退款收入'),
+    ('55194000-0000-4000-8000-000000000005'::uuid, '2026-11-15 12:00:00+00'::timestamptz, '收支相抵记录')
 ) values_to_insert(id, transaction_at, title);
 
 insert into public.transaction_item (
@@ -139,6 +140,20 @@ cross join (values
         '55194000-0000-4000-8000-000000000004'::uuid,
         'income',
         3000::numeric,
+        null
+    ),
+    (
+        '55194100-0000-4000-8000-000000000005'::uuid,
+        '55194000-0000-4000-8000-000000000005'::uuid,
+        'expense',
+        500::numeric,
+        null
+    ),
+    (
+        '55194100-0000-4000-8000-000000000006'::uuid,
+        '55194000-0000-4000-8000-000000000005'::uuid,
+        'income',
+        500::numeric,
         null
     )
 ) values_to_insert(id, record_id, category_type, amount, special_status);
@@ -224,6 +239,24 @@ select is(
     ),
     1,
     '零净额纯收入记录仍保留在收入筛选结果中'
+);
+
+select is(
+    (
+        select coalesce(sum(summary.transaction_count), 0)::integer
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'account',
+            p_date_start => '2026-11-01 00:00:00+00',
+            p_date_end => '2026-12-01 00:00:00+00',
+            p_record_type => 'expense'
+        ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
+    ),
+    0,
+    '零净额混合收支记录不归入支出筛选结果'
 );
 
 select is(

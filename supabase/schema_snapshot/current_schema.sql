@@ -3197,7 +3197,7 @@ matched_items as (
         p_record_type = 'all'
         or (p_record_type = 'transfer' and bi.category_type is null)
         or (p_record_type = 'income' and (rp.net_amount > 0 or (rp.net_amount = 0 and rp.has_income and not rp.has_expense)))
-        or (p_record_type = 'expense' and (rp.net_amount < 0 or (rp.net_amount = 0 and rp.has_expense)))
+        or (p_record_type = 'expense' and (rp.net_amount < 0 or (rp.net_amount = 0 and rp.has_expense and not rp.has_income)))
         or (
             p_record_type = 'refundableExpense'
             and bi.category_type = 'expense'

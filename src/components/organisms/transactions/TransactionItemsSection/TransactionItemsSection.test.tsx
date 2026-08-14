@@ -99,9 +99,16 @@ describe("TransactionItemsSection", () => {
       signedTotalAmount: "-1200",
     });
 
-    expect(
-      screen.getByRole("button", { name: "编辑明细 1 金额" }),
-    ).toHaveTextContent("300");
+    const editOriginalAmountButton = screen.getByRole("button", {
+      name: "编辑明细 1 原金额",
+    });
+    const originalAmountInput = screen.getByRole("textbox", {
+      name: "明细 1 金额",
+    });
+    expect(editOriginalAmountButton).toHaveTextContent("300");
+    expect(originalAmountInput).toHaveValue("1200");
+    fireEvent.click(editOriginalAmountButton);
+    expect(originalAmountInput).toHaveFocus();
     const originalAmounts = screen.getAllByText(/原金额.*1200/);
     expect(originalAmounts[0]).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",

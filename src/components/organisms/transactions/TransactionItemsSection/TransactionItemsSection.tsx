@@ -6,8 +6,8 @@ import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
+import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
-import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { allocateRefundAmount } from "internal/transaction";
@@ -78,6 +78,10 @@ export function TransactionItemsSection({
                 ? formatCategoryName(item.category)
                 : "请选择分类";
               const businessStatus = item.businessStatus ?? item.specialStatus;
+              const hasOriginalAmount = hasBusinessNetAmountOffset(
+                item.amount,
+                item.businessNetAmount,
+              );
 
               return (
                 <Box
@@ -156,7 +160,7 @@ export function TransactionItemsSection({
                         value={item.amount}
                       />
                       <Button
-                        aria-label={`编辑明细 ${index + 1} 金额`}
+                        aria-label={`编辑明细 ${index + 1} ${hasOriginalAmount ? "原金额" : "金额"}`}
                         onClick={focusAmountInput}
                         type="button"
                         variant="text"
@@ -167,28 +171,21 @@ export function TransactionItemsSection({
                           item.businessNetAmount ?? item.amount,
                           selectedAccountCurrency,
                         )}
+                        {hasOriginalAmount ? (
+                          <TransactionOriginalAmount
+                            amount={formatDisplayAmount(
+                              item.category?.type ?? selectedType,
+                              item.amount,
+                              selectedAccountCurrency,
+                            )}
+                          />
+                        ) : null}
                       </Button>
                       {businessStatus ? (
                         <TransactionBusinessBadge
                           status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />
-                      ) : null}
-                      {hasBusinessNetAmountOffset(
-                        item.amount,
-                        item.businessNetAmount,
-                      ) ? (
-                        <Typography
-                          sx={transactionOriginalAmountTextSx}
-                          variant="caption"
-                        >
-                          {transactionAmountMessages.originalAmount}{" "}
-                          {formatDisplayAmount(
-                            item.category?.type ?? selectedType,
-                            item.amount,
-                            selectedAccountCurrency,
-                          )}
-                        </Typography>
                       ) : null}
                     </Box>
                   </Box>
@@ -227,16 +224,12 @@ export function TransactionItemsSection({
                 )}
               </Typography>
               {businessTotalAmount ? (
-                <Typography
-                  sx={transactionOriginalAmountTextSx}
-                  variant="caption"
-                >
-                  {transactionAmountMessages.originalAmount}{" "}
-                  {formatSignedCurrencyAmount(
+                <TransactionOriginalAmount
+                  amount={formatSignedCurrencyAmount(
                     signedTotalAmount,
                     selectedAccountCurrency,
                   )}
-                </Typography>
+                />
               ) : null}
             </Stack>
           </Box>
@@ -352,7 +345,9 @@ const hiddenAmountInputStyle = {
 };
 
 const amountButtonSx = {
+  alignItems: "flex-end",
   color: "text.primary",
+  flexDirection: "column",
   fontSize: "0.75rem",
   fontWeight: 800,
   lineHeight: 1.35,
