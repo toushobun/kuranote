@@ -311,6 +311,39 @@ describe("buildTransactionListItem", () => {
     expect(item.originalAmount).toBe("300");
   });
 
+  it("原金额方向与业务净额相反时分别保留各自方向", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "400",
+          business_net_amount: "400",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountA.id,
+          amount: "500",
+          business_net_amount: "0",
+          category_id: categoryB.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      amount: "400",
+      originalAmount: "100",
+      originalType: "income",
+      type: "expense",
+    });
+  });
+
   it("分类摘要按 category.type 构建金额和展示方向", () => {
     const item = buildTransactionListItem({
       accountById,

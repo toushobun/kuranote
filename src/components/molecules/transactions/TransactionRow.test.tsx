@@ -345,6 +345,22 @@ describe("TransactionRow", () => {
     });
   });
 
+  it("原金额与业务净额方向相反时使用原金额自己的方向", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "400",
+          originalAmount: "100",
+          originalType: "income",
+          type: "expense",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("- ¥ 400")).toBeInTheDocument();
+    expect(screen.getByText("原金额 + ¥ 100")).toBeInTheDocument();
+  });
+
   it("完全抵消时显示零净额和原金额", () => {
     render(
       <TransactionRow

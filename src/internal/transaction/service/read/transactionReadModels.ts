@@ -27,6 +27,7 @@ export type TransactionListItem = {
   account_name: string;
   amount: string;
   originalAmount?: string;
+  originalType?: CategoryType;
   canEdit?: boolean;
   categoryItems: TransactionCategorySummaryItem[];
   created_at: string;

@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(4);
+select plan(5);
 
 create temporary table test_special_status_context on commit drop as
 select
@@ -206,6 +206,24 @@ select is(
     ),
     0::numeric,
     '报销完成后八月结算收入不再计入统计'
+);
+
+select is(
+    (
+        select coalesce(sum(summary.transaction_count), 0)::integer
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'account',
+            p_date_start => '2026-08-01 00:00:00+00',
+            p_date_end => '2026-09-01 00:00:00+00',
+            p_record_type => 'income'
+        ) summary
+        where summary.group_key = (
+            select account_id::text from test_special_status_context
+        )
+    ),
+    1,
+    '零净额纯收入记录仍保留在收入筛选结果中'
 );
 
 select is(

@@ -131,6 +131,7 @@ export function TransactionForm({
     initialValues,
     merchantOptions,
     onSubmitDisabledChange,
+    reimbursementCandidates: activeReimbursementCandidates,
   });
 
   return (

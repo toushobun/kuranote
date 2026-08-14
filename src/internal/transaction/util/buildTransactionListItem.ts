@@ -123,7 +123,15 @@ export function buildTransactionListItem({
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
     ...(hasBusinessNetOffset
-      ? { originalAmount: String(Math.abs(originalAmount)) }
+      ? {
+          originalAmount: String(Math.abs(originalAmount)),
+          originalType:
+            originalAmount > 0
+              ? "income"
+              : originalAmount < 0
+                ? "expense"
+                : displayType,
+        }
       : {}),
     canEdit,
     categoryItems,

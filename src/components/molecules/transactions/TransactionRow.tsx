@@ -164,7 +164,7 @@ export function TransactionRow({
                 >
                   {transactionAmountMessages.originalAmount}{" "}
                   {formatTransactionRowAmount(
-                    item.type,
+                    item.originalType ?? item.type,
                     item.originalAmount,
                     item.account_currency,
                   )}
