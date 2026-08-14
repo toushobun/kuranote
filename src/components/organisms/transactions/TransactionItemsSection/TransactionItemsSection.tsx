@@ -160,7 +160,11 @@ export function TransactionItemsSection({
                         value={item.amount}
                       />
                       <Button
-                        aria-label={`编辑明细 ${index + 1} ${hasOriginalAmount ? "原金额" : "金额"}`}
+                        aria-label={`编辑明细 ${index + 1} ${
+                          hasOriginalAmount
+                            ? transactionAmountMessages.originalAmount
+                            : "金额"
+                        }`}
                         onClick={focusAmountInput}
                         type="button"
                         variant="text"
