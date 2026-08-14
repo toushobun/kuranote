@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(7);
+select plan(8);
 
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by
@@ -77,6 +77,18 @@ values
         10,
         '00000000-0000-4000-8000-000000000031',
         '00000000-0000-4000-8000-000000000031'
+    ),
+    (
+        '56700000-0000-4000-8000-000000000007',
+        '56700000-0000-4000-8000-000000000001',
+        '56700000-0000-4000-8000-000000000004',
+        'expense',
+        'archived test child',
+        'Wallet',
+        '#000000',
+        20,
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031'
     );
 
 insert into public.merchant (
@@ -140,12 +152,13 @@ select set_config(
     true
 );
 
--- One item per record keeps the fixture readable while testing item-row counts.
+-- 每张记录只创建一条明细，便于直接验证明细行数量。
 create function pg_temp.insert_frequent_category_items(
     p_month timestamptz,
     p_count integer,
     p_status text default 'active',
-    p_type text default 'normal'
+    p_type text default 'normal',
+    p_category_id uuid default null
 )
 returns void
 language plpgsql
@@ -182,7 +195,7 @@ begin
         tr.ledger_id,
         tr.id,
         v_context.account_id,
-        v_context.category_id,
+        coalesce(p_category_id, v_context.category_id),
         100,
         0,
         -100,
@@ -228,7 +241,7 @@ select is(
         )
     ),
     26,
-    'current month at threshold includes the complete current month'
+    '当前月达到阈值时纳入当前完整月份'
 );
 
 reset role;
@@ -250,7 +263,7 @@ select is(
         )
     ),
     27,
-    'two complete months are included when the current month is insufficient'
+    '当前月不足时纳入两个完整月份'
 );
 
 reset role;
@@ -273,7 +286,7 @@ select is(
         )
     ),
     25,
-    'month traversal stops after the third complete month reaches the threshold'
+    '跨三个月达到阈值后停止回溯'
 );
 
 reset role;
@@ -294,7 +307,7 @@ select is_empty(
             20
         )
     $$,
-    'history below the threshold returns the fallback signal'
+    '全部历史不足阈值时返回 fallback 信号'
 );
 
 reset role;
@@ -314,10 +327,44 @@ select is_empty(
             20
         )
     $$,
-    'empty history returns the fallback signal'
+    '完全没有历史时返回 fallback 信号'
 );
 
 reset role;
+select pg_temp.insert_frequent_category_items(
+    p_month => '2026-08-01 00:00:00+09',
+    p_count => 18,
+    p_category_id => '56700000-0000-4000-8000-000000000007'
+);
+update public.category
+set
+    is_archived = true,
+    archived_by = '00000000-0000-4000-8000-000000000031',
+    archived_at = now()
+where id = '56700000-0000-4000-8000-000000000007';
+select pg_temp.insert_frequent_category_items(
+    p_month => '2026-08-01 00:00:00+09',
+    p_count => 2
+);
+set local role authenticated;
+select is_empty(
+    $$
+        select *
+        from public.load_frequent_transaction_category_counts(
+            (select ledger_id from test_frequent_category_context),
+            '2026-08-01 00:00:00+09',
+            '2026-09-01 00:00:00+09',
+            20
+        )
+    $$,
+    '归档分类不占用动态排名的最小样本数'
+);
+
+reset role;
+delete from public.transaction_item where transaction_record_id in (
+    select id from public.transaction_record where title = 'frequent category test'
+);
+delete from public.transaction_record where title = 'frequent category test';
 select pg_temp.insert_frequent_category_items(
     '2026-08-01 00:00:00+09', 20, 'deleted', 'normal'
 );
@@ -332,7 +379,7 @@ select is_empty(
             20
         )
     $$,
-    'deleted records do not enter the sample'
+    '已删除记录不进入样本'
 );
 
 select is_empty(
@@ -345,7 +392,7 @@ select is_empty(
             20
         )
     $$,
-    'a non-member cannot read another ledger history'
+    '非账本成员不能读取其他账本历史'
 );
 
 reset role;

@@ -1,6 +1,5 @@
--- Issue #567: load frequent transaction categories without one remote query per month.
--- The function walks complete calendar months inside PostgreSQL and returns no rows
--- when all available valid items still do not reach the minimum sample size.
+-- Issue #567：在一次远程读取中加载常用记账分类。
+-- 函数在 PostgreSQL 内按完整自然月回溯；当前可选分类的有效明细不足阈值时返回空结果。
 
 create or replace function public.load_frequent_transaction_category_counts(
     p_ledger_id uuid,
@@ -41,6 +40,10 @@ begin
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
          and tr.ledger_id = ti.ledger_id
+        join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+         and c.is_archived = false
         where tr.ledger_id = p_ledger_id
           and tr.status = 'active'
           and tr.type = 'normal'
@@ -57,19 +60,22 @@ begin
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
          and tr.ledger_id = ti.ledger_id
+        join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+         and c.is_archived = false
         where tr.ledger_id = p_ledger_id
           and tr.status = 'active'
           and tr.type = 'normal'
           and tr.transaction_at < v_range_start
           and ti.category_id is not null;
 
-        -- Exhausted the ledger history before reaching the minimum sample size.
+        -- 当前可选分类的全部历史已经查完，但仍未达到最小样本数。
         if v_previous_transaction_at is null then
             return;
         end if;
 
-        -- KuraNote's calendar month boundary is Asia/Tokyo throughout the app.
-        -- Jump directly over empty months while keeping the selected month complete.
+        -- KuraNote 全局使用 Asia/Tokyo 自然月边界；跳过空月份时仍完整纳入命中的月份。
         v_month_end := v_range_start;
         v_range_start := date_trunc(
             'month',
@@ -85,6 +91,10 @@ begin
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
      and tr.ledger_id = ti.ledger_id
+    join public.category c
+      on c.id = ti.category_id
+     and c.ledger_id = ti.ledger_id
+     and c.is_archived = false
     where tr.ledger_id = p_ledger_id
       and tr.status = 'active'
       and tr.type = 'normal'
