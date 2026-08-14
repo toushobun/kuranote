@@ -167,6 +167,7 @@ describe("getEditTransactionView", () => {
           account_id: accountId,
           amount: "1200.00",
           balance_delta: "-1200.00",
+          business_net_amount: "1200",
           category_id: categoryId,
           note: null,
           special_status: "pending_reimbursement",
@@ -197,6 +198,10 @@ describe("getEditTransactionView", () => {
       ledgerName: "家庭账本",
       transactionItemSpecialStatusEnabled: true,
     });
+    if (!view || view.initialValues.type === "transfer") {
+      throw new Error("预期普通交易编辑视图");
+    }
+    expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
   });
 
   it("正确还原转账的转出、转入账户和金额", async () => {
@@ -405,6 +410,7 @@ describe("getEditTransactionView income links", () => {
         incomeLinkRepository,
         itemOverrides: {
           balance_delta: "1000",
+          business_net_amount: "0",
           category_id: incomeCategoryId,
           has_refund_link: true,
           is_refund_income: true,
@@ -420,6 +426,7 @@ describe("getEditTransactionView income links", () => {
       initialValues: {
         items: [
           {
+            businessNetAmount: "0",
             businessStatus: "refund",
             refundCandidates: [
               {

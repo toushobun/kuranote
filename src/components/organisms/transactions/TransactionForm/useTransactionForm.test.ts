@@ -6,6 +6,7 @@ import type {
   TransactionCategoryOption,
   TransactionMerchantOption,
   TransactionRefundCandidate,
+  TransactionReimbursementCandidate,
 } from "types/transactions";
 
 import { useTransactionForm } from "./useTransactionForm";
@@ -60,6 +61,22 @@ const refundCandidate: TransactionRefundCandidate = {
   transactionAt: "2026-07-20T01:30:00.000Z",
   transactionRecordId: "refund-record-1",
 };
+const reimbursementCandidates: TransactionReimbursementCandidate[] = [
+  {
+    accountCurrency: "JPY",
+    amount: "200",
+    categoryName: "午餐",
+    id: "reimbursement-item-1",
+    transactionAt: "2026-07-18T01:30:00.000Z",
+  },
+  {
+    accountCurrency: "JPY",
+    amount: "300",
+    categoryName: "交通",
+    id: "reimbursement-item-2",
+    transactionAt: "2026-07-19T01:30:00.000Z",
+  },
+];
 
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
@@ -111,6 +128,238 @@ describe("useTransactionForm", () => {
     expect(result.current.signedTotalAmount).toBe("-700");
     expect(result.current.selectedAccount?.name).toBe("现金");
     expect(result.current.selectedMerchant?.name).toBe("便利店");
+  });
+
+  it("退款报销后的表单合计使用业务净额并保留原始合计", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    expect(result.current.signedTotalAmount).toBe("-500");
+    expect(result.current.businessTotalAmount).toBe("-300");
+  });
+
+  it("普通既有交易修改金额时不保留等额业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "500",
+            categoryId: "expense-child",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "普通支出",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "600" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({ amount: "600" });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
+  });
+
+  it("行内修改部分退款支出金额时重新计算业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+            refundedAmount: "200",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "600" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "600",
+      businessNetAmount: "400",
+    });
+    expect(result.current.businessTotalAmount).toBe("-400");
+  });
+
+  it("通过明细选择器保存部分退款支出时保留业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "300",
+            categoryId: "expense-child",
+            refundedAmount: "200",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "部分退款",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.openItemSheet(1));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "500",
+      businessNetAmount: "300",
+    });
+    expect(result.current.businessTotalAmount).toBe("-300");
+  });
+
+  it("通过明细选择器保存已报销支出时保留零业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "0",
+            categoryId: "expense-child",
+            specialStatus: "reimbursed",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "已报销",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.openItemSheet(1));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("0");
+    expect(result.current.businessTotalAmount).toBe("0");
+  });
+
+  it("通过明细选择器新增待报销支出时仍保留原始业务金额", () => {
+    const { result } = renderTransactionFormHook();
+
+    act(() => {
+      result.current.openSheet();
+      result.current.handlePickerCategoryToggle("expense-child");
+      result.current.handlePickerAmountChange("500");
+      result.current.setPickerSpecialStatus("pendingReimbursement");
+    });
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "500",
+      specialStatus: "pendingReimbursement",
+    });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
+  });
+
+  it("修改待报销支出金额时恢复为当前原始业务金额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "500",
+            businessNetAmount: "0",
+            categoryId: "expense-child",
+            specialStatus: "pendingReimbursement",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "待报销",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "600" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "600",
+    });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
+  });
+
+  it("新增报销收入时按所选待报销明细合计计算业务净额", () => {
+    const { result } = renderTransactionFormHook({ reimbursementCandidates });
+
+    act(() => {
+      result.current.openSheet();
+      result.current.handlePickerCategoryToggle("income-category");
+      result.current.handlePickerAmountChange("600");
+      result.current.setPickerReimbursementItemIds(
+        reimbursementCandidates.map((candidate) => candidate.id),
+      );
+    });
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "600",
+      businessNetAmount: "100",
+      reimbursementItemIds: ["reimbursement-item-1", "reimbursement-item-2"],
+    });
+    expect(result.current.businessTotalAmount).toBe("+100");
+  });
+
+  it("编辑报销收入金额时按既有关联合计重新计算业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        ...createInitialValues(),
+        items: [
+          {
+            amount: "600",
+            businessNetAmount: "100",
+            categoryId: "income-category",
+            reimbursementItemIds: reimbursementCandidates.map(
+              (candidate) => candidate.id,
+            ),
+          },
+        ],
+      },
+      reimbursementCandidates,
+    });
+
+    act(() => result.current.updateItem(1, { amount: "500" }));
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("0");
+
+    act(() => result.current.updateItem(1, { amount: "700" }));
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("200");
+    expect(result.current.businessTotalAmount).toBe("+200");
   });
 
   it("明细选择器先返回校验错误，再追加有效明细", () => {
@@ -209,5 +458,33 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccountId).toBe("account-2");
     expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.linkNotice).toContain("账户已变更");
+  });
+
+  it("退款收入因账户变化解除关联时清理业务净额", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        ...createInitialValues(),
+        items: [
+          {
+            amount: "200",
+            businessNetAmount: "0",
+            businessStatus: "refund",
+            categoryId: "income-category",
+            refundCandidates: [refundCandidate],
+          },
+        ],
+      },
+    });
+
+    expect(result.current.businessTotalAmount).toBe("0");
+    act(() => result.current.handleAccountChange("account-2"));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "200",
+      businessStatus: null,
+      refundCandidates: [],
+    });
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
+    expect(result.current.businessTotalAmount).toBeNull();
   });
 });

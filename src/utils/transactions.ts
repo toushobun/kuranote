@@ -41,6 +41,17 @@ export function formatSignedNumber(amount: string) {
   return value >= 0 ? `+${abs}` : `-${abs}`;
 }
 
+export function hasBusinessNetAmountOffset(
+  amount: string,
+  businessNetAmount?: string | null,
+): businessNetAmount is string {
+  return (
+    businessNetAmount !== undefined &&
+    businessNetAmount !== null &&
+    Number(businessNetAmount) !== Number(amount)
+  );
+}
+
 export function formatTransactionRowAmount(
   type: TransactionRecordType,
   amount: string,

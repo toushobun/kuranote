@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
+import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { themeColorTokens } from "theme/themeColorTokens";
@@ -16,9 +17,7 @@ import type {
   TransactionRowItem,
 } from "types/transactions";
 import { getMerchantInitial } from "utils/merchants";
-import { getCurrencySymbol } from "utils/currency";
 import {
-  formatNumber,
   formatTransactionRowAmount,
   formatTransactionTime,
 } from "utils/transactions";
@@ -61,10 +60,6 @@ export function TransactionRow({
     : item.type === "income"
       ? incomeColor
       : expenseColor;
-  const refundedAmount = item.categoryItems.reduce(
-    (sum, category) => sum + Number(category.refundedAmount ?? 0),
-    0,
-  );
   const businessStatuses = getBusinessStatuses(item.categoryItems);
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
@@ -161,11 +156,14 @@ export function TransactionRow({
               >
                 {signedAmount}
               </Typography>
-              {refundedAmount > 0 ? (
-                <Typography color="text.secondary" variant="caption">
-                  已退款 {getCurrencySymbol(item.account_currency)}
-                  {formatNumber(String(refundedAmount))}
-                </Typography>
+              {item.originalAmount !== undefined ? (
+                <TransactionOriginalAmount
+                  amount={formatTransactionRowAmount(
+                    item.originalType ?? item.type,
+                    item.originalAmount,
+                    item.account_currency,
+                  )}
+                />
               ) : null}
             </Stack>
           </Stack>

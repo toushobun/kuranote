@@ -55,6 +55,74 @@ export const NoStatus: Story = {
   },
 };
 
+export const PartiallyOffsetExpense: Story = {
+  name: "部分抵消支出",
+  args: {
+    businessTotalAmount: "-300",
+    itemSummaries: [
+      {
+        ...itemSummaries[0],
+        amount: "500",
+        businessNetAmount: "300",
+        refundedAmount: "200",
+      },
+    ],
+    signedTotalAmount: "-500",
+  },
+};
+
+export const FullyOffsetExpense: Story = {
+  name: "完全抵消支出",
+  args: {
+    businessTotalAmount: "0",
+    itemSummaries: [
+      {
+        ...itemSummaries[0],
+        amount: "500",
+        businessNetAmount: "0",
+        specialStatus: "reimbursed",
+      },
+    ],
+    signedTotalAmount: "-500",
+  },
+};
+
+export const RefundIncome: Story = {
+  name: "退款收入",
+  args: {
+    businessTotalAmount: "0",
+    itemSummaries: [
+      {
+        ...itemSummaries[0],
+        amount: "200",
+        businessNetAmount: "0",
+        businessStatus: "refund",
+        category: { ...itemSummaries[0].category!, type: "income" },
+      },
+    ],
+    selectedType: "income",
+    signedTotalAmount: "+200",
+  },
+};
+
+export const ReimbursementIncome: Story = {
+  name: "报销收入",
+  args: {
+    businessTotalAmount: "0",
+    itemSummaries: [
+      {
+        ...itemSummaries[0],
+        amount: "500",
+        businessNetAmount: "0",
+        businessStatus: "reimbursement",
+        category: { ...itemSummaries[0].category!, type: "income" },
+      },
+    ],
+    selectedType: "income",
+    signedTotalAmount: "+500",
+  },
+};
+
 export const Empty: Story = {
   name: "空状态",
   args: { itemSummaries: [], signedTotalAmount: "未填写金额" },

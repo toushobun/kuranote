@@ -9,10 +9,12 @@ import type {
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import {
   calculateTransactionRecordDisplayAmount,
+  calculateTransactionRecordNetAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 export function buildTransactionListItem({
   accountById,
@@ -60,13 +62,20 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
-  const displayAmount = calculateTransactionRecordDisplayAmount(
+  const originalAmount = calculateTransactionRecordDisplayAmount(
+    recordItems,
+    categoryById,
+  );
+  const displayAmount = calculateTransactionRecordNetAmount(
     recordItems,
     categoryById,
   );
   const displayType = getTransactionRecordCategoryType(
     recordItems,
     categoryById,
+  );
+  const hasBusinessNetOffset = recordItems.some((item) =>
+    hasBusinessNetAmountOffset(item.amount, item.business_net_amount),
   );
 
   const categoryItems = recordItems.flatMap((item) => {
@@ -113,6 +122,17 @@ export function buildTransactionListItem({
     account_currency: account?.currency ?? fallbackCurrency,
     account_name: account?.name ?? "未知账户",
     amount: String(Math.abs(displayAmount)),
+    ...(hasBusinessNetOffset
+      ? {
+          originalAmount: String(Math.abs(originalAmount)),
+          originalType:
+            originalAmount > 0
+              ? "income"
+              : originalAmount < 0
+                ? "expense"
+                : displayType,
+        }
+      : {}),
     canEdit,
     categoryItems,
     created_at: record.created_at,

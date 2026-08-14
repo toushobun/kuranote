@@ -154,7 +154,7 @@ export function createSupabaseStatisticsRepository(
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, balance_delta, note, special_status, refunded_amount, is_refund_income, is_reimbursement_income",
+          "transaction_record_id, category_id, amount, business_net_amount",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds);

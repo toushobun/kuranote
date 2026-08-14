@@ -19,6 +19,7 @@ import {
   getCategoryLabel,
   getCurrentMonthRange,
   getDateLabelRefreshDelayMs,
+  hasBusinessNetAmountOffset,
   getMonthBounds,
   getNowDateTimeLocalValue,
   groupTransactionItemsByDate,
@@ -138,6 +139,12 @@ describe("transactions utils", () => {
       expense: "1200",
       income: "5000",
     });
+  });
+
+  it("仅在业务净额与原金额不同时判定存在冲销", () => {
+    expect(hasBusinessNetAmountOffset("500", undefined)).toBe(false);
+    expect(hasBusinessNetAmountOffset("500", "500.00")).toBe(false);
+    expect(hasBusinessNetAmountOffset("500", "300")).toBe(true);
   });
 
   it("转账不计入收入/支出汇总", () => {

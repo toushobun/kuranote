@@ -7,14 +7,20 @@ import type {
   TransactionBusinessStatus,
   TransactionCategoryOption,
   TransactionRefundCandidate,
+  TransactionReimbursementCandidate,
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
-import { allocateRefundAmount } from "internal/transaction";
+import {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction";
 import {
   composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
   getNowDateTimeLocalValue,
+  hasBusinessNetAmountOffset,
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
@@ -39,6 +45,7 @@ type UseTransactionFormOptions = Pick<
   | "initialValues"
   | "merchantOptions"
   | "onSubmitDisabledChange"
+  | "reimbursementCandidates"
 >;
 
 export function useTransactionForm({
@@ -48,6 +55,7 @@ export function useTransactionForm({
   initialValues,
   merchantOptions,
   onSubmitDisabledChange,
+  reimbursementCandidates = [],
 }: UseTransactionFormOptions) {
   const markEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
@@ -199,14 +207,20 @@ export function useTransactionForm({
     allDisplayItems.length > 0
       ? formatNetAmount(incomeTotal - expenseTotal)
       : "未填写金额";
-  const refundedTotal = allDisplayItems.reduce(
-    (sum, item) => sum + Number(item.refundedAmount ?? 0),
+  const businessExpenseTotal = itemsByType.expense.reduce(
+    (sum, item) => sum + getFormItemBusinessAmount(item),
     0,
   );
-  const refundAfterTotalAmount =
-    refundedTotal > 0
-      ? formatNetAmount(incomeTotal - expenseTotal + refundedTotal)
-      : null;
+  const businessIncomeTotal = itemsByType.income.reduce(
+    (sum, item) => sum + getFormItemBusinessAmount(item),
+    0,
+  );
+  const hasBusinessNetAmount = allDisplayItems.some((item) =>
+    hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
+  );
+  const businessTotalAmount = hasBusinessNetAmount
+    ? formatNetAmount(businessIncomeTotal - businessExpenseTotal)
+    : null;
 
   function addItem(
     categoryId: string,
@@ -225,6 +239,13 @@ export function useTransactionForm({
         ...current[categoryType],
         {
           amount,
+          businessNetAmount: getNewItemBusinessNetAmount(
+            amount,
+            specialStatus,
+            reimbursementItemIds,
+            refundCandidates,
+            reimbursementCandidates,
+          ),
           businessStatus: getFormItemBusinessStatus(
             specialStatus,
             reimbursementItemIds,
@@ -248,13 +269,23 @@ export function useTransactionForm({
     values: Partial<Omit<TransactionFormItem, "id">>,
   ) {
     markEditDirty?.();
+    const mergeValues = (item: TransactionFormItem) => {
+      if (item.id !== itemId) return item;
+      const nextItem = { ...item, ...values };
+      if (values.amount === undefined) return nextItem;
+      const categoryType = categoryById.get(nextItem.categoryId)?.type;
+      return {
+        ...nextItem,
+        businessNetAmount: getUpdatedItemBusinessNetAmount(
+          nextItem,
+          categoryType,
+          reimbursementCandidates,
+        ),
+      };
+    };
     setItemsByType((current) => ({
-      expense: current.expense.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
-      income: current.income.map((item) =>
-        item.id === itemId ? { ...item, ...values } : item,
-      ),
+      expense: current.expense.map(mergeValues),
+      income: current.income.map(mergeValues),
     }));
   }
 
@@ -283,15 +314,19 @@ export function useTransactionForm({
           ...current,
           [categoryType]: current[categoryType].map((item) =>
             item.id === itemId
-              ? {
-                  ...item,
-                  amount,
-                  businessStatus,
-                  categoryId,
-                  refundCandidates,
-                  reimbursementItemIds,
-                  specialStatus,
-                }
+              ? withUpdatedItemBusinessNetAmount(
+                  {
+                    ...item,
+                    amount,
+                    businessStatus,
+                    categoryId,
+                    refundCandidates,
+                    reimbursementItemIds,
+                    specialStatus,
+                  },
+                  categoryType,
+                  reimbursementCandidates,
+                )
               : item,
           ),
         };
@@ -308,15 +343,19 @@ export function useTransactionForm({
       };
       moved[categoryType] = [
         ...moved[categoryType],
-        {
-          ...existingItem,
-          amount,
-          businessStatus,
-          categoryId,
-          refundCandidates,
-          reimbursementItemIds,
-          specialStatus,
-        },
+        withUpdatedItemBusinessNetAmount(
+          {
+            ...existingItem,
+            amount,
+            businessStatus,
+            categoryId,
+            refundCandidates,
+            reimbursementItemIds,
+            specialStatus,
+          },
+          categoryType,
+          reimbursementCandidates,
+        ),
       ];
 
       return moved;
@@ -483,6 +522,13 @@ export function useTransactionForm({
                 item.reimbursementItemIds ?? [],
                 [],
               ),
+              businessNetAmount: getNewItemBusinessNetAmount(
+                item.amount,
+                item.specialStatus,
+                item.reimbursementItemIds ?? [],
+                [],
+                reimbursementCandidates,
+              ),
               refundCandidates: [],
             }
           : item,
@@ -583,8 +629,7 @@ export function useTransactionForm({
     pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
-    refundAfterTotalAmount,
-    refundedTotal,
+    businessTotalAmount,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
@@ -662,4 +707,90 @@ function formatNetAmount(net: number) {
   const value = parseFloat(net.toFixed(2));
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
+}
+
+function getFormItemBusinessAmount(item: TransactionFormItem) {
+  const amount = Number(item.businessNetAmount ?? item.amount);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function getNewItemBusinessNetAmount(
+  amount: string,
+  specialStatus: TransactionFormItem["specialStatus"],
+  reimbursementItemIds: string[],
+  refundCandidates: TransactionRefundCandidate[],
+  reimbursementCandidates: TransactionReimbursementCandidate[],
+) {
+  if (specialStatus === "reimbursed" || refundCandidates.length > 0) {
+    return "0";
+  }
+  if (reimbursementItemIds.length === 0) return undefined;
+
+  const amountUnits = toRefundMinorUnits(amount);
+  const candidateById = new Map(
+    reimbursementCandidates.map((candidate) => [candidate.id, candidate]),
+  );
+  const reimbursementUnits = reimbursementItemIds.reduce((sum, itemId) => {
+    const candidateUnits = toRefundMinorUnits(
+      candidateById.get(itemId)?.amount ?? "",
+    );
+    return candidateUnits === null ? sum : sum + candidateUnits;
+  }, BigInt(0));
+
+  if (amountUnits === null) return undefined;
+  return formatRefundMinorUnits(
+    amountUnits > reimbursementUnits
+      ? amountUnits - reimbursementUnits
+      : BigInt(0),
+  );
+}
+
+function getUpdatedItemBusinessNetAmount(
+  item: TransactionFormItem,
+  categoryType?: TransactionType,
+  reimbursementCandidates: TransactionReimbursementCandidate[] = [],
+) {
+  if (categoryType === "income") {
+    return getNewItemBusinessNetAmount(
+      item.amount,
+      item.specialStatus,
+      item.reimbursementItemIds ?? [],
+      item.refundCandidates ?? [],
+      reimbursementCandidates,
+    );
+  }
+  if (item.specialStatus === "reimbursed") {
+    return "0";
+  }
+
+  const amountUnits = toRefundMinorUnits(item.amount);
+  const refundedAmountUnits = toRefundMinorUnits(item.refundedAmount ?? "0");
+  if (
+    amountUnits === null ||
+    refundedAmountUnits === null ||
+    refundedAmountUnits <= BigInt(0)
+  ) {
+    return undefined;
+  }
+
+  return formatRefundMinorUnits(
+    amountUnits > refundedAmountUnits
+      ? amountUnits - refundedAmountUnits
+      : BigInt(0),
+  );
+}
+
+function withUpdatedItemBusinessNetAmount(
+  item: TransactionFormItem,
+  categoryType?: TransactionType,
+  reimbursementCandidates: TransactionReimbursementCandidate[] = [],
+) {
+  return {
+    ...item,
+    businessNetAmount: getUpdatedItemBusinessNetAmount(
+      item,
+      categoryType,
+      reimbursementCandidates,
+    ),
+  };
 }

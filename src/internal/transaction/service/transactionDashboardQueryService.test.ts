@@ -47,6 +47,7 @@ describe("TransactionDashboardQueryService", () => {
       {
         account_id: "account-1",
         amount: "100",
+        business_net_amount: "50",
         balance_delta: "-100",
         category_id: "recent-category",
         note: null,
@@ -130,16 +131,19 @@ describe("TransactionDashboardQueryService", () => {
         items: [
           {
             amount: "1500",
+            business_net_amount: "1200",
             category_id: "month-income",
             transaction_record_id: "month-mixed",
           },
           {
-            amount: "300",
+            amount: "700",
+            business_net_amount: "300",
             category_id: "month-expense",
             transaction_record_id: "month-mixed",
           },
           {
-            amount: "500",
+            amount: "800",
+            business_net_amount: "500",
             category_id: "month-expense",
             transaction_record_id: "month-expense-record",
           },
@@ -186,10 +190,10 @@ describe("TransactionDashboardQueryService", () => {
     });
 
     expect(result.monthSummary).toEqual({
-      balance: "700",
+      balance: "400",
       currency: "JPY",
       expense: "500",
-      income: "1200",
+      income: "900",
     });
     expect(transactionRepository.loadDashboardMonthSource).toHaveBeenCalledWith(
       {
@@ -240,11 +244,13 @@ describe("TransactionDashboardQueryService", () => {
     ]);
     expect(result.recentTransactions[0]).toMatchObject({
       account_color: null,
+      amount: "50",
       canEdit: false,
       merchant_name: "超市",
       recorder_color: null,
       recorder_name: null,
       show_recorder: true,
+      originalAmount: "100",
     });
     expect(result.recentTransactions[1]).toMatchObject({
       account_color: null,

@@ -185,7 +185,7 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("1200");
   });
 
-  it("退款后列表仍显示原始支出金额并保留退款标注数据", () => {
+  it("部分退款后列表以业务净额为主并保留原始支出金额", () => {
     const item = buildTransactionListItem({
       accountById,
       categoryById,
@@ -196,6 +196,7 @@ describe("buildTransactionListItem", () => {
         {
           account_id: accountA.id,
           amount: "1200",
+          business_net_amount: "800",
           category_id: categoryA.id,
           id: "item-refunded",
           refunded_amount: "400",
@@ -204,11 +205,12 @@ describe("buildTransactionListItem", () => {
       ],
     });
 
-    expect(item.amount).toBe("1200");
+    expect(item.amount).toBe("800");
+    expect(item.originalAmount).toBe("1200");
     expect(item.categoryItems[0]?.refundedAmount).toBe("400");
   });
 
-  it("全额退款后列表仍显示原始支出金额", () => {
+  it("全额退款后列表显示零业务净额和原始支出金额", () => {
     const item = buildTransactionListItem({
       accountById,
       categoryById,
@@ -219,6 +221,7 @@ describe("buildTransactionListItem", () => {
         {
           account_id: accountA.id,
           amount: "1200",
+          business_net_amount: "0",
           category_id: categoryA.id,
           id: "item-fully-refunded",
           refunded_amount: "1200",
@@ -227,10 +230,11 @@ describe("buildTransactionListItem", () => {
       ],
     });
 
-    expect(item.amount).toBe("1200");
+    expect(item.amount).toBe("0");
+    expect(item.originalAmount).toBe("1200");
   });
 
-  it("退款收入交易在列表中显示原始收入金额", () => {
+  it("完全分配的退款收入在列表中显示零业务净额和原始收入", () => {
     const item = buildTransactionListItem({
       accountById,
       categoryById,
@@ -241,6 +245,7 @@ describe("buildTransactionListItem", () => {
         {
           account_id: accountA.id,
           amount: "1200",
+          business_net_amount: "0",
           category_id: categoryB.id,
           is_refund_income: true,
           transaction_record_id: baseRecord.id,
@@ -248,8 +253,95 @@ describe("buildTransactionListItem", () => {
       ],
     });
 
-    expect(item.amount).toBe("1200");
+    expect(item.amount).toBe("0");
+    expect(item.originalAmount).toBe("1200");
     expect(item.type).toBe("income");
+  });
+
+  it("部分分配的退款收入在列表中显示剩余业务净额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "500",
+          business_net_amount: "200",
+          category_id: categoryB.id,
+          is_refund_income: true,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("200");
+    expect(item.originalAmount).toBe("500");
+    expect(item.type).toBe("income");
+  });
+
+  it("收支明细冲销量相抵时仍保留记录原金额", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "500",
+          business_net_amount: "300",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountA.id,
+          amount: "200",
+          business_net_amount: "0",
+          category_id: categoryB.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("300");
+    expect(item.originalAmount).toBe("300");
+  });
+
+  it("原金额方向与业务净额相反时分别保留各自方向", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "400",
+          business_net_amount: "400",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountA.id,
+          amount: "500",
+          business_net_amount: "0",
+          category_id: categoryB.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      amount: "400",
+      originalAmount: "100",
+      originalType: "income",
+      type: "expense",
+    });
   });
 
   it("分类摘要按 category.type 构建金额和展示方向", () => {

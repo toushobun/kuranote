@@ -108,8 +108,7 @@ export function TransactionForm({
     pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
-    refundAfterTotalAmount,
-    refundedTotal,
+    businessTotalAmount,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,
@@ -132,6 +131,7 @@ export function TransactionForm({
     initialValues,
     merchantOptions,
     onSubmitDisabledChange,
+    reimbursementCandidates: activeReimbursementCandidates,
   });
 
   return (
@@ -281,9 +281,8 @@ export function TransactionForm({
           onUpdateItem={updateItem}
           selectedAccountCurrency={selectedAccount?.currency}
           selectedType={selectedType}
+          businessTotalAmount={businessTotalAmount}
           signedTotalAmount={signedTotalAmount}
-          refundAfterTotalAmount={refundAfterTotalAmount}
-          refundedTotal={refundedTotal}
         />
 
         <Box sx={transactionFieldGroupSx}>
@@ -313,6 +312,7 @@ export function TransactionForm({
           itemSummaries={itemSummaries}
           selectedAccount={selectedAccount}
           selectedMerchant={selectedMerchant}
+          businessTotalAmount={businessTotalAmount}
           signedTotalAmount={signedTotalAmount}
           transactionDate={transactionDate}
           transactionTime={transactionTime}

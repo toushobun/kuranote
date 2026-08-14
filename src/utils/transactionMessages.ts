@@ -6,6 +6,11 @@ export const transactionFormValidationMessages = {
   merchantRequired: "请选择商家。",
 } as const;
 
+export const transactionAmountMessages = {
+  netAmount: "净额",
+  originalAmount: "原金额",
+} as const;
+
 export const transactionListPageErrorMessages = {
   permissionDenied: "当前角色没有删除这条记账的权限。",
   voidFailed: "记录删除失败。请稍后重试。",

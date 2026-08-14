@@ -490,11 +490,11 @@ describe("TransactionForm", () => {
     expect(within(container).getAllByText("便利店")).toHaveLength(2);
     expect(within(container).getAllByText("日元现金（JPY）")).toHaveLength(2);
     expect(
-      within(container).getByText("食材/调料 / 餐饮 / 1200"),
+      within(container).getByText("食材/调料 / 餐饮 / - ¥ 1,200"),
     ).toBeInTheDocument();
     expect(
       within(container).getAllByText("- ¥ 1200", { exact: true }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
   });
   it("时间字段显示在保存前汇总上面", () => {
     const { container } = renderForm();

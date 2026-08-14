@@ -19,6 +19,7 @@ export type TransactionItemDbRow = {
   account_id: string;
   category_id: string | null;
   amount: string;
+  business_net_amount?: string;
   balance_delta?: string;
   note?: string | null;
   special_status?: TransactionSpecialStatusStorageValue | null;

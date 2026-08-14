@@ -46,10 +46,10 @@ describe("TransactionSummarySection", () => {
 
     expect(screen.getByText("便利店")).toBeInTheDocument();
     expect(screen.getByText("现金（JPY）")).toBeInTheDocument();
-    expect(screen.getByText(/餐饮.*午餐.*1200/)).toBeInTheDocument();
+    expect(screen.getByText(/餐饮.*午餐.*1,200/)).toBeInTheDocument();
     expect(screen.getByText("未选择分类 / 未填写金额")).toBeInTheDocument();
     expect(screen.getByText("2026/07/20 10:30:00")).toBeInTheDocument();
-    expect(screen.getAllByText(/1200/)).toHaveLength(2);
+    expect(screen.getByText("- ¥ 1200")).toBeInTheDocument();
   });
 
   it("未选择可选项时显示占位状态", () => {
@@ -63,5 +63,32 @@ describe("TransactionSummarySection", () => {
     );
 
     expect(screen.getAllByText("未选择")).toHaveLength(3);
+  });
+
+  it("有抵消金额时先显示净额并在下方弱化显示原金额", () => {
+    render(
+      <TransactionSummarySection
+        businessTotalAmount="-300"
+        itemSummaries={[{ ...itemSummaries[0], businessNetAmount: "300" }]}
+        signedTotalAmount="-1200"
+        transactionDate="2026-07-20"
+        transactionTime="10:30:00"
+      />,
+    );
+
+    expect(screen.getByText("净额")).toBeInTheDocument();
+    expect(screen.getByText("原金额")).toBeInTheDocument();
+    expect(screen.getByText("- 300")).toBeInTheDocument();
+    const itemOriginalAmount = screen.getByText(/原金额 - 1,200/);
+    expect(itemOriginalAmount).toHaveStyle({
+      color: "rgba(0, 0, 0, 0.38)",
+      fontWeight: "400",
+    });
+    expect(
+      screen
+        .getByText("净额")
+        .compareDocumentPosition(screen.getByText("原金额")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

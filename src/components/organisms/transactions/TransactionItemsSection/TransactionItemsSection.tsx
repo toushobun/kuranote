@@ -6,9 +6,15 @@ import Typography from "@mui/material/Typography";
 import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
+import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { allocateRefundAmount } from "internal/transaction";
+import {
+  formatTransactionRowAmount,
+  hasBusinessNetAmountOffset,
+} from "utils/transactions";
 
 import type {
   TransactionFormItem,
@@ -32,8 +38,7 @@ type TransactionItemsSectionProps = {
   ) => void;
   selectedAccountCurrency?: string;
   selectedType: TransactionType;
-  refundAfterTotalAmount?: string | null;
-  refundedTotal?: number;
+  businessTotalAmount?: string | null;
   signedTotalAmount: string;
 };
 
@@ -47,8 +52,7 @@ export function TransactionItemsSection({
   onUpdateItem,
   selectedAccountCurrency,
   selectedType,
-  refundAfterTotalAmount = null,
-  refundedTotal = 0,
+  businessTotalAmount = null,
   signedTotalAmount,
 }: TransactionItemsSectionProps) {
   return (
@@ -74,6 +78,10 @@ export function TransactionItemsSection({
                 ? formatCategoryName(item.category)
                 : "请选择分类";
               const businessStatus = item.businessStatus ?? item.specialStatus;
+              const hasOriginalAmount = hasBusinessNetAmountOffset(
+                item.amount,
+                item.businessNetAmount,
+              );
 
               return (
                 <Box
@@ -152,7 +160,11 @@ export function TransactionItemsSection({
                         value={item.amount}
                       />
                       <Button
-                        aria-label={`编辑明细 ${index + 1} 金额`}
+                        aria-label={`编辑明细 ${index + 1} ${
+                          hasOriginalAmount
+                            ? transactionAmountMessages.originalAmount
+                            : "金额"
+                        }`}
                         onClick={focusAmountInput}
                         type="button"
                         variant="text"
@@ -160,24 +172,24 @@ export function TransactionItemsSection({
                       >
                         {formatDisplayAmount(
                           item.category?.type ?? selectedType,
-                          item.amount,
+                          item.businessNetAmount ?? item.amount,
                           selectedAccountCurrency,
                         )}
+                        {hasOriginalAmount ? (
+                          <TransactionOriginalAmount
+                            amount={formatDisplayAmount(
+                              item.category?.type ?? selectedType,
+                              item.amount,
+                              selectedAccountCurrency,
+                            )}
+                          />
+                        ) : null}
                       </Button>
                       {businessStatus ? (
                         <TransactionBusinessBadge
                           status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />
-                      ) : null}
-                      {Number(item.refundedAmount ?? 0) > 0 ? (
-                        <Typography color="text.secondary" variant="caption">
-                          已退款{" "}
-                          {formatSignedCurrencyAmount(
-                            String(item.refundedAmount),
-                            selectedAccountCurrency,
-                          )}
-                        </Typography>
                       ) : null}
                     </Box>
                   </Box>
@@ -201,27 +213,28 @@ export function TransactionItemsSection({
         {itemSummaries.length > 0 ? (
           <Box sx={summaryBoxSx}>
             <Typography sx={{ fontWeight: 700 }}>
-              {refundedTotal > 0 ? "金额汇总" : "本次合计"}
+              {businessTotalAmount ? "金额汇总" : "本次合计"}
             </Typography>
             <Stack sx={{ alignItems: "flex-end" }}>
-              {refundedTotal > 0 ? (
-                <Typography color="text.secondary" variant="caption">
-                  退款前总金额{" "}
-                  {formatSignedCurrencyAmount(
-                    signedTotalAmount,
-                    selectedAccountCurrency,
-                  )}
-                </Typography>
-              ) : null}
               <Typography
                 sx={{ color: "var(--user-theme-action-text)", fontWeight: 800 }}
               >
-                {refundedTotal > 0 ? "退款后金额" : "合计"}{" "}
+                {businessTotalAmount
+                  ? transactionAmountMessages.netAmount
+                  : "合计"}{" "}
                 {formatSignedCurrencyAmount(
-                  refundAfterTotalAmount ?? signedTotalAmount,
+                  businessTotalAmount ?? signedTotalAmount,
                   selectedAccountCurrency,
                 )}
               </Typography>
+              {businessTotalAmount ? (
+                <TransactionOriginalAmount
+                  amount={formatSignedCurrencyAmount(
+                    signedTotalAmount,
+                    selectedAccountCurrency,
+                  )}
+                />
+              ) : null}
             </Stack>
           </Box>
         ) : null}
@@ -244,8 +257,7 @@ function formatDisplayAmount(
   amount: string,
   currency?: string,
 ) {
-  const sign = type === "expense" ? "-" : "+";
-  return formatSignedCurrencyAmount(`${sign}${amount.trim() || "0"}`, currency);
+  return formatTransactionRowAmount(type, amount.trim() || "0", currency);
 }
 
 function getItemPaperSx(index: number, itemCount: number) {
@@ -337,7 +349,9 @@ const hiddenAmountInputStyle = {
 };
 
 const amountButtonSx = {
+  alignItems: "flex-end",
   color: "text.primary",
+  flexDirection: "column",
   fontSize: "0.75rem",
   fontWeight: 800,
   lineHeight: 1.35,

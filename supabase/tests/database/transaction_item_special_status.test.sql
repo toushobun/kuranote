@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(65);
+select plan(66);
 
 select has_type(
     'public',
@@ -168,7 +168,7 @@ select
     ti.transaction_record_id,
     ti.account_id,
     ti.category_id,
-    175,
+    200,
     0,
     175,
     null,
@@ -407,7 +407,7 @@ select throws_ok(
     $$,
     '22023',
     'reimbursement_amount_mismatch',
-    '报销收入金额与待报销明细合计不一致时拒绝关联'
+    '报销收入金额小于待报销明细合计时拒绝关联'
 );
 
 update public.transaction_item
@@ -457,7 +457,17 @@ select lives_ok(
             (select created_by from public.transaction_item where id = '55120000-0000-4000-8000-000000000005')
         )
     $$,
-    '报销关联在同一事务内完成状态流转'
+    '报销收入高于待报销明细合计时允许关联并完成状态流转'
+);
+
+select is(
+    (
+        select business_net_amount
+        from public.transaction_item_with_refund
+        where id = '55120000-0000-4000-8000-000000000005'
+    ),
+    25::numeric,
+    '超出已结清支出合计的报销收入保留剩余业务净额'
 );
 
 select is(
