@@ -61,6 +61,7 @@ export default async function TransactionEditPage({
             categoryOptions={view.categoryOptions}
             deleteAction={voidTransaction}
             errorMessage={errorMessage}
+            frequentCategoryIds={view.frequentCategoryIds}
             initialValues={initialValues}
             ledgerName={view.ledgerName}
             merchantOptions={view.merchantOptions}
@@ -82,6 +83,7 @@ export default async function TransactionEditPage({
           categoryOptions={view.categoryOptions}
           deleteAction={voidTransaction}
           errorMessage={errorMessage}
+          frequentCategoryIds={view.frequentCategoryIds}
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}

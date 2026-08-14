@@ -144,6 +144,23 @@ export type PendingReimbursementItemRow = {
   transaction_record_id: string;
 };
 
+export type FrequentCategoryCount = {
+  categoryId: string;
+  count: number;
+};
+
+type FrequentCategoryCountRow = {
+  category_id: string;
+  occurrence_count: number | string;
+};
+
+export type FrequentCategoryHistoryQuery = {
+  dateEnd: string;
+  dateStart: string;
+  ledgerId: string;
+  minimumItemCount: number;
+};
+
 export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
@@ -179,6 +196,9 @@ export interface TransactionFormRepository {
     ledgerId: string,
     transactionRecordIds: string[],
   ): Promise<TransactionItemDbRow[]>;
+  loadFrequentCategoryCounts(
+    input: FrequentCategoryHistoryQuery,
+  ): Promise<FrequentCategoryCount[]>;
   listPendingReimbursementItems(
     ledgerId: string,
   ): Promise<PendingReimbursementItemRow[]>;
@@ -739,6 +759,41 @@ export function createSupabaseTransactionRepository(
       return (data ?? []).map((row) =>
         toTransactionItemDbRow(row as TransactionItemRepositoryRow),
       );
+    },
+
+    async loadFrequentCategoryCounts({
+      dateEnd,
+      dateStart,
+      ledgerId,
+      minimumItemCount,
+    }) {
+      const { data, error } = await supabase.rpc(
+        "load_frequent_transaction_category_counts",
+        {
+          p_date_end: dateEnd,
+          p_date_start: dateStart,
+          p_ledger_id: ledgerId,
+          p_minimum_item_count: minimumItemCount,
+        },
+      );
+
+      if (error) {
+        logger.error("[transaction] failed to load frequent categories", {
+          databaseCode: error.code,
+          dateEnd,
+          dateStart,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_frequent_categories_load_failed",
+          "常用分类加载失败，请稍后重试。",
+        );
+      }
+
+      return ((data ?? []) as FrequentCategoryCountRow[]).map((row) => ({
+        categoryId: row.category_id,
+        count: Number(row.occurrence_count),
+      }));
     },
 
     async listPendingReimbursementItems(ledgerId) {

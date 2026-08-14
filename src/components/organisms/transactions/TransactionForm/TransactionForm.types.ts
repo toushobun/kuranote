@@ -22,6 +22,7 @@ export type TransactionFormProps = {
   closeHref?: string;
   errorMessage?: string | null;
   formId?: string;
+  frequentCategoryIds?: string[];
   hideHeader?: boolean;
   hideSubmitButton?: boolean;
   initialType?: TransactionType;

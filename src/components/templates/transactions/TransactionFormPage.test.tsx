@@ -126,6 +126,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
     action: vi.fn(async () => ({})),
     categoryOptions: [],
     errorMessage: null,
+    frequentCategoryIds: [],
     ledgerName: "家庭账本",
     merchantOptions: [],
     transactionItemSpecialStatusEnabled: false,
@@ -389,6 +390,7 @@ describe("EditTransactionTemplate", () => {
       categoryOptions,
       deleteAction: vi.fn(async () => ({})),
       errorMessage: null,
+      frequentCategoryIds: categoryOptions.map((category) => category.id),
       initialValues: {
         accountId: accountOptions[0].id,
         items: [
@@ -585,6 +587,7 @@ describe("EditTransferTransactionTemplate", () => {
         categoryOptions={[]}
         deleteAction={vi.fn(async () => ({}))}
         errorMessage={null}
+        frequentCategoryIds={[]}
         initialValues={{
           accountId: "00000000-0000-4000-8000-000000000045",
           note: "",

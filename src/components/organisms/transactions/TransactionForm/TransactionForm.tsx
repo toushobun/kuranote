@@ -45,6 +45,7 @@ export function TransactionForm({
   closeHref = routePaths.transactions,
   errorMessage,
   formId = "new-transaction-form",
+  frequentCategoryIds = [],
   hideHeader = false,
   hideSubmitButton = false,
   initialType,
@@ -333,6 +334,7 @@ export function TransactionForm({
 
       <TransactionItemPickerDrawer
         categoryGroups={categoryGroups}
+        frequentCategoryIds={frequentCategoryIds}
         filteredCategoryOptions={allNormalCategoryOptions}
         editingItemId={editingItemId}
         onAmountChange={handlePickerAmountChange}

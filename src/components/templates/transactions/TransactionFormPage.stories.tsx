@@ -60,6 +60,7 @@ const baseArgs = {
   action: noopAction,
   categoryOptions,
   errorMessage: null,
+  frequentCategoryIds: categoryOptions.map((category) => category.id),
   ledgerName: "家庭账本",
   merchantOptions,
   transactionItemSpecialStatusEnabled: true,

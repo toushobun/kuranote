@@ -61,6 +61,7 @@ const meta = {
     action: noopAction,
     accountOptions,
     categoryOptions,
+    frequentCategoryIds: categoryOptions.map((category) => category.id),
     ledgerName: "家庭账本",
     merchantOptions,
   },

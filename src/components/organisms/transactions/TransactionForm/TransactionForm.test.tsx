@@ -93,6 +93,7 @@ describe("TransactionForm", () => {
         action={action}
         accountOptions={accountOptions}
         categoryOptions={categoryOptions}
+        frequentCategoryIds={categoryOptions.map((category) => category.id)}
         merchantOptions={merchantOptions}
         {...props}
       />,
@@ -271,7 +272,7 @@ describe("TransactionForm", () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
-  it("分类列表按收支类型分组且不提供分类管理入口", () => {
+  it("分类列表按收支类型分组且常用快捷不随当前大分类隐藏", () => {
     const { container } = renderForm();
     openSheet(container);
     const expenseGroup = screen.getByRole("button", { name: "交通出行" });
@@ -284,16 +285,16 @@ describe("TransactionForm", () => {
       screen.getByRole("button", { name: "食材/调料 · 餐饮" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "固定收入 · 工资" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "固定收入 · 工资" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
     expect(
       screen.getByRole("button", { name: "固定收入 · 工资" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "食材/调料 · 餐饮" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "食材/调料 · 餐饮" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "添加大分类" })).toBeNull();
     expect(screen.queryByRole("button", { name: "添加小分类" })).toBeNull();
     expect(screen.queryByRole("link", { name: "排序" })).toBeNull();
@@ -531,6 +532,7 @@ describe("TransactionForm", () => {
       action,
       accountOptions,
       categoryOptions,
+      frequentCategoryIds: categoryOptions.map((category) => category.id),
       merchantOptions,
     };
     const { container, rerender } = render(
@@ -603,6 +605,7 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
         action={vi.fn(async () => undefined)}
         accountOptions={accountOptions}
         categoryOptions={categoryOptions}
+        frequentCategoryIds={categoryOptions.map((category) => category.id)}
         merchantOptions={merchantOptions}
         {...props}
       />,
@@ -641,6 +644,7 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
           action={vi.fn(async () => undefined)}
           accountOptions={accountOptions}
           categoryOptions={categoryOptions}
+          frequentCategoryIds={categoryOptions.map((category) => category.id)}
           merchantOptions={merchantOptions}
           initialValues={currentInitialValues}
           typeNavigation={typeNavigation}
@@ -846,6 +850,9 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
         action={vi.fn(async () => undefined)}
         accountOptions={accountOptions}
         categoryOptions={[...expenseCategories, ...incomeCategories]}
+        frequentCategoryIds={[...expenseCategories, ...incomeCategories].map(
+          (category) => category.id,
+        )}
         merchantOptions={merchantOptions}
         {...props}
       />,
