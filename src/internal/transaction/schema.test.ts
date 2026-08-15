@@ -247,7 +247,12 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
           {
             amount: 0,
             categoryId,
-            refundedItemId: "00000000-0000-4000-8000-000000000201",
+            refundAllocations: [
+              {
+                refundAmount: 1,
+                refundedItemId: "00000000-0000-4000-8000-000000000201",
+              },
+            ],
           },
         ],
         ledgerId,

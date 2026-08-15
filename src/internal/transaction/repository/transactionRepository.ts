@@ -37,7 +37,6 @@ export type TransactionItemInput = {
   categoryId: string;
   id?: string;
   refundAllocations?: TransactionRefundAllocation[];
-  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -135,15 +134,6 @@ export type TransactionGroupSummaryRow = {
   transaction_count: number | string | null;
 };
 
-export type PendingReimbursementItemRow = {
-  account_id: string;
-  amount: string;
-  category_id: string;
-  id: string;
-  transaction_at: string;
-  transaction_record_id: string;
-};
-
 export type FrequentCategoryCount = {
   categoryId: string;
   count: number;
@@ -199,9 +189,6 @@ export interface TransactionFormRepository {
   loadFrequentCategoryCounts(
     input: FrequentCategoryHistoryQuery,
   ): Promise<FrequentCategoryCount[]>;
-  listPendingReimbursementItems(
-    ledgerId: string,
-  ): Promise<PendingReimbursementItemRow[]>;
 }
 
 export interface TransactionFilterOptionsRepository {
@@ -740,7 +727,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, settled_by_item_id, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link",
+          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -794,61 +781,6 @@ export function createSupabaseTransactionRepository(
         categoryId: row.category_id,
         count: Number(row.occurrence_count),
       }));
-    },
-
-    async listPendingReimbursementItems(ledgerId) {
-      const { data: itemData, error: itemError } = await supabase
-        .from("transaction_item")
-        .select("id, transaction_record_id, account_id, category_id, amount")
-        .eq("ledger_id", ledgerId)
-        .eq("special_status", "pending_reimbursement")
-        .is("settled_by_item_id", null)
-        .order("created_at", { ascending: false });
-      if (itemError) {
-        logger.error("[transaction] failed to load pending reimbursements", {
-          databaseCode: itemError.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "pending_reimbursements_load_failed",
-          "待报销明细加载失败，请稍后重试。",
-        );
-      }
-
-      const recordIds = [
-        ...new Set((itemData ?? []).map((item) => item.transaction_record_id)),
-      ];
-      if (recordIds.length === 0) return [];
-      const { data: recordData, error: recordError } = await supabase
-        .from("transaction_record")
-        .select("id, transaction_at")
-        .eq("ledger_id", ledgerId)
-        .eq("status", "active")
-        .in("id", recordIds);
-      if (recordError) {
-        logger.error("[transaction] failed to load reimbursement records", {
-          databaseCode: recordError.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "pending_reimbursements_load_failed",
-          "待报销明细加载失败，请稍后重试。",
-        );
-      }
-      const transactionAtById = new Map(
-        (recordData ?? []).map((record) => [record.id, record.transaction_at]),
-      );
-      return (itemData ?? []).flatMap((item) => {
-        const transactionAt = transactionAtById.get(item.transaction_record_id);
-        if (!transactionAt || !item.category_id) return [];
-        return [
-          {
-            ...item,
-            category_id: item.category_id,
-            transaction_at: transactionAt,
-          },
-        ];
-      });
     },
 
     async loadDashboardRecentlyUsedAccountIds({ ledgerId, limit }) {
@@ -1166,7 +1098,6 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
     categoryId: item.categoryId,
     id: item.id ?? null,
     refundAllocations: item.refundAllocations ?? [],
-    reimbursementItemIds: item.reimbursementItemIds ?? [],
     specialStatus: toTransactionSpecialStatusStorageValue(
       item.specialStatus ?? null,
     ),

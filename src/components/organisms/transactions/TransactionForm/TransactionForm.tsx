@@ -55,7 +55,6 @@ export function TransactionForm({
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
-  reimbursementCandidates = [],
   refundPickerView,
   onSubmitDisabledChange,
   submitLabel = "保存记账",
@@ -64,8 +63,6 @@ export function TransactionForm({
   typeNavigation,
 }: TransactionFormProps) {
   const incomeLinksContext = useTransactionIncomeLinks();
-  const activeReimbursementCandidates =
-    incomeLinksContext?.reimbursementCandidates ?? reimbursementCandidates;
   const activeRefundPickerView =
     incomeLinksContext?.refundPickerView ?? refundPickerView;
   const activeLoadRefundGroupItemsAction =
@@ -106,7 +103,6 @@ export function TransactionForm({
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidates,
-    pickerReimbursementItemIds,
     pickerSpecialStatus,
     removeItem,
     businessTotalAmount,
@@ -118,7 +114,6 @@ export function TransactionForm({
     selectedType,
     setPickerSpecialStatus,
     setPickerRefundCandidates,
-    setPickerReimbursementItemIds,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -132,7 +127,6 @@ export function TransactionForm({
     initialValues,
     merchantOptions,
     onSubmitDisabledChange,
-    reimbursementCandidates: activeReimbursementCandidates,
   });
 
   return (
@@ -343,18 +337,15 @@ export function TransactionForm({
         onGroupSelect={handlePickerGroupSelect}
         onPickerAdd={handlePickerAdd}
         onRemoveItem={removeItem}
-        onReimbursementItemIdsChange={setPickerReimbursementItemIds}
         onRefundItemsChange={setPickerRefundCandidates}
         open={isSheetOpen}
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
-        pickerReimbursementItemIds={pickerReimbursementItemIds}
         pickerRefundCandidates={pickerRefundCandidates}
         pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
-        reimbursementCandidates={activeReimbursementCandidates}
         refundPickerView={activeRefundPickerView}
         loadRefundGroupItemsAction={activeLoadRefundGroupItemsAction}
         loadRefundMoreGroupsAction={activeLoadRefundMoreGroupsAction}

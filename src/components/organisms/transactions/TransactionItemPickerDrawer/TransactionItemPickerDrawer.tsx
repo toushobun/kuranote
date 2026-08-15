@@ -24,12 +24,10 @@ import type {
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionRefundCandidate,
-  TransactionReimbursementCandidate,
   TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
-import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
 import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
 
 import type {
@@ -50,19 +48,16 @@ type TransactionItemPickerDrawerProps = {
   onGroupSelect: (groupId: string) => void;
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
-  onReimbursementItemIdsChange?: (ids: string[]) => void;
   onRefundItemsChange?: (item: TransactionRefundCandidate[]) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
-  pickerReimbursementItemIds?: string[];
   pickerRefundCandidates?: TransactionRefundCandidate[];
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  reimbursementCandidates?: TransactionReimbursementCandidate[];
   refundPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (
     groupKey: string,
@@ -90,19 +85,16 @@ export function TransactionItemPickerDrawer({
   onGroupSelect,
   onPickerAdd,
   onRemoveItem,
-  onReimbursementItemIdsChange = () => undefined,
   onRefundItemsChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
-  pickerReimbursementItemIds = [],
   pickerRefundCandidates = [],
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
-  reimbursementCandidates = [],
   refundPickerView,
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
@@ -172,14 +164,8 @@ export function TransactionItemPickerDrawer({
     onCategoryToggle(categoryId);
   }
 
-  function handleReimbursementChange(ids: string[]) {
-    onReimbursementItemIdsChange(ids);
-    if (ids.length > 0) onRefundItemsChange([]);
-  }
-
   function handleRefundsChange(items: TransactionRefundCandidate[]) {
     onRefundItemsChange(items);
-    if (items.length > 0) onReimbursementItemIdsChange([]);
   }
 
   function handleConfirm() {
@@ -412,26 +398,15 @@ export function TransactionItemPickerDrawer({
         {specialStatusEnabled &&
         incomeLinksEnabled &&
         selectedCategoryType === "income" ? (
-          <>
-            {pickerRefundCandidates.length > 0 ? null : (
-              <TransactionReimbursementLinkPicker
-                candidates={reimbursementCandidates}
-                onChange={handleReimbursementChange}
-                selectedIds={pickerReimbursementItemIds}
-              />
-            )}
-            {pickerReimbursementItemIds.length > 0 ? null : (
-              <TransactionRefundLinkPicker
-                loadGroupItemsAction={loadRefundGroupItemsAction}
-                loadMoreGroupsAction={loadRefundMoreGroupsAction}
-                loadSearchPageAction={loadRefundSearchPageAction}
-                onChange={handleRefundsChange}
-                timeGroupView={refundPickerView}
-                refundAmount={pickerAmount}
-                value={pickerRefundCandidates}
-              />
-            )}
-          </>
+          <TransactionRefundLinkPicker
+            loadGroupItemsAction={loadRefundGroupItemsAction}
+            loadMoreGroupsAction={loadRefundMoreGroupsAction}
+            loadSearchPageAction={loadRefundSearchPageAction}
+            onChange={handleRefundsChange}
+            timeGroupView={refundPickerView}
+            refundAmount={pickerAmount}
+            value={pickerRefundCandidates}
+          />
         ) : null}
       </Box>
 

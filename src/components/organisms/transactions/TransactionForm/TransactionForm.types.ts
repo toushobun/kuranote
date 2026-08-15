@@ -9,7 +9,6 @@ import type {
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionRefundCandidate,
-  TransactionReimbursementCandidate,
   TransactionSearchPage,
   TransactionTimeGroupViewData,
   TransactionType,
@@ -29,7 +28,6 @@ export type TransactionFormProps = {
   initialValues?: TransactionFormInitialValues;
   ledgerName?: string;
   merchantOptions: TransactionMerchantOption[];
-  reimbursementCandidates?: TransactionReimbursementCandidate[];
   refundPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (
     groupKey: string,
@@ -57,7 +55,6 @@ export type TransactionFormInitialItem = {
   id?: string;
   refundCandidates?: TransactionRefundCandidate[];
   refundedAmount?: string;
-  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -80,7 +77,6 @@ export type TransactionFormItem = {
   persistedId?: string;
   refundedAmount?: string;
   refundCandidates?: TransactionRefundCandidate[];
-  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 

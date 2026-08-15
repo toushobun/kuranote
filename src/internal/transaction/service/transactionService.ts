@@ -223,7 +223,6 @@ export function createTransactionService({
     const hasSpecialStatusInput = input.items.some(
       (item) =>
         (item.specialStatus !== undefined && item.specialStatus !== null) ||
-        Boolean(item.reimbursementItemIds?.length) ||
         Boolean(item.refundAllocations?.length),
     );
     if (
@@ -266,21 +265,11 @@ export function createTransactionService({
           "待报销只能用于支出明细。",
         );
       }
-      const hasReimbursementLinks = Boolean(item.reimbursementItemIds?.length);
       const hasRefundLink = Boolean(item.refundAllocations?.length);
-      if (
-        (hasReimbursementLinks || hasRefundLink) &&
-        categoryType !== "income"
-      ) {
+      if (hasRefundLink && categoryType !== "income") {
         throw new ValidationError(
           transactionErrorCodes.specialStatusInvalid,
-          "报销或退款关联只能设置在收入明细上。",
-        );
-      }
-      if (hasReimbursementLinks && hasRefundLink) {
-        throw new ValidationError(
-          transactionErrorCodes.specialStatusInvalid,
-          "同一条收入明细不能同时作为报销和退款。",
+          "退款关联只能设置在收入明细上。",
         );
       }
       if (hasRefundLink) {

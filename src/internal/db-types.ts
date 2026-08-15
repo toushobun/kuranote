@@ -25,9 +25,9 @@ export type TransactionItemDbRow = {
   special_status?: TransactionSpecialStatusStorageValue | null;
   refunded_amount?: string;
   has_refund_link?: boolean;
+  has_reimbursement_link?: boolean;
   is_refund_income?: boolean;
   is_reimbursement_income?: boolean;
-  settled_by_item_id?: string | null;
 };
 
 export type AccountOptionDbRow = {

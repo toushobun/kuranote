@@ -22,13 +22,8 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
-  const {
-    canEdit,
-    editRestriction,
-    reimbursementCandidates,
-    refundPickerView,
-    ...view
-  } = await loadEditTransactionView(transactionRecordId);
+  const { canEdit, editRestriction, refundPickerView, ...view } =
+    await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
     return (
@@ -47,7 +42,6 @@ export default async function TransactionEditPage({
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
     loadRefundSearchPageAction: loadRefundPickerSearchPage,
-    reimbursementCandidates,
     refundPickerView,
   };
 

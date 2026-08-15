@@ -6,7 +6,6 @@ import type {
   TransactionCategoryOption,
   TransactionMerchantOption,
   TransactionRefundCandidate,
-  TransactionReimbursementCandidate,
 } from "types/transactions";
 
 import { useTransactionForm } from "./useTransactionForm";
@@ -61,23 +60,6 @@ const refundCandidate: TransactionRefundCandidate = {
   transactionAt: "2026-07-20T01:30:00.000Z",
   transactionRecordId: "refund-record-1",
 };
-const reimbursementCandidates: TransactionReimbursementCandidate[] = [
-  {
-    accountCurrency: "JPY",
-    amount: "200",
-    categoryName: "午餐",
-    id: "reimbursement-item-1",
-    transactionAt: "2026-07-18T01:30:00.000Z",
-  },
-  {
-    accountCurrency: "JPY",
-    amount: "300",
-    categoryName: "交通",
-    id: "reimbursement-item-2",
-    transactionAt: "2026-07-19T01:30:00.000Z",
-  },
-];
-
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
 ) {
@@ -313,55 +295,6 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBeNull();
   });
 
-  it("新增报销收入时按所选待报销明细合计计算业务净额", () => {
-    const { result } = renderTransactionFormHook({ reimbursementCandidates });
-
-    act(() => {
-      result.current.openSheet();
-      result.current.handlePickerCategoryToggle("income-category");
-      result.current.handlePickerAmountChange("600");
-      result.current.setPickerReimbursementItemIds(
-        reimbursementCandidates.map((candidate) => candidate.id),
-      );
-    });
-    act(() => {
-      expect(result.current.handlePickerAdd()).toBe(true);
-    });
-
-    expect(result.current.itemSummaries[0]).toMatchObject({
-      amount: "600",
-      businessNetAmount: "100",
-      reimbursementItemIds: ["reimbursement-item-1", "reimbursement-item-2"],
-    });
-    expect(result.current.businessTotalAmount).toBe("+100");
-  });
-
-  it("编辑报销收入金额时按既有关联合计重新计算业务净额", () => {
-    const { result } = renderTransactionFormHook({
-      initialValues: {
-        ...createInitialValues(),
-        items: [
-          {
-            amount: "600",
-            businessNetAmount: "100",
-            categoryId: "income-category",
-            reimbursementItemIds: reimbursementCandidates.map(
-              (candidate) => candidate.id,
-            ),
-          },
-        ],
-      },
-      reimbursementCandidates,
-    });
-
-    act(() => result.current.updateItem(1, { amount: "500" }));
-    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("0");
-
-    act(() => result.current.updateItem(1, { amount: "700" }));
-    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("200");
-    expect(result.current.businessTotalAmount).toBe("+200");
-  });
-
   it("明细选择器先返回校验错误，再追加有效明细", () => {
     const { result } = renderTransactionFormHook();
 
@@ -408,23 +341,6 @@ describe("useTransactionForm", () => {
       items: expect.any(String),
       merchant: expect.any(String),
     });
-  });
-
-  it("报销和退款候选保持互斥，后选项清空先选项", () => {
-    const { result } = renderTransactionFormHook({
-      initialValues: createInitialValues(),
-    });
-
-    act(() => result.current.setPickerReimbursementItemIds(["item-1"]));
-    expect(result.current.pickerReimbursementItemIds).toEqual(["item-1"]);
-
-    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
-    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
-    expect(result.current.pickerReimbursementItemIds).toEqual([]);
-
-    act(() => result.current.setPickerReimbursementItemIds(["item-2"]));
-    expect(result.current.pickerRefundCandidates).toEqual([]);
-    expect(result.current.pickerReimbursementItemIds).toEqual(["item-2"]);
   });
 
   it("首次选择跨账户退款候选时立即拒绝并提示重新选择", () => {
