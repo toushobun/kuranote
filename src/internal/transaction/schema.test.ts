@@ -352,6 +352,34 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
         );
       }
     });
+    it("请求 schema 拒绝重复退款目标", () => {
+      const refundedItemId = "00000000-0000-4000-8000-000000000201";
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            refundAllocations: [
+              { refundAmount: 400, refundedItemId },
+              { refundAmount: 400, refundedItemId },
+            ],
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          transactionErrorCodes.refundLinkInvalid,
+        );
+      }
+    });
     it("接受单目标报销关联请求", () => {
       const result = createTransactionRequestSchema.safeParse({
         accountId,

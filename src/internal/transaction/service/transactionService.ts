@@ -14,7 +14,10 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
-import { isRefundAllocationTotalWithinAmount } from "internal/transaction/util/refundAllocation";
+import {
+  hasUniqueRefundAllocationTargets,
+  isRefundAllocationTotalWithinAmount,
+} from "internal/transaction/util/refundAllocation";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -285,11 +288,8 @@ export function createTransactionService({
       }
       if (hasRefundLink) {
         const allocations = item.refundAllocations ?? [];
-        const targetIds = new Set(
-          allocations.map((allocation) => allocation.refundedItemId),
-        );
         if (
-          targetIds.size !== allocations.length ||
+          !hasUniqueRefundAllocationTargets(allocations) ||
           !isRefundAllocationTotalWithinAmount(item.amount, allocations)
         ) {
           throw new ValidationError(

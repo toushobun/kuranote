@@ -51,6 +51,15 @@ export function isRefundAllocationTotalWithinAmount(
   return allocationTotalUnits <= totalUnits;
 }
 
+export function hasUniqueRefundAllocationTargets(
+  allocations: readonly Pick<TransactionRefundAllocation, "refundedItemId">[],
+) {
+  return (
+    new Set(allocations.map((allocation) => allocation.refundedItemId)).size ===
+    allocations.length
+  );
+}
+
 export function summarizeRefundAllocationAmounts(
   totalAmount: number | string,
   allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],

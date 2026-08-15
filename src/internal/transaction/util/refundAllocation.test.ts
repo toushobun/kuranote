@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   allocateRefundAmount,
   formatRefundMinorUnits,
+  hasUniqueRefundAllocationTargets,
   isRefundAllocationTotalWithinAmount,
   summarizeRefundAllocationAmounts,
   toRefundMinorUnits,
@@ -47,6 +48,26 @@ describe("isRefundAllocationTotalWithinAmount", () => {
     );
     expect(
       isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 1.001 }]),
+    ).toBe(false);
+  });
+});
+
+describe("hasUniqueRefundAllocationTargets", () => {
+  it("接受退款目标唯一的分摊", () => {
+    expect(
+      hasUniqueRefundAllocationTargets([
+        { refundedItemId: "expense-1" },
+        { refundedItemId: "expense-2" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("拒绝重复退款目标", () => {
+    expect(
+      hasUniqueRefundAllocationTargets([
+        { refundedItemId: "expense-1" },
+        { refundedItemId: "expense-1" },
+      ]),
     ).toBe(false);
   });
 });
