@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(36);
+select plan(37);
 
 select has_type(
     'public',
@@ -369,6 +369,28 @@ select throws_ok(
 );
 
 reset role;
+update public.app_user
+set status = 'disabled'
+where id = '00000000-0000-4000-8000-000000000031';
+
+select set_config(
+    'request.jwt.claim.sub',
+    '00000000-0000-4000-8000-000000000031',
+    true
+);
+set local role authenticated;
+
+select is(
+    (select count(*)::integer from public.transaction_item_reimbursement_link),
+    0,
+    '账号停用后即使账本成员仍为活跃也不能读取报销关联'
+);
+
+reset role;
+update public.app_user
+set status = 'active'
+where id = '00000000-0000-4000-8000-000000000031';
+
 select set_config(
     'request.jwt.claim.sub',
     '00000000-0000-4000-8000-000000000037',

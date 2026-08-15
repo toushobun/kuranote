@@ -4775,14 +4775,12 @@ declare
     v_target_category_type text;
     v_target_currency text;
     v_target_record_status text;
-    v_target_special_status public.transaction_item_special_status;
     v_income_category_type text;
     v_income_currency text;
     v_income_record_status text;
 begin
-    select c.type, a.currency, tr.status, ti.special_status
-    into v_target_category_type, v_target_currency,
-         v_target_record_status, v_target_special_status
+    select c.type, a.currency, tr.status
+    into v_target_category_type, v_target_currency, v_target_record_status
     from public.transaction_item ti
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
@@ -4814,11 +4812,7 @@ begin
     if v_target_category_type is distinct from 'expense'
        or v_income_category_type is distinct from 'income'
        or v_target_record_status is distinct from 'active'
-       or v_income_record_status is distinct from 'active'
-       or v_target_special_status not in (
-           'pending_reimbursement',
-           'reimbursed'
-       ) then
+       or v_income_record_status is distinct from 'active' then
         raise exception 'reimbursement_item_invalid'
             using errcode = '22023', detail = 'reimbursement_item_invalid';
     end if;
@@ -6511,9 +6505,7 @@ CREATE POLICY "transaction_item_refund_link_select_active_member" ON "public"."t
 ALTER TABLE "public"."transaction_item_reimbursement_link" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "transaction_item_reimbursement_link_select_active_member" ON "public"."transaction_item_reimbursement_link" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."ledger_member" "lm"
-  WHERE (("lm"."ledger_id" = "transaction_item_reimbursement_link"."ledger_id") AND ("lm"."user_id" = "auth"."uid"()) AND ("lm"."status" = 'active'::"text")))));
+CREATE POLICY "transaction_item_reimbursement_link_select_active_member" ON "public"."transaction_item_reimbursement_link" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
 
 
 
