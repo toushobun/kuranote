@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(27);
+select plan(29);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -23,7 +23,7 @@ select
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 from public.transaction_record source_record
-cross join generate_series(1, 16) sequence_number
+cross join generate_series(1, 17) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
 insert into public.transaction_item (
@@ -35,7 +35,11 @@ select
     ('59860000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
     '00000000-0000-4000-8000-000000000032'::uuid,
     ('59850000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
-    '00000000-0000-4000-8000-000000000043'::uuid,
+    case
+        when item.sequence_number = 17
+        then '00000000-0000-4000-8000-000000000042'::uuid
+        else '00000000-0000-4000-8000-000000000043'::uuid
+    end,
     case item.category_type
         when 'expense' then '00000000-0000-4000-8000-000000005021'::uuid
         else '00000000-0000-4000-8000-000000005002'::uuid
@@ -64,7 +68,8 @@ from (
         (13, 'income', 20::numeric, null),
         (14, 'expense', 100::numeric, 'pending_reimbursement'),
         (15, 'income', 30::numeric, null),
-        (16, 'income', 100::numeric, null)
+        (16, 'income', 100::numeric, null),
+        (17, 'expense', 100::numeric, 'pending_reimbursement')
 ) as item(sequence_number, category_type, amount, special_status);
 
 select lives_ok(
@@ -182,6 +187,23 @@ select throws_ok(
     '普通支出不能直接建立报销关联'
 );
 
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59860000-0000-4000-8000-000000000007',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '59860000-0000-4000-8000-000000000017'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '22023',
+    'reimbursement_currency_mismatch',
+    '报销收入与目标支出币种不一致时拒绝建立关联'
+);
+
 select lives_ok(
     $$
         select public.apply_transaction_item_links(
@@ -286,6 +308,37 @@ select lives_ok(
         where id = '59860000-0000-4000-8000-000000000008'
     $$,
     '全额退款且无报销关联的支出可以退出报销流程'
+);
+
+select throws_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59860000-0000-4000-8000-000000000011',
+            jsonb_build_object(
+                'refundAllocations',
+                jsonb_build_array(jsonb_build_object(
+                    'refundedItemId',
+                    '59860000-0000-4000-8000-000000000010',
+                    'refundAmount',
+                    30
+                ))
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        );
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59860000-0000-4000-8000-000000000011',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '59860000-0000-4000-8000-000000000012'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '22023',
+    'income_link_conflict',
+    '已经作为退款来源的收入不能再作为报销来源'
 );
 
 select lives_ok(
