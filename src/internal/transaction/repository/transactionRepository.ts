@@ -37,6 +37,7 @@ export type TransactionItemInput = {
   categoryId: string;
   id?: string;
   refundAllocations?: TransactionRefundAllocation[];
+  reimbursementItemId?: string;
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -275,6 +276,7 @@ const transactionRpcErrorCodes = [
   "special_status_refund_conflict",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
+  "reimbursement_link_exists",
 ] as const;
 
 type TransactionRpcErrorCode = (typeof transactionRpcErrorCodes)[number];
@@ -497,6 +499,13 @@ export function createSupabaseTransactionRepository(
       throw new ConflictError(
         transactionErrorCodes.updateInvalid,
         "已有关联报销或退款的交易暂不能修改或作废。",
+      );
+    }
+
+    if (rpcErrorCode === "reimbursement_link_exists") {
+      throw new ConflictError(
+        transactionErrorCodes.reimbursementLinkInvalid,
+        "该支出仍有关联的报销收入，请先解除关联。",
       );
     }
 
@@ -1098,6 +1107,9 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
     categoryId: item.categoryId,
     id: item.id ?? null,
     refundAllocations: item.refundAllocations ?? [],
+    ...(item.reimbursementItemId
+      ? { reimbursementItemId: item.reimbursementItemId }
+      : {}),
     specialStatus: toTransactionSpecialStatusStorageValue(
       item.specialStatus ?? null,
     ),

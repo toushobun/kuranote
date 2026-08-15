@@ -53,6 +53,36 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.type).toBe("income");
     });
+    it("收入交易表单接受单目标报销关联", () => {
+      const reimbursementItemId = "00000000-0000-4000-8000-000000000201";
+      expect(
+        validateTransactionForm(
+          createFormData({
+            itemReimbursementItemId: reimbursementItemId,
+            type: "income",
+          }),
+        ),
+      ).toMatchObject({
+        ok: true,
+        value: {
+          items: [{ reimbursementItemId }],
+          type: "income",
+        },
+      });
+    });
+    it("收入交易表单拒绝非法报销目标 ID", () => {
+      expect(
+        validateTransactionForm(
+          createFormData({
+            itemReimbursementItemId: "invalid",
+            type: "income",
+          }),
+        ),
+      ).toEqual({
+        error: transactionErrorCodes.reimbursementLinkInvalid,
+        ok: false,
+      });
+    });
     it("允许 0 元明细", () => {
       expect(
         validateTransactionForm(createFormData({ itemAmount: "0" })),
@@ -268,6 +298,25 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
           transactionErrorCodes.refundLinkInvalid,
         );
       }
+    });
+    it("接受单目标报销关联请求", () => {
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            reimbursementItemId: "00000000-0000-4000-8000-000000000201",
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 });

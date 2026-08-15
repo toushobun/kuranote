@@ -64,6 +64,7 @@ export type TransactionFormItemValues = {
   categoryId: string;
   id?: string;
   refundAllocations?: TransactionRefundAllocation[];
+  reimbursementItemId?: string;
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -159,6 +160,9 @@ function parseTransactionItems(
   const amountValues = formData.getAll("itemAmount");
   const submittedPersistedIdValues = formData.getAll("itemPersistedId");
   const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
+  const submittedReimbursementValues = formData.getAll(
+    "itemReimbursementItemId",
+  );
   const submittedRefundAllocationValues = formData.getAll(
     "itemRefundAllocations",
   );
@@ -173,6 +177,8 @@ function parseTransactionItems(
     categoryValues.length !== specialStatusValues.length ||
     (submittedPersistedIdValues.length > 0 &&
       categoryValues.length !== submittedPersistedIdValues.length) ||
+    (submittedReimbursementValues.length > 0 &&
+      categoryValues.length !== submittedReimbursementValues.length) ||
     (submittedRefundAllocationValues.length > 0 &&
       categoryValues.length !== submittedRefundAllocationValues.length)
   ) {
@@ -206,6 +212,12 @@ function parseTransactionItems(
       transactionErrorCodes.categoryInvalid,
     );
     if (!persistedIdResult.ok) return persistedIdResult;
+
+    const reimbursementItemIdResult = parseOptionalUuidText(
+      String(submittedReimbursementValues[index] ?? "").trim(),
+      transactionErrorCodes.reimbursementLinkInvalid,
+    );
+    if (!reimbursementItemIdResult.ok) return reimbursementItemIdResult;
 
     const specialStatusText = String(specialStatusValues[index] ?? "").trim();
     let specialStatus: TransactionSpecialStatus | null = null;
@@ -247,6 +259,9 @@ function parseTransactionItems(
       amount: amountResult.value,
       categoryId: categoryResult.value,
       ...(persistedIdResult.value ? { id: persistedIdResult.value } : {}),
+      ...(reimbursementItemIdResult.value
+        ? { reimbursementItemId: reimbursementItemIdResult.value }
+        : {}),
       ...(refundAllocations.length > 0 ? { refundAllocations } : {}),
       ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
@@ -624,6 +639,7 @@ const transactionItemRequestSchema = z
       .array(refundAllocationRequestSchema)
       .max(100)
       .optional(),
+    reimbursementItemId: z.string().uuid().optional(),
     specialStatus: z
       .enum(transactionWritableSpecialStatuses)
       .nullable()

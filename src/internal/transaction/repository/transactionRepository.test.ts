@@ -136,6 +136,28 @@ describe("TransactionRepository", () => {
     );
   });
 
+  it("报销收入将单一目标明细传给原子 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    const reimbursementItemId = "00000000-0000-4000-8000-000000005073";
+
+    await repository.createNormal({
+      ...normalInput,
+      items: [{ ...normalInput.items[0], reimbursementItemId }],
+      type: "income",
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "create_transaction",
+      expect.objectContaining({
+        p_items: [
+          expect.objectContaining({
+            reimbursementItemId,
+          }),
+        ],
+      }),
+    );
+  });
+
   it("转账创建映射原子 RPC 参数", async () => {
     const { repository, rpc } = createRepository();
     await repository.createTransfer(transferInput);
@@ -1071,6 +1093,25 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
+    it("存在报销关联时退出报销流程转换为安全的 ConflictError", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "P0001",
+        databaseError: "reimbursement_link_exists",
+      });
+      const error = await repository
+        .createNormal(normalInput)
+        .catch((value) => Promise.resolve(value));
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toMatchObject({
+        code: transactionErrorCodes.reimbursementLinkInvalid,
+        message: "该支出仍有关联的报销收入，请先解除关联。",
+      });
+      if (!(error instanceof ConflictError)) throw error;
+      expect(appErrorToResponseBody(error)).toMatchObject({
+        body: { error: { status: 409 } },
+        status: 409,
+      });
+    });
     it("退款关联唯一约束冲突（23505）转换为安全的 ConflictError", async () => {
       const { repository } = createRepositoryWithRpcError({
         code: "23505",

@@ -305,6 +305,12 @@ declare
     v_income_account_id uuid;
     v_income_category_type text;
     v_income_currency text;
+    v_reimbursement_target_id uuid;
+    v_reimbursement_target_type text;
+    v_reimbursement_target_currency text;
+    v_reimbursement_target_status public.transaction_item_special_status;
+    v_reimbursement_amount numeric(14,2);
+    v_remaining_amount numeric(14,2);
     v_special_status_enabled boolean;
     v_refund_allocations jsonb;
     v_refund_count integer := 0;
@@ -314,10 +320,19 @@ declare
     v_locked_count integer := 0;
     v_invalid_count integer := 0;
 begin
-    v_refund_allocations := p_item -> 'refundAllocations';
+    v_refund_allocations := coalesce(
+        p_item -> 'refundAllocations',
+        '[]'::jsonb
+    );
 
-    v_refund_allocations := coalesce(v_refund_allocations, '[]'::jsonb);
-
+    begin
+        v_reimbursement_target_id :=
+            nullif(p_item ->> 'reimbursementItemId', '')::uuid;
+    exception
+        when invalid_text_representation then
+            raise exception 'reimbursement_item_invalid'
+                using errcode = '22023', detail = 'reimbursement_item_invalid';
+    end;
 
     if jsonb_typeof(v_refund_allocations) is distinct from 'array' then
         raise exception 'refund_allocation_invalid'
@@ -367,7 +382,7 @@ begin
             using errcode = '22023', detail = 'refund_allocation_invalid';
     end if;
 
-    if v_refund_count = 0 then
+    if v_reimbursement_target_id is null and v_refund_count = 0 then
         return;
     end if;
 
@@ -403,6 +418,99 @@ begin
             using errcode = '22023', detail = 'income_link_category_invalid';
     end if;
 
+    if v_reimbursement_target_id is not null and v_refund_count > 0 then
+        raise exception 'income_link_conflict'
+            using errcode = '22023', detail = 'income_link_conflict';
+    end if;
+
+    if v_reimbursement_target_id is not null then
+        select ti.special_status, c.type, a.currency
+        into
+            v_reimbursement_target_status,
+            v_reimbursement_target_type,
+            v_reimbursement_target_currency
+        from public.transaction_item ti
+        join public.transaction_record tr
+          on tr.id = ti.transaction_record_id
+         and tr.ledger_id = ti.ledger_id
+         and tr.status = 'active'
+        join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+        join public.account a
+          on a.id = ti.account_id
+         and a.ledger_id = ti.ledger_id
+        where ti.ledger_id = p_ledger_id
+          and ti.id = v_reimbursement_target_id
+        for update of ti, tr;
+
+        if not found
+           or v_reimbursement_target_type is distinct from 'expense'
+           or v_reimbursement_target_status is null
+           or v_reimbursement_target_status not in (
+               'pending_reimbursement',
+               'reimbursed'
+           ) then
+            raise exception 'reimbursement_item_invalid'
+                using errcode = 'P0001', detail = 'reimbursement_item_invalid';
+        end if;
+
+        if v_reimbursement_target_currency is distinct from v_income_currency then
+            raise exception 'reimbursement_currency_mismatch'
+                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+        end if;
+
+        if exists (
+            select 1
+            from public.transaction_item_refund_link link
+            where link.ledger_id = p_ledger_id
+              and link.refund_income_item_id = p_income_item_id
+        ) then
+            raise exception 'income_link_conflict'
+                using errcode = '22023', detail = 'income_link_conflict';
+        end if;
+
+        v_remaining_amount :=
+            public.calculate_transaction_item_remaining_offset_amount(
+                p_ledger_id,
+                v_reimbursement_target_id
+            );
+        v_reimbursement_amount := least(v_income_amount, v_remaining_amount);
+
+        if v_reimbursement_amount > 0 then
+            insert into public.transaction_item_reimbursement_link (
+                ledger_id,
+                target_expense_item_id,
+                reimbursement_income_item_id,
+                reimbursement_amount,
+                created_by
+            ) values (
+                p_ledger_id,
+                v_reimbursement_target_id,
+                p_income_item_id,
+                v_reimbursement_amount,
+                p_user_id
+            );
+
+            perform set_config('kuranote.reimbursement_link_flow', 'on', true);
+
+            update public.transaction_item target_item
+            set special_status = case
+                    when public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        v_reimbursement_target_id
+                    ) <= 0
+                    then 'reimbursed'::public.transaction_item_special_status
+                    else 'pending_reimbursement'::public.transaction_item_special_status
+                end,
+                updated_by = p_user_id,
+                updated_at = now()
+            where target_item.ledger_id = p_ledger_id
+              and target_item.id = v_reimbursement_target_id;
+
+            perform set_config('kuranote.reimbursement_link_flow', 'off', true);
+        end if;
+    end if;
 
     if v_refund_count > 0 then
         if v_refund_total is distinct from v_income_amount then
@@ -440,7 +548,6 @@ begin
               and ti.id = any(v_refund_target_ids)
               and (
                   c.type is distinct from 'expense'
-                  or ti.special_status is not null
                   or a.currency is distinct from v_income_currency
                   or ti.account_id is distinct from v_income_account_id
               )
@@ -470,17 +577,6 @@ begin
                     using errcode = '22023', detail = 'refund_account_mismatch';
             end if;
 
-            if exists (
-                select 1
-                from public.transaction_item ti
-                where ti.ledger_id = p_ledger_id
-                  and ti.id = any(v_refund_target_ids)
-                  and ti.special_status is not null
-            ) then
-                raise exception 'refunded_item_special_status_conflict'
-                    using errcode = '22023', detail = 'refunded_item_special_status_conflict';
-            end if;
-
             raise exception 'refunded_item_invalid'
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
@@ -507,19 +603,42 @@ begin
               and link.refund_income_item_id <> p_income_item_id
               and refund_record.status = 'active'
             group by link.refunded_item_id
+        ), existing_reimbursements as (
+            select
+                link.target_expense_item_id,
+                coalesce(sum(link.reimbursement_amount), 0)
+                    as reimbursement_amount
+            from public.transaction_item_reimbursement_link link
+            join public.transaction_item reimbursement_income
+              on reimbursement_income.id = link.reimbursement_income_item_id
+             and reimbursement_income.ledger_id = link.ledger_id
+            join public.transaction_record reimbursement_record
+              on reimbursement_record.id =
+                 reimbursement_income.transaction_record_id
+             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
+            where link.ledger_id = p_ledger_id
+              and link.target_expense_item_id = any(v_refund_target_ids)
+              and reimbursement_record.status = 'active'
+            group by link.target_expense_item_id
         ), targets as (
             select
                 requested.refunded_item_id,
                 requested.requested_units,
-                round(
-                    (ti.amount - coalesce(existing_refunds.refunded_amount, 0)) * 100
-                )::bigint as remaining_units
+                round(greatest(
+                    ti.amount
+                    - coalesce(existing_refunds.refunded_amount, 0)
+                    - coalesce(existing_reimbursements.reimbursement_amount, 0),
+                    0
+                ) * 100)::bigint as remaining_units
             from requested
             join public.transaction_item ti
               on ti.id = requested.refunded_item_id
              and ti.ledger_id = p_ledger_id
             left join existing_refunds
               on existing_refunds.refunded_item_id = requested.refunded_item_id
+            left join existing_reimbursements
+              on existing_reimbursements.target_expense_item_id =
+                 requested.refunded_item_id
         ), allocation_base as (
             select
                 targets.*,
@@ -559,31 +678,15 @@ begin
 
         if v_invalid_count > 0 then
             if exists (
-                with existing_refunds as (
-                    select
-                        link.refunded_item_id,
-                        coalesce(sum(link.refund_amount), 0) as refunded_amount
-                    from public.transaction_item_refund_link link
-                    join public.transaction_item refund_income
-                      on refund_income.id = link.refund_income_item_id
-                     and refund_income.ledger_id = link.ledger_id
-                    join public.transaction_record refund_record
-                      on refund_record.id = refund_income.transaction_record_id
-                     and refund_record.ledger_id = refund_income.ledger_id
-                    where link.ledger_id = p_ledger_id
-                      and link.refunded_item_id = any(v_refund_target_ids)
-                      and link.refund_income_item_id <> p_income_item_id
-                      and refund_record.status = 'active'
-                    group by link.refunded_item_id
-                )
                 select 1
                 from public.transaction_item ti
-                left join existing_refunds
-                  on existing_refunds.refunded_item_id = ti.id
                 where ti.ledger_id = p_ledger_id
                   and ti.id = any(v_refund_target_ids)
                 having sum(
-                    ti.amount - coalesce(existing_refunds.refunded_amount, 0)
+                    public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        ti.id
+                    )
                 ) < v_income_amount
             ) then
                 raise exception 'refund_amount_exceeded'
@@ -665,6 +768,55 @@ ALTER FUNCTION "public"."assign_ledger_member_default_display_color"() OWNER TO 
 
 COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '成员首次成为 active 时自动建立账本内显示色设置。';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS numeric
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select greatest(
+        target_item.amount
+        - coalesce((
+            select sum(refund_link.refund_amount)
+            from public.transaction_item_refund_link refund_link
+            join public.transaction_item refund_income
+              on refund_income.id = refund_link.refund_income_item_id
+             and refund_income.ledger_id = refund_link.ledger_id
+            join public.transaction_record refund_record
+              on refund_record.id = refund_income.transaction_record_id
+             and refund_record.ledger_id = refund_income.ledger_id
+            where refund_link.ledger_id = target_item.ledger_id
+              and refund_link.refunded_item_id = target_item.id
+              and refund_record.status = 'active'
+        ), 0)
+        - coalesce((
+            select sum(reimbursement_link.reimbursement_amount)
+            from public.transaction_item_reimbursement_link reimbursement_link
+            join public.transaction_item reimbursement_income
+              on reimbursement_income.id =
+                 reimbursement_link.reimbursement_income_item_id
+             and reimbursement_income.ledger_id = reimbursement_link.ledger_id
+            join public.transaction_record reimbursement_record
+              on reimbursement_record.id =
+                 reimbursement_income.transaction_record_id
+             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
+            where reimbursement_link.ledger_id = target_item.ledger_id
+              and reimbursement_link.target_expense_item_id = target_item.id
+              and reimbursement_record.status = 'active'
+        ), 0),
+        0
+    )
+    from public.transaction_item target_item
+    join public.transaction_record target_record
+      on target_record.id = target_item.transaction_record_id
+     and target_record.ledger_id = target_item.ledger_id
+     and target_record.status = 'active'
+    where target_item.ledger_id = p_ledger_id
+      and target_item.id = p_target_expense_item_id;
+$$;
+
+
+ALTER FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() RETURNS "trigger"
@@ -4775,12 +4927,17 @@ declare
     v_target_category_type text;
     v_target_currency text;
     v_target_record_status text;
+    v_target_special_status public.transaction_item_special_status;
     v_income_category_type text;
     v_income_currency text;
     v_income_record_status text;
 begin
-    select c.type, a.currency, tr.status
-    into v_target_category_type, v_target_currency, v_target_record_status
+    select c.type, a.currency, tr.status, ti.special_status
+    into
+        v_target_category_type,
+        v_target_currency,
+        v_target_record_status,
+        v_target_special_status
     from public.transaction_item ti
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
@@ -4812,7 +4969,12 @@ begin
     if v_target_category_type is distinct from 'expense'
        or v_income_category_type is distinct from 'income'
        or v_target_record_status is distinct from 'active'
-       or v_income_record_status is distinct from 'active' then
+       or v_income_record_status is distinct from 'active'
+       or v_target_special_status is null
+       or v_target_special_status not in (
+           'pending_reimbursement',
+           'reimbursed'
+       ) then
         raise exception 'reimbursement_item_invalid'
             using errcode = '22023', detail = 'reimbursement_item_invalid';
     end if;
@@ -4826,10 +4988,7 @@ begin
         select 1
         from public.transaction_item_refund_link link
         where link.ledger_id = new.ledger_id
-          and (
-              link.refund_income_item_id = new.reimbursement_income_item_id
-              or link.refunded_item_id = new.target_expense_item_id
-          )
+          and link.refund_income_item_id = new.reimbursement_income_item_id
     ) then
         raise exception 'income_link_conflict'
             using errcode = '22023', detail = 'income_link_conflict';
@@ -4850,8 +5009,9 @@ CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_special_status"()
 declare
     v_category_type text;
     v_special_status_enabled boolean;
-    v_has_active_refund_link boolean;
-    v_is_controlled_unlink boolean;
+    v_has_active_reimbursement_link boolean;
+    v_is_controlled_transition boolean;
+    v_remaining_amount numeric(14,2);
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
@@ -4866,18 +5026,46 @@ begin
         end if;
     end if;
 
-    v_is_controlled_unlink :=
+    v_is_controlled_transition :=
         tg_op = 'UPDATE'
-        and old.special_status = 'reimbursed'
-        and new.special_status = 'pending_reimbursement'
         and current_user = 'postgres'
-        and current_setting('kuranote.income_link_edit_flow', true)
-            is not distinct from 'on';
+        and (
+            current_setting('kuranote.income_link_edit_flow', true)
+                is not distinct from 'on'
+            or current_setting('kuranote.reimbursement_link_flow', true)
+                is not distinct from 'on'
+        );
+
+    if tg_op = 'UPDATE'
+       and old.special_status is not null
+       and new.special_status is null then
+        select exists (
+            select 1
+            from public.transaction_item_reimbursement_link link
+            join public.transaction_item reimbursement_income
+              on reimbursement_income.id = link.reimbursement_income_item_id
+             and reimbursement_income.ledger_id = link.ledger_id
+            join public.transaction_record reimbursement_record
+              on reimbursement_record.id =
+                 reimbursement_income.transaction_record_id
+             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
+            where link.ledger_id = new.ledger_id
+              and link.target_expense_item_id = new.id
+              and reimbursement_record.status = 'active'
+        ) into v_has_active_reimbursement_link;
+
+        if v_has_active_reimbursement_link then
+            raise exception 'reimbursement_link_exists'
+                using errcode = 'P0001', detail = 'reimbursement_link_exists';
+        end if;
+
+        return new;
+    end if;
 
     if tg_op = 'UPDATE'
        and old.special_status = 'reimbursed'
        and new.special_status is distinct from old.special_status
-       and not v_is_controlled_unlink then
+       and not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
     end if;
@@ -4896,32 +5084,27 @@ begin
             using errcode = '22023', detail = 'special_status_invalid';
     end if;
 
-    if new.special_status = 'pending_reimbursement' then
-        select exists (
-            select 1
-            from public.transaction_item_refund_link link
-            join public.transaction_item refund_income
-              on refund_income.id = link.refund_income_item_id
-             and refund_income.ledger_id = link.ledger_id
-            join public.transaction_record refund_record
-              on refund_record.id = refund_income.transaction_record_id
-             and refund_record.ledger_id = refund_income.ledger_id
-            where link.ledger_id = new.ledger_id
-              and link.refunded_item_id = new.id
-              and refund_record.status = 'active'
-        ) into v_has_active_refund_link;
-
-        if v_has_active_refund_link then
-            raise exception 'special_status_refund_conflict'
-                using errcode = '22023', detail = 'special_status_refund_conflict';
+    if tg_op = 'UPDATE'
+       and old.special_status is null
+       and new.special_status = 'pending_reimbursement' then
+        v_remaining_amount :=
+            public.calculate_transaction_item_remaining_offset_amount(
+                new.ledger_id,
+                new.id
+            );
+        if v_remaining_amount <= 0 then
+            new.special_status := 'reimbursed';
         end if;
+        return new;
+    end if;
+
+    if new.special_status = 'pending_reimbursement' then
         return new;
     end if;
 
     if tg_op = 'INSERT'
        or old.special_status is distinct from 'pending_reimbursement'
-       or current_setting('kuranote.reimbursement_link_flow', true)
-            is distinct from 'on' then
+       or not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
     end if;
@@ -6577,6 +6760,10 @@ REVOKE ALL ON FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uu
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
 
 
 
