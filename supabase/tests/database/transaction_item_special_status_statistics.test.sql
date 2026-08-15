@@ -158,24 +158,35 @@ cross join (values
     )
 ) values_to_insert(id, record_id, category_type, amount, special_status);
 
-select public.apply_transaction_item_links(
-    context.ledger_id,
-    '55194100-0000-4000-8000-000000000002',
-    jsonb_build_object(
-        'reimbursementItemIds',
-        jsonb_build_array('55194100-0000-4000-8000-000000000001')
-    ),
-    context.user_id
+insert into public.transaction_item_reimbursement_link (
+    ledger_id, target_expense_item_id,
+    reimbursement_income_item_id, reimbursement_amount, created_by
 )
+select
+    context.ledger_id,
+    '55194100-0000-4000-8000-000000000001',
+    '55194100-0000-4000-8000-000000000002',
+    10000,
+    context.user_id
 from test_special_status_context context;
+
+select set_config('kuranote.reimbursement_link_flow', 'on', true);
+update public.transaction_item
+set special_status = 'reimbursed'
+where id = '55194100-0000-4000-8000-000000000001';
+select set_config('kuranote.reimbursement_link_flow', 'off', true);
 
 select public.apply_transaction_item_links(
     context.ledger_id,
     '55194100-0000-4000-8000-000000000004',
-    jsonb_build_object(
-        'refundedItemId',
-        '55194100-0000-4000-8000-000000000003'
-    ),
+    jsonb_build_object('refundAllocations', jsonb_build_array(
+        jsonb_build_object(
+            'refundedItemId',
+            '55194100-0000-4000-8000-000000000003',
+            'refundAmount',
+            3000
+        )
+    )),
     context.user_id
 )
 from test_special_status_context context;

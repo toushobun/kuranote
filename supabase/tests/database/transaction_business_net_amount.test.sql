@@ -122,7 +122,8 @@ cross join (values
     ('57310000-0000-4000-8000-000000000005'::uuid, '57300000-0000-4000-8000-000000000005'::uuid, 'income', 50::numeric, null),
     ('57310000-0000-4000-8000-000000000006'::uuid, '57300000-0000-4000-8000-000000000006'::uuid, 'expense', 200::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000007'::uuid, '57300000-0000-4000-8000-000000000007'::uuid, 'expense', 300::numeric, 'pending_reimbursement'),
-    ('57310000-0000-4000-8000-000000000008'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 500::numeric, null),
+    ('57310000-0000-4000-8000-000000000008'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 200::numeric, null),
+    ('57310000-0000-4000-8000-000000000011'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 300::numeric, null),
     ('57310000-0000-4000-8000-000000000009'::uuid, '57300000-0000-4000-8000-000000000009'::uuid, 'income', 80::numeric, null),
     ('57310000-0000-4000-8000-000000000010'::uuid, '57300000-0000-4000-8000-000000000010'::uuid, 'expense', 120::numeric, 'pending_reimbursement')
 ) values_to_insert(id, record_id, category_type, amount, special_status);
@@ -143,19 +144,34 @@ cross join (values
     ('57310000-0000-4000-8000-000000000002'::uuid, '57310000-0000-4000-8000-000000000005'::uuid, 50::numeric)
 ) allocation(refunded_item_id, refund_income_item_id, refund_amount);
 
-select public.apply_transaction_item_links(
-    context.ledger_id,
-    '57310000-0000-4000-8000-000000000008',
-    jsonb_build_object(
-        'reimbursementItemIds',
-        jsonb_build_array(
-            '57310000-0000-4000-8000-000000000006',
-            '57310000-0000-4000-8000-000000000007'
-        )
-    ),
-    context.user_id
+insert into public.transaction_item_reimbursement_link (
+    ledger_id, target_expense_item_id,
+    reimbursement_income_item_id, reimbursement_amount, created_by
 )
-from test_business_net_context context;
+select
+    context.ledger_id,
+    reimbursement.target_expense_item_id,
+    reimbursement.reimbursement_income_item_id,
+    reimbursement.reimbursement_amount,
+    context.user_id
+from test_business_net_context context
+cross join (values
+    ('57310000-0000-4000-8000-000000000006'::uuid, '57310000-0000-4000-8000-000000000008'::uuid, 200::numeric),
+    ('57310000-0000-4000-8000-000000000007'::uuid, '57310000-0000-4000-8000-000000000011'::uuid, 300::numeric)
+) reimbursement(
+    target_expense_item_id,
+    reimbursement_income_item_id,
+    reimbursement_amount
+);
+
+select set_config('kuranote.reimbursement_link_flow', 'on', true);
+update public.transaction_item
+set special_status = 'reimbursed'
+where id in (
+    '57310000-0000-4000-8000-000000000006',
+    '57310000-0000-4000-8000-000000000007'
+);
+select set_config('kuranote.reimbursement_link_flow', 'off', true);
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000001'),

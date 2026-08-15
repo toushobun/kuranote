@@ -1,7 +1,6 @@
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
-import type { TransactionReimbursementCandidate } from "internal/transaction/entity/transactionReimbursement";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type {
   TransactionBusinessStatus,
@@ -121,7 +120,6 @@ export type TransferEditInitialValues = {
 export type NewTransactionView = TransactionFormOptions & {
   canWriteTransactions: boolean;
   ledgerName: string;
-  reimbursementCandidates: TransactionReimbursementCandidate[];
 };
 
 export type EditTransactionView = TransactionFormOptions & {
@@ -150,7 +148,6 @@ export type EditTransactionView = TransactionFormOptions & {
             transactionRecordId: string;
           }[];
           refundedAmount?: string;
-          reimbursementItemIds?: string[];
           specialStatus: TransactionSpecialStatus | null;
         }[];
         merchantId: string;
@@ -160,5 +157,4 @@ export type EditTransactionView = TransactionFormOptions & {
         type: TransactionType;
       };
   ledgerName: string;
-  reimbursementCandidates: TransactionReimbursementCandidate[];
 };

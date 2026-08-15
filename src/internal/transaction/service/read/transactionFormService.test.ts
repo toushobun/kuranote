@@ -42,7 +42,6 @@ function createRepository(
     findActiveRecord: vi.fn().mockResolvedValue(null),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
-    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -116,7 +115,6 @@ function createLinkedDependencies({
         ...itemOverrides,
       },
     ]),
-    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
   };
 
   return {
@@ -312,38 +310,12 @@ describe("getNewTransactionView", () => {
     expect(view.merchantOptions).toHaveLength(1);
     expect(view.frequentCategoryIds).toEqual([categoryId]);
   });
-
-  it("报销候选账户缺失时使用账本基准货币", async () => {
-    const repository = createRepository({
-      listPendingReimbursementItems: vi.fn().mockResolvedValue([
-        {
-          account_id: "00000000-0000-4000-8000-000000000099",
-          amount: "1200.00",
-          category_id: categoryId,
-          id: "00000000-0000-4000-8000-000000009998",
-          transaction_at: "2026-06-04T01:30:05.000Z",
-        },
-      ]),
-    });
-
-    const view = await getNewTransactionView(createDependencies(repository), {
-      ...currentLedger,
-      baseCurrency: "USD",
-    });
-
-    expect(view.reimbursementCandidates[0]?.accountCurrency).toBe("USD");
-  });
 });
 
 describe("getEditTransactionView income links", () => {
   it.each([
     ["已报销支出", { special_status: "reimbursed" as const }],
-    [
-      "作为报销对象",
-      {
-        settled_by_item_id: "00000000-0000-4000-8000-000000008003",
-      },
-    ],
+    ["作为报销对象", { has_reimbursement_link: true }],
     ["作为退款对象", { has_refund_link: true, is_refund_income: false }],
   ])("%s 返回整体只读态", async (_label, itemOverrides) => {
     const view = await getEditTransactionView(
@@ -358,12 +330,12 @@ describe("getEditTransactionView income links", () => {
     });
   });
 
-  it("报销收入允许编辑并回填已选支出", async () => {
+  it("报销收入允许进入受控编辑流程", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
           incomeItemId,
-          refundedItem: null,
+          refundAllocations: [],
           reimbursementItems: [
             {
               accountId,
@@ -385,6 +357,7 @@ describe("getEditTransactionView income links", () => {
         itemOverrides: {
           balance_delta: "1000",
           category_id: incomeCategoryId,
+          has_reimbursement_link: true,
           is_reimbursement_income: true,
         },
       }),
@@ -399,11 +372,9 @@ describe("getEditTransactionView income links", () => {
         items: [
           {
             businessStatus: "reimbursement",
-            reimbursementItemIds: [linkedExpenseItemId],
           },
         ],
       },
-      reimbursementCandidates: [{ id: linkedExpenseItemId }],
     });
   });
 

@@ -105,11 +105,6 @@ export function TransactionItemsSection({
                       value={item.specialStatus ?? ""}
                     />
                     <input
-                      name="itemReimbursementItemIds"
-                      type="hidden"
-                      value={JSON.stringify(item.reimbursementItemIds ?? [])}
-                    />
-                    <input
                       name="itemRefundAllocations"
                       type="hidden"
                       value={JSON.stringify(

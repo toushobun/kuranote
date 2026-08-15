@@ -64,7 +64,6 @@ export type TransactionFormItemValues = {
   categoryId: string;
   id?: string;
   refundAllocations?: TransactionRefundAllocation[];
-  reimbursementItemIds?: string[];
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -160,9 +159,6 @@ function parseTransactionItems(
   const amountValues = formData.getAll("itemAmount");
   const submittedPersistedIdValues = formData.getAll("itemPersistedId");
   const submittedSpecialStatusValues = formData.getAll("itemSpecialStatus");
-  const submittedReimbursementValues = formData.getAll(
-    "itemReimbursementItemIds",
-  );
   const submittedRefundAllocationValues = formData.getAll(
     "itemRefundAllocations",
   );
@@ -177,8 +173,6 @@ function parseTransactionItems(
     categoryValues.length !== specialStatusValues.length ||
     (submittedPersistedIdValues.length > 0 &&
       categoryValues.length !== submittedPersistedIdValues.length) ||
-    (submittedReimbursementValues.length > 0 &&
-      categoryValues.length !== submittedReimbursementValues.length) ||
     (submittedRefundAllocationValues.length > 0 &&
       categoryValues.length !== submittedRefundAllocationValues.length)
   ) {
@@ -226,12 +220,6 @@ function parseTransactionItems(
       specialStatus = specialStatusText as TransactionSpecialStatus;
     }
 
-    const reimbursementItemIds = parseUuidArray(
-      submittedReimbursementValues[index],
-    );
-    if (reimbursementItemIds === null) {
-      return invalid(transactionErrorCodes.specialStatusInvalid);
-    }
     const refundAllocations = parseRefundAllocations(
       submittedRefundAllocationValues[index],
     );
@@ -259,7 +247,6 @@ function parseTransactionItems(
       amount: amountResult.value,
       categoryId: categoryResult.value,
       ...(persistedIdResult.value ? { id: persistedIdResult.value } : {}),
-      ...(reimbursementItemIds.length > 0 ? { reimbursementItemIds } : {}),
       ...(refundAllocations.length > 0 ? { refundAllocations } : {}),
       ...(submittedSpecialStatusValues.length > 0 ? { specialStatus } : {}),
     });
@@ -305,28 +292,6 @@ function parseRefundAllocations(
       allocations.push({ refundedItemId, refundAmount: numericAmount });
     }
     return allocations;
-  } catch {
-    return null;
-  }
-}
-
-function parseUuidArray(
-  value: FormDataEntryValue | undefined,
-): string[] | null {
-  if (value === undefined || String(value).trim() === "") return [];
-  try {
-    const parsed: unknown = JSON.parse(String(value));
-    if (!Array.isArray(parsed) || parsed.length > 100) return null;
-    const ids = [...new Set(parsed)];
-    if (
-      ids.some(
-        (id) =>
-          typeof id !== "string" || !z.string().uuid().safeParse(id).success,
-      )
-    ) {
-      return null;
-    }
-    return ids as string[];
   } catch {
     return null;
   }
@@ -641,6 +606,13 @@ function addSameAccountTransferIssue(context: z.RefinementCtx) {
   });
 }
 
+const refundAllocationRequestSchema = z.object({
+  refundedItemId: z.string().uuid(),
+  refundAmount: z.number().positive().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.refundLinkInvalid,
+  }),
+});
+
 const transactionItemRequestSchema = z
   .object({
     amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
@@ -648,14 +620,16 @@ const transactionItemRequestSchema = z
     }),
     categoryId: z.string().uuid(),
     id: z.string().uuid().optional(),
-    refundedItemId: z.string().uuid().nullable().optional(),
-    reimbursementItemIds: z.array(z.string().uuid()).max(100).optional(),
+    refundAllocations: z
+      .array(refundAllocationRequestSchema)
+      .max(100)
+      .optional(),
     specialStatus: z
       .enum(transactionWritableSpecialStatuses)
       .nullable()
       .optional(),
   })
-  .refine((item) => !item.refundedItemId || item.amount > 0, {
+  .refine((item) => !item.refundAllocations?.length || item.amount > 0, {
     message: transactionErrorCodes.refundLinkInvalid,
     path: ["amount"],
   });

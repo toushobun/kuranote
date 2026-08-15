@@ -42,7 +42,6 @@ function createRepository(
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
-    listPendingReimbursementItems: vi.fn().mockResolvedValue([]),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
@@ -184,30 +183,6 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("支出分类不能设置报销关联", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "expense",
-    );
-
-    await expect(
-      service.createNormal({
-        ...normalInput,
-        items: [
-          {
-            ...normalInput.items[0],
-            reimbursementItemIds: ["00000000-0000-4000-8000-000000005073"],
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.specialStatusInvalid,
-      name: ValidationError.name,
-    });
-    expect(repository.createNormal).not.toHaveBeenCalled();
-  });
-
   it("支出分类不能设置退款关联", async () => {
     const { repository, service } = createService(
       "member",
@@ -229,37 +204,6 @@ describe("TransactionService", () => {
             ],
           },
         ],
-      }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.specialStatusInvalid,
-      name: ValidationError.name,
-    });
-    expect(repository.createNormal).not.toHaveBeenCalled();
-  });
-
-  it("同一收入明细不能同时设置报销和退款关联", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "income",
-    );
-
-    await expect(
-      service.createNormal({
-        ...normalInput,
-        items: [
-          {
-            ...normalInput.items[0],
-            refundAllocations: [
-              {
-                refundAmount: 1200,
-                refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-            ],
-            reimbursementItemIds: ["00000000-0000-4000-8000-000000005074"],
-          },
-        ],
-        type: "income",
       }),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.specialStatusInvalid,

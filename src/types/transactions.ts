@@ -3,7 +3,6 @@ import type {
   TransactionBusinessStatus,
   TransactionRefundAllocation,
   TransactionRecordStorageType,
-  TransactionReimbursementCandidate,
   TransactionSpecialStatusFilterValue,
   TransactionType,
 } from "internal/transaction";
@@ -130,7 +129,6 @@ export type TransactionFilterOptions = {
 };
 
 export type { TransactionSpecialStatusFilterValue };
-export type { TransactionReimbursementCandidate };
 
 export type TransactionListItem = TransactionRowItem & {
   note: string | null;

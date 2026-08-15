@@ -5,7 +5,6 @@ import { createContext, useContext, type ReactNode } from "react";
 import type {
   TransactionGroupPage,
   TransactionMonthPage,
-  TransactionReimbursementCandidate,
   TransactionSearchPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
@@ -22,7 +21,6 @@ export type TransactionIncomeLinksContextValue = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
-  reimbursementCandidates: TransactionReimbursementCandidate[];
   refundPickerView?: TransactionTimeGroupViewData;
 };
 

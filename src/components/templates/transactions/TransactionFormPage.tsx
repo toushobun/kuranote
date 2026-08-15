@@ -47,7 +47,6 @@ import type {
   TransactionMerchantOption,
   TransactionGroupPage,
   TransactionMonthPage,
-  TransactionReimbursementCandidate,
   TransactionSearchPage,
   TransactionTimeGroupViewData,
   TransactionRecordType,
@@ -64,7 +63,6 @@ export type TransactionFormTemplateProps = {
   initialType?: TransactionRecordType;
   ledgerName: string;
   merchantOptions: TransactionMerchantOption[];
-  reimbursementCandidates?: TransactionReimbursementCandidate[];
   refundPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (
     groupKey: string,
@@ -261,7 +259,6 @@ function NewTransactionFormView({
   frequentCategoryIds,
   initialType,
   merchantOptions,
-  reimbursementCandidates = [],
   refundPickerView,
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
@@ -308,7 +305,6 @@ function NewTransactionFormView({
           hideHeader
           initialType="expense"
           merchantOptions={merchantOptions}
-          reimbursementCandidates={reimbursementCandidates}
           refundPickerView={refundPickerView}
           loadRefundGroupItemsAction={loadRefundGroupItemsAction}
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
@@ -332,7 +328,6 @@ function NewTransactionFormView({
           hideHeader
           initialType="income"
           merchantOptions={merchantOptions}
-          reimbursementCandidates={reimbursementCandidates}
           refundPickerView={refundPickerView}
           loadRefundGroupItemsAction={loadRefundGroupItemsAction}
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
@@ -365,7 +360,6 @@ function NewTransactionFormView({
       frequentCategoryIds,
       activeErrorMessage,
       merchantOptions,
-      reimbursementCandidates,
       refundPickerView,
       loadRefundGroupItemsAction,
       loadRefundMoreGroupsAction,
