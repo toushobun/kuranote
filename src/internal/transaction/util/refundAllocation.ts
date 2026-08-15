@@ -40,6 +40,23 @@ export function formatRefundMinorUnits(units: bigint): string {
   }`;
 }
 
+export function isRefundAllocationTotalWithinAmount(
+  totalAmount: number | string,
+  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
+) {
+  const totalUnits = toRefundMinorUnits(totalAmount);
+  if (totalUnits === null) return false;
+
+  let allocationTotalUnits = BigInt(0);
+  for (const allocation of allocations) {
+    const allocationUnits = toRefundMinorUnits(allocation.refundAmount);
+    if (allocationUnits === null || allocationUnits <= BigInt(0)) return false;
+    allocationTotalUnits += allocationUnits;
+  }
+
+  return allocationTotalUnits <= totalUnits;
+}
+
 /**
  * 以 0.01 为最小货币单位，按剩余可退金额比例分摊。
  *

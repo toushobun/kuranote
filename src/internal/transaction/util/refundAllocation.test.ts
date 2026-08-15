@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   allocateRefundAmount,
   formatRefundMinorUnits,
+  isRefundAllocationTotalWithinAmount,
   toRefundMinorUnits,
 } from "./refundAllocation";
 
@@ -11,6 +12,41 @@ describe("refund amount minor units", () => {
     expect(toRefundMinorUnits(0.1)).toBe(BigInt(10));
     expect(toRefundMinorUnits("0.20")).toBe(BigInt(20));
     expect(formatRefundMinorUnits(BigInt(30))).toBe("0.3");
+  });
+});
+
+describe("isRefundAllocationTotalWithinAmount", () => {
+  it("接受分摊合计小于或等于收入金额", () => {
+    expect(isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 9 }])).toBe(
+      true,
+    );
+    expect(
+      isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 10 }]),
+    ).toBe(true);
+  });
+
+  it("拒绝分摊合计超过收入金额", () => {
+    expect(
+      isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 10.01 }]),
+    ).toBe(false);
+  });
+
+  it("以最小货币单位精确比较小数合计", () => {
+    expect(
+      isRefundAllocationTotalWithinAmount(0.3, [
+        { refundAmount: 0.1 },
+        { refundAmount: 0.2 },
+      ]),
+    ).toBe(true);
+  });
+
+  it("拒绝非正数或精度无效的分摊金额", () => {
+    expect(isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 0 }])).toBe(
+      false,
+    );
+    expect(
+      isRefundAllocationTotalWithinAmount(10, [{ refundAmount: 1.001 }]),
+    ).toBe(false);
   });
 });
 

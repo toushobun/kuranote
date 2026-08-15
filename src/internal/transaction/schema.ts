@@ -15,6 +15,7 @@ import {
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
 import {
+  isRefundAllocationTotalWithinAmount,
   toRefundMinorUnits,
   type TransactionRefundAllocation,
 } from "internal/transaction/util/refundAllocation";
@@ -239,17 +240,11 @@ function parseTransactionItems(
       return invalid(transactionErrorCodes.refundLinkInvalid);
     }
     if (refundAllocations.length > 0) {
-      const itemAmountUnits = toRefundMinorUnits(amountResult.value);
-      const allocationUnits = refundAllocations.map((allocation) =>
-        toRefundMinorUnits(allocation.refundAmount),
-      );
       if (
-        itemAmountUnits === null ||
-        allocationUnits.some((units) => units === null) ||
-        (allocationUnits as bigint[]).reduce(
-          (sum, units) => sum + units,
-          BigInt(0),
-        ) > itemAmountUnits
+        !isRefundAllocationTotalWithinAmount(
+          amountResult.value,
+          refundAllocations,
+        )
       ) {
         return invalid(transactionErrorCodes.refundLinkInvalid);
       }
@@ -628,31 +623,6 @@ const refundAllocationRequestSchema = z.object({
   }),
 });
 
-function hasRefundAllocationTotalWithinAmount(item: {
-  amount: number;
-  refundAllocations?: TransactionRefundAllocation[];
-}) {
-  if (!item.refundAllocations?.length) return true;
-
-  const itemAmountUnits = toRefundMinorUnits(item.amount);
-  const allocationUnits = item.refundAllocations.map((allocation) =>
-    toRefundMinorUnits(allocation.refundAmount),
-  );
-  if (
-    itemAmountUnits === null ||
-    allocationUnits.some((units) => units === null)
-  ) {
-    return false;
-  }
-
-  return (
-    (allocationUnits as bigint[]).reduce(
-      (sum, units) => sum + units,
-      BigInt(0),
-    ) <= itemAmountUnits
-  );
-}
-
 const transactionItemRequestSchema = z
   .object({
     amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
@@ -674,10 +644,17 @@ const transactionItemRequestSchema = z
     message: transactionErrorCodes.refundLinkInvalid,
     path: ["amount"],
   })
-  .refine(hasRefundAllocationTotalWithinAmount, {
-    message: transactionErrorCodes.refundLinkInvalid,
-    path: ["refundAllocations"],
-  });
+  .refine(
+    (item) =>
+      isRefundAllocationTotalWithinAmount(
+        item.amount,
+        item.refundAllocations ?? [],
+      ),
+    {
+      message: transactionErrorCodes.refundLinkInvalid,
+      path: ["refundAllocations"],
+    },
+  );
 
 const normalTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),
