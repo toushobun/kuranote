@@ -134,6 +134,32 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-300");
   });
 
+  it("新增部分核销退款收入时按实际分摊计算业务净额", () => {
+    const { result } = renderTransactionFormHook({ initialType: "income" });
+
+    act(() => {
+      result.current.handleAccountChange("account-1");
+      result.current.openSheet();
+      result.current.handlePickerCategoryToggle("income-category");
+      result.current.handlePickerAmountChange("1500");
+    });
+    act(() =>
+      result.current.setPickerRefundCandidates([
+        { ...refundCandidate, remainingRefundableAmount: "1000" },
+      ]),
+    );
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "1500",
+      businessNetAmount: "500",
+    });
+    expect(result.current.signedTotalAmount).toBe("+1500");
+    expect(result.current.businessTotalAmount).toBe("+500");
+  });
+
   it("普通既有交易修改金额时不保留等额业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {

@@ -4,6 +4,7 @@ import {
   allocateRefundAmount,
   formatRefundMinorUnits,
   isRefundAllocationTotalWithinAmount,
+  summarizeRefundAllocationAmounts,
   toRefundMinorUnits,
 } from "./refundAllocation";
 
@@ -128,6 +129,26 @@ describe("allocateRefundAmount", () => {
         { id: "a", remainingRefundableAmount: "1" },
         { id: "a", remainingRefundableAmount: "1" },
       ]),
+    ).toBeNull();
+  });
+});
+
+describe("summarizeRefundAllocationAmounts", () => {
+  it("返回实际分摊金额与退款收入净收益", () => {
+    expect(
+      summarizeRefundAllocationAmounts("1500", [{ refundAmount: 1000 }]),
+    ).toEqual({ allocatedAmount: "1000", netIncomeAmount: "500" });
+    expect(
+      summarizeRefundAllocationAmounts("1500", [{ refundAmount: 1500 }]),
+    ).toEqual({ allocatedAmount: "1500", netIncomeAmount: "0" });
+  });
+
+  it("拒绝超过收入金额或精度无效的分摊", () => {
+    expect(
+      summarizeRefundAllocationAmounts("1500", [{ refundAmount: 1500.01 }]),
+    ).toBeNull();
+    expect(
+      summarizeRefundAllocationAmounts("1500", [{ refundAmount: 1.001 }]),
     ).toBeNull();
   });
 });

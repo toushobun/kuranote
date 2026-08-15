@@ -45,16 +45,30 @@ export function isRefundAllocationTotalWithinAmount(
   allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
 ) {
   const totalUnits = toRefundMinorUnits(totalAmount);
-  if (totalUnits === null) return false;
-
-  let allocationTotalUnits = BigInt(0);
-  for (const allocation of allocations) {
-    const allocationUnits = toRefundMinorUnits(allocation.refundAmount);
-    if (allocationUnits === null || allocationUnits <= BigInt(0)) return false;
-    allocationTotalUnits += allocationUnits;
-  }
+  const allocationTotalUnits = sumRefundAllocationUnits(allocations);
+  if (totalUnits === null || allocationTotalUnits === null) return false;
 
   return allocationTotalUnits <= totalUnits;
+}
+
+export function summarizeRefundAllocationAmounts(
+  totalAmount: number | string,
+  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
+) {
+  const totalUnits = toRefundMinorUnits(totalAmount);
+  const allocationTotalUnits = sumRefundAllocationUnits(allocations);
+  if (
+    totalUnits === null ||
+    allocationTotalUnits === null ||
+    allocationTotalUnits > totalUnits
+  ) {
+    return null;
+  }
+
+  return {
+    allocatedAmount: formatRefundMinorUnits(allocationTotalUnits),
+    netIncomeAmount: formatRefundMinorUnits(totalUnits - allocationTotalUnits),
+  };
 }
 
 /**
@@ -156,4 +170,16 @@ function compareBigInt(left: bigint, right: bigint) {
 function compareStableText(left: string, right: string) {
   if (left === right) return 0;
   return left < right ? -1 : 1;
+}
+
+function sumRefundAllocationUnits(
+  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
+) {
+  let totalUnits = BigInt(0);
+  for (const allocation of allocations) {
+    const allocationUnits = toRefundMinorUnits(allocation.refundAmount);
+    if (allocationUnits === null || allocationUnits <= BigInt(0)) return null;
+    totalUnits += allocationUnits;
+  }
+  return totalUnits;
 }

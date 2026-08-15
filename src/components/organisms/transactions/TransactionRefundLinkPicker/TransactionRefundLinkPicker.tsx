@@ -11,8 +11,7 @@ import { useState } from "react";
 
 import {
   allocateRefundAmount,
-  formatRefundMinorUnits,
-  toRefundMinorUnits,
+  summarizeRefundAllocationAmounts,
 } from "internal/transaction";
 import { TransactionMonthList } from "../TransactionMonthList/TransactionMonthList";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
@@ -70,16 +69,10 @@ export function TransactionRefundLinkPicker({
       allocation.refundAmount,
     ]),
   );
-  const refundAmountUnits = toRefundMinorUnits(refundAmount);
-  const allocatedUnits = (allocations ?? []).reduce(
-    (sum, allocation) =>
-      sum + (toRefundMinorUnits(allocation.refundAmount) ?? BigInt(0)),
-    BigInt(0),
+  const allocationAmounts = summarizeRefundAllocationAmounts(
+    refundAmount,
+    allocations ?? [],
   );
-  const netIncomeUnits =
-    refundAmountUnits !== null && refundAmountUnits > allocatedUnits
-      ? refundAmountUnits - allocatedUnits
-      : BigInt(0);
   const selectedIds = draftValue.map((item) => item.id);
 
   const openPicker = () => {
@@ -128,12 +121,14 @@ export function TransactionRefundLinkPicker({
             </Stack>
           ))}
           <Button onClick={() => onChange([])}>取消全部关联</Button>
-          {allocations !== null && netIncomeUnits > BigInt(0) ? (
+          {allocations !== null &&
+          allocationAmounts !== null &&
+          allocationAmounts.netIncomeAmount !== "0" ? (
             <Typography color="text.secondary" variant="caption">
               本次实际核销 {getCurrencySymbol(selectedValue[0].accountCurrency)}
-              {formatNumber(formatRefundMinorUnits(allocatedUnits))}，剩余{" "}
+              {formatNumber(allocationAmounts.allocatedAmount)}，剩余{" "}
               {getCurrencySymbol(selectedValue[0].accountCurrency)}
-              {formatNumber(formatRefundMinorUnits(netIncomeUnits))} 计入净收益
+              {formatNumber(allocationAmounts.netIncomeAmount)} 计入净收益
             </Typography>
           ) : null}
           {allocations === null ? (

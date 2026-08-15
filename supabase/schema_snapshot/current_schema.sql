@@ -317,6 +317,7 @@ declare
     v_refund_distinct_count integer := 0;
     v_refund_total numeric(14,2) := 0;
     v_refund_allocatable_amount numeric(14,2) := 0;
+    v_refund_remaining_units_by_target jsonb := '{}'::jsonb;
     v_refund_target_ids uuid[] := array[]::uuid[];
     v_locked_count integer := 0;
     v_invalid_count integer := 0;
@@ -577,17 +578,30 @@ begin
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        select least(
-            v_income_amount,
-            coalesce(sum(
-                public.calculate_transaction_item_remaining_offset_amount(
-                    p_ledger_id,
-                    target_id
-                )
-            ), 0)
+        with targets as materialized (
+            select
+                target_id,
+                round(
+                    public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        target_id
+                    ) * 100
+                )::bigint as remaining_units
+            from unnest(v_refund_target_ids) target_id
         )
-        into v_refund_allocatable_amount
-        from unnest(v_refund_target_ids) target_id;
+        select
+            least(
+                round(v_income_amount * 100)::bigint,
+                coalesce(sum(remaining_units), 0)
+            )::numeric / 100,
+            coalesce(
+                jsonb_object_agg(target_id::text, remaining_units),
+                '{}'::jsonb
+            )
+        into
+            v_refund_allocatable_amount,
+            v_refund_remaining_units_by_target
+        from targets;
 
         if v_refund_total is distinct from v_refund_allocatable_amount then
             if v_refund_total > v_refund_allocatable_amount then
@@ -609,11 +623,9 @@ begin
             select
                 requested.refunded_item_id,
                 requested.requested_units,
-                round(
-                    public.calculate_transaction_item_remaining_offset_amount(
-                        p_ledger_id,
-                        requested.refunded_item_id
-                    ) * 100
+                (
+                    v_refund_remaining_units_by_target
+                        ->> requested.refunded_item_id::text
                 )::bigint as remaining_units
             from requested
         ), allocation_base as (
