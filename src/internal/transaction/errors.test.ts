@@ -17,6 +17,11 @@ describe("transaction errors", () => {
         transactionErrorCodes.categoryInvalid,
       ),
     ).toBe("分类指定不正确。");
+    expect(
+      getTransactionValidationErrorMessage(
+        transactionErrorCodes.reimbursementLinkInvalid,
+      ),
+    ).toBe("报销目标明细不正确。");
   });
 
   it("返回编辑对象错误文案", () => {
