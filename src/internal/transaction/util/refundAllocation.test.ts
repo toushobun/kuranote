@@ -41,13 +41,40 @@ describe("allocateRefundAmount", () => {
     ]);
   });
 
-  it("拒绝超过剩余可退合计的退款", () => {
+  it("退款金额等于剩余可退合计时分摊全部金额", () => {
+    expect(
+      allocateRefundAmount("10", [
+        { id: "a", remainingRefundableAmount: "5" },
+        { id: "b", remainingRefundableAmount: "5" },
+      ]),
+    ).toEqual([
+      { refundedItemId: "a", refundAmount: 5 },
+      { refundedItemId: "b", refundAmount: 5 },
+    ]);
+  });
+
+  it("退款金额小于剩余可退合计时按退款金额分摊", () => {
+    expect(
+      allocateRefundAmount("6", [
+        { id: "a", remainingRefundableAmount: "5" },
+        { id: "b", remainingRefundableAmount: "5" },
+      ]),
+    ).toEqual([
+      { refundedItemId: "a", refundAmount: 3 },
+      { refundedItemId: "b", refundAmount: 3 },
+    ]);
+  });
+
+  it("退款金额大于剩余可退合计时只分摊可退合计", () => {
     expect(
       allocateRefundAmount("10.01", [
         { id: "a", remainingRefundableAmount: "5" },
         { id: "b", remainingRefundableAmount: "5" },
       ]),
-    ).toBeNull();
+    ).toEqual([
+      { refundedItemId: "a", refundAmount: 5 },
+      { refundedItemId: "b", refundAmount: 5 },
+    ]);
   });
 
   it("拒绝会产生零金额分摊的选择", () => {

@@ -249,7 +249,7 @@ function parseTransactionItems(
         (allocationUnits as bigint[]).reduce(
           (sum, units) => sum + units,
           BigInt(0),
-        ) !== itemAmountUnits
+        ) > itemAmountUnits
       ) {
         return invalid(transactionErrorCodes.refundLinkInvalid);
       }
@@ -628,6 +628,31 @@ const refundAllocationRequestSchema = z.object({
   }),
 });
 
+function hasRefundAllocationTotalWithinAmount(item: {
+  amount: number;
+  refundAllocations?: TransactionRefundAllocation[];
+}) {
+  if (!item.refundAllocations?.length) return true;
+
+  const itemAmountUnits = toRefundMinorUnits(item.amount);
+  const allocationUnits = item.refundAllocations.map((allocation) =>
+    toRefundMinorUnits(allocation.refundAmount),
+  );
+  if (
+    itemAmountUnits === null ||
+    allocationUnits.some((units) => units === null)
+  ) {
+    return false;
+  }
+
+  return (
+    (allocationUnits as bigint[]).reduce(
+      (sum, units) => sum + units,
+      BigInt(0),
+    ) <= itemAmountUnits
+  );
+}
+
 const transactionItemRequestSchema = z
   .object({
     amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
@@ -648,6 +673,10 @@ const transactionItemRequestSchema = z
   .refine((item) => !item.refundAllocations?.length || item.amount > 0, {
     message: transactionErrorCodes.refundLinkInvalid,
     path: ["amount"],
+  })
+  .refine(hasRefundAllocationTotalWithinAmount, {
+    message: transactionErrorCodes.refundLinkInvalid,
+    path: ["refundAllocations"],
   });
 
 const normalTransactionRequestSchema = z.object({

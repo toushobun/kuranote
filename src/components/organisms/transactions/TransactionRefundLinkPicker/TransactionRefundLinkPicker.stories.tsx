@@ -17,6 +17,27 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
+export const NetIncomeDifference: Story = {
+  name: "退款金额包含净收益差额",
+  args: {
+    refundAmount: "1500",
+    value: [
+      {
+        accountCurrency: "JPY",
+        accountId: "account-1",
+        amount: "1200",
+        categoryName: "午餐",
+        id: "refund-item-1",
+        parentCategoryName: "饮食",
+        refundedAmount: "200",
+        remainingRefundableAmount: "1000",
+        transactionAt: "2026-08-15T10:00:00.000Z",
+        transactionRecordId: "transaction-1",
+      },
+    ],
+  },
+};
+
 function SimulatedSafeArea({ children }: { children: ReactNode }) {
   useEffect(() => {
     const rootStyle = document.documentElement.style;

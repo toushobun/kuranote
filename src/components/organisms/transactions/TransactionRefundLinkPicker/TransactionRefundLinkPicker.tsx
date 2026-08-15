@@ -9,7 +9,11 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
-import { allocateRefundAmount } from "internal/transaction";
+import {
+  allocateRefundAmount,
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction";
 import { TransactionMonthList } from "../TransactionMonthList/TransactionMonthList";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type {
@@ -66,6 +70,16 @@ export function TransactionRefundLinkPicker({
       allocation.refundAmount,
     ]),
   );
+  const refundAmountUnits = toRefundMinorUnits(refundAmount);
+  const allocatedUnits = (allocations ?? []).reduce(
+    (sum, allocation) =>
+      sum + (toRefundMinorUnits(allocation.refundAmount) ?? BigInt(0)),
+    BigInt(0),
+  );
+  const netIncomeUnits =
+    refundAmountUnits !== null && refundAmountUnits > allocatedUnits
+      ? refundAmountUnits - allocatedUnits
+      : BigInt(0);
   const selectedIds = draftValue.map((item) => item.id);
 
   const openPicker = () => {
@@ -114,6 +128,14 @@ export function TransactionRefundLinkPicker({
             </Stack>
           ))}
           <Button onClick={() => onChange([])}>取消全部关联</Button>
+          {allocations !== null && netIncomeUnits > BigInt(0) ? (
+            <Typography color="text.secondary" variant="caption">
+              本次实际核销 {getCurrencySymbol(selectedValue[0].accountCurrency)}
+              {formatNumber(formatRefundMinorUnits(allocatedUnits))}，剩余{" "}
+              {getCurrencySymbol(selectedValue[0].accountCurrency)}
+              {formatNumber(formatRefundMinorUnits(netIncomeUnits))} 计入净收益
+            </Typography>
+          ) : null}
           {allocations === null ? (
             <Typography color="error" variant="caption">
               当前金额无法向每条所选明细分摊至少 0.01，请调整金额或选择。

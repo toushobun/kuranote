@@ -45,7 +45,8 @@ export function formatRefundMinorUnits(units: bigint): string {
  *
  * 先向下取整，再按小数余数从大到小补齐尾差；余数相同时按明细 ID
  * 升序处理，因此同一组输入始终得到相同结果。无法保证每条分摊都大于
- * 0、退款总额超过剩余可退合计或输入不合法时返回 null。
+ * 0 或输入不合法时返回 null。退款总额超过剩余可退合计时，仅分摊可退合计，
+ * 超出部分保留为退款收入的净收益。
  */
 export function allocateRefundAmount(
   totalAmount: number | string,
@@ -82,10 +83,11 @@ export function allocateRefundAmount(
     (sum, target) => sum + target.units,
     BigInt(0),
   );
-  if (totalUnits > totalRemainingUnits) return null;
+  const allocatableUnits =
+    totalUnits < totalRemainingUnits ? totalUnits : totalRemainingUnits;
 
   const provisional = normalizedTargets.map((target) => {
-    const numerator = totalUnits * target.units;
+    const numerator = allocatableUnits * target.units;
     return {
       allocatedUnits: numerator / totalRemainingUnits,
       id: target.id,
@@ -97,7 +99,7 @@ export function allocateRefundAmount(
     (sum, target) => sum + target.allocatedUnits,
     BigInt(0),
   );
-  let tailUnits = totalUnits - allocatedBaseUnits;
+  let tailUnits = allocatableUnits - allocatedBaseUnits;
   const tailOrder = [...provisional].sort(
     (left, right) =>
       compareBigInt(right.remainder, left.remainder) ||

@@ -301,7 +301,7 @@ export function createTransactionService({
           (allocationUnits as bigint[]).reduce(
             (sum, units) => sum + units,
             BigInt(0),
-          ) !== itemAmountUnits
+          ) > itemAmountUnits
         ) {
           throw new ValidationError(
             transactionErrorCodes.refundLinkInvalid,
