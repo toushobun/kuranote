@@ -535,6 +535,48 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("退款核销 ¥60")).not.toBeInTheDocument();
     });
 
+    it("部分明细已结清、部分仍待报销时整行按待报销显示", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "600",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "reimbursed",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "200",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("待报销")).toBeInTheDocument();
+      expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+    });
+
     it("所有明细都没有业务状态时不显示业务标签", () => {
       render(
         <TransactionRow
