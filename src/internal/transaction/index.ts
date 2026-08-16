@@ -18,6 +18,7 @@ export {
   toTransactionSpecialStatusStorageValue,
   transactionIncomeLinkRoles,
   transactionSpecialStatuses,
+  transactionSpecialStatusLabels,
   transactionSpecialStatusStorageValues,
   type TransactionBusinessStatus,
   type TransactionIncomeLinkRole,

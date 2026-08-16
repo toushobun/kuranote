@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(20);
+select plan(25);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -302,6 +302,100 @@ select is(
     ),
     '40.00/60.00/reimbursed',
     '退款与报销核销金额可以同时非零且以剩余余额为零判定已结清'
+);
+
+-- UPDATE transaction_item_reimbursement_link 直接更换关联目标：
+-- 验证旧目标与新目标都会被状态重算 trigger 正确处理，而不只是 INSERT / DELETE 路径。
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, created_by, updated_by
+)
+select
+    ('59870000-0000-4000-8000-' || lpad(sequence_number::text, 12, '0'))::uuid,
+    source_record.ledger_id,
+    'normal',
+    'active',
+    source_record.transaction_at + sequence_number * interval '1 minute',
+    source_record.merchant_id,
+    'Issue 598 PR4 状态重算测试 ' || sequence_number,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+from public.transaction_record source_record
+cross join generate_series(12, 14) sequence_number
+where source_record.id = '00000000-0000-4000-8000-000000009001';
+
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, account_id, category_id,
+    amount, discount_amount, balance_delta, sort_order,
+    created_by, updated_by, special_status
+)
+select
+    ('59880000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
+    '00000000-0000-4000-8000-000000000032'::uuid,
+    ('59870000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
+    '00000000-0000-4000-8000-000000000043'::uuid,
+    case item.category_type
+        when 'expense' then '00000000-0000-4000-8000-000000005021'::uuid
+        else '00000000-0000-4000-8000-000000005002'::uuid
+    end,
+    item.amount,
+    0,
+    case item.category_type when 'expense' then -item.amount else item.amount end,
+    0,
+    '00000000-0000-4000-8000-000000000031'::uuid,
+    '00000000-0000-4000-8000-000000000031'::uuid,
+    item.special_status::public.transaction_item_special_status
+from (
+    values
+        (12, 'expense', 100::numeric, 'pending_reimbursement'),
+        (13, 'expense', 100::numeric, 'pending_reimbursement'),
+        (14, 'income', 100::numeric, null)
+) as item(sequence_number, category_type, amount, special_status);
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59880000-0000-4000-8000-000000000014',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '59880000-0000-4000-8000-000000000012'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '新增报销关联建立 UPDATE 测试的初始已结清目标 A'
+);
+
+select is(
+    (select special_status from public.transaction_item
+     where id = '59880000-0000-4000-8000-000000000012'),
+    'reimbursed'::public.transaction_item_special_status,
+    'UPDATE 测试前目标 A 处于已结清状态'
+);
+
+select lives_ok(
+    $$
+        update public.transaction_item_reimbursement_link
+        set target_expense_item_id = '59880000-0000-4000-8000-000000000013'
+        where reimbursement_income_item_id =
+              '59880000-0000-4000-8000-000000000014'
+    $$,
+    'UPDATE 关联目标会同时触发旧目标与新目标的状态重算'
+);
+
+select is(
+    (select special_status from public.transaction_item
+     where id = '59880000-0000-4000-8000-000000000012'),
+    'pending_reimbursement'::public.transaction_item_special_status,
+    'UPDATE 后旧目标 A 失去核销金额回到待报销'
+);
+
+select is(
+    (select special_status from public.transaction_item
+     where id = '59880000-0000-4000-8000-000000000013'),
+    'reimbursed'::public.transaction_item_special_status,
+    'UPDATE 后新目标 B 获得核销金额变为已结清'
 );
 
 select * from finish();

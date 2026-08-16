@@ -31,6 +31,14 @@ export type TransactionWritableSpecialStatus =
 
 export type TransactionSpecialStatusFilterValue = TransactionSpecialStatus;
 
+// 原始结算状态文案：无论核销来源如何，均按“待报销 / 已结清”表达。
+// 核销来源相关的具体展示词（已报销 / 已退款）属于 TransactionBusinessBadge 的展示态，
+// 不与本状态共用同一份词表，避免筛选器等直接读取原始状态的场景借用来源特定文案。
+export const transactionSpecialStatusLabels = {
+  pendingReimbursement: "待报销",
+  reimbursed: "已结清",
+} as const satisfies Record<TransactionSpecialStatus, string>;
+
 export const transactionSpecialStatusStorageValues = [
   "pending_reimbursement",
   "reimbursed",
