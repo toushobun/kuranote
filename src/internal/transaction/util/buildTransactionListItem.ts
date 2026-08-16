@@ -86,8 +86,11 @@ export function buildTransactionListItem({
       ? categoryById.get(category.parent_id)
       : undefined;
     const businessStatus = resolveTransactionBusinessStatus({
+      amount: item.amount,
+      businessNetAmount: item.business_net_amount,
       isRefundIncome: item.is_refund_income,
       isReimbursementIncome: item.is_reimbursement_income,
+      refundedAmount: item.refunded_amount,
       specialStatus: item.special_status ?? null,
     });
 

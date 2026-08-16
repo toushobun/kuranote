@@ -271,9 +271,6 @@ const transactionRpcErrorCodes = [
   "refund_amount_exceeded",
   "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
-  "reimbursement_amount_mismatch",
-  "refunded_item_special_status_conflict",
-  "special_status_refund_conflict",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
   "reimbursement_link_exists",
@@ -414,7 +411,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "refund_amount_exceeded") {
       throw new ConflictError(
         transactionErrorCodes.refundAmountExceeded,
-        "退款金额超过所选明细的剩余可退金额，请重新选择。",
+        "退款分摊合计必须等于本次可核销金额，请重新选择。",
       );
     }
 
@@ -453,27 +450,6 @@ export function createSupabaseTransactionRepository(
       );
     }
 
-    if (rpcErrorCode === "reimbursement_amount_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入金额不能小于所选待报销明细合计金额。",
-      );
-    }
-
-    if (rpcErrorCode === "refunded_item_special_status_conflict") {
-      throw new ValidationError(
-        transactionErrorCodes.refundLinkInvalid,
-        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
-      );
-    }
-
-    if (rpcErrorCode === "special_status_refund_conflict") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "该支出明细已有退款关联，不能再标记为待报销。",
-      );
-    }
-
     if (rpcErrorCode === "income_link_category_invalid") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkCategoryInvalid,
@@ -484,7 +460,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "income_link_conflict") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkConflict,
-        "报销关联和退款关联不能同时设置。",
+        "同一个收入明细不能同时作为退款来源和报销来源。",
       );
     }
 

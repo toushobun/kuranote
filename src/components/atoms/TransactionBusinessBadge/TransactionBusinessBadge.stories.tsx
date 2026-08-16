@@ -1,26 +1,19 @@
-import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { TransactionBusinessBadge } from "./TransactionBusinessBadge";
-import { transactionBusinessBadgeStatuses } from "./transactionBusinessBadgeConfig";
-
-function TransactionBusinessBadgePreview() {
-  return (
-    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-      {transactionBusinessBadgeStatuses.map((status) => (
-        <TransactionBusinessBadge key={status} status={status} />
-      ))}
-    </Stack>
-  );
-}
 
 const meta = {
   title: "Atoms/TransactionBusinessBadge",
   component: TransactionBusinessBadge,
-  argTypes: {
+  args: {
+    currency: "JPY",
     status: {
-      control: "select",
-      options: transactionBusinessBadgeStatuses,
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "400",
+        reimbursementAmount: "600",
+      },
+      settlementStatus: "reimbursed",
     },
   },
 } satisfies Meta<typeof TransactionBusinessBadge>;
@@ -28,18 +21,48 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  name: "全部业务状态",
-  args: {
-    status: "pendingReimbursement",
-  },
-  render: () => <TransactionBusinessBadgePreview />,
+export const MixedOffsetCompleted: Story = {
+  name: "已结清且同时包含退款与报销核销",
 };
 
-export const CustomLabel: Story = {
-  name: "自定义文案",
+export const MixedOffsetPending: Story = {
+  name: "待报销且同时包含退款与报销核销",
   args: {
-    label: "公司报销中",
-    status: "pendingReimbursement",
+    status: {
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "400",
+        reimbursementAmount: "300",
+      },
+      settlementStatus: "pendingReimbursement",
+    },
+  },
+};
+
+export const OrdinaryRefundedExpense: Story = {
+  name: "普通支出仅展示退款核销来源",
+  args: {
+    status: {
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "1000",
+        reimbursementAmount: "0",
+      },
+      settlementStatus: null,
+    },
+  },
+};
+
+export const RefundIncome: Story = {
+  name: "退款收入来源",
+  args: {
+    status: {
+      incomeLinkRole: "refund",
+      offsetComposition: {
+        refundAmount: "0",
+        reimbursementAmount: "0",
+      },
+      settlementStatus: null,
+    },
   },
 };

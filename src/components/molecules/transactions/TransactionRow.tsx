@@ -220,9 +220,10 @@ export function TransactionRow({
           useFlexGap
           sx={{ flexWrap: "wrap" }}
         >
-          {businessStatuses.map((status) => (
+          {businessStatuses.map(({ key, status }) => (
             <TransactionBusinessBadge
-              key={status}
+              currency={item.account_currency}
+              key={key}
               status={status}
               sx={businessBadgeSx}
             />
@@ -235,17 +236,20 @@ export function TransactionRow({
 
 function getBusinessStatuses(
   categoryItems: CategorySummaryItem[],
-): TransactionBusinessStatus[] {
-  return [
-    ...new Set(
-      categoryItems
-        .map((category) => category.businessStatus)
-        .filter(
-          (status): status is TransactionBusinessStatus =>
-            status !== null && status !== undefined,
-        ),
-    ),
-  ];
+): { key: string; status: TransactionBusinessStatus }[] {
+  const statusByKey = new Map<string, TransactionBusinessStatus>();
+  for (const category of categoryItems) {
+    const status = category.businessStatus;
+    if (!status) continue;
+    const key = [
+      status.settlementStatus ?? "none",
+      status.offsetComposition.refundAmount,
+      status.offsetComposition.reimbursementAmount,
+      status.incomeLinkRole ?? "none",
+    ].join(":");
+    statusByKey.set(key, status);
+  }
+  return [...statusByKey].map(([key, status]) => ({ key, status }));
 }
 
 function formatRowAmount(item: TransactionRowItem) {

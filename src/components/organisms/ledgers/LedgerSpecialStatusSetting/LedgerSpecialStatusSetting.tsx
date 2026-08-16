@@ -98,7 +98,17 @@ export function LedgerSpecialStatusSetting({
             {enabled ? (
               <Stack direction="row" sx={badgeListSx}>
                 {transactionSpecialStatuses.map((status) => (
-                  <TransactionBusinessBadge key={status} status={status} />
+                  <TransactionBusinessBadge
+                    key={status}
+                    status={{
+                      incomeLinkRole: null,
+                      offsetComposition: {
+                        refundAmount: "0",
+                        reimbursementAmount: "0",
+                      },
+                      settlementStatus: status,
+                    }}
+                  />
                 ))}
                 {refundPreviewChips.map((chip) => (
                   <Chip

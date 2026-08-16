@@ -12,6 +12,7 @@ import type {
 import { transactionFormValidationMessages } from "utils/transactionMessages";
 import {
   allocateRefundAmount,
+  resolveTransactionBusinessStatus,
   formatRefundMinorUnits,
   summarizeRefundAllocationAmounts,
   toRefundMinorUnits,
@@ -655,8 +656,10 @@ function getFormItemBusinessStatus(
   specialStatus: TransactionFormItem["specialStatus"],
   refundCandidates: TransactionRefundCandidate[],
 ): TransactionBusinessStatus | null {
-  if (refundCandidates.length > 0) return "refund";
-  return specialStatus ?? null;
+  return resolveTransactionBusinessStatus({
+    isRefundIncome: refundCandidates.length > 0,
+    specialStatus,
+  });
 }
 
 function cancelDefaultEvent(event: { preventDefault(): void }) {

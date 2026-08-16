@@ -96,7 +96,14 @@ export const RefundIncome: Story = {
         ...itemSummaries[0],
         amount: "200",
         businessNetAmount: "0",
-        businessStatus: "refund",
+        businessStatus: {
+          incomeLinkRole: "refund",
+          offsetComposition: {
+            refundAmount: "0",
+            reimbursementAmount: "0",
+          },
+          settlementStatus: null,
+        },
         category: { ...itemSummaries[0].category!, type: "income" },
       },
     ],
@@ -114,7 +121,14 @@ export const ReimbursementIncome: Story = {
         ...itemSummaries[0],
         amount: "500",
         businessNetAmount: "0",
-        businessStatus: "reimbursement",
+        businessStatus: {
+          incomeLinkRole: "reimbursement",
+          offsetComposition: {
+            refundAmount: "0",
+            reimbursementAmount: "0",
+          },
+          settlementStatus: null,
+        },
         category: { ...itemSummaries[0].category!, type: "income" },
       },
     ],

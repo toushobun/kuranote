@@ -1,4 +1,14 @@
-import type { TransactionBusinessStatus } from "internal/transaction";
+import type {
+  TransactionIncomeLinkRole,
+  TransactionSpecialStatus,
+} from "internal/transaction";
+
+export type TransactionBusinessBadgeKind =
+  | TransactionSpecialStatus
+  | "refundOffset"
+  | "reimbursementOffset"
+  | "refundIncome"
+  | "reimbursementIncome";
 
 type TransactionBusinessBadgeConfig = {
   backgroundColor: string;
@@ -7,39 +17,50 @@ type TransactionBusinessBadgeConfig = {
   label: string;
 };
 
-export const transactionBusinessBadgeStatuses = [
-  "pendingReimbursement",
-  "reimbursed",
-  "refund",
-  "reimbursement",
-] as const satisfies readonly TransactionBusinessStatus[];
-
 export const transactionBusinessBadgeConfig = {
   pendingReimbursement: {
     backgroundColor: "var(--user-theme-business-pending-bg)",
     color: "var(--user-theme-business-pending-text)",
-    description: "这笔支出之后需要申请报销",
+    description: "这笔支出已进入报销流程，尚有未核销余额",
     label: "待报销",
   },
   reimbursed: {
     backgroundColor: "var(--user-theme-business-completed-bg)",
     color: "var(--user-theme-business-completed-text)",
-    description: "这笔支出已经完成报销",
-    label: "已报销",
+    description: "这笔支出的剩余可核销余额为零",
+    label: "已结清",
   },
-  refund: {
+  refundOffset: {
     backgroundColor: "var(--user-theme-income-bg)",
     color: "var(--user-theme-income-amount)",
-    description: "这笔收入来自退款关联",
-    label: "退款",
+    description: "这笔支出中由退款收入核销的金额",
+    label: "退款核销",
   },
-  reimbursement: {
+  reimbursementOffset: {
     backgroundColor: "var(--user-theme-business-completed-bg)",
     color: "var(--user-theme-business-completed-text)",
-    description: "这笔收入来自报销关联",
-    label: "报销",
+    description: "这笔支出中由报销收入核销的金额",
+    label: "报销核销",
+  },
+  refundIncome: {
+    backgroundColor: "var(--user-theme-income-bg)",
+    color: "var(--user-theme-income-amount)",
+    description: "这笔收入是退款核销来源",
+    label: "退款收入",
+  },
+  reimbursementIncome: {
+    backgroundColor: "var(--user-theme-business-completed-bg)",
+    color: "var(--user-theme-business-completed-text)",
+    description: "这笔收入是报销核销来源",
+    label: "报销收入",
   },
 } as const satisfies Record<
-  TransactionBusinessStatus,
+  TransactionBusinessBadgeKind,
   TransactionBusinessBadgeConfig
 >;
+
+export function getIncomeLinkRoleBadgeKind(
+  role: TransactionIncomeLinkRole,
+): "refundIncome" | "reimbursementIncome" {
+  return role === "refund" ? "refundIncome" : "reimbursementIncome";
+}

@@ -371,7 +371,14 @@ describe("getEditTransactionView income links", () => {
       initialValues: {
         items: [
           {
-            businessStatus: "reimbursement",
+            businessStatus: {
+              incomeLinkRole: "reimbursement",
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "0",
+              },
+              settlementStatus: null,
+            },
           },
         ],
       },
@@ -424,7 +431,14 @@ describe("getEditTransactionView income links", () => {
         items: [
           {
             businessNetAmount: "0",
-            businessStatus: "refund",
+            businessStatus: {
+              incomeLinkRole: "refund",
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "0",
+              },
+              settlementStatus: null,
+            },
             refundCandidates: [
               {
                 id: linkedExpenseItemId,

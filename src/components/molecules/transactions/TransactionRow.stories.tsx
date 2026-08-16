@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { transactionBusinessStatuses } from "internal/transaction";
 import type { TransactionRowItem } from "types/transactions";
 
 import { TransactionRow } from "./TransactionRow";
@@ -86,7 +85,16 @@ const incomeItem: TransactionRowItem = {
   recorder_name: null,
 };
 
-const [, , refundStatus, reimbursementStatus] = transactionBusinessStatuses;
+const refundStatus = {
+  incomeLinkRole: "refund",
+  offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+  settlementStatus: null,
+} as const;
+const reimbursementStatus = {
+  incomeLinkRole: "reimbursement",
+  offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+  settlementStatus: null,
+} as const;
 
 const businessStatusItem: TransactionRowItem = {
   ...incomeItem,
@@ -161,6 +169,31 @@ export const BusinessStatuses: Story = {
   name: "退款与报销业务标签",
   args: {
     item: businessStatusItem,
+  },
+};
+
+export const MixedOffsetSettlement: Story = {
+  name: "结算状态与退款报销核销构成",
+  args: {
+    item: {
+      ...expenseItem,
+      amount: "0",
+      originalAmount: "2858",
+      categoryItems: [
+        {
+          ...expenseItem.categoryItems[0],
+          amount: "2858",
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "858",
+              reimbursementAmount: "2000",
+            },
+            settlementStatus: "reimbursed",
+          },
+        },
+      ],
+    },
   },
 };
 

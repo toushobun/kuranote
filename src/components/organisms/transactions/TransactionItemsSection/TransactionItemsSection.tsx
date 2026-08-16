@@ -10,7 +10,10 @@ import { TransactionOriginalAmount } from "atoms/transactions/TransactionOrigina
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
-import { allocateRefundAmount } from "internal/transaction";
+import {
+  allocateRefundAmount,
+  resolveTransactionBusinessStatus,
+} from "internal/transaction";
 import {
   formatTransactionRowAmount,
   hasBusinessNetAmountOffset,
@@ -77,7 +80,11 @@ export function TransactionItemsSection({
               const categoryLabel = item.category
                 ? formatCategoryName(item.category)
                 : "请选择分类";
-              const businessStatus = item.businessStatus ?? item.specialStatus;
+              const businessStatus =
+                item.businessStatus ??
+                resolveTransactionBusinessStatus({
+                  specialStatus: item.specialStatus,
+                });
               const hasOriginalAmount = hasBusinessNetAmountOffset(
                 item.amount,
                 item.businessNetAmount,
@@ -182,6 +189,7 @@ export function TransactionItemsSection({
                       </Button>
                       {businessStatus ? (
                         <TransactionBusinessBadge
+                          currency={selectedAccountCurrency}
                           status={businessStatus}
                           sx={itemStatusBadgeSx}
                         />

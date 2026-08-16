@@ -5,10 +5,12 @@ export const transactionErrorCodes = {
   createFailed: "create_failed",
   dateInvalid: "date_invalid",
   incomeLinkCategoryInvalid: "income_link_category_invalid",
+  // 只约束同一收入明细不能同时作为退款来源和报销来源。
   incomeLinkConflict: "income_link_conflict",
   ledgerInvalid: "ledger_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
+  // 保留数据库稳定码；仅表示提交分摊合计不符合本次 allocatable_amount。
   refundAmountExceeded: "refund_amount_exceeded",
   refundLinkInvalid: "refund_link_invalid",
   reimbursementLinkInvalid: "reimbursement_link_invalid",

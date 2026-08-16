@@ -1,36 +1,84 @@
 import Chip, { type ChipProps } from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
 import type { TransactionBusinessStatus } from "internal/transaction";
-import type { ReactNode } from "react";
+import { getCurrencySymbol } from "utils/currency";
+import { formatNumber } from "utils/transactions";
 
-import { transactionBusinessBadgeConfig } from "./transactionBusinessBadgeConfig";
+import {
+  getIncomeLinkRoleBadgeKind,
+  transactionBusinessBadgeConfig,
+  type TransactionBusinessBadgeKind,
+} from "./transactionBusinessBadgeConfig";
 
 type TransactionBusinessBadgeProps = Omit<ChipProps, "color" | "label"> & {
-  label?: ReactNode;
+  currency?: string;
   status: TransactionBusinessStatus;
 };
 
+type BusinessBadge = {
+  amount?: string;
+  kind: TransactionBusinessBadgeKind;
+};
+
 export function TransactionBusinessBadge({
-  label,
+  currency,
   size = "small",
   status,
   sx,
   ...props
 }: TransactionBusinessBadgeProps) {
-  const config = transactionBusinessBadgeConfig[status];
+  const badges = resolveBusinessBadges(status);
 
   return (
-    <Chip
-      label={label ?? config.label}
-      size={size}
-      sx={[
-        {
-          backgroundColor: config.backgroundColor,
-          color: config.color,
-          fontWeight: 800,
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-      {...props}
-    />
+    <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+      {badges.map(({ amount, kind }) => {
+        const config = transactionBusinessBadgeConfig[kind];
+        return (
+          <Chip
+            key={kind}
+            label={
+              amount
+                ? `${config.label} ${getCurrencySymbol(currency)}${formatNumber(amount)}`
+                : config.label
+            }
+            size={size}
+            sx={[
+              {
+                backgroundColor: config.backgroundColor,
+                color: config.color,
+                fontWeight: 800,
+              },
+              ...(Array.isArray(sx) ? sx : [sx]),
+            ]}
+            {...props}
+          />
+        );
+      })}
+    </Stack>
   );
+}
+
+function resolveBusinessBadges(
+  status: TransactionBusinessStatus,
+): BusinessBadge[] {
+  const badges: BusinessBadge[] = [];
+  if (status.settlementStatus) {
+    badges.push({ kind: status.settlementStatus });
+  }
+  if (Number(status.offsetComposition.refundAmount) > 0) {
+    badges.push({
+      amount: status.offsetComposition.refundAmount,
+      kind: "refundOffset",
+    });
+  }
+  if (Number(status.offsetComposition.reimbursementAmount) > 0) {
+    badges.push({
+      amount: status.offsetComposition.reimbursementAmount,
+      kind: "reimbursementOffset",
+    });
+  }
+  if (status.incomeLinkRole) {
+    badges.push({ kind: getIncomeLinkRoleBadgeKind(status.incomeLinkRole) });
+  }
+  return badges;
 }

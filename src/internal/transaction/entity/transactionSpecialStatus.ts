@@ -6,14 +6,21 @@ export const transactionSpecialStatuses = [
 export type TransactionSpecialStatus =
   (typeof transactionSpecialStatuses)[number];
 
-export const transactionBusinessStatuses = [
-  ...transactionSpecialStatuses,
-  "refund",
-  "reimbursement",
-] as const;
+export const transactionIncomeLinkRoles = ["refund", "reimbursement"] as const;
 
-export type TransactionBusinessStatus =
-  (typeof transactionBusinessStatuses)[number];
+export type TransactionIncomeLinkRole =
+  (typeof transactionIncomeLinkRoles)[number];
+
+export type TransactionOffsetComposition = {
+  refundAmount: string;
+  reimbursementAmount: string;
+};
+
+export type TransactionBusinessStatus = {
+  incomeLinkRole: TransactionIncomeLinkRole | null;
+  offsetComposition: TransactionOffsetComposition;
+  settlementStatus: TransactionSpecialStatus | null;
+};
 
 export const transactionWritableSpecialStatuses = [
   "pendingReimbursement",
@@ -60,15 +67,82 @@ export function fromTransactionSpecialStatusStorageValue(
 }
 
 export function resolveTransactionBusinessStatus({
+  amount,
+  businessNetAmount,
   isRefundIncome = false,
   isReimbursementIncome = false,
+  refundedAmount,
   specialStatus = null,
 }: {
+  amount?: string;
+  businessNetAmount?: string;
   isRefundIncome?: boolean;
   isReimbursementIncome?: boolean;
-  specialStatus?: TransactionSpecialStatusStorageValue | null;
+  refundedAmount?: string;
+  specialStatus?:
+    | TransactionSpecialStatus
+    | TransactionSpecialStatusStorageValue
+    | null;
 }): TransactionBusinessStatus | null {
-  if (isRefundIncome) return "refund";
-  if (isReimbursementIncome) return "reimbursement";
-  return fromTransactionSpecialStatusStorageValue(specialStatus);
+  const settlementStatus =
+    specialStatus === "pending_reimbursement"
+      ? "pendingReimbursement"
+      : specialStatus;
+  const refundAmount = normalizePositiveAmount(refundedAmount);
+  const reimbursementAmount = settlementStatus
+    ? calculateReimbursementAmount({
+        amount,
+        businessNetAmount,
+        refundAmount,
+      })
+    : "0";
+  const incomeLinkRole = isRefundIncome
+    ? "refund"
+    : isReimbursementIncome
+      ? "reimbursement"
+      : null;
+
+  if (
+    settlementStatus === null &&
+    incomeLinkRole === null &&
+    refundAmount === "0" &&
+    reimbursementAmount === "0"
+  ) {
+    return null;
+  }
+
+  return {
+    incomeLinkRole,
+    offsetComposition: { refundAmount, reimbursementAmount },
+    settlementStatus,
+  };
+}
+
+function calculateReimbursementAmount({
+  amount,
+  businessNetAmount,
+  refundAmount,
+}: {
+  amount: string | undefined;
+  businessNetAmount: string | undefined;
+  refundAmount: string;
+}) {
+  const original = Number(amount);
+  const remaining = Number(businessNetAmount);
+  const refunded = Number(refundAmount);
+  if (
+    !Number.isFinite(original) ||
+    !Number.isFinite(remaining) ||
+    !Number.isFinite(refunded)
+  ) {
+    return "0";
+  }
+
+  return normalizePositiveAmount(String(original - remaining - refunded));
+}
+
+function normalizePositiveAmount(amount: string | undefined) {
+  const value = Number(amount ?? "0");
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return String(Number(value.toFixed(2)));
 }
