@@ -48,6 +48,33 @@ const searchPage = {
 };
 
 describe("TransactionRefundLinkPicker", () => {
+  it("退款收入超过剩余可退金额时显示实际核销与净收益", () => {
+    const selectedItem = {
+      accountCurrency: "JPY",
+      accountId: "account-1",
+      amount: "1200",
+      categoryName: "午餐",
+      id: "refund-item-1",
+      parentCategoryName: "饮食",
+      refundedAmount: "200",
+      remainingRefundableAmount: "1000",
+      transactionAt: "2026-08-15T10:00:00.000Z",
+      transactionRecordId: "transaction-1",
+    };
+
+    render(
+      <TransactionRefundLinkPicker
+        onChange={vi.fn()}
+        refundAmount="1500"
+        value={[selectedItem]}
+      />,
+    );
+
+    expect(
+      screen.getByText("本次实际核销 ¥1,000，剩余 ¥500 计入净收益"),
+    ).toBeInTheDocument();
+  });
+
   it("打开复用的按月浏览与搜索选择模式", () => {
     render(<TransactionRefundLinkPicker onChange={vi.fn()} value={null} />);
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));

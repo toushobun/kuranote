@@ -354,7 +354,39 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("退款分摊合计与收入金额不一致时拒绝写入", async () => {
+  it("退款分摊合计小于收入金额时交由 RPC 判定", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+
+    const input = {
+      ...normalInput,
+      items: [
+        {
+          ...normalInput.items[0],
+          refundAllocations: [
+            {
+              refundAmount: 300,
+              refundedItemId: "00000000-0000-4000-8000-000000005073",
+            },
+            {
+              refundAmount: 899.99,
+              refundedItemId: "00000000-0000-4000-8000-000000005074",
+            },
+          ],
+        },
+      ],
+      type: "income" as const,
+    };
+
+    await service.createNormal(input);
+
+    expect(repository.createNormal).toHaveBeenCalledWith(input);
+  });
+
+  it("退款分摊合计超过收入金额时拒绝写入", async () => {
     const { repository, service } = createService(
       "member",
       createRepository(),
@@ -369,12 +401,8 @@ describe("TransactionService", () => {
             ...normalInput.items[0],
             refundAllocations: [
               {
-                refundAmount: 300,
+                refundAmount: 1200.01,
                 refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-              {
-                refundAmount: 899.99,
-                refundedItemId: "00000000-0000-4000-8000-000000005074",
               },
             ],
           },

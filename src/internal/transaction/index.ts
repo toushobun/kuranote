@@ -38,6 +38,7 @@ export type {
 export {
   allocateRefundAmount,
   formatRefundMinorUnits,
+  summarizeRefundAllocationAmounts,
   toRefundMinorUnits,
   type TransactionRefundAllocation,
   type TransactionRefundAllocationTarget,

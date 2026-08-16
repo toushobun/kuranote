@@ -15,6 +15,8 @@ import {
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
 import {
+  hasUniqueRefundAllocationTargets,
+  isRefundAllocationTotalWithinAmount,
   toRefundMinorUnits,
   type TransactionRefundAllocation,
 } from "internal/transaction/util/refundAllocation";
@@ -239,17 +241,11 @@ function parseTransactionItems(
       return invalid(transactionErrorCodes.refundLinkInvalid);
     }
     if (refundAllocations.length > 0) {
-      const itemAmountUnits = toRefundMinorUnits(amountResult.value);
-      const allocationUnits = refundAllocations.map((allocation) =>
-        toRefundMinorUnits(allocation.refundAmount),
-      );
       if (
-        itemAmountUnits === null ||
-        allocationUnits.some((units) => units === null) ||
-        (allocationUnits as bigint[]).reduce(
-          (sum, units) => sum + units,
-          BigInt(0),
-        ) !== itemAmountUnits
+        !isRefundAllocationTotalWithinAmount(
+          amountResult.value,
+          refundAllocations,
+        )
       ) {
         return invalid(transactionErrorCodes.refundLinkInvalid);
       }
@@ -280,7 +276,6 @@ function parseRefundAllocations(
     if (!Array.isArray(parsed) || parsed.length > 100) return null;
 
     const allocations: TransactionRefundAllocation[] = [];
-    const ids = new Set<string>();
     for (const allocation of parsed) {
       if (!allocation || typeof allocation !== "object") return null;
       const record = allocation as Record<string, unknown>;
@@ -289,7 +284,6 @@ function parseRefundAllocations(
       if (
         typeof refundedItemId !== "string" ||
         !z.string().uuid().safeParse(refundedItemId).success ||
-        ids.has(refundedItemId) ||
         (typeof refundAmount !== "number" && typeof refundAmount !== "string")
       ) {
         return null;
@@ -303,10 +297,9 @@ function parseRefundAllocations(
       ) {
         return null;
       }
-      ids.add(refundedItemId);
       allocations.push({ refundedItemId, refundAmount: numericAmount });
     }
-    return allocations;
+    return hasUniqueRefundAllocationTargets(allocations) ? allocations : null;
   } catch {
     return null;
   }
@@ -648,7 +641,25 @@ const transactionItemRequestSchema = z
   .refine((item) => !item.refundAllocations?.length || item.amount > 0, {
     message: transactionErrorCodes.refundLinkInvalid,
     path: ["amount"],
-  });
+  })
+  .refine(
+    (item) => hasUniqueRefundAllocationTargets(item.refundAllocations ?? []),
+    {
+      message: transactionErrorCodes.refundLinkInvalid,
+      path: ["refundAllocations"],
+    },
+  )
+  .refine(
+    (item) =>
+      isRefundAllocationTotalWithinAmount(
+        item.amount,
+        item.refundAllocations ?? [],
+      ),
+    {
+      message: transactionErrorCodes.refundLinkInvalid,
+      path: ["refundAllocations"],
+    },
+  );
 
 const normalTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),

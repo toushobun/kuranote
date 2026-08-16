@@ -13,6 +13,7 @@ import { transactionFormValidationMessages } from "utils/transactionMessages";
 import {
   allocateRefundAmount,
   formatRefundMinorUnits,
+  summarizeRefundAllocationAmounts,
   toRefundMinorUnits,
 } from "internal/transaction";
 import {
@@ -674,14 +675,16 @@ function getFormItemBusinessAmount(item: TransactionFormItem) {
 }
 
 function getNewItemBusinessNetAmount(
-  _amount: string,
+  amount: string,
   specialStatus: TransactionFormItem["specialStatus"],
   refundCandidates: TransactionRefundCandidate[],
 ) {
-  if (specialStatus === "reimbursed" || refundCandidates.length > 0) {
-    return "0";
-  }
-  return undefined;
+  if (specialStatus === "reimbursed") return "0";
+  if (refundCandidates.length === 0) return undefined;
+
+  const allocations = allocateRefundAmount(amount, refundCandidates);
+  if (allocations === null) return undefined;
+  return summarizeRefundAllocationAmounts(amount, allocations)?.netIncomeAmount;
 }
 
 function getUpdatedItemBusinessNetAmount(

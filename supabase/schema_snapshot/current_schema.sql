@@ -316,6 +316,8 @@ declare
     v_refund_count integer := 0;
     v_refund_distinct_count integer := 0;
     v_refund_total numeric(14,2) := 0;
+    v_refund_allocatable_amount numeric(14,2) := 0;
+    v_refund_remaining_units_by_target jsonb := '{}'::jsonb;
     v_refund_target_ids uuid[] := array[]::uuid[];
     v_locked_count integer := 0;
     v_invalid_count integer := 0;
@@ -513,11 +515,6 @@ begin
     end if;
 
     if v_refund_count > 0 then
-        if v_refund_total is distinct from v_income_amount then
-            raise exception 'refund_allocation_invalid'
-                using errcode = '22023', detail = 'refund_allocation_invalid';
-        end if;
-
         perform 1
         from public.transaction_item ti
         join public.transaction_record tr
@@ -581,74 +578,68 @@ begin
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
+        with targets as materialized (
+            select
+                target_id,
+                round(
+                    public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        target_id
+                    ) * 100
+                )::bigint as remaining_units
+            from unnest(v_refund_target_ids) target_id
+        )
+        select
+            least(
+                round(v_income_amount * 100)::bigint,
+                coalesce(sum(remaining_units), 0)
+            )::numeric / 100,
+            coalesce(
+                jsonb_object_agg(target_id::text, remaining_units),
+                '{}'::jsonb
+            )
+        into
+            v_refund_allocatable_amount,
+            v_refund_remaining_units_by_target
+        from targets;
+
+        if v_refund_total is distinct from v_refund_allocatable_amount then
+            if v_refund_total > v_refund_allocatable_amount then
+                raise exception 'refund_amount_exceeded'
+                    using errcode = '22023', detail = 'refund_amount_exceeded';
+            end if;
+
+            raise exception 'refund_allocation_invalid'
+                using errcode = '22023', detail = 'refund_allocation_invalid';
+        end if;
+
         with requested as (
             select
                 (allocation ->> 'refundedItemId')::uuid as refunded_item_id,
                 round((allocation ->> 'refundAmount')::numeric * 100)::bigint
                     as requested_units
             from jsonb_array_elements(v_refund_allocations) allocation
-        ), existing_refunds as (
-            select
-                link.refunded_item_id,
-                coalesce(sum(link.refund_amount), 0) as refunded_amount
-            from public.transaction_item_refund_link link
-            join public.transaction_item refund_income
-              on refund_income.id = link.refund_income_item_id
-             and refund_income.ledger_id = link.ledger_id
-            join public.transaction_record refund_record
-              on refund_record.id = refund_income.transaction_record_id
-             and refund_record.ledger_id = refund_income.ledger_id
-            where link.ledger_id = p_ledger_id
-              and link.refunded_item_id = any(v_refund_target_ids)
-              and link.refund_income_item_id <> p_income_item_id
-              and refund_record.status = 'active'
-            group by link.refunded_item_id
-        ), existing_reimbursements as (
-            select
-                link.target_expense_item_id,
-                coalesce(sum(link.reimbursement_amount), 0)
-                    as reimbursement_amount
-            from public.transaction_item_reimbursement_link link
-            join public.transaction_item reimbursement_income
-              on reimbursement_income.id = link.reimbursement_income_item_id
-             and reimbursement_income.ledger_id = link.ledger_id
-            join public.transaction_record reimbursement_record
-              on reimbursement_record.id =
-                 reimbursement_income.transaction_record_id
-             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
-            where link.ledger_id = p_ledger_id
-              and link.target_expense_item_id = any(v_refund_target_ids)
-              and reimbursement_record.status = 'active'
-            group by link.target_expense_item_id
         ), targets as (
             select
                 requested.refunded_item_id,
                 requested.requested_units,
-                round(greatest(
-                    ti.amount
-                    - coalesce(existing_refunds.refunded_amount, 0)
-                    - coalesce(existing_reimbursements.reimbursement_amount, 0),
-                    0
-                ) * 100)::bigint as remaining_units
+                (
+                    v_refund_remaining_units_by_target
+                        ->> requested.refunded_item_id::text
+                )::bigint as remaining_units
             from requested
-            join public.transaction_item ti
-              on ti.id = requested.refunded_item_id
-             and ti.ledger_id = p_ledger_id
-            left join existing_refunds
-              on existing_refunds.refunded_item_id = requested.refunded_item_id
-            left join existing_reimbursements
-              on existing_reimbursements.target_expense_item_id =
-                 requested.refunded_item_id
         ), allocation_base as (
             select
                 targets.*,
                 sum(remaining_units) over () as total_remaining_units,
                 floor(
-                    round(v_income_amount * 100)::numeric * remaining_units
+                    round(v_refund_allocatable_amount * 100)::numeric
+                    * remaining_units
                     / nullif(sum(remaining_units) over (), 0)
                 )::bigint as base_units,
                 mod(
-                    round(v_income_amount * 100)::numeric * remaining_units,
+                    round(v_refund_allocatable_amount * 100)::numeric
+                    * remaining_units,
                     nullif(sum(remaining_units) over (), 0)
                 ) as remainder_units
             from targets
@@ -658,7 +649,7 @@ begin
                 row_number() over (
                     order by remainder_units desc, refunded_item_id
                 ) as remainder_rank,
-                round(v_income_amount * 100)::bigint
+                round(v_refund_allocatable_amount * 100)::bigint
                     - sum(base_units) over () as tail_units
             from allocation_base
         ), expected as (
@@ -671,28 +662,11 @@ begin
         select count(*)::integer
         into v_invalid_count
         from expected
-        where total_remaining_units < round(v_income_amount * 100)::bigint
-           or expected_units <= 0
+        where expected_units <= 0
            or expected_units > remaining_units
            or requested_units <> expected_units;
 
         if v_invalid_count > 0 then
-            if exists (
-                select 1
-                from public.transaction_item ti
-                where ti.ledger_id = p_ledger_id
-                  and ti.id = any(v_refund_target_ids)
-                having sum(
-                    public.calculate_transaction_item_remaining_offset_amount(
-                        p_ledger_id,
-                        ti.id
-                    )
-                ) < v_income_amount
-            ) then
-                raise exception 'refund_amount_exceeded'
-                    using errcode = '22023', detail = 'refund_amount_exceeded';
-            end if;
-
             raise exception 'refund_allocation_invalid'
                 using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;

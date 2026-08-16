@@ -299,6 +299,87 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
         );
       }
     });
+    it("请求 schema 接受分摊合计小于收入金额的退款", () => {
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            refundAllocations: [
+              {
+                refundAmount: 800,
+                refundedItemId: "00000000-0000-4000-8000-000000000201",
+              },
+            ],
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(true);
+    });
+    it("请求 schema 拒绝分摊合计超过收入金额的退款", () => {
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            refundAllocations: [
+              {
+                refundAmount: 1200.01,
+                refundedItemId: "00000000-0000-4000-8000-000000000201",
+              },
+            ],
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          transactionErrorCodes.refundLinkInvalid,
+        );
+      }
+    });
+    it("请求 schema 拒绝重复退款目标", () => {
+      const refundedItemId = "00000000-0000-4000-8000-000000000201";
+      const result = createTransactionRequestSchema.safeParse({
+        accountId,
+        items: [
+          {
+            amount: 1200,
+            categoryId,
+            refundAllocations: [
+              { refundAmount: 400, refundedItemId },
+              { refundAmount: 400, refundedItemId },
+            ],
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        type: "income",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          transactionErrorCodes.refundLinkInvalid,
+        );
+      }
+    });
     it("接受单目标报销关联请求", () => {
       const result = createTransactionRequestSchema.safeParse({
         accountId,
@@ -531,6 +612,55 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
             },
           ],
         },
+      });
+    });
+
+    it("接受分摊合计小于收入金额的退款", () => {
+      const formData = createFormData({
+        itemAmount: "1200",
+        type: "income",
+      });
+      formData.append(
+        "itemRefundAllocations",
+        JSON.stringify([
+          {
+            refundAmount: 800,
+            refundedItemId: "00000000-0000-4000-8000-000000000201",
+          },
+        ]),
+      );
+
+      expect(validateTransactionForm(formData)).toMatchObject({
+        ok: true,
+        value: {
+          items: [
+            {
+              amount: 1200,
+              refundAllocations: [{ refundAmount: 800 }],
+            },
+          ],
+        },
+      });
+    });
+
+    it("拒绝分摊合计超过收入金额的退款", () => {
+      const formData = createFormData({
+        itemAmount: "1200",
+        type: "income",
+      });
+      formData.append(
+        "itemRefundAllocations",
+        JSON.stringify([
+          {
+            refundAmount: 1200.01,
+            refundedItemId: "00000000-0000-4000-8000-000000000201",
+          },
+        ]),
+      );
+
+      expect(validateTransactionForm(formData)).toEqual({
+        error: transactionErrorCodes.refundLinkInvalid,
+        ok: false,
       });
     });
 
