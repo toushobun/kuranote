@@ -50,6 +50,27 @@ describe("TransactionBusinessBadge", () => {
   });
 
   it.each([
+    ["1000", "0", "已退款"],
+    ["0", "1000", "已报销"],
+    ["400", "600", "已结清"],
+  ] as const)(
+    "结清时退款 %s、报销 %s 显示为 %s",
+    (refundAmount, reimbursementAmount, label) => {
+      render(
+        <TransactionBusinessBadge
+          status={{
+            incomeLinkRole: null,
+            offsetComposition: { refundAmount, reimbursementAmount },
+            settlementStatus: "reimbursed",
+          }}
+        />,
+      );
+
+      expect(screen.getByText(label)).toBeInTheDocument();
+    },
+  );
+
+  it.each([
     ["refund", "退款收入"],
     ["reimbursement", "报销收入"],
   ] as const)("%s 收入角色显示为 %s", (incomeLinkRole, label) => {

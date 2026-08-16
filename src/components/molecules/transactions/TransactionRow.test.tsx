@@ -490,6 +490,51 @@ describe("TransactionRow", () => {
       expect(screen.getByText("报销收入")).toBeInTheDocument();
     });
 
+    it("多条支出按维度汇总核销金额且结算状态只显示一次", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "40",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "60",
+                    reimbursementAmount: "300",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getAllByText("待报销")).toHaveLength(1);
+      expect(screen.getByText("退款核销 ¥100")).toBeInTheDocument();
+      expect(screen.getByText("报销核销 ¥300")).toBeInTheDocument();
+      expect(screen.queryByText("退款核销 ¥40")).not.toBeInTheDocument();
+      expect(screen.queryByText("退款核销 ¥60")).not.toBeInTheDocument();
+    });
+
     it("所有明细都没有业务状态时不显示业务标签", () => {
       render(
         <TransactionRow

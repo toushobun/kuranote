@@ -28,7 +28,7 @@ export function TransactionPendingReimbursementCheckbox({
         sx={labelSx}
       />
       <Typography color="text.secondary" variant="caption">
-        报销到账后，可在收入明细中关联并自动标记为已报销。
+        退款或报销核销完成后，将自动更新结算状态。
       </Typography>
     </Stack>
   );

@@ -55,7 +55,7 @@ const specialStatusGroupLabels: Record<
   string
 > = {
   pending_reimbursement: "待报销",
-  reimbursed: "已报销",
+  reimbursed: "已结清",
 };
 
 export function buildTransactionGroupSummaryPage({

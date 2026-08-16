@@ -159,11 +159,10 @@ export async function getEditTransactionView(
           amount,
           ...(businessNetAmount === undefined ? {} : { businessNetAmount }),
           businessStatus: resolveTransactionBusinessStatus({
-            amount: item.amount,
-            businessNetAmount: item.business_net_amount,
             isRefundIncome: item.is_refund_income,
             isReimbursementIncome: item.is_reimbursement_income,
             refundedAmount: item.refunded_amount,
+            reimbursementAmount: item.reimbursement_amount,
             specialStatus: item.special_status ?? null,
           }),
           categoryId: item.category_id ?? "",

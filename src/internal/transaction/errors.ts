@@ -61,7 +61,7 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.refundLinkInvalid]: "退款金额必须大于 0。",
   [transactionErrorCodes.reimbursementLinkInvalid]: "报销目标明细不正确。",
   [transactionErrorCodes.specialStatusInvalid]:
-    "特殊状态不正确；待报销只能用于支出明细，已报销只能通过收入关联自动设置。",
+    "特殊状态不正确；待报销只能用于支出明细，结清状态只能由有效退款或报销核销自动派生。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
 };
 

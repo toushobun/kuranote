@@ -53,6 +53,34 @@ export const OrdinaryRefundedExpense: Story = {
   },
 };
 
+export const ReimbursedOnly: Story = {
+  name: "仅报销结清",
+  args: {
+    status: {
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "0",
+        reimbursementAmount: "1000",
+      },
+      settlementStatus: "reimbursed",
+    },
+  },
+};
+
+export const RefundedOnly: Story = {
+  name: "仅退款结清",
+  args: {
+    status: {
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "1000",
+        reimbursementAmount: "0",
+      },
+      settlementStatus: "reimbursed",
+    },
+  },
+};
+
 export const RefundIncome: Story = {
   name: "退款收入来源",
   args: {

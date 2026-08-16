@@ -197,6 +197,39 @@ export const MixedOffsetSettlement: Story = {
   },
 };
 
+export const AggregatedOffsetComposition: Story = {
+  name: "多明细按维度汇总核销构成",
+  args: {
+    item: {
+      ...expenseItem,
+      categoryItems: [
+        {
+          ...expenseItem.categoryItems[0],
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "40",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: "pendingReimbursement",
+          },
+        },
+        {
+          ...expenseItem.categoryItems[1],
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "60",
+              reimbursementAmount: "300",
+            },
+            settlementStatus: "pendingReimbursement",
+          },
+        },
+      ],
+    },
+  },
+};
+
 export const PartiallyOffset: Story = {
   name: "部分抵消与原金额",
   args: {

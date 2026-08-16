@@ -43,12 +43,17 @@ export type TransactionItemInput = {
 
 type TransactionItemRepositoryRow = Omit<
   TransactionItemDbRow,
-  "amount" | "balance_delta" | "business_net_amount" | "refunded_amount"
+  | "amount"
+  | "balance_delta"
+  | "business_net_amount"
+  | "refunded_amount"
+  | "reimbursement_amount"
 > & {
   amount: number | string;
   balance_delta?: number | string | null;
   business_net_amount?: number | string | null;
   refunded_amount?: number | string | null;
+  reimbursement_amount?: number | string | null;
 };
 
 export type CreateNormalTransactionInput = {
@@ -712,7 +717,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
+          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -1097,6 +1102,7 @@ function toTransactionItemDbRow({
   balance_delta: balanceDelta,
   business_net_amount: businessNetAmount,
   refunded_amount: refundedAmount,
+  reimbursement_amount: reimbursementAmount,
   ...row
 }: TransactionItemRepositoryRow): TransactionItemDbRow {
   return {
@@ -1111,6 +1117,11 @@ function toTransactionItemDbRow({
     ...(refundedAmount == null
       ? {}
       : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+    ...(reimbursementAmount == null
+      ? {}
+      : {
+          reimbursement_amount: toTransactionAmountText(reimbursementAmount),
+        }),
   };
 }
 

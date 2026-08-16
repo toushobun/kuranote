@@ -67,18 +67,16 @@ export function fromTransactionSpecialStatusStorageValue(
 }
 
 export function resolveTransactionBusinessStatus({
-  amount,
-  businessNetAmount,
   isRefundIncome = false,
   isReimbursementIncome = false,
   refundedAmount,
+  reimbursementAmount,
   specialStatus = null,
 }: {
-  amount?: string;
-  businessNetAmount?: string;
   isRefundIncome?: boolean;
   isReimbursementIncome?: boolean;
   refundedAmount?: string;
+  reimbursementAmount?: string;
   specialStatus?:
     | TransactionSpecialStatus
     | TransactionSpecialStatusStorageValue
@@ -89,12 +87,8 @@ export function resolveTransactionBusinessStatus({
       ? "pendingReimbursement"
       : specialStatus;
   const refundAmount = normalizePositiveAmount(refundedAmount);
-  const reimbursementAmount = settlementStatus
-    ? calculateReimbursementAmount({
-        amount,
-        businessNetAmount,
-        refundAmount,
-      })
+  const effectiveReimbursementAmount = settlementStatus
+    ? normalizePositiveAmount(reimbursementAmount)
     : "0";
   const incomeLinkRole = isRefundIncome
     ? "refund"
@@ -106,39 +100,19 @@ export function resolveTransactionBusinessStatus({
     settlementStatus === null &&
     incomeLinkRole === null &&
     refundAmount === "0" &&
-    reimbursementAmount === "0"
+    effectiveReimbursementAmount === "0"
   ) {
     return null;
   }
 
   return {
     incomeLinkRole,
-    offsetComposition: { refundAmount, reimbursementAmount },
+    offsetComposition: {
+      refundAmount,
+      reimbursementAmount: effectiveReimbursementAmount,
+    },
     settlementStatus,
   };
-}
-
-function calculateReimbursementAmount({
-  amount,
-  businessNetAmount,
-  refundAmount,
-}: {
-  amount: string | undefined;
-  businessNetAmount: string | undefined;
-  refundAmount: string;
-}) {
-  const original = Number(amount);
-  const remaining = Number(businessNetAmount);
-  const refunded = Number(refundAmount);
-  if (
-    !Number.isFinite(original) ||
-    !Number.isFinite(remaining) ||
-    !Number.isFinite(refunded)
-  ) {
-    return "0";
-  }
-
-  return normalizePositiveAmount(String(original - remaining - refunded));
 }
 
 function normalizePositiveAmount(amount: string | undefined) {

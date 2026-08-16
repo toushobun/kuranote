@@ -242,7 +242,7 @@ export function createTransactionService({
     if (input.items.some((item) => item.specialStatus === "reimbursed")) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
-        "已报销状态只能通过收入的报销关联自动设置。",
+        "结清状态只能由有效退款或报销核销自动派生。",
       );
     }
     const categoryIds = [

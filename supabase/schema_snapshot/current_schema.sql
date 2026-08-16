@@ -5771,7 +5771,8 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_reimbursement_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."target_expense_item_id" = "ti"."id") OR ("link"."reimbursement_income_item_id" = "ti"."id"))))) AS "has_reimbursement_link",
-    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount"
+    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount",
+    (COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric))::numeric(14,2) AS "reimbursement_amount"
    FROM ((((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"
@@ -5783,13 +5784,12 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
              JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
           WHERE (("link"."refund_income_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("target_record"."status" = 'active'::"text"))) "income_refunds" ON (true))
-     LEFT JOIN LATERAL ( SELECT "ti"."amount" AS "reimbursed_amount"
+     LEFT JOIN LATERAL ( SELECT "sum"("link"."reimbursement_amount") AS "reimbursed_amount"
            FROM (("public"."transaction_item_reimbursement_link" "link"
              JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."reimbursement_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id"))))
-          WHERE (("link"."target_expense_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("income_record"."status" = 'active'::"text"))
-         LIMIT 1) "expense_reimbursements" ON (true))
-     LEFT JOIN LATERAL ( SELECT "sum"("target_item"."amount") AS "reimbursed_amount"
+          WHERE (("link"."target_expense_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("income_record"."status" = 'active'::"text"))) "expense_reimbursements" ON (true))
+     LEFT JOIN LATERAL ( SELECT "sum"("link"."reimbursement_amount") AS "reimbursed_amount"
            FROM (("public"."transaction_item_reimbursement_link" "link"
              JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."target_expense_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))

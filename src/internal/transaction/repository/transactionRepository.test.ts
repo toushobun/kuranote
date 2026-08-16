@@ -410,6 +410,7 @@ describe("TransactionRepository", () => {
           amount: 7930,
           balance_delta: -7930,
           refunded_amount: 120,
+          reimbursement_amount: 80,
           transaction_record_id: transactionRecordId,
         },
       ],
@@ -434,9 +435,13 @@ describe("TransactionRepository", () => {
         amount: "7930",
         balance_delta: "-7930",
         refunded_amount: "120",
+        reimbursement_amount: "80",
         transaction_record_id: transactionRecordId,
       },
     ]);
+    expect(itemQuery.select).toHaveBeenCalledWith(
+      "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
+    );
     expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
       transactionRecordId,
     ]);

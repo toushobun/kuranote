@@ -27,11 +27,10 @@ describe("transactionSpecialStatus", () => {
   it("分别派生结算状态、核销来源构成和收入关联角色", () => {
     expect(
       resolveTransactionBusinessStatus({
-        amount: "100",
-        businessNetAmount: "0",
         isRefundIncome: true,
         isReimbursementIncome: true,
         refundedAmount: "40",
+        reimbursementAmount: "60",
         specialStatus: "reimbursed",
       }),
     ).toEqual({
@@ -70,9 +69,8 @@ describe("transactionSpecialStatus", () => {
   it("普通支出无论退款多少都不进入报销结算状态", () => {
     expect(
       resolveTransactionBusinessStatus({
-        amount: "100",
-        businessNetAmount: "0",
         refundedAmount: "100",
+        reimbursementAmount: "100",
         specialStatus: null,
       }),
     ).toEqual({

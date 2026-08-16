@@ -62,8 +62,10 @@ function resolveBusinessBadges(
   status: TransactionBusinessStatus,
 ): BusinessBadge[] {
   const badges: BusinessBadge[] = [];
-  if (status.settlementStatus) {
-    badges.push({ kind: status.settlementStatus });
+  if (status.settlementStatus === "pendingReimbursement") {
+    badges.push({ kind: "pendingReimbursement" });
+  } else if (status.settlementStatus === "reimbursed") {
+    badges.push({ kind: getCompletedBadgeKind(status.offsetComposition) });
   }
   if (Number(status.offsetComposition.refundAmount) > 0) {
     badges.push({
@@ -81,4 +83,18 @@ function resolveBusinessBadges(
     badges.push({ kind: getIncomeLinkRoleBadgeKind(status.incomeLinkRole) });
   }
   return badges;
+}
+
+function getCompletedBadgeKind({
+  refundAmount,
+  reimbursementAmount,
+}: TransactionBusinessStatus["offsetComposition"]):
+  | "refunded"
+  | "reimbursed"
+  | "settled" {
+  const hasRefund = Number(refundAmount) > 0;
+  const hasReimbursement = Number(reimbursementAmount) > 0;
+  if (hasRefund && !hasReimbursement) return "refunded";
+  if (!hasRefund && hasReimbursement) return "reimbursed";
+  return "settled";
 }

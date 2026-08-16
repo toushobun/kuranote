@@ -249,6 +249,7 @@ describe("buildTransactionListItem", () => {
           category_id: categoryA.id,
           id: "item-mixed-offset",
           refunded_amount: "400",
+          reimbursement_amount: "800",
           special_status: "reimbursed",
           transaction_record_id: baseRecord.id,
         },

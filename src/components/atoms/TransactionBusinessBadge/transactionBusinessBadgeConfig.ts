@@ -1,10 +1,10 @@
-import type {
-  TransactionIncomeLinkRole,
-  TransactionSpecialStatus,
-} from "internal/transaction";
+import type { TransactionIncomeLinkRole } from "internal/transaction";
 
 export type TransactionBusinessBadgeKind =
-  | TransactionSpecialStatus
+  | "pendingReimbursement"
+  | "refunded"
+  | "reimbursed"
+  | "settled"
   | "refundOffset"
   | "reimbursementOffset"
   | "refundIncome"
@@ -27,7 +27,19 @@ export const transactionBusinessBadgeConfig = {
   reimbursed: {
     backgroundColor: "var(--user-theme-business-completed-bg)",
     color: "var(--user-theme-business-completed-text)",
-    description: "这笔支出的剩余可核销余额为零",
+    description: "这笔支出已由报销收入完成核销",
+    label: "已报销",
+  },
+  refunded: {
+    backgroundColor: "var(--user-theme-income-bg)",
+    color: "var(--user-theme-income-amount)",
+    description: "这笔支出已由退款收入完成核销",
+    label: "已退款",
+  },
+  settled: {
+    backgroundColor: "var(--user-theme-business-completed-bg)",
+    color: "var(--user-theme-business-completed-text)",
+    description: "这笔支出已由退款和报销收入共同完成核销",
     label: "已结清",
   },
   refundOffset: {

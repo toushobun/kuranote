@@ -24,6 +24,7 @@ export type TransactionItemDbRow = {
   note?: string | null;
   special_status?: TransactionSpecialStatusStorageValue | null;
   refunded_amount?: string;
+  reimbursement_amount?: string;
   has_refund_link?: boolean;
   has_reimbursement_link?: boolean;
   is_refund_income?: boolean;
