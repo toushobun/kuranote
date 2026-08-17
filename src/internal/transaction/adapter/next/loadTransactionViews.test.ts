@@ -81,13 +81,25 @@ describe("Transaction SSR adapter", () => {
       "7930",
       20,
     );
-    expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
-      recordType: "refundableExpense",
-    });
-    expect(mocks.search).toHaveBeenNthCalledWith(3, currentLedger, "7930", 10, {
-      recordType: "refundableExpense",
-      specialStatuses: ["pendingReimbursement"],
-    });
+    expect(mocks.search).toHaveBeenNthCalledWith(
+      2,
+      currentLedger,
+      "7930",
+      0,
+      {
+        recordType: "refundableExpense",
+      },
+    );
+    expect(mocks.search).toHaveBeenNthCalledWith(
+      3,
+      currentLedger,
+      "7930",
+      10,
+      {
+        recordType: "refundableExpense",
+        specialStatuses: ["pendingReimbursement"],
+      },
+    );
     expect(fetchMock).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
