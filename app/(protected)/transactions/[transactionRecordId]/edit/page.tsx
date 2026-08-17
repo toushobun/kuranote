@@ -7,6 +7,9 @@ import {
   loadRefundPickerGroupItems,
   loadRefundPickerGroupPage,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerGroupItems,
+  loadReimbursementPickerGroupPage,
+  loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
@@ -22,8 +25,13 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
-  const { canEdit, editRestriction, refundPickerView, ...view } =
-    await loadEditTransactionView(transactionRecordId);
+  const {
+    canEdit,
+    editRestriction,
+    refundPickerView,
+    reimbursementPickerView,
+    ...view
+  } = await loadEditTransactionView(transactionRecordId);
 
   if (canEdit === false) {
     return (
@@ -42,7 +50,11 @@ export default async function TransactionEditPage({
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
     loadRefundSearchPageAction: loadRefundPickerSearchPage,
+    loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
+    loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
+    loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
     refundPickerView,
+    reimbursementPickerView,
   };
 
   if (initialValues.type === "transfer") {
