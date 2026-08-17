@@ -26,13 +26,13 @@ describe("getLedgerSettingsErrorMessage", () => {
     ).toBe("你没有权限修改该账本或成员设置。");
   });
 
-  it("返回关闭特殊状态功能前需要清理明细的提示", () => {
+  it("返回关闭特殊状态功能前需要清理关联和明细的提示", () => {
     expect(
       getLedgerSettingsErrorMessage(
         ledgerSettingsErrorCodes.specialStatusHasActiveItems,
       ),
     ).toBe(
-      "账本内还有处于报销流程的明细，需要先处理完这些明细才能关闭该功能。",
+      "账本内仍有退款/报销关联或处于报销流程的明细，请先处理完成后再关闭该功能。",
     );
   });
 
