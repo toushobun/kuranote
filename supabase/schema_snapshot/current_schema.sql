@@ -3605,6 +3605,181 @@ $$;
 ALTER FUNCTION "public"."prevent_used_category_type_change"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."recalculate_refund_link_target_status"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_op in ('DELETE', 'UPDATE') then
+        perform public.recalculate_transaction_item_settlement_status(
+            old.ledger_id,
+            old.refunded_item_id
+        );
+    end if;
+
+    if tg_op in ('INSERT', 'UPDATE')
+       and (
+           tg_op = 'INSERT'
+           or new.ledger_id is distinct from old.ledger_id
+           or new.refunded_item_id is distinct from old.refunded_item_id
+           or new.refund_amount is distinct from old.refund_amount
+           or new.refund_income_item_id is distinct from old.refund_income_item_id
+       ) then
+        perform public.recalculate_transaction_item_settlement_status(
+            new.ledger_id,
+            new.refunded_item_id
+        );
+    end if;
+
+    return coalesce(new, old);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_refund_link_target_status"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_reimbursement_link_target_status"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_op in ('DELETE', 'UPDATE') then
+        perform public.recalculate_transaction_item_settlement_status(
+            old.ledger_id,
+            old.target_expense_item_id
+        );
+    end if;
+
+    if tg_op in ('INSERT', 'UPDATE')
+       and (
+           tg_op = 'INSERT'
+           or new.ledger_id is distinct from old.ledger_id
+           or new.target_expense_item_id is distinct from old.target_expense_item_id
+           or new.reimbursement_amount is distinct from old.reimbursement_amount
+           or new.reimbursement_income_item_id is distinct from
+              old.reimbursement_income_item_id
+       ) then
+        perform public.recalculate_transaction_item_settlement_status(
+            new.ledger_id,
+            new.target_expense_item_id
+        );
+    end if;
+
+    return coalesce(new, old);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_reimbursement_link_target_status"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_targets_for_income_status_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_target record;
+begin
+    if new.status is not distinct from old.status then
+        return new;
+    end if;
+
+    for v_target in
+        select link.ledger_id, link.refunded_item_id as target_item_id
+        from public.transaction_item income_item
+        join public.transaction_item_refund_link link
+          on link.ledger_id = income_item.ledger_id
+         and link.refund_income_item_id = income_item.id
+        where income_item.ledger_id = new.ledger_id
+          and income_item.transaction_record_id = new.id
+        union
+        select link.ledger_id, link.target_expense_item_id
+        from public.transaction_item income_item
+        join public.transaction_item_reimbursement_link link
+          on link.ledger_id = income_item.ledger_id
+         and link.reimbursement_income_item_id = income_item.id
+        where income_item.ledger_id = new.ledger_id
+          and income_item.transaction_record_id = new.id
+    loop
+        perform public.recalculate_transaction_item_settlement_status(
+            v_target.ledger_id,
+            v_target.target_item_id
+        );
+    end loop;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_targets_for_income_status_change"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_current_status public.transaction_item_special_status;
+    v_previous_income_link_edit_flow text :=
+        current_setting('kuranote.income_link_edit_flow', true);
+    v_previous_reimbursement_link_flow text :=
+        current_setting('kuranote.reimbursement_link_flow', true);
+    v_next_status public.transaction_item_special_status;
+begin
+    select target_item.special_status
+    into v_current_status
+    from public.transaction_item target_item
+    where target_item.ledger_id = p_ledger_id
+      and target_item.id = p_target_expense_item_id
+    for update;
+
+    -- 普通支出不进入报销状态机，退款多少都保持 NULL。
+    if not found or v_current_status is null then
+        return;
+    end if;
+
+    v_next_status := case
+        when public.calculate_transaction_item_remaining_offset_amount(
+            p_ledger_id,
+            p_target_expense_item_id
+        ) <= 0
+        then 'reimbursed'::public.transaction_item_special_status
+        else 'pending_reimbursement'::public.transaction_item_special_status
+    end;
+
+    if v_next_status is not distinct from v_current_status then
+        return;
+    end if;
+
+    -- 复用既有受控解锁通道，禁止普通写入绕过状态转换约束。
+    perform set_config('kuranote.income_link_edit_flow', 'on', true);
+    perform set_config('kuranote.reimbursement_link_flow', 'on', true);
+
+    update public.transaction_item target_item
+    set special_status = v_next_status,
+        updated_at = now()
+    where target_item.ledger_id = p_ledger_id
+      and target_item.id = p_target_expense_item_id;
+
+    perform set_config(
+        'kuranote.reimbursement_link_flow',
+        coalesce(v_previous_reimbursement_link_flow, 'off'),
+        true
+    );
+    perform set_config(
+        'kuranote.income_link_edit_flow',
+        coalesce(v_previous_income_link_edit_flow, 'off'),
+        true
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5596,7 +5771,8 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_reimbursement_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."target_expense_item_id" = "ti"."id") OR ("link"."reimbursement_income_item_id" = "ti"."id"))))) AS "has_reimbursement_link",
-    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount"
+    (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount",
+    (COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric))::numeric(14,2) AS "reimbursement_amount"
    FROM ((((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"
@@ -5608,13 +5784,12 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
              JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
           WHERE (("link"."refund_income_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("target_record"."status" = 'active'::"text"))) "income_refunds" ON (true))
-     LEFT JOIN LATERAL ( SELECT "ti"."amount" AS "reimbursed_amount"
+     LEFT JOIN LATERAL ( SELECT "sum"("link"."reimbursement_amount") AS "reimbursed_amount"
            FROM (("public"."transaction_item_reimbursement_link" "link"
              JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."reimbursement_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id"))))
-          WHERE (("link"."target_expense_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("income_record"."status" = 'active'::"text"))
-         LIMIT 1) "expense_reimbursements" ON (true))
-     LEFT JOIN LATERAL ( SELECT "sum"("target_item"."amount") AS "reimbursed_amount"
+          WHERE (("link"."target_expense_item_id" = "ti"."id") AND ("link"."ledger_id" = "ti"."ledger_id") AND ("income_record"."status" = 'active'::"text"))) "expense_reimbursements" ON (true))
+     LEFT JOIN LATERAL ( SELECT "sum"("link"."reimbursement_amount") AS "reimbursed_amount"
            FROM (("public"."transaction_item_reimbursement_link" "link"
              JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."target_expense_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
              JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
@@ -6100,6 +6275,14 @@ CREATE OR REPLACE TRIGGER "transaction_item_prevent_linked_delete" BEFORE DELETE
 
 
 
+CREATE OR REPLACE TRIGGER "transaction_item_refund_link_recalculate_target_status" AFTER INSERT OR DELETE OR UPDATE ON "public"."transaction_item_refund_link" FOR EACH ROW EXECUTE FUNCTION "public"."recalculate_refund_link_target_status"();
+
+
+
+CREATE OR REPLACE TRIGGER "transaction_item_reimbursement_link_recalculate_target_status" AFTER INSERT OR DELETE OR UPDATE ON "public"."transaction_item_reimbursement_link" FOR EACH ROW EXECUTE FUNCTION "public"."recalculate_reimbursement_link_target_status"();
+
+
+
 CREATE OR REPLACE TRIGGER "transaction_item_reimbursement_link_validate" BEFORE INSERT OR UPDATE ON "public"."transaction_item_reimbursement_link" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_reimbursement_link"();
 
 
@@ -6116,7 +6299,11 @@ CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSE
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status" BEFORE INSERT OR UPDATE OF "special_status", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_special_status"();
+CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status" BEFORE UPDATE OF "special_status", "category_id" ON "public"."transaction_item" FOR EACH ROW WHEN ((("old"."special_status" IS DISTINCT FROM "new"."special_status") OR ("old"."category_id" IS DISTINCT FROM "new"."category_id"))) EXECUTE FUNCTION "public"."validate_transaction_item_special_status"();
+
+
+
+CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status_insert" BEFORE INSERT ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_special_status"();
 
 
 
@@ -6125,6 +6312,10 @@ CREATE OR REPLACE TRIGGER "transaction_record_normalize_type_for_compat" BEFORE 
 
 
 CREATE OR REPLACE TRIGGER "transaction_record_prevent_linked_void" BEFORE UPDATE OF "status" ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_linked_transaction_void"();
+
+
+
+CREATE OR REPLACE TRIGGER "transaction_record_recalculate_link_targets" AFTER UPDATE OF "status" ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."recalculate_targets_for_income_status_change"();
 
 
 
@@ -6891,6 +7082,22 @@ REVOKE ALL ON FUNCTION "public"."prevent_disable_special_status_with_active_item
 
 
 REVOKE ALL ON FUNCTION "public"."prevent_used_category_type_change"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."recalculate_refund_link_target_status"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."recalculate_reimbursement_link_target_status"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."recalculate_targets_for_income_status_change"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
 
 
 

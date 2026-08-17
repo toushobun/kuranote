@@ -410,6 +410,7 @@ describe("TransactionRepository", () => {
           amount: 7930,
           balance_delta: -7930,
           refunded_amount: 120,
+          reimbursement_amount: 80,
           transaction_record_id: transactionRecordId,
         },
       ],
@@ -434,9 +435,13 @@ describe("TransactionRepository", () => {
         amount: "7930",
         balance_delta: "-7930",
         refunded_amount: "120",
+        reimbursement_amount: "80",
         transaction_record_id: transactionRecordId,
       },
     ]);
+    expect(itemQuery.select).toHaveBeenCalledWith(
+      "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
+    );
     expect(itemQuery.in).toHaveBeenCalledWith("transaction_record_id", [
       transactionRecordId,
     ]);
@@ -1023,21 +1028,6 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "报销收入与待报销明细的账户币种必须一致。",
       ],
       [
-        "reimbursement_amount_mismatch",
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入金额不能小于所选待报销明细合计金额。",
-      ],
-      [
-        "refunded_item_special_status_conflict",
-        transactionErrorCodes.refundLinkInvalid,
-        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
-      ],
-      [
-        "special_status_refund_conflict",
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "该支出明细已有退款关联，不能再标记为待报销。",
-      ],
-      [
         "income_link_category_invalid",
         "income_link_category_invalid",
         "只有收入明细才能关联报销或退款。",
@@ -1045,7 +1035,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       [
         "income_link_conflict",
         "income_link_conflict",
-        "报销关联和退款关联不能同时设置。",
+        "同一个收入明细不能同时作为退款来源和报销来源。",
       ],
       [
         "income_links_create_only",
@@ -1093,6 +1083,20 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
+    it.each([
+      "reimbursement_amount_mismatch",
+      "refunded_item_special_status_conflict",
+      "special_status_refund_conflict",
+    ])("旧规则错误码 %s 不再映射为旧业务语义", async (databaseError) => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "22023",
+        databaseError,
+      });
+      await expect(repository.createNormal(normalInput)).rejects.toMatchObject({
+        code: "transaction_invalid",
+        message: "交易内容不正确，请确认后重试。",
+      });
+    });
     it("存在报销关联时退出报销流程转换为安全的 ConflictError", async () => {
       const { repository } = createRepositoryWithRpcError({
         code: "P0001",

@@ -220,9 +220,10 @@ export function TransactionRow({
           useFlexGap
           sx={{ flexWrap: "wrap" }}
         >
-          {businessStatuses.map((status) => (
+          {businessStatuses.map(({ key, status }) => (
             <TransactionBusinessBadge
-              key={status}
+              currency={item.account_currency}
+              key={key}
               status={status}
               sx={businessBadgeSx}
             />
@@ -235,17 +236,62 @@ export function TransactionRow({
 
 function getBusinessStatuses(
   categoryItems: CategorySummaryItem[],
-): TransactionBusinessStatus[] {
-  return [
-    ...new Set(
-      categoryItems
-        .map((category) => category.businessStatus)
-        .filter(
-          (status): status is TransactionBusinessStatus =>
-            status !== null && status !== undefined,
-        ),
-    ),
-  ];
+): { key: string; status: TransactionBusinessStatus }[] {
+  let settlementStatus: TransactionBusinessStatus["settlementStatus"] = null;
+  let refundAmount = 0;
+  let reimbursementAmount = 0;
+  const incomeLinkRoles = new Set<
+    NonNullable<TransactionBusinessStatus["incomeLinkRole"]>
+  >();
+
+  for (const category of categoryItems) {
+    const status = category.businessStatus;
+    if (!status) continue;
+    if (status.settlementStatus === "pendingReimbursement") {
+      settlementStatus = "pendingReimbursement";
+    } else if (
+      status.settlementStatus === "reimbursed" &&
+      settlementStatus === null
+    ) {
+      settlementStatus = "reimbursed";
+    }
+    refundAmount += Number(status.offsetComposition.refundAmount);
+    reimbursementAmount += Number(status.offsetComposition.reimbursementAmount);
+    if (status.incomeLinkRole) incomeLinkRoles.add(status.incomeLinkRole);
+  }
+
+  const statuses: { key: string; status: TransactionBusinessStatus }[] = [];
+  if (settlementStatus || refundAmount > 0 || reimbursementAmount > 0) {
+    statuses.push({
+      key: "settlement-and-offsets",
+      status: {
+        incomeLinkRole: null,
+        offsetComposition: {
+          refundAmount: normalizeAggregatedAmount(refundAmount),
+          reimbursementAmount: normalizeAggregatedAmount(reimbursementAmount),
+        },
+        settlementStatus,
+      },
+    });
+  }
+  for (const incomeLinkRole of ["refund", "reimbursement"] as const) {
+    if (!incomeLinkRoles.has(incomeLinkRole)) continue;
+    statuses.push({
+      key: `${incomeLinkRole}-income`,
+      status: {
+        incomeLinkRole,
+        offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+        settlementStatus: null,
+      },
+    });
+  }
+  return statuses;
+}
+
+function normalizeAggregatedAmount(amount: number) {
+  return Number.isFinite(amount) && amount > 0
+    ? String(Number(amount.toFixed(2)))
+    : "0";
 }
 
 function formatRowAmount(item: TransactionRowItem) {

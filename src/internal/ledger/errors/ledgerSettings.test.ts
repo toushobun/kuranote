@@ -32,7 +32,7 @@ describe("getLedgerSettingsErrorMessage", () => {
         ledgerSettingsErrorCodes.specialStatusHasActiveItems,
       ),
     ).toBe(
-      "账本内还有待报销或已报销的明细，需要先处理完这些明细才能关闭该功能。",
+      "账本内还有处于报销流程的明细，需要先处理完这些明细才能关闭该功能。",
     );
   });
 

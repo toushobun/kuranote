@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(15);
+select plan(18);
 
 create temporary table test_business_net_context on commit drop as
 select
@@ -85,7 +85,9 @@ cross join (values
     ('57300000-0000-4000-8000-000000000007'::uuid, '2026-08-04 02:00:00+00'::timestamptz, '报销支出 B'),
     ('57300000-0000-4000-8000-000000000008'::uuid, '2026-08-05 01:00:00+00'::timestamptz, '多明细报销收入'),
     ('57300000-0000-4000-8000-000000000009'::uuid, '2026-08-06 01:00:00+00'::timestamptz, '普通收入'),
-    ('57300000-0000-4000-8000-000000000010'::uuid, '2026-08-07 01:00:00+00'::timestamptz, '仍待报销支出')
+    ('57300000-0000-4000-8000-000000000010'::uuid, '2026-08-07 01:00:00+00'::timestamptz, '仍待报销支出'),
+    ('57300000-0000-4000-8000-000000000011'::uuid, '2026-08-08 01:00:00+00'::timestamptz, '部分报销支出'),
+    ('57300000-0000-4000-8000-000000000012'::uuid, '2026-08-08 02:00:00+00'::timestamptz, '部分报销收入')
 ) values_to_insert(id, transaction_at, title);
 
 insert into public.transaction_item (
@@ -125,7 +127,9 @@ cross join (values
     ('57310000-0000-4000-8000-000000000008'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 200::numeric, null),
     ('57310000-0000-4000-8000-000000000011'::uuid, '57300000-0000-4000-8000-000000000008'::uuid, 'income', 300::numeric, null),
     ('57310000-0000-4000-8000-000000000009'::uuid, '57300000-0000-4000-8000-000000000009'::uuid, 'income', 80::numeric, null),
-    ('57310000-0000-4000-8000-000000000010'::uuid, '57300000-0000-4000-8000-000000000010'::uuid, 'expense', 120::numeric, 'pending_reimbursement')
+    ('57310000-0000-4000-8000-000000000010'::uuid, '57300000-0000-4000-8000-000000000010'::uuid, 'expense', 120::numeric, 'pending_reimbursement'),
+    ('57310000-0000-4000-8000-000000000012'::uuid, '57300000-0000-4000-8000-000000000011'::uuid, 'expense', 100::numeric, 'pending_reimbursement'),
+    ('57310000-0000-4000-8000-000000000013'::uuid, '57300000-0000-4000-8000-000000000012'::uuid, 'income', 100::numeric, null)
 ) values_to_insert(id, record_id, category_type, amount, special_status);
 
 insert into public.transaction_item_refund_link (
@@ -157,7 +161,8 @@ select
 from test_business_net_context context
 cross join (values
     ('57310000-0000-4000-8000-000000000006'::uuid, '57310000-0000-4000-8000-000000000008'::uuid, 200::numeric),
-    ('57310000-0000-4000-8000-000000000007'::uuid, '57310000-0000-4000-8000-000000000011'::uuid, 300::numeric)
+    ('57310000-0000-4000-8000-000000000007'::uuid, '57310000-0000-4000-8000-000000000011'::uuid, 300::numeric),
+    ('57310000-0000-4000-8000-000000000012'::uuid, '57310000-0000-4000-8000-000000000013'::uuid, 40::numeric)
 ) reimbursement(
     target_expense_item_id,
     reimbursement_income_item_id,
@@ -225,6 +230,24 @@ select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000010'),
     120::numeric,
     '仍待报销的支出在实际结清前保留原始业务金额'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000012'),
+    60::numeric,
+    '部分报销支出按实际关联金额保留剩余业务净额'
+);
+
+select is(
+    (select reimbursement_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000012'),
+    40::numeric,
+    '部分报销支出直接暴露实际报销核销金额'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000013'),
+    60::numeric,
+    '部分报销收入按实际关联金额保留未核销净收益'
 );
 
 select is(

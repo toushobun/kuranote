@@ -6,14 +6,21 @@ export const transactionSpecialStatuses = [
 export type TransactionSpecialStatus =
   (typeof transactionSpecialStatuses)[number];
 
-export const transactionBusinessStatuses = [
-  ...transactionSpecialStatuses,
-  "refund",
-  "reimbursement",
-] as const;
+export const transactionIncomeLinkRoles = ["refund", "reimbursement"] as const;
 
-export type TransactionBusinessStatus =
-  (typeof transactionBusinessStatuses)[number];
+export type TransactionIncomeLinkRole =
+  (typeof transactionIncomeLinkRoles)[number];
+
+export type TransactionOffsetComposition = {
+  refundAmount: string;
+  reimbursementAmount: string;
+};
+
+export type TransactionBusinessStatus = {
+  incomeLinkRole: TransactionIncomeLinkRole | null;
+  offsetComposition: TransactionOffsetComposition;
+  settlementStatus: TransactionSpecialStatus | null;
+};
 
 export const transactionWritableSpecialStatuses = [
   "pendingReimbursement",
@@ -23,6 +30,14 @@ export type TransactionWritableSpecialStatus =
   (typeof transactionWritableSpecialStatuses)[number];
 
 export type TransactionSpecialStatusFilterValue = TransactionSpecialStatus;
+
+// 原始结算状态文案：无论核销来源如何，均按“待报销 / 已结清”表达。
+// 核销来源相关的具体展示词（已报销 / 已退款）属于 TransactionBusinessBadge 的展示态，
+// 不与本状态共用同一份词表，避免筛选器等直接读取原始状态的场景借用来源特定文案。
+export const transactionSpecialStatusLabels = {
+  pendingReimbursement: "待报销",
+  reimbursed: "已结清",
+} as const satisfies Record<TransactionSpecialStatus, string>;
 
 export const transactionSpecialStatusStorageValues = [
   "pending_reimbursement",
@@ -62,13 +77,54 @@ export function fromTransactionSpecialStatusStorageValue(
 export function resolveTransactionBusinessStatus({
   isRefundIncome = false,
   isReimbursementIncome = false,
+  refundedAmount,
+  reimbursementAmount,
   specialStatus = null,
 }: {
   isRefundIncome?: boolean;
   isReimbursementIncome?: boolean;
-  specialStatus?: TransactionSpecialStatusStorageValue | null;
+  refundedAmount?: string;
+  reimbursementAmount?: string;
+  specialStatus?:
+    | TransactionSpecialStatus
+    | TransactionSpecialStatusStorageValue
+    | null;
 }): TransactionBusinessStatus | null {
-  if (isRefundIncome) return "refund";
-  if (isReimbursementIncome) return "reimbursement";
-  return fromTransactionSpecialStatusStorageValue(specialStatus);
+  const settlementStatus =
+    specialStatus === "pending_reimbursement"
+      ? "pendingReimbursement"
+      : specialStatus;
+  const refundAmount = normalizePositiveAmount(refundedAmount);
+  const effectiveReimbursementAmount = settlementStatus
+    ? normalizePositiveAmount(reimbursementAmount)
+    : "0";
+  const incomeLinkRole = isRefundIncome
+    ? "refund"
+    : isReimbursementIncome
+      ? "reimbursement"
+      : null;
+
+  if (
+    settlementStatus === null &&
+    incomeLinkRole === null &&
+    refundAmount === "0" &&
+    effectiveReimbursementAmount === "0"
+  ) {
+    return null;
+  }
+
+  return {
+    incomeLinkRole,
+    offsetComposition: {
+      refundAmount,
+      reimbursementAmount: effectiveReimbursementAmount,
+    },
+    settlementStatus,
+  };
+}
+
+function normalizePositiveAmount(amount: string | undefined) {
+  const value = Number(amount ?? "0");
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return String(Number(value.toFixed(2)));
 }

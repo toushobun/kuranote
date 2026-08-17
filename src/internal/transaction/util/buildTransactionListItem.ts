@@ -88,6 +88,8 @@ export function buildTransactionListItem({
     const businessStatus = resolveTransactionBusinessStatus({
       isRefundIncome: item.is_refund_income,
       isReimbursementIncome: item.is_reimbursement_income,
+      refundedAmount: item.refunded_amount,
+      reimbursementAmount: item.reimbursement_amount,
       specialStatus: item.special_status ?? null,
     });
 

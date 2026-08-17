@@ -4,6 +4,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { type TransactionRowItem } from "types/transactions";
 import { TransactionRow } from "./TransactionRow";
 import { themeColorTokens } from "theme/themeColorTokens";
+
+function incomeBusinessStatus(role: "refund" | "reimbursement") {
+  return {
+    incomeLinkRole: role,
+    offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+    settlementStatus: null,
+  } as const;
+}
+
 describe("TransactionRow", () => {
   const nativeDateTimeFormat = Intl.DateTimeFormat;
   afterEach(() => {
@@ -413,8 +422,8 @@ describe("TransactionRow", () => {
             categoryItems: [
               {
                 amount: "1234",
-                businessStatus: "refund",
-                categoryName: "退款收入",
+                businessStatus: incomeBusinessStatus("refund"),
+                categoryName: "其他收入",
                 categoryType: "income",
                 parentCategoryName: "其他收入",
               },
@@ -423,7 +432,7 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.getByText("退款")).toBeInTheDocument();
+      expect(screen.getByText("退款收入")).toBeInTheDocument();
     });
 
     it("多条明细的业务状态重复时只显示一个标签", () => {
@@ -433,14 +442,14 @@ describe("TransactionRow", () => {
             categoryItems: [
               {
                 amount: "600",
-                businessStatus: "reimbursement",
+                businessStatus: incomeBusinessStatus("reimbursement"),
                 categoryName: "报销收入一",
                 categoryType: "income",
                 parentCategoryName: "其他收入",
               },
               {
                 amount: "634",
-                businessStatus: "reimbursement",
+                businessStatus: incomeBusinessStatus("reimbursement"),
                 categoryName: "报销收入二",
                 categoryType: "income",
                 parentCategoryName: "其他收入",
@@ -450,7 +459,7 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.getAllByText("报销")).toHaveLength(1);
+      expect(screen.getAllByText("报销收入")).toHaveLength(1);
     });
 
     it("多条明细带不同业务状态时显示全部对应标签", () => {
@@ -460,14 +469,14 @@ describe("TransactionRow", () => {
             categoryItems: [
               {
                 amount: "600",
-                businessStatus: "refund",
+                businessStatus: incomeBusinessStatus("refund"),
                 categoryName: "退款收入",
                 categoryType: "income",
                 parentCategoryName: "其他收入",
               },
               {
                 amount: "634",
-                businessStatus: "reimbursement",
+                businessStatus: incomeBusinessStatus("reimbursement"),
                 categoryName: "报销收入",
                 categoryType: "income",
                 parentCategoryName: "其他收入",
@@ -477,8 +486,95 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.getByText("退款")).toBeInTheDocument();
-      expect(screen.getByText("报销")).toBeInTheDocument();
+      expect(screen.getByText("退款收入")).toBeInTheDocument();
+      expect(screen.getByText("报销收入")).toBeInTheDocument();
+    });
+
+    it("多条支出按维度汇总核销金额且结算状态只显示一次", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "40",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "60",
+                    reimbursementAmount: "300",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getAllByText("待报销")).toHaveLength(1);
+      expect(screen.getByText("退款核销 ¥100")).toBeInTheDocument();
+      expect(screen.getByText("报销核销 ¥300")).toBeInTheDocument();
+      expect(screen.queryByText("退款核销 ¥40")).not.toBeInTheDocument();
+      expect(screen.queryByText("退款核销 ¥60")).not.toBeInTheDocument();
+    });
+
+    it("部分明细已结清、部分仍待报销时整行按待报销显示", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "600",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "reimbursed",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "200",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("待报销")).toBeInTheDocument();
+      expect(screen.queryByText("已结清")).not.toBeInTheDocument();
     });
 
     it("所有明细都没有业务状态时不显示业务标签", () => {
@@ -504,8 +600,8 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.queryByText("退款")).not.toBeInTheDocument();
-      expect(screen.queryByText("报销")).not.toBeInTheDocument();
+      expect(screen.queryByText("退款收入")).not.toBeInTheDocument();
+      expect(screen.queryByText("报销收入")).not.toBeInTheDocument();
     });
   });
 

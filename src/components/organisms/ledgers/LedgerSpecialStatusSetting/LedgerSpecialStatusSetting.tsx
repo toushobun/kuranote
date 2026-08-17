@@ -98,7 +98,17 @@ export function LedgerSpecialStatusSetting({
             {enabled ? (
               <Stack direction="row" sx={badgeListSx}>
                 {transactionSpecialStatuses.map((status) => (
-                  <TransactionBusinessBadge key={status} status={status} />
+                  <TransactionBusinessBadge
+                    key={status}
+                    status={{
+                      incomeLinkRole: null,
+                      offsetComposition: {
+                        refundAmount: "0",
+                        reimbursementAmount: "0",
+                      },
+                      settlementStatus: status,
+                    }}
+                  />
                 ))}
                 {refundPreviewChips.map((chip) => (
                   <Chip
@@ -115,7 +125,7 @@ export function LedgerSpecialStatusSetting({
               </Stack>
             ) : (
               <Typography color="text.secondary" variant="body2">
-                如果账本内还有待报销或已报销的明细，将无法关闭；请先处理完这些明细。
+                如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。
               </Typography>
             )}
 

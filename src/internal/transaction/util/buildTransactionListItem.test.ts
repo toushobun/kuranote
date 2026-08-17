@@ -234,6 +234,38 @@ describe("buildTransactionListItem", () => {
     expect(item.originalAmount).toBe("1200");
   });
 
+  it("分类摘要独立表达结算状态和退款、报销核销构成", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          business_net_amount: "0",
+          category_id: categoryA.id,
+          id: "item-mixed-offset",
+          refunded_amount: "400",
+          reimbursement_amount: "800",
+          special_status: "reimbursed",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.categoryItems[0]?.businessStatus).toEqual({
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "400",
+        reimbursementAmount: "800",
+      },
+      settlementStatus: "reimbursed",
+    });
+  });
+
   it("完全分配的退款收入在列表中显示零业务净额和原始收入", () => {
     const item = buildTransactionListItem({
       accountById,

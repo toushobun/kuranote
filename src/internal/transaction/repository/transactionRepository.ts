@@ -43,12 +43,17 @@ export type TransactionItemInput = {
 
 type TransactionItemRepositoryRow = Omit<
   TransactionItemDbRow,
-  "amount" | "balance_delta" | "business_net_amount" | "refunded_amount"
+  | "amount"
+  | "balance_delta"
+  | "business_net_amount"
+  | "refunded_amount"
+  | "reimbursement_amount"
 > & {
   amount: number | string;
   balance_delta?: number | string | null;
   business_net_amount?: number | string | null;
   refunded_amount?: number | string | null;
+  reimbursement_amount?: number | string | null;
 };
 
 export type CreateNormalTransactionInput = {
@@ -271,9 +276,6 @@ const transactionRpcErrorCodes = [
   "refund_amount_exceeded",
   "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
-  "reimbursement_amount_mismatch",
-  "refunded_item_special_status_conflict",
-  "special_status_refund_conflict",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
   "reimbursement_link_exists",
@@ -414,7 +416,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "refund_amount_exceeded") {
       throw new ConflictError(
         transactionErrorCodes.refundAmountExceeded,
-        "退款金额超过所选明细的剩余可退金额，请重新选择。",
+        "退款分摊合计必须等于本次可核销金额，请重新选择。",
       );
     }
 
@@ -453,27 +455,6 @@ export function createSupabaseTransactionRepository(
       );
     }
 
-    if (rpcErrorCode === "reimbursement_amount_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入金额不能小于所选待报销明细合计金额。",
-      );
-    }
-
-    if (rpcErrorCode === "refunded_item_special_status_conflict") {
-      throw new ValidationError(
-        transactionErrorCodes.refundLinkInvalid,
-        "该支出明细已处于待报销或已报销状态，不能再建立退款关联。",
-      );
-    }
-
-    if (rpcErrorCode === "special_status_refund_conflict") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        "该支出明细已有退款关联，不能再标记为待报销。",
-      );
-    }
-
     if (rpcErrorCode === "income_link_category_invalid") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkCategoryInvalid,
@@ -484,7 +465,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "income_link_conflict") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkConflict,
-        "报销关联和退款关联不能同时设置。",
+        "同一个收入明细不能同时作为退款来源和报销来源。",
       );
     }
 
@@ -736,7 +717,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_item_with_refund")
         .select(
-          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
+          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link",
         )
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", uniqueIds)
@@ -1121,6 +1102,7 @@ function toTransactionItemDbRow({
   balance_delta: balanceDelta,
   business_net_amount: businessNetAmount,
   refunded_amount: refundedAmount,
+  reimbursement_amount: reimbursementAmount,
   ...row
 }: TransactionItemRepositoryRow): TransactionItemDbRow {
   return {
@@ -1135,6 +1117,11 @@ function toTransactionItemDbRow({
     ...(refundedAmount == null
       ? {}
       : { refunded_amount: toTransactionAmountText(refundedAmount) }),
+    ...(reimbursementAmount == null
+      ? {}
+      : {
+          reimbursement_amount: toTransactionAmountText(reimbursementAmount),
+        }),
   };
 }
 
