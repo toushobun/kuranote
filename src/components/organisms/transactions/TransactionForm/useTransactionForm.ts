@@ -15,6 +15,7 @@ import {
   resolveTransactionBusinessStatus,
   formatRefundMinorUnits,
   summarizeRefundAllocationAmounts,
+  summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
 } from "internal/transaction";
 import {
@@ -755,35 +756,16 @@ function getNewItemBusinessNetAmount(
 ) {
   if (specialStatus === "reimbursed") return "0";
   if (reimbursementCandidate) {
-    return getReimbursementNetIncomeAmount(amount, reimbursementCandidate);
+    return summarizeReimbursementAllocationAmounts(
+      amount,
+      reimbursementCandidate.remainingRefundableAmount,
+    )?.netIncomeAmount;
   }
   if (refundCandidates.length === 0) return undefined;
 
   const allocations = allocateRefundAmount(amount, refundCandidates);
   if (allocations === null) return undefined;
   return summarizeRefundAllocationAmounts(amount, allocations)?.netIncomeAmount;
-}
-
-function getReimbursementNetIncomeAmount(
-  incomeAmount: string,
-  candidate: TransactionRefundCandidate,
-) {
-  const incomeUnits = toRefundMinorUnits(incomeAmount);
-  const remainingUnits = toRefundMinorUnits(
-    candidate.remainingRefundableAmount,
-  );
-  if (incomeUnits === null || remainingUnits === null) return undefined;
-
-  const zero = BigInt(0);
-  const normalizedIncomeUnits = incomeUnits > zero ? incomeUnits : zero;
-  const normalizedRemainingUnits =
-    remainingUnits > zero ? remainingUnits : zero;
-  const allocatedUnits =
-    normalizedIncomeUnits < normalizedRemainingUnits
-      ? normalizedIncomeUnits
-      : normalizedRemainingUnits;
-
-  return formatRefundMinorUnits(normalizedIncomeUnits - allocatedUnits);
 }
 
 function getUpdatedItemBusinessNetAmount(
