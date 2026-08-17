@@ -6,6 +6,7 @@ import {
   hasUniqueRefundAllocationTargets,
   isRefundAllocationTotalWithinAmount,
   summarizeRefundAllocationAmounts,
+  summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
 } from "./refundAllocation";
 
@@ -171,5 +172,30 @@ describe("summarizeRefundAllocationAmounts", () => {
     expect(
       summarizeRefundAllocationAmounts("1500", [{ refundAmount: 1.001 }]),
     ).toBeNull();
+  });
+});
+
+describe("summarizeReimbursementAllocationAmounts", () => {
+  it("按收入金额与剩余额度较小值计算核销金额和净收益", () => {
+    expect(summarizeReimbursementAllocationAmounts("600", "1000")).toEqual({
+      allocatedAmount: "600",
+      incomeAmount: "600",
+      netIncomeAmount: "0",
+    });
+    expect(summarizeReimbursementAllocationAmounts("1000", "1000")).toEqual({
+      allocatedAmount: "1000",
+      incomeAmount: "1000",
+      netIncomeAmount: "0",
+    });
+    expect(summarizeReimbursementAllocationAmounts("1500", "1000")).toEqual({
+      allocatedAmount: "1000",
+      incomeAmount: "1500",
+      netIncomeAmount: "500",
+    });
+  });
+
+  it("金额精度无效时拒绝计算报销核销金额", () => {
+    expect(summarizeReimbursementAllocationAmounts("1.001", "1000")).toBeNull();
+    expect(summarizeReimbursementAllocationAmounts("1000", "1.001")).toBeNull();
   });
 });
