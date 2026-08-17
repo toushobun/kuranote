@@ -233,19 +233,16 @@ function buildTransferListItem({
 }
 
 function getTransferAccountColor({
-  accountById,
   accountColorById,
   fallbackItem,
   fromItem,
   toItem,
 }: {
-  accountById?: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
   fallbackItem: TransactionItemDbRow | undefined;
   fromItem: TransactionItemDbRow | undefined;
   toItem: TransactionItemDbRow | undefined;
 }) {
-  void accountById;
   const fromColor = fromItem
     ? accountColorById?.get(fromItem.account_id)
     : undefined;
