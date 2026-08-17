@@ -47,8 +47,11 @@ export type TransactionSearchTemplateProps = {
   ) => Promise<TransactionSearchPage>;
   onClose?: () => void;
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  reimbursementSelectionMode?: boolean;
   selectedRefundItemIds?: string[];
+  selectedReimbursementItemId?: string | null;
 };
 
 export function TransactionSearchTemplate({
@@ -59,14 +62,17 @@ export function TransactionSearchTemplate({
   loadSearchPageAction,
   onClose,
   onSelectRefundItem,
+  onSelectReimbursementItem,
   refundSelectionMode = false,
+  reimbursementSelectionMode = false,
   selectedRefundItemIds = [],
+  selectedReimbursementItemId = null,
 }: TransactionSearchTemplateProps) {
   const search = useTransactionSearch({
     initialPage,
     initialQuery,
     loadSearchPageAction,
-    syncUrl: !refundSelectionMode,
+    syncUrl: !refundSelectionMode && !reimbursementSelectionMode,
   });
   const displayErrorMessage = errorMessage ?? search.searchError;
   const isSearchLoading =
@@ -148,7 +154,18 @@ export function TransactionSearchTemplate({
             <Typography sx={resultCountSx}>
               共 {search.totalCount} 条结果
             </Typography>
-            {refundSelectionMode && onSelectRefundItem ? (
+            {reimbursementSelectionMode && onSelectReimbursementItem ? (
+              <TransactionRefundCandidateList
+                items={search.items}
+                onSelect={onSelectReimbursementItem}
+                selectedIds={
+                  selectedReimbursementItemId
+                    ? [selectedReimbursementItemId]
+                    : []
+                }
+                selectionKind="reimbursement"
+              />
+            ) : refundSelectionMode && onSelectRefundItem ? (
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectRefundItem}
