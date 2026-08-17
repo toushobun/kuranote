@@ -114,10 +114,7 @@ function filterItems(
       const categoryType = item.category_id
         ? categoryById.get(item.category_id)?.type
         : undefined;
-      if (
-        categoryType !== "expense" ||
-        Number(item.amount) <= Number(item.refunded_amount ?? 0)
-      ) {
+      if (categoryType !== "expense" || !hasRemainingOffsetAmount(item)) {
         return false;
       }
     }
@@ -190,14 +187,18 @@ function matchesRecordType(
       const categoryType = item.category_id
         ? categoryById.get(item.category_id)?.type
         : undefined;
-      return (
-        categoryType === "expense" &&
-        Number(item.amount) > Number(item.refunded_amount ?? 0)
-      );
+      return categoryType === "expense" && hasRemainingOffsetAmount(item);
     });
   }
 
   return (
     getTransactionRecordCategoryType(items, categoryById) === filters.recordType
+  );
+}
+
+function hasRemainingOffsetAmount(item: TransactionItemDbRow) {
+  return (
+    Number(item.amount) >
+    Number(item.refunded_amount ?? 0) + Number(item.reimbursement_amount ?? 0)
   );
 }
