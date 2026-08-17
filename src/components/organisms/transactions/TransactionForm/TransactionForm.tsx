@@ -55,7 +55,11 @@ export function TransactionForm({
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
+  loadReimbursementGroupItemsAction,
+  loadReimbursementMoreGroupsAction,
+  loadReimbursementSearchPageAction,
   refundPickerView,
+  reimbursementPickerView,
   onSubmitDisabledChange,
   submitLabel = "保存记账",
   title = "新增记账",
@@ -75,13 +79,16 @@ export function TransactionForm({
     incomeLinksContext?.loadRefundSearchPageAction ??
     loadRefundSearchPageAction;
   const activeReimbursementPickerView =
-    incomeLinksContext?.reimbursementPickerView;
+    incomeLinksContext?.reimbursementPickerView ?? reimbursementPickerView;
   const activeLoadReimbursementGroupItemsAction =
-    incomeLinksContext?.loadReimbursementGroupItemsAction;
+    incomeLinksContext?.loadReimbursementGroupItemsAction ??
+    loadReimbursementGroupItemsAction;
   const activeLoadReimbursementMoreGroupsAction =
-    incomeLinksContext?.loadReimbursementMoreGroupsAction;
+    incomeLinksContext?.loadReimbursementMoreGroupsAction ??
+    loadReimbursementMoreGroupsAction;
   const activeLoadReimbursementSearchPageAction =
-    incomeLinksContext?.loadReimbursementSearchPageAction;
+    incomeLinksContext?.loadReimbursementSearchPageAction ??
+    loadReimbursementSearchPageAction;
   const {
     accountFieldRef,
     allNormalCategoryOptions,
