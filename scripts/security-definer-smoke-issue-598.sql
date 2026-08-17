@@ -156,8 +156,8 @@ begin
 
         raise exception 'prevent_disable_special_status_with_active_items did not reject disable';
     exception
-        when sqlstate 'P0001' then
-            if sqlerrm <> 'special_status_disable_blocked' then
+        when sqlstate '55006' then
+            if sqlerrm <> 'special_status_has_active_items' then
                 raise;
             end if;
     end;
