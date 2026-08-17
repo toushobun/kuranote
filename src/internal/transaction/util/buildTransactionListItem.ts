@@ -13,6 +13,10 @@ import {
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
+import {
+  formatRefundMinorUnits,
+  toRefundMinorUnits,
+} from "internal/transaction/util/refundAllocation";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 
@@ -105,14 +109,7 @@ export function buildTransactionListItem({
           ? {
               id: item.id,
               refundedAmount: item.refunded_amount ?? "0",
-              remainingRefundableAmount: String(
-                Math.max(
-                  0,
-                  Number(item.amount) -
-                    Number(item.refunded_amount ?? 0) -
-                    Number(item.reimbursement_amount ?? 0),
-                ),
-              ),
+              remainingRefundableAmount: getRemainingRefundableAmount(item),
             }
           : {}),
       },
@@ -150,6 +147,27 @@ export function buildTransactionListItem({
     transaction_at: record.transaction_at,
     type: displayType,
   };
+}
+
+function getRemainingRefundableAmount(item: TransactionItemDbRow) {
+  const amountUnits = toRefundMinorUnits(item.amount);
+  const refundedUnits = toRefundMinorUnits(item.refunded_amount ?? "0");
+  const reimbursementUnits = toRefundMinorUnits(
+    item.reimbursement_amount ?? "0",
+  );
+
+  if (
+    amountUnits === null ||
+    refundedUnits === null ||
+    reimbursementUnits === null
+  ) {
+    return "0";
+  }
+
+  const remainingUnits = amountUnits - refundedUnits - reimbursementUnits;
+  return formatRefundMinorUnits(
+    remainingUnits > BigInt(0) ? remainingUnits : BigInt(0),
+  );
 }
 
 function buildTransferListItem({
