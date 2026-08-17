@@ -3,6 +3,7 @@ import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { TransactionItemDbRow } from "internal/db-types";
 import type {
   TransactionIncomeLinkData,
+  TransactionIncomeLinkedItem,
   TransactionIncomeLinkRepository,
 } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
@@ -147,6 +148,12 @@ export async function getEditTransactionView(
           options.categoryOptions,
           currentLedger.baseCurrency,
         );
+        const reimbursementCandidate = buildReimbursementCandidate(
+          incomeLink,
+          options.accountOptions,
+          options.categoryOptions,
+          currentLedger.baseCurrency,
+        );
         const amount = formatEditableAmount(item.amount);
         const businessNetAmount = hasBusinessNetAmountOffset(
           item.amount,
@@ -168,6 +175,7 @@ export async function getEditTransactionView(
           categoryId: item.category_id ?? "",
           id: item.id,
           refundCandidates,
+          reimbursementCandidate,
           refundedAmount: item.refunded_amount ?? "0",
           specialStatus: fromTransactionSpecialStatusStorageValue(
             item.special_status ?? null,
@@ -191,44 +199,80 @@ function buildRefundCandidates(
   fallbackCurrency: string,
 ) {
   return (incomeLink?.refundAllocations ?? []).map(
-    ({ refundAmount, refundedItem }) => {
-      const account = accounts.find(
-        (option) => option.id === refundedItem.accountId,
-      );
-      const category = categories.find(
-        (option) => option.id === refundedItem.categoryId,
-      );
-      const originalAmountUnits = toRefundMinorUnits(refundedItem.amount);
-      const refundedAmountUnits = toRefundMinorUnits(
-        refundedItem.refundedAmount,
-      );
-      const currentAllocationUnits = toRefundMinorUnits(refundAmount);
-      const calculatedRemainingUnits =
-        originalAmountUnits !== null &&
-        refundedAmountUnits !== null &&
-        currentAllocationUnits !== null
-          ? originalAmountUnits - refundedAmountUnits + currentAllocationUnits
-          : BigInt(0);
-      const remainingRefundableAmount = formatRefundMinorUnits(
-        calculatedRemainingUnits > BigInt(0)
-          ? calculatedRemainingUnits
-          : BigInt(0),
-      );
-
-      return {
-        accountCurrency: account?.currency ?? fallbackCurrency,
-        accountId: refundedItem.accountId,
-        amount: refundedItem.amount,
-        categoryName: category?.name ?? "未知分类",
-        id: refundedItem.id,
-        parentCategoryName: category?.parentName ?? null,
-        refundedAmount: refundedItem.refundedAmount,
-        remainingRefundableAmount,
-        transactionAt: refundedItem.transactionAt,
-        transactionRecordId: refundedItem.transactionRecordId,
-      };
-    },
+    ({ refundAmount, refundedItem }) =>
+      buildIncomeLinkCandidate(
+        refundedItem,
+        refundAmount,
+        accounts,
+        categories,
+        fallbackCurrency,
+      ),
   );
+}
+
+function buildReimbursementCandidate(
+  incomeLink: TransactionIncomeLinkData | undefined,
+  accounts: TransactionAccountOption[],
+  categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
+) {
+  const reimbursementItem = incomeLink?.reimbursementItems[0];
+  if (!reimbursementItem) return null;
+
+  return buildIncomeLinkCandidate(
+    reimbursementItem,
+    reimbursementItem.reimbursementLinkAmount,
+    accounts,
+    categories,
+    fallbackCurrency,
+  );
+}
+
+function buildIncomeLinkCandidate(
+  linkedItem: TransactionIncomeLinkedItem,
+  currentAllocationAmount: string,
+  accounts: TransactionAccountOption[],
+  categories: TransactionCategoryOption[],
+  fallbackCurrency: string,
+) {
+  const account = accounts.find((option) => option.id === linkedItem.accountId);
+  const category = categories.find(
+    (option) => option.id === linkedItem.categoryId,
+  );
+  const originalAmountUnits = toRefundMinorUnits(linkedItem.amount);
+  const refundedAmountUnits = toRefundMinorUnits(linkedItem.refundedAmount);
+  const reimbursementAmountUnits = toRefundMinorUnits(
+    linkedItem.reimbursementAmount,
+  );
+  const currentAllocationUnits = toRefundMinorUnits(currentAllocationAmount);
+  const calculatedRemainingUnits =
+    originalAmountUnits !== null &&
+    refundedAmountUnits !== null &&
+    reimbursementAmountUnits !== null &&
+    currentAllocationUnits !== null
+      ? originalAmountUnits -
+        refundedAmountUnits -
+        reimbursementAmountUnits +
+        currentAllocationUnits
+      : BigInt(0);
+  const remainingRefundableAmount = formatRefundMinorUnits(
+    calculatedRemainingUnits > BigInt(0)
+      ? calculatedRemainingUnits
+      : BigInt(0),
+  );
+
+  return {
+    accountCurrency: account?.currency ?? fallbackCurrency,
+    accountId: linkedItem.accountId,
+    amount: linkedItem.amount,
+    categoryName: category?.name ?? "未知分类",
+    id: linkedItem.id,
+    parentCategoryName: category?.parentName ?? null,
+    refundedAmount: linkedItem.refundedAmount,
+    remainingRefundableAmount,
+    transactionAt: linkedItem.transactionAt,
+    transactionRecordId: linkedItem.transactionRecordId,
+  };
 }
 
 function isValidTransferPair(
