@@ -459,9 +459,7 @@ describe("TransactionMonthList", () => {
 
     expect(screen.queryByText("支出 $100")).toBeNull();
     expect(screen.getByRole("radio")).toBeChecked();
-    fireEvent.click(
-      screen.getByRole("button", { name: "选择报销明细 午餐" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "选择报销明细 午餐" }));
     expect(onSelectReimbursementItem).toHaveBeenCalledWith(
       expect.objectContaining({
         accountCurrency: "USD",
