@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   loadRefundPickerGroupItems: vi.fn(),
   loadRefundPickerGroupPage: vi.fn(),
   loadRefundPickerSearchPage: vi.fn(),
+  loadReimbursementPickerGroupItems: vi.fn(),
+  loadReimbursementPickerGroupPage: vi.fn(),
+  loadReimbursementPickerSearchPage: vi.fn(),
   NewTransactionTemplate: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
@@ -33,6 +36,9 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
   loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
   loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
+  loadReimbursementPickerGroupItems: mocks.loadReimbursementPickerGroupItems,
+  loadReimbursementPickerGroupPage: mocks.loadReimbursementPickerGroupPage,
+  loadReimbursementPickerSearchPage: mocks.loadReimbursementPickerSearchPage,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
@@ -56,6 +62,13 @@ const baseView = {
   ledgerName: "家庭账本",
   merchantOptions: [],
 };
+
+function getTemplateElement(result: ReactElement<Record<string, unknown>>) {
+  const provider = result.props.children as ReactElement<
+    Record<string, unknown>
+  >;
+  return provider.props.children as ReactElement<Record<string, unknown>>;
+}
 
 describe("TransactionsNewPage", () => {
   beforeEach(() => {
@@ -119,10 +132,9 @@ describe("TransactionsNewPage", () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({}),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({ initialType: "expense" });
   });
@@ -131,10 +143,9 @@ describe("TransactionsNewPage", () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({ type: "expense" }),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({ initialType: "expense" });
   });
@@ -143,10 +154,9 @@ describe("TransactionsNewPage", () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({ type: "income" }),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({ initialType: "income" });
   });
@@ -155,10 +165,9 @@ describe("TransactionsNewPage", () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({ type: "transfer" }),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({ initialType: "transfer" });
   });
@@ -167,10 +176,9 @@ describe("TransactionsNewPage", () => {
     const result = await TransactionsNewPage({
       searchParams: Promise.resolve({ type: "invalid" }),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({ initialType: "expense" });
   });
@@ -182,10 +190,9 @@ describe("TransactionsNewPage", () => {
         type: "transfer",
       }),
     });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(
+      result as ReactElement<Record<string, unknown>>,
+    );
 
     expect(child.props).toMatchObject({
       initialType: "transfer",
@@ -198,9 +205,7 @@ describe("TransactionsNewPage", () => {
       searchParams: Promise.resolve({ type: "expense" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = getTemplateElement(element);
 
     expect(mocks.loadNewTransactionView).toHaveBeenCalledTimes(1);
     expect(mocks.getNewTransactionErrorMessage).not.toHaveBeenCalled();
