@@ -14,8 +14,8 @@ import {
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
 import {
+  calculateRemainingOffsetMinorUnits,
   formatRefundMinorUnits,
-  toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
@@ -150,24 +150,12 @@ export function buildTransactionListItem({
 }
 
 function getRemainingRefundableAmount(item: TransactionItemDbRow) {
-  const amountUnits = toRefundMinorUnits(item.amount);
-  const refundedUnits = toRefundMinorUnits(item.refunded_amount ?? "0");
-  const reimbursementUnits = toRefundMinorUnits(
+  const remainingUnits = calculateRemainingOffsetMinorUnits(
+    item.amount,
+    item.refunded_amount ?? "0",
     item.reimbursement_amount ?? "0",
   );
-
-  if (
-    amountUnits === null ||
-    refundedUnits === null ||
-    reimbursementUnits === null
-  ) {
-    return "0";
-  }
-
-  const remainingUnits = amountUnits - refundedUnits - reimbursementUnits;
-  return formatRefundMinorUnits(
-    remainingUnits > BigInt(0) ? remainingUnits : BigInt(0),
-  );
+  return formatRefundMinorUnits(remainingUnits ?? BigInt(0));
 }
 
 function buildTransferListItem({
@@ -245,16 +233,19 @@ function buildTransferListItem({
 }
 
 function getTransferAccountColor({
+  accountById,
   accountColorById,
   fallbackItem,
   fromItem,
   toItem,
 }: {
+  accountById?: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
   fallbackItem: TransactionItemDbRow | undefined;
   fromItem: TransactionItemDbRow | undefined;
   toItem: TransactionItemDbRow | undefined;
 }) {
+  void accountById;
   const fromColor = fromItem
     ? accountColorById?.get(fromItem.account_id)
     : undefined;
