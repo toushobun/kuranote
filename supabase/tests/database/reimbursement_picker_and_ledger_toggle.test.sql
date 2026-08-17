@@ -88,9 +88,9 @@ select throws_ok(
     '存在 active 退款关联时禁止关闭特殊状态功能'
 );
 
-update public.transaction_record
-set status = 'void'
-where id = '59870000-0000-4000-8000-000000000002';
+delete from public.transaction_item_refund_link
+where ledger_id = '00000000-0000-4000-8000-000000000032'
+  and refund_income_item_id = '59880000-0000-4000-8000-000000000002';
 
 select throws_ok(
     $$
