@@ -80,6 +80,24 @@ export function summarizeRefundAllocationAmounts(
   };
 }
 
+export function summarizeReimbursementAllocationAmounts(
+  incomeAmount: number | string,
+  remainingRefundableAmount: number | string,
+) {
+  const incomeUnits = toRefundMinorUnits(incomeAmount);
+  const remainingUnits = toRefundMinorUnits(remainingRefundableAmount);
+  if (incomeUnits === null || remainingUnits === null) return null;
+
+  const allocatedUnits =
+    incomeUnits < remainingUnits ? incomeUnits : remainingUnits;
+
+  return {
+    allocatedAmount: formatRefundMinorUnits(allocatedUnits),
+    incomeAmount: formatRefundMinorUnits(incomeUnits),
+    netIncomeAmount: formatRefundMinorUnits(incomeUnits - allocatedUnits),
+  };
+}
+
 /**
  * 以 0.01 为最小货币单位，按剩余可退金额比例分摊。
  *
