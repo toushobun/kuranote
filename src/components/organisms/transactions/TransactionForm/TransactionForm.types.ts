@@ -54,6 +54,8 @@ export type TransactionFormInitialItem = {
   categoryId: string;
   id?: string;
   refundCandidates?: TransactionRefundCandidate[];
+  reimbursedAmount?: string;
+  reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
   specialStatus?: TransactionSpecialStatus | null;
 };
@@ -75,6 +77,8 @@ export type TransactionFormItem = {
   categoryId: string;
   id: number;
   persistedId?: string;
+  reimbursedAmount?: string;
+  reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
   refundCandidates?: TransactionRefundCandidate[];
   specialStatus?: TransactionSpecialStatus | null;
