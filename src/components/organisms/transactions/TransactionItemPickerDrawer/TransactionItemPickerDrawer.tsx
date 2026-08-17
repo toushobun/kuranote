@@ -50,9 +50,7 @@ type TransactionItemPickerDrawerProps = {
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
   onRefundItemsChange?: (item: TransactionRefundCandidate[]) => void;
-  onReimbursementItemChange?: (
-    item: TransactionRefundCandidate | null,
-  ) => void;
+  onReimbursementItemChange?: (item: TransactionRefundCandidate | null) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;

@@ -187,12 +187,15 @@ export function summarizeReimbursementAllocation(
   candidate: TransactionRefundCandidate,
 ) {
   const incomeUnits = toRefundMinorUnits(incomeAmount);
-  const remainingUnits = toRefundMinorUnits(candidate.remainingRefundableAmount);
+  const remainingUnits = toRefundMinorUnits(
+    candidate.remainingRefundableAmount,
+  );
   if (incomeUnits === null || remainingUnits === null) return null;
 
   const zero = BigInt(0);
   const normalizedIncomeUnits = incomeUnits > zero ? incomeUnits : zero;
-  const normalizedRemainingUnits = remainingUnits > zero ? remainingUnits : zero;
+  const normalizedRemainingUnits =
+    remainingUnits > zero ? remainingUnits : zero;
   const allocatedUnits =
     normalizedIncomeUnits < normalizedRemainingUnits
       ? normalizedIncomeUnits

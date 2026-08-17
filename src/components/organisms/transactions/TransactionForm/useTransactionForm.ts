@@ -503,7 +503,9 @@ export function useTransactionForm({
   function handleAccountChange(accountId: string) {
     markEditDirty?.();
     setSelectedAccountId(accountId);
-    const nextAccount = accountOptions.find((account) => account.id === accountId);
+    const nextAccount = accountOptions.find(
+      (account) => account.id === accountId,
+    );
     setItemsByType((current) => ({
       ...current,
       income: current.income.map((item) => {
@@ -512,7 +514,7 @@ export function useTransactionForm({
         );
         const hasInvalidReimbursementCandidate = Boolean(
           item.reimbursementCandidate &&
-            item.reimbursementCandidate.accountCurrency !== nextAccount?.currency,
+          item.reimbursementCandidate.accountCurrency !== nextAccount?.currency,
         );
         if (!hasInvalidRefundCandidate && !hasInvalidReimbursementCandidate) {
           return item;
@@ -767,12 +769,15 @@ function getReimbursementNetIncomeAmount(
   candidate: TransactionRefundCandidate,
 ) {
   const incomeUnits = toRefundMinorUnits(incomeAmount);
-  const remainingUnits = toRefundMinorUnits(candidate.remainingRefundableAmount);
+  const remainingUnits = toRefundMinorUnits(
+    candidate.remainingRefundableAmount,
+  );
   if (incomeUnits === null || remainingUnits === null) return undefined;
 
   const zero = BigInt(0);
   const normalizedIncomeUnits = incomeUnits > zero ? incomeUnits : zero;
-  const normalizedRemainingUnits = remainingUnits > zero ? remainingUnits : zero;
+  const normalizedRemainingUnits =
+    remainingUnits > zero ? remainingUnits : zero;
   const allocatedUnits =
     normalizedIncomeUnits < normalizedRemainingUnits
       ? normalizedIncomeUnits

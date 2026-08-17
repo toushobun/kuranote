@@ -66,11 +66,14 @@ export function TransactionForm({
   const activeRefundPickerView =
     incomeLinksContext?.refundPickerView ?? refundPickerView;
   const activeLoadRefundGroupItemsAction =
-    incomeLinksContext?.loadRefundGroupItemsAction ?? loadRefundGroupItemsAction;
+    incomeLinksContext?.loadRefundGroupItemsAction ??
+    loadRefundGroupItemsAction;
   const activeLoadRefundMoreGroupsAction =
-    incomeLinksContext?.loadRefundMoreGroupsAction ?? loadRefundMoreGroupsAction;
+    incomeLinksContext?.loadRefundMoreGroupsAction ??
+    loadRefundMoreGroupsAction;
   const activeLoadRefundSearchPageAction =
-    incomeLinksContext?.loadRefundSearchPageAction ?? loadRefundSearchPageAction;
+    incomeLinksContext?.loadRefundSearchPageAction ??
+    loadRefundSearchPageAction;
   const activeReimbursementPickerView =
     incomeLinksContext?.reimbursementPickerView;
   const activeLoadReimbursementGroupItemsAction =
