@@ -409,4 +409,65 @@ describe("TransactionMonthList", () => {
       }),
     );
   });
+
+  it("报销选择模式透传单选回调并隐藏分组汇总", () => {
+    const onSelectReimbursementItem = vi.fn();
+    const reimbursementDateGroup = createDateGroup({
+      items: [
+        createItem({
+          account_currency: "USD",
+          amount: "100",
+          categoryItems: [
+            {
+              accountId: "account-1",
+              amount: "100",
+              categoryName: "午餐",
+              categoryType: "expense",
+              id: "reimbursement-item-1",
+              parentCategoryName: "饮食",
+              refundedAmount: "40",
+              remainingRefundableAmount: "60",
+            },
+          ],
+        }),
+      ],
+      summary: {
+        balance: "-100",
+        currency: "USD",
+        expense: "100",
+        income: "0",
+      },
+    });
+
+    render(
+      <TransactionMonthList
+        loadGroupItemsAction={async () => ({
+          groups: [],
+          nextOffset: null,
+        })}
+        loadMoreGroupsAction={async () => emptyGroupPage}
+        onSelectReimbursementItem={onSelectReimbursementItem}
+        reimbursementSelectionMode
+        selectedReimbursementItemId="reimbursement-item-1"
+        timeGroupView={createView({
+          initialDateGroupsByGroupId: {
+            [juneGroup.id]: [reimbursementDateGroup],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("支出 $100")).toBeNull();
+    expect(screen.getByRole("radio")).toBeChecked();
+    fireEvent.click(
+      screen.getByRole("button", { name: "选择报销明细 午餐" }),
+    );
+    expect(onSelectReimbursementItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountCurrency: "USD",
+        id: "reimbursement-item-1",
+        remainingRefundableAmount: "60",
+      }),
+    );
+  });
 });
