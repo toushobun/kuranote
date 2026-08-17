@@ -7,7 +7,11 @@ import {
   loadRefundPickerGroupItems,
   loadRefundPickerGroupPage,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerGroupItems,
+  loadReimbursementPickerGroupPage,
+  loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
+import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
   NewTransactionTemplate,
   TransactionPermissionDenied,
@@ -34,7 +38,12 @@ export default async function TransactionsNewPage({
     redirect(transactionEditHref(params.editId));
   }
 
-  const { canWriteTransactions, ...view } = await loadNewTransactionView();
+  const {
+    canWriteTransactions,
+    refundPickerView,
+    reimbursementPickerView,
+    ...view
+  } = await loadNewTransactionView();
 
   if (canWriteTransactions === false) {
     return (
@@ -44,17 +53,27 @@ export default async function TransactionsNewPage({
     );
   }
 
+  const incomeLinksValue = {
+    loadRefundGroupItemsAction: loadRefundPickerGroupItems,
+    loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
+    loadRefundSearchPageAction: loadRefundPickerSearchPage,
+    loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
+    loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
+    loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
+    refundPickerView,
+    reimbursementPickerView,
+  };
+
   return (
     <NewTransactionVisualFrame>
-      <NewTransactionTemplate
-        action={createTransaction}
-        errorMessage={null}
-        initialType={parseInitialType(params.type)}
-        loadRefundGroupItemsAction={loadRefundPickerGroupItems}
-        loadRefundMoreGroupsAction={loadRefundPickerGroupPage}
-        loadRefundSearchPageAction={loadRefundPickerSearchPage}
-        {...view}
-      />
+      <TransactionIncomeLinksProvider value={incomeLinksValue}>
+        <NewTransactionTemplate
+          action={createTransaction}
+          errorMessage={null}
+          initialType={parseInitialType(params.type)}
+          {...view}
+        />
+      </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );
 }
