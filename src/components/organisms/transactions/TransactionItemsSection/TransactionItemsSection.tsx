@@ -121,6 +121,11 @@ export function TransactionItemsSection({
                         ) ?? [],
                       )}
                     />
+                    <input
+                      name="itemReimbursementItemId"
+                      type="hidden"
+                      value={item.reimbursementCandidate?.id ?? ""}
+                    />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}
                       onClick={() => onOpenItem(item.id)}

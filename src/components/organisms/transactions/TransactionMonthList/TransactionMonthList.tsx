@@ -33,8 +33,11 @@ type TransactionMonthListProps = {
   ) => Promise<TransactionMonthPage>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  reimbursementSelectionMode?: boolean;
   selectedRefundItemIds?: string[];
+  selectedReimbursementItemId?: string | null;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -53,8 +56,11 @@ function TransactionMonthListContent({
   loadGroupItemsAction,
   loadMoreGroupsAction,
   onSelectRefundItem,
+  onSelectReimbursementItem,
   refundSelectionMode = false,
+  reimbursementSelectionMode = false,
   selectedRefundItemIds = [],
+  selectedReimbursementItemId = null,
   timeGroupView,
 }: TransactionMonthListProps) {
   const [groups, setGroups] = useState(timeGroupView.groups);
@@ -316,8 +322,13 @@ function TransactionMonthListContent({
                       <TransactionGroupList
                         groups={dateGroups}
                         onSelectRefundItem={onSelectRefundItem}
+                        onSelectReimbursementItem={onSelectReimbursementItem}
                         refundSelectionMode={refundSelectionMode}
+                        reimbursementSelectionMode={reimbursementSelectionMode}
                         selectedRefundItemIds={selectedRefundItemIds}
+                        selectedReimbursementItemId={
+                          selectedReimbursementItemId
+                        }
                         showSummary={false}
                       />
                     ) : (

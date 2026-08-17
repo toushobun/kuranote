@@ -40,6 +40,30 @@ export function formatRefundMinorUnits(units: bigint): string {
   }`;
 }
 
+/**
+ * 按退款与报销的组合核销金额计算剩余额度，并将负数收敛为 0。
+ * 输入精度无效时返回 null。
+ */
+export function calculateRemainingOffsetMinorUnits(
+  amount: number | string,
+  refundedAmount: number | string,
+  reimbursementAmount: number | string,
+): bigint | null {
+  const amountUnits = toRefundMinorUnits(amount);
+  const refundedUnits = toRefundMinorUnits(refundedAmount);
+  const reimbursementUnits = toRefundMinorUnits(reimbursementAmount);
+  if (
+    amountUnits === null ||
+    refundedUnits === null ||
+    reimbursementUnits === null
+  ) {
+    return null;
+  }
+
+  const remainingUnits = amountUnits - refundedUnits - reimbursementUnits;
+  return remainingUnits > BigInt(0) ? remainingUnits : BigInt(0);
+}
+
 export function isRefundAllocationTotalWithinAmount(
   totalAmount: number | string,
   allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
@@ -77,6 +101,24 @@ export function summarizeRefundAllocationAmounts(
   return {
     allocatedAmount: formatRefundMinorUnits(allocationTotalUnits),
     netIncomeAmount: formatRefundMinorUnits(totalUnits - allocationTotalUnits),
+  };
+}
+
+export function summarizeReimbursementAllocationAmounts(
+  incomeAmount: number | string,
+  remainingRefundableAmount: number | string,
+) {
+  const incomeUnits = toRefundMinorUnits(incomeAmount);
+  const remainingUnits = toRefundMinorUnits(remainingRefundableAmount);
+  if (incomeUnits === null || remainingUnits === null) return null;
+
+  const allocatedUnits =
+    incomeUnits < remainingUnits ? incomeUnits : remainingUnits;
+
+  return {
+    allocatedAmount: formatRefundMinorUnits(allocatedUnits),
+    incomeAmount: formatRefundMinorUnits(incomeUnits),
+    netIncomeAmount: formatRefundMinorUnits(incomeUnits - allocatedUnits),
   };
 }
 

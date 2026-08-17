@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   loadRefundPickerGroupItems: vi.fn(),
   loadRefundPickerGroupPage: vi.fn(),
   loadRefundPickerSearchPage: vi.fn(),
+  loadReimbursementPickerGroupItems: vi.fn(),
+  loadReimbursementPickerGroupPage: vi.fn(),
+  loadReimbursementPickerSearchPage: vi.fn(),
   NewTransactionVisualFrame: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   saveEditTransaction: vi.fn(),
@@ -31,6 +34,9 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
   loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
   loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
+  loadReimbursementPickerGroupItems: mocks.loadReimbursementPickerGroupItems,
+  loadReimbursementPickerGroupPage: mocks.loadReimbursementPickerGroupPage,
+  loadReimbursementPickerSearchPage: mocks.loadReimbursementPickerSearchPage,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({

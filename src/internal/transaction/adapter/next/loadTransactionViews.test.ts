@@ -1,17 +1,24 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  loadEditTransactionView,
+  loadNewTransactionView,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerGroupItems,
+  loadReimbursementPickerGroupPage,
+  loadReimbursementPickerSearchPage,
   loadStep4TransactionGroupView,
   loadTransactionSearchPage,
-  loadEditTransactionView,
 } from "internal/transaction/adapter/next/loadTransactionViews";
 const mocks = vi.hoisted(() => ({
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
   getEditView: vi.fn(),
+  getGroupItems: vi.fn(),
+  getGroupPage: vi.fn(),
   getGroupView: vi.fn(),
+  getNewView: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -41,7 +48,10 @@ describe("Transaction SSR adapter", () => {
     mocks.createRequestContainer.mockReturnValue({
       transaction: {
         service: {
+          getGroupItems: mocks.getGroupItems,
+          getGroupPage: mocks.getGroupPage,
           getGroupView: mocks.getGroupView,
+          getNewView: mocks.getNewView,
           search: mocks.search,
         },
       },
@@ -54,7 +64,7 @@ describe("Transaction SSR adapter", () => {
       recordType: "all",
     });
   });
-  it("两个搜索入口都用纯数字关键词直接调用 Service", async () => {
+  it("普通、退款与报销搜索入口都用纯数字关键词直接调用 Service", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mocks.search.mockResolvedValue({
@@ -64,15 +74,82 @@ describe("Transaction SSR adapter", () => {
     });
     await loadTransactionSearchPage("7930", 20);
     await loadRefundPickerSearchPage("7930", 0);
+    await loadReimbursementPickerSearchPage("7930", 10);
     expect(mocks.search).toHaveBeenNthCalledWith(1, currentLedger, "7930", 20);
     expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
       recordType: "refundableExpense",
     });
+    expect(mocks.search).toHaveBeenNthCalledWith(3, currentLedger, "7930", 10, {
+      recordType: "refundableExpense",
+      specialStatuses: ["pendingReimbursement"],
+    });
     expect(fetchMock).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
+
+  it("报销 Picker 分组分页与分组明细固定使用待报销筛选", async () => {
+    mocks.getGroupPage.mockResolvedValue({ groups: [], nextOffset: null });
+    mocks.getGroupItems.mockResolvedValue({ items: [], nextOffset: null });
+
+    await loadReimbursementPickerGroupPage(20);
+    await loadReimbursementPickerGroupItems("2026-08", 40);
+
+    const reimbursementFilters = {
+      recordType: "refundableExpense",
+      specialStatuses: ["pendingReimbursement"],
+    };
+    expect(mocks.getGroupPage).toHaveBeenCalledWith(
+      currentLedger,
+      "month",
+      20,
+      reimbursementFilters,
+    );
+    expect(mocks.getGroupItems).toHaveBeenCalledWith(
+      currentLedger,
+      "month",
+      "2026-08",
+      40,
+      reimbursementFilters,
+    );
+  });
+
+  it("启用特殊状态时新建视图分别加载退款与报销 Picker", async () => {
+    const enabledLedger = {
+      ...currentLedger,
+      transactionItemSpecialStatusEnabled: true,
+    };
+    const refundPickerView = { groups: [{ key: "refund" }] };
+    const reimbursementPickerView = { groups: [{ key: "reimbursement" }] };
+    mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
+    mocks.getNewView.mockResolvedValue({ form: "new" });
+    mocks.getGroupView
+      .mockResolvedValueOnce(refundPickerView)
+      .mockResolvedValueOnce(reimbursementPickerView);
+
+    await expect(loadNewTransactionView()).resolves.toEqual({
+      form: "new",
+      refundPickerView,
+      reimbursementPickerView,
+    });
+    expect(mocks.getNewView).toHaveBeenCalledWith(enabledLedger);
+    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
+      1,
+      enabledLedger,
+      "month",
+      { recordType: "refundableExpense" },
+    );
+    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
+      2,
+      enabledLedger,
+      "month",
+      {
+        recordType: "refundableExpense",
+        specialStatuses: ["pendingReimbursement"],
+      },
+    );
+  });
 });
-describe("Transaction \u7F16\u8F91 SSR \u8FB9\u754C", () => {
+describe("Transaction 编辑 SSR 边界", () => {
   const transactionRecordId = "00000000-0000-4000-8000-000000009999";
   const currentLedger = {
     baseCurrency: "JPY",
@@ -110,6 +187,48 @@ describe("Transaction \u7F16\u8F91 SSR \u8FB9\u754C", () => {
       currentLedger,
       transactionRecordId,
     );
+    expect(mocks.getGroupView).not.toHaveBeenCalled();
     expect(mocks.notFound).toHaveBeenCalledOnce();
+  });
+
+  it("启用特殊状态时编辑视图分别加载退款与报销 Picker", async () => {
+    const enabledLedger = {
+      ...currentLedger,
+      transactionItemSpecialStatusEnabled: true,
+    };
+    const refundPickerView = { groups: [{ key: "refund" }] };
+    const reimbursementPickerView = { groups: [{ key: "reimbursement" }] };
+    mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
+    mocks.getEditView.mockResolvedValue({ form: "edit" });
+    mocks.getGroupView
+      .mockResolvedValueOnce(refundPickerView)
+      .mockResolvedValueOnce(reimbursementPickerView);
+
+    await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
+      {
+        form: "edit",
+        refundPickerView,
+        reimbursementPickerView,
+      },
+    );
+    expect(mocks.getEditView).toHaveBeenCalledWith(
+      enabledLedger,
+      transactionRecordId,
+    );
+    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
+      1,
+      enabledLedger,
+      "month",
+      { recordType: "refundableExpense" },
+    );
+    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
+      2,
+      enabledLedger,
+      "month",
+      {
+        recordType: "refundableExpense",
+        specialStatuses: ["pendingReimbursement"],
+      },
+    );
   });
 });

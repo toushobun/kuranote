@@ -165,6 +165,55 @@ describe("TransactionGroupList", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("报销选择模式使用单选并透传剩余可核销金额", () => {
+    const onSelectReimbursementItem = vi.fn();
+    const reimbursementGroup = createTransactionDateGroup({
+      items: [
+        createTransactionListItem({
+          account_currency: "USD",
+          amount: "100",
+          categoryItems: [
+            {
+              accountId: "account-1",
+              amount: "100",
+              categoryName: "服装",
+              categoryType: "expense",
+              id: "reimbursement-item-1",
+              parentCategoryName: "购物",
+              refundedAmount: "40",
+              remainingRefundableAmount: "60",
+            },
+          ],
+        }),
+      ],
+    });
+
+    render(
+      <TransactionGroupList
+        groups={[reimbursementGroup]}
+        onSelectReimbursementItem={onSelectReimbursementItem}
+        reimbursementSelectionMode
+        selectedReimbursementItemId="reimbursement-item-1"
+      />,
+    );
+
+    expect(screen.getByText("剩余可核销 $60")).toBeInTheDocument();
+    expect(screen.getByRole("radio")).toBeChecked();
+    const button = screen.getByRole("button", {
+      name: "选择报销明细 服装",
+    });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(button);
+    expect(onSelectReimbursementItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountCurrency: "USD",
+        id: "reimbursement-item-1",
+        remainingRefundableAmount: "60",
+      }),
+    );
+  });
 });
 
 describe("TransactionRefundCandidateList", () => {

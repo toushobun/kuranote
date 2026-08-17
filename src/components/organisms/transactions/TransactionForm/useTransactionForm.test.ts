@@ -20,6 +20,7 @@ vi.mock(
 const accountOptions: TransactionAccountOption[] = [
   { currency: "JPY", id: "account-1", name: "现金" },
   { currency: "JPY", id: "account-2", name: "银行卡" },
+  { currency: "USD", id: "account-3", name: "美元账户" },
 ];
 const categoryOptions: TransactionCategoryOption[] = [
   {
@@ -60,6 +61,14 @@ const refundCandidate: TransactionRefundCandidate = {
   transactionAt: "2026-07-20T01:30:00.000Z",
   transactionRecordId: "refund-record-1",
 };
+const reimbursementCandidate: TransactionRefundCandidate = {
+  ...refundCandidate,
+  accountId: "account-2",
+  id: "reimbursement-item-1",
+  remainingRefundableAmount: "1000",
+  transactionRecordId: "reimbursement-record-1",
+};
+
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
 ) {
@@ -159,6 +168,35 @@ describe("useTransactionForm", () => {
     expect(result.current.signedTotalAmount).toBe("+1500");
     expect(result.current.businessTotalAmount).toBe("+500");
   });
+
+  it.each([
+    ["600", "0"],
+    ["1000", "0"],
+    ["1500", "500"],
+  ])(
+    "报销收入金额为 %s 时按剩余可核销额度计算业务净额",
+    (incomeAmount, expectedBusinessNetAmount) => {
+      const { result } = renderTransactionFormHook({ initialType: "income" });
+
+      act(() => {
+        result.current.handleAccountChange("account-1");
+        result.current.openSheet();
+        result.current.handlePickerCategoryToggle("income-category");
+        result.current.handlePickerAmountChange(incomeAmount);
+      });
+      act(() =>
+        result.current.setPickerReimbursementCandidate(reimbursementCandidate),
+      );
+      act(() => {
+        expect(result.current.handlePickerAdd()).toBe(true);
+      });
+
+      expect(result.current.itemSummaries[0]).toMatchObject({
+        amount: incomeAmount,
+        businessNetAmount: expectedBusinessNetAmount,
+      });
+    },
+  );
 
   it("普通既有交易修改金额时不保留等额业务净额", () => {
     const { result } = renderTransactionFormHook({
@@ -400,6 +438,46 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccountId).toBe("account-2");
     expect(result.current.pickerRefundCandidates).toEqual([]);
     expect(result.current.linkNotice).toContain("账户已变更");
+  });
+
+  it("切换付款账户后清空币种不匹配的报销候选", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+
+    act(() =>
+      result.current.setPickerReimbursementCandidate(reimbursementCandidate),
+    );
+    expect(result.current.pickerReimbursementCandidate).toEqual(
+      reimbursementCandidate,
+    );
+
+    act(() => result.current.handleAccountChange("account-3"));
+
+    expect(result.current.selectedAccountId).toBe("account-3");
+    expect(result.current.pickerReimbursementCandidate).toBeNull();
+    expect(result.current.linkNotice).toContain("币种已变更");
+  });
+
+  it("退款与报销候选互斥选择时清空另一侧候选", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+
+    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
+    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
+
+    act(() =>
+      result.current.setPickerReimbursementCandidate(reimbursementCandidate),
+    );
+    expect(result.current.pickerRefundCandidates).toEqual([]);
+    expect(result.current.pickerReimbursementCandidate).toEqual(
+      reimbursementCandidate,
+    );
+
+    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
+    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
+    expect(result.current.pickerReimbursementCandidate).toBeNull();
   });
 
   it("退款收入因账户变化解除关联时清理业务净额", () => {

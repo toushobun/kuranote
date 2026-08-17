@@ -3277,6 +3277,7 @@ with base_items as (
         ti.amount,
         ti.business_net_amount,
         ti.refunded_amount,
+        ti.reimbursement_amount,
         c.type as category_type,
         c.parent_id,
         case
@@ -3317,12 +3318,32 @@ matched_items as (
     where (
         p_record_type = 'all'
         or (p_record_type = 'transfer' and bi.category_type is null)
-        or (p_record_type = 'income' and (rp.net_amount > 0 or (rp.net_amount = 0 and rp.has_income and not rp.has_expense)))
-        or (p_record_type = 'expense' and (rp.net_amount < 0 or (rp.net_amount = 0 and rp.has_expense and not rp.has_income)))
+        or (
+            p_record_type = 'income'
+            and (
+                rp.net_amount > 0
+                or (
+                    rp.net_amount = 0
+                    and rp.has_income
+                    and not rp.has_expense
+                )
+            )
+        )
+        or (
+            p_record_type = 'expense'
+            and (
+                rp.net_amount < 0
+                or (
+                    rp.net_amount = 0
+                    and rp.has_expense
+                    and not rp.has_income
+                )
+            )
+        )
         or (
             p_record_type = 'refundableExpense'
             and bi.category_type = 'expense'
-            and bi.amount > bi.refunded_amount
+            and bi.amount > bi.refunded_amount + bi.reimbursement_amount
         )
     )
       and (p_account_id is null or bi.account_id = p_account_id)
@@ -3446,15 +3467,58 @@ CREATE OR REPLACE FUNCTION "public"."prevent_disable_special_status_with_active_
 begin
     if new.transaction_item_special_status_enabled = false
        and old.transaction_item_special_status_enabled = true
-       and exists (
-           select 1
-           from public.transaction_item ti
-           join public.transaction_record tr
-             on tr.id = ti.transaction_record_id
-            and tr.ledger_id = ti.ledger_id
-           where ti.ledger_id = new.id
-             and ti.special_status is not null
-             and tr.status = 'active'
+       and (
+           exists (
+               select 1
+               from public.transaction_item_refund_link link
+               join public.transaction_item refunded_item
+                 on refunded_item.id = link.refunded_item_id
+                and refunded_item.ledger_id = link.ledger_id
+               join public.transaction_record refunded_record
+                 on refunded_record.id = refunded_item.transaction_record_id
+                and refunded_record.ledger_id = refunded_item.ledger_id
+               join public.transaction_item refund_income
+                 on refund_income.id = link.refund_income_item_id
+                and refund_income.ledger_id = link.ledger_id
+               join public.transaction_record refund_record
+                 on refund_record.id = refund_income.transaction_record_id
+                and refund_record.ledger_id = refund_income.ledger_id
+               where link.ledger_id = new.id
+                 and refunded_record.status = 'active'
+                 and refund_record.status = 'active'
+           )
+           or exists (
+               select 1
+               from public.transaction_item_reimbursement_link link
+               join public.transaction_item target_item
+                 on target_item.id = link.target_expense_item_id
+                and target_item.ledger_id = link.ledger_id
+               join public.transaction_record target_record
+                 on target_record.id = target_item.transaction_record_id
+                and target_record.ledger_id = target_item.ledger_id
+               join public.transaction_item reimbursement_income
+                 on reimbursement_income.id = link.reimbursement_income_item_id
+                and reimbursement_income.ledger_id = link.ledger_id
+               join public.transaction_record reimbursement_record
+                 on reimbursement_record.id = reimbursement_income.transaction_record_id
+                and reimbursement_record.ledger_id = reimbursement_income.ledger_id
+               where link.ledger_id = new.id
+                 and target_record.status = 'active'
+                 and reimbursement_record.status = 'active'
+           )
+           or exists (
+               select 1
+               from public.transaction_item ti
+               join public.transaction_record tr
+                 on tr.id = ti.transaction_record_id
+                and tr.ledger_id = ti.ledger_id
+               where ti.ledger_id = new.id
+                 and ti.special_status in (
+                     'pending_reimbursement',
+                     'reimbursed'
+                 )
+                 and tr.status = 'active'
+           )
        ) then
         raise exception 'special_status_has_active_items'
             using errcode = '55006', detail = 'special_status_has_active_items';

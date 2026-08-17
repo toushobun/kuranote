@@ -35,6 +35,19 @@ const categoryGroups: CategoryPickerGroup[] = [
   { categories: categoryOptions.slice(2), id: "traffic", name: "交通" },
 ];
 
+const incomeCategory: TransactionCategoryOption = {
+  id: "income-salary",
+  name: "工资",
+  parentId: "income",
+  parentName: "收入",
+  type: "income",
+};
+const incomeGroup: CategoryPickerGroup = {
+  categories: [incomeCategory],
+  id: "income",
+  name: "收入",
+};
+
 describe("TransactionItemPickerDrawer", () => {
   afterEach(() => cleanup());
 
@@ -74,5 +87,33 @@ describe("TransactionItemPickerDrawer", () => {
     fireEvent.click(trainShortcut);
     expect(onGroupSelect).toHaveBeenCalledWith("traffic");
     expect(onCategoryToggle).toHaveBeenCalledWith("traffic-train");
+  });
+
+  it("收入明细在特殊状态开启时渲染报销单选入口", () => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={[incomeGroup]}
+        filteredCategoryOptions={[incomeCategory]}
+        frequentCategoryIds={[]}
+        onAmountChange={vi.fn()}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerAmount="1500"
+        pickerCategoryId={incomeCategory.id}
+        pickerErrors={{}}
+        selectedAccountCurrency="JPY"
+        selectedCategoryGroup={incomeGroup}
+        specialStatusEnabled
+      />,
+    );
+
+    expect(screen.getByText("报销关联")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择报销明细" }),
+    ).toBeInTheDocument();
   });
 });

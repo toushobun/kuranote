@@ -266,6 +266,54 @@ describe("buildTransactionListItem", () => {
     });
   });
 
+  describe("remaining offset", () => {
+    function buildExpenseItem(input: {
+      amount: string;
+      refundedAmount: string;
+      reimbursementAmount: string;
+    }) {
+      return buildTransactionListItem({
+        accountById,
+        categoryById,
+        fallbackCurrency: "JPY",
+        merchantById: new Map(),
+        record: { ...baseRecord, type: "normal" as const },
+        recordItems: [
+          {
+            account_id: accountA.id,
+            amount: input.amount,
+            business_net_amount: "0",
+            category_id: categoryA.id,
+            id: "expense-remaining-offset",
+            refunded_amount: input.refundedAmount,
+            reimbursement_amount: input.reimbursementAmount,
+            transaction_record_id: baseRecord.id,
+          },
+        ],
+      });
+    }
+
+    it("remainingRefundableAmount 同时扣除退款和报销金额", () => {
+      const item = buildExpenseItem({
+        amount: "1000",
+        refundedAmount: "200",
+        reimbursementAmount: "700",
+      });
+
+      expect(item.categoryItems[0]?.remainingRefundableAmount).toBe("100");
+    });
+
+    it("小数组合剩余额度按最小货币单位精确计算", () => {
+      const item = buildExpenseItem({
+        amount: "0.30",
+        refundedAmount: "0.10",
+        reimbursementAmount: "0.10",
+      });
+
+      expect(item.categoryItems[0]?.remainingRefundableAmount).toBe("0.1");
+    });
+  });
+
   it("完全分配的退款收入在列表中显示零业务净额和原始收入", () => {
     const item = buildTransactionListItem({
       accountById,

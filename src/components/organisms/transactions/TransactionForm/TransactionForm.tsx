@@ -55,7 +55,11 @@ export function TransactionForm({
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
+  loadReimbursementGroupItemsAction,
+  loadReimbursementMoreGroupsAction,
+  loadReimbursementSearchPageAction,
   refundPickerView,
+  reimbursementPickerView,
   onSubmitDisabledChange,
   submitLabel = "保存记账",
   title = "新增记账",
@@ -74,6 +78,17 @@ export function TransactionForm({
   const activeLoadRefundSearchPageAction =
     incomeLinksContext?.loadRefundSearchPageAction ??
     loadRefundSearchPageAction;
+  const activeReimbursementPickerView =
+    incomeLinksContext?.reimbursementPickerView ?? reimbursementPickerView;
+  const activeLoadReimbursementGroupItemsAction =
+    incomeLinksContext?.loadReimbursementGroupItemsAction ??
+    loadReimbursementGroupItemsAction;
+  const activeLoadReimbursementMoreGroupsAction =
+    incomeLinksContext?.loadReimbursementMoreGroupsAction ??
+    loadReimbursementMoreGroupsAction;
+  const activeLoadReimbursementSearchPageAction =
+    incomeLinksContext?.loadReimbursementSearchPageAction ??
+    loadReimbursementSearchPageAction;
   const {
     accountFieldRef,
     allNormalCategoryOptions,
@@ -103,6 +118,7 @@ export function TransactionForm({
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidates,
+    pickerReimbursementCandidate,
     pickerSpecialStatus,
     removeItem,
     businessTotalAmount,
@@ -114,6 +130,7 @@ export function TransactionForm({
     selectedType,
     setPickerSpecialStatus,
     setPickerRefundCandidates,
+    setPickerReimbursementCandidate,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -338,11 +355,13 @@ export function TransactionForm({
         onPickerAdd={handlePickerAdd}
         onRemoveItem={removeItem}
         onRefundItemsChange={setPickerRefundCandidates}
+        onReimbursementItemChange={setPickerReimbursementCandidate}
         open={isSheetOpen}
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
         pickerRefundCandidates={pickerRefundCandidates}
+        pickerReimbursementCandidate={pickerReimbursementCandidate}
         pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
@@ -350,6 +369,16 @@ export function TransactionForm({
         loadRefundGroupItemsAction={activeLoadRefundGroupItemsAction}
         loadRefundMoreGroupsAction={activeLoadRefundMoreGroupsAction}
         loadRefundSearchPageAction={activeLoadRefundSearchPageAction}
+        reimbursementPickerView={activeReimbursementPickerView}
+        loadReimbursementGroupItemsAction={
+          activeLoadReimbursementGroupItemsAction
+        }
+        loadReimbursementMoreGroupsAction={
+          activeLoadReimbursementMoreGroupsAction
+        }
+        loadReimbursementSearchPageAction={
+          activeLoadReimbursementSearchPageAction
+        }
         specialStatusEnabled={transactionItemSpecialStatusEnabled}
         incomeLinksEnabled
         onSpecialStatusChange={setPickerSpecialStatus}

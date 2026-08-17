@@ -8,6 +8,7 @@ export type TransactionIncomeLinkedItem = {
   categoryId: string;
   id: string;
   refundedAmount: string;
+  reimbursementAmount: string;
   transactionAt: string;
   transactionRecordId: string;
 };
@@ -17,10 +18,14 @@ export type TransactionIncomeRefundAllocation = {
   refundedItem: TransactionIncomeLinkedItem;
 };
 
+export type TransactionIncomeReimbursementItem = TransactionIncomeLinkedItem & {
+  reimbursementLinkAmount: string;
+};
+
 export type TransactionIncomeLinkData = {
   incomeItemId: string;
   refundAllocations: TransactionIncomeRefundAllocation[];
-  reimbursementItems: TransactionIncomeLinkedItem[];
+  reimbursementItems: TransactionIncomeReimbursementItem[];
 };
 
 export interface TransactionIncomeLinkRepository {
@@ -37,6 +42,7 @@ type RefundLinkRow = {
 };
 
 type ReimbursementLinkRow = {
+  reimbursement_amount: string;
   reimbursement_income_item_id: string;
   target_expense_item_id: string;
 };
@@ -47,6 +53,7 @@ type LinkedItemRow = {
   category_id: string | null;
   id: string;
   refunded_amount: string | null;
+  reimbursement_amount: string | null;
   transaction_record_id: string;
 };
 
@@ -84,7 +91,9 @@ export function createSupabaseTransactionIncomeLinkRepository(
           .in("refund_income_item_id", uniqueIncomeItemIds),
         supabase
           .from("transaction_item_reimbursement_link")
-          .select("reimbursement_income_item_id, target_expense_item_id")
+          .select(
+            "reimbursement_income_item_id, target_expense_item_id, reimbursement_amount",
+          )
           .eq("ledger_id", ledgerId)
           .in("reimbursement_income_item_id", uniqueIncomeItemIds),
       ]);
@@ -119,7 +128,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
           : await supabase
               .from("transaction_item_with_refund")
               .select(
-                "id, transaction_record_id, account_id, category_id, amount, refunded_amount",
+                "id, transaction_record_id, account_id, category_id, amount, refunded_amount, reimbursement_amount",
               )
               .eq("ledger_id", ledgerId)
               .in("id", linkedItemIds);
@@ -176,7 +185,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
       }
       const reimbursementItemsByIncomeItemId = new Map<
         string,
-        TransactionIncomeLinkedItem[]
+        TransactionIncomeReimbursementItem[]
       >();
 
       for (const link of reimbursementLinks) {
@@ -186,7 +195,10 @@ export function createSupabaseTransactionIncomeLinkRepository(
           reimbursementItemsByIncomeItemId.get(
             link.reimbursement_income_item_id,
           ) ?? [];
-        current.push(linkedItem);
+        current.push({
+          ...linkedItem,
+          reimbursementLinkAmount: link.reimbursement_amount,
+        });
         reimbursementItemsByIncomeItemId.set(
           link.reimbursement_income_item_id,
           current,
@@ -225,6 +237,7 @@ function buildLinkedItem(
     categoryId: item.category_id,
     id: item.id,
     refundedAmount: item.refunded_amount ?? "0",
+    reimbursementAmount: item.reimbursement_amount ?? "0",
     transactionAt,
     transactionRecordId: item.transaction_record_id,
   };

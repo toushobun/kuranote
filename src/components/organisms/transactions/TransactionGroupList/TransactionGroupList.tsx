@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Checkbox from "@mui/material/Checkbox";
+import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -27,16 +28,22 @@ import {
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
   onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
+  onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
+  reimbursementSelectionMode?: boolean;
   selectedRefundItemIds?: string[];
+  selectedReimbursementItemId?: string | null;
   showSummary?: boolean;
 };
 
 export function TransactionGroupList({
   groups,
   onSelectRefundItem,
+  onSelectReimbursementItem,
   refundSelectionMode = false,
+  reimbursementSelectionMode = false,
   selectedRefundItemIds = [],
+  selectedReimbursementItemId = null,
   showSummary = true,
 }: TransactionGroupListProps) {
   useDateGroupLabelRefresh();
@@ -86,7 +93,18 @@ export function TransactionGroupList({
           </Stack>
 
           <Box>
-            {refundSelectionMode && onSelectRefundItem ? (
+            {reimbursementSelectionMode && onSelectReimbursementItem ? (
+              <TransactionRefundCandidateList
+                items={group.items}
+                onSelect={onSelectReimbursementItem}
+                selectedIds={
+                  selectedReimbursementItemId
+                    ? [selectedReimbursementItemId]
+                    : []
+                }
+                selectionKind="reimbursement"
+              />
+            ) : refundSelectionMode && onSelectRefundItem ? (
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectRefundItem}
@@ -112,15 +130,23 @@ export function TransactionRefundCandidateList({
   items,
   onSelect,
   selectedIds = [],
+  selectionKind = "refund",
 }: {
   items: TransactionListItem[];
   onSelect: (item: TransactionRefundCandidate) => void;
   selectedIds?: string[];
+  selectionKind?: "refund" | "reimbursement";
 }) {
   const candidates = items.flatMap((record) =>
     record.categoryItems.flatMap((item) => {
-      if (item.categoryType !== "expense" || !item.id || !item.accountId)
+      if (
+        item.categoryType !== "expense" ||
+        !item.id ||
+        !item.accountId ||
+        item.remainingRefundableAmount === undefined
+      ) {
         return [];
+      }
       return [
         {
           accountCurrency: record.account_currency,
@@ -130,14 +156,14 @@ export function TransactionRefundCandidateList({
           id: item.id,
           parentCategoryName: item.parentCategoryName,
           refundedAmount: item.refundedAmount ?? "0",
-          remainingRefundableAmount:
-            item.remainingRefundableAmount ?? item.amount,
+          remainingRefundableAmount: item.remainingRefundableAmount,
           transactionAt: record.transaction_at,
           transactionRecordId: record.id,
         } satisfies TransactionRefundCandidate,
       ];
     }),
   );
+  const isReimbursement = selectionKind === "reimbursement";
 
   return (
     <Stack>
@@ -147,7 +173,7 @@ export function TransactionRefundCandidateList({
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         return (
           <ButtonBase
-            aria-label={`选择退款明细 ${candidate.categoryName}`}
+            aria-label={`${isReimbursement ? "选择报销明细" : "选择退款明细"} ${candidate.categoryName}`}
             aria-pressed={selected}
             disabled={disabled}
             key={candidate.id}
@@ -159,7 +185,11 @@ export function TransactionRefundCandidateList({
               opacity: disabled ? 0.45 : 1,
             }}
           >
-            <Checkbox checked={selected} tabIndex={-1} />
+            {isReimbursement ? (
+              <Radio checked={selected} tabIndex={-1} />
+            ) : (
+              <Checkbox checked={selected} tabIndex={-1} />
+            )}
             <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <Typography sx={{ fontWeight: 800 }} variant="body2">
                 {candidate.parentCategoryName
@@ -173,10 +203,10 @@ export function TransactionRefundCandidateList({
             </Stack>
             <Stack sx={{ alignItems: "flex-end" }}>
               <Typography sx={{ fontWeight: 900 }} variant="body2">
-                剩余可退 {currencySymbol}
+                {isReimbursement ? "剩余可核销" : "剩余可退"} {currencySymbol}
                 {formatNumber(candidate.remainingRefundableAmount)}
               </Typography>
-              {Number(candidate.refundedAmount) > 0 ? (
+              {!isReimbursement && Number(candidate.refundedAmount) > 0 ? (
                 <Typography color="text.secondary" variant="caption">
                   已退款 {currencySymbol}
                   {formatNumber(candidate.refundedAmount)}
