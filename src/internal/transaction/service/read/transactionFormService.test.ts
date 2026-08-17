@@ -330,7 +330,7 @@ describe("getEditTransactionView income links", () => {
     });
   });
 
-  it("报销收入允许进入受控编辑流程", async () => {
+  it("报销收入允许编辑并按组合剩余额度回填单一报销对象", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
@@ -342,7 +342,9 @@ describe("getEditTransactionView income links", () => {
               amount: "1000",
               categoryId,
               id: linkedExpenseItemId,
-              refundedAmount: "0",
+              refundedAmount: "100",
+              reimbursementAmount: "600",
+              reimbursementLinkAmount: "400",
               transactionAt: "2026-08-01T01:00:00.000Z",
               transactionRecordId: "00000000-0000-4000-8000-000000009998",
             },
@@ -356,6 +358,7 @@ describe("getEditTransactionView income links", () => {
         incomeLinkRepository,
         itemOverrides: {
           balance_delta: "1000",
+          business_net_amount: "600",
           category_id: incomeCategoryId,
           has_reimbursement_link: true,
           is_reimbursement_income: true,
@@ -371,6 +374,7 @@ describe("getEditTransactionView income links", () => {
       initialValues: {
         items: [
           {
+            businessNetAmount: "600",
             businessStatus: {
               incomeLinkRole: "reimbursement",
               offsetComposition: {
@@ -379,13 +383,17 @@ describe("getEditTransactionView income links", () => {
               },
               settlementStatus: null,
             },
+            reimbursementCandidate: {
+              id: linkedExpenseItemId,
+              remainingRefundableAmount: "700",
+            },
           },
         ],
       },
     });
   });
 
-  it("退款收入允许编辑并回填退款对象", async () => {
+  it("退款收入编辑时按退款和报销组合口径回填退款对象", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
@@ -399,6 +407,7 @@ describe("getEditTransactionView income links", () => {
                 categoryId,
                 id: linkedExpenseItemId,
                 refundedAmount: "0.2",
+                reimbursementAmount: "0.05",
                 transactionAt: "2026-08-01T01:00:00.000Z",
                 transactionRecordId: "00000000-0000-4000-8000-000000009998",
               },
@@ -442,7 +451,7 @@ describe("getEditTransactionView income links", () => {
             refundCandidates: [
               {
                 id: linkedExpenseItemId,
-                remainingRefundableAmount: "0.2",
+                remainingRefundableAmount: "0.15",
               },
             ],
           },
