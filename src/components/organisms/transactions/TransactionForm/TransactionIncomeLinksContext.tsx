@@ -21,7 +21,19 @@ export type TransactionIncomeLinksContextValue = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
+  loadReimbursementGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadReimbursementMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadReimbursementSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
   refundPickerView?: TransactionTimeGroupViewData;
+  reimbursementPickerView?: TransactionTimeGroupViewData;
 };
 
 const TransactionIncomeLinksContext =
