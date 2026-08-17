@@ -139,8 +139,14 @@ export function TransactionRefundCandidateList({
 }) {
   const candidates = items.flatMap((record) =>
     record.categoryItems.flatMap((item) => {
-      if (item.categoryType !== "expense" || !item.id || !item.accountId)
+      if (
+        item.categoryType !== "expense" ||
+        !item.id ||
+        !item.accountId ||
+        item.remainingRefundableAmount === undefined
+      ) {
         return [];
+      }
       return [
         {
           accountCurrency: record.account_currency,
@@ -150,8 +156,7 @@ export function TransactionRefundCandidateList({
           id: item.id,
           parentCategoryName: item.parentCategoryName,
           refundedAmount: item.refundedAmount ?? "0",
-          remainingRefundableAmount:
-            item.remainingRefundableAmount ?? item.amount,
+          remainingRefundableAmount: item.remainingRefundableAmount,
           transactionAt: record.transaction_at,
           transactionRecordId: record.id,
         } satisfies TransactionRefundCandidate,
