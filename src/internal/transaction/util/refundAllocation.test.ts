@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   allocateRefundAmount,
+  calculateRemainingOffsetMinorUnits,
   formatRefundMinorUnits,
   hasUniqueRefundAllocationTargets,
   isRefundAllocationTotalWithinAmount,
@@ -15,6 +16,29 @@ describe("refund amount minor units", () => {
     expect(toRefundMinorUnits(0.1)).toBe(BigInt(10));
     expect(toRefundMinorUnits("0.20")).toBe(BigInt(20));
     expect(formatRefundMinorUnits(BigInt(30))).toBe("0.3");
+  });
+});
+
+describe("calculateRemainingOffsetMinorUnits", () => {
+  it("按原金额减去退款与报销金额计算组合剩余额度", () => {
+    expect(calculateRemainingOffsetMinorUnits("100", "20", "30")).toBe(
+      BigInt(5000),
+    );
+    expect(calculateRemainingOffsetMinorUnits("0.07", "0.01", "0.06")).toBe(
+      BigInt(0),
+    );
+  });
+
+  it("组合核销超过原金额时将剩余额度收敛为 0", () => {
+    expect(calculateRemainingOffsetMinorUnits("100", "70", "40")).toBe(
+      BigInt(0),
+    );
+  });
+
+  it("金额精度无效时返回 null", () => {
+    expect(calculateRemainingOffsetMinorUnits("1.001", "0", "0")).toBeNull();
+    expect(calculateRemainingOffsetMinorUnits("1", "0.001", "0")).toBeNull();
+    expect(calculateRemainingOffsetMinorUnits("1", "0", "0.001")).toBeNull();
   });
 });
 
