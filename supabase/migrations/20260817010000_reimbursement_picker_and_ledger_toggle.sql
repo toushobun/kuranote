@@ -114,17 +114,15 @@ with base_items as (
         ti.category_id,
         ti.special_status,
         ti.amount,
+        ti.business_net_amount,
         ti.refunded_amount,
         ti.reimbursement_amount,
         c.type as category_type,
         c.parent_id,
         case
             when tr.type = 'transfer' then 0::numeric
-            when c.type = 'expense' and ti.special_status = 'reimbursed' then 0::numeric
-            when c.type = 'income' and ti.is_refund_income then 0::numeric
-            when c.type = 'income' and ti.is_reimbursement_income then 0::numeric
-            when c.type = 'income' then ti.amount
-            when c.type = 'expense' then -greatest(ti.amount - ti.refunded_amount, 0)
+            when c.type = 'income' then ti.business_net_amount
+            when c.type = 'expense' then -ti.business_net_amount
             else 0::numeric
         end as signed_amount
     from public.transaction_record tr
@@ -159,8 +157,28 @@ matched_items as (
     where (
         p_record_type = 'all'
         or (p_record_type = 'transfer' and bi.category_type is null)
-        or (p_record_type = 'income' and rp.net_amount > 0)
-        or (p_record_type = 'expense' and (rp.net_amount < 0 or (rp.net_amount = 0 and rp.has_expense)))
+        or (
+            p_record_type = 'income'
+            and (
+                rp.net_amount > 0
+                or (
+                    rp.net_amount = 0
+                    and rp.has_income
+                    and not rp.has_expense
+                )
+            )
+        )
+        or (
+            p_record_type = 'expense'
+            and (
+                rp.net_amount < 0
+                or (
+                    rp.net_amount = 0
+                    and rp.has_expense
+                    and not rp.has_income
+                )
+            )
+        )
         or (
             p_record_type = 'refundableExpense'
             and bi.category_type = 'expense'
