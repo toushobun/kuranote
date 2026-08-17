@@ -9,10 +9,7 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
-import {
-  formatRefundMinorUnits,
-  toRefundMinorUnits,
-} from "internal/transaction";
+import { summarizeReimbursementAllocationAmounts } from "internal/transaction";
 import { TransactionMonthList } from "../TransactionMonthList/TransactionMonthList";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type {
@@ -61,7 +58,10 @@ export function TransactionReimbursementLinkPicker({
   const [draftValue, setDraftValue] =
     useState<TransactionRefundCandidate | null>(null);
   const allocation = value
-    ? summarizeReimbursementAllocation(incomeAmount, value)
+    ? summarizeReimbursementAllocationAmounts(
+        incomeAmount,
+        value.remainingRefundableAmount,
+      )
     : null;
 
   const openPicker = () => {
@@ -180,34 +180,6 @@ function AllocationLine({
       {formatNumber(value)}
     </Typography>
   );
-}
-
-export function summarizeReimbursementAllocation(
-  incomeAmount: string,
-  candidate: TransactionRefundCandidate,
-) {
-  const incomeUnits = toRefundMinorUnits(incomeAmount);
-  const remainingUnits = toRefundMinorUnits(
-    candidate.remainingRefundableAmount,
-  );
-  if (incomeUnits === null || remainingUnits === null) return null;
-
-  const zero = BigInt(0);
-  const normalizedIncomeUnits = incomeUnits > zero ? incomeUnits : zero;
-  const normalizedRemainingUnits =
-    remainingUnits > zero ? remainingUnits : zero;
-  const allocatedUnits =
-    normalizedIncomeUnits < normalizedRemainingUnits
-      ? normalizedIncomeUnits
-      : normalizedRemainingUnits;
-
-  return {
-    allocatedAmount: formatRefundMinorUnits(allocatedUnits),
-    incomeAmount: formatRefundMinorUnits(normalizedIncomeUnits),
-    netIncomeAmount: formatRefundMinorUnits(
-      normalizedIncomeUnits - allocatedUnits,
-    ),
-  };
 }
 
 const containerSx = { borderTop: 1, borderColor: "divider", mt: 1.5, pt: 1.25 };
