@@ -125,6 +125,26 @@ describe("refundableExpense filter", () => {
     ).toEqual([]);
   });
 
+  it("小数金额完全核销时不会因浮点误差残留候选", () => {
+    const fullyOffsetContext = {
+      ...context,
+      items: [
+        {
+          ...expenseItem,
+          amount: "0.07",
+          refunded_amount: "0.01",
+          reimbursement_amount: "0.06",
+        },
+      ],
+    };
+
+    expect(
+      filterTransactionItems(fullyOffsetContext, {
+        recordType: "refundableExpense",
+      }),
+    ).toEqual([]);
+  });
+
   it("报销候选只保留待报销且仍有组合剩余额度的支出", () => {
     const pendingExpense = {
       ...expenseItem,
