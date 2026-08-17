@@ -29,6 +29,7 @@ export type TransactionFormProps = {
   ledgerName?: string;
   merchantOptions: TransactionMerchantOption[];
   refundPickerView?: TransactionTimeGroupViewData;
+  reimbursementPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -37,6 +38,17 @@ export type TransactionFormProps = {
     offset: number,
   ) => Promise<TransactionGroupPage>;
   loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  loadReimbursementGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadReimbursementMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadReimbursementSearchPageAction?: (
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
