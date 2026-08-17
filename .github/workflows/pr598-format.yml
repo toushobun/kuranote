@@ -1,0 +1,35 @@
+name: PR598 Format
+
+on:
+  push:
+    branches:
+      - feature/598_reimbursement_picker_and_ledger_toggle
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/598_reimbursement_picker_and_ledger_toggle
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+      - run: test -d node_modules || npm ci
+      - run: npx prettier --write src/internal/transaction/service/read/transactionFormService.ts
+      - shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/internal/transaction/service/read/transactionFormService.ts
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore: 格式化收入关联读模型"
+          git push origin HEAD:feature/598_reimbursement_picker_and_ledger_toggle
