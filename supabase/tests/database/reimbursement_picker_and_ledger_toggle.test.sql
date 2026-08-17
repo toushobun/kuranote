@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(9);
+select plan(10);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -130,6 +130,16 @@ select is(
     ),
     'pending_reimbursement'::public.transaction_item_special_status,
     '部分核销后目标支出仍保持 pending_reimbursement'
+);
+
+select is(
+    (
+        select amount - refunded_amount - reimbursement_amount
+        from public.transaction_item_with_refund
+        where id = '59880000-0000-4000-8000-000000000004'
+    ),
+    60::numeric,
+    '部分报销后数据库组合剩余额度为 60'
 );
 
 select lives_ok(
