@@ -33,7 +33,7 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
     "你没有权限修改该账本或成员设置。",
   [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
   [ledgerSettingsErrorCodes.specialStatusHasActiveItems]:
-    "账本内还有处于报销流程的明细，需要先处理完这些明细才能关闭该功能。",
+    "账本内仍有退款/报销关联或处于报销流程的明细，请先处理完成后再关闭该功能。",
   [ledgerSettingsErrorCodes.updateFailed]:
     "账本设置保存失败。请确认内容后稍后重试。",
 };
