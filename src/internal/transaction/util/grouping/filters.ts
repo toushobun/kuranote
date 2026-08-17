@@ -8,7 +8,7 @@ import type { TransactionFilters } from "internal/transaction/entity/transaction
 import { transactionSpecialStatuses } from "internal/transaction/entity/transactionSpecialStatus";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { getTransactionRecordCategoryType } from "internal/transaction/util/transactionAmountHelpers";
-import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
+import { calculateRemainingOffsetMinorUnits } from "internal/transaction/util/refundAllocation";
 import {
   getDateKeyInTimeZone,
   isDateText as isDateKey,
@@ -198,16 +198,10 @@ function matchesRecordType(
 }
 
 function hasRemainingOffsetAmount(item: TransactionItemDbRow) {
-  const amountUnits = toRefundMinorUnits(item.amount);
-  const refundedUnits = toRefundMinorUnits(item.refunded_amount ?? "0");
-  const reimbursementUnits = toRefundMinorUnits(
+  const remainingUnits = calculateRemainingOffsetMinorUnits(
+    item.amount,
+    item.refunded_amount ?? "0",
     item.reimbursement_amount ?? "0",
   );
-
-  return (
-    amountUnits !== null &&
-    refundedUnits !== null &&
-    reimbursementUnits !== null &&
-    amountUnits > refundedUnits + reimbursementUnits
-  );
+  return remainingUnits !== null && remainingUnits > BigInt(0);
 }
