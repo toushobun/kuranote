@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(7);
+select plan(9);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -23,7 +23,7 @@ select
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 from public.transaction_record source_record
-cross join generate_series(1, 5) sequence_number
+cross join generate_series(1, 6) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
 insert into public.transaction_item (
@@ -53,7 +53,8 @@ from (
         (2, 'income', 20::numeric, null),
         (3, 'expense', 100::numeric, 'pending_reimbursement'),
         (4, 'expense', 100::numeric, 'pending_reimbursement'),
-        (5, 'income', 100::numeric, null)
+        (5, 'income', 40::numeric, null),
+        (6, 'income', 60::numeric, null)
 ) as item(sequence_number, category_type, amount, special_status);
 
 select lives_ok(
@@ -118,7 +119,32 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '可以建立全额报销关联用于开关与候选筛选测试'
+    '第一笔收入可以部分核销同一条待报销支出'
+);
+
+select is(
+    (
+        select special_status
+        from public.transaction_item
+        where id = '59880000-0000-4000-8000-000000000004'
+    ),
+    'pending_reimbursement'::public.transaction_item_special_status,
+    '部分核销后目标支出仍保持 pending_reimbursement'
+);
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59880000-0000-4000-8000-000000000006',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '59880000-0000-4000-8000-000000000004'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '第二笔收入可以继续核销同一条待报销支出'
 );
 
 select is(
@@ -128,7 +154,7 @@ select is(
         where id = '59880000-0000-4000-8000-000000000004'
     ),
     'reimbursed'::public.transaction_item_special_status,
-    '全额报销后目标支出进入 reimbursed 状态'
+    '累计核销完成后目标支出进入 reimbursed 状态'
 );
 
 select throws_ok(
