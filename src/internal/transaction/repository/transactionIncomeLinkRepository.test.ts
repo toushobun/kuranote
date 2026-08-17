@@ -47,6 +47,7 @@ describe("TransactionIncomeLinkRepository", () => {
       transaction_item_reimbursement_link: createQuery({
         data: [
           {
+            reimbursement_amount: "40.00",
             reimbursement_income_item_id: incomeItemId,
             target_expense_item_id: reimbursementTargetId,
           },
@@ -60,7 +61,8 @@ describe("TransactionIncomeLinkRepository", () => {
             amount: "100.00",
             category_id: categoryId,
             id: reimbursementTargetId,
-            refunded_amount: "0.00",
+            refunded_amount: "10.00",
+            reimbursement_amount: "70.00",
             transaction_record_id: reimbursementRecordId,
           },
           {
@@ -69,6 +71,7 @@ describe("TransactionIncomeLinkRepository", () => {
             category_id: categoryId,
             id: refundTargetId,
             refunded_amount: "30.00",
+            reimbursement_amount: "20.00",
             transaction_record_id: refundRecordId,
           },
         ],
@@ -108,6 +111,7 @@ describe("TransactionIncomeLinkRepository", () => {
               categoryId,
               id: refundTargetId,
               refundedAmount: "30.00",
+              reimbursementAmount: "20.00",
               transactionAt: "2026-08-15T02:00:00.000Z",
               transactionRecordId: refundRecordId,
             },
@@ -119,7 +123,9 @@ describe("TransactionIncomeLinkRepository", () => {
             amount: "100.00",
             categoryId,
             id: reimbursementTargetId,
-            refundedAmount: "0.00",
+            refundedAmount: "10.00",
+            reimbursementAmount: "70.00",
+            reimbursementLinkAmount: "40.00",
             transactionAt: "2026-08-15T01:00:00.000Z",
             transactionRecordId: reimbursementRecordId,
           },
