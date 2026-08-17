@@ -108,7 +108,9 @@ export function buildTransactionListItem({
               remainingRefundableAmount: String(
                 Math.max(
                   0,
-                  Number(item.amount) - Number(item.refunded_amount ?? 0),
+                  Number(item.amount) -
+                    Number(item.refunded_amount ?? 0) -
+                    Number(item.reimbursement_amount ?? 0),
                 ),
               ),
             }
