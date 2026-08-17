@@ -117,6 +117,19 @@ export type TransferEditInitialValues = {
   type: "transfer";
 };
 
+type TransactionIncomeLinkCandidate = {
+  accountCurrency: string;
+  accountId: string;
+  amount: string;
+  categoryName: string;
+  id: string;
+  parentCategoryName: string | null;
+  refundedAmount: string;
+  remainingRefundableAmount: string;
+  transactionAt: string;
+  transactionRecordId: string;
+};
+
 export type NewTransactionView = TransactionFormOptions & {
   canWriteTransactions: boolean;
   ledgerName: string;
@@ -135,18 +148,8 @@ export type EditTransactionView = TransactionFormOptions & {
           businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
           id?: string;
-          refundCandidates?: {
-            accountCurrency: string;
-            accountId: string;
-            amount: string;
-            categoryName: string;
-            id: string;
-            parentCategoryName: string | null;
-            refundedAmount: string;
-            remainingRefundableAmount: string;
-            transactionAt: string;
-            transactionRecordId: string;
-          }[];
+          refundCandidates?: TransactionIncomeLinkCandidate[];
+          reimbursementCandidate?: TransactionIncomeLinkCandidate | null;
           refundedAmount?: string;
           specialStatus: TransactionSpecialStatus | null;
         }[];
