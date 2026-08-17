@@ -29,6 +29,7 @@ import type {
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
+import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
 
 import type {
   CategoryPickerGroup,
@@ -49,16 +50,21 @@ type TransactionItemPickerDrawerProps = {
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
   onRefundItemsChange?: (item: TransactionRefundCandidate[]) => void;
+  onReimbursementItemChange?: (
+    item: TransactionRefundCandidate | null,
+  ) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerRefundCandidates?: TransactionRefundCandidate[];
+  pickerReimbursementCandidate?: TransactionRefundCandidate | null;
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
   refundPickerView?: TransactionTimeGroupViewData;
+  reimbursementPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -67,6 +73,17 @@ type TransactionItemPickerDrawerProps = {
     offset: number,
   ) => Promise<TransactionGroupPage>;
   loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  loadReimbursementGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadReimbursementMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadReimbursementSearchPageAction?: (
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
@@ -86,19 +103,25 @@ export function TransactionItemPickerDrawer({
   onPickerAdd,
   onRemoveItem,
   onRefundItemsChange = () => undefined,
+  onReimbursementItemChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
   pickerRefundCandidates = [],
+  pickerReimbursementCandidate = null,
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
   refundPickerView,
+  reimbursementPickerView,
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
+  loadReimbursementGroupItemsAction,
+  loadReimbursementMoreGroupsAction,
+  loadReimbursementSearchPageAction,
   specialStatusEnabled = false,
   incomeLinksEnabled = true,
 }: TransactionItemPickerDrawerProps) {
@@ -109,7 +132,7 @@ export function TransactionItemPickerDrawer({
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
     editingItemId !== null,
   );
-  // Drawer 的内容不会在 open 切换时卸载重挂，所以用"渲染期间对比上一次 open"的方式
+  // Drawer 的内容不会在 open 切换时卸载重挂，所以用渲染期间对比上一次 open 的方式
   // 在每次真正打开时重新决定展开态，而不是用 useEffect 里 setState（会触发级联渲染）。
   const [previousOpen, setPreviousOpen] = useState(open);
   if (open !== previousOpen) {
@@ -162,10 +185,6 @@ export function TransactionItemPickerDrawer({
   function selectCategory(groupId: string, categoryId: string) {
     if (selectedCategoryGroup?.id !== groupId) onGroupSelect(groupId);
     onCategoryToggle(categoryId);
-  }
-
-  function handleRefundsChange(items: TransactionRefundCandidate[]) {
-    onRefundItemsChange(items);
   }
 
   function handleConfirm() {
@@ -398,15 +417,26 @@ export function TransactionItemPickerDrawer({
         {specialStatusEnabled &&
         incomeLinksEnabled &&
         selectedCategoryType === "income" ? (
-          <TransactionRefundLinkPicker
-            loadGroupItemsAction={loadRefundGroupItemsAction}
-            loadMoreGroupsAction={loadRefundMoreGroupsAction}
-            loadSearchPageAction={loadRefundSearchPageAction}
-            onChange={handleRefundsChange}
-            timeGroupView={refundPickerView}
-            refundAmount={pickerAmount}
-            value={pickerRefundCandidates}
-          />
+          <>
+            <TransactionRefundLinkPicker
+              loadGroupItemsAction={loadRefundGroupItemsAction}
+              loadMoreGroupsAction={loadRefundMoreGroupsAction}
+              loadSearchPageAction={loadRefundSearchPageAction}
+              onChange={onRefundItemsChange}
+              timeGroupView={refundPickerView}
+              refundAmount={pickerAmount}
+              value={pickerRefundCandidates}
+            />
+            <TransactionReimbursementLinkPicker
+              incomeAmount={pickerAmount}
+              loadGroupItemsAction={loadReimbursementGroupItemsAction}
+              loadMoreGroupsAction={loadReimbursementMoreGroupsAction}
+              loadSearchPageAction={loadReimbursementSearchPageAction}
+              onChange={onReimbursementItemChange}
+              timeGroupView={reimbursementPickerView}
+              value={pickerReimbursementCandidate}
+            />
+          </>
         ) : null}
       </Box>
 
