@@ -53,15 +53,19 @@ const ledgerBaseSettingsErrorCodes = [
   ledgerSettingsErrorCodes.specialStatusHasActiveItems,
 ] as const;
 
-function findLedgerBaseSettingsErrorCode(
-  details: string | null | undefined,
-): LedgerSettingsErrorCode | null {
-  const normalizedDetails = details?.trim();
+function findLedgerBaseSettingsErrorCode(error: {
+  details?: string | null;
+  message?: string | null;
+}): LedgerSettingsErrorCode | null {
+  for (const value of [error.details, error.message]) {
+    const normalizedValue = value?.trim();
+    const code = ledgerBaseSettingsErrorCodes.find(
+      (candidate) => candidate === normalizedValue,
+    );
+    if (code) return code;
+  }
 
-  return (
-    ledgerBaseSettingsErrorCodes.find((code) => code === normalizedDetails) ??
-    null
-  );
+  return null;
 }
 
 export interface LedgerSettingsRepository {
@@ -263,7 +267,7 @@ export function createSupabaseLedgerSettingsRepository(
         .eq("is_archived", false);
 
       if (error) {
-        const code = findLedgerBaseSettingsErrorCode(error.details);
+        const code = findLedgerBaseSettingsErrorCode(error);
         if (code) {
           return { code, ok: false };
         }
