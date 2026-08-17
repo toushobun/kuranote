@@ -66,14 +66,19 @@ export function TransactionForm({
   const activeRefundPickerView =
     incomeLinksContext?.refundPickerView ?? refundPickerView;
   const activeLoadRefundGroupItemsAction =
-    incomeLinksContext?.loadRefundGroupItemsAction ??
-    loadRefundGroupItemsAction;
+    incomeLinksContext?.loadRefundGroupItemsAction ?? loadRefundGroupItemsAction;
   const activeLoadRefundMoreGroupsAction =
-    incomeLinksContext?.loadRefundMoreGroupsAction ??
-    loadRefundMoreGroupsAction;
+    incomeLinksContext?.loadRefundMoreGroupsAction ?? loadRefundMoreGroupsAction;
   const activeLoadRefundSearchPageAction =
-    incomeLinksContext?.loadRefundSearchPageAction ??
-    loadRefundSearchPageAction;
+    incomeLinksContext?.loadRefundSearchPageAction ?? loadRefundSearchPageAction;
+  const activeReimbursementPickerView =
+    incomeLinksContext?.reimbursementPickerView;
+  const activeLoadReimbursementGroupItemsAction =
+    incomeLinksContext?.loadReimbursementGroupItemsAction;
+  const activeLoadReimbursementMoreGroupsAction =
+    incomeLinksContext?.loadReimbursementMoreGroupsAction;
+  const activeLoadReimbursementSearchPageAction =
+    incomeLinksContext?.loadReimbursementSearchPageAction;
   const {
     accountFieldRef,
     allNormalCategoryOptions,
@@ -103,6 +108,7 @@ export function TransactionForm({
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidates,
+    pickerReimbursementCandidate,
     pickerSpecialStatus,
     removeItem,
     businessTotalAmount,
@@ -114,6 +120,7 @@ export function TransactionForm({
     selectedType,
     setPickerSpecialStatus,
     setPickerRefundCandidates,
+    setPickerReimbursementCandidate,
     signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
@@ -338,11 +345,13 @@ export function TransactionForm({
         onPickerAdd={handlePickerAdd}
         onRemoveItem={removeItem}
         onRefundItemsChange={setPickerRefundCandidates}
+        onReimbursementItemChange={setPickerReimbursementCandidate}
         open={isSheetOpen}
         pickerAmount={pickerAmount}
         pickerCategoryId={pickerCategoryId}
         pickerErrors={pickerErrors}
         pickerRefundCandidates={pickerRefundCandidates}
+        pickerReimbursementCandidate={pickerReimbursementCandidate}
         pickerSpecialStatus={pickerSpecialStatus ?? null}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
@@ -350,6 +359,16 @@ export function TransactionForm({
         loadRefundGroupItemsAction={activeLoadRefundGroupItemsAction}
         loadRefundMoreGroupsAction={activeLoadRefundMoreGroupsAction}
         loadRefundSearchPageAction={activeLoadRefundSearchPageAction}
+        reimbursementPickerView={activeReimbursementPickerView}
+        loadReimbursementGroupItemsAction={
+          activeLoadReimbursementGroupItemsAction
+        }
+        loadReimbursementMoreGroupsAction={
+          activeLoadReimbursementMoreGroupsAction
+        }
+        loadReimbursementSearchPageAction={
+          activeLoadReimbursementSearchPageAction
+        }
         specialStatusEnabled={transactionItemSpecialStatusEnabled}
         incomeLinksEnabled
         onSpecialStatusChange={setPickerSpecialStatus}
