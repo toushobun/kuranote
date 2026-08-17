@@ -75,7 +75,12 @@ describe("Transaction SSR adapter", () => {
     await loadTransactionSearchPage("7930", 20);
     await loadRefundPickerSearchPage("7930", 0);
     await loadReimbursementPickerSearchPage("7930", 10);
-    expect(mocks.search).toHaveBeenNthCalledWith(1, currentLedger, "7930", 20);
+    expect(mocks.search).toHaveBeenNthCalledWith(
+      1,
+      currentLedger,
+      "7930",
+      20,
+    );
     expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
       recordType: "refundableExpense",
     });
@@ -204,7 +209,9 @@ describe("Transaction 编辑 SSR 边界", () => {
       .mockResolvedValueOnce(refundPickerView)
       .mockResolvedValueOnce(reimbursementPickerView);
 
-    await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual({
+    await expect(
+      loadEditTransactionView(transactionRecordId),
+    ).resolves.toEqual({
       form: "edit",
       refundPickerView,
       reimbursementPickerView,
