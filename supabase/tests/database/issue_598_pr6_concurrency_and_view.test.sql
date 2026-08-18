@@ -112,12 +112,9 @@ select public.apply_transaction_item_links(
     (select ledger_id from issue_598_pr6_context),
     '59891000-0000-4000-8000-000000000002',
     jsonb_build_object(
-        'refundAllocations',
-        jsonb_build_array(jsonb_build_object(
-            'refundedItemId', '59891000-0000-4000-8000-000000000001',
-            'refundAmount', 30
-        ))
-    ),
+                'refundedItemId',
+                '59891000-0000-4000-8000-000000000001'
+            ),
     (select user_id from issue_598_pr6_context)
 );
 

@@ -66,13 +66,13 @@ describe("TransactionRefundLinkPicker", () => {
       <TransactionRefundLinkPicker
         onChange={vi.fn()}
         refundAmount="1500"
-        value={[selectedItem]}
+        value={selectedItem}
       />,
     );
 
-    expect(
-      screen.getByText("本次实际核销 ¥1,000，剩余 ¥500 计入净收益"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("收入子项金额 ¥1,500")).toBeInTheDocument();
+    expect(screen.getByText("本次实际核销金额 ¥1,000")).toBeInTheDocument();
+    expect(screen.getByText("未核销净收益 ¥500")).toBeInTheDocument();
   });
 
   it("打开复用的按月浏览与搜索选择模式", () => {
@@ -82,7 +82,7 @@ describe("TransactionRefundLinkPicker", () => {
     expect(screen.getByRole("tab", { name: "搜索" })).toBeInTheDocument();
   });
 
-  it("父组件重新渲染后保留搜索结果并可选择退款明细", async () => {
+  it("父组件重新渲染后保留搜索结果并可选择单条退款明细", async () => {
     const loadSearchPageAction = vi.fn(async () => searchPage);
     const onChange = vi.fn();
     const { rerender } = render(
@@ -118,13 +118,13 @@ describe("TransactionRefundLinkPicker", () => {
 
     expect(screen.getByLabelText("搜索关键词")).toHaveValue("咖啡");
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细 午餐" }));
-    fireEvent.click(screen.getByRole("button", { name: "完成（1）" }));
-    expect(onChange).toHaveBeenCalledWith([
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "refund-item-1",
         remainingRefundableAmount: "1000",
       }),
-    ]);
+    );
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });

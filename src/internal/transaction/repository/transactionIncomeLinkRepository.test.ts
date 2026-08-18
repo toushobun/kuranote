@@ -102,21 +102,17 @@ describe("TransactionIncomeLinkRepository", () => {
     ).resolves.toEqual([
       {
         incomeItemId,
-        refundAllocations: [
-          {
-            refundAmount: "30.00",
-            refundedItem: {
-              accountId,
-              amount: "80.00",
-              categoryId,
-              id: refundTargetId,
-              refundedAmount: "30.00",
-              reimbursementAmount: "20.00",
-              transactionAt: "2026-08-15T02:00:00.000Z",
-              transactionRecordId: refundRecordId,
-            },
-          },
-        ],
+        refundItem: {
+          accountId,
+          amount: "80.00",
+          categoryId,
+          id: refundTargetId,
+          refundedAmount: "30.00",
+          refundLinkAmount: "30.00",
+          reimbursementAmount: "20.00",
+          transactionAt: "2026-08-15T02:00:00.000Z",
+          transactionRecordId: refundRecordId,
+        },
         reimbursementItems: [
           {
             accountId,

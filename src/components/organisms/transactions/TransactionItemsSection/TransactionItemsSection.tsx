@@ -10,10 +10,7 @@ import { TransactionOriginalAmount } from "atoms/transactions/TransactionOrigina
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
-import {
-  allocateRefundAmount,
-  resolveTransactionBusinessStatus,
-} from "internal/transaction";
+import { resolveTransactionBusinessStatus } from "internal/transaction";
 import {
   formatTransactionRowAmount,
   hasBusinessNetAmountOffset,
@@ -112,14 +109,9 @@ export function TransactionItemsSection({
                       value={item.specialStatus ?? ""}
                     />
                     <input
-                      name="itemRefundAllocations"
+                      name="itemRefundedItemId"
                       type="hidden"
-                      value={JSON.stringify(
-                        allocateRefundAmount(
-                          item.amount,
-                          item.refundCandidates ?? [],
-                        ) ?? [],
-                      )}
+                      value={item.refundCandidate?.id ?? ""}
                     />
                     <input
                       name="itemReimbursementItemId"

@@ -142,7 +142,7 @@ export async function getEditTransactionView(
         const incomeLink = item.id
           ? incomeLinkByItemId.get(item.id)
           : undefined;
-        const refundCandidates = buildRefundCandidates(
+        const refundCandidate = buildRefundCandidate(
           incomeLink,
           options.accountOptions,
           options.categoryOptions,
@@ -174,7 +174,7 @@ export async function getEditTransactionView(
           }),
           categoryId: item.category_id ?? "",
           id: item.id,
-          refundCandidates,
+          refundCandidate,
           reimbursementCandidate,
           refundedAmount: item.refunded_amount ?? "0",
           specialStatus: fromTransactionSpecialStatusStorageValue(
@@ -192,21 +192,21 @@ export async function getEditTransactionView(
   };
 }
 
-function buildRefundCandidates(
+function buildRefundCandidate(
   incomeLink: TransactionIncomeLinkData | undefined,
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
 ) {
-  return (incomeLink?.refundAllocations ?? []).map(
-    ({ refundAmount, refundedItem }) =>
-      buildIncomeLinkCandidate(
-        refundedItem,
-        refundAmount,
-        accounts,
-        categories,
-        fallbackCurrency,
-      ),
+  const refundItem = incomeLink?.refundItem;
+  if (!refundItem) return null;
+
+  return buildIncomeLinkCandidate(
+    refundItem,
+    refundItem.refundLinkAmount,
+    accounts,
+    categories,
+    fallbackCurrency,
   );
 }
 

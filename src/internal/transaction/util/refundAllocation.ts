@@ -1,13 +1,3 @@
-export type TransactionRefundAllocation = {
-  refundAmount: number;
-  refundedItemId: string;
-};
-
-export type TransactionRefundAllocationTarget = {
-  id: string;
-  remainingRefundableAmount: string;
-};
-
 const minorUnitScale = BigInt(100);
 
 /**
@@ -64,47 +54,11 @@ export function calculateRemainingOffsetMinorUnits(
   return remainingUnits > BigInt(0) ? remainingUnits : BigInt(0);
 }
 
-export function isRefundAllocationTotalWithinAmount(
-  totalAmount: number | string,
-  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
-) {
-  const totalUnits = toRefundMinorUnits(totalAmount);
-  const allocationTotalUnits = sumRefundAllocationUnits(allocations);
-  if (totalUnits === null || allocationTotalUnits === null) return false;
-
-  return allocationTotalUnits <= totalUnits;
-}
-
-export function hasUniqueRefundAllocationTargets(
-  allocations: readonly Pick<TransactionRefundAllocation, "refundedItemId">[],
-) {
-  return (
-    new Set(allocations.map((allocation) => allocation.refundedItemId)).size ===
-    allocations.length
-  );
-}
-
-export function summarizeRefundAllocationAmounts(
-  totalAmount: number | string,
-  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
-) {
-  const totalUnits = toRefundMinorUnits(totalAmount);
-  const allocationTotalUnits = sumRefundAllocationUnits(allocations);
-  if (
-    totalUnits === null ||
-    allocationTotalUnits === null ||
-    allocationTotalUnits > totalUnits
-  ) {
-    return null;
-  }
-
-  return {
-    allocatedAmount: formatRefundMinorUnits(allocationTotalUnits),
-    netIncomeAmount: formatRefundMinorUnits(totalUnits - allocationTotalUnits),
-  };
-}
-
-export function summarizeReimbursementAllocationAmounts(
+/**
+ * 单目标退款与报销关联共用的金额摘要。
+ * 实际核销金额按收入金额与目标剩余可核销余额的较小值封顶。
+ */
+function summarizeSingleTargetAllocationAmounts(
   incomeAmount: number | string,
   remainingRefundableAmount: number | string,
 ) {
@@ -122,115 +76,10 @@ export function summarizeReimbursementAllocationAmounts(
   };
 }
 
-/**
- * 以 0.01 为最小货币单位，按剩余可退金额比例分摊。
- *
- * 先向下取整，再按小数余数从大到小补齐尾差；余数相同时按明细 ID
- * 升序处理，因此同一组输入始终得到相同结果。无法保证每条分摊都大于
- * 0 或输入不合法时返回 null。退款总额超过剩余可退合计时，仅分摊可退合计，
- * 超出部分保留为退款收入的净收益。
- */
-export function allocateRefundAmount(
-  totalAmount: number | string,
-  targets: TransactionRefundAllocationTarget[],
-): TransactionRefundAllocation[] | null {
-  const totalUnits = toRefundMinorUnits(totalAmount);
-  if (totalUnits === null || totalUnits <= BigInt(0) || targets.length === 0) {
-    return null;
-  }
+/** 单目标退款关联的金额摘要。 */
+export const summarizeRefundAllocationAmounts =
+  summarizeSingleTargetAllocationAmounts;
 
-  const sortedTargets = [...targets].sort((left, right) =>
-    compareStableText(left.id, right.id),
-  );
-  if (
-    new Set(sortedTargets.map((target) => target.id)).size !== targets.length
-  ) {
-    return null;
-  }
-
-  const targetUnits = sortedTargets.map((target) => ({
-    id: target.id,
-    units: toRefundMinorUnits(target.remainingRefundableAmount),
-  }));
-  if (
-    targetUnits.some(
-      (target) => target.units === null || target.units <= BigInt(0),
-    )
-  ) {
-    return null;
-  }
-
-  const normalizedTargets = targetUnits as { id: string; units: bigint }[];
-  const totalRemainingUnits = normalizedTargets.reduce(
-    (sum, target) => sum + target.units,
-    BigInt(0),
-  );
-  const allocatableUnits =
-    totalUnits < totalRemainingUnits ? totalUnits : totalRemainingUnits;
-
-  const provisional = normalizedTargets.map((target) => {
-    const numerator = allocatableUnits * target.units;
-    return {
-      allocatedUnits: numerator / totalRemainingUnits,
-      id: target.id,
-      remainder: numerator % totalRemainingUnits,
-      remainingUnits: target.units,
-    };
-  });
-  const allocatedBaseUnits = provisional.reduce(
-    (sum, target) => sum + target.allocatedUnits,
-    BigInt(0),
-  );
-  let tailUnits = allocatableUnits - allocatedBaseUnits;
-  const tailOrder = [...provisional].sort(
-    (left, right) =>
-      compareBigInt(right.remainder, left.remainder) ||
-      compareStableText(left.id, right.id),
-  );
-
-  for (const target of tailOrder) {
-    if (tailUnits === BigInt(0)) break;
-    target.allocatedUnits += BigInt(1);
-    tailUnits -= BigInt(1);
-  }
-
-  if (
-    tailUnits !== BigInt(0) ||
-    provisional.some(
-      (target) =>
-        target.allocatedUnits <= BigInt(0) ||
-        target.allocatedUnits > target.remainingUnits,
-    )
-  ) {
-    return null;
-  }
-
-  return provisional
-    .sort((left, right) => compareStableText(left.id, right.id))
-    .map((target) => ({
-      refundAmount: Number(formatRefundMinorUnits(target.allocatedUnits)),
-      refundedItemId: target.id,
-    }));
-}
-
-function compareBigInt(left: bigint, right: bigint) {
-  if (left === right) return 0;
-  return left < right ? -1 : 1;
-}
-
-function compareStableText(left: string, right: string) {
-  if (left === right) return 0;
-  return left < right ? -1 : 1;
-}
-
-function sumRefundAllocationUnits(
-  allocations: readonly Pick<TransactionRefundAllocation, "refundAmount">[],
-) {
-  let totalUnits = BigInt(0);
-  for (const allocation of allocations) {
-    const allocationUnits = toRefundMinorUnits(allocation.refundAmount);
-    if (allocationUnits === null || allocationUnits <= BigInt(0)) return null;
-    totalUnits += allocationUnits;
-  }
-  return totalUnits;
-}
+/** 单目标报销关联的金额摘要。 */
+export const summarizeReimbursementAllocationAmounts =
+  summarizeSingleTargetAllocationAmounts;

@@ -115,14 +115,14 @@ docker exec "${db_container}" rm -f \
   "${lock_marker}" "${release_marker}" \
   "${mixed_lock_marker}" "${mixed_release_marker}"
 
-# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新额度拒绝超额。
+# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新剩余额度封顶成功。
 psql_in_db > /tmp/refund-allocation-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_allocation_a';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${income_a_id}',
-  jsonb_build_object('refundAllocations', jsonb_build_array(jsonb_build_object('refundedItemId', '${target_id}', 'refundAmount', 60))),
+  jsonb_build_object('refundedItemId', '${target_id}'),
   '${user_id}'
 );
 \! touch ${lock_marker}
@@ -151,7 +151,7 @@ set application_name = 'refund_allocation_b';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${income_b_id}',
-  jsonb_build_object('refundAllocations', jsonb_build_array(jsonb_build_object('refundedItemId', '${target_id}', 'refundAmount', 60))),
+  jsonb_build_object('refundedItemId', '${target_id}'),
   '${user_id}'
 );
 commit;
@@ -178,26 +178,24 @@ echo "ok - 第二笔并发退款在首笔事务提交前发生锁等待"
 docker exec "${db_container}" touch "${release_marker}"
 wait "${a_pid}"
 a_pid=""
-if wait "${b_pid}"; then
-  cat /tmp/refund-allocation-b.log >&2
-  echo "第二笔超额退款不应成功。" >&2
+if ! wait "${b_pid}"; then
+  cat /tmp/refund-allocation-b.log >&2 || true
+  echo "第二笔退款应在锁释放后按最新剩余额度封顶成功。" >&2
   exit 1
 fi
 b_pid=""
 
-if ! grep -q 'refund_amount_exceeded' /tmp/refund-allocation-b.log; then
-  cat /tmp/refund-allocation-b.log >&2
-  echo "第二笔退款未以 refund_amount_exceeded 失败。" >&2
-  exit 1
-fi
-echo "ok - 第二笔并发退款在锁释放后拒绝超额"
-
 result="$(psql_in_db -A -t -c "select count(*)::text || '/' || coalesce(sum(refund_amount), 0)::text from public.transaction_item_refund_link where refunded_item_id = '${target_id}';" | tr -d '\r')"
-if [[ "${result}" != "1/60.00" ]]; then
-  echo "期望最终关联为 1/60.00，实际为 ${result}" >&2
+if [[ "${result}" != "2/100.00" ]]; then
+  echo "期望最终关联为 2/100.00，实际为 ${result}" >&2
   exit 1
 fi
-echo "ok - 并发退款最终未超过可退金额"
+income_b_net="$(psql_in_db -A -t -c "select to_char(business_net_amount, 'FM999999990.00') from public.transaction_item_with_refund where id = '${income_b_id}';" | tr -d '\r')"
+if [[ "${income_b_net}" != "20.00" ]]; then
+  echo "第二笔退款应只核销剩余 40.00 并保留 20.00 净收益，实际净收益为 ${income_b_net}" >&2
+  exit 1
+fi
+echo "ok - 第二笔并发退款按最新剩余额度封顶，最终核销 100.00"
 
 # 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行读取最新剩余额度。
 psql_in_db > /tmp/refund-reimbursement-a.log 2>&1 <<SQL &
@@ -206,7 +204,7 @@ set application_name = 'refund_reimbursement_a';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${mixed_refund_income_id}',
-  jsonb_build_object('refundAllocations', jsonb_build_array(jsonb_build_object('refundedItemId', '${mixed_target_id}', 'refundAmount', 60))),
+  jsonb_build_object('refundedItemId', '${mixed_target_id}'),
   '${user_id}'
 );
 \! touch ${mixed_lock_marker}

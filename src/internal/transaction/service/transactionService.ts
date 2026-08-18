@@ -14,10 +14,6 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
-import {
-  hasUniqueRefundAllocationTargets,
-  isRefundAllocationTotalWithinAmount,
-} from "internal/transaction/util/refundAllocation";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -227,7 +223,7 @@ export function createTransactionService({
       (item) =>
         (item.specialStatus !== undefined && item.specialStatus !== null) ||
         Boolean(item.reimbursementItemId) ||
-        Boolean(item.refundAllocations?.length),
+        Boolean(item.refundedItemId),
     );
     if (
       hasSpecialStatusInput &&
@@ -270,7 +266,7 @@ export function createTransactionService({
         );
       }
       const hasReimbursementLink = Boolean(item.reimbursementItemId);
-      const hasRefundLink = Boolean(item.refundAllocations?.length);
+      const hasRefundLink = Boolean(item.refundedItemId);
       if (
         (hasReimbursementLink || hasRefundLink) &&
         categoryType !== "income"
@@ -286,17 +282,11 @@ export function createTransactionService({
           "同一条收入明细不能同时作为报销和退款。",
         );
       }
-      if (hasRefundLink) {
-        const allocations = item.refundAllocations ?? [];
-        if (
-          !hasUniqueRefundAllocationTargets(allocations) ||
-          !isRefundAllocationTotalWithinAmount(item.amount, allocations)
-        ) {
-          throw new ValidationError(
-            transactionErrorCodes.refundLinkInvalid,
-            "退款分摊金额不正确，请重新选择退款明细。",
-          );
-        }
+      if (hasRefundLink && item.amount <= 0) {
+        throw new ValidationError(
+          transactionErrorCodes.refundLinkInvalid,
+          "退款收入金额必须大于 0。",
+        );
       }
     }
   }

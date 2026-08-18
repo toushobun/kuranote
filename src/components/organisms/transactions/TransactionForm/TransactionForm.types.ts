@@ -65,7 +65,7 @@ export type TransactionFormInitialItem = {
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   id?: string;
-  refundCandidates?: TransactionRefundCandidate[];
+  refundCandidate?: TransactionRefundCandidate | null;
   reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
   specialStatus?: TransactionSpecialStatus | null;
@@ -90,7 +90,7 @@ export type TransactionFormItem = {
   persistedId?: string;
   reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
-  refundCandidates?: TransactionRefundCandidate[];
+  refundCandidate?: TransactionRefundCandidate | null;
   specialStatus?: TransactionSpecialStatus | null;
 };
 

@@ -313,15 +313,8 @@ begin
         v_ledger_id,
         '59895000-0000-4000-8000-000000000002',
         pg_catalog.jsonb_build_object(
-            'refundAllocations',
-            pg_catalog.jsonb_build_array(
-                pg_catalog.jsonb_build_object(
-                    'refundedItemId',
-                    '59895000-0000-4000-8000-000000000001',
-                    'refundAmount',
-                    40
-                )
-            )
+            'refundedItemId',
+            '59895000-0000-4000-8000-000000000001'
         ),
         v_user_id
     );

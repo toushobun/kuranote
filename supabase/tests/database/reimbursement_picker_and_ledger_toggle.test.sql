@@ -63,13 +63,8 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000032',
             '59880000-0000-4000-8000-000000000002',
             jsonb_build_object(
-                'refundAllocations',
-                jsonb_build_array(jsonb_build_object(
-                    'refundedItemId',
-                    '59880000-0000-4000-8000-000000000001',
-                    'refundAmount',
-                    20
-                ))
+                'refundedItemId',
+                '59880000-0000-4000-8000-000000000001'
             ),
             '00000000-0000-4000-8000-000000000031'
         )

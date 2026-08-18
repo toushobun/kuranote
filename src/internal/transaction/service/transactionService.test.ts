@@ -196,12 +196,7 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundAllocations: [
-              {
-                refundAmount: 1200,
-                refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-            ],
+            refundedItemId: "00000000-0000-4000-8000-000000005073",
           },
         ],
       }),
@@ -212,7 +207,7 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("收入分类允许保存多目标退款分摊", async () => {
+  it("收入分类允许保存单目标退款关联", async () => {
     const { repository, service } = createService(
       "member",
       createRepository(),
@@ -223,16 +218,7 @@ describe("TransactionService", () => {
       items: [
         {
           ...normalInput.items[0],
-          refundAllocations: [
-            {
-              refundAmount: 300,
-              refundedItemId: "00000000-0000-4000-8000-000000005073",
-            },
-            {
-              refundAmount: 900,
-              refundedItemId: "00000000-0000-4000-8000-000000005074",
-            },
-          ],
+          refundedItemId: "00000000-0000-4000-8000-000000005073",
         },
       ],
       type: "income" as const,
@@ -302,12 +288,7 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundAllocations: [
-              {
-                refundAmount: 1200,
-                refundedItemId: "00000000-0000-4000-8000-000000005074",
-              },
-            ],
+            refundedItemId: "00000000-0000-4000-8000-000000005074",
             reimbursementItemId: "00000000-0000-4000-8000-000000005073",
           },
         ],
@@ -320,7 +301,7 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("退款分摊目标重复时拒绝写入", async () => {
+  it("0 元退款收入拒绝写入", async () => {
     const { repository, service } = createService(
       "member",
       createRepository(),
@@ -333,16 +314,8 @@ describe("TransactionService", () => {
         items: [
           {
             ...normalInput.items[0],
-            refundAllocations: [
-              {
-                refundAmount: 600,
-                refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-              {
-                refundAmount: 600,
-                refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-            ],
+            amount: 0,
+            refundedItemId: "00000000-0000-4000-8000-000000005073",
           },
         ],
         type: "income",
@@ -354,69 +327,7 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("退款分摊合计小于收入金额时交由 RPC 判定", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "income",
-    );
-
-    const input = {
-      ...normalInput,
-      items: [
-        {
-          ...normalInput.items[0],
-          refundAllocations: [
-            {
-              refundAmount: 300,
-              refundedItemId: "00000000-0000-4000-8000-000000005073",
-            },
-            {
-              refundAmount: 899.99,
-              refundedItemId: "00000000-0000-4000-8000-000000005074",
-            },
-          ],
-        },
-      ],
-      type: "income" as const,
-    };
-
-    await service.createNormal(input);
-
-    expect(repository.createNormal).toHaveBeenCalledWith(input);
-  });
-
-  it("退款分摊合计超过收入金额时拒绝写入", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "income",
-    );
-
-    await expect(
-      service.createNormal({
-        ...normalInput,
-        items: [
-          {
-            ...normalInput.items[0],
-            refundAllocations: [
-              {
-                refundAmount: 1200.01,
-                refundedItemId: "00000000-0000-4000-8000-000000005073",
-              },
-            ],
-          },
-        ],
-        type: "income",
-      }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.refundLinkInvalid,
-      name: ValidationError.name,
-    });
-    expect(repository.createNormal).not.toHaveBeenCalled();
-  });
-
-  it("0.1 与 0.2 的退款分摊可精确匹配 0.3 收入", async () => {
+  it("退款收入编辑允许重新提交单目标关联", async () => {
     const { repository, service } = createService(
       "member",
       createRepository(),
@@ -427,48 +338,7 @@ describe("TransactionService", () => {
       items: [
         {
           ...normalInput.items[0],
-          amount: 0.3,
-          refundAllocations: [
-            {
-              refundAmount: 0.1,
-              refundedItemId: "00000000-0000-4000-8000-000000005073",
-            },
-            {
-              refundAmount: 0.2,
-              refundedItemId: "00000000-0000-4000-8000-000000005074",
-            },
-          ],
-        },
-      ],
-      type: "income" as const,
-    };
-
-    await service.createNormal(input);
-
-    expect(repository.createNormal).toHaveBeenCalledWith(input);
-  });
-
-  it("退款收入编辑允许重新提交多目标分摊", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "income",
-    );
-    const input = {
-      ...normalInput,
-      items: [
-        {
-          ...normalInput.items[0],
-          refundAllocations: [
-            {
-              refundAmount: 300,
-              refundedItemId: "00000000-0000-4000-8000-000000005073",
-            },
-            {
-              refundAmount: 900,
-              refundedItemId: "00000000-0000-4000-8000-000000005074",
-            },
-          ],
+          refundedItemId: "00000000-0000-4000-8000-000000005073",
         },
       ],
       transactionRecordId,
@@ -722,6 +592,30 @@ describe("特殊状态功能开关", () => {
           {
             ...normalInput.items[0],
             reimbursementItemId: "00000000-0000-4000-8000-000000005073",
+          },
+        ],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("账本关闭特殊状态时拒绝退款关联写入", async () => {
+    const repository = createRepository({
+      isSpecialStatusEnabled: vi.fn().mockResolvedValue(false),
+    });
+    const { service } = createService("member", repository, "income");
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            refundedItemId: "00000000-0000-4000-8000-000000005073",
           },
         ],
         type: "income",
