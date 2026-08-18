@@ -1,29 +1,134 @@
 -- Issue #598：验证本轮重写的 SECURITY DEFINER 报销/退款关联路径。
+-- 本文件不能依赖 seed；schema snapshot check 只回放 migrations。
 -- 测试数据仅存在于当前事务，最终统一回滚。
 
 begin;
 
 do $$
 declare
-    v_ledger_id uuid := '00000000-0000-4000-8000-000000000032';
-    v_user_id uuid := '00000000-0000-4000-8000-000000000031';
-    v_account_id uuid := '00000000-0000-4000-8000-000000000043';
-    v_expense_category_id uuid := '00000000-0000-4000-8000-000000005021';
-    v_income_category_id uuid := '00000000-0000-4000-8000-000000005002';
+    v_user_id uuid := '59896000-0000-4000-8000-000000000001';
+    v_ledger_id uuid;
+    v_account_id uuid;
     v_merchant_id uuid;
+    v_expense_category_id uuid;
+    v_income_category_id uuid;
     v_link_amount numeric(14,2);
     v_status public.transaction_item_special_status;
 begin
-    select merchant.id
-      into v_merchant_id
-      from public.merchant merchant
-     where merchant.ledger_id = v_ledger_id
-       and merchant.is_archived = false
-     order by merchant.created_at, merchant.id
+    -- 按真实认证链路准备 owner，让既存 on_auth_user_created trigger 创建 app_user。
+    insert into auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        confirmation_token,
+        recovery_token,
+        email_change_token_new,
+        email_change,
+        phone,
+        phone_change,
+        phone_change_token,
+        email_change_token_current,
+        email_change_confirm_status,
+        reauthentication_token,
+        last_sign_in_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        is_super_admin,
+        is_sso_user,
+        is_anonymous,
+        created_at,
+        updated_at
+    ) values (
+        '00000000-0000-0000-0000-000000000000',
+        v_user_id,
+        'authenticated',
+        'authenticated',
+        'issue-598-security-owner@example.invalid',
+        extensions.crypt('not-used', extensions.gen_salt('bf')),
+        pg_catalog.now(),
+        '',
+        '',
+        '',
+        '',
+        null,
+        '',
+        '',
+        '',
+        0,
+        '',
+        pg_catalog.now(),
+        '{"provider": "email", "providers": ["email"]}'::jsonb,
+        '{"display_name": "Issue 598 SECURITY DEFINER Owner"}'::jsonb,
+        false,
+        false,
+        false,
+        pg_catalog.now(),
+        pg_catalog.now()
+    );
+
+    perform pg_catalog.set_config(
+        'request.jwt.claim.sub',
+        v_user_id::text,
+        true
+    );
+
+    select (public.create_ledger_with_owner_settings(
+        'Issue 598 SECURITY DEFINER Smoke',
+        'JPY',
+        'Owner',
+        'jade'
+    )).id
+      into v_ledger_id;
+
+    select public.create_account_with_holders(
+        v_ledger_id,
+        'Issue 598 SECURITY DEFINER Account',
+        'cash',
+        'JPY',
+        0,
+        array[v_user_id]
+    )
+      into v_account_id;
+
+    insert into public.merchant (
+        ledger_id,
+        name,
+        created_by,
+        updated_by
+    ) values (
+        v_ledger_id,
+        'Issue 598 SECURITY DEFINER Merchant',
+        v_user_id,
+        v_user_id
+    )
+    returning id into v_merchant_id;
+
+    select category.id
+      into v_expense_category_id
+      from public.category category
+     where category.ledger_id = v_ledger_id
+       and category.type = 'expense'
+       and category.parent_id is not null
+       and category.is_archived = false
+     order by category.sort_order, category.id
      limit 1;
 
-    if v_merchant_id is null then
-        raise exception 'Issue #598 smoke merchant fixture not found';
+    select category.id
+      into v_income_category_id
+      from public.category category
+     where category.ledger_id = v_ledger_id
+       and category.type = 'income'
+       and category.parent_id is not null
+       and category.is_archived = false
+     order by category.sort_order, category.id
+     limit 1;
+
+    if v_expense_category_id is null or v_income_category_id is null then
+        raise exception 'Issue #598 smoke category fixture not found';
     end if;
 
     update public.ledger
