@@ -1,0 +1,79 @@
+name: PR605 Fix Old Cap Tests V2
+
+on:
+  push:
+    branches:
+      - feature/605_pr1_release_offset_cap
+    paths:
+      - .github/workflows/pr605-fix-old-cap-tests-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/605_pr1_release_offset_cap
+          fetch-depth: 0
+
+      - name: Update assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def one(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected 1 occurrence, got {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          refund = "src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx"
+          one(refund, '退款收入超过剩余可退金额时显示实际核销与净收益', '退款收入超过目标余额时显示完整核销且无未核销净收益')
+          one(refund, '本次实际核销金额 ¥1,000', '本次实际核销金额 ¥1,500')
+          one(refund, '未核销净收益 ¥500', '未核销净收益 ¥0')
+
+          reimbursement = "src/components/organisms/transactions/TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker.test.tsx"
+          one(reimbursement, '报销收入超过剩余可核销额度时显示实际核销与净收益', '报销收入超过目标余额时显示完整核销且无未核销净收益')
+          one(reimbursement, '本次实际核销金额 ¥1,000', '本次实际核销金额 ¥1,500')
+          one(reimbursement, '未核销净收益 ¥500', '未核销净收益 ¥0')
+
+          form = "src/components/organisms/transactions/TransactionForm/useTransactionForm.test.ts"
+          one(form, '新增部分核销退款收入时按单目标剩余额度计算业务净额', '新增超额退款收入时完整核销且业务净额为零')
+          one(form, 'amount: "1500",\n      businessNetAmount: "500",', 'amount: "1500",\n      businessNetAmount: "0",')
+          one(form, 'businessTotalAmount).toBe("+500")', 'businessTotalAmount).toBe("+0")')
+          one(form, '["1500", "500"]', '["1500", "0"]')
+          one(form, '报销收入金额为 %s 时按剩余可核销额度计算业务净额', '报销收入金额为 %s 时完整核销且业务净额为零')
+
+          shell = "supabase/tests/database/refund_allocation_concurrency.sh"
+          one(shell, '# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新剩余额度封顶成功。', '# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后完整写入自身收入金额。')
+          one(shell, '第二笔退款应在锁释放后按最新剩余额度封顶成功。', '第二笔退款应在锁释放后按完整收入金额成功建立关联。')
+          one(shell, '"2/100.00"', '"2/120.00"')
+          one(shell, '期望最终关联为 2/100.00', '期望最终关联为 2/120.00')
+          one(shell, 'if [[ "${income_b_net}" != "20.00" ]]; then', 'if [[ "${income_b_net}" != "0.00" ]]; then')
+          one(shell, '第二笔退款应只核销剩余 40.00 并保留 20.00 净收益，实际净收益为 ${income_b_net}', '第二笔退款应完整核销 60.00 且不保留净收益，实际净收益为 ${income_b_net}')
+          one(shell, 'ok - 第二笔并发退款按最新剩余额度封顶，最终核销 100.00', 'ok - 两笔并发退款均完整核销，最终核销 120.00')
+          one(shell, '# 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行读取最新剩余额度。', '# 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行完成两个完整关联。')
+          one(shell, '正式报销 RPC 应在退款事务提交后按最新剩余额度成功。', '正式报销 RPC 应在退款事务提交后按完整收入金额成功建立关联。')
+          one(shell, '${mixed_reimbursement_amount}" != "40.00"', '${mixed_reimbursement_amount}" != "60.00"')
+          one(shell, '${mixed_remaining}" != "0.00"', '${mixed_remaining}" != "-20.00"')
+          one(shell, '${mixed_status}" != "reimbursed"', '${mixed_status}" != "reimbursement_surplus"')
+          one(shell, '${mixed_reimbursement_net}" != "20.00"', '${mixed_reimbursement_net}" != "0.00"')
+          one(shell, 'ok - 正式退款与报销 RPC 并发后按最新剩余额度分配且业务净额正确', 'ok - 正式退款与报销 RPC 并发后均完整核销并进入核销结余状态')
+          PY
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx \
+            src/components/organisms/transactions/TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker.test.tsx \
+            src/components/organisms/transactions/TransactionForm/useTransactionForm.test.ts \
+            supabase/tests/database/refund_allocation_concurrency.sh
+          git commit -m "test: 更新解除核销封顶后的旧断言"
+          git push origin HEAD:feature/605_pr1_release_offset_cap
