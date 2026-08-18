@@ -659,6 +659,9 @@ CREATE OR REPLACE FUNCTION "public"."clear_transaction_item_income_links"("p_led
     AS $$
 declare
     v_income_category_type text;
+    v_previous_income_link_edit_flow text :=
+        current_setting('kuranote.income_link_edit_flow', true);
+    v_reimbursement_target_ids uuid[] := array[]::uuid[];
 begin
     select c.type
     into v_income_category_type
@@ -683,22 +686,30 @@ begin
           and link.reimbursement_income_item_id = p_income_item_id
         returning link.target_expense_item_id
     )
+    select coalesce(
+        array_agg(deleted_links.target_expense_item_id),
+        array[]::uuid[]
+    )
+    into v_reimbursement_target_ids
+    from deleted_links;
+
+    -- 关联表的 AFTER DELETE trigger 已按剩余有效核销重新派生三态。
+    -- 这里只保留原流程的审计字段更新，不能再把 reimbursed 强制覆盖成 pending。
     update public.transaction_item target_item
-    set special_status = 'pending_reimbursement',
-        updated_by = p_user_id,
+    set updated_by = p_user_id,
         updated_at = now()
     where target_item.ledger_id = p_ledger_id
-      and target_item.id in (
-          select deleted_links.target_expense_item_id
-          from deleted_links
-      )
-      and target_item.special_status = 'reimbursed';
+      and target_item.id = any(v_reimbursement_target_ids);
 
     delete from public.transaction_item_refund_link link
     where link.ledger_id = p_ledger_id
       and link.refund_income_item_id = p_income_item_id;
 
-    perform set_config('kuranote.income_link_edit_flow', 'off', true);
+    perform set_config(
+        'kuranote.income_link_edit_flow',
+        coalesce(v_previous_income_link_edit_flow, 'off'),
+        true
+    );
 end;
 $$;
 
@@ -3188,7 +3199,11 @@ matched_items as (
         )
     )
       and (p_account_id is null or bi.account_id = p_account_id)
-      and (p_parent_category_id is null or bi.parent_id = p_parent_category_id or bi.category_id = p_parent_category_id)
+      and (
+          p_parent_category_id is null
+          or bi.parent_id = p_parent_category_id
+          or bi.category_id = p_parent_category_id
+      )
       and (p_category_id is null or bi.category_id = p_category_id)
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
@@ -3222,20 +3237,42 @@ labeled as (
     select
         g.*,
         case p_group_by
-            when 'merchant' then coalesce((select m.name from public.merchant m where m.id::text = g.key and m.ledger_id = p_ledger_id), '未知商家')
-            when 'account' then coalesce((select a.name from public.account a where a.id::text = g.key and a.ledger_id = p_ledger_id), '未知账户')
-            when 'parentCategory' then coalesce((select c.name from public.category c where c.id::text = g.key and c.ledger_id = p_ledger_id), '未知大分类')
-            when 'category' then coalesce((select c.name from public.category c where c.id::text = g.key and c.ledger_id = p_ledger_id), '未知小分类')
+            when 'merchant' then coalesce((
+                select m.name
+                from public.merchant m
+                where m.id::text = g.key
+                  and m.ledger_id = p_ledger_id
+            ), '未知商家')
+            when 'account' then coalesce((
+                select a.name
+                from public.account a
+                where a.id::text = g.key
+                  and a.ledger_id = p_ledger_id
+            ), '未知账户')
+            when 'parentCategory' then coalesce((
+                select c.name
+                from public.category c
+                where c.id::text = g.key
+                  and c.ledger_id = p_ledger_id
+            ), '未知大分类')
+            when 'category' then coalesce((
+                select c.name
+                from public.category c
+                where c.id::text = g.key
+                  and c.ledger_id = p_ledger_id
+            ), '未知小分类')
             when 'member' then coalesce((
                 select coalesce(nullif(trim(setting.display_name), ''), u.display_name)
                 from public.app_user u
                 left join public.ledger_member_display_setting setting
-                  on setting.user_id = u.id and setting.ledger_id = p_ledger_id
+                  on setting.user_id = u.id
+                 and setting.ledger_id = p_ledger_id
                 where u.id::text = g.key
             ), '未知成员')
             when 'specialStatus' then case g.key
                 when 'pending_reimbursement' then '待报销'
                 when 'reimbursed' then '已报销'
+                when 'reimbursement_surplus' then '核销结余'
                 else '未知状态'
             end
             else '未知分组'
@@ -3254,7 +3291,12 @@ select
 from labeled
 order by
     case when p_group_by = 'specialStatus' then
-        case labeled.key when 'pending_reimbursement' then 1 when 'reimbursed' then 2 else 3 end
+        case labeled.key
+            when 'pending_reimbursement' then 1
+            when 'reimbursed' then 2
+            when 'reimbursement_surplus' then 3
+            else 4
+        end
     end,
     labeled.latest_at desc,
     labeled.label
@@ -3356,7 +3398,8 @@ begin
                where ti.ledger_id = new.id
                  and ti.special_status in (
                      'pending_reimbursement',
-                     'reimbursed'
+                     'reimbursed',
+                     'reimbursement_surplus'
                  )
                  and tr.status = 'active'
            )
