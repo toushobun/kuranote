@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(6);
+select plan(9);
 
 -- 通过 dblink 打开两个真实会话。第一事务只锁定目标支出行并写入退款关联，
 -- 不持有 ledger 行锁；第二事务调用正式 RPC，因此若发生阻塞只能来自目标支出行。
@@ -56,6 +56,11 @@ join lateral (
 ) income_category on true
 where l.id = '00000000-0000-4000-8000-000000000032'
 limit 1;
+
+create temporary table issue_598_pr6_wait_result (
+    scenario text primary key,
+    wait_event_type text
+) on commit drop;
 
 create extension if not exists dblink with schema extensions;
 
@@ -201,13 +206,32 @@ select dblink_send_query(
 )
 from issue_598_pr6_concurrency_context context;
 
-select pg_sleep(0.2);
+-- 不使用固定睡眠假设 CI 调度速度；最多轮询五秒，直到远端会话进入锁等待。
+do $$
+declare
+    v_attempt integer;
+    v_wait_event_type text;
+begin
+    for v_attempt in 1..50 loop
+        select activity.wait_event_type
+          into v_wait_event_type
+          from pg_catalog.pg_stat_activity activity
+         where activity.application_name = 'issue598_pr6_reimbursement';
+
+        exit when v_wait_event_type = 'Lock';
+        perform pg_catalog.pg_sleep(0.1);
+    end loop;
+
+    insert into issue_598_pr6_wait_result (scenario, wait_event_type)
+    values ('target_row_lock', v_wait_event_type);
+end;
+$$;
 
 select is(
     (
         select wait_event_type
-        from pg_catalog.pg_stat_activity
-        where application_name = 'issue598_pr6_reimbursement'
+        from issue_598_pr6_wait_result
+        where scenario = 'target_row_lock'
     ),
     'Lock'::text,
     '并发报销在退款事务持有目标支出行锁时发生阻塞'
@@ -257,6 +281,24 @@ select is(
     (select special_status from public.transaction_item where id = '59892000-0000-4000-8000-000000000001'),
     'reimbursed'::public.transaction_item_special_status,
     '并发组合核销达到原始金额后目标状态重算为已报销'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000001'),
+    0::numeric,
+    '并发组合核销后目标支出业务净额为零'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000002'),
+    0::numeric,
+    '并发组合核销后退款收入业务净额为零'
+);
+
+select is(
+    (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000003'),
+    20::numeric,
+    '报销请求被截断为四十后保留二十业务净收益'
 );
 
 select dblink_exec(
