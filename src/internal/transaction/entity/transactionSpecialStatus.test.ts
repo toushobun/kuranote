@@ -17,11 +17,15 @@ describe("transactionSpecialStatus", () => {
     ).toEqual([
       ["pendingReimbursement", "pending_reimbursement"],
       ["reimbursed", "reimbursed"],
+      ["reimbursementSurplus", "reimbursement_surplus"],
     ]);
     expect(fromTransactionSpecialStatusStorageValue(null)).toBeNull();
     expect(
       fromTransactionSpecialStatusStorageValue("pending_reimbursement"),
     ).toBe("pendingReimbursement");
+    expect(
+      fromTransactionSpecialStatusStorageValue("reimbursement_surplus"),
+    ).toBe("reimbursementSurplus");
   });
 
   it("分别派生结算状态、核销来源构成和收入关联角色", () => {
@@ -62,6 +66,19 @@ describe("transactionSpecialStatus", () => {
         reimbursementAmount: "0",
       },
       settlementStatus: "pendingReimbursement",
+    });
+    expect(
+      resolveTransactionBusinessStatus({
+        reimbursementAmount: "120",
+        specialStatus: "reimbursement_surplus",
+      }),
+    ).toEqual({
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "0",
+        reimbursementAmount: "120",
+      },
+      settlementStatus: "reimbursementSurplus",
     });
     expect(resolveTransactionBusinessStatus({})).toBeNull();
   });

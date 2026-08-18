@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(25);
+select plan(27);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -103,7 +103,7 @@ select is(
     (select special_status from public.transaction_item
      where id = '59880000-0000-4000-8000-000000000002'),
     'pending_reimbursement'::public.transaction_item_special_status,
-    '剩余可核销余额大于零时保持待报销'
+    '剩余额度大于零时保持待报销'
 );
 
 select lives_ok(
@@ -118,14 +118,14 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '新增退款关联可以补齐剩余可核销余额'
+    '新增退款关联可以恰好补齐剩余额度'
 );
 
 select is(
     (select special_status from public.transaction_item
      where id = '59880000-0000-4000-8000-000000000002'),
     'reimbursed'::public.transaction_item_special_status,
-    '剩余可核销余额为零时变为已结清'
+    '多笔关联恰好打平时保持已结清'
 );
 
 select lives_ok(
@@ -156,14 +156,30 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '新增报销关联会按剩余余额核销'
+    '新增报销关联不按剩余额度截断'
+);
+
+select is(
+    (select special_status from public.transaction_item
+     where id = '59880000-0000-4000-8000-000000000002'),
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '退款与报销组合核销超额后进入核销结余状态'
+);
+
+select lives_ok(
+    $$
+        delete from public.transaction_item_refund_link
+        where refund_income_item_id =
+              '59880000-0000-4000-8000-000000000006'
+    $$,
+    '核销结余状态删除部分关联会触发状态重算'
 );
 
 select is(
     (select special_status from public.transaction_item
      where id = '59880000-0000-4000-8000-000000000002'),
     'reimbursed'::public.transaction_item_special_status,
-    '退款与报销组合补齐余额后变为已结清'
+    '核销从超额回落到恰好打平时恢复已结清'
 );
 
 select lives_ok(
@@ -172,14 +188,14 @@ select lives_ok(
         where reimbursement_income_item_id =
               '59880000-0000-4000-8000-000000000008'
     $$,
-    '删除报销关联会触发状态重算'
+    '继续删除报销关联会再次触发状态重算'
 );
 
 select is(
     (select special_status from public.transaction_item
      where id = '59880000-0000-4000-8000-000000000002'),
     'pending_reimbursement'::public.transaction_item_special_status,
-    '删除报销关联后从已结清回到待报销'
+    '核销从恰好打平继续回落后恢复待报销'
 );
 
 select lives_ok(
@@ -285,8 +301,8 @@ select is(
         where target.id = '59880000-0000-4000-8000-000000000004'
         group by target.special_status
     ),
-    '40.00/60.00/reimbursed',
-    '退款与报销核销金额可以同时非零且以剩余余额为零判定已结清'
+    '40.00/100.00/reimbursement_surplus',
+    '退款与报销完整金额同时计入并按负剩余额度判定核销结余'
 );
 
 -- UPDATE transaction_item_reimbursement_link 直接更换关联目标：

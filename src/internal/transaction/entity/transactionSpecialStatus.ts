@@ -1,6 +1,7 @@
 export const transactionSpecialStatuses = [
   "pendingReimbursement",
   "reimbursed",
+  "reimbursementSurplus",
 ] as const;
 
 export type TransactionSpecialStatus =
@@ -31,17 +32,19 @@ export type TransactionWritableSpecialStatus =
 
 export type TransactionSpecialStatusFilterValue = TransactionSpecialStatus;
 
-// 原始结算状态文案：无论核销来源如何，均按“待报销 / 已结清”表达。
-// 核销来源相关的具体展示词（已报销 / 已退款）属于 TransactionBusinessBadge 的展示态，
+// 原始结算状态文案只描述母项所处的核销阶段。
+// 核销来源相关的具体展示词属于 TransactionBusinessBadge 的展示态，
 // 不与本状态共用同一份词表，避免筛选器等直接读取原始状态的场景借用来源特定文案。
 export const transactionSpecialStatusLabels = {
   pendingReimbursement: "待报销",
   reimbursed: "已结清",
+  reimbursementSurplus: "核销结余",
 } as const satisfies Record<TransactionSpecialStatus, string>;
 
 export const transactionSpecialStatusStorageValues = [
   "pending_reimbursement",
   "reimbursed",
+  "reimbursement_surplus",
 ] as const;
 
 export type TransactionSpecialStatusStorageValue =
@@ -50,6 +53,7 @@ export type TransactionSpecialStatusStorageValue =
 const storageValueByStatus = {
   pendingReimbursement: "pending_reimbursement",
   reimbursed: "reimbursed",
+  reimbursementSurplus: "reimbursement_surplus",
 } as const satisfies Record<
   TransactionSpecialStatus,
   TransactionSpecialStatusStorageValue
@@ -93,7 +97,9 @@ export function resolveTransactionBusinessStatus({
   const settlementStatus =
     specialStatus === "pending_reimbursement"
       ? "pendingReimbursement"
-      : specialStatus;
+      : specialStatus === "reimbursement_surplus"
+        ? "reimbursementSurplus"
+        : specialStatus;
   const refundAmount = normalizePositiveAmount(refundedAmount);
   const effectiveReimbursementAmount = settlementStatus
     ? normalizePositiveAmount(reimbursementAmount)

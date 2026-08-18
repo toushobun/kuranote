@@ -31,7 +31,8 @@ export function formatRefundMinorUnits(units: bigint): string {
 }
 
 /**
- * 按退款与报销的组合核销金额计算剩余额度，并将负数收敛为 0。
+ * 按原始金额减去退款与报销核销金额计算有符号剩余额度。
+ * 正数表示仍未结清，0 表示恰好结清，负数表示核销已超过原始金额。
  * 输入精度无效时返回 null。
  */
 export function calculateRemainingOffsetMinorUnits(
@@ -50,29 +51,27 @@ export function calculateRemainingOffsetMinorUnits(
     return null;
   }
 
-  const remainingUnits = amountUnits - refundedUnits - reimbursementUnits;
-  return remainingUnits > BigInt(0) ? remainingUnits : BigInt(0);
+  return amountUnits - refundedUnits - reimbursementUnits;
 }
 
 /**
  * 单目标退款与报销关联共用的金额摘要。
- * 实际核销金额按收入金额与目标剩余可核销余额的较小值封顶。
+ * 解除封顶后，收入子项金额全部写入关联，不再保留未核销净收益。
+ * 第二个参数暂留以维持现有 Picker / Form 调用契约，PR1 中不改候选筛选链路。
  */
 function summarizeSingleTargetAllocationAmounts(
   incomeAmount: number | string,
   remainingRefundableAmount: number | string,
 ) {
   const incomeUnits = toRefundMinorUnits(incomeAmount);
-  const remainingUnits = toRefundMinorUnits(remainingRefundableAmount);
-  if (incomeUnits === null || remainingUnits === null) return null;
+  if (incomeUnits === null) return null;
 
-  const allocatedUnits =
-    incomeUnits < remainingUnits ? incomeUnits : remainingUnits;
+  void remainingRefundableAmount;
 
   return {
-    allocatedAmount: formatRefundMinorUnits(allocatedUnits),
+    allocatedAmount: formatRefundMinorUnits(incomeUnits),
     incomeAmount: formatRefundMinorUnits(incomeUnits),
-    netIncomeAmount: formatRefundMinorUnits(incomeUnits - allocatedUnits),
+    netIncomeAmount: "0",
   };
 }
 

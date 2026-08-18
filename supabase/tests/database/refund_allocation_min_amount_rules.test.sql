@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(10);
+select plan(11);
 
 create temporary table test_refund_min_context as
 select
@@ -107,7 +107,7 @@ select lives_ok(
             (select user_id from test_refund_min_context)
         )
     $$,
-    '先建立报销关联以减少退款目标的剩余可核销金额'
+    '先建立报销关联以形成已有核销金额'
 );
 
 select is(
@@ -132,7 +132,7 @@ select lives_ok(
             (select user_id from test_refund_min_context)
         )
     $$,
-    '退款收入按单目标剩余额度建立关联'
+    '退款收入超过剩余额度时仍按完整收入金额建立关联'
 );
 
 select is(
@@ -161,8 +161,8 @@ select is(
         from public.transaction_item_refund_link
         where refund_income_item_id = '59840000-0000-4000-8000-000000000002'
     ),
-    60::numeric,
-    '退款核销金额按收入金额与组合剩余额度的较小值封顶'
+    150::numeric,
+    '退款核销金额不再按目标剩余额度截断'
 );
 
 select is(
@@ -171,8 +171,8 @@ select is(
         from public.transaction_item_with_refund
         where id = '59840000-0000-4000-8000-000000000002'
     ),
-    90::numeric,
-    '收入超过单目标剩余额度的差额体现为业务净收益'
+    0::numeric,
+    '退款收入完整写入关联后不再保留未核销净收益'
 );
 
 select is(
@@ -180,8 +180,18 @@ select is(
         (select ledger_id from test_refund_min_context),
         '59830000-0000-4000-8000-000000000001'
     ),
-    0::numeric,
-    '退款与报销组合核销后目标剩余额度为零'
+    (-90)::numeric,
+    '组合核销超过原始金额后保留负数剩余额度'
+);
+
+select is(
+    (
+        select special_status
+        from public.transaction_item
+        where id = '59830000-0000-4000-8000-000000000001'
+    ),
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '报销流程支出核销超额后进入核销结余状态'
 );
 
 select lives_ok(
@@ -196,7 +206,7 @@ select lives_ok(
             (select user_id from test_refund_min_context)
         )
     $$,
-    '退款收入超过全新目标剩余额度时仍按封顶金额成功建立关联'
+    '退款收入超过全新目标金额时仍按完整收入金额建立关联'
 );
 
 select is(
@@ -207,8 +217,8 @@ select is(
           on income_item.id = link.refund_income_item_id
         where link.refund_income_item_id = '59840000-0000-4000-8000-000000000003'
     ),
-    '100.00/50.00',
-    '单目标退款保留 LEAST 封顶并将未核销部分计入净收益'
+    '150.00/0.00',
+    '单目标退款解除 LEAST 封顶并完整核销收入金额'
 );
 
 select * from finish();
