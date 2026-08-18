@@ -57,7 +57,7 @@ delete from public.transaction_item where id in (
   '${mixed_target_id}', '${mixed_refund_income_id}', '${mixed_reimbursement_income_id}'
 );
 set local session_replication_role = replica;
-update public.ledger set transaction_item_special_status_enabled = ${old_enabled:-true} where id = '${ledger_id}';
+update public.ledger set transaction_item_special_status_enabled = '${old_enabled}'::boolean where id = '${ledger_id}';
 set local session_replication_role = origin;
 commit;
 SQL
@@ -83,6 +83,10 @@ read -r ledger_id account_id expense_record_id expense_category_id income_record
     join public.category ic on ic.id = i.category_id and ic.ledger_id = i.ledger_id
     limit 1;"
 )
+if [[ "${old_enabled}" != "t" && "${old_enabled}" != "f" ]]; then
+  echo "无法读取账本特殊状态开关原始值：${old_enabled}" >&2
+  exit 1
+fi
 
 psql_in_db >/dev/null <<SQL
 begin;
