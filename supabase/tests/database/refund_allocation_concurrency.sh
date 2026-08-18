@@ -39,16 +39,12 @@ a_pid=""
 b_pid=""
 ledger_id=""
 old_enabled=""
-cleanup() {
-  # 若测试在锁等待阶段异常退出，先释放容器内的等待门闩，再回收客户端进程。
-  docker exec "${db_container}" touch "${release_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
-  [[ -n "${a_pid}" ]] && kill "${a_pid}" 2>/dev/null || true
-  [[ -n "${b_pid}" ]] && kill "${b_pid}" 2>/dev/null || true
-  docker exec "${db_container}" rm -f \
-    "${lock_marker}" "${release_marker}" \
-    "${mixed_lock_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
-  if [[ -n "${ledger_id}" ]]; then
-    psql_in_db >/dev/null 2>&1 <<SQL || true
+restore_fixture() {
+  if [[ -z "${ledger_id}" ]]; then
+    return 0
+  fi
+
+  psql_in_db <<SQL
 begin;
 delete from public.transaction_item_reimbursement_link where target_expense_item_id = '${mixed_target_id}';
 delete from public.transaction_item_refund_link where refunded_item_id in ('${target_id}', '${mixed_target_id}');
@@ -61,7 +57,17 @@ update public.ledger set transaction_item_special_status_enabled = '${old_enable
 set local session_replication_role = origin;
 commit;
 SQL
-  fi
+}
+
+cleanup() {
+  # 若测试在锁等待阶段异常退出，先释放容器内的等待门闩，再回收客户端进程。
+  docker exec "${db_container}" touch "${release_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
+  [[ -n "${a_pid}" ]] && kill "${a_pid}" 2>/dev/null || true
+  [[ -n "${b_pid}" ]] && kill "${b_pid}" 2>/dev/null || true
+  docker exec "${db_container}" rm -f \
+    "${lock_marker}" "${release_marker}" \
+    "${mixed_lock_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
+  restore_fixture >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -294,3 +300,29 @@ if [[ "${mixed_refund_amount}" != "60.00" \
   exit 1
 fi
 echo "ok - 正式退款与报销 RPC 并发后按最新剩余额度分配且业务净额正确"
+
+# 正常成功路径必须严格验证 fixture 清理与账本开关恢复；异常退出才由 trap 做 best-effort 清理。
+restore_fixture >/dev/null
+restored_enabled="$(psql_in_db -A -t -c "select transaction_item_special_status_enabled from public.ledger where id = '${ledger_id}';" | tr -d '\r')"
+if [[ "${restored_enabled}" != "${old_enabled}" ]]; then
+  echo "账本特殊状态开关未恢复：expected=${old_enabled}, actual=${restored_enabled}" >&2
+  exit 1
+fi
+fixture_count="$(psql_in_db -A -t -c "
+  select
+    (select count(*) from public.transaction_item_reimbursement_link where target_expense_item_id = '${mixed_target_id}')
+    + (select count(*) from public.transaction_item_refund_link where refunded_item_id in ('${target_id}', '${mixed_target_id}'))
+    + (select count(*) from public.transaction_item where id in (
+        '${target_id}', '${income_a_id}', '${income_b_id}',
+        '${mixed_target_id}', '${mixed_refund_income_id}', '${mixed_reimbursement_income_id}'
+      ));" | tr -d '\r')"
+if [[ "${fixture_count}" != "0" ]]; then
+  echo "并发测试 fixture 清理不完整：remaining=${fixture_count}" >&2
+  exit 1
+fi
+ledger_id=""
+trap - EXIT
+docker exec "${db_container}" rm -f \
+  "${lock_marker}" "${release_marker}" \
+  "${mixed_lock_marker}" "${mixed_release_marker}"
+echo "ok - 并发测试 fixture 清理完成且账本开关已恢复"
