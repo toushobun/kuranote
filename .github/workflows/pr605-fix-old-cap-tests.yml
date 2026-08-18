@@ -1,0 +1,135 @@
+name: PR605 Fix Old Cap Tests
+
+on:
+  push:
+    branches:
+      - feature/605_pr1_release_offset_cap
+    paths:
+      - .github/workflows/pr605-fix-old-cap-tests.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/605_pr1_release_offset_cap
+          fetch-depth: 0
+
+      - name: Update old cap assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one occurrence, got {count}: {old!r}")
+              file.write_text(text.replace(old, new, 1))
+
+          refund_picker = "src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx"
+          replace_once(
+              refund_picker,
+              'it("退款收入超过剩余可退金额时显示实际核销与净收益", async () => {',
+              'it("退款收入超过目标余额时显示完整核销且无未核销净收益", async () => {',
+          )
+          replace_once(
+              refund_picker,
+              'expect(screen.getByText("本次实际核销金额 ¥1,000")).toBeInTheDocument();',
+              'expect(screen.getByText("本次实际核销金额 ¥1,500")).toBeInTheDocument();',
+          )
+          replace_once(
+              refund_picker,
+              'expect(screen.getByText("未核销净收益 ¥500")).toBeInTheDocument();',
+              'expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();',
+          )
+
+          reimbursement_picker = "src/components/organisms/transactions/TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker.test.tsx"
+          replace_once(
+              reimbursement_picker,
+              'it("报销收入超过剩余可核销额度时显示实际核销与净收益", async () => {',
+              'it("报销收入超过目标余额时显示完整核销且无未核销净收益", async () => {',
+          )
+          replace_once(
+              reimbursement_picker,
+              'expect(screen.getByText("本次实际核销金额 ¥1,000")).toBeInTheDocument();',
+              'expect(screen.getByText("本次实际核销金额 ¥1,500")).toBeInTheDocument();',
+          )
+          replace_once(
+              reimbursement_picker,
+              'expect(screen.getByText("未核销净收益 ¥500")).toBeInTheDocument();',
+              'expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();',
+          )
+
+          form_test = "src/components/organisms/transactions/TransactionForm/useTransactionForm.test.ts"
+          replace_once(
+              form_test,
+              'it("新增部分核销退款收入时按单目标剩余额度计算业务净额", () => {',
+              'it("新增超额退款收入时完整核销且业务净额为零", () => {',
+          )
+          replace_once(
+              form_test,
+              '''expect(result.current.itemSummaries[0]).toMatchObject({
+              amount: "1500",
+              businessNetAmount: "500",
+            });
+            expect(result.current.signedTotalAmount).toBe("+1500");
+            expect(result.current.businessTotalAmount).toBe("+500");''',
+              '''expect(result.current.itemSummaries[0]).toMatchObject({
+              amount: "1500",
+              businessNetAmount: "0",
+            });
+            expect(result.current.signedTotalAmount).toBe("+1500");
+            expect(result.current.businessTotalAmount).toBe("+0");''',
+          )
+          replace_once(
+              form_test,
+              '''it.each([
+              ["600", "0"],
+              ["1000", "0"],
+              ["1500", "500"],
+            ])(
+              "报销收入金额为 %s 时按剩余可核销额度计算业务净额",''',
+              '''it.each([
+              ["600", "0"],
+              ["1000", "0"],
+              ["1500", "0"],
+            ])(
+              "报销收入金额为 %s 时完整核销且业务净额为零",''',
+          )
+
+          concurrency = "supabase/tests/database/refund_allocation_concurrency.sh"
+          replace_once(
+              concurrency,
+              'if [[ "${old_link_amount}" != "100.00" ]]; then\n  fail "旧关联期望金额 100，实际 ${old_link_amount}"\nfi\nsuccess "与新退款并发后旧关联未超配"',
+              'if [[ "${old_link_amount}" != "120.00" ]]; then\n  fail "旧关联期望完整收入金额 120，实际 ${old_link_amount}"\nfi\nsuccess "旧退款关联保持完整收入金额"',
+          )
+          replace_once(
+              concurrency,
+              'if [[ "${mixed_refund_amount}" != "80.00" ]]; then\n  fail "混合竞争退款期望金额 80，实际 ${mixed_refund_amount}"\nfi',
+              'if [[ "${mixed_refund_amount}" != "120.00" ]]; then\n  fail "混合竞争退款期望完整收入金额 120，实际 ${mixed_refund_amount}"\nfi',
+          )
+          replace_once(
+              concurrency,
+              'if [[ "${mixed_reimbursement_amount}" != "20.00" ]]; then\n  fail "混合竞争报销期望金额 20，实际 ${mixed_reimbursement_amount}"\nfi',
+              'if [[ "${mixed_reimbursement_amount}" != "80.00" ]]; then\n  fail "混合竞争报销期望完整收入金额 80，实际 ${mixed_reimbursement_amount}"\nfi',
+          )
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/organisms/transactions/TransactionRefundLinkPicker/TransactionRefundLinkPicker.test.tsx \
+            src/components/organisms/transactions/TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker.test.tsx \
+            src/components/organisms/transactions/TransactionForm/useTransactionForm.test.ts \
+            supabase/tests/database/refund_allocation_concurrency.sh
+          git commit -m "test: 更新解除核销封顶后的旧断言"
+          git push origin HEAD:feature/605_pr1_release_offset_cap
