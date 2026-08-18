@@ -1,0 +1,31 @@
+name: PR608 Revert Refund Null Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pr608-revert-refund-null-guard.yml
+
+permissions:
+  contents: write
+
+jobs:
+  revert:
+    if: github.event.pull_request.number == 608
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/605_pr1_release_offset_cap
+          fetch-depth: 0
+
+      - name: Revert rejected guard experiment
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git revert --no-commit 74e177a269e7e6b02da98237031afb5f583d09b1
+          git commit -m "revert: 保留仅退款目标退出核销流程语义"
+          git pull --rebase origin feature/605_pr1_release_offset_cap
+          git push origin HEAD:feature/605_pr1_release_offset_cap
