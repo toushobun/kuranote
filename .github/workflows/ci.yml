@@ -360,6 +360,7 @@ jobs:
             supabase/migrations \
             supabase/tests/database \
             supabase/seed.sql \
+            supabase/seeds \
             supabase/config.toml \
             .supabase-version \
             .github/workflows/ci.yml; then
