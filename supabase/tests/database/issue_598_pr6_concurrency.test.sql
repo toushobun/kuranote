@@ -61,11 +61,21 @@ create extension if not exists dblink with schema extensions;
 
 select dblink_connect(
     'issue598_refund',
-    'host=127.0.0.1 port=5432 dbname=postgres user=postgres password=postgres application_name=issue598_pr6_refund'
+    format(
+        'host=%s port=%s dbname=%s user=postgres password=postgres application_name=issue598_pr6_refund',
+        host(inet_server_addr()),
+        inet_server_port(),
+        current_database()
+    )
 );
 select dblink_connect(
     'issue598_reimbursement',
-    'host=127.0.0.1 port=5432 dbname=postgres user=postgres password=postgres application_name=issue598_pr6_reimbursement'
+    format(
+        'host=%s port=%s dbname=%s user=postgres password=postgres application_name=issue598_pr6_reimbursement',
+        host(inet_server_addr()),
+        inet_server_port(),
+        current_database()
+    )
 );
 
 -- 先在独立自动提交事务中准备 fixture，避免本测试外层事务持有 ledger 行锁。
