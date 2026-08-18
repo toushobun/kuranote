@@ -218,9 +218,10 @@ jobs:
             scripts/check-security-definer-search-path.mjs \
             scripts/check-security-definer-search-path-cases.mjs \
             scripts/security-definer-smoke.sql \
+            scripts/security-definer-smoke-issue-598.sql \
             .supabase-version \
             package.json \
-            .github/workflows/schema-snapshot-check.yml; then
+            .github/workflows/ci.yml; then
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
