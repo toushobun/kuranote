@@ -103,6 +103,72 @@ describe("createSupabaseStatisticsRepository", () => {
     );
   });
 
+  it("月度统计从业务净额视图读取核销后的金额", async () => {
+    const record = {
+      created_at: "2026-06-15T01:00:00.000Z",
+      created_by: "00000000-0000-4000-8000-000000000031",
+      id: "00000000-0000-4000-8000-000000009598",
+      merchant_id: null,
+      note: null,
+      transaction_at: "2026-06-15T01:00:00.000Z",
+      type: "normal",
+    };
+    const item = {
+      amount: "1200",
+      business_net_amount: "300",
+      category_id: "00000000-0000-4000-8000-000000005598",
+      transaction_record_id: record.id,
+    };
+    const category = {
+      id: item.category_id,
+      name: "餐饮",
+      parent_id: null,
+      type: "expense",
+    };
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [record] },
+        { data: [item] },
+        { data: [category] },
+      ],
+    });
+    const repository = createSupabaseStatisticsRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.loadMonthlySource({
+        dateEnd: "2026-06-30T15:00:00.000Z",
+        dateStart: "2026-05-31T15:00:00.000Z",
+        ledgerId,
+      }),
+    ).resolves.toEqual({
+      categories: [category],
+      items: [item],
+      merchants: [],
+      records: [record],
+    });
+
+    expect(supabase.queries.map((query) => query.table)).toEqual([
+      "transaction_record",
+      "transaction_item_with_refund",
+      "category",
+    ]);
+    expect(supabase.queries[1].calls).toEqual(
+      expect.arrayContaining([
+        {
+          args: [
+            "transaction_record_id, category_id, amount, business_net_amount",
+          ],
+          method: "select",
+        },
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["transaction_record_id", [record.id]], method: "in" },
+      ]),
+    );
+  });
+
   it("Supabase 错误只记录数据库代码并转换为安全错误", async () => {
     const logger = createLogger();
     const supabase = createSupabaseMock({
