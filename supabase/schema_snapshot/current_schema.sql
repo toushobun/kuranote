@@ -3631,7 +3631,7 @@ declare
         current_setting('kuranote.income_link_edit_flow', true);
     v_previous_reimbursement_link_flow text :=
         current_setting('kuranote.reimbursement_link_flow', true);
-    v_remaining_amount numeric(14,2);
+    v_remaining_amount numeric;
     v_next_status public.transaction_item_special_status;
 begin
     select target_item.special_status
@@ -5066,7 +5066,7 @@ declare
     v_special_status_enabled boolean;
     v_has_active_reimbursement_link boolean;
     v_is_controlled_transition boolean;
-    v_remaining_amount numeric(14,2);
+    v_remaining_amount numeric;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
