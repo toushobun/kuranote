@@ -12,10 +12,12 @@ readonly target_id="57230000-0000-4000-8000-000000000001"
 readonly income_a_id="57230000-0000-4000-8000-000000000002"
 readonly income_b_id="57230000-0000-4000-8000-000000000003"
 readonly lock_marker="/tmp/refund-allocation-a-locked"
+readonly release_marker="/tmp/refund-allocation-a-release"
 readonly mixed_target_id="59897000-0000-4000-8000-000000000001"
 readonly mixed_refund_income_id="59897000-0000-4000-8000-000000000002"
 readonly mixed_reimbursement_income_id="59897000-0000-4000-8000-000000000003"
 readonly mixed_lock_marker="/tmp/refund-reimbursement-a-locked"
+readonly mixed_release_marker="/tmp/refund-reimbursement-a-release"
 
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 if [[ -z "${db_container}" ]]; then
@@ -32,9 +34,13 @@ b_pid=""
 ledger_id=""
 old_enabled=""
 cleanup() {
+  # 若测试在锁等待阶段异常退出，先释放容器内的等待门闩，再回收客户端进程。
+  docker exec "${db_container}" touch "${release_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
   [[ -n "${a_pid}" ]] && kill "${a_pid}" 2>/dev/null || true
   [[ -n "${b_pid}" ]] && kill "${b_pid}" 2>/dev/null || true
-  docker exec "${db_container}" rm -f "${lock_marker}" "${mixed_lock_marker}" >/dev/null 2>&1 || true
+  docker exec "${db_container}" rm -f \
+    "${lock_marker}" "${release_marker}" \
+    "${mixed_lock_marker}" "${mixed_release_marker}" >/dev/null 2>&1 || true
   if [[ -n "${ledger_id}" ]]; then
     psql_in_db >/dev/null 2>&1 <<SQL || true
 begin;
@@ -89,7 +95,9 @@ insert into public.transaction_item (
 commit;
 SQL
 
-docker exec "${db_container}" rm -f "${lock_marker}" "${mixed_lock_marker}"
+docker exec "${db_container}" rm -f \
+  "${lock_marker}" "${release_marker}" \
+  "${mixed_lock_marker}" "${mixed_release_marker}"
 
 # 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新额度拒绝超额。
 psql_in_db > /tmp/refund-allocation-a.log 2>&1 <<SQL &
@@ -102,7 +110,7 @@ select public.apply_transaction_item_links(
   '${user_id}'
 );
 \! touch ${lock_marker}
-select pg_sleep(3);
+\! while [ ! -f ${release_marker} ]; do sleep 0.1; done
 commit;
 SQL
 a_pid=$!
@@ -135,7 +143,7 @@ SQL
 b_pid=$!
 
 blocked=false
-for _ in $(seq 1 30); do
+for _ in $(seq 1 50); do
   wait_event="$(psql_in_db -A -t -c "select coalesce(wait_event_type, '') || ':' || coalesce(wait_event, '') from pg_stat_activity where application_name = 'refund_allocation_b';" | tr -d '\r')"
   if [[ "${wait_event}" == Lock:* ]]; then
     blocked=true
@@ -151,6 +159,7 @@ if [[ "${blocked}" != "true" ]]; then
 fi
 echo "ok - 第二笔并发退款在首笔事务提交前发生锁等待"
 
+docker exec "${db_container}" touch "${release_marker}"
 wait "${a_pid}"
 a_pid=""
 if wait "${b_pid}"; then
@@ -185,7 +194,7 @@ select public.apply_transaction_item_links(
   '${user_id}'
 );
 \! touch ${mixed_lock_marker}
-select pg_sleep(3);
+\! while [ ! -f ${mixed_release_marker} ]; do sleep 0.1; done
 commit;
 SQL
 a_pid=$!
@@ -218,7 +227,7 @@ SQL
 b_pid=$!
 
 mixed_blocked=false
-for _ in $(seq 1 30); do
+for _ in $(seq 1 50); do
   wait_event="$(psql_in_db -A -t -c "select coalesce(wait_event_type, '') || ':' || coalesce(wait_event, '') from pg_stat_activity where application_name = 'refund_reimbursement_b';" | tr -d '\r')"
   if [[ "${wait_event}" == Lock:* ]]; then
     mixed_blocked=true
@@ -234,6 +243,7 @@ if [[ "${mixed_blocked}" != "true" ]]; then
 fi
 echo "ok - 正式退款与报销 RPC 在同一目标上发生并发锁等待"
 
+docker exec "${db_container}" touch "${mixed_release_marker}"
 wait "${a_pid}"
 a_pid=""
 if ! wait "${b_pid}"; then
