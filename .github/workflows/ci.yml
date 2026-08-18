@@ -359,7 +359,7 @@ jobs:
           if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
             supabase/migrations \
             supabase/tests/database \
-            .github/workflows/migration-check.yml; then
+            .github/workflows/ci.yml; then
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
