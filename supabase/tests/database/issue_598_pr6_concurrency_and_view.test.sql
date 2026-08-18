@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(6);
+select plan(9);
 
 -- transaction_item_with_refund 在同一支出同时存在退款与报销时，
 -- 必须只按实际有效核销金额扣减，且收入侧只扣除自己发起的关联金额。
@@ -164,6 +164,37 @@ select is(
     (select special_status from public.transaction_item where id = '59891000-0000-4000-8000-000000000001'),
     'pending_reimbursement'::public.transaction_item_special_status,
     '组合部分核销未归零时保持待报销'
+);
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set amount = 31
+        where id = '59891000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '退款收入有关联时不能被普通编辑'
+);
+
+select throws_ok(
+    $$
+        delete from public.transaction_item
+        where id = '59891000-0000-4000-8000-000000000002'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '退款收入有关联时不能被普通删除'
+);
+
+select throws_ok(
+    $$
+        delete from public.transaction_item
+        where id = '59891000-0000-4000-8000-000000000003'
+    $$,
+    'P0001',
+    'linked_transaction_edit_forbidden',
+    '报销收入有关联时不能被普通删除'
 );
 
 select * from finish();
