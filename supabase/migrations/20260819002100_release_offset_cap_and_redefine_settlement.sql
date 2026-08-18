@@ -146,6 +146,7 @@ as $$
 declare
     v_category_type text;
     v_special_status_enabled boolean;
+    v_has_active_refund_link boolean;
     v_has_active_reimbursement_link boolean;
     v_is_controlled_transition boolean;
     v_remaining_amount numeric;
@@ -194,6 +195,25 @@ begin
         if v_has_active_reimbursement_link then
             raise exception 'reimbursement_link_exists'
                 using errcode = 'P0001', detail = 'reimbursement_link_exists';
+        end if;
+
+        select exists (
+            select 1
+            from public.transaction_item_refund_link link
+            join public.transaction_item refund_income
+              on refund_income.id = link.refund_income_item_id
+             and refund_income.ledger_id = link.ledger_id
+            join public.transaction_record refund_record
+              on refund_record.id = refund_income.transaction_record_id
+             and refund_record.ledger_id = refund_income.ledger_id
+            where link.ledger_id = new.ledger_id
+              and link.refunded_item_id = new.id
+              and refund_record.status = 'active'
+        ) into v_has_active_refund_link;
+
+        if v_has_active_refund_link then
+            raise exception 'refund_link_exists'
+                using errcode = 'P0001', detail = 'refund_link_exists';
         end if;
 
         return new;

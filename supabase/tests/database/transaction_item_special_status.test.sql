@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(41);
+select plan(42);
 
 select has_type(
     'public',
@@ -523,6 +523,31 @@ values (
     20,
     '00000000-0000-4000-8000-000000000031'
 );
+
+update public.transaction_item
+set special_status = 'pending_reimbursement'
+where id = '59840000-0000-4000-8000-000000000005';
+
+select set_config(
+    'request.jwt.claim.sub',
+    '00000000-0000-4000-8000-000000000031',
+    true
+);
+set local role authenticated;
+
+select throws_ok(
+    $$
+        update public.transaction_item
+        set special_status = null
+        where id = '59840000-0000-4000-8000-000000000005'
+    $$,
+    'P0001',
+    'refund_link_exists',
+    '仅有 active 退款关联时也不能直接清空核销状态'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
 
 select throws_ok(
     $$
