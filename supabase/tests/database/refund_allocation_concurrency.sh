@@ -12,6 +12,10 @@ readonly target_id="57230000-0000-4000-8000-000000000001"
 readonly income_a_id="57230000-0000-4000-8000-000000000002"
 readonly income_b_id="57230000-0000-4000-8000-000000000003"
 readonly lock_marker="/tmp/refund-allocation-a-locked"
+readonly mixed_target_id="59897000-0000-4000-8000-000000000001"
+readonly mixed_refund_income_id="59897000-0000-4000-8000-000000000002"
+readonly mixed_reimbursement_income_id="59897000-0000-4000-8000-000000000003"
+readonly mixed_lock_marker="/tmp/refund-reimbursement-a-locked"
 
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 if [[ -z "${db_container}" ]]; then
@@ -30,12 +34,16 @@ old_enabled=""
 cleanup() {
   [[ -n "${a_pid}" ]] && kill "${a_pid}" 2>/dev/null || true
   [[ -n "${b_pid}" ]] && kill "${b_pid}" 2>/dev/null || true
-  docker exec "${db_container}" rm -f "${lock_marker}" >/dev/null 2>&1 || true
+  docker exec "${db_container}" rm -f "${lock_marker}" "${mixed_lock_marker}" >/dev/null 2>&1 || true
   if [[ -n "${ledger_id}" ]]; then
     psql_in_db >/dev/null 2>&1 <<SQL || true
 begin;
-delete from public.transaction_item_refund_link where refunded_item_id = '${target_id}';
-delete from public.transaction_item where id in ('${target_id}', '${income_a_id}', '${income_b_id}');
+delete from public.transaction_item_reimbursement_link where target_expense_item_id = '${mixed_target_id}';
+delete from public.transaction_item_refund_link where refunded_item_id in ('${target_id}', '${mixed_target_id}');
+delete from public.transaction_item where id in (
+  '${target_id}', '${income_a_id}', '${income_b_id}',
+  '${mixed_target_id}', '${mixed_refund_income_id}', '${mixed_reimbursement_income_id}'
+);
 set local session_replication_role = replica;
 update public.ledger set transaction_item_special_status_enabled = ${old_enabled:-true} where id = '${ledger_id}';
 set local session_replication_role = origin;
@@ -69,16 +77,21 @@ begin;
 update public.ledger set transaction_item_special_status_enabled = true where id = '${ledger_id}';
 insert into public.transaction_item (
   id, ledger_id, transaction_record_id, account_id, category_id, amount,
-  discount_amount, balance_delta, note, sort_order, created_by, updated_by
+  discount_amount, balance_delta, note, sort_order, special_status,
+  created_by, updated_by
 ) values
-  ('${target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5791, '${user_id}', '${user_id}'),
-  ('${income_a_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5792, '${user_id}', '${user_id}'),
-  ('${income_b_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5793, '${user_id}', '${user_id}');
+  ('${target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5791, null, '${user_id}', '${user_id}'),
+  ('${income_a_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5792, null, '${user_id}', '${user_id}'),
+  ('${income_b_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5793, null, '${user_id}', '${user_id}'),
+  ('${mixed_target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5794, 'pending_reimbursement', '${user_id}', '${user_id}'),
+  ('${mixed_refund_income_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5795, null, '${user_id}', '${user_id}'),
+  ('${mixed_reimbursement_income_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5796, null, '${user_id}', '${user_id}');
 commit;
 SQL
 
-docker exec "${db_container}" rm -f "${lock_marker}"
+docker exec "${db_container}" rm -f "${lock_marker}" "${mixed_lock_marker}"
 
+# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新额度拒绝超额。
 psql_in_db > /tmp/refund-allocation-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_allocation_a';
@@ -133,10 +146,10 @@ done
 if [[ "${blocked}" != "true" ]]; then
   cat /tmp/refund-allocation-a.log >&2 || true
   cat /tmp/refund-allocation-b.log >&2 || true
-  echo "第二笔退款没有等待目标明细写锁。" >&2
+  echo "第二笔退款在首笔事务提交前没有发生锁等待。" >&2
   exit 1
 fi
-echo "ok - 第二笔并发退款等待目标明细写锁"
+echo "ok - 第二笔并发退款在首笔事务提交前发生锁等待"
 
 wait "${a_pid}"
 a_pid=""
@@ -160,3 +173,104 @@ if [[ "${result}" != "1/60.00" ]]; then
   exit 1
 fi
 echo "ok - 并发退款最终未超过可退金额"
+
+# 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行读取最新剩余额度。
+psql_in_db > /tmp/refund-reimbursement-a.log 2>&1 <<SQL &
+begin;
+set application_name = 'refund_reimbursement_a';
+select public.apply_transaction_item_links(
+  '${ledger_id}',
+  '${mixed_refund_income_id}',
+  jsonb_build_object('refundAllocations', jsonb_build_array(jsonb_build_object('refundedItemId', '${mixed_target_id}', 'refundAmount', 60))),
+  '${user_id}'
+);
+\! touch ${mixed_lock_marker}
+select pg_sleep(3);
+commit;
+SQL
+a_pid=$!
+
+mixed_marker_found=false
+for _ in $(seq 1 50); do
+  if docker exec "${db_container}" test -f "${mixed_lock_marker}"; then
+    mixed_marker_found=true
+    break
+  fi
+  sleep 0.1
+done
+if [[ "${mixed_marker_found}" != "true" ]]; then
+  cat /tmp/refund-reimbursement-a.log >&2 || true
+  echo "正式退款 RPC 未建立并发测试关联。" >&2
+  exit 1
+fi
+
+psql_in_db > /tmp/refund-reimbursement-b.log 2>&1 <<SQL &
+begin;
+set application_name = 'refund_reimbursement_b';
+select public.apply_transaction_item_links(
+  '${ledger_id}',
+  '${mixed_reimbursement_income_id}',
+  jsonb_build_object('reimbursementItemId', '${mixed_target_id}'),
+  '${user_id}'
+);
+commit;
+SQL
+b_pid=$!
+
+mixed_blocked=false
+for _ in $(seq 1 30); do
+  wait_event="$(psql_in_db -A -t -c "select coalesce(wait_event_type, '') || ':' || coalesce(wait_event, '') from pg_stat_activity where application_name = 'refund_reimbursement_b';" | tr -d '\r')"
+  if [[ "${wait_event}" == Lock:* ]]; then
+    mixed_blocked=true
+    break
+  fi
+  sleep 0.1
+done
+if [[ "${mixed_blocked}" != "true" ]]; then
+  cat /tmp/refund-reimbursement-a.log >&2 || true
+  cat /tmp/refund-reimbursement-b.log >&2 || true
+  echo "正式报销 RPC 在并发退款事务提交前没有发生锁等待。" >&2
+  exit 1
+fi
+echo "ok - 正式退款与报销 RPC 在同一目标上发生并发锁等待"
+
+wait "${a_pid}"
+a_pid=""
+if ! wait "${b_pid}"; then
+  cat /tmp/refund-reimbursement-b.log >&2 || true
+  echo "正式报销 RPC 应在退款事务提交后按最新剩余额度成功。" >&2
+  exit 1
+fi
+b_pid=""
+
+read -r mixed_refund_amount mixed_reimbursement_amount mixed_remaining mixed_status mixed_target_net mixed_refund_net mixed_reimbursement_net < <(
+  psql_in_db -A -t -F ' ' -c "
+    select
+      to_char(coalesce((
+        select sum(link.refund_amount)
+        from public.transaction_item_refund_link link
+        where link.refunded_item_id = '${mixed_target_id}'
+      ), 0), 'FM999999990.00'),
+      to_char(coalesce((
+        select sum(link.reimbursement_amount)
+        from public.transaction_item_reimbursement_link link
+        where link.target_expense_item_id = '${mixed_target_id}'
+      ), 0), 'FM999999990.00'),
+      to_char(public.calculate_transaction_item_remaining_offset_amount('${ledger_id}', '${mixed_target_id}'), 'FM999999990.00'),
+      (select item.special_status::text from public.transaction_item item where item.id = '${mixed_target_id}'),
+      to_char((select item.business_net_amount from public.transaction_item_with_refund item where item.id = '${mixed_target_id}'), 'FM999999990.00'),
+      to_char((select item.business_net_amount from public.transaction_item_with_refund item where item.id = '${mixed_refund_income_id}'), 'FM999999990.00'),
+      to_char((select item.business_net_amount from public.transaction_item_with_refund item where item.id = '${mixed_reimbursement_income_id}'), 'FM999999990.00');"
+)
+
+if [[ "${mixed_refund_amount}" != "60.00" \
+   || "${mixed_reimbursement_amount}" != "40.00" \
+   || "${mixed_remaining}" != "0.00" \
+   || "${mixed_status}" != "reimbursed" \
+   || "${mixed_target_net}" != "0.00" \
+   || "${mixed_refund_net}" != "0.00" \
+   || "${mixed_reimbursement_net}" != "20.00" ]]; then
+  echo "正式退款/报销并发结果异常：refund=${mixed_refund_amount}, reimbursement=${mixed_reimbursement_amount}, remaining=${mixed_remaining}, status=${mixed_status}, targetNet=${mixed_target_net}, refundNet=${mixed_refund_net}, reimbursementNet=${mixed_reimbursement_net}" >&2
+  exit 1
+fi
+echo "ok - 正式退款与报销 RPC 并发后按最新剩余额度分配且业务净额正确"
