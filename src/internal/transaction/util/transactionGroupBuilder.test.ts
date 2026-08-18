@@ -208,7 +208,9 @@ describe("buildTransactionGroupSummaryPage", () => {
       "reimbursed",
       "reimbursement_surplus",
     ]);
-    expect(page.groups.map((group) => group.transactionCount)).toEqual([1, 1, 1]);
+    expect(page.groups.map((group) => group.transactionCount)).toEqual([
+      1, 1, 1,
+    ]);
     expect(page.groups[1].summary.expense).toBe("0");
   });
 });
