@@ -178,7 +178,6 @@ select dblink_exec(
 )
 from issue_598_pr6_concurrency_context context;
 
-select dblink_exec('issue598_reimbursement', 'begin');
 select dblink_send_query(
     'issue598_reimbursement',
     format(
@@ -224,7 +223,6 @@ select is(
     1,
     '目标支出行锁释放后并发报销请求成功完成'
 );
-select dblink_exec('issue598_reimbursement', 'commit');
 
 select is(
     (
