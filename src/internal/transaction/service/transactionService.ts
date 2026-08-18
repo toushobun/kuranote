@@ -235,10 +235,16 @@ export function createTransactionService({
       );
     }
 
-    if (input.items.some((item) => item.specialStatus === "reimbursed")) {
+    if (
+      input.items.some(
+        (item) =>
+          item.specialStatus === "reimbursed" ||
+          item.specialStatus === "reimbursementSurplus",
+      )
+    ) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
-        "结清状态只能由有效退款或报销核销自动派生。",
+        "结算派生状态只能由有效退款或报销核销自动判定。",
       );
     }
     const categoryIds = [
