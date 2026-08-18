@@ -48,6 +48,7 @@ type MutableGroup = {
 const specialStatusGroupOrder = [
   "pending_reimbursement",
   "reimbursed",
+  "reimbursement_surplus",
 ] as const;
 
 const specialStatusGroupLabels: Record<
@@ -56,6 +57,7 @@ const specialStatusGroupLabels: Record<
 > = {
   pending_reimbursement: "待报销",
   reimbursed: "已结清",
+  reimbursement_surplus: "核销结余",
 };
 
 export function buildTransactionGroupSummaryPage({
