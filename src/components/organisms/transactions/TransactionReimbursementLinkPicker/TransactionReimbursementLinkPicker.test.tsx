@@ -84,8 +84,8 @@ describe("TransactionReimbursementLinkPicker", () => {
     );
 
     expect(screen.getByText("收入子项金额 ¥1,500")).toBeInTheDocument();
-    expect(screen.getByText("本次实际核销金额 ¥1,000")).toBeInTheDocument();
-    expect(screen.getByText("未核销净收益 ¥500")).toBeInTheDocument();
+    expect(screen.getByText("本次实际核销金额 ¥1,500")).toBeInTheDocument();
+    expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
   it("搜索候选使用单选，后选项覆盖前选项", async () => {

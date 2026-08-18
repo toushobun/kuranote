@@ -143,7 +143,7 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-300");
   });
 
-  it("新增部分核销退款收入时按单目标剩余额度计算业务净额", () => {
+  it("新增超额退款收入时完整核销且业务净额为零", () => {
     const { result } = renderTransactionFormHook({ initialType: "income" });
 
     act(() => {
@@ -164,18 +164,18 @@ describe("useTransactionForm", () => {
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "1500",
-      businessNetAmount: "500",
+      businessNetAmount: "0",
     });
     expect(result.current.signedTotalAmount).toBe("+1500");
-    expect(result.current.businessTotalAmount).toBe("+500");
+    expect(result.current.businessTotalAmount).toBe("+0");
   });
 
   it.each([
     ["600", "0"],
     ["1000", "0"],
-    ["1500", "500"],
+    ["1500", "0"],
   ])(
-    "报销收入金额为 %s 时按剩余可核销额度计算业务净额",
+    "报销收入金额为 %s 时完整核销且业务净额为零",
     (incomeAmount, expectedBusinessNetAmount) => {
       const { result } = renderTransactionFormHook({ initialType: "income" });
 
