@@ -218,9 +218,10 @@ jobs:
             scripts/check-security-definer-search-path.mjs \
             scripts/check-security-definer-search-path-cases.mjs \
             scripts/security-definer-smoke.sql \
+            scripts/security-definer-smoke-issue-598.sql \
             .supabase-version \
             package.json \
-            .github/workflows/schema-snapshot-check.yml; then
+            .github/workflows/ci.yml; then
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
@@ -358,11 +359,28 @@ jobs:
           if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
             supabase/migrations \
             supabase/tests/database \
-            .github/workflows/migration-check.yml; then
+            supabase/seed.sql \
+            supabase/seeds \
+            supabase/config.toml \
+            .supabase-version \
+            .github/workflows/ci.yml; then
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Read Supabase CLI version
+        if: steps.scope.outputs.run == 'true'
+        id: supabase_version
+        shell: bash
+        run: |
+          version="$(<.supabase-version)"
+          version="${version%$'\r'}"
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo ".supabase-version 内容异常，应为形如 2.106.0 的版本号。" >&2
+            exit 1
+          fi
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
 
       - name: Check SECURITY DEFINER search_path
         if: steps.scope.outputs.run == 'true'
@@ -372,7 +390,7 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         uses: supabase/setup-cli@v2
         with:
-          version: v2.106.0
+          version: ${{ steps.supabase_version.outputs.version }}
           github-token: ${{ github.token }}
 
       - name: Start local Supabase

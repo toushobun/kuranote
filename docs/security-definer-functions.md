@@ -91,12 +91,19 @@ order by p.oid::regprocedure::text;
 - 应用侧 RPC 调用点全部位于 `src/internal/**`，未发现前端直接调用这些 RPC。
 - EXECUTE ACL 仅记录现状，本 Issue 不调整与 `search_path` 无关的授权设计。表中的“默认 PUBLIC EXECUTE”表示快照中没有对应的显式 `REVOKE`，不是本次新增权限。
 
+### Issue #598 收尾同步
+
+- PR1～PR5 没有新增 `SECURITY DEFINER` 函数数量，但重写了 `apply_transaction_item_links`、`clear_transaction_item_income_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items` 的报销关联表、冻结防线与开关语义；最终函数数量和权限仍以当前 schema snapshot 为准。
+- `apply_transaction_item_links` 的新建关联路径统一先锁定账本行；随后报销路径锁定单个目标支出再计算最新剩余额度，退款路径按目标 ID 稳定排序锁定全部目标后再计算 `allocatable_amount` 与各目标剩余额度，因此正式新建路径的锁顺序是 `ledger → target(s)`。#574 需要把清关联 / 编辑路径同步收敛到这一顺序，避免形成 `target → ledger` 的反向等待。
+- `clear_transaction_item_income_links` 已使用 `transaction_item_reimbursement_link` / `transaction_item_refund_link` 清理收入侧关联，不再依赖 `settled_by_item_id`；最终清单不再保留任何依赖该旧字段的 `SECURITY DEFINER` 函数。
+- `validate_linked_transaction_item_mutation` 与 `prevent_disable_special_status_with_active_items` 均已按新报销 / 退款关联结构判断活跃关联，owner、`search_path` 与 EXECUTE 边界没有扩大。
+
 | 函数                                                    | 整改前 search_path    | extensions 依赖                                        | owner / EXECUTE 现状               | 调用方                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------- | --------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `accept_ledger_invitation`                              | `public`              | 无                                                     | PUBLIC 撤销；authenticated         | 未发现现行调用点                                                                                                                                                                                                                                                                 |
 | `accept_ledger_invite`                                  | `pg_catalog, pg_temp` | `extensions.digest()`                                  | PUBLIC 撤销；authenticated         | RPC：`src/internal/ledger/repository/ledgerInviteRepository.ts`                                                                                                                                                                                                                  |
 | `apply_account_balance_delta`                           | `public`              | 无                                                     | PUBLIC 撤销；service_role          | 函数：`convert_transaction_type`、`create_transaction`、`create_transfer_transaction`、`update_transaction`、`update_transfer_transaction`、`void_transaction`                                                                                                                   |
-| `apply_transaction_item_links`                          | `pg_catalog, pg_temp` | 无                                                     | PUBLIC 撤销                        | 函数：`create_transaction`；在同一事务内建立报销与退款关联                                                                                                                                                                                                                       |
+| `apply_transaction_item_links`                          | `pg_catalog, pg_temp` | 无                                                     | PUBLIC 撤销                        | 函数：`create_transaction`、`update_transaction`；在同一事务内建立或重建报销与退款关联                                                                                                                                                                                           |
 | `assign_ledger_member_default_display_color`            | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`ledger_member_assign_default_display_color`                                                                                                                                                                                                                             |
 | `cleanup_ledger_member_display_setting_on_member_leave` | `public`              | 无                                                     | 默认 PUBLIC EXECUTE                | 触发器：`ledger_member_display_setting_cleanup_on_member_leave`                                                                                                                                                                                                                  |
 | `clear_transaction_item_income_links`                   | `pg_catalog, pg_temp` | 无                                                     | PUBLIC 撤销；无应用角色            | 函数：`update_transaction`                                                                                                                                                                                                                                                       |
@@ -168,8 +175,9 @@ order by p.oid::regprocedure::text;
 - `create_transaction` 创建交易，验证交易明细、余额同步及交易表 trigger 路径。
 - `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 邀请链路。
 - 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
+- #598 的 `apply_transaction_item_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items`、`clear_transaction_item_income_links` 由 `scripts/security-definer-smoke-issue-598.sql` 补充验证报销关联建立、冻结、关闭开关防线与受控清理。
 
-全部测试数据都在同一事务中创建，验证完成后统一 `ROLLBACK`。上述路径已在 PR #494 的数据库验证中实际执行通过。
+基础 smoke 数据在同一事务中创建并 `ROLLBACK`；#598 smoke 同样使用独立事务回滚。基础路径已在 PR #494 的数据库验证中实际执行通过，#598 路径由 PR6 的 schema snapshot check 持续验证。
 
 ## 新增或修改函数检查清单
 

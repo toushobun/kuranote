@@ -556,3 +556,5 @@ end;
 $$;
 
 rollback;
+
+\ir security-definer-smoke-issue-598.sql
