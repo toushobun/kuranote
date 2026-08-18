@@ -94,7 +94,7 @@ order by p.oid::regprocedure::text;
 ### Issue #598 收尾同步
 
 - PR1～PR5 没有新增 `SECURITY DEFINER` 函数数量，但重写了 `apply_transaction_item_links`、`clear_transaction_item_income_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items` 的报销关联表、冻结防线与开关语义；最终函数数量和权限仍以当前 schema snapshot 为准。
-- `apply_transaction_item_links` 的报销路径先锁定目标支出，再在锁内计算最新剩余额度；退款路径按目标 ID 稳定排序锁定全部目标，再计算 `allocatable_amount` 与各目标剩余额度。
+- `apply_transaction_item_links` 的新建关联路径统一先锁定账本行；随后报销路径锁定单个目标支出再计算最新剩余额度，退款路径按目标 ID 稳定排序锁定全部目标后再计算 `allocatable_amount` 与各目标剩余额度，因此正式新建路径的锁顺序是 `ledger → target(s)`。#574 需要把清关联 / 编辑路径同步收敛到这一顺序，避免形成 `target → ledger` 的反向等待。
 - `clear_transaction_item_income_links` 已使用 `transaction_item_reimbursement_link` / `transaction_item_refund_link` 清理收入侧关联，不再依赖 `settled_by_item_id`；最终清单不再保留任何依赖该旧字段的 `SECURITY DEFINER` 函数。
 - `validate_linked_transaction_item_mutation` 与 `prevent_disable_special_status_with_active_items` 均已按新报销 / 退款关联结构判断活跃关联，owner、`search_path` 与 EXECUTE 边界没有扩大。
 
