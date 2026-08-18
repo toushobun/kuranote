@@ -120,8 +120,8 @@ select is(
     '清除超额部分后剩余退款 40 与报销 60 恰好结清时保持已结清而非误回待报销'
 );
 
--- 清空第一条目标的剩余关联，使后续账本开关断言只依赖第三态本身，
--- 避免旧实现因“仍有 active link”而误打误撞通过测试。
+-- 清空第一条目标的剩余关联和特殊状态，使后续账本开关断言只依赖第三态本身，
+-- 避免旧实现因“仍有 active link / pending 明细”而误打误撞通过测试。
 select public.clear_transaction_item_income_links(
     '00000000-0000-4000-8000-000000000032',
     '60594000-0000-4000-8000-000000000002',
@@ -132,6 +132,9 @@ select public.clear_transaction_item_income_links(
     '60594000-0000-4000-8000-000000000003',
     '00000000-0000-4000-8000-000000000031'
 );
+update public.transaction_item
+set special_status = null
+where id = '60594000-0000-4000-8000-000000000001';
 
 select lives_ok(
     $$
@@ -157,6 +160,9 @@ select throws_ok(
 
 select lives_ok(
     $$
+        update public.transaction_item
+        set special_status = 'pending_reimbursement'
+        where id = '60594000-0000-4000-8000-000000000001';
         select public.apply_transaction_item_links(
             '00000000-0000-4000-8000-000000000032',
             '60594000-0000-4000-8000-000000000002',
