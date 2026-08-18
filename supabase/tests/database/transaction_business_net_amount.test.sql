@@ -120,7 +120,9 @@ cross join (values
     ('57310000-0000-4000-8000-000000000001'::uuid, '57300000-0000-4000-8000-000000000001'::uuid, 'expense', 100::numeric, null),
     ('57310000-0000-4000-8000-000000000002'::uuid, '57300000-0000-4000-8000-000000000002'::uuid, 'expense', 400::numeric, null),
     ('57310000-0000-4000-8000-000000000003'::uuid, '57300000-0000-4000-8000-000000000003'::uuid, 'expense', 200::numeric, null),
-    ('57310000-0000-4000-8000-000000000004'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 500::numeric, null),
+    ('57310000-0000-4000-8000-000000000004'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 100::numeric, null),
+    ('57310000-0000-4000-8000-000000000014'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 200::numeric, null),
+    ('57310000-0000-4000-8000-000000000015'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 200::numeric, null),
     ('57310000-0000-4000-8000-000000000005'::uuid, '57300000-0000-4000-8000-000000000005'::uuid, 'income', 50::numeric, null),
     ('57310000-0000-4000-8000-000000000006'::uuid, '57300000-0000-4000-8000-000000000006'::uuid, 'expense', 200::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000007'::uuid, '57300000-0000-4000-8000-000000000007'::uuid, 'expense', 300::numeric, 'pending_reimbursement'),
@@ -144,7 +146,7 @@ select
 from test_business_net_context context
 cross join (values
     ('57310000-0000-4000-8000-000000000001'::uuid, '57310000-0000-4000-8000-000000000004'::uuid, 100::numeric),
-    ('57310000-0000-4000-8000-000000000002'::uuid, '57310000-0000-4000-8000-000000000004'::uuid, 200::numeric),
+    ('57310000-0000-4000-8000-000000000002'::uuid, '57310000-0000-4000-8000-000000000014'::uuid, 200::numeric),
     ('57310000-0000-4000-8000-000000000002'::uuid, '57310000-0000-4000-8000-000000000005'::uuid, 50::numeric)
 ) allocation(refunded_item_id, refund_income_item_id, refund_amount);
 
@@ -191,9 +193,17 @@ select is(
 );
 
 select is(
-    (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000004'),
+    (
+        select sum(business_net_amount)
+        from public.transaction_item_with_refund
+        where id in (
+            '57310000-0000-4000-8000-000000000004',
+            '57310000-0000-4000-8000-000000000014',
+            '57310000-0000-4000-8000-000000000015'
+        )
+    ),
     200::numeric,
-    '多明细退款收入保留尚未分配的业务净额'
+    '同一退款交易拆成多条单目标收入明细后保留尚未关联的业务净额'
 );
 
 select is(
@@ -268,15 +278,23 @@ insert into public.transaction_item_refund_link (
 select
     context.ledger_id,
     '57310000-0000-4000-8000-000000000003',
-    '57310000-0000-4000-8000-000000000004',
+    '57310000-0000-4000-8000-000000000015',
     200,
     context.user_id
 from test_business_net_context context;
 
 select is(
-    (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000004'),
+    (
+        select sum(business_net_amount)
+        from public.transaction_item_with_refund
+        where id in (
+            '57310000-0000-4000-8000-000000000004',
+            '57310000-0000-4000-8000-000000000014',
+            '57310000-0000-4000-8000-000000000015'
+        )
+    ),
     0::numeric,
-    '跨账单多明细退款完全分配后收入业务净额为零'
+    '跨账单退款拆成多条单目标收入明细后全部关联时业务净额为零'
 );
 
 -- 当前产品禁止作废已关联交易；测试中只绕过该入口保护以构造历史失效数据，

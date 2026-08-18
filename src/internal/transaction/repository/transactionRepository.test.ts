@@ -94,7 +94,6 @@ describe("TransactionRepository", () => {
         {
           ...normalInput.items[0],
           id: null,
-          refundAllocations: [],
           specialStatus: null,
         },
       ],
@@ -105,22 +104,13 @@ describe("TransactionRepository", () => {
       p_type: "expense",
     });
   });
-  it("退款收入将多目标分摊数组原样传给原子 RPC", async () => {
+  it("退款收入将单一目标明细传给原子 RPC", async () => {
     const { repository, rpc } = createRepository();
-    const refundAllocations = [
-      {
-        refundAmount: 300,
-        refundedItemId: "00000000-0000-4000-8000-000000005073",
-      },
-      {
-        refundAmount: 900,
-        refundedItemId: "00000000-0000-4000-8000-000000005074",
-      },
-    ];
+    const refundedItemId = "00000000-0000-4000-8000-000000005073";
 
     await repository.createNormal({
       ...normalInput,
-      items: [{ ...normalInput.items[0], refundAllocations }],
+      items: [{ ...normalInput.items[0], refundedItemId }],
       type: "income",
     });
 
@@ -129,7 +119,7 @@ describe("TransactionRepository", () => {
       expect.objectContaining({
         p_items: [
           expect.objectContaining({
-            refundAllocations,
+            refundedItemId,
           }),
         ],
       }),
@@ -170,22 +160,13 @@ describe("TransactionRepository", () => {
       p_transaction_at: transferInput.transactionAt,
     });
   });
-  it("退款收入更新将多目标分摊数组传给更新 RPC", async () => {
+  it("退款收入更新将单一目标明细传给更新 RPC", async () => {
     const { repository, rpc } = createRepository();
-    const refundAllocations = [
-      {
-        refundAmount: 300,
-        refundedItemId: "00000000-0000-4000-8000-000000005073",
-      },
-      {
-        refundAmount: 900,
-        refundedItemId: "00000000-0000-4000-8000-000000005074",
-      },
-    ];
+    const refundedItemId = "00000000-0000-4000-8000-000000005073";
 
     await repository.updateNormal({
       ...normalInput,
-      items: [{ ...normalInput.items[0], refundAllocations }],
+      items: [{ ...normalInput.items[0], refundedItemId }],
       transactionRecordId,
       type: "income",
     });
@@ -195,7 +176,7 @@ describe("TransactionRepository", () => {
       expect.objectContaining({
         p_items: [
           expect.objectContaining({
-            refundAllocations,
+            refundedItemId,
           }),
         ],
       }),
@@ -222,7 +203,6 @@ describe("TransactionRepository", () => {
           {
             ...normalInput.items[0],
             id: transactionItemId,
-            refundAllocations: [],
             specialStatus: null,
           },
         ],
@@ -550,10 +530,6 @@ describe("TransactionRepository", () => {
     expect(logger.error).toHaveBeenCalledOnce();
   });
   it.each([
-    {
-      expectedCode: transactionErrorCodes.refundAmountExceeded,
-      rpcCode: "refund_amount_exceeded",
-    },
     {
       expectedCode: transactionErrorCodes.reimbursementLinkInvalid,
       rpcCode: "reimbursement_item_invalid",
@@ -1087,6 +1063,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       "reimbursement_amount_mismatch",
       "refunded_item_special_status_conflict",
       "special_status_refund_conflict",
+      "refund_amount_exceeded",
     ])("旧规则错误码 %s 不再映射为旧业务语义", async (databaseError) => {
       const { repository } = createRepositoryWithRpcError({
         code: "22023",
@@ -1116,11 +1093,11 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         status: 409,
       });
     });
-    it("退款关联唯一约束冲突（23505）转换为安全的 ConflictError", async () => {
+    it("退款收入单目标唯一约束冲突（23505）转换为安全的 ConflictError", async () => {
       const { repository } = createRepositoryWithRpcError({
         code: "23505",
         databaseError:
-          'duplicate key value violates unique constraint "transaction_item_refund_link_income_target_unique"',
+          'duplicate key value violates unique constraint "transaction_item_refund_link_income_unique"',
       });
       const error = await repository
         .createNormal(normalInput)
@@ -1128,7 +1105,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ConflictError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.refundLinkInvalid,
-        message: "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
+        message: "同一退款收入最多只能关联一条支出明细，请刷新后重试。",
       });
       if (!(error instanceof ConflictError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({

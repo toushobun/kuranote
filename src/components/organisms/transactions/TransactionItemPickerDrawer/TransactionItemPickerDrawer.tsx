@@ -49,14 +49,14 @@ type TransactionItemPickerDrawerProps = {
   onGroupSelect: (groupId: string) => void;
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
-  onRefundItemsChange?: (item: TransactionRefundCandidate[]) => void;
+  onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
   onReimbursementItemChange?: (item: TransactionRefundCandidate | null) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
-  pickerRefundCandidates?: TransactionRefundCandidate[];
+  pickerRefundCandidate?: TransactionRefundCandidate | null;
   pickerReimbursementCandidate?: TransactionRefundCandidate | null;
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
@@ -100,14 +100,14 @@ export function TransactionItemPickerDrawer({
   onGroupSelect,
   onPickerAdd,
   onRemoveItem,
-  onRefundItemsChange = () => undefined,
+  onRefundItemChange = () => undefined,
   onReimbursementItemChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
   pickerCategoryId,
   pickerErrors,
-  pickerRefundCandidates = [],
+  pickerRefundCandidate = null,
   pickerReimbursementCandidate = null,
   pickerSpecialStatus = null,
   selectedAccountCurrency,
@@ -420,10 +420,10 @@ export function TransactionItemPickerDrawer({
               loadGroupItemsAction={loadRefundGroupItemsAction}
               loadMoreGroupsAction={loadRefundMoreGroupsAction}
               loadSearchPageAction={loadRefundSearchPageAction}
-              onChange={onRefundItemsChange}
+              onChange={onRefundItemChange}
               timeGroupView={refundPickerView}
               refundAmount={pickerAmount}
-              value={pickerRefundCandidates}
+              value={pickerRefundCandidate}
             />
             <TransactionReimbursementLinkPicker
               incomeAmount={pickerAmount}

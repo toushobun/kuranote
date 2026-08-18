@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(8);
+select plan(10);
 
 create temporary table test_refund_edit_context as
 select
@@ -43,6 +43,25 @@ limit 1;
 update public.ledger
 set transaction_item_special_status_enabled = true
 where id = (select ledger_id from test_refund_edit_context);
+
+select is(
+    position(
+        'refundAllocations' in pg_get_functiondef(
+            'public.update_transaction(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+        )
+    ),
+    0,
+    'update_transaction 不再读取旧 refundAllocations 协议'
+);
+
+select ok(
+    position(
+        'refundedItemId' in pg_get_functiondef(
+            'public.update_transaction(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+        )
+    ) > 0,
+    'update_transaction 前置校验使用单目标 refundedItemId'
+);
 
 insert into public.transaction_item (
     id, ledger_id, transaction_record_id, account_id, category_id, amount,
@@ -107,17 +126,8 @@ select public.apply_transaction_item_links(
     (select ledger_id from test_refund_edit_context),
     '57242000-0000-4000-8000-000000000002',
     jsonb_build_object(
-        'refundAllocations',
-        jsonb_build_array(
-            jsonb_build_object(
-                'refundedItemId', '57241000-0000-4000-8000-000000000001',
-                'refundAmount', 25
-            ),
-            jsonb_build_object(
-                'refundedItemId', '57241000-0000-4000-8000-000000000002',
-                'refundAmount', 75
-            )
-        )
+        'refundedItemId',
+        '57241000-0000-4000-8000-000000000001'
     ),
     (select user_id from test_refund_edit_context)
 );
@@ -142,16 +152,7 @@ select lives_ok(
                     'id', '57242000-0000-4000-8000-000000000002',
                     'amount', 80,
                     'categoryId', (select income_category_id from test_refund_edit_context),
-                    'refundAllocations', jsonb_build_array(
-                        jsonb_build_object(
-                            'refundedItemId', '57241000-0000-4000-8000-000000000001',
-                            'refundAmount', 20
-                        ),
-                        jsonb_build_object(
-                            'refundedItemId', '57241000-0000-4000-8000-000000000002',
-                            'refundAmount', 60
-                        )
-                    )
+                    'refundedItemId', '57241000-0000-4000-8000-000000000002'
                 )
             ),
             (select account_id from test_refund_edit_context),
@@ -159,7 +160,7 @@ select lives_ok(
             '编辑后'
         )
     $$,
-    '退款收入编辑时可以原子重建分摊'
+    '退款收入编辑时可以原子重建单目标关联'
 );
 
 select is(
@@ -170,78 +171,30 @@ select is(
           on income_item.id = link.refund_income_item_id
         where income_item.transaction_record_id = '57242000-0000-4000-8000-000000000001'
     ),
-    2,
-    '编辑后只保留新建的两条退款分摊'
+    1,
+    '编辑后退款收入仍只保留一条关联'
 );
 
 select is(
     (
-        select string_agg(link.refund_amount::text, ',' order by link.refunded_item_id)
-        from public.transaction_item_refund_link link
-        join public.transaction_item income_item
-          on income_item.id = link.refund_income_item_id
-        where income_item.transaction_record_id = '57242000-0000-4000-8000-000000000001'
+        select refunded_item_id
+        from public.transaction_item_refund_link
+        where refund_income_item_id = '57242000-0000-4000-8000-000000000002'
     ),
-    '20.00,60.00',
-    '编辑后按新金额重新分摊'
+    '57241000-0000-4000-8000-000000000002'::uuid,
+    '编辑后关联切换到新的单一目标'
 );
 
 select is(
     (
-        select amount
-        from public.transaction_item
-        where transaction_record_id = '57242000-0000-4000-8000-000000000001'
-    ),
-    80::numeric,
-    '编辑后的退款收入金额保存成功'
-);
-
-select throws_ok(
-    $$
-        select public.update_transaction(
-            (select ledger_id from test_refund_edit_context),
-            '57242000-0000-4000-8000-000000000001',
-            'income',
-            now(),
-            jsonb_build_array(
-                jsonb_build_object(
-                    'id', '57242000-0000-4000-8000-000000000002',
-                    'amount', 500,
-                    'categoryId', (select income_category_id from test_refund_edit_context),
-                    'refundAllocations', jsonb_build_array(
-                        jsonb_build_object(
-                            'refundedItemId', '57241000-0000-4000-8000-000000000001',
-                            'refundAmount', 125
-                        ),
-                        jsonb_build_object(
-                            'refundedItemId', '57241000-0000-4000-8000-000000000002',
-                            'refundAmount', 375
-                        )
-                    )
-                )
-            ),
-            (select account_id from test_refund_edit_context),
-            (select merchant_id from test_refund_edit_context),
-            '无效编辑'
-        )
-    $$,
-    '22023',
-    'refund_amount_exceeded',
-    '编辑时超过剩余可退金额会拒绝'
-);
-
-select is(
-    (
-        select income_item.amount::text || '/' ||
-               coalesce(string_agg(link.refund_amount::text, ',' order by link.refunded_item_id), '')
+        select income_item.amount::text || '/' || link.refund_amount::text
         from public.transaction_item income_item
-        left join public.transaction_item_refund_link link
+        join public.transaction_item_refund_link link
           on link.refund_income_item_id = income_item.id
-        where income_item.transaction_record_id = '57242000-0000-4000-8000-000000000001'
-        group by income_item.amount
+        where income_item.id = '57242000-0000-4000-8000-000000000002'
     ),
-    '80.00/20.00,60.00',
-    '无效编辑回滚后保留原金额和原分摊'
+    '80.00/80.00',
+    '编辑后的退款收入金额与单目标核销金额保存成功'
 );
 
 select lives_ok(
@@ -254,7 +207,42 @@ select lives_ok(
             jsonb_build_array(
                 jsonb_build_object(
                     'id', '57242000-0000-4000-8000-000000000002',
-                    'amount', 80,
+                    'amount', 500,
+                    'categoryId', (select income_category_id from test_refund_edit_context),
+                    'refundedItemId', '57241000-0000-4000-8000-000000000002'
+                )
+            ),
+            (select account_id from test_refund_edit_context),
+            (select merchant_id from test_refund_edit_context),
+            '封顶编辑'
+        )
+    $$,
+    '编辑后收入超过目标余额时继续按 LEAST 规则封顶'
+);
+
+select is(
+    (
+        select link.refund_amount::text || '/' || income_item.business_net_amount::text
+        from public.transaction_item_refund_link link
+        join public.transaction_item_with_refund income_item
+          on income_item.id = link.refund_income_item_id
+        where link.refund_income_item_id = '57242000-0000-4000-8000-000000000002'
+    ),
+    '300.00/200.00',
+    '编辑后的单目标关联按最新目标余额封顶并保留净收益'
+);
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            (select ledger_id from test_refund_edit_context),
+            '57242000-0000-4000-8000-000000000001',
+            'income',
+            now(),
+            jsonb_build_array(
+                jsonb_build_object(
+                    'id', '57242000-0000-4000-8000-000000000002',
+                    'amount', 500,
                     'categoryId', (select income_category_id from test_refund_edit_context)
                 )
             ),
@@ -263,7 +251,7 @@ select lives_ok(
             '取消退款关联'
         )
     $$,
-    '编辑退款收入时可以移除全部分摊'
+    '编辑退款收入时可以移除单目标关联'
 );
 
 select is(
@@ -275,7 +263,7 @@ select is(
         where income_item.transaction_record_id = '57242000-0000-4000-8000-000000000001'
     ),
     0,
-    '移除后不再保留退款分摊'
+    '解除后不再保留退款关联'
 );
 
 select * from finish();

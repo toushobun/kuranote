@@ -143,7 +143,7 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-300");
   });
 
-  it("新增部分核销退款收入时按实际分摊计算业务净额", () => {
+  it("新增部分核销退款收入时按单目标剩余额度计算业务净额", () => {
     const { result } = renderTransactionFormHook({ initialType: "income" });
 
     act(() => {
@@ -153,9 +153,10 @@ describe("useTransactionForm", () => {
       result.current.handlePickerAmountChange("1500");
     });
     act(() =>
-      result.current.setPickerRefundCandidates([
-        { ...refundCandidate, remainingRefundableAmount: "1000" },
-      ]),
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        remainingRefundableAmount: "1000",
+      }),
     );
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(true);
@@ -413,15 +414,13 @@ describe("useTransactionForm", () => {
     });
 
     act(() =>
-      result.current.setPickerRefundCandidates([
-        {
-          ...refundCandidate,
-          accountId: "account-2",
-        },
-      ]),
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        accountId: "account-2",
+      }),
     );
 
-    expect(result.current.pickerRefundCandidates).toEqual([]);
+    expect(result.current.pickerRefundCandidate).toBeNull();
     expect(result.current.linkNotice).toContain("账户一致");
   });
 
@@ -430,13 +429,13 @@ describe("useTransactionForm", () => {
       initialValues: createInitialValues(),
     });
 
-    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
-    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
 
     act(() => result.current.handleAccountChange("account-2"));
 
     expect(result.current.selectedAccountId).toBe("account-2");
-    expect(result.current.pickerRefundCandidates).toEqual([]);
+    expect(result.current.pickerRefundCandidate).toBeNull();
     expect(result.current.linkNotice).toContain("账户已变更");
   });
 
@@ -464,19 +463,19 @@ describe("useTransactionForm", () => {
       initialValues: createInitialValues(),
     });
 
-    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
-    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
 
     act(() =>
       result.current.setPickerReimbursementCandidate(reimbursementCandidate),
     );
-    expect(result.current.pickerRefundCandidates).toEqual([]);
+    expect(result.current.pickerRefundCandidate).toBeNull();
     expect(result.current.pickerReimbursementCandidate).toEqual(
       reimbursementCandidate,
     );
 
-    act(() => result.current.setPickerRefundCandidates([refundCandidate]));
-    expect(result.current.pickerRefundCandidates).toEqual([refundCandidate]);
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
     expect(result.current.pickerReimbursementCandidate).toBeNull();
   });
 
@@ -497,7 +496,7 @@ describe("useTransactionForm", () => {
               settlementStatus: null,
             },
             categoryId: "income-category",
-            refundCandidates: [refundCandidate],
+            refundCandidate,
           },
         ],
       },
@@ -509,7 +508,7 @@ describe("useTransactionForm", () => {
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "200",
       businessStatus: null,
-      refundCandidates: [],
+      refundCandidate: null,
     });
     expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
     expect(result.current.businessTotalAmount).toBeNull();

@@ -179,14 +179,10 @@ select set_config('kuranote.reimbursement_link_flow', 'off', true);
 select public.apply_transaction_item_links(
     context.ledger_id,
     '55194100-0000-4000-8000-000000000004',
-    jsonb_build_object('refundAllocations', jsonb_build_array(
-        jsonb_build_object(
-            'refundedItemId',
-            '55194100-0000-4000-8000-000000000003',
-            'refundAmount',
-            3000
-        )
-    )),
+    jsonb_build_object(
+                'refundedItemId',
+                '55194100-0000-4000-8000-000000000003'
+            ),
     context.user_id
 )
 from test_special_status_context context;

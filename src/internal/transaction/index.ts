@@ -39,13 +39,10 @@ export type {
   TransactionSearchPage,
 } from "internal/transaction/entity/transactionReadModels";
 export {
-  allocateRefundAmount,
   formatRefundMinorUnits,
   summarizeRefundAllocationAmounts,
   summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
-  type TransactionRefundAllocation,
-  type TransactionRefundAllocationTarget,
 } from "internal/transaction/util/refundAllocation";
 export {
   buildTransactionSearchPage,

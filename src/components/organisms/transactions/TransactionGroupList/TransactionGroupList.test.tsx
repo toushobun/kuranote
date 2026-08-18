@@ -239,19 +239,22 @@ describe("TransactionRefundCandidateList", () => {
     });
   }
 
-  it("显示部分退款金额并允许选择", () => {
+  it("退款选择模式使用单选并显示部分退款金额", () => {
     const onSelect = vi.fn();
 
     render(
       <TransactionRefundCandidateList
         items={[createRefundRecord("40", "60")]}
         onSelect={onSelect}
+        selectedId="refund-item-1"
       />,
     );
 
     expect(screen.getByText("原始金额 $100")).toBeInTheDocument();
     expect(screen.getByText("剩余可退 $60")).toBeInTheDocument();
     expect(screen.getByText("已退款 $40")).toBeInTheDocument();
+    expect(screen.getByRole("radio")).toBeChecked();
+    expect(screen.queryByRole("checkbox")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细 服装" }));
     expect(onSelect).toHaveBeenCalledWith(

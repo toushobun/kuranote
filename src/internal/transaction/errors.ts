@@ -10,8 +10,6 @@ export const transactionErrorCodes = {
   ledgerInvalid: "ledger_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
-  // 保留数据库稳定码；仅表示提交分摊合计不符合本次 allocatable_amount。
-  refundAmountExceeded: "refund_amount_exceeded",
   refundLinkInvalid: "refund_link_invalid",
   reimbursementLinkInvalid: "reimbursement_link_invalid",
   permissionDenied: "permission_denied",

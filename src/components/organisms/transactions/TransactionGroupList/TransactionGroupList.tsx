@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
-import Checkbox from "@mui/material/Checkbox";
 import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -31,7 +30,7 @@ type TransactionGroupListProps = {
   onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
   reimbursementSelectionMode?: boolean;
-  selectedRefundItemIds?: string[];
+  selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
   showSummary?: boolean;
 };
@@ -42,7 +41,7 @@ export function TransactionGroupList({
   onSelectReimbursementItem,
   refundSelectionMode = false,
   reimbursementSelectionMode = false,
-  selectedRefundItemIds = [],
+  selectedRefundItemId = null,
   selectedReimbursementItemId = null,
   showSummary = true,
 }: TransactionGroupListProps) {
@@ -97,18 +96,14 @@ export function TransactionGroupList({
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectReimbursementItem}
-                selectedIds={
-                  selectedReimbursementItemId
-                    ? [selectedReimbursementItemId]
-                    : []
-                }
+                selectedId={selectedReimbursementItemId}
                 selectionKind="reimbursement"
               />
             ) : refundSelectionMode && onSelectRefundItem ? (
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectRefundItem}
-                selectedIds={selectedRefundItemIds}
+                selectedId={selectedRefundItemId}
               />
             ) : (
               group.items.map((item, itemIndex) => (
@@ -129,12 +124,12 @@ export function TransactionGroupList({
 export function TransactionRefundCandidateList({
   items,
   onSelect,
-  selectedIds = [],
+  selectedId = null,
   selectionKind = "refund",
 }: {
   items: TransactionListItem[];
   onSelect: (item: TransactionRefundCandidate) => void;
-  selectedIds?: string[];
+  selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
 }) {
   const candidates = items.flatMap((record) =>
@@ -169,7 +164,7 @@ export function TransactionRefundCandidateList({
     <Stack>
       {candidates.map((candidate, index) => {
         const disabled = Number(candidate.remainingRefundableAmount) <= 0;
-        const selected = selectedIds.includes(candidate.id);
+        const selected = selectedId === candidate.id;
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         return (
           <ButtonBase
@@ -185,11 +180,7 @@ export function TransactionRefundCandidateList({
               opacity: disabled ? 0.45 : 1,
             }}
           >
-            {isReimbursement ? (
-              <Radio checked={selected} tabIndex={-1} />
-            ) : (
-              <Checkbox checked={selected} tabIndex={-1} />
-            )}
+            <Radio checked={selected} tabIndex={-1} />
             <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <Typography sx={{ fontWeight: 800 }} variant="body2">
                 {candidate.parentCategoryName

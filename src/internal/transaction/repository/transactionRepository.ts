@@ -25,7 +25,6 @@ import type {
 } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionSpecialStatusFilterValue } from "internal/transaction/entity/transactionSpecialStatus";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
-import type { TransactionRefundAllocation } from "internal/transaction/util/refundAllocation";
 import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
@@ -36,7 +35,7 @@ export type TransactionItemInput = {
   amount: number;
   categoryId: string;
   id?: string;
-  refundAllocations?: TransactionRefundAllocation[];
+  refundedItemId?: string;
   reimbursementItemId?: string;
   specialStatus?: TransactionSpecialStatus | null;
 };
@@ -273,7 +272,6 @@ const transactionRpcErrorCodes = [
   "refunded_item_invalid",
   "refund_currency_mismatch",
   "refund_account_mismatch",
-  "refund_amount_exceeded",
   "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
   "income_links_create_only",
@@ -413,17 +411,10 @@ export function createSupabaseTransactionRepository(
       );
     }
 
-    if (rpcErrorCode === "refund_amount_exceeded") {
-      throw new ConflictError(
-        transactionErrorCodes.refundAmountExceeded,
-        "退款分摊合计必须等于本次可核销金额，请重新选择。",
-      );
-    }
-
     if (rpcErrorCode === "refund_allocation_invalid") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款分摊结果不正确，请重新选择退款明细。",
+        "退款金额不正确，请重新选择退款明细。",
       );
     }
 
@@ -500,7 +491,7 @@ export function createSupabaseTransactionRepository(
     if (error.code === "23505") {
       throw new ConflictError(
         transactionErrorCodes.refundLinkInvalid,
-        "同一退款收入不能重复关联同一支出明细，请刷新后重试。",
+        "同一退款收入最多只能关联一条支出明细，请刷新后重试。",
       );
     }
 
@@ -1087,7 +1078,7 @@ function toTransactionRpcItems(items: TransactionItemInput[]) {
     amount: item.amount,
     categoryId: item.categoryId,
     id: item.id ?? null,
-    refundAllocations: item.refundAllocations ?? [],
+    ...(item.refundedItemId ? { refundedItemId: item.refundedItemId } : {}),
     ...(item.reimbursementItemId
       ? { reimbursementItemId: item.reimbursementItemId }
       : {}),

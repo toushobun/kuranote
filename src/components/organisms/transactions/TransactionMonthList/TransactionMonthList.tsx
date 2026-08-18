@@ -36,7 +36,7 @@ type TransactionMonthListProps = {
   onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
   reimbursementSelectionMode?: boolean;
-  selectedRefundItemIds?: string[];
+  selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
   timeGroupView: TransactionTimeGroupViewData;
 };
@@ -59,7 +59,7 @@ function TransactionMonthListContent({
   onSelectReimbursementItem,
   refundSelectionMode = false,
   reimbursementSelectionMode = false,
-  selectedRefundItemIds = [],
+  selectedRefundItemId = null,
   selectedReimbursementItemId = null,
   timeGroupView,
 }: TransactionMonthListProps) {
@@ -325,7 +325,7 @@ function TransactionMonthListContent({
                         onSelectReimbursementItem={onSelectReimbursementItem}
                         refundSelectionMode={refundSelectionMode}
                         reimbursementSelectionMode={reimbursementSelectionMode}
-                        selectedRefundItemIds={selectedRefundItemIds}
+                        selectedRefundItemId={selectedRefundItemId}
                         selectedReimbursementItemId={
                           selectedReimbursementItemId
                         }

@@ -68,10 +68,7 @@ select
 from test_refund_min_context context
 cross join (values
     ('59830000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1, 'pending_reimbursement'),
-    ('59830000-0000-4000-8000-000000000002'::uuid, 40::numeric, 2, null),
-    ('59830000-0000-4000-8000-000000000003'::uuid, 100::numeric, 3, null),
-    ('59830000-0000-4000-8000-000000000004'::uuid, 100::numeric, 4, null),
-    ('59830000-0000-4000-8000-000000000005'::uuid, 100::numeric, 5, null)
+    ('59830000-0000-4000-8000-000000000002'::uuid, 100::numeric, 2, null)
 ) item(id, amount, sort_order, special_status);
 
 insert into public.transaction_item (
@@ -95,9 +92,7 @@ from test_refund_min_context context
 cross join (values
     ('59840000-0000-4000-8000-000000000001'::uuid, 40::numeric, 1),
     ('59840000-0000-4000-8000-000000000002'::uuid, 150::numeric, 2),
-    ('59840000-0000-4000-8000-000000000003'::uuid, 150::numeric, 3),
-    ('59840000-0000-4000-8000-000000000004'::uuid, 150::numeric, 4),
-    ('59840000-0000-4000-8000-000000000005'::uuid, 100::numeric, 5)
+    ('59840000-0000-4000-8000-000000000003'::uuid, 150::numeric, 3)
 ) item(id, amount, sort_order);
 
 select lives_ok(
@@ -112,7 +107,17 @@ select lives_ok(
             (select user_id from test_refund_min_context)
         )
     $$,
-    '先建立报销分摊以减少退款目标的剩余可核销金额'
+    '先建立报销关联以减少退款目标的剩余可核销金额'
+);
+
+select is(
+    (
+        select reimbursement_amount
+        from public.transaction_item_reimbursement_link
+        where reimbursement_income_item_id = '59840000-0000-4000-8000-000000000001'
+    ),
+    40::numeric,
+    '报销关联先核销 40'
 );
 
 select lives_ok(
@@ -121,46 +126,43 @@ select lives_ok(
             (select ledger_id from test_refund_min_context),
             '59840000-0000-4000-8000-000000000002',
             jsonb_build_object(
-                'refundAllocations',
-                jsonb_build_array(
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000001',
-                        'refundAmount', 60
-                    ),
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000002',
-                        'refundAmount', 40
-                    )
-                )
+                'refundedItemId',
+                '59830000-0000-4000-8000-000000000001'
             ),
             (select user_id from test_refund_min_context)
         )
     $$,
-    '退款收入超过组合剩余额度时按 allocatable_amount 建立关联'
+    '退款收入按单目标剩余额度建立关联'
 );
 
 select is(
     (
-        select sum(refund_amount)
+        select count(*)::integer
         from public.transaction_item_refund_link
         where refund_income_item_id = '59840000-0000-4000-8000-000000000002'
     ),
-    100::numeric,
-    '退款分摊合计等于收入金额与组合剩余额度合计的较小值'
+    1,
+    '一条退款收入只写入一条退款关联'
 );
 
 select is(
     (
-        select string_agg(
-            refund_amount::text,
-            ','
-            order by refunded_item_id
-        )
+        select refunded_item_id
         from public.transaction_item_refund_link
         where refund_income_item_id = '59840000-0000-4000-8000-000000000002'
     ),
-    '60.00,40.00',
-    '已有报销分摊会减少退款侧对应目标的分摊金额'
+    '59830000-0000-4000-8000-000000000001'::uuid,
+    '退款关联指向提交的单一支出目标'
+);
+
+select is(
+    (
+        select refund_amount
+        from public.transaction_item_refund_link
+        where refund_income_item_id = '59840000-0000-4000-8000-000000000002'
+    ),
+    60::numeric,
+    '退款核销金额按收入金额与组合剩余额度的较小值封顶'
 );
 
 select is(
@@ -169,8 +171,8 @@ select is(
         from public.transaction_item_with_refund
         where id = '59840000-0000-4000-8000-000000000002'
     ),
-    50::numeric,
-    '收入金额超过 allocatable_amount 的差额体现为业务净额'
+    90::numeric,
+    '收入超过单目标剩余额度的差额体现为业务净收益'
 );
 
 select is(
@@ -182,90 +184,31 @@ select is(
     '退款与报销组合核销后目标剩余额度为零'
 );
 
-select throws_ok(
+select lives_ok(
     $$
         select public.apply_transaction_item_links(
             (select ledger_id from test_refund_min_context),
             '59840000-0000-4000-8000-000000000003',
             jsonb_build_object(
-                'refundAllocations',
-                jsonb_build_array(
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000003',
-                        'refundAmount', 99.99
-                    )
-                )
+                'refundedItemId',
+                '59830000-0000-4000-8000-000000000002'
             ),
             (select user_id from test_refund_min_context)
         )
     $$,
-    '22023',
-    'refund_allocation_invalid',
-    '分摊合计小于 allocatable_amount 时拒绝写入'
-);
-
-select throws_ok(
-    $$
-        select public.apply_transaction_item_links(
-            (select ledger_id from test_refund_min_context),
-            '59840000-0000-4000-8000-000000000004',
-            jsonb_build_object(
-                'refundAllocations',
-                jsonb_build_array(
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000003',
-                        'refundAmount', 100.01
-                    )
-                )
-            ),
-            (select user_id from test_refund_min_context)
-        )
-    $$,
-    '22023',
-    'refund_amount_exceeded',
-    '分摊合计大于 allocatable_amount 时拒绝写入'
-);
-
-select lives_ok(
-    $$
-        select public.apply_transaction_item_links(
-            (select ledger_id from test_refund_min_context),
-            '59840000-0000-4000-8000-000000000005',
-            jsonb_build_object(
-                'refundAllocations',
-                jsonb_build_array(
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000003',
-                        'refundAmount', 33.34
-                    ),
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000004',
-                        'refundAmount', 33.33
-                    ),
-                    jsonb_build_object(
-                        'refundedItemId', '59830000-0000-4000-8000-000000000005',
-                        'refundAmount', 33.33
-                    )
-                )
-            ),
-            (select user_id from test_refund_min_context)
-        )
-    $$,
-    '最大余数法按 allocatable_amount 分摊多个目标'
+    '退款收入超过全新目标剩余额度时仍按封顶金额成功建立关联'
 );
 
 select is(
     (
-        select string_agg(
-            refund_amount::text,
-            ','
-            order by refunded_item_id
-        )
-        from public.transaction_item_refund_link
-        where refund_income_item_id = '59840000-0000-4000-8000-000000000005'
+        select link.refund_amount::text || '/' || income_item.business_net_amount::text
+        from public.transaction_item_refund_link link
+        join public.transaction_item_with_refund income_item
+          on income_item.id = link.refund_income_item_id
+        where link.refund_income_item_id = '59840000-0000-4000-8000-000000000003'
     ),
-    '33.34,33.33,33.33',
-    '最大余数法按目标 id 稳定补齐尾差'
+    '100.00/50.00',
+    '单目标退款保留 LEAST 封顶并将未核销部分计入净收益'
 );
 
 select * from finish();

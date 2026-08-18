@@ -11,7 +11,6 @@ import type {
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
 import {
-  allocateRefundAmount,
   resolveTransactionBusinessStatus,
   formatRefundMinorUnits,
   summarizeRefundAllocationAmounts,
@@ -88,9 +87,8 @@ export function useTransactionForm({
   const [pickerAmount, setPickerAmount] = useState("");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
-  const [pickerRefundCandidates, setPickerRefundCandidates] = useState<
-    TransactionRefundCandidate[]
-  >([]);
+  const [pickerRefundCandidate, setPickerRefundCandidate] =
+    useState<TransactionRefundCandidate | null>(null);
   const [pickerReimbursementCandidate, setPickerReimbursementCandidate] =
     useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
@@ -126,7 +124,7 @@ export function useTransactionForm({
       setPickerCategoryId("");
       setPickerAmount("");
       setPickerSpecialStatus(null);
-      setPickerRefundCandidates([]);
+      setPickerRefundCandidate(null);
       setPickerReimbursementCandidate(null);
       setPickerErrors({});
       setSelectedCategoryGroupId("");
@@ -184,9 +182,7 @@ export function useTransactionForm({
       (item) =>
         item.categoryId.length > 0 &&
         isValidMoneyText(item.amount) &&
-        ((item.refundCandidates?.length ?? 0) === 0 ||
-          allocateRefundAmount(item.amount, item.refundCandidates ?? []) !==
-            null),
+        (!item.refundCandidate || Number(item.amount) > 0),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
     transactionDate,
@@ -225,7 +221,7 @@ export function useTransactionForm({
     categoryId: string,
     amount: string,
     specialStatus: TransactionFormItem["specialStatus"],
-    refundCandidates: TransactionRefundCandidate[],
+    refundCandidate: TransactionRefundCandidate | null,
     reimbursementCandidate: TransactionRefundCandidate | null,
   ) {
     markEditDirty?.();
@@ -241,17 +237,17 @@ export function useTransactionForm({
           businessNetAmount: getNewItemBusinessNetAmount(
             amount,
             specialStatus,
-            refundCandidates,
+            refundCandidate,
             reimbursementCandidate,
           ),
           businessStatus: getFormItemBusinessStatus(
             specialStatus,
-            refundCandidates,
+            refundCandidate,
             reimbursementCandidate,
           ),
           categoryId,
           id: itemId,
-          refundCandidates,
+          refundCandidate,
           reimbursementCandidate,
           specialStatus,
         },
@@ -291,14 +287,14 @@ export function useTransactionForm({
     categoryId: string,
     amount: string,
     specialStatus: TransactionFormItem["specialStatus"],
-    refundCandidates: TransactionRefundCandidate[],
+    refundCandidate: TransactionRefundCandidate | null,
     reimbursementCandidate: TransactionRefundCandidate | null,
   ) {
     markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const businessStatus = getFormItemBusinessStatus(
       specialStatus,
-      refundCandidates,
+      refundCandidate,
       reimbursementCandidate,
     );
 
@@ -317,7 +313,7 @@ export function useTransactionForm({
                     amount,
                     businessStatus,
                     categoryId,
-                    refundCandidates,
+                    refundCandidate,
                     reimbursementCandidate,
                     specialStatus,
                   },
@@ -345,7 +341,7 @@ export function useTransactionForm({
             amount,
             businessStatus,
             categoryId,
-            refundCandidates,
+            refundCandidate,
             reimbursementCandidate,
             specialStatus,
           },
@@ -371,7 +367,7 @@ export function useTransactionForm({
       setPickerCategoryId("");
       setPickerAmount("");
       setPickerSpecialStatus(null);
-      setPickerRefundCandidates([]);
+      setPickerRefundCandidate(null);
       setPickerReimbursementCandidate(null);
       setPickerErrors({});
     }
@@ -382,7 +378,7 @@ export function useTransactionForm({
     setPickerCategoryId("");
     setPickerAmount("");
     setPickerSpecialStatus(null);
-    setPickerRefundCandidates([]);
+    setPickerRefundCandidate(null);
     setPickerReimbursementCandidate(null);
     setPickerErrors({});
     setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
@@ -403,7 +399,7 @@ export function useTransactionForm({
     setPickerCategoryId(item.categoryId);
     setPickerAmount(item.amount);
     setPickerSpecialStatus(item.specialStatus);
-    setPickerRefundCandidates(item.refundCandidates ?? []);
+    setPickerRefundCandidate(item.refundCandidate ?? null);
     setPickerReimbursementCandidate(item.reimbursementCandidate ?? null);
     setPickerErrors({});
     setSelectedCategoryGroupId(
@@ -431,7 +427,7 @@ export function useTransactionForm({
     if (categoryType === "income") {
       setPickerSpecialStatus(null);
     } else if (categoryType === "expense") {
-      setPickerRefundCandidates([]);
+      setPickerRefundCandidate(null);
       setPickerReimbursementCandidate(null);
     }
     if (pickerErrors.category) {
@@ -453,11 +449,8 @@ export function useTransactionForm({
     }
     if (!isValidMoneyText(pickerAmount)) {
       errors.amount = transactionFormValidationMessages.amountInvalid;
-    } else if (
-      pickerRefundCandidates.length > 0 &&
-      allocateRefundAmount(pickerAmount, pickerRefundCandidates) === null
-    ) {
-      errors.amount = "退款金额无法按所选明细有效分摊，请调整金额或选择。";
+    } else if (pickerRefundCandidate && Number(pickerAmount) <= 0) {
+      errors.amount = "退款金额必须大于 0。";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -471,7 +464,7 @@ export function useTransactionForm({
         pickerCategoryId,
         pickerAmount,
         pickerSpecialStatus,
-        pickerRefundCandidates,
+        pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
     } else {
@@ -480,7 +473,7 @@ export function useTransactionForm({
         pickerCategoryId,
         pickerAmount,
         pickerSpecialStatus,
-        pickerRefundCandidates,
+        pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
     }
@@ -488,7 +481,7 @@ export function useTransactionForm({
     setPickerCategoryId("");
     setPickerAmount("");
     setPickerSpecialStatus(null);
-    setPickerRefundCandidates([]);
+    setPickerRefundCandidate(null);
     setPickerReimbursementCandidate(null);
     return true;
   }
@@ -510,8 +503,8 @@ export function useTransactionForm({
     setItemsByType((current) => ({
       ...current,
       income: current.income.map((item) => {
-        const hasInvalidRefundCandidate = item.refundCandidates?.some(
-          (candidate) => candidate.accountId !== accountId,
+        const hasInvalidRefundCandidate = Boolean(
+          item.refundCandidate && item.refundCandidate.accountId !== accountId,
         );
         const hasInvalidReimbursementCandidate = Boolean(
           item.reimbursementCandidate &&
@@ -521,9 +514,9 @@ export function useTransactionForm({
           return item;
         }
 
-        const refundCandidates = hasInvalidRefundCandidate
-          ? []
-          : (item.refundCandidates ?? []);
+        const refundCandidate = hasInvalidRefundCandidate
+          ? null
+          : (item.refundCandidate ?? null);
         const reimbursementCandidate = hasInvalidReimbursementCandidate
           ? null
           : (item.reimbursementCandidate ?? null);
@@ -531,16 +524,16 @@ export function useTransactionForm({
           ...item,
           businessStatus: getFormItemBusinessStatus(
             item.specialStatus,
-            refundCandidates,
+            refundCandidate,
             reimbursementCandidate,
           ),
           businessNetAmount: getNewItemBusinessNetAmount(
             item.amount,
             item.specialStatus,
-            refundCandidates,
+            refundCandidate,
             reimbursementCandidate,
           ),
-          refundCandidates,
+          refundCandidate,
           reimbursementCandidate,
         };
       }),
@@ -548,11 +541,10 @@ export function useTransactionForm({
 
     let nextNotice: string | null = null;
     if (
-      pickerRefundCandidates.some(
-        (candidate) => candidate.accountId !== accountId,
-      )
+      pickerRefundCandidate &&
+      pickerRefundCandidate.accountId !== accountId
     ) {
-      setPickerRefundCandidates([]);
+      setPickerRefundCandidate(null);
       nextNotice = "账户已变更，请重新选择退款明细。";
     }
     if (
@@ -647,7 +639,7 @@ export function useTransactionForm({
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
-    pickerRefundCandidates,
+    pickerRefundCandidate,
     pickerReimbursementCandidate,
     pickerSpecialStatus,
     removeItem,
@@ -659,18 +651,16 @@ export function useTransactionForm({
     selectedMerchantId,
     selectedType,
     setPickerSpecialStatus,
-    setPickerRefundCandidates: (candidates: TransactionRefundCandidate[]) => {
-      if (
-        candidates.some(
-          (candidate) => candidate.accountId !== selectedAccountId,
-        )
-      ) {
-        setPickerRefundCandidates([]);
+    setPickerRefundCandidate: (
+      candidate: TransactionRefundCandidate | null,
+    ) => {
+      if (candidate && candidate.accountId !== selectedAccountId) {
+        setPickerRefundCandidate(null);
         setLinkNotice("退款明细必须与收款账户一致，请重新选择。");
         return;
       }
-      setPickerRefundCandidates(candidates);
-      if (candidates.length > 0) setPickerReimbursementCandidate(null);
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementCandidate(null);
       setLinkNotice(null);
     },
     setPickerReimbursementCandidate: (
@@ -685,7 +675,7 @@ export function useTransactionForm({
         return;
       }
       setPickerReimbursementCandidate(candidate);
-      if (candidate) setPickerRefundCandidates([]);
+      if (candidate) setPickerRefundCandidate(null);
       setLinkNotice(null);
     },
     signedTotalAmount,
@@ -723,11 +713,11 @@ function createInitialItemsByType(
 
 function getFormItemBusinessStatus(
   specialStatus: TransactionFormItem["specialStatus"],
-  refundCandidates: TransactionRefundCandidate[],
+  refundCandidate: TransactionRefundCandidate | null,
   reimbursementCandidate: TransactionRefundCandidate | null,
 ): TransactionBusinessStatus | null {
   return resolveTransactionBusinessStatus({
-    isRefundIncome: refundCandidates.length > 0,
+    isRefundIncome: Boolean(refundCandidate),
     isReimbursementIncome: Boolean(reimbursementCandidate),
     specialStatus,
   });
@@ -751,7 +741,7 @@ function getFormItemBusinessAmount(item: TransactionFormItem) {
 function getNewItemBusinessNetAmount(
   amount: string,
   specialStatus: TransactionFormItem["specialStatus"],
-  refundCandidates: TransactionRefundCandidate[],
+  refundCandidate: TransactionRefundCandidate | null,
   reimbursementCandidate: TransactionRefundCandidate | null,
 ) {
   if (specialStatus === "reimbursed") return "0";
@@ -761,11 +751,12 @@ function getNewItemBusinessNetAmount(
       reimbursementCandidate.remainingRefundableAmount,
     )?.netIncomeAmount;
   }
-  if (refundCandidates.length === 0) return undefined;
+  if (!refundCandidate) return undefined;
 
-  const allocations = allocateRefundAmount(amount, refundCandidates);
-  if (allocations === null) return undefined;
-  return summarizeRefundAllocationAmounts(amount, allocations)?.netIncomeAmount;
+  return summarizeRefundAllocationAmounts(
+    amount,
+    refundCandidate.remainingRefundableAmount,
+  )?.netIncomeAmount;
 }
 
 function getUpdatedItemBusinessNetAmount(
@@ -776,7 +767,7 @@ function getUpdatedItemBusinessNetAmount(
     return getNewItemBusinessNetAmount(
       item.amount,
       item.specialStatus,
-      item.refundCandidates ?? [],
+      item.refundCandidate ?? null,
       item.reimbursementCandidate ?? null,
     );
   }
