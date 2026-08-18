@@ -28,7 +28,8 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 CREATE TYPE "public"."transaction_item_special_status" AS ENUM (
     'pending_reimbursement',
-    'reimbursed'
+    'reimbursed',
+    'reimbursement_surplus'
 );
 
 
@@ -315,7 +316,6 @@ declare
     v_refund_target_currency text;
     v_refund_target_account_id uuid;
     v_refund_amount numeric(14,2);
-    v_remaining_amount numeric(14,2);
     v_special_status_enabled boolean;
 begin
     begin
@@ -402,7 +402,8 @@ begin
            or v_reimbursement_target_status is null
            or v_reimbursement_target_status not in (
                'pending_reimbursement',
-               'reimbursed'
+               'reimbursed',
+               'reimbursement_surplus'
            ) then
             raise exception 'reimbursement_item_invalid'
                 using errcode = 'P0001', detail = 'reimbursement_item_invalid';
@@ -423,12 +424,7 @@ begin
                 using errcode = '22023', detail = 'income_link_conflict';
         end if;
 
-        v_remaining_amount :=
-            public.calculate_transaction_item_remaining_offset_amount(
-                p_ledger_id,
-                v_reimbursement_target_id
-            );
-        v_reimbursement_amount := least(v_income_amount, v_remaining_amount);
+        v_reimbursement_amount := v_income_amount;
 
         if v_reimbursement_amount > 0 then
             insert into public.transaction_item_reimbursement_link (
@@ -452,9 +448,14 @@ begin
                     when public.calculate_transaction_item_remaining_offset_amount(
                         p_ledger_id,
                         v_reimbursement_target_id
-                    ) <= 0
+                    ) > 0
+                    then 'pending_reimbursement'::public.transaction_item_special_status
+                    when public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        v_reimbursement_target_id
+                    ) = 0
                     then 'reimbursed'::public.transaction_item_special_status
-                    else 'pending_reimbursement'::public.transaction_item_special_status
+                    else 'reimbursement_surplus'::public.transaction_item_special_status
                 end,
                 updated_by = p_user_id,
                 updated_at = now()
@@ -513,28 +514,21 @@ begin
                 using errcode = '22023', detail = 'income_link_conflict';
         end if;
 
-        v_remaining_amount :=
-            public.calculate_transaction_item_remaining_offset_amount(
-                p_ledger_id,
-                v_refund_target_id
-            );
-        v_refund_amount := least(v_income_amount, v_remaining_amount);
+        v_refund_amount := v_income_amount;
 
-        if v_refund_amount > 0 then
-            insert into public.transaction_item_refund_link (
-                ledger_id,
-                refunded_item_id,
-                refund_income_item_id,
-                refund_amount,
-                created_by
-            ) values (
-                p_ledger_id,
-                v_refund_target_id,
-                p_income_item_id,
-                v_refund_amount,
-                p_user_id
-            );
-        end if;
+        insert into public.transaction_item_refund_link (
+            ledger_id,
+            refunded_item_id,
+            refund_income_item_id,
+            refund_amount,
+            created_by
+        ) values (
+            p_ledger_id,
+            v_refund_target_id,
+            p_income_item_id,
+            v_refund_amount,
+            p_user_id
+        );
     end if;
 end;
 $$;
@@ -597,7 +591,7 @@ CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    select greatest(
+    select
         target_item.amount
         - coalesce((
             select sum(refund_link.refund_amount)
@@ -626,9 +620,7 @@ CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset
             where reimbursement_link.ledger_id = target_item.ledger_id
               and reimbursement_link.target_expense_item_id = target_item.id
               and reimbursement_record.status = 'active'
-        ), 0),
-        0
-    )
+        ), 0)
     from public.transaction_item target_item
     join public.transaction_record target_record
       on target_record.id = target_item.transaction_record_id
@@ -3639,6 +3631,7 @@ declare
         current_setting('kuranote.income_link_edit_flow', true);
     v_previous_reimbursement_link_flow text :=
         current_setting('kuranote.reimbursement_link_flow', true);
+    v_remaining_amount numeric(14,2);
     v_next_status public.transaction_item_special_status;
 begin
     select target_item.special_status
@@ -3653,13 +3646,16 @@ begin
         return;
     end if;
 
+    v_remaining_amount := public.calculate_transaction_item_remaining_offset_amount(
+        p_ledger_id,
+        p_target_expense_item_id
+    );
     v_next_status := case
-        when public.calculate_transaction_item_remaining_offset_amount(
-            p_ledger_id,
-            p_target_expense_item_id
-        ) <= 0
+        when v_remaining_amount > 0
+        then 'pending_reimbursement'::public.transaction_item_special_status
+        when v_remaining_amount = 0
         then 'reimbursed'::public.transaction_item_special_status
-        else 'pending_reimbursement'::public.transaction_item_special_status
+        else 'reimbursement_surplus'::public.transaction_item_special_status
     end;
 
     if v_next_status is not distinct from v_current_status then
@@ -5031,7 +5027,8 @@ begin
        or v_target_special_status is null
        or v_target_special_status not in (
            'pending_reimbursement',
-           'reimbursed'
+           'reimbursed',
+           'reimbursement_surplus'
        ) then
         raise exception 'reimbursement_item_invalid'
             using errcode = '22023', detail = 'reimbursement_item_invalid';
@@ -5121,7 +5118,7 @@ begin
     end if;
 
     if tg_op = 'UPDATE'
-       and old.special_status = 'reimbursed'
+       and old.special_status in ('reimbursed', 'reimbursement_surplus')
        and new.special_status is distinct from old.special_status
        and not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
@@ -5150,9 +5147,13 @@ begin
                 new.ledger_id,
                 new.id
             );
-        if v_remaining_amount <= 0 then
-            new.special_status := 'reimbursed';
-        end if;
+        new.special_status := case
+            when v_remaining_amount > 0
+            then 'pending_reimbursement'::public.transaction_item_special_status
+            when v_remaining_amount = 0
+            then 'reimbursed'::public.transaction_item_special_status
+            else 'reimbursement_surplus'::public.transaction_item_special_status
+        end;
         return new;
     end if;
 
@@ -5161,7 +5162,12 @@ begin
     end if;
 
     if tg_op = 'INSERT'
-       or old.special_status is distinct from 'pending_reimbursement'
+       or old.special_status is null
+       or old.special_status not in (
+           'pending_reimbursement',
+           'reimbursed',
+           'reimbursement_surplus'
+       )
        or not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
