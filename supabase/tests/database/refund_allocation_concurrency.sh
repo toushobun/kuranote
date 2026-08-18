@@ -19,7 +19,7 @@ readonly mixed_reimbursement_income_id="59897000-0000-4000-8000-000000000003"
 readonly mixed_lock_marker="/tmp/refund-reimbursement-a-locked"
 readonly mixed_release_marker="/tmp/refund-reimbursement-a-release"
 
-project_id="$(sed -n 's/^project_id = "\([^"]*\)"$/\1/p' supabase/config.toml | head -n 1)"
+project_id="$(sed -n 's/^[[:space:]]*project_id[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' supabase/config.toml | head -n 1)"
 if [[ -z "${project_id}" ]]; then
   echo "无法从 supabase/config.toml 读取 project_id。" >&2
   exit 1
