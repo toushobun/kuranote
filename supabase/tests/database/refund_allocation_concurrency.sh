@@ -19,9 +19,15 @@ readonly mixed_reimbursement_income_id="59897000-0000-4000-8000-000000000003"
 readonly mixed_lock_marker="/tmp/refund-reimbursement-a-locked"
 readonly mixed_release_marker="/tmp/refund-reimbursement-a-release"
 
-db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
-if [[ -z "${db_container}" ]]; then
-  echo "找不到本地 Supabase 数据库容器。" >&2
+project_id="$(sed -n 's/^project_id = "\([^"]*\)"$/\1/p' supabase/config.toml | head -n 1)"
+if [[ -z "${project_id}" ]]; then
+  echo "无法从 supabase/config.toml 读取 project_id。" >&2
+  exit 1
+fi
+readonly project_id
+readonly db_container="supabase_db_${project_id}"
+if [[ "$(docker inspect -f '{{.State.Running}}' "${db_container}" 2>/dev/null || true)" != "true" ]]; then
+  echo "找不到当前项目的本地 Supabase 数据库容器：${db_container}。" >&2
   exit 1
 fi
 
