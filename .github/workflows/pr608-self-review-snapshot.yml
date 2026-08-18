@@ -52,4 +52,5 @@ jobs:
           git add supabase/schema_snapshot/current_schema.sql
           git diff --cached --quiet && { echo "schema snapshot already current"; exit 0; }
           git commit -m "chore: 更新核销结余 schema snapshot"
+          git pull --rebase origin feature/605_pr1_release_offset_cap
           git push origin HEAD:feature/605_pr1_release_offset_cap
