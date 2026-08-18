@@ -14,6 +14,7 @@ declare
     v_income_category_id uuid;
     v_link_amount numeric(14,2);
     v_status public.transaction_item_special_status;
+    v_special_status_enabled boolean;
 begin
     -- 按真实认证链路准备 owner，让既存 on_auth_user_created trigger 创建 app_user。
     insert into auth.users (
@@ -164,7 +165,7 @@ begin
             'active',
             '2026-08-18 08:00:00+00',
             v_merchant_id,
-            'Issue 598 SECURITY DEFINER reimbursement',
+            'Issue 598 SECURITY DEFINER reimbursement/refund',
             v_user_id,
             v_user_id
         );
@@ -212,6 +213,7 @@ begin
             v_user_id
         );
 
+    -- 先覆盖报销路径：部分核销、冻结防线、开关关闭防线与受控清理。
     perform public.apply_transaction_item_links(
         v_ledger_id,
         '59895000-0000-4000-8000-000000000002',
@@ -259,7 +261,7 @@ begin
            set transaction_item_special_status_enabled = false
          where id = v_ledger_id;
 
-        raise exception 'prevent_disable_special_status_with_active_items did not reject disable';
+        raise exception 'prevent_disable_special_status_with_active_items did not reject reimbursement disable';
     exception
         when sqlstate '55006' then
             if sqlerrm <> 'special_status_has_active_items' then
@@ -279,7 +281,7 @@ begin
         where link.reimbursement_income_item_id =
               '59895000-0000-4000-8000-000000000002'
     ) then
-        raise exception 'clear_transaction_item_income_links smoke test failed';
+        raise exception 'clear_transaction_item_income_links reimbursement smoke test failed';
     end if;
 
     select item.special_status
@@ -288,7 +290,111 @@ begin
      where item.id = '59895000-0000-4000-8000-000000000001';
 
     if v_status is distinct from 'pending_reimbursement' then
-        raise exception 'clear_transaction_item_income_links target status smoke test failed';
+        raise exception 'clear_transaction_item_income_links reimbursement target status smoke test failed';
+    end if;
+
+    -- 清空报销关系后退出报销流程，再用同一组明细覆盖普通支出退款路径。
+    update public.transaction_item
+       set special_status = null,
+           updated_by = v_user_id,
+           updated_at = pg_catalog.now()
+     where id = '59895000-0000-4000-8000-000000000001';
+
+    select item.special_status
+      into v_status
+      from public.transaction_item item
+     where item.id = '59895000-0000-4000-8000-000000000001';
+
+    if v_status is not null then
+        raise exception 'reimbursement target did not return to normal status before refund smoke';
+    end if;
+
+    perform public.apply_transaction_item_links(
+        v_ledger_id,
+        '59895000-0000-4000-8000-000000000002',
+        pg_catalog.jsonb_build_object(
+            'refundAllocations',
+            pg_catalog.jsonb_build_array(
+                pg_catalog.jsonb_build_object(
+                    'refundedItemId',
+                    '59895000-0000-4000-8000-000000000001',
+                    'refundAmount',
+                    40
+                )
+            )
+        ),
+        v_user_id
+    );
+
+    select link.refund_amount
+      into v_link_amount
+      from public.transaction_item_refund_link link
+     where link.refund_income_item_id =
+           '59895000-0000-4000-8000-000000000002';
+
+    if v_link_amount is distinct from 40 then
+        raise exception 'apply_transaction_item_links refund smoke test failed';
+    end if;
+
+    select item.special_status
+      into v_status
+      from public.transaction_item item
+     where item.id = '59895000-0000-4000-8000-000000000001';
+
+    if v_status is not null then
+        raise exception 'normal expense refund unexpectedly changed special_status';
+    end if;
+
+    -- 这一段必须只靠活跃退款关联阻止关闭：目标支出仍是 special_status = NULL。
+    begin
+        update public.ledger
+           set transaction_item_special_status_enabled = false
+         where id = v_ledger_id;
+
+        raise exception 'prevent_disable_special_status_with_active_items did not reject refund disable';
+    exception
+        when sqlstate '55006' then
+            if sqlerrm <> 'special_status_has_active_items' then
+                raise;
+            end if;
+    end;
+
+    perform public.clear_transaction_item_income_links(
+        v_ledger_id,
+        '59895000-0000-4000-8000-000000000002',
+        v_user_id
+    );
+
+    if exists (
+        select 1
+        from public.transaction_item_refund_link link
+        where link.refund_income_item_id =
+              '59895000-0000-4000-8000-000000000002'
+    ) then
+        raise exception 'clear_transaction_item_income_links refund smoke test failed';
+    end if;
+
+    select item.special_status
+      into v_status
+      from public.transaction_item item
+     where item.id = '59895000-0000-4000-8000-000000000001';
+
+    if v_status is not null then
+        raise exception 'clear_transaction_item_income_links refund target status smoke test failed';
+    end if;
+
+    -- 所有关联清理后应允许正常关闭开关，证明前两次拒绝来自活跃状态/关联而非 fixture 本身。
+    update public.ledger
+       set transaction_item_special_status_enabled = false
+     where id = v_ledger_id;
+
+    select ledger.transaction_item_special_status_enabled
+      into v_special_status_enabled
+      from public.ledger ledger
+     where ledger.id = v_ledger_id;
+
+    if v_special_status_enabled is distinct from false then
+        raise exception 'special status toggle did not disable after all links were cleared';
     end if;
 end;
 $$;
