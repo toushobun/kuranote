@@ -106,7 +106,7 @@ export function TransactionRefundLinkPicker({
         </Stack>
       ) : (
         <Typography color="text.secondary" variant="caption">
-          仅可选择一条仍有可核销额度、且与收款账户一致的历史支出。
+          退款关联不受剩余可核销额度限制；请选择与收款账户一致的候选支出。
         </Typography>
       )}
       <Button onClick={openPicker} variant="outlined">

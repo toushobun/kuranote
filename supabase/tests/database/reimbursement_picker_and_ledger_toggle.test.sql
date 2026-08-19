@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(10);
+select plan(14);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -23,7 +23,7 @@ select
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 from public.transaction_record source_record
-cross join generate_series(1, 6) sequence_number
+cross join generate_series(1, 7) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
 insert into public.transaction_item (
@@ -54,7 +54,8 @@ from (
         (3, 'expense', 100::numeric, 'pending_reimbursement'),
         (4, 'expense', 100::numeric, 'pending_reimbursement'),
         (5, 'income', 40::numeric, null),
-        (6, 'income', 60::numeric, null)
+        (6, 'income', 60::numeric, null),
+        (7, 'income', 20::numeric, null)
 ) as item(sequence_number, category_type, amount, special_status);
 
 select lives_ok(
@@ -173,6 +174,31 @@ select throws_ok(
     '存在 active 报销关联或 reimbursed 明细时禁止关闭特殊状态功能'
 );
 
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59880000-0000-4000-8000-000000000007',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '59880000-0000-4000-8000-000000000004'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '净额转正后仍可以继续建立报销关联'
+);
+
+select is(
+    (
+        select special_status
+        from public.transaction_item
+        where id = '59880000-0000-4000-8000-000000000004'
+    ),
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '超额核销后目标支出进入 reimbursement_surplus 状态'
+);
+
 set local role authenticated;
 select set_config(
     'request.jwt.claims',
@@ -186,13 +212,53 @@ select is(
         from public.load_transaction_group_summaries_with_special_status(
             p_ledger_id => '00000000-0000-4000-8000-000000000032',
             p_group_by => 'account',
-            p_date_start => '2026-08-17 00:04:00+00'::timestamptz,
-            p_date_end => '2026-08-17 00:05:00+00'::timestamptz,
+            p_date_start => '2026-08-17 00:01:00+00'::timestamptz,
+            p_date_end => '2026-08-17 00:02:00+00'::timestamptz,
             p_record_type => 'refundableExpense'
         )
     ),
+    1,
+    'special_status 为空的普通支出仍进入退款候选'
+);
+
+select is(
+    (
+        select count(*)::integer
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_group_by => 'account',
+            p_date_start => '2026-08-17 00:01:00+00'::timestamptz,
+            p_date_end => '2026-08-17 00:02:00+00'::timestamptz,
+            p_record_type => 'refundableExpense',
+            p_special_statuses => array[
+                'pending_reimbursement',
+                'reimbursed',
+                'reimbursement_surplus'
+            ]::text[]
+        )
+    ),
     0,
-    '已被报销完全核销的支出不会继续进入 refundableExpense 聚合候选'
+    'special_status 为空的普通支出不会进入报销候选'
+);
+
+select is(
+    (
+        select count(*)::integer
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_group_by => 'account',
+            p_date_start => '2026-08-17 00:04:00+00'::timestamptz,
+            p_date_end => '2026-08-17 00:05:00+00'::timestamptz,
+            p_record_type => 'refundableExpense',
+            p_special_statuses => array[
+                'pending_reimbursement',
+                'reimbursed',
+                'reimbursement_surplus'
+            ]::text[]
+        )
+    ),
+    1,
+    '净额已转正的支出仍进入报销候选'
 );
 
 select * from finish();

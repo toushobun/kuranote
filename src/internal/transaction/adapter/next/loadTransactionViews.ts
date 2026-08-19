@@ -22,7 +22,11 @@ const refundPickerFilters: TransactionFilters = {
 };
 const reimbursementPickerFilters: TransactionFilters = {
   recordType: "refundableExpense",
-  specialStatuses: ["pendingReimbursement"],
+  specialStatuses: [
+    "pendingReimbursement",
+    "reimbursed",
+    "reimbursementSurplus",
+  ],
 };
 
 async function getContext() {

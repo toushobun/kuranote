@@ -330,7 +330,7 @@ describe("getEditTransactionView income links", () => {
     });
   });
 
-  it("报销收入允许编辑并按组合剩余额度回填单一报销对象", async () => {
+  it("报销收入编辑时保留核销超额后的有符号剩余额度", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
@@ -343,7 +343,7 @@ describe("getEditTransactionView income links", () => {
               categoryId,
               id: linkedExpenseItemId,
               refundedAmount: "100",
-              reimbursementAmount: "600",
+              reimbursementAmount: "1600",
               reimbursementLinkAmount: "400",
               transactionAt: "2026-08-01T01:00:00.000Z",
               transactionRecordId: "00000000-0000-4000-8000-000000009998",
@@ -385,7 +385,7 @@ describe("getEditTransactionView income links", () => {
             },
             reimbursementCandidate: {
               id: linkedExpenseItemId,
-              remainingRefundableAmount: "700",
+              remainingRefundableAmount: "-300",
             },
           },
         ],
