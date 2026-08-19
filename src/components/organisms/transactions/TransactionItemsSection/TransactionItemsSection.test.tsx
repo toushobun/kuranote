@@ -76,6 +76,20 @@ describe("TransactionItemsSection", () => {
     expect(props.onOpenItem).toHaveBeenCalledWith(1);
   });
 
+  it("核销结余明细在编辑区域显示倒赚状态", () => {
+    renderSection({
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          specialStatus: "reimbursementSurplus",
+        },
+      ],
+    });
+
+    expect(screen.getByText("已倒赚")).toBeInTheDocument();
+    expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+  });
+
   it("修改隐藏金额输入并可通过显示按钮聚焦输入框", () => {
     const props = renderSection({ itemSummaries: [itemSummaries[0]] });
     const input = screen.getByRole("textbox", { name: "明细 1 金额" });

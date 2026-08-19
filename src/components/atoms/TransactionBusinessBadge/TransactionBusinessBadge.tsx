@@ -64,6 +64,8 @@ function resolveBusinessBadges(
   const badges: BusinessBadge[] = [];
   if (status.settlementStatus === "pendingReimbursement") {
     badges.push({ kind: "pendingReimbursement" });
+  } else if (status.settlementStatus === "reimbursementSurplus") {
+    badges.push({ kind: "reimbursementSurplus" });
   } else if (status.settlementStatus === "reimbursed") {
     badges.push({ kind: getCompletedBadgeKind(status.offsetComposition) });
   }

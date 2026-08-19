@@ -62,6 +62,8 @@ describe("getUserThemeCssVariables", () => {
     expect(themeVars["--user-theme-receipt-tear-bg"]).toBe("#FDF8F0");
     expect(themeVars["--user-theme-business-pending-bg"]).toBe("#FFF3D6");
     expect(themeVars["--user-theme-business-completed-text"]).toBe("#2F855A");
+    expect(themeVars["--user-theme-business-surplus-bg"]).toBe("#F7EFE5");
+    expect(themeVars["--user-theme-business-surplus-text"]).toBe("#7A6A5E");
   });
 
   it("输出默认主题首页金额语义色变量", () => {

@@ -25,6 +25,20 @@ export const MixedOffsetCompleted: Story = {
   name: "已结清且同时包含退款与报销核销",
 };
 
+export const ReimbursementSurplus: Story = {
+  name: "核销超过原支出后倒赚",
+  args: {
+    status: {
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "400",
+        reimbursementAmount: "1600",
+      },
+      settlementStatus: "reimbursementSurplus",
+    },
+  },
+};
+
 export const MixedOffsetPending: Story = {
   name: "待报销且同时包含退款与报销核销",
   args: {
