@@ -51,6 +51,64 @@ describe("TransactionBusinessBadge", () => {
     expect(screen.queryByText("已报销")).not.toBeInTheDocument();
   });
 
+  it("同一支出从部分报销到退款推正后随状态变化更新展示", () => {
+    const { rerender } = render(
+      <TransactionBusinessBadge
+        currency="JPY"
+        status={{
+          incomeLinkRole: null,
+          offsetComposition: {
+            refundAmount: "0",
+            reimbursementAmount: "40",
+          },
+          settlementStatus: "pendingReimbursement",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("待报销")).toBeInTheDocument();
+    expect(screen.getByText("报销核销 ¥40")).toBeInTheDocument();
+
+    rerender(
+      <TransactionBusinessBadge
+        currency="JPY"
+        status={{
+          incomeLinkRole: null,
+          offsetComposition: {
+            refundAmount: "80",
+            reimbursementAmount: "40",
+          },
+          settlementStatus: "reimbursementSurplus",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("已倒赚")).toBeInTheDocument();
+    expect(screen.getByText("退款核销 ¥80")).toBeInTheDocument();
+    expect(screen.getByText("报销核销 ¥40")).toBeInTheDocument();
+    expect(screen.queryByText("待报销")).not.toBeInTheDocument();
+
+    rerender(
+      <TransactionBusinessBadge
+        currency="JPY"
+        status={{
+          incomeLinkRole: null,
+          offsetComposition: {
+            refundAmount: "80",
+            reimbursementAmount: "70",
+          },
+          settlementStatus: "reimbursementSurplus",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("已倒赚")).toBeInTheDocument();
+    expect(screen.getByText("退款核销 ¥80")).toBeInTheDocument();
+    expect(screen.getByText("报销核销 ¥70")).toBeInTheDocument();
+    expect(screen.queryByText("待报销")).not.toBeInTheDocument();
+    expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+  });
+
   it("普通支出被退款时只展示核销来源，不派生报销结算状态", () => {
     render(
       <TransactionBusinessBadge

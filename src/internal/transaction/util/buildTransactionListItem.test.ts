@@ -234,6 +234,45 @@ describe("buildTransactionListItem", () => {
     expect(item.originalAmount).toBe("1200");
   });
 
+  it("纯退款超过原始支出后列表切为收入但不派生报销状态", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "100",
+          business_net_amount: "-20",
+          category_id: categoryA.id,
+          id: "refund-only-surplus",
+          refunded_amount: "120",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      amount: "20",
+      originalAmount: "100",
+      originalType: "expense",
+      type: "income",
+    });
+    expect(item.categoryItems[0]).toMatchObject({
+      businessStatus: {
+        incomeLinkRole: null,
+        offsetComposition: {
+          refundAmount: "120",
+          reimbursementAmount: "0",
+        },
+        settlementStatus: null,
+      },
+      remainingRefundableAmount: "-20",
+    });
+  });
+
   it("分类摘要独立表达结算状态和退款、报销核销构成", () => {
     const item = buildTransactionListItem({
       accountById,
@@ -263,6 +302,47 @@ describe("buildTransactionListItem", () => {
         reimbursementAmount: "800",
       },
       settlementStatus: "reimbursed",
+    });
+  });
+
+  it("退款与报销共同推正后列表切为收入并透出倒赚状态", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "100",
+          business_net_amount: "-20",
+          category_id: categoryA.id,
+          id: "expense-surplus",
+          refunded_amount: "80",
+          reimbursement_amount: "40",
+          special_status: "reimbursement_surplus",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      amount: "20",
+      originalAmount: "100",
+      originalType: "expense",
+      type: "income",
+    });
+    expect(item.categoryItems[0]).toMatchObject({
+      businessStatus: {
+        incomeLinkRole: null,
+        offsetComposition: {
+          refundAmount: "80",
+          reimbursementAmount: "40",
+        },
+        settlementStatus: "reimbursementSurplus",
+      },
+      remainingRefundableAmount: "-20",
     });
   });
 

@@ -1,5 +1,8 @@
 # Issue #606：退款关联单目标模型
 
+> [!IMPORTANT]
+> 本文档记录 Issue #606 的“收入侧单目标”建模决策。后续 Issue #605 已解除退款 / 报销核销金额封顶，并更新 Picker 候选规则，因此下文“金额规则”中的 `LEAST(收入金额, 剩余可核销余额)` 以及 UI 中“只允许选择剩余可核销金额 > 0 的支出”已经不再是当前规则。当前金额、状态机、统计与 Picker 规则以 [`issue-605-unlimited-offset-and-surplus.md`](./issue-605-unlimited-offset-and-surplus.md) 为准；本文关于收入侧单目标、退款同账户、报销同币种等 #606 建模约束仍然有效。
+
 ## 背景
 
 Issue #572 曾将退款关联扩展为多目标模型：一条退款收入明细可以关联多条支出明细，并由 largest-remainder 算法按各目标剩余可核销金额进行比例分摊。
