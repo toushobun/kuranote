@@ -134,4 +134,78 @@ describe("Issue #605 核销结余统计", () => {
     expect(view.merchantExpenseRanking).toEqual([]);
     expect(view.categoryExpenseRanking).toEqual([]);
   });
+
+  it("退款与报销共同推正时只按母项净额计入收入", () => {
+    const view = buildStatisticsViewData({
+      categories: [
+        {
+          id: "expense-category",
+          name: "购物",
+          parent_id: null,
+          type: "expense",
+        },
+        {
+          id: "income-category",
+          name: "其他收入",
+          parent_id: null,
+          type: "income",
+        },
+      ],
+      currency: "JPY",
+      items: [
+        {
+          amount: "100",
+          business_net_amount: "-50",
+          category_id: "expense-category",
+          has_refund_link: true,
+          has_reimbursement_link: true,
+          transaction_record_id: "combined-surplus-expense",
+        },
+        {
+          amount: "80",
+          business_net_amount: "0",
+          category_id: "income-category",
+          has_refund_link: true,
+          has_reimbursement_link: false,
+          transaction_record_id: "refund-income",
+        },
+        {
+          amount: "70",
+          business_net_amount: "0",
+          category_id: "income-category",
+          has_refund_link: false,
+          has_reimbursement_link: true,
+          transaction_record_id: "reimbursement-income",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants: [{ id: "merchant-combined", name: "组合核销商家" }],
+      month: "2026-08",
+      records: [
+        {
+          id: "combined-surplus-expense",
+          merchant_id: "merchant-combined",
+          type: "normal",
+        },
+        {
+          id: "refund-income",
+          merchant_id: null,
+          type: "normal",
+        },
+        {
+          id: "reimbursement-income",
+          merchant_id: null,
+          type: "normal",
+        },
+      ],
+    });
+
+    expect(view.summary).toMatchObject({
+      balance: "50",
+      expense: "0",
+      income: "50",
+    });
+    expect(view.merchantExpenseRanking).toEqual([]);
+    expect(view.categoryExpenseRanking).toEqual([]);
+  });
 });
