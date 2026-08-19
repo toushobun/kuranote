@@ -42,6 +42,8 @@ type StatisticsItemInput = {
   amount: string;
   business_net_amount?: string;
   category_id: string | null;
+  has_refund_link?: boolean;
+  has_reimbursement_link?: boolean;
   transaction_record_id: string;
 };
 
@@ -108,11 +110,22 @@ export function buildStatisticsViewData({
     if (!category) continue;
 
     const effectiveAmount = item.business_net_amount ?? item.amount;
-    if (Number(effectiveAmount) !== 0) {
-      addTransactionAmount(summary, category.type, effectiveAmount);
+    const effectiveValue = Number(effectiveAmount);
+    const hasOffsetLink =
+      item.has_refund_link === true || item.has_reimbursement_link === true;
+    // 只有退款/报销关联支出的业务净额转为负数时，才按核销结余计入收入。
+    const isExpenseSurplus =
+      category.type === "expense" && hasOffsetLink && effectiveValue < 0;
+
+    if (effectiveValue !== 0) {
+      addTransactionAmount(
+        summary,
+        isExpenseSurplus ? "income" : category.type,
+        isExpenseSurplus ? String(Math.abs(effectiveValue)) : effectiveAmount,
+      );
     }
 
-    if (category.type !== "expense") {
+    if (category.type !== "expense" || isExpenseSurplus) {
       continue;
     }
 
