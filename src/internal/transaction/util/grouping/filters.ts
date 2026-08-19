@@ -11,7 +11,6 @@ import {
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { getTransactionRecordCategoryType } from "internal/transaction/util/transactionAmountHelpers";
-import { calculateRemainingOffsetMinorUnits } from "internal/transaction/util/refundAllocation";
 import {
   getDateKeyInTimeZone,
   isDateText as isDateKey,
@@ -118,7 +117,7 @@ function filterItems(
       const categoryType = item.category_id
         ? categoryById.get(item.category_id)?.type
         : undefined;
-      if (categoryType !== "expense" || !hasRemainingOffsetAmount(item)) {
+      if (categoryType !== "expense") {
         return false;
       }
     }
@@ -190,20 +189,11 @@ function matchesRecordType(
       const categoryType = item.category_id
         ? categoryById.get(item.category_id)?.type
         : undefined;
-      return categoryType === "expense" && hasRemainingOffsetAmount(item);
+      return categoryType === "expense";
     });
   }
 
   return (
     getTransactionRecordCategoryType(items, categoryById) === filters.recordType
   );
-}
-
-function hasRemainingOffsetAmount(item: TransactionItemDbRow) {
-  const remainingUnits = calculateRemainingOffsetMinorUnits(
-    item.amount,
-    item.refunded_amount ?? "0",
-    item.reimbursement_amount ?? "0",
-  );
-  return remainingUnits !== null && remainingUnits > BigInt(0);
 }

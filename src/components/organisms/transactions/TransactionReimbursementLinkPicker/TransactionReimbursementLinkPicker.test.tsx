@@ -88,6 +88,18 @@ describe("TransactionReimbursementLinkPicker", () => {
     expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
+  it("未关联时说明已结清和核销结余后仍可继续关联", () => {
+    render(
+      <TransactionReimbursementLinkPicker onChange={vi.fn()} value={null} />,
+    );
+
+    expect(
+      screen.getByText(
+        "可选择一条处于报销流程中的支出；已结清或核销结余后仍可继续关联。",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("搜索候选使用单选，后选项覆盖前选项", async () => {
     const loadSearchPageAction = vi.fn(async () => searchPage);
     const onChange = vi.fn();

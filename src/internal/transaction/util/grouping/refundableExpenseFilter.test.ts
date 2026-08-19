@@ -43,6 +43,7 @@ const expenseItem: TransactionItemDbRow = {
   id: "expense-item",
   refunded_amount: "0",
   reimbursement_amount: "0",
+  special_status: "pending_reimbursement",
   transaction_record_id: recordId,
 };
 
@@ -73,7 +74,7 @@ const context: TransactionGroupLoaderContext = {
 };
 
 describe("refundableExpense filter", () => {
-  it("整笔净收入时仍保留包含可退款支出明细的交易", () => {
+  it("整笔净收入时仍保留包含支出明细的交易", () => {
     expect(
       filterTransactionRecords(context, {
         recordType: "refundableExpense",
@@ -81,102 +82,113 @@ describe("refundableExpense filter", () => {
     ).toEqual([record]);
   });
 
-  it("退款候选只返回退款与报销后仍有剩余额度的支出明细", () => {
-    const partialExpense = {
+  it("退款候选包含普通支出与报销流程中的支出，不受剩余额度限制", () => {
+    const pendingExpense = {
       ...expenseItem,
       refunded_amount: "20",
       reimbursement_amount: "70",
     };
-    const fullyOffsetExpense = {
+    const reimbursedExpense = {
       ...expenseItem,
-      id: "fully-offset-expense",
+      id: "reimbursed-expense",
       refunded_amount: "20",
       reimbursement_amount: "80",
+      special_status: "reimbursed" as const,
+    };
+    const surplusExpense = {
+      ...expenseItem,
+      id: "surplus-expense",
+      refunded_amount: "20",
+      reimbursement_amount: "100",
+      special_status: "reimbursement_surplus" as const,
+    };
+    const plainExpense = {
+      ...expenseItem,
+      id: "plain-expense",
+      special_status: null,
     };
     const combinedContext = {
       ...context,
-      items: [partialExpense, fullyOffsetExpense, incomeItem],
+      items: [
+        pendingExpense,
+        reimbursedExpense,
+        surplusExpense,
+        plainExpense,
+        incomeItem,
+      ],
     };
 
     expect(
       filterTransactionItems(combinedContext, {
         recordType: "refundableExpense",
       }),
-    ).toEqual([partialExpense]);
+    ).toEqual([
+      pendingExpense,
+      reimbursedExpense,
+      surplusExpense,
+      plainExpense,
+    ]);
   });
 
-  it("组合剩余额度为零时交易不再属于退款候选", () => {
-    const fullyOffsetContext = {
+  it("净额已转正的支出仍属于退款候选交易", () => {
+    const surplusExpense = {
+      ...expenseItem,
+      refunded_amount: "20",
+      reimbursement_amount: "100",
+      special_status: "reimbursement_surplus" as const,
+    };
+    const surplusContext = {
+      ...context,
+      items: [surplusExpense, incomeItem],
+    };
+
+    expect(
+      filterTransactionRecords(surplusContext, {
+        recordType: "refundableExpense",
+      }),
+    ).toEqual([record]);
+  });
+
+  it("报销候选排除普通支出并保留三种报销流程状态", () => {
+    const pendingExpense = {
+      ...expenseItem,
+      id: "pending-expense",
+    };
+    const reimbursedExpense = {
+      ...expenseItem,
+      id: "reimbursed-expense",
+      special_status: "reimbursed" as const,
+    };
+    const surplusExpense = {
+      ...expenseItem,
+      id: "surplus-expense",
+      special_status: "reimbursement_surplus" as const,
+    };
+    const plainExpense = {
+      ...expenseItem,
+      id: "plain-expense",
+      special_status: null,
+    };
+    const reimbursementContext = {
       ...context,
       items: [
-        {
-          ...expenseItem,
-          refunded_amount: "20",
-          reimbursement_amount: "80",
-        },
+        pendingExpense,
+        reimbursedExpense,
+        surplusExpense,
+        plainExpense,
         incomeItem,
       ],
     };
 
     expect(
-      filterTransactionRecords(fullyOffsetContext, {
-        recordType: "refundableExpense",
-      }),
-    ).toEqual([]);
-  });
-
-  it("小数金额完全核销时不会因浮点误差残留候选", () => {
-    const fullyOffsetContext = {
-      ...context,
-      items: [
-        {
-          ...expenseItem,
-          amount: "0.07",
-          refunded_amount: "0.01",
-          reimbursement_amount: "0.06",
-        },
-      ],
-    };
-
-    expect(
-      filterTransactionItems(fullyOffsetContext, {
-        recordType: "refundableExpense",
-      }),
-    ).toEqual([]);
-  });
-
-  it("报销候选只保留待报销且仍有组合剩余额度的支出", () => {
-    const pendingExpense = {
-      ...expenseItem,
-      id: "pending-expense",
-      refunded_amount: "20",
-      reimbursement_amount: "70",
-      special_status: "pending_reimbursement" as const,
-    };
-    const plainExpense = {
-      ...expenseItem,
-      id: "plain-expense",
-      refunded_amount: "0",
-      reimbursement_amount: "0",
-      special_status: null,
-    };
-    const exhaustedPendingExpense = {
-      ...expenseItem,
-      id: "exhausted-pending-expense",
-      refunded_amount: "20",
-      reimbursement_amount: "80",
-      special_status: "pending_reimbursement" as const,
-    };
-    const reimbursementContext = {
-      ...context,
-      items: [pendingExpense, plainExpense, exhaustedPendingExpense],
-    };
-
-    expect(
       filterTransactionItems(reimbursementContext, {
         recordType: "refundableExpense",
-        specialStatuses: ["pendingReimbursement"],
+        specialStatuses: [
+          "pendingReimbursement",
+          "reimbursed",
+          "reimbursementSurplus",
+        ],
       }),
-    ).toEqual([pendingExpense]);
+    ).toEqual([pendingExpense, reimbursedExpense, surplusExpense]);
   });
 });

@@ -166,7 +166,7 @@ describe("TransactionGroupList", () => {
     ).toBeInTheDocument();
   });
 
-  it("报销选择模式使用单选并透传剩余可核销金额", () => {
+  it("报销选择模式允许选择核销结余候选", () => {
     const onSelectReimbursementItem = vi.fn();
     const reimbursementGroup = createTransactionDateGroup({
       items: [
@@ -182,7 +182,7 @@ describe("TransactionGroupList", () => {
               id: "reimbursement-item-1",
               parentCategoryName: "购物",
               refundedAmount: "40",
-              remainingRefundableAmount: "60",
+              remainingRefundableAmount: "-20",
             },
           ],
         }),
@@ -198,19 +198,20 @@ describe("TransactionGroupList", () => {
       />,
     );
 
-    expect(screen.getByText("剩余可核销 $60")).toBeInTheDocument();
+    expect(screen.getByText("剩余可核销 $-20")).toBeInTheDocument();
     expect(screen.getByRole("radio")).toBeChecked();
     const button = screen.getByRole("button", {
       name: "选择报销明细 服装",
     });
     expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).not.toBeDisabled();
 
     fireEvent.click(button);
     expect(onSelectReimbursementItem).toHaveBeenCalledWith(
       expect.objectContaining({
         accountCurrency: "USD",
         id: "reimbursement-item-1",
-        remainingRefundableAmount: "60",
+        remainingRefundableAmount: "-20",
       }),
     );
   });
@@ -266,7 +267,7 @@ describe("TransactionRefundCandidateList", () => {
     );
   });
 
-  it("刚好退完时禁用选择", () => {
+  it("刚好核销完时仍可继续选择已有候选", () => {
     const onSelect = vi.fn();
 
     render(
@@ -279,11 +280,16 @@ describe("TransactionRefundCandidateList", () => {
     const button = screen.getByRole("button", {
       name: "选择退款明细 服装",
     });
-    expect(button).toBeDisabled();
+    expect(button).not.toBeDisabled();
     expect(screen.getByText("剩余可退 $0")).toBeInTheDocument();
     expect(screen.getByText("已退款 $100")).toBeInTheDocument();
 
     fireEvent.click(button);
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "refund-item-1",
+        remainingRefundableAmount: "0",
+      }),
+    );
   });
 });

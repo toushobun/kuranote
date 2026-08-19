@@ -163,21 +163,18 @@ export function TransactionRefundCandidateList({
   return (
     <Stack>
       {candidates.map((candidate, index) => {
-        const disabled = Number(candidate.remainingRefundableAmount) <= 0;
         const selected = selectedId === candidate.id;
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         return (
           <ButtonBase
             aria-label={`${isReimbursement ? "选择报销明细" : "选择退款明细"} ${candidate.categoryName}`}
             aria-pressed={selected}
-            disabled={disabled}
             key={candidate.id}
             onClick={() => onSelect(candidate)}
             sx={{
               ...refundCandidateSx,
               borderBottom:
                 index === candidates.length - 1 ? "none" : userThemeCardBorder,
-              opacity: disabled ? 0.45 : 1,
             }}
           >
             <Radio checked={selected} tabIndex={-1} />

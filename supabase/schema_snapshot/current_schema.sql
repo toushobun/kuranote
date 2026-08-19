@@ -3195,7 +3195,6 @@ matched_items as (
         or (
             p_record_type = 'refundableExpense'
             and bi.category_type = 'expense'
-            and bi.amount > bi.refunded_amount + bi.reimbursement_amount
         )
     )
       and (p_account_id is null or bi.account_id = p_account_id)

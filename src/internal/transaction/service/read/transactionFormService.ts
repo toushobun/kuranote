@@ -256,7 +256,7 @@ function buildIncomeLinkCandidate(
         currentAllocationUnits
       : BigInt(0);
   const remainingRefundableAmount = formatRefundMinorUnits(
-    calculatedRemainingUnits > BigInt(0) ? calculatedRemainingUnits : BigInt(0),
+    calculatedRemainingUnits,
   );
 
   return {

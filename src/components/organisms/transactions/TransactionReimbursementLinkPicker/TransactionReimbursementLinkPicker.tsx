@@ -106,7 +106,7 @@ export function TransactionReimbursementLinkPicker({
         </Stack>
       ) : (
         <Typography color="text.secondary" variant="caption">
-          仅可选择一条仍有可核销额度的待报销支出。
+          可选择一条处于报销流程中的支出；已结清或核销结余后仍可继续关联。
         </Typography>
       )}
       <Button onClick={openPicker} variant="outlined">
@@ -144,7 +144,7 @@ export function TransactionReimbursementLinkPicker({
               />
             ) : (
               <Typography color="text.secondary">
-                待报销支出加载失败，请稍后重试。
+                报销候选支出加载失败，请稍后重试。
               </Typography>
             )
           ) : (

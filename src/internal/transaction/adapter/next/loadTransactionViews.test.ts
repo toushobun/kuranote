@@ -41,6 +41,14 @@ describe("Transaction SSR adapter", () => {
     id: "00000000-0000-4000-8000-000000000032",
     name: "家庭账本",
   };
+  const reimbursementFilters = {
+    recordType: "refundableExpense",
+    specialStatuses: [
+      "pendingReimbursement",
+      "reimbursed",
+      "reimbursementSurplus",
+    ],
+  };
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
@@ -64,7 +72,7 @@ describe("Transaction SSR adapter", () => {
       recordType: "all",
     });
   });
-  it("普通、退款与报销搜索入口都用纯数字关键词直接调用 Service", async () => {
+  it("退款搜索不限制特殊状态，报销搜索固定使用三种报销流程状态", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mocks.search.mockResolvedValue({
@@ -79,25 +87,24 @@ describe("Transaction SSR adapter", () => {
     expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
       recordType: "refundableExpense",
     });
-    expect(mocks.search).toHaveBeenNthCalledWith(3, currentLedger, "7930", 10, {
-      recordType: "refundableExpense",
-      specialStatuses: ["pendingReimbursement"],
-    });
+    expect(mocks.search).toHaveBeenNthCalledWith(
+      3,
+      currentLedger,
+      "7930",
+      10,
+      reimbursementFilters,
+    );
     expect(fetchMock).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
-  it("报销 Picker 分组分页与分组明细固定使用待报销筛选", async () => {
+  it("报销 Picker 分组分页与分组明细固定使用三种报销流程状态", async () => {
     mocks.getGroupPage.mockResolvedValue({ groups: [], nextOffset: null });
     mocks.getGroupItems.mockResolvedValue({ items: [], nextOffset: null });
 
     await loadReimbursementPickerGroupPage(20);
     await loadReimbursementPickerGroupItems("2026-08", 40);
 
-    const reimbursementFilters = {
-      recordType: "refundableExpense",
-      specialStatuses: ["pendingReimbursement"],
-    };
     expect(mocks.getGroupPage).toHaveBeenCalledWith(
       currentLedger,
       "month",
@@ -142,10 +149,7 @@ describe("Transaction SSR adapter", () => {
       2,
       enabledLedger,
       "month",
-      {
-        recordType: "refundableExpense",
-        specialStatuses: ["pendingReimbursement"],
-      },
+      reimbursementFilters,
     );
   });
 });
@@ -156,6 +160,14 @@ describe("Transaction 编辑 SSR 边界", () => {
     currentUserRole: "member" as const,
     id: "00000000-0000-4000-8000-000000000032",
     name: "家庭账本",
+  };
+  const reimbursementFilters = {
+    recordType: "refundableExpense",
+    specialStatuses: [
+      "pendingReimbursement",
+      "reimbursed",
+      "reimbursementSurplus",
+    ],
   };
   beforeEach(() => {
     vi.clearAllMocks();
@@ -225,10 +237,7 @@ describe("Transaction 编辑 SSR 边界", () => {
       2,
       enabledLedger,
       "month",
-      {
-        recordType: "refundableExpense",
-        specialStatuses: ["pendingReimbursement"],
-      },
+      reimbursementFilters,
     );
   });
 });

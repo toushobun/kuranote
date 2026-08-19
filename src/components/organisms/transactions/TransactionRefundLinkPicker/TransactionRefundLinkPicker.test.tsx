@@ -75,6 +75,16 @@ describe("TransactionRefundLinkPicker", () => {
     expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
+  it("未关联时说明退款不再受剩余可核销额度限制", () => {
+    render(<TransactionRefundLinkPicker onChange={vi.fn()} value={null} />);
+
+    expect(
+      screen.getByText(
+        "退款关联不受剩余可核销额度限制；请选择与收款账户一致的候选支出。",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("打开复用的按月浏览与搜索选择模式", () => {
     render(<TransactionRefundLinkPicker onChange={vi.fn()} value={null} />);
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
