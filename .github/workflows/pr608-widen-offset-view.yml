@@ -64,7 +64,7 @@ jobs:
           test = test_path.read_text()
           if test.count("select plan(7);") != 1:
               raise SystemExit("expected plan(7) exactly once")
-          test = test.replace("select plan(7);", "select plan(9);", 1)
+          test = test.replace("select plan(7);", "select plan(10);", 1)
 
           if test.count("cross join generate_series(1, 6) sequence_number") != 1:
               raise SystemExit("expected six-record fixture exactly once")
