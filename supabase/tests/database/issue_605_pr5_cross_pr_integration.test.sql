@@ -205,15 +205,16 @@ select is(
 
 select is(
     (
-        select sum(business_net_amount)
+        select count(*)::integer
         from public.transaction_item_with_refund
         where id in (
             '60596000-0000-4000-8000-000000000002',
             '60596000-0000-4000-8000-000000000003'
         )
+          and business_net_amount = 0
     ),
-    0::numeric,
-    '已关联报销与退款收入自身业务净额均被核销为零'
+    2,
+    '已关联报销与退款收入各自的业务净额均被核销为零'
 );
 
 set local role authenticated;
@@ -318,16 +319,17 @@ select is(
 
 select is(
     (
-        select sum(business_net_amount)
+        select count(*)::integer
         from public.transaction_item_with_refund
         where id in (
             '60596000-0000-4000-8000-000000000002',
             '60596000-0000-4000-8000-000000000003',
             '60596000-0000-4000-8000-000000000004'
         )
+          and business_net_amount = 0
     ),
-    0::numeric,
-    '转正后继续追加的收入自身也不会重复计入业务净额'
+    3,
+    '转正后继续追加的每条关联收入自身业务净额都保持为零'
 );
 
 set local role authenticated;
