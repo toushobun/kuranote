@@ -291,7 +291,7 @@ if [[ "${mixed_refund_amount}" != "60.00" \
    || "${mixed_reimbursement_amount}" != "60.00" \
    || "${mixed_remaining}" != "-20.00" \
    || "${mixed_status}" != "reimbursement_surplus" \
-   || "${mixed_target_net}" != "0.00" \
+   || "${mixed_target_net}" != "-20.00" \
    || "${mixed_refund_net}" != "0.00" \
    || "${mixed_reimbursement_net}" != "0.00" ]]; then
   echo "正式退款/报销并发结果异常：refund=${mixed_refund_amount}, reimbursement=${mixed_reimbursement_amount}, remaining=${mixed_remaining}, status=${mixed_status}, targetNet=${mixed_target_net}, refundNet=${mixed_refund_net}, reimbursementNet=${mixed_reimbursement_net}" >&2

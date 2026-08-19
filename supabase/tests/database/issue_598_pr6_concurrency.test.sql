@@ -285,8 +285,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000001'),
-    0::numeric,
-    'PR1 阶段目标支出业务净额视图仍保持封顶为零'
+    (-20)::numeric,
+    'PR2 阶段目标支出超额核销后业务净额保留负值'
 );
 
 select is(

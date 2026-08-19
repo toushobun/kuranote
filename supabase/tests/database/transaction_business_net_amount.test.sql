@@ -118,7 +118,7 @@ select
 from test_business_net_context context
 cross join (values
     ('57310000-0000-4000-8000-000000000001'::uuid, '57300000-0000-4000-8000-000000000001'::uuid, 'expense', 100::numeric, null),
-    ('57310000-0000-4000-8000-000000000002'::uuid, '57300000-0000-4000-8000-000000000002'::uuid, 'expense', 400::numeric, null),
+    ('57310000-0000-4000-8000-000000000002'::uuid, '57300000-0000-4000-8000-000000000002'::uuid, 'expense', 200::numeric, null),
     ('57310000-0000-4000-8000-000000000003'::uuid, '57300000-0000-4000-8000-000000000003'::uuid, 'expense', 200::numeric, null),
     ('57310000-0000-4000-8000-000000000004'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 100::numeric, null),
     ('57310000-0000-4000-8000-000000000014'::uuid, '57300000-0000-4000-8000-000000000004'::uuid, 'income', 200::numeric, null),
@@ -188,8 +188,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000002'),
-    150::numeric,
-    '同一支出多次退款后按分摊合计计算业务净额'
+    -50::numeric,
+    '同一支出多次退款超过原金额后保留负数业务净额'
 );
 
 select is(
@@ -262,13 +262,13 @@ select is(
 
 select is(
     (select amount from public.transaction_item where id = '57310000-0000-4000-8000-000000000002'),
-    400::numeric,
+    200::numeric,
     '退款不会覆盖原始金额'
 );
 
 select is(
     (select balance_delta from public.transaction_item where id = '57310000-0000-4000-8000-000000000002'),
-    -400::numeric,
+    -200::numeric,
     '业务净额不会改写账户现金流'
 );
 
@@ -314,7 +314,7 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000002'),
-    350::numeric,
+    150::numeric,
     '失效退款只移除对应分摊并保留其它有效退款'
 );
 

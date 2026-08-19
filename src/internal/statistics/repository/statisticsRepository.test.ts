@@ -103,7 +103,7 @@ describe("createSupabaseStatisticsRepository", () => {
     );
   });
 
-  it("月度统计从业务净额视图读取核销后的金额", async () => {
+  it("月度统计从业务净额视图读取核销后的金额与关联标记", async () => {
     const record = {
       created_at: "2026-06-15T01:00:00.000Z",
       created_by: "00000000-0000-4000-8000-000000000031",
@@ -117,6 +117,8 @@ describe("createSupabaseStatisticsRepository", () => {
       amount: "1200",
       business_net_amount: "300",
       category_id: "00000000-0000-4000-8000-000000005598",
+      has_refund_link: true,
+      has_reimbursement_link: false,
       transaction_record_id: record.id,
     };
     const category = {
@@ -159,7 +161,7 @@ describe("createSupabaseStatisticsRepository", () => {
       expect.arrayContaining([
         {
           args: [
-            "transaction_record_id, category_id, amount, business_net_amount",
+            "transaction_record_id, category_id, amount, business_net_amount, has_refund_link, has_reimbursement_link",
           ],
           method: "select",
         },
