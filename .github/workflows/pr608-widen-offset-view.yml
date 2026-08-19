@@ -1,9 +1,9 @@
 name: PR608 Widen Offset View
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/605_pr1_release_offset_cap
+      - main
     paths:
       - .github/workflows/pr608-widen-offset-view.yml
 
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   apply:
+    if: github.event.pull_request.number == 608
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
