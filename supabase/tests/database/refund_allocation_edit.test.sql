@@ -214,10 +214,10 @@ select lives_ok(
             ),
             (select account_id from test_refund_edit_context),
             (select merchant_id from test_refund_edit_context),
-            '封顶编辑'
+            '超额编辑'
         )
     $$,
-    '编辑后收入超过目标余额时继续按 LEAST 规则封顶'
+    '编辑后收入超过目标余额时仍按完整收入金额重建关联'
 );
 
 select is(
@@ -228,8 +228,8 @@ select is(
           on income_item.id = link.refund_income_item_id
         where link.refund_income_item_id = '57242000-0000-4000-8000-000000000002'
     ),
-    '300.00/200.00',
-    '编辑后的单目标关联按最新目标余额封顶并保留净收益'
+    '500.00/0.00',
+    '编辑后的单目标关联解除目标余额封顶并完整核销收入'
 );
 
 select lives_ok(

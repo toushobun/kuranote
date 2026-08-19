@@ -115,7 +115,7 @@ docker exec "${db_container}" rm -f \
   "${lock_marker}" "${release_marker}" \
   "${mixed_lock_marker}" "${mixed_release_marker}"
 
-# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后按最新剩余额度封顶成功。
+# 两笔正式退款 RPC 同时竞争同一目标，第二笔必须等待，并在首笔提交后完整写入自身收入金额。
 psql_in_db > /tmp/refund-allocation-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_allocation_a';
@@ -180,24 +180,24 @@ wait "${a_pid}"
 a_pid=""
 if ! wait "${b_pid}"; then
   cat /tmp/refund-allocation-b.log >&2 || true
-  echo "第二笔退款应在锁释放后按最新剩余额度封顶成功。" >&2
+  echo "第二笔退款应在锁释放后按完整收入金额成功建立关联。" >&2
   exit 1
 fi
 b_pid=""
 
 result="$(psql_in_db -A -t -c "select count(*)::text || '/' || coalesce(sum(refund_amount), 0)::text from public.transaction_item_refund_link where refunded_item_id = '${target_id}';" | tr -d '\r')"
-if [[ "${result}" != "2/100.00" ]]; then
-  echo "期望最终关联为 2/100.00，实际为 ${result}" >&2
+if [[ "${result}" != "2/120.00" ]]; then
+  echo "期望最终关联为 2/120.00，实际为 ${result}" >&2
   exit 1
 fi
 income_b_net="$(psql_in_db -A -t -c "select to_char(business_net_amount, 'FM999999990.00') from public.transaction_item_with_refund where id = '${income_b_id}';" | tr -d '\r')"
-if [[ "${income_b_net}" != "20.00" ]]; then
-  echo "第二笔退款应只核销剩余 40.00 并保留 20.00 净收益，实际净收益为 ${income_b_net}" >&2
+if [[ "${income_b_net}" != "0.00" ]]; then
+  echo "第二笔退款应完整核销 60.00 且不保留净收益，实际净收益为 ${income_b_net}" >&2
   exit 1
 fi
-echo "ok - 第二笔并发退款按最新剩余额度封顶，最终核销 100.00"
+echo "ok - 两笔并发退款均完整核销，最终核销 120.00"
 
-# 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行读取最新剩余额度。
+# 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行完成两个完整关联。
 psql_in_db > /tmp/refund-reimbursement-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_reimbursement_a';
@@ -262,7 +262,7 @@ wait "${a_pid}"
 a_pid=""
 if ! wait "${b_pid}"; then
   cat /tmp/refund-reimbursement-b.log >&2 || true
-  echo "正式报销 RPC 应在退款事务提交后按最新剩余额度成功。" >&2
+  echo "正式报销 RPC 应在退款事务提交后按完整收入金额成功建立关联。" >&2
   exit 1
 fi
 b_pid=""
@@ -288,16 +288,16 @@ read -r mixed_refund_amount mixed_reimbursement_amount mixed_remaining mixed_sta
 )
 
 if [[ "${mixed_refund_amount}" != "60.00" \
-   || "${mixed_reimbursement_amount}" != "40.00" \
-   || "${mixed_remaining}" != "0.00" \
-   || "${mixed_status}" != "reimbursed" \
+   || "${mixed_reimbursement_amount}" != "60.00" \
+   || "${mixed_remaining}" != "-20.00" \
+   || "${mixed_status}" != "reimbursement_surplus" \
    || "${mixed_target_net}" != "0.00" \
    || "${mixed_refund_net}" != "0.00" \
-   || "${mixed_reimbursement_net}" != "20.00" ]]; then
+   || "${mixed_reimbursement_net}" != "0.00" ]]; then
   echo "正式退款/报销并发结果异常：refund=${mixed_refund_amount}, reimbursement=${mixed_reimbursement_amount}, remaining=${mixed_remaining}, status=${mixed_status}, targetNet=${mixed_target_net}, refundNet=${mixed_refund_net}, reimbursementNet=${mixed_reimbursement_net}" >&2
   exit 1
 fi
-echo "ok - 正式退款与报销 RPC 并发后按最新剩余额度分配且业务净额正确"
+echo "ok - 正式退款与报销 RPC 并发后均完整核销并进入核销结余状态"
 
 # 正常成功路径必须严格验证 fixture 清理与账本开关恢复；异常退出才由 trap 做 best-effort 清理。
 restore_fixture >/dev/null

@@ -48,7 +48,7 @@ const searchPage = {
 };
 
 describe("TransactionRefundLinkPicker", () => {
-  it("退款收入超过剩余可退金额时显示实际核销与净收益", () => {
+  it("退款收入超过目标余额时显示完整核销且无未核销净收益", () => {
     const selectedItem = {
       accountCurrency: "JPY",
       accountId: "account-1",
@@ -71,8 +71,8 @@ describe("TransactionRefundLinkPicker", () => {
     );
 
     expect(screen.getByText("收入子项金额 ¥1,500")).toBeInTheDocument();
-    expect(screen.getByText("本次实际核销金额 ¥1,000")).toBeInTheDocument();
-    expect(screen.getByText("未核销净收益 ¥500")).toBeInTheDocument();
+    expect(screen.getByText("本次实际核销金额 ¥1,500")).toBeInTheDocument();
+    expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
   it("打开复用的按月浏览与搜索选择模式", () => {

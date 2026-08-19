@@ -178,7 +178,7 @@ describe("buildTransactionGroupSummaryPage", () => {
     expect(page.nextOffset).toBe(2);
   });
 
-  it("特殊状态分组只展示待报销和已报销", () => {
+  it("特殊状态分组展示三种报销结算状态", () => {
     const records = [record("r1", "2026-06-10T00:00:00.000Z")];
     const items = [
       {
@@ -186,7 +186,8 @@ describe("buildTransactionGroupSummaryPage", () => {
         business_net_amount: "0",
       },
       item("r1", expenseCategory.id, "200", "pending_reimbursement"),
-      item("r1", expenseCategory.id, "300", null),
+      item("r1", expenseCategory.id, "300", "reimbursement_surplus"),
+      item("r1", expenseCategory.id, "400", null),
     ];
 
     const page = buildTransactionGroupSummaryPage({
@@ -205,8 +206,11 @@ describe("buildTransactionGroupSummaryPage", () => {
     expect(page.groups.map((group) => group.key)).toEqual([
       "pending_reimbursement",
       "reimbursed",
+      "reimbursement_surplus",
     ]);
-    expect(page.groups.map((group) => group.transactionCount)).toEqual([1, 1]);
+    expect(page.groups.map((group) => group.transactionCount)).toEqual([
+      1, 1, 1,
+    ]);
     expect(page.groups[1].summary.expense).toBe("0");
   });
 });

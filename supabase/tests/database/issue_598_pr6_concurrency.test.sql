@@ -6,7 +6,7 @@ select plan(9);
 
 -- 通过 dblink 打开两个真实会话。第一事务只锁定目标支出行并写入退款关联，
 -- 不持有 ledger 行锁；第二事务调用正式 RPC，因此若发生阻塞只能来自目标支出行。
--- 锁释放后 RPC 必须看到已提交的退款 60，并把报销 60 截断为剩余额度 40。
+-- 锁释放后 RPC 必须看到已提交的退款 60，并继续按完整报销收入 60 建立关联。
 create temporary table issue_598_pr6_concurrency_context on commit drop as
 select
     l.id as ledger_id,
@@ -264,8 +264,8 @@ select is(
         from public.transaction_item_reimbursement_link
         where target_expense_item_id = '59892000-0000-4000-8000-000000000001'
     ),
-    40::numeric,
-    '并发报销在锁内读取最新剩余额度并截断为四十'
+    60::numeric,
+    '并发报销在锁释放后仍按完整收入金额核销六十'
 );
 
 select is(
@@ -273,20 +273,20 @@ select is(
         (select ledger_id from issue_598_pr6_concurrency_context),
         '59892000-0000-4000-8000-000000000001'
     ),
-    0::numeric,
-    '并发退款与报销不会重复分配同一剩余额度'
+    (-20)::numeric,
+    '并发退款与报销允许组合核销超过原始金额'
 );
 
 select is(
     (select special_status from public.transaction_item where id = '59892000-0000-4000-8000-000000000001'),
-    'reimbursed'::public.transaction_item_special_status,
-    '并发组合核销达到原始金额后目标状态重算为已报销'
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '并发组合核销超过原始金额后目标状态重算为核销结余'
 );
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000001'),
     0::numeric,
-    '并发组合核销后目标支出业务净额为零'
+    'PR1 阶段目标支出业务净额视图仍保持封顶为零'
 );
 
 select is(
@@ -297,8 +297,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000003'),
-    20::numeric,
-    '报销请求被截断为四十后保留二十业务净收益'
+    0::numeric,
+    '完整报销收入全部写入关联后不保留业务净收益'
 );
 
 select dblink_exec(

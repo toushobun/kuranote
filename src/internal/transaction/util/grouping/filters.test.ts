@@ -114,6 +114,13 @@ describe("特殊状态明细筛选", () => {
       special_status: null,
       transaction_record_id: "r1",
     },
+    {
+      account_id: "account-1",
+      amount: "300",
+      category_id: "food",
+      special_status: "reimbursement_surplus",
+      transaction_record_id: "r1",
+    },
   ];
   const context: TransactionGroupLoaderContext = {
     ...createContext(records),
@@ -128,6 +135,15 @@ describe("特殊状态明细筛选", () => {
         specialStatuses: ["pendingReimbursement"],
       }),
     ).toEqual([items[0]]);
+  });
+
+  it("特殊状态筛选可以匹配核销结余明细", () => {
+    expect(
+      filterTransactionItems(context, {
+        recordType: "all",
+        specialStatuses: ["reimbursementSurplus"],
+      }),
+    ).toEqual([items[2]]);
   });
 
   it("分类与特殊状态按同一条明细执行 AND", () => {

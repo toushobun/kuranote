@@ -17,7 +17,7 @@ describe("refund amount minor units", () => {
 });
 
 describe("calculateRemainingOffsetMinorUnits", () => {
-  it("按原金额减去退款与报销金额计算组合剩余额度", () => {
+  it("按原金额减去退款与报销金额计算有符号组合剩余额度", () => {
     expect(calculateRemainingOffsetMinorUnits("100", "20", "30")).toBe(
       BigInt(5000),
     );
@@ -26,9 +26,9 @@ describe("calculateRemainingOffsetMinorUnits", () => {
     );
   });
 
-  it("组合核销超过原金额时将剩余额度收敛为 0", () => {
+  it("组合核销超过原金额时保留负数而不再封顶为 0", () => {
     expect(calculateRemainingOffsetMinorUnits("100", "70", "40")).toBe(
-      BigInt(0),
+      BigInt(-1000),
     );
   });
 
@@ -40,7 +40,7 @@ describe("calculateRemainingOffsetMinorUnits", () => {
 });
 
 describe("summarizeRefundAllocationAmounts", () => {
-  it("按收入金额与单目标剩余额度较小值计算核销金额和净收益", () => {
+  it("解除封顶后始终以完整收入金额作为单目标核销金额", () => {
     expect(summarizeRefundAllocationAmounts("600", "1000")).toEqual({
       allocatedAmount: "600",
       incomeAmount: "600",
@@ -52,20 +52,24 @@ describe("summarizeRefundAllocationAmounts", () => {
       netIncomeAmount: "0",
     });
     expect(summarizeRefundAllocationAmounts("1500", "1000")).toEqual({
-      allocatedAmount: "1000",
+      allocatedAmount: "1500",
       incomeAmount: "1500",
-      netIncomeAmount: "500",
+      netIncomeAmount: "0",
     });
   });
 
-  it("金额精度无效时拒绝计算退款核销金额", () => {
+  it("只校验收入金额，剩余额度参数不再参与核销计算", () => {
     expect(summarizeRefundAllocationAmounts("1.001", "1000")).toBeNull();
-    expect(summarizeRefundAllocationAmounts("1000", "1.001")).toBeNull();
+    expect(summarizeRefundAllocationAmounts("1000", "1.001")).toEqual({
+      allocatedAmount: "1000",
+      incomeAmount: "1000",
+      netIncomeAmount: "0",
+    });
   });
 });
 
 describe("summarizeReimbursementAllocationAmounts", () => {
-  it("按收入金额与剩余额度较小值计算核销金额和净收益", () => {
+  it("解除封顶后始终以完整收入金额作为单目标核销金额", () => {
     expect(summarizeReimbursementAllocationAmounts("600", "1000")).toEqual({
       allocatedAmount: "600",
       incomeAmount: "600",
@@ -77,14 +81,18 @@ describe("summarizeReimbursementAllocationAmounts", () => {
       netIncomeAmount: "0",
     });
     expect(summarizeReimbursementAllocationAmounts("1500", "1000")).toEqual({
-      allocatedAmount: "1000",
+      allocatedAmount: "1500",
       incomeAmount: "1500",
-      netIncomeAmount: "500",
+      netIncomeAmount: "0",
     });
   });
 
-  it("金额精度无效时拒绝计算报销核销金额", () => {
+  it("只校验收入金额，剩余额度参数不再参与核销计算", () => {
     expect(summarizeReimbursementAllocationAmounts("1.001", "1000")).toBeNull();
-    expect(summarizeReimbursementAllocationAmounts("1000", "1.001")).toBeNull();
+    expect(summarizeReimbursementAllocationAmounts("1000", "1.001")).toEqual({
+      allocatedAmount: "1000",
+      incomeAmount: "1000",
+      netIncomeAmount: "0",
+    });
   });
 });

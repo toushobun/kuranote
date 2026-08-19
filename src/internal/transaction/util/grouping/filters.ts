@@ -5,7 +5,10 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import type { TransactionFilters } from "internal/transaction/entity/transactionGrouping";
-import { transactionSpecialStatuses } from "internal/transaction/entity/transactionSpecialStatus";
+import {
+  toTransactionSpecialStatusStorageValue,
+  transactionSpecialStatuses,
+} from "internal/transaction/entity/transactionSpecialStatus";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { getTransactionRecordCategoryType } from "internal/transaction/util/transactionAmountHelpers";
 import { calculateRemainingOffsetMinorUnits } from "internal/transaction/util/refundAllocation";
@@ -133,10 +136,9 @@ function filterItems(
     if (filters.specialStatuses?.length) {
       const itemStatus = item.special_status;
       if (
-        !filters.specialStatuses.some((status) =>
-          status === "pendingReimbursement"
-            ? itemStatus === "pending_reimbursement"
-            : status === itemStatus,
+        !filters.specialStatuses.some(
+          (status) =>
+            toTransactionSpecialStatusStorageValue(status) === itemStatus,
         )
       ) {
         return false;

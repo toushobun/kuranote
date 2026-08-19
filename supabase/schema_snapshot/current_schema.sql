@@ -28,7 +28,8 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 CREATE TYPE "public"."transaction_item_special_status" AS ENUM (
     'pending_reimbursement',
-    'reimbursed'
+    'reimbursed',
+    'reimbursement_surplus'
 );
 
 
@@ -315,7 +316,6 @@ declare
     v_refund_target_currency text;
     v_refund_target_account_id uuid;
     v_refund_amount numeric(14,2);
-    v_remaining_amount numeric(14,2);
     v_special_status_enabled boolean;
 begin
     begin
@@ -402,7 +402,8 @@ begin
            or v_reimbursement_target_status is null
            or v_reimbursement_target_status not in (
                'pending_reimbursement',
-               'reimbursed'
+               'reimbursed',
+               'reimbursement_surplus'
            ) then
             raise exception 'reimbursement_item_invalid'
                 using errcode = 'P0001', detail = 'reimbursement_item_invalid';
@@ -423,12 +424,7 @@ begin
                 using errcode = '22023', detail = 'income_link_conflict';
         end if;
 
-        v_remaining_amount :=
-            public.calculate_transaction_item_remaining_offset_amount(
-                p_ledger_id,
-                v_reimbursement_target_id
-            );
-        v_reimbursement_amount := least(v_income_amount, v_remaining_amount);
+        v_reimbursement_amount := v_income_amount;
 
         if v_reimbursement_amount > 0 then
             insert into public.transaction_item_reimbursement_link (
@@ -452,9 +448,14 @@ begin
                     when public.calculate_transaction_item_remaining_offset_amount(
                         p_ledger_id,
                         v_reimbursement_target_id
-                    ) <= 0
+                    ) > 0
+                    then 'pending_reimbursement'::public.transaction_item_special_status
+                    when public.calculate_transaction_item_remaining_offset_amount(
+                        p_ledger_id,
+                        v_reimbursement_target_id
+                    ) = 0
                     then 'reimbursed'::public.transaction_item_special_status
-                    else 'pending_reimbursement'::public.transaction_item_special_status
+                    else 'reimbursement_surplus'::public.transaction_item_special_status
                 end,
                 updated_by = p_user_id,
                 updated_at = now()
@@ -513,28 +514,21 @@ begin
                 using errcode = '22023', detail = 'income_link_conflict';
         end if;
 
-        v_remaining_amount :=
-            public.calculate_transaction_item_remaining_offset_amount(
-                p_ledger_id,
-                v_refund_target_id
-            );
-        v_refund_amount := least(v_income_amount, v_remaining_amount);
+        v_refund_amount := v_income_amount;
 
-        if v_refund_amount > 0 then
-            insert into public.transaction_item_refund_link (
-                ledger_id,
-                refunded_item_id,
-                refund_income_item_id,
-                refund_amount,
-                created_by
-            ) values (
-                p_ledger_id,
-                v_refund_target_id,
-                p_income_item_id,
-                v_refund_amount,
-                p_user_id
-            );
-        end if;
+        insert into public.transaction_item_refund_link (
+            ledger_id,
+            refunded_item_id,
+            refund_income_item_id,
+            refund_amount,
+            created_by
+        ) values (
+            p_ledger_id,
+            v_refund_target_id,
+            p_income_item_id,
+            v_refund_amount,
+            p_user_id
+        );
     end if;
 end;
 $$;
@@ -597,7 +591,7 @@ CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    select greatest(
+    select
         target_item.amount
         - coalesce((
             select sum(refund_link.refund_amount)
@@ -626,9 +620,7 @@ CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset
             where reimbursement_link.ledger_id = target_item.ledger_id
               and reimbursement_link.target_expense_item_id = target_item.id
               and reimbursement_record.status = 'active'
-        ), 0),
-        0
-    )
+        ), 0)
     from public.transaction_item target_item
     join public.transaction_record target_record
       on target_record.id = target_item.transaction_record_id
@@ -667,6 +659,9 @@ CREATE OR REPLACE FUNCTION "public"."clear_transaction_item_income_links"("p_led
     AS $$
 declare
     v_income_category_type text;
+    v_previous_income_link_edit_flow text :=
+        current_setting('kuranote.income_link_edit_flow', true);
+    v_reimbursement_target_ids uuid[] := array[]::uuid[];
 begin
     select c.type
     into v_income_category_type
@@ -691,22 +686,30 @@ begin
           and link.reimbursement_income_item_id = p_income_item_id
         returning link.target_expense_item_id
     )
+    select coalesce(
+        array_agg(deleted_links.target_expense_item_id),
+        array[]::uuid[]
+    )
+    into v_reimbursement_target_ids
+    from deleted_links;
+
+    -- 关联表的 AFTER DELETE trigger 已按剩余有效核销重新派生三态。
+    -- 这里只保留原流程的审计字段更新，不能再把 reimbursed 强制覆盖成 pending。
     update public.transaction_item target_item
-    set special_status = 'pending_reimbursement',
-        updated_by = p_user_id,
+    set updated_by = p_user_id,
         updated_at = now()
     where target_item.ledger_id = p_ledger_id
-      and target_item.id in (
-          select deleted_links.target_expense_item_id
-          from deleted_links
-      )
-      and target_item.special_status = 'reimbursed';
+      and target_item.id = any(v_reimbursement_target_ids);
 
     delete from public.transaction_item_refund_link link
     where link.ledger_id = p_ledger_id
       and link.refund_income_item_id = p_income_item_id;
 
-    perform set_config('kuranote.income_link_edit_flow', 'off', true);
+    perform set_config(
+        'kuranote.income_link_edit_flow',
+        coalesce(v_previous_income_link_edit_flow, 'off'),
+        true
+    );
 end;
 $$;
 
@@ -3196,7 +3199,11 @@ matched_items as (
         )
     )
       and (p_account_id is null or bi.account_id = p_account_id)
-      and (p_parent_category_id is null or bi.parent_id = p_parent_category_id or bi.category_id = p_parent_category_id)
+      and (
+          p_parent_category_id is null
+          or bi.parent_id = p_parent_category_id
+          or bi.category_id = p_parent_category_id
+      )
       and (p_category_id is null or bi.category_id = p_category_id)
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
@@ -3230,20 +3237,42 @@ labeled as (
     select
         g.*,
         case p_group_by
-            when 'merchant' then coalesce((select m.name from public.merchant m where m.id::text = g.key and m.ledger_id = p_ledger_id), '未知商家')
-            when 'account' then coalesce((select a.name from public.account a where a.id::text = g.key and a.ledger_id = p_ledger_id), '未知账户')
-            when 'parentCategory' then coalesce((select c.name from public.category c where c.id::text = g.key and c.ledger_id = p_ledger_id), '未知大分类')
-            when 'category' then coalesce((select c.name from public.category c where c.id::text = g.key and c.ledger_id = p_ledger_id), '未知小分类')
+            when 'merchant' then coalesce((
+                select m.name
+                from public.merchant m
+                where m.id::text = g.key
+                  and m.ledger_id = p_ledger_id
+            ), '未知商家')
+            when 'account' then coalesce((
+                select a.name
+                from public.account a
+                where a.id::text = g.key
+                  and a.ledger_id = p_ledger_id
+            ), '未知账户')
+            when 'parentCategory' then coalesce((
+                select c.name
+                from public.category c
+                where c.id::text = g.key
+                  and c.ledger_id = p_ledger_id
+            ), '未知大分类')
+            when 'category' then coalesce((
+                select c.name
+                from public.category c
+                where c.id::text = g.key
+                  and c.ledger_id = p_ledger_id
+            ), '未知小分类')
             when 'member' then coalesce((
                 select coalesce(nullif(trim(setting.display_name), ''), u.display_name)
                 from public.app_user u
                 left join public.ledger_member_display_setting setting
-                  on setting.user_id = u.id and setting.ledger_id = p_ledger_id
+                  on setting.user_id = u.id
+                 and setting.ledger_id = p_ledger_id
                 where u.id::text = g.key
             ), '未知成员')
             when 'specialStatus' then case g.key
                 when 'pending_reimbursement' then '待报销'
                 when 'reimbursed' then '已报销'
+                when 'reimbursement_surplus' then '核销结余'
                 else '未知状态'
             end
             else '未知分组'
@@ -3262,7 +3291,12 @@ select
 from labeled
 order by
     case when p_group_by = 'specialStatus' then
-        case labeled.key when 'pending_reimbursement' then 1 when 'reimbursed' then 2 else 3 end
+        case labeled.key
+            when 'pending_reimbursement' then 1
+            when 'reimbursed' then 2
+            when 'reimbursement_surplus' then 3
+            else 4
+        end
     end,
     labeled.latest_at desc,
     labeled.label
@@ -3364,7 +3398,8 @@ begin
                where ti.ledger_id = new.id
                  and ti.special_status in (
                      'pending_reimbursement',
-                     'reimbursed'
+                     'reimbursed',
+                     'reimbursement_surplus'
                  )
                  and tr.status = 'active'
            )
@@ -3639,6 +3674,7 @@ declare
         current_setting('kuranote.income_link_edit_flow', true);
     v_previous_reimbursement_link_flow text :=
         current_setting('kuranote.reimbursement_link_flow', true);
+    v_remaining_amount numeric;
     v_next_status public.transaction_item_special_status;
 begin
     select target_item.special_status
@@ -3653,13 +3689,16 @@ begin
         return;
     end if;
 
+    v_remaining_amount := public.calculate_transaction_item_remaining_offset_amount(
+        p_ledger_id,
+        p_target_expense_item_id
+    );
     v_next_status := case
-        when public.calculate_transaction_item_remaining_offset_amount(
-            p_ledger_id,
-            p_target_expense_item_id
-        ) <= 0
+        when v_remaining_amount > 0
+        then 'pending_reimbursement'::public.transaction_item_special_status
+        when v_remaining_amount = 0
         then 'reimbursed'::public.transaction_item_special_status
-        else 'pending_reimbursement'::public.transaction_item_special_status
+        else 'reimbursement_surplus'::public.transaction_item_special_status
     end;
 
     if v_next_status is not distinct from v_current_status then
@@ -5031,7 +5070,8 @@ begin
        or v_target_special_status is null
        or v_target_special_status not in (
            'pending_reimbursement',
-           'reimbursed'
+           'reimbursed',
+           'reimbursement_surplus'
        ) then
         raise exception 'reimbursement_item_invalid'
             using errcode = '22023', detail = 'reimbursement_item_invalid';
@@ -5069,7 +5109,7 @@ declare
     v_special_status_enabled boolean;
     v_has_active_reimbursement_link boolean;
     v_is_controlled_transition boolean;
-    v_remaining_amount numeric(14,2);
+    v_remaining_amount numeric;
 begin
     if new.special_status is not null then
         select l.transaction_item_special_status_enabled
@@ -5121,7 +5161,7 @@ begin
     end if;
 
     if tg_op = 'UPDATE'
-       and old.special_status = 'reimbursed'
+       and old.special_status in ('reimbursed', 'reimbursement_surplus')
        and new.special_status is distinct from old.special_status
        and not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
@@ -5150,9 +5190,13 @@ begin
                 new.ledger_id,
                 new.id
             );
-        if v_remaining_amount <= 0 then
-            new.special_status := 'reimbursed';
-        end if;
+        new.special_status := case
+            when v_remaining_amount > 0
+            then 'pending_reimbursement'::public.transaction_item_special_status
+            when v_remaining_amount = 0
+            then 'reimbursed'::public.transaction_item_special_status
+            else 'reimbursement_surplus'::public.transaction_item_special_status
+        end;
         return new;
     end if;
 
@@ -5161,7 +5205,12 @@ begin
     end if;
 
     if tg_op = 'INSERT'
-       or old.special_status is distinct from 'pending_reimbursement'
+       or old.special_status is null
+       or old.special_status not in (
+           'pending_reimbursement',
+           'reimbursed',
+           'reimbursement_surplus'
+       )
        or not v_is_controlled_transition then
         raise exception 'reimbursed_transition_forbidden'
             using errcode = '42501', detail = 'reimbursed_transition_forbidden';
@@ -5671,7 +5720,7 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."updated_by",
     "ti"."updated_at",
     "ti"."special_status",
-    (COALESCE("expense_refunds"."refunded_amount", (0)::numeric))::numeric(14,2) AS "refunded_amount",
+    COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "refunded_amount",
     (COALESCE("income_refunds"."refunded_amount", (0)::numeric) > (0)::numeric) AS "is_refund_income",
     (COALESCE("income_reimbursements"."reimbursed_amount", (0)::numeric) > (0)::numeric) AS "is_reimbursement_income",
     (EXISTS ( SELECT 1
@@ -5681,7 +5730,7 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
            FROM "public"."transaction_item_reimbursement_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."target_expense_item_id" = "ti"."id") OR ("link"."reimbursement_income_item_id" = "ti"."id"))))) AS "has_reimbursement_link",
     (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount",
-    (COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric))::numeric(14,2) AS "reimbursement_amount"
+    COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric) AS "reimbursement_amount"
    FROM ((((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"

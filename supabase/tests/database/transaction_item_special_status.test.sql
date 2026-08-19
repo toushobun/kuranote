@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(37);
+select plan(41);
 
 select has_type(
     'public',
@@ -19,8 +19,8 @@ select is(
         where n.nspname = 'public'
           and t.typname = 'transaction_item_special_status'
     ),
-    array['pending_reimbursement', 'reimbursed'],
-    '特殊状态枚举只保留待报销和已报销'
+    array['pending_reimbursement', 'reimbursed', 'reimbursement_surplus'],
+    '特殊状态枚举包含待报销、已结清和核销结余三态'
 );
 
 select has_table(
@@ -173,7 +173,7 @@ select
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 from public.transaction_record source_record
-cross join generate_series(1, 7) sequence_number
+cross join generate_series(1, 8) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
 insert into public.transaction_item (
@@ -258,7 +258,62 @@ values
         '00000000-0000-4000-8000-000000000031',
         '00000000-0000-4000-8000-000000000031',
         'pending_reimbursement'
+    ),
+    (
+        '59840000-0000-4000-8000-000000000008',
+        '00000000-0000-4000-8000-000000000032',
+        '59830000-0000-4000-8000-000000000008',
+        '00000000-0000-4000-8000-000000000043',
+        '00000000-0000-4000-8000-000000005002',
+        100, 0, 100, 0,
+        '00000000-0000-4000-8000-000000000031',
+        '00000000-0000-4000-8000-000000000031',
+        null
     );
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '59840000-0000-4000-8000-000000000008',
+            jsonb_build_object(
+                'refundedItemId',
+                '59840000-0000-4000-8000-000000000007'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        )
+    $$,
+    '待报销支出可以被超额退款'
+);
+
+select is(
+    (
+        select special_status
+        from public.transaction_item
+        where id = '59840000-0000-4000-8000-000000000007'
+    ),
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '超额退款会把报销流程支出推进到核销结余状态'
+);
+
+select lives_ok(
+    $$
+        delete from public.transaction_item_refund_link
+        where refund_income_item_id =
+              '59840000-0000-4000-8000-000000000008'
+    $$,
+    '删除超额退款关联会触发状态反向重算'
+);
+
+select is(
+    (
+        select special_status
+        from public.transaction_item
+        where id = '59840000-0000-4000-8000-000000000007'
+    ),
+    'pending_reimbursement'::public.transaction_item_special_status,
+    '解除超额关联后核销结余状态可以回到待报销'
+);
 
 select throws_ok(
     $$

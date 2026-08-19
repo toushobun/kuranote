@@ -120,7 +120,7 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '收入超过剩余余额时仍可建立报销关联'
+    '收入超过剩余额度时仍可建立完整报销关联'
 );
 
 select is(
@@ -130,8 +130,8 @@ select is(
         where reimbursement_income_item_id =
               '59860000-0000-4000-8000-000000000003'
     ),
-    60::numeric,
-    '报销关联按目标剩余可核销余额截断'
+    100::numeric,
+    '报销关联金额不再按目标剩余额度截断'
 );
 
 select is(
@@ -140,8 +140,8 @@ select is(
         from public.transaction_item
         where id = '59860000-0000-4000-8000-000000000001'
     ),
-    'reimbursed'::public.transaction_item_special_status,
-    '累计核销达到原始金额后目标支出变为已报销'
+    'reimbursement_surplus'::public.transaction_item_special_status,
+    '累计核销超过原始金额后目标支出进入核销结余状态'
 );
 
 select lives_ok(
@@ -156,7 +156,7 @@ select lives_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '剩余可核销余额为零时收入仍可作为普通收入保存'
+    '核销结余状态的支出仍可继续追加报销关联'
 );
 
 select is(
@@ -166,8 +166,8 @@ select is(
         where reimbursement_income_item_id =
               '59860000-0000-4000-8000-000000000004'
     ),
-    0,
-    '剩余可核销余额为零时不写入报销关联'
+    1,
+    '核销结余状态继续追加关联时仍写入完整关联'
 );
 
 select throws_ok(
@@ -354,7 +354,7 @@ select is(
               '59860000-0000-4000-8000-000000000013'
     ),
     20::numeric,
-    '已报销目标的退款关联保留原有分摊金额'
+    '已报销目标的退款关联保留完整收入金额'
 );
 
 select lives_ok(
@@ -388,8 +388,8 @@ select is(
         where reimbursement_income_item_id =
               '59860000-0000-4000-8000-000000000016'
     ),
-    70::numeric,
-    '报销关联金额会扣除目标支出已有退款分摊'
+    100::numeric,
+    '已有退款分摊也不再截断后续报销关联金额'
 );
 
 select throws_ok(
