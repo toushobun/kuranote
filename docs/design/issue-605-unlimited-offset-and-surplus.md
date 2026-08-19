@@ -78,6 +78,8 @@ Dashboard / 月度汇总 / 分类汇总都遵循这一口径。`buildStatisticsV
 
 `reimbursed` 继续表示恰好结清；当退款和报销共同完成结清时，展示层可以根据两种核销来源显示“已结清”。`reimbursement_surplus` 优先表达最终已经转正的业务结果，不能退化成普通“已报销”或“已结清”。
 
+普通 `special_status = NULL` 支出如果仅靠退款超过原始金额，仍不会派生 `reimbursement_surplus`；它通过列表净额切换为收入方向、保留原始支出金额并展示“退款核销”金额来表达倒赚结果。`reimbursement_surplus` 只描述已经进入报销状态机的支出，展示层不能为了统一 Badge 而伪造该状态。
+
 ## 回归与组合路径
 
 PR1～PR4 已分别覆盖金额解除封顶、三态状态机、统计分桶、Picker 候选和 Badge。PR5 额外补充跨 PR 组合路径，重点验证同一目标上的连续状态变化：
