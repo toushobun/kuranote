@@ -266,6 +266,47 @@ describe("buildTransactionListItem", () => {
     });
   });
 
+  it("退款与报销共同推正后列表切为收入并透出倒赚状态", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "100",
+          business_net_amount: "-20",
+          category_id: categoryA.id,
+          id: "expense-surplus",
+          refunded_amount: "80",
+          reimbursement_amount: "40",
+          special_status: "reimbursement_surplus",
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      amount: "20",
+      originalAmount: "100",
+      originalType: "expense",
+      type: "income",
+    });
+    expect(item.categoryItems[0]).toMatchObject({
+      businessStatus: {
+        incomeLinkRole: null,
+        offsetComposition: {
+          refundAmount: "80",
+          reimbursementAmount: "40",
+        },
+        settlementStatus: "reimbursementSurplus",
+      },
+      remainingRefundableAmount: "-20",
+    });
+  });
+
   describe("remaining offset", () => {
     function buildExpenseItem(input: {
       amount: string;
