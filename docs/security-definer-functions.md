@@ -84,7 +84,7 @@ order by p.oid::regprocedure::text;
 - 整改后 41 个函数全部使用 `pg_catalog, pg_temp`。
 - Issue #551 新增的 4 个 `SECURITY DEFINER` 函数（`apply_transaction_item_links`、`convert_transaction_type_with_special_status`、`load_transaction_group_summaries_with_special_status`、`validate_linked_transaction_item_mutation`）也直接声明 `pg_catalog, pg_temp`；`validate_transaction_item_special_status` 为默认 `SECURITY INVOKER`。
 - `prevent_disable_special_status_with_active_items` 直接声明 `pg_catalog, pg_temp`，并仅由账本开关更新触发器调用。
-- `load_frequent_transaction_category_counts` 直接声明 `pg_catalog, pg_temp`，撤销 `PUBLIC` / `anon` 的 EXECUTE 并仅授权 `authenticated`。
+- `load_frequent_transaction_category_counts` 直接声明 `pg_catalog, pg_temp`，撤销 `PUBLIC` / `anon` 的 EXECUTE并仅授权 `authenticated`。
 - 全部函数 owner 均为 `postgres`，本次不修改 owner。
 - 函数体中的应用表、视图和应用函数均已使用 `public.*` / `auth.*` 完整限定名，未发现依赖隐式 `public` 解析的对象引用。
 - `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 依赖 pgcrypto，并已显式调用 `extensions.digest()` / `extensions.gen_random_bytes()`。
