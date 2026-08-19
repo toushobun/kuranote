@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(7);
+select plan(10);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -23,7 +23,7 @@ select
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 from public.transaction_record source_record
-cross join generate_series(1, 6) sequence_number
+cross join generate_series(1, 8) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
 insert into public.transaction_item (
@@ -54,7 +54,9 @@ from (
         (3, 'income', 600000000000::numeric, null),
         (4, 'expense', 100::numeric, null),
         (5, 'income', 600000000000::numeric, null),
-        (6, 'income', 600000000000::numeric, null)
+        (6, 'income', 600000000000::numeric, null),
+        (7, 'income', 600000000000::numeric, null),
+        (8, 'income', 600000000000::numeric, null)
 ) as item(sequence_number, category_type, amount, special_status);
 
 select lives_ok(
@@ -96,6 +98,46 @@ select is(
      where id = '60592000-0000-4000-8000-000000000001'),
     'reimbursement_surplus'::public.transaction_item_special_status,
     '报销流程中的大额超额核销进入核销结余状态'
+);
+
+select is(
+    (select refunded_amount
+     from public.transaction_item_with_refund
+     where id = '60592000-0000-4000-8000-000000000001'),
+    1200000000000::numeric,
+    '视图可以读取超过 numeric(14,2) 范围的累计退款金额'
+);
+
+select lives_ok(
+    $$
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '60592000-0000-4000-8000-000000000007',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '60592000-0000-4000-8000-000000000001'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        );
+        select public.apply_transaction_item_links(
+            '00000000-0000-4000-8000-000000000032',
+            '60592000-0000-4000-8000-000000000008',
+            jsonb_build_object(
+                'reimbursementItemId',
+                '60592000-0000-4000-8000-000000000001'
+            ),
+            '00000000-0000-4000-8000-000000000031'
+        );
+    $$,
+    '同一目标可以继续累计超过 numeric(14,2) 范围的报销金额'
+);
+
+select is(
+    (select reimbursement_amount
+     from public.transaction_item_with_refund
+     where id = '60592000-0000-4000-8000-000000000001'),
+    1200000000000::numeric,
+    '视图可以读取超过 numeric(14,2) 范围的累计报销金额'
 );
 
 select lives_ok(

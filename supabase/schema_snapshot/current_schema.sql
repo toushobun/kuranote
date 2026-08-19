@@ -5720,7 +5720,7 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."updated_by",
     "ti"."updated_at",
     "ti"."special_status",
-    (COALESCE("expense_refunds"."refunded_amount", (0)::numeric))::numeric(14,2) AS "refunded_amount",
+    COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "refunded_amount",
     (COALESCE("income_refunds"."refunded_amount", (0)::numeric) > (0)::numeric) AS "is_refund_income",
     (COALESCE("income_reimbursements"."reimbursed_amount", (0)::numeric) > (0)::numeric) AS "is_reimbursement_income",
     (EXISTS ( SELECT 1
@@ -5730,7 +5730,7 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
            FROM "public"."transaction_item_reimbursement_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."target_expense_item_id" = "ti"."id") OR ("link"."reimbursement_income_item_id" = "ti"."id"))))) AS "has_reimbursement_link",
     (GREATEST(("ti"."amount" - COALESCE("business_offsets"."offset_amount", (0)::numeric)), (0)::numeric))::numeric(14,2) AS "business_net_amount",
-    (COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric))::numeric(14,2) AS "reimbursement_amount"
+    COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric) AS "reimbursement_amount"
    FROM ((((("public"."transaction_item" "ti"
      LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
            FROM (("public"."transaction_item_refund_link" "link"
