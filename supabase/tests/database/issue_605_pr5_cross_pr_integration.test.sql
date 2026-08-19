@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(24);
+select plan(26);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -256,6 +256,20 @@ select is(
 
 select is(
     (
+        select coalesce(sum(summary.income), 0)
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_group_by => 'category',
+            p_date_start => '2099-02-01 00:00:00+00'::timestamptz,
+            p_date_end => '2099-02-01 00:04:00+00'::timestamptz
+        ) summary
+    ),
+    20::numeric,
+    '退款与报销共同推正后全部分类总收入仅包含母项结余'
+);
+
+select is(
+    (
         select count(*)::integer
         from public.load_transaction_group_summaries_with_special_status(
             p_ledger_id => '00000000-0000-4000-8000-000000000032',
@@ -367,6 +381,20 @@ select is(
     ),
     0::numeric,
     '继续追加关联后统计支出仍保持为零'
+);
+
+select is(
+    (
+        select coalesce(sum(summary.income), 0)
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_group_by => 'category',
+            p_date_start => '2099-02-01 00:00:00+00'::timestamptz,
+            p_date_end => '2099-02-01 00:05:00+00'::timestamptz
+        ) summary
+    ),
+    50::numeric,
+    '继续追加关联后全部分类总收入仍仅包含母项结余'
 );
 
 select is(
