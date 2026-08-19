@@ -31,11 +31,9 @@ remaining_offset_amount
 
 进入报销流程的支出使用三种状态：
 
-| `remaining_offset_amount` | `special_status`           | 含义                 |
-| ------------------------- | -------------------------- | -------------------- |
-| `> 0`                     | `pending_reimbursement`    | 仍有未核销金额       |
-| `= 0`                     | `reimbursed`               | 恰好结清             |
-| `< 0`                     | `reimbursement_surplus`    | 核销超过原始支出金额 |
+- `remaining_offset_amount > 0`：`pending_reimbursement`，仍有未核销金额。
+- `remaining_offset_amount = 0`：`reimbursed`，恰好结清。
+- `remaining_offset_amount < 0`：`reimbursement_surplus`，核销超过原始支出金额。
 
 状态由数据库在关联新增、删除或受控重建后重新派生。`reimbursement_surplus` 与 `reimbursed` 一样属于受控状态，不能由普通客户端写入任意切换。
 
