@@ -15,8 +15,7 @@ import { transactionSpecialStatuses } from "internal/transaction";
 // 退款不是 transaction_item.special_status 里的一个状态（它通过金额关联表
 // transaction_item_refund_link 表达，明细上展示的是"已退款 ¥X"这种带金额的
 // 标注，不是固定徽标），所以这两项只在这里作为功能说明用的预览 Chip，不接入
-// TransactionBusinessBadge 那套真实状态徽标体系，避免误导成"可以手动选择的
-// 第三、第四种状态"。
+// TransactionBusinessBadge 那套真实状态徽标体系，避免误导成额外可以手动选择的状态。
 const refundPreviewChips = [
   {
     backgroundColor: "var(--user-theme-business-refund-bg)",

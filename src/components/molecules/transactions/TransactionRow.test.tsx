@@ -577,6 +577,48 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("已结清")).not.toBeInTheDocument();
     });
 
+    it("存在核销结余明细且没有待报销时整行显示倒赚状态", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                amount: "600",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "600",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "reimbursed",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "634",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "1400",
+                  },
+                  settlementStatus: "reimbursementSurplus",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("已倒赚")).toBeInTheDocument();
+      expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+    });
+
     it("所有明细都没有业务状态时不显示业务标签", () => {
       render(
         <TransactionRow

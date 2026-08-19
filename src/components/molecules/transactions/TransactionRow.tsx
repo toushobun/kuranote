@@ -250,6 +250,11 @@ function getBusinessStatuses(
     if (status.settlementStatus === "pendingReimbursement") {
       settlementStatus = "pendingReimbursement";
     } else if (
+      status.settlementStatus === "reimbursementSurplus" &&
+      settlementStatus !== "pendingReimbursement"
+    ) {
+      settlementStatus = "reimbursementSurplus";
+    } else if (
       status.settlementStatus === "reimbursed" &&
       settlementStatus === null
     ) {

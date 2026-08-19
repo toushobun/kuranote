@@ -29,6 +29,28 @@ describe("TransactionBusinessBadge", () => {
     expect(screen.queryByText("已报销 + 已退款")).not.toBeInTheDocument();
   });
 
+  it("核销超过原始支出时显示倒赚标签并保留核销来源金额", () => {
+    render(
+      <TransactionBusinessBadge
+        currency="JPY"
+        status={{
+          incomeLinkRole: null,
+          offsetComposition: {
+            refundAmount: "400",
+            reimbursementAmount: "1600",
+          },
+          settlementStatus: "reimbursementSurplus",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("已倒赚")).toBeInTheDocument();
+    expect(screen.getByText("退款核销 ¥400")).toBeInTheDocument();
+    expect(screen.getByText("报销核销 ¥1,600")).toBeInTheDocument();
+    expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+    expect(screen.queryByText("已报销")).not.toBeInTheDocument();
+  });
+
   it("普通支出被退款时只展示核销来源，不派生报销结算状态", () => {
     render(
       <TransactionBusinessBadge

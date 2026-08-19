@@ -83,6 +83,23 @@ describe("transactionSpecialStatus", () => {
     expect(resolveTransactionBusinessStatus({})).toBeNull();
   });
 
+  it("核销结余状态保留退款和报销构成供展示层使用", () => {
+    expect(
+      resolveTransactionBusinessStatus({
+        refundedAmount: "400",
+        reimbursementAmount: "1600",
+        specialStatus: "reimbursementSurplus",
+      }),
+    ).toEqual({
+      incomeLinkRole: null,
+      offsetComposition: {
+        refundAmount: "400",
+        reimbursementAmount: "1600",
+      },
+      settlementStatus: "reimbursementSurplus",
+    });
+  });
+
   it("普通支出无论退款多少都不进入报销结算状态", () => {
     expect(
       resolveTransactionBusinessStatus({
