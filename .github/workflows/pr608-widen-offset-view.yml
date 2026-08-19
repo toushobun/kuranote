@@ -1,0 +1,129 @@
+name: PR608 Widen Offset View
+
+on:
+  push:
+    branches:
+      - feature/605_pr1_release_offset_cap
+    paths:
+      - .github/workflows/pr608-widen-offset-view.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/605_pr1_release_offset_cap
+          fetch-depth: 0
+
+      - name: Patch view amount types and regression test
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("supabase/migrations/20260816040000_expose_transaction_offset_composition.sql")
+          migration_path = Path("supabase/migrations/20260819004000_widen_transaction_offset_view_amounts.sql")
+          source = source_path.read_text()
+
+          header = "create or replace view public.transaction_item_with_refund"
+          if source.count(header) != 1:
+              raise SystemExit("expected source view definition exactly once")
+
+          source = source.replace(
+              header,
+              "create view public.transaction_item_with_refund",
+              1,
+          )
+
+          refund_cast = """    coalesce(expense_refunds.refunded_amount, 0::numeric)::numeric(14,2)\n        as refunded_amount,\n"""
+          refund_unbounded = """    coalesce(expense_refunds.refunded_amount, 0::numeric)\n        as refunded_amount,\n"""
+          if source.count(refund_cast) != 1:
+              raise SystemExit("expected refunded_amount typmod exactly once")
+          source = source.replace(refund_cast, refund_unbounded, 1)
+
+          reimbursement_cast = """    coalesce(\n        expense_reimbursements.reimbursed_amount,\n        0::numeric\n    )::numeric(14,2) as reimbursement_amount\n"""
+          reimbursement_unbounded = """    coalesce(\n        expense_reimbursements.reimbursed_amount,\n        0::numeric\n    ) as reimbursement_amount\n"""
+          if source.count(reimbursement_cast) != 1:
+              raise SystemExit("expected reimbursement_amount typmod exactly once")
+          source = source.replace(
+              reimbursement_cast,
+              reimbursement_unbounded,
+              1,
+          )
+
+          migration = """-- Issue #605 PR1：解除单条关联封顶后，累计核销金额可能超过单条金额字段的 typmod。\n-- 这里只放宽退款/报销聚合列；business_net_amount 的有符号统计语义仍留给 PR2。\n\ndrop view public.transaction_item_with_refund;\n\n""" + source + """\n\ngrant select on table public.transaction_item_with_refund to authenticated;\n"""
+          migration_path.write_text(migration)
+
+          test_path = Path("supabase/tests/database/issue_605_pr1_large_surplus.test.sql")
+          test = test_path.read_text()
+          if test.count("select plan(7);") != 1:
+              raise SystemExit("expected plan(7) exactly once")
+          test = test.replace("select plan(7);", "select plan(9);", 1)
+
+          if test.count("cross join generate_series(1, 6) sequence_number") != 1:
+              raise SystemExit("expected six-record fixture exactly once")
+          test = test.replace(
+              "cross join generate_series(1, 6) sequence_number",
+              "cross join generate_series(1, 8) sequence_number",
+              1,
+          )
+
+          values_tail = """        (4, 'expense', 100::numeric, null),\n        (5, 'income', 600000000000::numeric, null),\n        (6, 'income', 600000000000::numeric, null)\n"""
+          values_extended = """        (4, 'expense', 100::numeric, null),\n        (5, 'income', 600000000000::numeric, null),\n        (6, 'income', 600000000000::numeric, null),\n        (7, 'income', 600000000000::numeric, null),\n        (8, 'income', 600000000000::numeric, null)\n"""
+          if test.count(values_tail) != 1:
+              raise SystemExit("expected fixture values tail exactly once")
+          test = test.replace(values_tail, values_extended, 1)
+
+          anchor = """select is(\n    (select special_status\n     from public.transaction_item\n     where id = '60592000-0000-4000-8000-000000000001'),\n    'reimbursement_surplus'::public.transaction_item_special_status,\n    '报销流程中的大额超额核销进入核销结余状态'\n);\n\n"""
+          regression = anchor + """select is(\n    (select refunded_amount\n     from public.transaction_item_with_refund\n     where id = '60592000-0000-4000-8000-000000000001'),\n    1200000000000::numeric,\n    '视图可以读取超过 numeric(14,2) 范围的累计退款金额'\n);\n\nselect lives_ok(\n    $$\n        select public.apply_transaction_item_links(\n            '00000000-0000-4000-8000-000000000032',\n            '60592000-0000-4000-8000-000000000007',\n            jsonb_build_object(\n                'reimbursementItemId',\n                '60592000-0000-4000-8000-000000000001'\n            ),\n            '00000000-0000-4000-8000-000000000031'\n        );\n        select public.apply_transaction_item_links(\n            '00000000-0000-4000-8000-000000000032',\n            '60592000-0000-4000-8000-000000000008',\n            jsonb_build_object(\n                'reimbursementItemId',\n                '60592000-0000-4000-8000-000000000001'\n            ),\n            '00000000-0000-4000-8000-000000000031'\n        );\n    $$,\n    '同一目标可以继续累计超过 numeric(14,2) 范围的报销金额'\n);\n\nselect is(\n    (select reimbursement_amount\n     from public.transaction_item_with_refund\n     where id = '60592000-0000-4000-8000-000000000001'),\n    1200000000000::numeric,\n    '视图可以读取超过 numeric(14,2) 范围的累计报销金额'\n);\n\n"""
+          if test.count(anchor) != 1:
+              raise SystemExit("expected surplus assertion anchor exactly once")
+          test = test.replace(anchor, regression, 1)
+          test_path.write_text(test)
+          PY
+
+      - name: Read Supabase CLI version
+        id: supabase_version
+        shell: bash
+        run: |
+          version="$(<.supabase-version)"
+          version="${version%$'\r'}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: ${{ steps.supabase_version.outputs.version }}
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Run database tests
+        run: supabase test db
+
+      - name: Regenerate schema snapshot
+        run: CI=1 npm run db:schema:snapshot:update
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            supabase/migrations/20260819004000_widen_transaction_offset_view_amounts.sql \
+            supabase/tests/database/issue_605_pr1_large_surplus.test.sql \
+            supabase/schema_snapshot/current_schema.sql
+          git diff --cached --quiet && { echo "no changes to commit"; exit 1; }
+          git commit -m "fix: 放宽核销聚合视图金额范围"
+          git pull --rebase origin feature/605_pr1_release_offset_cap
+          git push origin HEAD:feature/605_pr1_release_offset_cap
