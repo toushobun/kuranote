@@ -37,7 +37,7 @@ remaining_offset_amount
 
 状态由数据库在关联新增、删除或受控重建后重新派生。`reimbursement_surplus` 与 `reimbursed` 一样属于受控状态，不能由普通客户端写入任意切换。
 
-只有退款关联、且 `special_status IS NULL` 的普通支出不会自动进入报销状态机；无论退款金额是否超过原始支出，它都保持 `NULL`。如果这类支出之后被用户标记为待报销，数据库会根据当时已经存在的全部有效退款 / 报销金额直接派生正确状态，可能立即进入 `reimbursed` 或 `reimbursement_surplus`。
+只有退款关联、且 `special_status IS NULL` 的普通支出不会自动进入报销状态机；无论退款金额是否超过原始支出，它都保持 `NULL`。数据库层仍定义了 `NULL -> pending_reimbursement` 时按已有全部有效退款 / 报销金额重新派生状态的规则，因此受控流程如果执行该转换，可能直接进入 `reimbursed` 或 `reimbursement_surplus`。**当前 UI 对作为退款 / 报销目标的支出仍采用整体只读，用户不能在已有这些关联后直接补标待报销；这部分编辑能力属于 #574。**
 
 ## 业务净额与统计口径
 
