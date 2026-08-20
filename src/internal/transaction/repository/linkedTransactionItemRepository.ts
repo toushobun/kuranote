@@ -63,7 +63,6 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.specialStatusInvalid,
   transactionErrorCodes.incomeLinkCategoryInvalid,
   "refund_account_mismatch",
-  "refund_currency_mismatch",
   "reimbursement_currency_mismatch",
   "linked_transaction_edit_forbidden",
 ] as const;
@@ -147,10 +146,7 @@ export function createSupabaseLinkedTransactionItemRepository(
         "分类或收支类型会破坏现有退款 / 报销关联。",
       );
     }
-    if (
-      rpcErrorCode === "refund_account_mismatch" ||
-      rpcErrorCode === "refund_currency_mismatch"
-    ) {
+    if (rpcErrorCode === "refund_account_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
         "退款关联要求收入与目标支出使用同一账户和币种。",
