@@ -9,6 +9,7 @@ import {
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { transactionErrorCodes } from "internal/transaction/errors";
+import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 
 export type LinkedTransactionItemEditSnapshot = {
   accountId: string;
@@ -67,19 +68,6 @@ const linkedEditRpcErrorCodes = [
   "linked_transaction_edit_forbidden",
 ] as const;
 
-type LinkedEditRpcErrorCode = (typeof linkedEditRpcErrorCodes)[number];
-
-function getLinkedEditRpcErrorCode(
-  error: RpcError,
-): LinkedEditRpcErrorCode | null {
-  const businessErrorCode = error.details?.trim();
-  return linkedEditRpcErrorCodes.includes(
-    businessErrorCode as LinkedEditRpcErrorCode,
-  )
-    ? (businessErrorCode as LinkedEditRpcErrorCode)
-    : null;
-}
-
 export function createSupabaseLinkedTransactionItemRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
@@ -88,7 +76,7 @@ export function createSupabaseLinkedTransactionItemRepository(
     error: RpcError,
     input: UpdateLinkedTransactionItemInput,
   ): never {
-    const rpcErrorCode = getLinkedEditRpcErrorCode(error);
+    const rpcErrorCode = findRpcErrorCode(error.details, linkedEditRpcErrorCodes);
     logger.error("[transaction] failed to update linked transaction item", {
       databaseCode: error.code,
       databaseDetails: error.details,
