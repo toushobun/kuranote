@@ -76,7 +76,10 @@ export function createSupabaseLinkedTransactionItemRepository(
     error: RpcError,
     input: UpdateLinkedTransactionItemInput,
   ): never {
-    const rpcErrorCode = findRpcErrorCode(error.details, linkedEditRpcErrorCodes);
+    const rpcErrorCode = findRpcErrorCode(
+      error.details,
+      linkedEditRpcErrorCodes,
+    );
     logger.error("[transaction] failed to update linked transaction item", {
       databaseCode: error.code,
       databaseDetails: error.details,

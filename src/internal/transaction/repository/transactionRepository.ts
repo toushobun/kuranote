@@ -290,7 +290,10 @@ export function createSupabaseTransactionRepository(
     error: RpcError,
     fields: Record<string, unknown>,
   ): never {
-    const rpcErrorCode = findRpcErrorCode(error.details, transactionRpcErrorCodes);
+    const rpcErrorCode = findRpcErrorCode(
+      error.details,
+      transactionRpcErrorCodes,
+    );
 
     logger.error(`[transaction] ${operation}`, {
       ...fields,
