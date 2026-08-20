@@ -32,8 +32,10 @@ import {
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 import { createSupabaseStatisticsRepository } from "internal/statistics/repository/statisticsRepository";
 import { createStatisticsService } from "internal/statistics/service/statisticsService";
+import { createSupabaseLinkedTransactionItemRepository } from "internal/transaction/repository/linkedTransactionItemRepository";
 import { createSupabaseTransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
+import { createLinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 import { createTransactionService } from "internal/transaction/service/transactionService";
 import { createSupabaseUserRepository } from "internal/user/repository/userRepository";
@@ -78,6 +80,9 @@ export type RequestContainer = {
   };
   readonly transaction: {
     readonly service: ReturnType<typeof createTransactionService>;
+    readonly linkedTransactionItemService: ReturnType<
+      typeof createLinkedTransactionItemService
+    >;
   };
   readonly user: {
     readonly service: ReturnType<typeof createUserService>;
@@ -334,6 +339,11 @@ export function createRequestContainer(
           dependencies.supabase,
           dependencies.logger,
         );
+        const linkedTransactionItemRepository =
+          createSupabaseLinkedTransactionItemRepository(
+            dependencies.supabase,
+            dependencies.logger,
+          );
         const transactionIncomeLinkRepository =
           createSupabaseTransactionIncomeLinkRepository(
             dependencies.supabase,
@@ -345,6 +355,12 @@ export function createRequestContainer(
           : null;
 
         transactionContainer = {
+          linkedTransactionItemService: createLinkedTransactionItemService({
+            currentUserId,
+            ledgerAccessService,
+            linkedTransactionItemRepository,
+            transactionRepository,
+          }),
           service: createTransactionService({
             accountQueryService: getAccountQueryService(),
             categoryQueryService: getCategoryQueryService(),

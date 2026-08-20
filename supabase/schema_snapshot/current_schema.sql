@@ -659,10 +659,46 @@ CREATE OR REPLACE FUNCTION "public"."clear_transaction_item_income_links"("p_led
     AS $$
 declare
     v_income_category_type text;
+    v_reimbursement_target_ids uuid[] := array[]::uuid[];
+    v_target_ids uuid[] := array[]::uuid[];
     v_previous_income_link_edit_flow text :=
         current_setting('kuranote.income_link_edit_flow', true);
-    v_reimbursement_target_ids uuid[] := array[]::uuid[];
 begin
+    perform 1
+    from public.ledger l
+    where l.id = p_ledger_id
+    for update;
+
+    select coalesce(
+        array_agg(link.target_expense_item_id order by link.target_expense_item_id),
+        array[]::uuid[]
+    )
+    into v_reimbursement_target_ids
+    from public.transaction_item_reimbursement_link link
+    where link.ledger_id = p_ledger_id
+      and link.reimbursement_income_item_id = p_income_item_id;
+
+    select coalesce(array_agg(target_id order by target_id), array[]::uuid[])
+    into v_target_ids
+    from (
+        select link.target_expense_item_id as target_id
+        from public.transaction_item_reimbursement_link link
+        where link.ledger_id = p_ledger_id
+          and link.reimbursement_income_item_id = p_income_item_id
+        union
+        select link.refunded_item_id
+        from public.transaction_item_refund_link link
+        where link.ledger_id = p_ledger_id
+          and link.refund_income_item_id = p_income_item_id
+    ) targets;
+
+    perform 1
+    from public.transaction_item item
+    where item.ledger_id = p_ledger_id
+      and item.id = any(array_append(v_target_ids, p_income_item_id))
+    order by item.id
+    for update;
+
     select c.type
     into v_income_category_type
     from public.transaction_item income_item
@@ -670,8 +706,7 @@ begin
       on c.id = income_item.category_id
      and c.ledger_id = income_item.ledger_id
     where income_item.id = p_income_item_id
-      and income_item.ledger_id = p_ledger_id
-    for update of income_item;
+      and income_item.ledger_id = p_ledger_id;
 
     if not found or v_income_category_type is distinct from 'income' then
         raise exception 'income_link_category_invalid'
@@ -680,21 +715,11 @@ begin
 
     perform set_config('kuranote.income_link_edit_flow', 'on', true);
 
-    with deleted_links as (
-        delete from public.transaction_item_reimbursement_link link
-        where link.ledger_id = p_ledger_id
-          and link.reimbursement_income_item_id = p_income_item_id
-        returning link.target_expense_item_id
-    )
-    select coalesce(
-        array_agg(deleted_links.target_expense_item_id),
-        array[]::uuid[]
-    )
-    into v_reimbursement_target_ids
-    from deleted_links;
+    delete from public.transaction_item_reimbursement_link link
+    where link.ledger_id = p_ledger_id
+      and link.reimbursement_income_item_id = p_income_item_id;
 
-    -- 关联表的 AFTER DELETE trigger 已按剩余有效核销重新派生三态。
-    -- 这里只保留原流程的审计字段更新，不能再把 reimbursed 强制覆盖成 pending。
+    -- 保留旧实现的审计语义：清除报销关联后，目标支出的最后修改者仍记为本次操作者。
     update public.transaction_item target_item
     set updated_by = p_user_id,
         updated_at = now()
@@ -1497,6 +1522,60 @@ CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
+    v_user_id uuid := auth.uid();
+    v_requires_link_lock boolean := false;
+begin
+    if v_user_id is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden'
+            using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+
+    -- malformed p_items 继续交给旧实现返回既有 items_invalid，wrapper 只识别
+    -- 会进入 ledger 锁路径的明确 payload，避免改变公开 RPC 的历史错误语义。
+    if jsonb_typeof(p_items) = 'array' then
+        select exists (
+            select 1
+            from jsonb_array_elements(p_items) item
+            where nullif(item ->> 'reimbursementItemId', '') is not null
+               or nullif(item ->> 'refundedItemId', '') is not null
+               or nullif(item ->> 'specialStatus', '') is not null
+        )
+        into v_requires_link_lock;
+    end if;
+
+    if v_requires_link_lock then
+        perform 1
+        from public.ledger l
+        where l.id = p_ledger_id
+        for update;
+    end if;
+
+    return public.create_transaction_locked_impl(
+        p_ledger_id,
+        p_type,
+        p_transaction_at,
+        p_items,
+        p_account_id,
+        p_merchant_id,
+        p_note
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
     v_transaction_record_id uuid;
     v_transaction_item_id uuid;
     v_user_id uuid := auth.uid();
@@ -1623,7 +1702,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -2075,6 +2154,11 @@ declare
     v_old_record_id uuid;
     v_new_ledger_id uuid;
     v_new_record_id uuid;
+    v_is_link_edit_flow boolean := false;
+    v_is_link_derived_touch boolean := false;
+    v_remaining_amount numeric;
+    v_expected_special_status public.transaction_item_special_status;
+    v_special_status_is_derived boolean := false;
 begin
     if auth.uid() is null then
         if tg_op = 'DELETE' then
@@ -2083,11 +2167,78 @@ begin
         return new;
     end if;
 
+    if tg_table_name = 'transaction_item' and tg_op = 'UPDATE' then
+        v_is_link_edit_flow :=
+            current_setting('kuranote.income_link_edit_flow', true)
+                is not distinct from 'on'
+            or current_setting('kuranote.reimbursement_link_flow', true)
+                is not distinct from 'on';
+
+        -- special_status 非 NULL 的目标已经处于报销流程。受控关联写入如果需要改变
+        -- 三态，只接受与当前有效核销合计重新计算结果完全一致的值；NULL -> pending
+        -- 仍然属于用户主动开启待报销标记，不在这个权限例外内。
+        if v_is_link_edit_flow
+           and old.special_status is not null
+           and new.special_status is not null then
+            v_remaining_amount :=
+                public.calculate_transaction_item_remaining_offset_amount(
+                    new.ledger_id,
+                    new.id
+                );
+
+            if v_remaining_amount is not null then
+                v_expected_special_status := case
+                    when v_remaining_amount > 0
+                    then 'pending_reimbursement'::public.transaction_item_special_status
+                    when v_remaining_amount = 0
+                    then 'reimbursed'::public.transaction_item_special_status
+                    else 'reimbursement_surplus'::public.transaction_item_special_status
+                end;
+                v_special_status_is_derived :=
+                    new.special_status is not distinct from v_expected_special_status;
+            end if;
+        end if;
+
+        v_is_link_derived_touch :=
+            v_is_link_edit_flow
+            and old.id is not distinct from new.id
+            and old.ledger_id is not distinct from new.ledger_id
+            and old.transaction_record_id is not distinct from new.transaction_record_id
+            and old.account_id is not distinct from new.account_id
+            and old.category_id is not distinct from new.category_id
+            and old.amount is not distinct from new.amount
+            and old.discount_amount is not distinct from new.discount_amount
+            and old.balance_delta is not distinct from new.balance_delta
+            and old.note is not distinct from new.note
+            and old.sort_order is not distinct from new.sort_order
+            and old.created_by is not distinct from new.created_by
+            and old.created_at is not distinct from new.created_at
+            and (
+                (
+                    old.special_status is null
+                    and new.special_status is null
+                )
+                or v_special_status_is_derived
+            )
+            and (
+                new.updated_by is not distinct from old.updated_by
+                or new.updated_by is not distinct from auth.uid()
+            );
+
+        if v_is_link_derived_touch
+           and public.current_user_can_write_ledger(old.ledger_id) then
+            return new;
+        end if;
+    end if;
+
     if tg_op <> 'INSERT' then
         v_old_ledger_id := old.ledger_id;
         v_old_record_id := old.transaction_record_id;
 
-        if not public.current_user_can_mutate_transaction(v_old_ledger_id, v_old_record_id) then
+        if not public.current_user_can_mutate_transaction(
+            v_old_ledger_id,
+            v_old_record_id
+        ) then
             raise exception 'permission_denied' using errcode = '42501';
         end if;
     end if;
@@ -2096,7 +2247,10 @@ begin
         v_new_ledger_id := new.ledger_id;
         v_new_record_id := new.transaction_record_id;
 
-        if not public.current_user_can_mutate_transaction(v_new_ledger_id, v_new_record_id) then
+        if not public.current_user_can_mutate_transaction(
+            v_new_ledger_id,
+            v_new_record_id
+        ) then
             raise exception 'permission_denied' using errcode = '42501';
         end if;
     end if;
@@ -3676,6 +3830,11 @@ declare
     v_remaining_amount numeric;
     v_next_status public.transaction_item_special_status;
 begin
+    perform 1
+    from public.ledger l
+    where l.id = p_ledger_id
+    for update;
+
     select target_item.special_status
     into v_current_status
     from public.transaction_item target_item
@@ -3683,8 +3842,29 @@ begin
       and target_item.id = p_target_expense_item_id
     for update;
 
-    -- 普通支出不进入报销状态机，退款多少都保持 NULL。
-    if not found or v_current_status is null then
+    if not found then
+        return;
+    end if;
+
+    if v_current_status is null then
+        perform set_config('kuranote.income_link_edit_flow', 'on', true);
+        perform set_config('kuranote.reimbursement_link_flow', 'on', true);
+
+        update public.transaction_item target_item
+        set updated_at = now()
+        where target_item.ledger_id = p_ledger_id
+          and target_item.id = p_target_expense_item_id;
+
+        perform set_config(
+            'kuranote.reimbursement_link_flow',
+            coalesce(v_previous_reimbursement_link_flow, 'off'),
+            true
+        );
+        perform set_config(
+            'kuranote.income_link_edit_flow',
+            coalesce(v_previous_income_link_edit_flow, 'off'),
+            true
+        );
         return;
     end if;
 
@@ -3701,10 +3881,27 @@ begin
     end;
 
     if v_next_status is not distinct from v_current_status then
+        perform set_config('kuranote.income_link_edit_flow', 'on', true);
+        perform set_config('kuranote.reimbursement_link_flow', 'on', true);
+
+        update public.transaction_item target_item
+        set updated_at = now()
+        where target_item.ledger_id = p_ledger_id
+          and target_item.id = p_target_expense_item_id;
+
+        perform set_config(
+            'kuranote.reimbursement_link_flow',
+            coalesce(v_previous_reimbursement_link_flow, 'off'),
+            true
+        );
+        perform set_config(
+            'kuranote.income_link_edit_flow',
+            coalesce(v_previous_income_link_edit_flow, 'off'),
+            true
+        );
         return;
     end if;
 
-    -- 复用既有受控解锁通道，禁止普通写入绕过状态转换约束。
     perform set_config('kuranote.income_link_edit_flow', 'on', true);
     perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
@@ -4257,7 +4454,405 @@ $$;
 ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_old_account_id uuid;
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+
+    if not public.current_user_can_mutate_transaction(
+        p_ledger_id,
+        p_transaction_record_id
+    ) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
+
+    perform 1
+    from public.ledger ledger_row
+    where ledger_row.id = p_ledger_id
+    for update;
+
+    perform 1
+    from public.transaction_record record_row
+    where record_row.ledger_id = p_ledger_id
+      and record_row.id in (
+          select p_transaction_record_id
+          union
+          select target_item.transaction_record_id
+          from public.transaction_item_reimbursement_link reimbursement_link
+          join public.transaction_item target_item
+            on target_item.id = reimbursement_link.target_expense_item_id
+           and target_item.ledger_id = reimbursement_link.ledger_id
+          where reimbursement_link.ledger_id = p_ledger_id
+            and reimbursement_link.reimbursement_income_item_id =
+                p_transaction_item_id
+          union
+          select reimbursement_income.transaction_record_id
+          from public.transaction_item_reimbursement_link reimbursement_link
+          join public.transaction_item reimbursement_income
+            on reimbursement_income.id =
+               reimbursement_link.reimbursement_income_item_id
+           and reimbursement_income.ledger_id = reimbursement_link.ledger_id
+          where reimbursement_link.ledger_id = p_ledger_id
+            and reimbursement_link.target_expense_item_id =
+                p_transaction_item_id
+          union
+          select refunded_item.transaction_record_id
+          from public.transaction_item_refund_link refund_link
+          join public.transaction_item refunded_item
+            on refunded_item.id = refund_link.refunded_item_id
+           and refunded_item.ledger_id = refund_link.ledger_id
+          where refund_link.ledger_id = p_ledger_id
+            and refund_link.refund_income_item_id = p_transaction_item_id
+          union
+          select refund_income.transaction_record_id
+          from public.transaction_item_refund_link refund_link
+          join public.transaction_item refund_income
+            on refund_income.id = refund_link.refund_income_item_id
+           and refund_income.ledger_id = refund_link.ledger_id
+          where refund_link.ledger_id = p_ledger_id
+            and refund_link.refunded_item_id = p_transaction_item_id
+      )
+    order by record_row.id
+    for update;
+
+    -- 正式路径都先锁对应 transaction_record，因此读取当前 account 后不会再被另一个
+    -- 正式交易写入口改掉。找不到明细时仍交给内部实现返回既有 transaction_not_found。
+    select item.account_id
+    into v_old_account_id
+    from public.transaction_item item
+    where item.ledger_id = p_ledger_id
+      and item.transaction_record_id = p_transaction_record_id
+      and item.id = p_transaction_item_id;
+
+    perform 1
+    from public.account account_row
+    where account_row.ledger_id = p_ledger_id
+      and account_row.id = any(array[v_old_account_id, p_account_id]::uuid[])
+    order by account_row.id
+    for update;
+
+    perform public.update_linked_transaction_item_locked_impl(
+        p_ledger_id,
+        p_transaction_record_id,
+        p_transaction_item_id,
+        p_expected_updated_at,
+        p_amount,
+        p_account_id,
+        p_category_id
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_item public.transaction_item;
+    v_category_type text;
+    v_old_balance_delta numeric(14,2);
+    v_new_balance_delta numeric(14,2);
+    v_reimbursement_target_id uuid;
+    v_refund_target_id uuid;
+    v_is_reimbursement_target boolean;
+    v_is_refund_target boolean;
+    v_is_reimbursement_income boolean;
+    v_is_refund_income boolean;
+    v_related_item_ids uuid[] := array[]::uuid[];
+    v_previous_income_link_edit_flow text :=
+        current_setting('kuranote.income_link_edit_flow', true);
+    v_previous_reimbursement_link_flow text :=
+        current_setting('kuranote.reimbursement_link_flow', true);
+begin
+    if v_user_id is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden'
+            using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+
+    if p_expected_updated_at is null then
+        raise exception 'transaction_item_version_conflict'
+            using errcode = 'P0001', detail = 'transaction_item_version_conflict';
+    end if;
+
+    if p_amount is null or p_amount < 0 or p_amount <> round(p_amount, 2) then
+        raise exception 'amount_invalid'
+            using errcode = '22023', detail = 'amount_invalid';
+    end if;
+
+    perform 1
+    from public.ledger l
+    where l.id = p_ledger_id
+    for update;
+
+    select link.target_expense_item_id
+    into v_reimbursement_target_id
+    from public.transaction_item_reimbursement_link link
+    where link.ledger_id = p_ledger_id
+      and link.reimbursement_income_item_id = p_transaction_item_id;
+    v_is_reimbursement_income := found;
+
+    select link.refunded_item_id
+    into v_refund_target_id
+    from public.transaction_item_refund_link link
+    where link.ledger_id = p_ledger_id
+      and link.refund_income_item_id = p_transaction_item_id;
+    v_is_refund_income := found;
+
+    select exists (
+        select 1
+        from public.transaction_item_reimbursement_link link
+        where link.ledger_id = p_ledger_id
+          and link.target_expense_item_id = p_transaction_item_id
+    ) into v_is_reimbursement_target;
+
+    select exists (
+        select 1
+        from public.transaction_item_refund_link link
+        where link.ledger_id = p_ledger_id
+          and link.refunded_item_id = p_transaction_item_id
+    ) into v_is_refund_target;
+
+    v_related_item_ids := array[p_transaction_item_id]::uuid[];
+    if v_reimbursement_target_id is not null then
+        v_related_item_ids := array_append(v_related_item_ids, v_reimbursement_target_id);
+    end if;
+    if v_refund_target_id is not null then
+        v_related_item_ids := array_append(v_related_item_ids, v_refund_target_id);
+    end if;
+
+    perform 1
+    from public.transaction_item item
+    where item.ledger_id = p_ledger_id
+      and item.id = any(v_related_item_ids)
+    order by item.id
+    for update;
+
+    select item.*
+    into v_item
+    from public.transaction_item item
+    join public.transaction_record record
+      on record.id = item.transaction_record_id
+     and record.ledger_id = item.ledger_id
+     and record.status = 'active'
+    where item.ledger_id = p_ledger_id
+      and item.id = p_transaction_item_id
+      and item.transaction_record_id = p_transaction_record_id;
+
+    if not found then
+        raise exception 'transaction_not_found'
+            using errcode = '22023', detail = 'transaction_not_found';
+    end if;
+
+    if v_item.updated_at is distinct from p_expected_updated_at then
+        raise exception 'transaction_item_version_conflict'
+            using errcode = 'P0001', detail = 'transaction_item_version_conflict';
+    end if;
+
+    if not (
+        v_item.special_status is not null
+        or v_is_reimbursement_target
+        or v_is_refund_target
+        or v_is_reimbursement_income
+        or v_is_refund_income
+    ) then
+        raise exception 'linked_transaction_edit_forbidden'
+            using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
+    end if;
+
+    select c.type
+    into v_category_type
+    from public.category c
+    where c.id = p_category_id
+      and c.ledger_id = p_ledger_id
+      and c.is_archived = false
+      and c.parent_id is not null;
+
+    if v_category_type is null then
+        raise exception 'category_invalid'
+            using errcode = '22023', detail = 'category_invalid';
+    end if;
+
+    if (v_item.special_status is not null
+        or v_is_reimbursement_target
+        or v_is_refund_target)
+       and v_category_type is distinct from 'expense' then
+        raise exception 'special_status_invalid'
+            using errcode = '22023', detail = 'special_status_invalid';
+    end if;
+
+    if (v_is_reimbursement_income or v_is_refund_income)
+       and v_category_type is distinct from 'income' then
+        raise exception 'income_link_category_invalid'
+            using errcode = '22023', detail = 'income_link_category_invalid';
+    end if;
+
+    if not exists (
+        select 1
+        from public.account a
+        where a.id = p_account_id
+          and a.ledger_id = p_ledger_id
+          and a.is_archived = false
+    ) then
+        raise exception 'account_invalid'
+            using errcode = '22023', detail = 'account_invalid';
+    end if;
+
+    -- 复用触发器中的最终一致性校验：退款要求同账户，报销只要求同币种。
+    v_old_balance_delta := v_item.balance_delta;
+    v_new_balance_delta := case
+        when v_category_type = 'expense' then -p_amount
+        else p_amount
+    end;
+
+    if (v_is_reimbursement_income or v_is_refund_income) and p_amount <= 0 then
+        raise exception 'amount_invalid'
+            using errcode = '22023', detail = 'amount_invalid';
+    end if;
+
+    perform set_config('kuranote.income_link_edit_flow', 'on', true);
+    perform set_config('kuranote.reimbursement_link_flow', 'on', true);
+
+    update public.transaction_item item
+    set account_id = p_account_id,
+        category_id = p_category_id,
+        amount = p_amount,
+        balance_delta = v_new_balance_delta,
+        updated_by = v_user_id,
+        updated_at = now()
+    where item.ledger_id = p_ledger_id
+      and item.id = p_transaction_item_id;
+
+    if v_item.account_id is distinct from p_account_id then
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            v_item.account_id,
+            -v_old_balance_delta,
+            v_user_id
+        );
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            p_account_id,
+            v_new_balance_delta,
+            v_user_id
+        );
+    else
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            p_account_id,
+            v_new_balance_delta - v_old_balance_delta,
+            v_user_id
+        );
+    end if;
+
+    if v_is_reimbursement_income then
+        update public.transaction_item_reimbursement_link link
+        set reimbursement_amount = p_amount
+        where link.ledger_id = p_ledger_id
+          and link.reimbursement_income_item_id = p_transaction_item_id;
+    elsif v_is_refund_income then
+        update public.transaction_item_refund_link link
+        set refund_amount = p_amount
+        where link.ledger_id = p_ledger_id
+          and link.refund_income_item_id = p_transaction_item_id;
+    else
+        -- 母项只改 base amount；关联行完全不动，只重算派生状态。
+        perform public.recalculate_transaction_item_settlement_status(
+            p_ledger_id,
+            p_transaction_item_id
+        );
+    end if;
+
+    perform set_config(
+        'kuranote.reimbursement_link_flow',
+        coalesce(v_previous_reimbursement_link_flow, 'off'),
+        true
+    );
+    perform set_config(
+        'kuranote.income_link_edit_flow',
+        coalesce(v_previous_income_link_edit_flow, 'off'),
+        true
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_requires_link_lock boolean := p_type = 'income';
+begin
+    if v_user_id is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden'
+            using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+
+    -- malformed p_items 仍交给旧实现返回既有 items_invalid；这里只在数组输入上识别
+    -- 本次是否明确进入关联 / 特殊状态路径，避免 wrapper 改变历史错误语义。
+    if not v_requires_link_lock and jsonb_typeof(p_items) = 'array' then
+        select exists (
+            select 1
+            from jsonb_array_elements(p_items) item
+            where nullif(item ->> 'reimbursementItemId', '') is not null
+               or nullif(item ->> 'refundedItemId', '') is not null
+               or nullif(item ->> 'specialStatus', '') is not null
+        )
+        into v_requires_link_lock;
+    end if;
+
+    if v_requires_link_lock then
+        perform 1
+        from public.ledger l
+        where l.id = p_ledger_id
+        for update;
+    end if;
+
+    return public.update_transaction_locked_impl(
+        p_ledger_id,
+        p_transaction_record_id,
+        p_type,
+        p_transaction_at,
+        p_items,
+        p_account_id,
+        p_merchant_id,
+        p_note
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4575,7 +5170,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -4942,38 +5537,185 @@ CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_mutation"(
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
+declare
+    v_is_reimbursement_target boolean;
+    v_is_reimbursement_income boolean;
+    v_is_refund_target boolean;
+    v_is_refund_income boolean;
+    v_new_category_type text;
+    v_new_account_currency text;
+    v_controlled_link_edit boolean :=
+        coalesce(current_setting('kuranote.income_link_edit_flow', true) = 'on', false)
+        or coalesce(
+            current_setting('kuranote.reimbursement_link_flow', true) = 'on',
+            false
+        );
 begin
-    if tg_op = 'UPDATE'
-       and new.amount is not distinct from old.amount
+    select
+        exists (
+            select 1
+            from public.transaction_item_reimbursement_link link
+            where link.ledger_id = old.ledger_id
+              and link.target_expense_item_id = old.id
+        ),
+        exists (
+            select 1
+            from public.transaction_item_reimbursement_link link
+            where link.ledger_id = old.ledger_id
+              and link.reimbursement_income_item_id = old.id
+        ),
+        exists (
+            select 1
+            from public.transaction_item_refund_link link
+            where link.ledger_id = old.ledger_id
+              and link.refunded_item_id = old.id
+        ),
+        exists (
+            select 1
+            from public.transaction_item_refund_link link
+            where link.ledger_id = old.ledger_id
+              and link.refund_income_item_id = old.id
+        )
+    into
+        v_is_reimbursement_target,
+        v_is_reimbursement_income,
+        v_is_refund_target,
+        v_is_refund_income;
+
+    if tg_op = 'DELETE' then
+        if v_is_reimbursement_target
+           or v_is_reimbursement_income
+           or v_is_refund_target
+           or v_is_refund_income then
+            raise exception 'linked_transaction_edit_forbidden'
+                using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
+        end if;
+        return old;
+    end if;
+
+    if new.amount is not distinct from old.amount
        and new.account_id is not distinct from old.account_id
        and new.category_id is not distinct from old.category_id then
         return new;
     end if;
 
-    if exists (
-        select 1
-        from public.transaction_item_reimbursement_link link
-        where link.ledger_id = old.ledger_id
-          and (
-              link.target_expense_item_id = old.id
-              or link.reimbursement_income_item_id = old.id
-          )
-    ) or exists (
-        select 1
-        from public.transaction_item_refund_link link
-        where link.ledger_id = old.ledger_id
-          and (
-              link.refunded_item_id = old.id
-              or link.refund_income_item_id = old.id
-          )
+    if not (
+        old.special_status is not null
+        or v_is_reimbursement_target
+        or v_is_reimbursement_income
+        or v_is_refund_target
+        or v_is_refund_income
     ) then
+        return new;
+    end if;
+
+    -- 只有仍存在关联的明细需要受控解锁；仅保留待报销标记但已无关联的母项
+    -- 继续允许普通金额编辑，special_status 本身仍由专用状态触发器保护。
+    if (v_is_reimbursement_target
+        or v_is_reimbursement_income
+        or v_is_refund_target
+        or v_is_refund_income)
+       and not v_controlled_link_edit then
         raise exception 'linked_transaction_edit_forbidden'
             using errcode = 'P0001', detail = 'linked_transaction_edit_forbidden';
     end if;
 
-    if tg_op = 'DELETE' then
-        return old;
+    if new.category_id is distinct from old.category_id then
+        select c.type
+        into v_new_category_type
+        from public.category c
+        where c.id = new.category_id
+          and c.ledger_id = new.ledger_id
+          and c.is_archived = false
+          and c.parent_id is not null;
+
+        if v_new_category_type is null then
+            raise exception 'category_invalid'
+                using errcode = '22023', detail = 'category_invalid';
+        end if;
+
+        if (old.special_status is not null
+            or v_is_reimbursement_target
+            or v_is_refund_target)
+           and v_new_category_type is distinct from 'expense' then
+            raise exception 'special_status_invalid'
+                using errcode = '22023', detail = 'special_status_invalid';
+        end if;
+
+        if (v_is_reimbursement_income or v_is_refund_income)
+           and v_new_category_type is distinct from 'income' then
+            raise exception 'income_link_category_invalid'
+                using errcode = '22023', detail = 'income_link_category_invalid';
+        end if;
     end if;
+
+    if new.account_id is distinct from old.account_id then
+        select a.currency
+        into v_new_account_currency
+        from public.account a
+        where a.id = new.account_id
+          and a.ledger_id = new.ledger_id
+          and a.is_archived = false;
+
+        if v_new_account_currency is null then
+            raise exception 'account_invalid'
+                using errcode = '22023', detail = 'account_invalid';
+        end if;
+
+        if v_is_refund_income and exists (
+            select 1
+            from public.transaction_item_refund_link link
+            join public.transaction_item target_item
+              on target_item.id = link.refunded_item_id
+             and target_item.ledger_id = link.ledger_id
+            where link.ledger_id = old.ledger_id
+              and link.refund_income_item_id = old.id
+              and target_item.account_id is distinct from new.account_id
+        ) then
+            raise exception 'refund_account_mismatch'
+                using errcode = '22023', detail = 'refund_account_mismatch';
+        end if;
+
+        if v_is_refund_target and exists (
+            select 1
+            from public.transaction_item_refund_link link
+            join public.transaction_item income_item
+              on income_item.id = link.refund_income_item_id
+             and income_item.ledger_id = link.ledger_id
+            where link.ledger_id = old.ledger_id
+              and link.refunded_item_id = old.id
+              and income_item.account_id is distinct from new.account_id
+        ) then
+            raise exception 'refund_account_mismatch'
+                using errcode = '22023', detail = 'refund_account_mismatch';
+        end if;
+
+        if (v_is_reimbursement_income or v_is_reimbursement_target)
+           and exists (
+               select 1
+               from public.transaction_item_reimbursement_link link
+               join public.transaction_item counterpart_item
+                 on counterpart_item.id = case
+                     when link.reimbursement_income_item_id = old.id
+                     then link.target_expense_item_id
+                     else link.reimbursement_income_item_id
+                 end
+                and counterpart_item.ledger_id = link.ledger_id
+               join public.account counterpart_account
+                 on counterpart_account.id = counterpart_item.account_id
+                and counterpart_account.ledger_id = counterpart_item.ledger_id
+               where link.ledger_id = old.ledger_id
+                 and (
+                     link.reimbursement_income_item_id = old.id
+                     or link.target_expense_item_id = old.id
+                 )
+                 and counterpart_account.currency is distinct from v_new_account_currency
+           ) then
+            raise exception 'reimbursement_currency_mismatch'
+                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+        end if;
+    end if;
+
     return new;
 end;
 $$;
@@ -6932,6 +7674,10 @@ GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_typ
 
 
 
+REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+
+
+
 GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
 
 
@@ -7078,8 +7824,21 @@ GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uu
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 
 
 
