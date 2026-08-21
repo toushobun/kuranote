@@ -20,7 +20,10 @@ export function validateLinkedEditTransactionForm(formData: FormData) {
 
   const itemCount = formData.getAll("itemCategoryId").length;
   if (submittedSpecialStatuses.length !== itemCount) {
-    return { error: transactionErrorCodes.specialStatusInvalid, ok: false } as const;
+    return {
+      error: transactionErrorCodes.specialStatusInvalid,
+      ok: false,
+    } as const;
   }
 
   const specialStatuses: Array<TransactionSpecialStatus | null> = [];
