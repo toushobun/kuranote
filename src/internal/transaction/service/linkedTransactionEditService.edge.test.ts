@@ -150,12 +150,41 @@ function createSettledTargetView(): EditTransactionView {
   };
 }
 
+function createUnlinkedView(): EditTransactionView {
+  return {
+    ...formOptions(),
+    canEdit: true,
+    editRestriction: null,
+    initialValues: {
+      accountId,
+      items: [
+        {
+          amount: "300",
+          businessStatus: null,
+          categoryId: expenseCategoryId,
+          id: linkedItemId,
+          refundCandidate: null,
+          reimbursementCandidate: null,
+          specialStatus: null,
+        },
+      ],
+      merchantId,
+      note: "",
+      transactionAt,
+      transactionRecordId,
+      type: "expense",
+    },
+    ledgerName: "家庭账本",
+  };
+}
+
 function createService(view: EditTransactionView) {
   const updateEdit = vi.fn();
+  const updateNormal = vi.fn();
   const transactionService = {
     canModify: vi.fn().mockResolvedValue(true),
     getEditView: vi.fn().mockResolvedValue(view),
-    updateNormal: vi.fn(),
+    updateNormal,
     void: vi.fn(),
   } as unknown as TransactionService;
   const linkedTransactionItemService = {
@@ -170,6 +199,7 @@ function createService(view: EditTransactionView) {
       transactionService,
     }),
     updateEdit,
+    updateNormal,
   };
 }
 
@@ -251,5 +281,39 @@ describe("LinkedTransactionEditService edge cases", () => {
         itemUpdates: [expect.objectContaining({ amount: 320 })],
       }),
     );
+  });
+
+  it("普通明细不能伪造关联派生状态", async () => {
+    const { service, updateEdit, updateNormal } = createService(
+      createUnlinkedView(),
+    );
+    const input: LinkedTransactionEditInput = {
+      accountId,
+      confirmSync: false,
+      expectedUpdatedAtByItemId: {},
+      items: [
+        {
+          amount: 300,
+          categoryId: expenseCategoryId,
+          id: linkedItemId,
+          specialStatus: "reimbursementSurplus",
+        },
+      ],
+      ledgerId,
+      merchantId,
+      note: null,
+      transactionAt,
+      transactionRecordId,
+      type: "expense",
+    };
+
+    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
+      {
+        code: transactionErrorCodes.specialStatusInvalid,
+        name: ValidationError.name,
+      },
+    );
+    expect(updateNormal).not.toHaveBeenCalled();
+    expect(updateEdit).not.toHaveBeenCalled();
   });
 });
