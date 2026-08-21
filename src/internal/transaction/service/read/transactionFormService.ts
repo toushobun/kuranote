@@ -180,6 +180,7 @@ export async function getEditTransactionView(
           specialStatus: fromTransactionSpecialStatusStorageValue(
             item.special_status ?? null,
           ),
+          ...(item.updated_at ? { updatedAt: item.updated_at } : {}),
         };
       }),
       merchantId: record.merchant_id ?? "",
