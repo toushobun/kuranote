@@ -70,8 +70,7 @@ const transactionValidationErrorMessages: Record<
 export const transactionLinkedEditErrorMessages = {
   confirmationRequired:
     "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
-  deleteForbidden:
-    "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
+  deleteForbidden: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
   inputInvalid: "关联编辑确认信息不正确，请刷新页面后重试。",
   refundAccountMismatch:
     "退款关联要求收入与目标支出使用同一账户，请先解除关联后再修改账户。",
@@ -79,8 +78,7 @@ export const transactionLinkedEditErrorMessages = {
     "报销收入与目标支出的账户币种必须一致，请选择相同币种的账户。",
   specialStatusLocked:
     "待报销及已结算状态不能直接修改；如需改变业务关系，请先解除关联。",
-  unlinkRequired:
-    "该修改会破坏现有退款 / 报销关联，请先解除关联后再修改。",
+  unlinkRequired: "该修改会破坏现有退款 / 报销关联，请先解除关联后再修改。",
   unsupportedSiblingEdit:
     "包含关联明细的交易暂不能同时增删或修改其他未关联明细，请先解除关联后再调整。",
   versionInvalid: "关联明细版本信息缺失或已过期，请刷新页面后重试。",
@@ -88,7 +86,9 @@ export const transactionLinkedEditErrorMessages = {
 
 export function getTransactionValidationErrorMessage(error?: string) {
   return error && error in transactionValidationErrorMessages
-    ? transactionValidationErrorMessages[error as TransactionValidationErrorCode]
+    ? transactionValidationErrorMessages[
+        error as TransactionValidationErrorCode
+      ]
     : null;
 }
 
