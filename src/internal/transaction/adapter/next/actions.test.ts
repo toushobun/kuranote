@@ -6,7 +6,12 @@ import {
   updateTransaction,
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
-import { ValidationError } from "internal/shared/errors/appError";
+import {
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
+import { transactionErrorCodes } from "internal/transaction/errors";
+
 const mocks = vi.hoisted(() => ({
   canModify: vi.fn(),
   convert: vi.fn(),
@@ -213,9 +218,28 @@ describe("Transaction Action 写入流程", () => {
     );
     await expect(
       updateTransaction({}, createNormalFormData()),
-    ).resolves.toEqual({ error: "账户信息不正确。" });
+    ).resolves.toEqual({
+      error: "账户信息不正确。",
+      errorKey: "account_invalid",
+    });
     expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+  it("同步确认冲突通过稳定 errorKey 返回给后续确认弹层", async () => {
+    mocks.updateNormal.mockRejectedValueOnce(
+      new ConflictError(
+        transactionErrorCodes.linkedSyncConfirmationRequired,
+        "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
+      ),
+    );
+
+    await expect(
+      updateTransaction({}, createNormalFormData()),
+    ).resolves.toEqual({
+      error: "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
+      errorKey: transactionErrorCodes.linkedSyncConfirmationRequired,
+    });
+    expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
   });
   it("普通交易转换为转账时由 saveEditTransaction 调用 convert", async () => {
     await expect(
