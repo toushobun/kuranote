@@ -41,6 +41,9 @@ function getTransactionMutationImplementationSql(functionName: string) {
   if (functionName === "update_transaction") {
     return getFunctionSql("update_transaction_locked_impl");
   }
+  if (functionName === "convert_transaction_type") {
+    return getFunctionSql("convert_transaction_type_locked_impl");
+  }
   return getFunctionSql(functionName);
 }
 
@@ -111,6 +114,19 @@ describe("current ledger 数据边界", () => {
     expect(functionSql).toContain("update_transaction_locked_impl(");
   });
 
+  it("convert_transaction_type 在进入 record/account 实现前先锁目标账本", () => {
+    const functionSql = getFunctionSql("convert_transaction_type");
+    const ledgerLockIndex = functionSql.indexOf("from public.ledger ledger_row");
+    const implementationIndex = functionSql.indexOf(
+      "convert_transaction_type_locked_impl(",
+    );
+
+    expect(ledgerLockIndex).toBeGreaterThanOrEqual(0);
+    expect(functionSql).toContain("where ledger_row.id = p_ledger_id");
+    expect(functionSql).toContain("for update");
+    expect(implementationIndex).toBeGreaterThan(ledgerLockIndex);
+  });
+
   it("update_transaction 原实现只允许 income 请求越过关联收入前置冻结并进入 clear 流程", () => {
     const functionSql = getFunctionSql("update_transaction_locked_impl");
     const incomeFlagIndex = functionSql.indexOf(
@@ -161,7 +177,7 @@ describe("current ledger 数据边界", () => {
       "update_transfer_transaction",
       "convert_transaction_type",
     ]) {
-      expect(getFunctionSql(functionName)).toContain(
+      expect(getTransactionMutationImplementationSql(functionName)).toContain(
         "a.ledger_id = p_ledger_id",
       );
     }
