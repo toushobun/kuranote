@@ -54,9 +54,9 @@ function isLinkedTarget(item: ExistingItem): boolean {
   const status = item.businessStatus;
   return Boolean(
     status &&
-      status.incomeLinkRole === null &&
-      (hasPositiveAmount(status.offsetComposition.refundAmount) ||
-        hasPositiveAmount(status.offsetComposition.reimbursementAmount)),
+    status.incomeLinkRole === null &&
+    (hasPositiveAmount(status.offsetComposition.refundAmount) ||
+      hasPositiveAmount(status.offsetComposition.reimbursementAmount)),
   );
 }
 
@@ -67,16 +67,16 @@ function isLinkedItem(item: ExistingItem): boolean {
 function hasRefundLink(item: ExistingItem): boolean {
   return Boolean(
     item.businessStatus?.incomeLinkRole === "refund" ||
-      hasPositiveAmount(item.businessStatus?.offsetComposition.refundAmount),
+    hasPositiveAmount(item.businessStatus?.offsetComposition.refundAmount),
   );
 }
 
 function hasReimbursementLink(item: ExistingItem): boolean {
   return Boolean(
     item.businessStatus?.incomeLinkRole === "reimbursement" ||
-      hasPositiveAmount(
-        item.businessStatus?.offsetComposition.reimbursementAmount,
-      ),
+    hasPositiveAmount(
+      item.businessStatus?.offsetComposition.reimbursementAmount,
+    ),
   );
 }
 
@@ -86,7 +86,9 @@ function sameAmount(left: string | number, right: string | number): boolean {
   return leftUnits !== null && rightUnits !== null && leftUnits === rightUnits;
 }
 
-function getNormalInitialValues(view: EditTransactionView): NormalEditInitialValues {
+function getNormalInitialValues(
+  view: EditTransactionView,
+): NormalEditInitialValues {
   if (!("items" in view.initialValues)) {
     throw new ValidationError(
       transactionErrorCodes.updateInvalid,
@@ -253,12 +255,7 @@ export function createLinkedTransactionEditService({
       }
 
       if (
-        hasSiblingItemMutation(
-          initial,
-          input,
-          linkedItemIds,
-          submittedById,
-        )
+        hasSiblingItemMutation(initial, input, linkedItemIds, submittedById)
       ) {
         throw new ValidationError(
           transactionErrorCodes.linkedEditRequiresUnlink,
@@ -310,7 +307,10 @@ export function createLinkedTransactionEditService({
             transactionLinkedEditErrorMessages.deleteForbidden,
           );
         }
-        if (getSubmittedSpecialStatus(existing, submitted) !== existing.specialStatus) {
+        if (
+          getSubmittedSpecialStatus(existing, submitted) !==
+          existing.specialStatus
+        ) {
           if (existing.specialStatus !== null) throwSpecialStatusLocked();
           throwUnlinkRequired();
         }
@@ -340,7 +340,10 @@ export function createLinkedTransactionEditService({
       }
 
       const typeChanged = input.type !== initial.type;
-      if ((changedLinkedItems.length > 0 || typeChanged) && !input.confirmSync) {
+      if (
+        (changedLinkedItems.length > 0 || typeChanged) &&
+        !input.confirmSync
+      ) {
         throw new ConflictError(
           transactionErrorCodes.linkedSyncConfirmationRequired,
           transactionLinkedEditErrorMessages.confirmationRequired,
@@ -367,7 +370,9 @@ export function createLinkedTransactionEditService({
 
       if (
         input.merchantId !== initial.merchantId &&
-        !view.merchantOptions.some((merchant) => merchant.id === input.merchantId)
+        !view.merchantOptions.some(
+          (merchant) => merchant.id === input.merchantId,
+        )
       ) {
         throw new ValidationError(
           transactionErrorCodes.merchantInvalid,
