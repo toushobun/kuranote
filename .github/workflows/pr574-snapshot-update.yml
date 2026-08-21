@@ -1,0 +1,51 @@
+name: PR574 Schema Snapshot Update
+
+on:
+  push:
+    branches:
+      - feature/574_pr2_edit_save_flow
+    paths:
+      - .github/workflows/pr574-snapshot-update.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/574_pr2_edit_save_flow
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Generate schema snapshot
+        env:
+          CI: "true"
+        run: npm run db:schema:snapshot:update
+
+      - name: Commit generated snapshot
+        run: |
+          git add supabase/schema_snapshot/current_schema.sql
+          if git diff --cached --quiet; then
+            echo "Schema snapshot is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: 同步数据库结构快照"
+          git push origin HEAD:feature/574_pr2_edit_save_flow
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
