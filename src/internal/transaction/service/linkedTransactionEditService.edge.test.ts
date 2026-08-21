@@ -178,6 +178,14 @@ function createUnlinkedView(): EditTransactionView {
   };
 }
 
+function createPendingView(): EditTransactionView {
+  const view = createUnlinkedView();
+  if ("items" in view.initialValues && view.initialValues.items[0]) {
+    view.initialValues.items[0].specialStatus = "pendingReimbursement";
+  }
+  return view;
+}
+
 function createService(view: EditTransactionView) {
   const updateEdit = vi.fn();
   const updateNormal = vi.fn();
@@ -297,6 +305,39 @@ describe("LinkedTransactionEditService edge cases", () => {
           categoryId: expenseCategoryId,
           id: linkedItemId,
           specialStatus: "reimbursementSurplus",
+        },
+      ],
+      ledgerId,
+      merchantId,
+      note: null,
+      transactionAt,
+      transactionRecordId,
+      type: "expense",
+    };
+
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(updateNormal).not.toHaveBeenCalled();
+    expect(updateEdit).not.toHaveBeenCalled();
+  });
+
+  it("待报销明细缺少特殊状态字段时拒绝旧保存路径清空状态", async () => {
+    const { service, updateEdit, updateNormal } = createService(
+      createPendingView(),
+    );
+    const input: LinkedTransactionEditInput = {
+      accountId,
+      confirmSync: false,
+      expectedUpdatedAtByItemId: {},
+      items: [
+        {
+          amount: 300,
+          categoryId: expenseCategoryId,
+          id: linkedItemId,
         },
       ],
       ledgerId,
