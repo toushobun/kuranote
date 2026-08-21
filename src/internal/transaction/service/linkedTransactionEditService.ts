@@ -284,6 +284,10 @@ export function createLinkedTransactionEditService({
         return;
       }
 
+      // normal 交易的“收入 / 支出”是表单展示语义，不是独立持久化字段。
+      // 编辑页跨类型切换会重建空明细面板，无法在保留现有关联的前提下安全同步。
+      if (input.type !== initial.type) throwUnlinkRequired();
+
       const linkedItemIds = new Set(
         linkedItems.flatMap((item) => (item.id ? [item.id] : [])),
       );
@@ -381,11 +385,7 @@ export function createLinkedTransactionEditService({
         }
       }
 
-      const typeChanged = input.type !== initial.type;
-      if (
-        (changedLinkedItems.length > 0 || typeChanged) &&
-        !input.confirmSync
-      ) {
+      if (changedLinkedItems.length > 0 && !input.confirmSync) {
         throw new ConflictError(
           transactionErrorCodes.linkedSyncConfirmationRequired,
           transactionLinkedEditErrorMessages.confirmationRequired,
@@ -426,7 +426,7 @@ export function createLinkedTransactionEditService({
         input.merchantId !== initial.merchantId ||
         input.note !== (initial.note || null) ||
         input.transactionAt !== initial.transactionAt;
-      if (itemUpdates.length === 0 && !metadataChanged && !typeChanged) return;
+      if (itemUpdates.length === 0 && !metadataChanged) return;
 
       await linkedTransactionItemService.updateEdit({
         itemUpdates,
