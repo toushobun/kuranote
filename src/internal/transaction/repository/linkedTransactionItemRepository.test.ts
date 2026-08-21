@@ -1,7 +1,14 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
-import { ConflictError } from "internal/shared/errors/appError";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "internal/shared/errors/appError";
+import { transactionErrorCodes } from "internal/transaction/errors";
 import {
   createSupabaseLinkedTransactionItemRepository,
   type UpdateLinkedTransactionItemInput,
@@ -54,6 +61,17 @@ function createRepository(options?: {
   return { from, logger, query, repository, rpc };
 }
 
+function rpcFailure(details: string, code = "P0001") {
+  return {
+    data: null,
+    error: {
+      code,
+      details,
+      message: details,
+    },
+  };
+}
+
 const updateInput: UpdateLinkedTransactionItemInput = {
   accountId,
   amount: 80,
@@ -98,19 +116,75 @@ describe("LinkedTransactionItemRepository", () => {
 
   it("updated_at 不一致映射为稳定 ConflictError", async () => {
     const { repository } = createRepository({
-      rpcResult: {
-        data: null,
-        error: {
-          code: "P0001",
-          details: "transaction_item_version_conflict",
-          message: "transaction_item_version_conflict",
-        },
-      },
+      rpcResult: rpcFailure("transaction_item_version_conflict"),
     });
 
     await expect(repository.update(updateInput)).rejects.toMatchObject({
       code: "update_invalid",
       name: ConflictError.name,
+    });
+  });
+
+  it("数据库未认证错误映射为 AuthenticationError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("not_authenticated", "28000"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+      AuthenticationError,
+    );
+  });
+
+  it("数据库账本权限错误映射为 AuthorizationError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("ledger_forbidden", "42501"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+  });
+
+  it("交易明细不存在映射为 NotFoundError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("transaction_not_found", "22023"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it("账户无效映射为稳定 accountInvalid ValidationError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure(transactionErrorCodes.accountInvalid, "22023"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.accountInvalid,
+      name: ValidationError.name,
+    });
+  });
+
+  it("退款账户不一致映射为 refundLinkInvalid ValidationError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("refund_account_mismatch", "22023"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.refundLinkInvalid,
+      name: ValidationError.name,
+    });
+  });
+
+  it("报销币种不一致映射为 reimbursementLinkInvalid ValidationError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("reimbursement_currency_mismatch", "22023"),
+    });
+
+    await expect(repository.update(updateInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.reimbursementLinkInvalid,
+      name: ValidationError.name,
     });
   });
 });
