@@ -11,6 +11,7 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import { createLinkedTransactionEditService } from "internal/transaction";
 import {
   parseLinkedEditActionInput,
   validateLinkedEditTransactionForm,
@@ -28,7 +29,6 @@ import {
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
 } from "internal/transaction/schema";
-import { createLinkedTransactionEditService } from "internal/transaction/service/linkedTransactionEditService";
 import type { TransactionActionState } from "types/transactions";
 
 async function getTransactionContainer() {
