@@ -29,6 +29,7 @@ import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
+import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { isThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionItemInput = {
@@ -279,19 +280,6 @@ const transactionRpcErrorCodes = [
   "reimbursement_link_exists",
 ] as const;
 
-type TransactionRpcErrorCode = (typeof transactionRpcErrorCodes)[number];
-
-function findTransactionRpcErrorCode(
-  error: RpcError,
-): TransactionRpcErrorCode | null {
-  const businessErrorCode = error.details?.trim();
-  return transactionRpcErrorCodes.includes(
-    businessErrorCode as TransactionRpcErrorCode,
-  )
-    ? (businessErrorCode as TransactionRpcErrorCode)
-    : null;
-}
-
 export function createSupabaseTransactionRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
@@ -302,7 +290,10 @@ export function createSupabaseTransactionRepository(
     error: RpcError,
     fields: Record<string, unknown>,
   ): never {
-    const rpcErrorCode = findTransactionRpcErrorCode(error);
+    const rpcErrorCode = findRpcErrorCode(
+      error.details,
+      transactionRpcErrorCodes,
+    );
 
     logger.error(`[transaction] ${operation}`, {
       ...fields,

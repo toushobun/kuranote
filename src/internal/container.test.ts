@@ -148,6 +148,18 @@ describe("createRequestContainer", () => {
     expect(first).toBe(second);
   });
 
+  it("提供已关联明细编辑 Service 的读取快照与原子更新能力", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.transaction).toBe(container.transaction);
+    expect(
+      typeof container.transaction.linkedTransactionItemService.getEditSnapshot,
+    ).toBe("function");
+    expect(
+      typeof container.transaction.linkedTransactionItemService.update,
+    ).toBe("function");
+  });
+
   it("提供 ledger.inviteService.accept 方法", () => {
     const container = createRequestContainer(createDependenciesStub());
 

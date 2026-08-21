@@ -47,7 +47,7 @@ where id = (select ledger_id from test_refund_edit_context);
 select is(
     position(
         'refundAllocations' in pg_get_functiondef(
-            'public.update_transaction(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
         )
     ),
     0,
@@ -57,7 +57,7 @@ select is(
 select ok(
     position(
         'refundedItemId' in pg_get_functiondef(
-            'public.update_transaction(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
         )
     ) > 0,
     'update_transaction 前置校验使用单目标 refundedItemId'
