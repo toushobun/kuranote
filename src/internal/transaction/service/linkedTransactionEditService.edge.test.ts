@@ -207,17 +207,20 @@ describe("LinkedTransactionEditService edge cases", () => {
   it.each([
     [{ specialStatus: "pendingReimbursement" as const }],
     [{ reimbursementItemId: targetItemId }],
-  ])("关联交易中的其他明细发生业务关系变化时拒绝静默丢弃", async (overrides) => {
-    const { service, updateEdit } = createService(createViewWithSibling());
+  ])(
+    "关联交易中的其他明细发生业务关系变化时拒绝静默丢弃",
+    async (overrides) => {
+      const { service, updateEdit } = createService(createViewWithSibling());
 
-    await expect(
-      service.updateNormal(currentLedger, siblingInput(overrides)),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.linkedEditRequiresUnlink,
-      name: ValidationError.name,
-    });
-    expect(updateEdit).not.toHaveBeenCalled();
-  });
+      await expect(
+        service.updateNormal(currentLedger, siblingInput(overrides)),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.linkedEditRequiresUnlink,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+    },
+  );
 
   it("已结清母项原样回传派生状态时仍可同步修改金额", async () => {
     const { service, updateEdit } = createService(createSettledTargetView());
