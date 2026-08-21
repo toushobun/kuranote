@@ -116,7 +116,9 @@ describe("current ledger 数据边界", () => {
 
   it("convert_transaction_type 在进入 record/account 实现前先锁目标账本", () => {
     const functionSql = getFunctionSql("convert_transaction_type");
-    const ledgerLockIndex = functionSql.indexOf("from public.ledger ledger_row");
+    const ledgerLockIndex = functionSql.indexOf(
+      "from public.ledger ledger_row",
+    );
     const implementationIndex = functionSql.indexOf(
       "convert_transaction_type_locked_impl(",
     );
