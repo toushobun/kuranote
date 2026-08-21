@@ -307,12 +307,44 @@ describe("LinkedTransactionEditService edge cases", () => {
       type: "expense",
     };
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.specialStatusInvalid,
-        name: ValidationError.name,
-      },
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(updateNormal).not.toHaveBeenCalled();
+    expect(updateEdit).not.toHaveBeenCalled();
+  });
+
+  it("重复持久化明细 ID 时拒绝保存", async () => {
+    const { service, updateEdit, updateNormal } = createService(
+      createUnlinkedView(),
     );
+    const duplicatedItem = {
+      amount: 300,
+      categoryId: expenseCategoryId,
+      id: linkedItemId,
+    };
+    const input: LinkedTransactionEditInput = {
+      accountId,
+      confirmSync: false,
+      expectedUpdatedAtByItemId: {},
+      items: [duplicatedItem, { ...duplicatedItem }],
+      ledgerId,
+      merchantId,
+      note: null,
+      transactionAt,
+      transactionRecordId,
+      type: "expense",
+    };
+
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.updateInvalid,
+      name: ValidationError.name,
+    });
     expect(updateNormal).not.toHaveBeenCalled();
     expect(updateEdit).not.toHaveBeenCalled();
   });
