@@ -11,7 +11,10 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import { parseLinkedEditActionInput } from "internal/transaction/adapter/next/linkedEditInput";
+import {
+  parseLinkedEditActionInput,
+  validateLinkedEditTransactionForm,
+} from "internal/transaction/adapter/next/linkedEditInput";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
   getTransactionValidationErrorMessage,
@@ -22,7 +25,6 @@ import {
 import {
   validateConvertTransactionTypeForm,
   validateTransactionForm,
-  validateUpdateTransactionForm,
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
 } from "internal/transaction/schema";
@@ -50,8 +52,13 @@ function errorState(message: string): TransactionActionState {
   return { error: message };
 }
 
-function appErrorState(error: unknown, fallback: string) {
-  if (error instanceof AppError) return errorState(error.message);
+function appErrorState(
+  error: unknown,
+  fallback: string,
+): TransactionActionState {
+  if (error instanceof AppError) {
+    return { error: error.message, errorKey: error.code };
+  }
   console.error("[transaction] transaction action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
@@ -113,7 +120,7 @@ export async function updateTransaction(
   formData: FormData,
 ): Promise<TransactionActionState> {
   const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateUpdateTransactionForm(formData);
+  const validation = validateLinkedEditTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
       getUpdateTransactionValidationErrorMessage(validation.error) ??
