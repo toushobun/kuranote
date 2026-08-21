@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feature/574_pr1_db_unfreeze_and_locking
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
 
 permissions:
   contents: write
