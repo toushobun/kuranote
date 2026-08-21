@@ -319,9 +319,8 @@ describe("LinkedTransactionEditService edge cases", () => {
   });
 
   it("普通明细不能伪造关联派生状态", async () => {
-    const { service, updateEdit, updateNormal } = createService(
-      createUnlinkedView(),
-    );
+    const { service, updateEdit, updateNormal } =
+      createService(createUnlinkedView());
     const input: LinkedTransactionEditInput = {
       accountId,
       confirmSync: false,
@@ -353,9 +352,8 @@ describe("LinkedTransactionEditService edge cases", () => {
   });
 
   it("待报销明细缺少特殊状态字段时拒绝旧保存路径清空状态", async () => {
-    const { service, updateEdit, updateNormal } = createService(
-      createPendingView(),
-    );
+    const { service, updateEdit, updateNormal } =
+      createService(createPendingView());
     const input: LinkedTransactionEditInput = {
       accountId,
       confirmSync: false,
@@ -385,10 +383,35 @@ describe("LinkedTransactionEditService edge cases", () => {
     expect(updateEdit).not.toHaveBeenCalled();
   });
 
+  it("整条省略待报销明细时拒绝旧保存路径删除明细", async () => {
+    const { service, updateEdit, updateNormal } =
+      createService(createPendingView());
+    const input: LinkedTransactionEditInput = {
+      accountId,
+      confirmSync: false,
+      expectedUpdatedAtByItemId: {},
+      items: [],
+      ledgerId,
+      merchantId,
+      note: null,
+      transactionAt,
+      transactionRecordId,
+      type: "expense",
+    };
+
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
+    expect(updateNormal).not.toHaveBeenCalled();
+    expect(updateEdit).not.toHaveBeenCalled();
+  });
+
   it("重复持久化明细 ID 时拒绝保存", async () => {
-    const { service, updateEdit, updateNormal } = createService(
-      createUnlinkedView(),
-    );
+    const { service, updateEdit, updateNormal } =
+      createService(createUnlinkedView());
     const duplicatedItem = {
       amount: 300,
       categoryId: expenseCategoryId,

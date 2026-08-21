@@ -417,6 +417,22 @@ describe("LinkedTransactionEditService", () => {
     });
   });
 
+  it("原账户不在有效选项中时仍拒绝报销关联切换账户", async () => {
+    const view = createIncomeView();
+    view.accountOptions = view.accountOptions.filter(
+      (account) => account.id !== oldAccountId,
+    );
+    const { service } = createService(view);
+    const input = incomeInput({ accountId: otherCurrencyAccountId });
+
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.reimbursementLinkInvalid,
+      name: ValidationError.name,
+    });
+  });
+
   it("报销关联允许同币种账户并在确认后保存", async () => {
     const { service, updateEdit } = createService(createIncomeView());
     const input = incomeInput({

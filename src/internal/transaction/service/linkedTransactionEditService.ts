@@ -136,8 +136,7 @@ function isDerivedSpecialStatus(
   specialStatus: SubmittedItem["specialStatus"],
 ): boolean {
   return (
-    specialStatus === "reimbursed" ||
-    specialStatus === "reimbursementSurplus"
+    specialStatus === "reimbursed" || specialStatus === "reimbursementSurplus"
   );
 }
 
@@ -148,7 +147,9 @@ function validateProtectedStatuses(
   categoryTypeById: Map<string, "expense" | "income">,
 ): void {
   const existingById = new Map(
-    initial.items.flatMap((item) => (item.id ? [[item.id, item] as const] : [])),
+    initial.items.flatMap((item) =>
+      item.id ? [[item.id, item] as const] : [],
+    ),
   );
 
   // 结清 / 核销结余是关联计算的派生值，只允许持久化明细把当前值原样回传。
@@ -164,7 +165,10 @@ function validateProtectedStatuses(
   for (const item of initial.items) {
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
-    if (!submitted) continue;
+    if (!submitted) {
+      if (input.type !== initial.type) continue;
+      throwSpecialStatusLocked();
+    }
     // 已有特殊状态必须显式原样回传，不能把字段缺失解释成“保持不变”；
     // 旧普通保存路径会把 undefined 序列化为 null，导致状态被意外清空。
     if (submitted.specialStatus !== item.specialStatus) {
@@ -208,6 +212,7 @@ function hasSiblingItemMutation(
   linkedItemIds: Set<string>,
   submittedById: Map<string, SubmittedItem>,
 ): boolean {
+  const accountChanged = input.accountId !== initial.accountId;
   const currentIds = new Set(
     initial.items.flatMap((item) => (item.id ? [item.id] : [])),
   );
@@ -222,7 +227,7 @@ function hasSiblingItemMutation(
     if (
       submitted.categoryId !== current.categoryId ||
       !sameAmount(submitted.amount, current.amount) ||
-      input.accountId !== initial.accountId ||
+      accountChanged ||
       getSubmittedSpecialStatus(current, submitted) !== current.specialStatus ||
       (submitted.refundedItemId ?? null) !==
         (current.refundCandidate?.id ?? null) ||
@@ -331,8 +336,7 @@ export function createLinkedTransactionEditService({
       if (
         accountChanged &&
         linkedItems.some(hasReimbursementLink) &&
-        oldAccount &&
-        oldAccount.currency !== newAccount?.currency
+        oldAccount?.currency !== newAccount?.currency
       ) {
         throw new ValidationError(
           transactionErrorCodes.reimbursementLinkInvalid,
