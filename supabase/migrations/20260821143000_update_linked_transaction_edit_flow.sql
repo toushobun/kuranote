@@ -17,6 +17,11 @@ as $$
 declare
     v_user_id uuid := auth.uid();
     v_item jsonb;
+    v_transaction_item_id uuid;
+    v_expected_updated_at timestamptz;
+    v_amount numeric;
+    v_account_id uuid;
+    v_category_id uuid;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated'
@@ -75,14 +80,46 @@ begin
         from pg_catalog.jsonb_array_elements(p_item_updates)
         order by value ->> 'transactionItemId'
     loop
+        if jsonb_typeof(v_item) is distinct from 'object' then
+            raise exception 'linked_edit_items_invalid'
+                using errcode = '22023', detail = 'linked_edit_items_invalid';
+        end if;
+
+        begin
+            v_transaction_item_id :=
+                nullif(v_item ->> 'transactionItemId', '')::uuid;
+            v_expected_updated_at :=
+                nullif(v_item ->> 'expectedUpdatedAt', '')::timestamptz;
+            v_amount := nullif(v_item ->> 'amount', '')::numeric;
+            v_account_id := nullif(v_item ->> 'accountId', '')::uuid;
+            v_category_id := nullif(v_item ->> 'categoryId', '')::uuid;
+        exception
+            when invalid_text_representation
+                or invalid_datetime_format
+                or datetime_field_overflow
+                or numeric_value_out_of_range
+            then
+                raise exception 'linked_edit_items_invalid'
+                    using errcode = '22023', detail = 'linked_edit_items_invalid';
+        end;
+
+        if v_transaction_item_id is null
+           or v_expected_updated_at is null
+           or v_amount is null
+           or v_account_id is null
+           or v_category_id is null then
+            raise exception 'linked_edit_items_invalid'
+                using errcode = '22023', detail = 'linked_edit_items_invalid';
+        end if;
+
         perform public.update_linked_transaction_item(
             p_ledger_id,
             p_transaction_record_id,
-            nullif(v_item ->> 'transactionItemId', '')::uuid,
-            nullif(v_item ->> 'expectedUpdatedAt', '')::timestamptz,
-            (v_item ->> 'amount')::numeric,
-            nullif(v_item ->> 'accountId', '')::uuid,
-            nullif(v_item ->> 'categoryId', '')::uuid
+            v_transaction_item_id,
+            v_expected_updated_at,
+            v_amount,
+            v_account_id,
+            v_category_id
         );
     end loop;
 
