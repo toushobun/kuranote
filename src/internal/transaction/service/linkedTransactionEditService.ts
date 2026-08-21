@@ -109,6 +109,22 @@ function throwUnlinkRequired(): never {
   );
 }
 
+function throwSpecialStatusLocked(): never {
+  throw new ValidationError(
+    transactionErrorCodes.specialStatusInvalid,
+    transactionLinkedEditErrorMessages.specialStatusLocked,
+  );
+}
+
+function getSubmittedSpecialStatus(
+  existing: ExistingItem,
+  submitted: SubmittedItem,
+) {
+  return submitted.specialStatus === undefined
+    ? existing.specialStatus
+    : submitted.specialStatus;
+}
+
 function validateProtectedStatuses(
   initial: NormalEditInitialValues,
   submittedById: Map<string, SubmittedItem>,
@@ -118,20 +134,14 @@ function validateProtectedStatuses(
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
     if (!submitted) continue;
-    if ((submitted.specialStatus ?? null) !== item.specialStatus) {
-      throw new ValidationError(
-        transactionErrorCodes.specialStatusInvalid,
-        transactionLinkedEditErrorMessages.specialStatusLocked,
-      );
+    if (getSubmittedSpecialStatus(item, submitted) !== item.specialStatus) {
+      throwSpecialStatusLocked();
     }
     if (
       submitted.categoryId !== item.categoryId &&
       categoryTypeById.get(submitted.categoryId) !== "expense"
     ) {
-      throw new ValidationError(
-        transactionErrorCodes.specialStatusInvalid,
-        transactionLinkedEditErrorMessages.specialStatusLocked,
-      );
+      throwSpecialStatusLocked();
     }
   }
 }
@@ -179,7 +189,12 @@ function hasSiblingItemMutation(
     if (
       submitted.categoryId !== current.categoryId ||
       !sameAmount(submitted.amount, current.amount) ||
-      input.accountId !== initial.accountId
+      input.accountId !== initial.accountId ||
+      getSubmittedSpecialStatus(current, submitted) !== current.specialStatus ||
+      (submitted.refundedItemId ?? null) !==
+        (current.refundCandidate?.id ?? null) ||
+      (submitted.reimbursementItemId ?? null) !==
+        (current.reimbursementCandidate?.id ?? null)
     ) {
       return true;
     }
@@ -294,6 +309,10 @@ export function createLinkedTransactionEditService({
             transactionErrorCodes.linkedDeleteForbidden,
             transactionLinkedEditErrorMessages.deleteForbidden,
           );
+        }
+        if (getSubmittedSpecialStatus(existing, submitted) !== existing.specialStatus) {
+          if (existing.specialStatus !== null) throwSpecialStatusLocked();
+          throwUnlinkRequired();
         }
         validateAssociationUnchanged(existing, submitted);
         const categoryChanged = submitted.categoryId !== existing.categoryId;
