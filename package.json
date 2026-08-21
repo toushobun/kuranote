@@ -10,7 +10,7 @@
     "test": "vitest run --exclude \"tests/rsc/**\"",
     "test:rsc": "vitest run tests/rsc",
     "format": "prettier . --write",
-    "format:check": "prettier . --check",
+    "format:check": "prettier . --write && git diff && false",
     "db:security-definer:check": "node scripts/check-security-definer-search-path.mjs",
     "db:security-definer:test": "node --test scripts/check-security-definer-search-path-cases.mjs",
     "db:schema:snapshot:update": "bash scripts/update-schema-snapshot.sh",
