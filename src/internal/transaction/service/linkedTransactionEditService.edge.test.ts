@@ -291,6 +291,33 @@ describe("LinkedTransactionEditService edge cases", () => {
     );
   });
 
+  it("关联交易切换收入支出类型时要求先解除关联", async () => {
+    const { service, updateEdit, updateNormal } = createService(
+      createSettledTargetView(),
+    );
+    const input: LinkedTransactionEditInput = {
+      accountId,
+      confirmSync: true,
+      expectedUpdatedAtByItemId: {},
+      items: [],
+      ledgerId,
+      merchantId,
+      note: null,
+      transactionAt,
+      transactionRecordId,
+      type: "income",
+    };
+
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedEditRequiresUnlink,
+      name: ValidationError.name,
+    });
+    expect(updateNormal).not.toHaveBeenCalled();
+    expect(updateEdit).not.toHaveBeenCalled();
+  });
+
   it("普通明细不能伪造关联派生状态", async () => {
     const { service, updateEdit, updateNormal } = createService(
       createUnlinkedView(),
