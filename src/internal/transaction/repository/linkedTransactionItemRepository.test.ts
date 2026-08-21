@@ -11,6 +11,7 @@ import {
 import { transactionErrorCodes } from "internal/transaction/errors";
 import {
   createSupabaseLinkedTransactionItemRepository,
+  type UpdateLinkedTransactionEditInput,
   type UpdateLinkedTransactionItemInput,
 } from "internal/transaction/repository/linkedTransactionItemRepository";
 
@@ -19,6 +20,7 @@ const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 const transactionItemId = "00000000-0000-4000-8000-000000000201";
 const accountId = "00000000-0000-4000-8000-000000000043";
 const categoryId = "00000000-0000-4000-8000-000000005021";
+const merchantId = "00000000-0000-4000-8000-000000001001";
 const updatedAt = "2026-08-19T13:00:00.000Z";
 
 function createQuery(result: { data: unknown; error: unknown | null }) {
@@ -82,6 +84,23 @@ const updateInput: UpdateLinkedTransactionItemInput = {
   transactionRecordId,
 };
 
+const updateEditInput: UpdateLinkedTransactionEditInput = {
+  itemUpdates: [
+    {
+      accountId,
+      amount: 80,
+      categoryId,
+      expectedUpdatedAt: updatedAt,
+      transactionItemId,
+    },
+  ],
+  ledgerId,
+  merchantId,
+  note: "编辑备注",
+  transactionAt: "2026-08-21T01:30:00.000Z",
+  transactionRecordId,
+};
+
 describe("LinkedTransactionItemRepository", () => {
   it("编辑快照携带 updated_at 作为乐观锁版本", async () => {
     const { repository } = createRepository();
@@ -111,6 +130,32 @@ describe("LinkedTransactionItemRepository", () => {
       p_ledger_id: ledgerId,
       p_transaction_item_id: transactionItemId,
       p_transaction_record_id: transactionRecordId,
+    });
+  });
+
+  it("完整编辑 RPC 在一次调用中传递明细修改和交易头字段", async () => {
+    const { repository, rpc } = createRepository();
+
+    await repository.updateEdit(updateEditInput);
+
+    expect(rpc).toHaveBeenCalledWith("update_linked_transaction_edit", {
+      p_item_updates: updateEditInput.itemUpdates,
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+      p_note: "编辑备注",
+      p_transaction_at: "2026-08-21T01:30:00.000Z",
+      p_transaction_record_id: transactionRecordId,
+    });
+  });
+
+  it("完整编辑 RPC 的并发冲突继续映射为 ConflictError", async () => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure("transaction_item_version_conflict"),
+    });
+
+    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.updateInvalid,
+      name: ConflictError.name,
     });
   });
 

@@ -30,6 +30,7 @@ function createLinkedRepository(
       updatedAt,
     }),
     update: vi.fn(),
+    updateEdit: vi.fn(),
     ...overrides,
   };
 }
@@ -82,6 +83,23 @@ const updateInput = {
   transactionRecordId,
 };
 
+const updateEditInput = {
+  itemUpdates: [
+    {
+      accountId: updateInput.accountId,
+      amount: 80,
+      categoryId: updateInput.categoryId,
+      expectedUpdatedAt: updatedAt,
+      transactionItemId,
+    },
+  ],
+  ledgerId,
+  merchantId: "00000000-0000-4000-8000-000000001001",
+  note: null,
+  transactionAt: "2026-08-21T01:30:00.000Z",
+  transactionRecordId,
+};
+
 describe("LinkedTransactionItemService", () => {
   it("有修改权限时返回携带 updatedAt 的编辑快照", async () => {
     const { service } = createService();
@@ -101,6 +119,14 @@ describe("LinkedTransactionItemService", () => {
     await service.update(updateInput);
 
     expect(linkedRepository.update).toHaveBeenCalledWith(updateInput);
+  });
+
+  it("完整保存仍在 Service 层做权限校验后调用单事务 Repository", async () => {
+    const { linkedRepository, service } = createService();
+
+    await service.updateEdit(updateEditInput);
+
+    expect(linkedRepository.updateEdit).toHaveBeenCalledWith(updateEditInput);
   });
 
   it("未登录不能调用关联编辑能力", async () => {

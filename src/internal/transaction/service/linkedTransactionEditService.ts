@@ -118,16 +118,16 @@ function validateProtectedStatuses(
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
     if (!submitted) continue;
-    if (
-      submitted.specialStatus !== undefined &&
-      submitted.specialStatus !== item.specialStatus
-    ) {
+    if ((submitted.specialStatus ?? null) !== item.specialStatus) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
         transactionLinkedEditErrorMessages.specialStatusLocked,
       );
     }
-    if (categoryTypeById.get(submitted.categoryId) !== "expense") {
+    if (
+      submitted.categoryId !== item.categoryId &&
+      categoryTypeById.get(submitted.categoryId) !== "expense"
+    ) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
         transactionLinkedEditErrorMessages.specialStatusLocked,
@@ -187,17 +187,6 @@ function hasSiblingItemMutation(
   return false;
 }
 
-function metadataChanged(
-  initial: NormalEditInitialValues,
-  input: LinkedTransactionEditInput,
-): boolean {
-  return (
-    input.merchantId !== initial.merchantId ||
-    input.note !== (initial.note || null) ||
-    input.transactionAt !== initial.transactionAt
-  );
-}
-
 export function createLinkedTransactionEditService({
   linkedTransactionItemService,
   transactionService,
@@ -224,7 +213,9 @@ export function createLinkedTransactionEditService({
       const initial = getNormalInitialValues(view);
       const submittedById = buildSubmittedItemMap(input.items);
       const categoryTypeById = new Map(
-        view.categoryOptions.map((category) => [category.id, category.type]),
+        view.categoryOptions.map(
+          (category) => [category.id, category.type] as const,
+        ),
       );
       validateProtectedStatuses(initial, submittedById, categoryTypeById);
 
@@ -282,7 +273,8 @@ export function createLinkedTransactionEditService({
       if (
         accountChanged &&
         linkedItems.some(hasReimbursementLink) &&
-        (!oldAccount || oldAccount.currency !== newAccount?.currency)
+        oldAccount &&
+        oldAccount.currency !== newAccount?.currency
       ) {
         throw new ValidationError(
           transactionErrorCodes.reimbursementLinkInvalid,
@@ -304,22 +296,24 @@ export function createLinkedTransactionEditService({
           );
         }
         validateAssociationUnchanged(existing, submitted);
+        const categoryChanged = submitted.categoryId !== existing.categoryId;
         const categoryType = categoryTypeById.get(submitted.categoryId);
-        if (!categoryType) {
+        if (categoryChanged && !categoryType) {
           throw new ValidationError(
             transactionErrorCodes.categoryInvalid,
             "分类指定不正确。",
           );
         }
         if (
-          (isLinkedIncome(existing) && categoryType !== "income") ||
-          (isLinkedTarget(existing) && categoryType !== "expense")
+          categoryChanged &&
+          ((isLinkedIncome(existing) && categoryType !== "income") ||
+            (isLinkedTarget(existing) && categoryType !== "expense"))
         ) {
           throwUnlinkRequired();
         }
         if (
           accountChanged ||
-          submitted.categoryId !== existing.categoryId ||
+          categoryChanged ||
           !sameAmount(submitted.amount, existing.amount)
         ) {
           changedLinkedItems.push({ existing, submitted });
@@ -334,7 +328,7 @@ export function createLinkedTransactionEditService({
         );
       }
 
-      for (const { existing, submitted } of changedLinkedItems) {
+      const itemUpdates = changedLinkedItems.map(({ existing, submitted }) => {
         if (!existing.id) throwUnlinkRequired();
         const expectedUpdatedAt = input.expectedUpdatedAtByItemId[existing.id];
         if (!expectedUpdatedAt) {
@@ -343,37 +337,39 @@ export function createLinkedTransactionEditService({
             transactionLinkedEditErrorMessages.versionInvalid,
           );
         }
-        await linkedTransactionItemService.update({
+        return {
           accountId: input.accountId,
           amount: submitted.amount,
           categoryId: submitted.categoryId,
           expectedUpdatedAt,
-          ledgerId: input.ledgerId,
           transactionItemId: existing.id,
-          transactionRecordId: input.transactionRecordId,
-        });
+        };
+      });
+
+      if (
+        input.merchantId !== initial.merchantId &&
+        !view.merchantOptions.some((merchant) => merchant.id === input.merchantId)
+      ) {
+        throw new ValidationError(
+          transactionErrorCodes.merchantInvalid,
+          "商家指定不正确。",
+        );
       }
 
-      if (metadataChanged(initial, input)) {
-        if (
-          input.merchantId !== initial.merchantId &&
-          !view.merchantOptions.some(
-            (merchant) => merchant.id === input.merchantId,
-          )
-        ) {
-          throw new ValidationError(
-            transactionErrorCodes.merchantInvalid,
-            "商家指定不正确。",
-          );
-        }
-        await linkedTransactionItemService.updateRecordMetadata({
-          ledgerId: input.ledgerId,
-          merchantId: input.merchantId,
-          note: input.note,
-          transactionAt: input.transactionAt,
-          transactionRecordId: input.transactionRecordId,
-        });
-      }
+      const metadataChanged =
+        input.merchantId !== initial.merchantId ||
+        input.note !== (initial.note || null) ||
+        input.transactionAt !== initial.transactionAt;
+      if (itemUpdates.length === 0 && !metadataChanged && !typeChanged) return;
+
+      await linkedTransactionItemService.updateEdit({
+        itemUpdates,
+        ledgerId: input.ledgerId,
+        merchantId: input.merchantId,
+        note: input.note,
+        transactionAt: input.transactionAt,
+        transactionRecordId: input.transactionRecordId,
+      });
     },
 
     async void(currentLedger, input) {
