@@ -8,11 +8,16 @@ import {
 } from "internal/transaction/adapter/next/actions";
 import { ValidationError } from "internal/shared/errors/appError";
 const mocks = vi.hoisted(() => ({
+  canModify: vi.fn(),
   convert: vi.fn(),
   createNormal: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   createTransfer: vi.fn(),
+  getEditView: vi.fn(),
+  linkedGetEditSnapshot: vi.fn(),
+  linkedUpdate: vi.fn(),
+  linkedUpdateEdit: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
@@ -44,7 +49,10 @@ describe("Transaction Actions", () => {
     formData.set("transactionAt", "2026-06-04T10:30:05");
     formData.set("timeZoneOffsetMinutes", "-540");
     formData.set("accountId", "00000000-0000-4000-8000-000000000045");
-    formData.append("itemCategoryId", "00000000-0000-4000-8000-000000005072");
+    formData.append(
+      "itemCategoryId",
+      "00000000-0000-4000-8000-000000005072",
+    );
     formData.append("itemAmount", amount);
     formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
     return formData;
@@ -81,7 +89,7 @@ describe("Transaction Actions", () => {
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 });
-describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
+describe("Transaction Action 写入流程", () => {
   const ledgerId = "00000000-0000-4000-8000-000000000032";
   const transactionRecordId = "00000000-0000-4000-8000-000000009999";
   const accountId = "00000000-0000-4000-8000-000000000045";
@@ -128,6 +136,8 @@ describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
   }
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.canModify.mockResolvedValue(true);
+    mocks.getEditView.mockResolvedValue(null);
     mocks.requireCurrentUserAndLedger.mockResolvedValue({
       currentLedger: {
         baseCurrency: "JPY",
@@ -140,10 +150,17 @@ describe("Transaction Action \u5199\u5165\u6D41\u7A0B", () => {
     mocks.createServerRequestDependencies.mockResolvedValue({});
     mocks.createRequestContainer.mockReturnValue({
       transaction: {
+        linkedTransactionItemService: {
+          getEditSnapshot: mocks.linkedGetEditSnapshot,
+          update: mocks.linkedUpdate,
+          updateEdit: mocks.linkedUpdateEdit,
+        },
         service: {
+          canModify: mocks.canModify,
           convert: mocks.convert,
           createNormal: mocks.createNormal,
           createTransfer: mocks.createTransfer,
+          getEditView: mocks.getEditView,
           updateNormal: mocks.updateNormal,
           updateTransfer: mocks.updateTransfer,
           void: mocks.void,
