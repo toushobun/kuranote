@@ -165,7 +165,9 @@ function validateProtectedStatuses(
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
     if (!submitted) continue;
-    if (getSubmittedSpecialStatus(item, submitted) !== item.specialStatus) {
+    // 已有特殊状态必须显式原样回传，不能把字段缺失解释成“保持不变”；
+    // 旧普通保存路径会把 undefined 序列化为 null，导致状态被意外清空。
+    if (submitted.specialStatus !== item.specialStatus) {
       throwSpecialStatusLocked();
     }
     if (
