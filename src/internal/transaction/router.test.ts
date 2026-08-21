@@ -6,12 +6,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 import {
   errorHandlingMiddleware,
   openApiValidationErrorHook,
 } from "internal/shared/http/errorResponse";
 import { transactionRouter } from "internal/transaction/router";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+} from "internal/transaction/errors";
 
 const mocks = vi.hoisted(() => ({ revalidateTransactionMutation: vi.fn() }));
 
@@ -26,6 +33,12 @@ const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
+const currentLedger = {
+  baseCurrency: "JPY",
+  currentUserRole: "owner" as const,
+  id: ledgerId,
+  name: "家庭账本",
+};
 
 function createApp(
   overrides: Partial<RequestContainer["transaction"]["service"]> = {},
@@ -39,13 +52,19 @@ function createApp(
     createNormal: vi.fn(),
     ...overrides,
   } as RequestContainer["transaction"]["service"];
+  const linkedTransactionEditService = {
+    updateNormal: vi.fn(),
+    void: vi.fn(),
+  } as RequestContainer["transaction"]["linkedTransactionEditService"];
+  const getAccessibleLedger = vi.fn().mockResolvedValue(currentLedger);
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: openApiValidationErrorHook,
   });
   app.use("*", async (c, next) => {
     c.set("container", {
-      transaction: { service },
-    } as RequestContainer);
+      ledger: { currentLedgerService: { getAccessibleLedger } },
+      transaction: { linkedTransactionEditService, service },
+    } as unknown as RequestContainer);
     c.set("requestDependencies", {
       auth,
       logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
@@ -57,7 +76,7 @@ function createApp(
   });
   app.onError(errorHandlingMiddleware);
   app.route("/transactions", transactionRouter);
-  return { app, service };
+  return { app, getAccessibleLedger, linkedTransactionEditService, service };
 }
 
 const body = {
@@ -107,7 +126,8 @@ describe("transactionRouter", () => {
   });
 
   it("更新交易后返回 200 并刷新缓存", async () => {
-    const { app, service } = createApp({ updateNormal: vi.fn() });
+    const { app, getAccessibleLedger, linkedTransactionEditService, service } =
+      createApp({ updateNormal: vi.fn() });
     const response = await app.request(`/transactions/${transactionRecordId}`, {
       body: JSON.stringify(body),
       headers: {
@@ -118,10 +138,21 @@ describe("transactionRouter", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(service.updateNormal).toHaveBeenCalledWith({
-      ...body,
-      transactionRecordId,
+    expect(getAccessibleLedger).toHaveBeenCalledWith({
+      email: "user@example.com",
+      ledgerId,
+      userId,
     });
+    expect(linkedTransactionEditService.updateNormal).toHaveBeenCalledWith(
+      currentLedger,
+      {
+        ...body,
+        confirmSync: false,
+        expectedUpdatedAtByItemId: {},
+        transactionRecordId,
+      },
+    );
+    expect(service.updateNormal).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 
@@ -157,7 +188,9 @@ describe("transactionRouter", () => {
   });
 
   it("作废交易后返回 200 并刷新缓存", async () => {
-    const { app, service } = createApp({ void: vi.fn() });
+    const { app, linkedTransactionEditService, service } = createApp({
+      void: vi.fn(),
+    });
     const response = await app.request(
       `/transactions/${transactionRecordId}?ledgerId=${ledgerId}`,
       {
@@ -167,11 +200,41 @@ describe("transactionRouter", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(service.void).toHaveBeenCalledWith({
-      ledgerId,
-      transactionRecordId,
-    });
+    expect(linkedTransactionEditService.void).toHaveBeenCalledWith(
+      currentLedger,
+      { ledgerId, transactionRecordId },
+    );
+    expect(service.void).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+  });
+
+  it("关联保护拒绝作废时返回安全的统一 400", async () => {
+    const { app, linkedTransactionEditService } = createApp();
+    vi.mocked(linkedTransactionEditService.void).mockRejectedValueOnce(
+      new ValidationError(
+        transactionErrorCodes.linkedDeleteForbidden,
+        transactionLinkedEditErrorMessages.deleteForbidden,
+      ),
+    );
+
+    const response = await app.request(
+      `/transactions/${transactionRecordId}?ledgerId=${ledgerId}`,
+      {
+        headers: { origin: "http://localhost" },
+        method: "DELETE",
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: transactionErrorCodes.linkedDeleteForbidden,
+        message: transactionLinkedEditErrorMessages.deleteForbidden,
+        requestId: "request-1",
+        status: 400,
+      },
+    });
+    expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
   });
 
   it("Service 拒绝权限时返回统一 403", async () => {

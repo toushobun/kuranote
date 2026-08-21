@@ -11,6 +11,11 @@ export type LinkedEditActionInput = {
 };
 
 const offsetDateTimePattern = /(?:Z|[+-]\d{2}:\d{2})$/;
+const expectedUpdatedAtFieldPrefix = "itemExpectedUpdatedAt__";
+
+export function getLinkedEditExpectedUpdatedAtFieldName(itemId: string) {
+  return `${expectedUpdatedAtFieldPrefix}${itemId}`;
+}
 
 export function validateLinkedEditTransactionForm(formData: FormData) {
   const submittedSpecialStatuses = formData.getAll("itemSpecialStatus");
@@ -69,26 +74,24 @@ export function parseLinkedEditActionInput(
   const confirmSyncText = String(formData.get("confirmSync") ?? "").trim();
   if (confirmSyncText !== "" && confirmSyncText !== "true") return null;
 
-  const expectedValues = formData.getAll("itemExpectedUpdatedAt");
-  if (expectedValues.length !== 0 && expectedValues.length !== itemIds.length) {
-    return null;
-  }
-
+  const submittedItemIds = new Set(itemIds.filter((itemId) => itemId));
   const expectedUpdatedAtByItemId: Record<string, string> = {};
-  if (expectedValues.length > 0) {
-    for (const [index, rawValue] of expectedValues.entries()) {
-      const value = String(rawValue).trim();
-      if (!value) continue;
-      const itemId = itemIds[index];
-      if (
-        !itemId ||
-        !offsetDateTimePattern.test(value) ||
-        !Number.isFinite(Date.parse(value))
-      ) {
-        return null;
-      }
-      expectedUpdatedAtByItemId[itemId] = value;
+  for (const [key, rawValue] of formData.entries()) {
+    if (key === "itemExpectedUpdatedAt") return null;
+    if (!key.startsWith(expectedUpdatedAtFieldPrefix)) continue;
+
+    const itemId = key.slice(expectedUpdatedAtFieldPrefix.length);
+    const value = String(rawValue).trim();
+    if (
+      !submittedItemIds.has(itemId) ||
+      Object.hasOwn(expectedUpdatedAtByItemId, itemId) ||
+      !value ||
+      !offsetDateTimePattern.test(value) ||
+      !Number.isFinite(Date.parse(value))
+    ) {
+      return null;
     }
+    expectedUpdatedAtByItemId[itemId] = value;
   }
 
   return {

@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  getLinkedEditExpectedUpdatedAtFieldName,
   parseLinkedEditActionInput,
   validateLinkedEditTransactionForm,
 } from "internal/transaction/adapter/next/linkedEditInput";
@@ -67,11 +68,17 @@ describe("parseLinkedEditActionInput", () => {
     });
   });
 
-  it("按明细顺序解析确认信号和乐观锁版本", () => {
+  it("按明细 ID 解析确认信号和乐观锁版本，不依赖字段顺序", () => {
     const formData = new FormData();
     formData.set("confirmSync", "true");
-    formData.append("itemExpectedUpdatedAt", "2026-08-21T01:00:00.000Z");
-    formData.append("itemExpectedUpdatedAt", "2026-08-21T10:01:00+09:00");
+    formData.append(
+      getLinkedEditExpectedUpdatedAtFieldName(secondItemId),
+      "2026-08-21T10:01:00+09:00",
+    );
+    formData.append(
+      getLinkedEditExpectedUpdatedAtFieldName(firstItemId),
+      "2026-08-21T01:00:00.000Z",
+    );
 
     expect(
       parseLinkedEditActionInput(formData, [firstItemId, secondItemId]),
@@ -91,17 +98,36 @@ describe("parseLinkedEditActionInput", () => {
     expect(parseLinkedEditActionInput(formData, [firstItemId])).toBeNull();
   });
 
-  it("拒绝数量错位或不带时区的版本字段", () => {
-    const countMismatch = new FormData();
-    countMismatch.append("itemExpectedUpdatedAt", "2026-08-21T01:00:00.000Z");
+  it("拒绝旧版位置字段、未知明细或不带时区的版本字段", () => {
+    const positionalField = new FormData();
+    positionalField.append("itemExpectedUpdatedAt", "2026-08-21T01:00:00.000Z");
     expect(
-      parseLinkedEditActionInput(countMismatch, [firstItemId, secondItemId]),
+      parseLinkedEditActionInput(positionalField, [firstItemId]),
     ).toBeNull();
 
+    const unknownItem = new FormData();
+    unknownItem.append(
+      getLinkedEditExpectedUpdatedAtFieldName(secondItemId),
+      "2026-08-21T01:00:00.000Z",
+    );
+    expect(parseLinkedEditActionInput(unknownItem, [firstItemId])).toBeNull();
+
     const invalidTimestamp = new FormData();
-    invalidTimestamp.append("itemExpectedUpdatedAt", "2026-08-21T10:00:00");
+    invalidTimestamp.append(
+      getLinkedEditExpectedUpdatedAtFieldName(firstItemId),
+      "2026-08-21T10:00:00",
+    );
     expect(
       parseLinkedEditActionInput(invalidTimestamp, [firstItemId]),
     ).toBeNull();
+  });
+
+  it("拒绝同一明细的重复版本字段", () => {
+    const formData = new FormData();
+    const fieldName = getLinkedEditExpectedUpdatedAtFieldName(firstItemId);
+    formData.append(fieldName, "2026-08-21T01:00:00.000Z");
+    formData.append(fieldName, "2026-08-21T01:01:00.000Z");
+
+    expect(parseLinkedEditActionInput(formData, [firstItemId])).toBeNull();
   });
 });

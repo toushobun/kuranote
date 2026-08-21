@@ -3,7 +3,11 @@ import {
   getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
 } from "internal/ledger/errors/currentLedger";
-import type { CurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
+import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
+import type {
+  CurrentLedgerContextRepository,
+  CurrentLedgerRepository,
+} from "internal/ledger/repository/currentLedgerRepository";
 import {
   AppError,
   ConflictError,
@@ -16,10 +20,16 @@ export type SwitchCurrentLedgerInput = {
 };
 
 export type CurrentLedgerServiceDependencies = {
-  currentLedgerRepository: CurrentLedgerRepository;
+  currentLedgerRepository: CurrentLedgerRepository &
+    CurrentLedgerContextRepository;
 };
 
 export type CurrentLedgerService = {
+  getAccessibleLedger(input: {
+    email: string;
+    ledgerId: string;
+    userId: string;
+  }): Promise<CurrentLedger>;
   switch(input: SwitchCurrentLedgerInput): Promise<void>;
 };
 
@@ -35,13 +45,24 @@ function toAppError(code: CurrentLedgerErrorCode): AppError {
 }
 
 /**
- * 切换当前账本的 UseCase。成员资格与账本状态由 Service 独立编排，
+ * 当前账本 Service。成员资格与账本状态由 Service 独立编排，
  * 不依赖 Router middleware 或数据库 RPC 内部的隐式权限判断。
  */
 export function createCurrentLedgerService({
   currentLedgerRepository,
 }: CurrentLedgerServiceDependencies): CurrentLedgerService {
   return {
+    async getAccessibleLedger({ email, ledgerId, userId }) {
+      const context = await currentLedgerRepository.getContext(userId, email);
+      const ledger = context.ledgers.find(
+        (candidate) => candidate.id === ledgerId,
+      );
+      if (!ledger) {
+        throw toAppError(currentLedgerErrorCodes.ledgerInvalid);
+      }
+      return ledger;
+    },
+
     async switch({ ledgerId, userId }) {
       const [isActiveMember, isLedgerActive] = await Promise.all([
         currentLedgerRepository.isActiveMember(ledgerId, userId),

@@ -6,6 +6,7 @@ import type { RequestContainer } from "internal/container";
 import {
   createTransactionHandler,
   updateTransactionHandler,
+  voidTransactionHandler,
 } from "internal/transaction/controller/transactionController";
 
 const mocks = vi.hoisted(() => ({ revalidateTransactionMutation: vi.fn() }));
@@ -18,13 +19,21 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const accountId = "00000000-0000-4000-8000-000000000045";
 const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const categoryId = "00000000-0000-4000-8000-000000005072";
+const merchantId = "00000000-0000-4000-8000-000000001001";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
+const userId = "00000000-0000-4000-8000-000000000031";
+const currentLedger = {
+  baseCurrency: "JPY",
+  currentUserRole: "owner" as const,
+  id: ledgerId,
+  name: "家庭账本",
+};
 
 const normalInput = {
   accountId,
   items: [{ amount: 1200, categoryId }],
   ledgerId,
-  merchantId: null,
+  merchantId,
   note: "午餐",
   transactionAt: "2026-07-20T01:00:00.000Z",
   type: "expense" as const,
@@ -55,6 +64,11 @@ function createContext(
   validated: Partial<Record<"json" | "param" | "query", unknown>>,
   service: RequestContainer["transaction"]["service"],
 ) {
+  const linkedTransactionEditService = {
+    updateNormal: vi.fn(),
+    void: vi.fn(),
+  } as RequestContainer["transaction"]["linkedTransactionEditService"];
+  const getAccessibleLedger = vi.fn().mockResolvedValue(currentLedger);
   const json = vi
     .fn()
     .mockImplementation((body: unknown, status: number) => ({ body, status }));
@@ -69,17 +83,26 @@ function createContext(
         auth: {
           email: "user@example.com",
           isAuthenticated: true,
-          userId: "00000000-0000-4000-8000-000000000031",
+          userId,
         },
       };
     }
     if (key === "container") {
-      return { transaction: { service } };
+      return {
+        ledger: { currentLedgerService: { getAccessibleLedger } },
+        transaction: { linkedTransactionEditService, service },
+      };
     }
     return undefined;
   });
 
-  return { get, json, req: { valid } };
+  return {
+    get,
+    getAccessibleLedger,
+    json,
+    linkedTransactionEditService,
+    req: { valid },
+  };
 }
 
 describe("transactionController", () => {
@@ -119,11 +142,15 @@ describe("transactionController", () => {
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 
-  it("更新普通交易时附加路径中的交易记录 ID", async () => {
+  it("更新普通交易时通过关联编辑 Service 保存", async () => {
     const service = createService();
     const context = createContext(
       {
-        json: normalInput,
+        json: {
+          ...normalInput,
+          confirmSync: false,
+          expectedUpdatedAtByItemId: {},
+        },
         param: { transactionRecordId },
       },
       service,
@@ -133,10 +160,20 @@ describe("transactionController", () => {
       context as unknown as Parameters<typeof updateTransactionHandler>[0],
     );
 
-    expect(service.updateNormal).toHaveBeenCalledWith({
+    expect(context.getAccessibleLedger).toHaveBeenCalledWith({
+      email: "user@example.com",
+      ledgerId,
+      userId,
+    });
+    expect(
+      context.linkedTransactionEditService.updateNormal,
+    ).toHaveBeenCalledWith(currentLedger, {
       ...normalInput,
+      confirmSync: false,
+      expectedUpdatedAtByItemId: {},
       transactionRecordId,
     });
+    expect(service.updateNormal).not.toHaveBeenCalled();
     expect(service.updateTransfer).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
     expect(context.json).toHaveBeenCalledWith({ ok: true }, 200);
@@ -166,6 +203,29 @@ describe("transactionController", () => {
       transferTargetAccountId: targetAccountId,
     });
     expect(service.updateNormal).not.toHaveBeenCalled();
+    expect(context.getAccessibleLedger).not.toHaveBeenCalled();
+    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+  });
+
+  it("作废交易时通过关联编辑 Service 校验并删除", async () => {
+    const service = createService();
+    const context = createContext(
+      {
+        param: { transactionRecordId },
+        query: { ledgerId },
+      },
+      service,
+    );
+
+    await voidTransactionHandler(
+      context as unknown as Parameters<typeof voidTransactionHandler>[0],
+    );
+
+    expect(context.linkedTransactionEditService.void).toHaveBeenCalledWith(
+      currentLedger,
+      { ledgerId, transactionRecordId },
+    );
+    expect(service.void).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 });

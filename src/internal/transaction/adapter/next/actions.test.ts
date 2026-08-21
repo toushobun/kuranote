@@ -152,6 +152,10 @@ describe("Transaction Action 写入流程", () => {
     mocks.createServerRequestDependencies.mockResolvedValue({});
     mocks.createRequestContainer.mockReturnValue({
       transaction: {
+        linkedTransactionEditService: {
+          updateNormal: mocks.updateNormal,
+          void: mocks.void,
+        },
         linkedTransactionItemService: {
           getEditSnapshot: mocks.linkedGetEditSnapshot,
           update: mocks.linkedUpdate,
@@ -193,6 +197,7 @@ describe("Transaction Action 写入流程", () => {
       "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
     );
     expect(mocks.updateNormal).toHaveBeenCalledWith(
+      expect.objectContaining({ id: ledgerId }),
       expect.objectContaining({
         accountId,
         ledgerId,
@@ -270,10 +275,10 @@ describe("Transaction Action 写入流程", () => {
     await expect(voidTransaction({}, createVoidFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/transactions?result=deleted",
     );
-    expect(mocks.void).toHaveBeenCalledWith({
-      ledgerId,
-      transactionRecordId,
-    });
+    expect(mocks.void).toHaveBeenCalledWith(
+      expect.objectContaining({ id: ledgerId }),
+      { ledgerId, transactionRecordId },
+    );
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
   it("编辑类型非法时不读取上下文也不调用 Service", async () => {

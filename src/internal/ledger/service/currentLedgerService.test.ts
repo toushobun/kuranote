@@ -7,6 +7,12 @@ import { createCurrentLedgerService } from "internal/ledger/service/currentLedge
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
 
 const input = { ledgerId: "ledger-1", userId: "user-1" };
+const currentLedger = {
+  baseCurrency: "JPY",
+  currentUserRole: "owner" as const,
+  id: input.ledgerId,
+  name: "家庭账本",
+};
 
 function createService(
   options: {
@@ -17,6 +23,12 @@ function createService(
 ) {
   return createCurrentLedgerService({
     currentLedgerRepository: {
+      getContext: vi.fn().mockResolvedValue({
+        currentLedger,
+        email: "user@example.com",
+        ledgers: [currentLedger],
+        userId: input.userId,
+      }),
       isActiveMember: vi.fn().mockResolvedValue(options.isActiveMember ?? true),
       isLedgerActive: vi.fn().mockResolvedValue(options.isLedgerActive ?? true),
       updateCurrentLedger: vi
@@ -25,6 +37,27 @@ function createService(
     },
   });
 }
+
+describe("createCurrentLedgerService.getAccessibleLedger", () => {
+  it("返回当前用户可访问的目标账本", async () => {
+    await expect(
+      createService().getAccessibleLedger({
+        email: "user@example.com",
+        ...input,
+      }),
+    ).resolves.toEqual(currentLedger);
+  });
+
+  it("目标账本不可访问时抛出 NotFoundError", async () => {
+    await expect(
+      createService().getAccessibleLedger({
+        email: "user@example.com",
+        ledgerId: "ledger-2",
+        userId: input.userId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
 
 describe("createCurrentLedgerService.switch", () => {
   it("active 成员且账本有效时更新当前账本", async () => {

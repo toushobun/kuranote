@@ -158,6 +158,12 @@ describe("createRequestContainer", () => {
     expect(
       typeof container.transaction.linkedTransactionItemService.update,
     ).toBe("function");
+    expect(
+      typeof container.transaction.linkedTransactionEditService.updateNormal,
+    ).toBe("function");
+    expect(typeof container.transaction.linkedTransactionEditService.void).toBe(
+      "function",
+    );
   });
 
   it("提供 ledger.inviteService.accept 方法", () => {
