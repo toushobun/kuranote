@@ -104,6 +104,11 @@ function buildSubmittedItemMap(items: SubmittedItem[]) {
   );
 }
 
+function hasDuplicatePersistedItemIds(items: SubmittedItem[]): boolean {
+  const itemIds = items.flatMap((item) => (item.id ? [item.id] : []));
+  return new Set(itemIds).size !== itemIds.length;
+}
+
 function throwUnlinkRequired(): never {
   throw new ValidationError(
     transactionErrorCodes.linkedEditRequiresUnlink,
@@ -131,7 +136,8 @@ function isDerivedSpecialStatus(
   specialStatus: SubmittedItem["specialStatus"],
 ): boolean {
   return (
-    specialStatus === "reimbursed" || specialStatus === "reimbursementSurplus"
+    specialStatus === "reimbursed" ||
+    specialStatus === "reimbursementSurplus"
   );
 }
 
@@ -251,6 +257,12 @@ export function createLinkedTransactionEditService({
         return;
       }
       const initial = getNormalInitialValues(view);
+      if (hasDuplicatePersistedItemIds(input.items)) {
+        throw new ValidationError(
+          transactionErrorCodes.updateInvalid,
+          "交易明细不正确，请刷新页面后重试。",
+        );
+      }
       const submittedById = buildSubmittedItemMap(input.items);
       const categoryTypeById = new Map(
         view.categoryOptions.map(
