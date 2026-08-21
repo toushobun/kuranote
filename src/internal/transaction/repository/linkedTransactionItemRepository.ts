@@ -95,7 +95,10 @@ export function createSupabaseLinkedTransactionItemRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
 ): LinkedTransactionItemRepository {
-  function throwRpcError(error: RpcError, context: LinkedEditLogContext): never {
+  function throwRpcError(
+    error: RpcError,
+    context: LinkedEditLogContext,
+  ): never {
     const rpcErrorCode = findRpcErrorCode(
       error.details,
       linkedEditRpcErrorCodes,
