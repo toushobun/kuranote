@@ -27,6 +27,11 @@ export {
   type TransactionSpecialStatusFilterValue,
   type TransactionSpecialStatusStorageValue,
 } from "internal/transaction/entity/transactionSpecialStatus";
+export {
+  createLinkedTransactionEditService,
+  type LinkedTransactionEditInput,
+  type LinkedTransactionEditService,
+} from "internal/transaction/service/linkedTransactionEditService";
 export type { TransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 export type {
   TransactionFilters,
