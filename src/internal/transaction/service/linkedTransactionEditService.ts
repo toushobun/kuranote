@@ -127,11 +127,34 @@ function getSubmittedSpecialStatus(
     : submitted.specialStatus;
 }
 
+function isDerivedSpecialStatus(
+  specialStatus: SubmittedItem["specialStatus"],
+): boolean {
+  return (
+    specialStatus === "reimbursed" || specialStatus === "reimbursementSurplus"
+  );
+}
+
 function validateProtectedStatuses(
   initial: NormalEditInitialValues,
+  input: LinkedTransactionEditInput,
   submittedById: Map<string, SubmittedItem>,
   categoryTypeById: Map<string, "expense" | "income">,
 ): void {
+  const existingById = new Map(
+    initial.items.flatMap((item) => (item.id ? [[item.id, item] as const] : [])),
+  );
+
+  // 结清 / 核销结余是关联计算的派生值，只允许持久化明细把当前值原样回传。
+  // 客户端不能借编辑专用解析器把派生状态写入普通明细。
+  for (const submitted of input.items) {
+    if (!isDerivedSpecialStatus(submitted.specialStatus)) continue;
+    const existing = submitted.id ? existingById.get(submitted.id) : undefined;
+    if (!existing || submitted.specialStatus !== existing.specialStatus) {
+      throwSpecialStatusLocked();
+    }
+  }
+
   for (const item of initial.items) {
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
@@ -234,7 +257,12 @@ export function createLinkedTransactionEditService({
           (category) => [category.id, category.type] as const,
         ),
       );
-      validateProtectedStatuses(initial, submittedById, categoryTypeById);
+      validateProtectedStatuses(
+        initial,
+        input,
+        submittedById,
+        categoryTypeById,
+      );
 
       const linkedItems = initial.items.filter(isLinkedItem);
       if (linkedItems.length === 0) {
