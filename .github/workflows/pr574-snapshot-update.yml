@@ -1,23 +1,24 @@
 name: PR574 Schema Snapshot Update
 
 on:
-  push:
-    branches:
-      - feature/574_pr2_edit_save_flow
-    paths:
-      - .github/workflows/pr574-snapshot-update.yml
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
 
 jobs:
   update-snapshot:
+    if: github.head_ref == 'feature/574_pr2_edit_save_flow'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: feature/574_pr2_edit_save_flow
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Setup Supabase CLI
