@@ -2,7 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { CurrentLedger } from "internal/ledger";
-import { ConflictError, ValidationError } from "internal/shared/errors/appError";
+import {
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import {
@@ -264,9 +267,8 @@ function createService(view: EditTransactionView | null) {
 
 describe("LinkedTransactionEditService", () => {
   it("没有关联时继续走普通保存路径且不要求确认", async () => {
-    const { service, updateEdit, updateNormal } = createService(
-      createUnlinkedView(),
-    );
+    const { service, updateEdit, updateNormal } =
+      createService(createUnlinkedView());
     const input = targetInput({
       items: [
         {
@@ -316,12 +318,12 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.linkedSyncConfirmationRequired,
-        name: ConflictError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedSyncConfirmationRequired,
+      name: ConflictError.name,
+    });
     expect(updateEdit).not.toHaveBeenCalled();
   });
 
@@ -395,24 +397,24 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.refundLinkInvalid,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.refundLinkInvalid,
+      name: ValidationError.name,
+    });
   });
 
   it("报销关联切换账户时拒绝不同币种", async () => {
     const { service } = createService(createIncomeView());
     const input = incomeInput({ accountId: otherCurrencyAccountId });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.reimbursementLinkInvalid,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.reimbursementLinkInvalid,
+      name: ValidationError.name,
+    });
   });
 
   it("报销关联允许同币种账户并在确认后保存", async () => {
@@ -447,12 +449,12 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.linkedEditRequiresUnlink,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedEditRequiresUnlink,
+      name: ValidationError.name,
+    });
   });
 
   it("待报销状态本身不能被取消", async () => {
@@ -468,12 +470,12 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.specialStatusInvalid,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.specialStatusInvalid,
+      name: ValidationError.name,
+    });
   });
 
   it("修改关联对象时要求先解除原关联", async () => {
@@ -489,24 +491,24 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.linkedEditRequiresUnlink,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedEditRequiresUnlink,
+      name: ValidationError.name,
+    });
   });
 
   it("删除已关联明细时返回明确拒绝", async () => {
     const { service } = createService(createIncomeView());
     const input = incomeInput({ items: [] });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.linkedDeleteForbidden,
-        name: ValidationError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedDeleteForbidden,
+      name: ValidationError.name,
+    });
   });
 
   it("删除整笔包含关联明细的交易时返回明确拒绝", async () => {
@@ -535,19 +537,18 @@ describe("LinkedTransactionEditService", () => {
       ],
     });
 
-    await expect(service.updateNormal(currentLedger, input)).rejects.toMatchObject(
-      {
-        code: transactionErrorCodes.linkedVersionInvalid,
-        name: ConflictError.name,
-      },
-    );
+    await expect(
+      service.updateNormal(currentLedger, input),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedVersionInvalid,
+      name: ConflictError.name,
+    });
     expect(updateEdit).not.toHaveBeenCalled();
   });
 
   it("Repository 并发 ConflictError 通过完整保存流程原样冒泡", async () => {
-    const { linkedTransactionItemService, service } = createService(
-      createIncomeView(),
-    );
+    const { linkedTransactionItemService, service } =
+      createService(createIncomeView());
     const conflict = new ConflictError(
       transactionErrorCodes.updateInvalid,
       "交易明细已被其他操作更新，请刷新后重试。",
