@@ -746,6 +746,46 @@ CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uu
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden'
+            using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+
+    perform 1
+    from public.ledger ledger_row
+    where ledger_row.id = p_ledger_id
+    for update;
+
+    return public.convert_transaction_type_locked_impl(
+        p_ledger_id,
+        p_transaction_record_id,
+        p_target_type,
+        p_transaction_at,
+        p_note,
+        p_account_id,
+        p_merchant_id,
+        p_items,
+        p_from_account_id,
+        p_to_account_id,
+        p_transfer_amount
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
 declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
@@ -1067,7 +1107,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
@@ -4523,8 +4563,6 @@ begin
     order by record_row.id
     for update;
 
-    -- 正式路径都先锁对应 transaction_record，因此读取当前 account 后不会再被另一个
-    -- 正式交易写入口改掉。找不到明细时仍交给内部实现返回既有 transaction_not_found。
     select item.account_id
     into v_old_account_id
     from public.transaction_item item
@@ -4538,6 +4576,18 @@ begin
       and account_row.id = any(array[v_old_account_id, p_account_id]::uuid[])
     order by account_row.id
     for update;
+
+    if v_old_account_id is not null
+       and not exists (
+           select 1
+           from public.account old_account
+           where old_account.ledger_id = p_ledger_id
+             and old_account.id = v_old_account_id
+             and old_account.is_archived = false
+       ) then
+        raise exception 'account_invalid'
+            using errcode = '22023', detail = 'account_invalid';
+    end if;
 
     perform public.update_linked_transaction_item_locked_impl(
         p_ledger_id,
@@ -7637,6 +7687,10 @@ REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_
 
 REVOKE ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
 
 
 
