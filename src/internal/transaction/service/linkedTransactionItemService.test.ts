@@ -5,12 +5,14 @@ import {
   AuthenticationError,
   AuthorizationError,
   ConflictError,
+  NotFoundError,
 } from "internal/shared/errors/appError";
 import type { LinkedTransactionItemRepository } from "internal/transaction/repository/linkedTransactionItemRepository";
 import { createLinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
+const otherUserId = "00000000-0000-4000-8000-000000000034";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 const transactionItemId = "00000000-0000-4000-8000-000000000201";
 const updatedAt = "2026-08-19T13:00:00.000Z";
@@ -36,6 +38,8 @@ function createService(options?: {
   currentUserId?: string | null;
   role?: "owner" | "admin" | "member" | "viewer";
   linkedRepository?: LinkedTransactionItemRepository;
+  recordCreatedBy?: string | null;
+  recordExists?: boolean;
 }) {
   const linkedRepository =
     options?.linkedRepository ?? createLinkedRepository();
@@ -47,15 +51,22 @@ function createService(options?: {
     } as never,
     linkedTransactionItemRepository: linkedRepository,
     transactionRepository: {
-      findActiveRecord: vi.fn().mockResolvedValue({
-        created_at: "2026-08-19T12:00:00.000Z",
-        created_by: userId,
-        id: transactionRecordId,
-        merchant_id: null,
-        note: null,
-        transaction_at: "2026-08-19T12:00:00.000Z",
-        type: "normal",
-      }),
+      findActiveRecord: vi.fn().mockResolvedValue(
+        options?.recordExists === false
+          ? null
+          : {
+              created_at: "2026-08-19T12:00:00.000Z",
+              created_by:
+                options?.recordCreatedBy === undefined
+                  ? userId
+                  : options.recordCreatedBy,
+              id: transactionRecordId,
+              merchant_id: null,
+              note: null,
+              transaction_at: "2026-08-19T12:00:00.000Z",
+              type: "normal",
+            },
+      ),
     },
   });
   return { linkedRepository, service };
@@ -110,6 +121,51 @@ describe("LinkedTransactionItemService", () => {
       AuthorizationError,
     );
     expect(linkedRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("目标交易已不存在时在调用关联 Repository 前返回 NotFoundError", async () => {
+    const { linkedRepository, service } = createService({
+      recordExists: false,
+    });
+
+    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(linkedRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("member 不能修改其他成员创建的交易", async () => {
+    const { linkedRepository, service } = createService({
+      recordCreatedBy: otherUserId,
+      role: "member",
+    });
+
+    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+    expect(linkedRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("编辑快照不属于请求交易时返回 NotFoundError", async () => {
+    const linkedRepository = createLinkedRepository({
+      findEditSnapshot: vi.fn().mockResolvedValue({
+        accountId: "00000000-0000-4000-8000-000000000043",
+        amount: "120.00",
+        categoryId: "00000000-0000-4000-8000-000000005021",
+        transactionItemId,
+        transactionRecordId: "00000000-0000-4000-8000-000000008888",
+        updatedAt,
+      }),
+    });
+    const { service } = createService({ linkedRepository });
+
+    await expect(
+      service.getEditSnapshot({
+        ledgerId,
+        transactionItemId,
+        transactionRecordId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("Repository 的并发 ConflictError 原样透出", async () => {
