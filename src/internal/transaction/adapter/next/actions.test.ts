@@ -54,10 +54,7 @@ describe("Transaction Actions", () => {
     formData.set("transactionAt", "2026-06-04T10:30:05");
     formData.set("timeZoneOffsetMinutes", "-540");
     formData.set("accountId", "00000000-0000-4000-8000-000000000045");
-    formData.append(
-      "itemCategoryId",
-      "00000000-0000-4000-8000-000000005072",
-    );
+    formData.append("itemCategoryId", "00000000-0000-4000-8000-000000005072");
     formData.append("itemAmount", amount);
     formData.set("merchantId", "00000000-0000-4000-8000-000000001001");
     return formData;
