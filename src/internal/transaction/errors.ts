@@ -88,9 +88,7 @@ export const transactionLinkedEditErrorMessages = {
 
 export function getTransactionValidationErrorMessage(error?: string) {
   return error && error in transactionValidationErrorMessages
-    ? transactionValidationErrorMessages[
-        error as TransactionValidationErrorCode
-      ]
+    ? transactionValidationErrorMessages[error as TransactionValidationErrorCode]
     : null;
 }
 
