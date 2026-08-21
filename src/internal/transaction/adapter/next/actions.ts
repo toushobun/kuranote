@@ -11,11 +11,13 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import { parseLinkedEditActionInput } from "internal/transaction/adapter/next/linkedEditInput";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
   getTransactionValidationErrorMessage,
   getUpdateTransactionValidationErrorMessage,
   getVoidTransactionValidationErrorMessage,
+  transactionLinkedEditErrorMessages,
 } from "internal/transaction/errors";
 import {
   validateConvertTransactionTypeForm,
@@ -24,11 +26,24 @@ import {
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
 } from "internal/transaction/schema";
+import { createLinkedTransactionEditService } from "internal/transaction/service/linkedTransactionEditService";
 import type { TransactionActionState } from "types/transactions";
 
-async function getTransactionService() {
+async function getTransactionContainer() {
   const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).transaction.service;
+  return createRequestContainer(dependencies).transaction;
+}
+
+async function getTransactionService() {
+  return (await getTransactionContainer()).service;
+}
+
+async function getLinkedTransactionEditService() {
+  const transaction = await getTransactionContainer();
+  return createLinkedTransactionEditService({
+    linkedTransactionItemService: transaction.linkedTransactionItemService,
+    transactionService: transaction.service,
+  });
 }
 
 function errorState(message: string): TransactionActionState {
@@ -105,10 +120,21 @@ export async function updateTransaction(
         "交易内容不正确，请确认后重试。",
     );
   }
+  const linkedEditInput = parseLinkedEditActionInput(
+    formData,
+    validation.value.items.map((item) => item.id),
+  );
+  if (!linkedEditInput) {
+    return errorState(transactionLinkedEditErrorMessages.inputInvalid);
+  }
   try {
     await (
-      await getTransactionService()
-    ).updateNormal({ ledgerId: currentLedger.id, ...validation.value });
+      await getLinkedTransactionEditService()
+    ).updateNormal(currentLedger, {
+      ledgerId: currentLedger.id,
+      ...validation.value,
+      ...linkedEditInput,
+    });
   } catch (error) {
     return appErrorState(error, "交易更新失败，请稍后重试。");
   }
@@ -230,8 +256,8 @@ export async function voidTransaction(
   }
   try {
     await (
-      await getTransactionService()
-    ).void({ ledgerId: currentLedger.id, ...validation.value });
+      await getLinkedTransactionEditService()
+    ).void(currentLedger, { ledgerId: currentLedger.id, ...validation.value });
   } catch (error) {
     return appErrorState(error, "交易删除失败，请稍后重试。");
   }

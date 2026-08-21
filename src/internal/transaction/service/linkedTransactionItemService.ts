@@ -14,6 +14,7 @@ import type {
   LinkedTransactionItemEditSnapshot,
   LinkedTransactionItemRepository,
   UpdateLinkedTransactionItemInput,
+  UpdateLinkedTransactionRecordMetadataInput,
 } from "internal/transaction/repository/linkedTransactionItemRepository";
 
 export type LinkedTransactionItemServiceDependencies = {
@@ -23,6 +24,11 @@ export type LinkedTransactionItemServiceDependencies = {
   transactionRepository: Pick<TransactionCommandRepository, "findActiveRecord">;
 };
 
+export type UpdateLinkedTransactionRecordMetadataServiceInput = Omit<
+  UpdateLinkedTransactionRecordMetadataInput,
+  "updatedBy"
+>;
+
 export interface LinkedTransactionItemService {
   getEditSnapshot(input: {
     ledgerId: string;
@@ -30,6 +36,9 @@ export interface LinkedTransactionItemService {
     transactionRecordId: string;
   }): Promise<LinkedTransactionItemEditSnapshot>;
   update(input: UpdateLinkedTransactionItemInput): Promise<void>;
+  updateRecordMetadata(
+    input: UpdateLinkedTransactionRecordMetadataServiceInput,
+  ): Promise<void>;
 }
 
 function permissionError() {
@@ -107,6 +116,20 @@ export function createLinkedTransactionItemService({
         input.transactionRecordId,
       );
       await linkedTransactionItemRepository.update(input);
+    },
+
+    async updateRecordMetadata(input) {
+      await requireModificationPermission(
+        input.ledgerId,
+        input.transactionRecordId,
+      );
+      if (!currentUserId) {
+        throw new AuthenticationError("auth_required", "请先登录。");
+      }
+      await linkedTransactionItemRepository.updateRecordMetadata({
+        ...input,
+        updatedBy: currentUserId,
+      });
     },
   };
 }

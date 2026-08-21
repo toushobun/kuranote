@@ -30,12 +30,24 @@ export type UpdateLinkedTransactionItemInput = {
   transactionRecordId: string;
 };
 
+export type UpdateLinkedTransactionRecordMetadataInput = {
+  ledgerId: string;
+  merchantId: string;
+  note: string | null;
+  transactionAt: string;
+  transactionRecordId: string;
+  updatedBy: string;
+};
+
 export interface LinkedTransactionItemRepository {
   findEditSnapshot(
     ledgerId: string,
     transactionItemId: string,
   ): Promise<LinkedTransactionItemEditSnapshot | null>;
   update(input: UpdateLinkedTransactionItemInput): Promise<void>;
+  updateRecordMetadata(
+    input: UpdateLinkedTransactionRecordMetadataInput,
+  ): Promise<void>;
 }
 
 type LinkedTransactionItemRow = {
@@ -212,6 +224,49 @@ export function createSupabaseLinkedTransactionItemRepository(
         p_transaction_record_id: input.transactionRecordId,
       });
       if (error) throwRpcError(error, input);
+    },
+
+    async updateRecordMetadata(input) {
+      const { count, error } = await supabase
+        .from("transaction_record")
+        .update(
+          {
+            merchant_id: input.merchantId,
+            note: input.note,
+            transaction_at: input.transactionAt,
+            updated_by: input.updatedBy,
+          },
+          { count: "exact" },
+        )
+        .eq("ledger_id", input.ledgerId)
+        .eq("id", input.transactionRecordId)
+        .eq("status", "active")
+        .eq("type", "normal");
+
+      if (error) {
+        logger.error("[transaction] failed to update linked transaction metadata", {
+          databaseCode: error.code,
+          ledgerId: input.ledgerId,
+          transactionRecordId: input.transactionRecordId,
+        });
+        if (error.code === "23503") {
+          throw new ValidationError(
+            transactionErrorCodes.merchantInvalid,
+            "商家信息不正确，请确认后重试。",
+          );
+        }
+        throw toRepositoryError(
+          transactionErrorCodes.updateFailed,
+          "交易更新失败，请稍后重试。",
+        );
+      }
+
+      if (count !== 1) {
+        throw new NotFoundError(
+          transactionErrorCodes.updateInvalid,
+          "交易记录不存在或已删除。",
+        );
+      }
     },
   };
 }
