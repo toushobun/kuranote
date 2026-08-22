@@ -123,6 +123,13 @@ function throwSpecialStatusLocked(): never {
   );
 }
 
+function throwCategoryInvalid(): never {
+  throw new ValidationError(
+    transactionErrorCodes.categoryInvalid,
+    "分类指定不正确。",
+  );
+}
+
 function getSubmittedSpecialStatus(
   existing: ExistingItem,
   submitted: SubmittedItem,
@@ -174,10 +181,10 @@ function validateProtectedStatuses(
     if (submitted.specialStatus !== item.specialStatus) {
       throwSpecialStatusLocked();
     }
-    if (
-      submitted.categoryId !== item.categoryId &&
-      categoryTypeById.get(submitted.categoryId) !== "expense"
-    ) {
+    const categoryChanged = submitted.categoryId !== item.categoryId;
+    const categoryType = categoryTypeById.get(submitted.categoryId);
+    if (categoryChanged && !categoryType) throwCategoryInvalid();
+    if (categoryChanged && categoryType !== "expense") {
       throwSpecialStatusLocked();
     }
   }
@@ -368,12 +375,7 @@ export function createLinkedTransactionEditService({
         validateAssociationUnchanged(existing, submitted);
         const categoryChanged = submitted.categoryId !== existing.categoryId;
         const categoryType = categoryTypeById.get(submitted.categoryId);
-        if (categoryChanged && !categoryType) {
-          throw new ValidationError(
-            transactionErrorCodes.categoryInvalid,
-            "分类指定不正确。",
-          );
-        }
+        if (categoryChanged && !categoryType) throwCategoryInvalid();
         if (
           categoryChanged &&
           ((isLinkedIncome(existing) && categoryType !== "income") ||

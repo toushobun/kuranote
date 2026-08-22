@@ -28,7 +28,6 @@ export {
   type TransactionSpecialStatusStorageValue,
 } from "internal/transaction/entity/transactionSpecialStatus";
 export {
-  createLinkedTransactionEditService,
   type LinkedTransactionEditInput,
   type LinkedTransactionEditService,
 } from "internal/transaction/service/linkedTransactionEditService";

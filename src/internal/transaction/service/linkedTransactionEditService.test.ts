@@ -25,6 +25,7 @@ const sameCurrencyAccountId = "00000000-0000-4000-8000-000000000044";
 const otherCurrencyAccountId = "00000000-0000-4000-8000-000000000045";
 const incomeCategoryId = "00000000-0000-4000-8000-000000005021";
 const expenseCategoryId = "00000000-0000-4000-8000-000000005022";
+const invalidCategoryId = "00000000-0000-4000-8000-000000005099";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const otherMerchantId = "00000000-0000-4000-8000-000000001002";
 const updatedAt = "2026-08-21T01:00:00.000Z";
@@ -753,6 +754,30 @@ describe("LinkedTransactionEditService", () => {
         service.updateNormal(currentLedger, input),
       ).rejects.toMatchObject({
         code: transactionErrorCodes.specialStatusInvalid,
+        name: ValidationError.name,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it("待报销明细提交未知分类时返回分类无效", async () => {
+      const { service, updateEdit, updateNormal } =
+        createService(createPendingView());
+      const input = targetInput({
+        items: [
+          {
+            amount: 300,
+            categoryId: invalidCategoryId,
+            id: linkedItemId,
+            specialStatus: "pendingReimbursement",
+          },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.categoryInvalid,
         name: ValidationError.name,
       });
       expect(updateNormal).not.toHaveBeenCalled();
