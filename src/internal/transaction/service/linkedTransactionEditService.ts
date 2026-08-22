@@ -166,7 +166,7 @@ function validateProtectedStatuses(
     if (!item.id || item.specialStatus === null) continue;
     const submitted = submittedById.get(item.id);
     if (!submitted) {
-      if (input.type !== initial.type) continue;
+      if (input.type !== initial.type && isLinkedItem(item)) continue;
       throwSpecialStatusLocked();
     }
     // 已有特殊状态必须显式原样回传，不能把字段缺失解释成“保持不变”；
@@ -212,6 +212,7 @@ function hasSiblingItemMutation(
   linkedItemIds: Set<string>,
   submittedById: Map<string, SubmittedItem>,
 ): boolean {
+  // 关联编辑 RPC 只更新关联明细；账户变化时不能把普通兄弟明细留在旧账户。
   const accountChanged = input.accountId !== initial.accountId;
   const currentIds = new Set(
     initial.items.flatMap((item) => (item.id ? [item.id] : [])),

@@ -18,6 +18,7 @@ import type { TransactionService } from "internal/transaction/service/transactio
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 const linkedItemId = "00000000-0000-4000-8000-000000000201";
+const siblingItemId = "00000000-0000-4000-8000-000000000202";
 const targetItemId = "00000000-0000-4000-8000-000000000301";
 const oldAccountId = "00000000-0000-4000-8000-000000000043";
 const sameCurrencyAccountId = "00000000-0000-4000-8000-000000000044";
@@ -186,6 +187,41 @@ function createUnlinkedView(): EditTransactionView {
   };
 }
 
+function createViewWithSibling(): EditTransactionView {
+  const view = createIncomeView();
+  if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+  view.initialValues.items.push({
+    amount: "50",
+    businessStatus: null,
+    categoryId: expenseCategoryId,
+    id: siblingItemId,
+    refundCandidate: null,
+    reimbursementCandidate: null,
+    specialStatus: null,
+  });
+  return view;
+}
+
+function createSettledTargetView(): EditTransactionView {
+  const view = createTargetView();
+  if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+  const item = view.initialValues.items[0];
+  if (!item?.businessStatus) throw new Error("测试数据不正确");
+  item.businessStatus.offsetComposition.reimbursementAmount = "300";
+  item.businessStatus.settlementStatus = "reimbursed";
+  item.specialStatus = "reimbursed";
+  return view;
+}
+
+function createPendingView(): EditTransactionView {
+  const view = createUnlinkedView();
+  if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+  const item = view.initialValues.items[0];
+  if (!item) throw new Error("测试数据不正确");
+  item.specialStatus = "pendingReimbursement";
+  return view;
+}
+
 function incomeInput(
   overrides: Partial<LinkedTransactionEditInput> = {},
 ): LinkedTransactionEditInput {
@@ -234,6 +270,29 @@ function targetInput(
     type: "expense",
     ...overrides,
   };
+}
+
+function siblingInput(
+  siblingOverrides: Partial<LinkedTransactionEditInput["items"][number]>,
+): LinkedTransactionEditInput {
+  return incomeInput({
+    confirmSync: true,
+    expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+    items: [
+      {
+        amount: 100,
+        categoryId: incomeCategoryId,
+        id: linkedItemId,
+        reimbursementItemId: targetItemId,
+      },
+      {
+        amount: 50,
+        categoryId: expenseCategoryId,
+        id: siblingItemId,
+        ...siblingOverrides,
+      },
+    ],
+  });
 }
 
 function createService(view: EditTransactionView | null) {
@@ -588,5 +647,156 @@ describe("LinkedTransactionEditService", () => {
     await expect(service.updateNormal(currentLedger, input)).rejects.toBe(
       conflict,
     );
+  });
+
+  describe("边界校验", () => {
+    it.each([
+      [{ specialStatus: "pendingReimbursement" as const }],
+      [{ reimbursementItemId: targetItemId }],
+    ])(
+      "关联交易中的其他明细发生业务关系变化时拒绝静默丢弃",
+      async (overrides) => {
+        const { service, updateEdit } = createService(createViewWithSibling());
+
+        await expect(
+          service.updateNormal(currentLedger, siblingInput(overrides)),
+        ).rejects.toMatchObject({
+          code: transactionErrorCodes.linkedEditRequiresUnlink,
+          name: ValidationError.name,
+        });
+        expect(updateEdit).not.toHaveBeenCalled();
+      },
+    );
+
+    it("已结清母项原样回传派生状态时仍可同步修改金额", async () => {
+      const { service, updateEdit } = createService(createSettledTargetView());
+      const input = targetInput({
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        items: [
+          {
+            amount: 320,
+            categoryId: expenseCategoryId,
+            id: linkedItemId,
+            specialStatus: "reimbursed",
+          },
+        ],
+      });
+
+      await service.updateNormal(currentLedger, input);
+
+      expect(updateEdit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          itemUpdates: [expect.objectContaining({ amount: 320 })],
+        }),
+      );
+    });
+
+    it("关联交易切换收入支出类型时要求先解除关联", async () => {
+      const { service, updateEdit, updateNormal } = createService(
+        createSettledTargetView(),
+      );
+      const input = targetInput({
+        confirmSync: true,
+        items: [],
+        type: "income",
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.linkedEditRequiresUnlink,
+        name: ValidationError.name,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it("普通明细不能伪造关联派生状态", async () => {
+      const { service, updateEdit, updateNormal } =
+        createService(createUnlinkedView());
+      const input = targetInput({
+        items: [
+          {
+            amount: 300,
+            categoryId: expenseCategoryId,
+            id: linkedItemId,
+            specialStatus: "reimbursementSurplus",
+          },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.specialStatusInvalid,
+        name: ValidationError.name,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it("待报销明细缺少特殊状态字段时拒绝旧保存路径清空状态", async () => {
+      const { service, updateEdit, updateNormal } =
+        createService(createPendingView());
+      const input = targetInput({
+        items: [
+          {
+            amount: 300,
+            categoryId: expenseCategoryId,
+            id: linkedItemId,
+          },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.specialStatusInvalid,
+        name: ValidationError.name,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it.each(["expense", "income"] as const)(
+      "整条省略待报销明细时即使目标类型为 %s 也拒绝删除",
+      async (type) => {
+        const { service, updateEdit, updateNormal } =
+          createService(createPendingView());
+        const input = targetInput({ items: [], type });
+
+        await expect(
+          service.updateNormal(currentLedger, input),
+        ).rejects.toMatchObject({
+          code: transactionErrorCodes.specialStatusInvalid,
+          name: ValidationError.name,
+        });
+        expect(updateNormal).not.toHaveBeenCalled();
+        expect(updateEdit).not.toHaveBeenCalled();
+      },
+    );
+
+    it("重复持久化明细 ID 时拒绝保存", async () => {
+      const { service, updateEdit, updateNormal } =
+        createService(createUnlinkedView());
+      const duplicatedItem = {
+        amount: 300,
+        categoryId: expenseCategoryId,
+        id: linkedItemId,
+      };
+      const input = targetInput({
+        items: [duplicatedItem, { ...duplicatedItem }],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.updateInvalid,
+        name: ValidationError.name,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
   });
 });
