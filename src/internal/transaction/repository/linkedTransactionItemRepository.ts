@@ -30,12 +30,24 @@ export type UpdateLinkedTransactionItemInput = {
   transactionRecordId: string;
 };
 
+export type UpdateLinkedTransactionEditInput = {
+  itemUpdates: Array<
+    Omit<UpdateLinkedTransactionItemInput, "ledgerId" | "transactionRecordId">
+  >;
+  ledgerId: string;
+  merchantId: string;
+  note: string | null;
+  transactionAt: string;
+  transactionRecordId: string;
+};
+
 export interface LinkedTransactionItemRepository {
   findEditSnapshot(
     ledgerId: string,
     transactionItemId: string,
   ): Promise<LinkedTransactionItemEditSnapshot | null>;
   update(input: UpdateLinkedTransactionItemInput): Promise<void>;
+  updateEdit(input: UpdateLinkedTransactionEditInput): Promise<void>;
 }
 
 type LinkedTransactionItemRow = {
@@ -56,11 +68,16 @@ type RpcError = {
 const linkedEditRpcErrorCodes = [
   "not_authenticated",
   "ledger_forbidden",
+  "permission_denied",
   "transaction_not_found",
   "transaction_item_version_conflict",
+  "transaction_at_invalid",
+  "linked_edit_items_invalid",
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
   transactionErrorCodes.categoryInvalid,
+  transactionErrorCodes.merchantInvalid,
+  transactionErrorCodes.noteTooLong,
   transactionErrorCodes.specialStatusInvalid,
   transactionErrorCodes.incomeLinkCategoryInvalid,
   "refund_account_mismatch",
@@ -68,13 +85,19 @@ const linkedEditRpcErrorCodes = [
   "linked_transaction_edit_forbidden",
 ] as const;
 
+type LinkedEditLogContext = {
+  ledgerId: string;
+  transactionItemId?: string;
+  transactionRecordId: string;
+};
+
 export function createSupabaseLinkedTransactionItemRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
 ): LinkedTransactionItemRepository {
   function throwRpcError(
     error: RpcError,
-    input: UpdateLinkedTransactionItemInput,
+    context: LinkedEditLogContext,
   ): never {
     const rpcErrorCode = findRpcErrorCode(
       error.details,
@@ -84,15 +107,19 @@ export function createSupabaseLinkedTransactionItemRepository(
       databaseCode: error.code,
       databaseDetails: error.details,
       databaseMessage: error.message,
-      ledgerId: input.ledgerId,
-      transactionItemId: input.transactionItemId,
-      transactionRecordId: input.transactionRecordId,
+      ledgerId: context.ledgerId,
+      transactionItemId: context.transactionItemId,
+      transactionRecordId: context.transactionRecordId,
     });
 
     if (rpcErrorCode === "not_authenticated" || error.code === "28000") {
       throw new AuthenticationError("auth_required", "请先登录。");
     }
-    if (rpcErrorCode === "ledger_forbidden" || error.code === "42501") {
+    if (
+      rpcErrorCode === "ledger_forbidden" ||
+      rpcErrorCode === "permission_denied" ||
+      error.code === "42501"
+    ) {
       throw new AuthorizationError(
         transactionErrorCodes.permissionDenied,
         "没有权限执行此交易操作。",
@@ -128,6 +155,18 @@ export function createSupabaseLinkedTransactionItemRepository(
         "分类信息不正确，请确认后重试。",
       );
     }
+    if (rpcErrorCode === transactionErrorCodes.merchantInvalid) {
+      throw new ValidationError(
+        transactionErrorCodes.merchantInvalid,
+        "商家信息不正确，请确认后重试。",
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.noteTooLong) {
+      throw new ValidationError(
+        transactionErrorCodes.noteTooLong,
+        "备注不能超过 2000 个字符。",
+      );
+    }
     if (
       rpcErrorCode === transactionErrorCodes.specialStatusInvalid ||
       rpcErrorCode === transactionErrorCodes.incomeLinkCategoryInvalid
@@ -155,7 +194,11 @@ export function createSupabaseLinkedTransactionItemRepository(
         "该明细当前不属于可受控编辑的退款 / 报销关联。",
       );
     }
-    if (error.code === "22023") {
+    if (
+      rpcErrorCode === "transaction_at_invalid" ||
+      rpcErrorCode === "linked_edit_items_invalid" ||
+      error.code === "22023"
+    ) {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
         "交易内容不正确，请确认后重试。",
@@ -211,7 +254,30 @@ export function createSupabaseLinkedTransactionItemRepository(
         p_transaction_item_id: input.transactionItemId,
         p_transaction_record_id: input.transactionRecordId,
       });
-      if (error) throwRpcError(error, input);
+      if (error) {
+        throwRpcError(error, {
+          ledgerId: input.ledgerId,
+          transactionItemId: input.transactionItemId,
+          transactionRecordId: input.transactionRecordId,
+        });
+      }
+    },
+
+    async updateEdit(input) {
+      const { error } = await supabase.rpc("update_linked_transaction_edit", {
+        p_item_updates: input.itemUpdates,
+        p_ledger_id: input.ledgerId,
+        p_merchant_id: input.merchantId,
+        p_note: input.note,
+        p_transaction_at: input.transactionAt,
+        p_transaction_record_id: input.transactionRecordId,
+      });
+      if (error) {
+        throwRpcError(error, {
+          ledgerId: input.ledgerId,
+          transactionRecordId: input.transactionRecordId,
+        });
+      }
     },
   };
 }

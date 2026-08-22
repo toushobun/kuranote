@@ -11,32 +11,49 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import {
+  parseLinkedEditActionInput,
+  validateLinkedEditTransactionForm,
+} from "internal/transaction/adapter/next/linkedEditInput";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
   getTransactionValidationErrorMessage,
   getUpdateTransactionValidationErrorMessage,
   getVoidTransactionValidationErrorMessage,
+  transactionLinkedEditErrorMessages,
 } from "internal/transaction/errors";
 import {
   validateConvertTransactionTypeForm,
   validateTransactionForm,
-  validateUpdateTransactionForm,
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
 } from "internal/transaction/schema";
 import type { TransactionActionState } from "types/transactions";
 
-async function getTransactionService() {
+async function getTransactionContainer() {
   const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).transaction.service;
+  return createRequestContainer(dependencies).transaction;
+}
+
+async function getTransactionService() {
+  return (await getTransactionContainer()).service;
+}
+
+async function getLinkedTransactionEditService() {
+  return (await getTransactionContainer()).linkedTransactionEditService;
 }
 
 function errorState(message: string): TransactionActionState {
   return { error: message };
 }
 
-function appErrorState(error: unknown, fallback: string) {
-  if (error instanceof AppError) return errorState(error.message);
+function appErrorState(
+  error: unknown,
+  fallback: string,
+): TransactionActionState {
+  if (error instanceof AppError) {
+    return { error: error.message, errorKey: error.code };
+  }
   console.error("[transaction] transaction action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
@@ -98,17 +115,28 @@ export async function updateTransaction(
   formData: FormData,
 ): Promise<TransactionActionState> {
   const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateUpdateTransactionForm(formData);
+  const validation = validateLinkedEditTransactionForm(formData);
   if (!validation.ok) {
     return errorState(
       getUpdateTransactionValidationErrorMessage(validation.error) ??
         "交易内容不正确，请确认后重试。",
     );
   }
+  const linkedEditInput = parseLinkedEditActionInput(
+    formData,
+    validation.value.items.map((item) => item.id),
+  );
+  if (!linkedEditInput) {
+    return errorState(transactionLinkedEditErrorMessages.inputInvalid);
+  }
   try {
     await (
-      await getTransactionService()
-    ).updateNormal({ ledgerId: currentLedger.id, ...validation.value });
+      await getLinkedTransactionEditService()
+    ).updateNormal(currentLedger, {
+      ledgerId: currentLedger.id,
+      ...validation.value,
+      ...linkedEditInput,
+    });
   } catch (error) {
     return appErrorState(error, "交易更新失败，请稍后重试。");
   }
@@ -230,8 +258,8 @@ export async function voidTransaction(
   }
   try {
     await (
-      await getTransactionService()
-    ).void({ ledgerId: currentLedger.id, ...validation.value });
+      await getLinkedTransactionEditService()
+    ).void(currentLedger, { ledgerId: currentLedger.id, ...validation.value });
   } catch (error) {
     return appErrorState(error, "交易删除失败，请稍后重试。");
   }

@@ -47,10 +47,12 @@ export const updateTransactionHandler = async (
     param: TransactionIdParams;
   }>,
 ) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
+  const auth = c.get("requestDependencies").auth;
+  const userId = requireAuthenticatedUserId(auth);
   const input = c.req.valid("json");
   const transactionRecordId = c.req.valid("param").transactionRecordId;
-  const service = c.get("container").transaction.service;
+  const container = c.get("container");
+  const service = container.transaction.service;
   if (input.type === "transfer") {
     await service.updateTransfer({
       accountId: input.accountId,
@@ -62,7 +64,15 @@ export const updateTransactionHandler = async (
       transferTargetAccountId: input.transferTargetAccountId,
     });
   } else {
-    await service.updateNormal({ ...input, transactionRecordId });
+    const currentLedger =
+      await container.ledger.currentLedgerService.getAccessibleLedger({
+        ledgerId: input.ledgerId,
+        userId,
+      });
+    await container.transaction.linkedTransactionEditService.updateNormal(
+      currentLedger,
+      { ...input, transactionRecordId },
+    );
   }
   revalidateTransactionMutation();
   return c.json({ ok: true as const }, 200);
@@ -89,11 +99,19 @@ export const voidTransactionHandler = async (
     query: TransactionLedgerQuery;
   }>,
 ) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").transaction.service.void({
-    ...c.req.valid("param"),
-    ...c.req.valid("query"),
-  });
+  const auth = c.get("requestDependencies").auth;
+  const userId = requireAuthenticatedUserId(auth);
+  const input = { ...c.req.valid("param"), ...c.req.valid("query") };
+  const container = c.get("container");
+  const currentLedger =
+    await container.ledger.currentLedgerService.getAccessibleLedger({
+      ledgerId: input.ledgerId,
+      userId,
+    });
+  await container.transaction.linkedTransactionEditService.void(
+    currentLedger,
+    input,
+  );
   revalidateTransactionMutation();
   return c.json({ ok: true as const }, 200);
 };

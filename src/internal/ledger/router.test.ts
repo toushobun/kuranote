@@ -28,7 +28,10 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
     ledger: {
-      currentLedgerService: { switch: vi.fn() },
+      currentLedgerService: {
+        getAccessibleLedger: vi.fn(),
+        switch: vi.fn(),
+      },
       inviteService: {
         accept: vi.fn(),
         create: vi.fn(),
@@ -111,7 +114,12 @@ describe("ledger router", () => {
       .fn()
       .mockRejectedValue(new AuthorizationError("permission_denied", "无权限"));
     const app = createApp(
-      createContainer({ currentLedgerService: { switch: switchCurrent } }),
+      createContainer({
+        currentLedgerService: {
+          getAccessibleLedger: vi.fn(),
+          switch: switchCurrent,
+        },
+      }),
     );
 
     const response = await app.request(

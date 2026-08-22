@@ -616,7 +616,25 @@ export const createTransactionRequestSchema = z
     }
   });
 
-export const updateTransactionRequestSchema = createTransactionRequestSchema;
+export const updateTransactionRequestSchema = z
+  .discriminatedUnion("type", [
+    normalTransactionRequestSchema.extend({
+      confirmSync: z.boolean().optional().default(false),
+      expectedUpdatedAtByItemId: z
+        .record(z.string().uuid(), z.string().datetime({ offset: true }))
+        .optional()
+        .default({}),
+    }),
+    transferTransactionRequestSchema,
+  ])
+  .superRefine((value, context) => {
+    if (
+      value.type === "transfer" &&
+      value.transferTargetAccountId === value.accountId
+    ) {
+      addSameAccountTransferIssue(context);
+    }
+  });
 
 export const convertTransactionRequestSchema = z
   .discriminatedUnion("targetType", [

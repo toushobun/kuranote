@@ -2,14 +2,24 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
+import {
+  currentLedgerAccessErrorMessage,
+  currentLedgerErrorCodes,
+} from "internal/ledger/errors/currentLedger";
 import { createCurrentLedgerService } from "internal/ledger/service/currentLedgerService";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
 
 const input = { ledgerId: "ledger-1", userId: "user-1" };
+const currentLedger = {
+  baseCurrency: "JPY",
+  currentUserRole: "owner" as const,
+  id: input.ledgerId,
+  name: "家庭账本",
+};
 
 function createService(
   options: {
+    accessibleLedger?: typeof currentLedger | null;
     isActiveMember?: boolean;
     isLedgerActive?: boolean;
     updateResult?: unknown;
@@ -17,6 +27,13 @@ function createService(
 ) {
   return createCurrentLedgerService({
     currentLedgerRepository: {
+      findAccessibleLedger: vi
+        .fn()
+        .mockResolvedValue(
+          "accessibleLedger" in options
+            ? options.accessibleLedger
+            : currentLedger,
+        ),
       isActiveMember: vi.fn().mockResolvedValue(options.isActiveMember ?? true),
       isLedgerActive: vi.fn().mockResolvedValue(options.isLedgerActive ?? true),
       updateCurrentLedger: vi
@@ -25,6 +42,26 @@ function createService(
     },
   });
 }
+
+describe("createCurrentLedgerService.getAccessibleLedger", () => {
+  it("返回当前用户可访问的目标账本", async () => {
+    await expect(createService().getAccessibleLedger(input)).resolves.toEqual(
+      currentLedger,
+    );
+  });
+
+  it("目标账本不可访问时返回与切换操作无关的 NotFoundError", async () => {
+    const error = await createService({ accessibleLedger: null })
+      .getAccessibleLedger(input)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({
+      code: currentLedgerErrorCodes.ledgerInvalid,
+      message: currentLedgerAccessErrorMessage,
+    });
+  });
+});
 
 describe("createCurrentLedgerService.switch", () => {
   it("active 成员且账本有效时更新当前账本", async () => {

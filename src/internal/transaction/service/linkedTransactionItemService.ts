@@ -13,6 +13,7 @@ import type { TransactionCommandRepository } from "internal/transaction/reposito
 import type {
   LinkedTransactionItemEditSnapshot,
   LinkedTransactionItemRepository,
+  UpdateLinkedTransactionEditInput,
   UpdateLinkedTransactionItemInput,
 } from "internal/transaction/repository/linkedTransactionItemRepository";
 
@@ -30,6 +31,7 @@ export interface LinkedTransactionItemService {
     transactionRecordId: string;
   }): Promise<LinkedTransactionItemEditSnapshot>;
   update(input: UpdateLinkedTransactionItemInput): Promise<void>;
+  updateEdit(input: UpdateLinkedTransactionEditInput): Promise<void>;
 }
 
 function permissionError() {
@@ -107,6 +109,14 @@ export function createLinkedTransactionItemService({
         input.transactionRecordId,
       );
       await linkedTransactionItemRepository.update(input);
+    },
+
+    async updateEdit(input) {
+      await requireModificationPermission(
+        input.ledgerId,
+        input.transactionRecordId,
+      );
+      await linkedTransactionItemRepository.updateEdit(input);
     },
   };
 }
