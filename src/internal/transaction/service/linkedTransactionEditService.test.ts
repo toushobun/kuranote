@@ -365,6 +365,14 @@ describe("LinkedTransactionEditService", () => {
     });
   });
 
+  it("HTTP 空字符串备注与原空备注等价时不执行无效保存", async () => {
+    const { service, updateEdit } = createService(createIncomeView());
+
+    await service.updateNormal(currentLedger, incomeInput({ note: "" }));
+
+    expect(updateEdit).not.toHaveBeenCalled();
+  });
+
   it("子项金额变化但未确认时返回确认冲突", async () => {
     const { service, updateEdit } = createService(createIncomeView());
     const input = incomeInput({

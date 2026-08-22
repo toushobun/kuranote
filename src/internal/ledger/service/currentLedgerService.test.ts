@@ -2,7 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
+import {
+  currentLedgerAccessErrorMessage,
+  currentLedgerErrorCodes,
+} from "internal/ledger/errors/currentLedger";
 import { createCurrentLedgerService } from "internal/ledger/service/currentLedgerService";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
 
@@ -16,6 +19,7 @@ const currentLedger = {
 
 function createService(
   options: {
+    accessibleLedger?: typeof currentLedger | null;
     isActiveMember?: boolean;
     isLedgerActive?: boolean;
     updateResult?: unknown;
@@ -23,12 +27,13 @@ function createService(
 ) {
   return createCurrentLedgerService({
     currentLedgerRepository: {
-      getContext: vi.fn().mockResolvedValue({
-        currentLedger,
-        email: "user@example.com",
-        ledgers: [currentLedger],
-        userId: input.userId,
-      }),
+      findAccessibleLedger: vi
+        .fn()
+        .mockResolvedValue(
+          "accessibleLedger" in options
+            ? options.accessibleLedger
+            : currentLedger,
+        ),
       isActiveMember: vi.fn().mockResolvedValue(options.isActiveMember ?? true),
       isLedgerActive: vi.fn().mockResolvedValue(options.isLedgerActive ?? true),
       updateCurrentLedger: vi
@@ -40,22 +45,21 @@ function createService(
 
 describe("createCurrentLedgerService.getAccessibleLedger", () => {
   it("返回当前用户可访问的目标账本", async () => {
-    await expect(
-      createService().getAccessibleLedger({
-        email: "user@example.com",
-        ...input,
-      }),
-    ).resolves.toEqual(currentLedger);
+    await expect(createService().getAccessibleLedger(input)).resolves.toEqual(
+      currentLedger,
+    );
   });
 
-  it("目标账本不可访问时抛出 NotFoundError", async () => {
-    await expect(
-      createService().getAccessibleLedger({
-        email: "user@example.com",
-        ledgerId: "ledger-2",
-        userId: input.userId,
-      }),
-    ).rejects.toBeInstanceOf(NotFoundError);
+  it("目标账本不可访问时返回与切换操作无关的 NotFoundError", async () => {
+    const error = await createService({ accessibleLedger: null })
+      .getAccessibleLedger(input)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({
+      code: currentLedgerErrorCodes.ledgerInvalid,
+      message: currentLedgerAccessErrorMessage,
+    });
   });
 });
 

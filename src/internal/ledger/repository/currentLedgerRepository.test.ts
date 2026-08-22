@@ -10,6 +10,66 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 
 describe("createSupabaseCurrentLedgerRepository", () => {
+  it("只读取目标成员与目标账本并返回访问上下文", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: { role: "admin" } },
+        {
+          data: {
+            base_currency: "JPY",
+            id: ledgerId,
+            name: "家庭账本",
+            transaction_item_special_status_enabled: true,
+          },
+        },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.findAccessibleLedger(ledgerId, userId),
+    ).resolves.toEqual({
+      baseCurrency: "JPY",
+      currentUserId: userId,
+      currentUserRole: "admin",
+      id: ledgerId,
+      name: "家庭账本",
+      transactionItemSpecialStatusEnabled: true,
+    });
+  });
+
+  it("不是目标账本成员时不再查询账本详情", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ data: null }] });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.findAccessibleLedger(ledgerId, userId),
+    ).resolves.toBeNull();
+    expect(supabase.from).toHaveBeenCalledOnce();
+  });
+
+  it("目标成员查询失败时转换为安全 RepositoryError", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { error: { code: "XX000", message: "private database message" } },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.findAccessibleLedger(ledgerId, userId),
+    ).rejects.toMatchObject({
+      code: "current_ledger_member_lookup_failed",
+      message: "账本成员信息读取失败，请稍后重试。",
+    });
+  });
+
   it("分别读取成员状态与账本状态", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [

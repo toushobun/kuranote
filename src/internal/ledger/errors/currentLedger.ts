@@ -9,6 +9,8 @@ export type CurrentLedgerErrorCode =
 export type CurrentLedgerValidationErrorCode =
   typeof currentLedgerErrorCodes.ledgerInvalid;
 
+export const currentLedgerAccessErrorMessage = "账本不存在或当前用户无权访问。";
+
 const currentLedgerErrorMessages: Record<CurrentLedgerErrorCode, string> = {
   [currentLedgerErrorCodes.ledgerInvalid]:
     "无法切换到该账本。请确认你仍是该账本成员。",

@@ -431,7 +431,7 @@ export function createLinkedTransactionEditService({
 
       const metadataChanged =
         input.merchantId !== initial.merchantId ||
-        input.note !== (initial.note || null) ||
+        (input.note || null) !== (initial.note || null) ||
         input.transactionAt !== initial.transactionAt;
       if (itemUpdates.length === 0 && !metadataChanged) return;
 

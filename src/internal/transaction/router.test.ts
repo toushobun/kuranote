@@ -139,7 +139,6 @@ describe("transactionRouter", () => {
 
     expect(response.status).toBe(200);
     expect(getAccessibleLedger).toHaveBeenCalledWith({
-      email: "user@example.com",
       ledgerId,
       userId,
     });

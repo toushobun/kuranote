@@ -161,7 +161,6 @@ describe("transactionController", () => {
     );
 
     expect(context.getAccessibleLedger).toHaveBeenCalledWith({
-      email: "user@example.com",
       ledgerId,
       userId,
     });

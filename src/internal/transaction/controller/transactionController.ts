@@ -66,7 +66,6 @@ export const updateTransactionHandler = async (
   } else {
     const currentLedger =
       await container.ledger.currentLedgerService.getAccessibleLedger({
-        email: auth.email ?? "登录用户",
         ledgerId: input.ledgerId,
         userId,
       });
@@ -106,7 +105,6 @@ export const voidTransactionHandler = async (
   const container = c.get("container");
   const currentLedger =
     await container.ledger.currentLedgerService.getAccessibleLedger({
-      email: auth.email ?? "登录用户",
       ledgerId: input.ledgerId,
       userId,
     });

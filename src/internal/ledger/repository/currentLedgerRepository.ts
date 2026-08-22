@@ -27,6 +27,10 @@ export interface CurrentLedgerContextRepository {
 }
 
 export interface CurrentLedgerRepository {
+  findAccessibleLedger(
+    ledgerId: string,
+    userId: string,
+  ): Promise<CurrentLedger | null>;
   isActiveMember(ledgerId: string, userId: string): Promise<boolean>;
   isLedgerActive(ledgerId: string): Promise<boolean>;
   updateCurrentLedger(
@@ -164,6 +168,62 @@ export function createSupabaseCurrentLedgerRepository(
         currentLedger: currentLedger ?? ledgers[0] ?? null,
       };
     },
+
+    async findAccessibleLedger(ledgerId, userId) {
+      const { data: member, error: memberError } = await supabase
+        .from("ledger_member")
+        .select("role")
+        .eq("ledger_id", ledgerId)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (memberError) {
+        logger.error("[ledger] failed to read accessible ledger member", {
+          ledgerId,
+          message: memberError.message,
+          userId,
+        });
+        throw toRepositoryError(
+          "current_ledger_member_lookup_failed",
+          "账本成员信息读取失败，请稍后重试。",
+        );
+      }
+      if (!member) return null;
+
+      const { data: ledger, error: ledgerError } = await supabase
+        .from("ledger")
+        .select(
+          "id, name, base_currency, transaction_item_special_status_enabled",
+        )
+        .eq("id", ledgerId)
+        .eq("is_archived", false)
+        .maybeSingle();
+
+      if (ledgerError) {
+        logger.error("[ledger] failed to read accessible ledger", {
+          ledgerId,
+          message: ledgerError.message,
+          userId,
+        });
+        throw toRepositoryError(
+          "current_ledger_lookup_failed",
+          "账本信息读取失败，请稍后重试。",
+        );
+      }
+      if (!ledger) return null;
+
+      return {
+        baseCurrency: ledger.base_currency,
+        currentUserId: userId,
+        currentUserRole: toCurrentLedgerRole(member.role),
+        id: ledger.id,
+        name: ledger.name,
+        transactionItemSpecialStatusEnabled:
+          ledger.transaction_item_special_status_enabled,
+      };
+    },
+
     async isActiveMember(ledgerId, userId) {
       const { data, error } = await supabase
         .from("ledger_member")

@@ -1,13 +1,11 @@
 import {
+  currentLedgerAccessErrorMessage,
   currentLedgerErrorCodes,
   getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
 } from "internal/ledger/errors/currentLedger";
 import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
-import type {
-  CurrentLedgerContextRepository,
-  CurrentLedgerRepository,
-} from "internal/ledger/repository/currentLedgerRepository";
+import type { CurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import {
   AppError,
   ConflictError,
@@ -20,13 +18,11 @@ export type SwitchCurrentLedgerInput = {
 };
 
 export type CurrentLedgerServiceDependencies = {
-  currentLedgerRepository: CurrentLedgerRepository &
-    CurrentLedgerContextRepository;
+  currentLedgerRepository: CurrentLedgerRepository;
 };
 
 export type CurrentLedgerService = {
   getAccessibleLedger(input: {
-    email: string;
     ledgerId: string;
     userId: string;
   }): Promise<CurrentLedger>;
@@ -52,13 +48,16 @@ export function createCurrentLedgerService({
   currentLedgerRepository,
 }: CurrentLedgerServiceDependencies): CurrentLedgerService {
   return {
-    async getAccessibleLedger({ email, ledgerId, userId }) {
-      const context = await currentLedgerRepository.getContext(userId, email);
-      const ledger = context.ledgers.find(
-        (candidate) => candidate.id === ledgerId,
+    async getAccessibleLedger({ ledgerId, userId }) {
+      const ledger = await currentLedgerRepository.findAccessibleLedger(
+        ledgerId,
+        userId,
       );
       if (!ledger) {
-        throw toAppError(currentLedgerErrorCodes.ledgerInvalid);
+        throw new NotFoundError(
+          currentLedgerErrorCodes.ledgerInvalid,
+          currentLedgerAccessErrorMessage,
+        );
       }
       return ledger;
     },
