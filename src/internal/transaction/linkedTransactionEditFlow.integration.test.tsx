@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { EditTransactionTemplate } from "templates/transactions/TransactionFormPage";
 import type { CurrentLedger } from "internal/ledger";
+import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
 import { updateTransaction } from "internal/transaction/adapter/next/actions";
 import {
   createLinkedTransactionEditService,
@@ -19,34 +20,10 @@ import type { LinkedTransactionItemService } from "internal/transaction/service/
 import type { EditTransactionView } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 
-const serverMocks = vi.hoisted(() => ({
-  createServerRequestDependencies: vi.fn(),
-  linkedUpdateNormal: vi.fn(),
-  redirect: vi.fn((path: string) => {
-    throw new Error(`NEXT_REDIRECT:${path}`);
-  }),
-  requireCurrentUserAndLedger: vi.fn(),
-  revalidateTransactionMutation: vi.fn(),
-}));
+const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
-vi.mock("next/navigation", () => ({ redirect: serverMocks.redirect }));
-vi.mock("internal/container", () => ({
-  createRequestContainer: () => ({
-    transaction: {
-      linkedTransactionEditService: {
-        updateNormal: serverMocks.linkedUpdateNormal,
-      },
-    },
-  }),
-}));
-vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
-  requireCurrentUserAndLedger: serverMocks.requireCurrentUserAndLedger,
-}));
-vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: serverMocks.createServerRequestDependencies,
-}));
-vi.mock("internal/transaction/adapter/next/revalidate", () => ({
-  revalidateTransactionMutation: serverMocks.revalidateTransactionMutation,
+const serverMocks = vi.hoisted(() => ({
+  linkedUpdateNormal: vi.fn(),
 }));
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -181,8 +158,17 @@ function createScenario(side: "parent" | "child") {
       linkedTransactionItemService,
       transactionService,
     });
-  serverMocks.createServerRequestDependencies.mockResolvedValue({});
-  serverMocks.requireCurrentUserAndLedger.mockResolvedValue({
+  transactionActionModuleMocks.createRequestContainer.mockReturnValue({
+    transaction: {
+      linkedTransactionEditService: {
+        updateNormal: serverMocks.linkedUpdateNormal,
+      },
+    },
+  });
+  transactionActionModuleMocks.createServerRequestDependencies.mockResolvedValue(
+    {},
+  );
+  transactionActionModuleMocks.requireCurrentUserAndLedger.mockResolvedValue({
     currentLedger,
     userId: "00000000-0000-4000-8000-000000000031",
   });
