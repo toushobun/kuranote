@@ -44,6 +44,9 @@ function getTransactionMutationImplementationSql(functionName: string) {
   if (functionName === "convert_transaction_type") {
     return getFunctionSql("convert_transaction_type_locked_impl");
   }
+  if (functionName === "void_transaction") {
+    return getFunctionSql("void_transaction_locked_impl");
+  }
   return getFunctionSql(functionName);
 }
 

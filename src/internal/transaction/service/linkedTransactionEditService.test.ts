@@ -427,10 +427,9 @@ describe("LinkedTransactionEditService", () => {
     );
   });
 
-  it("母项金额变化同样路由到 PR1 原子编排 RPC", async () => {
+  it("母项金额变化不要求确认并路由到 PR1 原子编排 RPC", async () => {
     const { service, updateEdit } = createService(createTargetView());
     const input = targetInput({
-      confirmSync: true,
       expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
       items: [
         {
@@ -449,6 +448,50 @@ describe("LinkedTransactionEditService", () => {
         itemUpdates: [expect.objectContaining({ amount: 360 })],
       }),
     );
+  });
+
+  it("母项与子项同时变化时仍要求确认", async () => {
+    const view = createTargetView();
+    if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+    const incomeView = createIncomeView();
+    if (!("items" in incomeView.initialValues)) {
+      throw new Error("测试数据不正确");
+    }
+    view.initialValues.items.push({
+      ...incomeView.initialValues.items[0],
+      id: siblingItemId,
+    });
+    const { service, updateEdit } = createService(view);
+
+    await expect(
+      service.updateNormal(
+        currentLedger,
+        targetInput({
+          expectedUpdatedAtByItemId: {
+            [linkedItemId]: updatedAt,
+            [siblingItemId]: updatedAt,
+          },
+          items: [
+            {
+              amount: 360,
+              categoryId: expenseCategoryId,
+              id: linkedItemId,
+              specialStatus: "pendingReimbursement",
+            },
+            {
+              amount: 120,
+              categoryId: incomeCategoryId,
+              id: siblingItemId,
+              reimbursementItemId: targetItemId,
+            },
+          ],
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedSyncConfirmationRequired,
+      name: ConflictError.name,
+    });
+    expect(updateEdit).not.toHaveBeenCalled();
   });
 
   it("退款关联不允许切换账户", async () => {
@@ -595,8 +638,19 @@ describe("LinkedTransactionEditService", () => {
     });
   });
 
-  it("删除整笔包含关联明细的交易时返回明确拒绝", async () => {
+  it("删除只包含子项关联明细的交易时继续执行原子删除", async () => {
     const { service, voidTransaction } = createService(createIncomeView());
+
+    await service.void(currentLedger, { ledgerId, transactionRecordId });
+
+    expect(voidTransaction).toHaveBeenCalledWith({
+      ledgerId,
+      transactionRecordId,
+    });
+  });
+
+  it("删除包含母项关联明细的交易时仍返回明确拒绝", async () => {
+    const { service, voidTransaction } = createService(createTargetView());
 
     await expect(
       service.void(currentLedger, { ledgerId, transactionRecordId }),

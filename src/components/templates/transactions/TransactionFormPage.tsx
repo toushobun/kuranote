@@ -450,6 +450,7 @@ const newTransactionTitleSx = {
 type EditTransactionShellProps = {
   activeType: TransactionRecordType;
   deleteAction: TransactionStateAction;
+  hasLinkedIncomeItems: boolean;
   isSaveConfirmationOpen: boolean;
   isSaveFailureOpen: boolean;
   isSavePending: boolean;
@@ -466,6 +467,7 @@ type EditTransactionShellProps = {
 function EditTransactionShell({
   activeType,
   deleteAction,
+  hasLinkedIncomeItems,
   isSaveConfirmationOpen,
   isSaveFailureOpen,
   isSavePending,
@@ -600,7 +602,11 @@ function EditTransactionShell({
         </DialogActions>
       </Dialog>
       <DeleteConfirmationDialog
-        description="删除后这笔记账会从明细页移除，是否继续？"
+        description={
+          hasLinkedIncomeItems
+            ? "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？"
+            : "删除后这笔记账会从明细页移除，是否继续？"
+        }
         onCancel={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
         open={isDeleteDialogOpen}
@@ -775,6 +781,7 @@ export function EditTransferTransactionTemplate({
     <EditTransactionShell
       activeType={activeType}
       deleteAction={deleteAction}
+      hasLinkedIncomeItems={false}
       isSaveConfirmationOpen={editAction.isConfirmationOpen}
       isSaveFailureOpen={editAction.isFailureOpen}
       isSavePending={editAction.isPending}
@@ -918,6 +925,9 @@ export function EditTransactionTemplate({
     <EditTransactionShell
       activeType={activeType}
       deleteAction={deleteAction}
+      hasLinkedIncomeItems={initialValues.items.some(
+        (item) => item.businessStatus?.incomeLinkRole != null,
+      )}
       isSaveConfirmationOpen={editAction.isConfirmationOpen}
       isSaveFailureOpen={editAction.isFailureOpen}
       isSavePending={editAction.isPending}

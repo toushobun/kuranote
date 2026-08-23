@@ -212,7 +212,7 @@ export const EditLinkedExpense: Story = {
 };
 
 export const LinkedDeleteForbidden: Story = {
-  name: "删除已关联明细被拒绝",
+  name: "删除仍被子项关联的母项被拒绝",
   render: () => (
     <EditTransactionTemplate
       {...baseArgs}
@@ -225,6 +225,14 @@ export const LinkedDeleteForbidden: Story = {
         items: [
           {
             amount: "1200",
+            businessStatus: {
+              incomeLinkRole: null,
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "1200",
+              },
+              settlementStatus: "reimbursed",
+            },
             categoryId: "00000000-0000-4000-8000-000000005072",
             expectedUpdatedAt: "2026-08-21T01:00:00.000Z",
             id: "00000000-0000-4000-8000-000000008001",
@@ -246,5 +254,47 @@ export const LinkedDeleteForbidden: Story = {
       await within(document.body).findByRole("button", { name: "删除" }),
     );
     await within(document.body).findByText("无法删除已关联明细");
+  },
+};
+
+export const LinkedIncomeDeleteConfirmation: Story = {
+  name: "删除关联收入时提示自动解除关联",
+  render: () => (
+    <EditTransactionTemplate
+      {...baseArgs}
+      deleteAction={noopAction}
+      initialValues={{
+        accountId: "00000000-0000-4000-8000-000000000045",
+        items: [
+          {
+            amount: "1200",
+            businessStatus: {
+              incomeLinkRole: "reimbursement",
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "0",
+              },
+              settlementStatus: null,
+            },
+            categoryId: "00000000-0000-4000-8000-000000005073",
+            expectedUpdatedAt: "2026-08-21T01:00:00.000Z",
+            id: "00000000-0000-4000-8000-000000008002",
+            specialStatus: null,
+          },
+        ],
+        merchantId: "00000000-0000-4000-8000-000000001001",
+        note: "删除时自动解除关联",
+        transactionAt: "2026-08-20T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009006",
+        type: "income",
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "删除" }));
+    await within(document.body).findByText(
+      "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？",
+    );
   },
 };

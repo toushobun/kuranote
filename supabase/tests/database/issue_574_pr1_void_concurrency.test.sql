@@ -137,8 +137,7 @@ select dblink_exec(
     $setup$
 );
 
--- void 最终应被既有业务 guard 拒绝。临时函数把预期异常转成普通返回值，
--- 以便测试关注锁顺序，而不是让远端事务因为预期业务错误进入 aborted 状态。
+-- 临时函数把结果转成普通文本，避免并发会话因预期竞争结果进入 aborted 状态。
 select dblink_exec(
     'issue574_void_request',
     $function$
@@ -154,7 +153,7 @@ select dblink_exec(
     begin
         begin
             perform public.void_transaction(p_ledger_id, p_record_id);
-            return 'unexpected_success';
+            return 'success';
         exception when others then
             get stacked diagnostics v_detail = pg_exception_detail;
             return coalesce(nullif(v_detail, ''), sqlerrm);
@@ -164,7 +163,8 @@ select dblink_exec(
     $function$
 );
 
--- 第三会话先占住 account。正式 void 会先拿 transaction_record，再阻塞在 account。
+-- 第三会话先占住 account。正式 void 会先拿 ledger / transaction_record，
+-- 清空收入关联后再阻塞在 account。
 select dblink_exec('issue574_void_gate', 'begin');
 select dblink_exec(
     'issue574_void_gate',
@@ -250,26 +250,43 @@ select dblink_exec(
     $remote$;
     $claims$
 );
+select dblink_exec(
+    'issue574_void_edit',
+    $function$
+    create or replace function pg_temp.issue574_try_edit()
+    returns text
+    language plpgsql
+    as $$
+    declare
+        v_detail text;
+    begin
+        begin
+            perform public.update_linked_transaction_item(
+                '00000000-0000-4000-8000-000000000032',
+                '57483000-0000-4000-8000-000000000002',
+                '57482000-0000-4000-8000-000000000002',
+                '2090-01-01 00:00:00+00'::timestamptz,
+                40,
+                '00000000-0000-4000-8000-000000000043',
+                '00000000-0000-4000-8000-000000005002'
+            );
+            return 'unexpected_success';
+        exception when others then
+            get stacked diagnostics v_detail = pg_exception_detail;
+            return coalesce(nullif(v_detail, ''), sqlerrm);
+        end;
+    end;
+    $$
+    $function$
+);
 select dblink_send_query(
     'issue574_void_edit',
     $edit$
-    with edited as materialized (
-        select public.update_linked_transaction_item(
-            '00000000-0000-4000-8000-000000000032',
-            '57483000-0000-4000-8000-000000000002',
-            '57482000-0000-4000-8000-000000000002',
-            '2090-01-01 00:00:00+00'::timestamptz,
-            40,
-            '00000000-0000-4000-8000-000000000043',
-            '00000000-0000-4000-8000-000000005002'
-        )
-    )
-    select 1::integer from edited
+    select pg_temp.issue574_try_edit()
     $edit$
 );
 
--- 修复后的关键差异：edit 会被 void 持有的 record 阻塞，尚未触碰 item/account。
--- 旧实现会越过 record 先拿 item，再与 void 的 account -> item 顺序形成实际死锁前提。
+-- edit 会被 void 持有的 ledger / record 阻塞，尚未触碰 item/account。
 do $$
 declare
     v_attempt integer;
@@ -305,7 +322,7 @@ select is(
     '关联编辑在触碰 item/account 前先等待同一已关联交易的 record 锁'
 );
 
--- 释放 account 后，void 应先得到业务拒绝并自动释放 record；随后 edit 才能继续。
+-- 释放 account 后，void 应先自动解除关联并删除；随后 edit 得到稳定的记录失效结果。
 select dblink_exec('issue574_void_gate', 'commit');
 
 do $$
@@ -329,8 +346,8 @@ select is(
         select result
         from dblink_get_result('issue574_void_request') as result(result text)
     ),
-    'linked_transaction_edit_forbidden'::text,
-    '并发 void 返回既有业务拒绝而不是 deadlock'
+    'success'::text,
+    '并发 void 自动解除收入关联并完成删除而不是 deadlock'
 );
 
 -- libpq 异步查询的第一条 PGresult 取完后，还需再读取一次直到返回空结果，
@@ -362,17 +379,17 @@ $$;
 select is(
     (
         select result
-        from dblink_get_result('issue574_void_edit') as result(result integer)
+        from dblink_get_result('issue574_void_edit') as result(result text)
     ),
-    1,
-    'void 业务拒绝释放 record 后关联编辑成功完成'
+    'transaction_not_found'::text,
+    'void 完成后并发关联编辑稳定返回记录不存在'
 );
 
 do $$
 begin
     perform drained_result
     from dblink_get_result('issue574_void_edit')
-        as drained_row(drained_result integer);
+        as drained_row(drained_result text);
 end;
 $$;
 
@@ -383,17 +400,17 @@ select is(
         where id = '57482000-0000-4000-8000-000000000002'
     ),
     40::numeric,
-    '并发结束后收入明细仍保持合法金额'
+    '软删除后收入明细保留原始金额'
 );
 select is(
     (
-        select reimbursement_amount
+        select count(*)
         from public.transaction_item_reimbursement_link
         where reimbursement_income_item_id =
               '57482000-0000-4000-8000-000000000002'
     ),
-    40::numeric,
-    '并发结束后报销关联金额与收入保持一致'
+    0::bigint,
+    '并发结束后收入发起的报销关联已清空'
 );
 select is(
     (
@@ -401,8 +418,8 @@ select is(
         from public.transaction_record
         where id = '57483000-0000-4000-8000-000000000002'
     ),
-    'active'::text,
-    '被拒绝的 void 不改变收入交易状态'
+    'deleted'::text,
+    '并发 void 完成收入交易软删除'
 );
 
 select dblink_exec(

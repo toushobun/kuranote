@@ -392,7 +392,10 @@ export function createLinkedTransactionEditService({
         }
       }
 
-      if (changedLinkedItems.length > 0 && !input.confirmSync) {
+      if (
+        changedLinkedItems.some(({ existing }) => isLinkedIncome(existing)) &&
+        !input.confirmSync
+      ) {
         throw new ConflictError(
           transactionErrorCodes.linkedSyncConfirmationRequired,
           transactionLinkedEditErrorMessages.confirmationRequired,
@@ -456,7 +459,7 @@ export function createLinkedTransactionEditService({
         input.transactionRecordId,
       );
       if (view && "items" in view.initialValues) {
-        if (view.initialValues.items.some(isLinkedItem)) {
+        if (view.initialValues.items.some(isLinkedTarget)) {
           throw new ValidationError(
             transactionErrorCodes.linkedDeleteForbidden,
             transactionLinkedEditErrorMessages.deleteForbidden,

@@ -14,6 +14,7 @@ import {
   EditTransferTransactionTemplate,
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
+import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
@@ -389,6 +390,20 @@ describe("EditTransactionTemplate", () => {
     },
   ];
   function createProps(type: "expense" | "income" = "expense") {
+    const initialValues: TransactionFormInitialValues = {
+      accountId: accountOptions[0].id,
+      items: [
+        {
+          amount: "1200",
+          categoryId: categoryOptions[0].id,
+        },
+      ],
+      merchantId: merchantOptions[0].id,
+      note: "编辑前备注",
+      transactionAt: "2026-06-05T03:20:10.000Z",
+      transactionRecordId: "00000000-0000-4000-8000-000000009001",
+      type,
+    };
     return {
       accountOptions,
       action: vi.fn(async () => ({})),
@@ -396,20 +411,7 @@ describe("EditTransactionTemplate", () => {
       deleteAction: vi.fn(async () => ({})),
       errorMessage: null,
       frequentCategoryIds: categoryOptions.map((category) => category.id),
-      initialValues: {
-        accountId: accountOptions[0].id,
-        items: [
-          {
-            amount: "1200",
-            categoryId: categoryOptions[0].id,
-          },
-        ],
-        merchantId: merchantOptions[0].id,
-        note: "编辑前备注",
-        transactionAt: "2026-06-05T03:20:10.000Z",
-        transactionRecordId: "00000000-0000-4000-8000-000000009001",
-        type,
-      },
+      initialValues,
       ledgerName: "家庭账本",
       merchantOptions,
       transactionItemSpecialStatusEnabled: false,
@@ -531,6 +533,31 @@ describe("EditTransactionTemplate", () => {
     ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+  it("子项关联交易的删除确认说明会提示自动解除关联的影响", () => {
+    const props = createProps("income");
+    props.initialValues.items[0] = {
+      ...props.initialValues.items[0],
+      businessStatus: {
+        incomeLinkRole: "reimbursement",
+        offsetComposition: {
+          refundAmount: "0",
+          reimbursementAmount: "0",
+        },
+        settlementStatus: null,
+      },
+    };
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...props} />,
+    );
+
+    fireEvent.click(within(container).getByRole("button", { name: "删除" }));
+
+    expect(
+      within(screen.getByRole("dialog", { name: "删除记账？" })).getByText(
+        "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？",
+      ),
+    ).toBeInTheDocument();
   });
   it("后端要求确认时弹层，确认后携带 confirmSync 重新提交", async () => {
     const action = vi
