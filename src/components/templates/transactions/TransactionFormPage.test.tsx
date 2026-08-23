@@ -5,7 +5,7 @@ import {
   within,
   screen,
 } from "@testing-library/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   NewTransactionTemplate,
@@ -17,21 +17,26 @@ import { routePaths } from "config/paths";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
+    action,
     errorMessage,
     formId,
     initialValues,
     initialType,
+    onSubmitDisabledChange,
     transactionItemSpecialStatusEnabled,
   }: {
+    action: (formData: FormData) => void | Promise<void>;
     errorMessage: string | null;
     formId?: string;
     initialValues?: {
       type: "expense" | "income";
     };
     initialType?: "expense" | "income";
+    onSubmitDisabledChange?: (disabled: boolean) => void;
     transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
     const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
+    useEffect(() => onSubmitDisabledChange?.(false), [onSubmitDisabledChange]);
     const type = initialValues?.type ?? initialType ?? "expense";
     const label = type === "income" ? "收入" : "支出";
     const itemPicker = (
@@ -46,7 +51,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     );
     if (initialValues) {
       return (
-        <form id={formId}>
+        <form action={action} id={formId}>
           <div data-testid={`transaction-form-${type}`}>
             <input aria-label={`${label}编辑临时输入`} defaultValue="" />
             <input aria-label={`${label}转换临时输入`} defaultValue="" />
@@ -526,6 +531,78 @@ describe("EditTransactionTemplate", () => {
     ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+  it("后端要求确认时弹层，确认后携带 confirmSync 重新提交", async () => {
+    const action = vi
+      .fn()
+      .mockResolvedValueOnce({
+        error: "请确认同步修改关联数据。",
+        errorKey: "linked_sync_confirmation_required",
+      })
+      .mockResolvedValueOnce({});
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} action={action} />,
+    );
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: "保存修改" }),
+    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "同步修改关联数据？",
+    });
+    expect(action).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "同步修改" }));
+    await vi.waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    const confirmedFormData = action.mock.calls[1]?.[1] as FormData;
+    expect(confirmedFormData.get("confirmSync")).toBe("true");
+  });
+  it("取消关联同步确认时不再次提交", async () => {
+    const action = vi.fn(async () => ({
+      error: "请确认同步修改关联数据。",
+      errorKey: "linked_sync_confirmation_required",
+    }));
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} action={action} />,
+    );
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: "保存修改" }),
+    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "同步修改关联数据？",
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(dialog).not.toBeVisible();
+  });
+  it("删除已关联明细被拒绝时提示先解除关联", async () => {
+    const deleteAction = vi.fn(async () => ({
+      error: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
+      errorKey: "linked_delete_forbidden",
+    }));
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate
+        {...createProps()}
+        deleteAction={deleteAction}
+      />,
+    );
+
+    fireEvent.click(within(container).getByRole("button", { name: "删除" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "删除记账？" })).getByRole(
+        "button",
+        { name: "删除" },
+      ),
+    );
+
+    expect(await screen.findByText("无法删除已关联明细")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
+      ),
+    ).toBeInTheDocument();
   });
   it("内容修改后退出时提示保存、放弃或继续编辑", () => {
     const { container } = renderWithTheme(

@@ -1,4 +1,6 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
+import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -102,14 +104,23 @@ export function TransactionRefundLinkPicker({
               />
             </Stack>
           ) : null}
-          <Button onClick={() => onChange(null)}>取消关联</Button>
+          <Button
+            onClick={() => onChange(null)}
+            startIcon={<LinkOffRoundedIcon />}
+          >
+            解除退款关联
+          </Button>
         </Stack>
       ) : (
         <Typography color="text.secondary" variant="caption">
           退款关联不受剩余可核销额度限制；请选择与收款账户一致的候选支出。
         </Typography>
       )}
-      <Button onClick={openPicker} variant="outlined">
+      <Button
+        onClick={openPicker}
+        startIcon={value ? <SwapHorizRoundedIcon /> : undefined}
+        variant="outlined"
+      >
         {value ? "重新选择退款明细" : "选择退款明细"}
       </Button>
 

@@ -48,6 +48,32 @@ const searchPage = {
 };
 
 describe("TransactionRefundLinkPicker", () => {
+  it("已关联时提供解除与重新选择入口", () => {
+    const onChange = vi.fn();
+    render(
+      <TransactionRefundLinkPicker
+        onChange={onChange}
+        value={{
+          accountCurrency: "JPY",
+          accountId: "account-1",
+          amount: "1200",
+          categoryName: "午餐",
+          id: "refund-item-1",
+          parentCategoryName: "饮食",
+          refundedAmount: "200",
+          remainingRefundableAmount: "1000",
+          transactionAt: "2026-08-15T10:00:00.000Z",
+          transactionRecordId: "transaction-1",
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "解除退款关联" }));
+    expect(onChange).toHaveBeenCalledWith(null);
+    fireEvent.click(screen.getByRole("button", { name: "重新选择退款明细" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("退款收入超过目标余额时显示完整核销且无未核销净收益", () => {
     const selectedItem = {
       accountCurrency: "JPY",

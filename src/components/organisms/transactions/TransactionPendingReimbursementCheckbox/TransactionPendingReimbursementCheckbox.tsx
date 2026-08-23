@@ -21,7 +21,9 @@ export function TransactionPendingReimbursementCheckbox({
           <Checkbox
             checked={checked}
             disabled={disabled}
-            onChange={(event) => onChange(event.target.checked)}
+            onChange={(event) => {
+              if (!disabled) onChange(event.target.checked);
+            }}
           />
         }
         label="待报销"

@@ -67,18 +67,8 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
-  const hasProtectedLinkedItem = items.some(
-    (item) =>
-      item.special_status === "reimbursed" ||
-      (item.has_reimbursement_link && !item.is_reimbursement_income) ||
-      (item.has_refund_link && !item.is_refund_income),
-  );
-  const canEdit = canModify && !hasProtectedLinkedItem;
-  const editRestriction = !canModify
-    ? "permission"
-    : hasProtectedLinkedItem
-      ? "linked"
-      : null;
+  const canEdit = canModify;
+  const editRestriction = canModify ? null : "permission";
 
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
@@ -173,6 +163,7 @@ export async function getEditTransactionView(
             specialStatus: item.special_status ?? null,
           }),
           categoryId: item.category_id ?? "",
+          expectedUpdatedAt: item.updated_at,
           id: item.id,
           refundCandidate,
           reimbursementCandidate,

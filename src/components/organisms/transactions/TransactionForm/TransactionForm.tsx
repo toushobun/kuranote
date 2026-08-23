@@ -120,6 +120,7 @@ export function TransactionForm({
     pickerRefundCandidate,
     pickerReimbursementCandidate,
     pickerSpecialStatus,
+    pickerSpecialStatusLocked,
     removeItem,
     businessTotalAmount,
     selectedAccount,
@@ -363,6 +364,7 @@ export function TransactionForm({
         pickerRefundCandidate={pickerRefundCandidate}
         pickerReimbursementCandidate={pickerReimbursementCandidate}
         pickerSpecialStatus={pickerSpecialStatus ?? null}
+        specialStatusLocked={pickerSpecialStatusLocked}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
         refundPickerView={activeRefundPickerView}

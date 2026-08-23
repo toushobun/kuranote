@@ -1,4 +1,6 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
+import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -102,14 +104,23 @@ export function TransactionReimbursementLinkPicker({
               />
             </Stack>
           ) : null}
-          <Button onClick={() => onChange(null)}>取消关联</Button>
+          <Button
+            onClick={() => onChange(null)}
+            startIcon={<LinkOffRoundedIcon />}
+          >
+            解除报销关联
+          </Button>
         </Stack>
       ) : (
         <Typography color="text.secondary" variant="caption">
           可选择一条处于报销流程中的支出；已结清或核销结余后仍可继续关联。
         </Typography>
       )}
-      <Button onClick={openPicker} variant="outlined">
+      <Button
+        onClick={openPicker}
+        startIcon={value ? <SwapHorizRoundedIcon /> : undefined}
+        variant="outlined"
+      >
         {value ? "重新选择报销明细" : "选择报销明细"}
       </Button>
 

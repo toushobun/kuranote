@@ -86,6 +86,7 @@ type TransactionItemPickerDrawerProps = {
     offset: number,
   ) => Promise<TransactionSearchPage>;
   specialStatusEnabled?: boolean;
+  specialStatusLocked?: boolean;
   incomeLinksEnabled?: boolean;
 };
 
@@ -121,6 +122,7 @@ export function TransactionItemPickerDrawer({
   loadReimbursementMoreGroupsAction,
   loadReimbursementSearchPageAction,
   specialStatusEnabled = false,
+  specialStatusLocked = false,
   incomeLinksEnabled = true,
 }: TransactionItemPickerDrawerProps) {
   const selectedCategoryType = filteredCategoryOptions.find(
@@ -403,9 +405,13 @@ export function TransactionItemPickerDrawer({
 
         {specialStatusEnabled &&
         selectedCategoryType === "expense" &&
-        pickerSpecialStatus !== "reimbursed" ? (
+        (pickerSpecialStatus !== "reimbursed" || specialStatusLocked) ? (
           <TransactionPendingReimbursementCheckbox
-            checked={pickerSpecialStatus === "pendingReimbursement"}
+            checked={
+              specialStatusLocked ||
+              pickerSpecialStatus === "pendingReimbursement"
+            }
+            disabled={specialStatusLocked}
             onChange={(checked) =>
               onSpecialStatusChange(checked ? "pendingReimbursement" : null)
             }

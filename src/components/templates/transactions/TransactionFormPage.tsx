@@ -14,7 +14,6 @@ import {
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Alert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -26,14 +25,19 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
-import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
+import {
+  DeleteConfirmationDialog,
+  FailureFeedbackDialog,
+} from "molecules/ui/OperationFeedbackDialogs";
 import { ErrorState } from "molecules/ui/ErrorState";
+import { transactionErrorCodes } from "internal/transaction";
 import {
   TransactionTypeNavigation,
   type TransactionTypeNavigationValue,
 } from "molecules/transactions/TransactionTypeNavigation";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+import { LinkedTransactionSyncConfirmationDialog } from "organisms/transactions/LinkedTransactionSyncConfirmationDialog/LinkedTransactionSyncConfirmationDialog";
 import {
   TransactionForm,
   type TransactionFormInitialValues,
@@ -53,6 +57,7 @@ import type {
   TransactionStateAction,
   TransactionType,
 } from "types/transactions";
+import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 export type TransactionFormTemplateProps = {
   accountOptions: TransactionAccountOption[];
@@ -445,7 +450,14 @@ const newTransactionTitleSx = {
 type EditTransactionShellProps = {
   activeType: TransactionRecordType;
   deleteAction: TransactionStateAction;
+  isSaveConfirmationOpen: boolean;
+  isSaveFailureOpen: boolean;
+  isSavePending: boolean;
+  onCancelSync: () => void;
+  onCloseSaveFailure: () => void;
+  onConfirmSync: () => void;
   panels: Record<TransactionRecordType, ReactNode>;
+  saveErrorMessage?: string;
   setActiveType: (type: TransactionRecordType) => void;
   submitDisabledByType: Record<TransactionRecordType, boolean>;
   transactionRecordId: string;
@@ -454,7 +466,14 @@ type EditTransactionShellProps = {
 function EditTransactionShell({
   activeType,
   deleteAction,
+  isSaveConfirmationOpen,
+  isSaveFailureOpen,
+  isSavePending,
+  onCancelSync,
+  onCloseSaveFailure,
+  onConfirmSync,
   panels,
+  saveErrorMessage,
   setActiveType,
   submitDisabledByType,
   transactionRecordId,
@@ -463,6 +482,7 @@ function EditTransactionShell({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
   const lastNormalTypeRef = useRef<TransactionType>(
     activeType !== "transfer" ? activeType : "expense",
   );
@@ -516,13 +536,7 @@ function EditTransactionShell({
 
   return (
     <EditTransactionDirtyProvider onDirty={markDirty}>
-      <Stack
-        onChangeCapture={markDirty}
-        onSubmit={(event) => {
-          if (!event.defaultPrevented) setHasUnsavedChanges(false);
-        }}
-        spacing={0}
-      >
+      <Stack onChangeCapture={markDirty} spacing={0}>
         <TransactionPageTopBar
           hasUnsavedChanges={hasUnsavedChanges}
           onClose={() => setIsExitDialogOpen(true)}
@@ -532,9 +546,6 @@ function EditTransactionShell({
           activeType={outerTab}
           onChange={handleOuterTabChange}
         />
-        {deleteState.error ? (
-          <Alert severity="error">{deleteState.error}</Alert>
-        ) : null}
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
         <Box sx={editTransactionActionBarSx}>
           <Button
@@ -547,7 +558,7 @@ function EditTransactionShell({
             删除
           </Button>
           <Button
-            disabled={submitDisabledByType[activeType]}
+            disabled={submitDisabledByType[activeType] || isSavePending}
             form={editTransactionFormId(activeType)}
             size="large"
             type="submit"
@@ -595,6 +606,35 @@ function EditTransactionShell({
         open={isDeleteDialogOpen}
         title="删除记账？"
       />
+      <LinkedTransactionSyncConfirmationDialog
+        onCancel={() => {
+          setHasUnsavedChanges(true);
+          onCancelSync();
+        }}
+        onConfirm={onConfirmSync}
+        open={isSaveConfirmationOpen}
+      />
+      <FailureFeedbackDialog
+        description={saveErrorMessage}
+        onClose={() => {
+          setHasUnsavedChanges(true);
+          onCloseSaveFailure();
+        }}
+        open={isSaveFailureOpen}
+        title="保存失败"
+      />
+      <FailureFeedbackDialog
+        description={deleteState.error}
+        onClose={() => setDismissedDeleteState(deleteState)}
+        open={Boolean(
+          deleteState.error && deleteState !== dismissedDeleteState,
+        )}
+        title={
+          deleteState.errorKey === transactionErrorCodes.linkedDeleteForbidden
+            ? "无法删除已关联明细"
+            : "删除失败"
+        }
+      />
     </EditTransactionDirtyProvider>
   );
 }
@@ -624,8 +664,8 @@ export function EditTransferTransactionTemplate({
   merchantOptions,
   transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
-  const [actionState, formAction] = useActionState(action, {});
-  const activeErrorMessage = actionState.error ?? errorMessage;
+  const editAction = useLinkedTransactionEditAction(action);
+  const activeErrorMessage = errorMessage;
   const [activeType, setActiveType] =
     useState<TransactionRecordType>("transfer");
   const [submitDisabledByType, setSubmitDisabledByType] = useState<
@@ -644,7 +684,7 @@ export function EditTransferTransactionTemplate({
             value="transfer"
           />
           <TransactionForm
-            action={formAction}
+            action={editAction.formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
@@ -680,7 +720,7 @@ export function EditTransferTransactionTemplate({
             value="transfer"
           />
           <TransactionForm
-            action={formAction}
+            action={editAction.formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
@@ -705,7 +745,7 @@ export function EditTransferTransactionTemplate({
       ),
       transfer: (
         <TransferTransactionForm
-          action={formAction}
+          action={editAction.formAction}
           accountOptions={accountOptions}
           errorMessage={activeErrorMessage}
           formId={editTransactionFormId("transfer")}
@@ -720,7 +760,7 @@ export function EditTransferTransactionTemplate({
       ),
     }),
     [
-      formAction,
+      editAction.formAction,
       accountOptions,
       categoryOptions,
       frequentCategoryIds,
@@ -735,7 +775,14 @@ export function EditTransferTransactionTemplate({
     <EditTransactionShell
       activeType={activeType}
       deleteAction={deleteAction}
+      isSaveConfirmationOpen={editAction.isConfirmationOpen}
+      isSaveFailureOpen={editAction.isFailureOpen}
+      isSavePending={editAction.isPending}
+      onCancelSync={editAction.cancelConfirmation}
+      onCloseSaveFailure={editAction.closeFailure}
+      onConfirmSync={editAction.confirmSync}
       panels={panels}
+      saveErrorMessage={editAction.state.error}
       setActiveType={setActiveType}
       submitDisabledByType={submitDisabledByType}
       transactionRecordId={requireEditTransactionRecordId(
@@ -756,8 +803,8 @@ export function EditTransactionTemplate({
   merchantOptions,
   transactionItemSpecialStatusEnabled,
 }: EditTransactionTemplateProps) {
-  const [actionState, formAction] = useActionState(action, {});
-  const activeErrorMessage = actionState.error ?? errorMessage;
+  const editAction = useLinkedTransactionEditAction(action);
+  const activeErrorMessage = errorMessage;
   const [activeType, setActiveType] = useState<TransactionRecordType>(
     initialValues.type,
   );
@@ -777,7 +824,7 @@ export function EditTransactionTemplate({
             value={initialValues.type}
           />
           <TransactionForm
-            action={formAction}
+            action={editAction.formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
@@ -813,7 +860,7 @@ export function EditTransactionTemplate({
             value={initialValues.type}
           />
           <TransactionForm
-            action={formAction}
+            action={editAction.formAction}
             accountOptions={accountOptions}
             categoryOptions={categoryOptions}
             errorMessage={activeErrorMessage}
@@ -838,7 +885,7 @@ export function EditTransactionTemplate({
       ),
       transfer: (
         <TransferTransactionForm
-          action={formAction}
+          action={editAction.formAction}
           accountOptions={accountOptions}
           errorMessage={activeErrorMessage}
           formId={editTransactionFormId("transfer")}
@@ -856,7 +903,7 @@ export function EditTransactionTemplate({
       ),
     }),
     [
-      formAction,
+      editAction.formAction,
       accountOptions,
       categoryOptions,
       frequentCategoryIds,
@@ -871,7 +918,14 @@ export function EditTransactionTemplate({
     <EditTransactionShell
       activeType={activeType}
       deleteAction={deleteAction}
+      isSaveConfirmationOpen={editAction.isConfirmationOpen}
+      isSaveFailureOpen={editAction.isFailureOpen}
+      isSavePending={editAction.isPending}
+      onCancelSync={editAction.cancelConfirmation}
+      onCloseSaveFailure={editAction.closeFailure}
+      onConfirmSync={editAction.confirmSync}
       panels={panels}
+      saveErrorMessage={editAction.state.error}
       setActiveType={setActiveType}
       submitDisabledByType={submitDisabledByType}
       transactionRecordId={requireEditTransactionRecordId(

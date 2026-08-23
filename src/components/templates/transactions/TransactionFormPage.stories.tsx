@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import {
   EditTransactionTemplate,
@@ -172,4 +173,78 @@ export const EditTransferConvert: Story = {
       }}
     />
   ),
+};
+
+export const EditLinkedExpense: Story = {
+  name: "编辑已关联支出：可编辑并显示核销结余",
+  render: () => (
+    <EditTransactionTemplate
+      {...baseArgs}
+      deleteAction={noopAction}
+      initialValues={{
+        accountId: "00000000-0000-4000-8000-000000000045",
+        items: [
+          {
+            amount: "1200",
+            businessNetAmount: "-300",
+            businessStatus: {
+              incomeLinkRole: null,
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "1500",
+              },
+              settlementStatus: "reimbursementSurplus",
+            },
+            categoryId: "00000000-0000-4000-8000-000000005072",
+            expectedUpdatedAt: "2026-08-21T01:00:00.000Z",
+            id: "00000000-0000-4000-8000-000000008001",
+            specialStatus: "reimbursementSurplus",
+          },
+        ],
+        merchantId: "00000000-0000-4000-8000-000000001001",
+        note: "已有关联但仍可修正",
+        transactionAt: "2026-08-20T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009004",
+        type: "expense",
+      }}
+    />
+  ),
+};
+
+export const LinkedDeleteForbidden: Story = {
+  name: "删除已关联明细被拒绝",
+  render: () => (
+    <EditTransactionTemplate
+      {...baseArgs}
+      deleteAction={async () => ({
+        error: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
+        errorKey: "linked_delete_forbidden",
+      })}
+      initialValues={{
+        accountId: "00000000-0000-4000-8000-000000000045",
+        items: [
+          {
+            amount: "1200",
+            categoryId: "00000000-0000-4000-8000-000000005072",
+            expectedUpdatedAt: "2026-08-21T01:00:00.000Z",
+            id: "00000000-0000-4000-8000-000000008001",
+            specialStatus: "reimbursed",
+          },
+        ],
+        merchantId: "00000000-0000-4000-8000-000000001001",
+        note: "删除前需要解除关联",
+        transactionAt: "2026-08-20T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009005",
+        type: "expense",
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "删除" }));
+    await userEvent.click(
+      await within(document.body).findByRole("button", { name: "删除" }),
+    );
+    await within(document.body).findByText("无法删除已关联明细");
+  },
 };

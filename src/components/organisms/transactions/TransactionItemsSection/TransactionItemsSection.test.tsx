@@ -90,6 +90,24 @@ describe("TransactionItemsSection", () => {
     expect(screen.queryByText("已结清")).not.toBeInTheDocument();
   });
 
+  it("既有明细提交乐观锁版本字段", () => {
+    renderSection({
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          expectedUpdatedAt: "2026-08-21T01:00:00.000Z",
+          persistedId: "transaction-item-1",
+        },
+      ],
+    });
+
+    expect(
+      document.querySelector(
+        'input[name="itemExpectedUpdatedAt__transaction-item-1"]',
+      ),
+    ).toHaveValue("2026-08-21T01:00:00.000Z");
+  });
+
   it("修改隐藏金额输入并可通过显示按钮聚焦输入框", () => {
     const props = renderSection({ itemSummaries: [itemSummaries[0]] });
     const input = screen.getByRole("textbox", { name: "明细 1 金额" });

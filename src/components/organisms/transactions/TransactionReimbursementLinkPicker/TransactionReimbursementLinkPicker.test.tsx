@@ -74,6 +74,21 @@ const searchPage = {
 };
 
 describe("TransactionReimbursementLinkPicker", () => {
+  it("已关联时提供解除与重新选择入口", () => {
+    const onChange = vi.fn();
+    render(
+      <TransactionReimbursementLinkPicker
+        onChange={onChange}
+        value={candidates[0]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "解除报销关联" }));
+    expect(onChange).toHaveBeenCalledWith(null);
+    fireEvent.click(screen.getByRole("button", { name: "重新选择报销明细" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("显示收入金额、实际核销金额与未核销净收益", () => {
     render(
       <TransactionReimbursementLinkPicker

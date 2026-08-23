@@ -168,6 +168,10 @@ export function useTransactionForm({
       category: categoryById.get(item.categoryId),
     }),
   );
+  const pickerSpecialStatusLocked = Boolean(
+    allDisplayItems.find((item) => item.id === editingItemId)
+      ?.specialStatusLocked,
+  );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
     if (!isValidMoneyText(item.amount)) return sum;
     return sum + Number(item.amount);
@@ -642,6 +646,7 @@ export function useTransactionForm({
     pickerRefundCandidate,
     pickerReimbursementCandidate,
     pickerSpecialStatus,
+    pickerSpecialStatusLocked,
     removeItem,
     businessTotalAmount,
     selectedAccount,
@@ -705,6 +710,7 @@ function createInitialItemsByType(
       ...item,
       id: index + 1,
       persistedId: item.id,
+      specialStatusLocked: Boolean(item.specialStatus),
     });
   });
 
