@@ -30,6 +30,7 @@ import {
   FailureFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { ErrorState } from "molecules/ui/ErrorState";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { transactionErrorCodes } from "internal/transaction";
 import {
   TransactionTypeNavigation,
@@ -422,6 +423,8 @@ function TransactionPageTopBar({
   );
 }
 
+const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
+
 const newTransactionTopBarSx = {
   alignItems: "center",
   display: "grid",
@@ -615,6 +618,7 @@ function EditTransactionShell({
         open={isSaveConfirmationOpen}
       />
       <FailureFeedbackDialog
+        bottomOffset={saveFeedbackBottomOffset}
         description={saveErrorMessage}
         onClose={() => {
           setHasUnsavedChanges(true);
@@ -624,6 +628,7 @@ function EditTransactionShell({
         title="保存失败"
       />
       <FailureFeedbackDialog
+        bottomOffset={saveFeedbackBottomOffset}
         description={deleteState.error}
         onClose={() => setDismissedDeleteState(deleteState)}
         open={Boolean(
