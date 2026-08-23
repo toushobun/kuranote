@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
 import {
   createTransaction,
   saveEditTransaction,
@@ -12,38 +13,20 @@ import {
 } from "internal/shared/errors/appError";
 import { transactionErrorCodes } from "internal/transaction/errors";
 
+const transactionActionModuleMocks = getTransactionActionModuleMocks();
+
 const mocks = vi.hoisted(() => ({
   canModify: vi.fn(),
   convert: vi.fn(),
   createNormal: vi.fn(),
-  createRequestContainer: vi.fn(),
-  createServerRequestDependencies: vi.fn(),
   createTransfer: vi.fn(),
   getEditView: vi.fn(),
   linkedGetEditSnapshot: vi.fn(),
   linkedUpdate: vi.fn(),
   linkedUpdateEdit: vi.fn(),
-  redirect: vi.fn((path: string) => {
-    throw new Error(`NEXT_REDIRECT:${path}`);
-  }),
-  requireCurrentUserAndLedger: vi.fn(),
-  revalidateTransactionMutation: vi.fn(),
   updateNormal: vi.fn(),
   updateTransfer: vi.fn(),
   void: vi.fn(),
-}));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("internal/container", () => ({
-  createRequestContainer: mocks.createRequestContainer,
-}));
-vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
-  requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
-}));
-vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: mocks.createServerRequestDependencies,
-}));
-vi.mock("internal/transaction/adapter/next/revalidate", () => ({
-  revalidateTransactionMutation: mocks.revalidateTransactionMutation,
 }));
 describe("Transaction Actions", () => {
   const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -61,7 +44,7 @@ describe("Transaction Actions", () => {
   }
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireCurrentUserAndLedger.mockResolvedValue({
+    transactionActionModuleMocks.requireCurrentUserAndLedger.mockResolvedValue({
       currentLedger: {
         baseCurrency: "JPY",
         currentUserRole: "owner",
@@ -70,8 +53,10 @@ describe("Transaction Actions", () => {
       },
       userId: "00000000-0000-4000-8000-000000000031",
     });
-    mocks.createServerRequestDependencies.mockResolvedValue({});
-    mocks.createRequestContainer.mockReturnValue({
+    transactionActionModuleMocks.createServerRequestDependencies.mockResolvedValue(
+      {},
+    );
+    transactionActionModuleMocks.createRequestContainer.mockReturnValue({
       transaction: { service: { createNormal: mocks.createNormal } },
     });
   });
@@ -79,7 +64,7 @@ describe("Transaction Actions", () => {
     const state = await createTransaction({}, createFormData("-1"));
     expect(state.error).toBeTruthy();
     expect(mocks.createNormal).not.toHaveBeenCalled();
-    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
   });
   it("忽略客户端伪造账本并在成功后刷新缓存", async () => {
     await expect(createTransaction({}, createFormData())).rejects.toThrow(
@@ -88,7 +73,9 @@ describe("Transaction Actions", () => {
     expect(mocks.createNormal).toHaveBeenCalledWith(
       expect.objectContaining({ ledgerId }),
     );
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
   });
 });
 describe("Transaction Action 写入流程", () => {
@@ -140,7 +127,7 @@ describe("Transaction Action 写入流程", () => {
     vi.clearAllMocks();
     mocks.canModify.mockResolvedValue(true);
     mocks.getEditView.mockResolvedValue(null);
-    mocks.requireCurrentUserAndLedger.mockResolvedValue({
+    transactionActionModuleMocks.requireCurrentUserAndLedger.mockResolvedValue({
       currentLedger: {
         baseCurrency: "JPY",
         currentUserRole: "owner",
@@ -149,8 +136,10 @@ describe("Transaction Action 写入流程", () => {
       },
       userId: "00000000-0000-4000-8000-000000000031",
     });
-    mocks.createServerRequestDependencies.mockResolvedValue({});
-    mocks.createRequestContainer.mockReturnValue({
+    transactionActionModuleMocks.createServerRequestDependencies.mockResolvedValue(
+      {},
+    );
+    transactionActionModuleMocks.createRequestContainer.mockReturnValue({
       transaction: {
         linkedTransactionEditService: {
           updateNormal: mocks.updateNormal,
@@ -188,7 +177,9 @@ describe("Transaction Action 写入流程", () => {
       transferAmount: 5000,
       transferTargetAccountId: targetAccountId,
     });
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
   });
   it("更新普通交易成功后刷新缓存并跳转", async () => {
     const formData = createNormalFormData();
@@ -212,7 +203,9 @@ describe("Transaction Action 写入流程", () => {
         type: "expense",
       }),
     );
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
   });
   it("Service 返回应用错误时留在当前页面且不刷新缓存", async () => {
     mocks.updateNormal.mockRejectedValueOnce(
@@ -224,8 +217,10 @@ describe("Transaction Action 写入流程", () => {
       error: "账户信息不正确。",
       errorKey: "account_invalid",
     });
-    expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
-    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).not.toHaveBeenCalled();
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
   });
   it("同步确认冲突通过稳定 errorKey 返回给后续确认弹层", async () => {
     mocks.updateNormal.mockRejectedValueOnce(
@@ -241,7 +236,9 @@ describe("Transaction Action 写入流程", () => {
       error: "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
       errorKey: transactionErrorCodes.linkedSyncConfirmationRequired,
     });
-    expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).not.toHaveBeenCalled();
   });
   it("普通交易转换为转账时由 saveEditTransaction 调用 convert", async () => {
     await expect(
@@ -279,7 +276,9 @@ describe("Transaction Action 写入流程", () => {
       expect.objectContaining({ id: ledgerId }),
       { ledgerId, transactionRecordId },
     );
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
   });
   it("编辑类型非法时不读取上下文也不调用 Service", async () => {
     const formData = createNormalFormData({
@@ -289,8 +288,14 @@ describe("Transaction Action 写入流程", () => {
     await expect(saveEditTransaction({}, formData)).resolves.toEqual({
       error: "交易类型指定不正确，请刷新页面后重试。",
     });
-    expect(mocks.requireCurrentUserAndLedger).not.toHaveBeenCalled();
-    expect(mocks.createRequestContainer).not.toHaveBeenCalled();
-    expect(mocks.revalidateTransactionMutation).not.toHaveBeenCalled();
+    expect(
+      transactionActionModuleMocks.requireCurrentUserAndLedger,
+    ).not.toHaveBeenCalled();
+    expect(
+      transactionActionModuleMocks.createRequestContainer,
+    ).not.toHaveBeenCalled();
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).not.toHaveBeenCalled();
   });
 });
