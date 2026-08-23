@@ -64,6 +64,7 @@ export type TransactionFormInitialItem = {
   businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
+  expectedUpdatedAt?: string;
   id?: string;
   refundCandidate?: TransactionRefundCandidate | null;
   reimbursementCandidate?: TransactionRefundCandidate | null;
@@ -86,12 +87,14 @@ export type TransactionFormItem = {
   businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
+  expectedUpdatedAt?: string;
   id: number;
   persistedId?: string;
   reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
   refundCandidate?: TransactionRefundCandidate | null;
   specialStatus?: TransactionSpecialStatus | null;
+  specialStatusLocked?: boolean;
 };
 
 export type CategoryPickerGroup = {

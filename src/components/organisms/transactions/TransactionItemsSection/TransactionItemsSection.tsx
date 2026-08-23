@@ -11,6 +11,7 @@ import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
+import { getLinkedEditExpectedUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
 import {
   formatTransactionRowAmount,
   hasBusinessNetAmountOffset,
@@ -103,6 +104,15 @@ export function TransactionItemsSection({
                       type="hidden"
                       value={item.persistedId ?? ""}
                     />
+                    {item.persistedId && item.expectedUpdatedAt ? (
+                      <input
+                        name={getLinkedEditExpectedUpdatedAtFieldName(
+                          item.persistedId,
+                        )}
+                        type="hidden"
+                        value={item.expectedUpdatedAt}
+                      />
+                    ) : null}
                     <input
                       name="itemSpecialStatus"
                       type="hidden"

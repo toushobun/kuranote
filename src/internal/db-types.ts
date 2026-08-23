@@ -29,6 +29,7 @@ export type TransactionItemDbRow = {
   has_reimbursement_link?: boolean;
   is_refund_income?: boolean;
   is_reimbursement_income?: boolean;
+  updated_at?: string;
 };
 
 export type AccountOptionDbRow = {

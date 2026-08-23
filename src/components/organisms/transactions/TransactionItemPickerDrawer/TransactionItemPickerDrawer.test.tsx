@@ -116,4 +116,70 @@ describe("TransactionItemPickerDrawer", () => {
       screen.getByRole("button", { name: "选择报销明细" }),
     ).toBeInTheDocument();
   });
+
+  it("既有待报销母项保持勾选且不可修改", () => {
+    const onSpecialStatusChange = vi.fn();
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        editingItemId={1}
+        filteredCategoryOptions={categoryOptions}
+        frequentCategoryIds={[]}
+        onAmountChange={vi.fn()}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        onSpecialStatusChange={onSpecialStatusChange}
+        open
+        pickerAmount="1200"
+        pickerCategoryId="food-lunch"
+        pickerErrors={{}}
+        pickerSpecialStatus="pendingReimbursement"
+        selectedCategoryGroup={categoryGroups[0]}
+        specialStatusEnabled
+        specialStatusLocked
+      />,
+    );
+
+    const checkbox = screen.getByRole("checkbox", { name: "待报销" });
+    expect(checkbox).toBeChecked();
+    expect(checkbox).toBeDisabled();
+    fireEvent.click(checkbox);
+    expect(onSpecialStatusChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: "已结清", specialStatus: "reimbursed" },
+    { label: "核销结余", specialStatus: "reimbursementSurplus" },
+  ] as const)("既有$label母项不显示待报销复选框", ({ specialStatus }) => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        editingItemId={1}
+        filteredCategoryOptions={categoryOptions}
+        frequentCategoryIds={[]}
+        onAmountChange={vi.fn()}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        onSpecialStatusChange={vi.fn()}
+        open
+        pickerAmount="1200"
+        pickerCategoryId="food-lunch"
+        pickerErrors={{}}
+        pickerSpecialStatus={specialStatus}
+        selectedCategoryGroup={categoryGroups[0]}
+        specialStatusEnabled
+        specialStatusLocked
+      />,
+    );
+
+    expect(
+      screen.queryByRole("checkbox", { name: "待报销" }),
+    ).not.toBeInTheDocument();
+  });
 });

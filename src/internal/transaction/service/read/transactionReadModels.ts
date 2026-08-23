@@ -147,6 +147,7 @@ export type EditTransactionView = TransactionFormOptions & {
           businessNetAmount?: string;
           businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
+          expectedUpdatedAt?: string;
           id?: string;
           refundCandidate?: TransactionIncomeLinkCandidate | null;
           reimbursementCandidate?: TransactionIncomeLinkCandidate | null;

@@ -116,6 +116,31 @@ describe("TransactionEditPage", () => {
     expect(child.props).toMatchObject({ operation: "edit" });
   });
 
+  it("关联报销或退款的目标支出渲染正常编辑表单", async () => {
+    const view = {
+      ...createEditView(),
+      canEdit: true,
+      editRestriction: null,
+    };
+    mocks.loadEditTransactionView.mockResolvedValue(view);
+
+    const result = await TransactionEditPage({
+      params: Promise.resolve({ transactionRecordId }),
+    });
+    const element = result as ReactElement<Record<string, unknown>>;
+    const provider = element.props.children as ReactElement<{
+      children: ReactElement<Record<string, unknown>>;
+    }>;
+    const child = provider.props.children;
+
+    expect(child.type).toBe(mocks.EditTransactionTemplate);
+    expect(child.props.initialValues).toMatchObject({
+      transactionRecordId,
+      type: "expense",
+    });
+    expect(mocks.TransactionPermissionDenied).not.toHaveBeenCalled();
+  });
+
   it("使用 URL 参数中的 transactionRecordId 显示编辑画面", async () => {
     const view = createEditView();
     mocks.loadEditTransactionView.mockResolvedValue(view);

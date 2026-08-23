@@ -26,6 +26,7 @@ const incomeCategoryId = "00000000-0000-4000-8000-000000005073";
 const incomeItemId = "00000000-0000-4000-8000-000000008001";
 const linkedExpenseItemId = "00000000-0000-4000-8000-000000008002";
 const merchantId = "00000000-0000-4000-8000-000000001001";
+const updatedAt = "2026-08-21T01:00:00.000Z";
 
 const currentLedger: CurrentLedger = {
   baseCurrency: "JPY",
@@ -112,6 +113,7 @@ function createLinkedDependencies({
         id: incomeItemId,
         note: null,
         transaction_record_id: transactionRecordId,
+        updated_at: updatedAt,
         ...itemOverrides,
       },
     ]),
@@ -315,9 +317,10 @@ describe("getNewTransactionView", () => {
 describe("getEditTransactionView income links", () => {
   it.each([
     ["已报销支出", { special_status: "reimbursed" as const }],
+    ["核销结余支出", { special_status: "reimbursement_surplus" as const }],
     ["作为报销对象", { has_reimbursement_link: true }],
     ["作为退款对象", { has_refund_link: true, is_refund_income: false }],
-  ])("%s 返回整体只读态", async (_label, itemOverrides) => {
+  ])("%s 解冻为可编辑态并携带乐观锁版本", async (_label, itemOverrides) => {
     const view = await getEditTransactionView(
       createLinkedDependencies({ itemOverrides }),
       currentLedger,
@@ -325,8 +328,11 @@ describe("getEditTransactionView income links", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: false,
-      editRestriction: "linked",
+      canEdit: true,
+      editRestriction: null,
+      initialValues: {
+        items: [{ expectedUpdatedAt: updatedAt }],
+      },
     });
   });
 
