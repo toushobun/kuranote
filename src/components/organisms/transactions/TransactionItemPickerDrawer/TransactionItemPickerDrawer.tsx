@@ -405,7 +405,8 @@ export function TransactionItemPickerDrawer({
 
         {specialStatusEnabled &&
         selectedCategoryType === "expense" &&
-        (pickerSpecialStatus !== "reimbursed" || specialStatusLocked) ? (
+        (pickerSpecialStatus === null ||
+          pickerSpecialStatus === "pendingReimbursement") ? (
           <TransactionPendingReimbursementCheckbox
             checked={
               specialStatusLocked ||
