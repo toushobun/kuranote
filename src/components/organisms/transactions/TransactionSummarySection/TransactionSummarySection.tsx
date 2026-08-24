@@ -9,10 +9,7 @@ import type {
   TransactionAccountOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import {
-  formatTransactionRowAmount,
-  hasBusinessNetAmountOffset,
-} from "utils/transactions";
+import { formatTransactionRowAmount } from "utils/transactions";
 import { transactionAmountMessages } from "utils/transactionMessages";
 
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
@@ -21,6 +18,8 @@ import {
   formatCategoryName,
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
+  getTransactionItemAdjustmentMessage,
+  getTransactionItemAmountPresentation,
 } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionSummarySectionProps = {
@@ -158,44 +157,30 @@ function ItemSummaryValue({
   currency?: string;
   item: TransactionItemSummary;
 }) {
-  const amount = Number(item.amount);
-  const businessNetAmount = Number(item.businessNetAmount);
-  const hasOffset = hasBusinessNetAmountOffset(
+  const amountPresentation = getTransactionItemAmountPresentation(
     item.amount,
     item.businessNetAmount,
   );
-  const isFullyExcluded =
-    hasOffset && Number.isFinite(businessNetAmount) && businessNetAmount === 0;
-  const isPartiallyOffset =
-    hasOffset &&
-    Number.isFinite(amount) &&
-    Number.isFinite(businessNetAmount) &&
-    businessNetAmount > 0 &&
-    businessNetAmount < amount;
-  const businessAmount = isFullyExcluded
-    ? item.amount
-    : (item.businessNetAmount ?? item.amount);
   const categoryName = item.category
     ? formatCategoryName(item.category)
     : "未选择分类";
-  if (!businessAmount) return `${categoryName} / 未填写金额`;
+  if (!amountPresentation.displayAmount) {
+    return `${categoryName} / 未填写金额`;
+  }
   const categoryType = item.category?.type ?? "expense";
   const formattedBusinessAmount = formatTransactionRowAmount(
     categoryType,
-    businessAmount,
+    amountPresentation.displayAmount,
     currency,
   );
-  if (!hasOffset) {
+  if (!amountPresentation.hasOffset) {
     return `${categoryName} / ${formattedBusinessAmount}`;
   }
 
-  const adjustmentMessage = isFullyExcluded
-    ? categoryType === "income"
-      ? transactionAmountMessages.notIncludedInIncome
-      : transactionAmountMessages.notIncludedInExpense
-    : isPartiallyOffset
-      ? transactionAmountMessages.partiallyOffset
-      : null;
+  const adjustmentMessage = getTransactionItemAdjustmentMessage(
+    amountPresentation.adjustment,
+    categoryType,
+  );
 
   return (
     <>

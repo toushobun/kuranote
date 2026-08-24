@@ -1,5 +1,10 @@
-import type { TransactionCategoryOption } from "types/transactions";
+import type {
+  TransactionCategoryOption,
+  TransactionType,
+} from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
+import { transactionAmountMessages } from "utils/transactionMessages";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 import type { CategoryPickerGroup } from "./TransactionForm.types";
 
@@ -27,6 +32,49 @@ export function formatCategoryName(category: TransactionCategoryOption) {
   return category.parentName
     ? `${category.parentName} / ${category.name}`
     : category.name;
+}
+
+export function getTransactionItemAmountPresentation(
+  amount: string,
+  businessNetAmount?: string | null,
+) {
+  const amountValue = Number(amount);
+  const businessNetAmountValue = Number(businessNetAmount);
+  const hasOffset = hasBusinessNetAmountOffset(amount, businessNetAmount);
+  const adjustment =
+    hasOffset &&
+    Number.isFinite(businessNetAmountValue) &&
+    businessNetAmountValue === 0
+      ? "fullyExcluded"
+      : hasOffset &&
+          Number.isFinite(amountValue) &&
+          Number.isFinite(businessNetAmountValue) &&
+          businessNetAmountValue > 0 &&
+          businessNetAmountValue < amountValue
+        ? "partiallyOffset"
+        : null;
+
+  return {
+    adjustment,
+    displayAmount:
+      adjustment === "fullyExcluded" ? amount : (businessNetAmount ?? amount),
+    hasOffset,
+  } as const;
+}
+
+export function getTransactionItemAdjustmentMessage(
+  adjustment: "fullyExcluded" | "partiallyOffset" | null,
+  type: TransactionType,
+) {
+  if (adjustment === "partiallyOffset") {
+    return transactionAmountMessages.partiallyOffset;
+  }
+  if (adjustment === "fullyExcluded") {
+    return type === "income"
+      ? transactionAmountMessages.notIncludedInIncome
+      : transactionAmountMessages.notIncludedInExpense;
+  }
+  return null;
 }
 
 export function formatSummaryDateTime(date: string, time: string) {

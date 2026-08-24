@@ -7,15 +7,13 @@ import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
+import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { getLinkedEditExpectedUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
-import {
-  formatTransactionRowAmount,
-  hasBusinessNetAmountOffset,
-} from "utils/transactions";
+import { formatTransactionRowAmount } from "utils/transactions";
 
 import type {
   TransactionFormItem,
@@ -24,6 +22,8 @@ import type {
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
+  getTransactionItemAdjustmentMessage,
+  getTransactionItemAmountPresentation,
 } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionItemsSectionProps = {
@@ -83,9 +83,14 @@ export function TransactionItemsSection({
                 resolveTransactionBusinessStatus({
                   specialStatus: item.specialStatus,
                 });
-              const hasOriginalAmount = hasBusinessNetAmountOffset(
+              const amountPresentation = getTransactionItemAmountPresentation(
                 item.amount,
                 item.businessNetAmount,
+              );
+              const categoryType = item.category?.type ?? selectedType;
+              const adjustmentMessage = getTransactionItemAdjustmentMessage(
+                amountPresentation.adjustment,
+                categoryType,
               );
 
               return (
@@ -170,7 +175,7 @@ export function TransactionItemsSection({
                       />
                       <Button
                         aria-label={`编辑明细 ${index + 1} ${
-                          hasOriginalAmount
+                          amountPresentation.hasOffset
                             ? transactionAmountMessages.originalAmount
                             : "金额"
                         }`}
@@ -180,14 +185,22 @@ export function TransactionItemsSection({
                         sx={amountButtonSx}
                       >
                         {formatDisplayAmount(
-                          item.category?.type ?? selectedType,
-                          item.businessNetAmount ?? item.amount,
+                          categoryType,
+                          amountPresentation.displayAmount,
                           selectedAccountCurrency,
                         )}
-                        {hasOriginalAmount ? (
+                        {adjustmentMessage ? (
+                          <Typography
+                            component="span"
+                            sx={transactionOriginalAmountTextSx}
+                            variant="caption"
+                          >
+                            {adjustmentMessage}
+                          </Typography>
+                        ) : amountPresentation.hasOffset ? (
                           <TransactionOriginalAmount
                             amount={formatDisplayAmount(
-                              item.category?.type ?? selectedType,
+                              categoryType,
                               item.amount,
                               selectedAccountCurrency,
                             )}
