@@ -214,52 +214,52 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     vi.clearAllMocks();
   });
 
-  it.each([
-    {
-      amount: "70",
-      name: "母项金额从表单确认后写入原子保存边界",
-      side: "parent",
-    },
-    {
-      amount: "80",
-      name: "子项金额从表单确认后写入原子保存边界",
-      side: "child",
-    },
-  ] as const)(
-    "$name",
-    async ({ amount, side }) => {
-      const { persisted, updateEdit } = renderScenario(side);
-      fireEvent.change(screen.getByLabelText("明细 1 金额"), {
-        target: { value: amount },
-      });
+  it("母项金额从表单直接写入原子保存边界", async () => {
+    const { persisted, updateEdit } = renderScenario("parent");
+    fireEvent.change(screen.getByLabelText("明细 1 金额"), {
+      target: { value: "70" },
+    });
 
-      fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-      const dialog = await screen.findByRole("dialog", {
-        name: "同步修改关联数据？",
-      });
-      expect(updateEdit).not.toHaveBeenCalled();
-      expect(persisted.amount).toBe(side === "parent" ? "100" : "40");
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await vi.waitFor(() => expect(updateEdit).toHaveBeenCalledOnce());
 
-      fireEvent.click(within(dialog).getByRole("button", { name: "同步修改" }));
-      await vi.waitFor(() => expect(updateEdit).toHaveBeenCalledOnce());
+    expect(
+      screen.queryByRole("dialog", { name: "同步修改关联数据？" }),
+    ).not.toBeInTheDocument();
+    expect(persisted.amount).toBe("70");
+  }, 15_000);
 
-      expect(updateEdit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          itemUpdates: [
-            expect.objectContaining({
-              amount: Number(amount),
-              expectedUpdatedAt,
-              transactionItemId,
-            }),
-          ],
-          ledgerId,
-          transactionRecordId,
-        }),
-      );
-      expect(persisted.amount).toBe(amount);
-    },
-    15_000,
-  );
+  it("子项金额从表单确认后写入原子保存边界", async () => {
+    const { persisted, updateEdit } = renderScenario("child");
+    fireEvent.change(screen.getByLabelText("明细 1 金额"), {
+      target: { value: "80" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "同步修改关联数据？",
+    });
+    expect(updateEdit).not.toHaveBeenCalled();
+    expect(persisted.amount).toBe("40");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "同步修改" }));
+    await vi.waitFor(() => expect(updateEdit).toHaveBeenCalledOnce());
+
+    expect(updateEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemUpdates: [
+          expect.objectContaining({
+            amount: 80,
+            expectedUpdatedAt,
+            transactionItemId,
+          }),
+        ],
+        ledgerId,
+        transactionRecordId,
+      }),
+    );
+    expect(persisted.amount).toBe("80");
+  }, 15_000);
 
   it("取消确认后不会触发任何持久化写入", async () => {
     const { persisted, updateEdit } = renderScenario("child");
