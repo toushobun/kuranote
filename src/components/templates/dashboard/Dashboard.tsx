@@ -86,18 +86,16 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
         minHeight: "100dvh",
         mx: { xs: -2, sm: "calc(50% - 50vw)" },
-        // AppShell Container 的 py: 4（32px）此处用负 margin 抵消，再叠加顶部安全区高度，
-        // 让卡片本身（含 hero 装饰背景）延伸到刘海 / 状态栏后方。
-        mt: "calc(-32px - var(--app-safe-area-inset-top, 0px))",
-        overflow: "hidden",
+        // AppShell Container 的 py: 4，此处用负 margin 抵消使卡片从顶部开始；
+        // 不在这里叠加安全区高度——卡片本身停留在安全区之下的自然位置，
+        // 只让 DashboardHeroBackground 装饰层通过 overflow: visible 单独
+        // 探出到刘海区域，避免多层 calc(字面量 ± env()) 叠加在真机 WebKit
+        // 上解析不稳定。
+        mt: -4,
+        overflow: "visible",
         px: heroLayout.containerPadding,
         pb: bottomNavigationLayout.dashboardContentPaddingBottom,
-        // 卡片整体上移了安全区高度，这里补回等量的顶部内边距，
-        // 使标题、问候语等实际内容仍保持在安全区之内、视觉位置不变。
-        pt: {
-          xs: `calc(${heroLayout.containerPadding.xs * 8}px + var(--app-safe-area-inset-top, 0px))`,
-          sm: `calc(${heroLayout.containerPadding.sm * 8}px + var(--app-safe-area-inset-top, 0px))`,
-        },
+        pt: heroLayout.containerPadding,
         position: "relative",
         width: { xs: "calc(100% + 32px)", sm: "100vw" },
       }}
@@ -140,9 +138,9 @@ function DashboardHeroBackground() {
     <Box
       aria-hidden="true"
       sx={{
-        // 卡片顶部已经上移了安全区高度（顶部直接对齐屏幕最上沿），
-        // top 保持 0 即可让插画自然覆盖到刘海区域；只需把高度加高安全区
-        // 高度这一份，使插画底部渐隐边界维持在原来的屏幕位置不变。
+        // 卡片本身没有上移，装饰层用单个 var() 取负值向上探出安全区高度，
+        // 让父卡片的 overflow: visible 允许它露出到刘海区域；高度同步加高
+        // 同一份安全区高度，使底部渐隐边界维持在原来的屏幕位置不变。
         height: {
           xs: `calc(${heroLayout.backgroundHeight.xs}px + var(--app-safe-area-inset-top, 0px))`,
           sm: `calc(${heroLayout.backgroundHeight.sm}px + var(--app-safe-area-inset-top, 0px))`,
@@ -153,7 +151,7 @@ function DashboardHeroBackground() {
         pointerEvents: "none",
         position: "absolute",
         right: 0,
-        top: 0,
+        top: "calc(-1 * var(--app-safe-area-inset-top, 0px))",
         WebkitMaskImage:
           "linear-gradient(to bottom, black 68%, transparent 100%)",
         zIndex: 0,
