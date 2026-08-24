@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   applicationName: "KuraNote",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "KuraNote",
   },
   description: "KuraNote 家庭生活记录工具",

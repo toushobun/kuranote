@@ -140,8 +140,9 @@ function DashboardHeroBackground() {
     <Box
       aria-hidden="true"
       sx={{
-        // 卡片顶部上移了安全区高度，这里把插画高度和起始位置同步上移、加高，
-        // 使插画本身延伸进刘海 / 状态栏区域，底部渐隐边界保持原位置不变。
+        // 卡片顶部已经上移了安全区高度（顶部直接对齐屏幕最上沿），
+        // top 保持 0 即可让插画自然覆盖到刘海区域；只需把高度加高安全区
+        // 高度这一份，使插画底部渐隐边界维持在原来的屏幕位置不变。
         height: {
           xs: `calc(${heroLayout.backgroundHeight.xs}px + var(--app-safe-area-inset-top, 0px))`,
           sm: `calc(${heroLayout.backgroundHeight.sm}px + var(--app-safe-area-inset-top, 0px))`,
@@ -152,7 +153,7 @@ function DashboardHeroBackground() {
         pointerEvents: "none",
         position: "absolute",
         right: 0,
-        top: "calc(-1 * var(--app-safe-area-inset-top, 0px))",
+        top: 0,
         WebkitMaskImage:
           "linear-gradient(to bottom, black 68%, transparent 100%)",
         zIndex: 0,

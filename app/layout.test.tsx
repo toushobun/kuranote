@@ -13,14 +13,14 @@ describe("RootLayout", () => {
     cookieGet.mockReset();
   });
 
-  it("为 iOS 主屏幕应用启用全屏视口与可读状态栏模式", async () => {
+  it("为 iOS 主屏幕应用启用全屏视口与沉浸式状态栏模式", async () => {
     await expect(generateViewport()).resolves.toMatchObject({
       themeColor: "#FEF3DC",
       viewportFit: "cover",
     });
     expect(metadata.appleWebApp).toMatchObject({
       capable: true,
-      statusBarStyle: "default",
+      statusBarStyle: "black-translucent",
     });
   });
 

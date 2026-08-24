@@ -9,6 +9,7 @@ import {
 } from "theme/userThemeCssVariables";
 import { userThemeCookieName } from "theme/userThemeStorage";
 import { defaultUserThemeKey, isUserThemeKey } from "theme/userThemeTokens";
+import { statusBarScrimZIndex } from "theme/zIndex";
 
 type RootLayoutShellProps = {
   children: ReactNode;
@@ -33,6 +34,21 @@ export async function RootLayoutShell({ children }: RootLayoutShellProps) {
       suppressHydrationWarning
     >
       <body>
+        <div
+          aria-hidden="true"
+          id="app-status-bar-scrim"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0))",
+            height: "var(--app-safe-area-inset-top)",
+            left: 0,
+            pointerEvents: "none",
+            position: "fixed",
+            top: 0,
+            width: "100%",
+            zIndex: statusBarScrimZIndex,
+          }}
+        />
         <div
           id="app-root"
           style={{
