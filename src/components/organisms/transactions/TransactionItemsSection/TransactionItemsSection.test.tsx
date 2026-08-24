@@ -184,6 +184,27 @@ describe("TransactionItemsSection", () => {
     expect(editOriginalAmountButton).toHaveTextContent("不计入支出");
   });
 
+  it("单条明细核销结余时按收入方向显示净额", () => {
+    renderSection({
+      businessTotalAmount: "1000",
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          amount: "4000",
+          businessNetAmount: "-1000",
+        },
+      ],
+      signedTotalAmount: "-4000",
+    });
+
+    const editOriginalAmountButton = screen.getByRole("button", {
+      name: "编辑明细 1 原金额",
+    });
+    expect(editOriginalAmountButton).toHaveTextContent("+ ¥ 1,000");
+    expect(editOriginalAmountButton).toHaveTextContent("原金额 - ¥ 4,000");
+    expect(editOriginalAmountButton).not.toHaveTextContent("- ¥ -1,000");
+  });
+
   it("点击追加按钮时打开明细选择器", () => {
     const props = renderSection();
 

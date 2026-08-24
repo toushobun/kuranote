@@ -157,19 +157,20 @@ function ItemSummaryValue({
   currency?: string;
   item: TransactionItemSummary;
 }) {
-  const amountPresentation = getTransactionItemAmountPresentation(
-    item.amount,
-    item.businessNetAmount,
-  );
   const categoryName = item.category
     ? formatCategoryName(item.category)
     : "未选择分类";
+  const categoryType = item.category?.type ?? "expense";
+  const amountPresentation = getTransactionItemAmountPresentation(
+    item.amount,
+    item.businessNetAmount,
+    categoryType,
+  );
   if (!amountPresentation.displayAmount) {
     return `${categoryName} / 未填写金额`;
   }
-  const categoryType = item.category?.type ?? "expense";
   const formattedBusinessAmount = formatTransactionRowAmount(
-    categoryType,
+    amountPresentation.displayType,
     amountPresentation.displayAmount,
     currency,
   );

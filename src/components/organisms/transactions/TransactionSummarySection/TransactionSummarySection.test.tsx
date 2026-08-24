@@ -107,4 +107,32 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText(/餐饮.*午餐.*- 1,200/)).toBeInTheDocument();
     expect(screen.getByText(/不计入支出/)).toBeInTheDocument();
   });
+
+  it("单条明细核销结余时按收入方向显示净额", () => {
+    render(
+      <TransactionSummarySection
+        businessTotalAmount="1000"
+        itemSummaries={[
+          {
+            ...itemSummaries[0],
+            amount: "4000",
+            businessNetAmount: "-1000",
+          },
+        ]}
+        selectedAccount={{ currency: "JPY", id: "account-1", name: "现金" }}
+        signedTotalAmount="-4000"
+        transactionDate="2026-07-20"
+        transactionTime="10:30:00"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "P" &&
+          element.textContent === "餐饮 / 午餐 / + ¥ 1,000（原金额 - ¥ 4,000）",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/- ¥ -1,000/)).not.toBeInTheDocument();
+  });
 });

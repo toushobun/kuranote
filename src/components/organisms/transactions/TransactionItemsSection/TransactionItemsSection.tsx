@@ -83,11 +83,12 @@ export function TransactionItemsSection({
                 resolveTransactionBusinessStatus({
                   specialStatus: item.specialStatus,
                 });
+              const categoryType = item.category?.type ?? selectedType;
               const amountPresentation = getTransactionItemAmountPresentation(
                 item.amount,
                 item.businessNetAmount,
+                categoryType,
               );
-              const categoryType = item.category?.type ?? selectedType;
               const adjustmentMessage = getTransactionItemAdjustmentMessage(
                 amountPresentation.adjustment,
                 categoryType,
@@ -185,7 +186,7 @@ export function TransactionItemsSection({
                         sx={amountButtonSx}
                       >
                         {formatDisplayAmount(
-                          categoryType,
+                          amountPresentation.displayType,
                           amountPresentation.displayAmount,
                           selectedAccountCurrency,
                         )}

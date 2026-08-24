@@ -106,11 +106,12 @@ describe("formatCategoryName", () => {
 
 describe("getTransactionItemAmountPresentation", () => {
   it("完全核销时显示原始金额和不计入提示", () => {
-    const result = getTransactionItemAmountPresentation("1200", "0");
+    const result = getTransactionItemAmountPresentation("1200", "0", "expense");
 
     expect(result).toEqual({
       adjustment: "fullyExcluded",
       displayAmount: "1200",
+      displayType: "expense",
       hasOffset: true,
     });
     expect(
@@ -122,11 +123,16 @@ describe("getTransactionItemAmountPresentation", () => {
   });
 
   it("部分核销时显示净额和部分核销提示", () => {
-    const result = getTransactionItemAmountPresentation("1200", "300");
+    const result = getTransactionItemAmountPresentation(
+      "1200",
+      "300",
+      "expense",
+    );
 
     expect(result).toEqual({
       adjustment: "partiallyOffset",
       displayAmount: "300",
+      displayType: "expense",
       hasOffset: true,
     });
     expect(
@@ -134,10 +140,13 @@ describe("getTransactionItemAmountPresentation", () => {
     ).toBe("部分已核销");
   });
 
-  it("核销结余时保留净额和原金额展示", () => {
-    expect(getTransactionItemAmountPresentation("1200", "-300")).toEqual({
+  it("核销结余时取净额绝对值并翻转收支方向", () => {
+    expect(
+      getTransactionItemAmountPresentation("1200", "-300", "expense"),
+    ).toEqual({
       adjustment: null,
-      displayAmount: "-300",
+      displayAmount: "300",
+      displayType: "income",
       hasOffset: true,
     });
   });

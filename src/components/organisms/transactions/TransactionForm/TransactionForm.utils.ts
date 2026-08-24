@@ -36,7 +36,8 @@ export function formatCategoryName(category: TransactionCategoryOption) {
 
 export function getTransactionItemAmountPresentation(
   amount: string,
-  businessNetAmount?: string | null,
+  businessNetAmount: string | null | undefined,
+  type: TransactionType,
 ) {
   const amountValue = Number(amount);
   const businessNetAmountValue = Number(businessNetAmount);
@@ -53,11 +54,25 @@ export function getTransactionItemAmountPresentation(
           businessNetAmountValue < amountValue
         ? "partiallyOffset"
         : null;
+  const isSurplus =
+    hasOffset &&
+    Number.isFinite(businessNetAmountValue) &&
+    businessNetAmountValue < 0;
 
   return {
     adjustment,
     displayAmount:
-      adjustment === "fullyExcluded" ? amount : (businessNetAmount ?? amount),
+      adjustment === "fullyExcluded"
+        ? amount
+        : isSurplus
+          ? String(Math.abs(businessNetAmountValue))
+          : (businessNetAmount ?? amount),
+    displayType:
+      isSurplus && type === "expense"
+        ? "income"
+        : isSurplus && type === "income"
+          ? "expense"
+          : type,
     hasOffset,
   } as const;
 }
