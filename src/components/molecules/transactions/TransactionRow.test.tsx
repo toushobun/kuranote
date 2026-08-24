@@ -370,7 +370,7 @@ describe("TransactionRow", () => {
     expect(screen.getByText("原金额 + ¥ 100")).toBeInTheDocument();
   });
 
-  it("完全抵消时显示零净额和原金额", () => {
+  it("完全抵消的支出显示原始金额和不计入支出", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -390,8 +390,65 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("$ 0")).toBeInTheDocument();
-    expect(screen.getByText("原金额 - $ 100")).toBeInTheDocument();
+    expect(screen.getByText("- $ 100")).toBeInTheDocument();
+    expect(screen.getByText("不计入支出")).toBeInTheDocument();
+    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+  });
+
+  it("已核销的退款收入显示原始金额和不计入收入", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "0",
+          originalAmount: "2000",
+          originalType: "income",
+          type: "income",
+          categoryItems: [
+            {
+              amount: "2000",
+              businessStatus: incomeBusinessStatus("refund"),
+              categoryName: "退款收入",
+              categoryType: "income",
+              parentCategoryName: "其他收入",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("+ ¥ 2,000")).toBeInTheDocument();
+    expect(screen.getByText("不计入收入")).toBeInTheDocument();
+    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+  });
+
+  it("待报销支出显示正常金额和不计入支出", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "4000",
+          categoryItems: [
+            {
+              amount: "4000",
+              businessStatus: {
+                incomeLinkRole: null,
+                offsetComposition: {
+                  refundAmount: "0",
+                  reimbursementAmount: "0",
+                },
+                settlementStatus: "pendingReimbursement",
+              },
+              categoryName: "交通",
+              categoryType: "expense",
+              parentCategoryName: "出行",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("- ¥ 4,000")).toBeInTheDocument();
+    expect(screen.getByText("不计入支出")).toBeInTheDocument();
+    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
   });
 
   it("没有抵消时不显示原金额文案", () => {

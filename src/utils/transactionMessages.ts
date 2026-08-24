@@ -8,6 +8,8 @@ export const transactionFormValidationMessages = {
 
 export const transactionAmountMessages = {
   netAmount: "净额",
+  notIncludedInExpense: "不计入支出",
+  notIncludedInIncome: "不计入收入",
   originalAmount: "原金额",
 } as const;
 

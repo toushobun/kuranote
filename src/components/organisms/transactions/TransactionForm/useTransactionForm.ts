@@ -276,6 +276,7 @@ export function useTransactionForm({
         ...nextItem,
         businessNetAmount: getUpdatedItemBusinessNetAmount(
           nextItem,
+          item.amount,
           categoryType,
         ),
       };
@@ -321,6 +322,7 @@ export function useTransactionForm({
                     reimbursementCandidate,
                     specialStatus,
                   },
+                  item.amount,
                   categoryType,
                 )
               : item,
@@ -349,6 +351,7 @@ export function useTransactionForm({
             reimbursementCandidate,
             specialStatus,
           },
+          existingItem.amount,
           categoryType,
         ),
       ];
@@ -744,6 +747,14 @@ function getFormItemBusinessAmount(item: TransactionFormItem) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function toSignedBusinessNetMinorUnits(value: string) {
+  const text = value.trim();
+  const isNegative = text.startsWith("-");
+  const units = toRefundMinorUnits(isNegative ? text.slice(1) : text);
+  if (units === null) return null;
+  return isNegative ? -units : units;
+}
+
 function getNewItemBusinessNetAmount(
   amount: string,
   specialStatus: TransactionFormItem["specialStatus"],
@@ -767,6 +778,7 @@ function getNewItemBusinessNetAmount(
 
 function getUpdatedItemBusinessNetAmount(
   item: TransactionFormItem,
+  previousAmount: string,
   categoryType?: TransactionType,
 ) {
   if (categoryType === "income") {
@@ -777,33 +789,39 @@ function getUpdatedItemBusinessNetAmount(
       item.reimbursementCandidate ?? null,
     );
   }
-  if (item.specialStatus === "reimbursed") {
-    return "0";
-  }
+  if (item.specialStatus === "pendingReimbursement") return undefined;
 
   const amountUnits = toRefundMinorUnits(item.amount);
-  const refundedAmountUnits = toRefundMinorUnits(item.refundedAmount ?? "0");
+  const previousAmountUnits = toRefundMinorUnits(previousAmount);
+  const businessNetAmountUnits =
+    item.businessNetAmount === undefined
+      ? null
+      : toSignedBusinessNetMinorUnits(item.businessNetAmount);
   if (
     amountUnits === null ||
-    refundedAmountUnits === null ||
-    refundedAmountUnits <= BigInt(0)
+    previousAmountUnits === null ||
+    businessNetAmountUnits === null ||
+    businessNetAmountUnits === previousAmountUnits
   ) {
     return undefined;
   }
 
   return formatRefundMinorUnits(
-    amountUnits > refundedAmountUnits
-      ? amountUnits - refundedAmountUnits
-      : BigInt(0),
+    businessNetAmountUnits + amountUnits - previousAmountUnits,
   );
 }
 
 function withUpdatedItemBusinessNetAmount(
   item: TransactionFormItem,
+  previousAmount: string,
   categoryType?: TransactionType,
 ) {
   return {
     ...item,
-    businessNetAmount: getUpdatedItemBusinessNetAmount(item, categoryType),
+    businessNetAmount: getUpdatedItemBusinessNetAmount(
+      item,
+      previousAmount,
+      categoryType,
+    ),
   };
 }

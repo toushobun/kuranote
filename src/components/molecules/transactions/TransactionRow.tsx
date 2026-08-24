@@ -10,7 +10,9 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
+import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
+import { transactionAmountMessages } from "utils/transactionMessages";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -55,9 +57,14 @@ export function TransactionRow({
   const merchantName = isTransfer
     ? "账户周转"
     : (item.merchant_name ?? "未知商家");
+  const statisticsExclusionType = getStatisticsExclusionType(item);
+  const displayedAmountType =
+    statisticsExclusionType && item.originalAmount !== undefined
+      ? (item.originalType ?? statisticsExclusionType)
+      : item.type;
   const amountColor = isTransfer
     ? textColor
-    : item.type === "income"
+    : displayedAmountType === "income"
       ? incomeColor
       : expenseColor;
   const businessStatuses = getBusinessStatuses(item.categoryItems);
@@ -67,7 +74,14 @@ export function TransactionRow({
     getServerTimeZone,
   );
   const time = formatTransactionTime(item.transaction_at, { timeZone });
-  const signedAmount = formatRowAmount(item);
+  const signedAmount =
+    statisticsExclusionType && item.originalAmount !== undefined
+      ? formatTransactionRowAmount(
+          item.originalType ?? statisticsExclusionType,
+          item.originalAmount,
+          item.account_currency,
+        )
+      : formatRowAmount(item);
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
@@ -156,7 +170,17 @@ export function TransactionRow({
               >
                 {signedAmount}
               </Typography>
-              {item.originalAmount !== undefined ? (
+              {statisticsExclusionType ? (
+                <Typography
+                  component="span"
+                  sx={transactionOriginalAmountTextSx}
+                  variant="caption"
+                >
+                  {statisticsExclusionType === "income"
+                    ? transactionAmountMessages.notIncludedInIncome
+                    : transactionAmountMessages.notIncludedInExpense}
+                </Typography>
+              ) : item.originalAmount !== undefined ? (
                 <TransactionOriginalAmount
                   amount={formatTransactionRowAmount(
                     item.originalType ?? item.type,
@@ -291,6 +315,30 @@ function getBusinessStatuses(
     });
   }
   return statuses;
+}
+
+function getStatisticsExclusionType(
+  item: TransactionRowItem,
+): TransactionCategoryType | null {
+  const statuses = item.categoryItems.flatMap((category) =>
+    category.businessStatus ? [category.businessStatus] : [],
+  );
+
+  if (statuses.some((status) => status.incomeLinkRole !== null)) {
+    return "income";
+  }
+  if (
+    statuses.some(
+      (status) => status.settlementStatus === "pendingReimbursement",
+    )
+  ) {
+    return "expense";
+  }
+  if (item.originalAmount !== undefined && Number(item.amount) === 0) {
+    return item.originalType ?? (item.type === "transfer" ? null : item.type);
+  }
+
+  return null;
 }
 
 function normalizeAggregatedAmount(amount: number) {

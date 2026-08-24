@@ -252,6 +252,61 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-400");
   });
 
+  it("修改已倒赚支出金额时按带符号业务净额实时重算", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "4000",
+            businessNetAmount: "-1000",
+            categoryId: "expense-child",
+            refundedAmount: "5000",
+            specialStatus: "reimbursementSurplus",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "核销结余",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "5000" }));
+
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      amount: "5000",
+      businessNetAmount: "0",
+    });
+    expect(result.current.businessTotalAmount).toBe("0");
+  });
+
+  it("修改含退款和报销的支出金额时保留全部核销量", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-1",
+        items: [
+          {
+            amount: "4000",
+            businessNetAmount: "-1000",
+            categoryId: "expense-child",
+            refundedAmount: "2000",
+            specialStatus: "reimbursementSurplus",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "退款与报销组合核销",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    act(() => result.current.updateItem(1, { amount: "4500" }));
+
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("-500");
+    expect(result.current.businessTotalAmount).toBe("+500");
+  });
+
   it("通过明细选择器保存部分退款支出时保留业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
