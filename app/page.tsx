@@ -1,5 +1,7 @@
-import { HomeTemplate } from "templates/home/Home";
+import { redirect } from "next/navigation";
+
+import { routePaths } from "config/paths";
 
 export default function RootPage() {
-  return <HomeTemplate />;
+  redirect(routePaths.dashboard);
 }
