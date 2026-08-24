@@ -15,11 +15,13 @@ body {
 }
 
 html {
-  background: var(--user-theme-page-bg);
+  background-color: var(--user-theme-page-top-bg);
+  background-image: var(--user-theme-page-bg);
 }
 
 body {
-  background: var(--user-theme-page-bg);
+  background-color: var(--user-theme-page-top-bg);
+  background-image: var(--user-theme-page-bg);
   transition: background 0.5s ease;
 }
 

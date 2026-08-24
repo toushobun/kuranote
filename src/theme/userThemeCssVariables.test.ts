@@ -4,6 +4,14 @@ import { userThemeKeys, userThemeTokens } from "./userThemeTokens";
 import { getUserThemeCssVariables } from "./userThemeCssVariables";
 
 describe("getUserThemeCssVariables", () => {
+  it("所有主题均输出与渐变顶部一致的文档画布实色", () => {
+    userThemeKeys.forEach((themeKey) => {
+      expect(
+        getUserThemeCssVariables(themeKey)["--user-theme-page-top-bg"],
+      ).toBe(userThemeTokens[themeKey].palette.pageGradientFrom);
+    });
+  });
+
   it("输出薰衣草梦境的交易相关用户主题变量", () => {
     const themeVars = getUserThemeCssVariables("lavenderDream");
 

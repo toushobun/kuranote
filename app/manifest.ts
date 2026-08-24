@@ -1,8 +1,12 @@
 import type { MetadataRoute } from "next";
 
+import { defaultUserThemeKey, userThemeTokens } from "theme/userThemeTokens";
+
 export default function manifest(): MetadataRoute.Manifest {
+  const defaultThemePalette = userThemeTokens[defaultUserThemeKey].palette;
+
   return {
-    background_color: "#FDF8F0",
+    background_color: defaultThemePalette.page,
     categories: ["finance", "lifestyle", "productivity"],
     description: "KuraNote 家庭生活记录工具",
     display: "standalone",
@@ -29,6 +33,6 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     short_name: "KuraNote",
     start_url: "/",
-    theme_color: "#FDF8F0",
+    theme_color: defaultThemePalette.pageGradientFrom,
   };
 }

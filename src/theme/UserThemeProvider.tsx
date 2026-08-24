@@ -143,8 +143,15 @@ function clearThemeCookie() {
 function applyUserTheme(themeKey: UserThemeKey) {
   const root = document.documentElement;
   const cssVariables = getUserThemeCssVariables(themeKey);
+  const themeColorMeta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]',
+  );
 
   root.setAttribute("data-user-theme", themeKey);
+  themeColorMeta?.setAttribute(
+    "content",
+    userThemeTokens[themeKey].palette.pageGradientFrom,
+  );
 
   Object.entries(cssVariables).forEach(([name, value]) => {
     root.style.setProperty(name, value);

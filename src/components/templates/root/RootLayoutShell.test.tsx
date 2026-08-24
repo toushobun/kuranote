@@ -22,9 +22,13 @@ function elementProps(node: ReactNode) {
 describe("RootLayoutShell", () => {
   it("背景覆盖根视口而内容从顶部安全区之后开始", async () => {
     const root = await RootLayoutShell({ children: <main>页面内容</main> });
-    const body = elementProps(elementProps(root).children);
+    const html = elementProps(root);
+    const body = elementProps(html.children);
     const appRoot = elementProps(body.children);
 
+    expect(html.style).toMatchObject({
+      "--user-theme-page-top-bg": "#FEF3DC",
+    });
     expect(appRoot.id).toBe("app-root");
     expect(appRoot.style).toMatchObject({
       background: "var(--user-theme-page-bg)",

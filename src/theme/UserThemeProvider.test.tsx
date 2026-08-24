@@ -14,11 +14,33 @@ describe("UserThemeProvider", () => {
     document.cookie = `${userThemeCookieName}=; path=/; max-age=0; samesite=lax`;
     document.documentElement.removeAttribute("data-user-theme");
     document.documentElement.removeAttribute("style");
+    const themeColorMeta = document.createElement("meta");
+    themeColorMeta.name = "theme-color";
+    document.head.append(themeColorMeta);
   });
 
   afterEach(() => {
     cleanup();
+    document.querySelector('meta[name="theme-color"]')?.remove();
     vi.useRealTimers();
+  });
+
+  it("应用用户主题时同步状态栏与页面顶部颜色", () => {
+    window.localStorage.setItem(
+      getUserThemeStorageKey("a@example.com"),
+      "lavenderDream",
+    );
+
+    render(
+      <UserThemeProvider storageScope="a@example.com">
+        <div />
+      </UserThemeProvider>,
+    );
+
+    expect(
+      document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+        ?.content,
+    ).toBe("#F3EFFC");
   });
 
   it("退出登录卸载 protected provider 时会恢复默认主题背景", () => {

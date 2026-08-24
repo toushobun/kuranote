@@ -140,10 +140,12 @@ export const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         html: {
-          background: "var(--user-theme-page-bg)",
+          backgroundColor: "var(--user-theme-page-top-bg)",
+          backgroundImage: "var(--user-theme-page-bg)",
         },
         body: {
-          background: "var(--user-theme-page-bg)",
+          backgroundColor: "var(--user-theme-page-top-bg)",
+          backgroundImage: "var(--user-theme-page-bg)",
         },
       },
     },

@@ -80,6 +80,7 @@ export function getUserThemeCssVariables(themeKey: UserThemeKey) {
   const { palette, semantic, component } = token;
 
   return {
+    "--user-theme-page-top-bg": palette.pageGradientFrom,
     "--user-theme-page-bg": createPageBackground(token),
     "--user-theme-dashboard-hero-image": createDashboardHeroImage(themeKey),
     "--user-theme-dashboard-recent-empty-image":

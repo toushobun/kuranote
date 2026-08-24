@@ -67,8 +67,14 @@ describe("createDynamicMuiTheme", () => {
 
   it("CssBaseline 不会用固定颜色覆盖用户主题画布", () => {
     expect(baseTheme.components?.MuiCssBaseline?.styleOverrides).toMatchObject({
-      body: { background: "var(--user-theme-page-bg)" },
-      html: { background: "var(--user-theme-page-bg)" },
+      body: {
+        backgroundColor: "var(--user-theme-page-top-bg)",
+        backgroundImage: "var(--user-theme-page-bg)",
+      },
+      html: {
+        backgroundColor: "var(--user-theme-page-top-bg)",
+        backgroundImage: "var(--user-theme-page-bg)",
+      },
     });
   });
 });

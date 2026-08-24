@@ -10,10 +10,16 @@ const globalCss = readFileSync(
 describe("globals.css", () => {
   it("让文档画布与根容器保持全视口的用户主题背景", () => {
     expect(globalCss).toMatch(
-      /html\s*\{[^}]*background:\s*var\(--user-theme-page-bg\)/,
+      /html\s*\{[^}]*background-color:\s*var\(--user-theme-page-top-bg\)/,
     );
     expect(globalCss).toMatch(
-      /body\s*\{[^}]*background:\s*var\(--user-theme-page-bg\)/,
+      /body\s*\{[^}]*background-color:\s*var\(--user-theme-page-top-bg\)/,
+    );
+    expect(globalCss).toMatch(
+      /html\s*\{[^}]*background-image:\s*var\(--user-theme-page-bg\)/,
+    );
+    expect(globalCss).toMatch(
+      /body\s*\{[^}]*background-image:\s*var\(--user-theme-page-bg\)/,
     );
     expect(globalCss).toMatch(/#app-root\s*\{[^}]*min-height:\s*100dvh/);
   });
