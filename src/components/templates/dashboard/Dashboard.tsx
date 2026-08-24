@@ -86,12 +86,18 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
         minHeight: "100dvh",
         mx: { xs: -2, sm: "calc(50% - 50vw)" },
-        // AppShell Container 的 py: 4，此处用负 margin 抵消使首页内容从顶部开始。
-        mt: -4,
+        // AppShell Container 的 py: 4（32px）此处用负 margin 抵消，再叠加顶部安全区高度，
+        // 让卡片本身（含 hero 装饰背景）延伸到刘海 / 状态栏后方。
+        mt: "calc(-32px - var(--app-safe-area-inset-top, 0px))",
         overflow: "hidden",
         px: heroLayout.containerPadding,
         pb: bottomNavigationLayout.dashboardContentPaddingBottom,
-        pt: heroLayout.containerPadding,
+        // 卡片整体上移了安全区高度，这里补回等量的顶部内边距，
+        // 使标题、问候语等实际内容仍保持在安全区之内、视觉位置不变。
+        pt: {
+          xs: `calc(${heroLayout.containerPadding.xs * 8}px + var(--app-safe-area-inset-top, 0px))`,
+          sm: `calc(${heroLayout.containerPadding.sm * 8}px + var(--app-safe-area-inset-top, 0px))`,
+        },
         position: "relative",
         width: { xs: "calc(100% + 32px)", sm: "100vw" },
       }}
@@ -134,14 +140,19 @@ function DashboardHeroBackground() {
     <Box
       aria-hidden="true"
       sx={{
-        height: heroLayout.backgroundHeight,
+        // 卡片顶部上移了安全区高度，这里把插画高度和起始位置同步上移、加高，
+        // 使插画本身延伸进刘海 / 状态栏区域，底部渐隐边界保持原位置不变。
+        height: {
+          xs: `calc(${heroLayout.backgroundHeight.xs}px + var(--app-safe-area-inset-top, 0px))`,
+          sm: `calc(${heroLayout.backgroundHeight.sm}px + var(--app-safe-area-inset-top, 0px))`,
+        },
         left: 0,
         maskImage: "linear-gradient(to bottom, black 68%, transparent 100%)",
         overflow: "hidden",
         pointerEvents: "none",
         position: "absolute",
         right: 0,
-        top: 0,
+        top: "calc(-1 * var(--app-safe-area-inset-top, 0px))",
         WebkitMaskImage:
           "linear-gradient(to bottom, black 68%, transparent 100%)",
         zIndex: 0,
