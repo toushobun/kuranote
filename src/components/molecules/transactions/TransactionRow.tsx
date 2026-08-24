@@ -63,10 +63,11 @@ export function TransactionRow({
     ? "账户周转"
     : (item.merchant_name ?? "未知商家");
   const statisticsAdjustment = getStatisticsAdjustment(item);
-  const isFullyExcluded =
-    statisticsAdjustment?.kind === "fullyExcluded" &&
+  const shouldDisplayOriginalAmount =
+    (statisticsAdjustment?.kind === "fullyExcluded" ||
+      statisticsAdjustment?.kind === "partiallyOffset") &&
     item.originalAmount !== undefined;
-  const displayedAmountType = isFullyExcluded
+  const displayedAmountType = shouldDisplayOriginalAmount
     ? (item.originalType ?? statisticsAdjustment.type ?? item.type)
     : item.type;
   const amountColor = isTransfer
@@ -81,7 +82,7 @@ export function TransactionRow({
     getServerTimeZone,
   );
   const time = formatTransactionTime(item.transaction_at, { timeZone });
-  const signedAmount = isFullyExcluded
+  const signedAmount = shouldDisplayOriginalAmount
     ? formatTransactionRowAmount(
         item.originalType ?? statisticsAdjustment.type ?? item.type,
         item.originalAmount ?? item.amount,

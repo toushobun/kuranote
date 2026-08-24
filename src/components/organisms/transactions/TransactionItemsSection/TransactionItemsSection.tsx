@@ -7,7 +7,6 @@ import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
-import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
@@ -22,8 +21,6 @@ import type {
 import {
   formatCategoryName,
   formatSignedCurrencyAmount,
-  getTransactionItemAdjustmentMessage,
-  getTransactionItemAmountPresentation,
 } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionItemsSectionProps = {
@@ -84,15 +81,6 @@ export function TransactionItemsSection({
                   specialStatus: item.specialStatus,
                 });
               const categoryType = item.category?.type ?? selectedType;
-              const amountPresentation = getTransactionItemAmountPresentation(
-                item.amount,
-                item.businessNetAmount,
-                categoryType,
-              );
-              const adjustmentMessage = getTransactionItemAdjustmentMessage(
-                amountPresentation.adjustment,
-                categoryType,
-              );
 
               return (
                 <Box
@@ -175,38 +163,17 @@ export function TransactionItemsSection({
                         value={item.amount}
                       />
                       <Button
-                        aria-label={`编辑明细 ${index + 1} ${
-                          amountPresentation.hasOffset
-                            ? transactionAmountMessages.originalAmount
-                            : "金额"
-                        }`}
+                        aria-label={`编辑明细 ${index + 1} 金额`}
                         onClick={focusAmountInput}
                         type="button"
                         variant="text"
                         sx={amountButtonSx}
                       >
                         {formatDisplayAmount(
-                          amountPresentation.displayType,
-                          amountPresentation.displayAmount,
+                          categoryType,
+                          item.amount,
                           selectedAccountCurrency,
                         )}
-                        {adjustmentMessage ? (
-                          <Typography
-                            component="span"
-                            sx={transactionOriginalAmountTextSx}
-                            variant="caption"
-                          >
-                            {adjustmentMessage}
-                          </Typography>
-                        ) : amountPresentation.hasOffset ? (
-                          <TransactionOriginalAmount
-                            amount={formatDisplayAmount(
-                              categoryType,
-                              item.amount,
-                              selectedAccountCurrency,
-                            )}
-                          />
-                        ) : null}
                       </Button>
                       {businessStatus ? (
                         <TransactionBusinessBadge
