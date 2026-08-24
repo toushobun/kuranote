@@ -320,7 +320,7 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
-  it("明细部分核销时显示净额和部分核销提示", () => {
+  it("单条明细部分核销时显示原金额和部分核销提示", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -341,7 +341,8 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("- $ 100")).toBeInTheDocument();
+    expect(screen.getByText("- $ 150")).toBeInTheDocument();
+    expect(screen.queryByText("- $ 100")).not.toBeInTheDocument();
     expect(screen.getByText("部分已核销")).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",
