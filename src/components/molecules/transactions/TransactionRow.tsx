@@ -83,10 +83,10 @@ export function TransactionRow({
   const time = formatTransactionTime(item.transaction_at, { timeZone });
   const signedAmount = isFullyExcluded
     ? formatTransactionRowAmount(
-          item.originalType ?? statisticsAdjustment.type ?? item.type,
-          item.originalAmount ?? item.amount,
-          item.account_currency,
-        )
+        item.originalType ?? statisticsAdjustment.type ?? item.type,
+        item.originalAmount ?? item.amount,
+        item.account_currency,
+      )
     : formatRowAmount(item);
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = [categorySummaryText, item.note]
