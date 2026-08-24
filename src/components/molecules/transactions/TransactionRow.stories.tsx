@@ -231,12 +231,31 @@ export const AggregatedOffsetComposition: Story = {
 };
 
 export const PartiallyOffset: Story = {
-  name: "部分抵消与原金额",
+  name: "单条明细部分已核销",
   args: {
     item: {
       ...expenseItem,
       amount: "1658",
       originalAmount: "2858",
+      categoryItems: [
+        { ...expenseItem.categoryItems[0], businessNetAmount: "80" },
+        ...expenseItem.categoryItems.slice(1),
+      ],
+    },
+  },
+};
+
+export const PartiallyExcluded: Story = {
+  name: "部分明细不计入支出",
+  args: {
+    item: {
+      ...expenseItem,
+      amount: "1578",
+      originalAmount: "2858",
+      categoryItems: [
+        { ...expenseItem.categoryItems[0], businessNetAmount: "0" },
+        ...expenseItem.categoryItems.slice(1),
+      ],
     },
   },
 };
@@ -248,7 +267,9 @@ export const FullyOffsetRefundIncome: Story = {
       ...businessStatusItem,
       amount: "0",
       originalAmount: "15000",
-      categoryItems: businessStatusItem.categoryItems.slice(0, 1),
+      categoryItems: businessStatusItem.categoryItems
+        .slice(0, 1)
+        .map((item) => ({ ...item, businessNetAmount: "0" })),
     },
   },
 };
@@ -260,7 +281,9 @@ export const FullyOffsetReimbursementIncome: Story = {
       ...businessStatusItem,
       amount: "0",
       originalAmount: "20000",
-      categoryItems: businessStatusItem.categoryItems.slice(1),
+      categoryItems: businessStatusItem.categoryItems
+        .slice(1)
+        .map((item) => ({ ...item, businessNetAmount: "0" })),
     },
   },
 };

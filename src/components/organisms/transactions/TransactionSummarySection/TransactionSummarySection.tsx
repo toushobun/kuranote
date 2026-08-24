@@ -158,7 +158,23 @@ function ItemSummaryValue({
   currency?: string;
   item: TransactionItemSummary;
 }) {
-  const businessAmount = item.businessNetAmount ?? item.amount;
+  const amount = Number(item.amount);
+  const businessNetAmount = Number(item.businessNetAmount);
+  const hasOffset = hasBusinessNetAmountOffset(
+    item.amount,
+    item.businessNetAmount,
+  );
+  const isFullyExcluded =
+    hasOffset && Number.isFinite(businessNetAmount) && businessNetAmount === 0;
+  const isPartiallyOffset =
+    hasOffset &&
+    Number.isFinite(amount) &&
+    Number.isFinite(businessNetAmount) &&
+    businessNetAmount > 0 &&
+    businessNetAmount < amount;
+  const businessAmount = isFullyExcluded
+    ? item.amount
+    : (item.businessNetAmount ?? item.amount);
   const categoryName = item.category
     ? formatCategoryName(item.category)
     : "未选择分类";
@@ -169,17 +185,38 @@ function ItemSummaryValue({
     businessAmount,
     currency,
   );
-  if (!hasBusinessNetAmountOffset(item.amount, item.businessNetAmount)) {
+  if (!hasOffset) {
     return `${categoryName} / ${formattedBusinessAmount}`;
   }
+
+  const adjustmentMessage = isFullyExcluded
+    ? categoryType === "income"
+      ? transactionAmountMessages.notIncludedInIncome
+      : transactionAmountMessages.notIncludedInExpense
+    : isPartiallyOffset
+      ? transactionAmountMessages.partiallyOffset
+      : null;
 
   return (
     <>
       {categoryName} / {formattedBusinessAmount}
-      <TransactionOriginalAmount
-        amount={formatTransactionRowAmount(categoryType, item.amount, currency)}
-        parenthesized
-      />
+      {adjustmentMessage ? (
+        <Typography
+          component="span"
+          sx={{ color: "text.disabled", fontWeight: 400 }}
+        >
+          {`（${adjustmentMessage}）`}
+        </Typography>
+      ) : (
+        <TransactionOriginalAmount
+          amount={formatTransactionRowAmount(
+            categoryType,
+            item.amount,
+            currency,
+          )}
+          parenthesized
+        />
+      )}
     </>
   );
 }

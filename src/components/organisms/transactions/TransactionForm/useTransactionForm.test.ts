@@ -387,15 +387,16 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBeNull();
   });
 
-  it("修改待报销支出金额时恢复为当前原始业务金额", () => {
+  it("修改已部分核销的待报销支出金额时增量更新业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
         accountId: "account-1",
         items: [
           {
-            amount: "500",
-            businessNetAmount: "0",
+            amount: "4000",
+            businessNetAmount: "3000",
             categoryId: "expense-child",
+            refundedAmount: "1000",
             specialStatus: "pendingReimbursement",
           },
         ],
@@ -406,13 +407,13 @@ describe("useTransactionForm", () => {
       },
     });
 
-    act(() => result.current.updateItem(1, { amount: "600" }));
+    act(() => result.current.updateItem(1, { amount: "5000" }));
 
     expect(result.current.itemSummaries[0]).toMatchObject({
-      amount: "600",
+      amount: "5000",
+      businessNetAmount: "4000",
     });
-    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
-    expect(result.current.businessTotalAmount).toBeNull();
+    expect(result.current.businessTotalAmount).toBe("-4000");
   });
 
   it("明细选择器先返回校验错误，再追加有效明细", () => {

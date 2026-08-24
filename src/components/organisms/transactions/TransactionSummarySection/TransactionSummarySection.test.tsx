@@ -65,7 +65,7 @@ describe("TransactionSummarySection", () => {
     expect(screen.getAllByText("未选择")).toHaveLength(3);
   });
 
-  it("有抵消金额时先显示净额并在下方弱化显示原金额", () => {
+  it("部分核销时显示净额、部分核销提示和核销前合计", () => {
     render(
       <TransactionSummarySection
         businessTotalAmount="-300"
@@ -79,16 +79,32 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText("净额")).toBeInTheDocument();
     expect(screen.getByText("原金额")).toBeInTheDocument();
     expect(screen.getByText("- 300")).toBeInTheDocument();
-    const itemOriginalAmount = screen.getByText(/原金额 - 1,200/);
-    expect(itemOriginalAmount).toHaveStyle({
+    const partialOffsetMessage = screen.getByText(/部分已核销/);
+    expect(partialOffsetMessage).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",
     });
+    expect(screen.queryByText(/原金额 - 1,200/)).not.toBeInTheDocument();
     expect(
       screen
         .getByText("净额")
         .compareDocumentPosition(screen.getByText("原金额")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("完全核销的明细显示原始金额和不计入支出提示", () => {
+    render(
+      <TransactionSummarySection
+        businessTotalAmount="0"
+        itemSummaries={[{ ...itemSummaries[0], businessNetAmount: "0" }]}
+        signedTotalAmount="-1200"
+        transactionDate="2026-07-20"
+        transactionTime="10:30:00"
+      />,
+    );
+
+    expect(screen.getByText(/餐饮.*午餐.*- 1,200/)).toBeInTheDocument();
+    expect(screen.getByText(/不计入支出/)).toBeInTheDocument();
   });
 });

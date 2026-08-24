@@ -789,8 +789,6 @@ function getUpdatedItemBusinessNetAmount(
       item.reimbursementCandidate ?? null,
     );
   }
-  if (item.specialStatus === "pendingReimbursement") return undefined;
-
   const amountUnits = toRefundMinorUnits(item.amount);
   const previousAmountUnits = toRefundMinorUnits(previousAmount);
   const businessNetAmountUnits =

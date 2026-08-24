@@ -207,6 +207,7 @@ describe("buildTransactionListItem", () => {
 
     expect(item.amount).toBe("800");
     expect(item.originalAmount).toBe("1200");
+    expect(item.categoryItems[0]?.businessNetAmount).toBe("800");
     expect(item.categoryItems[0]?.refundedAmount).toBe("400");
   });
 
@@ -232,6 +233,7 @@ describe("buildTransactionListItem", () => {
 
     expect(item.amount).toBe("0");
     expect(item.originalAmount).toBe("1200");
+    expect(item.categoryItems[0]?.businessNetAmount).toBe("0");
   });
 
   it("纯退款超过原始支出后列表切为收入但不派生报销状态", () => {
