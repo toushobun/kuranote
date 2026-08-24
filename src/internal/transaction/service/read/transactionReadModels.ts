@@ -11,6 +11,7 @@ import type { ThemeColorKey } from "theme/themeColorTokens";
 export type TransactionCategorySummaryItem = {
   accountId?: string;
   amount: string;
+  businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryName: string;
   categoryType?: CategoryType;

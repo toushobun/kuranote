@@ -10,7 +10,9 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
+import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
+import { transactionAmountMessages } from "utils/transactionMessages";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -37,6 +39,11 @@ type MetaSegment = {
   label: string;
 };
 
+type StatisticsAdjustment = {
+  kind: "fullyExcluded" | "partiallyExcluded" | "partiallyOffset";
+  type: TransactionCategoryType | null;
+};
+
 const textColor = "var(--user-theme-tx-name)";
 const mutedText = "var(--user-theme-tx-meta)";
 const expenseColor = "var(--user-theme-negative-amount)";
@@ -55,9 +62,16 @@ export function TransactionRow({
   const merchantName = isTransfer
     ? "账户周转"
     : (item.merchant_name ?? "未知商家");
+  const statisticsAdjustment = getStatisticsAdjustment(item);
+  const isFullyExcluded =
+    statisticsAdjustment?.kind === "fullyExcluded" &&
+    item.originalAmount !== undefined;
+  const displayedAmountType = isFullyExcluded
+    ? (item.originalType ?? statisticsAdjustment.type ?? item.type)
+    : item.type;
   const amountColor = isTransfer
     ? textColor
-    : item.type === "income"
+    : displayedAmountType === "income"
       ? incomeColor
       : expenseColor;
   const businessStatuses = getBusinessStatuses(item.categoryItems);
@@ -67,7 +81,13 @@ export function TransactionRow({
     getServerTimeZone,
   );
   const time = formatTransactionTime(item.transaction_at, { timeZone });
-  const signedAmount = formatRowAmount(item);
+  const signedAmount = isFullyExcluded
+    ? formatTransactionRowAmount(
+        item.originalType ?? statisticsAdjustment.type ?? item.type,
+        item.originalAmount ?? item.amount,
+        item.account_currency,
+      )
+    : formatRowAmount(item);
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
@@ -156,7 +176,15 @@ export function TransactionRow({
               >
                 {signedAmount}
               </Typography>
-              {item.originalAmount !== undefined ? (
+              {statisticsAdjustment ? (
+                <Typography
+                  component="span"
+                  sx={transactionOriginalAmountTextSx}
+                  variant="caption"
+                >
+                  {getStatisticsAdjustmentMessage(statisticsAdjustment)}
+                </Typography>
+              ) : item.originalAmount !== undefined ? (
                 <TransactionOriginalAmount
                   amount={formatTransactionRowAmount(
                     item.originalType ?? item.type,
@@ -291,6 +319,93 @@ function getBusinessStatuses(
     });
   }
   return statuses;
+}
+
+function getStatisticsAdjustment(
+  item: TransactionRowItem,
+): StatisticsAdjustment | null {
+  const adjustedItems = item.categoryItems.flatMap((category) => {
+    const amount = Number(category.amount);
+    const businessNetAmount = Number(category.businessNetAmount);
+    if (
+      category.businessNetAmount === undefined ||
+      !Number.isFinite(amount) ||
+      !Number.isFinite(businessNetAmount) ||
+      amount === businessNetAmount
+    ) {
+      return [];
+    }
+
+    return [{ amount, businessNetAmount, type: category.categoryType ?? null }];
+  });
+  const fullyExcludedItems = adjustedItems.filter(
+    ({ businessNetAmount }) => businessNetAmount === 0,
+  );
+  const partiallyOffsetItems = adjustedItems.filter(
+    ({ amount, businessNetAmount }) =>
+      businessNetAmount > 0 && businessNetAmount < amount,
+  );
+
+  if (fullyExcludedItems.length > 0) {
+    const hasIncludedItem = item.categoryItems.some((category) => {
+      const businessNetAmount =
+        category.businessNetAmount === undefined
+          ? Number(category.amount)
+          : Number(category.businessNetAmount);
+      return Number.isFinite(businessNetAmount) && businessNetAmount !== 0;
+    });
+    return {
+      kind: hasIncludedItem ? "partiallyExcluded" : "fullyExcluded",
+      type: getCommonCategoryType(fullyExcludedItems),
+    };
+  }
+
+  if (partiallyOffsetItems.length > 0) {
+    return {
+      kind: "partiallyOffset",
+      type: getCommonCategoryType(partiallyOffsetItems),
+    };
+  }
+
+  if (item.originalAmount !== undefined && Number(item.amount) === 0) {
+    return {
+      kind: "fullyExcluded",
+      type: item.originalType ?? (item.type === "transfer" ? null : item.type),
+    };
+  }
+
+  return null;
+}
+
+function getCommonCategoryType(
+  items: { type: TransactionCategoryType | null }[],
+) {
+  const firstType = items[0]?.type ?? null;
+  return items.every(({ type }) => type === firstType) ? firstType : null;
+}
+
+function getStatisticsAdjustmentMessage(adjustment: StatisticsAdjustment) {
+  if (adjustment.kind === "partiallyOffset") {
+    return transactionAmountMessages.partiallyOffset;
+  }
+
+  if (adjustment.kind === "fullyExcluded") {
+    if (adjustment.type === "income") {
+      return transactionAmountMessages.notIncludedInIncome;
+    }
+    if (adjustment.type === "expense") {
+      return transactionAmountMessages.notIncludedInExpense;
+    }
+    return transactionAmountMessages.notIncludedInStatistics;
+  }
+
+  if (adjustment.type === "income") {
+    return transactionAmountMessages.partiallyNotIncludedInIncome;
+  }
+  if (adjustment.type === "expense") {
+    return transactionAmountMessages.partiallyNotIncludedInExpense;
+  }
+  return transactionAmountMessages.partiallyNotIncludedInStatistics;
 }
 
 function normalizeAggregatedAmount(amount: number) {

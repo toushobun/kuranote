@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -119,7 +119,7 @@ describe("TransactionItemsSection", () => {
     expect(input).toHaveFocus();
   });
 
-  it("以净额为主并在下方弱化显示原金额", () => {
+  it("部分核销时显示净额和部分核销提示并可编辑原始金额", () => {
     renderSection({
       businessTotalAmount: "-300",
       itemSummaries: [
@@ -138,16 +138,22 @@ describe("TransactionItemsSection", () => {
       name: "明细 1 金额",
     });
     expect(editOriginalAmountButton).toHaveTextContent("300");
+    expect(editOriginalAmountButton).toHaveTextContent("部分已核销");
     expect(originalAmountInput).toHaveValue("1200");
     fireEvent.click(editOriginalAmountButton);
     expect(originalAmountInput).toHaveFocus();
-    const originalAmounts = screen.getAllByText(/原金额.*1200/);
-    expect(originalAmounts[0]).toHaveStyle({
+    const partialOffsetMessage = within(editOriginalAmountButton).getByText(
+      "部分已核销",
+    );
+    expect(partialOffsetMessage).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",
     });
+    expect(
+      within(editOriginalAmountButton).queryByText(/原金额.*1200/),
+    ).not.toBeInTheDocument();
     const businessTotal = screen.getByText(/净额.*300/);
-    const originalTotal = originalAmounts[originalAmounts.length - 1]!;
+    const originalTotal = screen.getByText(/原金额.*1200/);
     expect(originalTotal).toHaveStyle({
       color: "rgba(0, 0, 0, 0.38)",
       fontWeight: "400",
@@ -156,6 +162,47 @@ describe("TransactionItemsSection", () => {
       businessTotal.compareDocumentPosition(originalTotal) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("完全核销时显示原始金额和不计入支出提示", () => {
+    renderSection({
+      businessTotalAmount: "0",
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          businessNetAmount: "0",
+        },
+      ],
+      signedTotalAmount: "-1200",
+    });
+
+    const editOriginalAmountButton = screen.getByRole("button", {
+      name: "编辑明细 1 原金额",
+    });
+    expect(editOriginalAmountButton).toHaveTextContent("1,200");
+    expect(editOriginalAmountButton).not.toHaveTextContent("原金额");
+    expect(editOriginalAmountButton).toHaveTextContent("不计入支出");
+  });
+
+  it("单条明细核销结余时按收入方向显示净额", () => {
+    renderSection({
+      businessTotalAmount: "1000",
+      itemSummaries: [
+        {
+          ...itemSummaries[0],
+          amount: "4000",
+          businessNetAmount: "-1000",
+        },
+      ],
+      signedTotalAmount: "-4000",
+    });
+
+    const editOriginalAmountButton = screen.getByRole("button", {
+      name: "编辑明细 1 原金额",
+    });
+    expect(editOriginalAmountButton).toHaveTextContent("+ ¥ 1,000");
+    expect(editOriginalAmountButton).toHaveTextContent("原金额 - ¥ 4,000");
+    expect(editOriginalAmountButton).not.toHaveTextContent("- ¥ -1,000");
   });
 
   it("点击追加按钮时打开明细选择器", () => {

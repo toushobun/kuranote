@@ -9,10 +9,7 @@ import type {
   TransactionAccountOption,
   TransactionMerchantOption,
 } from "types/transactions";
-import {
-  formatTransactionRowAmount,
-  hasBusinessNetAmountOffset,
-} from "utils/transactions";
+import { formatTransactionRowAmount } from "utils/transactions";
 import { transactionAmountMessages } from "utils/transactionMessages";
 
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
@@ -21,6 +18,8 @@ import {
   formatCategoryName,
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
+  getTransactionItemAdjustmentMessage,
+  getTransactionItemAmountPresentation,
 } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionSummarySectionProps = {
@@ -158,28 +157,52 @@ function ItemSummaryValue({
   currency?: string;
   item: TransactionItemSummary;
 }) {
-  const businessAmount = item.businessNetAmount ?? item.amount;
   const categoryName = item.category
     ? formatCategoryName(item.category)
     : "未选择分类";
-  if (!businessAmount) return `${categoryName} / 未填写金额`;
   const categoryType = item.category?.type ?? "expense";
-  const formattedBusinessAmount = formatTransactionRowAmount(
+  const amountPresentation = getTransactionItemAmountPresentation(
+    item.amount,
+    item.businessNetAmount,
     categoryType,
-    businessAmount,
+  );
+  if (!amountPresentation.displayAmount) {
+    return `${categoryName} / 未填写金额`;
+  }
+  const formattedBusinessAmount = formatTransactionRowAmount(
+    amountPresentation.displayType,
+    amountPresentation.displayAmount,
     currency,
   );
-  if (!hasBusinessNetAmountOffset(item.amount, item.businessNetAmount)) {
+  if (!amountPresentation.hasOffset) {
     return `${categoryName} / ${formattedBusinessAmount}`;
   }
+
+  const adjustmentMessage = getTransactionItemAdjustmentMessage(
+    amountPresentation.adjustment,
+    categoryType,
+  );
 
   return (
     <>
       {categoryName} / {formattedBusinessAmount}
-      <TransactionOriginalAmount
-        amount={formatTransactionRowAmount(categoryType, item.amount, currency)}
-        parenthesized
-      />
+      {adjustmentMessage ? (
+        <Typography
+          component="span"
+          sx={{ color: "text.disabled", fontWeight: 400 }}
+        >
+          {`（${adjustmentMessage}）`}
+        </Typography>
+      ) : (
+        <TransactionOriginalAmount
+          amount={formatTransactionRowAmount(
+            categoryType,
+            item.amount,
+            currency,
+          )}
+          parenthesized
+        />
+      )}
     </>
   );
 }

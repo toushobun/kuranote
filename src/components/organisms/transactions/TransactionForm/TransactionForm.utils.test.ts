@@ -8,6 +8,8 @@ import {
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
   getCurrencySymbol,
+  getTransactionItemAdjustmentMessage,
+  getTransactionItemAmountPresentation,
   isValidMoneyText,
 } from "./TransactionForm.utils";
 
@@ -99,6 +101,54 @@ describe("formatCategoryName", () => {
   it("无父分类时只显示自身名称", () => {
     const category = createCategory({ name: "其他", parentName: null });
     expect(formatCategoryName(category)).toBe("其他");
+  });
+});
+
+describe("getTransactionItemAmountPresentation", () => {
+  it("完全核销时显示原始金额和不计入提示", () => {
+    const result = getTransactionItemAmountPresentation("1200", "0", "expense");
+
+    expect(result).toEqual({
+      adjustment: "fullyExcluded",
+      displayAmount: "1200",
+      displayType: "expense",
+      hasOffset: true,
+    });
+    expect(
+      getTransactionItemAdjustmentMessage(result.adjustment, "expense"),
+    ).toBe("不计入支出");
+    expect(
+      getTransactionItemAdjustmentMessage(result.adjustment, "income"),
+    ).toBe("不计入收入");
+  });
+
+  it("部分核销时显示净额和部分核销提示", () => {
+    const result = getTransactionItemAmountPresentation(
+      "1200",
+      "300",
+      "expense",
+    );
+
+    expect(result).toEqual({
+      adjustment: "partiallyOffset",
+      displayAmount: "300",
+      displayType: "expense",
+      hasOffset: true,
+    });
+    expect(
+      getTransactionItemAdjustmentMessage(result.adjustment, "expense"),
+    ).toBe("部分已核销");
+  });
+
+  it("核销结余时取净额绝对值并翻转收支方向", () => {
+    expect(
+      getTransactionItemAmountPresentation("1200", "-300", "expense"),
+    ).toEqual({
+      adjustment: null,
+      displayAmount: "300",
+      displayType: "income",
+      hasOffset: true,
+    });
   });
 });
 

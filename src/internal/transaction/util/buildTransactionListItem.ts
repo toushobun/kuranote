@@ -101,6 +101,9 @@ export function buildTransactionListItem({
       {
         accountId: item.account_id,
         amount: item.amount,
+        ...(hasBusinessNetAmountOffset(item.amount, item.business_net_amount)
+          ? { businessNetAmount: item.business_net_amount }
+          : {}),
         ...(businessStatus ? { businessStatus } : {}),
         categoryName: category?.name ?? "",
         categoryType: category?.type,

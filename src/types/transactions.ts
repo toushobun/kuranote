@@ -67,6 +67,7 @@ export const defaultTransactionFilters = {
 export type CategorySummaryItem = {
   accountId?: string;
   amount: string;
+  businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
   categoryName: string;
   categoryType?: TransactionCategoryType;
