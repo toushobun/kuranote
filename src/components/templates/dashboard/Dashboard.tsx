@@ -86,13 +86,9 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
         mb: bottomNavigationLayout.shellPaddingBottomOffset,
         minHeight: "100dvh",
         mx: { xs: -2, sm: "calc(50% - 50vw)" },
-        // AppShell Container 的 py: 4，此处用负 margin 抵消使卡片从顶部开始；
-        // 不在这里叠加安全区高度——卡片本身停留在安全区之下的自然位置，
-        // 只让 DashboardHeroBackground 装饰层通过 overflow: visible 单独
-        // 探出到刘海区域，避免多层 calc(字面量 ± env()) 叠加在真机 WebKit
-        // 上解析不稳定。
+        // AppShell Container 的 py: 4，此处用负 margin 抵消使首页内容从顶部开始。
         mt: -4,
-        overflow: "visible",
+        overflow: "hidden",
         px: heroLayout.containerPadding,
         pb: bottomNavigationLayout.dashboardContentPaddingBottom,
         pt: heroLayout.containerPadding,
@@ -138,20 +134,14 @@ function DashboardHeroBackground() {
     <Box
       aria-hidden="true"
       sx={{
-        // 卡片本身没有上移，装饰层用单个 var() 取负值向上探出安全区高度，
-        // 让父卡片的 overflow: visible 允许它露出到刘海区域；高度同步加高
-        // 同一份安全区高度，使底部渐隐边界维持在原来的屏幕位置不变。
-        height: {
-          xs: `calc(${heroLayout.backgroundHeight.xs}px + var(--app-safe-area-inset-top, 0px))`,
-          sm: `calc(${heroLayout.backgroundHeight.sm}px + var(--app-safe-area-inset-top, 0px))`,
-        },
+        height: heroLayout.backgroundHeight,
         left: 0,
         maskImage: "linear-gradient(to bottom, black 68%, transparent 100%)",
         overflow: "hidden",
         pointerEvents: "none",
         position: "absolute",
         right: 0,
-        top: "calc(-1 * var(--app-safe-area-inset-top, 0px))",
+        top: 0,
         WebkitMaskImage:
           "linear-gradient(to bottom, black 68%, transparent 100%)",
         zIndex: 0,
