@@ -77,18 +77,14 @@ export function createSupabaseCurrentLedgerRepository(
       let transactionColorScheme: TransactionColorScheme | undefined;
 
       if (storedTransactionColorScheme !== undefined) {
-        if (!isTransactionColorScheme(storedTransactionColorScheme)) {
+        if (isTransactionColorScheme(storedTransactionColorScheme)) {
+          transactionColorScheme = storedTransactionColorScheme;
+        } else {
           logger.error(
             "[ledger] invalid transaction color scheme in current user context",
             { userId },
           );
-          throw toRepositoryError(
-            "user_profile_invalid",
-            "用户资料格式异常，请稍后重试。",
-          );
         }
-
-        transactionColorScheme = storedTransactionColorScheme;
       }
 
       const memberQuery = supabase

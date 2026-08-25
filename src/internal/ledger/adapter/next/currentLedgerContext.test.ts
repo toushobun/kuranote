@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
-import { RepositoryError } from "internal/shared/errors/appError";
 
 type Claims = {
   email?: string;
@@ -35,6 +34,12 @@ type QueryRecord = {
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  createLogger: vi.fn(),
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`);
   }),
@@ -55,6 +60,12 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("internal/shared/supabase/authenticatedClient", () => ({
   createAuthenticatedSupabaseClient: mocks.createClient,
+}));
+vi.mock("internal/shared/context/requestId", () => ({
+  createRequestId: () => "request-1",
+}));
+vi.mock("internal/shared/logging/logger", () => ({
+  createLogger: mocks.createLogger,
 }));
 
 import {
@@ -128,6 +139,7 @@ function createSupabaseMock({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.createLogger.mockReturnValue(mocks.logger);
 });
 
 describe("getCurrentLedgerContext", () => {
@@ -226,7 +238,7 @@ describe("getCurrentLedgerContext", () => {
     ]);
   });
 
-  it("数据库配色值异常时抛出 RepositoryError", async () => {
+  it("数据库配色值异常时记录日志并忽略附带偏好", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
         {
@@ -237,14 +249,22 @@ describe("getCurrentLedgerContext", () => {
             },
           ],
         },
+        { data: [] },
       ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
-    await expect(getCurrentLedgerContext()).rejects.toBeInstanceOf(
-      RepositoryError,
+    await expect(getCurrentLedgerContext()).resolves.toEqual({
+      currentLedger: null,
+      email: "test@example.com",
+      ledgers: [],
+      userId: "user-1",
+    });
+    expect(mocks.createLogger).toHaveBeenCalledWith("request-1");
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      "[ledger] invalid transaction color scheme in current user context",
+      { userId: "user-1" },
     );
-    expect(supabase.client.from).toHaveBeenCalledOnce();
   });
 
   it("优先使用 app_user 中保存的当前账本", async () => {

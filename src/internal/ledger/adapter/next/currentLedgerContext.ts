@@ -3,6 +3,8 @@ import { cache } from "react";
 
 import { routePaths } from "config/paths";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
+import { createRequestId } from "internal/shared/context/requestId";
+import { createLogger } from "internal/shared/logging/logger";
 import { createAuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 
 export const getCurrentLedgerContext = cache(async () => {
@@ -23,8 +25,9 @@ export const getCurrentLedgerContext = cache(async () => {
 
   const email =
     typeof data.claims.email === "string" ? data.claims.email : "登录用户";
+  const logger = createLogger(createRequestId());
 
-  return createSupabaseCurrentLedgerRepository(supabase).getContext(
+  return createSupabaseCurrentLedgerRepository(supabase, logger).getContext(
     userId,
     email,
   );
