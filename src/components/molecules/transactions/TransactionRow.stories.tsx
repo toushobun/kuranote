@@ -1,4 +1,6 @@
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { TransactionRowItem } from "types/transactions";
@@ -440,6 +442,51 @@ export const ManyIncomeCategories: Story = {
     item: {
       ...incomeItem,
     },
+  },
+};
+
+export const MerchantToMetaGapComparison: Story = {
+  name: "商家名到元信息行间距对比",
+  render: () => {
+    const adjustedItem: TransactionRowItem = {
+      ...expenseItem,
+      amount: "1578",
+      originalAmount: "2858",
+      categoryItems: [
+        { ...expenseItem.categoryItems[0], businessNetAmount: "0" },
+        ...expenseItem.categoryItems.slice(1),
+      ],
+    };
+    const longMetaItem: TransactionRowItem = {
+      ...expenseItem,
+      account_name: "💴 很长的家庭共同日元现金账户名称",
+      recorder_name: "名字很长的家庭成员淞文",
+    };
+    const comparisonItems: TransactionRowItem[] = [
+      expenseItem,
+      adjustedItem,
+      longMetaItem,
+      {
+        ...adjustedItem,
+        account_name: longMetaItem.account_name,
+        recorder_name: longMetaItem.recorder_name,
+      },
+    ];
+
+    return (
+      <Stack divider={<Divider />}>
+        {comparisonItems.map((item) => (
+          <TransactionRow
+            item={item}
+            key={`${item.id}-${item.originalAmount ?? "ordinary"}-${item.account_name}`}
+            receiptCard={false}
+            showAccount
+            showRecorder
+            showTime
+          />
+        ))}
+      </Stack>
+    );
   },
 };
 
