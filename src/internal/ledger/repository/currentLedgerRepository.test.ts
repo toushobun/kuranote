@@ -1,15 +1,54 @@
 // @vitest-environment node
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
+import type { Logger } from "internal/shared/logging/logger";
 import { createSupabaseMock } from "test/supabaseMock";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 
+function createLogger(): Logger {
+  return { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+}
+
 describe("createSupabaseCurrentLedgerRepository", () => {
+  it("getContext 遇到非法配色时记录警告并忽略附带偏好", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              transaction_color_scheme: "unexpected",
+            },
+          ],
+        },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.getContext(userId, "user@example.com"),
+    ).resolves.toEqual({
+      currentLedger: null,
+      email: "user@example.com",
+      ledgers: [],
+      userId,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[ledger] invalid transaction color scheme in current user context",
+      { userId },
+    );
+  });
+
   it("只读取目标成员与目标账本并返回访问上下文", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
@@ -26,6 +65,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(
@@ -44,6 +84,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     const supabase = createSupabaseMock({ queryResponses: [{ data: null }] });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(
@@ -60,6 +101,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(
@@ -79,6 +121,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(repository.isActiveMember(ledgerId, userId)).resolves.toBe(
@@ -95,6 +138,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(
@@ -109,6 +153,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
     await expect(
       repository.updateCurrentLedger({ ledgerId, userId }),
@@ -119,6 +164,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 0 }] });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
     await expect(
       repository.updateCurrentLedger({ ledgerId, userId }),
@@ -136,6 +182,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
     const repository = createSupabaseCurrentLedgerRepository(
       supabase.client as never,
+      createLogger(),
     );
 
     await expect(

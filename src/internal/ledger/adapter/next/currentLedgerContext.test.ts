@@ -34,7 +34,7 @@ type QueryRecord = {
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  createLogger: vi.fn(),
+  createDependencies: vi.fn(),
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -58,14 +58,8 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("internal/shared/supabase/authenticatedClient", () => ({
-  createAuthenticatedSupabaseClient: mocks.createClient,
-}));
-vi.mock("internal/shared/context/requestId", () => ({
-  createRequestId: () => "request-1",
-}));
-vi.mock("internal/shared/logging/logger", () => ({
-  createLogger: mocks.createLogger,
+vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: mocks.createDependencies,
 }));
 
 import {
@@ -139,7 +133,27 @@ function createSupabaseMock({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.createLogger.mockReturnValue(mocks.logger);
+  mocks.createDependencies.mockImplementation(async () => {
+    const supabase = await mocks.createClient();
+    const { data, error } = await supabase.auth.getClaims();
+    const userId = data?.claims?.sub;
+    const auth =
+      !error && typeof userId === "string" && userId.length > 0
+        ? {
+            email:
+              typeof data.claims.email === "string" ? data.claims.email : null,
+            isAuthenticated: true as const,
+            userId,
+          }
+        : { email: null, isAuthenticated: false as const, userId: null };
+
+    return {
+      auth,
+      logger: mocks.logger,
+      requestId: "request-1",
+      supabase,
+    };
+  });
 });
 
 describe("getCurrentLedgerContext", () => {
@@ -260,8 +274,8 @@ describe("getCurrentLedgerContext", () => {
       ledgers: [],
       userId: "user-1",
     });
-    expect(mocks.createLogger).toHaveBeenCalledWith("request-1");
-    expect(mocks.logger.error).toHaveBeenCalledWith(
+    expect(mocks.createDependencies).toHaveBeenCalledOnce();
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
       "[ledger] invalid transaction color scheme in current user context",
       { userId: "user-1" },
     );

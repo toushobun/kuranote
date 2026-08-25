@@ -2,6 +2,7 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import {
+  defaultTransactionColorScheme,
   isTransactionColorScheme,
   type TransactionColorScheme,
   type UserProfile,
@@ -46,14 +47,12 @@ function toTransactionColorScheme(
 ): TransactionColorScheme {
   if (isTransactionColorScheme(value)) return value;
 
-  logger.error("[user] invalid transaction color scheme in user profile", {
+  // 收支配色只是展示偏好，脏值不应阻断登录或后续资料更新自愈。
+  logger.warn("[user] invalid transaction color scheme in user profile", {
     userId,
   });
 
-  throw toRepositoryError(
-    "user_profile_invalid",
-    "用户资料格式异常，请稍后重试。",
-  );
+  return defaultTransactionColorScheme;
 }
 
 function toUserProfile(row: AppUserRow, logger: Logger): UserProfile {

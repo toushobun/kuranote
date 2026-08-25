@@ -44,11 +44,7 @@ export interface CurrentLedgerRepository {
 
 export function createSupabaseCurrentLedgerRepository(
   supabase: AuthenticatedSupabaseClient,
-  logger: Logger = {
-    error: () => undefined,
-    info: () => undefined,
-    warn: () => undefined,
-  },
+  logger: Logger,
 ): CurrentLedgerRepository & CurrentLedgerContextRepository {
   return {
     async getContext(userId, email) {
@@ -80,7 +76,8 @@ export function createSupabaseCurrentLedgerRepository(
         if (isTransactionColorScheme(storedTransactionColorScheme)) {
           transactionColorScheme = storedTransactionColorScheme;
         } else {
-          logger.error(
+          // 收支配色只是附带偏好，脏值不应阻断账本核心上下文。
+          logger.warn(
             "[ledger] invalid transaction color scheme in current user context",
             { userId },
           );
