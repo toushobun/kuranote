@@ -18,7 +18,7 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { useUserTheme } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
-import { defaultUserThemeKey } from "theme/userThemeTokens";
+import type { UserThemeKey } from "theme/userThemeTokens";
 import type { TransactionColorSchemeAction } from "types/user";
 
 const pickerText = {
@@ -40,7 +40,8 @@ type TransactionColorSchemePickerProps = {
 export function TransactionColorSchemePicker({
   action,
 }: TransactionColorSchemePickerProps) {
-  const { setTransactionColorScheme, transactionColorScheme } = useUserTheme();
+  const { setTransactionColorScheme, themeKey, transactionColorScheme } =
+    useUserTheme();
   const [isErrorOpen, setIsErrorOpen] = useState(false);
   const [pendingScheme, setPendingScheme] =
     useState<TransactionColorScheme | null>(null);
@@ -87,6 +88,7 @@ export function TransactionColorSchemePicker({
                 key={scheme}
                 onSelect={() => setPendingScheme(scheme)}
                 scheme={scheme}
+                themeKey={themeKey}
               />
             ))}
           </Stack>
@@ -115,14 +117,16 @@ function SchemeOption({
   isSelected,
   onSelect,
   scheme,
+  themeKey,
 }: {
   disabled: boolean;
   isPending: boolean;
   isSelected: boolean;
   onSelect: () => void;
   scheme: TransactionColorScheme;
+  themeKey: UserThemeKey;
 }) {
-  const variables = getUserThemeCssVariables(defaultUserThemeKey, scheme);
+  const variables = getUserThemeCssVariables(themeKey, scheme);
 
   return (
     <ButtonBase

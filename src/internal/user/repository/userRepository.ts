@@ -2,7 +2,7 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import {
-  transactionColorSchemes,
+  isTransactionColorScheme,
   type TransactionColorScheme,
   type UserProfile,
   type UserStatus,
@@ -39,12 +39,16 @@ function toUserStatus(status: string): UserStatus {
   );
 }
 
-function toTransactionColorScheme(value: string): TransactionColorScheme {
-  const colorScheme = transactionColorSchemes.find(
-    (scheme) => scheme === value,
-  );
+function toTransactionColorScheme(
+  value: string,
+  logger: Logger,
+  userId: string,
+): TransactionColorScheme {
+  if (isTransactionColorScheme(value)) return value;
 
-  if (colorScheme) return colorScheme;
+  logger.error("[user] invalid transaction color scheme in user profile", {
+    userId,
+  });
 
   throw toRepositoryError(
     "user_profile_invalid",
@@ -52,7 +56,7 @@ function toTransactionColorScheme(value: string): TransactionColorScheme {
   );
 }
 
-function toUserProfile(row: AppUserRow): UserProfile {
+function toUserProfile(row: AppUserRow, logger: Logger): UserProfile {
   return {
     avatarUrl: row.avatar_url,
     displayName: row.display_name,
@@ -61,6 +65,8 @@ function toUserProfile(row: AppUserRow): UserProfile {
     status: toUserStatus(row.status),
     transactionColorScheme: toTransactionColorScheme(
       row.transaction_color_scheme,
+      logger,
+      row.id,
     ),
   };
 }
@@ -92,7 +98,7 @@ export function createSupabaseUserRepository(
         );
       }
 
-      return data ? toUserProfile(data) : null;
+      return data ? toUserProfile(data, logger) : null;
     },
 
     async updateProfile(input) {
@@ -133,7 +139,7 @@ export function createSupabaseUserRepository(
         );
       }
 
-      return data ? toUserProfile(data) : null;
+      return data ? toUserProfile(data, logger) : null;
     },
   };
 }

@@ -8,6 +8,7 @@ import { updateTransactionColorScheme } from "./actions";
 
 const mocks = vi.hoisted(() => ({
   createDependencies: vi.fn(),
+  revalidate: vi.fn(),
   updateCurrentProfile: vi.fn(),
 }));
 
@@ -21,6 +22,10 @@ vi.mock("internal/container", () => ({
       service: { updateCurrentProfile: mocks.updateCurrentProfile },
     },
   }),
+}));
+
+vi.mock("internal/user/adapter/next/revalidate", () => ({
+  revalidateTransactionColorSchemeMutation: mocks.revalidate,
 }));
 
 function createFormData(value = "expense_red_income_green") {
@@ -38,7 +43,7 @@ beforeEach(() => {
 });
 
 describe("updateTransactionColorScheme", () => {
-  it("保存成功后直接返回新偏好", async () => {
+  it("保存成功后失效设置页并返回新偏好", async () => {
     await expect(
       updateTransactionColorScheme({}, createFormData()),
     ).resolves.toEqual({
@@ -48,6 +53,7 @@ describe("updateTransactionColorScheme", () => {
     expect(mocks.updateCurrentProfile).toHaveBeenCalledWith({
       transactionColorScheme: "expense_red_income_green",
     });
+    expect(mocks.revalidate).toHaveBeenCalledOnce();
   });
 
   it("非法表单返回源头校验文案且不初始化依赖", async () => {
@@ -59,6 +65,7 @@ describe("updateTransactionColorScheme", () => {
     });
     expect(mocks.createDependencies).not.toHaveBeenCalled();
     expect(mocks.updateCurrentProfile).not.toHaveBeenCalled();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 
   it("Service 应用错误直接返回安全文案", async () => {

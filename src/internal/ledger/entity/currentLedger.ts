@@ -18,5 +18,6 @@ export type CurrentLedgerContext = {
   email: string;
   ledgers: CurrentLedger[];
   currentLedger: CurrentLedger | null;
-  transactionColorScheme?: string;
+  transactionColorScheme?: TransactionColorScheme;
 };
+import type { TransactionColorScheme } from "internal/user";

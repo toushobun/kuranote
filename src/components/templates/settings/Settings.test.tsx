@@ -135,4 +135,21 @@ describe("SettingsTemplate", () => {
 
     expect(screen.getByText("收支颜色选择器")).toBeInTheDocument();
   });
+
+  it("展开一个选择器时收起另一个选择器", () => {
+    const { container } = renderSettingsTemplate();
+    const themeEntry = within(container).getByRole("button", {
+      name: /主题换装/,
+    });
+    const colorEntry = within(container).getByRole("button", {
+      name: /收支颜色/,
+    });
+
+    fireEvent.click(themeEntry);
+    expect(themeEntry).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(colorEntry);
+    expect(themeEntry).toHaveAttribute("aria-expanded", "false");
+    expect(colorEntry).toHaveAttribute("aria-expanded", "true");
+  });
 });

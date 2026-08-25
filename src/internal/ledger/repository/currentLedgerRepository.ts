@@ -12,6 +12,10 @@ import {
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import {
+  isTransactionColorScheme,
+  type TransactionColorScheme,
+} from "internal/user";
 
 export type UpdateCurrentLedgerInput = {
   ledgerId: string;
@@ -67,9 +71,25 @@ export function createSupabaseCurrentLedgerRepository(
       const storedCurrentLedgerId = appUserRows.find(
         (row) => typeof row.current_ledger_id === "string",
       )?.current_ledger_id;
-      const transactionColorScheme = appUserRows.find(
+      const storedTransactionColorScheme = appUserRows.find(
         (row) => typeof row.transaction_color_scheme === "string",
       )?.transaction_color_scheme;
+      let transactionColorScheme: TransactionColorScheme | undefined;
+
+      if (storedTransactionColorScheme !== undefined) {
+        if (!isTransactionColorScheme(storedTransactionColorScheme)) {
+          logger.error(
+            "[ledger] invalid transaction color scheme in current user context",
+            { userId },
+          );
+          throw toRepositoryError(
+            "user_profile_invalid",
+            "用户资料格式异常，请稍后重试。",
+          );
+        }
+
+        transactionColorScheme = storedTransactionColorScheme;
+      }
 
       const memberQuery = supabase
         .from("ledger_member")

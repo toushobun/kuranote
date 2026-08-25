@@ -174,6 +174,7 @@ describe("createSupabaseUserRepository.updateProfile", () => {
   });
 
   it("数据库收支配色异常时不向上层返回未识别值", async () => {
+    const logger = createLogger();
     const supabase = createSupabaseMock({
       queryResponses: [
         {
@@ -183,11 +184,19 @@ describe("createSupabaseUserRepository.updateProfile", () => {
     });
     const repository = createSupabaseUserRepository(
       supabase.client as never,
-      createLogger(),
+      logger,
     );
 
-    await expect(repository.findById(userId)).rejects.toBeInstanceOf(
-      RepositoryError,
+    await expect(
+      repository.updateProfile({
+        transactionColorScheme: "expense_red_income_green",
+        updatedBy: userId,
+        userId,
+      }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[user] invalid transaction color scheme in user profile",
+      { userId },
     );
   });
 

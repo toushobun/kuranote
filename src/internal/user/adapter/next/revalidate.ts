@@ -18,3 +18,8 @@ export function revalidateUserProfileMutation(): void {
   userProfileRevalidatePaths.forEach((path) => revalidatePath(path));
   revalidatePath("/ledgers/[ledgerId]/settings", "page");
 }
+
+/** 收支配色写入成功后只失效当前设置页。 */
+export function revalidateTransactionColorSchemeMutation(): void {
+  revalidatePath(routePaths.settings);
+}

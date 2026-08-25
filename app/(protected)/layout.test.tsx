@@ -41,11 +41,10 @@ describe("ProtectedLayout", () => {
     });
   });
 
-  it("数据库配色值异常时回退到新默认方案", async () => {
+  it("上下文没有配色值时回退到新默认方案", async () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({
       currentLedger: null,
       email: "user@example.com",
-      transactionColorScheme: "invalid",
     });
 
     const result = (await ProtectedLayout({

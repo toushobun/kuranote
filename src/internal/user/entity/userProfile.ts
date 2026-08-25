@@ -11,6 +11,12 @@ export const defaultTransactionColorScheme =
 export type UserStatus = (typeof userStatuses)[number];
 export type TransactionColorScheme = (typeof transactionColorSchemes)[number];
 
+export function isTransactionColorScheme(
+  value: unknown,
+): value is TransactionColorScheme {
+  return transactionColorSchemes.some((scheme) => scheme === value);
+}
+
 export type UserProfile = {
   avatarUrl: string | null;
   displayName: string;

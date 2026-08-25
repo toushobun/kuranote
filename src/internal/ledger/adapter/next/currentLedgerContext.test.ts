@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
+import { RepositoryError } from "internal/shared/errors/appError";
 
 type Claims = {
   email?: string;
@@ -223,6 +224,27 @@ describe("getCurrentLedgerContext", () => {
         table: "ledger_member",
       },
     ]);
+  });
+
+  it("数据库配色值异常时抛出 RepositoryError", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              transaction_color_scheme: "invalid",
+            },
+          ],
+        },
+      ],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(getCurrentLedgerContext()).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
+    expect(supabase.client.from).toHaveBeenCalledOnce();
   });
 
   it("优先使用 app_user 中保存的当前账本", async () => {

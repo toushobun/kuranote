@@ -93,6 +93,23 @@ describe("getUserThemeCssVariables", () => {
     expect(themeVars["--user-theme-negative-bg"]).toBe("#FDE8EE");
   });
 
+  it("反馈弹窗语义色不随收支配色方案反转", () => {
+    const defaultScheme = getUserThemeCssVariables("amberWarmth");
+    const reversedScheme = getUserThemeCssVariables(
+      "amberWarmth",
+      "expense_red_income_green",
+    );
+
+    expect(defaultScheme["--user-theme-feedback-success-text"]).toBe("#2F855A");
+    expect(defaultScheme["--user-theme-feedback-error-text"]).toBe("#E8547A");
+    expect(reversedScheme["--user-theme-feedback-success-text"]).toBe(
+      defaultScheme["--user-theme-feedback-success-text"],
+    );
+    expect(reversedScheme["--user-theme-feedback-error-text"]).toBe(
+      defaultScheme["--user-theme-feedback-error-text"],
+    );
+  });
+
   it("输出首页猫咪头图主题变量", () => {
     expect(
       getUserThemeCssVariables("amberWarmth")[

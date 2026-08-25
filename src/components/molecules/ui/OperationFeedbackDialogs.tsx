@@ -249,12 +249,12 @@ function feedbackAlertSx(isError: boolean) {
     "& .MuiAlert-icon": {
       alignItems: "center",
       bgcolor: isError
-        ? "var(--user-theme-negative-bg)"
-        : "var(--user-theme-income-bg)",
+        ? "var(--user-theme-feedback-error-bg)"
+        : "var(--user-theme-feedback-success-bg)",
       borderRadius: "50%",
       color: isError
-        ? "var(--user-theme-negative-amount)"
-        : "var(--user-theme-income-amount)",
+        ? "var(--user-theme-feedback-error-text)"
+        : "var(--user-theme-feedback-success-text)",
       display: "flex",
       flexShrink: 0,
       height: 44,

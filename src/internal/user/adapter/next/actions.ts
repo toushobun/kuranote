@@ -3,6 +3,7 @@
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import { revalidateTransactionColorSchemeMutation } from "internal/user/adapter/next/revalidate";
 import { userErrorMessages } from "internal/user/errors";
 import { parseTransactionColorSchemeForm } from "internal/user/schema";
 import type { TransactionColorSchemeActionState } from "types/user";
@@ -26,6 +27,8 @@ export async function updateTransactionColorScheme(
     const profile = await createRequestContainer(
       dependencies,
     ).user.service.updateCurrentProfile(parsed.value);
+
+    revalidateTransactionColorSchemeMutation();
 
     return {
       success: "收支配色方案已保存。",

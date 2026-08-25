@@ -58,6 +58,8 @@ type SettingsEntryGroup = {
   label: string;
 };
 
+type ExpandableSettingsEntryKind = "theme" | "transactionColors";
+
 function createSettingsEntryGroups(
   currentLedgerName: string,
 ): readonly SettingsEntryGroup[] {
@@ -148,10 +150,9 @@ export function SettingsTemplate({
   logoutAction,
   updateTransactionColorSchemeAction,
 }: SettingsTemplateProps) {
+  const [expandedEntry, setExpandedEntry] =
+    useState<ExpandableSettingsEntryKind | null>(null);
   const [isToastOpen, setIsToastOpen] = useState(false);
-  const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
-  const [isTransactionColorPickerOpen, setIsTransactionColorPickerOpen] =
-    useState(false);
   const settingsEntryGroups = useMemo(
     () => createSettingsEntryGroups(currentLedgerName),
     [currentLedgerName],
@@ -165,8 +166,8 @@ export function SettingsTemplate({
     setIsToastOpen(false);
   };
 
-  const toggleThemePicker = () => {
-    setIsThemePickerOpen((current) => !current);
+  const toggleExpandedEntry = (entry: ExpandableSettingsEntryKind) => {
+    setExpandedEntry((current) => (current === entry ? null : entry));
   };
 
   return (
@@ -176,16 +177,12 @@ export function SettingsTemplate({
       <Stack spacing={1.25}>
         {settingsEntryGroups.map((group) => (
           <SettingsEntryGroupCard
+            expandedEntry={expandedEntry}
             group={group}
-            isThemePickerOpen={isThemePickerOpen}
-            isTransactionColorPickerOpen={isTransactionColorPickerOpen}
             key={group.label}
             logoutAction={logoutAction}
             onComingSoonClick={showComingSoonToast}
-            onThemeClick={toggleThemePicker}
-            onTransactionColorClick={() =>
-              setIsTransactionColorPickerOpen((current) => !current)
-            }
+            onExpandableEntryClick={toggleExpandedEntry}
             updateTransactionColorSchemeAction={
               updateTransactionColorSchemeAction
             }
@@ -206,24 +203,20 @@ export function SettingsTemplate({
 }
 
 type SettingsEntryGroupCardProps = {
+  expandedEntry: ExpandableSettingsEntryKind | null;
   group: SettingsEntryGroup;
-  isThemePickerOpen: boolean;
-  isTransactionColorPickerOpen: boolean;
   logoutAction: ServerAction;
   onComingSoonClick: () => void;
-  onThemeClick: () => void;
-  onTransactionColorClick: () => void;
+  onExpandableEntryClick: (entry: ExpandableSettingsEntryKind) => void;
   updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 function SettingsEntryGroupCard({
+  expandedEntry,
   group,
-  isThemePickerOpen,
-  isTransactionColorPickerOpen,
   logoutAction,
   onComingSoonClick,
-  onThemeClick,
-  onTransactionColorClick,
+  onExpandableEntryClick,
   updateTransactionColorSchemeAction,
 }: SettingsEntryGroupCardProps) {
   return (
@@ -235,14 +228,12 @@ function SettingsEntryGroupCard({
       {group.entries.map((entry, index) => (
         <SettingsEntryItem
           entry={entry}
+          expandedEntry={expandedEntry}
           isLast={index === group.entries.length - 1}
-          isThemePickerOpen={isThemePickerOpen}
-          isTransactionColorPickerOpen={isTransactionColorPickerOpen}
           key={entry.label}
           logoutAction={logoutAction}
           onComingSoonClick={onComingSoonClick}
-          onThemeClick={onThemeClick}
-          onTransactionColorClick={onTransactionColorClick}
+          onExpandableEntryClick={onExpandableEntryClick}
           updateTransactionColorSchemeAction={
             updateTransactionColorSchemeAction
           }
@@ -254,25 +245,21 @@ function SettingsEntryGroupCard({
 
 type SettingsEntryItemProps = {
   entry: SettingsEntry;
+  expandedEntry: ExpandableSettingsEntryKind | null;
   isLast: boolean;
-  isThemePickerOpen: boolean;
-  isTransactionColorPickerOpen: boolean;
   logoutAction: ServerAction;
   onComingSoonClick: () => void;
-  onThemeClick: () => void;
-  onTransactionColorClick: () => void;
+  onExpandableEntryClick: (entry: ExpandableSettingsEntryKind) => void;
   updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 function SettingsEntryItem({
   entry,
+  expandedEntry,
   isLast,
-  isThemePickerOpen,
-  isTransactionColorPickerOpen,
   logoutAction,
   onComingSoonClick,
-  onThemeClick,
-  onTransactionColorClick,
+  onExpandableEntryClick,
   updateTransactionColorSchemeAction,
 }: SettingsEntryItemProps) {
   if (entry.kind === "link") {
@@ -282,15 +269,17 @@ function SettingsEntryItem({
   }
 
   if (entry.kind === "theme") {
+    const isExpanded = expandedEntry === entry.kind;
+
     return (
       <Box>
         <SettingsEntryButton
           entry={entry}
-          isExpanded={isThemePickerOpen}
-          isLast={isLast && !isThemePickerOpen}
-          onClick={onThemeClick}
+          isExpanded={isExpanded}
+          isLast={isLast && !isExpanded}
+          onClick={() => onExpandableEntryClick(entry.kind)}
         />
-        <Collapse in={isThemePickerOpen} timeout="auto" unmountOnExit>
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <Box sx={themePickerPanelSx}>
             <UserThemePicker />
           </Box>
@@ -300,19 +289,17 @@ function SettingsEntryItem({
   }
 
   if (entry.kind === "transactionColors") {
+    const isExpanded = expandedEntry === entry.kind;
+
     return (
       <Box>
         <SettingsEntryButton
           entry={entry}
-          isExpanded={isTransactionColorPickerOpen}
-          isLast={isLast && !isTransactionColorPickerOpen}
-          onClick={onTransactionColorClick}
+          isExpanded={isExpanded}
+          isLast={isLast && !isExpanded}
+          onClick={() => onExpandableEntryClick(entry.kind)}
         />
-        <Collapse
-          in={isTransactionColorPickerOpen}
-          timeout="auto"
-          unmountOnExit
-        >
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <Box sx={themePickerPanelSx}>
             <TransactionColorSchemePicker
               action={updateTransactionColorSchemeAction}
@@ -358,12 +345,13 @@ function SettingsEntryButton({
   type = "button",
 }: SettingsEntryButtonProps) {
   const Icon = entry.icon;
-  const ChevronIcon =
-    entry.kind === "theme" || entry.kind === "transactionColors"
-      ? isExpanded
-        ? ExpandLessRoundedIcon
-        : ExpandMoreRoundedIcon
-      : ChevronRightRoundedIcon;
+  const isExpandable =
+    entry.kind === "theme" || entry.kind === "transactionColors";
+  const ChevronIcon = isExpandable
+    ? isExpanded
+      ? ExpandLessRoundedIcon
+      : ExpandMoreRoundedIcon
+    : ChevronRightRoundedIcon;
   const buttonContent = (
     <>
       <Box sx={settingsIconBoxSx(entry.kind === "logout")}>
@@ -406,6 +394,7 @@ function SettingsEntryButton({
 
   return (
     <ButtonBase
+      aria-expanded={isExpandable ? isExpanded : undefined}
       component="button"
       type={type}
       onClick={onClick}
