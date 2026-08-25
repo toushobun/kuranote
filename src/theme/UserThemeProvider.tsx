@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   useSyncExternalStore,
@@ -96,7 +97,7 @@ export function UserThemeProvider({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const storedThemeKey = getStoredUserThemeKey(storageKey);
 
     applyUserTheme(storedThemeKey, transactionColorScheme);

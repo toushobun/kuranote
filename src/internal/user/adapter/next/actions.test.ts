@@ -8,7 +8,6 @@ import { updateTransactionColorScheme } from "./actions";
 
 const mocks = vi.hoisted(() => ({
   createDependencies: vi.fn(),
-  revalidate: vi.fn(),
   updateCurrentProfile: vi.fn(),
 }));
 
@@ -22,10 +21,6 @@ vi.mock("internal/container", () => ({
       service: { updateCurrentProfile: mocks.updateCurrentProfile },
     },
   }),
-}));
-
-vi.mock("internal/user/adapter/next/revalidate", () => ({
-  revalidateUserProfileMutation: mocks.revalidate,
 }));
 
 function createFormData(value = "expense_red_income_green") {
@@ -43,7 +38,7 @@ beforeEach(() => {
 });
 
 describe("updateTransactionColorScheme", () => {
-  it("保存成功后刷新页面并返回新偏好", async () => {
+  it("保存成功后直接返回新偏好", async () => {
     await expect(
       updateTransactionColorScheme({}, createFormData()),
     ).resolves.toEqual({
@@ -53,7 +48,6 @@ describe("updateTransactionColorScheme", () => {
     expect(mocks.updateCurrentProfile).toHaveBeenCalledWith({
       transactionColorScheme: "expense_red_income_green",
     });
-    expect(mocks.revalidate).toHaveBeenCalledOnce();
   });
 
   it("非法表单返回源头校验文案且不初始化依赖", async () => {
@@ -78,7 +72,6 @@ describe("updateTransactionColorScheme", () => {
       error: "当前用户已停用。",
       errorKey: expect.any(String),
     });
-    expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 
   it("未知异常记录安全字段并返回通用提示", async () => {
@@ -97,7 +90,6 @@ describe("updateTransactionColorScheme", () => {
       "[user] transaction color scheme action failed unexpectedly",
       { errorName: "Error" },
     );
-    expect(mocks.revalidate).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
 });

@@ -42,10 +42,14 @@ export function TransactionColorSchemePicker({
 }: TransactionColorSchemePickerProps) {
   const { setTransactionColorScheme, transactionColorScheme } = useUserTheme();
   const [isErrorOpen, setIsErrorOpen] = useState(false);
+  const [pendingScheme, setPendingScheme] =
+    useState<TransactionColorScheme | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const trackedAction = useCallback<TransactionColorSchemeAction>(
     async (previousState, formData) => {
-      const nextState = await action(previousState, formData);
+      const nextState = await action(previousState, formData).finally(() => {
+        setPendingScheme(null);
+      });
 
       if (nextState.error) {
         setIsErrorOpen(true);
@@ -78,8 +82,10 @@ export function TransactionColorSchemePicker({
             {transactionColorSchemes.map((scheme) => (
               <SchemeOption
                 disabled={isPending}
+                isPending={isPending && pendingScheme === scheme}
                 isSelected={transactionColorScheme === scheme}
                 key={scheme}
+                onSelect={() => setPendingScheme(scheme)}
                 scheme={scheme}
               />
             ))}
@@ -105,11 +111,15 @@ export function TransactionColorSchemePicker({
 
 function SchemeOption({
   disabled,
+  isPending,
   isSelected,
+  onSelect,
   scheme,
 }: {
   disabled: boolean;
+  isPending: boolean;
   isSelected: boolean;
+  onSelect: () => void;
   scheme: TransactionColorScheme;
 }) {
   const variables = getUserThemeCssVariables(defaultUserThemeKey, scheme);
@@ -119,6 +129,7 @@ function SchemeOption({
       aria-pressed={isSelected}
       disabled={disabled}
       name="transactionColorScheme"
+      onClick={onSelect}
       type="submit"
       value={scheme}
       sx={schemeOptionSx(isSelected)}
@@ -141,7 +152,7 @@ function SchemeOption({
         </Stack>
       </Stack>
 
-      {disabled && isSelected ? (
+      {isPending ? (
         <CircularProgress aria-label="保存中" size={20} />
       ) : isSelected ? (
         <CheckRoundedIcon aria-label="已选择" color="primary" />

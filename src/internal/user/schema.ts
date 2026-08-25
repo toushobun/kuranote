@@ -19,12 +19,15 @@ const httpsUrlSchema = z
   .trim()
   .url()
   .refine(isHttpsUrl, { message: "头像地址必须使用 HTTPS。" });
+const transactionColorSchemeSchema = z.enum(transactionColorSchemes, {
+  error: userErrorMessages.transactionColorSchemeInvalid,
+});
 
 export const updateUserProfileRequestSchema = z
   .object({
     avatarUrl: httpsUrlSchema.nullable().optional(),
     displayName: z.string().trim().min(1).max(100).optional(),
-    transactionColorScheme: z.enum(transactionColorSchemes).optional(),
+    transactionColorScheme: transactionColorSchemeSchema.optional(),
   })
   .refine(
     (input) =>
@@ -40,15 +43,13 @@ export const userProfileResponseSchema = z.object({
   email: z.string().email().nullable(),
   id: z.string().uuid(),
   status: z.enum(userStatuses),
-  transactionColorScheme: z.enum(transactionColorSchemes),
+  transactionColorScheme: transactionColorSchemeSchema,
 });
 
 export function parseTransactionColorSchemeForm(formData: FormData) {
   const result = z
     .object({
-      transactionColorScheme: z.enum(transactionColorSchemes, {
-        error: userErrorMessages.transactionColorSchemeInvalid,
-      }),
+      transactionColorScheme: transactionColorSchemeSchema,
     })
     .safeParse({
       transactionColorScheme: formData.get("transactionColorScheme"),

@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -71,6 +72,34 @@ describe("TransactionColorSchemePicker", () => {
         "--user-theme-negative-amount",
       ),
     ).toBe("#E8547A");
+  });
+
+  it("保存中状态显示在刚点击的目标方案上", async () => {
+    let finishSaving: (() => void) | undefined;
+    const action = vi.fn<TransactionColorSchemeAction>(
+      () =>
+        new Promise((resolve) => {
+          finishSaving = () =>
+            resolve({
+              success: "收支配色方案已保存。",
+              transactionColorScheme: "expense_red_income_green",
+            });
+        }),
+    );
+    renderPicker(action);
+
+    const target = screen.getByRole("button", { name: /支出红 \/ 收入绿/ });
+    fireEvent.click(target);
+
+    await waitFor(() => {
+      expect(screen.getByRole("progressbar", { name: "保存中" })).toBe(
+        target.querySelector('[role="progressbar"]'),
+      );
+    });
+
+    await act(async () => {
+      finishSaving?.();
+    });
   });
 
   it("保存失败时保持原选择并显示安全错误", async () => {

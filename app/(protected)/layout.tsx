@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
-import { createRequestContainer } from "internal/container";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { canWriteTransaction } from "internal/ledger";
-import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import {
+  defaultTransactionColorScheme,
+  transactionColorSchemes,
+} from "internal/user";
 import { ProtectedLayoutShell } from "templates/protected/ProtectedLayoutShell";
 
 export default async function ProtectedLayout({
@@ -11,11 +13,14 @@ export default async function ProtectedLayout({
 }: {
   children: ReactNode;
 }) {
-  const dependencies = await createServerRequestDependencies();
-  const [{ currentLedger, email }, profile] = await Promise.all([
-    getCurrentLedgerContext(),
-    createRequestContainer(dependencies).user.service.getCurrentProfile(),
-  ]);
+  const {
+    currentLedger,
+    email,
+    transactionColorScheme: storedColorScheme,
+  } = await getCurrentLedgerContext();
+  const transactionColorScheme =
+    transactionColorSchemes.find((scheme) => scheme === storedColorScheme) ??
+    defaultTransactionColorScheme;
 
   return (
     <ProtectedLayoutShell
@@ -25,7 +30,7 @@ export default async function ProtectedLayout({
           : false
       }
       email={email}
-      transactionColorScheme={profile.transactionColorScheme}
+      transactionColorScheme={transactionColorScheme}
     >
       {children}
     </ProtectedLayoutShell>

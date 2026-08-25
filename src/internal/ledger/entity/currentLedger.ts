@@ -18,4 +18,5 @@ export type CurrentLedgerContext = {
   email: string;
   ledgers: CurrentLedger[];
   currentLedger: CurrentLedger | null;
+  transactionColorScheme?: string;
 };

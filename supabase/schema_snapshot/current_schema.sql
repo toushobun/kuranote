@@ -6498,10 +6498,12 @@ CREATE TABLE IF NOT EXISTS "public"."app_user" (
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "current_ledger_id" "uuid",
+    "transaction_color_scheme" "text" DEFAULT 'expense_green_income_red'::"text" NOT NULL,
     CONSTRAINT "app_user_avatar_url_check" CHECK ((("avatar_url" IS NULL) OR ("avatar_url" ~ '^https://'::"text"))),
     CONSTRAINT "app_user_display_name_check" CHECK ((("length"(TRIM(BOTH FROM "display_name")) >= 1) AND ("length"(TRIM(BOTH FROM "display_name")) <= 100))),
     CONSTRAINT "app_user_email_length_check" CHECK ((("email" IS NULL) OR ("length"("email") <= 255))),
-    CONSTRAINT "app_user_status_check" CHECK (("status" = ANY (ARRAY['active'::"text", 'disabled'::"text"])))
+    CONSTRAINT "app_user_status_check" CHECK (("status" = ANY (ARRAY['active'::"text", 'disabled'::"text"]))),
+    CONSTRAINT "app_user_transaction_color_scheme_check" CHECK (("transaction_color_scheme" = ANY (ARRAY['expense_red_income_green'::"text", 'expense_green_income_red'::"text"])))
 );
 
 

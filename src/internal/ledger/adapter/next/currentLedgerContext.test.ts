@@ -175,7 +175,17 @@ describe("getCurrentLedgerContext", () => {
 
   it("没有 active 账本时返回空上下文", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [{ data: [{ current_ledger_id: null }] }, { data: [] }],
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              transaction_color_scheme: "expense_red_income_green",
+            },
+          ],
+        },
+        { data: [] },
+      ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -183,13 +193,17 @@ describe("getCurrentLedgerContext", () => {
       currentLedger: null,
       email: "test@example.com",
       ledgers: [],
+      transactionColorScheme: "expense_red_income_green",
       userId: "user-1",
     });
 
     expect(supabase.queries).toEqual([
       {
         calls: [
-          { args: ["current_ledger_id"], method: "select" },
+          {
+            args: ["current_ledger_id, transaction_color_scheme"],
+            method: "select",
+          },
           { args: ["id", "user-1"], method: "eq" },
         ],
         table: "app_user",

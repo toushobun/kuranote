@@ -50,7 +50,7 @@ export function createSupabaseCurrentLedgerRepository(
     async getContext(userId, email) {
       const appUserQuery = supabase
         .from("app_user")
-        .select("current_ledger_id")
+        .select("current_ledger_id, transaction_color_scheme")
         .eq("id", userId);
       type AppUserRows = QueryData<typeof appUserQuery>;
 
@@ -67,6 +67,9 @@ export function createSupabaseCurrentLedgerRepository(
       const storedCurrentLedgerId = appUserRows.find(
         (row) => typeof row.current_ledger_id === "string",
       )?.current_ledger_id;
+      const transactionColorScheme = appUserRows.find(
+        (row) => typeof row.transaction_color_scheme === "string",
+      )?.transaction_color_scheme;
 
       const memberQuery = supabase
         .from("ledger_member")
@@ -101,6 +104,7 @@ export function createSupabaseCurrentLedgerRepository(
           email,
           ledgers: [],
           currentLedger: null,
+          ...(transactionColorScheme ? { transactionColorScheme } : {}),
         };
       }
 
@@ -166,6 +170,7 @@ export function createSupabaseCurrentLedgerRepository(
         email,
         ledgers,
         currentLedger: currentLedger ?? ledgers[0] ?? null,
+        ...(transactionColorScheme ? { transactionColorScheme } : {}),
       };
     },
 
