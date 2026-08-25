@@ -1,6 +1,4 @@
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
-import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { TransactionRowItem } from "types/transactions";
@@ -443,41 +441,6 @@ export const ManyIncomeCategories: Story = {
       ...incomeItem,
     },
   },
-};
-
-export const SpacingComparison: Story = {
-  name: "有无核销提示行间距对比",
-  render: () => (
-    <Stack divider={<Divider />}>
-      {/* 与真实明细列表（TransactionGroupList / TransactionSearch）保持一致的 props：
-          showAccount / showRecorder / showTime 常开，receiptCard 常关。
-          两行使用同一条基础记录（相同商家名 / 分类 / 备注），
-          仅第二行的首个小分类补充 businessNetAmount 触发核销提示，
-          用于人工核对「有/无提示行」时商家名与下方内容之间的间距是否一致。 */}
-      <TransactionRow
-        item={expenseItem}
-        receiptCard={false}
-        showAccount
-        showRecorder
-        showTime
-      />
-      <TransactionRow
-        item={{
-          ...expenseItem,
-          amount: "1578",
-          originalAmount: "2858",
-          categoryItems: [
-            { ...expenseItem.categoryItems[0], businessNetAmount: "0" },
-            ...expenseItem.categoryItems.slice(1),
-          ],
-        }}
-        receiptCard={false}
-        showAccount
-        showRecorder
-        showTime
-      />
-    </Stack>
-  ),
 };
 
 export const LongText: Story = {
