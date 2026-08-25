@@ -17,6 +17,15 @@ export function isTransactionColorScheme(
   return transactionColorSchemes.some((scheme) => scheme === value);
 }
 
+export function resolveTransactionColorScheme(value: unknown): {
+  isFallback: boolean;
+  value: TransactionColorScheme;
+} {
+  return isTransactionColorScheme(value)
+    ? { isFallback: false, value }
+    : { isFallback: true, value: defaultTransactionColorScheme };
+}
+
 export type UserProfile = {
   avatarUrl: string | null;
   displayName: string;

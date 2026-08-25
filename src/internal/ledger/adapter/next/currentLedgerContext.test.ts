@@ -252,7 +252,7 @@ describe("getCurrentLedgerContext", () => {
     ]);
   });
 
-  it("数据库配色值异常时记录日志并忽略附带偏好", async () => {
+  it("数据库配色值异常时记录日志并回退默认值", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
         {
@@ -272,6 +272,7 @@ describe("getCurrentLedgerContext", () => {
       currentLedger: null,
       email: "test@example.com",
       ledgers: [],
+      transactionColorScheme: "expense_green_income_red",
       userId: "user-1",
     });
     expect(mocks.createDependencies).toHaveBeenCalledOnce();

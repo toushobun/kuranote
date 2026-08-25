@@ -13,7 +13,7 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import {
-  isTransactionColorScheme,
+  resolveTransactionColorScheme,
   type TransactionColorScheme,
 } from "internal/user";
 
@@ -73,9 +73,12 @@ export function createSupabaseCurrentLedgerRepository(
       let transactionColorScheme: TransactionColorScheme | undefined;
 
       if (storedTransactionColorScheme !== undefined) {
-        if (isTransactionColorScheme(storedTransactionColorScheme)) {
-          transactionColorScheme = storedTransactionColorScheme;
-        } else {
+        const resolved = resolveTransactionColorScheme(
+          storedTransactionColorScheme,
+        );
+        transactionColorScheme = resolved.value;
+
+        if (resolved.isFallback) {
           // 收支配色只是附带偏好，脏值不应阻断账本核心上下文。
           logger.warn(
             "[ledger] invalid transaction color scheme in current user context",

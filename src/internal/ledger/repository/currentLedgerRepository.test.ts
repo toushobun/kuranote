@@ -15,7 +15,7 @@ function createLogger(): Logger {
 }
 
 describe("createSupabaseCurrentLedgerRepository", () => {
-  it("getContext 遇到非法配色时记录警告并忽略附带偏好", async () => {
+  it("getContext 遇到非法配色时记录警告并回退默认值", async () => {
     const logger = createLogger();
     const supabase = createSupabaseMock({
       queryResponses: [
@@ -41,6 +41,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
       currentLedger: null,
       email: "user@example.com",
       ledgers: [],
+      transactionColorScheme: "expense_green_income_red",
       userId,
     });
     expect(logger.warn).toHaveBeenCalledWith(
