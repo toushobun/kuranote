@@ -229,34 +229,48 @@ export function TransactionRow({
         </Stack>
       </Stack>
 
-      {detailText ? (
-        <Typography
-          noWrap
-          sx={{
-            color: mutedText,
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
-          {detailText}
-        </Typography>
-      ) : null}
-
-      {businessStatuses.length > 0 ? (
+      {detailText || businessStatuses.length > 0 ? (
         <Stack
           direction="row"
           spacing={0.5}
-          useFlexGap
-          sx={{ flexWrap: "wrap" }}
+          sx={{ alignItems: "center", minWidth: 0 }}
         >
-          {businessStatuses.map(({ key, status }) => (
-            <TransactionBusinessBadge
-              currency={item.account_currency}
-              key={key}
-              status={status}
-              sx={businessBadgeSx}
-            />
-          ))}
+          {detailText ? (
+            <Typography
+              noWrap
+              sx={{
+                color: mutedText,
+                flex: 1,
+                fontSize: 11,
+                fontWeight: 700,
+                minWidth: 0,
+              }}
+            >
+              {detailText}
+            </Typography>
+          ) : null}
+
+          {businessStatuses.length > 0 ? (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{
+                flexShrink: 0,
+                flexWrap: "nowrap",
+                "& > .MuiStack-root": { flexWrap: "nowrap" },
+              }}
+            >
+              {businessStatuses.map(({ key, status }) => (
+                <TransactionBusinessBadge
+                  currency={item.account_currency}
+                  key={key}
+                  status={status}
+                  sx={businessBadgeSx}
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Stack>
       ) : null}
     </Stack>
@@ -523,6 +537,6 @@ function getServerTimeZone() {
 
 const businessBadgeSx = {
   fontSize: "0.625rem",
-  height: 20,
-  "& .MuiChip-label": { px: 0.75 },
+  height: 16,
+  "& .MuiChip-label": { px: 0.5 },
 };
