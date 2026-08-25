@@ -449,48 +449,32 @@ export const SpacingComparison: Story = {
   name: "有无核销提示行间距对比",
   render: () => (
     <Stack divider={<Divider />}>
+      {/* 与真实明细列表（TransactionGroupList / TransactionSearch）保持一致的 props：
+          showAccount / showRecorder / showTime 常开，receiptCard 常关。
+          两行使用同一条基础记录（相同商家名 / 分类 / 备注），
+          仅第二行的首个小分类补充 businessNetAmount 触发核销提示，
+          用于人工核对「有/无提示行」时商家名与下方内容之间的间距是否一致。 */}
       <TransactionRow
-        item={{
-          ...expenseItem,
-          merchant_name: "日本铁路",
-          note: null,
-          categoryItems: [
-            {
-              amount: "2858",
-              categoryName: "JR地铁公交",
-              parentCategoryName: "🚃 交通",
-              categoryType: "expense",
-            },
-          ],
-        }}
+        item={expenseItem}
+        receiptCard={false}
+        showAccount
+        showRecorder
+        showTime
       />
       <TransactionRow
         item={{
           ...expenseItem,
-          amount: "0",
-          originalAmount: "30000",
-          originalType: "income",
-          type: "income",
-          merchant_name: "天满市场",
-          note: "退押金",
+          amount: "1578",
+          originalAmount: "2858",
           categoryItems: [
-            {
-              amount: "30000",
-              businessNetAmount: "0",
-              businessStatus: {
-                incomeLinkRole: "refund",
-                offsetComposition: {
-                  refundAmount: "0",
-                  reimbursementAmount: "0",
-                },
-                settlementStatus: null,
-              },
-              categoryName: "退押金",
-              categoryType: "income",
-              parentCategoryName: "🏠 生活用品",
-            },
+            { ...expenseItem.categoryItems[0], businessNetAmount: "0" },
+            ...expenseItem.categoryItems.slice(1),
           ],
         }}
+        receiptCard={false}
+        showAccount
+        showRecorder
+        showTime
       />
     </Stack>
   ),

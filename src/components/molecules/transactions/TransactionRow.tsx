@@ -94,6 +94,23 @@ export function TransactionRow({
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
     .join(" | ");
+  const adjustmentNode = statisticsAdjustment ? (
+    <Typography
+      component="span"
+      sx={transactionOriginalAmountTextSx}
+      variant="caption"
+    >
+      {getStatisticsAdjustmentMessage(statisticsAdjustment)}
+    </Typography>
+  ) : item.originalAmount !== undefined ? (
+    <TransactionOriginalAmount
+      amount={formatTransactionRowAmount(
+        item.originalType ?? item.type,
+        item.originalAmount,
+        item.account_currency,
+      )}
+    />
+  ) : null;
 
   const metaSegments = [
     showAccount
@@ -180,57 +197,49 @@ export function TransactionRow({
             </Typography>
           </Stack>
 
-          {statisticsAdjustment ? (
-            <Typography
-              component="span"
-              sx={{
-                ...transactionOriginalAmountTextSx,
-                display: "block",
-                textAlign: "right",
-              }}
-              variant="caption"
-            >
-              {getStatisticsAdjustmentMessage(statisticsAdjustment)}
-            </Typography>
-          ) : item.originalAmount !== undefined ? (
-            <Box sx={{ textAlign: "right" }}>
-              <TransactionOriginalAmount
-                amount={formatTransactionRowAmount(
-                  item.originalType ?? item.type,
-                  item.originalAmount,
-                  item.account_currency,
-                )}
-              />
-            </Box>
-          ) : null}
-
-          {metaSegments.length > 0 ? (
+          {metaSegments.length > 0 || adjustmentNode ? (
             <Stack
               direction="row"
-              sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}
+              spacing={1}
+              sx={{ alignItems: "center", minWidth: 0 }}
             >
-              {metaSegments.map((segment, index) => (
-                <Fragment key={segment.key}>
-                  {index > 0 && (
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                }}
+              >
+                {metaSegments.map((segment, index) => (
+                  <Fragment key={segment.key}>
+                    {index > 0 && (
+                      <Typography
+                        sx={{
+                          color: mutedText,
+                          flexShrink: 0,
+                          fontSize: 11,
+                          mx: 0.6,
+                        }}
+                      >
+                        {"|"}
+                      </Typography>
+                    )}
                     <Typography
-                      sx={{
-                        color: mutedText,
-                        flexShrink: 0,
-                        fontSize: 11,
-                        mx: 0.6,
-                      }}
+                      noWrap
+                      sx={{ color: segment.color, fontSize: 11 }}
                     >
-                      {"|"}
+                      {segment.label}
                     </Typography>
-                  )}
-                  <Typography
-                    noWrap
-                    sx={{ color: segment.color, fontSize: 11 }}
-                  >
-                    {segment.label}
-                  </Typography>
-                </Fragment>
-              ))}
+                  </Fragment>
+                ))}
+              </Stack>
+              {adjustmentNode ? (
+                <Box sx={{ display: "flex", flexShrink: 0 }}>
+                  {adjustmentNode}
+                </Box>
+              ) : null}
             </Stack>
           ) : null}
         </Stack>
