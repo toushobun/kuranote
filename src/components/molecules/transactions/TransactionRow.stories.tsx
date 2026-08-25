@@ -1,4 +1,6 @@
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { TransactionRowItem } from "types/transactions";
@@ -441,6 +443,57 @@ export const ManyIncomeCategories: Story = {
       ...incomeItem,
     },
   },
+};
+
+export const SpacingComparison: Story = {
+  name: "有无核销提示行间距对比",
+  render: () => (
+    <Stack divider={<Divider />}>
+      <TransactionRow
+        item={{
+          ...expenseItem,
+          merchant_name: "日本铁路",
+          note: null,
+          categoryItems: [
+            {
+              amount: "2858",
+              categoryName: "JR地铁公交",
+              parentCategoryName: "🚃 交通",
+              categoryType: "expense",
+            },
+          ],
+        }}
+      />
+      <TransactionRow
+        item={{
+          ...expenseItem,
+          amount: "0",
+          originalAmount: "30000",
+          originalType: "income",
+          type: "income",
+          merchant_name: "天满市场",
+          note: "退押金",
+          categoryItems: [
+            {
+              amount: "30000",
+              businessNetAmount: "0",
+              businessStatus: {
+                incomeLinkRole: "refund",
+                offsetComposition: {
+                  refundAmount: "0",
+                  reimbursementAmount: "0",
+                },
+                settlementStatus: null,
+              },
+              categoryName: "退押金",
+              categoryType: "income",
+              parentCategoryName: "🏠 生活用品",
+            },
+          ],
+        }}
+      />
+    </Stack>
+  ),
 };
 
 export const LongText: Story = {

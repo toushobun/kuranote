@@ -2,6 +2,7 @@
 
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
@@ -165,37 +166,43 @@ export function TransactionRow({
               {merchantName}
             </Typography>
 
-            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
-              <Typography
-                sx={{
-                  color: amountColor,
-                  fontSize: receiptCard ? 18 : 15,
-                  fontWeight: 900,
-                  lineHeight: 1.15,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {signedAmount}
-              </Typography>
-              {statisticsAdjustment ? (
-                <Typography
-                  component="span"
-                  sx={transactionOriginalAmountTextSx}
-                  variant="caption"
-                >
-                  {getStatisticsAdjustmentMessage(statisticsAdjustment)}
-                </Typography>
-              ) : item.originalAmount !== undefined ? (
-                <TransactionOriginalAmount
-                  amount={formatTransactionRowAmount(
-                    item.originalType ?? item.type,
-                    item.originalAmount,
-                    item.account_currency,
-                  )}
-                />
-              ) : null}
-            </Stack>
+            <Typography
+              sx={{
+                color: amountColor,
+                flexShrink: 0,
+                fontSize: receiptCard ? 18 : 15,
+                fontWeight: 900,
+                lineHeight: 1.15,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {signedAmount}
+            </Typography>
           </Stack>
+
+          {statisticsAdjustment ? (
+            <Typography
+              component="span"
+              sx={{
+                ...transactionOriginalAmountTextSx,
+                display: "block",
+                textAlign: "right",
+              }}
+              variant="caption"
+            >
+              {getStatisticsAdjustmentMessage(statisticsAdjustment)}
+            </Typography>
+          ) : item.originalAmount !== undefined ? (
+            <Box sx={{ textAlign: "right" }}>
+              <TransactionOriginalAmount
+                amount={formatTransactionRowAmount(
+                  item.originalType ?? item.type,
+                  item.originalAmount,
+                  item.account_currency,
+                )}
+              />
+            </Box>
+          ) : null}
 
           {metaSegments.length > 0 ? (
             <Stack
