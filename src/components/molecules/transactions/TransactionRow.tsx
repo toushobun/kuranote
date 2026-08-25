@@ -2,7 +2,6 @@
 
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
@@ -94,23 +93,6 @@ export function TransactionRow({
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
     .join(" | ");
-  const adjustmentNode = statisticsAdjustment ? (
-    <Typography
-      component="span"
-      sx={transactionOriginalAmountTextSx}
-      variant="caption"
-    >
-      {getStatisticsAdjustmentMessage(statisticsAdjustment)}
-    </Typography>
-  ) : item.originalAmount !== undefined ? (
-    <TransactionOriginalAmount
-      amount={formatTransactionRowAmount(
-        item.originalType ?? item.type,
-        item.originalAmount,
-        item.account_currency,
-      )}
-    />
-  ) : null;
 
   const metaSegments = [
     showAccount
@@ -183,63 +165,65 @@ export function TransactionRow({
               {merchantName}
             </Typography>
 
-            <Typography
-              sx={{
-                color: amountColor,
-                flexShrink: 0,
-                fontSize: receiptCard ? 18 : 15,
-                fontWeight: 900,
-                lineHeight: 1.15,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {signedAmount}
-            </Typography>
-          </Stack>
-
-          {metaSegments.length > 0 || adjustmentNode ? (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center", minWidth: 0 }}
-            >
-              <Stack
-                direction="row"
+            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
+              <Typography
                 sx={{
-                  alignItems: "center",
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: "hidden",
+                  color: amountColor,
+                  fontSize: receiptCard ? 18 : 15,
+                  fontWeight: 900,
+                  lineHeight: 1.15,
+                  whiteSpace: "nowrap",
                 }}
               >
-                {metaSegments.map((segment, index) => (
-                  <Fragment key={segment.key}>
-                    {index > 0 && (
-                      <Typography
-                        sx={{
-                          color: mutedText,
-                          flexShrink: 0,
-                          fontSize: 11,
-                          mx: 0.6,
-                        }}
-                      >
-                        {"|"}
-                      </Typography>
-                    )}
-                    <Typography
-                      noWrap
-                      sx={{ color: segment.color, fontSize: 11 }}
-                    >
-                      {segment.label}
-                    </Typography>
-                  </Fragment>
-                ))}
-              </Stack>
-              {adjustmentNode ? (
-                <Box sx={{ display: "flex", flexShrink: 0 }}>
-                  {adjustmentNode}
-                </Box>
+                {signedAmount}
+              </Typography>
+              {statisticsAdjustment ? (
+                <Typography
+                  component="span"
+                  sx={transactionOriginalAmountTextSx}
+                  variant="caption"
+                >
+                  {getStatisticsAdjustmentMessage(statisticsAdjustment)}
+                </Typography>
+              ) : item.originalAmount !== undefined ? (
+                <TransactionOriginalAmount
+                  amount={formatTransactionRowAmount(
+                    item.originalType ?? item.type,
+                    item.originalAmount,
+                    item.account_currency,
+                  )}
+                />
               ) : null}
+            </Stack>
+          </Stack>
+
+          {metaSegments.length > 0 ? (
+            <Stack
+              direction="row"
+              sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}
+            >
+              {metaSegments.map((segment, index) => (
+                <Fragment key={segment.key}>
+                  {index > 0 && (
+                    <Typography
+                      sx={{
+                        color: mutedText,
+                        flexShrink: 0,
+                        fontSize: 11,
+                        mx: 0.6,
+                      }}
+                    >
+                      {"|"}
+                    </Typography>
+                  )}
+                  <Typography
+                    noWrap
+                    sx={{ color: segment.color, fontSize: 11 }}
+                  >
+                    {segment.label}
+                  </Typography>
+                </Fragment>
+              ))}
             </Stack>
           ) : null}
         </Stack>
