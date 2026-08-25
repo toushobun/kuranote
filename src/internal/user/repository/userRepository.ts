@@ -1,11 +1,17 @@
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type { UserProfile, UserStatus } from "internal/user/entity/userProfile";
+import {
+  transactionColorSchemes,
+  type TransactionColorScheme,
+  type UserProfile,
+  type UserStatus,
+} from "internal/user/entity/userProfile";
 
 export type UpdateUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
+  transactionColorScheme?: TransactionColorScheme;
   updatedBy: string;
   userId: string;
 };
@@ -21,10 +27,24 @@ type AppUserRow = {
   email: string | null;
   id: string;
   status: string;
+  transaction_color_scheme: string;
 };
 
 function toUserStatus(status: string): UserStatus {
   if (status === "active" || status === "disabled") return status;
+
+  throw toRepositoryError(
+    "user_profile_invalid",
+    "用户资料格式异常，请稍后重试。",
+  );
+}
+
+function toTransactionColorScheme(value: string): TransactionColorScheme {
+  const colorScheme = transactionColorSchemes.find(
+    (scheme) => scheme === value,
+  );
+
+  if (colorScheme) return colorScheme;
 
   throw toRepositoryError(
     "user_profile_invalid",
@@ -39,10 +59,14 @@ function toUserProfile(row: AppUserRow): UserProfile {
     email: row.email,
     id: row.id,
     status: toUserStatus(row.status),
+    transactionColorScheme: toTransactionColorScheme(
+      row.transaction_color_scheme,
+    ),
   };
 }
 
-const userProfileColumns = "id, display_name, email, avatar_url, status";
+const userProfileColumns =
+  "id, display_name, email, avatar_url, status, transaction_color_scheme";
 
 export function createSupabaseUserRepository(
   supabase: AuthenticatedSupabaseClient,
@@ -75,6 +99,7 @@ export function createSupabaseUserRepository(
       const updates: {
         avatar_url?: string | null;
         display_name?: string;
+        transaction_color_scheme?: TransactionColorScheme;
         updated_by: string;
       } = { updated_by: input.updatedBy };
 
@@ -83,6 +108,9 @@ export function createSupabaseUserRepository(
       }
       if (input.displayName !== undefined) {
         updates.display_name = input.displayName;
+      }
+      if (input.transactionColorScheme !== undefined) {
+        updates.transaction_color_scheme = input.transactionColorScheme;
       }
 
       const { data, error } = await supabase

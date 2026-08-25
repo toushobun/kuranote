@@ -150,4 +150,26 @@ describe("UserThemeProvider", () => {
     expect(document.documentElement.dataset.userTheme).toBe("amberWarmth");
     expect(document.cookie).toContain(`${userThemeCookieName}=amberWarmth`);
   });
+
+  it("使用服务端注入的收支配色方案应用 CSS 变量", () => {
+    render(
+      <UserThemeProvider
+        initialTransactionColorScheme="expense_red_income_green"
+        storageScope="a@example.com"
+      >
+        <div />
+      </UserThemeProvider>,
+    );
+
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--user-theme-income-amount",
+      ),
+    ).toBe("#42A87A");
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--user-theme-negative-amount",
+      ),
+    ).toBe("#E8547A");
+  });
 });

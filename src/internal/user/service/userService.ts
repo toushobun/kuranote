@@ -4,7 +4,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import type { UserProfile } from "internal/user/entity/userProfile";
+import type {
+  TransactionColorScheme,
+  UserProfile,
+} from "internal/user/entity/userProfile";
 import type { UserRepository } from "internal/user/repository/userRepository";
 
 const displayNameMaxLength = 100;
@@ -12,6 +15,7 @@ const displayNameMaxLength = 100;
 export type UpdateCurrentUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
+  transactionColorScheme?: TransactionColorScheme;
 };
 
 export type SyncUserDisplayNameInput = {
@@ -111,9 +115,13 @@ export function createUserService({
     if (input.avatarUrl !== undefined) {
       normalizedInput.avatarUrl = normalizeAvatarUrl(input.avatarUrl);
     }
+    if (input.transactionColorScheme !== undefined) {
+      normalizedInput.transactionColorScheme = input.transactionColorScheme;
+    }
     if (
       normalizedInput.displayName === undefined &&
-      normalizedInput.avatarUrl === undefined
+      normalizedInput.avatarUrl === undefined &&
+      normalizedInput.transactionColorScheme === undefined
     ) {
       throw new ValidationError(
         "profile_update_required",

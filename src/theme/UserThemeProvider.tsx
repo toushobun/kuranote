@@ -6,11 +6,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
 import { routePaths } from "config/paths";
+import {
+  defaultTransactionColorScheme,
+  type TransactionColorScheme,
+} from "internal/user";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import {
   defaultUserThemeKey,
@@ -30,8 +35,10 @@ type UserThemeContextValue = {
   isThemeReady: boolean;
   themeKey: UserThemeKey;
   setThemeKey: (themeKey: UserThemeKey) => void;
+  setTransactionColorScheme: (scheme: TransactionColorScheme) => void;
   themeKeys: typeof userThemeKeys;
   tokens: typeof userThemeTokens;
+  transactionColorScheme: TransactionColorScheme;
 };
 
 const UserThemeContext = createContext<UserThemeContextValue | null>(null);
@@ -54,13 +61,18 @@ let pendingDefaultThemeResetId: number | null = null;
 
 type UserThemeProviderProps = {
   children: ReactNode;
+  initialTransactionColorScheme?: TransactionColorScheme;
   storageScope?: string;
 };
 
 export function UserThemeProvider({
   children,
+  initialTransactionColorScheme = defaultTransactionColorScheme,
   storageScope = "anonymous",
 }: UserThemeProviderProps) {
+  const [transactionColorScheme, setTransactionColorSchemeState] = useState(
+    initialTransactionColorScheme,
+  );
   const storageKey = getUserThemeStorageKey(storageScope);
   const themeKey = useSyncExternalStore(
     subscribeToUserTheme,
@@ -87,20 +99,28 @@ export function UserThemeProvider({
   useEffect(() => {
     const storedThemeKey = getStoredUserThemeKey(storageKey);
 
-    applyUserTheme(storedThemeKey);
+    applyUserTheme(storedThemeKey, transactionColorScheme);
     syncThemeCookie(storedThemeKey);
     window.dispatchEvent(new Event(userThemeChangeEventName));
-  }, [storageKey, themeKey]);
+  }, [storageKey, themeKey, transactionColorScheme]);
 
   const setThemeKey = useCallback(
     (nextThemeKey: UserThemeKey) => {
       window.localStorage.setItem(storageKey, nextThemeKey);
       window.localStorage.setItem(lastUserThemeStorageKey, nextThemeKey);
-      applyUserTheme(nextThemeKey);
+      applyUserTheme(nextThemeKey, transactionColorScheme);
       syncThemeCookie(nextThemeKey);
       window.dispatchEvent(new Event(userThemeChangeEventName));
     },
-    [storageKey],
+    [storageKey, transactionColorScheme],
+  );
+
+  const setTransactionColorScheme = useCallback(
+    (nextScheme: TransactionColorScheme) => {
+      setTransactionColorSchemeState(nextScheme);
+      applyUserTheme(visibleThemeKey, nextScheme);
+    },
+    [visibleThemeKey],
   );
 
   const value = useMemo(
@@ -108,10 +128,18 @@ export function UserThemeProvider({
       isThemeReady,
       themeKey: visibleThemeKey,
       setThemeKey,
+      setTransactionColorScheme,
       themeKeys: userThemeKeys,
       tokens: userThemeTokens,
+      transactionColorScheme,
     }),
-    [isThemeReady, setThemeKey, visibleThemeKey],
+    [
+      isThemeReady,
+      setThemeKey,
+      setTransactionColorScheme,
+      transactionColorScheme,
+      visibleThemeKey,
+    ],
   );
 
   return (
@@ -140,9 +168,15 @@ function clearThemeCookie() {
   document.cookie = `${userThemeCookieName}=; path=/; max-age=0; samesite=lax`;
 }
 
-function applyUserTheme(themeKey: UserThemeKey) {
+function applyUserTheme(
+  themeKey: UserThemeKey,
+  transactionColorScheme: TransactionColorScheme = defaultTransactionColorScheme,
+) {
   const root = document.documentElement;
-  const cssVariables = getUserThemeCssVariables(themeKey);
+  const cssVariables = getUserThemeCssVariables(
+    themeKey,
+    transactionColorScheme,
+  );
 
   root.setAttribute("data-user-theme", themeKey);
 

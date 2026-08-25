@@ -31,7 +31,10 @@ afterEach(() => {
 
 function renderAppShell() {
   return render(
-    <AppShell email="test@example.com">
+    <AppShell
+      email="test@example.com"
+      transactionColorScheme="expense_green_income_red"
+    >
       <div>内容</div>
     </AppShell>,
   );

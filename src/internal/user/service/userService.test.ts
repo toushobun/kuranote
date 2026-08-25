@@ -20,6 +20,7 @@ const activeProfile: UserProfile = {
   email: "user@example.com",
   id: userId,
   status: "active",
+  transactionColorScheme: "expense_green_income_red",
 };
 
 function createRepository(
@@ -130,6 +131,31 @@ describe("createUserService", () => {
     );
     expect(repository.findById).not.toHaveBeenCalled();
     expect(repository.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("更新当前用户的收支配色方案", async () => {
+    const updateProfile = vi.fn().mockResolvedValue({
+      ...activeProfile,
+      transactionColorScheme: "expense_red_income_green",
+    });
+    const repository = createRepository({
+      findById: vi.fn().mockResolvedValue(activeProfile),
+      updateProfile,
+    });
+    const service = createUserService({
+      currentUserId: userId,
+      userRepository: repository,
+    });
+
+    await service.updateCurrentProfile({
+      transactionColorScheme: "expense_red_income_green",
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith({
+      transactionColorScheme: "expense_red_income_green",
+      updatedBy: userId,
+      userId,
+    });
   });
 
   it("头像地址不是 HTTPS URL 时拒绝写入", async () => {

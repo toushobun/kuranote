@@ -14,6 +14,7 @@ import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import SwapVertRoundedIcon from "@mui/icons-material/SwapVertRounded";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -26,12 +27,14 @@ import Link from "next/link";
 import { useMemo, useState, type ElementType } from "react";
 
 import { routePaths, type AppRoutePath } from "config/paths";
+import { TransactionColorSchemePicker } from "molecules/theme/TransactionColorSchemePicker/TransactionColorSchemePicker";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { typographyStyles } from "theme/typographyTokens";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type { ServerAction } from "types/actions";
+import type { TransactionColorSchemeAction } from "types/user";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
@@ -46,6 +49,7 @@ type SettingsEntry = SettingsEntryBase &
     | { kind: "comingSoon" }
     | { href: AppRoutePath; kind: "link" }
     | { kind: "logout" }
+    | { kind: "transactionColors" }
     | { kind: "theme" }
   );
 
@@ -72,6 +76,11 @@ function createSettingsEntryGroups(
       label: "管理",
       entries: [
         { icon: PaletteOutlinedIcon, kind: "theme", label: "主题换装" },
+        {
+          icon: SwapVertRoundedIcon,
+          kind: "transactionColors",
+          label: "收支颜色",
+        },
         {
           href: routePaths.ledgers,
           icon: MenuBookOutlinedIcon,
@@ -131,14 +140,18 @@ const comingSoonMessage = "正在准备中";
 type SettingsTemplateProps = {
   currentLedgerName: string;
   logoutAction: ServerAction;
+  updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 export function SettingsTemplate({
   currentLedgerName,
   logoutAction,
+  updateTransactionColorSchemeAction,
 }: SettingsTemplateProps) {
   const [isToastOpen, setIsToastOpen] = useState(false);
   const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
+  const [isTransactionColorPickerOpen, setIsTransactionColorPickerOpen] =
+    useState(false);
   const settingsEntryGroups = useMemo(
     () => createSettingsEntryGroups(currentLedgerName),
     [currentLedgerName],
@@ -165,10 +178,17 @@ export function SettingsTemplate({
           <SettingsEntryGroupCard
             group={group}
             isThemePickerOpen={isThemePickerOpen}
+            isTransactionColorPickerOpen={isTransactionColorPickerOpen}
             key={group.label}
             logoutAction={logoutAction}
             onComingSoonClick={showComingSoonToast}
             onThemeClick={toggleThemePicker}
+            onTransactionColorClick={() =>
+              setIsTransactionColorPickerOpen((current) => !current)
+            }
+            updateTransactionColorSchemeAction={
+              updateTransactionColorSchemeAction
+            }
           />
         ))}
       </Stack>
@@ -188,17 +208,23 @@ export function SettingsTemplate({
 type SettingsEntryGroupCardProps = {
   group: SettingsEntryGroup;
   isThemePickerOpen: boolean;
+  isTransactionColorPickerOpen: boolean;
   logoutAction: ServerAction;
   onComingSoonClick: () => void;
   onThemeClick: () => void;
+  onTransactionColorClick: () => void;
+  updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 function SettingsEntryGroupCard({
   group,
   isThemePickerOpen,
+  isTransactionColorPickerOpen,
   logoutAction,
   onComingSoonClick,
   onThemeClick,
+  onTransactionColorClick,
+  updateTransactionColorSchemeAction,
 }: SettingsEntryGroupCardProps) {
   return (
     <SectionCard
@@ -211,10 +237,15 @@ function SettingsEntryGroupCard({
           entry={entry}
           isLast={index === group.entries.length - 1}
           isThemePickerOpen={isThemePickerOpen}
+          isTransactionColorPickerOpen={isTransactionColorPickerOpen}
           key={entry.label}
           logoutAction={logoutAction}
           onComingSoonClick={onComingSoonClick}
           onThemeClick={onThemeClick}
+          onTransactionColorClick={onTransactionColorClick}
+          updateTransactionColorSchemeAction={
+            updateTransactionColorSchemeAction
+          }
         />
       ))}
     </SectionCard>
@@ -225,18 +256,24 @@ type SettingsEntryItemProps = {
   entry: SettingsEntry;
   isLast: boolean;
   isThemePickerOpen: boolean;
+  isTransactionColorPickerOpen: boolean;
   logoutAction: ServerAction;
   onComingSoonClick: () => void;
   onThemeClick: () => void;
+  onTransactionColorClick: () => void;
+  updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 function SettingsEntryItem({
   entry,
   isLast,
   isThemePickerOpen,
+  isTransactionColorPickerOpen,
   logoutAction,
   onComingSoonClick,
   onThemeClick,
+  onTransactionColorClick,
+  updateTransactionColorSchemeAction,
 }: SettingsEntryItemProps) {
   if (entry.kind === "link") {
     return (
@@ -256,6 +293,30 @@ function SettingsEntryItem({
         <Collapse in={isThemePickerOpen} timeout="auto" unmountOnExit>
           <Box sx={themePickerPanelSx}>
             <UserThemePicker />
+          </Box>
+        </Collapse>
+      </Box>
+    );
+  }
+
+  if (entry.kind === "transactionColors") {
+    return (
+      <Box>
+        <SettingsEntryButton
+          entry={entry}
+          isExpanded={isTransactionColorPickerOpen}
+          isLast={isLast && !isTransactionColorPickerOpen}
+          onClick={onTransactionColorClick}
+        />
+        <Collapse
+          in={isTransactionColorPickerOpen}
+          timeout="auto"
+          unmountOnExit
+        >
+          <Box sx={themePickerPanelSx}>
+            <TransactionColorSchemePicker
+              action={updateTransactionColorSchemeAction}
+            />
           </Box>
         </Collapse>
       </Box>
@@ -298,7 +359,7 @@ function SettingsEntryButton({
 }: SettingsEntryButtonProps) {
   const Icon = entry.icon;
   const ChevronIcon =
-    entry.kind === "theme"
+    entry.kind === "theme" || entry.kind === "transactionColors"
       ? isExpanded
         ? ExpandLessRoundedIcon
         : ExpandMoreRoundedIcon

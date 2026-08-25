@@ -66,18 +66,30 @@ describe("getUserThemeCssVariables", () => {
     expect(themeVars["--user-theme-business-surplus-text"]).toBe("#7A6A5E");
   });
 
-  it("输出默认主题首页金额语义色变量", () => {
+  it("默认输出支出绿收入红的金额语义色变量", () => {
     const themeVars = getUserThemeCssVariables("amberWarmth");
 
-    expect(themeVars["--user-theme-income-amount"]).toBe("#42A87A");
-    expect(themeVars["--user-theme-negative-amount"]).toBe("#E8547A");
+    expect(themeVars["--user-theme-income-amount"]).toBe("#E8547A");
+    expect(themeVars["--user-theme-negative-amount"]).toBe("#42A87A");
   });
 
-  it("输出默认主题交易类型背景语义色变量", () => {
+  it("默认输出支出绿收入红的交易类型背景语义色变量", () => {
     const themeVars = getUserThemeCssVariables("amberWarmth");
 
-    expect(themeVars["--user-theme-income-bg"]).toBe("#E8F5F0");
+    expect(themeVars["--user-theme-income-bg"]).toBe("#FDE8EE");
     expect(themeVars["--user-theme-transfer-bg"]).toBe("#E4F0FA");
+    expect(themeVars["--user-theme-negative-bg"]).toBe("#E8F5F0");
+  });
+
+  it("按偏好输出支出红收入绿的语义色变量", () => {
+    const themeVars = getUserThemeCssVariables(
+      "amberWarmth",
+      "expense_red_income_green",
+    );
+
+    expect(themeVars["--user-theme-income-amount"]).toBe("#42A87A");
+    expect(themeVars["--user-theme-income-bg"]).toBe("#E8F5F0");
+    expect(themeVars["--user-theme-negative-amount"]).toBe("#E8547A");
     expect(themeVars["--user-theme-negative-bg"]).toBe("#FDE8EE");
   });
 
