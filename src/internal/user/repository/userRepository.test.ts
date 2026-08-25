@@ -15,6 +15,7 @@ const profileRow = {
   email: "user@example.com",
   id: userId,
   status: "active",
+  transaction_color_scheme: "expense_green_income_red",
 };
 
 function createLogger(): Logger {
@@ -37,6 +38,7 @@ describe("createSupabaseUserRepository.findById", () => {
       email: "user@example.com",
       id: userId,
       status: "active",
+      transactionColorScheme: "expense_green_income_red",
     });
     expect(supabase.queries[0].table).toBe("app_user");
     expect(supabase.queries[0].calls).toContainEqual({
@@ -89,6 +91,27 @@ describe("createSupabaseUserRepository.findById", () => {
       RepositoryError,
     );
   });
+
+  it("数据库收支配色异常时记录警告并回退默认值", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: { ...profileRow, transaction_color_scheme: "unexpected" } },
+      ],
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(repository.findById(userId)).resolves.toMatchObject({
+      transactionColorScheme: "expense_green_income_red",
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[user] invalid transaction color scheme in user profile",
+      { userId },
+    );
+  });
 });
 
 describe("createSupabaseUserRepository.updateProfile", () => {
@@ -114,6 +137,7 @@ describe("createSupabaseUserRepository.updateProfile", () => {
       email: "user@example.com",
       id: userId,
       status: "active",
+      transactionColorScheme: "expense_green_income_red",
     });
     expect(supabase.queries[0].calls).toContainEqual({
       args: [{ display_name: "新昵称", updated_by: userId }],
@@ -122,6 +146,39 @@ describe("createSupabaseUserRepository.updateProfile", () => {
     expect(supabase.queries[0].calls).toContainEqual({
       args: ["status", "active"],
       method: "eq",
+    });
+  });
+
+  it("更新收支配色方案字段", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: {
+            ...profileRow,
+            transaction_color_scheme: "expense_red_income_green",
+          },
+        },
+      ],
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await repository.updateProfile({
+      transactionColorScheme: "expense_red_income_green",
+      updatedBy: userId,
+      userId,
+    });
+
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: [
+        {
+          transaction_color_scheme: "expense_red_income_green",
+          updated_by: userId,
+        },
+      ],
+      method: "update",
     });
   });
 
@@ -135,6 +192,35 @@ describe("createSupabaseUserRepository.updateProfile", () => {
     await expect(
       repository.updateProfile({ avatarUrl: null, updatedBy: userId, userId }),
     ).resolves.toBeNull();
+  });
+
+  it("更新结果的数据库收支配色异常时回退默认值", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: { ...profileRow, transaction_color_scheme: "unexpected" },
+        },
+      ],
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.updateProfile({
+        transactionColorScheme: "expense_red_income_green",
+        updatedBy: userId,
+        userId,
+      }),
+    ).resolves.toMatchObject({
+      transactionColorScheme: "expense_green_income_red",
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[user] invalid transaction color scheme in user profile",
+      { userId },
+    );
   });
 
   it("更新失败时记录错误并抛出 RepositoryError", async () => {

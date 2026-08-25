@@ -15,6 +15,7 @@ const meta = {
   },
   args: {
     email: "user@example.com",
+    transactionColorScheme: "expense_green_income_red",
     children: <div style={{ padding: 16 }}>页面内容区域</div>,
   },
 } satisfies Meta<typeof AppShell>;

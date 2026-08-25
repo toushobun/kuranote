@@ -1,11 +1,17 @@
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import type { UserProfile, UserStatus } from "internal/user/entity/userProfile";
+import {
+  resolveTransactionColorScheme,
+  type TransactionColorScheme,
+  type UserProfile,
+  type UserStatus,
+} from "internal/user/entity/userProfile";
 
 export type UpdateUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
+  transactionColorScheme?: TransactionColorScheme;
   updatedBy: string;
   userId: string;
 };
@@ -21,6 +27,7 @@ type AppUserRow = {
   email: string | null;
   id: string;
   status: string;
+  transaction_color_scheme: string;
 };
 
 function toUserStatus(status: string): UserStatus {
@@ -32,17 +39,40 @@ function toUserStatus(status: string): UserStatus {
   );
 }
 
-function toUserProfile(row: AppUserRow): UserProfile {
+function toTransactionColorScheme(
+  value: string,
+  logger: Logger,
+  userId: string,
+): TransactionColorScheme {
+  const resolved = resolveTransactionColorScheme(value);
+
+  if (!resolved.isFallback) return resolved.value;
+
+  // 收支配色只是展示偏好，脏值不应阻断登录或后续资料更新自愈。
+  logger.warn("[user] invalid transaction color scheme in user profile", {
+    userId,
+  });
+
+  return resolved.value;
+}
+
+function toUserProfile(row: AppUserRow, logger: Logger): UserProfile {
   return {
     avatarUrl: row.avatar_url,
     displayName: row.display_name,
     email: row.email,
     id: row.id,
     status: toUserStatus(row.status),
+    transactionColorScheme: toTransactionColorScheme(
+      row.transaction_color_scheme,
+      logger,
+      row.id,
+    ),
   };
 }
 
-const userProfileColumns = "id, display_name, email, avatar_url, status";
+const userProfileColumns =
+  "id, display_name, email, avatar_url, status, transaction_color_scheme";
 
 export function createSupabaseUserRepository(
   supabase: AuthenticatedSupabaseClient,
@@ -68,13 +98,14 @@ export function createSupabaseUserRepository(
         );
       }
 
-      return data ? toUserProfile(data) : null;
+      return data ? toUserProfile(data, logger) : null;
     },
 
     async updateProfile(input) {
       const updates: {
         avatar_url?: string | null;
         display_name?: string;
+        transaction_color_scheme?: TransactionColorScheme;
         updated_by: string;
       } = { updated_by: input.updatedBy };
 
@@ -83,6 +114,9 @@ export function createSupabaseUserRepository(
       }
       if (input.displayName !== undefined) {
         updates.display_name = input.displayName;
+      }
+      if (input.transactionColorScheme !== undefined) {
+        updates.transaction_color_scheme = input.transactionColorScheme;
       }
 
       const { data, error } = await supabase
@@ -105,7 +139,7 @@ export function createSupabaseUserRepository(
         );
       }
 
-      return data ? toUserProfile(data) : null;
+      return data ? toUserProfile(data, logger) : null;
     },
   };
 }

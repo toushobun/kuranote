@@ -34,6 +34,12 @@ type QueryRecord = {
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  createDependencies: vi.fn(),
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`);
   }),
@@ -52,8 +58,8 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("internal/shared/supabase/authenticatedClient", () => ({
-  createAuthenticatedSupabaseClient: mocks.createClient,
+vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
+  createServerRequestDependencies: mocks.createDependencies,
 }));
 
 import {
@@ -127,6 +133,27 @@ function createSupabaseMock({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.createDependencies.mockImplementation(async () => {
+    const supabase = await mocks.createClient();
+    const { data, error } = await supabase.auth.getClaims();
+    const userId = data?.claims?.sub;
+    const auth =
+      !error && typeof userId === "string" && userId.length > 0
+        ? {
+            email:
+              typeof data.claims.email === "string" ? data.claims.email : null,
+            isAuthenticated: true as const,
+            userId,
+          }
+        : { email: null, isAuthenticated: false as const, userId: null };
+
+    return {
+      auth,
+      logger: mocks.logger,
+      requestId: "request-1",
+      supabase,
+    };
+  });
 });
 
 describe("getCurrentLedgerContext", () => {
@@ -175,7 +202,17 @@ describe("getCurrentLedgerContext", () => {
 
   it("没有 active 账本时返回空上下文", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [{ data: [{ current_ledger_id: null }] }, { data: [] }],
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              transaction_color_scheme: "expense_red_income_green",
+            },
+          ],
+        },
+        { data: [] },
+      ],
     });
     mocks.createClient.mockResolvedValue(supabase.client);
 
@@ -183,13 +220,17 @@ describe("getCurrentLedgerContext", () => {
       currentLedger: null,
       email: "test@example.com",
       ledgers: [],
+      transactionColorScheme: "expense_red_income_green",
       userId: "user-1",
     });
 
     expect(supabase.queries).toEqual([
       {
         calls: [
-          { args: ["current_ledger_id"], method: "select" },
+          {
+            args: ["current_ledger_id, transaction_color_scheme"],
+            method: "select",
+          },
           { args: ["id", "user-1"], method: "eq" },
         ],
         table: "app_user",
@@ -209,6 +250,36 @@ describe("getCurrentLedgerContext", () => {
         table: "ledger_member",
       },
     ]);
+  });
+
+  it("数据库配色值异常时记录日志并回退默认值", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              transaction_color_scheme: "invalid",
+            },
+          ],
+        },
+        { data: [] },
+      ],
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expect(getCurrentLedgerContext()).resolves.toEqual({
+      currentLedger: null,
+      email: "test@example.com",
+      ledgers: [],
+      transactionColorScheme: "expense_green_income_red",
+      userId: "user-1",
+    });
+    expect(mocks.createDependencies).toHaveBeenCalledOnce();
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      "[ledger] invalid transaction color scheme in current user context",
+      { userId: "user-1" },
+    );
   });
 
   it("优先使用 app_user 中保存的当前账本", async () => {

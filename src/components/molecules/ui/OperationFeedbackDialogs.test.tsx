@@ -29,6 +29,13 @@ function renderWithUserTheme(children: ReactNode) {
   );
 }
 
+function getDocumentCssText() {
+  return Array.from(document.styleSheets)
+    .flatMap((styleSheet) => Array.from(styleSheet.cssRules))
+    .map((rule) => rule.cssText)
+    .join("\n");
+}
+
 describe("SuccessFeedbackDialog", () => {
   it("显示标题、说明文，点击关闭按钮触发回调", () => {
     const onClose = vi.fn();
@@ -106,6 +113,22 @@ describe("FailureFeedbackDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("成功与失败图标消费独立反馈语义色变量", () => {
+    render(
+      <>
+        <SuccessFeedbackDialog onClose={vi.fn()} open title="保存成功" />
+        <FailureFeedbackDialog onClose={vi.fn()} open title="保存失败" />
+      </>,
+    );
+
+    const cssText = getDocumentCssText();
+
+    expect(cssText).toContain("var(--user-theme-feedback-success-bg)");
+    expect(cssText).toContain("var(--user-theme-feedback-success-text)");
+    expect(cssText).toContain("var(--user-theme-feedback-error-bg)");
+    expect(cssText).toContain("var(--user-theme-feedback-error-text)");
   });
 });
 

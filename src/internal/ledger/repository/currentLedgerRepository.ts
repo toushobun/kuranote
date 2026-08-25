@@ -12,6 +12,10 @@ import {
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import {
+  resolveTransactionColorScheme,
+  type TransactionColorScheme,
+} from "internal/user";
 
 export type UpdateCurrentLedgerInput = {
   ledgerId: string;
@@ -40,17 +44,13 @@ export interface CurrentLedgerRepository {
 
 export function createSupabaseCurrentLedgerRepository(
   supabase: AuthenticatedSupabaseClient,
-  logger: Logger = {
-    error: () => undefined,
-    info: () => undefined,
-    warn: () => undefined,
-  },
+  logger: Logger,
 ): CurrentLedgerRepository & CurrentLedgerContextRepository {
   return {
     async getContext(userId, email) {
       const appUserQuery = supabase
         .from("app_user")
-        .select("current_ledger_id")
+        .select("current_ledger_id, transaction_color_scheme")
         .eq("id", userId);
       type AppUserRows = QueryData<typeof appUserQuery>;
 
@@ -67,6 +67,25 @@ export function createSupabaseCurrentLedgerRepository(
       const storedCurrentLedgerId = appUserRows.find(
         (row) => typeof row.current_ledger_id === "string",
       )?.current_ledger_id;
+      const storedTransactionColorScheme = appUserRows.find(
+        (row) => typeof row.transaction_color_scheme === "string",
+      )?.transaction_color_scheme;
+      let transactionColorScheme: TransactionColorScheme | undefined;
+
+      if (storedTransactionColorScheme !== undefined) {
+        const resolved = resolveTransactionColorScheme(
+          storedTransactionColorScheme,
+        );
+        transactionColorScheme = resolved.value;
+
+        if (resolved.isFallback) {
+          // 收支配色只是附带偏好，脏值不应阻断账本核心上下文。
+          logger.warn(
+            "[ledger] invalid transaction color scheme in current user context",
+            { userId },
+          );
+        }
+      }
 
       const memberQuery = supabase
         .from("ledger_member")
@@ -101,6 +120,7 @@ export function createSupabaseCurrentLedgerRepository(
           email,
           ledgers: [],
           currentLedger: null,
+          ...(transactionColorScheme ? { transactionColorScheme } : {}),
         };
       }
 
@@ -166,6 +186,7 @@ export function createSupabaseCurrentLedgerRepository(
         email,
         ledgers,
         currentLedger: currentLedger ?? ledgers[0] ?? null,
+        ...(transactionColorScheme ? { transactionColorScheme } : {}),
       };
     },
 

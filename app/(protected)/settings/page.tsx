@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { routePaths } from "config/paths";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { logout } from "internal/auth/adapter/next/actions";
+import { updateTransactionColorScheme } from "internal/user/adapter/next/actions";
 import { SettingsTemplate } from "templates/settings/Settings";
 
 export default async function SettingsRoute() {
@@ -16,6 +17,7 @@ export default async function SettingsRoute() {
     <SettingsTemplate
       currentLedgerName={currentLedger.name}
       logoutAction={logout}
+      updateTransactionColorSchemeAction={updateTransactionColorScheme}
     />
   );
 }

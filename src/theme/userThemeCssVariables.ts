@@ -4,6 +4,10 @@ import {
   type UserThemeKey,
   userThemeTokens,
 } from "./userThemeTokens";
+import {
+  defaultTransactionColorScheme,
+  type TransactionColorScheme,
+} from "internal/user";
 
 const dashboardHeroCatAssets = {
   amberWarmth: "/assets/kura-illustrations/dashboard-hero-cat-amber-warmth.png",
@@ -75,9 +79,17 @@ function createDashboardAccountEmptyImage(themeKey: UserThemeKey) {
   return `url("${dashboardAccountEmptyAssets[themeKey]}")`;
 }
 
-export function getUserThemeCssVariables(themeKey: UserThemeKey) {
+export function getUserThemeCssVariables(
+  themeKey: UserThemeKey,
+  transactionColorScheme: TransactionColorScheme = defaultTransactionColorScheme,
+) {
   const token = userThemeTokens[themeKey];
   const { palette, semantic, component } = token;
+  const isExpenseRed = transactionColorScheme === "expense_red_income_green";
+  const income = isExpenseRed ? semantic.income : semantic.expense;
+  const incomeBg = isExpenseRed ? semantic.incomeBg : semantic.expenseBg;
+  const expense = isExpenseRed ? semantic.expense : semantic.income;
+  const expenseBg = isExpenseRed ? semantic.expenseBg : semantic.incomeBg;
 
   return {
     "--user-theme-page-bg": createPageBackground(token),
@@ -97,23 +109,21 @@ export function getUserThemeCssVariables(themeKey: UserThemeKey) {
     "--user-theme-balance-text": palette.text,
     "--user-theme-section-text": palette.textMuted,
     "--user-theme-action-text": palette.accent,
-    "--user-theme-budget-bar-1": createSemanticGradient(
-      semantic.expenseBg,
-      semantic.expense,
-    ),
+    "--user-theme-budget-bar-1": createSemanticGradient(expenseBg, expense),
     "--user-theme-budget-bar-2": createSemanticGradient(
       semantic.transferBg,
       semantic.transfer,
     ),
-    "--user-theme-budget-bar-3": createSemanticGradient(
-      semantic.incomeBg,
-      semantic.income,
-    ),
-    "--user-theme-income-bg": semantic.incomeBg,
-    "--user-theme-income-amount": semantic.income,
+    "--user-theme-budget-bar-3": createSemanticGradient(incomeBg, income),
+    "--user-theme-income-bg": incomeBg,
+    "--user-theme-income-amount": income,
+    "--user-theme-feedback-error-bg": semantic.expenseBg,
+    "--user-theme-feedback-error-text": semantic.expense,
+    "--user-theme-feedback-success-bg": semantic.successBg,
+    "--user-theme-feedback-success-text": semantic.success,
     "--user-theme-transfer-bg": semantic.transferBg,
-    "--user-theme-negative-bg": semantic.expenseBg,
-    "--user-theme-negative-amount": semantic.expense,
+    "--user-theme-negative-bg": expenseBg,
+    "--user-theme-negative-amount": expense,
     "--user-theme-secondary-text": palette.textMuted,
     "--user-theme-stat-value-1": palette.accentDeep,
     "--user-theme-stat-value-2": palette.accent,

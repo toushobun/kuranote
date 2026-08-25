@@ -3,30 +3,20 @@ import { cache } from "react";
 
 import { routePaths } from "config/paths";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
-import { createAuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
+import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 
 export const getCurrentLedgerContext = cache(async () => {
   // cache() 的缓存范围是单次 server request。
   // redirect() 抛出的控制流即使在同一请求内被复用，也只会在该请求内重新触发跳转，不会跨请求污染登录状态。
-  const supabase = await createAuthenticatedSupabaseClient();
-  const { data, error } = await supabase.auth.getClaims();
+  const { auth, logger, supabase } = await createServerRequestDependencies();
 
-  if (error || !data?.claims) {
+  if (!auth.isAuthenticated) {
     redirect(routePaths.login);
   }
 
-  const userId = data.claims.sub;
-
-  if (typeof userId !== "string" || userId.length === 0) {
-    redirect(routePaths.login);
-  }
-
-  const email =
-    typeof data.claims.email === "string" ? data.claims.email : "登录用户";
-
-  return createSupabaseCurrentLedgerRepository(supabase).getContext(
-    userId,
-    email,
+  return createSupabaseCurrentLedgerRepository(supabase, logger).getContext(
+    auth.userId,
+    auth.email ?? "登录用户",
   );
 });
 

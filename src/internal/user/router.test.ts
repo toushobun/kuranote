@@ -22,6 +22,7 @@ const profile = {
   email: "user@example.com",
   id: userId,
   status: "active" as const,
+  transactionColorScheme: "expense_green_income_red" as const,
 };
 const authenticated: RequestDependencies["auth"] = {
   email: "user@example.com",
@@ -144,6 +145,43 @@ describe("user router", () => {
     expect(response.status).toBe(400);
     expect(updateCurrentProfile).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("更新收支配色方案时返回新用户资料", async () => {
+    const updatedProfile = {
+      ...profile,
+      transactionColorScheme: "expense_red_income_green" as const,
+    };
+    const updateCurrentProfile = vi.fn().mockResolvedValue(updatedProfile);
+    const app = createApp(createContainer({ updateCurrentProfile }));
+
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({
+        transactionColorScheme: "expense_red_income_green",
+      }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(updatedProfile);
+    expect(updateCurrentProfile).toHaveBeenCalledWith({
+      transactionColorScheme: "expense_red_income_green",
+    });
+  });
+
+  it("非法收支配色方案返回 400 且不调用 Service", async () => {
+    const updateCurrentProfile = vi.fn();
+    const app = createApp(createContainer({ updateCurrentProfile }));
+
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({ transactionColorScheme: "invalid" }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(400);
+    expect(updateCurrentProfile).not.toHaveBeenCalled();
   });
 
   it("更新失败时返回应用错误且不触发缓存失效", async () => {

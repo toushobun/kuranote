@@ -12,12 +12,20 @@ import { SettingsTemplate } from "./Settings";
 vi.mock("molecules/theme/UserThemePicker", () => ({
   UserThemePicker: () => <div>主题选择器</div>,
 }));
+vi.mock(
+  "molecules/theme/TransactionColorSchemePicker/TransactionColorSchemePicker",
+  () => ({
+    TransactionColorSchemePicker: () => <div>收支颜色选择器</div>,
+  }),
+);
 
 const logoutAction = vi.fn();
+const updateTransactionColorSchemeAction = vi.fn();
 
 afterEach(() => {
   cleanup();
   logoutAction.mockClear();
+  updateTransactionColorSchemeAction.mockClear();
 });
 
 function renderSettingsTemplate() {
@@ -25,6 +33,7 @@ function renderSettingsTemplate() {
     <SettingsTemplate
       currentLedgerName="家庭账本"
       logoutAction={logoutAction}
+      updateTransactionColorSchemeAction={updateTransactionColorSchemeAction}
     />,
   );
 }
@@ -43,6 +52,7 @@ describe("SettingsTemplate", () => {
     for (const label of [
       "个人主页",
       "主题换装",
+      "收支颜色",
       "商家管理",
       "语言设置",
       "数据导入导出",
@@ -98,5 +108,48 @@ describe("SettingsTemplate", () => {
 
     expect(screen.getByText("主题选择器")).toBeInTheDocument();
     expect(screen.queryByText("正在准备中")).not.toBeInTheDocument();
+  });
+
+  it("收支颜色入口位于主题换装与账本管理之间并可展开", () => {
+    const { container } = renderSettingsTemplate();
+    const themeEntry = within(container).getByRole("button", {
+      name: /主题换装/,
+    });
+    const colorEntry = within(container).getByRole("button", {
+      name: /收支颜色/,
+    });
+    const ledgerEntry = within(container).getByRole("link", {
+      name: /账本管理/,
+    });
+
+    expect(
+      themeEntry.compareDocumentPosition(colorEntry) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      colorEntry.compareDocumentPosition(ledgerEntry) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(colorEntry);
+
+    expect(screen.getByText("收支颜色选择器")).toBeInTheDocument();
+  });
+
+  it("展开一个选择器时收起另一个选择器", () => {
+    const { container } = renderSettingsTemplate();
+    const themeEntry = within(container).getByRole("button", {
+      name: /主题换装/,
+    });
+    const colorEntry = within(container).getByRole("button", {
+      name: /收支颜色/,
+    });
+
+    fireEvent.click(themeEntry);
+    expect(themeEntry).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(colorEntry);
+    expect(themeEntry).toHaveAttribute("aria-expanded", "false");
+    expect(colorEntry).toHaveAttribute("aria-expanded", "true");
   });
 });
