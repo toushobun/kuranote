@@ -165,13 +165,7 @@ export function TransactionRow({
               {merchantName}
             </Typography>
 
-            <Stack
-              sx={{
-                alignItems: "flex-end",
-                flexShrink: 0,
-                position: "relative",
-              }}
-            >
+            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
               <Typography
                 sx={{
                   color: amountColor,
@@ -186,12 +180,7 @@ export function TransactionRow({
               {statisticsAdjustment ? (
                 <Typography
                   component="span"
-                  sx={{
-                    ...transactionOriginalAmountTextSx,
-                    position: "absolute",
-                    right: 0,
-                    top: "100%",
-                  }}
+                  sx={transactionOriginalAmountTextSx}
                   variant="caption"
                 >
                   {getStatisticsAdjustmentMessage(statisticsAdjustment)}
