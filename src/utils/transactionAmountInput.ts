@@ -42,7 +42,9 @@ export function createAmountKeypadState(displayValue = ""): AmountKeypadState {
 }
 
 export function getAmountDecimalPlaces(currency?: string) {
-  return currency?.toUpperCase() === "JPY" ? 0 : 2;
+  if (!currency) return 0;
+
+  return currency.toUpperCase() === "JPY" ? 0 : 2;
 }
 
 export function isValidMoneyText(

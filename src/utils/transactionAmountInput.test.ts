@@ -14,11 +14,11 @@ import {
 
 describe("transactionAmountInput", () => {
   it("校验最多两位小数的金额格式", () => {
-    expect(isValidMoneyText("1200")).toBe(true);
-    expect(isValidMoneyText("1200.5")).toBe(true);
-    expect(isValidMoneyText("1200.50")).toBe(true);
-    expect(isValidMoneyText("1200.500")).toBe(false);
-    expect(isValidMoneyText("12..5")).toBe(false);
+    expect(isValidMoneyText("1200", { currency: "USD" })).toBe(true);
+    expect(isValidMoneyText("1200.5", { currency: "USD" })).toBe(true);
+    expect(isValidMoneyText("1200.50", { currency: "USD" })).toBe(true);
+    expect(isValidMoneyText("1200.500", { currency: "USD" })).toBe(false);
+    expect(isValidMoneyText("12..5", { currency: "USD" })).toBe(false);
   });
 
   it("限制整数位数，避免无限长金额", () => {
@@ -34,7 +34,7 @@ describe("transactionAmountInput", () => {
   it("正数金额不允许空值和 0", () => {
     expect(isValidPositiveMoneyText("")).toBe(false);
     expect(isValidPositiveMoneyText("0")).toBe(false);
-    expect(isValidPositiveMoneyText("0.01")).toBe(true);
+    expect(isValidPositiveMoneyText("0.01", { currency: "USD" })).toBe(true);
   });
 
   it("JPY 使用整数金额，不允许多余小数", () => {
@@ -44,26 +44,44 @@ describe("transactionAmountInput", () => {
     expect(normalizeMoneyText("001200", { currency: "JPY" })).toBe("1200");
   });
 
+  it("未选择账户、币种未知时按整数金额处理，不允许小数", () => {
+    expect(getAmountDecimalPlaces()).toBe(0);
+    expect(getAmountDecimalPlaces("")).toBe(0);
+    expect(isValidMoneyText("1200")).toBe(true);
+    expect(isValidMoneyText("1200.1")).toBe(false);
+    expect(normalizeMoneyText("001200")).toBe("1200");
+  });
+
   it("规范化金额时去掉前导零和多余小数 0", () => {
-    expect(normalizeMoneyText("001.20")).toBe("1.2");
-    expect(normalizeMoneyText("001.00")).toBe("1");
+    expect(normalizeMoneyText("001.20", { currency: "USD" })).toBe("1.2");
+    expect(normalizeMoneyText("001.00", { currency: "USD" })).toBe("1");
   });
 
   it("按键输入支持数字、小数点、删除和清空", () => {
+    const options = { currency: "USD" };
     let state = createAmountKeypadState();
-    state = applyAmountKeypadKey(state, "1");
-    state = applyAmountKeypadKey(state, ".");
-    state = applyAmountKeypadKey(state, "2");
-    state = applyAmountKeypadKey(state, "3");
-    state = applyAmountKeypadKey(state, "4");
+    state = applyAmountKeypadKey(state, "1", options);
+    state = applyAmountKeypadKey(state, ".", options);
+    state = applyAmountKeypadKey(state, "2", options);
+    state = applyAmountKeypadKey(state, "3", options);
+    state = applyAmountKeypadKey(state, "4", options);
 
     expect(state.displayValue).toBe("1.23");
 
-    state = applyAmountKeypadKey(state, "backspace");
+    state = applyAmountKeypadKey(state, "backspace", options);
     expect(state.displayValue).toBe("1.2");
 
-    state = applyAmountKeypadKey(state, "clear");
+    state = applyAmountKeypadKey(state, "clear", options);
     expect(state.displayValue).toBe("");
+  });
+
+  it("未选择账户、币种未知时小数点按键不可用", () => {
+    let state = createAmountKeypadState();
+    state = applyAmountKeypadKey(state, "1");
+    state = applyAmountKeypadKey(state, ".");
+    state = applyAmountKeypadKey(state, "5");
+
+    expect(state.displayValue).toBe("15");
   });
 
   it("JPY 金额输入会忽略小数点", () => {
@@ -76,15 +94,16 @@ describe("transactionAmountInput", () => {
   });
 
   it("支持简单加减后确认", () => {
+    const options = { currency: "USD" };
     let state = createAmountKeypadState();
-    state = applyAmountKeypadKey(state, "1");
-    state = applyAmountKeypadKey(state, "0");
-    state = applyAmountKeypadKey(state, "+");
-    state = applyAmountKeypadKey(state, "2");
-    state = applyAmountKeypadKey(state, ".");
-    state = applyAmountKeypadKey(state, "5");
+    state = applyAmountKeypadKey(state, "1", options);
+    state = applyAmountKeypadKey(state, "0", options);
+    state = applyAmountKeypadKey(state, "+", options);
+    state = applyAmountKeypadKey(state, "2", options);
+    state = applyAmountKeypadKey(state, ".", options);
+    state = applyAmountKeypadKey(state, "5", options);
 
-    const result = confirmAmountKeypadState(state);
+    const result = confirmAmountKeypadState(state, options);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value).toBe("12.5");
