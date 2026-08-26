@@ -56,17 +56,20 @@ function createService(
   repository = createRepository(),
   categoryType?: "expense" | "income",
 ) {
+  const accountQueryService = {
+    getTransactionContext: vi.fn().mockResolvedValue({
+      accountColorById: new Map(),
+      accounts: [],
+      showRecorder: false,
+    }),
+    listTransactionOptions: vi.fn().mockResolvedValue([]),
+  };
+
   return {
+    accountQueryService,
     repository,
     service: createTransactionService({
-      accountQueryService: {
-        getTransactionContext: vi.fn().mockResolvedValue({
-          accountColorById: new Map(),
-          accounts: [],
-          showRecorder: false,
-        }),
-        listTransactionOptions: vi.fn(),
-      },
+      accountQueryService,
       categoryQueryService: {
         findSummariesByIds: vi.fn().mockResolvedValue(
           categoryType
@@ -434,6 +437,64 @@ describe("TransactionService", () => {
       service.updateNormal({ ...normalInput, transactionRecordId }),
     ).rejects.toBeInstanceOf(AuthorizationError);
     expect(repository.updateNormal).not.toHaveBeenCalled();
+  });
+
+  it("转账引用已归档账户时服务端拒绝绕过页面编辑", async () => {
+    const archivedAccountId = "00000000-0000-4000-8000-000000000046";
+    const replacementAccountId = "00000000-0000-4000-8000-000000000047";
+    const replacementTargetAccountId = "00000000-0000-4000-8000-000000000048";
+    const repository = createRepository({
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: normalInput.accountId,
+          amount: "1200",
+          balance_delta: "-1200",
+          category_id: null,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+        {
+          account_id: archivedAccountId,
+          amount: "1200",
+          balance_delta: "1200",
+          category_id: null,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const { accountQueryService, service } = createService(
+      "member",
+      repository,
+    );
+    accountQueryService.listTransactionOptions.mockResolvedValue([
+      {
+        currency: "USD",
+        id: replacementAccountId,
+        name: "美元账户",
+      },
+      {
+        currency: "USD",
+        id: replacementTargetAccountId,
+        name: "美元储蓄账户",
+      },
+    ]);
+
+    await expect(
+      service.updateTransfer({
+        accountId: replacementAccountId,
+        ledgerId,
+        note: null,
+        transactionAt: "2026-06-04T01:00:00.000Z",
+        transactionRecordId,
+        transferAmount: 1200,
+        transferTargetAccountId: replacementTargetAccountId,
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.accountInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.updateTransfer).not.toHaveBeenCalled();
   });
 
   it.each(["owner", "admin"] as const)(

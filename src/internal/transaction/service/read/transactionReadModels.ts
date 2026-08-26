@@ -138,7 +138,7 @@ export type NewTransactionView = TransactionFormOptions & {
 
 export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
-  editRestriction: "linked" | "permission" | null;
+  editRestriction: "archivedAccount" | "linked" | "permission" | null;
   initialValues:
     | TransferEditInitialValues
     | {

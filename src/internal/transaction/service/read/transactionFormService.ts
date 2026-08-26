@@ -85,11 +85,20 @@ export async function getEditTransactionView(
     ) {
       return null;
     }
+    const hasArchivedAccount = ![fromItem.account_id, toItem.account_id].every(
+      (accountId) =>
+        options.accountOptions.some((account) => account.id === accountId),
+    );
+    const transferEditRestriction = canModify
+      ? hasArchivedAccount
+        ? "archivedAccount"
+        : null
+      : "permission";
 
     return {
       ...options,
-      canEdit,
-      editRestriction,
+      canEdit: canModify && !hasArchivedAccount,
+      editRestriction: transferEditRestriction,
       initialValues: {
         accountId: fromItem.account_id,
         note: record.note ?? "",

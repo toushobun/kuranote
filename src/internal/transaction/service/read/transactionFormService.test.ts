@@ -256,6 +256,73 @@ describe("getEditTransactionView", () => {
     } satisfies TransferEditInitialValues);
   });
 
+  it("转账引用已归档账户时禁止编辑且权限限制优先", async () => {
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: null,
+        note: "账户调拨",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "transfer",
+      }),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "5000.00",
+          balance_delta: "-5000.00",
+          category_id: null,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+        {
+          account_id: targetAccountId,
+          amount: "5000.00",
+          balance_delta: "5000.00",
+          category_id: null,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const dependencies = createDependencies(repository);
+    vi.mocked(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]);
+
+    const view = await getEditTransactionView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "archivedAccount",
+    });
+
+    vi.mocked(repository.findActiveRecord).mockResolvedValue({
+      created_at: "2026-06-04T01:00:00.000Z",
+      created_by: otherUserId,
+      id: transactionRecordId,
+      merchant_id: null,
+      note: "账户调拨",
+      transaction_at: "2026-06-04T01:30:05.000Z",
+      type: "transfer",
+    });
+    const permissionView = await getEditTransactionView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(permissionView).toMatchObject({
+      canEdit: false,
+      editRestriction: "permission",
+    });
+  });
+
   it("转账明细结构损坏时返回 null", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({

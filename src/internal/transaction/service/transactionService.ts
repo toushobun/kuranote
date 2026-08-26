@@ -13,7 +13,10 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  getTransactionValidationErrorMessage,
+  transactionErrorCodes,
+} from "internal/transaction/errors";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -297,6 +300,38 @@ export function createTransactionService({
     }
   }
 
+  async function requireActiveTransferAccounts(
+    input: UpdateTransferTransactionInput,
+  ) {
+    const userId = requireTransactionUserId(currentUserId);
+    const [accountOptions, existingItems] = await Promise.all([
+      accountQueryService.listTransactionOptions({
+        ledgerId: input.ledgerId,
+        userId,
+      }),
+      transactionRepository.listItems(input.ledgerId, [
+        input.transactionRecordId,
+      ]),
+    ]);
+    const activeAccountIds = new Set(
+      accountOptions.map((account) => account.id),
+    );
+    const accountIds = [
+      input.accountId,
+      input.transferTargetAccountId,
+      ...existingItems.map((item) => item.account_id),
+    ];
+
+    if (accountIds.some((accountId) => !activeAccountIds.has(accountId))) {
+      throw new ValidationError(
+        transactionErrorCodes.accountInvalid,
+        getTransactionValidationErrorMessage(
+          transactionErrorCodes.accountInvalid,
+        )!,
+      );
+    }
+  }
+
   return {
     async canModify({ ledgerId, transactionRecordId }) {
       try {
@@ -460,6 +495,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      await requireActiveTransferAccounts(input);
       try {
         await transactionRepository.updateTransfer(input);
       } catch (error) {

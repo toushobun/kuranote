@@ -228,20 +228,30 @@ export function TransactionPermissionDenied({
   reason = "permission",
 }: {
   operation: "edit" | "create";
-  reason?: "linked" | "permission";
+  reason?: "archivedAccount" | "linked" | "permission";
 }) {
   const operationLabel = operation === "create" ? "新增" : "编辑";
   const isLinked = operation === "edit" && reason === "linked";
+  const hasArchivedAccount =
+    operation === "edit" && reason === "archivedAccount";
 
   return (
     <Stack spacing={2}>
       <TransactionPageTopBar title={`${operationLabel}记账`} />
       <ErrorState
-        title={isLinked ? "该交易不能编辑" : `无法${operationLabel}记账`}
+        title={
+          hasArchivedAccount
+            ? "该转账不能编辑"
+            : isLinked
+              ? "该交易不能编辑"
+              : `无法${operationLabel}记账`
+        }
         description={
-          isLinked
-            ? "该交易已关联报销或退款，不能编辑。"
-            : `当前账本角色没有${operationLabel}记账的权限。`
+          hasArchivedAccount
+            ? "转出或转入账户已被删除，请先恢复该账户后再编辑这笔转账。"
+            : isLinked
+              ? "该交易已关联报销或退款，不能编辑。"
+              : `当前账本角色没有${operationLabel}记账的权限。`
         }
         action={
           <Button
