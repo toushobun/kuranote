@@ -397,7 +397,7 @@ describe("TransactionRow", () => {
     expect(screen.getByText("原金额 + ¥ 100")).toBeInTheDocument();
   });
 
-  it("完全抵消的支出显示原始金额和不计入支出", () => {
+  it("完全抵消的支出显示净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -418,12 +418,12 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("- $ 100")).toBeInTheDocument();
-    expect(screen.getByText("不计入支出")).toBeInTheDocument();
-    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+    expect(screen.getByText("$ 0")).toBeInTheDocument();
+    expect(screen.getByText("原金额 - $ 100")).toBeInTheDocument();
+    expect(screen.queryByText("不计入支出")).not.toBeInTheDocument();
   });
 
-  it("已核销的退款收入显示原始金额和不计入收入", () => {
+  it("已核销的退款收入显示净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -445,9 +445,9 @@ describe("TransactionRow", () => {
       />,
     );
 
-    expect(screen.getByText("+ ¥ 2,000")).toBeInTheDocument();
-    expect(screen.getByText("不计入收入")).toBeInTheDocument();
-    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+    expect(screen.getByText("¥ 0")).toBeInTheDocument();
+    expect(screen.getByText("原金额 + ¥ 2,000")).toBeInTheDocument();
+    expect(screen.queryByText("不计入收入")).not.toBeInTheDocument();
   });
 
   it("尚未核销的待报销支出仍计入支出", () => {

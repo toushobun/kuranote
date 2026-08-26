@@ -263,7 +263,7 @@ export const PartiallyExcluded: Story = {
 };
 
 export const FullyOffsetRefundIncome: Story = {
-  name: "完全抵消的退款收入",
+  name: "完全抵消的退款收入（净额与原金额）",
   args: {
     item: {
       ...businessStatusItem,
@@ -277,7 +277,7 @@ export const FullyOffsetRefundIncome: Story = {
 };
 
 export const FullyOffsetReimbursementIncome: Story = {
-  name: "完全抵消的报销收入",
+  name: "完全抵消的报销收入（净额与原金额）",
   args: {
     item: {
       ...businessStatusItem,

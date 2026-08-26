@@ -65,8 +65,7 @@ export function TransactionRow({
     : (item.merchant_name ?? "未知商家");
   const statisticsAdjustment = getStatisticsAdjustment(item);
   const shouldDisplayOriginalAmount =
-    (statisticsAdjustment?.kind === "fullyExcluded" ||
-      statisticsAdjustment?.kind === "partiallyOffset") &&
+    statisticsAdjustment?.kind === "partiallyOffset" &&
     item.originalAmount !== undefined;
   const displayedAmountType = shouldDisplayOriginalAmount
     ? (item.originalType ?? statisticsAdjustment.type ?? item.type)
@@ -94,24 +93,35 @@ export function TransactionRow({
   const detailText = [categorySummaryText, item.note]
     .filter(Boolean)
     .join(" | ");
-  const adjustmentNode = statisticsAdjustment ? (
-    <Typography
-      component="span"
-      noWrap
-      sx={{ ...transactionOriginalAmountTextSx, lineHeight: 1.3 }}
-      variant="caption"
-    >
-      {getStatisticsAdjustmentMessage(statisticsAdjustment)}
-    </Typography>
-  ) : item.originalAmount !== undefined ? (
-    <TransactionOriginalAmount
-      amount={formatTransactionRowAmount(
-        item.originalType ?? item.type,
-        item.originalAmount,
-        item.account_currency,
-      )}
-    />
-  ) : null;
+  const adjustmentNode =
+    statisticsAdjustment?.kind === "fullyExcluded" ? (
+      item.originalAmount !== undefined ? (
+        <TransactionOriginalAmount
+          amount={formatTransactionRowAmount(
+            item.originalType ?? statisticsAdjustment.type ?? item.type,
+            item.originalAmount,
+            item.account_currency,
+          )}
+        />
+      ) : null
+    ) : statisticsAdjustment ? (
+      <Typography
+        component="span"
+        noWrap
+        sx={{ ...transactionOriginalAmountTextSx, lineHeight: 1.3 }}
+        variant="caption"
+      >
+        {getStatisticsAdjustmentMessage(statisticsAdjustment)}
+      </Typography>
+    ) : item.originalAmount !== undefined ? (
+      <TransactionOriginalAmount
+        amount={formatTransactionRowAmount(
+          item.originalType ?? item.type,
+          item.originalAmount,
+          item.account_currency,
+        )}
+      />
+    ) : null;
 
   const metaSegments = [
     showAccount
@@ -405,16 +415,6 @@ function getCommonCategoryType(
 function getStatisticsAdjustmentMessage(adjustment: StatisticsAdjustment) {
   if (adjustment.kind === "partiallyOffset") {
     return transactionAmountMessages.partiallyOffset;
-  }
-
-  if (adjustment.kind === "fullyExcluded") {
-    if (adjustment.type === "income") {
-      return transactionAmountMessages.notIncludedInIncome;
-    }
-    if (adjustment.type === "expense") {
-      return transactionAmountMessages.notIncludedInExpense;
-    }
-    return transactionAmountMessages.notIncludedInStatistics;
   }
 
   if (adjustment.type === "income") {

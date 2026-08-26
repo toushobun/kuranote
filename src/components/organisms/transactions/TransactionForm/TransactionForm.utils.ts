@@ -63,7 +63,7 @@ export function getTransactionItemAmountPresentation(
     adjustment,
     displayAmount:
       adjustment === "fullyExcluded"
-        ? amount
+        ? (businessNetAmount ?? amount)
         : isSurplus
           ? String(Math.abs(businessNetAmountValue))
           : (businessNetAmount ?? amount),
@@ -79,15 +79,9 @@ export function getTransactionItemAmountPresentation(
 
 export function getTransactionItemAdjustmentMessage(
   adjustment: "fullyExcluded" | "partiallyOffset" | null,
-  type: TransactionType,
 ) {
   if (adjustment === "partiallyOffset") {
     return transactionAmountMessages.partiallyOffset;
-  }
-  if (adjustment === "fullyExcluded") {
-    return type === "income"
-      ? transactionAmountMessages.notIncludedInIncome
-      : transactionAmountMessages.notIncludedInExpense;
   }
   return null;
 }
