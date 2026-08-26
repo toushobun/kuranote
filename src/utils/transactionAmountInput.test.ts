@@ -7,12 +7,21 @@ import {
   getAmountDecimalPlaces,
   getAmountKeypadExpressionText,
   getAmountKeypadPreviewValue,
+  isDecimalAmountDisabled,
   isValidMoneyText,
   isValidPositiveMoneyText,
   normalizeMoneyText,
 } from "./transactionAmountInput";
 
 describe("transactionAmountInput", () => {
+  it("根据币种判断是否禁用小数输入", () => {
+    expect(isDecimalAmountDisabled("JPY")).toBe(true);
+    expect(isDecimalAmountDisabled("jpy")).toBe(true);
+    expect(isDecimalAmountDisabled("USD")).toBe(false);
+    expect(isDecimalAmountDisabled()).toBe(true);
+    expect(isDecimalAmountDisabled("")).toBe(true);
+  });
+
   it("已知非日元币种时校验最多两位小数的金额格式", () => {
     expect(getAmountDecimalPlaces("USD")).toBe(2);
     expect(isValidMoneyText("1200", { currency: "USD" })).toBe(true);
