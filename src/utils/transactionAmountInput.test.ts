@@ -13,7 +13,8 @@ import {
 } from "./transactionAmountInput";
 
 describe("transactionAmountInput", () => {
-  it("校验最多两位小数的金额格式", () => {
+  it("已知非日元币种时校验最多两位小数的金额格式", () => {
+    expect(getAmountDecimalPlaces("USD")).toBe(2);
     expect(isValidMoneyText("1200", { currency: "USD" })).toBe(true);
     expect(isValidMoneyText("1200.5", { currency: "USD" })).toBe(true);
     expect(isValidMoneyText("1200.50", { currency: "USD" })).toBe(true);
@@ -49,7 +50,9 @@ describe("transactionAmountInput", () => {
     expect(getAmountDecimalPlaces("")).toBe(0);
     expect(isValidMoneyText("1200")).toBe(true);
     expect(isValidMoneyText("1200.1")).toBe(false);
+    expect(isValidPositiveMoneyText("0.01")).toBe(false);
     expect(normalizeMoneyText("001200")).toBe("1200");
+    expect(normalizeMoneyText("001.20")).toBeNull();
   });
 
   it("规范化金额时去掉前导零和多余小数 0", () => {
