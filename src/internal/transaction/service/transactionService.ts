@@ -45,6 +45,7 @@ import {
   loadStep4TransactionGroupView,
 } from "internal/transaction/service/read/groupLoaders";
 import {
+  areAccountIdsAvailable,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -313,16 +314,13 @@ export function createTransactionService({
         input.transactionRecordId,
       ]),
     ]);
-    const activeAccountIds = new Set(
-      accountOptions.map((account) => account.id),
-    );
     const accountIds = [
       input.accountId,
       input.transferTargetAccountId,
       ...existingItems.map((item) => item.account_id),
     ];
 
-    if (accountIds.some((accountId) => !activeAccountIds.has(accountId))) {
+    if (!areAccountIdsAvailable(accountIds, accountOptions)) {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
         getTransactionValidationErrorMessage(

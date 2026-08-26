@@ -32,6 +32,16 @@ type TransactionFormReadDependencies =
     transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
   };
 
+export function areAccountIdsAvailable(
+  accountIds: readonly string[],
+  accountOptions: readonly { id: string }[],
+): boolean {
+  const availableAccountIds = new Set(
+    accountOptions.map((account) => account.id),
+  );
+  return accountIds.every((accountId) => availableAccountIds.has(accountId));
+}
+
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
@@ -85,9 +95,9 @@ export async function getEditTransactionView(
     ) {
       return null;
     }
-    const hasArchivedAccount = ![fromItem.account_id, toItem.account_id].every(
-      (accountId) =>
-        options.accountOptions.some((account) => account.id === accountId),
+    const hasArchivedAccount = !areAccountIdsAvailable(
+      [fromItem.account_id, toItem.account_id],
+      options.accountOptions,
     );
     const transferEditRestriction = canModify
       ? hasArchivedAccount
