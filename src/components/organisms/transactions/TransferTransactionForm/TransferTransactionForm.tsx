@@ -145,7 +145,9 @@ export function TransferTransactionForm({
     !!sourceAccount &&
     !!targetAccount &&
     sourceAccount.currency !== targetAccount.currency;
-  const isAmountInvalid = !isValidPositiveMoneyText(transferAmount);
+  const isAmountInvalid = !isValidPositiveMoneyText(transferAmount, {
+    currency: sourceAccount?.currency,
+  });
   const isNoteTooLong = note.length > maxNoteLength;
 
   const isSubmitDisabled =
