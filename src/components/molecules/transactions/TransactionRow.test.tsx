@@ -48,6 +48,15 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.getByText("便利店")).toBeInTheDocument();
   });
+  it("商家名与金额使用统一行高并按基线对齐", () => {
+    render(<TransactionRow item={createItem()} receiptCard />);
+    const merchant = screen.getByText("便利店");
+    const amount = screen.getByText("- ¥ 1,234");
+
+    expect(merchant).toHaveStyle({ lineHeight: "1.15" });
+    expect(amount).toHaveStyle({ lineHeight: "1.15" });
+    expect(merchant.parentElement).toHaveStyle({ alignItems: "baseline" });
+  });
   it("支出记录显示币种符号和负号金额", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.getByText("- ¥ 1,234")).toBeInTheDocument();
