@@ -166,7 +166,7 @@ export function TransactionRow({
             direction="row"
             spacing={1}
             sx={{
-              alignItems: "flex-start",
+              alignItems: "baseline",
               justifyContent: "space-between",
               minWidth: 0,
             }}
@@ -178,6 +178,7 @@ export function TransactionRow({
                 flex: 1,
                 fontSize: 15,
                 fontWeight: 900,
+                lineHeight: 1.15,
                 minWidth: 0,
               }}
             >

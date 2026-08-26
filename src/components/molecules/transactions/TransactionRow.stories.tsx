@@ -445,6 +445,30 @@ export const ManyIncomeCategories: Story = {
   },
 };
 
+export const TitleAlignmentAndMetaSpacingComparison: Story = {
+  name: "商家名与金额对齐及元信息行间距对比",
+  render: () => (
+    <Stack divider={<Divider />}>
+      {/* 同时覆盖真实明细列表的 15px 金额和小票卡片的 18px 金额，
+          用于核对第一行文字基线及第一行到 meta 行的垂直间距。 */}
+      <TransactionRow
+        item={{ ...expenseItem, originalAmount: "3000" }}
+        receiptCard={false}
+        showAccount
+        showRecorder
+        showTime
+      />
+      <TransactionRow
+        item={{ ...expenseItem, originalAmount: "3000" }}
+        receiptCard
+        showAccount
+        showRecorder
+        showTime
+      />
+    </Stack>
+  ),
+};
+
 export const MerchantToMetaGapComparison: Story = {
   name: "商家名到元信息行间距对比",
   render: () => {
