@@ -45,6 +45,12 @@ const usdAccount = {
   currency: "USD",
 };
 
+const usdAccount2 = {
+  id: "00000000-0000-4000-8000-000000000048",
+  name: "美元储蓄账户",
+  currency: "USD",
+};
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -231,6 +237,30 @@ describe("TransferTransactionForm", () => {
     });
 
     expect(getSaveButton(container)).toHaveProperty("disabled", false);
+  });
+
+  it("非日元账户下输入带小数金额提交时不报错", () => {
+    const { container } = renderForm({
+      accountOptions: [usdAccount, usdAccount2],
+    });
+
+    fireEvent.mouseDown(
+      within(container).getByRole("combobox", { name: "转出账户" }),
+    );
+    fireEvent.click(screen.getByText("美元账户（USD）"));
+
+    fireEvent.mouseDown(
+      within(container).getByRole("combobox", { name: "转入账户" }),
+    );
+    fireEvent.click(screen.getAllByText("美元储蓄账户（USD）").at(-1)!);
+
+    fireEvent.change(within(container).getByRole("textbox", { name: "金额" }), {
+      target: { value: "1234.56" },
+    });
+
+    fireEvent.submit(container.querySelector("form")!);
+
+    expect(within(container).queryByText("请输入有效金额。")).toBeNull();
   });
 
   it("渲染保存前汇总区域", () => {

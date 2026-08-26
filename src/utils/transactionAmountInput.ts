@@ -41,8 +41,14 @@ export function createAmountKeypadState(displayValue = ""): AmountKeypadState {
   };
 }
 
+/** 未知币种与 JPY 都禁用小数输入；这不表示未知币种就是日元。 */
+export function isDecimalAmountDisabled(currency?: string) {
+  return !currency || currency.toUpperCase() === "JPY";
+}
+
+/** 未知币种故意按 0 位小数处理，避免选定账户前输入小数金额。 */
 export function getAmountDecimalPlaces(currency?: string) {
-  return currency?.toUpperCase() === "JPY" ? 0 : 2;
+  return isDecimalAmountDisabled(currency) ? 0 : 2;
 }
 
 export function isValidMoneyText(

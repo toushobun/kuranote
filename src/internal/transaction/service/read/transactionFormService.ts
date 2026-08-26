@@ -32,6 +32,16 @@ type TransactionFormReadDependencies =
     transactionIncomeLinkRepository?: TransactionIncomeLinkRepository;
   };
 
+export function areAccountIdsAvailable(
+  accountIds: readonly string[],
+  accountOptions: readonly { id: string }[],
+): boolean {
+  const availableAccountIds = new Set(
+    accountOptions.map((account) => account.id),
+  );
+  return accountIds.every((accountId) => availableAccountIds.has(accountId));
+}
+
 export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
@@ -67,8 +77,16 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
-  const canEdit = canModify;
-  const editRestriction = canModify ? null : "permission";
+  const hasArchivedAccount = !areAccountIdsAvailable(
+    items.map((item) => item.account_id),
+    options.accountOptions,
+  );
+  const canEdit = canModify && !hasArchivedAccount;
+  const editRestriction = canModify
+    ? hasArchivedAccount
+      ? "archivedAccount"
+      : null
+    : "permission";
 
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
@@ -85,7 +103,6 @@ export async function getEditTransactionView(
     ) {
       return null;
     }
-
     return {
       ...options,
       canEdit,

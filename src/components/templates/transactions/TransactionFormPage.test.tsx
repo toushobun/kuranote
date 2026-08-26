@@ -353,6 +353,22 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(container).getByRole("link", { name: "返回明细" }),
       ).toHaveAttribute("href", "/transactions");
     });
+
+    it("交易账户已归档时显示恢复账户提示", () => {
+      const { container } = render(
+        <TransactionPermissionDenied
+          operation="edit"
+          reason="archivedAccount"
+        />,
+      );
+
+      expect(within(container).getByRole("alert")).toHaveTextContent(
+        "该交易不能编辑",
+      );
+      expect(within(container).getByRole("alert")).toHaveTextContent(
+        "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
+      );
+    });
   });
 });
 describe("EditTransactionTemplate", () => {

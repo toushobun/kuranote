@@ -206,6 +206,21 @@ describe("TransactionAmountKeypad", () => {
     );
   });
 
+  it("未选择账户、币种未知时小数点按钮不可用", () => {
+    render(
+      <TransactionAmountKeypad
+        value=""
+        onChange={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "." })).toHaveProperty(
+      "disabled",
+      true,
+    );
+  });
+
   it("可以确认 0 金额", () => {
     const handleConfirm = vi.fn();
 

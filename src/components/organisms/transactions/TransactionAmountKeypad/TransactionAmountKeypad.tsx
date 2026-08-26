@@ -12,9 +12,9 @@ import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
   createAmountKeypadState,
-  getAmountDecimalPlaces,
   getAmountKeypadExpressionText,
   getAmountKeypadPreviewValue,
+  isDecimalAmountDisabled,
   type AmountKeypadKey,
   type AmountKeypadState,
 } from "utils/transactionAmountInput";
@@ -86,7 +86,7 @@ export function TransactionAmountKeypad({
     withExternalValue(createAmountKeypadState(value), value),
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const decimalDisabled = getAmountDecimalPlaces(currency) === 0;
+  const decimalDisabled = isDecimalAmountDisabled(currency);
   const syncedState = getSyncedAmountKeypadState(state, value);
   const previewValue = getAmountKeypadPreviewValue(syncedState, { currency });
   const expressionText = getAmountKeypadExpressionText(syncedState);

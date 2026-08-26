@@ -13,7 +13,10 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  getTransactionValidationErrorMessage,
+  transactionErrorCodes,
+} from "internal/transaction/errors";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -42,6 +45,7 @@ import {
   loadStep4TransactionGroupView,
 } from "internal/transaction/service/read/groupLoaders";
 import {
+  areAccountIdsAvailable,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -297,6 +301,36 @@ export function createTransactionService({
     }
   }
 
+  async function requireActiveTransactionAccounts(input: {
+    accountIds: string[];
+    ledgerId: string;
+    transactionRecordId: string;
+  }) {
+    const userId = requireTransactionUserId(currentUserId);
+    const [accountOptions, existingItems] = await Promise.all([
+      accountQueryService.listTransactionOptions({
+        ledgerId: input.ledgerId,
+        userId,
+      }),
+      transactionRepository.listItems(input.ledgerId, [
+        input.transactionRecordId,
+      ]),
+    ]);
+    const accountIds = [
+      ...input.accountIds,
+      ...existingItems.map((item) => item.account_id),
+    ];
+
+    if (!areAccountIdsAvailable(accountIds, accountOptions)) {
+      throw new ValidationError(
+        transactionErrorCodes.accountInvalid,
+        getTransactionValidationErrorMessage(
+          transactionErrorCodes.accountInvalid,
+        )!,
+      );
+    }
+  }
+
   return {
     async canModify({ ledgerId, transactionRecordId }) {
       try {
@@ -448,6 +482,11 @@ export function createTransactionService({
         input.transactionRecordId,
       );
       await validateSpecialStatuses(input);
+      await requireActiveTransactionAccounts({
+        accountIds: [input.accountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
+      });
       try {
         await transactionRepository.updateNormal(input);
       } catch (error) {
@@ -460,6 +499,11 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      await requireActiveTransactionAccounts({
+        accountIds: [input.accountId, input.transferTargetAccountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
+      });
       try {
         await transactionRepository.updateTransfer(input);
       } catch (error) {
