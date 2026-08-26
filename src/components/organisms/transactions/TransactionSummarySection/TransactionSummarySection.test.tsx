@@ -93,7 +93,7 @@ describe("TransactionSummarySection", () => {
     ).toBeTruthy();
   });
 
-  it("完全核销的明细显示原始金额和不计入支出提示", () => {
+  it("完全核销的明细显示净额和原金额", () => {
     render(
       <TransactionSummarySection
         businessTotalAmount="0"
@@ -104,8 +104,14 @@ describe("TransactionSummarySection", () => {
       />,
     );
 
-    expect(screen.getByText(/餐饮.*午餐.*- 1,200/)).toBeInTheDocument();
-    expect(screen.getByText(/不计入支出/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "P" &&
+          element.textContent === "餐饮 / 午餐 / 0（原金额 - 1,200）",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/不计入支出/)).not.toBeInTheDocument();
   });
 
   it("单条明细核销结余时按收入方向显示净额", () => {

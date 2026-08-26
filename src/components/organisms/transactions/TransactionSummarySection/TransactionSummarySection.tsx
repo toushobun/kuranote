@@ -180,7 +180,6 @@ function ItemSummaryValue({
 
   const adjustmentMessage = getTransactionItemAdjustmentMessage(
     amountPresentation.adjustment,
-    categoryType,
   );
 
   return (

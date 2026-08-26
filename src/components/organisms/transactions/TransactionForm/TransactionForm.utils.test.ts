@@ -105,21 +105,16 @@ describe("formatCategoryName", () => {
 });
 
 describe("getTransactionItemAmountPresentation", () => {
-  it("完全核销时显示原始金额和不计入提示", () => {
+  it("完全核销时显示净额且不返回固定提示", () => {
     const result = getTransactionItemAmountPresentation("1200", "0", "expense");
 
     expect(result).toEqual({
       adjustment: "fullyExcluded",
-      displayAmount: "1200",
+      displayAmount: "0",
       displayType: "expense",
       hasOffset: true,
     });
-    expect(
-      getTransactionItemAdjustmentMessage(result.adjustment, "expense"),
-    ).toBe("不计入支出");
-    expect(
-      getTransactionItemAdjustmentMessage(result.adjustment, "income"),
-    ).toBe("不计入收入");
+    expect(getTransactionItemAdjustmentMessage(result.adjustment)).toBeNull();
   });
 
   it("部分核销时显示净额和部分核销提示", () => {
@@ -135,9 +130,9 @@ describe("getTransactionItemAmountPresentation", () => {
       displayType: "expense",
       hasOffset: true,
     });
-    expect(
-      getTransactionItemAdjustmentMessage(result.adjustment, "expense"),
-    ).toBe("部分已核销");
+    expect(getTransactionItemAdjustmentMessage(result.adjustment)).toBe(
+      "部分已核销",
+    );
   });
 
   it("核销结余时取净额绝对值并翻转收支方向", () => {
