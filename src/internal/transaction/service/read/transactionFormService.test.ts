@@ -207,6 +207,47 @@ describe("getEditTransactionView", () => {
     expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
   });
 
+  it("普通交易引用已归档账户时禁止编辑", async () => {
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: merchantId,
+        note: "美元消费",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "normal",
+      }),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "1234.56",
+          balance_delta: "-1234.56",
+          category_id: categoryId,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const dependencies = createDependencies(repository);
+    vi.mocked(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).mockResolvedValue([
+      { currency: "JPY", id: targetAccountId, name: "储蓄" },
+    ]);
+
+    const view = await getEditTransactionView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "archivedAccount",
+    });
+  });
+
   it("正确还原转账的转出、转入账户和金额", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({

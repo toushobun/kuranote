@@ -354,7 +354,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       ).toHaveAttribute("href", "/transactions");
     });
 
-    it("转账账户已归档时显示恢复账户提示", () => {
+    it("交易账户已归档时显示恢复账户提示", () => {
       const { container } = render(
         <TransactionPermissionDenied
           operation="edit"
@@ -363,10 +363,10 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       );
 
       expect(within(container).getByRole("alert")).toHaveTextContent(
-        "该转账不能编辑",
+        "该交易不能编辑",
       );
       expect(within(container).getByRole("alert")).toHaveTextContent(
-        "转出或转入账户已被删除，请先恢复该账户后再编辑这笔转账。",
+        "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
       );
     });
   });

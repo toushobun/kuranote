@@ -241,14 +241,14 @@ export function TransactionPermissionDenied({
       <ErrorState
         title={
           hasArchivedAccount
-            ? "该转账不能编辑"
+            ? "该交易不能编辑"
             : isLinked
               ? "该交易不能编辑"
               : `无法${operationLabel}记账`
         }
         description={
           hasArchivedAccount
-            ? "转出或转入账户已被删除，请先恢复该账户后再编辑这笔转账。"
+            ? "该交易引用的账户已被删除，请先恢复该账户后再编辑。"
             : isLinked
               ? "该交易已关联报销或退款，不能编辑。"
               : `当前账本角色没有${operationLabel}记账的权限。`

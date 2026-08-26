@@ -301,9 +301,11 @@ export function createTransactionService({
     }
   }
 
-  async function requireActiveTransferAccounts(
-    input: UpdateTransferTransactionInput,
-  ) {
+  async function requireActiveTransactionAccounts(input: {
+    accountIds: string[];
+    ledgerId: string;
+    transactionRecordId: string;
+  }) {
     const userId = requireTransactionUserId(currentUserId);
     const [accountOptions, existingItems] = await Promise.all([
       accountQueryService.listTransactionOptions({
@@ -315,8 +317,7 @@ export function createTransactionService({
       ]),
     ]);
     const accountIds = [
-      input.accountId,
-      input.transferTargetAccountId,
+      ...input.accountIds,
       ...existingItems.map((item) => item.account_id),
     ];
 
@@ -481,6 +482,11 @@ export function createTransactionService({
         input.transactionRecordId,
       );
       await validateSpecialStatuses(input);
+      await requireActiveTransactionAccounts({
+        accountIds: [input.accountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
+      });
       try {
         await transactionRepository.updateNormal(input);
       } catch (error) {
@@ -493,7 +499,11 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      await requireActiveTransferAccounts(input);
+      await requireActiveTransactionAccounts({
+        accountIds: [input.accountId, input.transferTargetAccountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
+      });
       try {
         await transactionRepository.updateTransfer(input);
       } catch (error) {

@@ -62,7 +62,11 @@ function createService(
       accounts: [],
       showRecorder: false,
     }),
-    listTransactionOptions: vi.fn().mockResolvedValue([]),
+    listTransactionOptions: vi
+      .fn()
+      .mockResolvedValue([
+        { currency: "JPY", id: normalInput.accountId, name: "现金" },
+      ]),
   };
 
   return {
@@ -418,6 +422,46 @@ describe("TransactionService", () => {
     const { repository, service } = createService("member");
     await service.updateNormal({ ...normalInput, transactionRecordId });
     expect(repository.updateNormal).toHaveBeenCalledOnce();
+  });
+
+  it("普通交易引用已归档账户时服务端拒绝绕过页面编辑", async () => {
+    const archivedAccountId = "00000000-0000-4000-8000-000000000046";
+    const replacementAccountId = "00000000-0000-4000-8000-000000000047";
+    const repository = createRepository({
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: archivedAccountId,
+          amount: "1234.56",
+          balance_delta: "-1234.56",
+          category_id: normalInput.items[0].categoryId,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const { accountQueryService, service } = createService(
+      "member",
+      repository,
+    );
+    accountQueryService.listTransactionOptions.mockResolvedValue([
+      {
+        currency: "USD",
+        id: replacementAccountId,
+        name: "美元账户",
+      },
+    ]);
+
+    await expect(
+      service.updateNormal({
+        ...normalInput,
+        accountId: replacementAccountId,
+        transactionRecordId,
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.accountInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.updateNormal).not.toHaveBeenCalled();
   });
 
   it("member 不能修改他人创建的交易", async () => {

@@ -77,8 +77,16 @@ export async function getEditTransactionView(
     currentLedger.id,
     [transactionRecordId],
   );
-  const canEdit = canModify;
-  const editRestriction = canModify ? null : "permission";
+  const hasArchivedAccount = !areAccountIdsAvailable(
+    items.map((item) => item.account_id),
+    options.accountOptions,
+  );
+  const canEdit = canModify && !hasArchivedAccount;
+  const editRestriction = canModify
+    ? hasArchivedAccount
+      ? "archivedAccount"
+      : null
+    : "permission";
 
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
@@ -95,20 +103,10 @@ export async function getEditTransactionView(
     ) {
       return null;
     }
-    const hasArchivedAccount = !areAccountIdsAvailable(
-      [fromItem.account_id, toItem.account_id],
-      options.accountOptions,
-    );
-    const transferEditRestriction = canModify
-      ? hasArchivedAccount
-        ? "archivedAccount"
-        : null
-      : "permission";
-
     return {
       ...options,
-      canEdit: canModify && !hasArchivedAccount,
-      editRestriction: transferEditRestriction,
+      canEdit,
+      editRestriction,
       initialValues: {
         accountId: fromItem.account_id,
         note: record.note ?? "",
