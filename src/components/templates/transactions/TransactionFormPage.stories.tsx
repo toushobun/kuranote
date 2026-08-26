@@ -99,6 +99,16 @@ export const PermissionDenied: Story = {
   render: () => <TransactionPermissionDenied operation="create" />,
 };
 
+export const ArchivedAccountPermissionDenied: Story = {
+  name: "转账账户已归档",
+  render: () => (
+    <TransactionPermissionDenied
+      operation="edit"
+      reason="archivedAccount"
+    />
+  ),
+};
+
 export const EmptyOptions: Story = {
   name: "无账户和分类选项",
   args: {
