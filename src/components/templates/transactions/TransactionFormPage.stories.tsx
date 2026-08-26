@@ -102,10 +102,7 @@ export const PermissionDenied: Story = {
 export const ArchivedAccountPermissionDenied: Story = {
   name: "转账账户已归档",
   render: () => (
-    <TransactionPermissionDenied
-      operation="edit"
-      reason="archivedAccount"
-    />
+    <TransactionPermissionDenied operation="edit" reason="archivedAccount" />
   ),
 };
 
