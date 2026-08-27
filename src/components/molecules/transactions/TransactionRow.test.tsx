@@ -714,8 +714,8 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("已结清")).not.toBeInTheDocument();
     });
 
-    it("所有明细都没有业务状态时不显示业务标签", () => {
-      render(
+    it("所有明细都没有业务状态时不渲染标签容器和额外间距", () => {
+      const { container } = render(
         <TransactionRow
           item={createItem({
             categoryItems: [
@@ -732,6 +732,20 @@ describe("TransactionRow", () => {
                 categoryType: "expense",
                 parentCategoryName: "出行",
               },
+              {
+                amount: "0",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: null,
+                },
+                categoryName: "其他",
+                categoryType: "expense",
+                parentCategoryName: "其他",
+              },
             ],
           })}
         />,
@@ -739,6 +753,7 @@ describe("TransactionRow", () => {
 
       expect(screen.queryByText("退款收入")).not.toBeInTheDocument();
       expect(screen.queryByText("报销收入")).not.toBeInTheDocument();
+      expect(container.firstElementChild?.children).toHaveLength(2);
     });
   });
 
