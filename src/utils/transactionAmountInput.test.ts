@@ -18,6 +18,8 @@ describe("transactionAmountInput", () => {
     expect(isDecimalAmountDisabled("JPY")).toBe(true);
     expect(isDecimalAmountDisabled("jpy")).toBe(true);
     expect(isDecimalAmountDisabled("USD")).toBe(false);
+    expect(isDecimalAmountDisabled("BHD")).toBe(false);
+    expect(isDecimalAmountDisabled("ABC")).toBe(true);
     expect(isDecimalAmountDisabled()).toBe(true);
     expect(isDecimalAmountDisabled("")).toBe(true);
   });
@@ -54,9 +56,18 @@ describe("transactionAmountInput", () => {
     expect(normalizeMoneyText("001200", { currency: "JPY" })).toBe("1200");
   });
 
+  it("BHD 使用最多三位小数的金额格式", () => {
+    expect(getAmountDecimalPlaces("BHD")).toBe(3);
+    expect(isValidMoneyText("1200.5", { currency: "BHD" })).toBe(true);
+    expect(isValidMoneyText("1200.500", { currency: "BHD" })).toBe(true);
+    expect(isValidMoneyText("1200.5000", { currency: "BHD" })).toBe(false);
+    expect(normalizeMoneyText("001.230", { currency: "BHD" })).toBe("1.23");
+  });
+
   it("未选择账户、币种未知时按整数金额处理，不允许小数", () => {
     expect(getAmountDecimalPlaces()).toBe(0);
     expect(getAmountDecimalPlaces("")).toBe(0);
+    expect(getAmountDecimalPlaces("ABC")).toBe(0);
     expect(isValidMoneyText("1200")).toBe(true);
     expect(isValidMoneyText("1200.1")).toBe(false);
     expect(isValidPositiveMoneyText("0.01")).toBe(false);
@@ -85,6 +96,19 @@ describe("transactionAmountInput", () => {
 
     state = applyAmountKeypadKey(state, "clear", options);
     expect(state.displayValue).toBe("");
+  });
+
+  it("三位小数币种的按键输入会在第三位后停止", () => {
+    const options = { currency: "BHD" };
+    let state = createAmountKeypadState();
+    state = applyAmountKeypadKey(state, "1", options);
+    state = applyAmountKeypadKey(state, ".", options);
+    state = applyAmountKeypadKey(state, "2", options);
+    state = applyAmountKeypadKey(state, "3", options);
+    state = applyAmountKeypadKey(state, "4", options);
+    state = applyAmountKeypadKey(state, "5", options);
+
+    expect(state.displayValue).toBe("1.234");
   });
 
   it("未选择账户、币种未知时小数点按键不可用", () => {

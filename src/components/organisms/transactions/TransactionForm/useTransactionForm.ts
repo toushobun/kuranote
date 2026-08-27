@@ -173,11 +173,11 @@ export function useTransactionForm({
       ?.specialStatusLocked,
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
+    if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
     return sum + Number(item.amount);
   }, 0);
   const incomeTotal = itemsByType.income.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
+    if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
     return sum + Number(item.amount);
   }, 0);
   const hasValidItems =
@@ -185,7 +185,7 @@ export function useTransactionForm({
     allDisplayItems.every(
       (item) =>
         item.categoryId.length > 0 &&
-        isValidMoneyText(item.amount) &&
+        isValidMoneyText(item.amount, selectedAccount?.currency) &&
         (!item.refundCandidate || Number(item.amount) > 0),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
@@ -454,7 +454,7 @@ export function useTransactionForm({
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
-    if (!isValidMoneyText(pickerAmount)) {
+    if (!isValidMoneyText(pickerAmount, selectedAccount?.currency)) {
       errors.amount = transactionFormValidationMessages.amountInvalid;
     } else if (pickerRefundCandidate && Number(pickerAmount) <= 0) {
       errors.amount = "退款金额必须大于 0。";

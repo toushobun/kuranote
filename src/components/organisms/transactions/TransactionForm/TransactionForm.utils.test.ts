@@ -201,15 +201,28 @@ describe("formatSignedCurrencyAmount", () => {
 });
 
 describe("isValidMoneyText", () => {
-  it("整数金额有效", () => {
-    expect(isValidMoneyText("0")).toBe(true);
-    expect(isValidMoneyText("100")).toBe(true);
-    expect(isValidMoneyText("9999999")).toBe(true);
+  it("0 位小数币种仅允许整数金额", () => {
+    expect(isValidMoneyText("0", "JPY")).toBe(true);
+    expect(isValidMoneyText("100", "JPY")).toBe(true);
+    expect(isValidMoneyText("100.1", "JPY")).toBe(false);
   });
 
-  it("最多两位小数有效", () => {
-    expect(isValidMoneyText("100.5")).toBe(true);
-    expect(isValidMoneyText("100.50")).toBe(true);
+  it("2 位小数币种最多允许两位小数", () => {
+    expect(isValidMoneyText("100.5", "USD")).toBe(true);
+    expect(isValidMoneyText("100.50", "USD")).toBe(true);
+    expect(isValidMoneyText("100.001", "USD")).toBe(false);
+  });
+
+  it("3 位小数币种最多允许三位小数", () => {
+    expect(isValidMoneyText("100.50", "BHD")).toBe(true);
+    expect(isValidMoneyText("100.500", "BHD")).toBe(true);
+    expect(isValidMoneyText("100.5000", "BHD")).toBe(false);
+  });
+
+  it("币种未知时仅允许整数金额", () => {
+    expect(isValidMoneyText("100")).toBe(true);
+    expect(isValidMoneyText("100.5")).toBe(false);
+    expect(isValidMoneyText("100.5", "ABC")).toBe(false);
   });
 
   it("空字符串或纯空格无效", () => {
@@ -219,22 +232,18 @@ describe("isValidMoneyText", () => {
 
   it("非数字字符无效", () => {
     expect(isValidMoneyText("abc")).toBe(false);
-    expect(isValidMoneyText("1.2a")).toBe(false);
+    expect(isValidMoneyText("1.2a", "USD")).toBe(false);
   });
 
   it("负数无效", () => {
     expect(isValidMoneyText("-100")).toBe(false);
   });
 
-  it("小数点超过两位无效", () => {
-    expect(isValidMoneyText("100.001")).toBe(false);
-  });
-
   it("末尾小数点无效", () => {
-    expect(isValidMoneyText("100.")).toBe(false);
+    expect(isValidMoneyText("100.", "USD")).toBe(false);
   });
 
   it("多个小数点无效", () => {
-    expect(isValidMoneyText("1.2.3")).toBe(false);
+    expect(isValidMoneyText("1.2.3", "USD")).toBe(false);
   });
 });

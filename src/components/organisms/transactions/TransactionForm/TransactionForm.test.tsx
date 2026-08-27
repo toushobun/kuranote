@@ -457,16 +457,22 @@ describe("TransactionForm", () => {
     ).toBe("pendingReimbursement");
   });
   it("收入明细和合计显示正号与账户币种", () => {
-    const { container } = renderForm({ initialType: "income" });
+    const usdAccountOptions = [
+      { ...accountOptions[0], currency: "USD", name: "美元现金" },
+    ];
+    const { container } = renderForm({
+      accountOptions: usdAccountOptions,
+      initialType: "income",
+    });
     fireEvent.mouseDown(getCombobox(container, "账户"));
-    fireEvent.click(screen.getByText("日元现金（JPY）"));
+    fireEvent.click(screen.getByText("美元现金（USD）"));
     openSheet(container);
     fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
     addItemViaSheet(container, "工资", "68.9");
     expect(
       container.querySelector('button[aria-label="编辑明细 1 金额"]'),
-    ).toHaveTextContent("+ ¥ 68.9");
-    expect(within(container).getByText("合计 + ¥ 68.9")).toBeInTheDocument();
+    ).toHaveTextContent("+ $ 68.9");
+    expect(within(container).getByText("合计 + $ 68.9")).toBeInTheDocument();
   });
   it("未选小分类时点击追加显示错误提示", () => {
     const { container } = renderForm();
@@ -898,11 +904,18 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
     },
   ];
   it("小数明细合计正确舍入显示，不出现浮点精度问题", () => {
-    const { container } = renderForm();
+    const usdAccountOptions = [
+      { ...accountOptions[0], currency: "USD", name: "美元现金" },
+    ];
+    const { container } = renderForm({ accountOptions: usdAccountOptions });
+    fireEvent.mouseDown(
+      within(container).getByRole("combobox", { name: "账户" }),
+    );
+    fireEvent.click(screen.getByText("美元现金（USD）"));
     openSheet(container);
     addItemViaSheet(container, "餐饮", "0.10");
     addItemViaSheet(container, "日用品", "0.20");
-    expect(within(container).getByText("合计 - 0.3")).toBeInTheDocument();
+    expect(within(container).getByText("合计 - $ 0.3")).toBeInTheDocument();
   });
   it("打开添加明细时金额默认是空，显式输入 0 可追加", () => {
     const { container } = renderForm();
