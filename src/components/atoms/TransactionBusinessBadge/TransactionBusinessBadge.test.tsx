@@ -8,6 +8,23 @@ afterEach(() => {
 });
 
 describe("TransactionBusinessBadge", () => {
+  it("没有可展示业务标签时不渲染容器", () => {
+    const { container } = render(
+      <TransactionBusinessBadge
+        status={{
+          incomeLinkRole: null,
+          offsetComposition: {
+            refundAmount: "0",
+            reimbursementAmount: "0",
+          },
+          settlementStatus: null,
+        }}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("分别展示结算状态与退款、报销核销金额", () => {
     render(
       <TransactionBusinessBadge

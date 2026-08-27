@@ -80,13 +80,6 @@ export function TransactionItemsSection({
                 resolveTransactionBusinessStatus({
                   specialStatus: item.specialStatus,
                 });
-              const hasBusinessStatus =
-                businessStatus !== null &&
-                (businessStatus.settlementStatus !== null ||
-                  businessStatus.incomeLinkRole !== null ||
-                  Number(businessStatus.offsetComposition.refundAmount) > 0 ||
-                  Number(businessStatus.offsetComposition.reimbursementAmount) >
-                    0);
               const categoryType = item.category?.type ?? selectedType;
 
               return (
@@ -182,7 +175,7 @@ export function TransactionItemsSection({
                           selectedAccountCurrency,
                         )}
                       </Button>
-                      {hasBusinessStatus ? (
+                      {businessStatus ? (
                         <TransactionBusinessBadge
                           currency={selectedAccountCurrency}
                           status={businessStatus}
