@@ -166,6 +166,23 @@ describe("TransactionGroupList", () => {
     ).toBeInTheDocument();
   });
 
+  it("三位小数币种的分组汇总保留币种精度", () => {
+    const kwdGroup = createTransactionDateGroup({
+      summary: {
+        balance: "2.222",
+        currency: "KWD",
+        expense: "1.111",
+        income: "3.333",
+      },
+    });
+
+    render(<TransactionGroupList groups={[kwdGroup]} />);
+
+    expect(
+      screen.getByText("收入 KWD3.333 / 支出 KWD1.111 / 合计 +KWD2.222"),
+    ).toBeInTheDocument();
+  });
+
   it("报销选择模式允许选择核销结余候选", () => {
     const onSelectReimbursementItem = vi.fn();
     const reimbursementGroup = createTransactionDateGroup({
@@ -265,6 +282,35 @@ describe("TransactionRefundCandidateList", () => {
         remainingRefundableAmount: "60",
       }),
     );
+  });
+
+  it("三位小数币种的退款候选金额保留币种精度", () => {
+    render(
+      <TransactionRefundCandidateList
+        items={[
+          createTransactionListItem({
+            account_currency: "KWD",
+            categoryItems: [
+              {
+                accountId: "account-1",
+                amount: "1.234",
+                categoryName: "服装",
+                categoryType: "expense",
+                id: "refund-item-1",
+                parentCategoryName: "购物",
+                refundedAmount: "0.111",
+                remainingRefundableAmount: "1.123",
+              },
+            ],
+          }),
+        ]}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("原始金额 KWD1.234")).toBeInTheDocument();
+    expect(screen.getByText("剩余可退 KWD1.123")).toBeInTheDocument();
+    expect(screen.getByText("已退款 KWD0.111")).toBeInTheDocument();
   });
 
   it("刚好核销完时仍可继续选择已有候选", () => {

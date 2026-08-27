@@ -103,6 +103,24 @@ describe("TransactionReimbursementLinkPicker", () => {
     expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
+  it("三位小数币种的关联金额保留币种精度", () => {
+    render(
+      <TransactionReimbursementLinkPicker
+        incomeAmount="1.111"
+        onChange={vi.fn()}
+        value={{
+          ...candidates[0],
+          accountCurrency: "KWD",
+          amount: "1.234",
+          remainingRefundableAmount: "1.234",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("午餐 · KWD1.234")).toBeInTheDocument();
+    expect(screen.getByText("收入子项金额 KWD1.111")).toBeInTheDocument();
+  });
+
   it("未关联时说明已结清和核销结余后仍可继续关联", () => {
     render(
       <TransactionReimbursementLinkPicker onChange={vi.fn()} value={null} />,

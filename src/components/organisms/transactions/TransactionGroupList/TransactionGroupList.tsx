@@ -186,18 +186,24 @@ export function TransactionRefundCandidateList({
               </Typography>
               <Typography color="text.secondary" variant="caption">
                 原始金额 {currencySymbol}
-                {formatNumber(candidate.amount)}
+                {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
             </Stack>
             <Stack sx={{ alignItems: "flex-end" }}>
               <Typography sx={{ fontWeight: 900 }} variant="body2">
                 {isReimbursement ? "剩余可核销" : "剩余可退"} {currencySymbol}
-                {formatNumber(candidate.remainingRefundableAmount)}
+                {formatNumber(
+                  candidate.remainingRefundableAmount,
+                  candidate.accountCurrency,
+                )}
               </Typography>
               {!isReimbursement && Number(candidate.refundedAmount) > 0 ? (
                 <Typography color="text.secondary" variant="caption">
                   已退款 {currencySymbol}
-                  {formatNumber(candidate.refundedAmount)}
+                  {formatNumber(
+                    candidate.refundedAmount,
+                    candidate.accountCurrency,
+                  )}
                 </Typography>
               ) : null}
             </Stack>
@@ -280,29 +286,31 @@ function getGroupSummaryText(group: TransactionDateGroup) {
   const currencySymbol = getCurrencySymbol(group.summary.currency);
 
   if (income > 0 && expense > 0) {
-    return `收入 ${currencySymbol}${formatNumber(group.summary.income)} / 支出 ${currencySymbol}${formatNumber(
+    return `收入 ${currencySymbol}${formatNumber(group.summary.income, group.summary.currency)} / 支出 ${currencySymbol}${formatNumber(
       group.summary.expense,
-    )} / 合计 ${formatSignedAmount(group.summary.balance, currencySymbol)}`;
+      group.summary.currency,
+    )} / 合计 ${formatSignedAmount(group.summary.balance, group.summary.currency)}`;
   }
 
   if (expense > 0) {
-    return `支出 ${currencySymbol}${formatNumber(group.summary.expense)}`;
+    return `支出 ${currencySymbol}${formatNumber(group.summary.expense, group.summary.currency)}`;
   }
 
   if (income > 0) {
-    return `收入 ${currencySymbol}${formatNumber(group.summary.income)}`;
+    return `收入 ${currencySymbol}${formatNumber(group.summary.income, group.summary.currency)}`;
   }
 
-  return `合计 ${formatSignedAmount(group.summary.balance, currencySymbol)}`;
+  return `合计 ${formatSignedAmount(group.summary.balance, group.summary.currency)}`;
 }
 
-function formatSignedAmount(amount: string, currencySymbol: string) {
+function formatSignedAmount(amount: string, currency: string) {
+  const currencySymbol = getCurrencySymbol(currency);
   const value = Number(amount);
 
   if (!Number.isFinite(value))
-    return `${currencySymbol}${formatNumber(amount)}`;
+    return `${currencySymbol}${formatNumber(amount, currency)}`;
   if (value === 0) return `${currencySymbol}0`;
 
   const sign = value > 0 ? "+" : "-";
-  return `${sign}${currencySymbol}${formatNumber(String(Math.abs(value)))}`;
+  return `${sign}${currencySymbol}${formatNumber(String(Math.abs(value)), currency)}`;
 }

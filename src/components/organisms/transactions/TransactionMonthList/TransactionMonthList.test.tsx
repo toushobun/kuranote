@@ -218,6 +218,35 @@ describe("TransactionMonthList", () => {
     expect(screen.queryByText("1 条流水")).toBeNull();
   });
 
+  it("三位小数币种的月份摘要保留币种精度", () => {
+    const kwdGroup = createGroup({
+      id: "month:2026-07",
+      key: "2026-07",
+      label: "2026年7月",
+      summary: {
+        balance: "2.222",
+        currency: "KWD",
+        expense: "1.111",
+        income: "3.333",
+      },
+    });
+
+    render(
+      <TransactionMonthList
+        timeGroupView={createView({
+          groups: [kwdGroup],
+          initialDateGroupsByGroupId: { [kwdGroup.id]: [] },
+          initialExpandedGroupId: kwdGroup.id,
+          initialNextItemOffsetByGroupId: { [kwdGroup.id]: null },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("KWD2.222")).toBeInTheDocument();
+    expect(screen.getByText("KWD3.333")).toBeInTheDocument();
+    expect(screen.getByText("KWD1.111")).toBeInTheDocument();
+  });
+
   it("允许同时展开多个时间分组", async () => {
     const loadGroupItemsAction = vi.fn(
       async (groupKey: string): Promise<TransactionMonthPage> => ({

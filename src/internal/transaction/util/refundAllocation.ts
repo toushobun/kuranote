@@ -1,16 +1,16 @@
-const minorUnitScale = BigInt(100);
+const minorUnitScale = BigInt(1000);
 
 /**
- * 将金额转换为以 0.01 为单位的整数。
+ * 将金额转换为以 0.001 为单位的整数，覆盖项目支持的最大币种精度。
  * 不经过浮点运算，直接解析输入字符串的小数位。
  */
 export function toRefundMinorUnits(value: number | string): bigint | null {
   const text = String(value).trim();
-  const match = text.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  const match = text.match(/^(\d+)(?:\.(\d{1,3}))?$/);
   if (!match) return null;
 
   const whole = match[1];
-  const fraction = (match[2] ?? "").padEnd(2, "0");
+  const fraction = (match[2] ?? "").padEnd(3, "0");
   try {
     return BigInt(whole) * minorUnitScale + BigInt(fraction);
   } catch {
@@ -18,12 +18,12 @@ export function toRefundMinorUnits(value: number | string): bigint | null {
   }
 }
 
-/** 将以 0.01 为单位的整数转换为金额字符串，并移除末尾多余的 0。 */
+/** 将以 0.001 为单位的整数转换为金额字符串，并移除末尾多余的 0。 */
 export function formatRefundMinorUnits(units: bigint): string {
   const negative = units < BigInt(0);
   const absoluteUnits = negative ? -units : units;
   const whole = absoluteUnits / minorUnitScale;
-  const fraction = String(absoluteUnits % minorUnitScale).padStart(2, "0");
+  const fraction = String(absoluteUnits % minorUnitScale).padStart(3, "0");
   const trimmedFraction = fraction.replace(/0+$/, "");
   return `${negative ? "-" : ""}${whole}${
     trimmedFraction ? `.${trimmedFraction}` : ""

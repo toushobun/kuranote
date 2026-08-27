@@ -101,6 +101,30 @@ describe("TransactionRefundLinkPicker", () => {
     expect(screen.getByText("未核销净收益 ¥0")).toBeInTheDocument();
   });
 
+  it("三位小数币种的关联金额保留币种精度", () => {
+    render(
+      <TransactionRefundLinkPicker
+        onChange={vi.fn()}
+        refundAmount="1.111"
+        value={{
+          accountCurrency: "KWD",
+          accountId: "account-1",
+          amount: "1.234",
+          categoryName: "午餐",
+          id: "refund-item-1",
+          parentCategoryName: "饮食",
+          refundedAmount: "0",
+          remainingRefundableAmount: "1.234",
+          transactionAt: "2026-08-15T10:00:00.000Z",
+          transactionRecordId: "transaction-1",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("午餐 · KWD1.234")).toBeInTheDocument();
+    expect(screen.getByText("收入子项金额 KWD1.111")).toBeInTheDocument();
+  });
+
   it("未关联时说明退款不再受剩余可核销额度限制", () => {
     render(<TransactionRefundLinkPicker onChange={vi.fn()} value={null} />);
 
