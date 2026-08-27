@@ -186,6 +186,29 @@ describe("TransactionItemsSection", () => {
     expect(screen.getByText("退款收入")).toBeInTheDocument();
   });
 
+  it("没有业务标签时不渲染标签容器和额外间距", () => {
+    renderSection({
+      itemSummaries: [
+        {
+          ...itemSummaries[1],
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "0",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: null,
+          },
+        },
+      ],
+    });
+
+    const amountButton = screen.getByRole("button", {
+      name: "编辑明细 1 金额",
+    });
+    expect(amountButton.parentElement?.children).toHaveLength(2);
+  });
+
   it("点击追加按钮时打开明细选择器", () => {
     const props = renderSection();
 

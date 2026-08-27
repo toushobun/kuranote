@@ -29,6 +29,8 @@ export function TransactionBusinessBadge({
 }: TransactionBusinessBadgeProps) {
   const badges = resolveBusinessBadges(status);
 
+  if (badges.length === 0) return null;
+
   return (
     <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
       {badges.map(({ amount, kind }) => {
