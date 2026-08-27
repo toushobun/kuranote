@@ -1,3 +1,5 @@
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
+
 export const transactionSpecialStatuses = [
   "pendingReimbursement",
   "reimbursed",
@@ -79,12 +81,14 @@ export function fromTransactionSpecialStatusStorageValue(
 }
 
 export function resolveTransactionBusinessStatus({
+  currency,
   isRefundIncome = false,
   isReimbursementIncome = false,
   refundedAmount,
   reimbursementAmount,
   specialStatus = null,
 }: {
+  currency?: string;
   isRefundIncome?: boolean;
   isReimbursementIncome?: boolean;
   refundedAmount?: string;
@@ -100,9 +104,9 @@ export function resolveTransactionBusinessStatus({
       : specialStatus === "reimbursement_surplus"
         ? "reimbursementSurplus"
         : specialStatus;
-  const refundAmount = normalizePositiveAmount(refundedAmount);
+  const refundAmount = normalizePositiveAmount(refundedAmount, currency);
   const effectiveReimbursementAmount = settlementStatus
-    ? normalizePositiveAmount(reimbursementAmount)
+    ? normalizePositiveAmount(reimbursementAmount, currency)
     : "0";
   const incomeLinkRole = isRefundIncome
     ? "refund"
@@ -129,8 +133,11 @@ export function resolveTransactionBusinessStatus({
   };
 }
 
-function normalizePositiveAmount(amount: string | undefined) {
+function normalizePositiveAmount(
+  amount: string | undefined,
+  currency?: string,
+) {
   const value = Number(amount ?? "0");
   if (!Number.isFinite(value) || value <= 0) return "0";
-  return String(Number(value.toFixed(2)));
+  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
 }

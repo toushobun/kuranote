@@ -78,15 +78,22 @@ vi.mock(
     TransferTransactionForm: ({
       errorMessage,
       formId,
+      initialValues,
     }: {
       errorMessage: string | null;
       formId?: string;
+      initialValues?: { transferAmount: string };
     }): ReactNode => {
       if (formId?.startsWith("edit-")) {
         return (
           <form data-testid="transfer-transaction-form" id={formId}>
             <input aria-label="转账编辑临时输入" defaultValue="" />
             <input aria-label="转账转换临时输入" defaultValue="" />
+            <input
+              aria-label="转账初始金额"
+              readOnly
+              value={initialValues?.transferAmount ?? ""}
+            />
           </form>
         );
       }
@@ -482,6 +489,31 @@ describe("EditTransactionTemplate", () => {
     expect(
       within(container).getByTestId("transfer-transaction-form"),
     ).toBeInTheDocument();
+  });
+  it("普通编辑切换到转账时保留三位小数币种的明细合计", () => {
+    const props = createProps();
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate
+        {...props}
+        accountOptions={props.accountOptions.map((account) => ({
+          ...account,
+          currency: "KWD",
+        }))}
+        initialValues={{
+          ...props.initialValues,
+          items: [
+            { amount: "1.111", categoryId: categoryOptions[0].id },
+            { amount: "2.123", categoryId: categoryOptions[0].id },
+          ],
+        }}
+      />,
+    );
+
+    fireEvent.click(within(container).getByRole("button", { name: "转账" }));
+
+    expect(within(container).getByLabelText("转账初始金额")).toHaveValue(
+      "3.234",
+    );
   });
   it("账本启用明细特殊状态后编辑模板的明细弹层显示特殊状态选择区", () => {
     const { container } = renderWithTheme(

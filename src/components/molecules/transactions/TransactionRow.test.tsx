@@ -630,6 +630,48 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("退款核销 ¥60")).not.toBeInTheDocument();
     });
 
+    it("三位小数币种按币种精度汇总核销金额", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            account_currency: "KWD",
+            categoryItems: [
+              {
+                amount: "1",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0.001",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "餐饮",
+                categoryType: "expense",
+                parentCategoryName: "饮食",
+              },
+              {
+                amount: "1",
+                businessStatus: {
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0.002",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: "pendingReimbursement",
+                },
+                categoryName: "交通",
+                categoryType: "expense",
+                parentCategoryName: "出行",
+              },
+            ],
+          })}
+        />,
+      );
+
+      expect(screen.getByText("退款核销 KWD0.003")).toBeInTheDocument();
+    });
+
     it("部分明细已结清、部分仍待报销时整行按待报销显示", () => {
       render(
         <TransactionRow

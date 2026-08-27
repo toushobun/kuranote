@@ -116,4 +116,19 @@ describe("transactionSpecialStatus", () => {
       settlementStatus: null,
     });
   });
+
+  it.each([
+    ["JPY", "1.234", "1"],
+    ["USD", "1.234", "1.23"],
+    ["KWD", "1.234", "1.234"],
+  ])("按 %s 的小数位数规范化核销金额", (currency, amount, expected) => {
+    expect(
+      resolveTransactionBusinessStatus({
+        currency,
+        refundedAmount: amount,
+      }),
+    ).toMatchObject({
+      offsetComposition: { refundAmount: expected },
+    });
+  });
 });

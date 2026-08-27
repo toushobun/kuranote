@@ -26,6 +26,7 @@ import {
   toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 
 type TransactionFormReadDependencies =
   TransactionReadDependencies<TransactionFormRepository> & {
@@ -81,6 +82,9 @@ export async function getEditTransactionView(
     items.map((item) => item.account_id),
     options.accountOptions,
   );
+  const currencyByAccountId = new Map(
+    options.accountOptions.map((account) => [account.id, account.currency]),
+  );
   const canEdit = canModify && !hasArchivedAccount;
   const editRestriction = canModify
     ? hasArchivedAccount
@@ -112,7 +116,11 @@ export async function getEditTransactionView(
         note: record.note ?? "",
         transactionAt: record.transaction_at,
         transactionRecordId: record.id,
-        transferAmount: formatEditableAmount(fromItem.amount),
+        transferAmount: formatEditableAmount(
+          fromItem.amount,
+          currencyByAccountId.get(fromItem.account_id) ??
+            currentLedger.baseCurrency,
+        ),
         transferTargetAccountId: toItem.account_id,
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
@@ -161,18 +169,22 @@ export async function getEditTransactionView(
           options.categoryOptions,
           currentLedger.baseCurrency,
         );
-        const amount = formatEditableAmount(item.amount);
+        const currency =
+          currencyByAccountId.get(item.account_id) ??
+          currentLedger.baseCurrency;
+        const amount = formatEditableAmount(item.amount, currency);
         const businessNetAmount = hasBusinessNetAmountOffset(
           item.amount,
           item.business_net_amount,
         )
-          ? formatEditableAmount(item.business_net_amount)
+          ? formatEditableAmount(item.business_net_amount, currency)
           : undefined;
 
         return {
           amount,
           ...(businessNetAmount === undefined ? {} : { businessNetAmount }),
           businessStatus: resolveTransactionBusinessStatus({
+            currency,
             isRefundIncome: item.is_refund_income,
             isReimbursementIncome: item.is_reimbursement_income,
             refundedAmount: item.refunded_amount,
@@ -322,11 +334,8 @@ export function resolveNormalTransactionDisplayType(
   return "income";
 }
 
-export function formatEditableAmount(amount: string) {
+export function formatEditableAmount(amount: string, currency?: string) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount;
-  return value
-    .toFixed(2)
-    .replace(/\.00$/, "")
-    .replace(/(\.\d)0$/, "$1");
+  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
 }

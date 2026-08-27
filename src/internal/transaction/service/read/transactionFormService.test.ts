@@ -9,6 +9,7 @@ import type { TransactionIncomeLinkRepository } from "internal/transaction/repos
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
 import {
+  formatEditableAmount,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -27,6 +28,16 @@ const incomeItemId = "00000000-0000-4000-8000-000000008001";
 const linkedExpenseItemId = "00000000-0000-4000-8000-000000008002";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const updatedAt = "2026-08-21T01:00:00.000Z";
+
+describe("formatEditableAmount", () => {
+  it.each([
+    ["JPY", "1.000", "1"],
+    ["USD", "1.230", "1.23"],
+    ["KWD", "1.234", "1.234"],
+  ])("按 %s 的小数位数格式化编辑金额", (currency, amount, expected) => {
+    expect(formatEditableAmount(amount, currency)).toBe(expected);
+  });
+});
 
 const currentLedger: CurrentLedger = {
   baseCurrency: "JPY",
@@ -262,16 +273,16 @@ describe("getEditTransactionView", () => {
       listItems: vi.fn().mockResolvedValue([
         {
           account_id: accountId,
-          amount: "5000.00",
-          balance_delta: "-5000.00",
+          amount: "5000.123",
+          balance_delta: "-5000.123",
           category_id: null,
           note: null,
           transaction_record_id: transactionRecordId,
         },
         {
           account_id: targetAccountId,
-          amount: "5000.00",
-          balance_delta: "5000.00",
+          amount: "5000.123",
+          balance_delta: "5000.123",
           category_id: null,
           note: null,
           transaction_record_id: transactionRecordId,
@@ -279,8 +290,16 @@ describe("getEditTransactionView", () => {
       ]),
     });
 
+    const dependencies = createDependencies(repository);
+    vi.mocked(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).mockResolvedValue([
+      { currency: "KWD", id: accountId, name: "现金" },
+      { currency: "KWD", id: targetAccountId, name: "储蓄" },
+    ]);
+
     const view = await getEditTransactionView(
-      createDependencies(repository),
+      dependencies,
       currentLedger,
       transactionRecordId,
     );
@@ -291,7 +310,7 @@ describe("getEditTransactionView", () => {
       note: "账户调拨",
       transactionAt: "2026-06-04T01:30:05.000Z",
       transactionRecordId,
-      transferAmount: "5000",
+      transferAmount: "5000.123",
       transferTargetAccountId: targetAccountId,
       type: "transfer",
     } satisfies TransferEditInitialValues);
