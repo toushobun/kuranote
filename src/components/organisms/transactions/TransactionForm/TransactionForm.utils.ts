@@ -3,6 +3,7 @@ import type {
   TransactionType,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
+import { isValidMoneyText as isValidTransactionAmountText } from "utils/transactionAmountInput";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 
@@ -111,23 +112,6 @@ export function formatSignedCurrencyAmount(value: string, currency?: string) {
   return [sign, symbol, amount].filter(Boolean).join(" ");
 }
 
-export function isValidMoneyText(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-
-  const [integerPart, decimalPart, extraPart] = trimmed.split(".");
-  if (extraPart !== undefined) return false;
-  if (!integerPart || !isDigitText(integerPart)) return false;
-  if (decimalPart !== undefined) {
-    if (decimalPart.length < 1 || decimalPart.length > 2) return false;
-    if (!isDigitText(decimalPart)) return false;
-  }
-
-  const amount = Number(trimmed);
-
-  return Number.isFinite(amount) && amount >= 0;
-}
-
-function isDigitText(value: string) {
-  return Array.from(value).every((char) => char >= "0" && char <= "9");
+export function isValidMoneyText(value: string, currency?: string) {
+  return isValidTransactionAmountText(value, { currency });
 }

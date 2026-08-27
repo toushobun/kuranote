@@ -206,6 +206,22 @@ describe("TransactionAmountKeypad", () => {
     );
   });
 
+  it("三位小数币种允许输入并显示三位小数", () => {
+    render(<ControlledAmountKeypad currency="BHD" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "1" }));
+    fireEvent.click(screen.getByRole("button", { name: "." }));
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    fireEvent.click(screen.getByRole("button", { name: "4" }));
+    fireEvent.click(screen.getByRole("button", { name: "5" }));
+
+    expect(screen.getByRole("button", { name: "." })).toBeEnabled();
+    expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent(
+      "BHD 1.234",
+    );
+  });
+
   it("未选择账户、币种未知时小数点按钮不可用", () => {
     render(
       <TransactionAmountKeypad

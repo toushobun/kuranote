@@ -31,6 +31,24 @@ export type AmountInputOptions = {
 
 const maxAmountIntegerDigits = 12;
 
+type AmountDecimalPlaces = 0 | 2 | 3;
+
+const currencyDecimalPlaces: Readonly<Record<string, AmountDecimalPlaces>> = {
+  BHD: 3,
+  CNY: 2,
+  EUR: 2,
+  GBP: 2,
+  HKD: 2,
+  JPY: 0,
+  KRW: 0,
+  KWD: 3,
+  OMR: 3,
+  SGD: 2,
+  THB: 2,
+  TWD: 2,
+  USD: 2,
+};
+
 export function createAmountKeypadState(displayValue = ""): AmountKeypadState {
   return {
     displayValue,
@@ -41,14 +59,18 @@ export function createAmountKeypadState(displayValue = ""): AmountKeypadState {
   };
 }
 
-/** 未知币种与 JPY 都禁用小数输入；这不表示未知币种就是日元。 */
+/** 未知币种与 0 位小数币种都禁用小数输入。 */
 export function isDecimalAmountDisabled(currency?: string) {
-  return !currency || currency.toUpperCase() === "JPY";
+  return getAmountDecimalPlaces(currency) === 0;
 }
 
 /** 未知币种故意按 0 位小数处理，避免选定账户前输入小数金额。 */
 export function getAmountDecimalPlaces(currency?: string) {
-  return isDecimalAmountDisabled(currency) ? 0 : 2;
+  const normalizedCurrency = currency?.trim().toUpperCase();
+
+  return normalizedCurrency
+    ? (currencyDecimalPlaces[normalizedCurrency] ?? 0)
+    : 0;
 }
 
 export function isValidMoneyText(

@@ -10,6 +10,7 @@ import type {
   TransactionType,
 } from "types/transactions";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
   resolveTransactionBusinessStatus,
   formatRefundMinorUnits,
@@ -173,11 +174,11 @@ export function useTransactionForm({
       ?.specialStatusLocked,
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
+    if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
     return sum + Number(item.amount);
   }, 0);
   const incomeTotal = itemsByType.income.reduce((sum, item) => {
-    if (!isValidMoneyText(item.amount)) return sum;
+    if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
     return sum + Number(item.amount);
   }, 0);
   const hasValidItems =
@@ -185,7 +186,7 @@ export function useTransactionForm({
     allDisplayItems.every(
       (item) =>
         item.categoryId.length > 0 &&
-        isValidMoneyText(item.amount) &&
+        isValidMoneyText(item.amount, selectedAccount?.currency) &&
         (!item.refundCandidate || Number(item.amount) > 0),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
@@ -204,7 +205,7 @@ export function useTransactionForm({
 
   const signedTotalAmount =
     allDisplayItems.length > 0
-      ? formatNetAmount(incomeTotal - expenseTotal)
+      ? formatNetAmount(incomeTotal - expenseTotal, selectedAccount?.currency)
       : "未填写金额";
   const businessExpenseTotal = itemsByType.expense.reduce(
     (sum, item) => sum + getFormItemBusinessAmount(item),
@@ -218,7 +219,10 @@ export function useTransactionForm({
     hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
   );
   const businessTotalAmount = hasBusinessNetAmount
-    ? formatNetAmount(businessIncomeTotal - businessExpenseTotal)
+    ? formatNetAmount(
+        businessIncomeTotal - businessExpenseTotal,
+        selectedAccount?.currency,
+      )
     : null;
 
   function addItem(
@@ -248,6 +252,7 @@ export function useTransactionForm({
             specialStatus,
             refundCandidate,
             reimbursementCandidate,
+            selectedAccount?.currency,
           ),
           categoryId,
           id: itemId,
@@ -301,6 +306,7 @@ export function useTransactionForm({
       specialStatus,
       refundCandidate,
       reimbursementCandidate,
+      selectedAccount?.currency,
     );
 
     setItemsByType((current) => {
@@ -454,7 +460,7 @@ export function useTransactionForm({
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
-    if (!isValidMoneyText(pickerAmount)) {
+    if (!isValidMoneyText(pickerAmount, selectedAccount?.currency)) {
       errors.amount = transactionFormValidationMessages.amountInvalid;
     } else if (pickerRefundCandidate && Number(pickerAmount) <= 0) {
       errors.amount = "退款金额必须大于 0。";
@@ -533,6 +539,7 @@ export function useTransactionForm({
             item.specialStatus,
             refundCandidate,
             reimbursementCandidate,
+            nextAccount?.currency,
           ),
           businessNetAmount: getNewItemBusinessNetAmount(
             item.amount,
@@ -724,8 +731,10 @@ function getFormItemBusinessStatus(
   specialStatus: TransactionFormItem["specialStatus"],
   refundCandidate: TransactionRefundCandidate | null,
   reimbursementCandidate: TransactionRefundCandidate | null,
+  currency?: string,
 ): TransactionBusinessStatus | null {
   return resolveTransactionBusinessStatus({
+    currency,
     isRefundIncome: Boolean(refundCandidate),
     isReimbursementIncome: Boolean(reimbursementCandidate),
     specialStatus,
@@ -736,8 +745,8 @@ function cancelDefaultEvent(event: { preventDefault(): void }) {
   event.preventDefault();
 }
 
-function formatNetAmount(net: number) {
-  const value = parseFloat(net.toFixed(2));
+function formatNetAmount(net: number, currency?: string) {
+  const value = parseFloat(net.toFixed(getAmountDecimalPlaces(currency)));
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
 }

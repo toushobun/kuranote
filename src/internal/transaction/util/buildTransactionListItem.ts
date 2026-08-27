@@ -89,7 +89,10 @@ export function buildTransactionListItem({
     const parent = category?.parent_id
       ? categoryById.get(category.parent_id)
       : undefined;
+    const currency =
+      accountById.get(item.account_id)?.currency ?? fallbackCurrency;
     const businessStatus = resolveTransactionBusinessStatus({
+      currency,
       isRefundIncome: item.is_refund_income,
       isReimbursementIncome: item.is_reimbursement_income,
       refundedAmount: item.refunded_amount,

@@ -83,7 +83,7 @@ export function TransactionRefundLinkPicker({
         <Stack spacing={0.75}>
           <Typography sx={{ fontWeight: 800 }} variant="body2">
             {value.categoryName} · {getCurrencySymbol(value.accountCurrency)}
-            {formatNumber(value.amount)}
+            {formatNumber(value.amount, value.accountCurrency)}
           </Typography>
           {allocation ? (
             <Stack spacing={0.35}>
@@ -188,7 +188,7 @@ function AllocationLine({
   return (
     <Typography color="text.secondary" variant="caption">
       {label} {getCurrencySymbol(currency)}
-      {formatNumber(value)}
+      {formatNumber(value, currency)}
     </Typography>
   );
 }

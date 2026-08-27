@@ -78,6 +78,7 @@ export function TransactionItemsSection({
               const businessStatus =
                 item.businessStatus ??
                 resolveTransactionBusinessStatus({
+                  currency: selectedAccountCurrency,
                   specialStatus: item.specialStatus,
                 });
               const categoryType = item.category?.type ?? selectedType;

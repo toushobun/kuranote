@@ -21,6 +21,7 @@ const accountOptions: TransactionAccountOption[] = [
   { currency: "JPY", id: "account-1", name: "现金" },
   { currency: "JPY", id: "account-2", name: "银行卡" },
   { currency: "USD", id: "account-3", name: "美元账户" },
+  { currency: "KWD", id: "account-4", name: "科威特第纳尔账户" },
 ];
 const categoryOptions: TransactionCategoryOption[] = [
   {
@@ -141,6 +142,28 @@ describe("useTransactionForm", () => {
 
     expect(result.current.signedTotalAmount).toBe("-500");
     expect(result.current.businessTotalAmount).toBe("-300");
+  });
+
+  it("三位小数币种的收支净额和业务净额不截断", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        accountId: "account-4",
+        items: [
+          {
+            amount: "1.234",
+            businessNetAmount: "1.123",
+            categoryId: "expense-child",
+          },
+        ],
+        merchantId: "merchant-1",
+        note: "三位小数",
+        transactionAt: "2026-07-20T01:30:00.000Z",
+        type: "expense",
+      },
+    });
+
+    expect(result.current.signedTotalAmount).toBe("-1.234");
+    expect(result.current.businessTotalAmount).toBe("-1.123");
   });
 
   it("新增超额退款收入时完整核销且业务净额为零", () => {

@@ -66,10 +66,13 @@ describe("transactions utils", () => {
   it("格式化金额字符串用于展示", () => {
     expect(formatNumber("1234.5")).toBe(numberFormatter.format(1234.5));
     expect(formatNumber("invalid")).toBe("invalid");
-    expect(formatPlainAmount("1234.5", "JPY")).toBe(
-      `${numberFormatter.format(1234.5)} JPY`,
+    expect(formatPlainAmount("1234.5", "USD")).toBe(
+      `${numberFormatter.format(1234.5)} USD`,
     );
+    expect(formatPlainAmount("1234.5", "JPY")).toBe("1,235 JPY");
     expect(formatPlainAmount("1234.5")).toBe(numberFormatter.format(1234.5));
+    expect(formatNumber("1.234", "KWD")).toBe("1.234");
+    expect(formatPlainAmount("1.234", "KWD")).toBe("1.234 KWD");
   });
 
   it("格式化带符号金额用于展示", () => {
@@ -88,6 +91,9 @@ describe("transactions utils", () => {
       `+ $ ${numberFormatter.format(1200)}`,
     );
     expect(formatTransactionRowAmount("expense", "0", "JPY")).toBe("¥ 0");
+    expect(formatTransactionRowAmount("expense", "1.234", "KWD")).toBe(
+      "- KWD 1.234",
+    );
   });
 
   it("转账行金额不带正负号", () => {

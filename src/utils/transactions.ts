@@ -7,23 +7,24 @@ import type {
   TransactionRecordType,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 
 const weekDayLabels = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const minimumDateLabelRefreshDelayMs = 1;
 
-export function formatNumber(amount: string) {
+export function formatNumber(amount: string, currency?: string) {
   const value = Number(amount);
 
   if (!Number.isFinite(value)) return amount;
 
   return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2,
+    maximumFractionDigits: currency ? getAmountDecimalPlaces(currency) : 2,
     minimumFractionDigits: 0,
   }).format(value);
 }
 
 export function formatPlainAmount(amount: string, currency = "") {
-  const formattedAmount = formatNumber(amount);
+  const formattedAmount = formatNumber(amount, currency);
 
   return currency ? `${formattedAmount} ${currency}` : formattedAmount;
 }
@@ -57,7 +58,7 @@ export function formatTransactionRowAmount(
   amount: string,
   currency = "",
 ) {
-  const formattedAmount = formatNumber(amount);
+  const formattedAmount = formatNumber(amount, currency);
   const displayAmount = currency
     ? `${getCurrencySymbol(currency)} ${formattedAmount}`
     : formattedAmount;

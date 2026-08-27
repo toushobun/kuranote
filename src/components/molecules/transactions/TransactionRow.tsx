@@ -14,6 +14,7 @@ import type { TransactionBusinessStatus } from "internal/transaction";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
 import { transactionAmountMessages } from "utils/transactionMessages";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
   CategorySummaryItem,
   TransactionCategoryType,
@@ -75,7 +76,10 @@ export function TransactionRow({
     : displayedAmountType === "income"
       ? incomeColor
       : expenseColor;
-  const businessStatuses = getBusinessStatuses(item.categoryItems);
+  const businessStatuses = getBusinessStatuses(
+    item.categoryItems,
+    item.account_currency,
+  );
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
     getBrowserTimeZone,
@@ -293,6 +297,7 @@ export function TransactionRow({
 
 function getBusinessStatuses(
   categoryItems: CategorySummaryItem[],
+  currency?: string,
 ): { key: string; status: TransactionBusinessStatus }[] {
   let settlementStatus: TransactionBusinessStatus["settlementStatus"] = null;
   let refundAmount = 0;
@@ -329,8 +334,11 @@ function getBusinessStatuses(
       status: {
         incomeLinkRole: null,
         offsetComposition: {
-          refundAmount: normalizeAggregatedAmount(refundAmount),
-          reimbursementAmount: normalizeAggregatedAmount(reimbursementAmount),
+          refundAmount: normalizeAggregatedAmount(refundAmount, currency),
+          reimbursementAmount: normalizeAggregatedAmount(
+            reimbursementAmount,
+            currency,
+          ),
         },
         settlementStatus,
       },
@@ -427,9 +435,9 @@ function getStatisticsAdjustmentMessage(adjustment: StatisticsAdjustment) {
   return transactionAmountMessages.partiallyNotIncludedInStatistics;
 }
 
-function normalizeAggregatedAmount(amount: number) {
+function normalizeAggregatedAmount(amount: number, currency?: string) {
   return Number.isFinite(amount) && amount > 0
-    ? String(Number(amount.toFixed(2)))
+    ? String(Number(amount.toFixed(getAmountDecimalPlaces(currency))))
     : "0";
 }
 

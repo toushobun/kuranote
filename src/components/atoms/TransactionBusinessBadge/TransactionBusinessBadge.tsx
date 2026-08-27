@@ -40,7 +40,7 @@ export function TransactionBusinessBadge({
             key={kind}
             label={
               amount
-                ? `${config.label} ${getCurrencySymbol(currency)}${formatNumber(amount)}`
+                ? `${config.label} ${getCurrencySymbol(currency)}${formatNumber(amount, currency)}`
                 : config.label
             }
             size={size}

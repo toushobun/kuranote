@@ -25,6 +25,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -984,7 +985,11 @@ function createTransferInitialValuesFromNormal(
     transactionRecordId: requireEditTransactionRecordId(
       initialValues.transactionRecordId,
     ),
-    transferAmount: totalAmountText(initialValues.items),
+    transferAmount: totalAmountText(
+      initialValues.items,
+      accountOptions.find((account) => account.id === initialValues.accountId)
+        ?.currency,
+    ),
     transferTargetAccountId: findTransferTargetAccountId(
       accountOptions,
       initialValues.accountId,
@@ -1008,7 +1013,10 @@ function createNormalInitialValuesFromTransfer(
   };
 }
 
-function totalAmountText(items: TransactionFormInitialValues["items"]) {
+function totalAmountText(
+  items: TransactionFormInitialValues["items"],
+  currency?: string,
+) {
   const total = items.reduce((sum, item) => {
     const amount = Number(item.amount);
     return Number.isFinite(amount) ? sum + amount : sum;
@@ -1016,10 +1024,7 @@ function totalAmountText(items: TransactionFormInitialValues["items"]) {
 
   if (total <= 0) return "";
 
-  return total
-    .toFixed(2)
-    .replace(/\.00$/, "")
-    .replace(/(\.\d)0$/, "$1");
+  return String(Number(total.toFixed(getAmountDecimalPlaces(currency))));
 }
 
 function findTransferTargetAccountId(
