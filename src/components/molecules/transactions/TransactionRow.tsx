@@ -3,6 +3,7 @@
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
@@ -262,16 +263,17 @@ export function TransactionRow({
       </Stack>
 
       {detailText ? (
-        <Typography
-          noWrap
+        <Chip
+          label={detailText}
           sx={{
-            color: mutedText,
-            fontSize: 11,
+            ...rowBadgeSx,
+            bgcolor: "var(--user-theme-badge-bg)",
+            color: textColor,
             fontWeight: 700,
+            maxWidth: "100%",
+            width: "fit-content",
           }}
-        >
-          {detailText}
-        </Typography>
+        />
       ) : null}
 
       {businessStatuses.length > 0 ? (
@@ -286,7 +288,7 @@ export function TransactionRow({
               currency={item.account_currency}
               key={key}
               status={status}
-              sx={businessBadgeSx}
+              sx={rowBadgeSx}
             />
           ))}
         </Stack>
@@ -547,7 +549,7 @@ function getServerTimeZone() {
   return serverFallbackTimeZone;
 }
 
-const businessBadgeSx = {
+const rowBadgeSx = {
   fontSize: "0.625rem",
   height: 20,
   "& .MuiChip-label": { px: 0.75 },

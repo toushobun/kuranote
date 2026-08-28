@@ -510,6 +510,46 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
+    it("有无业务标签时分类摘要与业务标签使用同一固定高度", () => {
+      render(
+        <>
+          <TransactionRow item={createItem()} />
+          <TransactionRow
+            item={createItem({
+              id: "00000000-0000-4000-8000-000000009002",
+              categoryItems: [
+                {
+                  amount: "1234",
+                  businessStatus: incomeBusinessStatus("reimbursement"),
+                  categoryName: "交通",
+                  categoryType: "expense",
+                  parentCategoryName: "出行",
+                },
+              ],
+            })}
+          />
+        </>,
+      );
+
+      const categoryOnlyChip = screen
+        .getByText("餐饮")
+        .closest(".MuiChip-root");
+      const businessChip = screen
+        .getByText("报销收入")
+        .closest(".MuiChip-root");
+
+      expect(categoryOnlyChip).toHaveStyle({ height: "20px" });
+      expect(businessChip).toHaveStyle({ height: "20px" });
+      expect(screen.getByText("餐饮")).toHaveStyle({
+        paddingLeft: "6px",
+        paddingRight: "6px",
+      });
+      expect(screen.getByText("报销收入")).toHaveStyle({
+        paddingLeft: "6px",
+        paddingRight: "6px",
+      });
+    });
+
     it("单条明细带业务状态时显示对应标签", () => {
       render(
         <TransactionRow

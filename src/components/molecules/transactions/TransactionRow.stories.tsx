@@ -174,6 +174,43 @@ export const BusinessStatuses: Story = {
   },
 };
 
+export const BusinessBadgeHeightComparison: Story = {
+  name: "有无业务标签时的徽章高度对比",
+  render: () => {
+    const categoryOnlyItem: TransactionRowItem = {
+      ...expenseItem,
+      amount: "220",
+      categoryItems: [
+        {
+          amount: "220",
+          categoryName: "🎫 JR地铁公交",
+          parentCategoryName: "🚃 交通",
+          categoryType: "expense",
+        },
+      ],
+      merchant_name: "JR",
+      note: null,
+    };
+    const businessBadgeItem: TransactionRowItem = {
+      ...categoryOnlyItem,
+      id: "00000000-0000-4000-8000-000000009002",
+      categoryItems: [
+        {
+          ...categoryOnlyItem.categoryItems[0],
+          businessStatus: reimbursementStatus,
+        },
+      ],
+    };
+
+    return (
+      <Stack divider={<Divider />}>
+        <TransactionRow item={categoryOnlyItem} receiptCard showTime />
+        <TransactionRow item={businessBadgeItem} receiptCard showTime />
+      </Stack>
+    );
+  },
+};
+
 export const MixedOffsetSettlement: Story = {
   name: "结算状态与退款报销核销构成",
   args: {
