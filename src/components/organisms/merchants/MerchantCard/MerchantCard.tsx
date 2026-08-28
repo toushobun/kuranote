@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { merchantText } from "config/merchantText";
 import type { Merchant } from "types/merchants";
 import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
 
@@ -26,6 +27,10 @@ export function MerchantCard({
   ledgerId,
   merchant,
 }: MerchantCardProps) {
+  const hasPreferredAlias = merchant.aliases.some(
+    (alias) => alias.is_preferred,
+  );
+
   return (
     <SoftCard sx={{ borderColor: "var(--user-theme-card-border)", p: 2.5 }}>
       <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
@@ -46,9 +51,9 @@ export function MerchantCard({
           <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
             {merchant.display_name}
           </Typography>
-          {merchant.display_name !== merchant.name ? (
+          {hasPreferredAlias ? (
             <Typography color="text.secondary" variant="caption">
-              正式名：{merchant.name}
+              {merchantText.formalName}：{merchant.name}
             </Typography>
           ) : null}
 

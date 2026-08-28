@@ -529,6 +529,7 @@ export function createSupabaseMerchantRepository(
             merchantId: input.merchantId,
           },
           error,
+          merchantErrorCodes.aliasPreferredUpdateFailed,
         );
       }
       return data === true;

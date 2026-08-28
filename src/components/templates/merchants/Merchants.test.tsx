@@ -36,7 +36,7 @@ describe("MerchantsTemplate", () => {
 
     expect(within(container).getByText("还没有商家")).toBeInTheDocument();
     expect(
-      within(container).queryByPlaceholderText("搜索正式名或别名"),
+      within(container).queryByLabelText("搜索商家"),
     ).not.toBeInTheDocument();
   });
 
@@ -45,9 +45,7 @@ describe("MerchantsTemplate", () => {
       <MerchantsTemplate {...baseProps} keyword="便利" />,
     );
 
-    expect(
-      within(container).getByPlaceholderText("搜索正式名或别名"),
-    ).toHaveValue("便利");
+    expect(within(container).getByLabelText("搜索商家")).toHaveValue("便利");
   });
 
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {
@@ -55,9 +53,7 @@ describe("MerchantsTemplate", () => {
       <MerchantsTemplate {...baseProps} keyword="便利" merchants={[]} />,
     );
 
-    expect(
-      within(container).getByPlaceholderText("搜索正式名或别名"),
-    ).toHaveValue("便利");
+    expect(within(container).getByLabelText("搜索商家")).toHaveValue("便利");
     expect(
       within(container).getByText("没有找到匹配的商家"),
     ).toBeInTheDocument();

@@ -60,6 +60,7 @@ export function MerchantsTemplate({
               placeholder="搜索正式名或别名"
               size="small"
               slotProps={{
+                htmlInput: { "aria-label": "搜索商家" },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">

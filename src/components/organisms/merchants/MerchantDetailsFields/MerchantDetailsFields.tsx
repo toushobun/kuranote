@@ -1,8 +1,11 @@
+"use client";
+
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { useEffect, useState } from "react";
 
 import { merchantText } from "config/merchantText";
 import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
@@ -17,6 +20,8 @@ type MerchantDetailsFieldsProps = {
   websiteUrl: string;
 };
 
+const iconPreviewDebounceMs = 400;
+
 export function MerchantDetailsFields({
   ledgerId,
   name,
@@ -26,11 +31,22 @@ export function MerchantDetailsFields({
   onWebsiteUrlChange,
   websiteUrl,
 }: MerchantDetailsFieldsProps) {
+  const [previewWebsiteUrl, setPreviewWebsiteUrl] = useState(websiteUrl);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setPreviewWebsiteUrl(websiteUrl),
+      iconPreviewDebounceMs,
+    );
+
+    return () => window.clearTimeout(timeout);
+  }, [websiteUrl]);
+
   return (
     <Stack spacing={2.5}>
       <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
         <Avatar
-          src={merchantIconSrc(ledgerId, websiteUrl || null)}
+          src={merchantIconSrc(ledgerId, previewWebsiteUrl || null)}
           sx={{
             bgcolor: "var(--user-theme-icon-badge-bg)",
             color: "var(--user-theme-icon-badge-color)",

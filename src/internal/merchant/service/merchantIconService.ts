@@ -53,13 +53,23 @@ function isPublicIpv4(address: string): boolean {
   );
 }
 
+function mappedIpv4FromIpv6(address: string): string | null {
+  const normalized = new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  const groups = normalized.match(/^::ffff:([\da-f]{1,4}):([\da-f]{1,4})$/);
+  if (!groups) return null;
+
+  const high = Number.parseInt(groups[1]!, 16);
+  const low = Number.parseInt(groups[2]!, 16);
+  return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
+}
+
 function isPublicIp(address: string): boolean {
   const normalized = address.toLowerCase();
   const family = isIP(normalized);
   if (family === 4) return isPublicIpv4(normalized);
   if (family !== 6) return false;
 
-  const mappedIpv4 = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  const mappedIpv4 = mappedIpv4FromIpv6(normalized);
   if (mappedIpv4) return isPublicIpv4(mappedIpv4);
 
   return !(

@@ -47,4 +47,23 @@ describe("MerchantCard", () => {
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
   });
+
+  it("首选别名与正式名相同时仍显示正式名说明", () => {
+    const merchant = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({ alias: "LIFE超市", is_preferred: true }),
+      ],
+      display_name: "LIFE超市",
+      name: "LIFE超市",
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+  });
 });

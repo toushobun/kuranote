@@ -116,10 +116,10 @@ export function MerchantEditTemplate({
       <SectionCard sx={{ borderColor: "error.light", p: { xs: 2, sm: 3 } }}>
         <Stack spacing={1.5}>
           <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
-            归档商家
+            {merchantText.archive}
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            归档后不会出现在新的记账选项中，既有记录仍会保留。
+            {merchantText.archiveDescription}
           </Typography>
           <form action={archive.action}>
             <input name="merchantId" type="hidden" value={merchant.id} />
@@ -139,18 +139,21 @@ export function MerchantEditTemplate({
         state={update.state}
         title={merchantText.editErrorTitle}
       />
-      <MerchantFailureFeedback state={archive.state} title="商家归档失败" />
+      <MerchantFailureFeedback
+        state={archive.state}
+        title={merchantText.archiveErrorTitle}
+      />
       <MerchantFailureFeedback
         state={createAlias.state}
-        title="商家别名新增失败"
+        title={merchantText.createAliasErrorTitle}
       />
       <MerchantFailureFeedback
         state={archiveAlias.state}
-        title="商家别名移除失败"
+        title={merchantText.archiveAliasErrorTitle}
       />
       <MerchantFailureFeedback
         state={setPreferred.state}
-        title="展示名更新失败"
+        title={merchantText.preferredErrorTitle}
       />
     </PageShell>
   );

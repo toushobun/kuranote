@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { merchantErrorCodes } from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
   ConflictError,
@@ -52,6 +53,30 @@ describe("createSupabaseMerchantRepository", () => {
       p_merchant_id: merchantId,
     });
   });
+
+  it("展示名唯一约束冲突会转换为安全的 ConflictError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: { code: "23505", message: "private constraint detail" },
+      },
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.setPreferredAlias({
+      aliasId: null,
+      ledgerId,
+      merchantId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.aliasPreferredUpdateFailed,
+    });
+    await expect(operation).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("商家列表只读取指定账本的未归档记录并按既有顺序排序", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ data: [] }] });
     const repository = createSupabaseMerchantRepository(

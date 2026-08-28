@@ -1,9 +1,18 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MerchantDetailsFields } from "./MerchantDetailsFields";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("MerchantDetailsFields", () => {
   it("显示当前值、头像地址和名称首字", () => {
@@ -59,5 +68,38 @@ describe("MerchantDetailsFields", () => {
     expect(onNameChange).toHaveBeenCalledWith("LIFE超市");
     expect(onWebsiteUrlChange).toHaveBeenCalledWith("https://www.lifecorp.jp");
     expect(onNoteChange).toHaveBeenCalledWith("常去的超市");
+  });
+
+  it("网址输入停止后再更新头像预览", () => {
+    vi.useFakeTimers();
+    const props = {
+      ledgerId: "ledger-1",
+      name: "Amazon",
+      note: "",
+      onNameChange: vi.fn(),
+      onNoteChange: vi.fn(),
+      onWebsiteUrlChange: vi.fn(),
+    };
+    const { container, rerender } = render(
+      <MerchantDetailsFields
+        {...props}
+        websiteUrl="https://www.amazon.co.jp"
+      />,
+    );
+    const avatar = container.querySelector("img");
+
+    rerender(
+      <MerchantDetailsFields {...props} websiteUrl="https://www.lifecorp.jp" />,
+    );
+
+    expect(avatar).toHaveAttribute(
+      "src",
+      expect.stringContaining("www.amazon.co.jp"),
+    );
+    act(() => vi.advanceTimersByTime(400));
+    expect(avatar).toHaveAttribute(
+      "src",
+      expect.stringContaining("www.lifecorp.jp"),
+    );
   });
 });
