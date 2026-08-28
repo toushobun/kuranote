@@ -102,7 +102,12 @@ function createSettingsEntryGroups(
           kind: "link",
           label: "分类管理",
         },
-        { icon: StorefrontOutlinedIcon, kind: "comingSoon", label: "商家管理" },
+        {
+          href: routePaths.merchants,
+          icon: StorefrontOutlinedIcon,
+          kind: "link",
+          label: "商家管理",
+        },
       ],
     },
     {
