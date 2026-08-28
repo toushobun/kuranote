@@ -1,9 +1,17 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
+
+const componentSource = readFileSync(
+  join(process.cwd(), "src/components/templates/merchants/Merchants.tsx"),
+  "utf8",
+);
 
 afterEach(cleanup);
 
@@ -15,6 +23,10 @@ const baseProps = {
 };
 
 describe("MerchantsTemplate", () => {
+  it("声明客户端边界以支持 MUI Link 组件", () => {
+    expect(componentSource.startsWith('"use client";')).toBe(true);
+  });
+
   it("显示统一页面标题、账本和独立新增入口", () => {
     const { container } = render(<MerchantsTemplate {...baseProps} />);
 

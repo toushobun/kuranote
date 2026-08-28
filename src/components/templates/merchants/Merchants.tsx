@@ -1,3 +1,5 @@
+"use client";
+
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Button from "@mui/material/Button";
