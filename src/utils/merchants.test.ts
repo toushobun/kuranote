@@ -9,6 +9,7 @@ import {
   filterMerchantsByKeyword,
   getMerchantInitial,
   normalizeSearchText,
+  resolveMerchantDisplayName,
 } from "utils/merchants";
 
 describe("getMerchantInitial", () => {
@@ -48,6 +49,16 @@ describe("normalizeSearchText", () => {
 
   it("日文文本保持原样用于搜索", () => {
     expect(normalizeSearchText(" ライフ ")).toBe("ライフ");
+  });
+});
+
+describe("resolveMerchantDisplayName", () => {
+  it("首选别名存在时使用首选别名", () => {
+    expect(resolveMerchantDisplayName("LIFE超市", "来福")).toBe("来福");
+  });
+
+  it("没有首选别名时使用正式名", () => {
+    expect(resolveMerchantDisplayName("LIFE超市", null)).toBe("LIFE超市");
   });
 });
 

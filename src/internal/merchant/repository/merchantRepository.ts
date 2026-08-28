@@ -4,6 +4,7 @@ import { ConflictError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import { resolveMerchantDisplayName } from "utils/merchants";
 
 type MerchantRow = {
   created_at: string;
@@ -150,13 +151,18 @@ function attachMerchantAliases(
     aliasesByMerchantId.set(alias.merchant_id, currentAliases);
   }
 
-  return merchants.map((merchant) => ({
-    ...merchant,
-    aliases: aliasesByMerchantId.get(merchant.id) ?? [],
-    display_name:
-      aliasesByMerchantId.get(merchant.id)?.find((alias) => alias.is_preferred)
-        ?.alias ?? merchant.name,
-  }));
+  return merchants.map((merchant) => {
+    const merchantAliases = aliasesByMerchantId.get(merchant.id) ?? [];
+    const preferredAlias = merchantAliases.find(
+      (alias) => alias.is_preferred,
+    )?.alias;
+
+    return {
+      ...merchant,
+      aliases: merchantAliases,
+      display_name: resolveMerchantDisplayName(merchant.name, preferredAlias),
+    };
+  });
 }
 
 function applyPreferredNames(
@@ -169,7 +175,10 @@ function applyPreferredNames(
 
   return merchants.map((merchant) => ({
     ...merchant,
-    name: preferredNameByMerchantId.get(merchant.id) ?? merchant.name,
+    name: resolveMerchantDisplayName(
+      merchant.name,
+      preferredNameByMerchantId.get(merchant.id),
+    ),
   }));
 }
 

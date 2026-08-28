@@ -14,6 +14,13 @@ export function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
 }
 
+export function resolveMerchantDisplayName(
+  formalName: string,
+  preferredAlias: string | null | undefined,
+) {
+  return preferredAlias ?? formalName;
+}
+
 export function parseWebsiteUrl(value: unknown): string | null | undefined {
   if (value === null || value === undefined) {
     return null;
