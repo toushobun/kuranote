@@ -84,4 +84,29 @@ describe("createMerchantIconService", () => {
     ).rejects.toBeInstanceOf(RepositoryError);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it("外部图标请求超时时停止等待并返回安全错误", async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          signal?.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    ) as unknown as typeof fetch;
+    const service = createMerchantIconService({
+      fetchImpl,
+      lookup: publicLookup,
+      timeoutMs: 5,
+    });
+
+    await expect(
+      service.fetchIcon("https://example.com"),
+    ).rejects.toMatchObject({
+      code: "merchant_icon_fetch_failed",
+      message: "商家头像暂时无法获取。",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });

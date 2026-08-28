@@ -10,6 +10,7 @@ import { parseWebsiteUrl } from "utils/merchants";
 
 const faviconProviderOrigin = "https://www.google.com";
 const faviconProviderHostname = "www.google.com";
+const iconFetchTimeoutMs = 5_000;
 const maxIconBytes = 256 * 1024;
 const maxRedirects = 3;
 
@@ -23,6 +24,7 @@ export type MerchantIcon = {
 type MerchantIconServiceDependencies = {
   fetchImpl?: typeof fetch;
   lookup?: (hostname: string) => Promise<LookupAddress[]>;
+  timeoutMs?: number;
 };
 
 function isPublicIpv4(address: string): boolean {
@@ -87,6 +89,7 @@ export function createMerchantIconService({
   fetchImpl = fetch,
   lookup = async (hostname) =>
     nodeLookup(hostname, { all: true, verbatim: true }),
+  timeoutMs = iconFetchTimeoutMs,
 }: MerchantIconServiceDependencies = {}) {
   async function requirePublicHostname(hostname: string): Promise<void> {
     const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
@@ -134,6 +137,7 @@ export function createMerchantIconService({
     let requestUrl = new URL("/s2/favicons", faviconProviderOrigin);
     requestUrl.searchParams.set("domain_url", domainUrl);
     requestUrl.searchParams.set("sz", "128");
+    const signal = AbortSignal.timeout(timeoutMs);
 
     for (
       let redirectCount = 0;
@@ -151,10 +155,19 @@ export function createMerchantIconService({
       }
       await requirePublicHostname(requestUrl.hostname);
 
-      const response = await fetchImpl(requestUrl, {
-        headers: { Accept: "image/*" },
-        redirect: "manual",
-      });
+      let response: Response;
+      try {
+        response = await fetchImpl(requestUrl, {
+          headers: { Accept: "image/*" },
+          redirect: "manual",
+          signal,
+        });
+      } catch {
+        throw new RepositoryError(
+          "merchant_icon_fetch_failed",
+          "商家头像暂时无法获取。",
+        );
+      }
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get("location");
         if (!location || redirectCount === maxRedirects) break;
@@ -172,7 +185,15 @@ export function createMerchantIconService({
         break;
       }
 
-      const bytes = await response.arrayBuffer();
+      let bytes: ArrayBuffer;
+      try {
+        bytes = await response.arrayBuffer();
+      } catch {
+        throw new RepositoryError(
+          "merchant_icon_fetch_failed",
+          "商家头像暂时无法获取。",
+        );
+      }
       if (bytes.byteLength === 0 || bytes.byteLength > maxIconBytes) break;
       return { bytes, contentType };
     }

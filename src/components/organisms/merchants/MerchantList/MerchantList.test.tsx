@@ -29,4 +29,20 @@ describe("MerchantList", () => {
     expect(within(container).getByText("LIFE超市")).toBeInTheDocument();
     expect(within(container).queryByText("还没有商家")).not.toBeInTheDocument();
   });
+
+  it("搜索无结果时显示搜索空状态且不显示新增入口", () => {
+    const { container } = render(
+      <MerchantList {...baseProps} keyword="便利" merchants={[]} />,
+    );
+
+    expect(
+      within(container).getByText("没有找到匹配的商家"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByText("没有找到与“便利”匹配的正式名或别名。"),
+    ).toBeInTheDocument();
+    expect(
+      within(container).queryByRole("link", { name: "添加第一个商家" }),
+    ).not.toBeInTheDocument();
+  });
 });

@@ -29,6 +29,7 @@ export function MerchantsTemplate({
   merchants,
 }: MerchantsTemplateProps) {
   const hasMerchants = merchants.length > 0;
+  const hasKeyword = keyword.trim().length > 0;
 
   return (
     <PageShell>
@@ -49,7 +50,7 @@ export function MerchantsTemplate({
         title="商家管理"
       />
 
-      {hasMerchants ? (
+      {hasMerchants || hasKeyword ? (
         <SectionCard component="form" sx={{ p: 2.5 }}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
             <TextField
@@ -78,6 +79,7 @@ export function MerchantsTemplate({
       <MerchantList
         canManageMerchants={canManageMerchants}
         createHref={routePaths.merchantsNew}
+        keyword={keyword}
         ledgerId={ledgerId}
         merchants={merchants}
       />

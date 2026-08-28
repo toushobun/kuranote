@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { getMerchantInitial, normalizeSearchText } from "utils/merchants";
+import {
+  createMerchantAliasRow,
+  createMerchantRow,
+} from "@/test/mocks/merchants";
+
+import {
+  filterMerchantsByKeyword,
+  getMerchantInitial,
+  normalizeSearchText,
+} from "utils/merchants";
 
 describe("getMerchantInitial", () => {
   it("英文商家名返回大写首字母", () => {
@@ -39,5 +48,34 @@ describe("normalizeSearchText", () => {
 
   it("日文文本保持原样用于搜索", () => {
     expect(normalizeSearchText(" ライフ ")).toBe("ライフ");
+  });
+});
+
+describe("filterMerchantsByKeyword", () => {
+  const merchants = [
+    createMerchantRow({
+      aliases: [createMerchantAliasRow({ alias: "来福" })],
+      name: "LIFE超市",
+    }),
+    createMerchantRow({
+      id: "00000000-0000-4000-8000-000000001002",
+      name: "Amazon",
+    }),
+  ];
+
+  it("别名包含搜索词时返回对应商家", () => {
+    expect(filterMerchantsByKeyword(merchants, " 来福 ")).toEqual([
+      merchants[0],
+    ]);
+  });
+
+  it("正式名匹配不区分英文大小写", () => {
+    expect(filterMerchantsByKeyword(merchants, "amazon")).toEqual([
+      merchants[1],
+    ]);
+  });
+
+  it("空搜索词返回原列表", () => {
+    expect(filterMerchantsByKeyword(merchants, "  ")).toBe(merchants);
   });
 });
