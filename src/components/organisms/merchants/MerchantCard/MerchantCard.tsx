@@ -1,154 +1,115 @@
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { MerchantAliasForm } from "organisms/merchants/MerchantAliasForm/MerchantAliasForm";
-import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
-import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
-import { getMerchantInitial } from "utils/merchants";
+import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
 
 type MerchantCardProps = {
-  archiveAliasAction: ServerAction;
-  archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
-  createAliasAction: ServerAction;
-  createAliasPending?: boolean;
+  editHref: string;
+  ledgerId: string;
   merchant: Merchant;
-  merchantAliasFormResetKey?: string;
-  merchantEditFormResetKey?: string;
-  updateMerchantPending?: boolean;
-  updateMerchantAction: ServerAction;
 };
 
 export function MerchantCard({
-  archiveAliasAction,
-  archiveMerchantAction,
   canManageMerchants = true,
-  createAliasAction,
-  createAliasPending = false,
+  editHref,
+  ledgerId,
   merchant,
-  merchantAliasFormResetKey = "initial",
-  merchantEditFormResetKey = "initial",
-  updateMerchantPending = false,
-  updateMerchantAction,
 }: MerchantCardProps) {
   return (
-    <SoftCard
-      sx={{
-        borderColor: "var(--user-theme-card-border)",
-        p: 3,
-      }}
-    >
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        sx={{ justifyContent: "space-between" }}
-      >
-        <Stack direction="row" spacing={2} sx={{ minWidth: 0 }}>
-          <Avatar src={merchant.icon_url ?? undefined}>
-            {getMerchantInitial(merchant.name)}
-          </Avatar>
+    <SoftCard sx={{ borderColor: "var(--user-theme-card-border)", p: 2.5 }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+        <Avatar
+          alt=""
+          src={merchantIconSrc(ledgerId, merchant.website_url)}
+          sx={{
+            bgcolor: "var(--user-theme-icon-badge-bg)",
+            color: "var(--user-theme-icon-badge-color)",
+            height: 52,
+            width: 52,
+          }}
+        >
+          {getMerchantInitial(merchant.display_name)}
+        </Avatar>
 
-          <Box sx={{ minWidth: 0 }}>
-            <Typography component="h2" variant="h6" sx={{ fontWeight: 700 }}>
-              {merchant.name}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
+            {merchant.display_name}
+          </Typography>
+          {merchant.display_name !== merchant.name ? (
+            <Typography color="text.secondary" variant="caption">
+              正式名：{merchant.name}
             </Typography>
+          ) : null}
 
-            {merchant.website_url ? (
-              <Link
-                href={merchant.website_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {merchant.website_url}
-              </Link>
-            ) : (
-              <Typography color="text.secondary" variant="body2">
-                网址未设置
-              </Typography>
-            )}
+          {merchant.website_url ? (
+            <Link
+              href={merchant.website_url}
+              rel="noreferrer"
+              target="_blank"
+              sx={{ display: "block", mt: 0.5, overflowWrap: "anywhere" }}
+              variant="body2"
+            >
+              {merchant.website_url}
+            </Link>
+          ) : (
+            <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
+              网址未设置
+            </Typography>
+          )}
 
-            {merchant.note ? (
-              <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-                {merchant.note}
-              </Typography>
-            ) : null}
-          </Box>
-        </Stack>
+          {merchant.note ? (
+            <Typography
+              color="text.secondary"
+              sx={{ mt: 0.75 }}
+              variant="body2"
+            >
+              {merchant.note}
+            </Typography>
+          ) : null}
+
+          {merchant.aliases.length > 0 ? (
+            <Stack
+              direction="row"
+              sx={{ flexWrap: "wrap", gap: 0.75, mt: 1.5 }}
+            >
+              {merchant.aliases.map((alias) => (
+                <Chip
+                  color={alias.is_preferred ? "primary" : "default"}
+                  icon={alias.is_preferred ? <StarRoundedIcon /> : undefined}
+                  key={alias.id}
+                  label={alias.alias}
+                  size="small"
+                  variant={alias.is_preferred ? "filled" : "outlined"}
+                />
+              ))}
+            </Stack>
+          ) : null}
+        </Box>
 
         {canManageMerchants ? (
-          <Stack
-            component="form"
-            action={archiveMerchantAction}
-            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          <Button
+            aria-label={`编辑${merchant.name}`}
+            component={NextLink}
+            href={editHref}
+            size="small"
+            startIcon={<EditRoundedIcon />}
+            variant="outlined"
           >
-            <input name="merchantId" type="hidden" value={merchant.id} />
-            <Button color="error" type="submit" variant="outlined">
-              归档商家
-            </Button>
-          </Stack>
+            编辑
+          </Button>
         ) : null}
       </Stack>
-
-      <Divider sx={{ my: 3 }} />
-
-      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-        别名
-      </Typography>
-
-      {merchant.aliases.length > 0 ? (
-        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
-          {merchant.aliases.map((alias) =>
-            canManageMerchants ? (
-              <Stack
-                key={alias.id}
-                component="form"
-                action={archiveAliasAction}
-                direction="row"
-                spacing={1}
-                sx={{ alignItems: "center" }}
-              >
-                <input name="aliasId" type="hidden" value={alias.id} />
-                <Chip label={alias.alias} size="small" />
-                <Button color="error" size="small" type="submit" variant="text">
-                  移除
-                </Button>
-              </Stack>
-            ) : (
-              <Chip key={alias.id} label={alias.alias} size="small" />
-            ),
-          )}
-        </Stack>
-      ) : (
-        <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-          还没有别名。
-        </Typography>
-      )}
-
-      {canManageMerchants ? (
-        <>
-          <MerchantAliasForm
-            action={createAliasAction}
-            key={`alias-${merchantAliasFormResetKey}`}
-            merchantId={merchant.id}
-            pending={createAliasPending}
-          />
-          <Divider sx={{ my: 3 }} />
-          <MerchantEditForm
-            action={updateMerchantAction}
-            key={`edit-${merchantEditFormResetKey}`}
-            merchant={merchant}
-            pending={updateMerchantPending}
-          />
-        </>
-      ) : null}
     </SoftCard>
   );
 }

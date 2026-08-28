@@ -2,6 +2,7 @@ export const merchantErrorCodes = {
   aliasArchiveFailed: "alias_archive_failed",
   aliasCreateFailed: "alias_create_failed",
   aliasInvalid: "alias_invalid",
+  aliasPreferredUpdateFailed: "alias_preferred_update_failed",
   aliasRequired: "alias_required",
   aliasTooLong: "alias_too_long",
   archiveFailed: "archive_failed",
@@ -37,6 +38,7 @@ export type MerchantActionErrorCode =
   | MerchantValidationErrorCode
   | typeof merchantErrorCodes.aliasArchiveFailed
   | typeof merchantErrorCodes.aliasCreateFailed
+  | typeof merchantErrorCodes.aliasPreferredUpdateFailed
   | typeof merchantErrorCodes.archiveFailed
   | typeof merchantErrorCodes.createFailed
   | typeof merchantErrorCodes.permissionDenied
@@ -46,6 +48,7 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.aliasArchiveFailed,
   merchantErrorCodes.aliasCreateFailed,
   merchantErrorCodes.aliasInvalid,
+  merchantErrorCodes.aliasPreferredUpdateFailed,
   merchantErrorCodes.aliasRequired,
   merchantErrorCodes.aliasTooLong,
   merchantErrorCodes.archiveFailed,
@@ -64,6 +67,8 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.aliasCreateFailed]:
     "商家别名新增失败。请确认别名是否重复，或稍后重试。",
   [merchantErrorCodes.aliasInvalid]: "商家别名指定不正确。",
+  [merchantErrorCodes.aliasPreferredUpdateFailed]:
+    "展示名更新失败，请稍后重试。",
   [merchantErrorCodes.aliasRequired]: "请输入商家别名。",
   [merchantErrorCodes.aliasTooLong]: "商家别名不能超过 100 个字符。",
   [merchantErrorCodes.archiveFailed]: "商家归档失败，请稍后重试。",

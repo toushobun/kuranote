@@ -27,11 +27,9 @@ const meta = {
   title: "Organisms/Merchants/MerchantList",
   component: MerchantList,
   args: {
-    archiveAliasAction: async () => {},
-    archiveMerchantAction: async () => {},
-    createAliasAction: async () => {},
+    createHref: "/merchants/new",
+    ledgerId: "ledger-1",
     merchants,
-    updateMerchantAction: async () => {},
   },
 } satisfies Meta<typeof MerchantList>;
 
@@ -45,6 +43,8 @@ export const Default: Story = {
 export const Empty: Story = {
   name: "空列表",
   args: {
+    createHref: "/merchants/new",
+    ledgerId: "ledger-1",
     merchants: [],
   },
 };

@@ -15,6 +15,7 @@ type MerchantActionOperation =
   | "archiveAlias"
   | "create"
   | "createAlias"
+  | "setPreferred"
   | "update";
 
 type UseMerchantsActionStateOptions = {

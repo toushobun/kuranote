@@ -1,6 +1,5 @@
 import { cleanup, render, within } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createMerchantAliasRow,
@@ -9,59 +8,43 @@ import {
 
 import { MerchantCard } from "./MerchantCard";
 
-vi.mock("organisms/merchants/MerchantAliasForm/MerchantAliasForm", () => ({
-  MerchantAliasForm: (): ReactNode => <div data-testid="merchant-alias-form" />,
-}));
-
-vi.mock("organisms/merchants/MerchantEditForm/MerchantEditForm", () => ({
-  MerchantEditForm: (): ReactNode => <div data-testid="merchant-edit-form" />,
-}));
-
-afterEach(() => {
-  cleanup();
-});
-
-const merchant = createMerchantRow({
-  aliases: [createMerchantAliasRow()],
-  note: "常去的超市",
-});
-
-const actions = {
-  archiveAliasAction: vi.fn(async () => {}),
-  archiveMerchantAction: vi.fn(async () => {}),
-  createAliasAction: vi.fn(async () => {}),
-  updateMerchantAction: vi.fn(async () => {}),
-};
+afterEach(cleanup);
 
 describe("MerchantCard", () => {
-  it("显示商家基本信息、别名和表单区域", () => {
-    const { container } = render(
-      <MerchantCard {...actions} merchant={merchant} />,
-    );
-
-    expect(within(container).getByText("LIFE超市")).toBeInTheDocument();
-    expect(
-      within(container).getByRole("link", { name: "https://www.lifecorp.jp" }),
-    ).toBeInTheDocument();
-    expect(within(container).getByText("常去的超市")).toBeInTheDocument();
-    expect(within(container).getByText("来福")).toBeInTheDocument();
-    expect(
-      within(container).getByTestId("merchant-alias-form"),
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByTestId("merchant-edit-form"),
-    ).toBeInTheDocument();
-  });
-
-  it("没有网址和别名时显示空提示", () => {
+  it("只显示商家信息并提供独立编辑页入口", () => {
+    const merchant = createMerchantRow({
+      aliases: [createMerchantAliasRow({ is_preferred: true })],
+      display_name: "来福",
+      note: "常去的超市",
+    });
     const { container } = render(
       <MerchantCard
-        {...actions}
-        merchant={createMerchantRow({ aliases: [], website_url: null })}
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    expect(
+      within(container).getByRole("heading", { name: "来福" }),
+    ).toBeInTheDocument();
+    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+    expect(within(container).getByText("常去的超市")).toBeInTheDocument();
+    expect(
+      within(container).getByRole("link", { name: "编辑LIFE超市" }),
+    ).toHaveAttribute("href", "/merchants/merchant-1/edit");
+    expect(within(container).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("没有网址时显示安全占位提示", () => {
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={createMerchantRow({ website_url: null })}
       />,
     );
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
-    expect(within(container).getByText("还没有别名。")).toBeInTheDocument();
   });
 });

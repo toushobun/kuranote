@@ -13,6 +13,7 @@ export type MerchantAlias = {
   id: string;
   merchant_id: string;
   alias: string;
+  is_preferred: boolean;
   sort_order: number;
   created_at: string;
 };
@@ -20,6 +21,7 @@ export type MerchantAlias = {
 export type Merchant = {
   id: string;
   name: string;
+  display_name: string;
   website_url: string | null;
   icon_url: string | null;
   note: string | null;

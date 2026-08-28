@@ -19,11 +19,9 @@ const meta = {
   title: "Organisms/Merchants/MerchantCard",
   component: MerchantCard,
   args: {
-    archiveAliasAction: async () => {},
-    archiveMerchantAction: async () => {},
-    createAliasAction: async () => {},
+    editHref: "/merchants/merchant-1/edit",
+    ledgerId: "ledger-1",
     merchant,
-    updateMerchantAction: async () => {},
   },
 } satisfies Meta<typeof MerchantCard>;
 
@@ -37,6 +35,8 @@ export const Default: Story = {
 export const WithoutAliases: Story = {
   name: "无别名",
   args: {
+    editHref: "/merchants/merchant-1/edit",
+    ledgerId: "ledger-1",
     merchant: createMerchantRow({ aliases: [] }),
   },
 };

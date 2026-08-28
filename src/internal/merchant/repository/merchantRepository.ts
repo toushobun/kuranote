@@ -19,6 +19,7 @@ type MerchantAliasRow = {
   alias: string;
   created_at: string;
   id: string;
+  is_preferred: boolean;
   merchant_id: string;
   sort_order: number;
 };
@@ -33,6 +34,7 @@ export type MerchantAliasData = {
   alias: string;
   created_at: string;
   id: string;
+  is_preferred: boolean;
   merchant_id: string;
   sort_order: number;
 };
@@ -40,6 +42,7 @@ export type MerchantAliasData = {
 export type MerchantData = {
   aliases: MerchantAliasData[];
   created_at: string;
+  display_name: string;
   icon_url: string | null;
   id: string;
   name: string;
@@ -71,6 +74,11 @@ export type ArchiveMerchantAliasInput = {
   aliasId: string;
   userId: string;
 };
+export type SetPreferredMerchantAliasInput = {
+  aliasId: string | null;
+  ledgerId: string;
+  merchantId: string;
+};
 
 export interface MerchantRepository {
   archiveAlias(input: ArchiveMerchantAliasInput): Promise<boolean>;
@@ -79,12 +87,17 @@ export interface MerchantRepository {
   createMerchant(input: CreateMerchantInput): Promise<void>;
   findActiveAlias(aliasId: string): Promise<{ merchantId: string } | null>;
   findActiveMerchant(ledgerId: string, merchantId: string): Promise<boolean>;
+  findActiveMerchantData(
+    ledgerId: string,
+    merchantId: string,
+  ): Promise<MerchantData | null>;
   findSummariesByIds(
     ledgerId: string,
     merchantIds: string[],
   ): Promise<MerchantSummary[]>;
   listActive(ledgerId: string): Promise<MerchantData[]>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
+  setPreferredAlias(input: SetPreferredMerchantAliasInput): Promise<boolean>;
   updateMerchant(input: UpdateMerchantInput): Promise<boolean>;
 }
 
@@ -96,6 +109,7 @@ function toMerchantData(row: MerchantRow): MerchantData {
   return {
     aliases: [],
     created_at: row.created_at,
+    display_name: row.name,
     icon_url: row.icon_url,
     id: row.id,
     name: row.name,
@@ -110,6 +124,7 @@ function toMerchantAliasData(row: MerchantAliasRow): MerchantAliasData {
     alias: row.alias,
     created_at: row.created_at,
     id: row.id,
+    is_preferred: row.is_preferred,
     merchant_id: row.merchant_id,
     sort_order: row.sort_order,
   };
@@ -138,6 +153,23 @@ function attachMerchantAliases(
   return merchants.map((merchant) => ({
     ...merchant,
     aliases: aliasesByMerchantId.get(merchant.id) ?? [],
+    display_name:
+      aliasesByMerchantId.get(merchant.id)?.find((alias) => alias.is_preferred)
+        ?.alias ?? merchant.name,
+  }));
+}
+
+function applyPreferredNames(
+  merchants: MerchantSummary[],
+  aliases: Array<{ alias: string; merchant_id: string }>,
+): MerchantSummary[] {
+  const preferredNameByMerchantId = new Map(
+    aliases.map((alias) => [alias.merchant_id, alias.alias]),
+  );
+
+  return merchants.map((merchant) => ({
+    ...merchant,
+    name: preferredNameByMerchantId.get(merchant.id) ?? merchant.name,
   }));
 }
 
@@ -164,6 +196,28 @@ export function createSupabaseMerchantRepository(
     throw toRepositoryError(code, publicMessage);
   }
 
+  async function loadPreferredAliases(merchantIds: string[]) {
+    if (merchantIds.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from("merchant_alias")
+      .select("merchant_id, alias")
+      .in("merchant_id", merchantIds)
+      .eq("is_archived", false)
+      .eq("is_preferred", true);
+
+    if (error) {
+      fail(
+        "[merchant] failed to load preferred merchant aliases",
+        merchantErrorCodes.merchantAliasListFailed,
+        "商家别名读取失败，请稍后重试。",
+        { merchantCount: merchantIds.length },
+        error,
+      );
+    }
+    return (data ?? []) as Array<{ alias: string; merchant_id: string }>;
+  }
+
   return {
     async archiveAlias(input) {
       // merchant_alias 没有 ledger_id；别名归属当前账本的不变量由 Service 层在调用前保证。
@@ -173,6 +227,7 @@ export function createSupabaseMerchantRepository(
           {
             archived_at: new Date().toISOString(),
             archived_by: input.userId,
+            is_preferred: false,
             is_archived: true,
             updated_by: input.userId,
           },
@@ -306,6 +361,50 @@ export function createSupabaseMerchantRepository(
       return Boolean(data);
     },
 
+    async findActiveMerchantData(ledgerId, merchantId) {
+      const { data: merchantData, error: merchantError } = await supabase
+        .from("merchant")
+        .select(merchantColumns)
+        .eq("id", merchantId)
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false)
+        .maybeSingle();
+
+      if (merchantError) {
+        fail(
+          "[merchant] failed to load merchant details",
+          merchantErrorCodes.merchantReadFailed,
+          "商家信息读取失败，请稍后重试。",
+          { ledgerId, merchantId },
+          merchantError,
+        );
+      }
+      if (!merchantData) return null;
+
+      const { data: aliasData, error: aliasError } = await supabase
+        .from("merchant_alias")
+        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
+        .eq("merchant_id", merchantId)
+        .eq("is_archived", false)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+
+      if (aliasError) {
+        fail(
+          "[merchant] failed to load merchant detail aliases",
+          merchantErrorCodes.merchantAliasListFailed,
+          "商家别名读取失败，请稍后重试。",
+          { ledgerId, merchantId },
+          aliasError,
+        );
+      }
+
+      return attachMerchantAliases(
+        [toMerchantData(merchantData as MerchantRow)],
+        ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
+      )[0]!;
+    },
+
     async findSummariesByIds(ledgerId, merchantIds) {
       if (merchantIds.length === 0) return [];
 
@@ -324,7 +423,13 @@ export function createSupabaseMerchantRepository(
           error,
         );
       }
-      return ((data ?? []) as MerchantSummaryRow[]).map(toMerchantSummary);
+      const merchants = ((data ?? []) as MerchantSummaryRow[]).map(
+        toMerchantSummary,
+      );
+      return applyPreferredNames(
+        merchants,
+        await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
+      );
     },
 
     async listActive(ledgerId) {
@@ -354,7 +459,7 @@ export function createSupabaseMerchantRepository(
 
       const { data: aliasData, error: aliasError } = await supabase
         .from("merchant_alias")
-        .select("id, merchant_id, alias, sort_order, created_at")
+        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
         .in("merchant_id", merchantIds)
         .eq("is_archived", false)
         .order("sort_order", { ascending: true })
@@ -394,7 +499,39 @@ export function createSupabaseMerchantRepository(
           error,
         );
       }
-      return ((data ?? []) as MerchantSummaryRow[]).map(toMerchantSummary);
+      const merchants = ((data ?? []) as MerchantSummaryRow[]).map(
+        toMerchantSummary,
+      );
+      return applyPreferredNames(
+        merchants,
+        await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
+      );
+    },
+
+    async setPreferredAlias(input) {
+      const { data, error } = await supabase.rpc(
+        "set_merchant_preferred_alias",
+        {
+          p_alias_id: input.aliasId,
+          p_ledger_id: input.ledgerId,
+          p_merchant_id: input.merchantId,
+        },
+      );
+
+      if (error) {
+        fail(
+          "[merchant] failed to update preferred alias",
+          merchantErrorCodes.aliasPreferredUpdateFailed,
+          "展示名更新失败，请稍后重试。",
+          {
+            aliasId: input.aliasId,
+            ledgerId: input.ledgerId,
+            merchantId: input.merchantId,
+          },
+          error,
+        );
+      }
+      return data === true;
     },
 
     async updateMerchant(input) {

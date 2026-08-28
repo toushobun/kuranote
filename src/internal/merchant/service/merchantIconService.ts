@@ -1,0 +1,187 @@
+import { isIP } from "node:net";
+import { lookup as nodeLookup } from "node:dns/promises";
+
+import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  RepositoryError,
+  ValidationError,
+} from "internal/shared/errors/appError";
+import { parseWebsiteUrl } from "utils/merchants";
+
+const faviconProviderOrigin = "https://www.google.com";
+const faviconProviderHostname = "www.google.com";
+const maxIconBytes = 256 * 1024;
+const maxRedirects = 3;
+
+type LookupAddress = { address: string; family: number };
+
+export type MerchantIcon = {
+  bytes: ArrayBuffer;
+  contentType: string;
+};
+
+type MerchantIconServiceDependencies = {
+  fetchImpl?: typeof fetch;
+  lookup?: (hostname: string) => Promise<LookupAddress[]>;
+};
+
+function isPublicIpv4(address: string): boolean {
+  const octets = address.split(".").map(Number);
+  if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet))) {
+    return false;
+  }
+
+  const [a, b, c] = octets as [number, number, number, number];
+  if (octets.some((octet) => octet < 0 || octet > 255)) return false;
+
+  return !(
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0 && c === 0) ||
+    (a === 192 && b === 0 && c === 2) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
+    a >= 224
+  );
+}
+
+function isPublicIp(address: string): boolean {
+  const normalized = address.toLowerCase();
+  const family = isIP(normalized);
+  if (family === 4) return isPublicIpv4(normalized);
+  if (family !== 6) return false;
+
+  const mappedIpv4 = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  if (mappedIpv4) return isPublicIpv4(mappedIpv4);
+
+  return !(
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    /^fe[89ab]/.test(normalized) ||
+    normalized.startsWith("ff") ||
+    normalized.startsWith("2001:db8:")
+  );
+}
+
+function isBlockedHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  return (
+    normalized === "localhost" ||
+    normalized === "metadata.google.internal" ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".internal") ||
+    normalized.endsWith(".lan")
+  );
+}
+
+export function createMerchantIconService({
+  fetchImpl = fetch,
+  lookup = async (hostname) =>
+    nodeLookup(hostname, { all: true, verbatim: true }),
+}: MerchantIconServiceDependencies = {}) {
+  async function requirePublicHostname(hostname: string): Promise<void> {
+    const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
+    if (isBlockedHostname(normalizedHostname)) {
+      throw new ValidationError(
+        merchantErrorCodes.websiteUrlInvalid,
+        "商家网址不能指向本机或内部网络。",
+      );
+    }
+
+    const literalFamily = isIP(normalizedHostname);
+    const addresses = literalFamily
+      ? [{ address: normalizedHostname, family: literalFamily }]
+      : await lookup(normalizedHostname);
+    if (
+      addresses.length === 0 ||
+      addresses.some(({ address }) => !isPublicIp(address))
+    ) {
+      throw new ValidationError(
+        merchantErrorCodes.websiteUrlInvalid,
+        "商家网址必须指向可公开访问的网站。",
+      );
+    }
+  }
+
+  async function fetchIcon(websiteUrl: string): Promise<MerchantIcon> {
+    const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
+    if (!parsedWebsiteUrl) {
+      throw new ValidationError(
+        merchantErrorCodes.websiteUrlInvalid,
+        "商家网址必须以 http:// 或 https:// 开头。",
+      );
+    }
+
+    const website = new URL(parsedWebsiteUrl);
+    if (website.username || website.password) {
+      throw new ValidationError(
+        merchantErrorCodes.websiteUrlInvalid,
+        "商家网址不能包含登录凭据。",
+      );
+    }
+    await requirePublicHostname(website.hostname);
+
+    const domainUrl = `${website.protocol}//${website.hostname}`;
+    let requestUrl = new URL("/s2/favicons", faviconProviderOrigin);
+    requestUrl.searchParams.set("domain_url", domainUrl);
+    requestUrl.searchParams.set("sz", "128");
+
+    for (
+      let redirectCount = 0;
+      redirectCount <= maxRedirects;
+      redirectCount += 1
+    ) {
+      if (
+        requestUrl.protocol !== "https:" ||
+        requestUrl.hostname !== faviconProviderHostname
+      ) {
+        throw new RepositoryError(
+          "merchant_icon_redirect_invalid",
+          "商家头像暂时无法获取。",
+        );
+      }
+      await requirePublicHostname(requestUrl.hostname);
+
+      const response = await fetchImpl(requestUrl, {
+        headers: { Accept: "image/*" },
+        redirect: "manual",
+      });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location || redirectCount === maxRedirects) break;
+        requestUrl = new URL(location, requestUrl);
+        continue;
+      }
+
+      const contentType = response.headers.get("content-type")?.split(";")[0];
+      const contentLength = Number(response.headers.get("content-length") ?? 0);
+      if (
+        !response.ok ||
+        !contentType?.startsWith("image/") ||
+        contentLength > maxIconBytes
+      ) {
+        break;
+      }
+
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength === 0 || bytes.byteLength > maxIconBytes) break;
+      return { bytes, contentType };
+    }
+
+    throw new RepositoryError(
+      "merchant_icon_fetch_failed",
+      "商家头像暂时无法获取。",
+    );
+  }
+
+  return { fetchIcon };
+}

@@ -148,6 +148,10 @@ const routeSpecs: RouteSpec[] = [
         path: "/{ledgerId}/merchants/{merchantId}/aliases",
       },
       createMerchantRoute: { method: "post", path: "/{ledgerId}/merchants" },
+      getMerchantIconRoute: {
+        method: "get",
+        path: "/{ledgerId}/merchants/icon",
+      },
       listMerchantOptionsRoute: {
         method: "get",
         path: "/{ledgerId}/merchants/options",

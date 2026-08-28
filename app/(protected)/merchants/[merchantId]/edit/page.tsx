@@ -1,0 +1,31 @@
+import {
+  archiveMerchant,
+  archiveMerchantAlias,
+  createMerchantAlias,
+  setPreferredMerchantAlias,
+  updateMerchant,
+} from "internal/merchant/adapter/next/actions";
+import { loadMerchantEditView } from "internal/merchant/adapter/next/loadMerchantEditorViews";
+import { MerchantEditTemplate } from "templates/merchants/MerchantEdit";
+
+export default async function MerchantEditPage({
+  params,
+}: {
+  params: Promise<{ merchantId: string }>;
+}) {
+  const { merchantId } = await params;
+  const view = await loadMerchantEditView(merchantId);
+
+  return (
+    <MerchantEditTemplate
+      archiveMerchantAction={archiveMerchant}
+      archiveMerchantAliasAction={archiveMerchantAlias}
+      createMerchantAliasAction={createMerchantAlias}
+      ledgerId={view.ledgerId}
+      ledgerName={view.ledgerName}
+      merchant={view.merchant}
+      setPreferredMerchantAliasAction={setPreferredMerchantAlias}
+      updateMerchantAction={updateMerchant}
+    />
+  );
+}

@@ -2,16 +2,11 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  archiveMerchant: vi.fn(),
-  archiveMerchantAlias: vi.fn(),
-  createMerchant: vi.fn(),
-  createMerchantAlias: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
   getView: vi.fn(),
-  MerchantsActionStateTemplate: vi.fn(() => null),
-  updateMerchant: vi.fn(),
+  MerchantsTemplate: vi.fn(() => null),
 }));
 
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
@@ -20,18 +15,11 @@ vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
 vi.mock("internal/container", () => ({
   createRequestContainer: mocks.createRequestContainer,
 }));
-vi.mock("internal/merchant/adapter/next/actions", () => ({
-  archiveMerchant: mocks.archiveMerchant,
-  archiveMerchantAlias: mocks.archiveMerchantAlias,
-  createMerchant: mocks.createMerchant,
-  createMerchantAlias: mocks.createMerchantAlias,
-  updateMerchant: mocks.updateMerchant,
-}));
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
   createServerRequestDependencies: mocks.createServerRequestDependencies,
 }));
-vi.mock("templates/merchants/MerchantsActionState", () => ({
-  MerchantsActionStateTemplate: mocks.MerchantsActionStateTemplate,
+vi.mock("templates/merchants/Merchants", () => ({
+  MerchantsTemplate: mocks.MerchantsTemplate,
 }));
 
 import MerchantsPage from "./page";
@@ -75,10 +63,10 @@ describe("MerchantsPage", () => {
       ledgerName: "家庭账本",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(element.type).toBe(mocks.MerchantsActionStateTemplate);
+    expect(element.type).toBe(mocks.MerchantsTemplate);
   });
 
-  it("只把搜索参数、视图数据和 Server Action 传给状态模板", async () => {
+  it("只把搜索参数和视图数据传给列表模板", async () => {
     const result = await MerchantsPage({
       searchParams: Promise.resolve({
         error: "create_failed",
@@ -89,14 +77,11 @@ describe("MerchantsPage", () => {
     const element = result as ReactElement<Record<string, unknown>>;
 
     expect(element.props).toMatchObject({
-      archiveMerchantAction: mocks.archiveMerchant,
-      archiveMerchantAliasAction: mocks.archiveMerchantAlias,
-      createMerchantAction: mocks.createMerchant,
-      createMerchantAliasAction: mocks.createMerchantAlias,
+      canManageMerchants: true,
       keyword: "LIFE",
+      ledgerId,
       ledgerName: "家庭账本",
       merchants: [],
-      updateMerchantAction: mocks.updateMerchant,
     });
     expect(element.props).not.toHaveProperty("errorMerchantId");
     expect(element.props).not.toHaveProperty("errorMessage");

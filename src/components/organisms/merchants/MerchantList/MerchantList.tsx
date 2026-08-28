@@ -1,65 +1,63 @@
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { Fragment, type ReactNode } from "react";
+import Link from "next/link";
 
+import { merchantEditHref } from "config/paths";
 import { EmptyState } from "molecules/ui/EmptyState";
-import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
 
 import { MerchantCard } from "../MerchantCard/MerchantCard";
 
 type MerchantListProps = {
-  archiveAliasAction: ServerAction;
-  archiveMerchantAction: ServerAction;
   canManageMerchants?: boolean;
-  createAliasAction?: ServerAction;
+  createHref: string;
+  ledgerId: string;
   merchants: Merchant[];
-  renderMerchantCard?: (merchant: Merchant) => ReactNode;
-  updateMerchantAction?: ServerAction;
 };
 
 export function MerchantList({
-  archiveAliasAction,
-  archiveMerchantAction,
   canManageMerchants = true,
-  createAliasAction,
+  createHref,
+  ledgerId,
   merchants,
-  renderMerchantCard,
-  updateMerchantAction,
 }: MerchantListProps) {
   if (merchants.length === 0) {
     return (
       <EmptyState
-        title="还没有商家"
+        action={
+          canManageMerchants ? (
+            <Button component={Link} href={createHref} variant="contained">
+              添加第一个商家
+            </Button>
+          ) : null
+        }
         description={
           canManageMerchants
-            ? "请先新增一个常用商家。"
+            ? "添加常用商家，让记账和搜索更快捷。"
             : "当前账本还没有可查看的商家。"
         }
+        illustration={
+          <StorefrontRoundedIcon
+            sx={{ color: "var(--user-theme-icon-badge-color)", fontSize: 72 }}
+          />
+        }
+        title="还没有商家"
       />
     );
   }
 
   return (
-    <Stack spacing={2.5} sx={{ mt: 4 }}>
-      {merchants.map((merchant) =>
-        renderMerchantCard ? (
-          <Fragment key={merchant.id}>{renderMerchantCard(merchant)}</Fragment>
-        ) : (
-          <MerchantCard
-            archiveAliasAction={archiveAliasAction}
-            archiveMerchantAction={archiveMerchantAction}
-            canManageMerchants={canManageMerchants}
-            createAliasAction={createAliasAction ?? missingMerchantAction}
-            key={merchant.id}
-            merchant={merchant}
-            updateMerchantAction={updateMerchantAction ?? missingMerchantAction}
-          />
-        ),
-      )}
+    <Stack spacing={2}>
+      {merchants.map((merchant) => (
+        <MerchantCard
+          canManageMerchants={canManageMerchants}
+          editHref={merchantEditHref(merchant.id)}
+          key={merchant.id}
+          ledgerId={ledgerId}
+          merchant={merchant}
+        />
+      ))}
     </Stack>
   );
-}
-
-function missingMerchantAction() {
-  throw new Error("商家表单 Action 未配置。");
 }

@@ -5,6 +5,10 @@ import {
 } from "internal/ledger";
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
+  createMerchantIconService,
+  type MerchantIcon,
+} from "internal/merchant/service/merchantIconService";
+import {
   getMerchantActionErrorMessage,
   getMerchantErrorMessage,
   merchantErrorCodes,
@@ -52,6 +56,11 @@ export type CreateMerchantAliasServiceInput = MerchantLedgerInput & {
 export type ArchiveMerchantAliasServiceInput = MerchantLedgerInput & {
   aliasId: string;
 };
+export type MerchantIconInput = MerchantLedgerInput & { websiteUrl: string };
+export type SetPreferredMerchantAliasServiceInput = MerchantLedgerInput & {
+  aliasId: string | null;
+  merchantId: string;
+};
 
 /** Transaction 等其他模块只依赖此窄查询接口，不直接访问 Merchant Repository。 */
 export interface MerchantQueryService {
@@ -65,10 +74,16 @@ export interface MerchantQueryService {
 export interface MerchantService extends MerchantQueryService {
   archiveAlias(input: ArchiveMerchantAliasServiceInput): Promise<string>;
   archiveMerchant(input: ArchiveMerchantServiceInput): Promise<void>;
+  assertCanManage(input: MerchantLedgerInput): Promise<void>;
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<void>;
+  getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
+  getMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   getView(input: MerchantViewInput): Promise<MerchantsView>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
+  setPreferredAlias(
+    input: SetPreferredMerchantAliasServiceInput,
+  ): Promise<void>;
   updateMerchant(input: UpdateMerchantServiceInput): Promise<void>;
 }
 
@@ -76,6 +91,7 @@ type MerchantServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantRepository: MerchantRepository;
+  merchantIconService?: ReturnType<typeof createMerchantIconService>;
 };
 
 function permissionError(): AuthorizationError {
@@ -89,6 +105,7 @@ function permissionError(): AuthorizationError {
 function conflictError(
   code:
     | typeof merchantErrorCodes.aliasArchiveFailed
+    | typeof merchantErrorCodes.aliasPreferredUpdateFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.updateFailed,
 ): ConflictError {
@@ -105,6 +122,7 @@ function conflictError(
 export function createMerchantService({
   currentUserId,
   ledgerAccessService,
+  merchantIconService = createMerchantIconService(),
   merchantRepository,
 }: MerchantServiceDependencies): MerchantService {
   function requireUserId(): string {
@@ -200,6 +218,10 @@ export function createMerchantService({
       }
     },
 
+    async assertCanManage({ ledgerId }) {
+      await requireLedgerRole(ledgerId, true);
+    },
+
     async createAlias({ alias, ledgerId, merchantId }) {
       const { userId } = await requireLedgerRole(ledgerId, true);
       await requireActiveMerchant(ledgerId, merchantId);
@@ -225,6 +247,27 @@ export function createMerchantService({
       };
     },
 
+    async getMerchant({ ledgerId, merchantId }) {
+      await requireLedgerRole(ledgerId, true);
+      const merchant = await merchantRepository.findActiveMerchantData(
+        ledgerId,
+        merchantId,
+      );
+      if (!merchant) {
+        throw new NotFoundError(
+          merchantErrorCodes.merchantInvalid,
+          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
+            "商家指定不正确。",
+        );
+      }
+      return merchant;
+    },
+
+    async getMerchantIcon({ ledgerId, websiteUrl }) {
+      await requireLedgerRole(ledgerId, false);
+      return merchantIconService.fetchIcon(websiteUrl);
+    },
+
     async list(input) {
       return listMerchants(input);
     },
@@ -232,6 +275,31 @@ export function createMerchantService({
     async listActiveOptions({ ledgerId }) {
       await requireLedgerRole(ledgerId, false);
       return merchantRepository.listActiveSummaries(ledgerId);
+    },
+
+    async setPreferredAlias({ aliasId, ledgerId, merchantId }) {
+      await requireLedgerRole(ledgerId, true);
+      await requireActiveMerchant(ledgerId, merchantId);
+
+      if (aliasId) {
+        const alias = await merchantRepository.findActiveAlias(aliasId);
+        if (!alias || alias.merchantId !== merchantId) {
+          throw new NotFoundError(
+            merchantErrorCodes.aliasInvalid,
+            getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
+              "商家别名指定不正确。",
+          );
+        }
+      }
+
+      const updated = await merchantRepository.setPreferredAlias({
+        aliasId,
+        ledgerId,
+        merchantId,
+      });
+      if (!updated) {
+        throw conflictError(merchantErrorCodes.aliasPreferredUpdateFailed);
+      }
     },
 
     async updateMerchant(input) {

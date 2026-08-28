@@ -43,9 +43,15 @@ function createService(
   return {
     archiveAlias: vi.fn(),
     archiveMerchant: vi.fn(),
+    assertCanManage: vi.fn(),
     createAlias: vi.fn(),
     createMerchant: vi.fn(),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
+    getMerchant: vi.fn(),
+    getMerchantIcon: vi.fn().mockResolvedValue({
+      bytes: new ArrayBuffer(1),
+      contentType: "image/png",
+    }),
     getView: vi.fn().mockResolvedValue({
       canManageMerchants: true,
       ledgerName: "家庭账本",
@@ -56,6 +62,7 @@ function createService(
       merchants: [],
     }),
     listActiveOptions: vi.fn().mockResolvedValue([]),
+    setPreferredAlias: vi.fn(),
     updateMerchant: vi.fn(),
     ...overrides,
   };
@@ -94,6 +101,26 @@ function createApp(
 }
 
 describe("merchant router", () => {
+  it("已登录成员可通过安全端点读取商家头像", async () => {
+    const getMerchantIcon = vi.fn().mockResolvedValue({
+      bytes: new Uint8Array([1, 2, 3]).buffer,
+      contentType: "image/png",
+    });
+    const response = await createApp(
+      createService({ getMerchantIcon }),
+    ).request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/icon?websiteUrl=${encodeURIComponent(
+        "https://example.com",
+      )}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(getMerchantIcon).toHaveBeenCalledWith({
+      ledgerId,
+      websiteUrl: "https://example.com",
+    });
+  });
   beforeEach(() => vi.clearAllMocks());
 
   it("读取商家列表返回 200 且不传递 SSR 账本名称", async () => {
