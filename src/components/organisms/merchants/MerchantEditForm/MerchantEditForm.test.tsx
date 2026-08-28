@@ -20,14 +20,14 @@ describe("MerchantEditForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText("商家名称")).toHaveValue("LIFE超市");
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("LIFE超市");
     expect(screen.getByLabelText("备注（可选）")).toHaveValue("常去的超市");
     expect(container.querySelector('input[name="merchantId"]')).toHaveValue(
       merchant.id,
     );
 
     onNameChange.mockClear();
-    fireEvent.change(screen.getByLabelText("商家名称"), {
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "LIFE" },
     });
     expect(onNameChange).toHaveBeenCalledWith("LIFE");

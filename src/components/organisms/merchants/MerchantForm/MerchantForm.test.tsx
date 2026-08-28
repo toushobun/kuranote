@@ -9,7 +9,7 @@ describe("MerchantForm", () => {
   it("编辑新增商家的各字段", () => {
     render(<MerchantForm action={vi.fn()} ledgerId="ledger-1" />);
 
-    fireEvent.change(screen.getByLabelText("商家名称"), {
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "Amazon" },
     });
     fireEvent.change(screen.getByLabelText("商家网址"), {
@@ -19,7 +19,7 @@ describe("MerchantForm", () => {
       target: { value: "网购" },
     });
 
-    expect(screen.getByLabelText("商家名称")).toHaveValue("Amazon");
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("Amazon");
     expect(screen.getByLabelText("商家网址")).toHaveValue(
       "https://www.amazon.co.jp",
     );

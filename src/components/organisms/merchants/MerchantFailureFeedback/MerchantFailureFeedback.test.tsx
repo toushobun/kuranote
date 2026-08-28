@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MerchantFailureFeedback } from "./MerchantFailureFeedback";
@@ -6,7 +12,7 @@ import { MerchantFailureFeedback } from "./MerchantFailureFeedback";
 afterEach(cleanup);
 
 describe("MerchantFailureFeedback", () => {
-  it("显示当前错误并允许关闭", () => {
+  it("显示当前错误并允许关闭", async () => {
     render(
       <MerchantFailureFeedback
         state={{ error: "保存失败，请稍后重试。", errorKey: "error-1" }}
@@ -18,7 +24,9 @@ describe("MerchantFailureFeedback", () => {
     expect(screen.getByText("保存失败，请稍后重试。")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 
   it("错误标识变化时重新显示同一错误文案", () => {

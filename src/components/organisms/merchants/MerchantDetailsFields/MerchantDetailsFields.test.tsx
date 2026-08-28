@@ -19,7 +19,7 @@ describe("MerchantDetailsFields", () => {
       />,
     );
 
-    expect(screen.getByLabelText("商家名称")).toHaveValue("Amazon");
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("Amazon");
     expect(screen.getByLabelText("商家网址")).toHaveValue(
       "https://www.amazon.co.jp",
     );
@@ -46,7 +46,7 @@ describe("MerchantDetailsFields", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("商家名称"), {
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "LIFE超市" },
     });
     fireEvent.change(screen.getByLabelText("商家网址"), {
