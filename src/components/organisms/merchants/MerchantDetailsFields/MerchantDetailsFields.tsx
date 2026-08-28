@@ -43,25 +43,27 @@ export function MerchantDetailsFields({
   }, [websiteUrl]);
 
   return (
-    <Stack spacing={2.5}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 0.5 }}>
         <Avatar
           src={merchantIconSrc(ledgerId, previewWebsiteUrl || null)}
           sx={{
             bgcolor: "var(--user-theme-icon-badge-bg)",
             color: "var(--user-theme-icon-badge-color)",
-            height: 64,
-            width: 64,
+            border: "1px solid var(--user-theme-card-border)",
+            height: { xs: 84, sm: 96 },
+            width: { xs: 84, sm: 96 },
           }}
         >
           {getMerchantInitial(name)}
         </Avatar>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "flex-start", flex: 1 }}
-        >
-          <CheckCircleRoundedIcon color="success" />
+        <Stack spacing={0.5} sx={{ flex: 1 }}>
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+            <CheckCircleRoundedIcon color="success" />
+            <Typography sx={{ fontWeight: 800 }} variant="body2">
+              已通过网站图标自动获取头像
+            </Typography>
+          </Stack>
           <Typography color="text.secondary" variant="body2">
             {merchantText.websiteHelper}
           </Typography>
@@ -76,6 +78,7 @@ export function MerchantDetailsFields({
         onChange={(event) => onNameChange(event.target.value)}
         placeholder="例如：Amazon"
         required
+        size="small"
         slotProps={{ htmlInput: { maxLength: 100 } }}
         value={name}
       />
@@ -88,17 +91,19 @@ export function MerchantDetailsFields({
         onChange={(event) => onWebsiteUrlChange(event.target.value)}
         placeholder="https://www.example.com"
         type="url"
+        size="small"
         value={websiteUrl}
       />
 
       <TextField
         fullWidth
         label={merchantText.noteLabel}
-        minRows={3}
+        minRows={2}
         multiline
         name="note"
         onChange={(event) => onNoteChange(event.target.value)}
         placeholder="例如：常去的超市、药妆店、网购平台等"
+        size="small"
         slotProps={{ htmlInput: { maxLength: 1000 } }}
         value={note}
       />

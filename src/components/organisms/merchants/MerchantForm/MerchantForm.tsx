@@ -3,8 +3,9 @@
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
+import Link from "next/link";
 
-import { merchantText } from "config/merchantText";
+import { routePaths } from "config/paths";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
 import type { ServerAction } from "types/actions";
@@ -23,7 +24,7 @@ export function MerchantForm({
   const details = useMerchantDetails();
 
   return (
-    <Stack component="form" action={action} spacing={3}>
+    <Stack component="form" action={action} spacing={2.5}>
       <MerchantDetailsFields
         ledgerId={ledgerId}
         name={details.name}
@@ -33,13 +34,30 @@ export function MerchantForm({
         onWebsiteUrlChange={details.setWebsiteUrl}
         websiteUrl={details.websiteUrl}
       />
-      <Button disabled={pending} type="submit" variant="contained">
-        {pending ? (
-          <CircularProgress aria-label="新增中" color="inherit" size={22} />
-        ) : (
-          merchantText.create
-        )}
-      </Button>
+      <Stack direction="row" spacing={1.5}>
+        <Button
+          component={Link}
+          fullWidth
+          href={routePaths.merchants}
+          sx={{ borderRadius: 999 }}
+          variant="outlined"
+        >
+          取消
+        </Button>
+        <Button
+          disabled={pending}
+          fullWidth
+          sx={{ borderRadius: 999 }}
+          type="submit"
+          variant="contained"
+        >
+          {pending ? (
+            <CircularProgress aria-label="新增中" color="inherit" size={22} />
+          ) : (
+            "保存商家"
+          )}
+        </Button>
+      </Stack>
     </Stack>
   );
 }

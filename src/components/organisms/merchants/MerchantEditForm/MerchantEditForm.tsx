@@ -35,7 +35,7 @@ export function MerchantEditForm({
   useEffect(() => onNameChange?.(details.name), [details.name, onNameChange]);
 
   return (
-    <Stack component="form" action={action} spacing={3}>
+    <Stack component="form" action={action} spacing={2.5}>
       <input name="merchantId" type="hidden" value={merchant.id} />
       <MerchantDetailsFields
         ledgerId={ledgerId}
@@ -46,7 +46,13 @@ export function MerchantEditForm({
         onWebsiteUrlChange={details.setWebsiteUrl}
         websiteUrl={details.websiteUrl}
       />
-      <Button disabled={pending} type="submit" variant="contained">
+      <Button
+        disabled={pending}
+        fullWidth
+        sx={{ borderRadius: 999 }}
+        type="submit"
+        variant="contained"
+      >
         {pending ? (
           <CircularProgress aria-label="保存中" color="inherit" size={22} />
         ) : (

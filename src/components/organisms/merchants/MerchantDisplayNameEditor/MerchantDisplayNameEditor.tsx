@@ -39,9 +39,9 @@ export function MerchantDisplayNameEditor({
   );
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.25}>
       <Stack spacing={0.5}>
-        <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
+        <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 900 }}>
           {merchantText.preferredTitle}
         </Typography>
         <Typography color="text.secondary" variant="body2">
@@ -72,7 +72,7 @@ export function MerchantDisplayNameEditor({
       <Stack
         component="form"
         action={createAliasAction}
-        direction={{ xs: "column", sm: "row" }}
+        direction="row"
         spacing={1}
       >
         <input name="merchantId" type="hidden" value={merchant.id} />
@@ -91,13 +91,14 @@ export function MerchantDisplayNameEditor({
         <Button
           disabled={pending}
           startIcon={<AddRoundedIcon />}
+          sx={{ borderStyle: "dashed", flexShrink: 0 }}
           type="submit"
           variant="outlined"
         >
           {merchantText.addAlias}
         </Button>
       </Stack>
-      <Typography color="text.secondary" variant="caption">
+      <Typography color="text.secondary" variant="caption" sx={{ px: 0.5 }}>
         {merchantText.aliasHelper}
       </Typography>
     </Stack>
@@ -129,9 +130,9 @@ function NameRow({
         alignItems: "center",
         border: "1px solid",
         borderColor: selected ? "primary.main" : "divider",
-        borderRadius: 2,
-        px: 1.5,
-        py: 1,
+        borderRadius: 2.5,
+        px: 1.25,
+        py: 0.5,
       }}
     >
       {tag ? (

@@ -2,8 +2,8 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -32,23 +32,34 @@ export function MerchantCard({
   );
 
   return (
-    <SoftCard sx={{ borderColor: "var(--user-theme-card-border)", p: 2.5 }}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+    <SoftCard
+      sx={{
+        borderColor: "var(--user-theme-card-border)",
+        borderRadius: 3.5,
+        p: { xs: 1.5, sm: 2 },
+      }}
+    >
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
         <Avatar
           alt=""
           src={merchantIconSrc(ledgerId, merchant.website_url)}
           sx={{
             bgcolor: "var(--user-theme-icon-badge-bg)",
             color: "var(--user-theme-icon-badge-color)",
-            height: 52,
-            width: 52,
+            border: "1px solid var(--user-theme-card-border)",
+            height: { xs: 58, sm: 64 },
+            width: { xs: 58, sm: 64 },
           }}
         >
           {getMerchantInitial(merchant.display_name)}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
+          <Typography
+            component="h2"
+            variant="subtitle1"
+            sx={{ fontWeight: 900 }}
+          >
             {merchant.display_name}
           </Typography>
           {hasPreferredAlias ? (
@@ -62,7 +73,7 @@ export function MerchantCard({
               href={merchant.website_url}
               rel="noreferrer"
               target="_blank"
-              sx={{ display: "block", mt: 0.5, overflowWrap: "anywhere" }}
+              sx={{ display: "block", overflowWrap: "anywhere" }}
               variant="body2"
             >
               {merchant.website_url}
@@ -76,7 +87,7 @@ export function MerchantCard({
           {merchant.note ? (
             <Typography
               color="text.secondary"
-              sx={{ mt: 0.75 }}
+              sx={{ mt: 0.35 }}
               variant="body2"
             >
               {merchant.note}
@@ -84,10 +95,7 @@ export function MerchantCard({
           ) : null}
 
           {merchant.aliases.length > 0 ? (
-            <Stack
-              direction="row"
-              sx={{ flexWrap: "wrap", gap: 0.75, mt: 1.5 }}
-            >
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
               {merchant.aliases.map((alias) => (
                 <Chip
                   color={alias.is_preferred ? "primary" : "default"}
@@ -95,6 +103,7 @@ export function MerchantCard({
                   key={alias.id}
                   label={alias.alias}
                   size="small"
+                  sx={{ fontWeight: alias.is_preferred ? 700 : 500 }}
                   variant={alias.is_preferred ? "filled" : "outlined"}
                 />
               ))}
@@ -103,16 +112,20 @@ export function MerchantCard({
         </Box>
 
         {canManageMerchants ? (
-          <Button
+          <IconButton
             aria-label={`编辑${merchant.name}`}
             component={NextLink}
             href={editHref}
             size="small"
-            startIcon={<EditRoundedIcon />}
-            variant="outlined"
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              flexShrink: 0,
+            }}
           >
-            编辑
-          </Button>
+            <EditRoundedIcon fontSize="small" />
+          </IconButton>
         ) : null}
       </Stack>
     </SoftCard>

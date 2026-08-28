@@ -1,11 +1,13 @@
 "use client";
 
-import Breadcrumbs from "@mui/material/Breadcrumbs";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Link from "@mui/material/Link";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import NextLink from "next/link";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { routePaths } from "config/paths";
@@ -14,9 +16,9 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantDisplayNameEditor } from "organisms/merchants/MerchantDisplayNameEditor/MerchantDisplayNameEditor";
 import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
-import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type { Merchant, MerchantStateAction } from "types/merchants";
+import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
 
 import { useMerchantsActionState } from "./useMerchantsActionState";
 
@@ -70,29 +72,74 @@ export function MerchantEditTemplate({
     createAlias.pending || archiveAlias.pending || setPreferred.pending;
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        subtitle={
-          <Stack spacing={0.5}>
-            <Breadcrumbs aria-label="面包屑">
-              <Link
-                component={NextLink}
-                href={routePaths.merchants}
-                underline="hover"
-              >
-                商家管理
-              </Link>
-              <span>{merchantText.edit}</span>
-            </Breadcrumbs>
+    <PageShell
+      maxWidth="sm"
+      sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
+    >
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+        <IconButton
+          aria-label="返回商家管理"
+          component={Link}
+          href={routePaths.merchants}
+          sx={{ border: "1px solid", borderColor: "divider" }}
+        >
+          <ArrowBackRoundedIcon />
+        </IconButton>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography component="h1" variant="h5" sx={{ fontWeight: 900 }}>
+            {merchantText.edit}
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            商家管理 〉 编辑商家 · {ledgerName}
+          </Typography>
+        </Box>
+        <form action={archive.action}>
+          <input name="merchantId" type="hidden" value={merchant.id} />
+          <Button
+            color="error"
+            disabled={archive.pending}
+            size="small"
+            sx={{ borderRadius: 999 }}
+            type="submit"
+            variant="outlined"
+          >
+            {merchantText.archive}
+          </Button>
+        </form>
+      </Stack>
+
+      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 1.5, sm: 2 } }}>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          <Avatar
+            src={merchantIconSrc(ledgerId, merchant.website_url)}
+            sx={{
+              bgcolor: "var(--user-theme-icon-badge-bg)",
+              border: "1px solid var(--user-theme-card-border)",
+              height: 68,
+              width: 68,
+            }}
+          >
+            {getMerchantInitial(merchant.display_name)}
+          </Avatar>
+          <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 800 }}>
+              商家名称　{merchant.name}
+            </Typography>
+            <Typography
+              color="text.secondary"
+              variant="body2"
+              sx={{ overflowWrap: "anywhere" }}
+            >
+              商家网址　{merchant.website_url || "未设置"}
+            </Typography>
             <Typography color="text.secondary" variant="body2">
-              当前账本：{ledgerName}
+              备注　{merchant.note || "未设置"}
             </Typography>
           </Stack>
-        }
-        title={merchantText.edit}
-      />
+        </Stack>
+      </SectionCard>
 
-      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm
           action={update.action}
           ledgerId={ledgerId}
@@ -102,7 +149,7 @@ export function MerchantEditTemplate({
         />
       </SectionCard>
 
-      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
         <MerchantDisplayNameEditor
           archiveAliasAction={archiveAlias.action}
           createAliasAction={createAlias.action}
@@ -111,28 +158,6 @@ export function MerchantEditTemplate({
           pending={aliasPending}
           setPreferredAliasAction={setPreferred.action}
         />
-      </SectionCard>
-
-      <SectionCard sx={{ borderColor: "error.light", p: { xs: 2, sm: 3 } }}>
-        <Stack spacing={1.5}>
-          <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
-            {merchantText.archive}
-          </Typography>
-          <Typography color="text.secondary" variant="body2">
-            {merchantText.archiveDescription}
-          </Typography>
-          <form action={archive.action}>
-            <input name="merchantId" type="hidden" value={merchant.id} />
-            <Button
-              color="error"
-              disabled={archive.pending}
-              type="submit"
-              variant="outlined"
-            >
-              {merchantText.archive}
-            </Button>
-          </form>
-        </Stack>
       </SectionCard>
 
       <MerchantFailureFeedback
