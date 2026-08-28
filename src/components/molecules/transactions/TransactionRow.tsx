@@ -268,7 +268,7 @@ export function TransactionRow({
           sx={{
             ...rowBadgeSx,
             bgcolor: "var(--user-theme-badge-bg)",
-            color: mutedText,
+            color: textColor,
             fontWeight: 700,
             maxWidth: "100%",
             width: "fit-content",
