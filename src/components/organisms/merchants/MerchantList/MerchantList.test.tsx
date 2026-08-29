@@ -17,6 +17,14 @@ describe("MerchantList", () => {
 
     expect(within(container).getByText("还没有商家")).toBeInTheDocument();
     expect(
+      within(container).getByRole("img", {
+        name: "橙色遮阳棚的小店和门口的猫咪",
+      }),
+    ).toHaveAttribute(
+      "src",
+      "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png",
+    );
+    expect(
       within(container).getByRole("link", { name: "添加第一个商家" }),
     ).toHaveAttribute("href", "/merchants/new");
   });

@@ -1,5 +1,6 @@
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import { deepOrange, lightGreen, pink } from "@mui/material/colors";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -21,6 +22,33 @@ type MerchantCardProps = {
   merchant: Merchant;
 };
 
+const avatarTones = [
+  {
+    backgroundColor: deepOrange[50],
+    borderColor: deepOrange[100],
+    color: deepOrange[800],
+  },
+  {
+    backgroundColor: pink[50],
+    borderColor: pink[100],
+    color: pink[800],
+  },
+  {
+    backgroundColor: lightGreen[50],
+    borderColor: lightGreen[200],
+    color: lightGreen[800],
+  },
+] as const;
+
+function avatarToneFor(merchantId: string) {
+  const toneIndex = Array.from(merchantId).reduce(
+    (hash, character) => (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0,
+    0,
+  );
+
+  return avatarTones[toneIndex % avatarTones.length];
+}
+
 export function MerchantCard({
   canManageMerchants = true,
   editHref,
@@ -30,25 +58,29 @@ export function MerchantCard({
   const hasPreferredAlias = merchant.aliases.some(
     (alias) => alias.is_preferred,
   );
+  const avatarTone = avatarToneFor(merchant.id);
 
   return (
     <SoftCard
       sx={{
         borderColor: "var(--user-theme-card-border)",
-        borderRadius: 3.5,
-        p: { xs: 1.5, sm: 2 },
+        borderRadius: 5,
+        p: { xs: 2, sm: 2.5 },
       }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
         <Avatar
           alt=""
           src={merchantIconSrc(ledgerId, merchant.website_url)}
           sx={{
-            bgcolor: "var(--user-theme-icon-badge-bg)",
-            color: "var(--user-theme-icon-badge-color)",
-            border: "1px solid var(--user-theme-card-border)",
-            height: { xs: 58, sm: 64 },
-            width: { xs: 58, sm: 64 },
+            "& .MuiAvatar-img": { objectFit: "contain" },
+            bgcolor: avatarTone.backgroundColor,
+            border: "1px solid",
+            borderColor: avatarTone.borderColor,
+            color: avatarTone.color,
+            height: { xs: 64, sm: 72 },
+            p: 0.75,
+            width: { xs: 64, sm: 72 },
           }}
         >
           {getMerchantInitial(merchant.display_name)}
@@ -103,7 +135,12 @@ export function MerchantCard({
                   key={alias.id}
                   label={alias.alias}
                   size="small"
-                  sx={{ fontWeight: alias.is_preferred ? 700 : 500 }}
+                  sx={{
+                    borderRadius: 999,
+                    fontSize: (theme) => theme.typography.body2.fontSize,
+                    fontWeight: alias.is_preferred ? 800 : 600,
+                    height: 28,
+                  }}
                   variant={alias.is_preferred ? "filled" : "outlined"}
                 />
               ))}
@@ -118,10 +155,12 @@ export function MerchantCard({
             href={editHref}
             size="small"
             sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
+              "&:hover": { bgcolor: "action.hover" },
+              bgcolor: "transparent",
+              borderRadius: "50%",
               flexShrink: 0,
+              height: 34,
+              width: 34,
             }}
           >
             <EditRoundedIcon fontSize="small" />
