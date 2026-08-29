@@ -10,6 +10,8 @@ create unique index merchant_alias_single_preferred_idx
 on public.merchant_alias (merchant_id)
 where is_preferred = true and is_archived = false;
 
+grant select, insert, update on table public.merchant_alias to authenticated;
+
 create or replace function public.set_merchant_preferred_alias(
     p_ledger_id uuid,
     p_merchant_id uuid,
