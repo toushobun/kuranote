@@ -480,6 +480,9 @@ jobs:
     if: *run_code_ci
     needs: [test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -507,3 +510,21 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook
+
+      - name: Deploy Storybook preview
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./storybook-static
+          publish_branch: gh-pages
+          destination_dir: pr-${{ github.event.pull_request.number }}
+          keep_files: true
+
+      - name: Comment Storybook preview link
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: storybook-preview
+          message: |
+            📖 Storybook 预览：https://toushobun.github.io/kuranote/pr-${{ github.event.pull_request.number }}/
+
+            （静态预览，组件使用 mock 数据渲染，不连接生产 Supabase；链接公开可访问，请勿在 story 中放入真实数据。）
