@@ -320,6 +320,7 @@ export function createRequestContainer(
           service: createStatisticsService({
             currentUserId,
             ledgerAccessService,
+            merchantQueryService: getMerchantQueryService(),
             statisticsRepository,
             transactionDashboardQueryService:
               createTransactionDashboardQueryService({

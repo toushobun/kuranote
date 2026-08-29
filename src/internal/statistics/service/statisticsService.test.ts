@@ -26,7 +26,6 @@ function createRepository(
     loadMonthlySource: vi.fn().mockResolvedValue({
       categories: [],
       items: [],
-      merchants: [],
       records: [],
     }),
     ...overrides,
@@ -57,13 +56,19 @@ function createService({
   const ledgerAccessService = {
     getActiveMemberRole: vi.fn().mockResolvedValue(role),
   };
+  const merchantQueryService = {
+    findSummariesByIds: vi.fn().mockResolvedValue([]),
+    listActiveOptions: vi.fn().mockResolvedValue([]),
+  };
 
   return {
     ledgerAccessService,
+    merchantQueryService,
     repository,
     service: createStatisticsService({
       currentUserId,
       ledgerAccessService,
+      merchantQueryService,
       now: () => new Date("2026-06-15T12:00:00.000Z"),
       statisticsRepository: repository,
       transactionDashboardQueryService,
@@ -162,5 +167,47 @@ describe("StatisticsService", () => {
       month: "2026-06",
       summary: { currency: "JPY" },
     });
+  });
+
+  it("月度统计通过商家窄接口使用展示名", async () => {
+    const merchantId = "00000000-0000-4000-8000-000000000041";
+    const recordId = "00000000-0000-4000-8000-000000000042";
+    const categoryId = "00000000-0000-4000-8000-000000000043";
+    const repository = createRepository({
+      loadMonthlySource: vi.fn().mockResolvedValue({
+        categories: [
+          { id: categoryId, name: "餐饮", parent_id: null, type: "expense" },
+        ],
+        items: [
+          {
+            amount: "1200",
+            category_id: categoryId,
+            transaction_record_id: recordId,
+          },
+        ],
+        records: [
+          {
+            created_at: "2026-06-15T01:00:00.000Z",
+            id: recordId,
+            merchant_id: merchantId,
+            note: null,
+            transaction_at: "2026-06-15T01:00:00.000Z",
+            type: "normal",
+          },
+        ],
+      }),
+    });
+    const { merchantQueryService, service } = createService({ repository });
+    merchantQueryService.findSummariesByIds.mockResolvedValue([
+      { icon_url: null, id: merchantId, name: "展示别名" },
+    ]);
+
+    const view = await service.getMonthly({ ledgerId, month: "2026-06" });
+
+    expect(merchantQueryService.findSummariesByIds).toHaveBeenCalledWith({
+      ledgerId,
+      merchantIds: [merchantId],
+    });
+    expect(view.merchantExpenseRanking[0]?.name).toBe("展示别名");
   });
 });

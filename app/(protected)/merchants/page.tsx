@@ -1,14 +1,7 @@
 import { getCurrentLedgerOrRedirect } from "internal/ledger/adapter/next/currentLedger";
 import { createRequestContainer } from "internal/container";
-import {
-  archiveMerchant,
-  archiveMerchantAlias,
-  createMerchant,
-  createMerchantAlias,
-  updateMerchant,
-} from "internal/merchant/adapter/next/actions";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import { MerchantsActionStateTemplate } from "templates/merchants/MerchantsActionState";
+import { MerchantsTemplate } from "templates/merchants/Merchants";
 
 export default async function MerchantsPage({
   searchParams,
@@ -26,15 +19,12 @@ export default async function MerchantsPage({
   });
 
   return (
-    <MerchantsActionStateTemplate
-      archiveMerchantAction={archiveMerchant}
-      archiveMerchantAliasAction={archiveMerchantAlias}
-      createMerchantAction={createMerchant}
-      createMerchantAliasAction={createMerchantAlias}
+    <MerchantsTemplate
+      canManageMerchants={view.canManageMerchants}
       keyword={params.q ?? ""}
+      ledgerId={currentLedger.id}
       ledgerName={view.ledgerName}
       merchants={view.merchants}
-      updateMerchantAction={updateMerchant}
     />
   );
 }

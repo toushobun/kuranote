@@ -14,6 +14,13 @@ export function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
 }
 
+export function resolveMerchantDisplayName(
+  formalName: string,
+  preferredAlias: string | null | undefined,
+) {
+  return preferredAlias ?? formalName;
+}
+
 export function parseWebsiteUrl(value: unknown): string | null | undefined {
   if (value === null || value === undefined) {
     return null;
@@ -39,6 +46,19 @@ export function parseWebsiteUrl(value: unknown): string | null | undefined {
   } catch {
     return undefined;
   }
+}
+
+export function merchantIconSrc(
+  ledgerId: string,
+  websiteUrl: string | null,
+): string | undefined {
+  const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
+  if (!parsedWebsiteUrl) return undefined;
+
+  const searchParams = new URLSearchParams({ websiteUrl: parsedWebsiteUrl });
+  return `/api/ledgers/${encodeURIComponent(
+    ledgerId,
+  )}/merchants/icon?${searchParams.toString()}`;
 }
 
 export function filterMerchantsByKeyword(

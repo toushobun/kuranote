@@ -78,6 +78,7 @@ function expectErrorState(state: MerchantActionState, message: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.archiveAlias.mockResolvedValue(merchantId);
   mocks.redirect.mockImplementation((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   });
@@ -269,17 +270,15 @@ describe("Merchant Server Actions", () => {
     expect(mocks.createMerchant).not.toHaveBeenCalled();
   });
 
-  it("五个操作成功后均失效缓存并正常跳回商家页", async () => {
-    for (const action of [
-      createMerchant,
-      updateMerchant,
-      archiveMerchant,
-      createMerchantAlias,
-      archiveMerchantAlias,
-    ]) {
-      await expect(runAction(action)).rejects.toThrow(
-        "NEXT_REDIRECT:/merchants",
-      );
+  it("五个操作成功后均失效缓存并跳转到对应商家页面", async () => {
+    for (const [action, path] of [
+      [createMerchant, "/merchants"],
+      [updateMerchant, `/merchants/${merchantId}/edit`],
+      [archiveMerchant, "/merchants"],
+      [createMerchantAlias, `/merchants/${merchantId}/edit`],
+      [archiveMerchantAlias, `/merchants/${merchantId}/edit`],
+    ] as const) {
+      await expect(runAction(action)).rejects.toThrow(`NEXT_REDIRECT:${path}`);
     }
 
     expect(mocks.createMerchant).toHaveBeenCalledWith({

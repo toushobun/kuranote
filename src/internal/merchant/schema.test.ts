@@ -8,6 +8,7 @@ import {
   validateArchiveMerchantForm,
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
+  validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
 } from "internal/merchant/schema";
 
@@ -28,6 +29,20 @@ function createFormData(overrides: Record<string, string> = {}) {
 }
 
 describe("merchant schema", () => {
+  it("展示名可选择正式名或有效别名", () => {
+    expect(validateSetPreferredMerchantAliasForm(createFormData())).toEqual({
+      ok: true,
+      value: { aliasId, merchantId },
+    });
+    expect(
+      validateSetPreferredMerchantAliasForm(createFormData({ aliasId: "" })),
+    ).toEqual({ ok: true, value: { aliasId: null, merchantId } });
+    expect(
+      validateSetPreferredMerchantAliasForm(
+        createFormData({ aliasId: "not-a-uuid" }),
+      ),
+    ).toMatchObject({ ok: false, error: "alias_invalid" });
+  });
   it("新增商家表单允许 HTTP/HTTPS 网址及空可选字段", () => {
     expect(validateCreateMerchantForm(createFormData())).toEqual({
       ok: true,

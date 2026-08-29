@@ -22,7 +22,7 @@ import { useFormStatus } from "react-dom";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import type { LedgerCreateDefaults } from "internal/ledger";
-import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
@@ -72,10 +72,6 @@ export function LedgerCreateTemplate({
     createLedgerAction,
     initialLedgerCreateActionState,
   );
-  const currentErrorKey = actionState.errorKey ?? actionState.error ?? null;
-  const [closedErrorKey, setClosedErrorKey] = useState<string | null>(null);
-  const isErrorOpen =
-    actionState.error !== undefined && currentErrorKey !== closedErrorKey;
   const [ledgerName, setLedgerName] = useState(defaults.ledgerName);
   const [baseCurrency, setBaseCurrency] = useState(defaults.baseCurrency);
   const [displayName, setDisplayName] = useState(defaults.displayName);
@@ -83,10 +79,6 @@ export function LedgerCreateTemplate({
     defaults.displayColor,
   );
   const ledgerNameInputRef = useRef<HTMLInputElement>(null);
-
-  function closeErrorFeedback() {
-    setClosedErrorKey(currentErrorKey);
-  }
 
   function clearLedgerName() {
     setLedgerName("");
@@ -302,11 +294,9 @@ export function LedgerCreateTemplate({
           </Stack>
         </Stack>
 
-        <FailureFeedbackDialog
+        <ActionFailureFeedback
           bottomOffset={feedbackBottomOffset}
-          description={actionState.error ?? null}
-          onClose={closeErrorFeedback}
-          open={isErrorOpen}
+          state={actionState}
           title={ledgerCreateText.errorTitle}
         />
       </PageShell>

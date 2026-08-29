@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 import type { AppEnv } from "internal/appEnv";
 import {
@@ -6,6 +6,7 @@ import {
   archiveMerchantHandler,
   createMerchantAliasHandler,
   createMerchantHandler,
+  getMerchantIconHandler,
   listMerchantOptionsHandler,
   listMerchantsHandler,
   updateMerchantHandler,
@@ -16,6 +17,7 @@ import {
   errorResponseSchema,
   merchantAliasParamsSchema,
   merchantLedgerParamsSchema,
+  merchantIconQuerySchema,
   merchantListQuerySchema,
   merchantListResponseSchema,
   merchantOptionsResponseSchema,
@@ -60,6 +62,26 @@ export const listMerchantOptionsRoute = createRoute({
         "application/json": { schema: merchantOptionsResponseSchema },
       },
       description: "读取成功",
+    },
+    ...errorResponses,
+  },
+});
+
+export const getMerchantIconRoute = createRoute({
+  method: "get",
+  path: "/{ledgerId}/merchants/icon",
+  request: {
+    params: merchantLedgerParamsSchema,
+    query: merchantIconQuerySchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/octet-stream": {
+          schema: z.string().openapi({ format: "binary" }),
+        },
+      },
+      description: "头像读取成功",
     },
     ...errorResponses,
   },
@@ -152,6 +174,7 @@ export const merchantRouter = new OpenAPIHono<AppEnv>();
 merchantRouter.use("*", sameOriginMiddleware);
 merchantRouter.openapi(listMerchantsRoute, listMerchantsHandler);
 merchantRouter.openapi(listMerchantOptionsRoute, listMerchantOptionsHandler);
+merchantRouter.openapi(getMerchantIconRoute, getMerchantIconHandler);
 merchantRouter.openapi(createMerchantRoute, createMerchantHandler);
 merchantRouter.openapi(updateMerchantRoute, updateMerchantHandler);
 merchantRouter.openapi(archiveMerchantRoute, archiveMerchantHandler);

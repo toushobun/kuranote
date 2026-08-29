@@ -29,9 +29,11 @@ function createRepository(
     createMerchant: vi.fn(),
     findActiveAlias: vi.fn().mockResolvedValue({ merchantId }),
     findActiveMerchant: vi.fn().mockResolvedValue(true),
+    findActiveMerchantData: vi.fn().mockResolvedValue(null),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     listActive: vi.fn().mockResolvedValue([]),
     listActiveSummaries: vi.fn().mockResolvedValue([]),
+    setPreferredAlias: vi.fn().mockResolvedValue(true),
     updateMerchant: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -59,6 +61,38 @@ function createService(
 }
 
 describe("createMerchantService", () => {
+  it("设置别名展示名时校验别名归属并调用原子更新", async () => {
+    const repository = createRepository();
+
+    await createService(repository).setPreferredAlias({
+      aliasId,
+      ledgerId,
+      merchantId,
+    });
+
+    expect(repository.setPreferredAlias).toHaveBeenCalledWith({
+      aliasId,
+      ledgerId,
+      merchantId,
+    });
+  });
+
+  it("选择正式名时以空别名清除当前展示别名", async () => {
+    const repository = createRepository();
+
+    await createService(repository).setPreferredAlias({
+      aliasId: null,
+      ledgerId,
+      merchantId,
+    });
+
+    expect(repository.findActiveAlias).not.toHaveBeenCalled();
+    expect(repository.setPreferredAlias).toHaveBeenCalledWith({
+      aliasId: null,
+      ledgerId,
+      merchantId,
+    });
+  });
   it("未登录时拒绝读取商家列表", async () => {
     await expect(
       createService(

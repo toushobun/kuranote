@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { merchantErrorCodes } from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
   ConflictError,
@@ -18,6 +19,64 @@ function createLogger() {
 }
 
 describe("createSupabaseMerchantRepository", () => {
+  it("交易选项优先使用首选别名作为展示名称", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ icon_url: null, id: merchantId, name: "正式商家名" }] },
+        { data: [{ alias: "展示名", merchant_id: merchantId }] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.findSummariesByIds(ledgerId, [merchantId]),
+    ).resolves.toEqual([{ icon_url: null, id: merchantId, name: "展示名" }]);
+  });
+
+  it("通过 RPC 原子切换同一商家的展示别名", async () => {
+    const aliasId = "00000000-0000-4000-8000-000000001002";
+    const supabase = createSupabaseMock({ rpcResponse: { data: true } });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.setPreferredAlias({ aliasId, ledgerId, merchantId }),
+    ).resolves.toBe(true);
+    expect(supabase.rpc).toHaveBeenCalledWith("set_merchant_preferred_alias", {
+      p_alias_id: aliasId,
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+    });
+  });
+
+  it("展示名唯一约束冲突会转换为安全的 ConflictError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: { code: "23505", message: "private constraint detail" },
+      },
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.setPreferredAlias({
+      aliasId: null,
+      ledgerId,
+      merchantId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.aliasPreferredUpdateFailed,
+    });
+    await expect(operation).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("商家列表只读取指定账本的未归档记录并按既有顺序排序", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ data: [] }] });
     const repository = createSupabaseMerchantRepository(

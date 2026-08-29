@@ -81,7 +81,6 @@ describe("createSupabaseStatisticsRepository", () => {
     ).resolves.toEqual({
       categories: [],
       items: [],
-      merchants: [],
       records: [],
     });
     expect(supabase.queries).toHaveLength(1);
@@ -148,7 +147,6 @@ describe("createSupabaseStatisticsRepository", () => {
     ).resolves.toEqual({
       categories: [category],
       items: [item],
-      merchants: [],
       records: [record],
     });
 

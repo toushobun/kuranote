@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { routePaths } from "config/paths";
+import { merchantEditHref, routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
@@ -17,6 +17,7 @@ import {
   validateArchiveMerchantForm,
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
+  validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
 } from "internal/merchant/schema";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
@@ -95,7 +96,7 @@ export const updateMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(routePaths.merchants);
+    redirect(merchantEditHref(validation.value.merchantId));
   };
 
 export const archiveMerchant: MerchantStateAction =
@@ -145,7 +146,7 @@ export const createMerchantAlias: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(routePaths.merchants);
+    redirect(merchantEditHref(validation.value.merchantId));
   };
 
 export const archiveMerchantAlias: MerchantStateAction =
@@ -154,8 +155,9 @@ export const archiveMerchantAlias: MerchantStateAction =
     const validation = validateArchiveMerchantAliasForm(formData);
     if (!validation.ok) return validationErrorState(validation.error);
 
+    let merchantId: string;
     try {
-      await (
+      merchantId = await (
         await getMerchantService()
       ).archiveAlias({
         aliasId: validation.value.aliasId,
@@ -170,5 +172,30 @@ export const archiveMerchantAlias: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(routePaths.merchants);
+    redirect(merchantEditHref(merchantId));
+  };
+
+export const setPreferredMerchantAlias: MerchantStateAction =
+  async function setPreferredMerchantAlias(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateSetPreferredMerchantAliasForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+
+    try {
+      await (
+        await getMerchantService()
+      ).setPreferredAlias({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.aliasPreferredUpdateFailed,
+        "set preferred alias",
+      );
+    }
+
+    revalidateMerchantMutation();
+    redirect(merchantEditHref(validation.value.merchantId));
   };

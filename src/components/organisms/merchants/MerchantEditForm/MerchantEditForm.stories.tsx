@@ -9,6 +9,7 @@ const meta = {
   component: MerchantEditForm,
   args: {
     action: async () => {},
+    ledgerId: "ledger-1",
     merchant: createMerchantRow({ note: "常去的超市" }),
   },
 } satisfies Meta<typeof MerchantEditForm>;
@@ -23,6 +24,7 @@ export const Default: Story = {
 export const WithoutOptionalFields: Story = {
   name: "编辑商家（仅必填项）",
   args: {
+    ledgerId: "ledger-1",
     merchant: createMerchantRow({
       id: "00000000-0000-4000-8000-000000001002",
       name: "Amazon",

@@ -8,6 +8,7 @@ export const routePaths = {
   ledgersNew: "/ledgers/new",
   login: "/login",
   merchants: "/merchants",
+  merchantsNew: "/merchants/new",
   register: "/register",
   settings: "/settings",
   statistics: "/statistics",
@@ -133,4 +134,8 @@ export function ledgerSettingsResultHref(
 
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
+}
+
+export function merchantEditHref(merchantId: string) {
+  return `${routePaths.merchants}/${encodeURIComponent(merchantId)}/edit`;
 }

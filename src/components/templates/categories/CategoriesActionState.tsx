@@ -2,7 +2,7 @@
 
 import { useActionState, useState, type ComponentProps } from "react";
 
-import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import type {
   CategoryActionState,
   CategoryStateAction,
@@ -55,32 +55,26 @@ export function CategoriesActionStateTemplate({
         onReorderError={setReorderState}
         updateCategoryAction={updateAction}
       />
-      <CategoryFailureFeedback state={createState} title="分类新增失败" />
-      <CategoryFailureFeedback state={updateState} title="分类更新失败" />
-      <CategoryFailureFeedback state={archiveState} title="分类隐藏失败" />
-      <CategoryFailureFeedback state={reorderState} title="分类排序保存失败" />
+      <ActionFailureFeedback
+        aboveModal
+        state={createState}
+        title="分类新增失败"
+      />
+      <ActionFailureFeedback
+        aboveModal
+        state={updateState}
+        title="分类更新失败"
+      />
+      <ActionFailureFeedback
+        aboveModal
+        state={archiveState}
+        title="分类隐藏失败"
+      />
+      <ActionFailureFeedback
+        aboveModal
+        state={reorderState}
+        title="分类排序保存失败"
+      />
     </>
-  );
-}
-
-function CategoryFailureFeedback({
-  state,
-  title,
-}: {
-  state: CategoryActionState;
-  title: string;
-}) {
-  const currentErrorKey = state.errorKey ?? state.error ?? null;
-  const [closedErrorKey, setClosedErrorKey] = useState<string | null>(null);
-  const open = state.error !== undefined && currentErrorKey !== closedErrorKey;
-
-  return (
-    <FailureFeedbackDialog
-      aboveModal
-      description={state.error ?? null}
-      onClose={() => setClosedErrorKey(currentErrorKey)}
-      open={open}
-      title={title}
-    />
   );
 }

@@ -42,6 +42,11 @@ export type ArchiveMerchantAliasValues = {
   aliasId: string;
 };
 
+export type SetPreferredMerchantAliasValues = {
+  aliasId: string | null;
+  merchantId: string;
+};
+
 function parseMerchantName(
   formData: FormData,
 ): ValidationResult<
@@ -178,6 +183,31 @@ export function validateArchiveMerchantAliasForm(
     : aliasIdResult;
 }
 
+export function validateSetPreferredMerchantAliasForm(
+  formData: FormData,
+): ValidationResult<
+  SetPreferredMerchantAliasValues,
+  | typeof merchantErrorCodes.aliasInvalid
+  | typeof merchantErrorCodes.merchantInvalid
+> {
+  const merchantIdResult = parseRequiredUuidField(
+    formData,
+    "merchantId",
+    merchantErrorCodes.merchantInvalid,
+  );
+  if (!merchantIdResult.ok) return merchantIdResult;
+
+  const aliasId = getFormText(formData, "aliasId").trim();
+  if (aliasId.length > 0 && !z.string().uuid().safeParse(aliasId).success) {
+    return invalid(merchantErrorCodes.aliasInvalid);
+  }
+
+  return valid({
+    aliasId: aliasId || null,
+    merchantId: merchantIdResult.value,
+  });
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     return ["http:", "https:"].includes(new URL(value).protocol);
@@ -216,10 +246,15 @@ export const createMerchantAliasRequestSchema = z.object({
   alias: z.string().trim().min(1).max(merchantAliasMaxLength),
 });
 
+export const merchantIconQuerySchema = z.object({
+  websiteUrl: z.string().url().max(2048),
+});
+
 export const merchantAliasSchema = z.object({
   alias: z.string(),
   created_at: z.string(),
   id: z.string().uuid(),
+  is_preferred: z.boolean(),
   merchant_id: z.string().uuid(),
   sort_order: z.number().int(),
 });
@@ -227,6 +262,7 @@ export const merchantAliasSchema = z.object({
 export const merchantSchema = z.object({
   aliases: z.array(merchantAliasSchema),
   created_at: z.string(),
+  display_name: z.string(),
   icon_url: z.string().nullable(),
   id: z.string().uuid(),
   name: z.string(),

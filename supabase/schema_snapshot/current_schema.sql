@@ -4234,6 +4234,48 @@ $$;
 ALTER FUNCTION "public"."set_ledger_member_display_setting_audit_user"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid" DEFAULT NULL::"uuid") RETURNS boolean
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    perform 1
+    from public.merchant m
+    where m.id = p_merchant_id
+      and m.ledger_id = p_ledger_id
+      and m.is_archived = false
+    for update;
+
+    if not found then
+        return false;
+    end if;
+
+    if p_alias_id is not null and not exists (
+        select 1
+        from public.merchant_alias ma
+        where ma.id = p_alias_id
+          and ma.merchant_id = p_merchant_id
+          and ma.is_archived = false
+    ) then
+        return false;
+    end if;
+
+    update public.merchant_alias
+    set is_preferred = (p_alias_id is not null and id = p_alias_id),
+        updated_by = auth.uid()
+    where merchant_id = p_merchant_id
+      and is_archived = false
+      and is_preferred is distinct from
+          (p_alias_id is not null and id = p_alias_id);
+
+    return true;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -6689,10 +6731,12 @@ CREATE TABLE IF NOT EXISTS "public"."merchant_alias" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "is_preferred" boolean DEFAULT false NOT NULL,
     CONSTRAINT "merchant_alias_alias_check" CHECK ((("length"(TRIM(BOTH FROM "alias")) >= 1) AND ("length"(TRIM(BOTH FROM "alias")) <= 100))),
     CONSTRAINT "merchant_alias_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "merchant_alias_locale_check" CHECK ((("locale" IS NULL) OR (("length"(TRIM(BOTH FROM "locale")) >= 2) AND ("length"(TRIM(BOTH FROM "locale")) <= 20)))),
-    CONSTRAINT "merchant_alias_note_check" CHECK ((("note" IS NULL) OR ("length"("note") <= 1000)))
+    CONSTRAINT "merchant_alias_note_check" CHECK ((("note" IS NULL) OR ("length"("note") <= 1000))),
+    CONSTRAINT "merchant_alias_preferred_active_check" CHECK (((NOT "is_preferred") OR (NOT "is_archived")))
 );
 
 
@@ -7125,6 +7169,10 @@ CREATE UNIQUE INDEX "merchant_alias_active_alias_unique" ON "public"."merchant_a
 
 
 CREATE INDEX "merchant_alias_active_idx" ON "public"."merchant_alias" USING "btree" ("merchant_id", "sort_order", "id") WHERE ("is_archived" = false);
+
+
+
+CREATE UNIQUE INDEX "merchant_alias_single_preferred_idx" ON "public"."merchant_alias" USING "btree" ("merchant_id") WHERE (("is_preferred" = true) AND ("is_archived" = false));
 
 
 
@@ -8160,6 +8208,11 @@ GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_i
 
 
 
+REVOKE ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "authenticated";
 
@@ -8266,7 +8319,7 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant" TO "serv
 
 
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO "anon";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO "authenticated";
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."merchant_alias" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO "service_role";
 
 

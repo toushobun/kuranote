@@ -15,12 +15,12 @@ type MerchantActionOperation =
   | "archiveAlias"
   | "create"
   | "createAlias"
+  | "setPreferred"
   | "update";
 
 type UseMerchantsActionStateOptions = {
   merchantId?: string;
   operation: MerchantActionOperation;
-  resetOnSuccess?: boolean;
 };
 
 type TrackedMerchantActionState = {
@@ -36,11 +36,7 @@ const initialTrackedActionState: TrackedMerchantActionState = {
 
 export function useMerchantsActionState(
   action: MerchantStateAction,
-  {
-    merchantId,
-    operation,
-    resetOnSuccess = false,
-  }: UseMerchantsActionStateOptions,
+  { merchantId, operation }: UseMerchantsActionStateOptions,
 ) {
   const trackedAction = useCallback(
     async (
@@ -67,7 +63,6 @@ export function useMerchantsActionState(
   const inFlightTokenRef = useRef<string | null>(null);
   const observedPendingRef = useRef(false);
   const [actionState, setActionState] = useState(initialMerchantActionState);
-  const [resetKey, setResetKey] = useState(`${actionScope}:initial`);
   const [submissionPending, setSubmissionPending] = useState(false);
 
   useEffect(() => {
@@ -93,8 +88,7 @@ export function useMerchantsActionState(
     }
 
     setActionState({});
-    if (resetOnSuccess) setResetKey(inFlightToken);
-  }, [isActionPending, resetOnSuccess, trackedState]);
+  }, [isActionPending, trackedState]);
 
   const submitAction = useCallback(
     (formData: FormData) => {
@@ -114,7 +108,6 @@ export function useMerchantsActionState(
   return {
     action: submitAction,
     pending: isActionPending || submissionPending,
-    resetKey,
     state: actionState,
   };
 }

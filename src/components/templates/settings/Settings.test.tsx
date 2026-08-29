@@ -53,7 +53,6 @@ describe("SettingsTemplate", () => {
       "个人主页",
       "主题换装",
       "收支颜色",
-      "商家管理",
       "语言设置",
       "数据导入导出",
       "App 偏好设置",
@@ -75,6 +74,9 @@ describe("SettingsTemplate", () => {
     expect(
       within(container).getByRole("link", { name: /分类管理/ }),
     ).toHaveAttribute("href", "/categories");
+    expect(
+      within(container).getByRole("link", { name: /商家管理/ }),
+    ).toHaveAttribute("href", "/merchants");
   });
 
   it("账本管理入口显示当前账本名称", () => {
@@ -93,7 +95,7 @@ describe("SettingsTemplate", () => {
     const { container } = renderSettingsTemplate();
 
     fireEvent.click(
-      within(container).getByRole("button", { name: /商家管理/ }),
+      within(container).getByRole("button", { name: /语言设置/ }),
     );
 
     expect(screen.getByText("正在准备中")).toBeInTheDocument();

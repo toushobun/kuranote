@@ -7,6 +7,7 @@ const meta = {
   component: MerchantForm,
   args: {
     action: async () => {},
+    ledgerId: "ledger-1",
   },
 } satisfies Meta<typeof MerchantForm>;
 

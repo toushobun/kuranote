@@ -14,10 +14,11 @@ import Portal from "@mui/material/Portal";
 import Snackbar from "@mui/material/Snackbar";
 import type { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { useUserTheme } from "theme/UserThemeProvider";
 import type { UserThemeKey } from "theme/userThemeTokens";
+import type { BaseActionState } from "types/auth";
 
 const dialogText = {
   cancel: "取消",
@@ -106,6 +107,31 @@ export function SuccessFeedbackDialog(props: FeedbackDialogProps) {
 
 export function FailureFeedbackDialog(props: FeedbackDialogProps) {
   return <FeedbackDialog {...props} tone="error" />;
+}
+
+type ActionFailureFeedbackProps = Omit<
+  FeedbackDialogProps,
+  "description" | "onClose" | "open"
+> & {
+  state: Pick<BaseActionState, "error"> & { errorKey?: string };
+};
+
+export function ActionFailureFeedback({
+  state,
+  ...dialogProps
+}: ActionFailureFeedbackProps) {
+  const currentErrorKey = state.errorKey ?? state.error ?? null;
+  const [closedErrorKey, setClosedErrorKey] = useState<string | null>(null);
+  const open = state.error !== undefined && currentErrorKey !== closedErrorKey;
+
+  return (
+    <FailureFeedbackDialog
+      {...dialogProps}
+      description={state.error ?? null}
+      onClose={() => setClosedErrorKey(currentErrorKey)}
+      open={open}
+    />
+  );
 }
 
 export type ConfirmationDialogProps = {
