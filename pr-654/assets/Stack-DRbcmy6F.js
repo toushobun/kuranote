@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{T as t,o as n,r,s as i,t as a,w as o}from"./DefaultPropsProvider-BrOASIGE.js";var s,c=e((()=>{o(),n(),a(),s=t({createStyledComponent:i(`div`,{name:`MuiStack`,slot:`Root`}),useThemeProps:e=>r({props:e,name:`MuiStack`})})})),l=e((()=>{c()}));export{s as n,c as r,l as t};
