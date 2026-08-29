@@ -19,7 +19,6 @@ import type { Merchant } from "types/merchants";
 type MerchantDisplayNameEditorProps = {
   archiveAliasAction: ServerAction;
   createAliasAction: ServerAction;
-  formalName: string;
   merchant: Merchant;
   pending?: boolean;
   setPreferredAliasAction: ServerAction;
@@ -28,7 +27,6 @@ type MerchantDisplayNameEditorProps = {
 export function MerchantDisplayNameEditor({
   archiveAliasAction,
   createAliasAction,
-  formalName,
   merchant,
   pending = false,
   setPreferredAliasAction,
@@ -50,7 +48,7 @@ export function MerchantDisplayNameEditor({
       </Stack>
 
       <NameRow
-        label={formalName}
+        label={merchant.name}
         selected={!hasPreferredAlias}
         setPreferredAliasAction={setPreferredAliasAction}
         merchantId={merchant.id}

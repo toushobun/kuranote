@@ -3,6 +3,7 @@ export const merchantText = {
   aliasHelper: "别名既可作为展示名候选，也会用于搜索匹配。",
   aliasLabel: "别名",
   archive: "归档商家",
+  archiveConfirmTitle: "归档商家？",
   archiveAliasErrorTitle: "商家别名移除失败",
   archiveDescription: "归档后不会出现在新的记账选项中，既有记录仍会保留。",
   archiveErrorTitle: "商家归档失败",

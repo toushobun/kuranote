@@ -83,6 +83,22 @@ describe("createMerchantIconService", () => {
     },
   );
 
+  it.each(["::7f00:1", "::a9fe:a9fe"])(
+    "DNS 解析到 IPv4-compatible IPv6 私网地址时拒绝请求：%s",
+    async (address) => {
+      const fetchImpl = vi.fn() as unknown as typeof fetch;
+      const service = createMerchantIconService({
+        fetchImpl,
+        lookup: async () => [{ address, family: 6 }],
+      });
+
+      await expect(
+        service.fetchIcon("https://example.com"),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetchImpl).not.toHaveBeenCalled();
+    },
+  );
+
   it("拒绝跳转到非白名单主机且不继续请求", async () => {
     const fetchImpl = vi.fn(
       async () =>

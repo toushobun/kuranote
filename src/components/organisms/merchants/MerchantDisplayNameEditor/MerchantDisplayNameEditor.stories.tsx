@@ -13,7 +13,6 @@ const meta = {
   args: {
     archiveAliasAction: async () => {},
     createAliasAction: async () => {},
-    formalName: "晨光生活超市有限公司",
     merchant: createMerchantRow({
       aliases: [
         createMerchantAliasRow({ alias: "晨光生活", is_preferred: true }),

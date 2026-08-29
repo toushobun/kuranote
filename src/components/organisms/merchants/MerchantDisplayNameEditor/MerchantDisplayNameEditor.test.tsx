@@ -17,7 +17,6 @@ describe("MerchantDisplayNameEditor", () => {
       <MerchantDisplayNameEditor
         archiveAliasAction={vi.fn(async () => {})}
         createAliasAction={vi.fn(async () => {})}
-        formalName="正式商家名"
         merchant={createMerchantRow({
           aliases: [createMerchantAliasRow({ is_preferred: true })],
           display_name: "来福",
@@ -43,8 +42,10 @@ describe("MerchantDisplayNameEditor", () => {
       <MerchantDisplayNameEditor
         archiveAliasAction={vi.fn(async () => {})}
         createAliasAction={vi.fn(async () => {})}
-        formalName="正式商家名"
-        merchant={createMerchantRow({ aliases: [createMerchantAliasRow()] })}
+        merchant={createMerchantRow({
+          aliases: [createMerchantAliasRow()],
+          name: "正式商家名",
+        })}
         setPreferredAliasAction={vi.fn(async () => {})}
       />,
     );

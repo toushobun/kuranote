@@ -8,15 +8,13 @@ import { MerchantEditForm } from "./MerchantEditForm";
 afterEach(cleanup);
 
 describe("MerchantEditForm", () => {
-  it("显示既有商家信息并同步正式名变化", () => {
-    const onNameChange = vi.fn();
+  it("显示并编辑既有商家信息", () => {
     const merchant = createMerchantRow({ note: "常去的超市" });
     const { container } = render(
       <MerchantEditForm
         action={vi.fn()}
         ledgerId="ledger-1"
         merchant={merchant}
-        onNameChange={onNameChange}
       />,
     );
 
@@ -26,11 +24,10 @@ describe("MerchantEditForm", () => {
       merchant.id,
     );
 
-    onNameChange.mockClear();
     fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "LIFE" },
     });
-    expect(onNameChange).toHaveBeenCalledWith("LIFE");
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("LIFE");
   });
 
   it("保存中禁用按钮并显示进度", () => {

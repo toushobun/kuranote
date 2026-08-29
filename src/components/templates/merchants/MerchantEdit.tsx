@@ -2,20 +2,21 @@
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useRef, useState } from "react";
 
 import { routePaths } from "config/paths";
 import { merchantText } from "config/merchantText";
+import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantDisplayNameEditor } from "organisms/merchants/MerchantDisplayNameEditor/MerchantDisplayNameEditor";
 import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
+import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type { Merchant, MerchantStateAction } from "types/merchants";
 import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
@@ -43,11 +44,8 @@ export function MerchantEditTemplate({
   setPreferredMerchantAliasAction,
   updateMerchantAction,
 }: MerchantEditTemplateProps) {
-  const [formalName, setFormalName] = useState(merchant.name);
-  const handleFormalNameChange = useCallback(
-    (name: string) => setFormalName(name),
-    [],
-  );
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const archiveFormRef = useRef<HTMLFormElement>(null);
   const update = useMerchantsActionState(updateMerchantAction, {
     merchantId: merchant.id,
     operation: "update",
@@ -76,37 +74,36 @@ export function MerchantEditTemplate({
       maxWidth="sm"
       sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-        <IconButton
-          aria-label="返回商家管理"
-          component={Link}
-          href={routePaths.merchants}
-          sx={{ border: "1px solid", borderColor: "divider" }}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography component="h1" variant="h5" sx={{ fontWeight: 900 }}>
-            {merchantText.edit}
-          </Typography>
-          <Typography color="text.secondary" variant="body2">
-            商家管理 〉 编辑商家 · {ledgerName}
-          </Typography>
-        </Box>
-        <form action={archive.action}>
-          <input name="merchantId" type="hidden" value={merchant.id} />
-          <Button
-            color="error"
-            disabled={archive.pending}
-            size="small"
-            sx={{ borderRadius: 999 }}
-            type="submit"
-            variant="outlined"
+      <PageHeader
+        action={
+          <form action={archive.action} ref={archiveFormRef}>
+            <input name="merchantId" type="hidden" value={merchant.id} />
+            <Button
+              color="error"
+              disabled={archive.pending}
+              onClick={() => setIsArchiveConfirmOpen(true)}
+              size="small"
+              sx={{ borderRadius: 999 }}
+              type="button"
+              variant="outlined"
+            >
+              {merchantText.archive}
+            </Button>
+          </form>
+        }
+        leading={
+          <IconButton
+            aria-label="返回商家管理"
+            component={Link}
+            href={routePaths.merchants}
+            sx={{ border: "1px solid", borderColor: "divider" }}
           >
-            {merchantText.archive}
-          </Button>
-        </form>
-      </Stack>
+            <ArrowBackRoundedIcon />
+          </IconButton>
+        }
+        subtitle={`商家管理 〉 编辑商家 · ${ledgerName}`}
+        title={merchantText.edit}
+      />
 
       <SectionCard sx={{ borderRadius: 3.5, p: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
@@ -144,7 +141,6 @@ export function MerchantEditTemplate({
           action={update.action}
           ledgerId={ledgerId}
           merchant={merchant}
-          onNameChange={handleFormalNameChange}
           pending={update.pending}
         />
       </SectionCard>
@@ -153,7 +149,6 @@ export function MerchantEditTemplate({
         <MerchantDisplayNameEditor
           archiveAliasAction={archiveAlias.action}
           createAliasAction={createAlias.action}
-          formalName={formalName}
           merchant={merchant}
           pending={aliasPending}
           setPreferredAliasAction={setPreferred.action}
@@ -180,6 +175,19 @@ export function MerchantEditTemplate({
         state={setPreferred.state}
         title={merchantText.preferredErrorTitle}
       />
+      {isArchiveConfirmOpen ? (
+        <DeleteConfirmationDialog
+          confirmLabel={merchantText.archive}
+          description={merchantText.archiveDescription}
+          onCancel={() => setIsArchiveConfirmOpen(false)}
+          onConfirm={() => {
+            setIsArchiveConfirmOpen(false);
+            archiveFormRef.current?.requestSubmit();
+          }}
+          open={isArchiveConfirmOpen}
+          title={merchantText.archiveConfirmTitle}
+        />
+      ) : null}
     </PageShell>
   );
 }

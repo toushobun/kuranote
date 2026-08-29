@@ -3,7 +3,6 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import type {
   CategorySummaryDbRow,
-  MerchantSummaryDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
@@ -28,7 +27,6 @@ export type DashboardAccountSummaryRecord = {
 export type MonthlyStatisticsSource = {
   categories: CategorySummaryDbRow[];
   items: TransactionItemDbRow[];
-  merchants: MerchantSummaryDbRow[];
   records: TransactionRecordDbRow[];
 };
 
@@ -148,7 +146,7 @@ export function createSupabaseStatisticsRepository(
       const recordIds = records.map((record) => record.id);
 
       if (recordIds.length === 0) {
-        return { categories: [], items: [], merchants: [], records: [] };
+        return { categories: [], items: [], records: [] };
       }
 
       const { data: itemData, error: itemError } = await supabase
@@ -177,38 +175,22 @@ export function createSupabaseStatisticsRepository(
             .filter((categoryId): categoryId is string => categoryId !== null),
         ),
       ];
-      const merchantIds = [
-        ...new Set(
-          records
-            .map((record) => record.merchant_id)
-            .filter((merchantId): merchantId is string => merchantId !== null),
-        ),
-      ];
-
-      const [categoryResult, merchantResult] = await Promise.all([
+      const categoryResult =
         categoryIds.length > 0
-          ? supabase
+          ? await supabase
               .from("category")
               .select("id, name, parent_id, type")
               .eq("ledger_id", ledgerId)
               .in("id", categoryIds)
-          : Promise.resolve({ data: [], error: null }),
-        merchantIds.length > 0
-          ? supabase
-              .from("merchant")
-              .select("id, name, icon_url")
-              .eq("ledger_id", ledgerId)
-              .in("id", merchantIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+          : { data: [], error: null };
 
-      if (categoryResult.error || merchantResult.error) {
+      if (categoryResult.error) {
         fail(
-          "failed to load monthly relations",
+          "failed to load monthly categories",
           statisticsErrorCodes.monthlyLoadFailed,
           "统计关联数据加载失败，请稍后重试。",
           { ledgerId },
-          categoryResult.error ?? merchantResult.error ?? undefined,
+          categoryResult.error,
         );
       }
 
@@ -244,7 +226,6 @@ export function createSupabaseStatisticsRepository(
       return {
         categories,
         items,
-        merchants: (merchantResult.data ?? []) as MerchantSummaryDbRow[],
         records,
       };
     },

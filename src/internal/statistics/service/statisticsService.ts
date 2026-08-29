@@ -3,6 +3,7 @@ import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
 } from "internal/ledger";
+import type { MerchantQueryService } from "internal/merchant";
 import {
   AuthenticationError,
   NotFoundError,
@@ -31,6 +32,7 @@ export interface StatisticsService {
 type StatisticsServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
+  merchantQueryService: MerchantQueryService;
   now?: () => Date;
   statisticsRepository: StatisticsRepository;
   transactionDashboardQueryService: TransactionDashboardQueryService;
@@ -39,6 +41,7 @@ type StatisticsServiceDependencies = {
 export function createStatisticsService({
   currentUserId,
   ledgerAccessService,
+  merchantQueryService,
   now = () => new Date(),
   statisticsRepository,
   transactionDashboardQueryService,
@@ -116,11 +119,26 @@ export function createStatisticsService({
         dateStart: startIso,
         ledgerId: ledger.id,
       });
+      const merchantIds = [
+        ...new Set(
+          source.records
+            .map((record) => record.merchant_id)
+            .filter((merchantId): merchantId is string => merchantId !== null),
+        ),
+      ];
+      const merchants =
+        merchantIds.length > 0
+          ? await merchantQueryService.findSummariesByIds({
+              ledgerId: ledger.id,
+              merchantIds,
+            })
+          : [];
 
       return buildStatisticsViewData({
         ...source,
         currency: ledger.baseCurrency,
         ledgerName: ledger.name,
+        merchants,
         month: normalizedMonth,
       });
     },

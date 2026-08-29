@@ -96,7 +96,7 @@ export const updateMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(routePaths.merchants);
+    redirect(merchantEditHref(validation.value.merchantId));
   };
 
 export const archiveMerchant: MerchantStateAction =

@@ -3,7 +3,6 @@
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
-import { useEffect } from "react";
 
 import { merchantText } from "config/merchantText";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
@@ -15,7 +14,6 @@ type MerchantEditFormProps = {
   action: ServerAction;
   ledgerId: string;
   merchant: Merchant;
-  onNameChange?: (name: string) => void;
   pending?: boolean;
 };
 
@@ -23,7 +21,6 @@ export function MerchantEditForm({
   action,
   ledgerId,
   merchant,
-  onNameChange,
   pending = false,
 }: MerchantEditFormProps) {
   const details = useMerchantDetails({
@@ -31,8 +28,6 @@ export function MerchantEditForm({
     note: merchant.note ?? "",
     websiteUrl: merchant.website_url ?? "",
   });
-
-  useEffect(() => onNameChange?.(details.name), [details.name, onNameChange]);
 
   return (
     <Stack component="form" action={action} spacing={2.5}>

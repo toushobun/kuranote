@@ -53,9 +53,11 @@ function isPublicIpv4(address: string): boolean {
   );
 }
 
-function mappedIpv4FromIpv6(address: string): string | null {
+function embeddedIpv4FromIpv6(address: string): string | null {
   const normalized = new URL(`http://[${address}]/`).hostname.slice(1, -1);
-  const groups = normalized.match(/^::ffff:([\da-f]{1,4}):([\da-f]{1,4})$/);
+  const groups = normalized.match(
+    /^::(?:ffff:)?([\da-f]{1,4}):([\da-f]{1,4})$/,
+  );
   if (!groups) return null;
 
   const high = Number.parseInt(groups[1]!, 16);
@@ -69,8 +71,8 @@ function isPublicIp(address: string): boolean {
   if (family === 4) return isPublicIpv4(normalized);
   if (family !== 6) return false;
 
-  const mappedIpv4 = mappedIpv4FromIpv6(normalized);
-  if (mappedIpv4) return isPublicIpv4(mappedIpv4);
+  const embeddedIpv4 = embeddedIpv4FromIpv6(normalized);
+  if (embeddedIpv4) return isPublicIpv4(embeddedIpv4);
 
   return !(
     normalized === "::" ||
