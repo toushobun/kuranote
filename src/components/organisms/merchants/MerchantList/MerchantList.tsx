@@ -38,9 +38,17 @@ export function MerchantList({
         }}
       >
         <Box
-          alt="橙色遮阳棚的小店和门口的猫咪"
+          alt={
+            isSearchEmpty
+              ? "拿着放大镜寻找商家的猫咪"
+              : "橙色遮阳棚的小店和门口的猫咪"
+          }
           component="img"
-          src="/assets/kura-merchant-empty/merchant_empty_amber_warmth.png"
+          src={
+            isSearchEmpty
+              ? "/assets/kura-search/search_illustration_amber_warmth.png"
+              : "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png"
+          }
           sx={{
             height: "auto",
             maxWidth: "100%",

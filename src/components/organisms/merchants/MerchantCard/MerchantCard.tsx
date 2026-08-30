@@ -78,6 +78,8 @@ export function MerchantCard({
             border: "1px solid",
             borderColor: avatarTone.borderColor,
             color: avatarTone.color,
+            fontSize: (theme) => theme.typography.h4.fontSize,
+            fontWeight: (theme) => theme.typography.fontWeightBold,
             height: { xs: 64, sm: 72 },
             p: 0.75,
             width: { xs: 64, sm: 72 },
@@ -102,10 +104,12 @@ export function MerchantCard({
 
           {merchant.website_url ? (
             <Link
+              color="text.secondary"
               href={merchant.website_url}
               rel="noreferrer"
               target="_blank"
               sx={{ display: "block", overflowWrap: "anywhere" }}
+              underline="none"
               variant="body2"
             >
               {merchant.website_url}

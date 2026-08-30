@@ -50,6 +50,14 @@ describe("MerchantList", () => {
       within(container).getByText("没有找到与“便利”匹配的正式名或别名。"),
     ).toBeInTheDocument();
     expect(
+      within(container).getByRole("img", {
+        name: "拿着放大镜寻找商家的猫咪",
+      }),
+    ).toHaveAttribute(
+      "src",
+      "/assets/kura-search/search_illustration_amber_warmth.png",
+    );
+    expect(
       within(container).queryByRole("link", { name: "添加第一个商家" }),
     ).not.toBeInTheDocument();
   });
