@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { merchantEditHref } from "config/paths";
 import type { Merchant } from "types/merchants";
+import { publicAssetUrl } from "utils/publicAssetUrl";
 
 import { MerchantCard } from "../MerchantCard/MerchantCard";
 
@@ -46,8 +47,12 @@ export function MerchantList({
           component="img"
           src={
             isSearchEmpty
-              ? "/assets/kura-search/search_illustration_amber_warmth.png"
-              : "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png"
+              ? publicAssetUrl(
+                  "/assets/kura-search/search_illustration_amber_warmth.png",
+                )
+              : publicAssetUrl(
+                  "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png",
+                )
           }
           sx={{
             height: "auto",

@@ -14,6 +14,7 @@ import NextLink from "next/link";
 import { SoftCard } from "atoms/ui/SoftCard";
 import type { Merchant } from "types/merchants";
 import { merchantIconSrc } from "utils/merchants";
+import { publicAssetUrl } from "utils/publicAssetUrl";
 
 type MerchantCardProps = {
   canManageMerchants?: boolean;
@@ -91,7 +92,7 @@ export function MerchantCard({
           <Box
             alt=""
             component="img"
-            src="/assets/kura-icons/merchant.png"
+            src={publicAssetUrl("/assets/kura-icons/merchant.png")}
             sx={{ height: "100%", objectFit: "contain", width: "100%" }}
           />
         </Avatar>
