@@ -99,9 +99,16 @@ describe("MerchantCard", () => {
     );
 
     const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
+    const preferredChip = chips[0]?.closest(".MuiChip-root");
 
     expect(chips.map((chip) => chip.textContent)).toEqual(["来福", "Life"]);
-    expect(chips[0]?.closest(".MuiChip-root")).toHaveClass("MuiChip-filled");
+    expect(preferredChip).toHaveClass("MuiChip-filled");
+    expect(getComputedStyle(preferredChip as Element).color).toBe(
+      "rgb(255, 255, 255)",
+    );
+    expect(
+      getComputedStyle(preferredChip?.querySelector("svg") as Element).color,
+    ).toBe("rgb(255, 255, 255)");
     expect(chips[1]?.closest(".MuiChip-root")).toHaveClass("MuiChip-outlined");
   });
 });

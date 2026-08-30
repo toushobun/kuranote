@@ -139,7 +139,14 @@ export function MerchantCard({
               icon={<StarRoundedIcon />}
               label={merchant.display_name}
               size="small"
-              sx={[merchantChipSx, { fontWeight: 800 }]}
+              sx={[
+                merchantChipSx,
+                {
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  "& .MuiChip-icon": { color: "inherit" },
+                },
+              ]}
               variant="filled"
             />
             {secondaryAliases.map((alias) => (
