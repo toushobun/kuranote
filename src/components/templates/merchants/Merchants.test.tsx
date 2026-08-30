@@ -27,15 +27,16 @@ describe("MerchantsTemplate", () => {
     expect(componentSource.startsWith('"use client";')).toBe(true);
   });
 
-  it("显示统一页面标题、账本和独立新增入口", () => {
+  it("显示紧凑页面标题和独立新增入口", () => {
     const { container } = render(<MerchantsTemplate {...baseProps} />);
 
     expect(
       within(container).getByRole("heading", { name: "商家管理" }),
     ).toBeInTheDocument();
     expect(
-      within(container).getByText("当前账本：家庭账本"),
+      within(container).getByText("管理常用商家和头像信息"),
     ).toBeInTheDocument();
+    expect(within(container).queryByText(/当前账本/)).not.toBeInTheDocument();
     expect(
       within(container).getByRole("link", { name: "新增商家" }),
     ).toHaveAttribute("href", "/merchants/new");

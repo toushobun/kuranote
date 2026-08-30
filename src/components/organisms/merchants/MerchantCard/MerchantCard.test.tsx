@@ -28,7 +28,9 @@ describe("MerchantCard", () => {
     expect(
       within(container).getByRole("heading", { name: "来福" }),
     ).toBeInTheDocument();
-    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+    expect(
+      within(container).queryByText("正式名：LIFE超市"),
+    ).not.toBeInTheDocument();
     expect(within(container).getByText("常去的超市")).toBeInTheDocument();
     expect(
       within(container).getByRole("link", { name: "编辑LIFE超市" }),
@@ -46,9 +48,12 @@ describe("MerchantCard", () => {
     );
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/assets/kura-icons/merchant.png"]'),
+    ).toBeInTheDocument();
   });
 
-  it("首选别名与正式名相同时仍显示正式名说明", () => {
+  it("首选别名与正式名相同时不重复显示正式名说明", () => {
     const merchant = createMerchantRow({
       aliases: [
         createMerchantAliasRow({ alias: "LIFE超市", is_preferred: true }),
@@ -64,6 +69,8 @@ describe("MerchantCard", () => {
       />,
     );
 
-    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+    expect(
+      within(container).queryByText("正式名：LIFE超市"),
+    ).not.toBeInTheDocument();
   });
 });

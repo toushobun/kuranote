@@ -11,9 +11,8 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { merchantText } from "config/merchantText";
 import type { Merchant } from "types/merchants";
-import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
+import { merchantIconSrc } from "utils/merchants";
 
 type MerchantCardProps = {
   canManageMerchants?: boolean;
@@ -55,20 +54,16 @@ export function MerchantCard({
   ledgerId,
   merchant,
 }: MerchantCardProps) {
-  const hasPreferredAlias = merchant.aliases.some(
-    (alias) => alias.is_preferred,
-  );
   const avatarTone = avatarToneFor(merchant.id);
 
   return (
     <SoftCard
       sx={{
         borderColor: "var(--user-theme-card-border)",
-        borderRadius: 5,
-        p: { xs: 2, sm: 2.5 },
+        p: 2,
       }}
     >
-      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
         <Avatar
           alt=""
           src={merchantIconSrc(ledgerId, merchant.website_url)}
@@ -78,14 +73,17 @@ export function MerchantCard({
             border: "1px solid",
             borderColor: avatarTone.borderColor,
             color: avatarTone.color,
-            fontSize: (theme) => theme.typography.h4.fontSize,
-            fontWeight: (theme) => theme.typography.fontWeightBold,
             height: { xs: 64, sm: 72 },
             p: 0.75,
             width: { xs: 64, sm: 72 },
           }}
         >
-          {getMerchantInitial(merchant.display_name)}
+          <Box
+            alt=""
+            component="img"
+            src="/assets/kura-icons/merchant.png"
+            sx={{ height: "100%", objectFit: "contain", width: "100%" }}
+          />
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -96,11 +94,6 @@ export function MerchantCard({
           >
             {merchant.display_name}
           </Typography>
-          {hasPreferredAlias ? (
-            <Typography color="text.secondary" variant="caption">
-              {merchantText.formalName}：{merchant.name}
-            </Typography>
-          ) : null}
 
           {merchant.website_url ? (
             <Link
@@ -160,11 +153,12 @@ export function MerchantCard({
             size="small"
             sx={{
               "&:hover": { bgcolor: "action.hover" },
-              bgcolor: "transparent",
-              borderRadius: "50%",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
               flexShrink: 0,
-              height: 34,
-              width: 34,
+              height: 40,
+              width: 40,
             }}
           >
             <EditRoundedIcon fontSize="small" />
