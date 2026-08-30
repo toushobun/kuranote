@@ -34,7 +34,9 @@ describe("MerchantList", () => {
       <MerchantList {...baseProps} merchants={[createMerchantRow()]} />,
     );
 
-    expect(within(container).getByText("LIFE超市")).toBeInTheDocument();
+    expect(
+      within(container).getByRole("heading", { name: "LIFE超市" }),
+    ).toBeInTheDocument();
     expect(within(container).queryByText("还没有商家")).not.toBeInTheDocument();
   });
 

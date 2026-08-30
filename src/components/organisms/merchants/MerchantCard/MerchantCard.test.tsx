@@ -73,4 +73,35 @@ describe("MerchantCard", () => {
       within(container).queryByText("正式名：LIFE超市"),
     ).not.toBeInTheDocument();
   });
+
+  it("标签第一项固定显示首选名，后面再显示其他别名", () => {
+    const merchant = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "Life",
+          id: "alias-secondary",
+          is_preferred: false,
+        }),
+        createMerchantAliasRow({
+          alias: "来福",
+          id: "alias-preferred",
+          is_preferred: true,
+        }),
+      ],
+      display_name: "来福",
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
+
+    expect(chips.map((chip) => chip.textContent)).toEqual(["来福", "Life"]);
+    expect(chips[0]?.closest(".MuiChip-root")).toHaveClass("MuiChip-filled");
+    expect(chips[1]?.closest(".MuiChip-root")).toHaveClass("MuiChip-outlined");
+  });
 });

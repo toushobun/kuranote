@@ -1,6 +1,5 @@
 "use client";
 
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChildCareRoundedIcon from "@mui/icons-material/ChildCareRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
@@ -32,6 +31,7 @@ import {
 } from "react";
 import { useFormStatus } from "react-dom";
 
+import { CreateButton } from "atoms/ui/CreateButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
@@ -152,15 +152,7 @@ export function LedgersTemplate({
               <Typography component="h1" sx={pageTitleSx}>
                 账本管理
               </Typography>
-              <Button
-                component={Link}
-                href={routePaths.ledgersNew}
-                startIcon={<AddRoundedIcon />}
-                sx={createButtonSx}
-                variant="contained"
-              >
-                新增账本
-              </Button>
+              <CreateButton href={routePaths.ledgersNew}>新增账本</CreateButton>
             </Stack>
             <Typography
               color="text.secondary"
@@ -377,15 +369,7 @@ function LedgersEmptyCard() {
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <Button
-          component={Link}
-          href={routePaths.ledgersNew}
-          startIcon={<AddRoundedIcon />}
-          sx={createButtonSx}
-          variant="contained"
-        >
-          新增账本
-        </Button>
+        <CreateButton href={routePaths.ledgersNew}>新增账本</CreateButton>
       </Stack>
     </SoftCard>
   );
@@ -461,29 +445,6 @@ const pageTitleSx = {
   flex: 1,
   fontSize: { xs: 24, sm: 26 },
   fontWeight: 800,
-};
-
-const createButtonSx = {
-  ...typographyStyles.button,
-  background: "var(--user-theme-fab-bg)",
-  borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
-  flexShrink: 0,
-  fontSize: 14,
-  fontWeight: 700,
-  minHeight: 40,
-  px: 2,
-  whiteSpace: "nowrap",
-  "& .MuiButton-startIcon": {
-    mr: 0.75,
-  },
-  "& .MuiSvgIcon-root": {
-    fontSize: 20,
-  },
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };
 
 const currentCardSx = {

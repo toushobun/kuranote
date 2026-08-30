@@ -40,6 +40,9 @@ describe("MerchantsTemplate", () => {
     expect(
       within(container).getByRole("link", { name: "新增商家" }),
     ).toHaveAttribute("href", "/merchants/new");
+    expect(
+      within(container).getByTestId("merchants-page-background"),
+    ).toBeInTheDocument();
   });
 
   it("空状态不与搜索区同屏显示", () => {

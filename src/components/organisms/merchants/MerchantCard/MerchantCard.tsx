@@ -7,6 +7,7 @@ import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
+import type { Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
@@ -39,6 +40,12 @@ const avatarTones = [
   },
 ] as const;
 
+const merchantChipSx = {
+  borderRadius: 999,
+  fontSize: (theme: Theme) => theme.typography.body2.fontSize,
+  height: 28,
+} as const;
+
 function avatarToneFor(merchantId: string) {
   const toneIndex = Array.from(merchantId).reduce(
     (hash, character) => (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0,
@@ -55,6 +62,9 @@ export function MerchantCard({
   merchant,
 }: MerchantCardProps) {
   const avatarTone = avatarToneFor(merchant.id);
+  const secondaryAliases = merchant.aliases.filter(
+    (alias) => alias.alias !== merchant.display_name,
+  );
 
   return (
     <SoftCard
@@ -123,26 +133,25 @@ export function MerchantCard({
             </Typography>
           ) : null}
 
-          {merchant.aliases.length > 0 ? (
-            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
-              {merchant.aliases.map((alias) => (
-                <Chip
-                  color={alias.is_preferred ? "primary" : "default"}
-                  icon={alias.is_preferred ? <StarRoundedIcon /> : undefined}
-                  key={alias.id}
-                  label={alias.alias}
-                  size="small"
-                  sx={{
-                    borderRadius: 999,
-                    fontSize: (theme) => theme.typography.body2.fontSize,
-                    fontWeight: alias.is_preferred ? 800 : 600,
-                    height: 28,
-                  }}
-                  variant={alias.is_preferred ? "filled" : "outlined"}
-                />
-              ))}
-            </Stack>
-          ) : null}
+          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+            <Chip
+              color="primary"
+              icon={<StarRoundedIcon />}
+              label={merchant.display_name}
+              size="small"
+              sx={[merchantChipSx, { fontWeight: 800 }]}
+              variant="filled"
+            />
+            {secondaryAliases.map((alias) => (
+              <Chip
+                key={alias.id}
+                label={alias.alias}
+                size="small"
+                sx={[merchantChipSx, { fontWeight: 600 }]}
+                variant="outlined"
+              />
+            ))}
+          </Stack>
         </Box>
 
         {canManageMerchants ? (
