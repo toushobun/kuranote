@@ -172,6 +172,23 @@ workflow 文件：
 5. 在 Supabase Dashboard 或 SQL Editor 确认 migration 状态。
 6. 打开 Vercel Production URL，验证主要页面。
 
+## PR Storybook 预览
+
+CI 的 `storybook-build` job 会在每次 PR push 后自动把 Storybook 构建产物发布到 `gh-pages` 分支下 `pr-<PR编号>/` 子目录，并把预览链接自动更新到 PR 的评论里（同一条评论持续更新，不会重复刷屏）：
+
+```text
+https://toushobun.github.io/kuranote/pr-<PR编号>/
+```
+
+用途和访问范围：
+
+- 目的是不需要本地跑 `npm run storybook` 就能在手机或其他设备上确认这次改动后组件的实际外观，不需要手动触发，也没有使用次数限制。
+- 这不是视觉 diff 工具，只是纯预览；如果需要自动标出组件外观差异，需要另外评估 Chromatic 等方案。
+- 发布的是纯静态页面，Storybook 里的组件使用 mock 数据渲染，不连接生产 Supabase，也不包含真实用户数据。
+- 链接是「知道即可访问」的公开地址（不校验仓库协作者身份），不会被搜索引擎收录，但不要在 story 里放真实数据。
+
+首次启用需要人工在仓库 Settings → Pages 中把 Source 设置为 `gh-pages` 分支（一次性设置，`gh-pages` 分支由 workflow 首次运行时自动创建）。
+
 ## 排查要点
 
 ### Vercel build 失败
