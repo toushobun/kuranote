@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { merchantText } from "config/merchantText";
 import type { Merchant } from "types/merchants";
 import { merchantIconSrc } from "utils/merchants";
 import { publicAssetUrl } from "utils/publicAssetUrl";
@@ -63,6 +64,11 @@ export function MerchantCard({
   merchant,
 }: MerchantCardProps) {
   const avatarTone = avatarToneFor(merchant.id);
+  const hasPreferredAlias = merchant.aliases.some(
+    (alias) => alias.is_preferred,
+  );
+  const shouldShowFormalName =
+    hasPreferredAlias && merchant.display_name !== merchant.name;
   const secondaryAliases = merchant.aliases.filter(
     (alias) => alias.alias !== merchant.display_name,
   );
@@ -105,6 +111,11 @@ export function MerchantCard({
           >
             {merchant.display_name}
           </Typography>
+          {shouldShowFormalName ? (
+            <Typography color="text.secondary" variant="caption">
+              {merchantText.formalName}：{merchant.name}
+            </Typography>
+          ) : null}
 
           {merchant.website_url ? (
             <Link
@@ -136,19 +147,19 @@ export function MerchantCard({
 
           <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
             <Chip
-              color="primary"
-              icon={<StarRoundedIcon />}
+              color={hasPreferredAlias ? "primary" : "default"}
+              icon={hasPreferredAlias ? <StarRoundedIcon /> : undefined}
               label={merchant.display_name}
               size="small"
               sx={[
                 merchantChipSx,
                 {
-                  color: "#FFFFFF",
+                  color: hasPreferredAlias ? "primary.contrastText" : undefined,
                   fontWeight: 600,
                   "& .MuiChip-icon": { color: "inherit" },
                 },
               ]}
-              variant="filled"
+              variant={hasPreferredAlias ? "filled" : "outlined"}
             />
             {secondaryAliases.map((alias) => (
               <Chip
