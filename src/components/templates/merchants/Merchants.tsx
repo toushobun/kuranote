@@ -15,6 +15,7 @@ import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { PageShell } from "templates/layout/PageShell";
+import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import type { Merchant } from "types/merchants";
 
 export type MerchantsTemplateProps = {
@@ -39,12 +40,7 @@ export function MerchantsTemplate({
       <Box
         aria-hidden
         data-testid="merchants-page-background"
-        sx={{
-          backgroundColor: "background.default",
-          inset: 0,
-          position: "fixed",
-          zIndex: -1,
-        }}
+        sx={fullViewportPageBackgroundSx}
       />
       <PageShell
         maxWidth="sm"
