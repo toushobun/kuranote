@@ -28,9 +28,7 @@ describe("MerchantCard", () => {
     expect(
       within(container).getByRole("heading", { name: "来福" }),
     ).toBeInTheDocument();
-    expect(
-      within(container).queryByText("正式名：LIFE超市"),
-    ).not.toBeInTheDocument();
+    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
     expect(within(container).getByText("常去的超市")).toBeInTheDocument();
     expect(
       within(container).getByRole("link", { name: "编辑LIFE超市" }),
@@ -74,7 +72,7 @@ describe("MerchantCard", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("标签第一项固定显示首选名，后面再显示其他别名", () => {
+  it("标签第一项显示真实首选名，后面再显示其他别名", () => {
     const merchant = createMerchantRow({
       aliases: [
         createMerchantAliasRow({
@@ -114,5 +112,33 @@ describe("MerchantCard", () => {
       getComputedStyle(secondaryChip as Element).fontWeight,
     );
     expect(secondaryChip).toHaveClass("MuiChip-outlined");
+  });
+
+  it("没有首选别名时显示名使用普通标签", () => {
+    const merchant = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "Life",
+          id: "alias-secondary",
+          is_preferred: false,
+        }),
+      ],
+      display_name: "LIFE超市",
+      name: "LIFE超市",
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
+    const displayNameChip = chips[0]?.closest(".MuiChip-root");
+
+    expect(chips.map((chip) => chip.textContent)).toEqual(["LIFE超市", "Life"]);
+    expect(displayNameChip).toHaveClass("MuiChip-outlined");
+    expect(displayNameChip?.querySelector("svg")).toBeNull();
   });
 });
