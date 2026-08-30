@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,r as n,t as r}from"./merchants-Doa-HDjZ.js";import{n as i,t as a}from"./MerchantDisplayNameEditor-Z5aYbPuF.js";var o,s,c;e((()=>{n(),i(),o={title:`Organisms/Merchants/MerchantDisplayNameEditor`,component:a,args:{archiveAliasAction:async()=>{},createAliasAction:async()=>{},merchant:t({aliases:[r({alias:`晨光生活`,is_preferred:!0}),r({alias:`晨光`,id:`alias-2`})],display_name:`晨光生活`,name:`晨光生活超市有限公司`}),setPreferredAliasAction:async()=>{}}},s={name:`显示名与别名管理`},s.parameters={...s.parameters,docs:{...s.parameters?.docs,source:{originalSource:`{
+  name: "显示名与别名管理"
+}`,...s.parameters?.docs?.source}}},c=[`Default`]}))();export{s as Default,c as __namedExportsOrder,o as default};
