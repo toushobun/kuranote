@@ -143,7 +143,7 @@ export function MerchantCard({
                 merchantChipSx,
                 {
                   color: "#FFFFFF",
-                  fontWeight: 800,
+                  fontWeight: 600,
                   "& .MuiChip-icon": { color: "inherit" },
                 },
               ]}
