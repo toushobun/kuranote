@@ -20,7 +20,7 @@ set
     updated_at = now();
 
 -- Merchant tag associations for local merchant-list and design verification.
--- The default tags are created by the merchant-tag migrations before seed files run.
+-- Base seed ledger initialization creates the default tags before this seed file runs.
 with seed_merchant_tags(merchant_id, tag_name) as (
     values
         ('00000000-0000-4000-8000-000000001001'::uuid, '超市'),
@@ -103,7 +103,7 @@ with seed_records as (
             '00000000-0000-4000-8000-000000000043'::uuid,
             '00000000-0000-4000-8000-000000000045'::uuid,
             '00000000-0000-4000-8000-000000000047'::uuid
-        ])[((series_index - 1) % 4) + 1] end as account_id,
+        ])[((series_index - 1) % 4) + 1] as account_id,
         case when series_index % 10 = 0 then 260000::numeric(14,2) else (300 + ((series_index * 137) % 9000))::numeric(14,2) end as amount,
         ('2026-06-05 12:00:00+09'::timestamptz - (series_index * interval '6 hours')) as transaction_at
     from generate_series(1, 100) as series_index
@@ -169,7 +169,7 @@ with seed_records as (
             '00000000-0000-4000-8000-000000000043'::uuid,
             '00000000-0000-4000-8000-000000000045'::uuid,
             '00000000-0000-4000-8000-000000000047'::uuid
-        ])[((series_index - 1) % 4) + 1] end as account_id,
+        ])[((series_index - 1) % 4) + 1] as account_id,
         case when series_index % 10 = 0 then 260000::numeric(14,2) else (300 + ((series_index * 137) % 9000))::numeric(14,2) end as amount,
         ('2026-06-05 12:00:00+09'::timestamptz - (series_index * interval '6 hours')) as transaction_at
     from generate_series(1, 100) as series_index
