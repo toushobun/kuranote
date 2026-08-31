@@ -51,7 +51,7 @@ describe("MerchantCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("首选别名与正式名相同时不重复显示正式名说明", () => {
+  it("首选别名与正式名相同时仍显示正式名说明", () => {
     const merchant = createMerchantRow({
       aliases: [
         createMerchantAliasRow({ alias: "LIFE超市", is_preferred: true }),
@@ -67,9 +67,7 @@ describe("MerchantCard", () => {
       />,
     );
 
-    expect(
-      within(container).queryByText("正式名：LIFE超市"),
-    ).not.toBeInTheDocument();
+    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
   });
 
   it("标签第一项显示真实首选名，后面再显示其他别名", () => {
