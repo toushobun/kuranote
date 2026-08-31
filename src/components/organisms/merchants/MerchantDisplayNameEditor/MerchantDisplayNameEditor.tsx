@@ -127,9 +127,7 @@ function NameRow({
       sx={{
         alignItems: "center",
         border: "1px solid",
-        borderColor: selected
-          ? "var(--user-theme-action-text)"
-          : "divider",
+        borderColor: selected ? "var(--user-theme-action-text)" : "divider",
         borderRadius: 2,
         px: 1.25,
         py: 0.5,
