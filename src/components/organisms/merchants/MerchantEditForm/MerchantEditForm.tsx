@@ -34,6 +34,7 @@ export function MerchantEditForm({
       <input name="merchantId" type="hidden" value={merchant.id} />
       <MerchantDetailsFields
         ledgerId={ledgerId}
+        merchantId={merchant.id}
         name={details.name}
         note={details.note}
         onNameChange={details.setName}

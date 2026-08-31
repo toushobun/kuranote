@@ -31,7 +31,7 @@ describe("MerchantEditForm", () => {
   });
 
   it("保存中禁用按钮并显示进度", () => {
-    render(
+    const { container } = render(
       <MerchantEditForm
         action={vi.fn()}
         ledgerId="ledger-1"
@@ -40,7 +40,7 @@ describe("MerchantEditForm", () => {
       />,
     );
 
-    expect(screen.getByRole("button")).toBeDisabled();
+    expect(container.querySelector('button[type="submit"]')).toBeDisabled();
     expect(screen.getByLabelText("保存中")).toBeInTheDocument();
   });
 });
