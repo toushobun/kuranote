@@ -95,11 +95,9 @@ describe("createMerchantService", () => {
   });
   it("未登录时拒绝读取商家列表", async () => {
     await expect(
-      createService(
-        createRepository(),
-        createLedgerAccessService(),
-        null,
-      ).list({ keyword: "", ledgerId }),
+      createService(createRepository(), createLedgerAccessService(), null).list(
+        { keyword: "", ledgerId },
+      ),
     ).rejects.toBeInstanceOf(AuthenticationError);
   });
 

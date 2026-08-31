@@ -253,7 +253,6 @@ describe("createRequestContainer", () => {
     const container = createRequestContainer(createDependenciesStub());
 
     expect(container.merchant).toBe(container.merchant);
-    expect(typeof container.merchant.service.getView).toBe("function");
     expect(typeof container.merchant.service.list).toBe("function");
     expect(typeof container.merchant.service.listActiveOptions).toBe(
       "function",
