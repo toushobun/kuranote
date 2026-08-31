@@ -10,6 +10,7 @@ export default async function MerchantCreatePage() {
       createMerchantAction={createMerchant}
       ledgerId={view.ledgerId}
       ledgerName={view.ledgerName}
+      tags={view.tags}
     />
   );
 }

@@ -33,10 +33,11 @@ export const listMerchantsHandler = async (
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
-  const { q } = c.req.valid("query");
+  const { q, tagId } = c.req.valid("query");
   const result = await c.get("container").merchant.service.list({
     keyword: q,
     ledgerId,
+    tagId,
   });
   return c.json(result, 200);
 };

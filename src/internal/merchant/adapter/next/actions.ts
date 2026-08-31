@@ -15,14 +15,23 @@ import {
 import {
   validateArchiveMerchantAliasForm,
   validateArchiveMerchantForm,
+  validateArchiveMerchantTagForm,
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
+  validateCreateMerchantTagForm,
+  validateReorderMerchantTagsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
+  validateUpdateMerchantTagForm,
 } from "internal/merchant/schema";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import type { MerchantActionState, MerchantStateAction } from "types/merchants";
+import type {
+  MerchantActionState,
+  MerchantStateAction,
+  MerchantTagReorderAction,
+  MerchantTagStateAction,
+} from "types/merchants";
 
 async function getMerchantService() {
   const dependencies = await createServerRequestDependencies();
@@ -198,4 +207,96 @@ export const setPreferredMerchantAlias: MerchantStateAction =
 
     revalidateMerchantMutation();
     redirect(merchantEditHref(validation.value.merchantId));
+  };
+
+export const createMerchantTag: MerchantTagStateAction =
+  async function createMerchantTag(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateCreateMerchantTagForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+    try {
+      await (
+        await getMerchantService()
+      ).createTag({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantTagCreateFailed,
+        "create tag",
+      );
+    }
+    revalidateMerchantMutation();
+    return {};
+  };
+
+export const updateMerchantTag: MerchantTagStateAction =
+  async function updateMerchantTag(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateUpdateMerchantTagForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+    try {
+      await (
+        await getMerchantService()
+      ).updateTag({
+        ledgerId: currentLedger.id,
+        ...validation.value,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantTagUpdateFailed,
+        "update tag",
+      );
+    }
+    revalidateMerchantMutation();
+    return {};
+  };
+
+export const archiveMerchantTag: MerchantTagStateAction =
+  async function archiveMerchantTag(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateArchiveMerchantTagForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+    try {
+      await (
+        await getMerchantService()
+      ).archiveTag({
+        ledgerId: currentLedger.id,
+        tagId: validation.value.tagId,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantTagArchiveFailed,
+        "archive tag",
+      );
+    }
+    revalidateMerchantMutation();
+    return {};
+  };
+
+export const reorderMerchantTags: MerchantTagReorderAction =
+  async function reorderMerchantTags(formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateReorderMerchantTagsForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+    try {
+      await (
+        await getMerchantService()
+      ).reorderTags({
+        ledgerId: currentLedger.id,
+        tagIds: validation.value.tagIds,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantTagReorderFailed,
+        "reorder tags",
+      );
+    }
+    revalidateMerchantMutation();
+    return {};
   };

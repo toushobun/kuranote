@@ -18,6 +18,7 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const aliasId = "00000000-0000-4000-8000-000000001002";
+const tagId = "00000000-0000-4000-8000-000000002001";
 
 function createRepository(
   overrides: Partial<MerchantRepository> = {},
@@ -25,16 +26,22 @@ function createRepository(
   return {
     archiveAlias: vi.fn().mockResolvedValue(true),
     archiveMerchant: vi.fn().mockResolvedValue(true),
+    archiveTag: vi.fn().mockResolvedValue(true),
     createAlias: vi.fn(),
     createMerchant: vi.fn(),
+    createTag: vi.fn(),
     findActiveAlias: vi.fn().mockResolvedValue({ merchantId }),
     findActiveMerchant: vi.fn().mockResolvedValue(true),
     findActiveMerchantData: vi.fn().mockResolvedValue(null),
+    findActiveTag: vi.fn().mockResolvedValue(null),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     listActive: vi.fn().mockResolvedValue([]),
     listActiveSummaries: vi.fn().mockResolvedValue([]),
+    listActiveTags: vi.fn().mockResolvedValue([]),
+    reorderTags: vi.fn(),
     setPreferredAlias: vi.fn().mockResolvedValue(true),
     updateMerchant: vi.fn().mockResolvedValue(true),
+    updateTag: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -148,6 +155,7 @@ describe("createMerchantService", () => {
       name: "LIFE",
       note: "常用超市",
       siteUrl: "https://example.com",
+      tagIds: [],
       userId,
     });
   });
@@ -157,7 +165,12 @@ describe("createMerchantService", () => {
 
     await expect(
       createService(repository).list({ keyword: "LIFE", ledgerId }),
-    ).resolves.toEqual({ canManageMerchants: true, merchants: [] });
+    ).resolves.toEqual({
+      canManageMerchants: true,
+      merchants: [],
+      selectedTag: null,
+      tags: [],
+    });
     expect(repository.listActive).toHaveBeenCalledWith(ledgerId);
   });
 
@@ -180,6 +193,7 @@ describe("createMerchantService", () => {
           name: "LIFE",
           note: null,
           sort_order: 0,
+          tags: [],
           website_url: null,
         },
       ]),
@@ -193,6 +207,64 @@ describe("createMerchantService", () => {
     ).resolves.toMatchObject({
       canManageMerchants: true,
       merchants: [{ id: merchantId }],
+    });
+  });
+
+  it("标签筛选与关键词按 AND 生效且徽标计数不受筛选影响", async () => {
+    const tag = {
+      icon: "🛒",
+      id: tagId,
+      merchant_count: 0,
+      name: "超市",
+      sort_order: 0,
+    };
+    const merchant = {
+      aliases: [],
+      created_at: "2026-01-01T00:00:00.000Z",
+      display_name: "LIFE",
+      icon_url: null,
+      id: merchantId,
+      name: "LIFE",
+      note: null,
+      sort_order: 0,
+      tags: [tag],
+      website_url: null,
+    };
+    const repository = createRepository({
+      listActive: vi.fn().mockResolvedValue([
+        merchant,
+        {
+          ...merchant,
+          display_name: "Amazon",
+          id: `${merchantId.slice(0, -1)}2`,
+          name: "Amazon",
+          tags: [],
+        },
+      ]),
+      listActiveTags: vi.fn().mockResolvedValue([tag]),
+    });
+
+    await expect(
+      createService(repository).list({ keyword: "LIFE", ledgerId, tagId }),
+    ).resolves.toMatchObject({
+      merchants: [{ id: merchantId }],
+      selectedTag: { id: tagId, merchant_count: 1 },
+      tags: [{ id: tagId, merchant_count: 1 }],
+    });
+  });
+
+  it("已归档或不存在的标签不会留下不可清除的筛选状态", async () => {
+    const repository = createRepository({
+      listActive: vi.fn().mockResolvedValue([]),
+      listActiveTags: vi.fn().mockResolvedValue([]),
+    });
+
+    await expect(
+      createService(repository).list({ keyword: "", ledgerId, tagId }),
+    ).resolves.toMatchObject({
+      merchants: [],
+      selectedTag: null,
+      tags: [],
     });
   });
 

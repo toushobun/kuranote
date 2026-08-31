@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { LoadingState } from "molecules/ui/LoadingState";
+import { SectionCard } from "molecules/ui/SectionCard";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 
@@ -58,6 +59,20 @@ export default function MerchantsLoading() {
               width={112}
             />
           </Stack>
+
+          <SectionCard sx={{ borderRadius: 3, p: 2 }}>
+            <Stack spacing={1.5}>
+              <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                <Skeleton width={96} />
+                <Skeleton width={72} />
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <Skeleton height={32} variant="rounded" width={88} />
+                <Skeleton height={32} variant="rounded" width={96} />
+                <Skeleton height={32} variant="rounded" width={80} />
+              </Stack>
+            </Stack>
+          </SectionCard>
 
           <LoadingState description="商家列表读取中，请稍等。" />
         </Stack>

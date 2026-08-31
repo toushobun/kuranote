@@ -2,21 +2,22 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  createRequestContainer: vi.fn(),
-  createServerRequestDependencies: vi.fn(),
-  getCurrentLedgerOrRedirect: vi.fn(),
-  list: vi.fn(),
+  archiveMerchantTag: vi.fn(),
+  createMerchantTag: vi.fn(),
+  loadMerchantsView: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
+  reorderMerchantTags: vi.fn(),
+  updateMerchantTag: vi.fn(),
 }));
 
-vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
-  getCurrentLedgerOrRedirect: mocks.getCurrentLedgerOrRedirect,
+vi.mock("internal/merchant/adapter/next/actions", () => ({
+  archiveMerchantTag: mocks.archiveMerchantTag,
+  createMerchantTag: mocks.createMerchantTag,
+  reorderMerchantTags: mocks.reorderMerchantTags,
+  updateMerchantTag: mocks.updateMerchantTag,
 }));
-vi.mock("internal/container", () => ({
-  createRequestContainer: mocks.createRequestContainer,
-}));
-vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
-  createServerRequestDependencies: mocks.createServerRequestDependencies,
+vi.mock("internal/merchant/adapter/next/loadMerchantsView", () => ({
+  loadMerchantsView: mocks.loadMerchantsView,
 }));
 vi.mock("templates/merchants/Merchants", () => ({
   MerchantsTemplate: mocks.MerchantsTemplate,
@@ -25,62 +26,47 @@ vi.mock("templates/merchants/Merchants", () => ({
 import MerchantsPage from "./page";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
+const tagId = "00000000-0000-4000-8000-000000002001";
 
 describe("MerchantsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getCurrentLedgerOrRedirect.mockResolvedValue({
-      currentUserRole: "owner",
-      id: ledgerId,
-      name: "家庭账本",
-    });
-    mocks.createServerRequestDependencies.mockResolvedValue({
-      requestId: "req-1",
-    });
-    mocks.list.mockResolvedValue({
+    mocks.loadMerchantsView.mockResolvedValue({
       canManageMerchants: true,
-      merchants: [],
-    });
-    mocks.createRequestContainer.mockReturnValue({
-      merchant: { service: { list: mocks.list } },
-    });
-  });
-
-  it("SSR 直接调用 Request Container 的 Merchant Service，不请求内部 API", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-
-    const result = await MerchantsPage({
-      searchParams: Promise.resolve({ q: " LIFE " }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-
-    expect(mocks.createServerRequestDependencies).toHaveBeenCalledOnce();
-    expect(mocks.createRequestContainer).toHaveBeenCalledOnce();
-    expect(mocks.list).toHaveBeenCalledWith({
-      keyword: " LIFE ",
       ledgerId,
+      merchants: [],
+      selectedTag: null,
+      tags: [],
     });
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(element.type).toBe(mocks.MerchantsTemplate);
   });
 
-  it("只把搜索参数和视图数据传给列表模板", async () => {
+  it("把关键词和标签查询参数交给 Merchant loader", async () => {
+    await MerchantsPage({
+      searchParams: Promise.resolve({ q: " LIFE ", tagId }),
+    });
+    expect(mocks.loadMerchantsView).toHaveBeenCalledWith({
+      keyword: " LIFE ",
+      tagId,
+    });
+  });
+
+  it("传递标签管理 Action 与视图数据，不读取错误查询参数", async () => {
     const result = await MerchantsPage({
-      searchParams: Promise.resolve({
-        error: "create_failed",
-        merchantId: "merchant-1",
-        q: "LIFE",
-      }),
+      searchParams: Promise.resolve({ q: "LIFE" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-
     expect(element.props).toMatchObject({
+      archiveMerchantTagAction: mocks.archiveMerchantTag,
       canManageMerchants: true,
+      createMerchantTagAction: mocks.createMerchantTag,
       keyword: "LIFE",
       ledgerId,
       merchants: [],
+      reorderMerchantTagsAction: mocks.reorderMerchantTags,
+      selectedTag: null,
+      tags: [],
+      updateMerchantTagAction: mocks.updateMerchantTag,
     });
-    expect(element.props).not.toHaveProperty("errorMerchantId");
     expect(element.props).not.toHaveProperty("errorMessage");
   });
 });

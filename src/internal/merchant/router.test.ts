@@ -43,9 +43,11 @@ function createService(
   return {
     archiveAlias: vi.fn(),
     archiveMerchant: vi.fn(),
+    archiveTag: vi.fn(),
     assertCanManage: vi.fn(),
     createAlias: vi.fn(),
     createMerchant: vi.fn(),
+    createTag: vi.fn(),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     getMerchant: vi.fn(),
     getMerchantIcon: vi.fn().mockResolvedValue({
@@ -55,10 +57,15 @@ function createService(
     list: vi.fn().mockResolvedValue({
       canManageMerchants: true,
       merchants: [],
+      selectedTag: null,
+      tags: [],
     }),
     listActiveOptions: vi.fn().mockResolvedValue([]),
+    listTags: vi.fn().mockResolvedValue([]),
+    reorderTags: vi.fn(),
     setPreferredAlias: vi.fn(),
     updateMerchant: vi.fn(),
+    updateTag: vi.fn(),
     ...overrides,
   };
 }
@@ -176,6 +183,7 @@ describe("merchant router", () => {
       name: "LIFE",
       note: null,
       siteUrl: "https://example.com",
+      tagIds: [],
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });
@@ -226,6 +234,7 @@ describe("merchant router", () => {
       name: "ライフ",
       note: null,
       siteUrl: null,
+      tagIds: [],
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });

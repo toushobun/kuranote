@@ -16,6 +16,7 @@ type MerchantListProps = {
   keyword?: string;
   ledgerId: string;
   merchants: Merchant[];
+  tagFiltered?: boolean;
 };
 
 export function MerchantList({
@@ -24,8 +25,10 @@ export function MerchantList({
   keyword = "",
   ledgerId,
   merchants,
+  tagFiltered = false,
 }: MerchantListProps) {
-  const isSearchEmpty = keyword.trim().length > 0 && merchants.length === 0;
+  const isFilteredEmpty =
+    (keyword.trim().length > 0 || tagFiltered) && merchants.length === 0;
 
   if (merchants.length === 0) {
     return (
@@ -40,13 +43,13 @@ export function MerchantList({
       >
         <Box
           alt={
-            isSearchEmpty
+            isFilteredEmpty
               ? "拿着放大镜寻找商家的猫咪"
               : "橙色遮阳棚的小店和门口的猫咪"
           }
           component="img"
           src={
-            isSearchEmpty
+            isFilteredEmpty
               ? publicAssetUrl(
                   "/assets/kura-search/search_illustration_amber_warmth.png",
                 )
@@ -62,16 +65,20 @@ export function MerchantList({
           }}
         />
         <Typography component="h2" variant="h5" sx={{ fontWeight: 900 }}>
-          {isSearchEmpty ? "没有找到匹配的商家" : "还没有商家"}
+          {isFilteredEmpty ? "没有找到匹配的商家" : "还没有商家"}
         </Typography>
         <Typography color="text.secondary">
-          {isSearchEmpty
-            ? `没有找到与“${keyword.trim()}”匹配的正式名或别名。`
+          {isFilteredEmpty
+            ? keyword.trim()
+              ? tagFiltered
+                ? `没有找到与“${keyword.trim()}”及当前标签同时匹配的商家。`
+                : `没有找到与“${keyword.trim()}”匹配的正式名或别名。`
+              : "当前标签下还没有商家。"
             : canManageMerchants
               ? "添加常用商家，记账更快捷～"
               : "当前账本还没有可查看的商家。"}
         </Typography>
-        {canManageMerchants && !isSearchEmpty ? (
+        {canManageMerchants && !isFilteredEmpty ? (
           <Button
             component={Link}
             href={createHref}

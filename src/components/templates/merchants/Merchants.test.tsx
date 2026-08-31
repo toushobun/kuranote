@@ -8,6 +8,8 @@ import { createMerchantRow } from "@/test/mocks/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
 
+const tagAction = async () => ({});
+
 const componentSource = readFileSync(
   join(process.cwd(), "src/components/templates/merchants/Merchants.tsx"),
   "utf8",
@@ -16,9 +18,15 @@ const componentSource = readFileSync(
 afterEach(cleanup);
 
 const baseProps = {
+  archiveMerchantTagAction: tagAction,
+  createMerchantTagAction: tagAction,
   keyword: "",
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
+  reorderMerchantTagsAction: async () => ({}),
+  selectedTag: null,
+  tags: [],
+  updateMerchantTagAction: tagAction,
 };
 
 describe("MerchantsTemplate", () => {

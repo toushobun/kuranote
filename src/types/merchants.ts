@@ -18,6 +18,14 @@ export type MerchantAlias = {
   created_at: string;
 };
 
+export type MerchantTag = {
+  icon: string;
+  id: string;
+  merchant_count: number;
+  name: string;
+  sort_order: number;
+};
+
 export type Merchant = {
   id: string;
   name: string;
@@ -28,4 +36,18 @@ export type Merchant = {
   sort_order: number;
   created_at: string;
   aliases: MerchantAlias[];
+  tags: MerchantTag[];
 };
+
+export type MerchantTagActionState = BaseActionState & {
+  errorKey?: string;
+};
+
+export type MerchantTagStateAction = (
+  previousState: MerchantTagActionState,
+  formData: FormData,
+) => Promise<MerchantTagActionState>;
+
+export type MerchantTagReorderAction = (
+  formData: FormData,
+) => Promise<MerchantTagActionState>;

@@ -18,11 +18,14 @@ import { parseWebsiteUrl } from "utils/merchants";
 export const merchantNameMaxLength = 100;
 export const merchantNoteMaxLength = 1000;
 export const merchantAliasMaxLength = 100;
+export const merchantTagNameMaxLength = 100;
+export const merchantTagIconMaxLength = 32;
 
 export type CreateMerchantValues = {
   name: string;
   note: string | null;
   siteUrl: string | null;
+  tagIds: string[];
 };
 
 export type UpdateMerchantValues = CreateMerchantValues & {
@@ -46,6 +49,29 @@ export type SetPreferredMerchantAliasValues = {
   aliasId: string | null;
   merchantId: string;
 };
+
+export type CreateMerchantTagValues = { icon: string; name: string };
+export type UpdateMerchantTagValues = CreateMerchantTagValues & {
+  tagId: string;
+};
+export type ArchiveMerchantTagValues = { tagId: string };
+export type ReorderMerchantTagsValues = { tagIds: string[] };
+
+function parseMerchantTagIds(
+  formData: FormData,
+): ValidationResult<string[], typeof merchantErrorCodes.merchantTagInvalid> {
+  const tagIds = formData
+    .getAll("tagIds")
+    .filter((value): value is string => typeof value === "string");
+  const result = z
+    .array(z.string().uuid())
+    .max(100)
+    .refine((values) => new Set(values).size === values.length)
+    .safeParse(tagIds);
+  return result.success
+    ? valid(result.data)
+    : invalid(merchantErrorCodes.merchantTagInvalid);
+}
 
 function parseMerchantName(
   formData: FormData,
@@ -96,10 +122,14 @@ function parseMerchantValues(
   const noteResult = parseMerchantNote(formData);
   if (!noteResult.ok) return noteResult;
 
+  const tagIdsResult = parseMerchantTagIds(formData);
+  if (!tagIdsResult.ok) return tagIdsResult;
+
   return valid({
     name: nameResult.value,
     note: noteResult.value,
     siteUrl: siteUrlResult.value,
+    tagIds: tagIdsResult.value,
   });
 }
 
@@ -208,6 +238,83 @@ export function validateSetPreferredMerchantAliasForm(
   });
 }
 
+function parseMerchantTagValues(
+  formData: FormData,
+): ValidationResult<CreateMerchantTagValues, MerchantValidationErrorCode> {
+  const nameResult = parseTextField(formData, "name", {
+    maxLength: merchantTagNameMaxLength,
+    maxLengthError: merchantErrorCodes.merchantTagNameTooLong,
+    requiredError: merchantErrorCodes.merchantTagNameRequired,
+  });
+  if (!nameResult.ok) return nameResult;
+
+  const iconResult = parseTextField(formData, "icon", {
+    maxLength: merchantTagIconMaxLength,
+    maxLengthError: merchantErrorCodes.merchantTagIconInvalid,
+    requiredError: merchantErrorCodes.merchantTagIconInvalid,
+  });
+  if (!iconResult.ok) return iconResult;
+  return valid({ icon: iconResult.value, name: nameResult.value });
+}
+
+export function validateCreateMerchantTagForm(
+  formData: FormData,
+): ValidationResult<CreateMerchantTagValues, MerchantValidationErrorCode> {
+  return parseMerchantTagValues(formData);
+}
+
+export function validateUpdateMerchantTagForm(
+  formData: FormData,
+): ValidationResult<UpdateMerchantTagValues, MerchantValidationErrorCode> {
+  const tagIdResult = parseRequiredUuidField(
+    formData,
+    "tagId",
+    merchantErrorCodes.merchantTagInvalid,
+  );
+  if (!tagIdResult.ok) return tagIdResult;
+  const valuesResult = parseMerchantTagValues(formData);
+  return valuesResult.ok
+    ? valid({ tagId: tagIdResult.value, ...valuesResult.value })
+    : valuesResult;
+}
+
+export function validateArchiveMerchantTagForm(
+  formData: FormData,
+): ValidationResult<
+  ArchiveMerchantTagValues,
+  typeof merchantErrorCodes.merchantTagInvalid
+> {
+  const result = parseRequiredUuidField(
+    formData,
+    "tagId",
+    merchantErrorCodes.merchantTagInvalid,
+  );
+  return result.ok ? valid({ tagId: result.value }) : result;
+}
+
+export function validateReorderMerchantTagsForm(
+  formData: FormData,
+): ValidationResult<
+  ReorderMerchantTagsValues,
+  typeof merchantErrorCodes.merchantTagOrderInvalid
+> {
+  let tagIds: unknown;
+  try {
+    tagIds = JSON.parse(getFormText(formData, "tagIds"));
+  } catch {
+    return invalid(merchantErrorCodes.merchantTagOrderInvalid);
+  }
+  const result = z
+    .array(z.string().uuid())
+    .min(1)
+    .max(200)
+    .refine((values) => new Set(values).size === values.length)
+    .safeParse(tagIds);
+  return result.success
+    ? valid({ tagIds: result.data })
+    : invalid(merchantErrorCodes.merchantTagOrderInvalid);
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     return ["http:", "https:"].includes(new URL(value).protocol);
@@ -233,12 +340,14 @@ export const merchantAliasParamsSchema = merchantLedgerParamsSchema.extend({
 });
 export const merchantListQuerySchema = z.object({
   q: z.string().optional().default(""),
+  tagId: z.string().uuid().optional(),
 });
 
 export const createMerchantRequestSchema = z.object({
   name: z.string().trim().min(1).max(merchantNameMaxLength),
   note: z.string().trim().max(merchantNoteMaxLength).nullable(),
   siteUrl: optionalWebsiteUrlSchema,
+  tagIds: z.array(z.string().uuid()).max(100).optional().default([]),
 });
 
 export const updateMerchantRequestSchema = createMerchantRequestSchema;
@@ -268,6 +377,15 @@ export const merchantSchema = z.object({
   name: z.string(),
   note: z.string().nullable(),
   sort_order: z.number().int(),
+  tags: z.array(
+    z.object({
+      icon: z.string(),
+      id: z.string().uuid(),
+      merchant_count: z.number().int().nonnegative(),
+      name: z.string(),
+      sort_order: z.number().int(),
+    }),
+  ),
   website_url: z.string().nullable(),
 });
 
@@ -280,6 +398,24 @@ export const merchantSummarySchema = z.object({
 export const merchantListResponseSchema = z.object({
   canManageMerchants: z.boolean(),
   merchants: z.array(merchantSchema),
+  selectedTag: z
+    .object({
+      icon: z.string(),
+      id: z.string().uuid(),
+      merchant_count: z.number().int().nonnegative(),
+      name: z.string(),
+      sort_order: z.number().int(),
+    })
+    .nullable(),
+  tags: z.array(
+    z.object({
+      icon: z.string(),
+      id: z.string().uuid(),
+      merchant_count: z.number().int().nonnegative(),
+      name: z.string(),
+      sort_order: z.number().int(),
+    }),
+  ),
 });
 export const merchantOptionsResponseSchema = z.object({
   merchants: z.array(merchantSummarySchema),

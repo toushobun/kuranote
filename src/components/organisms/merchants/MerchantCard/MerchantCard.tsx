@@ -125,6 +125,19 @@ export function MerchantCard({
               />
             ))}
           </Stack>
+          {merchant.tags.length > 0 ? (
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+              {merchant.tags.map((tag) => (
+                <Chip
+                  key={tag.id}
+                  label={`${tag.icon} ${tag.name}`}
+                  size="small"
+                  sx={merchantChipSx}
+                  variant="outlined"
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Box>
 
         {canManageMerchants ? (

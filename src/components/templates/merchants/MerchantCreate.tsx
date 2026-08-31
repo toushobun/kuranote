@@ -11,7 +11,7 @@ import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeed
 import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
-import type { MerchantStateAction } from "types/merchants";
+import type { MerchantStateAction, MerchantTag } from "types/merchants";
 
 import { useMerchantsActionState } from "./useMerchantsActionState";
 
@@ -19,12 +19,14 @@ type MerchantCreateTemplateProps = {
   createMerchantAction: MerchantStateAction;
   ledgerId: string;
   ledgerName: string;
+  tags: MerchantTag[];
 };
 
 export function MerchantCreateTemplate({
   createMerchantAction,
   ledgerId,
   ledgerName,
+  tags,
 }: MerchantCreateTemplateProps) {
   const create = useMerchantsActionState(createMerchantAction, {
     operation: "create",
@@ -54,6 +56,7 @@ export function MerchantCreateTemplate({
           action={create.action}
           ledgerId={ledgerId}
           pending={create.pending}
+          tags={tags}
         />
       </SectionCard>
       <MerchantFailureFeedback

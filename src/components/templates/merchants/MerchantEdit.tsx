@@ -15,7 +15,11 @@ import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantE
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
-import type { Merchant, MerchantStateAction } from "types/merchants";
+import type {
+  Merchant,
+  MerchantStateAction,
+  MerchantTag,
+} from "types/merchants";
 
 import { useMerchantsActionState } from "./useMerchantsActionState";
 
@@ -26,6 +30,7 @@ type MerchantEditTemplateProps = {
   ledgerId: string;
   ledgerName: string;
   merchant: Merchant;
+  tags: MerchantTag[];
   setPreferredMerchantAliasAction: MerchantStateAction;
   updateMerchantAction: MerchantStateAction;
 };
@@ -37,6 +42,7 @@ export function MerchantEditTemplate({
   ledgerId,
   ledgerName,
   merchant,
+  tags,
   setPreferredMerchantAliasAction,
   updateMerchantAction,
 }: MerchantEditTemplateProps) {
@@ -107,6 +113,7 @@ export function MerchantEditTemplate({
           ledgerId={ledgerId}
           merchant={merchant}
           pending={update.pending}
+          tags={tags}
         />
       </SectionCard>
 

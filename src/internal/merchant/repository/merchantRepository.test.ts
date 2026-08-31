@@ -126,6 +126,8 @@ describe("createSupabaseMerchantRepository", () => {
             },
           ],
         },
+        { data: [] },
+        { data: [] },
       ],
     });
     const repository = createSupabaseMerchantRepository(
@@ -159,7 +161,7 @@ describe("createSupabaseMerchantRepository", () => {
   });
 
   it("更新商家只命中当前账本中的未归档记录", async () => {
-    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
+    const supabase = createSupabaseMock({ rpcResponse: { data: true } });
     const repository = createSupabaseMerchantRepository(
       supabase.client as never,
       createLogger(),
@@ -176,20 +178,21 @@ describe("createSupabaseMerchantRepository", () => {
       }),
     ).resolves.toBe(true);
 
-    expect(supabase.queries[0].calls).toEqual(
-      expect.arrayContaining([
-        { args: ["id", merchantId], method: "eq" },
-        { args: ["ledger_id", ledgerId], method: "eq" },
-        { args: ["is_archived", false], method: "eq" },
-      ]),
-    );
+    expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+      p_name: "ライフ",
+      p_note: null,
+      p_tag_ids: [],
+      p_website_url: null,
+    });
   });
 
   it("唯一约束冲突会转换为安全的 ConflictError", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [
-        { error: { code: "23505", message: "merchant_active_name_unique" } },
-      ],
+      rpcResponse: {
+        error: { code: "23505", message: "merchant_active_name_unique" },
+      },
     });
     const repository = createSupabaseMerchantRepository(
       supabase.client as never,
@@ -225,5 +228,50 @@ describe("createSupabaseMerchantRepository", () => {
       "[merchant] failed to load merchants",
       expect.objectContaining({ databaseCode: "XX000", ledgerId }),
     );
+  });
+
+  it("读取当前账本未归档标签并按排序返回", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.listActiveTags(ledgerId)).resolves.toEqual([
+      { icon: "🛒", id: tagId, merchant_count: 0, name: "超市", sort_order: 0 },
+    ]);
+    expect(supabase.queries[0].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+  });
+
+  it("排序集合过期时转换为可展示的 ConflictError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "merchant_tag_set_invalid",
+          message: "private detail",
+        },
+      },
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.reorderTags(ledgerId, [merchantId]),
+    ).rejects.toMatchObject({
+      code: merchantErrorCodes.merchantTagSetInvalid,
+    });
   });
 });

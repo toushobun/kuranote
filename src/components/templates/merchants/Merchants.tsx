@@ -3,6 +3,7 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
@@ -14,22 +15,40 @@ import { CreateButton } from "atoms/ui/CreateButton";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
+import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
-import type { Merchant } from "types/merchants";
+import type {
+  Merchant,
+  MerchantTag,
+  MerchantTagReorderAction,
+  MerchantTagStateAction,
+} from "types/merchants";
 
 export type MerchantsTemplateProps = {
+  archiveMerchantTagAction: MerchantTagStateAction;
   canManageMerchants?: boolean;
+  createMerchantTagAction: MerchantTagStateAction;
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
+  reorderMerchantTagsAction: MerchantTagReorderAction;
+  selectedTag: MerchantTag | null;
+  tags: MerchantTag[];
+  updateMerchantTagAction: MerchantTagStateAction;
 };
 
 export function MerchantsTemplate({
+  archiveMerchantTagAction,
   canManageMerchants = true,
+  createMerchantTagAction,
   keyword,
   ledgerId,
   merchants,
+  reorderMerchantTagsAction,
+  selectedTag,
+  tags,
+  updateMerchantTagAction,
 }: MerchantsTemplateProps) {
   const hasMerchants = merchants.length > 0;
   const hasKeyword = keyword.trim().length > 0;
@@ -102,8 +121,50 @@ export function MerchantsTemplate({
             ) : null}
           </Stack>
 
-          {hasMerchants || hasKeyword ? (
+          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+            <MerchantTagManager
+              archiveAction={archiveMerchantTagAction}
+              canManage={canManageMerchants}
+              createAction={createMerchantTagAction}
+              keyword={keyword}
+              reorderAction={reorderMerchantTagsAction}
+              selectedTagId={selectedTag?.id}
+              tags={tags}
+              updateAction={updateMerchantTagAction}
+            />
+          </SectionCard>
+
+          {selectedTag ? (
+            <SectionCard sx={{ borderRadius: 3, p: 1.5 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", justifyContent: "space-between" }}
+              >
+                <Typography variant="body2">
+                  当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
+                  {merchants.length} 个商家
+                </Typography>
+                <Button
+                  component={Link}
+                  href={
+                    keyword.trim()
+                      ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
+                      : routePaths.merchants
+                  }
+                  size="small"
+                >
+                  清除筛选
+                </Button>
+              </Stack>
+            </SectionCard>
+          ) : null}
+
+          {hasMerchants || hasKeyword || selectedTag ? (
             <SectionCard component="form" sx={{ borderRadius: 999, p: 0 }}>
+              {selectedTag ? (
+                <input name="tagId" type="hidden" value={selectedTag.id} />
+              ) : null}
               <TextField
                 defaultValue={keyword}
                 fullWidth
@@ -134,6 +195,7 @@ export function MerchantsTemplate({
             keyword={keyword}
             ledgerId={ledgerId}
             merchants={merchants}
+            tagFiltered={Boolean(selectedTag)}
           />
         </Stack>
       </PageShell>

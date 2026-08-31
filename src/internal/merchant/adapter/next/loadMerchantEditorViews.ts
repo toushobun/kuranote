@@ -9,11 +9,11 @@ import { NotFoundError } from "internal/shared/errors/appError";
 export async function loadMerchantCreateView() {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const dependencies = await createServerRequestDependencies();
-  await createRequestContainer(dependencies).merchant.service.assertCanManage({
-    ledgerId: currentLedger.id,
-  });
+  const service = createRequestContainer(dependencies).merchant.service;
+  await service.assertCanManage({ ledgerId: currentLedger.id });
+  const tags = await service.listTags({ ledgerId: currentLedger.id });
 
-  return { ledgerId: currentLedger.id, ledgerName: currentLedger.name };
+  return { ledgerId: currentLedger.id, ledgerName: currentLedger.name, tags };
 }
 
 export async function loadMerchantEditView(merchantId: string) {
@@ -23,16 +23,17 @@ export async function loadMerchantEditView(merchantId: string) {
   const dependencies = await createServerRequestDependencies();
 
   try {
-    const merchant = await createRequestContainer(
-      dependencies,
-    ).merchant.service.getMerchant({
+    const service = createRequestContainer(dependencies).merchant.service;
+    const merchant = await service.getMerchant({
       ledgerId: currentLedger.id,
       merchantId,
     });
+    const tags = await service.listTags({ ledgerId: currentLedger.id });
     return {
       ledgerId: currentLedger.id,
       ledgerName: currentLedger.name,
       merchant,
+      tags,
     };
   } catch (error) {
     if (error instanceof NotFoundError) notFound();

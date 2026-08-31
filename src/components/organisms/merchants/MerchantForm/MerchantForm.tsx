@@ -7,19 +7,23 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
+import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
 import type { ServerAction } from "types/actions";
+import type { MerchantTag } from "types/merchants";
 
 type MerchantFormProps = {
   action: ServerAction;
   ledgerId: string;
   pending?: boolean;
+  tags?: MerchantTag[];
 };
 
 export function MerchantForm({
   action,
   ledgerId,
   pending = false,
+  tags = [],
 }: MerchantFormProps) {
   const details = useMerchantDetails();
 
@@ -34,6 +38,7 @@ export function MerchantForm({
         onWebsiteUrlChange={details.setWebsiteUrl}
         websiteUrl={details.websiteUrl}
       />
+      <MerchantTagsField tags={tags} />
       <Stack direction="row" spacing={1.5}>
         <Button
           component={Link}
