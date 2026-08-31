@@ -42,7 +42,11 @@ export type TransactionGroupBy =
   | "specialStatus";
 
 export type TransactionFilterRecordType =
-  "all" | "income" | "expense" | "refundableExpense" | "transfer";
+  | "all"
+  | "income"
+  | "expense"
+  | "refundableExpense"
+  | "transfer";
 
 export type TransactionFilters = {
   accountId?: string;

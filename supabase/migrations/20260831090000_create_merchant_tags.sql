@@ -129,14 +129,21 @@ execute function public.enforce_merchant_tag_link_management_permission();
 alter table public.merchant_tags enable row level security;
 alter table public.merchant_tag_links enable row level security;
 
-grant select, insert, update on table public.merchant_tags to authenticated;
+revoke all on table public.merchant_tags from public, anon, authenticated;
+revoke all on table public.merchant_tag_links from public, anon, authenticated;
+
+grant select, insert on table public.merchant_tags to authenticated;
+grant update (name, icon) on table public.merchant_tags to authenticated;
 grant select, insert, delete on table public.merchant_tag_links to authenticated;
 
 create policy merchant_tags_select_active_member
 on public.merchant_tags
 for select
 to authenticated
-using (public.current_user_is_active_ledger_member(ledger_id));
+using (
+    is_archived = false
+    and public.current_user_is_active_ledger_member(ledger_id)
+);
 
 create policy merchant_tags_insert_manager
 on public.merchant_tags

@@ -20,7 +20,8 @@ const meta = {
     action: async (_state, formData) => ({
       success: "收支配色方案已保存。",
       transactionColorScheme: formData.get("transactionColorScheme") as
-        "expense_green_income_red" | "expense_red_income_green",
+        | "expense_green_income_red"
+        | "expense_red_income_green",
     }),
   },
 } satisfies Meta<typeof TransactionColorSchemePicker>;

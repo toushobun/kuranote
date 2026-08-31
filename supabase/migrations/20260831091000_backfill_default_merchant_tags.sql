@@ -22,4 +22,5 @@ where not exists (
     where mt.ledger_id = l.id
       and mt.is_archived = false
       and lower(mt.name) = lower(defaults.name)
-);
+)
+and l.is_archived = false;

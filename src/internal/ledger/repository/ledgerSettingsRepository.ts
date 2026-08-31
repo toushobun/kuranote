@@ -36,7 +36,8 @@ export type UpdateLedgerMemberSettingsInput = {
 };
 
 export type LedgerSettingsWriteResult =
-  { ok: true } | { ok: false; code: LedgerSettingsErrorCode };
+  | { ok: true }
+  | { ok: false; code: LedgerSettingsErrorCode };
 
 const memberSettingsRpcErrorMap = {
   auth_required: ledgerSettingsErrorCodes.authRequired,

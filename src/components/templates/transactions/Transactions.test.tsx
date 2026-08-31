@@ -89,16 +89,20 @@ const filterOptions: TransactionFilterOptions = {
   merchants: [],
 };
 
-const loadGroupItemsAction = vi.fn(async (): Promise<TransactionMonthPage> => ({
-  groups: [],
-  nextOffset: null,
-}));
+const loadGroupItemsAction = vi.fn(
+  async (): Promise<TransactionMonthPage> => ({
+    groups: [],
+    nextOffset: null,
+  }),
+);
 
-const loadMoreGroupsAction = vi.fn(async (): Promise<TransactionGroupPage> => ({
-  groupBy: "month",
-  groups: [],
-  nextOffset: null,
-}));
+const loadMoreGroupsAction = vi.fn(
+  async (): Promise<TransactionGroupPage> => ({
+    groupBy: "month",
+    groups: [],
+    nextOffset: null,
+  }),
+);
 
 function buildGroupView(
   groupBy: TransactionGroupBy,

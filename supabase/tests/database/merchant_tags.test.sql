@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(17);
+select plan(21);
 
 select has_table('public', 'merchant_tags', '商家标签表存在');
 select has_table('public', 'merchant_tag_links', '商家标签关联表存在');
@@ -13,6 +13,24 @@ select ok(
 select ok(
     (select relrowsecurity from pg_class where oid = 'public.merchant_tag_links'::regclass),
     '商家标签关联表启用 RLS'
+);
+select ok(
+    not has_table_privilege('anon', 'public.merchant_tags', 'select')
+    and not has_table_privilege('anon', 'public.merchant_tag_links', 'select'),
+    '未登录角色不能读取商家标签及关联'
+);
+select ok(
+    not has_table_privilege('authenticated', 'public.merchant_tags', 'truncate')
+    and not has_table_privilege('authenticated', 'public.merchant_tag_links', 'truncate'),
+    '登录角色不能绕过受控流程清空商家标签及关联'
+);
+select ok(
+    has_column_privilege('authenticated', 'public.merchant_tags', 'name', 'update')
+    and has_column_privilege('authenticated', 'public.merchant_tags', 'icon', 'update')
+    and not has_column_privilege('authenticated', 'public.merchant_tags', 'ledger_id', 'update')
+    and not has_column_privilege('authenticated', 'public.merchant_tags', 'sort_order', 'update')
+    and not has_column_privilege('authenticated', 'public.merchant_tags', 'is_archived', 'update'),
+    '登录角色只能直接更新标签名称和图标'
 );
 
 insert into public.ledger (
@@ -94,6 +112,17 @@ select is(
     '默认商家标签名称和顺序正确'
 );
 
+insert into public.merchant_tags (
+    id, ledger_id, name, icon, sort_order, is_archived, archived_at,
+    archived_by, created_by
+) values (
+    '65110000-0000-4000-8000-000000000001',
+    '65100000-0000-4000-8000-000000000001',
+    '已归档标签', '📁', 99, true, now(),
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
 select set_config(
     'request.jwt.claim.sub',
     '00000000-0000-4000-8000-000000000034',
@@ -110,6 +139,17 @@ select is(
     ),
     8,
     '普通成员可以读取当前账本商家标签'
+);
+
+select is(
+    (
+        select count(*)::integer
+        from public.merchant_tags
+        where ledger_id = '65100000-0000-4000-8000-000000000001'
+          and is_archived = true
+    ),
+    0,
+    '普通成员不能读取已归档商家标签'
 );
 
 select throws_ok(

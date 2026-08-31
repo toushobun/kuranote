@@ -17,7 +17,9 @@ export type RegisterFailureReason =
 export type AuthOtpPurpose = "signup";
 
 export type AuthOtpAttemptType =
-  "send" | "verify_failure" | "availability_check";
+  | "send"
+  | "verify_failure"
+  | "availability_check";
 
 export type AuthOtpAttemptResult = "success" | "blocked" | "failed";
 

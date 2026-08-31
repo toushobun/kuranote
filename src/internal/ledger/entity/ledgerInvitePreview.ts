@@ -1,7 +1,11 @@
 import type { LedgerInviteRole } from "internal/ledger/entity/ledgerInviteRole";
 
 export type LedgerInviteStatus =
-  "valid" | "already_member" | "accepted" | "revoked" | "invalid";
+  | "valid"
+  | "already_member"
+  | "accepted"
+  | "revoked"
+  | "invalid";
 
 export type LedgerInvitePreview = {
   inviteRole: LedgerInviteRole | null;

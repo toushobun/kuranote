@@ -1,5 +1,6 @@
 export type ClientMutationResult =
-  { ok: true } | { errorMessage: string; ok: false };
+  | { ok: true }
+  | { errorMessage: string; ok: false };
 
 type ClientMutationOptions = {
   fallbackErrorMessage: string;

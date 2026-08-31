@@ -102,9 +102,11 @@ function createSupabaseMock({
       },
       then<TResult1 = QueryResponse, TResult2 = never>(
         onfulfilled?:
-          ((value: QueryResponse) => TResult1 | PromiseLike<TResult1>) | null,
+          | ((value: QueryResponse) => TResult1 | PromiseLike<TResult1>)
+          | null,
         onrejected?:
-          ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+          | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+          | null,
       ) {
         const response = queryResponses[responseIndex] ?? { data: [] };
         responseIndex += 1;

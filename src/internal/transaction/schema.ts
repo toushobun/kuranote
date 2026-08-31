@@ -52,7 +52,8 @@ export type TransferTransactionFormValues = {
 };
 
 export type CreateTransactionFormValues =
-  TransactionFormValues | TransferTransactionFormValues;
+  | TransactionFormValues
+  | TransferTransactionFormValues;
 
 export type TransactionFormItemValues = {
   amount: number;
@@ -85,7 +86,8 @@ export type ConvertTransactionToNormalValues = TransactionFormValues & {
 };
 
 export type ConvertTransactionTypeValues =
-  ConvertTransactionToTransferValues | ConvertTransactionToNormalValues;
+  | ConvertTransactionToTransferValues
+  | ConvertTransactionToNormalValues;
 
 export type VoidTransactionValues = {
   transactionRecordId: string;

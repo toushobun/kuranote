@@ -38,7 +38,8 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.typeInvalid;
 
 export type UpdateTransactionValidationErrorCode =
-  TransactionValidationErrorCode | typeof transactionErrorCodes.updateInvalid;
+  | TransactionValidationErrorCode
+  | typeof transactionErrorCodes.updateInvalid;
 
 export type VoidTransactionValidationErrorCode =
   typeof transactionErrorCodes.voidInvalid;

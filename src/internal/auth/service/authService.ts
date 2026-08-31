@@ -76,7 +76,8 @@ export type SubmitRegisterOtpInput = {
 };
 
 export type GoogleAuthStartResult =
-  { failureHref: string; ok: false } | { ok: true; providerUrl: string };
+  | { failureHref: string; ok: false }
+  | { ok: true; providerUrl: string };
 
 export type GoogleAuthCallbackInput = {
   code: string | null;

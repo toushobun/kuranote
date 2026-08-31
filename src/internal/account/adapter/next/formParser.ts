@@ -6,7 +6,8 @@ import {
 import { getFormText, isUuid } from "utils/formData";
 
 export type AccountFormParseResult<T> =
-  { ok: true; value: T } | { error: string; ok: false };
+  | { ok: true; value: T }
+  | { error: string; ok: false };
 
 type AccountFormFields = {
   currency: string;

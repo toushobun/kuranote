@@ -8457,7 +8457,7 @@ CREATE POLICY "merchant_tags_insert_manager" ON "public"."merchant_tags" FOR INS
 
 
 
-CREATE POLICY "merchant_tags_select_active_member" ON "public"."merchant_tags" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
+CREATE POLICY "merchant_tags_select_active_member" ON "public"."merchant_tags" FOR SELECT TO "authenticated" USING ((("is_archived" = false) AND "public"."current_user_is_active_ledger_member"("ledger_id")));
 
 
 
@@ -8900,15 +8900,21 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tag_links" TO "anon";
-GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tag_links" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tag_links" TO "service_role";
+GRANT SELECT,INSERT,DELETE ON TABLE "public"."merchant_tag_links" TO "authenticated";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tags" TO "anon";
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."merchant_tags" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tags" TO "service_role";
+GRANT SELECT,INSERT ON TABLE "public"."merchant_tags" TO "authenticated";
+
+
+
+GRANT UPDATE("name") ON TABLE "public"."merchant_tags" TO "authenticated";
+
+
+
+GRANT UPDATE("icon") ON TABLE "public"."merchant_tags" TO "authenticated";
 
 
 
