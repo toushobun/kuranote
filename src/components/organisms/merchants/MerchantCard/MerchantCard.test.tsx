@@ -139,4 +139,53 @@ describe("MerchantCard", () => {
     expect(displayNameChip).toHaveClass("MuiChip-outlined");
     expect(displayNameChip?.querySelector("svg")).toBeNull();
   });
+
+  it("分类标签按设计稿分离图标与名称，并使用柔和彩色方圆角", () => {
+    const merchant = createMerchantRow({
+      tags: [
+        {
+          icon: "🛒",
+          id: "tag-supermarket",
+          merchant_count: 3,
+          name: "超市",
+          sort_order: 0,
+        },
+        {
+          icon: "🏪",
+          id: "tag-convenience",
+          merchant_count: 2,
+          name: "便利店",
+          sort_order: 1,
+        },
+      ],
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    const supermarketLabel = within(container).getByText("超市");
+    const convenienceLabel = within(container).getByText("便利店");
+    const supermarketChip = supermarketLabel.closest(".MuiChip-root");
+    const convenienceChip = convenienceLabel.closest(".MuiChip-root");
+
+    expect(supermarketChip?.querySelector(".MuiChip-icon")).toHaveTextContent(
+      "🛒",
+    );
+    expect(convenienceChip?.querySelector(".MuiChip-icon")).toHaveTextContent(
+      "🏪",
+    );
+    expect(getComputedStyle(supermarketChip as Element).borderRadius).toBe(
+      "8px",
+    );
+    expect(getComputedStyle(supermarketChip as Element).backgroundColor).toBe(
+      "rgb(239, 249, 214)",
+    );
+    expect(getComputedStyle(convenienceChip as Element).backgroundColor).toBe(
+      "rgb(232, 244, 255)",
+    );
+  });
 });
