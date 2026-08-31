@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
-
-const tagAction = async () => ({});
 
 const componentSource = readFileSync(
   join(process.cwd(), "src/components/templates/merchants/Merchants.tsx"),
@@ -18,15 +16,11 @@ const componentSource = readFileSync(
 afterEach(cleanup);
 
 const baseProps = {
-  archiveMerchantTagAction: tagAction,
-  createMerchantTagAction: tagAction,
   keyword: "",
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
-  reorderMerchantTagsAction: async () => ({}),
   selectedTag: null,
   tags: [],
-  updateMerchantTagAction: tagAction,
 };
 
 describe("MerchantsTemplate", () => {
@@ -75,6 +69,29 @@ describe("MerchantsTemplate", () => {
     );
 
     expect(within(container).getByLabelText("搜索商家")).toHaveValue("便利");
+  });
+
+  it("搜索框显示在标签卡片之前，并在筛选时保留 tagId", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        selectedTag={{
+          icon: "🛒",
+          id: "tag-1",
+          merchant_count: 1,
+          name: "超市",
+          sort_order: 0,
+        }}
+      />,
+    );
+
+    const search = screen.getByLabelText("搜索商家");
+    const tagsHeading = screen.getByText("商家标签");
+    expect(
+      search.compareDocumentPosition(tagsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
   });
 
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {

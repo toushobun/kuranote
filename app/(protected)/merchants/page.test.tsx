@@ -2,20 +2,10 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  archiveMerchantTag: vi.fn(),
-  createMerchantTag: vi.fn(),
   loadMerchantsView: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
-  reorderMerchantTags: vi.fn(),
-  updateMerchantTag: vi.fn(),
 }));
 
-vi.mock("internal/merchant/adapter/next/actions", () => ({
-  archiveMerchantTag: mocks.archiveMerchantTag,
-  createMerchantTag: mocks.createMerchantTag,
-  reorderMerchantTags: mocks.reorderMerchantTags,
-  updateMerchantTag: mocks.updateMerchantTag,
-}));
 vi.mock("internal/merchant/adapter/next/loadMerchantsView", () => ({
   loadMerchantsView: mocks.loadMerchantsView,
 }));
@@ -50,22 +40,18 @@ describe("MerchantsPage", () => {
     });
   });
 
-  it("传递标签管理 Action 与视图数据，不读取错误查询参数", async () => {
+  it("传递商家列表视图数据，不读取错误查询参数", async () => {
     const result = await MerchantsPage({
       searchParams: Promise.resolve({ q: "LIFE" }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
     expect(element.props).toMatchObject({
-      archiveMerchantTagAction: mocks.archiveMerchantTag,
       canManageMerchants: true,
-      createMerchantTagAction: mocks.createMerchantTag,
       keyword: "LIFE",
       ledgerId,
       merchants: [],
-      reorderMerchantTagsAction: mocks.reorderMerchantTags,
       selectedTag: null,
       tags: [],
-      updateMerchantTagAction: mocks.updateMerchantTag,
     });
     expect(element.props).not.toHaveProperty("errorMessage");
   });

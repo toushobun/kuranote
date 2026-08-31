@@ -7,8 +7,6 @@ import {
 
 import { MerchantsTemplate } from "./Merchants";
 
-const tagAction = async () => ({});
-const reorderAction = async () => ({});
 const tags = [
   {
     icon: "🛒",
@@ -46,15 +44,11 @@ const meta = {
   title: "Templates/Merchants/MerchantsTemplate",
   component: MerchantsTemplate,
   args: {
-    archiveMerchantTagAction: tagAction,
-    createMerchantTagAction: tagAction,
     keyword: "",
     ledgerId: "ledger-1",
     merchants,
-    reorderMerchantTagsAction: reorderAction,
     selectedTag: null,
     tags,
-    updateMerchantTagAction: tagAction,
   },
 } satisfies Meta<typeof MerchantsTemplate>;
 

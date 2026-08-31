@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { MerchantTagManager } from "./MerchantTagManager";
+import { MerchantTagsTemplate } from "./MerchantTags";
 
+const action = async () => ({});
 const meta = {
-  title: "Organisms/Merchants/MerchantTagManager",
-  component: MerchantTagManager,
+  title: "Templates/Merchants/MerchantTagsTemplate",
+  component: MerchantTagsTemplate,
   args: {
-    canManage: true,
-    keyword: "",
-    selectedTagId: null,
+    archiveAction: action,
+    createAction: action,
+    reorderAction: async () => ({}),
     tags: [
       {
         icon: "🛒",
@@ -32,14 +33,11 @@ const meta = {
         sort_order: 2,
       },
     ],
+    updateAction: action,
   },
-} satisfies Meta<typeof MerchantTagManager>;
+} satisfies Meta<typeof MerchantTagsTemplate>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = { args: meta.args, name: "商家标签筛选" };
 
-export const Selected: Story = {
-  args: { ...meta.args, selectedTagId: "tag-1" },
-  name: "选中标签",
-};
+export const Default: Story = { name: "分类管理页面" };

@@ -60,6 +60,14 @@ export default function MerchantsLoading() {
             />
           </Stack>
 
+          <SectionCard sx={{ borderRadius: 999, p: 0.75 }}>
+            <Skeleton
+              height={32}
+              sx={{ borderRadius: 999 }}
+              variant="rounded"
+            />
+          </SectionCard>
+
           <SectionCard sx={{ borderRadius: 3, p: 2 }}>
             <Stack spacing={1.5}>
               <Stack direction="row" sx={{ justifyContent: "space-between" }}>
@@ -67,9 +75,9 @@ export default function MerchantsLoading() {
                 <Skeleton width={72} />
               </Stack>
               <Stack direction="row" spacing={1}>
-                <Skeleton height={32} variant="rounded" width={88} />
-                <Skeleton height={32} variant="rounded" width={96} />
-                <Skeleton height={32} variant="rounded" width={80} />
+                <Skeleton height={92} variant="rounded" width={86} />
+                <Skeleton height={92} variant="rounded" width={86} />
+                <Skeleton height={92} variant="rounded" width={86} />
               </Stack>
             </Stack>
           </SectionCard>

@@ -18,37 +18,24 @@ import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
-import type {
-  Merchant,
-  MerchantTag,
-  MerchantTagReorderAction,
-  MerchantTagStateAction,
-} from "types/merchants";
+import type { Merchant, MerchantTag } from "types/merchants";
 
 export type MerchantsTemplateProps = {
-  archiveMerchantTagAction: MerchantTagStateAction;
   canManageMerchants?: boolean;
-  createMerchantTagAction: MerchantTagStateAction;
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
-  reorderMerchantTagsAction: MerchantTagReorderAction;
   selectedTag: MerchantTag | null;
   tags: MerchantTag[];
-  updateMerchantTagAction: MerchantTagStateAction;
 };
 
 export function MerchantsTemplate({
-  archiveMerchantTagAction,
   canManageMerchants = true,
-  createMerchantTagAction,
   keyword,
   ledgerId,
   merchants,
-  reorderMerchantTagsAction,
   selectedTag,
   tags,
-  updateMerchantTagAction,
 }: MerchantsTemplateProps) {
   const hasMerchants = merchants.length > 0;
   const hasKeyword = keyword.trim().length > 0;
@@ -121,45 +108,6 @@ export function MerchantsTemplate({
             ) : null}
           </Stack>
 
-          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
-            <MerchantTagManager
-              archiveAction={archiveMerchantTagAction}
-              canManage={canManageMerchants}
-              createAction={createMerchantTagAction}
-              keyword={keyword}
-              reorderAction={reorderMerchantTagsAction}
-              selectedTagId={selectedTag?.id}
-              tags={tags}
-              updateAction={updateMerchantTagAction}
-            />
-          </SectionCard>
-
-          {selectedTag ? (
-            <SectionCard sx={{ borderRadius: 3, p: 1.5 }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ alignItems: "center", justifyContent: "space-between" }}
-              >
-                <Typography variant="body2">
-                  当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
-                  {merchants.length} 个商家
-                </Typography>
-                <Button
-                  component={Link}
-                  href={
-                    keyword.trim()
-                      ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
-                      : routePaths.merchants
-                  }
-                  size="small"
-                >
-                  清除筛选
-                </Button>
-              </Stack>
-            </SectionCard>
-          ) : null}
-
           {hasMerchants || hasKeyword || selectedTag ? (
             <SectionCard component="form" sx={{ borderRadius: 999, p: 0 }}>
               {selectedTag ? (
@@ -188,6 +136,45 @@ export function MerchantsTemplate({
               />
             </SectionCard>
           ) : null}
+
+          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+            <MerchantTagManager
+              canManage={canManageMerchants}
+              keyword={keyword}
+              selectedTagId={selectedTag?.id}
+              tags={tags}
+            />
+            {selectedTag ? (
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  borderTop: 1,
+                  borderColor: "divider",
+                  justifyContent: "space-between",
+                  mt: 1.5,
+                  pt: 1.5,
+                }}
+              >
+                <Typography variant="body2">
+                  当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
+                  {merchants.length} 个商家
+                </Typography>
+                <Button
+                  component={Link}
+                  href={
+                    keyword.trim()
+                      ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
+                      : routePaths.merchants
+                  }
+                  size="small"
+                >
+                  清除筛选
+                </Button>
+              </Stack>
+            ) : null}
+          </SectionCard>
 
           <MerchantList
             canManageMerchants={canManageMerchants}

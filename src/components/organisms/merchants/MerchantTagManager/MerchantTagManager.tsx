@@ -6,7 +6,7 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
+import ButtonBase from "@mui/material/ButtonBase";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -35,16 +35,26 @@ import {
   useMerchantTagManager,
 } from "./useMerchantTagManager";
 
-type MerchantTagManagerProps = {
-  archiveAction: MerchantTagStateAction;
+type MerchantTagFilterProps = {
   canManage: boolean;
-  createAction: MerchantTagStateAction;
   keyword: string;
-  reorderAction: MerchantTagReorderAction;
+  mode?: "filter";
   selectedTagId?: string | null;
+  tags: MerchantTag[];
+};
+
+type MerchantTagManagementProps = {
+  archiveAction: MerchantTagStateAction;
+  createAction: MerchantTagStateAction;
+  mode: "management";
+  reorderAction: MerchantTagReorderAction;
   tags: MerchantTag[];
   updateAction: MerchantTagStateAction;
 };
+
+type MerchantTagManagerProps =
+  | MerchantTagFilterProps
+  | MerchantTagManagementProps;
 
 const initialState: MerchantTagActionState = {};
 
@@ -56,17 +66,123 @@ function filterHref(keyword: string, tagId?: string) {
   return suffix ? `${routePaths.merchants}?${suffix}` : routePaths.merchants;
 }
 
-export function MerchantTagManager({
-  archiveAction,
+function MerchantTagFilter({
   canManage,
-  createAction,
   keyword,
-  reorderAction,
   selectedTagId,
   tags,
+}: MerchantTagFilterProps) {
+  return (
+    <Stack spacing={1.5}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", justifyContent: "space-between" }}
+      >
+        <Box>
+          <Typography sx={{ fontWeight: 800 }}>商家标签</Typography>
+          <Typography color="text.secondary" variant="body2">
+            按标签快速筛选常用商家
+          </Typography>
+        </Box>
+        {canManage ? (
+          <Button component={Link} href={routePaths.merchantsTags} size="small">
+            管理标签
+          </Button>
+        ) : null}
+      </Stack>
+
+      <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
+        {tags.map((tag) => {
+          const selected = selectedTagId === tag.id;
+
+          return (
+            <ButtonBase
+              aria-current={selected ? "page" : undefined}
+              aria-label={`${tag.name}，${tag.merchant_count} 个商家`}
+              component={Link}
+              href={filterHref(keyword, tag.id)}
+              key={tag.id}
+              sx={{
+                bgcolor: selected ? "primary.main" : "background.paper",
+                border: 1,
+                borderColor: selected ? "primary.main" : "divider",
+                borderRadius: 2.5,
+                color: selected ? "primary.contrastText" : "text.primary",
+                flexDirection: "column",
+                gap: 0.75,
+                minHeight: 92,
+                overflow: "hidden",
+                position: "relative",
+                px: 1,
+                py: 1.25,
+                width: { xs: 86, sm: 96 },
+                "&:hover": {
+                  bgcolor: selected ? "primary.dark" : "action.hover",
+                },
+              }}
+            >
+              <Box
+                aria-hidden
+                sx={{
+                  alignItems: "center",
+                  bgcolor: selected
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "var(--user-theme-icon-badge-bg)",
+                  borderRadius: 2,
+                  display: "flex",
+                  fontSize: "1.6rem",
+                  height: 44,
+                  justifyContent: "center",
+                  width: 44,
+                }}
+              >
+                {tag.icon}
+              </Box>
+              <Typography
+                component="span"
+                noWrap
+                sx={{ fontWeight: 700, maxWidth: "100%" }}
+                variant="body2"
+              >
+                {tag.name}
+              </Typography>
+              <Box
+                aria-hidden
+                component="span"
+                sx={{
+                  alignItems: "center",
+                  bgcolor: selected ? "primary.contrastText" : "primary.main",
+                  borderRadius: 999,
+                  color: selected ? "primary.main" : "primary.contrastText",
+                  display: "flex",
+                  fontSize: "0.6875rem",
+                  fontWeight: 800,
+                  height: 22,
+                  justifyContent: "center",
+                  minWidth: 22,
+                  px: 0.5,
+                  position: "absolute",
+                  right: 6,
+                  top: 6,
+                }}
+              >
+                {tag.merchant_count}
+              </Box>
+            </ButtonBase>
+          );
+        })}
+      </Stack>
+    </Stack>
+  );
+}
+
+function MerchantTagManagement({
+  archiveAction,
+  createAction,
+  reorderAction,
+  tags,
   updateAction,
-}: MerchantTagManagerProps) {
-  const [managing, setManaging] = useState(false);
+}: MerchantTagManagementProps) {
   const [editingTag, setEditingTag] = useState<MerchantTag | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -106,138 +222,98 @@ export function MerchantTagManager({
 
   return (
     <Stack spacing={1.5}>
-      <Stack
-        direction="row"
-        sx={{ alignItems: "center", justifyContent: "space-between" }}
-      >
-        <Box>
-          <Typography sx={{ fontWeight: 800 }}>商家标签</Typography>
-          <Typography color="text.secondary" variant="body2">
-            按标签快速筛选常用商家
-          </Typography>
-        </Box>
-        {canManage ? (
-          <Button
-            onClick={() => setManaging((value) => !value)}
-            size="small"
-            type="button"
-          >
-            {managing ? "完成" : "管理标签"}
-          </Button>
-        ) : null}
-      </Stack>
-
-      <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-        {tags.map((tag) => (
-          <Chip
-            clickable
-            color={selectedTagId === tag.id ? "primary" : "default"}
-            component={Link}
-            href={filterHref(keyword, tag.id)}
+      <Stack spacing={0.5}>
+        {manager.orderedTags.map((tag, index) => (
+          <Stack
+            data-merchant-tag-row-id={tag.id}
+            direction="row"
             key={tag.id}
-            label={`${tag.icon} ${tag.name} · ${tag.merchant_count}`}
-            variant={selectedTagId === tag.id ? "filled" : "outlined"}
-          />
-        ))}
-      </Stack>
-
-      {managing ? (
-        <Stack
-          spacing={0.5}
-          sx={{ borderTop: 1, borderColor: "divider", pt: 1.5 }}
-        >
-          {manager.orderedTags.map((tag, index) => (
-            <Stack
-              data-merchant-tag-row-id={tag.id}
-              direction="row"
-              key={tag.id}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => manager.dropOn(event, tag.id)}
-              spacing={1}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => manager.dropOn(event, tag.id)}
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              minHeight: 56,
+              opacity: manager.draggedId === tag.id ? 0.58 : 1,
+            }}
+          >
+            <Box
+              aria-hidden
               sx={{
                 alignItems: "center",
-                minHeight: 56,
-                opacity: manager.draggedId === tag.id ? 0.58 : 1,
+                bgcolor: "var(--user-theme-icon-badge-bg)",
+                borderRadius: 2,
+                display: "flex",
+                fontSize: "1.5rem",
+                height: 42,
+                justifyContent: "center",
+                width: 42,
               }}
             >
-              <Box
-                aria-hidden
-                sx={{
-                  alignItems: "center",
-                  bgcolor: "var(--user-theme-icon-badge-bg)",
-                  borderRadius: 2,
-                  display: "flex",
-                  fontSize: "1.5rem",
-                  height: 42,
-                  justifyContent: "center",
-                  width: 42,
-                }}
-              >
-                {tag.icon}
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography noWrap sx={{ fontWeight: 700 }}>
-                  {tag.name}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  {tag.merchant_count} 个商家
-                </Typography>
-              </Box>
-              <Tooltip title={`编辑${tag.name}`}>
-                <IconButton
-                  aria-label={`编辑${tag.name}`}
-                  disabled={pending}
-                  onClick={() => openEdit(tag)}
-                  size="small"
-                >
-                  <EditRoundedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
-                <span>
-                  <IconButton
-                    aria-keyshortcuts="ArrowUp ArrowDown"
-                    aria-label={`调整${tag.name}排序`}
-                    disabled={pending}
-                    draggable
-                    onDragEnd={manager.finishDrag}
-                    onDragStart={(event) => manager.startDrag(event, tag.id)}
-                    onKeyDown={(event) => {
-                      let direction: MerchantTagMoveDirection | null = null;
-                      if (event.key === "ArrowUp") direction = -1;
-                      if (event.key === "ArrowDown") direction = 1;
-                      if (direction) {
-                        event.preventDefault();
-                        manager.moveTag(tag.id, direction);
-                      }
-                    }}
-                    size="small"
-                    sx={{ cursor: "grab" }}
-                  >
-                    <DragIndicatorRoundedIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Typography
-                color="text.disabled"
-                sx={{ width: 18 }}
-                variant="caption"
-              >
-                {index + 1}
+              {tag.icon}
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography noWrap sx={{ fontWeight: 700 }}>
+                {tag.name}
               </Typography>
-            </Stack>
-          ))}
-          <Button
-            disabled={pending}
-            onClick={openCreate}
-            startIcon={<AddRoundedIcon />}
-            sx={{ alignSelf: "flex-start" }}
-            type="button"
-          >
-            新增标签
-          </Button>
-        </Stack>
-      ) : null}
+              <Typography color="text.secondary" variant="caption">
+                {tag.merchant_count} 个商家
+              </Typography>
+            </Box>
+            <Tooltip title={`编辑${tag.name}`}>
+              <IconButton
+                aria-label={`编辑${tag.name}`}
+                disabled={pending}
+                onClick={() => openEdit(tag)}
+                size="small"
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
+              <span>
+                <IconButton
+                  aria-keyshortcuts="ArrowUp ArrowDown"
+                  aria-label={`调整${tag.name}排序`}
+                  disabled={pending}
+                  draggable
+                  onDragEnd={manager.finishDrag}
+                  onDragStart={(event) => manager.startDrag(event, tag.id)}
+                  onKeyDown={(event) => {
+                    let direction: MerchantTagMoveDirection | null = null;
+                    if (event.key === "ArrowUp") direction = -1;
+                    if (event.key === "ArrowDown") direction = 1;
+                    if (direction) {
+                      event.preventDefault();
+                      manager.moveTag(tag.id, direction);
+                    }
+                  }}
+                  size="small"
+                  sx={{ cursor: "grab" }}
+                >
+                  <DragIndicatorRoundedIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Typography
+              color="text.disabled"
+              sx={{ width: 18 }}
+              variant="caption"
+            >
+              {index + 1}
+            </Typography>
+          </Stack>
+        ))}
+        <Button
+          disabled={pending}
+          onClick={openCreate}
+          startIcon={<AddRoundedIcon />}
+          sx={{ alignSelf: "flex-start" }}
+          type="button"
+        >
+          新增标签
+        </Button>
+      </Stack>
 
       <Dialog
         fullWidth
@@ -343,4 +419,12 @@ export function MerchantTagManager({
       <MerchantFailureFeedback state={reorderState} title="标签排序失败" />
     </Stack>
   );
+}
+
+export function MerchantTagManager(props: MerchantTagManagerProps) {
+  if (props.mode === "management") {
+    return <MerchantTagManagement {...props} />;
+  }
+
+  return <MerchantTagFilter {...props} />;
 }

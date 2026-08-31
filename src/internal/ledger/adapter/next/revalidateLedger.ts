@@ -14,6 +14,7 @@ export const currentLedgerRevalidatePaths = [
   routePaths.accounts,
   routePaths.categories,
   routePaths.merchants,
+  routePaths.merchantsTags,
   routePaths.statistics,
   routePaths.settings,
   routePaths.ledgers,
