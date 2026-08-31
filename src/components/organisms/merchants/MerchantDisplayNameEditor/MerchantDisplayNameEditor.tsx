@@ -37,7 +37,7 @@ export function MerchantDisplayNameEditor({
   );
 
   return (
-    <Stack spacing={1.25}>
+    <Stack spacing={1}>
       <Stack spacing={0.5}>
         <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 900 }}>
           {merchantText.preferredTitle}
@@ -127,8 +127,10 @@ function NameRow({
       sx={{
         alignItems: "center",
         border: "1px solid",
-        borderColor: selected ? "primary.main" : "divider",
-        borderRadius: 2.5,
+        borderColor: selected
+          ? "var(--user-theme-action-text)"
+          : "divider",
+        borderRadius: 2,
         px: 1.25,
         py: 0.5,
       }}
@@ -139,6 +141,17 @@ function NameRow({
       <Typography sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
         {label}
       </Typography>
+      {selected ? (
+        <Chip
+          label={merchantText.currentDisplayName}
+          size="small"
+          sx={{
+            bgcolor: "var(--user-theme-field-card-selected-bg)",
+            color: "var(--user-theme-action-text)",
+            fontWeight: 700,
+          }}
+        />
+      ) : null}
       <form action={setPreferredAliasAction}>
         <input name="merchantId" type="hidden" value={merchantId} />
         <input name="aliasId" type="hidden" value={aliasId ?? ""} />
