@@ -64,9 +64,16 @@ describe("LedgersTemplate", () => {
     expect(
       within(container).getByRole("heading", { name: "账本管理" }),
     ).toBeInTheDocument();
+    const createLink = within(container).getByRole("link", {
+      name: /新增账本/,
+    });
+
+    expect(createLink).toHaveAttribute("href", "/ledgers/new");
     expect(
-      within(container).getByRole("link", { name: /新增账本/ }),
-    ).toHaveAttribute("href", "/ledgers/new");
+      Number.parseFloat(getComputedStyle(createLink).borderRadius),
+    ).toBeGreaterThan(100);
+    expect(getComputedStyle(createLink).fontWeight).toBe("700");
+    expect(getComputedStyle(createLink).minHeight).toBe("40px");
   });
 
   it("显示当前账本摘要", () => {

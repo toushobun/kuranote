@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
-  getView: vi.fn(),
+  list: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
 }));
 
@@ -37,13 +37,12 @@ describe("MerchantsPage", () => {
     mocks.createServerRequestDependencies.mockResolvedValue({
       requestId: "req-1",
     });
-    mocks.getView.mockResolvedValue({
+    mocks.list.mockResolvedValue({
       canManageMerchants: true,
-      ledgerName: "家庭账本",
       merchants: [],
     });
     mocks.createRequestContainer.mockReturnValue({
-      merchant: { service: { getView: mocks.getView } },
+      merchant: { service: { list: mocks.list } },
     });
   });
 
@@ -57,10 +56,9 @@ describe("MerchantsPage", () => {
 
     expect(mocks.createServerRequestDependencies).toHaveBeenCalledOnce();
     expect(mocks.createRequestContainer).toHaveBeenCalledOnce();
-    expect(mocks.getView).toHaveBeenCalledWith({
+    expect(mocks.list).toHaveBeenCalledWith({
       keyword: " LIFE ",
       ledgerId,
-      ledgerName: "家庭账本",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(element.type).toBe(mocks.MerchantsTemplate);
@@ -80,7 +78,6 @@ describe("MerchantsPage", () => {
       canManageMerchants: true,
       keyword: "LIFE",
       ledgerId,
-      ledgerName: "家庭账本",
       merchants: [],
     });
     expect(element.props).not.toHaveProperty("errorMerchantId");

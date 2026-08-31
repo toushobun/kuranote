@@ -1,6 +1,5 @@
 "use client";
 
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChildCareRoundedIcon from "@mui/icons-material/ChildCareRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
@@ -32,6 +31,7 @@ import {
 } from "react";
 import { useFormStatus } from "react-dom";
 
+import { CreateButton } from "atoms/ui/CreateButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
@@ -152,15 +152,9 @@ export function LedgersTemplate({
               <Typography component="h1" sx={pageTitleSx}>
                 账本管理
               </Typography>
-              <Button
-                component={Link}
-                href={routePaths.ledgersNew}
-                startIcon={<AddRoundedIcon />}
-                sx={createButtonSx}
-                variant="contained"
-              >
+              <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
                 新增账本
-              </Button>
+              </CreateButton>
             </Stack>
             <Typography
               color="text.secondary"
@@ -377,15 +371,9 @@ function LedgersEmptyCard() {
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <Button
-          component={Link}
-          href={routePaths.ledgersNew}
-          startIcon={<AddRoundedIcon />}
-          sx={createButtonSx}
-          variant="contained"
-        >
+        <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
           新增账本
-        </Button>
+        </CreateButton>
       </Stack>
     </SoftCard>
   );

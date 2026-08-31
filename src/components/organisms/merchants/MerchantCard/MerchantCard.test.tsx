@@ -46,6 +46,9 @@ describe("MerchantCard", () => {
     );
 
     expect(within(container).getByText("网址未设置")).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/assets/kura-icons/merchant.png"]'),
+    ).toBeInTheDocument();
   });
 
   it("首选别名与正式名相同时仍显示正式名说明", () => {
@@ -65,5 +68,75 @@ describe("MerchantCard", () => {
     );
 
     expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+  });
+
+  it("标签第一项显示真实首选名，后面再显示其他别名", () => {
+    const merchant = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "Life",
+          id: "alias-secondary",
+          is_preferred: false,
+        }),
+        createMerchantAliasRow({
+          alias: "来福",
+          id: "alias-preferred",
+          is_preferred: true,
+        }),
+      ],
+      display_name: "来福",
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
+    const preferredChip = chips[0]?.closest(".MuiChip-root");
+    const secondaryChip = chips[1]?.closest(".MuiChip-root");
+
+    expect(chips.map((chip) => chip.textContent)).toEqual(["来福", "Life"]);
+    expect(preferredChip).toHaveClass("MuiChip-filled");
+    expect(getComputedStyle(preferredChip as Element).color).toBe(
+      "rgb(255, 255, 255)",
+    );
+    expect(
+      getComputedStyle(preferredChip?.querySelector("svg") as Element).color,
+    ).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(preferredChip as Element).fontWeight).toBe(
+      getComputedStyle(secondaryChip as Element).fontWeight,
+    );
+    expect(secondaryChip).toHaveClass("MuiChip-outlined");
+  });
+
+  it("没有首选别名时显示名使用普通标签", () => {
+    const merchant = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "Life",
+          id: "alias-secondary",
+          is_preferred: false,
+        }),
+      ],
+      display_name: "LIFE超市",
+      name: "LIFE超市",
+    });
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={merchant}
+      />,
+    );
+
+    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
+    const displayNameChip = chips[0]?.closest(".MuiChip-root");
+
+    expect(chips.map((chip) => chip.textContent)).toEqual(["LIFE超市", "Life"]);
+    expect(displayNameChip).toHaveClass("MuiChip-outlined");
+    expect(displayNameChip?.querySelector("svg")).toBeNull();
   });
 });

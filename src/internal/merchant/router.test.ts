@@ -52,11 +52,6 @@ function createService(
       bytes: new ArrayBuffer(1),
       contentType: "image/png",
     }),
-    getView: vi.fn().mockResolvedValue({
-      canManageMerchants: true,
-      ledgerName: "家庭账本",
-      merchants: [],
-    }),
     list: vi.fn().mockResolvedValue({
       canManageMerchants: true,
       merchants: [],

@@ -12,10 +12,9 @@ export default async function MerchantsPage({
   const currentLedger = await getCurrentLedgerOrRedirect();
   const dependencies = await createServerRequestDependencies();
   const container = createRequestContainer(dependencies);
-  const view = await container.merchant.service.getView({
+  const view = await container.merchant.service.list({
     keyword: params.q ?? "",
     ledgerId: currentLedger.id,
-    ledgerName: currentLedger.name,
   });
 
   return (
@@ -23,7 +22,6 @@ export default async function MerchantsPage({
       canManageMerchants={view.canManageMerchants}
       keyword={params.q ?? ""}
       ledgerId={currentLedger.id}
-      ledgerName={view.ledgerName}
       merchants={view.merchants}
     />
   );

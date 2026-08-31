@@ -1,4 +1,3 @@
-import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -7,6 +6,7 @@ import Link from "next/link";
 
 import { merchantEditHref } from "config/paths";
 import type { Merchant } from "types/merchants";
+import { publicAssetUrl } from "utils/publicAssetUrl";
 
 import { MerchantCard } from "../MerchantCard/MerchantCard";
 
@@ -30,7 +30,7 @@ export function MerchantList({
   if (merchants.length === 0) {
     return (
       <Stack
-        spacing={1.25}
+        spacing={1.5}
         sx={{
           alignItems: "center",
           px: 2,
@@ -39,21 +39,28 @@ export function MerchantList({
         }}
       >
         <Box
+          alt={
+            isSearchEmpty
+              ? "拿着放大镜寻找商家的猫咪"
+              : "橙色遮阳棚的小店和门口的猫咪"
+          }
+          component="img"
+          src={
+            isSearchEmpty
+              ? publicAssetUrl(
+                  "/assets/kura-search/search_illustration_amber_warmth.png",
+                )
+              : publicAssetUrl(
+                  "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png",
+                )
+          }
           sx={{
-            alignItems: "center",
-            background: "linear-gradient(145deg, #fff7dc, #fff0c2)",
-            borderRadius: "50%",
-            display: "flex",
-            height: { xs: 156, sm: 184 },
-            justifyContent: "center",
+            height: "auto",
+            maxWidth: "100%",
             mb: 1,
-            width: { xs: 156, sm: 184 },
+            width: { xs: 320, sm: 360 },
           }}
-        >
-          <StorefrontRoundedIcon
-            sx={{ color: "primary.main", fontSize: { xs: 92, sm: 112 } }}
-          />
-        </Box>
+        />
         <Typography component="h2" variant="h5" sx={{ fontWeight: 900 }}>
           {isSearchEmpty ? "没有找到匹配的商家" : "还没有商家"}
         </Typography>
@@ -69,7 +76,12 @@ export function MerchantList({
             component={Link}
             href={createHref}
             size="large"
-            sx={{ borderRadius: 999, mt: 1, minWidth: { xs: 240, sm: 280 } }}
+            sx={{
+              borderRadius: 999,
+              minHeight: 48,
+              minWidth: { xs: 240, sm: 280 },
+              mt: 1,
+            }}
             variant="contained"
           >
             添加第一个商家
@@ -80,7 +92,7 @@ export function MerchantList({
   }
 
   return (
-    <Stack spacing={1.25}>
+    <Stack spacing={1.5}>
       {merchants.map((merchant) => (
         <MerchantCard
           canManageMerchants={canManageMerchants}
