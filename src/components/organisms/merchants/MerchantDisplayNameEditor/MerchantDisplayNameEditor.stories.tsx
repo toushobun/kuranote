@@ -29,3 +29,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "显示名与别名管理" };
+
+export const FormalNameSelected: Story = {
+  name: "正式名为当前展示名",
+  args: {
+    merchant: createMerchantRow({
+      aliases: [],
+      display_name: "晨光生活超市有限公司",
+      name: "晨光生活超市有限公司",
+    }),
+  },
+};

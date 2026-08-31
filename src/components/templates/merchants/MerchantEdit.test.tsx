@@ -33,6 +33,13 @@ function renderTemplate() {
 }
 
 describe("MerchantEditTemplate", () => {
+  it("只显示一套可编辑的商家基础信息", () => {
+    renderTemplate();
+
+    expect(screen.getAllByLabelText(/商家名称/)).toHaveLength(1);
+    expect(screen.queryByText(/商家名称　/)).not.toBeInTheDocument();
+  });
+
   it("未保存的名称不会提前成为正式名候选", () => {
     renderTemplate();
 

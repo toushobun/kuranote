@@ -1,11 +1,8 @@
 "use client";
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
@@ -19,7 +16,6 @@ import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeed
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type { Merchant, MerchantStateAction } from "types/merchants";
-import { getMerchantInitial, merchantIconSrc } from "utils/merchants";
 
 import { useMerchantsActionState } from "./useMerchantsActionState";
 
@@ -104,37 +100,6 @@ export function MerchantEditTemplate({
         subtitle={`商家管理 〉 编辑商家 · ${ledgerName}`}
         title={merchantText.edit}
       />
-
-      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 1.5, sm: 2 } }}>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-          <Avatar
-            src={merchantIconSrc(ledgerId, merchant.website_url)}
-            sx={{
-              bgcolor: "var(--user-theme-icon-badge-bg)",
-              border: "1px solid var(--user-theme-card-border)",
-              height: 68,
-              width: 68,
-            }}
-          >
-            {getMerchantInitial(merchant.display_name)}
-          </Avatar>
-          <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 800 }}>
-              商家名称　{merchant.name}
-            </Typography>
-            <Typography
-              color="text.secondary"
-              variant="body2"
-              sx={{ overflowWrap: "anywhere" }}
-            >
-              商家网址　{merchant.website_url || "未设置"}
-            </Typography>
-            <Typography color="text.secondary" variant="body2">
-              备注　{merchant.note || "未设置"}
-            </Typography>
-          </Stack>
-        </Stack>
-      </SectionCard>
 
       <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm

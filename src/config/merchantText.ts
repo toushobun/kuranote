@@ -10,6 +10,7 @@ export const merchantText = {
   create: "新增商家",
   createAliasErrorTitle: "商家别名新增失败",
   createErrorTitle: "商家新增失败",
+  currentDisplayName: "当前展示名",
   edit: "编辑商家",
   editErrorTitle: "商家更新失败",
   formalName: "正式名",
