@@ -80,4 +80,24 @@ describe("MerchantDisplayNameEditor", () => {
       screen.getByRole("button", { name: "来福是当前展示名" }),
     ).toBeInTheDocument();
   });
+
+  it("没有首选别名时正式名同时显示名称类型与当前展示名", () => {
+    render(
+      <MerchantDisplayNameEditor
+        archiveAliasAction={vi.fn(async () => {})}
+        createAliasAction={vi.fn(async () => {})}
+        merchant={createMerchantRow({ aliases: [], name: "正式商家名" })}
+        setPreferredAliasAction={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(screen.getByText("正式名")).toBeInTheDocument();
+    expect(screen.getByText("当前展示名")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "正式商家名是当前展示名" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "移除别名正式商家名" }),
+    ).not.toBeInTheDocument();
+  });
 });
