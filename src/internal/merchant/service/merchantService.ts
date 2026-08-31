@@ -33,16 +33,9 @@ export type MerchantListResult = {
   merchants: MerchantData[];
 };
 
-export type MerchantsView = MerchantListResult & {
-  ledgerName: string;
-};
-
 export type MerchantLedgerInput = { ledgerId: string };
 export type MerchantListInput = MerchantLedgerInput & {
   keyword: string;
-};
-export type MerchantViewInput = MerchantListInput & {
-  ledgerName: string;
 };
 export type CreateMerchantServiceInput = Omit<CreateMerchantInput, "userId">;
 export type UpdateMerchantServiceInput = Omit<UpdateMerchantInput, "userId">;
@@ -79,7 +72,6 @@ export interface MerchantService extends MerchantQueryService {
   createMerchant(input: CreateMerchantServiceInput): Promise<void>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
   getMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
-  getView(input: MerchantViewInput): Promise<MerchantsView>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
   setPreferredAlias(
     input: SetPreferredMerchantAliasServiceInput,
@@ -238,13 +230,6 @@ export function createMerchantService({
       return merchantRepository.findSummariesByIds(ledgerId, [
         ...new Set(merchantIds),
       ]);
-    },
-
-    async getView({ ledgerName, ...input }) {
-      return {
-        ...(await listMerchants(input)),
-        ledgerName,
-      };
     },
 
     async getMerchant({ ledgerId, merchantId }) {

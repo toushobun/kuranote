@@ -99,7 +99,7 @@ describe("createMerchantService", () => {
         createRepository(),
         createLedgerAccessService(),
         null,
-      ).getView({ keyword: "", ledgerId, ledgerName: "家庭账本" }),
+      ).list({ keyword: "", ledgerId }),
     ).rejects.toBeInstanceOf(AuthenticationError);
   });
 
@@ -163,7 +163,7 @@ describe("createMerchantService", () => {
     expect(repository.listActive).toHaveBeenCalledWith(ledgerId);
   });
 
-  it("商家页面读取会附加权限、账本名称并按名称或别名筛选", async () => {
+  it("商家列表读取会附加权限并按名称或别名筛选", async () => {
     const repository = createRepository({
       listActive: vi.fn().mockResolvedValue([
         {
@@ -188,14 +188,12 @@ describe("createMerchantService", () => {
     });
 
     await expect(
-      createService(repository).getView({
+      createService(repository).list({
         keyword: "来福",
         ledgerId,
-        ledgerName: "家庭账本",
       }),
     ).resolves.toMatchObject({
       canManageMerchants: true,
-      ledgerName: "家庭账本",
       merchants: [{ id: merchantId }],
     });
   });

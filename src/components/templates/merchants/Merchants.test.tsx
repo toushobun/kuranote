@@ -18,7 +18,6 @@ afterEach(cleanup);
 const baseProps = {
   keyword: "",
   ledgerId: "ledger-1",
-  ledgerName: "家庭账本",
   merchants: [createMerchantRow()],
 };
 
@@ -37,9 +36,13 @@ describe("MerchantsTemplate", () => {
       within(container).getByText("管理常用商家和头像信息"),
     ).toBeInTheDocument();
     expect(within(container).queryByText(/当前账本/)).not.toBeInTheDocument();
-    expect(
-      within(container).getByRole("link", { name: "新增商家" }),
-    ).toHaveAttribute("href", "/merchants/new");
+    const createLink = within(container).getByRole("link", {
+      name: "新增商家",
+    });
+
+    expect(createLink).toHaveAttribute("href", "/merchants/new");
+    expect(createLink).toHaveClass("MuiButton-sizeSmall");
+    expect(getComputedStyle(createLink).borderRadius).toBe("999px");
     expect(
       within(container).getByTestId("merchants-page-background"),
     ).toBeInTheDocument();

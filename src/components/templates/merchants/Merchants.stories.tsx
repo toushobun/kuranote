@@ -27,7 +27,6 @@ const meta = {
   args: {
     keyword: "",
     ledgerId: "ledger-1",
-    ledgerName: "家庭账本",
     merchants,
   },
 } satisfies Meta<typeof MerchantsTemplate>;

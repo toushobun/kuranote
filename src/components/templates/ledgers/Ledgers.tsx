@@ -152,7 +152,9 @@ export function LedgersTemplate({
               <Typography component="h1" sx={pageTitleSx}>
                 账本管理
               </Typography>
-              <CreateButton href={routePaths.ledgersNew}>新增账本</CreateButton>
+              <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
+                新增账本
+              </CreateButton>
             </Stack>
             <Typography
               color="text.secondary"
@@ -369,7 +371,9 @@ function LedgersEmptyCard() {
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <CreateButton href={routePaths.ledgersNew}>新增账本</CreateButton>
+        <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
+          新增账本
+        </CreateButton>
       </Stack>
     </SoftCard>
   );
@@ -445,6 +449,29 @@ const pageTitleSx = {
   flex: 1,
   fontSize: { xs: 24, sm: 26 },
   fontWeight: 800,
+};
+
+const createButtonSx = {
+  ...typographyStyles.button,
+  background: "var(--user-theme-fab-bg)",
+  borderRadius: 999,
+  color: "var(--user-theme-fab-text)",
+  flexShrink: 0,
+  fontSize: 14,
+  fontWeight: 700,
+  minHeight: 40,
+  px: 2,
+  whiteSpace: "nowrap",
+  "& .MuiButton-startIcon": {
+    mr: 0.75,
+  },
+  "& .MuiSvgIcon-root": {
+    fontSize: 20,
+  },
+  "&:hover": {
+    background: "var(--user-theme-fab-bg)",
+    filter: "brightness(1.04)",
+  },
 };
 
 const currentCardSx = {

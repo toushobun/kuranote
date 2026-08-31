@@ -22,7 +22,6 @@ export type MerchantsTemplateProps = {
   canManageMerchants?: boolean;
   keyword: string;
   ledgerId: string;
-  ledgerName: string;
   merchants: Merchant[];
 };
 
@@ -88,7 +87,16 @@ export function MerchantsTemplate({
             </Box>
 
             {canManageMerchants ? (
-              <CreateButton href={routePaths.merchantsNew}>
+              <CreateButton
+                href={routePaths.merchantsNew}
+                size="small"
+                sx={{
+                  borderRadius: 999,
+                  flexShrink: 0,
+                  px: { xs: 1.5, sm: 2.5 },
+                  whiteSpace: "nowrap",
+                }}
+              >
                 新增商家
               </CreateButton>
             ) : null}

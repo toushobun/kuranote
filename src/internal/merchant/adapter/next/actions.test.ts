@@ -94,7 +94,6 @@ beforeEach(() => {
         createAlias: mocks.createAlias,
         createMerchant: mocks.createMerchant,
         findSummariesByIds: vi.fn(),
-        getView: vi.fn(),
         listActiveOptions: vi.fn(),
         updateMerchant: mocks.updateMerchant,
       },
