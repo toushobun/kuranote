@@ -67,8 +67,6 @@ export function MerchantCard({
   const hasPreferredAlias = merchant.aliases.some(
     (alias) => alias.is_preferred,
   );
-  const shouldShowFormalName =
-    hasPreferredAlias && merchant.display_name !== merchant.name;
   const secondaryAliases = merchant.aliases.filter(
     (alias) => alias.alias !== merchant.display_name,
   );
@@ -111,7 +109,7 @@ export function MerchantCard({
           >
             {merchant.display_name}
           </Typography>
-          {shouldShowFormalName ? (
+          {hasPreferredAlias ? (
             <Typography color="text.secondary" variant="caption">
               {merchantText.formalName}：{merchant.name}
             </Typography>
