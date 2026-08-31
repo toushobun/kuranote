@@ -93,9 +93,7 @@ function getCompletedBadgeKind({
   refundAmount,
   reimbursementAmount,
 }: TransactionBusinessStatus["offsetComposition"]):
-  | "refunded"
-  | "reimbursed"
-  | "settled" {
+  "refunded" | "reimbursed" | "settled" {
   const hasRefund = Number(refundAmount) > 0;
   const hasReimbursement = Number(reimbursementAmount) > 0;
   if (hasRefund && !hasReimbursement) return "refunded";

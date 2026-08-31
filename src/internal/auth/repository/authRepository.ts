@@ -16,8 +16,7 @@ export type SignUpInput = {
 };
 
 export type SignUpResult =
-  | { ok: true }
-  | { ok: false; reason: RegisterFailureReason };
+  { ok: true } | { ok: false; reason: RegisterFailureReason };
 
 export interface AuthRepository {
   exchangeOAuthCode(code: string): Promise<boolean>;

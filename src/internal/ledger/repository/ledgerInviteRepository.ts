@@ -15,8 +15,7 @@ import {
 } from "internal/ledger/entity/ledgerInviteRole";
 
 export type LedgerInviteWriteResult =
-  | { ok: true }
-  | { ok: false; code: LedgerInviteErrorCode };
+  { ok: true } | { ok: false; code: LedgerInviteErrorCode };
 
 export type CreateLedgerInviteResult =
   | { inviteId: string; ok: true; role: LedgerInviteRole; token: string }

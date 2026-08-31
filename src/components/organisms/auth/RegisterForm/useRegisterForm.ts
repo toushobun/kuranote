@@ -31,11 +31,7 @@ import {
 } from "./turnstile";
 
 type RegisterFormPhase =
-  | "initial"
-  | "sending"
-  | "otp_input"
-  | "submitting"
-  | "done";
+  "initial" | "sending" | "otp_input" | "submitting" | "done";
 
 type RegisterFormAlertSeverity = "error" | "info" | "success";
 

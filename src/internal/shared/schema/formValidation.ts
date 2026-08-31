@@ -1,8 +1,7 @@
 import { getFormText, isUuid } from "utils/formData";
 
 export type ValidationResult<T, E extends string> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+  { ok: true; value: T } | { ok: false; error: E };
 
 export function valid<T>(value: T): ValidationResult<T, never> {
   return { ok: true, value };

@@ -531,8 +531,7 @@ function getAvatarFallback(item: TransactionRowItem, merchantName: string) {
 
 function getMemberColor(
   colorKey:
-    | TransactionRowItem["account_color"]
-    | TransactionRowItem["recorder_color"],
+    TransactionRowItem["account_color"] | TransactionRowItem["recorder_color"],
 ) {
   return colorKey ? themeColorTokens[colorKey].chipText : mutedText;
 }

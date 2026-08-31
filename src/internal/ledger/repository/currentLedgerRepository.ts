@@ -23,8 +23,7 @@ export type UpdateCurrentLedgerInput = {
 };
 
 export type UpdateCurrentLedgerResult =
-  | { ok: true }
-  | { ok: false; code: CurrentLedgerErrorCode };
+  { ok: true } | { ok: false; code: CurrentLedgerErrorCode };
 
 export interface CurrentLedgerContextRepository {
   getContext(userId: string, email: string): Promise<CurrentLedgerContext>;

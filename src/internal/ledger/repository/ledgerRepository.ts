@@ -16,8 +16,7 @@ export type CreateLedgerInput = {
 };
 
 export type CreateLedgerResult =
-  | { ok: true }
-  | { ok: false; code: LedgerCreateErrorCode };
+  { ok: true } | { ok: false; code: LedgerCreateErrorCode };
 
 const createLedgerRpcErrorMap = {
   auth_required: ledgerCreateErrorCodes.authRequired,

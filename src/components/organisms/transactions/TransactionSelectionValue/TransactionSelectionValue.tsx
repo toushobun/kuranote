@@ -7,10 +7,7 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
 
 type TransactionSelectionTone =
-  | "account"
-  | "incoming"
-  | "merchant"
-  | "outgoing";
+  "account" | "incoming" | "merchant" | "outgoing";
 
 type TransactionSelectionValueProps = {
   icon: ReactNode;

@@ -94,9 +94,7 @@ export function resolveTransactionBusinessStatus({
   refundedAmount?: string;
   reimbursementAmount?: string;
   specialStatus?:
-    | TransactionSpecialStatus
-    | TransactionSpecialStatusStorageValue
-    | null;
+    TransactionSpecialStatus | TransactionSpecialStatusStorageValue | null;
 }): TransactionBusinessStatus | null {
   const settlementStatus =
     specialStatus === "pending_reimbursement"

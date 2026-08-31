@@ -105,23 +105,18 @@ export function createRequestContainer(
   let transactionContainer: RequestContainer["transaction"] | undefined;
   let userContainer: RequestContainer["user"] | undefined;
   let accountRepository:
-    | ReturnType<typeof createSupabaseAccountRepository>
-    | undefined;
+    ReturnType<typeof createSupabaseAccountRepository> | undefined;
   let accountQueryService: AccountQueryService | undefined;
   let categoryRepository:
-    | ReturnType<typeof createSupabaseCategoryRepository>
-    | undefined;
+    ReturnType<typeof createSupabaseCategoryRepository> | undefined;
   let categoryQueryService: CategoryQueryService | undefined;
   let merchantRepository:
-    | ReturnType<typeof createSupabaseMerchantRepository>
-    | undefined;
+    ReturnType<typeof createSupabaseMerchantRepository> | undefined;
   let merchantQueryService: MerchantQueryService | undefined;
   let ledgerSettingsRepository:
-    | ReturnType<typeof createSupabaseLedgerSettingsRepository>
-    | undefined;
+    ReturnType<typeof createSupabaseLedgerSettingsRepository> | undefined;
   let ledgerAccessService:
-    | ReturnType<typeof createLedgerAccessService>
-    | undefined;
+    ReturnType<typeof createLedgerAccessService> | undefined;
 
   function getAccountRepository() {
     return (accountRepository ??= createSupabaseAccountRepository(

@@ -115,12 +115,10 @@ describe("LedgerCreateTemplate", () => {
   });
 
   it("创建失败时显示反馈、保留输入且 URL 保持干净", async () => {
-    const action = vi.fn(
-      async (): Promise<LedgerCreateActionState> => ({
-        error: "账本创建失败。请确认内容后稍后重试。",
-        errorKey: "create-error-1",
-      }),
-    );
+    const action = vi.fn(async (): Promise<LedgerCreateActionState> => ({
+      error: "账本创建失败。请确认内容后稍后重试。",
+      errorKey: "create-error-1",
+    }));
     renderTemplate(action);
 
     fireEvent.change(screen.getByLabelText("账本名称"), {
