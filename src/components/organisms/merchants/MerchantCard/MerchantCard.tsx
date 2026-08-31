@@ -1,7 +1,5 @@
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import { deepOrange, lightGreen, pink } from "@mui/material/colors";
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
@@ -15,7 +13,8 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { merchantText } from "config/merchantText";
 import type { Merchant } from "types/merchants";
 import { merchantIconSrc } from "utils/merchants";
-import { publicAssetUrl } from "utils/publicAssetUrl";
+
+import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
 type MerchantCardProps = {
   canManageMerchants?: boolean;
@@ -24,38 +23,11 @@ type MerchantCardProps = {
   merchant: Merchant;
 };
 
-const avatarTones = [
-  {
-    backgroundColor: deepOrange[50],
-    borderColor: deepOrange[100],
-    color: deepOrange[800],
-  },
-  {
-    backgroundColor: pink[50],
-    borderColor: pink[100],
-    color: pink[800],
-  },
-  {
-    backgroundColor: lightGreen[50],
-    borderColor: lightGreen[200],
-    color: lightGreen[800],
-  },
-] as const;
-
 const merchantChipSx = {
   borderRadius: 999,
   fontSize: (theme: Theme) => theme.typography.body2.fontSize,
   height: 28,
 } as const;
-
-function avatarToneFor(merchantId: string) {
-  const toneIndex = Array.from(merchantId).reduce(
-    (hash, character) => (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0,
-    0,
-  );
-
-  return avatarTones[toneIndex % avatarTones.length];
-}
 
 export function MerchantCard({
   canManageMerchants = true,
@@ -63,7 +35,6 @@ export function MerchantCard({
   ledgerId,
   merchant,
 }: MerchantCardProps) {
-  const avatarTone = avatarToneFor(merchant.id);
   const hasPreferredAlias = merchant.aliases.some(
     (alias) => alias.is_preferred,
   );
@@ -79,27 +50,12 @@ export function MerchantCard({
       }}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-        <Avatar
-          alt=""
+        <MerchantAvatar
+          padding={0.75}
+          size={{ xs: 64, sm: 72 }}
           src={merchantIconSrc(ledgerId, merchant.website_url)}
-          sx={{
-            "& .MuiAvatar-img": { objectFit: "contain" },
-            bgcolor: avatarTone.backgroundColor,
-            border: "1px solid",
-            borderColor: avatarTone.borderColor,
-            color: avatarTone.color,
-            height: { xs: 64, sm: 72 },
-            p: 0.75,
-            width: { xs: 64, sm: 72 },
-          }}
-        >
-          <Box
-            alt=""
-            component="img"
-            src={publicAssetUrl("/assets/kura-icons/merchant.png")}
-            sx={{ height: "100%", objectFit: "contain", width: "100%" }}
-          />
-        </Avatar>
+          toneKey={merchant.id}
+        />
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography

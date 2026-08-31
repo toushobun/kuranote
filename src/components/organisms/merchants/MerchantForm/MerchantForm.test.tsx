@@ -27,9 +27,11 @@ describe("MerchantForm", () => {
   });
 
   it("提交中禁用按钮并显示进度", () => {
-    render(<MerchantForm action={vi.fn()} ledgerId="ledger-1" pending />);
+    const { container } = render(
+      <MerchantForm action={vi.fn()} ledgerId="ledger-1" pending />,
+    );
 
-    expect(screen.getByRole("button")).toBeDisabled();
+    expect(container.querySelector('button[type="submit"]')).toBeDisabled();
     expect(screen.getByLabelText("新增中")).toBeInTheDocument();
   });
 });

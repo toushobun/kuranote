@@ -15,8 +15,8 @@ afterEach(() => {
 });
 
 describe("MerchantDetailsFields", () => {
-  it("显示当前值、头像地址和名称首字", () => {
-    render(
+  it("显示当前值、图3示例文案和店铺插画占位", () => {
+    const { container } = render(
       <MerchantDetailsFields
         ledgerId="ledger-1"
         name="Amazon"
@@ -33,10 +33,22 @@ describe("MerchantDetailsFields", () => {
       "https://www.amazon.co.jp",
     );
     expect(screen.getByLabelText("备注（可选）")).toHaveValue("网购");
-    expect(document.querySelector("img")).toHaveAttribute(
+    expect(screen.getByLabelText("商家网址")).toHaveAttribute(
+      "placeholder",
+      "例如：https://www.example.com",
+    );
+    expect(screen.getByLabelText("备注（可选）")).toHaveAttribute(
+      "placeholder",
+      "例如：日常购物与杂货采购",
+    );
+    expect(container.querySelector(".MerchantAvatar-image")).toHaveAttribute(
       "src",
       expect.stringContaining("/api/ledgers/ledger-1/merchants/icon?"),
     );
+    expect(
+      container.querySelector('img[src="/assets/kura-icons/merchant.png"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Amazon")).not.toBeInTheDocument();
   });
 
   it("输入变化时分别通知上层状态", () => {
@@ -86,7 +98,7 @@ describe("MerchantDetailsFields", () => {
         websiteUrl="https://www.amazon.co.jp"
       />,
     );
-    const avatar = container.querySelector("img");
+    const avatar = container.querySelector(".MerchantAvatar-image");
 
     rerender(
       <MerchantDetailsFields {...props} websiteUrl="https://www.lifecorp.jp" />,
@@ -101,5 +113,71 @@ describe("MerchantDetailsFields", () => {
       "src",
       expect.stringContaining("www.lifecorp.jp"),
     );
+  });
+
+  it("呈现头像抓取中、成功与失败状态", () => {
+    const { container } = render(
+      <MerchantDetailsFields
+        ledgerId="ledger-1"
+        name="Amazon"
+        note=""
+        onNameChange={vi.fn()}
+        onNoteChange={vi.fn()}
+        onWebsiteUrlChange={vi.fn()}
+        websiteUrl="https://www.amazon.co.jp"
+      />,
+    );
+    const avatar = container.querySelector(".MerchantAvatar-image");
+
+    expect(screen.getByText("正在获取网站图标")).toBeInTheDocument();
+    fireEvent.load(avatar as Element);
+    expect(screen.getByText("已通过网站图标自动获取头像")).toBeInTheDocument();
+    fireEvent.error(avatar as Element);
+    expect(
+      screen.getByText("未能获取网站图标，已使用默认商家头像"),
+    ).toBeInTheDocument();
+  });
+
+  it("点击刷新按钮后重新请求当前网址的头像", () => {
+    const { container } = render(
+      <MerchantDetailsFields
+        ledgerId="ledger-1"
+        name="Amazon"
+        note=""
+        onNameChange={vi.fn()}
+        onNoteChange={vi.fn()}
+        onWebsiteUrlChange={vi.fn()}
+        websiteUrl="https://www.amazon.co.jp"
+      />,
+    );
+    const avatar = container.querySelector(".MerchantAvatar-image");
+
+    fireEvent.load(avatar as Element);
+    expect(avatar).toHaveAttribute("src", expect.stringContaining("refresh=0"));
+    fireEvent.click(screen.getByRole("button", { name: "重新获取商家头像" }));
+
+    expect(avatar).toHaveAttribute("src", expect.stringContaining("refresh=1"));
+    expect(screen.getByText("正在获取网站图标")).toBeInTheDocument();
+  });
+
+  it("网址为空时显示引导并禁用刷新", () => {
+    render(
+      <MerchantDetailsFields
+        ledgerId="ledger-1"
+        name=""
+        note=""
+        onNameChange={vi.fn()}
+        onNoteChange={vi.fn()}
+        onWebsiteUrlChange={vi.fn()}
+        websiteUrl=""
+      />,
+    );
+
+    expect(
+      screen.getByText("填写商家网址后会自动获取头像"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "重新获取商家头像" }),
+    ).toBeDisabled();
   });
 });
