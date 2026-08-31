@@ -19,8 +19,46 @@ set
     updated_by = excluded.updated_by,
     updated_at = now();
 
+-- The household ledger is created by seed.sql after migrations have already run,
+-- so seed its default merchant tags explicitly before creating merchant-tag links.
+insert into public.merchant_tags (
+    ledger_id,
+    name,
+    icon,
+    sort_order,
+    created_by
+)
+select
+    '00000000-0000-4000-8000-000000000032'::uuid,
+    defaults.name,
+    defaults.icon,
+    defaults.sort_order,
+    '00000000-0000-4000-8000-000000000031'::uuid
+from (
+    values
+        ('超市', '🛒', 0),
+        ('便利店', '🏪', 1),
+        ('餐饮', '🍽️', 2),
+        ('百货店', '🏬', 3),
+        ('电商', '📦', 4),
+        ('旅行', '✈️', 5),
+        ('通讯', '📶', 6),
+        ('生活', '🏠', 7)
+) defaults(name, icon, sort_order)
+where exists (
+    select 1
+    from public.ledger
+    where id = '00000000-0000-4000-8000-000000000032'
+)
+and not exists (
+    select 1
+    from public.merchant_tags
+    where ledger_id = '00000000-0000-4000-8000-000000000032'
+      and is_archived = false
+      and lower(name) = lower(defaults.name)
+);
+
 -- Merchant tag associations for local merchant-list and design verification.
--- Base seed ledger initialization creates the default tags before this seed file runs.
 with seed_merchant_tags(merchant_id, tag_name) as (
     values
         ('00000000-0000-4000-8000-000000001001'::uuid, '超市'),
