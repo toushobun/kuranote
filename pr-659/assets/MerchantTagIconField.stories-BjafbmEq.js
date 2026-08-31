@@ -1,0 +1,3 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";import{t as r}from"./jsx-runtime-Dwpk6tgA.js";import{n as i,t as a}from"./MerchantTagIconField-C9u4oSGm.js";var o,s,c,l,u;t((()=>{o=r(),s=e(n()),i(),c={title:`Organisms/Merchants/MerchantTagIconField`,component:a,args:{onChange:()=>{},value:`🛒`},render:function(){let[e,t]=(0,s.useState)(`🛒`);return(0,o.jsx)(a,{onChange:t,value:e})}},l={name:`商家标签图标`},l.parameters={...l.parameters,docs:{...l.parameters?.docs,source:{originalSource:`{
+  name: "商家标签图标"
+}`,...l.parameters?.docs?.source}}},u=[`Default`]}))();export{l as Default,u as __namedExportsOrder,c as default};
