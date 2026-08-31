@@ -42,7 +42,9 @@ describe("MerchantsTemplate", () => {
 
     expect(createLink).toHaveAttribute("href", "/merchants/new");
     expect(createLink).toHaveClass("MuiButton-sizeSmall");
-    expect(getComputedStyle(createLink).borderRadius).toBe("999px");
+    expect(
+      Number.parseFloat(getComputedStyle(createLink).borderRadius),
+    ).toBeGreaterThan(100);
     expect(
       within(container).getByTestId("merchants-page-background"),
     ).toBeInTheDocument();

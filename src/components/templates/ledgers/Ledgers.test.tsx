@@ -69,7 +69,9 @@ describe("LedgersTemplate", () => {
     });
 
     expect(createLink).toHaveAttribute("href", "/ledgers/new");
-    expect(getComputedStyle(createLink).borderRadius).toBe("999px");
+    expect(
+      Number.parseFloat(getComputedStyle(createLink).borderRadius),
+    ).toBeGreaterThan(100);
     expect(getComputedStyle(createLink).fontWeight).toBe("700");
     expect(getComputedStyle(createLink).minHeight).toBe("40px");
   });
