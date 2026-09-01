@@ -188,7 +188,7 @@ function MerchantTagManagement({
   const [name, setName] = useState("");
   const [icon, setIcon] = useState(defaultMerchantTagEmoji);
   const [createState, dispatchCreate, createPending] = useActionState(
-    async (previousState, formData) => {
+    async (previousState: MerchantTagActionState, formData: FormData) => {
       const nextState = await createAction(previousState, formData);
       if (!nextState.error) setCreating(false);
       return nextState;
@@ -196,7 +196,7 @@ function MerchantTagManagement({
     initialState,
   );
   const [updateState, dispatchUpdate, updatePending] = useActionState(
-    async (previousState, formData) => {
+    async (previousState: MerchantTagActionState, formData: FormData) => {
       const nextState = await updateAction(previousState, formData);
       if (!nextState.error) setEditingTag(null);
       return nextState;
