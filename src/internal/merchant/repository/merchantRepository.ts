@@ -572,9 +572,7 @@ export function createSupabaseMerchantRepository(
           tagError,
         );
       }
-      const tags = ((tagData ?? []) as MerchantTagRow[]).map(
-        toMerchantTagData,
-      );
+      const tags = ((tagData ?? []) as MerchantTagRow[]).map(toMerchantTagData);
       return attachMerchantTags(merchant, tags, links)[0]!;
     },
 
