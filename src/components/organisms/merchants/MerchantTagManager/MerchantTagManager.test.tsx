@@ -116,8 +116,10 @@ describe("MerchantTagManager", () => {
     expect(
       screen.getByRole("heading", { name: "新增标签" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("标签名称")).toHaveValue("重复标签");
-    expect(screen.getByLabelText("当前标签图标：📦")).toBeInTheDocument();
+    expect(document.querySelector('input[name="name"]')).toHaveValue(
+      "重复标签",
+    );
+    expect(document.querySelector('input[name="icon"]')).toHaveValue("📦");
   });
 
   it("编辑失败时保留对话框和用户输入", async () => {
@@ -155,6 +157,8 @@ describe("MerchantTagManager", () => {
     expect(
       screen.getByRole("heading", { name: "编辑标签" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("标签名称")).toHaveValue("重复标签");
+    expect(document.querySelector('input[name="name"]')).toHaveValue(
+      "重复标签",
+    );
   });
 });
