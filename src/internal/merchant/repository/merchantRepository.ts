@@ -560,7 +560,10 @@ export function createSupabaseMerchantRepository(
         .select("id, name, icon, sort_order")
         .eq("ledger_id", ledgerId)
         .eq("is_archived", false)
-        .in("id", links.map((link) => link.tag_id))
+        .in(
+          "id",
+          links.map((link) => link.tag_id),
+        )
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       if (tagError) {
