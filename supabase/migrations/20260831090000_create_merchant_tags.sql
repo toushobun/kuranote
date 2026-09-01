@@ -365,17 +365,12 @@ begin
             using errcode = '42501', detail = 'auth_required';
     end if;
 
-    if not exists (
-        select 1
-        from public.ledger_member lm
-        join public.app_user au on au.id = lm.user_id
-        join public.ledger l on l.id = lm.ledger_id and l.is_archived = false
-        where lm.ledger_id = p_ledger_id
-          and lm.user_id = v_user_id
-          and lm.status = 'active'
-          and lm.role in ('owner', 'admin')
-          and au.status = 'active'
-    ) then
+    if not public.current_user_can_manage_ledger(p_ledger_id)
+       or not exists (
+           select 1
+           from public.ledger l
+           where l.id = p_ledger_id and l.is_archived = false
+       ) then
         raise exception 'permission_denied'
             using errcode = '42501', detail = 'permission_denied';
     end if;
@@ -444,21 +439,12 @@ begin
             using errcode = '22023', detail = 'merchant_tag_order_invalid';
     end if;
 
-    if not exists (
-        select 1
-        from public.ledger_member lm
-        join public.app_user au on au.id = lm.user_id
-        where lm.ledger_id = p_ledger_id
-          and lm.user_id = v_user_id
-          and lm.status = 'active'
-          and lm.role in ('owner', 'admin')
-          and au.status = 'active'
-    ) then
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
         raise exception 'permission_denied'
             using errcode = '42501', detail = 'permission_denied';
     end if;
 
-    lock table public.merchant_tags in share row exclusive mode;
+    perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));
 
     if not exists (
         select 1 from public.ledger l
@@ -466,20 +452,6 @@ begin
     ) then
         raise exception 'ledger_not_found'
             using errcode = 'P0002', detail = 'ledger_not_found';
-    end if;
-
-    if not exists (
-        select 1
-        from public.ledger_member lm
-        join public.app_user au on au.id = lm.user_id
-        where lm.ledger_id = p_ledger_id
-          and lm.user_id = v_user_id
-          and lm.status = 'active'
-          and lm.role in ('owner', 'admin')
-          and au.status = 'active'
-    ) then
-        raise exception 'permission_denied'
-            using errcode = '42501', detail = 'permission_denied';
     end if;
 
     select coalesce(array_agg(locked_tag.id order by locked_tag.id), '{}'::uuid[])

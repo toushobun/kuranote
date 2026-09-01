@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
+import { merchantTagEmojiValues } from "config/merchantTagEmojis";
 import {
   merchantErrorCodes,
   type MerchantValidationErrorCode,
@@ -254,6 +255,9 @@ function parseMerchantTagValues(
     requiredError: merchantErrorCodes.merchantTagIconInvalid,
   });
   if (!iconResult.ok) return iconResult;
+  if (!merchantTagEmojiValues.has(iconResult.value)) {
+    return invalid(merchantErrorCodes.merchantTagIconInvalid);
+  }
   return valid({ icon: iconResult.value, name: nameResult.value });
 }
 
@@ -407,6 +411,7 @@ export const merchantListResponseSchema = z.object({
       sort_order: z.number().int(),
     })
     .nullable(),
+  tagFilterError: z.string().nullable(),
   tags: z.array(
     z.object({
       icon: z.string(),

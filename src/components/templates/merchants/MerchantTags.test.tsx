@@ -9,7 +9,7 @@ const tags = [
 const action = vi.fn(async () => ({}));
 
 describe("MerchantTagsTemplate", () => {
-  it("显示独立分类管理页并返回商家列表", () => {
+  it("显示独立商家标签管理页并返回商家列表", () => {
     render(
       <MerchantTagsTemplate
         archiveAction={action}
@@ -21,7 +21,7 @@ describe("MerchantTagsTemplate", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "分类管理" }),
+      screen.getByRole("heading", { name: "商家标签管理" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "完成" })).toHaveAttribute(
       "href",

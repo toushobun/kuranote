@@ -48,6 +48,7 @@ const meta = {
     ledgerId: "ledger-1",
     merchants,
     selectedTag: null,
+    tagFilterError: null,
     tags,
   },
 } satisfies Meta<typeof MerchantsTemplate>;
@@ -65,4 +66,13 @@ export const WithKeyword: Story = {
 export const Empty: Story = {
   name: "无商家",
   args: { ledgerId: "ledger-1", merchants: [] },
+};
+
+export const UnavailableTagFilter: Story = {
+  name: "标签筛选已失效",
+  args: {
+    ledgerId: "ledger-1",
+    merchants: [],
+    tagFilterError: "该商家标签不存在或已不可用。",
+  },
 };

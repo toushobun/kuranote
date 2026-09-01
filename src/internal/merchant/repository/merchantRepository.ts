@@ -552,12 +552,33 @@ export function createSupabaseMerchantRepository(
         [toMerchantData(merchantData as MerchantRow)],
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
       );
-      const tags = await loadActiveTags(ledgerId);
-      return attachMerchantTags(
-        merchant,
-        tags,
-        await loadTagLinks([merchantId]),
-      )[0]!;
+      const links = await loadTagLinks([merchantId]);
+      if (links.length === 0) return merchant[0]!;
+
+      const { data: tagData, error: tagError } = await supabase
+        .from("merchant_tags")
+        .select("id, name, icon, sort_order")
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false)
+        .in(
+          "id",
+          links.map((link) => link.tag_id),
+        )
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (tagError) {
+        fail(
+          "[merchant] failed to load merchant detail tags",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+          { ledgerId, merchantId },
+          tagError,
+        );
+      }
+      const tags = ((tagData ?? []) as MerchantTagRow[]).map(
+        toMerchantTagData,
+      );
+      return attachMerchantTags(merchant, tags, links)[0]!;
     },
 
     async findActiveTag(ledgerId, tagId) {

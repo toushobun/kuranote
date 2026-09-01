@@ -19,6 +19,7 @@ export default async function MerchantsPage({
       ledgerId={view.ledgerId}
       merchants={view.merchants}
       selectedTag={view.selectedTag}
+      tagFilterError={view.tagFilterError}
       tags={view.tags}
     />
   );

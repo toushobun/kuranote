@@ -2,6 +2,7 @@
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -26,6 +27,7 @@ export type MerchantsTemplateProps = {
   ledgerId: string;
   merchants: Merchant[];
   selectedTag: MerchantTag | null;
+  tagFilterError: string | null;
   tags: MerchantTag[];
 };
 
@@ -35,6 +37,7 @@ export function MerchantsTemplate({
   ledgerId,
   merchants,
   selectedTag,
+  tagFilterError,
   tags,
 }: MerchantsTemplateProps) {
   const hasMerchants = merchants.length > 0;
@@ -108,7 +111,7 @@ export function MerchantsTemplate({
             ) : null}
           </Stack>
 
-          {hasMerchants || hasKeyword || selectedTag ? (
+          {hasMerchants || hasKeyword || selectedTag || tagFilterError ? (
             <SectionCard component="form" sx={{ borderRadius: 999, p: 0 }}>
               {selectedTag ? (
                 <input name="tagId" type="hidden" value={selectedTag.id} />
@@ -174,6 +177,28 @@ export function MerchantsTemplate({
                 </Button>
               </Stack>
             ) : null}
+            {tagFilterError ? (
+              <Alert
+                action={
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    href={
+                      keyword.trim()
+                        ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
+                        : routePaths.merchants
+                    }
+                    size="small"
+                  >
+                    清除筛选
+                  </Button>
+                }
+                severity="warning"
+                sx={{ mt: 1.5 }}
+              >
+                {tagFilterError}
+              </Alert>
+            ) : null}
           </SectionCard>
 
           <MerchantList
@@ -182,7 +207,7 @@ export function MerchantsTemplate({
             keyword={keyword}
             ledgerId={ledgerId}
             merchants={merchants}
-            tagFiltered={Boolean(selectedTag)}
+            tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
           />
         </Stack>
       </PageShell>

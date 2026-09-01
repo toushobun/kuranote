@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(21);
+select plan(23);
 
 select has_table('public', 'merchant_tags', '商家标签表存在');
 select has_table('public', 'merchant_tag_links', '商家标签关联表存在');
@@ -31,6 +31,16 @@ select ok(
     and not has_column_privilege('authenticated', 'public.merchant_tags', 'sort_order', 'update')
     and not has_column_privilege('authenticated', 'public.merchant_tags', 'is_archived', 'update'),
     '登录角色只能直接更新标签名称和图标'
+);
+select like(
+    pg_get_functiondef('public.reorder_merchant_tags(uuid,uuid[])'::regprocedure),
+    '%perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));%',
+    '商家标签排序仅按目标账本获取事务级 advisory lock'
+);
+select unlike(
+    pg_get_functiondef('public.reorder_merchant_tags(uuid,uuid[])'::regprocedure),
+    '%lock table public.merchant_tags%',
+    '商家标签排序不再获取全表锁'
 );
 
 insert into public.ledger (

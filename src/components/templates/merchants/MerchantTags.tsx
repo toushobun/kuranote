@@ -54,7 +54,7 @@ export function MerchantTagsTemplate({
                 }}
                 variant="h5"
               >
-                分类管理
+                商家标签管理
               </Typography>
               <Typography color="text.secondary" variant="body2">
                 新增、编辑或调整商家标签顺序

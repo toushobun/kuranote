@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { MerchantTagManager } from "./MerchantTagManager";
@@ -70,5 +76,85 @@ describe("MerchantTagManager", () => {
     expect(
       screen.getByRole("button", { name: "归档标签" }),
     ).toBeInTheDocument();
+  });
+
+  it("新增失败时保留对话框和用户输入", async () => {
+    let resolveCreate:
+      | ((state: { error: string; errorKey: string }) => void)
+      | null = null;
+    const createAction = vi.fn(
+      async () =>
+        new Promise<{ error: string; errorKey: string }>((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    render(
+      <MerchantTagManager
+        archiveAction={action}
+        createAction={createAction}
+        mode="management"
+        reorderAction={async () => ({})}
+        tags={tags}
+        updateAction={action}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "新增标签" }));
+    fireEvent.change(screen.getByLabelText("标签名称"), {
+      target: { value: "重复标签" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择电商图标" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
+    fireEvent.click(screen.getByRole("button", { name: "新增" }));
+    await waitFor(() => expect(createAction).toHaveBeenCalledOnce());
+
+    await act(async () => {
+      resolveCreate?.({ error: "标签名称重复。", errorKey: "failure-1" });
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "新增标签" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("标签名称")).toHaveValue("重复标签");
+    expect(screen.getByLabelText("当前标签图标：📦")).toBeInTheDocument();
+  });
+
+  it("编辑失败时保留对话框和用户输入", async () => {
+    let resolveUpdate:
+      | ((state: { error: string; errorKey: string }) => void)
+      | null = null;
+    const updateAction = vi.fn(
+      async () =>
+        new Promise<{ error: string; errorKey: string }>((resolve) => {
+          resolveUpdate = resolve;
+        }),
+    );
+    render(
+      <MerchantTagManager
+        archiveAction={action}
+        createAction={action}
+        mode="management"
+        reorderAction={async () => ({})}
+        tags={tags}
+        updateAction={updateAction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
+    fireEvent.change(screen.getByLabelText("标签名称"), {
+      target: { value: "重复标签" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(updateAction).toHaveBeenCalledOnce());
+
+    await act(async () => {
+      resolveUpdate?.({ error: "标签名称重复。", errorKey: "failure-2" });
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "编辑标签" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("标签名称")).toHaveValue("重复标签");
   });
 });

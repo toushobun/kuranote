@@ -117,7 +117,7 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.merchantTagCreateFailed]:
     "标签新增失败。请确认标签名称是否重复，或稍后重试。",
   [merchantErrorCodes.merchantTagIconInvalid]: "请选择标签图标。",
-  [merchantErrorCodes.merchantTagInvalid]: "商家标签指定不正确。",
+  [merchantErrorCodes.merchantTagInvalid]: "该商家标签不存在或已不可用。",
   [merchantErrorCodes.merchantTagListFailed]: "商家标签加载失败，请稍后重试。",
   [merchantErrorCodes.merchantTagNameRequired]: "请输入标签名称。",
   [merchantErrorCodes.merchantTagNameTooLong]: "标签名称不能超过 100 个字符。",

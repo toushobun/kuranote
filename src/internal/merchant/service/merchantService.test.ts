@@ -169,6 +169,7 @@ describe("createMerchantService", () => {
       canManageMerchants: true,
       merchants: [],
       selectedTag: null,
+      tagFilterError: null,
       tags: [],
     });
     expect(repository.listActive).toHaveBeenCalledWith(ledgerId);
@@ -253,9 +254,22 @@ describe("createMerchantService", () => {
     });
   });
 
-  it("已归档或不存在的标签不会留下不可清除的筛选状态", async () => {
+  it("已归档或不存在的标签返回空结果并说明筛选已失效", async () => {
     const repository = createRepository({
-      listActive: vi.fn().mockResolvedValue([]),
+      listActive: vi.fn().mockResolvedValue([
+        {
+          aliases: [],
+          created_at: "2026-01-01T00:00:00.000Z",
+          display_name: "LIFE",
+          icon_url: null,
+          id: merchantId,
+          name: "LIFE",
+          note: null,
+          sort_order: 0,
+          tags: [],
+          website_url: null,
+        },
+      ]),
       listActiveTags: vi.fn().mockResolvedValue([]),
     });
 
@@ -264,6 +278,7 @@ describe("createMerchantService", () => {
     ).resolves.toMatchObject({
       merchants: [],
       selectedTag: null,
+      tagFilterError: "该商家标签不存在或已不可用。",
       tags: [],
     });
   });

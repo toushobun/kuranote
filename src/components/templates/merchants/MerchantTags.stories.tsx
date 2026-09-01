@@ -40,4 +40,4 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "分类管理页面" };
+export const Default: Story = { name: "商家标签管理页面" };

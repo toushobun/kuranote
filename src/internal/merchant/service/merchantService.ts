@@ -34,6 +34,7 @@ export type MerchantListResult = {
   canManageMerchants: boolean;
   merchants: MerchantData[];
   selectedTag: MerchantTagData | null;
+  tagFilterError: string | null;
   tags: MerchantTagData[];
 };
 
@@ -202,14 +203,21 @@ export function createMerchantService({
       keyword,
     );
     const selectedTag = tagId ? (tagById.get(tagId) ?? null) : null;
+    const tagFilterError =
+      tagId && !selectedTag
+        ? getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid)
+        : null;
     return {
       canManageMerchants: canManageMasterData(role),
-      merchants: selectedTag
-        ? keywordFiltered.filter((merchant) =>
-            merchant.tags.some((tag) => tag.id === selectedTag.id),
-          )
+      merchants: tagId
+        ? selectedTag
+          ? keywordFiltered.filter((merchant) =>
+              merchant.tags.some((tag) => tag.id === selectedTag.id),
+            )
+          : []
         : keywordFiltered,
       selectedTag,
+      tagFilterError,
       tags,
     };
   }

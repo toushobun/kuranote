@@ -20,6 +20,7 @@ const baseProps = {
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
   selectedTag: null,
+  tagFilterError: null,
   tags: [],
 };
 
@@ -106,5 +107,24 @@ describe("MerchantsTemplate", () => {
     expect(
       within(container).queryByRole("link", { name: "添加第一个商家" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("标签筛选失效时显示原因和清除入口", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        merchants={[]}
+        tagFilterError="该商家标签不存在或已不可用。"
+      />,
+    );
+
+    expect(
+      screen.getByText("该商家标签不存在或已不可用。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
+      "href",
+      "/merchants",
+    );
+    expect(screen.getByText("没有找到匹配的商家")).toBeInTheDocument();
   });
 });

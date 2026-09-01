@@ -145,4 +145,13 @@ describe("merchant schema", () => {
       value: { tagIds: [tagId] },
     });
   });
+
+  it("拒绝预设集合之外的商家标签图标", () => {
+    expect(
+      validateCreateMerchantTagForm(createFormData({ icon: "invalid" })),
+    ).toEqual({
+      error: "merchant_tag_icon_invalid",
+      ok: false,
+    });
+  });
 });

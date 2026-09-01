@@ -188,11 +188,19 @@ function MerchantTagManagement({
   const [name, setName] = useState("");
   const [icon, setIcon] = useState(defaultMerchantTagEmoji);
   const [createState, dispatchCreate, createPending] = useActionState(
-    createAction,
+    async (previousState, formData) => {
+      const nextState = await createAction(previousState, formData);
+      if (!nextState.error) setCreating(false);
+      return nextState;
+    },
     initialState,
   );
   const [updateState, dispatchUpdate, updatePending] = useActionState(
-    updateAction,
+    async (previousState, formData) => {
+      const nextState = await updateAction(previousState, formData);
+      if (!nextState.error) setEditingTag(null);
+      return nextState;
+    },
     initialState,
   );
   const [archiveState, dispatchArchive, archivePending] = useActionState(
@@ -327,7 +335,6 @@ function MerchantTagManagement({
             action={dispatchCreate}
             component="form"
             id="merchant-tag-create-form"
-            onSubmit={() => setCreating(false)}
             spacing={2.5}
           >
             <TextField
@@ -367,7 +374,6 @@ function MerchantTagManagement({
             action={dispatchUpdate}
             component="form"
             id="merchant-tag-edit-form"
-            onSubmit={() => setEditingTag(null)}
             spacing={2.5}
           >
             <input name="tagId" type="hidden" value={editingTag?.id ?? ""} />

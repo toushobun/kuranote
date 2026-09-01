@@ -253,6 +253,44 @@ describe("createSupabaseMerchantRepository", () => {
     );
   });
 
+  it("读取单个商家时只查询该商家关联的标签", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: {
+            created_at: "2026-01-01T00:00:00.000Z",
+            icon_url: null,
+            id: merchantId,
+            name: "LIFE",
+            note: null,
+            sort_order: 0,
+            website_url: null,
+          },
+        },
+        { data: [] },
+        { data: [{ merchant_id: merchantId, tag_id: tagId }] },
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.findActiveMerchantData(ledgerId, merchantId),
+    ).resolves.toMatchObject({
+      id: merchantId,
+      tags: [{ id: tagId }],
+    });
+    expect(supabase.queries[3].table).toBe("merchant_tags");
+    expect(supabase.queries[3].calls).toContainEqual({
+      args: ["id", [tagId]],
+      method: "in",
+    });
+  });
+
   it("排序集合过期时转换为可展示的 ConflictError", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
