@@ -6,6 +6,7 @@ export const merchantErrorCodes = {
   aliasRequired: "alias_required",
   aliasTooLong: "alias_too_long",
   archiveFailed: "archive_failed",
+  authRequired: "auth_required",
   createFailed: "create_failed",
   ledgerInvalid: "ledger_invalid",
   merchantAliasListFailed: "merchant_alias_list_failed",
@@ -56,6 +57,7 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.aliasCreateFailed
   | typeof merchantErrorCodes.aliasPreferredUpdateFailed
   | typeof merchantErrorCodes.archiveFailed
+  | typeof merchantErrorCodes.authRequired
   | typeof merchantErrorCodes.createFailed
   | typeof merchantErrorCodes.ledgerInvalid
   | typeof merchantErrorCodes.merchantTagArchiveFailed
@@ -74,6 +76,7 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.aliasRequired,
   merchantErrorCodes.aliasTooLong,
   merchantErrorCodes.archiveFailed,
+  merchantErrorCodes.authRequired,
   merchantErrorCodes.createFailed,
   merchantErrorCodes.ledgerInvalid,
   merchantErrorCodes.merchantInvalid,
@@ -105,6 +108,7 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.aliasRequired]: "请输入商家别名。",
   [merchantErrorCodes.aliasTooLong]: "商家别名不能超过 100 个字符。",
   [merchantErrorCodes.archiveFailed]: "商家归档失败，请稍后重试。",
+  [merchantErrorCodes.authRequired]: "请先登录。",
   [merchantErrorCodes.createFailed]:
     "商家新增失败。请确认商家名称是否重复，或稍后重试。",
   [merchantErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",

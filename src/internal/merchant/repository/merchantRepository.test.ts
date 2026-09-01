@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { merchantErrorCodes } from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
+  AuthenticationError,
+  AuthorizationError,
   ConflictError,
+  NotFoundError,
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -225,6 +228,7 @@ describe("createSupabaseMerchantRepository", () => {
 
   it.each([
     {
+      details: "merchant_tag_link_invalid",
       invoke: (
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
@@ -239,6 +243,7 @@ describe("createSupabaseMerchantRepository", () => {
       operation: "新增",
     },
     {
+      details: "merchant_tags_invalid",
       invoke: (
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
@@ -255,12 +260,12 @@ describe("createSupabaseMerchantRepository", () => {
     },
   ])(
     "商家$operation时标签状态竞争会转换为 ConflictError",
-    async ({ invoke }) => {
+    async ({ details, invoke }) => {
       const supabase = createSupabaseMock({
         rpcResponse: {
           error: {
             code: "22023",
-            details: "  merchant_tags_invalid\n",
+            details: `  ${details}\n`,
             message: "private detail",
           },
         },
@@ -279,6 +284,68 @@ describe("createSupabaseMerchantRepository", () => {
       await expect(operation).rejects.toBeInstanceOf(ConflictError);
     },
   );
+
+  it.each([
+    {
+      code: merchantErrorCodes.authRequired,
+      details: "auth_required",
+      errorType: AuthenticationError,
+      message: "请先登录。",
+    },
+    {
+      code: merchantErrorCodes.permissionDenied,
+      details: "permission_denied",
+      errorType: AuthorizationError,
+      message: "只有账本所有者或管理员可以维护商家。",
+    },
+  ])(
+    "RPC 的 $details 会转换为对应访问错误",
+    async ({ code, details, errorType, message }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: { code: "42501", details, message: "private detail" },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = repository.createTag({
+        icon: "🛒",
+        ledgerId,
+        name: "超市",
+      });
+
+      await expect(operation).rejects.toMatchObject({ code, message });
+      await expect(operation).rejects.toBeInstanceOf(errorType);
+    },
+  );
+
+  it("无 detail 的 42501 触发器错误会转换为 AuthorizationError", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { error: { code: "42501", message: "private permission detail" } },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.updateTag({
+      icon: "🛒",
+      ledgerId,
+      name: "超市",
+      tagId: merchantId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.permissionDenied,
+      message: "只有账本所有者或管理员可以维护商家。",
+    });
+    await expect(operation).rejects.toBeInstanceOf(AuthorizationError);
+  });
 
   it("Supabase 错误会记录并转换为安全的 RepositoryError", async () => {
     const logger = createLogger();
@@ -437,7 +504,7 @@ describe("createSupabaseMerchantRepository", () => {
       databaseCode: "P0002",
       code: merchantErrorCodes.ledgerInvalid,
       details: "ledger_not_found",
-      errorType: ConflictError,
+      errorType: NotFoundError,
       message: "账本不存在、已停用或您无法访问。",
     },
   ])(

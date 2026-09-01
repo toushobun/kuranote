@@ -5,7 +5,10 @@ import {
   type MerchantErrorCode,
 } from "internal/merchant/errors";
 import {
+  AuthenticationError,
+  AuthorizationError,
   ConflictError,
+  NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -54,16 +57,26 @@ type MerchantTagLinkRow = { merchant_id: string; tag_id: string };
 type RpcBusinessError = {
   code: MerchantErrorCode;
   message: string;
-  type: "conflict" | "validation";
+  type:
+    | "authentication"
+    | "authorization"
+    | "conflict"
+    | "not_found"
+    | "validation";
 };
 
 const merchantRpcBusinessErrors: Partial<
   Record<MerchantErrorCode, RpcBusinessError>
 > = {
+  [merchantErrorCodes.authRequired]: {
+    code: merchantErrorCodes.authRequired,
+    message: getMerchantErrorMessage(merchantErrorCodes.authRequired),
+    type: "authentication",
+  },
   [merchantErrorCodes.ledgerInvalid]: {
     code: merchantErrorCodes.ledgerInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid),
-    type: "conflict",
+    type: "not_found",
   },
   [merchantErrorCodes.merchantTagInvalid]: {
     code: merchantErrorCodes.merchantTagInvalid,
@@ -82,9 +95,20 @@ const merchantRpcBusinessErrors: Partial<
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagSetInvalid),
     type: "conflict",
   },
+  [merchantErrorCodes.permissionDenied]: {
+    code: merchantErrorCodes.permissionDenied,
+    message: getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
+    type: "authorization",
+  },
 };
 
+const merchantAccessBusinessErrorCodes = {
+  auth_required: merchantErrorCodes.authRequired,
+  permission_denied: merchantErrorCodes.permissionDenied,
+} as const;
+
 const merchantTagWriteBusinessErrorCodes = {
+  merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
   merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
 } as const;
 
@@ -337,15 +361,32 @@ export function createSupabaseMerchantRepository(
       databaseDetails: error.details,
       databaseMessage: error.message,
     });
-    const businessErrorCode = findRpcBusinessError(error, businessErrorCodes);
+    const businessErrorCode =
+      findRpcBusinessError(error, merchantAccessBusinessErrorCodes) ??
+      findRpcBusinessError(error, businessErrorCodes);
     const businessError = businessErrorCode
       ? merchantRpcBusinessErrors[businessErrorCode]
       : undefined;
+    if (businessError?.type === "authentication") {
+      throw new AuthenticationError(businessError.code, businessError.message);
+    }
+    if (businessError?.type === "authorization") {
+      throw new AuthorizationError(businessError.code, businessError.message);
+    }
     if (businessError?.type === "validation") {
       throw new ValidationError(businessError.code, businessError.message);
     }
+    if (businessError?.type === "not_found") {
+      throw new NotFoundError(businessError.code, businessError.message);
+    }
     if (businessError) {
       throw new ConflictError(businessError.code, businessError.message);
+    }
+    if (error.code === "42501") {
+      throw new AuthorizationError(
+        merchantErrorCodes.permissionDenied,
+        getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
+      );
     }
     if (error.code === "23505" && conflictCode) {
       throw new ConflictError(conflictCode, publicMessage);
