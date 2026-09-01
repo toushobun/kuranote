@@ -178,8 +178,8 @@ export function createMerchantService({
     tagId,
   }: MerchantListInput): Promise<MerchantListResult> {
     const { role } = await requireLedgerRole(ledgerId, false);
-    const allMerchants = await merchantRepository.listActive(ledgerId);
-    const baseTags = await merchantRepository.listActiveTags(ledgerId);
+    const { merchants: allMerchants, tags: baseTags } =
+      await merchantRepository.listActive(ledgerId);
     const counts = new Map<string, number>();
     for (const merchant of allMerchants) {
       for (const tag of merchant.tags) {

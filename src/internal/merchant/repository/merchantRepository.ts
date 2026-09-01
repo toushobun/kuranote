@@ -73,6 +73,11 @@ export type MerchantTagData = {
   sort_order: number;
 };
 
+export type ActiveMerchantListData = {
+  merchants: MerchantData[];
+  tags: MerchantTagData[];
+};
+
 export type CreateMerchantInput = {
   ledgerId: string;
   name: string;
@@ -135,7 +140,7 @@ export interface MerchantRepository {
     ledgerId: string,
     merchantIds: string[],
   ): Promise<MerchantSummary[]>;
-  listActive(ledgerId: string): Promise<MerchantData[]>;
+  listActive(ledgerId: string): Promise<ActiveMerchantListData>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
   listActiveTags(ledgerId: string): Promise<MerchantTagData[]>;
   reorderTags(ledgerId: string, tagIds: string[]): Promise<void>;
@@ -649,7 +654,9 @@ export function createSupabaseMerchantRepository(
         toMerchantData,
       );
       const merchantIds = merchants.map((merchant) => merchant.id);
-      if (merchantIds.length === 0) return merchants;
+      if (merchantIds.length === 0) {
+        return { merchants, tags: await loadActiveTags(ledgerId) };
+      }
 
       const { data: aliasData, error: aliasError } = await supabase
         .from("merchant_alias")
@@ -674,11 +681,14 @@ export function createSupabaseMerchantRepository(
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
       );
       const tags = await loadActiveTags(ledgerId);
-      return attachMerchantTags(
-        withAliases,
+      return {
+        merchants: attachMerchantTags(
+          withAliases,
+          tags,
+          await loadTagLinks(merchantIds),
+        ),
         tags,
-        await loadTagLinks(merchantIds),
-      );
+      };
     },
 
     async listActiveSummaries(ledgerId) {
@@ -709,7 +719,35 @@ export function createSupabaseMerchantRepository(
     },
 
     async listActiveTags(ledgerId) {
-      return loadActiveTags(ledgerId);
+      const tags = await loadActiveTags(ledgerId);
+      if (tags.length === 0) return tags;
+
+      const { data: merchantData, error: merchantError } = await supabase
+        .from("merchant")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false);
+      if (merchantError) {
+        fail(
+          "[merchant] failed to load merchants for merchant tag counts",
+          merchantErrorCodes.merchantListFailed,
+          "商家列表读取失败，请稍后重试。",
+          { ledgerId },
+          merchantError,
+        );
+      }
+
+      const merchantIds = ((merchantData ?? []) as Array<{ id: string }>).map(
+        (merchant) => merchant.id,
+      );
+      const counts = new Map<string, number>();
+      for (const link of await loadTagLinks(merchantIds)) {
+        counts.set(link.tag_id, (counts.get(link.tag_id) ?? 0) + 1);
+      }
+      return tags.map((tag) => ({
+        ...tag,
+        merchant_count: counts.get(tag.id) ?? 0,
+      }));
     },
 
     async reorderTags(ledgerId, tagIds) {

@@ -1,5 +1,6 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Button, { type ButtonProps } from "@mui/material/Button";
+import Link from "next/link";
 
 export type CreateButtonProps = Omit<
   ButtonProps,
@@ -16,7 +17,7 @@ export function CreateButton({ href, ...props }: CreateButtonProps) {
   };
 
   if (href) {
-    return <Button {...sharedProps} href={href} />;
+    return <Button {...sharedProps} component={Link} href={href} />;
   }
 
   return <Button {...sharedProps} />;

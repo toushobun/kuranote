@@ -84,9 +84,12 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await expect(repository.listActive(ledgerId)).resolves.toEqual([]);
+    await expect(repository.listActive(ledgerId)).resolves.toEqual({
+      merchants: [],
+      tags: [],
+    });
 
-    expect(supabase.queries).toHaveLength(1);
+    expect(supabase.queries).toHaveLength(2);
     expect(supabase.queries[0].table).toBe("merchant");
     expect(supabase.queries[0].calls).toEqual(
       expect.arrayContaining([
@@ -135,9 +138,10 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await expect(repository.listActive(ledgerId)).resolves.toMatchObject([
-      { aliases: [{ id: aliasId }], id: merchantId },
-    ]);
+    await expect(repository.listActive(ledgerId)).resolves.toMatchObject({
+      merchants: [{ aliases: [{ id: aliasId }], id: merchantId }],
+      tags: [],
+    });
     expect(supabase.queries[1].table).toBe("merchant_alias");
   });
 
@@ -232,9 +236,17 @@ describe("createSupabaseMerchantRepository", () => {
 
   it("读取当前账本未归档标签并按排序返回", async () => {
     const tagId = "00000000-0000-4000-8000-000000002001";
+    const secondMerchantId = "00000000-0000-4000-8000-000000001002";
     const supabase = createSupabaseMock({
       queryResponses: [
         { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { data: [{ id: merchantId }, { id: secondMerchantId }] },
+        {
+          data: [
+            { merchant_id: merchantId, tag_id: tagId },
+            { merchant_id: secondMerchantId, tag_id: tagId },
+          ],
+        },
       ],
     });
     const repository = createSupabaseMerchantRepository(
@@ -243,7 +255,7 @@ describe("createSupabaseMerchantRepository", () => {
     );
 
     await expect(repository.listActiveTags(ledgerId)).resolves.toEqual([
-      { icon: "🛒", id: tagId, merchant_count: 0, name: "超市", sort_order: 0 },
+      { icon: "🛒", id: tagId, merchant_count: 2, name: "超市", sort_order: 0 },
     ]);
     expect(supabase.queries[0].calls).toEqual(
       expect.arrayContaining([
@@ -251,6 +263,16 @@ describe("createSupabaseMerchantRepository", () => {
         { args: ["is_archived", false], method: "eq" },
       ]),
     );
+    expect(supabase.queries[1].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+    expect(supabase.queries[2].calls).toContainEqual({
+      args: ["merchant_id", [merchantId, secondMerchantId]],
+      method: "in",
+    });
   });
 
   it("读取单个商家时只查询该商家关联的标签", async () => {

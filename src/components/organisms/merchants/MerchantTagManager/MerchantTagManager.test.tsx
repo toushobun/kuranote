@@ -166,4 +166,41 @@ describe("MerchantTagManager", () => {
       "重复标签",
     );
   });
+
+  it("归档失败时保留编辑对话框", async () => {
+    let resolveArchive:
+      | ((state: { error: string; errorKey: string }) => void)
+      | null = null;
+    const archiveAction = vi.fn(
+      async () =>
+        new Promise<{ error: string; errorKey: string }>((resolve) => {
+          resolveArchive = resolve;
+        }),
+    );
+    render(
+      <MerchantTagManager
+        archiveAction={archiveAction}
+        createAction={action}
+        mode="management"
+        reorderAction={async () => ({})}
+        tags={tags}
+        updateAction={action}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
+    fireEvent.click(screen.getByRole("button", { name: "归档标签" }));
+    await waitFor(() => expect(archiveAction).toHaveBeenCalledOnce());
+    expect(
+      screen.getByRole("heading", { name: "编辑标签" }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      resolveArchive?.({ error: "标签归档失败。", errorKey: "failure-3" });
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "编辑标签" }),
+    ).toBeInTheDocument();
+  });
 });

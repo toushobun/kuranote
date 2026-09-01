@@ -204,7 +204,11 @@ function MerchantTagManagement({
     initialState,
   );
   const [archiveState, dispatchArchive, archivePending] = useActionState(
-    archiveAction,
+    async (previousState: MerchantTagActionState, formData: FormData) => {
+      const nextState = await archiveAction(previousState, formData);
+      if (!nextState.error) setEditingTag(null);
+      return nextState;
+    },
     initialState,
   );
   const [reorderState, setReorderState] = useState(initialState);
@@ -390,11 +394,7 @@ function MerchantTagManagement({
           </Stack>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "space-between" }}>
-          <Stack
-            action={dispatchArchive}
-            component="form"
-            onSubmit={() => setEditingTag(null)}
-          >
+          <Stack action={dispatchArchive} component="form">
             <input name="tagId" type="hidden" value={editingTag?.id ?? ""} />
             <Button
               color="error"

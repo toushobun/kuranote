@@ -35,7 +35,7 @@ function createRepository(
     findActiveMerchantData: vi.fn().mockResolvedValue(null),
     findActiveTag: vi.fn().mockResolvedValue(null),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
-    listActive: vi.fn().mockResolvedValue([]),
+    listActive: vi.fn().mockResolvedValue({ merchants: [], tags: [] }),
     listActiveSummaries: vi.fn().mockResolvedValue([]),
     listActiveTags: vi.fn().mockResolvedValue([]),
     reorderTags: vi.fn(),
@@ -177,27 +177,30 @@ describe("createMerchantService", () => {
 
   it("商家列表读取会附加权限并按名称或别名筛选", async () => {
     const repository = createRepository({
-      listActive: vi.fn().mockResolvedValue([
-        {
-          aliases: [
-            {
-              alias: "来福",
-              created_at: "2026-01-01T00:00:00.000Z",
-              id: aliasId,
-              merchant_id: merchantId,
-              sort_order: 0,
-            },
-          ],
-          created_at: "2026-01-01T00:00:00.000Z",
-          icon_url: null,
-          id: merchantId,
-          name: "LIFE",
-          note: null,
-          sort_order: 0,
-          tags: [],
-          website_url: null,
-        },
-      ]),
+      listActive: vi.fn().mockResolvedValue({
+        merchants: [
+          {
+            aliases: [
+              {
+                alias: "来福",
+                created_at: "2026-01-01T00:00:00.000Z",
+                id: aliasId,
+                merchant_id: merchantId,
+                sort_order: 0,
+              },
+            ],
+            created_at: "2026-01-01T00:00:00.000Z",
+            icon_url: null,
+            id: merchantId,
+            name: "LIFE",
+            note: null,
+            sort_order: 0,
+            tags: [],
+            website_url: null,
+          },
+        ],
+        tags: [],
+      }),
     });
 
     await expect(
@@ -232,17 +235,19 @@ describe("createMerchantService", () => {
       website_url: null,
     };
     const repository = createRepository({
-      listActive: vi.fn().mockResolvedValue([
-        merchant,
-        {
-          ...merchant,
-          display_name: "Amazon",
-          id: `${merchantId.slice(0, -1)}2`,
-          name: "Amazon",
-          tags: [],
-        },
-      ]),
-      listActiveTags: vi.fn().mockResolvedValue([tag]),
+      listActive: vi.fn().mockResolvedValue({
+        merchants: [
+          merchant,
+          {
+            ...merchant,
+            display_name: "Amazon",
+            id: `${merchantId.slice(0, -1)}2`,
+            name: "Amazon",
+            tags: [],
+          },
+        ],
+        tags: [tag],
+      }),
     });
 
     await expect(
@@ -252,25 +257,28 @@ describe("createMerchantService", () => {
       selectedTag: { id: tagId, merchant_count: 1 },
       tags: [{ id: tagId, merchant_count: 1 }],
     });
+    expect(repository.listActiveTags).not.toHaveBeenCalled();
   });
 
   it("已归档或不存在的标签返回空结果并说明筛选已失效", async () => {
     const repository = createRepository({
-      listActive: vi.fn().mockResolvedValue([
-        {
-          aliases: [],
-          created_at: "2026-01-01T00:00:00.000Z",
-          display_name: "LIFE",
-          icon_url: null,
-          id: merchantId,
-          name: "LIFE",
-          note: null,
-          sort_order: 0,
-          tags: [],
-          website_url: null,
-        },
-      ]),
-      listActiveTags: vi.fn().mockResolvedValue([]),
+      listActive: vi.fn().mockResolvedValue({
+        merchants: [
+          {
+            aliases: [],
+            created_at: "2026-01-01T00:00:00.000Z",
+            display_name: "LIFE",
+            icon_url: null,
+            id: merchantId,
+            name: "LIFE",
+            note: null,
+            sort_order: 0,
+            tags: [],
+            website_url: null,
+          },
+        ],
+        tags: [],
+      }),
     });
 
     await expect(
