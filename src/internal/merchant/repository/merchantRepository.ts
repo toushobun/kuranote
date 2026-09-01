@@ -265,18 +265,17 @@ function attachMerchantTags(
   tags: MerchantTagData[],
   links: MerchantTagLinkRow[],
 ): MerchantData[] {
-  const tagById = new Map(tags.map((tag) => [tag.id, tag]));
-  const tagsByMerchantId = new Map<string, MerchantTagData[]>();
+  const tagIdsByMerchantId = new Map<string, Set<string>>();
   for (const link of links) {
-    const tag = tagById.get(link.tag_id);
-    if (!tag) continue;
-    const current = tagsByMerchantId.get(link.merchant_id) ?? [];
-    current.push(tag);
-    tagsByMerchantId.set(link.merchant_id, current);
+    const tagIds = tagIdsByMerchantId.get(link.merchant_id) ?? new Set();
+    tagIds.add(link.tag_id);
+    tagIdsByMerchantId.set(link.merchant_id, tagIds);
   }
   return merchants.map((merchant) => ({
     ...merchant,
-    tags: tagsByMerchantId.get(merchant.id) ?? [],
+    tags: tags.filter((tag) =>
+      tagIdsByMerchantId.get(merchant.id)?.has(tag.id),
+    ),
   }));
 }
 

@@ -83,6 +83,7 @@ export function useMerchantTagManager({
 
   function dropOn(event: DragEvent<HTMLElement>, targetId: string) {
     event.preventDefault();
+    if (isPending) return finishDrag();
     const sourceId = draggedIdRef.current;
     if (!sourceId || sourceId === targetId) return finishDrag();
     const next = [...orderedTags];

@@ -28,4 +28,36 @@ describe("useMerchantTagManager", () => {
       "tag-1",
     ]);
   });
+
+  it("排序请求处理中忽略已有拖拽的放置事件", async () => {
+    let resolveReorder: (() => void) | undefined;
+    const reorderAction = vi.fn<MerchantTagReorderAction>(
+      () =>
+        new Promise((resolve) => {
+          resolveReorder = () => resolve({});
+        }),
+    );
+    const { result } = renderHook(() =>
+      useMerchantTagManager({ onReorderError: vi.fn(), reorderAction, tags }),
+    );
+    const dragEvent = {
+      dataTransfer: {
+        effectAllowed: "none",
+        setData: vi.fn(),
+      },
+      preventDefault: vi.fn(),
+    };
+
+    act(() => {
+      result.current.startDrag(dragEvent as never, "tag-1");
+      result.current.moveTag("tag-2", -1);
+    });
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+
+    act(() => result.current.dropOn(dragEvent as never, "tag-2"));
+
+    expect(reorderAction).toHaveBeenCalledOnce();
+    expect(result.current.draggedId).toBeNull();
+    await act(async () => resolveReorder?.());
+  });
 });

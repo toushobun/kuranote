@@ -348,6 +348,7 @@ function MerchantTagManagement({
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
+              slotProps={{ htmlInput: { maxLength: 100 } }}
               value={name}
             />
             <MerchantTagIconField onChange={setIcon} value={icon} />
@@ -388,6 +389,7 @@ function MerchantTagManagement({
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
+              slotProps={{ htmlInput: { maxLength: 100 } }}
               value={name}
             />
             <MerchantTagIconField onChange={setIcon} value={icon} />

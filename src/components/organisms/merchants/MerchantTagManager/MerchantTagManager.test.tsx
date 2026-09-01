@@ -63,6 +63,10 @@ describe("MerchantTagManager", () => {
     expect(
       screen.getByRole("heading", { name: "新增标签" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+      "maxlength",
+      "100",
+    );
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     await waitFor(() =>
       expect(
@@ -73,6 +77,10 @@ describe("MerchantTagManager", () => {
     expect(
       screen.getByRole("heading", { name: "编辑标签" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+      "maxlength",
+      "100",
+    );
     expect(
       screen.getByRole("button", { name: "归档标签" }),
     ).toBeInTheDocument();
