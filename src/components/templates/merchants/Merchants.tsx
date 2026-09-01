@@ -168,11 +168,7 @@ export function MerchantsTemplate({
                   当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
                   {merchants.length} 个商家
                 </Typography>
-                <Button
-                  component={Link}
-                  href={clearTagFilterHref}
-                  size="small"
-                >
+                <Button component={Link} href={clearTagFilterHref} size="small">
                   清除筛选
                 </Button>
               </Stack>
