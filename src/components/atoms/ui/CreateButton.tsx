@@ -2,23 +2,34 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Button, { type ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
-export type CreateButtonProps = Omit<
-  ButtonProps,
-  "href" | "ref" | "startIcon" | "variant"
-> & {
-  href?: string;
-};
+type CreateButtonCommonProps = "href" | "startIcon" | "variant";
 
-export function CreateButton({ href, ...props }: CreateButtonProps) {
-  const sharedProps = {
-    ...props,
-    startIcon: <AddRoundedIcon />,
-    variant: "contained" as const,
-  };
+export type CreateButtonProps =
+  | (Omit<ButtonProps, CreateButtonCommonProps> & { href?: undefined })
+  | (Omit<
+      ButtonProps<typeof Link>,
+      CreateButtonCommonProps | "component"
+    > & { href: string });
 
-  if (href) {
-    return <Button {...sharedProps} component={Link} href={href} />;
+export function CreateButton(props: CreateButtonProps) {
+  if (typeof props.href === "string") {
+    const { href, ...linkProps } = props;
+    return (
+      <Button
+        {...linkProps}
+        component={Link}
+        href={href}
+        startIcon={<AddRoundedIcon />}
+        variant="contained"
+      />
+    );
   }
 
-  return <Button {...sharedProps} />;
+  return (
+    <Button
+      {...props}
+      startIcon={<AddRoundedIcon />}
+      variant="contained"
+    />
+  );
 }
