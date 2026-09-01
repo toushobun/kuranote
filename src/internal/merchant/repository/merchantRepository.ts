@@ -90,6 +90,13 @@ const merchantRpcBusinessErrors: Partial<
     ),
     type: "validation",
   },
+  [merchantErrorCodes.merchantTagReorderFailed]: {
+    code: merchantErrorCodes.merchantTagReorderFailed,
+    message: getMerchantErrorMessage(
+      merchantErrorCodes.merchantTagReorderFailed,
+    ),
+    type: "conflict",
+  },
   [merchantErrorCodes.merchantTagSetInvalid]: {
     code: merchantErrorCodes.merchantTagSetInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagSetInvalid),
@@ -116,6 +123,7 @@ const merchantTagReorderBusinessErrorCodes = {
   ledger_not_found: merchantErrorCodes.ledgerInvalid,
   merchant_tag_order_invalid: merchantErrorCodes.merchantTagOrderInvalid,
   merchant_tag_set_invalid: merchantErrorCodes.merchantTagSetInvalid,
+  merchant_tag_write_failed: merchantErrorCodes.merchantTagReorderFailed,
 } as const;
 
 export type MerchantAliasData = {
@@ -433,6 +441,26 @@ export function createSupabaseMerchantRepository(
       );
     }
     return ((data ?? []) as MerchantTagRow[]).map(toMerchantTagData);
+  }
+
+  async function loadActiveMerchantIds(ledgerId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("merchant")
+      .select("id")
+      .eq("ledger_id", ledgerId)
+      .eq("is_archived", false);
+    if (error) {
+      fail(
+        "[merchant] failed to load merchants for merchant tag counts",
+        merchantErrorCodes.merchantTagListFailed,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+        { ledgerId },
+        error,
+      );
+    }
+    return ((data ?? []) as Array<{ id: string }>).map(
+      (merchant) => merchant.id,
+    );
   }
 
   async function loadTagLinks(merchantIds: string[]) {
@@ -861,27 +889,11 @@ export function createSupabaseMerchantRepository(
     },
 
     async listActiveTags(ledgerId) {
-      const tags = await loadActiveTags(ledgerId);
+      const [tags, merchantIds] = await Promise.all([
+        loadActiveTags(ledgerId),
+        loadActiveMerchantIds(ledgerId),
+      ]);
       if (tags.length === 0) return tags;
-
-      const { data: merchantData, error: merchantError } = await supabase
-        .from("merchant")
-        .select("id")
-        .eq("ledger_id", ledgerId)
-        .eq("is_archived", false);
-      if (merchantError) {
-        fail(
-          "[merchant] failed to load merchants for merchant tag counts",
-          merchantErrorCodes.merchantTagListFailed,
-          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
-          { ledgerId },
-          merchantError,
-        );
-      }
-
-      const merchantIds = ((merchantData ?? []) as Array<{ id: string }>).map(
-        (merchant) => merchant.id,
-      );
       return attachMerchantCounts(tags, await loadTagLinks(merchantIds));
     },
 

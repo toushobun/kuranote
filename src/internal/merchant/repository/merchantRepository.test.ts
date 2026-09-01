@@ -406,7 +406,13 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await expect(repository.listActiveTags(ledgerId)).resolves.toEqual([
+    const operation = repository.listActiveTags(ledgerId);
+
+    expect(supabase.queries.map((query) => query.table)).toEqual([
+      "merchant_tags",
+      "merchant",
+    ]);
+    await expect(operation).resolves.toEqual([
       { icon: "🛒", id: tagId, merchant_count: 2, name: "超市", sort_order: 0 },
     ]);
     expect(supabase.queries[0].calls).toEqual(
@@ -550,6 +556,13 @@ describe("createSupabaseMerchantRepository", () => {
       details: "ledger_not_found",
       errorType: NotFoundError,
       message: "账本不存在、已停用或您无法访问。",
+    },
+    {
+      databaseCode: "P0001",
+      code: merchantErrorCodes.merchantTagReorderFailed,
+      details: "merchant_tag_write_failed",
+      errorType: ConflictError,
+      message: "标签排序保存失败，请稍后重试。",
     },
   ])(
     "标签排序 RPC 的 $details 会转换为对应业务错误",

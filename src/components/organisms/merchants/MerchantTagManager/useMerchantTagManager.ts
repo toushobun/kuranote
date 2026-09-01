@@ -88,10 +88,11 @@ export function useMerchantTagManager({
     if (!sourceId || sourceId === targetId) return finishDrag();
     const next = [...orderedTags];
     const sourceIndex = next.findIndex((tag) => tag.id === sourceId);
-    const targetIndex = next.findIndex((tag) => tag.id === targetId);
-    if (sourceIndex < 0 || targetIndex < 0) return finishDrag();
+    if (sourceIndex < 0) return finishDrag();
     const [tag] = next.splice(sourceIndex, 1);
     if (!tag) return finishDrag();
+    const targetIndex = next.findIndex((item) => item.id === targetId);
+    if (targetIndex < 0) return finishDrag();
     next.splice(targetIndex, 0, tag);
     submitOrder(next);
     finishDrag();
