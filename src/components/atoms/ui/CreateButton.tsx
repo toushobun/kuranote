@@ -9,7 +9,9 @@ export type CreateButtonProps =
   | (Omit<
       ButtonProps<typeof Link>,
       CreateButtonCommonProps | "component"
-    > & { href: string });
+    > & {
+      href: string;
+    });
 
 export function CreateButton(props: CreateButtonProps) {
   if (typeof props.href === "string") {
