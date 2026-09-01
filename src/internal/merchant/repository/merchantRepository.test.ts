@@ -2,7 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  getMerchantErrorMessage,
+  merchantErrorCodes,
+} from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
   AuthenticationError,
@@ -405,6 +408,30 @@ describe("createSupabaseMerchantRepository", () => {
       args: ["merchant_id", [merchantId, secondMerchantId]],
       method: "in",
     });
+  });
+
+  it("标签计数所需的商家查询失败时返回统一的标签列表错误", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { error: { code: "XX000", message: "private detail" } },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.listActiveTags(ledgerId);
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.merchantTagListFailed,
+      message: getMerchantErrorMessage(
+        merchantErrorCodes.merchantTagListFailed,
+      ),
+    });
+    await expect(operation).rejects.toBeInstanceOf(RepositoryError);
   });
 
   it("标签校验只读取当前账本未归档标签 ID", async () => {

@@ -873,8 +873,8 @@ export function createSupabaseMerchantRepository(
       if (merchantError) {
         fail(
           "[merchant] failed to load merchants for merchant tag counts",
-          merchantErrorCodes.merchantListFailed,
-          "商家列表读取失败，请稍后重试。",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
           { ledgerId },
           merchantError,
         );
