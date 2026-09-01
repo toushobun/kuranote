@@ -100,7 +100,7 @@ describe("MerchantTagManager", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "新增标签" }));
-    fireEvent.change(screen.getByLabelText("标签名称"), {
+    fireEvent.change(document.querySelector('input[name="name"]')!, {
       target: { value: "重复标签" },
     });
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
@@ -144,7 +144,7 @@ describe("MerchantTagManager", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
-    fireEvent.change(screen.getByLabelText("标签名称"), {
+    fireEvent.change(document.querySelector('input[name="name"]')!, {
       target: { value: "重复标签" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
