@@ -101,8 +101,9 @@ describe("createSupabaseMerchantRepository", () => {
     );
   });
 
-  it("商家列表会读取别名并挂到所属商家", async () => {
+  it("商家列表会装配别名、标签及统一计算的商家数量", async () => {
     const aliasId = "00000000-0000-4000-8000-000000001002";
+    const tagId = "00000000-0000-4000-8000-000000002001";
     const supabase = createSupabaseMock({
       queryResponses: [
         {
@@ -129,8 +130,8 @@ describe("createSupabaseMerchantRepository", () => {
             },
           ],
         },
-        { data: [] },
-        { data: [] },
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { data: [{ merchant_id: merchantId, tag_id: tagId }] },
       ],
     });
     const repository = createSupabaseMerchantRepository(
@@ -139,8 +140,14 @@ describe("createSupabaseMerchantRepository", () => {
     );
 
     await expect(repository.listActive(ledgerId)).resolves.toMatchObject({
-      merchants: [{ aliases: [{ id: aliasId }], id: merchantId }],
-      tags: [],
+      merchants: [
+        {
+          aliases: [{ id: aliasId }],
+          id: merchantId,
+          tags: [{ id: tagId, merchant_count: 1 }],
+        },
+      ],
+      tags: [{ id: tagId, merchant_count: 1 }],
     });
     expect(supabase.queries[1].table).toBe("merchant_alias");
   });

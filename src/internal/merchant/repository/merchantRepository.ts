@@ -171,6 +171,20 @@ function toMerchantTagData(row: MerchantTagRow): MerchantTagData {
   return { ...row, merchant_count: 0 };
 }
 
+function attachMerchantCounts(
+  tags: MerchantTagData[],
+  links: MerchantTagLinkRow[],
+): MerchantTagData[] {
+  const counts = new Map<string, number>();
+  for (const link of links) {
+    counts.set(link.tag_id, (counts.get(link.tag_id) ?? 0) + 1);
+  }
+  return tags.map((tag) => ({
+    ...tag,
+    merchant_count: counts.get(tag.id) ?? 0,
+  }));
+}
+
 function attachMerchantTags(
   merchants: MerchantData[],
   tags: MerchantTagData[],
@@ -532,13 +546,20 @@ export function createSupabaseMerchantRepository(
       }
       if (!merchantData) return null;
 
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("merchant_alias")
-        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
-        .eq("merchant_id", merchantId)
-        .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      const [{ data: aliasData, error: aliasError }, links] = await Promise.all(
+        [
+          supabase
+            .from("merchant_alias")
+            .select(
+              "id, merchant_id, alias, is_preferred, sort_order, created_at",
+            )
+            .eq("merchant_id", merchantId)
+            .eq("is_archived", false)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false }),
+          loadTagLinks([merchantId]),
+        ],
+      );
 
       if (aliasError) {
         fail(
@@ -554,7 +575,6 @@ export function createSupabaseMerchantRepository(
         [toMerchantData(merchantData as MerchantRow)],
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
       );
-      const links = await loadTagLinks([merchantId]);
       if (links.length === 0) return merchant[0]!;
 
       const { data: tagData, error: tagError } = await supabase
@@ -655,13 +675,20 @@ export function createSupabaseMerchantRepository(
         return { merchants, tags: await loadActiveTags(ledgerId) };
       }
 
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("merchant_alias")
-        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
-        .in("merchant_id", merchantIds)
-        .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      const [{ data: aliasData, error: aliasError }, baseTags, tagLinks] =
+        await Promise.all([
+          supabase
+            .from("merchant_alias")
+            .select(
+              "id, merchant_id, alias, is_preferred, sort_order, created_at",
+            )
+            .in("merchant_id", merchantIds)
+            .eq("is_archived", false)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false }),
+          loadActiveTags(ledgerId),
+          loadTagLinks(merchantIds),
+        ]);
 
       if (aliasError) {
         fail(
@@ -677,13 +704,9 @@ export function createSupabaseMerchantRepository(
         merchants,
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
       );
-      const tags = await loadActiveTags(ledgerId);
+      const tags = attachMerchantCounts(baseTags, tagLinks);
       return {
-        merchants: attachMerchantTags(
-          withAliases,
-          tags,
-          await loadTagLinks(merchantIds),
-        ),
+        merchants: attachMerchantTags(withAliases, tags, tagLinks),
         tags,
       };
     },
@@ -755,14 +778,7 @@ export function createSupabaseMerchantRepository(
       const merchantIds = ((merchantData ?? []) as Array<{ id: string }>).map(
         (merchant) => merchant.id,
       );
-      const counts = new Map<string, number>();
-      for (const link of await loadTagLinks(merchantIds)) {
-        counts.set(link.tag_id, (counts.get(link.tag_id) ?? 0) + 1);
-      }
-      return tags.map((tag) => ({
-        ...tag,
-        merchant_count: counts.get(tag.id) ?? 0,
-      }));
+      return attachMerchantCounts(tags, await loadTagLinks(merchantIds));
     },
 
     async reorderTags(ledgerId, tagIds) {

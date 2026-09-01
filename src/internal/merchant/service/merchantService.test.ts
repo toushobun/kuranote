@@ -253,7 +253,7 @@ describe("createMerchantService", () => {
     const tag = {
       icon: "🛒",
       id: tagId,
-      merchant_count: 0,
+      merchant_count: 1,
       name: "超市",
       sort_order: 0,
     };
