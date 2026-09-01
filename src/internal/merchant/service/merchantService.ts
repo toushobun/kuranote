@@ -166,8 +166,7 @@ export function createMerchantService({
     if (!(await merchantRepository.findActiveMerchant(ledgerId, merchantId))) {
       throw new NotFoundError(
         merchantErrorCodes.merchantInvalid,
-        getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
-          "商家指定不正确。",
+        getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
       );
     }
   }
@@ -236,8 +235,7 @@ export function createMerchantService({
       if (!alias) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-            "商家别名指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
         );
       }
       if (
@@ -248,8 +246,7 @@ export function createMerchantService({
       ) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-            "商家别名指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
         );
       }
 
@@ -322,8 +319,7 @@ export function createMerchantService({
       if (!merchant) {
         throw new NotFoundError(
           merchantErrorCodes.merchantInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
-            "商家指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
         );
       }
       return merchant;
@@ -362,8 +358,7 @@ export function createMerchantService({
         if (!alias || alias.merchantId !== merchantId) {
           throw new NotFoundError(
             merchantErrorCodes.aliasInvalid,
-            getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-              "商家别名指定不正确。",
+            getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
           );
         }
       }
