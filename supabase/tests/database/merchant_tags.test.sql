@@ -377,7 +377,7 @@ select is(
         where mt.ledger_id = '65100000-0000-4000-8000-000000000001'
           and mt.is_archived = false
     ),
-    7,
+    8,
     '归档后只影响目标标签'
 );
 

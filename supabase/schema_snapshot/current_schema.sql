@@ -1652,6 +1652,7 @@ ALTER FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "te
 COMMENT ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") IS '按账本获取事务级 advisory lock，并原子分配下一个 sort_order 后创建商家标签。';
 
 
+
 CREATE OR REPLACE FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
