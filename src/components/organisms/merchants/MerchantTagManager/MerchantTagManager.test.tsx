@@ -106,6 +106,11 @@ describe("MerchantTagManager", () => {
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
     fireEvent.click(screen.getByRole("button", { name: "选择电商图标" }));
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "选择图标" }),
+      ).not.toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "新增" }));
     await waitFor(() => expect(createAction).toHaveBeenCalledOnce());
 
