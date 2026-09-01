@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export type CreateButtonProps = Omit<
   ButtonProps,
-  "href" | "startIcon" | "variant"
+  "href" | "ref" | "startIcon" | "variant"
 > & {
   href?: string;
 };
