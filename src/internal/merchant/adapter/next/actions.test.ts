@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes } from "internal/merchant/errors";
 import {
+  ConflictError,
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -171,6 +172,23 @@ describe("Merchant Server Actions", () => {
     const state = await runAction(updateMerchant);
 
     expectErrorState(state, "商家更新失败，请稍后重试。");
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("标签排序时账本状态竞争返回具体安全文案", async () => {
+    mocks.reorderTags.mockRejectedValue(
+      new ConflictError(
+        merchantErrorCodes.ledgerInvalid,
+        "账本不存在、已停用或您无法访问。",
+      ),
+    );
+    const formData = merchantForm();
+    formData.set("tagIds", JSON.stringify([tagId]));
+
+    const state = await reorderMerchantTags(formData);
+
+    expectErrorState(state, "账本不存在、已停用或您无法访问。");
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });

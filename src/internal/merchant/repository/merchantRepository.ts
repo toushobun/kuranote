@@ -11,6 +11,10 @@ import {
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import {
+  findRpcBusinessError,
+  type RpcErrorLike,
+} from "internal/shared/supabase/rpcError";
 import { resolveMerchantDisplayName } from "utils/merchants";
 
 type MerchantRow = {
@@ -53,33 +57,42 @@ type RpcBusinessError = {
   type: "conflict" | "validation";
 };
 
-const merchantTagWriteBusinessErrors: Record<string, RpcBusinessError> = {
-  merchant_tags_invalid: {
-    code: merchantErrorCodes.merchantTagInvalid,
-    message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
-    type: "conflict",
-  },
-};
-
-const merchantTagReorderBusinessErrors: Record<string, RpcBusinessError> = {
-  ledger_not_found: {
+const merchantRpcBusinessErrors: Partial<
+  Record<MerchantErrorCode, RpcBusinessError>
+> = {
+  [merchantErrorCodes.ledgerInvalid]: {
     code: merchantErrorCodes.ledgerInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid),
     type: "conflict",
   },
-  merchant_tag_order_invalid: {
+  [merchantErrorCodes.merchantTagInvalid]: {
+    code: merchantErrorCodes.merchantTagInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
+    type: "conflict",
+  },
+  [merchantErrorCodes.merchantTagOrderInvalid]: {
     code: merchantErrorCodes.merchantTagOrderInvalid,
     message: getMerchantErrorMessage(
       merchantErrorCodes.merchantTagOrderInvalid,
     ),
     type: "validation",
   },
-  merchant_tag_set_invalid: {
+  [merchantErrorCodes.merchantTagSetInvalid]: {
     code: merchantErrorCodes.merchantTagSetInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagSetInvalid),
     type: "conflict",
   },
 };
+
+const merchantTagWriteBusinessErrorCodes = {
+  merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
+} as const;
+
+const merchantTagReorderBusinessErrorCodes = {
+  ledger_not_found: merchantErrorCodes.ledgerInvalid,
+  merchant_tag_order_invalid: merchantErrorCodes.merchantTagOrderInvalid,
+  merchant_tag_set_invalid: merchantErrorCodes.merchantTagSetInvalid,
+} as const;
 
 export type MerchantAliasData = {
   alias: string;
@@ -314,13 +327,9 @@ export function createSupabaseMerchantRepository(
     code: string,
     publicMessage: string,
     fields: Record<string, unknown>,
-    error: {
-      code?: string | null;
-      details?: string | null;
-      message?: string | null;
-    },
+    error: RpcErrorLike,
     conflictCode?: string,
-    businessErrors: Record<string, RpcBusinessError> = {},
+    businessErrorCodes: Readonly<Record<string, MerchantErrorCode>> = {},
   ): never {
     logger.error(logMessage, {
       ...fields,
@@ -328,10 +337,10 @@ export function createSupabaseMerchantRepository(
       databaseDetails: error.details,
       databaseMessage: error.message,
     });
-    const businessError =
-      error.details && Object.hasOwn(businessErrors, error.details)
-        ? businessErrors[error.details]
-        : undefined;
+    const businessErrorCode = findRpcBusinessError(error, businessErrorCodes);
+    const businessError = businessErrorCode
+      ? merchantRpcBusinessErrors[businessErrorCode]
+      : undefined;
     if (businessError?.type === "validation") {
       throw new ValidationError(businessError.code, businessError.message);
     }
@@ -517,7 +526,7 @@ export function createSupabaseMerchantRepository(
           { ledgerId: input.ledgerId },
           error,
           merchantErrorCodes.createFailed,
-          merchantTagWriteBusinessErrors,
+          merchantTagWriteBusinessErrorCodes,
         );
       }
     },
@@ -849,7 +858,7 @@ export function createSupabaseMerchantRepository(
           { ledgerId },
           error,
           undefined,
-          merchantTagReorderBusinessErrors,
+          merchantTagReorderBusinessErrorCodes,
         );
       }
     },
@@ -899,7 +908,7 @@ export function createSupabaseMerchantRepository(
           { ledgerId: input.ledgerId, merchantId: input.merchantId },
           error,
           merchantErrorCodes.updateFailed,
-          merchantTagWriteBusinessErrors,
+          merchantTagWriteBusinessErrorCodes,
         );
       }
       return data === true;

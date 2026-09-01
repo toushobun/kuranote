@@ -57,6 +57,7 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.aliasPreferredUpdateFailed
   | typeof merchantErrorCodes.archiveFailed
   | typeof merchantErrorCodes.createFailed
+  | typeof merchantErrorCodes.ledgerInvalid
   | typeof merchantErrorCodes.merchantTagArchiveFailed
   | typeof merchantErrorCodes.merchantTagCreateFailed
   | typeof merchantErrorCodes.merchantTagReorderFailed
@@ -74,6 +75,7 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.aliasTooLong,
   merchantErrorCodes.archiveFailed,
   merchantErrorCodes.createFailed,
+  merchantErrorCodes.ledgerInvalid,
   merchantErrorCodes.merchantInvalid,
   merchantErrorCodes.merchantTagArchiveFailed,
   merchantErrorCodes.merchantTagCreateFailed,

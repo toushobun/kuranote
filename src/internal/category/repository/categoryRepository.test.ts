@@ -337,7 +337,7 @@ describe("\u5206\u7C7B\u6392\u5E8F\u8D26\u672C\u5931\u6548\u9519\u8BEF", () => {
       rpcResponse: {
         error: {
           code: "P0002",
-          details: "ledger_not_found",
+          details: "  ledger_not_found\n",
           message: "ledger_not_found",
         },
       },

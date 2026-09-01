@@ -10,6 +10,10 @@ import {
 } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import {
+  findRpcBusinessError,
+  type RpcErrorLike,
+} from "internal/shared/supabase/rpcError";
 
 export type CategoryScope = {
   ledgerId: string;
@@ -119,37 +123,20 @@ type CategorySummaryRow = {
   type: CategoryType;
 };
 
-type CategoryReorderRpcError = {
-  code?: string | null;
-  details?: string | null;
-  message?: string | null;
-};
-
-const categoryReorderRpcErrorCodes = [
-  "auth_required",
-  "permission_denied",
-  "ledger_required",
-  "ledger_not_found",
-  "category_type_invalid",
-  "category_order_invalid",
-  "category_parent_invalid",
-  "category_set_invalid",
-  "category_write_failed",
-] as const;
+const categoryReorderRpcErrorMap = {
+  auth_required: "auth_required",
+  category_order_invalid: "category_order_invalid",
+  category_parent_invalid: "category_parent_invalid",
+  category_set_invalid: "category_set_invalid",
+  category_type_invalid: "category_type_invalid",
+  category_write_failed: "category_write_failed",
+  ledger_not_found: "ledger_not_found",
+  ledger_required: "ledger_required",
+  permission_denied: "permission_denied",
+} as const;
 
 type CategoryReorderRpcErrorCode =
-  (typeof categoryReorderRpcErrorCodes)[number];
-
-function findCategoryReorderRpcErrorCode(
-  error: CategoryReorderRpcError,
-): CategoryReorderRpcErrorCode | null {
-  const businessErrorCode = error.details?.trim();
-  return categoryReorderRpcErrorCodes.includes(
-    businessErrorCode as CategoryReorderRpcErrorCode,
-  )
-    ? (businessErrorCode as CategoryReorderRpcErrorCode)
-    : null;
-}
+  (typeof categoryReorderRpcErrorMap)[keyof typeof categoryReorderRpcErrorMap];
 
 function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {
   return {
@@ -200,10 +187,11 @@ export function createSupabaseCategoryRepository(
   }
 
   function throwReorderRpcError(
-    error: CategoryReorderRpcError,
+    error: RpcErrorLike,
     input: ReorderCategoriesInput,
   ): never {
-    const rpcErrorCode = findCategoryReorderRpcErrorCode(error);
+    const rpcErrorCode: CategoryReorderRpcErrorCode | null =
+      findRpcBusinessError(error, categoryReorderRpcErrorMap);
 
     logger.error("[category] failed to reorder categories transactionally", {
       categoryCount: input.categoryIds.length,

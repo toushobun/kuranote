@@ -260,7 +260,7 @@ describe("createSupabaseMerchantRepository", () => {
         rpcResponse: {
           error: {
             code: "22023",
-            details: "merchant_tags_invalid",
+            details: "  merchant_tags_invalid\n",
             message: "private detail",
           },
         },
@@ -447,7 +447,7 @@ describe("createSupabaseMerchantRepository", () => {
         rpcResponse: {
           error: {
             code: databaseCode,
-            details,
+            details: ` ${details}\n`,
             message: "private detail",
           },
         },
