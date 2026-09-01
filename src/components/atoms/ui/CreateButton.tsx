@@ -6,10 +6,7 @@ type CreateButtonCommonProps = "href" | "startIcon" | "variant";
 
 export type CreateButtonProps =
   | (Omit<ButtonProps, CreateButtonCommonProps> & { href?: undefined })
-  | (Omit<
-      ButtonProps<typeof Link>,
-      CreateButtonCommonProps | "component"
-    > & {
+  | (Omit<ButtonProps<typeof Link>, CreateButtonCommonProps | "component"> & {
       href: string;
     });
 
@@ -28,10 +25,6 @@ export function CreateButton(props: CreateButtonProps) {
   }
 
   return (
-    <Button
-      {...props}
-      startIcon={<AddRoundedIcon />}
-      variant="contained"
-    />
+    <Button {...props} startIcon={<AddRoundedIcon />} variant="contained" />
   );
 }
