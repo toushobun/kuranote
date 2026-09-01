@@ -227,8 +227,9 @@ export function createMerchantService({
     tagIds: string[],
   ): Promise<void> {
     if (tagIds.length === 0) return;
-    const tags = await merchantRepository.listActiveTags(ledgerId);
-    const activeIds = new Set(tags.map((tag) => tag.id));
+    const activeIds = new Set(
+      await merchantRepository.listActiveTagIds(ledgerId),
+    );
     if (tagIds.some((tagId) => !activeIds.has(tagId))) {
       throw new ValidationError(
         merchantErrorCodes.merchantTagInvalid,
@@ -321,12 +322,8 @@ export function createMerchantService({
     },
 
     async createTag(input) {
-      const { userId } = await requireLedgerRole(input.ledgerId, true);
-      const tags = await merchantRepository.listActiveTags(input.ledgerId);
-      const sortOrder =
-        tags.reduce((maximum, tag) => Math.max(maximum, tag.sort_order), -1) +
-        1;
-      await merchantRepository.createTag({ ...input, sortOrder, userId });
+      await requireLedgerRole(input.ledgerId, true);
+      await merchantRepository.createTag(input);
     },
 
     async findSummariesByIds({ ledgerId, merchantIds }) {

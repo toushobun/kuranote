@@ -275,6 +275,46 @@ describe("createSupabaseMerchantRepository", () => {
     });
   });
 
+  it("标签校验只读取当前账本未归档标签 ID", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: [{ id: tagId }] }],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.listActiveTagIds(ledgerId)).resolves.toEqual([
+      tagId,
+    ]);
+    expect(supabase.queries).toHaveLength(1);
+    expect(supabase.queries[0].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["id"], method: "select" },
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+  });
+
+  it("通过 RPC 原子创建商家标签", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({ rpcResponse: { data: tagId } });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await repository.createTag({ icon: "🛒", ledgerId, name: "超市" });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("create_merchant_tag", {
+      p_icon: "🛒",
+      p_ledger_id: ledgerId,
+      p_name: "超市",
+    });
+  });
+
   it("读取单个商家时只查询该商家关联的标签", async () => {
     const tagId = "00000000-0000-4000-8000-000000002001";
     const supabase = createSupabaseMock({

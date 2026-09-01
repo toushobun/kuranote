@@ -41,7 +41,11 @@ export function MerchantsTemplate({
   tags,
 }: MerchantsTemplateProps) {
   const hasMerchants = merchants.length > 0;
-  const hasKeyword = keyword.trim().length > 0;
+  const normalizedKeyword = keyword.trim();
+  const hasKeyword = normalizedKeyword.length > 0;
+  const clearTagFilterHref = hasKeyword
+    ? `${routePaths.merchants}?q=${encodeURIComponent(normalizedKeyword)}`
+    : routePaths.merchants;
 
   return (
     <>
@@ -166,11 +170,7 @@ export function MerchantsTemplate({
                 </Typography>
                 <Button
                   component={Link}
-                  href={
-                    keyword.trim()
-                      ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
-                      : routePaths.merchants
-                  }
+                  href={clearTagFilterHref}
                   size="small"
                 >
                   清除筛选
@@ -183,11 +183,7 @@ export function MerchantsTemplate({
                   <Button
                     color="inherit"
                     component={Link}
-                    href={
-                      keyword.trim()
-                        ? `${routePaths.merchants}?q=${encodeURIComponent(keyword.trim())}`
-                        : routePaths.merchants
-                    }
+                    href={clearTagFilterHref}
                     size="small"
                   >
                     清除筛选

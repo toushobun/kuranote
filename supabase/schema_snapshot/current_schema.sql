@@ -1602,6 +1602,56 @@ $$;
 ALTER FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_tag_id uuid;
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    if not public.current_user_can_manage_ledger(p_ledger_id)
+       or not exists (
+           select 1
+           from public.ledger l
+           where l.id = p_ledger_id and l.is_archived = false
+       ) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
+
+    perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));
+
+    insert into public.merchant_tags (
+        ledger_id, name, icon, sort_order, created_by
+    )
+    select
+        p_ledger_id,
+        p_name,
+        p_icon,
+        coalesce(max(mt.sort_order), -1) + 1,
+        v_user_id
+    from public.merchant_tags mt
+    where mt.ledger_id = p_ledger_id
+      and mt.is_archived = false
+    returning id into v_tag_id;
+
+    return v_tag_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") IS '按账本获取事务级 advisory lock，并原子分配下一个 sort_order 后创建商家标签。';
+
+
 CREATE OR REPLACE FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -8585,6 +8635,11 @@ REVOKE ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_b
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") TO "authenticated";
 
 
 

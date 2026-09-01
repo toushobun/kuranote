@@ -111,8 +111,6 @@ export type CreateMerchantTagInput = {
   icon: string;
   ledgerId: string;
   name: string;
-  sortOrder: number;
-  userId: string;
 };
 export type UpdateMerchantTagInput = Omit<
   CreateMerchantTagInput,
@@ -142,6 +140,7 @@ export interface MerchantRepository {
   ): Promise<MerchantSummary[]>;
   listActive(ledgerId: string): Promise<ActiveMerchantListData>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
+  listActiveTagIds(ledgerId: string): Promise<string[]>;
   listActiveTags(ledgerId: string): Promise<MerchantTagData[]>;
   reorderTags(ledgerId: string, tagIds: string[]): Promise<void>;
   setPreferredAlias(input: SetPreferredMerchantAliasInput): Promise<boolean>;
@@ -455,12 +454,10 @@ export function createSupabaseMerchantRepository(
     },
 
     async createTag(input) {
-      const { error } = await supabase.from("merchant_tags").insert({
-        created_by: input.userId,
-        icon: input.icon,
-        ledger_id: input.ledgerId,
-        name: input.name,
-        sort_order: input.sortOrder,
+      const { error } = await supabase.rpc("create_merchant_tag", {
+        p_icon: input.icon,
+        p_ledger_id: input.ledgerId,
+        p_name: input.name,
       });
       if (error) {
         fail(
@@ -716,6 +713,24 @@ export function createSupabaseMerchantRepository(
         merchants,
         await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
       );
+    },
+
+    async listActiveTagIds(ledgerId) {
+      const { data, error } = await supabase
+        .from("merchant_tags")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false);
+      if (error) {
+        fail(
+          "[merchant] failed to load active merchant tag ids",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+          { ledgerId },
+          error,
+        );
+      }
+      return ((data ?? []) as Array<{ id: string }>).map((tag) => tag.id);
     },
 
     async listActiveTags(ledgerId) {

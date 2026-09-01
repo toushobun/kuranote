@@ -37,6 +37,7 @@ function createRepository(
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     listActive: vi.fn().mockResolvedValue({ merchants: [], tags: [] }),
     listActiveSummaries: vi.fn().mockResolvedValue([]),
+    listActiveTagIds: vi.fn().mockResolvedValue([]),
     listActiveTags: vi.fn().mockResolvedValue([]),
     reorderTags: vi.fn(),
     setPreferredAlias: vi.fn().mockResolvedValue(true),
@@ -158,6 +159,40 @@ describe("createMerchantService", () => {
       tagIds: [],
       userId,
     });
+  });
+
+  it("创建商家只读取未归档标签 ID 进行校验", async () => {
+    const repository = createRepository({
+      listActiveTagIds: vi.fn().mockResolvedValue([tagId]),
+    });
+
+    await createService(repository).createMerchant({
+      ledgerId,
+      name: "LIFE",
+      note: null,
+      siteUrl: null,
+      tagIds: [tagId],
+    });
+
+    expect(repository.listActiveTagIds).toHaveBeenCalledWith(ledgerId);
+    expect(repository.listActiveTags).not.toHaveBeenCalled();
+  });
+
+  it("创建标签由 Repository 原子分配排序", async () => {
+    const repository = createRepository();
+
+    await createService(repository).createTag({
+      icon: "🛒",
+      ledgerId,
+      name: "超市",
+    });
+
+    expect(repository.createTag).toHaveBeenCalledWith({
+      icon: "🛒",
+      ledgerId,
+      name: "超市",
+    });
+    expect(repository.listActiveTags).not.toHaveBeenCalled();
   });
 
   it("API 商家列表读取不需要 SSR 账本名称", async () => {

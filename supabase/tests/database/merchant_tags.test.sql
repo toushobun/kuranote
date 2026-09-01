@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(23);
+select plan(27);
 
 select has_table('public', 'merchant_tags', '商家标签表存在');
 select has_table('public', 'merchant_tag_links', '商家标签关联表存在');
@@ -45,6 +45,13 @@ select ok(
         in pg_get_functiondef('public.reorder_merchant_tags(uuid,uuid[])'::regprocedure)
     ) = 0,
     '商家标签排序不再获取全表锁'
+);
+select ok(
+    position(
+        'perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));'
+        in pg_get_functiondef('public.create_merchant_tag(uuid,text,text)'::regprocedure)
+    ) > 0,
+    '新建商家标签按目标账本获取事务级 advisory lock'
 );
 
 insert into public.ledger (
@@ -193,6 +200,18 @@ select throws_ok(
     '普通成员不能通过 RPC 新增商家'
 );
 
+select throws_ok(
+    $$
+        select public.create_merchant_tag(
+            '65100000-0000-4000-8000-000000000001',
+            '普通成员标签', '🏷️'
+        )
+    $$,
+    '42501',
+    'permission_denied',
+    '普通成员不能通过 RPC 新增商家标签'
+);
+
 select is_empty(
     $$
         update public.merchant_tags
@@ -238,6 +257,25 @@ select is(
     ),
     '生活',
     '商家标签按提交顺序保存'
+);
+
+select ok(
+    public.create_merchant_tag(
+        '65100000-0000-4000-8000-000000000001',
+        '原子排序标签', '🏷️'
+    ) is not null,
+    '管理员可以通过 RPC 新增商家标签'
+);
+
+select is(
+    (
+        select sort_order
+        from public.merchant_tags
+        where ledger_id = '65100000-0000-4000-8000-000000000001'
+          and name = '原子排序标签'
+    ),
+    8,
+    '新建商家标签在锁内使用下一个排序值'
 );
 
 reset role;

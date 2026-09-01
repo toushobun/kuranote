@@ -113,6 +113,7 @@ describe("MerchantsTemplate", () => {
     render(
       <MerchantsTemplate
         {...baseProps}
+        keyword="  LIFE 超市  "
         merchants={[]}
         tagFilterError="该商家标签不存在或已不可用。"
       />,
@@ -123,7 +124,7 @@ describe("MerchantsTemplate", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
       "href",
-      "/merchants",
+      "/merchants?q=LIFE%20%E8%B6%85%E5%B8%82",
     );
     expect(screen.getByText("没有找到匹配的商家")).toBeInTheDocument();
   });

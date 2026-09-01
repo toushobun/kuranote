@@ -348,6 +348,55 @@ begin
 end;
 $$;
 
+create or replace function public.create_merchant_tag(
+    p_ledger_id uuid,
+    p_name text,
+    p_icon text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = pg_catalog, pg_temp
+as $$
+declare
+    v_user_id uuid := auth.uid();
+    v_tag_id uuid;
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    if not public.current_user_can_manage_ledger(p_ledger_id)
+       or not exists (
+           select 1
+           from public.ledger l
+           where l.id = p_ledger_id and l.is_archived = false
+       ) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
+
+    perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));
+
+    insert into public.merchant_tags (
+        ledger_id, name, icon, sort_order, created_by
+    )
+    select
+        p_ledger_id,
+        p_name,
+        p_icon,
+        coalesce(max(mt.sort_order), -1) + 1,
+        v_user_id
+    from public.merchant_tags mt
+    where mt.ledger_id = p_ledger_id
+      and mt.is_archived = false
+    returning id into v_tag_id;
+
+    return v_tag_id;
+end;
+$$;
+
 create or replace function public.archive_merchant_tag(
     p_ledger_id uuid,
     p_tag_id uuid
@@ -499,6 +548,8 @@ revoke all on function public.create_merchant_with_tags(uuid, text, text, text, 
 grant execute on function public.create_merchant_with_tags(uuid, text, text, text, uuid[]) to authenticated;
 revoke all on function public.update_merchant_with_tags(uuid, uuid, text, text, text, uuid[]) from public, anon;
 grant execute on function public.update_merchant_with_tags(uuid, uuid, text, text, text, uuid[]) to authenticated;
+revoke all on function public.create_merchant_tag(uuid, text, text) from public, anon;
+grant execute on function public.create_merchant_tag(uuid, text, text) to authenticated;
 revoke all on function public.archive_merchant_tag(uuid, uuid) from public, anon;
 grant execute on function public.archive_merchant_tag(uuid, uuid) to authenticated;
 revoke all on function public.reorder_merchant_tags(uuid, uuid[]) from public, anon;
@@ -556,3 +607,6 @@ from public, anon, authenticated;
 
 comment on function public.reorder_merchant_tags(uuid, uuid[])
 is '在单一事务内校验完整未归档商家标签集合并按提交顺序批量更新 sort_order。';
+
+comment on function public.create_merchant_tag(uuid, text, text)
+is '按账本获取事务级 advisory lock，并原子分配下一个 sort_order 后创建商家标签。';
