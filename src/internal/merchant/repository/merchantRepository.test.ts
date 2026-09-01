@@ -7,6 +7,7 @@ import { createSupabaseMerchantRepository } from "internal/merchant/repository/m
 import {
   ConflictError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import { createSupabaseMock } from "test/supabaseMock";
 
@@ -222,6 +223,63 @@ describe("createSupabaseMerchantRepository", () => {
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it.each([
+    {
+      invoke: (
+        repository: ReturnType<typeof createSupabaseMerchantRepository>,
+      ) =>
+        repository.createMerchant({
+          ledgerId,
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          tagIds: [merchantId],
+          userId,
+        }),
+      operation: "新增",
+    },
+    {
+      invoke: (
+        repository: ReturnType<typeof createSupabaseMerchantRepository>,
+      ) =>
+        repository.updateMerchant({
+          ledgerId,
+          merchantId,
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          tagIds: [merchantId],
+          userId,
+        }),
+      operation: "更新",
+    },
+  ])(
+    "商家$operation时标签状态竞争会转换为 ConflictError",
+    async ({ invoke }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: "22023",
+            details: "merchant_tags_invalid",
+            message: "private detail",
+          },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = invoke(repository);
+
+      await expect(operation).rejects.toMatchObject({
+        code: merchantErrorCodes.merchantTagInvalid,
+        message: "该商家标签不存在或已不可用。",
+      });
+      await expect(operation).rejects.toBeInstanceOf(ConflictError);
+    },
+  );
+
   it("Supabase 错误会记录并转换为安全的 RepositoryError", async () => {
     const logger = createLogger();
     const supabase = createSupabaseMock({
@@ -360,25 +418,49 @@ describe("createSupabaseMerchantRepository", () => {
     });
   });
 
-  it("排序集合过期时转换为可展示的 ConflictError", async () => {
-    const supabase = createSupabaseMock({
-      rpcResponse: {
-        error: {
-          code: "22023",
-          details: "merchant_tag_set_invalid",
-          message: "private detail",
-        },
-      },
-    });
-    const repository = createSupabaseMerchantRepository(
-      supabase.client as never,
-      createLogger(),
-    );
-
-    await expect(
-      repository.reorderTags(ledgerId, [merchantId]),
-    ).rejects.toMatchObject({
+  it.each([
+    {
+      databaseCode: "22023",
+      code: merchantErrorCodes.merchantTagOrderInvalid,
+      details: "merchant_tag_order_invalid",
+      errorType: ValidationError,
+      message: "标签排序内容不正确。",
+    },
+    {
+      databaseCode: "22023",
       code: merchantErrorCodes.merchantTagSetInvalid,
-    });
-  });
+      details: "merchant_tag_set_invalid",
+      errorType: ConflictError,
+      message: "标签列表已发生变化，请刷新页面后重试。",
+    },
+    {
+      databaseCode: "P0002",
+      code: merchantErrorCodes.ledgerInvalid,
+      details: "ledger_not_found",
+      errorType: ConflictError,
+      message: "账本不存在、已停用或您无法访问。",
+    },
+  ])(
+    "标签排序 RPC 的 $details 会转换为对应业务错误",
+    async ({ code, databaseCode, details, errorType, message }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: databaseCode,
+            details,
+            message: "private detail",
+          },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = repository.reorderTags(ledgerId, [merchantId]);
+
+      await expect(operation).rejects.toMatchObject({ code, message });
+      await expect(operation).rejects.toBeInstanceOf(errorType);
+    },
+  );
 });
