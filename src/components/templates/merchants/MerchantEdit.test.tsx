@@ -22,6 +22,7 @@ function renderTemplate() {
         archiveMerchantAction={action}
         archiveMerchantAliasAction={action}
         createMerchantAliasAction={action}
+        fetchIconAction={action}
         ledgerId="ledger-1"
         ledgerName="家庭账本"
         merchant={merchant}

@@ -204,6 +204,7 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(
       repository.updateMerchant({
+        iconUrl: null,
         ledgerId,
         merchantId,
         name: "ライフ",
@@ -214,6 +215,7 @@ describe("createSupabaseMerchantRepository", () => {
     ).resolves.toBe(true);
 
     expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_icon_url: null,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_name: "ライフ",
@@ -235,6 +237,7 @@ describe("createSupabaseMerchantRepository", () => {
     );
 
     const operation = repository.createMerchant({
+      iconUrl: null,
       ledgerId,
       name: "LIFE",
       note: null,
@@ -253,6 +256,7 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.createMerchant({
+          iconUrl: null,
           ledgerId,
           name: "LIFE",
           note: null,
@@ -268,6 +272,7 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.updateMerchant({
+          iconUrl: null,
           ledgerId,
           merchantId,
           name: "LIFE",

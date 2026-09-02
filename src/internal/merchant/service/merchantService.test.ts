@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { LedgerAccessService } from "internal/ledger";
 import { merchantErrorCodes } from "internal/merchant/errors";
 import type { MerchantRepository } from "internal/merchant/repository/merchantRepository";
+import { createMerchantIconService } from "internal/merchant/service/merchantIconService";
 import { createMerchantService } from "internal/merchant/service/merchantService";
 import {
   AuthenticationError,
@@ -14,12 +15,26 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
+import type { Logger } from "internal/shared/logging/logger";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const aliasId = "00000000-0000-4000-8000-000000001002";
 const tagId = "00000000-0000-4000-8000-000000002001";
+
+const activeMerchant = {
+  aliases: [],
+  created_at: "2026-01-01T00:00:00.000Z",
+  display_name: "LIFE",
+  icon_url: null,
+  id: merchantId,
+  name: "LIFE",
+  note: null,
+  sort_order: 0,
+  tags: [],
+  website_url: null,
+};
 
 function createRepository(
   overrides: Partial<MerchantRepository> = {},
@@ -61,10 +76,22 @@ function createService(
   repository: MerchantRepository = createRepository(),
   ledgerAccessService: LedgerAccessService = createLedgerAccessService(),
   currentUserId: string | null = userId,
+  merchantIconService: ReturnType<typeof createMerchantIconService> = {
+    fetchIcon: vi.fn().mockResolvedValue({
+      url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+    }),
+  },
+  logger: Logger = {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
 ) {
   return createMerchantService({
     currentUserId,
     ledgerAccessService,
+    logger,
+    merchantIconService,
     merchantRepository: repository,
   });
 }
@@ -143,7 +170,15 @@ describe("createMerchantService", () => {
 
   it("管理员创建商家时由 Service 注入当前用户 ID", async () => {
     const repository = createRepository();
-    const service = createService(repository);
+    const fetchIcon = vi.fn().mockResolvedValue({
+      url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+    });
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
 
     await service.createMerchant({
       ledgerId,
@@ -153,6 +188,7 @@ describe("createMerchantService", () => {
     });
 
     expect(repository.createMerchant).toHaveBeenCalledWith({
+      iconUrl: expect.stringContaining("t2.gstatic.com"),
       ledgerId,
       name: "LIFE",
       note: "常用超市",
@@ -160,6 +196,233 @@ describe("createMerchantService", () => {
       tagIds: [],
       userId,
     });
+    expect(fetchIcon).toHaveBeenCalledWith("https://example.com");
+  });
+
+  it("创建商家时图标抓取失败仍保存商家", async () => {
+    const repository = createRepository();
+    const fetchIcon = vi.fn().mockRejectedValue(new Error("provider failed"));
+    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+      logger,
+    );
+
+    await expect(
+      service.createMerchant({
+        ledgerId,
+        name: "LIFE",
+        note: null,
+        siteUrl: "https://example.com",
+      }),
+    ).resolves.toBeUndefined();
+    expect(repository.createMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({ iconUrl: null }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[merchant] failed to fetch icon while saving merchant",
+      { errorName: "Error", ledgerId },
+    );
+  });
+
+  it("创建商家时复用与网址匹配的预览图标", async () => {
+    const repository = createRepository();
+    const fetchIcon = vi.fn();
+    const previewIconUrl =
+      "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128";
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
+
+    await service.createMerchant({
+      ledgerId,
+      name: "LIFE",
+      note: null,
+      previewIconUrl,
+      siteUrl: "https://example.com/products",
+    });
+
+    expect(fetchIcon).not.toHaveBeenCalled();
+    expect(repository.createMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({ iconUrl: previewIconUrl }),
+    );
+  });
+
+  it("网址变化时重新抓取图标并随商家更新落库", async () => {
+    const repository = createRepository({
+      findActiveMerchantData: vi.fn().mockResolvedValue({
+        ...activeMerchant,
+        icon_url: "https://t1.gstatic.com/old",
+        website_url: "https://old.example.com",
+      }),
+    });
+    const fetchIcon = vi.fn().mockResolvedValue({
+      url: "https://t2.gstatic.com/faviconV2?url=https://new.example.com",
+    });
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
+
+    await service.updateMerchant({
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: null,
+      siteUrl: "https://new.example.com",
+    });
+
+    expect(fetchIcon).toHaveBeenCalledWith("https://new.example.com");
+    expect(repository.updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iconUrl: "https://t2.gstatic.com/faviconV2?url=https://new.example.com",
+        siteUrl: "https://new.example.com",
+      }),
+    );
+  });
+
+  it("更新商家时图标抓取失败仍保存其他修改", async () => {
+    const repository = createRepository({
+      findActiveMerchantData: vi.fn().mockResolvedValue({
+        ...activeMerchant,
+        icon_url: "https://t1.gstatic.com/old",
+        website_url: "https://old.example.com",
+      }),
+    });
+    const fetchIcon = vi.fn().mockRejectedValue(new Error("provider failed"));
+    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+      logger,
+    );
+
+    await expect(
+      service.updateMerchant({
+        ledgerId,
+        merchantId,
+        name: "新名称",
+        note: "新备注",
+        siteUrl: "https://new.example.com",
+      }),
+    ).resolves.toBeUndefined();
+    expect(repository.updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iconUrl: null,
+        name: "新名称",
+        note: "新备注",
+      }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[merchant] failed to fetch icon while saving merchant",
+      { errorName: "Error", ledgerId },
+    );
+  });
+
+  it("网址未变化时沿用缓存且不重复抓取", async () => {
+    const repository = createRepository({
+      findActiveMerchantData: vi.fn().mockResolvedValue({
+        ...activeMerchant,
+        icon_url: "https://t2.gstatic.com/cached",
+        website_url: "https://example.com",
+      }),
+    });
+    const fetchIcon = vi.fn();
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
+
+    await service.updateMerchant({
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: null,
+      siteUrl: "https://example.com",
+    });
+
+    expect(fetchIcon).not.toHaveBeenCalled();
+    expect(repository.updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({ iconUrl: "https://t2.gstatic.com/cached" }),
+    );
+  });
+
+  it("保存商家修改时复用编辑页获取的图标预览", async () => {
+    const repository = createRepository({
+      findActiveMerchantData: vi.fn().mockResolvedValue({
+        ...activeMerchant,
+        icon_url: "https://t1.gstatic.com/old",
+        website_url: "https://old.example.com",
+      }),
+    });
+    const fetchIcon = vi.fn();
+    const previewIconUrl =
+      "https://t2.gstatic.com/faviconV2?url=https://new.example.com&size=128";
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
+
+    await service.updateMerchant({
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: null,
+      previewIconUrl,
+      siteUrl: "https://new.example.com/path",
+    });
+
+    expect(fetchIcon).not.toHaveBeenCalled();
+    expect(repository.updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iconUrl: previewIconUrl,
+        siteUrl: "https://new.example.com/path",
+      }),
+    );
+  });
+
+  it("清空网址时同步清除旧图标缓存", async () => {
+    const repository = createRepository({
+      findActiveMerchantData: vi.fn().mockResolvedValue({
+        ...activeMerchant,
+        icon_url: "https://t2.gstatic.com/cached",
+        website_url: "https://example.com",
+      }),
+    });
+    const fetchIcon = vi.fn();
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      userId,
+      { fetchIcon },
+    );
+
+    await service.updateMerchant({
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: null,
+      siteUrl: null,
+    });
+
+    expect(fetchIcon).not.toHaveBeenCalled();
+    expect(repository.updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({ iconUrl: null, siteUrl: null }),
+    );
   });
 
   it("创建商家只读取未归档标签 ID 进行校验", async () => {
@@ -392,6 +655,7 @@ describe("createMerchantService", () => {
   it("商家更新或归档在前置检查后未命中时返回 409", async () => {
     const repository = createRepository({
       archiveMerchant: vi.fn().mockResolvedValue(false),
+      findActiveMerchantData: vi.fn().mockResolvedValue(activeMerchant),
       updateMerchant: vi.fn().mockResolvedValue(false),
     });
     const service = createService(repository);

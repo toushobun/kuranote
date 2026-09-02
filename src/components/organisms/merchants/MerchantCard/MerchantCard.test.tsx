@@ -51,6 +51,24 @@ describe("MerchantCard", () => {
     ).toBeInTheDocument();
   });
 
+  it("直接使用数据库中缓存的图标地址", () => {
+    const { container } = render(
+      <MerchantCard
+        editHref="/merchants/merchant-1/edit"
+        ledgerId="ledger-1"
+        merchant={createMerchantRow({
+          icon_url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+        })}
+      />,
+    );
+
+    expect(container.querySelector(".MerchantAvatar-image")).toHaveAttribute(
+      "src",
+      "https://t2.gstatic.com/faviconV2?url=https://example.com",
+    );
+    expect(container.innerHTML).not.toContain("/merchants/icon?");
+  });
+
   it("首选别名与正式名相同时仍显示正式名说明", () => {
     const merchant = createMerchantRow({
       aliases: [

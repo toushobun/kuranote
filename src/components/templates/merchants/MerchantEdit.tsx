@@ -17,6 +17,7 @@ import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import type {
   Merchant,
+  MerchantIconStateAction,
   MerchantStateAction,
   MerchantTag,
 } from "types/merchants";
@@ -27,6 +28,7 @@ type MerchantEditTemplateProps = {
   archiveMerchantAction: MerchantStateAction;
   archiveMerchantAliasAction: MerchantStateAction;
   createMerchantAliasAction: MerchantStateAction;
+  fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   ledgerName: string;
   merchant: Merchant;
@@ -39,6 +41,7 @@ export function MerchantEditTemplate({
   archiveMerchantAction,
   archiveMerchantAliasAction,
   createMerchantAliasAction,
+  fetchIconAction,
   ledgerId,
   ledgerName,
   merchant,
@@ -110,6 +113,7 @@ export function MerchantEditTemplate({
       <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm
           action={update.action}
+          fetchIconAction={fetchIconAction}
           ledgerId={ledgerId}
           merchant={merchant}
           pending={update.pending}

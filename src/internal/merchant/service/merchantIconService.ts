@@ -1,7 +1,10 @@
 import { isIP } from "node:net";
 import { lookup as nodeLookup } from "node:dns/promises";
 
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  getMerchantErrorMessage,
+  merchantErrorCodes,
+} from "internal/merchant/errors";
 import {
   RepositoryError,
   ValidationError,
@@ -10,6 +13,12 @@ import { parseWebsiteUrl } from "utils/merchants";
 
 const faviconProviderOrigin = "https://www.google.com";
 const faviconProviderHostname = "www.google.com";
+const faviconRedirectHostnames = new Set([
+  "t0.gstatic.com",
+  "t1.gstatic.com",
+  "t2.gstatic.com",
+  "t3.gstatic.com",
+]);
 const iconFetchTimeoutMs = 5_000;
 const maxIconBytes = 256 * 1024;
 const maxRedirects = 3;
@@ -17,9 +26,45 @@ const maxRedirects = 3;
 type LookupAddress = { address: string; family: number };
 
 export type MerchantIcon = {
-  bytes: ArrayBuffer;
-  contentType: string;
+  url: string;
 };
+
+export function getReusableMerchantIconUrl(
+  websiteUrl: string,
+  candidateUrl: string | null | undefined,
+): string | null {
+  if (!candidateUrl) return null;
+
+  const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
+  if (!parsedWebsiteUrl) return null;
+
+  try {
+    const websiteOrigin = new URL(parsedWebsiteUrl).origin;
+    const candidate = new URL(candidateUrl);
+    if (
+      candidate.protocol !== "https:" ||
+      candidate.port ||
+      candidate.username ||
+      candidate.password
+    ) {
+      return null;
+    }
+
+    const targetUrl =
+      candidate.hostname === faviconProviderHostname &&
+      candidate.pathname === "/s2/favicons"
+        ? candidate.searchParams.get("domain_url")
+        : faviconRedirectHostnames.has(candidate.hostname) &&
+            candidate.pathname === "/faviconV2"
+          ? candidate.searchParams.get("url")
+          : null;
+    return targetUrl && new URL(targetUrl).origin === websiteOrigin
+      ? candidate.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 type MerchantIconServiceDependencies = {
   fetchImpl?: typeof fetch;
@@ -156,13 +201,15 @@ export function createMerchantIconService({
       redirectCount <= maxRedirects;
       redirectCount += 1
     ) {
-      if (
-        requestUrl.protocol !== "https:" ||
-        requestUrl.hostname !== faviconProviderHostname
-      ) {
+      const isAllowedProviderHostname =
+        requestUrl.hostname === faviconProviderHostname ||
+        faviconRedirectHostnames.has(requestUrl.hostname);
+      if (requestUrl.protocol !== "https:" || !isAllowedProviderHostname) {
         throw new RepositoryError(
-          "merchant_icon_redirect_invalid",
-          "商家头像暂时无法获取。",
+          merchantErrorCodes.merchantIconRedirectInvalid,
+          getMerchantErrorMessage(
+            merchantErrorCodes.merchantIconRedirectInvalid,
+          ),
         );
       }
       await requirePublicHostname(requestUrl.hostname);
@@ -176,8 +223,8 @@ export function createMerchantIconService({
         });
       } catch {
         throw new RepositoryError(
-          "merchant_icon_fetch_failed",
-          "商家头像暂时无法获取。",
+          merchantErrorCodes.merchantIconFetchFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
         );
       }
       if (response.status >= 300 && response.status < 400) {
@@ -197,22 +244,35 @@ export function createMerchantIconService({
         break;
       }
 
-      let bytes: ArrayBuffer;
+      const reader = response.body?.getReader();
+      if (!reader) break;
+
+      let byteLength = 0;
       try {
-        bytes = await response.arrayBuffer();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          byteLength += value.byteLength;
+          if (byteLength > maxIconBytes) {
+            await reader.cancel();
+            break;
+          }
+        }
       } catch {
         throw new RepositoryError(
-          "merchant_icon_fetch_failed",
-          "商家头像暂时无法获取。",
+          merchantErrorCodes.merchantIconFetchFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
         );
+      } finally {
+        reader.releaseLock();
       }
-      if (bytes.byteLength === 0 || bytes.byteLength > maxIconBytes) break;
-      return { bytes, contentType };
+      if (byteLength === 0 || byteLength > maxIconBytes) break;
+      return { url: requestUrl.toString() };
     }
 
     throw new RepositoryError(
-      "merchant_icon_fetch_failed",
-      "商家头像暂时无法获取。",
+      merchantErrorCodes.merchantIconFetchFailed,
+      getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
     );
   }
 

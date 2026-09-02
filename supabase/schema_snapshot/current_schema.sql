@@ -1653,7 +1653,7 @@ COMMENT ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name
 
 
 
-CREATE OR REPLACE FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1694,9 +1694,9 @@ begin
     end if;
 
     insert into public.merchant (
-        ledger_id, name, website_url, note, sort_order, created_by, updated_by
+        ledger_id, name, website_url, icon_url, note, sort_order, created_by, updated_by
     ) values (
-        p_ledger_id, p_name, p_website_url, p_note, 0, v_user_id, v_user_id
+        p_ledger_id, p_name, p_website_url, p_icon_url, p_note, 0, v_user_id, v_user_id
     )
     returning id into v_merchant_id;
 
@@ -1709,7 +1709,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -5358,7 +5358,7 @@ $$;
 ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS boolean
+CREATE OR REPLACE FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS boolean
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -5411,6 +5411,7 @@ begin
     update public.merchant m
        set name = p_name,
            website_url = p_website_url,
+           icon_url = p_icon_url,
            note = p_note,
            updated_by = v_user_id
      where m.id = p_merchant_id
@@ -5429,7 +5430,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -8644,8 +8645,8 @@ GRANT ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_na
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -8836,8 +8837,8 @@ REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
 
 
 

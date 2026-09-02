@@ -13,6 +13,7 @@ describe("MerchantEditForm", () => {
     const { container } = render(
       <MerchantEditForm
         action={vi.fn()}
+        fetchIconAction={vi.fn()}
         ledgerId="ledger-1"
         merchant={merchant}
       />,
@@ -34,6 +35,7 @@ describe("MerchantEditForm", () => {
     const { container } = render(
       <MerchantEditForm
         action={vi.fn()}
+        fetchIconAction={vi.fn()}
         ledgerId="ledger-1"
         merchant={createMerchantRow()}
         pending

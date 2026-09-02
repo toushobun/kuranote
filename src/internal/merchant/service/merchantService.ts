@@ -6,6 +6,7 @@ import {
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   createMerchantIconService,
+  getReusableMerchantIconUrl,
   type MerchantIcon,
 } from "internal/merchant/service/merchantIconService";
 import {
@@ -28,6 +29,7 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "internal/ledger";
+import type { Logger } from "internal/shared/logging/logger";
 import { filterMerchantsByKeyword } from "utils/merchants";
 
 export type MerchantListResult = {
@@ -43,8 +45,14 @@ export type MerchantListInput = MerchantLedgerInput & {
   keyword: string;
   tagId?: string | null;
 };
-export type CreateMerchantServiceInput = Omit<CreateMerchantInput, "userId">;
-export type UpdateMerchantServiceInput = Omit<UpdateMerchantInput, "userId">;
+export type CreateMerchantServiceInput = Omit<
+  CreateMerchantInput,
+  "iconUrl" | "userId"
+> & { previewIconUrl?: string | null };
+export type UpdateMerchantServiceInput = Omit<
+  UpdateMerchantInput,
+  "iconUrl" | "userId"
+> & { previewIconUrl?: string | null };
 export type ArchiveMerchantServiceInput = MerchantLedgerInput & {
   merchantId: string;
 };
@@ -86,8 +94,8 @@ export interface MerchantService extends MerchantQueryService {
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<void>;
   createTag(input: CreateMerchantTagServiceInput): Promise<void>;
+  fetchMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
-  getMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
   listTags(input: MerchantLedgerInput): Promise<MerchantTagData[]>;
   reorderTags(input: MerchantLedgerInput & { tagIds: string[] }): Promise<void>;
@@ -103,6 +111,7 @@ type MerchantServiceDependencies = {
   ledgerAccessService: LedgerAccessService;
   merchantRepository: MerchantRepository;
   merchantIconService?: ReturnType<typeof createMerchantIconService>;
+  logger: Logger;
 };
 
 function permissionError(): AuthorizationError {
@@ -135,6 +144,7 @@ function conflictError(
 export function createMerchantService({
   currentUserId,
   ledgerAccessService,
+  logger,
   merchantIconService = createMerchantIconService(),
   merchantRepository,
 }: MerchantServiceDependencies): MerchantService {
@@ -228,6 +238,21 @@ export function createMerchantService({
     return tag;
   }
 
+  async function fetchIconUrlOrNull(
+    ledgerId: string,
+    websiteUrl: string,
+  ): Promise<string | null> {
+    try {
+      return (await merchantIconService.fetchIcon(websiteUrl)).url;
+    } catch (error) {
+      logger.warn("[merchant] failed to fetch icon while saving merchant", {
+        errorName: error instanceof Error ? error.name : "unknown",
+        ledgerId,
+      });
+      return null;
+    }
+  }
+
   return {
     async archiveAlias({ aliasId, ledgerId }) {
       const { userId } = await requireLedgerRole(ledgerId, true);
@@ -295,7 +320,20 @@ export function createMerchantService({
       const { userId } = await requireLedgerRole(input.ledgerId, true);
       const tagIds = input.tagIds ?? [];
       await requireActiveTags(input.ledgerId, tagIds);
-      await merchantRepository.createMerchant({ ...input, tagIds, userId });
+      const { previewIconUrl, ...merchantInput } = input;
+      const reusableIconUrl = input.siteUrl
+        ? getReusableMerchantIconUrl(input.siteUrl, previewIconUrl)
+        : null;
+      const iconUrl = input.siteUrl
+        ? (reusableIconUrl ??
+          (await fetchIconUrlOrNull(input.ledgerId, input.siteUrl)))
+        : null;
+      await merchantRepository.createMerchant({
+        ...merchantInput,
+        iconUrl,
+        tagIds,
+        userId,
+      });
     },
 
     async createTag(input) {
@@ -325,8 +363,8 @@ export function createMerchantService({
       return merchant;
     },
 
-    async getMerchantIcon({ ledgerId, websiteUrl }) {
-      await requireLedgerRole(ledgerId, false);
+    async fetchMerchantIcon({ ledgerId, websiteUrl }) {
+      await requireLedgerRole(ledgerId, true);
       return merchantIconService.fetchIcon(websiteUrl);
     },
 
@@ -375,11 +413,32 @@ export function createMerchantService({
 
     async updateMerchant(input) {
       const { userId } = await requireLedgerRole(input.ledgerId, true);
-      await requireActiveMerchant(input.ledgerId, input.merchantId);
+      const currentMerchant = await merchantRepository.findActiveMerchantData(
+        input.ledgerId,
+        input.merchantId,
+      );
+      if (!currentMerchant) {
+        throw new NotFoundError(
+          merchantErrorCodes.merchantInvalid,
+          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
+        );
+      }
       const tagIds = input.tagIds ?? [];
       await requireActiveTags(input.ledgerId, tagIds);
+      const { previewIconUrl, ...merchantInput } = input;
+      const reusableIconUrl = input.siteUrl
+        ? getReusableMerchantIconUrl(input.siteUrl, previewIconUrl)
+        : null;
+      const iconUrl = reusableIconUrl
+        ? reusableIconUrl
+        : currentMerchant.website_url === input.siteUrl
+          ? currentMerchant.icon_url
+          : input.siteUrl
+            ? await fetchIconUrlOrNull(input.ledgerId, input.siteUrl)
+            : null;
       const updated = await merchantRepository.updateMerchant({
-        ...input,
+        ...merchantInput,
+        iconUrl,
         tagIds,
         userId,
       });

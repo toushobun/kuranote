@@ -48,19 +48,6 @@ export function parseWebsiteUrl(value: unknown): string | null | undefined {
   }
 }
 
-export function merchantIconSrc(
-  ledgerId: string,
-  websiteUrl: string | null,
-): string | undefined {
-  const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
-  if (!parsedWebsiteUrl) return undefined;
-
-  const searchParams = new URLSearchParams({ websiteUrl: parsedWebsiteUrl });
-  return `/api/ledgers/${encodeURIComponent(
-    ledgerId,
-  )}/merchants/icon?${searchParams.toString()}`;
-}
-
 export function filterMerchantsByKeyword(
   merchants: Merchant[],
   keyword: string,

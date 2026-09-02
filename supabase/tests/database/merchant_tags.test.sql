@@ -192,7 +192,7 @@ select throws_ok(
     $$
         select public.create_merchant_with_tags(
             '65100000-0000-4000-8000-000000000001',
-            '普通成员商家', null, null, '{}'::uuid[]
+            '普通成员商家', null, null, null, '{}'::uuid[]
         )
     $$,
     '42501',

@@ -25,6 +25,7 @@ export const merchantTagIconMaxLength = 32;
 export type CreateMerchantValues = {
   name: string;
   note: string | null;
+  previewIconUrl: string | null;
   siteUrl: string | null;
   tagIds: string[];
 };
@@ -57,6 +58,11 @@ export type UpdateMerchantTagValues = CreateMerchantTagValues & {
 };
 export type ArchiveMerchantTagValues = { tagId: string };
 export type ReorderMerchantTagsValues = { tagIds: string[] };
+export type FetchMerchantIconValues = {
+  websiteUrl: string;
+};
+
+const previewIconUrlSchema = z.string().url().max(4096);
 
 const merchantTagIdsSchema = z
   .array(z.string().uuid())
@@ -127,9 +133,17 @@ function parseMerchantValues(
   const tagIdsResult = parseMerchantTagIds(formData);
   if (!tagIdsResult.ok) return tagIdsResult;
 
+  const previewIconUrlValue = getFormText(formData, "previewIconUrl").trim();
+  const previewIconUrlResult =
+    previewIconUrlSchema.safeParse(previewIconUrlValue);
+
   return valid({
     name: nameResult.value,
     note: noteResult.value,
+    previewIconUrl:
+      previewIconUrlValue && previewIconUrlResult.success
+        ? previewIconUrlResult.data
+        : null,
     siteUrl: siteUrlResult.value,
     tagIds: tagIdsResult.value,
   });
@@ -139,6 +153,15 @@ export function validateCreateMerchantForm(
   formData: FormData,
 ): ValidationResult<CreateMerchantValues, MerchantValidationErrorCode> {
   return parseMerchantValues(formData);
+}
+
+export function validateFetchMerchantIconForm(
+  formData: FormData,
+): ValidationResult<FetchMerchantIconValues, MerchantValidationErrorCode> {
+  const websiteUrl = parseWebsiteUrl(getFormText(formData, "websiteUrl"));
+  if (!websiteUrl) return invalid(merchantErrorCodes.websiteUrlInvalid);
+
+  return valid({ websiteUrl });
 }
 
 export function validateUpdateMerchantForm(
@@ -358,10 +381,6 @@ export const createMerchantRequestSchema = z.object({
 export const updateMerchantRequestSchema = createMerchantRequestSchema;
 export const createMerchantAliasRequestSchema = z.object({
   alias: z.string().trim().min(1).max(merchantAliasMaxLength),
-});
-
-export const merchantIconQuerySchema = z.object({
-  websiteUrl: z.string().url().max(2048),
 });
 
 export const merchantAliasSchema = z.object({

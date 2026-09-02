@@ -9,6 +9,7 @@ describe("MerchantCreateTemplate", () => {
     render(
       <MerchantCreateTemplate
         createMerchantAction={vi.fn(async () => ({}))}
+        fetchIconAction={vi.fn(async () => ({}))}
         ledgerId="ledger-1"
         ledgerName="家庭账本"
         tags={[]}
@@ -30,6 +31,7 @@ describe("MerchantCreateTemplate", () => {
     render(
       <MerchantCreateTemplate
         createMerchantAction={createMerchantAction}
+        fetchIconAction={vi.fn(async () => ({}))}
         ledgerId="ledger-1"
         ledgerName="家庭账本"
         tags={[]}

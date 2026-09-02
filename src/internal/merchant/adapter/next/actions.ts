@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { merchantEditHref, routePaths } from "config/paths";
+import { merchantText } from "config/merchantText";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
@@ -19,6 +20,7 @@ import {
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
   validateCreateMerchantTagForm,
+  validateFetchMerchantIconForm,
   validateReorderMerchantTagsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
@@ -28,6 +30,7 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type {
   MerchantActionState,
+  MerchantIconStateAction,
   MerchantStateAction,
   MerchantTagReorderAction,
   MerchantTagStateAction,
@@ -85,6 +88,31 @@ export const createMerchant: MerchantStateAction =
 
     revalidateMerchantMutation();
     redirect(routePaths.merchants);
+  };
+
+export const fetchMerchantIcon: MerchantIconStateAction =
+  async function fetchMerchantIcon(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateFetchMerchantIconForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+
+    try {
+      const service = await getMerchantService();
+      const icon = await service.fetchMerchantIcon({
+        ledgerId: currentLedger.id,
+        websiteUrl: validation.value.websiteUrl,
+      });
+      return {
+        iconUrl: icon.url,
+        success: merchantText.iconPreviewSuccess,
+      };
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantIconFetchFailed,
+        "fetch icon",
+      );
+    }
   };
 
 export const updateMerchant: MerchantStateAction =

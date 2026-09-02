@@ -11,6 +11,8 @@ export const merchantErrorCodes = {
   ledgerInvalid: "ledger_invalid",
   merchantAliasListFailed: "merchant_alias_list_failed",
   merchantAliasReadFailed: "merchant_alias_read_failed",
+  merchantIconFetchFailed: "merchant_icon_fetch_failed",
+  merchantIconRedirectInvalid: "merchant_icon_redirect_invalid",
   merchantInvalid: "merchant_invalid",
   merchantListFailed: "merchant_list_failed",
   merchantReadFailed: "merchant_read_failed",
@@ -60,6 +62,8 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.authRequired
   | typeof merchantErrorCodes.createFailed
   | typeof merchantErrorCodes.ledgerInvalid
+  | typeof merchantErrorCodes.merchantIconFetchFailed
+  | typeof merchantErrorCodes.merchantIconRedirectInvalid
   | typeof merchantErrorCodes.merchantTagArchiveFailed
   | typeof merchantErrorCodes.merchantTagCreateFailed
   | typeof merchantErrorCodes.merchantTagReorderFailed
@@ -80,6 +84,8 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.createFailed,
   merchantErrorCodes.ledgerInvalid,
   merchantErrorCodes.merchantInvalid,
+  merchantErrorCodes.merchantIconFetchFailed,
+  merchantErrorCodes.merchantIconRedirectInvalid,
   merchantErrorCodes.merchantTagArchiveFailed,
   merchantErrorCodes.merchantTagCreateFailed,
   merchantErrorCodes.merchantTagIconInvalid,
@@ -116,6 +122,10 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
     "商家别名列表加载失败，请稍后重试。",
   [merchantErrorCodes.merchantAliasReadFailed]:
     "商家别名读取失败，请稍后重试。",
+  [merchantErrorCodes.merchantIconFetchFailed]:
+    "未能获取网站图标，请确认网址后重试。",
+  [merchantErrorCodes.merchantIconRedirectInvalid]:
+    "网站图标来源验证失败，请稍后重试。",
   [merchantErrorCodes.merchantInvalid]: "商家指定不正确。",
   [merchantErrorCodes.merchantListFailed]: "商家列表加载失败，请稍后重试。",
   [merchantErrorCodes.merchantReadFailed]: "商家信息读取失败，请稍后重试。",

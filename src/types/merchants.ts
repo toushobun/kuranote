@@ -9,6 +9,15 @@ export type MerchantStateAction = (
   formData: FormData,
 ) => Promise<MerchantActionState>;
 
+export type MerchantIconActionState = MerchantActionState & {
+  iconUrl?: string;
+};
+
+export type MerchantIconStateAction = (
+  previousState: MerchantIconActionState,
+  formData: FormData,
+) => Promise<MerchantIconActionState>;
+
 export type MerchantAlias = {
   id: string;
   merchant_id: string;

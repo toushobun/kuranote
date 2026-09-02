@@ -162,6 +162,7 @@ export type ActiveMerchantListData = {
 };
 
 export type CreateMerchantInput = {
+  iconUrl: string | null;
   ledgerId: string;
   name: string;
   note: string | null;
@@ -581,6 +582,7 @@ export function createSupabaseMerchantRepository(
 
     async createMerchant(input) {
       const { error } = await supabase.rpc("create_merchant_with_tags", {
+        p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_name: input.name,
         p_note: input.note,
@@ -946,6 +948,7 @@ export function createSupabaseMerchantRepository(
 
     async updateMerchant(input) {
       const { data, error } = await supabase.rpc("update_merchant_with_tags", {
+        p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_name: input.name,
