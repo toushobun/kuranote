@@ -104,6 +104,7 @@ export function MonthPicker({
             borderRadius: 2,
             fontWeight: 700,
             minHeight: 40,
+            "&:not(.Mui-disabled):hover": { filter: "none" },
           }}
         >
           确定
