@@ -25,6 +25,7 @@ export const merchantTagIconMaxLength = 32;
 export type CreateMerchantValues = {
   name: string;
   note: string | null;
+  previewIconUrl: string | null;
   siteUrl: string | null;
   tagIds: string[];
 };
@@ -58,9 +59,10 @@ export type UpdateMerchantTagValues = CreateMerchantTagValues & {
 export type ArchiveMerchantTagValues = { tagId: string };
 export type ReorderMerchantTagsValues = { tagIds: string[] };
 export type FetchMerchantIconValues = {
-  merchantId: string | null;
   websiteUrl: string;
 };
+
+const previewIconUrlSchema = z.string().url().max(4096);
 
 const merchantTagIdsSchema = z
   .array(z.string().uuid())
@@ -131,9 +133,17 @@ function parseMerchantValues(
   const tagIdsResult = parseMerchantTagIds(formData);
   if (!tagIdsResult.ok) return tagIdsResult;
 
+  const previewIconUrlValue = getFormText(formData, "previewIconUrl").trim();
+  const previewIconUrlResult =
+    previewIconUrlSchema.safeParse(previewIconUrlValue);
+
   return valid({
     name: nameResult.value,
     note: noteResult.value,
+    previewIconUrl:
+      previewIconUrlValue && previewIconUrlResult.success
+        ? previewIconUrlResult.data
+        : null,
     siteUrl: siteUrlResult.value,
     tagIds: tagIdsResult.value,
   });
@@ -151,14 +161,7 @@ export function validateFetchMerchantIconForm(
   const websiteUrl = parseWebsiteUrl(getFormText(formData, "websiteUrl"));
   if (!websiteUrl) return invalid(merchantErrorCodes.websiteUrlInvalid);
 
-  const merchantIdValue = getFormText(formData, "merchantId")?.trim();
-  if (merchantIdValue) {
-    const merchantId = z.string().uuid().safeParse(merchantIdValue);
-    if (!merchantId.success) return invalid(merchantErrorCodes.merchantInvalid);
-    return valid({ merchantId: merchantId.data, websiteUrl });
-  }
-
-  return valid({ merchantId: null, websiteUrl });
+  return valid({ websiteUrl });
 }
 
 export function validateUpdateMerchantForm(

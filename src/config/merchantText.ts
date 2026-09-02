@@ -17,7 +17,7 @@ export const merchantText = {
   iconError: "未能获取网站图标，请确认网址后重试",
   iconIdle: "填写网址后，可按需获取网站图标",
   iconLoading: "正在获取并验证网站图标",
-  iconPreviewSuccess: "网站图标已获取，保存商家后会缓存",
+  iconPreviewSuccess: "网站图标已获取，保存后会缓存",
   iconRefresh: "获取图标",
   iconSuccess: "网站图标已缓存",
   nameLabel: "商家名称",
@@ -31,7 +31,7 @@ export const merchantText = {
   preferredErrorTitle: "展示名更新失败",
   preferredTitle: "显示名",
   save: "保存修改",
-  websiteHelper: "保存网址时会更新图标，也可点击按钮立即获取。",
+  websiteHelper: "可先获取图标预览，保存表单后才会更新网址和图标。",
   websiteLabel: "商家网址",
   websitePlaceholder: "例如：https://www.example.com",
 } as const;

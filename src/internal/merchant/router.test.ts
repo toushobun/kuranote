@@ -45,7 +45,6 @@ function createService(
     archiveMerchant: vi.fn(),
     archiveTag: vi.fn(),
     assertCanManage: vi.fn(),
-    cacheMerchantIcon: vi.fn(),
     createAlias: vi.fn(),
     createMerchant: vi.fn(),
     createTag: vi.fn(),

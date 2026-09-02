@@ -2,7 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { createMerchantIconService } from "internal/merchant/service/merchantIconService";
+import {
+  createMerchantIconService,
+  getReusableMerchantIconUrl,
+} from "internal/merchant/service/merchantIconService";
 import {
   RepositoryError,
   ValidationError,
@@ -13,6 +16,24 @@ const publicLookup = vi.fn(async () => [
 ]);
 
 describe("createMerchantIconService", () => {
+  it("只复用与当前网址同源的 Google 图标预览地址", () => {
+    const previewUrl =
+      "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128";
+
+    expect(
+      getReusableMerchantIconUrl("https://example.com/products", previewUrl),
+    ).toBe(previewUrl);
+    expect(
+      getReusableMerchantIconUrl("https://other.example", previewUrl),
+    ).toBeNull();
+    expect(
+      getReusableMerchantIconUrl(
+        "https://example.com",
+        "https://evil.example/faviconV2?url=https://example.com",
+      ),
+    ).toBeNull();
+  });
+
   it("只向固定 favicon 提供方请求公开网站的图标", async () => {
     const fetchImpl = vi.fn(
       async () =>

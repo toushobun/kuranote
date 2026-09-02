@@ -29,6 +29,43 @@ export type MerchantIcon = {
   url: string;
 };
 
+export function getReusableMerchantIconUrl(
+  websiteUrl: string,
+  candidateUrl: string | null | undefined,
+): string | null {
+  if (!candidateUrl) return null;
+
+  const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
+  if (!parsedWebsiteUrl) return null;
+
+  try {
+    const websiteOrigin = new URL(parsedWebsiteUrl).origin;
+    const candidate = new URL(candidateUrl);
+    if (
+      candidate.protocol !== "https:" ||
+      candidate.port ||
+      candidate.username ||
+      candidate.password
+    ) {
+      return null;
+    }
+
+    const targetUrl =
+      candidate.hostname === faviconProviderHostname &&
+      candidate.pathname === "/s2/favicons"
+        ? candidate.searchParams.get("domain_url")
+        : faviconRedirectHostnames.has(candidate.hostname) &&
+            candidate.pathname === "/faviconV2"
+          ? candidate.searchParams.get("url")
+          : null;
+    return targetUrl && new URL(targetUrl).origin === websiteOrigin
+      ? candidate.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 type MerchantIconServiceDependencies = {
   fetchImpl?: typeof fetch;
   lookup?: (hostname: string) => Promise<LookupAddress[]>;

@@ -6,7 +6,7 @@ import { MerchantDetailsFields } from "./MerchantDetailsFields";
 
 const fetchIconAction: MerchantIconStateAction = async () => ({
   iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
-  success: "网站图标已缓存",
+  success: "网站图标已获取，保存后会缓存",
 });
 
 const meta = {

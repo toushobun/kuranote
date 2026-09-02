@@ -164,6 +164,7 @@ export function createRequestContainer(
         ? dependencies.auth.userId
         : null,
       ledgerAccessService: getLedgerAccessService(),
+      logger: dependencies.logger,
       merchantRepository: getMerchantRepository(),
     }));
   }
@@ -293,6 +294,7 @@ export function createRequestContainer(
               ? dependencies.auth.userId
               : null,
             ledgerAccessService: getLedgerAccessService(),
+            logger: dependencies.logger,
             merchantRepository: getMerchantRepository(),
           }),
         };

@@ -13,7 +13,6 @@ export const merchantErrorCodes = {
   merchantAliasReadFailed: "merchant_alias_read_failed",
   merchantIconFetchFailed: "merchant_icon_fetch_failed",
   merchantIconRedirectInvalid: "merchant_icon_redirect_invalid",
-  merchantIconUpdateFailed: "merchant_icon_update_failed",
   merchantInvalid: "merchant_invalid",
   merchantListFailed: "merchant_list_failed",
   merchantReadFailed: "merchant_read_failed",
@@ -65,7 +64,6 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.ledgerInvalid
   | typeof merchantErrorCodes.merchantIconFetchFailed
   | typeof merchantErrorCodes.merchantIconRedirectInvalid
-  | typeof merchantErrorCodes.merchantIconUpdateFailed
   | typeof merchantErrorCodes.merchantTagArchiveFailed
   | typeof merchantErrorCodes.merchantTagCreateFailed
   | typeof merchantErrorCodes.merchantTagReorderFailed
@@ -88,7 +86,6 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.merchantInvalid,
   merchantErrorCodes.merchantIconFetchFailed,
   merchantErrorCodes.merchantIconRedirectInvalid,
-  merchantErrorCodes.merchantIconUpdateFailed,
   merchantErrorCodes.merchantTagArchiveFailed,
   merchantErrorCodes.merchantTagCreateFailed,
   merchantErrorCodes.merchantTagIconInvalid,
@@ -129,8 +126,6 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
     "未能获取网站图标，请确认网址后重试。",
   [merchantErrorCodes.merchantIconRedirectInvalid]:
     "网站图标来源验证失败，请稍后重试。",
-  [merchantErrorCodes.merchantIconUpdateFailed]:
-    "网站图标保存失败，请稍后重试。",
   [merchantErrorCodes.merchantInvalid]: "商家指定不正确。",
   [merchantErrorCodes.merchantListFailed]: "商家列表加载失败，请稍后重试。",
   [merchantErrorCodes.merchantReadFailed]: "商家信息读取失败，请稍后重试。",

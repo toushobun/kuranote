@@ -225,44 +225,6 @@ describe("createSupabaseMerchantRepository", () => {
     });
   });
 
-  it("手动获取图标后只更新当前账本中的目标商家", async () => {
-    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
-    const repository = createSupabaseMerchantRepository(
-      supabase.client as never,
-      createLogger(),
-    );
-
-    await expect(
-      repository.updateMerchantIcon({
-        iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
-        ledgerId,
-        merchantId,
-        userId,
-        websiteUrl: "https://example.com",
-      }),
-    ).resolves.toBe(true);
-    expect(supabase.queries[0]).toMatchObject({
-      calls: [
-        {
-          args: [
-            {
-              icon_url:
-                "https://t2.gstatic.com/faviconV2?url=https://example.com",
-              updated_by: userId,
-              website_url: "https://example.com",
-            },
-            { count: "exact" },
-          ],
-          method: "update",
-        },
-        { args: ["id", merchantId], method: "eq" },
-        { args: ["ledger_id", ledgerId], method: "eq" },
-        { args: ["is_archived", false], method: "eq" },
-      ],
-      table: "merchant",
-    });
-  });
-
   it("唯一约束冲突会转换为安全的 ConflictError", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {

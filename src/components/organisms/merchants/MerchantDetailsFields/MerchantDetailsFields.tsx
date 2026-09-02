@@ -73,6 +73,7 @@ export function MerchantDetailsFields({
 
   return (
     <Stack spacing={2}>
+      <input name="previewIconUrl" type="hidden" value={iconUrl ?? ""} />
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 0.5 }}>
         <MerchantAvatar
           loading={previewStatus === "loading"}
@@ -127,6 +128,7 @@ export function MerchantDetailsFields({
           name="websiteUrl"
           onChange={(event) => {
             onWebsiteUrlChange(event.target.value);
+            setIconUrl(undefined);
             setFeedbackText(null);
             setPreviewStatus("idle");
           }}
@@ -142,7 +144,6 @@ export function MerchantDetailsFields({
             setPreviewStatus("loading");
             const formData = new FormData();
             formData.set("websiteUrl", websiteUrl);
-            if (merchantId) formData.set("merchantId", merchantId);
 
             try {
               const state = await fetchIconAction({}, formData);

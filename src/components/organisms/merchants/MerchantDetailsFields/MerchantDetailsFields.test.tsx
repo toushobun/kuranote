@@ -80,12 +80,12 @@ describe("MerchantDetailsFields", () => {
     expect(fetchIconAction).not.toHaveBeenCalled();
   });
 
-  it("点击获取图标后调用 Action 并显示缓存结果", async () => {
+  it("点击获取图标后只请求预览并通过隐藏字段等待表单保存", async () => {
     const fetchIconAction = vi.fn(
       async (_previous: unknown, _formData: FormData) => ({
         iconUrl:
           "https://t2.gstatic.com/faviconV2?url=https://www.amazon.co.jp",
-        success: "网站图标已缓存",
+        success: "网站图标已获取，保存后会缓存",
       }),
     );
     const { container } = render(
@@ -99,12 +99,15 @@ describe("MerchantDetailsFields", () => {
     fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
 
     expect(screen.getByText("正在获取并验证网站图标")).toBeInTheDocument();
-    expect(await screen.findByText("网站图标已缓存")).toBeInTheDocument();
+    expect(
+      await screen.findByText("网站图标已获取，保存后会缓存"),
+    ).toBeInTheDocument();
     expect(fetchIconAction).toHaveBeenCalledTimes(1);
     const formData = fetchIconAction.mock.calls[0]?.[1];
     expect(formData?.get("websiteUrl")).toBe("https://www.amazon.co.jp");
-    expect(formData?.get("merchantId")).toBe(
-      "00000000-0000-4000-8000-000000001001",
+    expect(formData?.get("merchantId")).toBeNull();
+    expect(container.querySelector('input[name="previewIconUrl"]')).toHaveValue(
+      "https://t2.gstatic.com/faviconV2?url=https://www.amazon.co.jp",
     );
     expect(container.querySelector(".MerchantAvatar-image")).toHaveAttribute(
       "src",
@@ -145,6 +148,26 @@ describe("MerchantDetailsFields", () => {
       "src",
       "https://t2.gstatic.com/faviconV2?url=https://example.com",
     );
+  });
+
+  it("网址变化时清除旧预览，避免保存不匹配的图标", () => {
+    const { container } = render(
+      <MerchantDetailsFields
+        {...baseProps}
+        initialIconUrl="https://t2.gstatic.com/faviconV2?url=https://example.com"
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("商家网址"), {
+      target: { value: "https://new.example.com" },
+    });
+
+    expect(container.querySelector('input[name="previewIconUrl"]')).toHaveValue(
+      "",
+    );
+    expect(
+      container.querySelector('img[src="/assets/kura-icons/merchant.png"]'),
+    ).toBeInTheDocument();
   });
 
   it("网址为空时禁用获取按钮", () => {

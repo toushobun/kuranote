@@ -37,16 +37,16 @@ function createFormData(overrides: Record<string, string> = {}) {
 }
 
 describe("merchant schema", () => {
-  it("图标获取表单校验网址并允许新增页省略商家 ID", () => {
+  it("图标获取表单只校验网址，不接受商家写入参数", () => {
     expect(validateFetchMerchantIconForm(createFormData())).toEqual({
       ok: true,
-      value: { merchantId, websiteUrl: "https://example.com" },
+      value: { websiteUrl: "https://example.com" },
     });
     expect(
       validateFetchMerchantIconForm(createFormData({ merchantId: "" })),
     ).toEqual({
       ok: true,
-      value: { merchantId: null, websiteUrl: "https://example.com" },
+      value: { websiteUrl: "https://example.com" },
     });
     expect(
       validateFetchMerchantIconForm(createFormData({ websiteUrl: "" })),
@@ -73,6 +73,7 @@ describe("merchant schema", () => {
       value: {
         name: "LIFE",
         note: "常用超市",
+        previewIconUrl: null,
         siteUrl: "https://example.com",
         tagIds: [],
       },
@@ -81,8 +82,27 @@ describe("merchant schema", () => {
       validateCreateMerchantForm(createFormData({ note: "", websiteUrl: "" })),
     ).toEqual({
       ok: true,
-      value: { name: "LIFE", note: null, siteUrl: null, tagIds: [] },
+      value: {
+        name: "LIFE",
+        note: null,
+        previewIconUrl: null,
+        siteUrl: null,
+        tagIds: [],
+      },
     });
+  });
+
+  it("商家表单携带有效预览图标，非法隐藏值按未预览处理", () => {
+    const previewIconUrl =
+      "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128";
+    expect(
+      validateCreateMerchantForm(createFormData({ previewIconUrl })),
+    ).toMatchObject({ ok: true, value: { previewIconUrl } });
+    expect(
+      validateCreateMerchantForm(
+        createFormData({ previewIconUrl: "not-a-url" }),
+      ),
+    ).toMatchObject({ ok: true, value: { previewIconUrl: null } });
   });
 
   it("HTTP 请求体不要求账本 ID，非法网址和超长名称会被拒绝", () => {

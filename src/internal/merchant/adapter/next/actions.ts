@@ -98,22 +98,13 @@ export const fetchMerchantIcon: MerchantIconStateAction =
 
     try {
       const service = await getMerchantService();
-      const icon = validation.value.merchantId
-        ? await service.cacheMerchantIcon({
-            ledgerId: currentLedger.id,
-            merchantId: validation.value.merchantId,
-            websiteUrl: validation.value.websiteUrl,
-          })
-        : await service.fetchMerchantIcon({
-            ledgerId: currentLedger.id,
-            websiteUrl: validation.value.websiteUrl,
-          });
-      if (validation.value.merchantId) revalidateMerchantMutation();
+      const icon = await service.fetchMerchantIcon({
+        ledgerId: currentLedger.id,
+        websiteUrl: validation.value.websiteUrl,
+      });
       return {
         iconUrl: icon.url,
-        success: validation.value.merchantId
-          ? merchantText.iconSuccess
-          : merchantText.iconPreviewSuccess,
+        success: merchantText.iconPreviewSuccess,
       };
     } catch (error) {
       return actionErrorState(
