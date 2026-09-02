@@ -47,9 +47,7 @@ describe("PrimaryActionButton", () => {
       expect(cssVariables["--user-theme-fab-text"]).toBe(
         userThemeTokens[themeKey].component.buttonPrimaryText,
       );
-      expect(getComputedStyle(button).color).toBe(
-        "var(--user-theme-fab-text)",
-      );
+      expect(getComputedStyle(button).color).toBe("var(--user-theme-fab-text)");
 
       unmount();
     });
