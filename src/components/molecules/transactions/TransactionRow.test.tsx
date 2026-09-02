@@ -510,44 +510,76 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
-    it("有无业务标签时分类摘要与业务标签使用同一固定高度", () => {
+    it("有无业务标签时分类摘要均独占详情首行", () => {
+      const detailText = "🥬 做饭食材/调料 | 猪肉・鸡腿・蔬菜";
       render(
-        <>
-          <TransactionRow item={createItem()} />
-          <TransactionRow
-            item={createItem({
-              id: "00000000-0000-4000-8000-000000009002",
-              categoryItems: [
-                {
-                  amount: "1234",
-                  businessStatus: incomeBusinessStatus("reimbursement"),
-                  categoryName: "交通",
-                  categoryType: "expense",
-                  parentCategoryName: "出行",
-                },
-              ],
-            })}
-          />
-        </>,
+        <div>
+          <div data-testid="category-only-row">
+            <TransactionRow
+              item={createItem({
+                categoryItems: [
+                  {
+                    amount: "1234",
+                    categoryName: "🥬 做饭食材/调料",
+                    categoryType: "expense",
+                    parentCategoryName: "饮食",
+                  },
+                ],
+                note: "猪肉・鸡腿・蔬菜",
+              })}
+            />
+          </div>
+          <div data-testid="business-badge-row">
+            <TransactionRow
+              item={createItem({
+                id: "00000000-0000-4000-8000-000000009002",
+                categoryItems: [
+                  {
+                    amount: "1234",
+                    businessStatus: incomeBusinessStatus("reimbursement"),
+                    categoryName: "🥬 做饭食材/调料",
+                    categoryType: "expense",
+                    parentCategoryName: "饮食",
+                  },
+                ],
+                note: "猪肉・鸡腿・蔬菜",
+              })}
+            />
+          </div>
+        </div>,
       );
 
-      const categoryOnlyChip = screen
-        .getByText("餐饮")
-        .closest(".MuiChip-root");
-      const businessChip = screen
-        .getByText("报销收入")
-        .closest(".MuiChip-root");
+      const summaries = screen.getAllByText(detailText);
+      const plainRow = screen.getByTestId("category-only-row").children[0];
+      const badgeRow = screen.getByTestId("business-badge-row").children[0];
+      const plainGroup = summaries[0]?.parentElement;
+      const badgeGroup = summaries[1]?.parentElement;
+      const badgeSlot = badgeGroup?.children[1];
+      const badge = screen.getByText("报销收入").closest(".MuiChip-root");
 
-      expect(categoryOnlyChip).toHaveStyle({ height: "20px" });
-      expect(businessChip).toHaveStyle({ height: "20px" });
-      expect(screen.getByText("餐饮")).toHaveStyle({
-        paddingLeft: "6px",
-        paddingRight: "6px",
+      expect(plainRow?.children).toHaveLength(2);
+      expect(badgeRow?.children).toHaveLength(2);
+      expect(plainGroup).toHaveClass("MuiStack-root");
+      expect(badgeGroup).toHaveClass("MuiStack-root");
+      expect(plainGroup).toHaveStyle({ flexDirection: "column" });
+      expect(badgeGroup).toHaveStyle({ flexDirection: "column" });
+      expect(plainGroup?.children).toHaveLength(1);
+      expect(badgeGroup?.children).toHaveLength(2);
+      expect(plainGroup?.children[0]).toBe(summaries[0]);
+      expect(badgeGroup?.children[0]).toBe(summaries[1]);
+      expect(badgeSlot).toHaveClass("MuiStack-root");
+      expect(badgeSlot).toHaveStyle({ flexDirection: "row" });
+      expect(badgeSlot?.contains(badge)).toBe(true);
+      expect(summaries).toHaveLength(2);
+      summaries.forEach((summary) => {
+        expect(summary.closest(".MuiChip-root")).toBeNull();
+        expect(summary).toHaveClass("MuiTypography-noWrap");
+        expect(summary).toHaveStyle({
+          color: "var(--user-theme-tx-meta)",
+          fontSize: "11px",
+        });
       });
-      expect(screen.getByText("报销收入")).toHaveStyle({
-        paddingLeft: "6px",
-        paddingRight: "6px",
-      });
+      expect(badge).not.toBeNull();
     });
 
     it("单条明细带业务状态时显示对应标签", () => {

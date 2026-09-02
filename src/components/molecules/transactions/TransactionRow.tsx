@@ -3,7 +3,6 @@
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore } from "react";
@@ -262,35 +261,37 @@ export function TransactionRow({
         </Stack>
       </Stack>
 
-      {detailText ? (
-        <Chip
-          label={detailText}
-          sx={{
-            ...rowBadgeSx,
-            bgcolor: "var(--user-theme-badge-bg)",
-            color: textColor,
-            fontWeight: 700,
-            maxWidth: "100%",
-            width: "fit-content",
-          }}
-        />
-      ) : null}
-
-      {businessStatuses.length > 0 ? (
-        <Stack
-          direction="row"
-          spacing={0.5}
-          useFlexGap
-          sx={{ flexWrap: "wrap" }}
-        >
-          {businessStatuses.map(({ key, status }) => (
-            <TransactionBusinessBadge
-              currency={item.account_currency}
-              key={key}
-              status={status}
-              sx={rowBadgeSx}
-            />
-          ))}
+      {detailText || businessStatuses.length > 0 ? (
+        <Stack direction="column" spacing={0.5} sx={{ minWidth: 0 }}>
+          {detailText ? (
+            <Typography
+              noWrap
+              sx={{
+                color: mutedText,
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              {detailText}
+            </Typography>
+          ) : null}
+          {businessStatuses.length > 0 ? (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{ flexWrap: "wrap" }}
+            >
+              {businessStatuses.map(({ key, status }) => (
+                <TransactionBusinessBadge
+                  currency={item.account_currency}
+                  key={key}
+                  status={status}
+                  sx={businessBadgeSx}
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Stack>
       ) : null}
     </Stack>
@@ -549,7 +550,7 @@ function getServerTimeZone() {
   return serverFallbackTimeZone;
 }
 
-const rowBadgeSx = {
+const businessBadgeSx = {
   fontSize: "0.625rem",
   height: 20,
   "& .MuiChip-label": { px: 0.75 },
