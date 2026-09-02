@@ -244,16 +244,29 @@ export function createMerchantIconService({
         break;
       }
 
-      let bytes: ArrayBuffer;
+      const reader = response.body?.getReader();
+      if (!reader) break;
+
+      let byteLength = 0;
       try {
-        bytes = await response.arrayBuffer();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          byteLength += value.byteLength;
+          if (byteLength > maxIconBytes) {
+            await reader.cancel();
+            break;
+          }
+        }
       } catch {
         throw new RepositoryError(
           merchantErrorCodes.merchantIconFetchFailed,
           getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
         );
+      } finally {
+        reader.releaseLock();
       }
-      if (bytes.byteLength === 0 || bytes.byteLength > maxIconBytes) break;
+      if (byteLength === 0 || byteLength > maxIconBytes) break;
       return { url: requestUrl.toString() };
     }
 

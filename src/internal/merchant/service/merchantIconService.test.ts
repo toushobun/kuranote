@@ -85,6 +85,76 @@ describe("createMerchantIconService", () => {
   });
 
   it.each([
+    {
+      name: "空响应",
+      response: new Response(null, {
+        headers: { "content-type": "image/png" },
+      }),
+    },
+    {
+      name: "响应头声明资源过大",
+      response: new Response(new Uint8Array([1]), {
+        headers: {
+          "content-length": String(256 * 1024 + 1),
+          "content-type": "image/png",
+        },
+      }),
+    },
+    {
+      name: "下载过程中读取失败",
+      response: new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(new Error("stream failed"));
+          },
+        }),
+        { headers: { "content-type": "image/png" } },
+      ),
+    },
+  ])("拒绝$name", async ({ response }) => {
+    const service = createMerchantIconService({
+      fetchImpl: vi.fn(async () => response) as unknown as typeof fetch,
+      lookup: publicLookup,
+    });
+
+    await expect(
+      service.fetchIcon("https://example.com"),
+    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+  });
+
+  it("分块响应超过上限时立即取消剩余下载", async () => {
+    let canceled = false;
+    let pullCount = 0;
+    const chunks = Array.from({ length: 5 }, () => new Uint8Array(128 * 1024));
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        canceled = true;
+      },
+      pull(controller) {
+        const chunk = chunks.shift();
+        pullCount += 1;
+        if (chunk) controller.enqueue(chunk);
+        else controller.close();
+      },
+    });
+    const service = createMerchantIconService({
+      fetchImpl: vi.fn(
+        async () =>
+          new Response(body, {
+            headers: { "content-type": "image/png" },
+          }),
+      ) as unknown as typeof fetch,
+      lookup: publicLookup,
+    });
+
+    await expect(
+      service.fetchIcon("https://example.com"),
+    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+    expect(canceled).toBe(true);
+    expect(pullCount).toBeLessThan(5);
+  });
+
+  it.each([
     "http://localhost/logo.png",
     "http://169.254.169.254/latest/meta-data",
     "http://[::1]/icon",
