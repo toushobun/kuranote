@@ -569,7 +569,9 @@ describe("TransactionRow", () => {
       expect(categoryOnlyDetailGroup?.children).toHaveLength(1);
       expect(businessDetailGroup?.children).toHaveLength(2);
       expect(businessDetailGroup?.children[0]).toBe(categorySummaries[1]);
-      expect(businessDetailGroup?.children[1]?.contains(businessChip)).toBe(true);
+      expect(
+        businessDetailGroup?.children[1]?.contains(businessChip),
+      ).toBe(true);
       expect(categorySummaries).toHaveLength(2);
       categorySummaries.forEach((categorySummary) => {
         expect(categorySummary.closest(".MuiChip-root")).toBeNull();
