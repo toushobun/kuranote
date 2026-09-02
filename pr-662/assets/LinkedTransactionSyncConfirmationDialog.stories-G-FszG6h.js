@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,t as n}from"./LinkedTransactionSyncConfirmationDialog-CWRuFf6V.js";var r,i,a;e((()=>{t(),r={title:`Organisms/Transactions/LinkedTransactionSyncConfirmationDialog`,component:n,args:{onCancel:()=>void 0,onConfirm:()=>void 0,open:!0}},i={name:`已关联明细同步确认`},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
+  name: "已关联明细同步确认"
+}`,...i.parameters?.docs?.source}}},a=[`Default`]}))();export{i as Default,a as __namedExportsOrder,r as default};
