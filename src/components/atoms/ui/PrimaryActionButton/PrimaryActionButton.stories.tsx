@@ -24,10 +24,7 @@ function PrimaryActionButtonThemePreview() {
         const token = userThemeTokens[themeKey];
 
         return (
-          <ThemeProvider
-            key={themeKey}
-            theme={createDynamicMuiTheme(themeKey)}
-          >
+          <ThemeProvider key={themeKey} theme={createDynamicMuiTheme(themeKey)}>
             <Box
               style={getUserThemeCssVariables(themeKey) as CSSProperties}
               sx={{
