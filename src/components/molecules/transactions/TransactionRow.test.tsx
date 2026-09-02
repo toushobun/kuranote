@@ -510,7 +510,7 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
-    it("有无业务标签时使用相同行布局且分类摘要不与业务标签争抢宽度", () => {
+    it("有无业务标签时保持相同的详情区布局", () => {
       const detailText = "🥬 做饭食材/调料 | 猪肉・鸡腿・蔬菜";
       render(
         <div>
@@ -549,39 +549,33 @@ describe("TransactionRow", () => {
         </div>,
       );
 
-      const categorySummaries = screen.getAllByText(detailText);
-      const categoryOnlyRow =
-        screen.getByTestId("category-only-row").firstElementChild;
-      const businessBadgeRow =
-        screen.getByTestId("business-badge-row").firstElementChild;
-      const categoryOnlyDetailGroup = categorySummaries[0]?.parentElement;
-      const businessDetailGroup = categorySummaries[1]?.parentElement;
-      const businessChip = screen
-        .getByText("报销收入")
-        .closest(".MuiChip-root");
+      const summaries = screen.getAllByText(detailText);
+      const plainRow = screen.getByTestId("category-only-row").children[0];
+      const badgeRow = screen.getByTestId("business-badge-row").children[0];
+      const plainGroup = summaries[0]?.parentElement;
+      const badgeGroup = summaries[1]?.parentElement;
+      const badge = screen.getByText("报销收入").closest(".MuiChip-root");
 
-      expect(categoryOnlyRow?.children).toHaveLength(2);
-      expect(businessBadgeRow?.children).toHaveLength(2);
-      expect(categoryOnlyDetailGroup).toHaveClass("MuiStack-root");
-      expect(businessDetailGroup).toHaveClass("MuiStack-root");
-      expect(categoryOnlyDetailGroup).toHaveStyle({ flexDirection: "column" });
-      expect(businessDetailGroup).toHaveStyle({ flexDirection: "column" });
-      expect(categoryOnlyDetailGroup?.children).toHaveLength(1);
-      expect(businessDetailGroup?.children).toHaveLength(2);
-      expect(businessDetailGroup?.children[0]).toBe(categorySummaries[1]);
-      expect(
-        businessDetailGroup?.children[1]?.contains(businessChip),
-      ).toBe(true);
-      expect(categorySummaries).toHaveLength(2);
-      categorySummaries.forEach((categorySummary) => {
-        expect(categorySummary.closest(".MuiChip-root")).toBeNull();
-        expect(categorySummary).toHaveClass("MuiTypography-noWrap");
-        expect(categorySummary).toHaveStyle({
+      expect(plainRow?.children).toHaveLength(2);
+      expect(badgeRow?.children).toHaveLength(2);
+      expect(plainGroup).toHaveClass("MuiStack-root");
+      expect(badgeGroup).toHaveClass("MuiStack-root");
+      expect(plainGroup).toHaveStyle({ flexDirection: "column" });
+      expect(badgeGroup).toHaveStyle({ flexDirection: "column" });
+      expect(plainGroup?.children).toHaveLength(1);
+      expect(badgeGroup?.children).toHaveLength(2);
+      expect(badgeGroup?.children[0]).toBe(summaries[1]);
+      expect(badgeGroup?.children[1]?.contains(badge)).toBe(true);
+      expect(summaries).toHaveLength(2);
+      summaries.forEach((summary) => {
+        expect(summary.closest(".MuiChip-root")).toBeNull();
+        expect(summary).toHaveClass("MuiTypography-noWrap");
+        expect(summary).toHaveStyle({
           color: "var(--user-theme-tx-meta)",
           fontSize: "11px",
         });
       });
-      expect(businessChip).not.toBeNull();
+      expect(badge).not.toBeNull();
     });
 
     it("单条明细带业务状态时显示对应标签", () => {
