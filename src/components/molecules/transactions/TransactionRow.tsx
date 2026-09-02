@@ -266,17 +266,17 @@ export function TransactionRow({
           direction="row"
           spacing={0.5}
           useFlexGap
-          sx={{ alignItems: "center", minWidth: 0 }}
+          sx={{ alignItems: "center", flexWrap: "wrap", minWidth: 0 }}
         >
           {detailText ? (
             <Typography
               noWrap
               sx={{
                 color: mutedText,
-                flex: 1,
+                flexShrink: 0,
                 fontSize: 11,
                 fontWeight: 700,
-                minWidth: 0,
+                maxWidth: "100%",
               }}
             >
               {detailText}

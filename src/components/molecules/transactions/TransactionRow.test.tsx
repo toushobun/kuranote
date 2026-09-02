@@ -510,11 +510,24 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
-    it("有无业务标签时使用相同的行布局且分类摘要保持纯文字", () => {
+    it("有无业务标签时使用相同行布局且业务标签不压缩长分类摘要", () => {
+      const detailText = "🥬 做饭食材/调料 | 猪肉・鸡腿・蔬菜";
       render(
         <div>
           <div data-testid="category-only-row">
-            <TransactionRow item={createItem()} />
+            <TransactionRow
+              item={createItem({
+                categoryItems: [
+                  {
+                    amount: "1234",
+                    categoryName: "🥬 做饭食材/调料",
+                    categoryType: "expense",
+                    parentCategoryName: "饮食",
+                  },
+                ],
+                note: "猪肉・鸡腿・蔬菜",
+              })}
+            />
           </div>
           <div data-testid="business-badge-row">
             <TransactionRow
@@ -524,18 +537,19 @@ describe("TransactionRow", () => {
                   {
                     amount: "1234",
                     businessStatus: incomeBusinessStatus("reimbursement"),
-                    categoryName: "交通",
+                    categoryName: "🥬 做饭食材/调料",
                     categoryType: "expense",
-                    parentCategoryName: "出行",
+                    parentCategoryName: "饮食",
                   },
                 ],
+                note: "猪肉・鸡腿・蔬菜",
               })}
             />
           </div>
         </div>,
       );
 
-      const categorySummary = screen.getByText("餐饮");
+      const categorySummaries = screen.getAllByText(detailText);
       const categoryOnlyRow =
         screen.getByTestId("category-only-row").firstElementChild;
       const businessBadgeRow =
@@ -543,10 +557,16 @@ describe("TransactionRow", () => {
 
       expect(categoryOnlyRow?.children).toHaveLength(2);
       expect(businessBadgeRow?.children).toHaveLength(2);
-      expect(categorySummary.closest(".MuiChip-root")).toBeNull();
-      expect(categorySummary).toHaveStyle({
-        color: "var(--user-theme-tx-meta)",
-        fontSize: "11px",
+      expect(categorySummaries).toHaveLength(2);
+      categorySummaries.forEach((categorySummary) => {
+        expect(categorySummary.closest(".MuiChip-root")).toBeNull();
+        expect(categorySummary.parentElement).toHaveStyle({ flexWrap: "wrap" });
+        expect(categorySummary).toHaveStyle({
+          color: "var(--user-theme-tx-meta)",
+          flexShrink: "0",
+          fontSize: "11px",
+          maxWidth: "100%",
+        });
       });
       expect(
         screen.getByText("报销收入").closest(".MuiChip-root"),
