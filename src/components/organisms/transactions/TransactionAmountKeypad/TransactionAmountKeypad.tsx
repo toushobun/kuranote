@@ -8,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
@@ -208,24 +209,21 @@ export function TransactionAmountKeypad({
           }}
         >
           {keypadKeys.slice(0, confirmButtonInsertIndex).map(renderKeyButton)}
-          <Button
+          <PrimaryActionButton
             fullWidth
             onClick={handleConfirm}
             type="button"
-            variant="contained"
             sx={{
-              background: "var(--user-theme-fab-bg)",
               borderRadius: 2.5,
-              color: "white",
               fontWeight: 800,
               gridColumn: 4,
               gridRow: "3 / span 2",
               minHeight: 112,
-              "&:hover": { background: "var(--user-theme-fab-bg)" },
+              "&:not(.Mui-disabled):hover": { filter: "none" },
             }}
           >
             确认
-          </Button>
+          </PrimaryActionButton>
           {keypadKeys.slice(confirmButtonInsertIndex).map(renderKeyButton)}
         </Box>
       </Stack>

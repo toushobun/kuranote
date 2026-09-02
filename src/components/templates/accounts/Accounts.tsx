@@ -1,9 +1,7 @@
 "use client";
 
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
@@ -12,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
+import { CreateButton } from "atoms/ui/CreateButton";
 import { routePaths } from "config/paths";
 import {
   FailureFeedbackDialog,
@@ -191,14 +190,12 @@ export function AccountsTemplate({
                 账户管理
               </Typography>
               {canManageAccounts ? (
-                <Button
+                <CreateButton
                   onClick={() => setIsCreateDialogOpen(true)}
-                  startIcon={<AddRoundedIcon />}
                   sx={createButtonSx}
-                  variant="contained"
                 >
                   新增账户
-                </Button>
+                </CreateButton>
               ) : null}
             </Stack>
             <Typography
@@ -323,18 +320,12 @@ const filterRowSx = {
 };
 
 const createButtonSx = {
-  background: "var(--user-theme-fab-bg)",
   borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
   flexShrink: 0,
   fontWeight: 800,
   minHeight: 40,
   px: 2,
   whiteSpace: "nowrap",
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };
 
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;

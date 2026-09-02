@@ -3,12 +3,11 @@ import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import SmartphoneRoundedIcon from "@mui/icons-material/SmartphoneRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
 import { IconBadge } from "atoms/ui/IconBadge";
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
@@ -143,24 +142,22 @@ function DashboardNoLedgerAccountState() {
         >
           还没有账本，暂时无法显示账户余额
         </Typography>
-        <Button
-          component={Link}
+        <PrimaryActionButton
           href={routePaths.ledgersNew}
           size="small"
           sx={{
-            background: "var(--user-theme-fab-bg)",
             borderRadius: 1.5,
             boxShadow: "0 6px 18px var(--user-theme-fab-shadow)",
-            color: "var(--user-theme-fab-text)",
             fontWeight: 900,
+            minHeight: 40,
             px: 1.6,
             py: 0.85,
             textDecoration: "none",
+            "&:not(.Mui-disabled):hover": { filter: "none" },
           }}
-          variant="contained"
         >
           创建第一个账本
-        </Button>
+        </PrimaryActionButton>
       </Stack>
     </Stack>
   );

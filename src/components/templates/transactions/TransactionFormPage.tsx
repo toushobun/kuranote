@@ -24,6 +24,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
@@ -573,16 +574,15 @@ function EditTransactionShell({
           >
             删除
           </Button>
-          <Button
+          <PrimaryActionButton
             disabled={submitDisabledByType[activeType] || isSavePending}
             form={editTransactionFormId(activeType)}
             size="large"
             type="submit"
-            variant="contained"
             sx={transactionSubmitButtonSx}
           >
             保存修改
-          </Button>
+          </PrimaryActionButton>
         </Box>
       </Stack>
       <form action={deleteFormAction} id={deleteTransactionFormId}>

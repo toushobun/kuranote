@@ -453,9 +453,7 @@ const pageTitleSx = {
 
 const createButtonSx = {
   ...typographyStyles.button,
-  background: "var(--user-theme-fab-bg)",
   borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
   flexShrink: 0,
   fontSize: 14,
   fontWeight: 700,
@@ -467,10 +465,6 @@ const createButtonSx = {
   },
   "& .MuiSvgIcon-root": {
     fontSize: 20,
-  },
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
   },
 };
 

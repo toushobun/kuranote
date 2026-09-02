@@ -8,12 +8,12 @@ import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
@@ -332,15 +332,14 @@ export function TransactionForm({
         />
 
         {hideSubmitButton ? null : (
-          <Button
+          <PrimaryActionButton
             disabled={isSubmitDisabled}
             size="large"
             type="submit"
-            variant="contained"
             sx={transactionSubmitButtonSx}
           >
             {submitLabel}
-          </Button>
+          </PrimaryActionButton>
         )}
       </Stack>
 

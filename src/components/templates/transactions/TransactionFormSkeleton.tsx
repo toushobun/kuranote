@@ -159,7 +159,19 @@ function SummarySkeleton({ rowCount = 3 }: { rowCount?: number }) {
 
 function SubmitButtonSkeleton() {
   return (
-    <Skeleton variant="rounded" height={48} sx={transactionSubmitButtonSx} />
+    <Skeleton
+      variant="rounded"
+      height={48}
+      sx={[
+        transactionSubmitButtonSx,
+        {
+          "&:not(.Mui-disabled)": {
+            background: "var(--user-theme-fab-bg)",
+            color: "var(--user-theme-fab-text)",
+          },
+        },
+      ]}
+    />
   );
 }
 
