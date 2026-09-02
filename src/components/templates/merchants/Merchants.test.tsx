@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
@@ -19,6 +19,9 @@ const baseProps = {
   keyword: "",
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
+  selectedTag: null,
+  tagFilterError: null,
+  tags: [],
 };
 
 describe("MerchantsTemplate", () => {
@@ -69,6 +72,29 @@ describe("MerchantsTemplate", () => {
     expect(within(container).getByLabelText("搜索商家")).toHaveValue("便利");
   });
 
+  it("搜索框显示在标签卡片之前，并在筛选时保留 tagId", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        selectedTag={{
+          icon: "🛒",
+          id: "tag-1",
+          merchant_count: 1,
+          name: "超市",
+          sort_order: 0,
+        }}
+      />,
+    );
+
+    const search = screen.getByLabelText("搜索商家");
+    const tagsHeading = screen.getByText("商家标签");
+    expect(
+      search.compareDocumentPosition(tagsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
+  });
+
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {
     const { container } = render(
       <MerchantsTemplate {...baseProps} keyword="便利" merchants={[]} />,
@@ -81,5 +107,25 @@ describe("MerchantsTemplate", () => {
     expect(
       within(container).queryByRole("link", { name: "添加第一个商家" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("标签筛选失效时显示原因和清除入口", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        keyword="  LIFE 超市  "
+        merchants={[]}
+        tagFilterError="该商家标签不存在或已不可用。"
+      />,
+    );
+
+    expect(
+      screen.getByText("该商家标签不存在或已不可用。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
+      "href",
+      "/merchants?q=LIFE%20%E8%B6%85%E5%B8%82",
+    );
+    expect(screen.getByText("没有找到匹配的商家")).toBeInTheDocument();
   });
 });

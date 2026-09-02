@@ -2,11 +2,18 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  getMerchantErrorMessage,
+  merchantErrorCodes,
+} from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
+  AuthenticationError,
+  AuthorizationError,
   ConflictError,
+  NotFoundError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import { createSupabaseMock } from "test/supabaseMock";
 
@@ -84,9 +91,12 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await expect(repository.listActive(ledgerId)).resolves.toEqual([]);
+    await expect(repository.listActive(ledgerId)).resolves.toEqual({
+      merchants: [],
+      tags: [],
+    });
 
-    expect(supabase.queries).toHaveLength(1);
+    expect(supabase.queries).toHaveLength(2);
     expect(supabase.queries[0].table).toBe("merchant");
     expect(supabase.queries[0].calls).toEqual(
       expect.arrayContaining([
@@ -98,8 +108,10 @@ describe("createSupabaseMerchantRepository", () => {
     );
   });
 
-  it("商家列表会读取别名并挂到所属商家", async () => {
+  it("商家列表会按标签排序装配别名、标签及统一计算的商家数量", async () => {
     const aliasId = "00000000-0000-4000-8000-000000001002";
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const secondTagId = "00000000-0000-4000-8000-000000002002";
     const supabase = createSupabaseMock({
       queryResponses: [
         {
@@ -126,6 +138,18 @@ describe("createSupabaseMerchantRepository", () => {
             },
           ],
         },
+        {
+          data: [
+            { icon: "🛒", id: tagId, name: "超市", sort_order: 0 },
+            { icon: "🏪", id: secondTagId, name: "便利店", sort_order: 1 },
+          ],
+        },
+        {
+          data: [
+            { merchant_id: merchantId, tag_id: secondTagId },
+            { merchant_id: merchantId, tag_id: tagId },
+          ],
+        },
       ],
     });
     const repository = createSupabaseMerchantRepository(
@@ -133,9 +157,22 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await expect(repository.listActive(ledgerId)).resolves.toMatchObject([
-      { aliases: [{ id: aliasId }], id: merchantId },
-    ]);
+    await expect(repository.listActive(ledgerId)).resolves.toMatchObject({
+      merchants: [
+        {
+          aliases: [{ id: aliasId }],
+          id: merchantId,
+          tags: [
+            { id: tagId, merchant_count: 1 },
+            { id: secondTagId, merchant_count: 1 },
+          ],
+        },
+      ],
+      tags: [
+        { id: tagId, merchant_count: 1 },
+        { id: secondTagId, merchant_count: 1 },
+      ],
+    });
     expect(supabase.queries[1].table).toBe("merchant_alias");
   });
 
@@ -159,7 +196,7 @@ describe("createSupabaseMerchantRepository", () => {
   });
 
   it("更新商家只命中当前账本中的未归档记录", async () => {
-    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
+    const supabase = createSupabaseMock({ rpcResponse: { data: true } });
     const repository = createSupabaseMerchantRepository(
       supabase.client as never,
       createLogger(),
@@ -176,20 +213,21 @@ describe("createSupabaseMerchantRepository", () => {
       }),
     ).resolves.toBe(true);
 
-    expect(supabase.queries[0].calls).toEqual(
-      expect.arrayContaining([
-        { args: ["id", merchantId], method: "eq" },
-        { args: ["ledger_id", ledgerId], method: "eq" },
-        { args: ["is_archived", false], method: "eq" },
-      ]),
-    );
+    expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_ledger_id: ledgerId,
+      p_merchant_id: merchantId,
+      p_name: "ライフ",
+      p_note: null,
+      p_tag_ids: [],
+      p_website_url: null,
+    });
   });
 
   it("唯一约束冲突会转换为安全的 ConflictError", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [
-        { error: { code: "23505", message: "merchant_active_name_unique" } },
-      ],
+      rpcResponse: {
+        error: { code: "23505", message: "merchant_active_name_unique" },
+      },
     });
     const repository = createSupabaseMerchantRepository(
       supabase.client as never,
@@ -206,6 +244,127 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(operation).rejects.toMatchObject({ code: "create_failed" });
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it.each([
+    {
+      details: "merchant_tag_link_invalid",
+      invoke: (
+        repository: ReturnType<typeof createSupabaseMerchantRepository>,
+      ) =>
+        repository.createMerchant({
+          ledgerId,
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          tagIds: [merchantId],
+          userId,
+        }),
+      operation: "新增",
+    },
+    {
+      details: "merchant_tags_invalid",
+      invoke: (
+        repository: ReturnType<typeof createSupabaseMerchantRepository>,
+      ) =>
+        repository.updateMerchant({
+          ledgerId,
+          merchantId,
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          tagIds: [merchantId],
+          userId,
+        }),
+      operation: "更新",
+    },
+  ])(
+    "商家$operation时无效标签会转换为 ValidationError",
+    async ({ details, invoke }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: "22023",
+            details: `  ${details}\n`,
+            message: "private detail",
+          },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = invoke(repository);
+
+      await expect(operation).rejects.toMatchObject({
+        code: merchantErrorCodes.merchantTagInvalid,
+        message: "该商家标签不存在或已不可用。",
+      });
+      await expect(operation).rejects.toBeInstanceOf(ValidationError);
+    },
+  );
+
+  it.each([
+    {
+      code: merchantErrorCodes.authRequired,
+      details: "auth_required",
+      errorType: AuthenticationError,
+      message: "请先登录。",
+    },
+    {
+      code: merchantErrorCodes.permissionDenied,
+      details: "permission_denied",
+      errorType: AuthorizationError,
+      message: "只有账本所有者或管理员可以维护商家。",
+    },
+  ])(
+    "RPC 的 $details 会转换为对应访问错误",
+    async ({ code, details, errorType, message }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: { code: "42501", details, message: "private detail" },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = repository.createTag({
+        icon: "🛒",
+        ledgerId,
+        name: "超市",
+      });
+
+      await expect(operation).rejects.toMatchObject({ code, message });
+      await expect(operation).rejects.toBeInstanceOf(errorType);
+    },
+  );
+
+  it("无 detail 的 42501 触发器错误会转换为 AuthorizationError", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { error: { code: "42501", message: "private permission detail" } },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.updateTag({
+      icon: "🛒",
+      ledgerId,
+      name: "超市",
+      tagId: merchantId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.permissionDenied,
+      message: "只有账本所有者或管理员可以维护商家。",
+    });
+    await expect(operation).rejects.toBeInstanceOf(AuthorizationError);
   });
 
   it("Supabase 错误会记录并转换为安全的 RepositoryError", async () => {
@@ -226,4 +385,206 @@ describe("createSupabaseMerchantRepository", () => {
       expect.objectContaining({ databaseCode: "XX000", ledgerId }),
     );
   });
+
+  it("读取当前账本未归档标签并按排序返回", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const secondMerchantId = "00000000-0000-4000-8000-000000001002";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { data: [{ id: merchantId }, { id: secondMerchantId }] },
+        {
+          data: [
+            { merchant_id: merchantId, tag_id: tagId },
+            { merchant_id: secondMerchantId, tag_id: tagId },
+          ],
+        },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.listActiveTags(ledgerId);
+
+    expect(supabase.queries.map((query) => query.table)).toEqual([
+      "merchant_tags",
+      "merchant",
+    ]);
+    await expect(operation).resolves.toEqual([
+      { icon: "🛒", id: tagId, merchant_count: 2, name: "超市", sort_order: 0 },
+    ]);
+    expect(supabase.queries[0].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+    expect(supabase.queries[1].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+    expect(supabase.queries[2].calls).toContainEqual({
+      args: ["merchant_id", [merchantId, secondMerchantId]],
+      method: "in",
+    });
+  });
+
+  it("标签计数所需的商家查询失败时返回统一的标签列表错误", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { error: { code: "XX000", message: "private detail" } },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.listActiveTags(ledgerId);
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.merchantTagListFailed,
+      message: getMerchantErrorMessage(
+        merchantErrorCodes.merchantTagListFailed,
+      ),
+    });
+    await expect(operation).rejects.toBeInstanceOf(RepositoryError);
+  });
+
+  it("标签校验只读取当前账本未归档标签 ID", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: [{ id: tagId }] }],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.listActiveTagIds(ledgerId)).resolves.toEqual([
+      tagId,
+    ]);
+    expect(supabase.queries).toHaveLength(1);
+    expect(supabase.queries[0].calls).toEqual(
+      expect.arrayContaining([
+        { args: ["id"], method: "select" },
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ]),
+    );
+  });
+
+  it("通过 RPC 原子创建商家标签", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({ rpcResponse: { data: tagId } });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await repository.createTag({ icon: "🛒", ledgerId, name: "超市" });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("create_merchant_tag", {
+      p_icon: "🛒",
+      p_ledger_id: ledgerId,
+      p_name: "超市",
+    });
+  });
+
+  it("读取单个商家时只查询该商家关联的标签", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: {
+            created_at: "2026-01-01T00:00:00.000Z",
+            icon_url: null,
+            id: merchantId,
+            name: "LIFE",
+            note: null,
+            sort_order: 0,
+            website_url: null,
+          },
+        },
+        { data: [] },
+        { data: [{ merchant_id: merchantId, tag_id: tagId }] },
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.findActiveMerchantData(ledgerId, merchantId),
+    ).resolves.toMatchObject({
+      id: merchantId,
+      tags: [{ id: tagId }],
+    });
+    expect(supabase.queries[3].table).toBe("merchant_tags");
+    expect(supabase.queries[3].calls).toContainEqual({
+      args: ["id", [tagId]],
+      method: "in",
+    });
+  });
+
+  it.each([
+    {
+      databaseCode: "22023",
+      code: merchantErrorCodes.merchantTagOrderInvalid,
+      details: "merchant_tag_order_invalid",
+      errorType: ValidationError,
+      message: "标签排序内容不正确。",
+    },
+    {
+      databaseCode: "22023",
+      code: merchantErrorCodes.merchantTagSetInvalid,
+      details: "merchant_tag_set_invalid",
+      errorType: ConflictError,
+      message: "标签列表已发生变化，请刷新页面后重试。",
+    },
+    {
+      databaseCode: "P0002",
+      code: merchantErrorCodes.ledgerInvalid,
+      details: "ledger_not_found",
+      errorType: NotFoundError,
+      message: "账本不存在、已停用或您无法访问。",
+    },
+    {
+      databaseCode: "P0001",
+      code: merchantErrorCodes.merchantTagReorderFailed,
+      details: "merchant_tag_write_failed",
+      errorType: ConflictError,
+      message: "标签排序保存失败，请稍后重试。",
+    },
+  ])(
+    "标签排序 RPC 的 $details 会转换为对应业务错误",
+    async ({ code, databaseCode, details, errorType, message }) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: databaseCode,
+            details: ` ${details}\n`,
+            message: "private detail",
+          },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+
+      const operation = repository.reorderTags(ledgerId, [merchantId]);
+
+      await expect(operation).rejects.toMatchObject({ code, message });
+      await expect(operation).rejects.toBeInstanceOf(errorType);
+    },
+  );
 });

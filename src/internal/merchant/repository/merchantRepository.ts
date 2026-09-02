@@ -1,9 +1,23 @@
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
-import { merchantErrorCodes } from "internal/merchant/errors";
-import { ConflictError } from "internal/shared/errors/appError";
+import {
+  getMerchantErrorMessage,
+  merchantErrorCodes,
+  type MerchantErrorCode,
+} from "internal/merchant/errors";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import {
+  findRpcBusinessError,
+  type RpcErrorLike,
+} from "internal/shared/supabase/rpcError";
 import { resolveMerchantDisplayName } from "utils/merchants";
 
 type MerchantRow = {
@@ -31,6 +45,87 @@ type MerchantSummaryRow = {
   name: string;
 };
 
+type MerchantTagRow = {
+  icon: string;
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
+type MerchantTagLinkRow = { merchant_id: string; tag_id: string };
+
+type RpcBusinessError = {
+  code: MerchantErrorCode;
+  message: string;
+  type:
+    | "authentication"
+    | "authorization"
+    | "conflict"
+    | "not_found"
+    | "validation";
+};
+
+const merchantRpcBusinessErrors: Partial<
+  Record<MerchantErrorCode, RpcBusinessError>
+> = {
+  [merchantErrorCodes.authRequired]: {
+    code: merchantErrorCodes.authRequired,
+    message: getMerchantErrorMessage(merchantErrorCodes.authRequired),
+    type: "authentication",
+  },
+  [merchantErrorCodes.ledgerInvalid]: {
+    code: merchantErrorCodes.ledgerInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid),
+    type: "not_found",
+  },
+  [merchantErrorCodes.merchantTagInvalid]: {
+    code: merchantErrorCodes.merchantTagInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
+    type: "validation",
+  },
+  [merchantErrorCodes.merchantTagOrderInvalid]: {
+    code: merchantErrorCodes.merchantTagOrderInvalid,
+    message: getMerchantErrorMessage(
+      merchantErrorCodes.merchantTagOrderInvalid,
+    ),
+    type: "validation",
+  },
+  [merchantErrorCodes.merchantTagReorderFailed]: {
+    code: merchantErrorCodes.merchantTagReorderFailed,
+    message: getMerchantErrorMessage(
+      merchantErrorCodes.merchantTagReorderFailed,
+    ),
+    type: "conflict",
+  },
+  [merchantErrorCodes.merchantTagSetInvalid]: {
+    code: merchantErrorCodes.merchantTagSetInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantTagSetInvalid),
+    type: "conflict",
+  },
+  [merchantErrorCodes.permissionDenied]: {
+    code: merchantErrorCodes.permissionDenied,
+    message: getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
+    type: "authorization",
+  },
+};
+
+const merchantAccessBusinessErrorCodes = {
+  auth_required: merchantErrorCodes.authRequired,
+  permission_denied: merchantErrorCodes.permissionDenied,
+} as const;
+
+const merchantTagWriteBusinessErrorCodes = {
+  merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
+  merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
+} as const;
+
+const merchantTagReorderBusinessErrorCodes = {
+  ledger_not_found: merchantErrorCodes.ledgerInvalid,
+  merchant_tag_order_invalid: merchantErrorCodes.merchantTagOrderInvalid,
+  merchant_tag_set_invalid: merchantErrorCodes.merchantTagSetInvalid,
+  merchant_tag_write_failed: merchantErrorCodes.merchantTagReorderFailed,
+} as const;
+
 export type MerchantAliasData = {
   alias: string;
   created_at: string;
@@ -49,7 +144,21 @@ export type MerchantData = {
   name: string;
   note: string | null;
   sort_order: number;
+  tags: MerchantTagData[];
   website_url: string | null;
+};
+
+export type MerchantTagData = {
+  icon: string;
+  id: string;
+  merchant_count: number;
+  name: string;
+  sort_order: number;
+};
+
+export type ActiveMerchantListData = {
+  merchants: MerchantData[];
+  tags: MerchantTagData[];
 };
 
 export type CreateMerchantInput = {
@@ -57,6 +166,7 @@ export type CreateMerchantInput = {
   name: string;
   note: string | null;
   siteUrl: string | null;
+  tagIds?: string[];
   userId: string;
 };
 
@@ -80,26 +190,47 @@ export type SetPreferredMerchantAliasInput = {
   ledgerId: string;
   merchantId: string;
 };
+export type CreateMerchantTagInput = {
+  icon: string;
+  ledgerId: string;
+  name: string;
+};
+export type UpdateMerchantTagInput = {
+  icon: string;
+  ledgerId: string;
+  name: string;
+  tagId: string;
+};
 
 export interface MerchantRepository {
   archiveAlias(input: ArchiveMerchantAliasInput): Promise<boolean>;
   archiveMerchant(input: ArchiveMerchantInput): Promise<boolean>;
+  archiveTag(ledgerId: string, tagId: string): Promise<boolean>;
   createAlias(input: CreateMerchantAliasInput): Promise<void>;
   createMerchant(input: CreateMerchantInput): Promise<void>;
+  createTag(input: CreateMerchantTagInput): Promise<void>;
   findActiveAlias(aliasId: string): Promise<{ merchantId: string } | null>;
   findActiveMerchant(ledgerId: string, merchantId: string): Promise<boolean>;
   findActiveMerchantData(
     ledgerId: string,
     merchantId: string,
   ): Promise<MerchantData | null>;
+  findActiveTag(
+    ledgerId: string,
+    tagId: string,
+  ): Promise<MerchantTagData | null>;
   findSummariesByIds(
     ledgerId: string,
     merchantIds: string[],
   ): Promise<MerchantSummary[]>;
-  listActive(ledgerId: string): Promise<MerchantData[]>;
+  listActive(ledgerId: string): Promise<ActiveMerchantListData>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
+  listActiveTagIds(ledgerId: string): Promise<string[]>;
+  listActiveTags(ledgerId: string): Promise<MerchantTagData[]>;
+  reorderTags(ledgerId: string, tagIds: string[]): Promise<void>;
   setPreferredAlias(input: SetPreferredMerchantAliasInput): Promise<boolean>;
   updateMerchant(input: UpdateMerchantInput): Promise<boolean>;
+  updateTag(input: UpdateMerchantTagInput): Promise<boolean>;
 }
 
 const merchantColumns =
@@ -116,8 +247,46 @@ function toMerchantData(row: MerchantRow): MerchantData {
     name: row.name,
     note: row.note,
     sort_order: row.sort_order,
+    tags: [],
     website_url: row.website_url,
   };
+}
+
+function toMerchantTagData(row: MerchantTagRow): MerchantTagData {
+  return { ...row, merchant_count: 0 };
+}
+
+function attachMerchantCounts(
+  tags: MerchantTagData[],
+  links: MerchantTagLinkRow[],
+): MerchantTagData[] {
+  const counts = new Map<string, number>();
+  for (const link of links) {
+    counts.set(link.tag_id, (counts.get(link.tag_id) ?? 0) + 1);
+  }
+  return tags.map((tag) => ({
+    ...tag,
+    merchant_count: counts.get(tag.id) ?? 0,
+  }));
+}
+
+function attachMerchantTags(
+  merchants: MerchantData[],
+  tags: MerchantTagData[],
+  links: MerchantTagLinkRow[],
+): MerchantData[] {
+  const tagIdsByMerchantId = new Map<string, Set<string>>();
+  for (const link of links) {
+    const tagIds = tagIdsByMerchantId.get(link.merchant_id) ?? new Set();
+    tagIds.add(link.tag_id);
+    tagIdsByMerchantId.set(link.merchant_id, tagIds);
+  }
+  return merchants.map((merchant) => ({
+    ...merchant,
+    tags: tags.filter((tag) =>
+      tagIdsByMerchantId.get(merchant.id)?.has(tag.id),
+    ),
+  }));
 }
 
 function toMerchantAliasData(row: MerchantAliasRow): MerchantAliasData {
@@ -191,14 +360,43 @@ export function createSupabaseMerchantRepository(
     code: string,
     publicMessage: string,
     fields: Record<string, unknown>,
-    error: { code?: string | null; message?: string | null },
+    error: RpcErrorLike,
     conflictCode?: string,
+    businessErrorCodes: Readonly<Record<string, MerchantErrorCode>> = {},
   ): never {
     logger.error(logMessage, {
       ...fields,
       databaseCode: error.code,
+      databaseDetails: error.details,
       databaseMessage: error.message,
     });
+    const businessErrorCode =
+      findRpcBusinessError(error, merchantAccessBusinessErrorCodes) ??
+      findRpcBusinessError(error, businessErrorCodes);
+    const businessError = businessErrorCode
+      ? merchantRpcBusinessErrors[businessErrorCode]
+      : undefined;
+    if (businessError?.type === "authentication") {
+      throw new AuthenticationError(businessError.code, businessError.message);
+    }
+    if (businessError?.type === "authorization") {
+      throw new AuthorizationError(businessError.code, businessError.message);
+    }
+    if (businessError?.type === "validation") {
+      throw new ValidationError(businessError.code, businessError.message);
+    }
+    if (businessError?.type === "not_found") {
+      throw new NotFoundError(businessError.code, businessError.message);
+    }
+    if (businessError) {
+      throw new ConflictError(businessError.code, businessError.message);
+    }
+    if (error.code === "42501") {
+      throw new AuthorizationError(
+        merchantErrorCodes.permissionDenied,
+        getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
+      );
+    }
     if (error.code === "23505" && conflictCode) {
       throw new ConflictError(conflictCode, publicMessage);
     }
@@ -225,6 +423,64 @@ export function createSupabaseMerchantRepository(
       );
     }
     return (data ?? []) as Array<{ alias: string; merchant_id: string }>;
+  }
+
+  async function loadActiveTags(ledgerId: string): Promise<MerchantTagData[]> {
+    const { data, error } = await supabase
+      .from("merchant_tags")
+      .select("id, name, icon, sort_order")
+      .eq("ledger_id", ledgerId)
+      .eq("is_archived", false)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) {
+      fail(
+        "[merchant] failed to load merchant tags",
+        merchantErrorCodes.merchantTagListFailed,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+        { ledgerId },
+        error,
+      );
+    }
+    return ((data ?? []) as MerchantTagRow[]).map(toMerchantTagData);
+  }
+
+  async function loadActiveMerchantIds(ledgerId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("merchant")
+      .select("id")
+      .eq("ledger_id", ledgerId)
+      .eq("is_archived", false);
+    if (error) {
+      fail(
+        "[merchant] failed to load merchants for merchant tag counts",
+        merchantErrorCodes.merchantTagListFailed,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+        { ledgerId },
+        error,
+      );
+    }
+    return ((data ?? []) as Array<{ id: string }>).map(
+      (merchant) => merchant.id,
+    );
+  }
+
+  async function loadTagLinks(merchantIds: string[]) {
+    if (merchantIds.length === 0) return [];
+    const { data, error } = await supabase
+      .from("merchant_tag_links")
+      .select("merchant_id, tag_id")
+      .in("merchant_id", merchantIds);
+    if (error) {
+      fail(
+        "[merchant] failed to load merchant tag links",
+        merchantErrorCodes.merchantTagListFailed,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+        { merchantCount: merchantIds.length },
+        error,
+      );
+    }
+    return (data ?? []) as MerchantTagLinkRow[];
   }
 
   return {
@@ -285,6 +541,23 @@ export function createSupabaseMerchantRepository(
       return count === 1;
     },
 
+    async archiveTag(ledgerId, tagId) {
+      const { data, error } = await supabase.rpc("archive_merchant_tag", {
+        p_ledger_id: ledgerId,
+        p_tag_id: tagId,
+      });
+      if (error) {
+        fail(
+          "[merchant] failed to archive merchant tag",
+          merchantErrorCodes.merchantTagArchiveFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagArchiveFailed),
+          { ledgerId, tagId },
+          error,
+        );
+      }
+      return data === true;
+    },
+
     async createAlias(input) {
       const { error } = await supabase.from("merchant_alias").insert({
         alias: input.alias,
@@ -307,14 +580,12 @@ export function createSupabaseMerchantRepository(
     },
 
     async createMerchant(input) {
-      const { error } = await supabase.from("merchant").insert({
-        created_by: input.userId,
-        ledger_id: input.ledgerId,
-        name: input.name,
-        note: input.note,
-        sort_order: 0,
-        updated_by: input.userId,
-        website_url: input.siteUrl,
+      const { error } = await supabase.rpc("create_merchant_with_tags", {
+        p_ledger_id: input.ledgerId,
+        p_name: input.name,
+        p_note: input.note,
+        p_tag_ids: input.tagIds ?? [],
+        p_website_url: input.siteUrl,
       });
 
       if (error) {
@@ -325,6 +596,25 @@ export function createSupabaseMerchantRepository(
           { ledgerId: input.ledgerId },
           error,
           merchantErrorCodes.createFailed,
+          merchantTagWriteBusinessErrorCodes,
+        );
+      }
+    },
+
+    async createTag(input) {
+      const { error } = await supabase.rpc("create_merchant_tag", {
+        p_icon: input.icon,
+        p_ledger_id: input.ledgerId,
+        p_name: input.name,
+      });
+      if (error) {
+        fail(
+          "[merchant] failed to create merchant tag",
+          merchantErrorCodes.merchantTagCreateFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagCreateFailed),
+          { ledgerId: input.ledgerId },
+          error,
+          merchantErrorCodes.merchantTagCreateFailed,
         );
       }
     },
@@ -390,13 +680,20 @@ export function createSupabaseMerchantRepository(
       }
       if (!merchantData) return null;
 
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("merchant_alias")
-        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
-        .eq("merchant_id", merchantId)
-        .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      const [{ data: aliasData, error: aliasError }, links] = await Promise.all(
+        [
+          supabase
+            .from("merchant_alias")
+            .select(
+              "id, merchant_id, alias, is_preferred, sort_order, created_at",
+            )
+            .eq("merchant_id", merchantId)
+            .eq("is_archived", false)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false }),
+          loadTagLinks([merchantId]),
+        ],
+      );
 
       if (aliasError) {
         fail(
@@ -408,10 +705,54 @@ export function createSupabaseMerchantRepository(
         );
       }
 
-      return attachMerchantAliases(
+      const merchant = attachMerchantAliases(
         [toMerchantData(merchantData as MerchantRow)],
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
-      )[0]!;
+      );
+      if (links.length === 0) return merchant[0]!;
+
+      const { data: tagData, error: tagError } = await supabase
+        .from("merchant_tags")
+        .select("id, name, icon, sort_order")
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false)
+        .in(
+          "id",
+          links.map((link) => link.tag_id),
+        )
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (tagError) {
+        fail(
+          "[merchant] failed to load merchant detail tags",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+          { ledgerId, merchantId },
+          tagError,
+        );
+      }
+      const tags = ((tagData ?? []) as MerchantTagRow[]).map(toMerchantTagData);
+      return attachMerchantTags(merchant, tags, links)[0]!;
+    },
+
+    async findActiveTag(ledgerId, tagId) {
+      const { data, error } = await supabase
+        .from("merchant_tags")
+        .select("id, name, icon, sort_order")
+        .eq("id", tagId)
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false)
+        .maybeSingle();
+      if (error) {
+        fail(
+          "[merchant] failed to load merchant tag",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+          { ledgerId, tagId },
+          error,
+        );
+      }
+      return data ? toMerchantTagData(data as MerchantTagRow) : null;
     },
 
     async findSummariesByIds(ledgerId, merchantIds) {
@@ -464,15 +805,24 @@ export function createSupabaseMerchantRepository(
         toMerchantData,
       );
       const merchantIds = merchants.map((merchant) => merchant.id);
-      if (merchantIds.length === 0) return merchants;
+      if (merchantIds.length === 0) {
+        return { merchants, tags: await loadActiveTags(ledgerId) };
+      }
 
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("merchant_alias")
-        .select("id, merchant_id, alias, is_preferred, sort_order, created_at")
-        .in("merchant_id", merchantIds)
-        .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      const [{ data: aliasData, error: aliasError }, baseTags, tagLinks] =
+        await Promise.all([
+          supabase
+            .from("merchant_alias")
+            .select(
+              "id, merchant_id, alias, is_preferred, sort_order, created_at",
+            )
+            .in("merchant_id", merchantIds)
+            .eq("is_archived", false)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false }),
+          loadActiveTags(ledgerId),
+          loadTagLinks(merchantIds),
+        ]);
 
       if (aliasError) {
         fail(
@@ -484,10 +834,15 @@ export function createSupabaseMerchantRepository(
         );
       }
 
-      return attachMerchantAliases(
+      const withAliases = attachMerchantAliases(
         merchants,
         ((aliasData ?? []) as MerchantAliasRow[]).map(toMerchantAliasData),
       );
+      const tags = attachMerchantCounts(baseTags, tagLinks);
+      return {
+        merchants: attachMerchantTags(withAliases, tags, tagLinks),
+        tags,
+      };
     },
 
     async listActiveSummaries(ledgerId) {
@@ -515,6 +870,51 @@ export function createSupabaseMerchantRepository(
         merchants,
         await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
       );
+    },
+
+    async listActiveTagIds(ledgerId) {
+      const { data, error } = await supabase
+        .from("merchant_tags")
+        .select("id")
+        .eq("ledger_id", ledgerId)
+        .eq("is_archived", false);
+      if (error) {
+        fail(
+          "[merchant] failed to load active merchant tag ids",
+          merchantErrorCodes.merchantTagListFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+          { ledgerId },
+          error,
+        );
+      }
+      return ((data ?? []) as Array<{ id: string }>).map((tag) => tag.id);
+    },
+
+    async listActiveTags(ledgerId) {
+      const [tags, merchantIds] = await Promise.all([
+        loadActiveTags(ledgerId),
+        loadActiveMerchantIds(ledgerId),
+      ]);
+      if (tags.length === 0) return tags;
+      return attachMerchantCounts(tags, await loadTagLinks(merchantIds));
+    },
+
+    async reorderTags(ledgerId, tagIds) {
+      const { error } = await supabase.rpc("reorder_merchant_tags", {
+        p_ledger_id: ledgerId,
+        p_tag_ids: tagIds,
+      });
+      if (error) {
+        fail(
+          "[merchant] failed to reorder merchant tags",
+          merchantErrorCodes.merchantTagReorderFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagReorderFailed),
+          { ledgerId },
+          error,
+          undefined,
+          merchantTagReorderBusinessErrorCodes,
+        );
+      }
     },
 
     async setPreferredAlias(input) {
@@ -545,20 +945,14 @@ export function createSupabaseMerchantRepository(
     },
 
     async updateMerchant(input) {
-      const { error, count } = await supabase
-        .from("merchant")
-        .update(
-          {
-            name: input.name,
-            note: input.note,
-            updated_by: input.userId,
-            website_url: input.siteUrl,
-          },
-          { count: "exact" },
-        )
-        .eq("id", input.merchantId)
-        .eq("ledger_id", input.ledgerId)
-        .eq("is_archived", false);
+      const { data, error } = await supabase.rpc("update_merchant_with_tags", {
+        p_ledger_id: input.ledgerId,
+        p_merchant_id: input.merchantId,
+        p_name: input.name,
+        p_note: input.note,
+        p_tag_ids: input.tagIds ?? [],
+        p_website_url: input.siteUrl,
+      });
 
       if (error) {
         fail(
@@ -568,6 +962,27 @@ export function createSupabaseMerchantRepository(
           { ledgerId: input.ledgerId, merchantId: input.merchantId },
           error,
           merchantErrorCodes.updateFailed,
+          merchantTagWriteBusinessErrorCodes,
+        );
+      }
+      return data === true;
+    },
+
+    async updateTag(input) {
+      const { error, count } = await supabase
+        .from("merchant_tags")
+        .update({ icon: input.icon, name: input.name }, { count: "exact" })
+        .eq("id", input.tagId)
+        .eq("ledger_id", input.ledgerId)
+        .eq("is_archived", false);
+      if (error) {
+        fail(
+          "[merchant] failed to update merchant tag",
+          merchantErrorCodes.merchantTagUpdateFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagUpdateFailed),
+          { ledgerId: input.ledgerId, tagId: input.tagId },
+          error,
+          merchantErrorCodes.merchantTagUpdateFailed,
         );
       }
       return count === 1;

@@ -11,6 +11,7 @@ describe("MerchantCreateTemplate", () => {
         createMerchantAction={vi.fn(async () => ({}))}
         ledgerId="ledger-1"
         ledgerName="家庭账本"
+        tags={[]}
       />,
     );
 
@@ -31,6 +32,7 @@ describe("MerchantCreateTemplate", () => {
         createMerchantAction={createMerchantAction}
         ledgerId="ledger-1"
         ledgerName="家庭账本"
+        tags={[]}
       />,
     );
 

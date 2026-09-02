@@ -24,6 +24,7 @@ export default async function MerchantEditPage({
       ledgerId={view.ledgerId}
       ledgerName={view.ledgerName}
       merchant={view.merchant}
+      tags={view.tags}
       setPreferredMerchantAliasAction={setPreferredMerchantAlias}
       updateMerchantAction={updateMerchant}
     />

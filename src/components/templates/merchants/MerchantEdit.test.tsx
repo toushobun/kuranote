@@ -26,6 +26,7 @@ function renderTemplate() {
         ledgerName="家庭账本"
         merchant={merchant}
         setPreferredMerchantAliasAction={action}
+        tags={[]}
         updateMerchantAction={action}
       />
     </UserThemeProvider>,

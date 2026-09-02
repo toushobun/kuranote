@@ -9,6 +9,7 @@ const meta = {
     createMerchantAction: async () => ({}),
     ledgerId: "ledger-1",
     ledgerName: "家庭账本",
+    tags: [],
   },
 } satisfies Meta<typeof MerchantCreateTemplate>;
 

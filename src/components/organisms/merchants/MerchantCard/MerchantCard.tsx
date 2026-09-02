@@ -11,7 +11,12 @@ import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { merchantText } from "config/merchantText";
-import type { Merchant } from "types/merchants";
+import {
+  getStableFallbackThemeColorKey,
+  themeColorTokens,
+  type ThemeColorKey,
+} from "theme/themeColorTokens";
+import type { Merchant, MerchantTag } from "types/merchants";
 import { merchantIconSrc } from "utils/merchants";
 
 import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
@@ -28,6 +33,46 @@ const merchantChipSx = {
   fontSize: (theme: Theme) => theme.typography.body2.fontSize,
   height: 28,
 } as const;
+
+const merchantTagColorByName: Readonly<Record<string, ThemeColorKey>> = {
+  生鲜: "lime",
+  超市: "lime",
+  母婴: "sakura",
+  图书文具: "lavender",
+  家居: "amber",
+  日用: "sky",
+  便利店: "sky",
+  餐饮: "amber",
+  百货店: "sakura",
+  电商: "lavender",
+  旅行: "aqua",
+  通讯: "indigo",
+  生活: "jade",
+};
+
+function getMerchantTagChipSx(tag: MerchantTag) {
+  const colorKey =
+    merchantTagColorByName[tag.name] ?? getStableFallbackThemeColorKey(tag.id);
+  const color = themeColorTokens[colorKey];
+
+  return {
+    "& .MuiChip-icon": {
+      color: "inherit",
+      fontSize: 16,
+      lineHeight: 1,
+      ml: 0.75,
+      mr: -0.25,
+    },
+    "& .MuiChip-label": { px: 0.75 },
+    bgcolor: color.chipBackground,
+    borderColor: color.chipBorder,
+    borderRadius: 2,
+    color: color.chipText,
+    fontSize: (theme: Theme) => theme.typography.body2.fontSize,
+    fontWeight: 600,
+    height: 28,
+  } as const;
+}
 
 export function MerchantCard({
   canManageMerchants = true,
@@ -125,6 +170,24 @@ export function MerchantCard({
               />
             ))}
           </Stack>
+          {merchant.tags.length > 0 ? (
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+              {merchant.tags.map((tag) => (
+                <Chip
+                  icon={
+                    <Box aria-hidden component="span">
+                      {tag.icon}
+                    </Box>
+                  }
+                  key={tag.id}
+                  label={tag.name}
+                  size="small"
+                  sx={getMerchantTagChipSx(tag)}
+                  variant="outlined"
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Box>
 
         {canManageMerchants ? (

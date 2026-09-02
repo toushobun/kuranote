@@ -17,6 +17,7 @@ import type {
   CreateMerchantInput,
   MerchantData,
   MerchantRepository,
+  MerchantTagData,
   UpdateMerchantInput,
 } from "internal/merchant/repository/merchantRepository";
 import {
@@ -24,6 +25,7 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "internal/ledger";
 import { filterMerchantsByKeyword } from "utils/merchants";
@@ -31,11 +33,15 @@ import { filterMerchantsByKeyword } from "utils/merchants";
 export type MerchantListResult = {
   canManageMerchants: boolean;
   merchants: MerchantData[];
+  selectedTag: MerchantTagData | null;
+  tagFilterError: string | null;
+  tags: MerchantTagData[];
 };
 
 export type MerchantLedgerInput = { ledgerId: string };
 export type MerchantListInput = MerchantLedgerInput & {
   keyword: string;
+  tagId?: string | null;
 };
 export type CreateMerchantServiceInput = Omit<CreateMerchantInput, "userId">;
 export type UpdateMerchantServiceInput = Omit<UpdateMerchantInput, "userId">;
@@ -54,6 +60,14 @@ export type SetPreferredMerchantAliasServiceInput = MerchantLedgerInput & {
   aliasId: string | null;
   merchantId: string;
 };
+export type MerchantTagServiceInput = MerchantLedgerInput & { tagId: string };
+export type CreateMerchantTagServiceInput = MerchantLedgerInput & {
+  icon: string;
+  name: string;
+};
+export type UpdateMerchantTagServiceInput = CreateMerchantTagServiceInput & {
+  tagId: string;
+};
 
 /** Transaction 等其他模块只依赖此窄查询接口，不直接访问 Merchant Repository。 */
 export interface MerchantQueryService {
@@ -67,16 +81,21 @@ export interface MerchantQueryService {
 export interface MerchantService extends MerchantQueryService {
   archiveAlias(input: ArchiveMerchantAliasServiceInput): Promise<string>;
   archiveMerchant(input: ArchiveMerchantServiceInput): Promise<void>;
+  archiveTag(input: MerchantTagServiceInput): Promise<void>;
   assertCanManage(input: MerchantLedgerInput): Promise<void>;
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<void>;
+  createTag(input: CreateMerchantTagServiceInput): Promise<void>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
   getMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
+  listTags(input: MerchantLedgerInput): Promise<MerchantTagData[]>;
+  reorderTags(input: MerchantLedgerInput & { tagIds: string[] }): Promise<void>;
   setPreferredAlias(
     input: SetPreferredMerchantAliasServiceInput,
   ): Promise<void>;
   updateMerchant(input: UpdateMerchantServiceInput): Promise<void>;
+  updateTag(input: UpdateMerchantTagServiceInput): Promise<void>;
 }
 
 type MerchantServiceDependencies = {
@@ -99,6 +118,8 @@ function conflictError(
     | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.aliasPreferredUpdateFailed
     | typeof merchantErrorCodes.archiveFailed
+    | typeof merchantErrorCodes.merchantTagArchiveFailed
+    | typeof merchantErrorCodes.merchantTagUpdateFailed
     | typeof merchantErrorCodes.updateFailed,
 ): ConflictError {
   return new ConflictError(
@@ -145,8 +166,7 @@ export function createMerchantService({
     if (!(await merchantRepository.findActiveMerchant(ledgerId, merchantId))) {
       throw new NotFoundError(
         merchantErrorCodes.merchantInvalid,
-        getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
-          "商家指定不正确。",
+        getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
       );
     }
   }
@@ -154,13 +174,58 @@ export function createMerchantService({
   async function listMerchants({
     keyword,
     ledgerId,
+    tagId,
   }: MerchantListInput): Promise<MerchantListResult> {
     const { role } = await requireLedgerRole(ledgerId, false);
-    const merchants = await merchantRepository.listActive(ledgerId);
+    const { merchants: allMerchants, tags } =
+      await merchantRepository.listActive(ledgerId);
+    const tagById = new Map(tags.map((tag) => [tag.id, tag]));
+    const keywordFiltered = filterMerchantsByKeyword(allMerchants, keyword);
+    const selectedTag = tagId ? (tagById.get(tagId) ?? null) : null;
+    const tagFilterError =
+      tagId && !selectedTag
+        ? getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid)
+        : null;
     return {
       canManageMerchants: canManageMasterData(role),
-      merchants: filterMerchantsByKeyword(merchants, keyword),
+      merchants: tagId
+        ? selectedTag
+          ? keywordFiltered.filter((merchant) =>
+              merchant.tags.some((tag) => tag.id === selectedTag.id),
+            )
+          : []
+        : keywordFiltered,
+      selectedTag,
+      tagFilterError,
+      tags,
     };
+  }
+
+  async function requireActiveTags(
+    ledgerId: string,
+    tagIds: string[],
+  ): Promise<void> {
+    if (tagIds.length === 0) return;
+    const activeIds = new Set(
+      await merchantRepository.listActiveTagIds(ledgerId),
+    );
+    if (tagIds.some((tagId) => !activeIds.has(tagId))) {
+      throw new ValidationError(
+        merchantErrorCodes.merchantTagInvalid,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
+      );
+    }
+  }
+
+  async function requireActiveTag(ledgerId: string, tagId: string) {
+    const tag = await merchantRepository.findActiveTag(ledgerId, tagId);
+    if (!tag) {
+      throw new ValidationError(
+        merchantErrorCodes.merchantTagInvalid,
+        getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
+      );
+    }
+    return tag;
   }
 
   return {
@@ -170,8 +235,7 @@ export function createMerchantService({
       if (!alias) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-            "商家别名指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
         );
       }
       if (
@@ -182,8 +246,7 @@ export function createMerchantService({
       ) {
         throw new NotFoundError(
           merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-            "商家别名指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
         );
       }
 
@@ -210,6 +273,14 @@ export function createMerchantService({
       }
     },
 
+    async archiveTag({ ledgerId, tagId }) {
+      await requireLedgerRole(ledgerId, true);
+      await requireActiveTag(ledgerId, tagId);
+      if (!(await merchantRepository.archiveTag(ledgerId, tagId))) {
+        throw conflictError(merchantErrorCodes.merchantTagArchiveFailed);
+      }
+    },
+
     async assertCanManage({ ledgerId }) {
       await requireLedgerRole(ledgerId, true);
     },
@@ -222,7 +293,14 @@ export function createMerchantService({
 
     async createMerchant(input) {
       const { userId } = await requireLedgerRole(input.ledgerId, true);
-      await merchantRepository.createMerchant({ ...input, userId });
+      const tagIds = input.tagIds ?? [];
+      await requireActiveTags(input.ledgerId, tagIds);
+      await merchantRepository.createMerchant({ ...input, tagIds, userId });
+    },
+
+    async createTag(input) {
+      await requireLedgerRole(input.ledgerId, true);
+      await merchantRepository.createTag(input);
     },
 
     async findSummariesByIds({ ledgerId, merchantIds }) {
@@ -241,8 +319,7 @@ export function createMerchantService({
       if (!merchant) {
         throw new NotFoundError(
           merchantErrorCodes.merchantInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid) ??
-            "商家指定不正确。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
         );
       }
       return merchant;
@@ -262,6 +339,16 @@ export function createMerchantService({
       return merchantRepository.listActiveSummaries(ledgerId);
     },
 
+    async listTags({ ledgerId }) {
+      await requireLedgerRole(ledgerId, false);
+      return merchantRepository.listActiveTags(ledgerId);
+    },
+
+    async reorderTags({ ledgerId, tagIds }) {
+      await requireLedgerRole(ledgerId, true);
+      await merchantRepository.reorderTags(ledgerId, tagIds);
+    },
+
     async setPreferredAlias({ aliasId, ledgerId, merchantId }) {
       await requireLedgerRole(ledgerId, true);
       await requireActiveMerchant(ledgerId, merchantId);
@@ -271,8 +358,7 @@ export function createMerchantService({
         if (!alias || alias.merchantId !== merchantId) {
           throw new NotFoundError(
             merchantErrorCodes.aliasInvalid,
-            getMerchantErrorMessage(merchantErrorCodes.aliasInvalid) ??
-              "商家别名指定不正确。",
+            getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
           );
         }
       }
@@ -290,12 +376,23 @@ export function createMerchantService({
     async updateMerchant(input) {
       const { userId } = await requireLedgerRole(input.ledgerId, true);
       await requireActiveMerchant(input.ledgerId, input.merchantId);
+      const tagIds = input.tagIds ?? [];
+      await requireActiveTags(input.ledgerId, tagIds);
       const updated = await merchantRepository.updateMerchant({
         ...input,
+        tagIds,
         userId,
       });
       if (!updated) {
         throw conflictError(merchantErrorCodes.updateFailed);
+      }
+    },
+
+    async updateTag(input) {
+      await requireLedgerRole(input.ledgerId, true);
+      await requireActiveTag(input.ledgerId, input.tagId);
+      if (!(await merchantRepository.updateTag(input))) {
+        throw conflictError(merchantErrorCodes.merchantTagUpdateFailed);
       }
     },
   };

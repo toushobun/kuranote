@@ -23,6 +23,7 @@ const meta = {
       note: "常去的超市",
     }),
     setPreferredMerchantAliasAction: action,
+    tags: [],
     updateMerchantAction: action,
   },
 } satisfies Meta<typeof MerchantEditTemplate>;

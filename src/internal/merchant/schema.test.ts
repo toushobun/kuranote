@@ -6,14 +6,19 @@ import {
   createMerchantRequestSchema,
   validateArchiveMerchantAliasForm,
   validateArchiveMerchantForm,
+  validateArchiveMerchantTagForm,
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
+  validateCreateMerchantTagForm,
+  validateReorderMerchantTagsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
+  validateUpdateMerchantTagForm,
 } from "internal/merchant/schema";
 
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const aliasId = "00000000-0000-4000-8000-000000001002";
+const tagId = "00000000-0000-4000-8000-000000002001";
 
 function createFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -23,6 +28,8 @@ function createFormData(overrides: Record<string, string> = {}) {
   formData.set("websiteUrl", "https://example.com");
   formData.set("note", "常用超市");
   formData.set("alias", "来福");
+  formData.set("icon", "🛒");
+  formData.set("tagId", tagId);
   for (const [key, value] of Object.entries(overrides))
     formData.set(key, value);
   return formData;
@@ -50,13 +57,14 @@ describe("merchant schema", () => {
         name: "LIFE",
         note: "常用超市",
         siteUrl: "https://example.com",
+        tagIds: [],
       },
     });
     expect(
       validateCreateMerchantForm(createFormData({ note: "", websiteUrl: "" })),
     ).toEqual({
       ok: true,
-      value: { name: "LIFE", note: null, siteUrl: null },
+      value: { name: "LIFE", note: null, siteUrl: null, tagIds: [] },
     });
   });
 
@@ -82,6 +90,17 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
+  it("HTTP 请求体拒绝重复的商家标签 ID", () => {
+    expect(
+      createMerchantRequestSchema.safeParse({
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+        tagIds: [tagId, tagId],
+      }).success,
+    ).toBe(false);
+  });
+
   it("更新和新增别名失败时返回对应校验错误", () => {
     expect(validateUpdateMerchantForm(createFormData({ name: "" }))).toEqual({
       error: "name_required",
@@ -100,6 +119,50 @@ describe("merchant schema", () => {
     expect(validateArchiveMerchantAliasForm(createFormData())).toEqual({
       ok: true,
       value: { aliasId },
+    });
+  });
+
+  it("商家表单读取去重且有效的标签 ID", () => {
+    const formData = createFormData();
+    formData.append("tagIds", tagId);
+    expect(validateCreateMerchantForm(formData)).toMatchObject({
+      ok: true,
+      value: { tagIds: [tagId] },
+    });
+    formData.append("tagIds", tagId);
+    expect(validateCreateMerchantForm(formData)).toEqual({
+      error: "merchant_tag_invalid",
+      ok: false,
+    });
+  });
+
+  it("校验标签新增、更新、归档与完整排序表单", () => {
+    const formData = createFormData({ name: "超市" });
+    expect(validateCreateMerchantTagForm(formData)).toEqual({
+      ok: true,
+      value: { icon: "🛒", name: "超市" },
+    });
+    expect(validateUpdateMerchantTagForm(formData)).toMatchObject({
+      ok: true,
+      value: { tagId },
+    });
+    expect(validateArchiveMerchantTagForm(formData)).toEqual({
+      ok: true,
+      value: { tagId },
+    });
+    formData.set("tagIds", JSON.stringify([tagId]));
+    expect(validateReorderMerchantTagsForm(formData)).toEqual({
+      ok: true,
+      value: { tagIds: [tagId] },
+    });
+  });
+
+  it("拒绝预设集合之外的商家标签图标", () => {
+    expect(
+      validateCreateMerchantTagForm(createFormData({ icon: "invalid" })),
+    ).toEqual({
+      error: "merchant_tag_icon_invalid",
+      ok: false,
     });
   });
 });

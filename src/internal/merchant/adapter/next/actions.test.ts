@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes } from "internal/merchant/errors";
 import {
+  ConflictError,
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -12,14 +13,18 @@ import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 const mocks = vi.hoisted(() => ({
   archiveAlias: vi.fn(),
   archiveMerchant: vi.fn(),
+  archiveTag: vi.fn(),
   createAlias: vi.fn(),
   createMerchant: vi.fn(),
+  createTag: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   redirect: vi.fn(),
   requireCurrentUserAndLedger: vi.fn(),
   revalidateMerchantMutation: vi.fn(),
+  reorderTags: vi.fn(),
   updateMerchant: vi.fn(),
+  updateTag: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
@@ -39,14 +44,19 @@ vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
 import {
   archiveMerchant,
   archiveMerchantAlias,
+  archiveMerchantTag,
   createMerchant,
   createMerchantAlias,
+  createMerchantTag,
+  reorderMerchantTags,
   updateMerchant,
+  updateMerchantTag,
 } from "internal/merchant/adapter/next/actions";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const aliasId = "00000000-0000-4000-8000-000000001002";
+const tagId = "00000000-0000-4000-8000-000000002001";
 
 function merchantForm(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -56,6 +66,8 @@ function merchantForm(overrides: Record<string, string> = {}) {
   formData.set("name", "LIFE");
   formData.set("websiteUrl", "https://example.com");
   formData.set("note", "常用超市");
+  formData.set("icon", "🛒");
+  formData.set("tagId", tagId);
   for (const [key, value] of Object.entries(overrides)) {
     formData.set(key, value);
   }
@@ -91,11 +103,15 @@ beforeEach(() => {
       service: {
         archiveAlias: mocks.archiveAlias,
         archiveMerchant: mocks.archiveMerchant,
+        archiveTag: mocks.archiveTag,
         createAlias: mocks.createAlias,
         createMerchant: mocks.createMerchant,
+        createTag: mocks.createTag,
         findSummariesByIds: vi.fn(),
         listActiveOptions: vi.fn(),
+        reorderTags: mocks.reorderTags,
         updateMerchant: mocks.updateMerchant,
+        updateTag: mocks.updateTag,
       },
     },
   });
@@ -156,6 +172,23 @@ describe("Merchant Server Actions", () => {
     const state = await runAction(updateMerchant);
 
     expectErrorState(state, "商家更新失败，请稍后重试。");
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("标签排序时账本状态竞争返回具体安全文案", async () => {
+    mocks.reorderTags.mockRejectedValue(
+      new ConflictError(
+        merchantErrorCodes.ledgerInvalid,
+        "账本不存在、已停用或您无法访问。",
+      ),
+    );
+    const formData = merchantForm();
+    formData.set("tagIds", JSON.stringify([tagId]));
+
+    const state = await reorderMerchantTags(formData);
+
+    expectErrorState(state, "账本不存在、已停用或您无法访问。");
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
@@ -285,6 +318,7 @@ describe("Merchant Server Actions", () => {
       name: "LIFE",
       note: "常用超市",
       siteUrl: "https://example.com",
+      tagIds: [],
     });
     expect(mocks.updateMerchant).toHaveBeenCalledWith({
       ledgerId,
@@ -292,6 +326,7 @@ describe("Merchant Server Actions", () => {
       name: "LIFE",
       note: "常用超市",
       siteUrl: "https://example.com",
+      tagIds: [],
     });
     expect(mocks.archiveMerchant).toHaveBeenCalledWith({
       ledgerId,
@@ -321,5 +356,33 @@ describe("Merchant Server Actions", () => {
     expect(firstState.errorKey).toEqual(expect.any(String));
     expect(secondState.errorKey).toEqual(expect.any(String));
     expect(firstState.errorKey).not.toBe(secondState.errorKey);
+  });
+
+  it("标签新增、更新、归档与排序成功后返回 inline 成功态并刷新页面", async () => {
+    await expect(runAction(createMerchantTag)).resolves.toEqual({});
+    await expect(runAction(updateMerchantTag)).resolves.toEqual({});
+    await expect(runAction(archiveMerchantTag)).resolves.toEqual({});
+    const reorderForm = merchantForm();
+    reorderForm.set("tagIds", JSON.stringify([tagId]));
+    await expect(reorderMerchantTags(reorderForm)).resolves.toEqual({});
+
+    expect(mocks.createTag).toHaveBeenCalledWith({
+      icon: "🛒",
+      ledgerId,
+      name: "LIFE",
+    });
+    expect(mocks.updateTag).toHaveBeenCalledWith({
+      icon: "🛒",
+      ledgerId,
+      name: "LIFE",
+      tagId,
+    });
+    expect(mocks.archiveTag).toHaveBeenCalledWith({ ledgerId, tagId });
+    expect(mocks.reorderTags).toHaveBeenCalledWith({
+      ledgerId,
+      tagIds: [tagId],
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(4);
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });

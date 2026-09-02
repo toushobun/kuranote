@@ -6,15 +6,17 @@ import Stack from "@mui/material/Stack";
 
 import { merchantText } from "config/merchantText";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
+import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
 import type { ServerAction } from "types/actions";
-import type { Merchant } from "types/merchants";
+import type { Merchant, MerchantTag } from "types/merchants";
 
 type MerchantEditFormProps = {
   action: ServerAction;
   ledgerId: string;
   merchant: Merchant;
   pending?: boolean;
+  tags?: MerchantTag[];
 };
 
 export function MerchantEditForm({
@@ -22,6 +24,7 @@ export function MerchantEditForm({
   ledgerId,
   merchant,
   pending = false,
+  tags = [],
 }: MerchantEditFormProps) {
   const details = useMerchantDetails({
     name: merchant.name,
@@ -41,6 +44,10 @@ export function MerchantEditForm({
         onNoteChange={details.setNote}
         onWebsiteUrlChange={details.setWebsiteUrl}
         websiteUrl={details.websiteUrl}
+      />
+      <MerchantTagsField
+        initialTagIds={merchant.tags.map((tag) => tag.id)}
+        tags={tags}
       />
       <Button
         disabled={pending}

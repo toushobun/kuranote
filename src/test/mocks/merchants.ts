@@ -24,6 +24,7 @@ export function createMerchantRow(overrides: Partial<Merchant> = {}): Merchant {
     name: "LIFE超市",
     note: null,
     sort_order: 1,
+    tags: [],
     website_url: "https://www.lifecorp.jp",
     ...overrides,
   };

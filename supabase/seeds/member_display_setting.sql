@@ -19,6 +19,100 @@ set
     updated_by = excluded.updated_by,
     updated_at = now();
 
+-- The household ledger is created by seed.sql after migrations have already run,
+-- so seed its default merchant tags explicitly before creating merchant-tag links.
+insert into public.merchant_tags (
+    ledger_id,
+    name,
+    icon,
+    sort_order,
+    created_by
+)
+select
+    '00000000-0000-4000-8000-000000000032'::uuid,
+    defaults.name,
+    defaults.icon,
+    defaults.sort_order,
+    '00000000-0000-4000-8000-000000000031'::uuid
+from (
+    values
+        ('超市', '🛒', 0),
+        ('便利店', '🏪', 1),
+        ('餐饮', '🍽️', 2),
+        ('百货店', '🏬', 3),
+        ('电商', '📦', 4),
+        ('旅行', '✈️', 5),
+        ('通讯', '📶', 6),
+        ('生活', '🏠', 7)
+) defaults(name, icon, sort_order)
+where exists (
+    select 1
+    from public.ledger
+    where id = '00000000-0000-4000-8000-000000000032'
+)
+and not exists (
+    select 1
+    from public.merchant_tags
+    where ledger_id = '00000000-0000-4000-8000-000000000032'
+      and is_archived = false
+      and lower(name) = lower(defaults.name)
+);
+
+-- Merchant tag associations for local merchant-list and design verification.
+with seed_merchant_tags(merchant_id, tag_name) as (
+    values
+        ('00000000-0000-4000-8000-000000001001'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001001'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001002'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001003'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001004'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001004'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001005'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001006'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001007'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001008'::uuid, '电商'),
+        ('00000000-0000-4000-8000-000000001008'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001009'::uuid, '电商'),
+        ('00000000-0000-4000-8000-000000001010'::uuid, '旅行'),
+        ('00000000-0000-4000-8000-000000001012'::uuid, '便利店'),
+        ('00000000-0000-4000-8000-000000001012'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001013'::uuid, '便利店'),
+        ('00000000-0000-4000-8000-000000001013'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001014'::uuid, '便利店'),
+        ('00000000-0000-4000-8000-000000001014'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001015'::uuid, '便利店'),
+        ('00000000-0000-4000-8000-000000001015'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001017'::uuid, '超市'),
+        ('00000000-0000-4000-8000-000000001018'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001019'::uuid, '旅行'),
+        ('00000000-0000-4000-8000-000000001020'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001024'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001024'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001025'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001026'::uuid, '旅行'),
+        ('00000000-0000-4000-8000-000000001028'::uuid, '餐饮'),
+        ('00000000-0000-4000-8000-000000001034'::uuid, '通讯'),
+        ('00000000-0000-4000-8000-000000001036'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001036'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001037'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001037'::uuid, '电商'),
+        ('00000000-0000-4000-8000-000000001039'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001039'::uuid, '生活'),
+        ('00000000-0000-4000-8000-000000001040'::uuid, '百货店'),
+        ('00000000-0000-4000-8000-000000001040'::uuid, '生活')
+)
+insert into public.merchant_tag_links (merchant_id, tag_id)
+select seed_merchant_tags.merchant_id, merchant_tags.id
+from seed_merchant_tags
+join public.merchant
+  on merchant.id = seed_merchant_tags.merchant_id
+ and merchant.ledger_id = '00000000-0000-4000-8000-000000000032'
+join public.merchant_tags
+  on merchant_tags.ledger_id = merchant.ledger_id
+ and merchant_tags.name = seed_merchant_tags.tag_name
+ and merchant_tags.is_archived = false
+on conflict (merchant_id, tag_id) do nothing;
+
 -- Transaction list seed data for local infinite scroll verification.
 with seed_records as (
     select

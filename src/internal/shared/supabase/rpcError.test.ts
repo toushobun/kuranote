@@ -81,4 +81,10 @@ describe("findRpcBusinessError", () => {
       findRpcBusinessError({ message: "permission_denied" }, errorMap),
     ).toBeNull();
   });
+
+  it("匹配前去除 details 的前后空白", () => {
+    expect(
+      findRpcBusinessError({ details: "  permission_denied\n" }, errorMap),
+    ).toBe("permission_denied");
+  });
 });
