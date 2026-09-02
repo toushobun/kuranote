@@ -20,10 +20,7 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
         {...linkProps}
         component={Link}
         href={href}
-        sx={[
-          primaryActionButtonSx,
-          ...(Array.isArray(sx) ? sx : [sx]),
-        ]}
+        sx={[primaryActionButtonSx, ...(Array.isArray(sx) ? sx : [sx])]}
         variant="contained"
       />
     );

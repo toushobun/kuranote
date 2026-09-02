@@ -7,10 +7,7 @@ import type { CSSProperties } from "react";
 
 import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
-import {
-  type UserThemeKey,
-  userThemeTokens,
-} from "theme/userThemeTokens";
+import { type UserThemeKey, userThemeTokens } from "theme/userThemeTokens";
 
 import { PrimaryActionButton } from "./PrimaryActionButton";
 
@@ -27,7 +24,10 @@ function PrimaryActionButtonThemePreview() {
         const token = userThemeTokens[themeKey];
 
         return (
-          <ThemeProvider key={themeKey} theme={createDynamicMuiTheme(themeKey)}>
+          <ThemeProvider
+            key={themeKey}
+            theme={createDynamicMuiTheme(themeKey)}
+          >
             <Box
               style={getUserThemeCssVariables(themeKey) as CSSProperties}
               sx={{

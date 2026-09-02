@@ -40,7 +40,9 @@ describe("PrimaryActionButton", () => {
   });
 
   it("传入 href 时渲染站内链接", () => {
-    render(<PrimaryActionButton href="/ledgers/new">新增账本</PrimaryActionButton>);
+    render(
+      <PrimaryActionButton href="/ledgers/new">新增账本</PrimaryActionButton>,
+    );
 
     const link = screen.getByRole("link", { name: "新增账本" });
     expect(link).toHaveAttribute("href", "/ledgers/new");
