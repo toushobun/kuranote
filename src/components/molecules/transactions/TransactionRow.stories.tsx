@@ -175,7 +175,7 @@ export const BusinessStatuses: Story = {
 };
 
 export const BusinessBadgeHeightComparison: Story = {
-  name: "有无业务标签时的徽章高度对比",
+  name: "有无业务标签时的行高对比",
   render: () => {
     const categoryOnlyItem: TransactionRowItem = {
       ...expenseItem,
