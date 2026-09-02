@@ -12,6 +12,7 @@ import {
   ConflictError,
   NotFoundError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -339,6 +340,20 @@ describe("createMerchantService", () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(repository.createAlias).not.toHaveBeenCalled();
+  });
+
+  it("更新或归档不存在的标签时统一返回校验错误", async () => {
+    const repository = createRepository();
+    const service = createService(repository);
+
+    await expect(
+      service.archiveTag({ ledgerId, tagId }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      service.updateTag({ icon: "🛒", ledgerId, name: "超市", tagId }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(repository.archiveTag).not.toHaveBeenCalled();
+    expect(repository.updateTag).not.toHaveBeenCalled();
   });
 
   it("归档别名时验证所属商家并返回商家 ID", async () => {

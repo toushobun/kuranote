@@ -90,6 +90,17 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
+  it("HTTP 请求体拒绝重复的商家标签 ID", () => {
+    expect(
+      createMerchantRequestSchema.safeParse({
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+        tagIds: [tagId, tagId],
+      }).success,
+    ).toBe(false);
+  });
+
   it("更新和新增别名失败时返回对应校验错误", () => {
     expect(validateUpdateMerchantForm(createFormData({ name: "" }))).toEqual({
       error: "name_required",

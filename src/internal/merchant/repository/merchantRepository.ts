@@ -81,7 +81,7 @@ const merchantRpcBusinessErrors: Partial<
   [merchantErrorCodes.merchantTagInvalid]: {
     code: merchantErrorCodes.merchantTagInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
-    type: "conflict",
+    type: "validation",
   },
   [merchantErrorCodes.merchantTagOrderInvalid]: {
     code: merchantErrorCodes.merchantTagOrderInvalid,
@@ -195,10 +195,12 @@ export type CreateMerchantTagInput = {
   ledgerId: string;
   name: string;
 };
-export type UpdateMerchantTagInput = Omit<
-  CreateMerchantTagInput,
-  "sortOrder" | "userId"
-> & { tagId: string };
+export type UpdateMerchantTagInput = {
+  icon: string;
+  ledgerId: string;
+  name: string;
+  tagId: string;
+};
 
 export interface MerchantRepository {
   archiveAlias(input: ArchiveMerchantAliasInput): Promise<boolean>;

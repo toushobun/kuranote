@@ -58,17 +58,18 @@ export type UpdateMerchantTagValues = CreateMerchantTagValues & {
 export type ArchiveMerchantTagValues = { tagId: string };
 export type ReorderMerchantTagsValues = { tagIds: string[] };
 
+const merchantTagIdsSchema = z
+  .array(z.string().uuid())
+  .max(100)
+  .refine((values) => new Set(values).size === values.length);
+
 function parseMerchantTagIds(
   formData: FormData,
 ): ValidationResult<string[], typeof merchantErrorCodes.merchantTagInvalid> {
   const tagIds = formData
     .getAll("tagIds")
     .filter((value): value is string => typeof value === "string");
-  const result = z
-    .array(z.string().uuid())
-    .max(100)
-    .refine((values) => new Set(values).size === values.length)
-    .safeParse(tagIds);
+  const result = merchantTagIdsSchema.safeParse(tagIds);
   return result.success
     ? valid(result.data)
     : invalid(merchantErrorCodes.merchantTagInvalid);
@@ -351,7 +352,7 @@ export const createMerchantRequestSchema = z.object({
   name: z.string().trim().min(1).max(merchantNameMaxLength),
   note: z.string().trim().max(merchantNoteMaxLength).nullable(),
   siteUrl: optionalWebsiteUrlSchema,
-  tagIds: z.array(z.string().uuid()).max(100).optional().default([]),
+  tagIds: merchantTagIdsSchema.optional().default([]),
 });
 
 export const updateMerchantRequestSchema = createMerchantRequestSchema;

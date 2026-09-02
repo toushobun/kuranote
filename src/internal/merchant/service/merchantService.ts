@@ -220,7 +220,7 @@ export function createMerchantService({
   async function requireActiveTag(ledgerId: string, tagId: string) {
     const tag = await merchantRepository.findActiveTag(ledgerId, tagId);
     if (!tag) {
-      throw new NotFoundError(
+      throw new ValidationError(
         merchantErrorCodes.merchantTagInvalid,
         getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
       );

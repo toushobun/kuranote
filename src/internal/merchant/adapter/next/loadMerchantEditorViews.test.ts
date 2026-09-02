@@ -40,6 +40,9 @@ describe("loadMerchantEditorViews", () => {
       name: "家庭账本",
     });
     mocks.createServerRequestDependencies.mockResolvedValue({});
+    mocks.assertCanManage.mockResolvedValue(undefined);
+    mocks.getMerchant.mockResolvedValue({ id: merchantId });
+    mocks.listTags.mockResolvedValue(tags);
     mocks.createRequestContainer.mockReturnValue({
       merchant: {
         service: {
@@ -51,58 +54,36 @@ describe("loadMerchantEditorViews", () => {
     });
   });
 
-  it("新建页并行校验管理权限与读取标签", async () => {
-    let resolvePermission: (() => void) | undefined;
-    let resolveTags: ((value: typeof tags) => void) | undefined;
-    mocks.assertCanManage.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          resolvePermission = resolve;
-        }),
+  it("新建页通过管理权限校验后才读取标签", async () => {
+    await expect(loadMerchantCreateView()).resolves.toMatchObject({ tags });
+    expect(mocks.assertCanManage.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.listTags.mock.invocationCallOrder[0],
     );
-    mocks.listTags.mockImplementation(
-      () =>
-        new Promise<typeof tags>((resolve) => {
-          resolveTags = resolve;
-        }),
-    );
-
-    const operation = loadMerchantCreateView();
-    await vi.waitFor(() => {
-      expect(mocks.assertCanManage).toHaveBeenCalledOnce();
-      expect(mocks.listTags).toHaveBeenCalledOnce();
-    });
-    resolvePermission?.();
-    resolveTags?.(tags);
-
-    await expect(operation).resolves.toMatchObject({ tags });
   });
 
-  it("编辑页并行读取商家与标签", async () => {
-    const merchant = { id: merchantId };
-    let resolveMerchant: ((value: typeof merchant) => void) | undefined;
-    let resolveTags: ((value: typeof tags) => void) | undefined;
-    mocks.getMerchant.mockImplementation(
-      () =>
-        new Promise<typeof merchant>((resolve) => {
-          resolveMerchant = resolve;
-        }),
-    );
-    mocks.listTags.mockImplementation(
-      () =>
-        new Promise<typeof tags>((resolve) => {
-          resolveTags = resolve;
-        }),
-    );
+  it("新建页权限校验失败时不读取标签", async () => {
+    mocks.assertCanManage.mockRejectedValue(new Error("permission denied"));
 
-    const operation = loadMerchantEditView(merchantId);
-    await vi.waitFor(() => {
-      expect(mocks.getMerchant).toHaveBeenCalledOnce();
-      expect(mocks.listTags).toHaveBeenCalledOnce();
+    await expect(loadMerchantCreateView()).rejects.toThrow("permission denied");
+    expect(mocks.listTags).not.toHaveBeenCalled();
+  });
+
+  it("编辑页读取并校验商家后才读取标签", async () => {
+    await expect(loadMerchantEditView(merchantId)).resolves.toMatchObject({
+      merchant: { id: merchantId },
+      tags,
     });
-    resolveMerchant?.(merchant);
-    resolveTags?.(tags);
+    expect(mocks.getMerchant.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.listTags.mock.invocationCallOrder[0],
+    );
+  });
 
-    await expect(operation).resolves.toMatchObject({ merchant, tags });
+  it("编辑页商家读取或权限校验失败时不读取标签", async () => {
+    mocks.getMerchant.mockRejectedValue(new Error("permission denied"));
+
+    await expect(loadMerchantEditView(merchantId)).rejects.toThrow(
+      "permission denied",
+    );
+    expect(mocks.listTags).not.toHaveBeenCalled();
   });
 });

@@ -279,7 +279,7 @@ describe("createSupabaseMerchantRepository", () => {
       operation: "更新",
     },
   ])(
-    "商家$operation时标签状态竞争会转换为 ConflictError",
+    "商家$operation时无效标签会转换为 ValidationError",
     async ({ details, invoke }) => {
       const supabase = createSupabaseMock({
         rpcResponse: {
@@ -301,7 +301,7 @@ describe("createSupabaseMerchantRepository", () => {
         code: merchantErrorCodes.merchantTagInvalid,
         message: "该商家标签不存在或已不可用。",
       });
-      await expect(operation).rejects.toBeInstanceOf(ConflictError);
+      await expect(operation).rejects.toBeInstanceOf(ValidationError);
     },
   );
 

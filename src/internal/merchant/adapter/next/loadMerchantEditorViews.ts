@@ -10,10 +10,8 @@ export async function loadMerchantCreateView() {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const dependencies = await createServerRequestDependencies();
   const service = createRequestContainer(dependencies).merchant.service;
-  const [, tags] = await Promise.all([
-    service.assertCanManage({ ledgerId: currentLedger.id }),
-    service.listTags({ ledgerId: currentLedger.id }),
-  ]);
+  await service.assertCanManage({ ledgerId: currentLedger.id });
+  const tags = await service.listTags({ ledgerId: currentLedger.id });
 
   return { ledgerId: currentLedger.id, ledgerName: currentLedger.name, tags };
 }
@@ -26,13 +24,11 @@ export async function loadMerchantEditView(merchantId: string) {
 
   try {
     const service = createRequestContainer(dependencies).merchant.service;
-    const [merchant, tags] = await Promise.all([
-      service.getMerchant({
-        ledgerId: currentLedger.id,
-        merchantId,
-      }),
-      service.listTags({ ledgerId: currentLedger.id }),
-    ]);
+    const merchant = await service.getMerchant({
+      ledgerId: currentLedger.id,
+      merchantId,
+    });
+    const tags = await service.listTags({ ledgerId: currentLedger.id });
     return {
       ledgerId: currentLedger.id,
       ledgerName: currentLedger.name,
