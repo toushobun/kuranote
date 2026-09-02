@@ -58,6 +58,7 @@ export const theme = createTheme({
       main: designTokens.color.brand.main,
       light: designTokens.color.brand.light,
       dark: designTokens.color.brand.dark,
+      contrastText: "#FFFFFF",
     },
     background: {
       default: designTokens.color.background.app,

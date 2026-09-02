@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useActionState, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
@@ -385,19 +386,13 @@ function CreateSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      disabled={pending}
-      fullWidth
-      sx={createButtonSx}
-      type="submit"
-      variant="contained"
-    >
+    <PrimaryActionButton disabled={pending} fullWidth type="submit">
       {pending ? (
         <CircularProgress aria-label="创建中" color="inherit" size={22} />
       ) : (
         ledgerCreateText.create
       )}
-    </Button>
+    </PrimaryActionButton>
   );
 }
 
@@ -576,18 +571,6 @@ const backButtonSx = {
   color: "text.secondary",
   fontWeight: 900,
   minHeight: 48,
-};
-
-const createButtonSx = {
-  background: "var(--user-theme-fab-bg)",
-  borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
-  fontWeight: 900,
-  minHeight: 48,
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };
 
 const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;

@@ -5,6 +5,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Link from "next/link";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
@@ -52,19 +53,18 @@ export function MerchantForm({
         >
           取消
         </Button>
-        <Button
+        <PrimaryActionButton
           disabled={pending}
           fullWidth
-          sx={{ borderRadius: 999 }}
+          sx={{ borderRadius: 999, fontWeight: 700, minHeight: 40 }}
           type="submit"
-          variant="contained"
         >
           {pending ? (
             <CircularProgress aria-label="新增中" color="inherit" size={22} />
           ) : (
             "保存商家"
           )}
-        </Button>
+        </PrimaryActionButton>
       </Stack>
     </Stack>
   );

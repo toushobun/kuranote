@@ -22,6 +22,7 @@ export function createDynamicMuiTheme(themeKey: UserThemeKey) {
         main: token.palette.accent,
         light: token.palette.accentLight,
         dark: token.palette.accentDeep,
+        contrastText: token.component.buttonPrimaryText,
       },
       background: {
         default: token.palette.page,

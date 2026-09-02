@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
 import { ListRowButton } from "molecules/ui/ListRowButton";
@@ -283,15 +284,13 @@ export function LedgerSettingsTemplate({
             >
               取消
             </Button>
-            <Button
+            <PrimaryActionButton
               disabled={!canEditLedger}
               fullWidth
-              sx={saveButtonSx}
               type="submit"
-              variant="contained"
             >
               保存修改
-            </Button>
+            </PrimaryActionButton>
           </Stack>
         </Stack>
 
@@ -626,15 +625,13 @@ function MemberSettingsDialogContent({
           >
             取消
           </Button>
-          <Button
+          <PrimaryActionButton
             disabled={!canEditProfile}
             fullWidth
-            sx={saveButtonSx}
             type="submit"
-            variant="contained"
           >
             保存修改
-          </Button>
+          </PrimaryActionButton>
         </Stack>
       </Stack>
     </AccountFormDialogShell>
@@ -927,18 +924,6 @@ const cancelButtonSx = {
   color: "text.secondary",
   fontWeight: 900,
   minHeight: 48,
-};
-
-const saveButtonSx = {
-  background: "var(--user-theme-fab-bg)",
-  borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
-  fontWeight: 900,
-  minHeight: 48,
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };
 
 const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
