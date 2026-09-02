@@ -510,7 +510,7 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
-    it("有无业务标签时保持相同的详情区布局", () => {
+    it("有无业务标签时分类摘要均独占详情首行", () => {
       const detailText = "🥬 做饭食材/调料 | 猪肉・鸡腿・蔬菜";
       render(
         <div>
@@ -554,7 +554,6 @@ describe("TransactionRow", () => {
       const badgeRow = screen.getByTestId("business-badge-row").children[0];
       const plainGroup = summaries[0]?.parentElement;
       const badgeGroup = summaries[1]?.parentElement;
-      const plainBadgeSlot = plainGroup?.children[1];
       const badgeSlot = badgeGroup?.children[1];
       const badge = screen.getByText("报销收入").closest(".MuiChip-root");
 
@@ -564,15 +563,12 @@ describe("TransactionRow", () => {
       expect(badgeGroup).toHaveClass("MuiStack-root");
       expect(plainGroup).toHaveStyle({ flexDirection: "column" });
       expect(badgeGroup).toHaveStyle({ flexDirection: "column" });
-      expect(plainGroup?.children).toHaveLength(2);
+      expect(plainGroup?.children).toHaveLength(1);
       expect(badgeGroup?.children).toHaveLength(2);
       expect(plainGroup?.children[0]).toBe(summaries[0]);
       expect(badgeGroup?.children[0]).toBe(summaries[1]);
-      expect(plainBadgeSlot).toHaveClass("MuiStack-root");
       expect(badgeSlot).toHaveClass("MuiStack-root");
-      expect(plainBadgeSlot).toBeEmptyDOMElement();
-      expect(plainBadgeSlot).toHaveStyle({ minHeight: "20px" });
-      expect(badgeSlot).toHaveStyle({ minHeight: "20px" });
+      expect(badgeSlot).toHaveStyle({ flexDirection: "row" });
       expect(badgeSlot?.contains(badge)).toBe(true);
       expect(summaries).toHaveLength(2);
       summaries.forEach((summary) => {

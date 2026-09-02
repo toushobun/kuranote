@@ -275,21 +275,23 @@ export function TransactionRow({
               {detailText}
             </Typography>
           ) : null}
-          <Stack
-            direction="row"
-            spacing={0.5}
-            useFlexGap
-            sx={{ flexWrap: "wrap", minHeight: businessBadgeSx.height }}
-          >
-            {businessStatuses.map(({ key, status }) => (
-              <TransactionBusinessBadge
-                currency={item.account_currency}
-                key={key}
-                status={status}
-                sx={businessBadgeSx}
-              />
-            ))}
-          </Stack>
+          {businessStatuses.length > 0 ? (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{ flexWrap: "wrap" }}
+            >
+              {businessStatuses.map(({ key, status }) => (
+                <TransactionBusinessBadge
+                  currency={item.account_currency}
+                  key={key}
+                  status={status}
+                  sx={businessBadgeSx}
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Stack>
       ) : null}
     </Stack>
