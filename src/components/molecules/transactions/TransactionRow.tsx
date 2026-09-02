@@ -262,21 +262,14 @@ export function TransactionRow({
       </Stack>
 
       {detailText || businessStatuses.length > 0 ? (
-        <Stack
-          direction="row"
-          spacing={0.5}
-          useFlexGap
-          sx={{ alignItems: "center", flexWrap: "wrap", minWidth: 0 }}
-        >
+        <Stack direction="column" spacing={0.5} sx={{ minWidth: 0 }}>
           {detailText ? (
             <Typography
               noWrap
               sx={{
                 color: mutedText,
-                flexShrink: 0,
                 fontSize: 11,
                 fontWeight: 700,
-                maxWidth: "100%",
               }}
             >
               {detailText}
@@ -287,7 +280,7 @@ export function TransactionRow({
               direction="row"
               spacing={0.5}
               useFlexGap
-              sx={{ flexShrink: 0, flexWrap: "wrap" }}
+              sx={{ flexWrap: "wrap" }}
             >
               {businessStatuses.map(({ key, status }) => (
                 <TransactionBusinessBadge
