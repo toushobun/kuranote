@@ -554,6 +554,8 @@ describe("TransactionRow", () => {
       const badgeRow = screen.getByTestId("business-badge-row").children[0];
       const plainGroup = summaries[0]?.parentElement;
       const badgeGroup = summaries[1]?.parentElement;
+      const plainBadgeSlot = plainGroup?.children[1];
+      const badgeSlot = badgeGroup?.children[1];
       const badge = screen.getByText("报销收入").closest(".MuiChip-root");
 
       expect(plainRow?.children).toHaveLength(2);
@@ -562,10 +564,16 @@ describe("TransactionRow", () => {
       expect(badgeGroup).toHaveClass("MuiStack-root");
       expect(plainGroup).toHaveStyle({ flexDirection: "column" });
       expect(badgeGroup).toHaveStyle({ flexDirection: "column" });
-      expect(plainGroup?.children).toHaveLength(1);
+      expect(plainGroup?.children).toHaveLength(2);
       expect(badgeGroup?.children).toHaveLength(2);
+      expect(plainGroup?.children[0]).toBe(summaries[0]);
       expect(badgeGroup?.children[0]).toBe(summaries[1]);
-      expect(badgeGroup?.children[1]?.contains(badge)).toBe(true);
+      expect(plainBadgeSlot).toHaveClass("MuiStack-root");
+      expect(badgeSlot).toHaveClass("MuiStack-root");
+      expect(plainBadgeSlot).toBeEmptyDOMElement();
+      expect(plainBadgeSlot).toHaveStyle({ minHeight: "20px" });
+      expect(badgeSlot).toHaveStyle({ minHeight: "20px" });
+      expect(badgeSlot?.contains(badge)).toBe(true);
       expect(summaries).toHaveLength(2);
       summaries.forEach((summary) => {
         expect(summary.closest(".MuiChip-root")).toBeNull();
