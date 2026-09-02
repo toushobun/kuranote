@@ -1,6 +1,8 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import Button, { type ButtonProps } from "@mui/material/Button";
+import type { ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
+
+import { PrimaryActionButton } from "./PrimaryActionButton/PrimaryActionButton";
 
 type CreateButtonCommonProps = "href" | "startIcon" | "variant";
 
@@ -12,19 +14,30 @@ export type CreateButtonProps =
 
 export function CreateButton(props: CreateButtonProps) {
   if (typeof props.href === "string") {
-    const { href, ...linkProps } = props;
+    const { href, sx, ...linkProps } = props;
     return (
-      <Button
+      <PrimaryActionButton
         {...linkProps}
-        component={Link}
         href={href}
         startIcon={<AddRoundedIcon />}
-        variant="contained"
+        sx={[createButtonBaseSx, ...(Array.isArray(sx) ? sx : [sx])]}
       />
     );
   }
 
+  const { sx, ...buttonProps } = props;
+
   return (
-    <Button {...props} startIcon={<AddRoundedIcon />} variant="contained" />
+    <PrimaryActionButton
+      {...buttonProps}
+      startIcon={<AddRoundedIcon />}
+      sx={[createButtonBaseSx, ...(Array.isArray(sx) ? sx : [sx])]}
+    />
   );
 }
+
+const createButtonBaseSx = {
+  borderRadius: 1,
+  fontWeight: 700,
+  minHeight: 40,
+} as const;

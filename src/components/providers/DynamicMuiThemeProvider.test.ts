@@ -39,6 +39,17 @@ describe("createDynamicMuiTheme", () => {
     });
   });
 
+  it("不会用按钮专用文字色覆盖全局 primary.contrastText", () => {
+    const dynamicTheme = createDynamicMuiTheme("amberWarmth");
+
+    expect(dynamicTheme.palette.primary.contrastText).toBe(
+      dynamicTheme.palette.getContrastText(dynamicTheme.palette.primary.main),
+    );
+    expect(dynamicTheme.palette.primary.contrastText).not.toBe(
+      userThemeTokens.amberWarmth.component.buttonPrimaryText,
+    );
+  });
+
   it("会将 overlay 组件背景固定为基础 paper", () => {
     const dynamicTheme = createDynamicMuiTheme(userThemeKeys[0]);
 
