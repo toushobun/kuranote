@@ -45,15 +45,13 @@ function createService(
     archiveMerchant: vi.fn(),
     archiveTag: vi.fn(),
     assertCanManage: vi.fn(),
+    cacheMerchantIcon: vi.fn(),
     createAlias: vi.fn(),
     createMerchant: vi.fn(),
     createTag: vi.fn(),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
+    fetchMerchantIcon: vi.fn(),
     getMerchant: vi.fn(),
-    getMerchantIcon: vi.fn().mockResolvedValue({
-      bytes: new ArrayBuffer(1),
-      contentType: "image/png",
-    }),
     list: vi.fn().mockResolvedValue({
       canManageMerchants: true,
       merchants: [],
@@ -103,27 +101,15 @@ function createApp(
 }
 
 describe("merchant router", () => {
-  it("已登录成员可通过安全端点读取商家头像", async () => {
-    const getMerchantIcon = vi.fn().mockResolvedValue({
-      bytes: new Uint8Array([1, 2, 3]).buffer,
-      contentType: "image/png",
-    });
-    const response = await createApp(
-      createService({ getMerchantIcon }),
-    ).request(
-      `https://kuranote.example/ledgers/${ledgerId}/merchants/icon?websiteUrl=${encodeURIComponent(
-        "https://example.com",
-      )}`,
+  beforeEach(() => vi.clearAllMocks());
+
+  it("旧实时图标代理入口已废弃", async () => {
+    const response = await createApp(createService()).request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/icon?websiteUrl=https%3A%2F%2Fexample.com`,
     );
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("image/png");
-    expect(getMerchantIcon).toHaveBeenCalledWith({
-      ledgerId,
-      websiteUrl: "https://example.com",
-    });
+    expect(response.status).toBe(404);
   });
-  beforeEach(() => vi.clearAllMocks());
 
   it("读取商家列表返回 200 且不传递 SSR 账本名称", async () => {
     const list = vi.fn().mockResolvedValue({

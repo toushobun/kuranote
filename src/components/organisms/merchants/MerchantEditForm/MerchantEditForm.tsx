@@ -9,10 +9,15 @@ import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
 import type { ServerAction } from "types/actions";
-import type { Merchant, MerchantTag } from "types/merchants";
+import type {
+  Merchant,
+  MerchantIconStateAction,
+  MerchantTag,
+} from "types/merchants";
 
 type MerchantEditFormProps = {
   action: ServerAction;
+  fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   merchant: Merchant;
   pending?: boolean;
@@ -21,6 +26,7 @@ type MerchantEditFormProps = {
 
 export function MerchantEditForm({
   action,
+  fetchIconAction,
   ledgerId,
   merchant,
   pending = false,
@@ -36,6 +42,8 @@ export function MerchantEditForm({
     <Stack component="form" action={action} spacing={2.5}>
       <input name="merchantId" type="hidden" value={merchant.id} />
       <MerchantDetailsFields
+        fetchIconAction={fetchIconAction}
+        initialIconUrl={merchant.icon_url}
         ledgerId={ledgerId}
         merchantId={merchant.id}
         name={details.name}

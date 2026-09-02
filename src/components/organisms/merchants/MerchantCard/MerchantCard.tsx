@@ -17,7 +17,6 @@ import {
   type ThemeColorKey,
 } from "theme/themeColorTokens";
 import type { Merchant, MerchantTag } from "types/merchants";
-import { merchantIconSrc } from "utils/merchants";
 
 import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
@@ -77,7 +76,6 @@ function getMerchantTagChipSx(tag: MerchantTag) {
 export function MerchantCard({
   canManageMerchants = true,
   editHref,
-  ledgerId,
   merchant,
 }: MerchantCardProps) {
   const hasPreferredAlias = merchant.aliases.some(
@@ -98,7 +96,7 @@ export function MerchantCard({
         <MerchantAvatar
           padding={0.75}
           size={{ xs: 64, sm: 72 }}
-          src={merchantIconSrc(ledgerId, merchant.website_url)}
+          src={merchant.icon_url ?? undefined}
           toneKey={merchant.id}
         />
 

@@ -10,10 +10,11 @@ import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
 import type { ServerAction } from "types/actions";
-import type { MerchantTag } from "types/merchants";
+import type { MerchantIconStateAction, MerchantTag } from "types/merchants";
 
 type MerchantFormProps = {
   action: ServerAction;
+  fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   pending?: boolean;
   tags?: MerchantTag[];
@@ -21,6 +22,7 @@ type MerchantFormProps = {
 
 export function MerchantForm({
   action,
+  fetchIconAction,
   ledgerId,
   pending = false,
   tags = [],
@@ -30,6 +32,7 @@ export function MerchantForm({
   return (
     <Stack component="form" action={action} spacing={2.5}>
       <MerchantDetailsFields
+        fetchIconAction={fetchIconAction}
         ledgerId={ledgerId}
         name={details.name}
         note={details.note}

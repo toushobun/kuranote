@@ -1,21 +1,23 @@
 "use client";
 
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { merchantText } from "config/merchantText";
-import { merchantIconSrc } from "utils/merchants";
+import type { MerchantIconStateAction } from "types/merchants";
 
 import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
 type MerchantDetailsFieldsProps = {
+  fetchIconAction: MerchantIconStateAction;
+  initialIconUrl?: string | null;
   ledgerId: string;
   merchantId?: string;
   name: string;
@@ -26,10 +28,11 @@ type MerchantDetailsFieldsProps = {
   websiteUrl: string;
 };
 
-const iconPreviewDebounceMs = 400;
 type IconPreviewStatus = "error" | "idle" | "loading" | "success";
 
 export function MerchantDetailsFields({
+  fetchIconAction,
+  initialIconUrl,
   ledgerId,
   merchantId,
   name,
@@ -39,33 +42,17 @@ export function MerchantDetailsFields({
   onWebsiteUrlChange,
   websiteUrl,
 }: MerchantDetailsFieldsProps) {
-  const [previewWebsiteUrl, setPreviewWebsiteUrl] = useState(websiteUrl);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [previewStatus, setPreviewStatus] = useState<IconPreviewStatus>(() =>
-    merchantIconSrc(ledgerId, websiteUrl || null) ? "loading" : "idle",
+  const [iconUrl, setIconUrl] = useState(initialIconUrl ?? undefined);
+  const [previewStatus, setPreviewStatus] = useState<IconPreviewStatus>(
+    initialIconUrl ? "success" : "idle",
   );
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setPreviewWebsiteUrl(websiteUrl);
-      setPreviewStatus(
-        merchantIconSrc(ledgerId, websiteUrl || null) ? "loading" : "idle",
-      );
-    }, iconPreviewDebounceMs);
-
-    return () => window.clearTimeout(timeout);
-  }, [ledgerId, websiteUrl]);
-
-  const baseIconSrc = merchantIconSrc(ledgerId, previewWebsiteUrl || null);
-  const iconSrc = baseIconSrc
-    ? `${baseIconSrc}&refresh=${refreshKey}`
-    : undefined;
-  const canRefresh = Boolean(merchantIconSrc(ledgerId, websiteUrl || null));
+  const [feedbackText, setFeedbackText] = useState<string | null>(null);
+  const canFetch = websiteUrl.trim().length > 0;
   const statusContent = {
     error: {
       color: "warning.main",
       icon: <ErrorOutlineRoundedIcon fontSize="small" />,
-      text: merchantText.iconError,
+      text: feedbackText ?? merchantText.iconError,
     },
     idle: {
       color: "text.secondary",
@@ -80,7 +67,7 @@ export function MerchantDetailsFields({
     success: {
       color: "success.main",
       icon: <CheckCircleRoundedIcon fontSize="small" />,
-      text: merchantText.iconSuccess,
+      text: feedbackText ?? merchantText.iconSuccess,
     },
   }[previewStatus];
 
@@ -89,11 +76,13 @@ export function MerchantDetailsFields({
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 0.5 }}>
         <MerchantAvatar
           loading={previewStatus === "loading"}
-          onError={() => setPreviewStatus("error")}
-          onLoad={() => setPreviewStatus("success")}
+          onError={() => {
+            setFeedbackText(merchantText.iconError);
+            setPreviewStatus("error");
+          }}
           padding={1}
           size={{ xs: 84, sm: 96 }}
-          src={iconSrc}
+          src={iconUrl}
           toneKey={merchantId ?? `new-merchant:${ledgerId}`}
         />
         <Stack spacing={0.5} sx={{ flex: 1 }}>
@@ -136,28 +125,52 @@ export function MerchantDetailsFields({
           fullWidth
           label={merchantText.websiteLabel}
           name="websiteUrl"
-          onChange={(event) => onWebsiteUrlChange(event.target.value)}
+          onChange={(event) => {
+            onWebsiteUrlChange(event.target.value);
+            setFeedbackText(null);
+            setPreviewStatus("idle");
+          }}
           placeholder={merchantText.websitePlaceholder}
           type="url"
           size="small"
           value={websiteUrl}
         />
-        <IconButton
-          aria-label={merchantText.iconRefresh}
-          disabled={!canRefresh || previewStatus === "loading"}
-          onClick={() => {
-            setPreviewWebsiteUrl(websiteUrl);
+        <Button
+          disabled={!canFetch || previewStatus === "loading"}
+          onClick={async () => {
+            setFeedbackText(null);
             setPreviewStatus("loading");
-            setRefreshKey((currentKey) => currentKey + 1);
+            const formData = new FormData();
+            formData.set("websiteUrl", websiteUrl);
+            if (merchantId) formData.set("merchantId", merchantId);
+
+            try {
+              const state = await fetchIconAction({}, formData);
+              if (state.error || !state.iconUrl) {
+                setFeedbackText(state.error ?? merchantText.iconError);
+                setPreviewStatus("error");
+                return;
+              }
+              setIconUrl(state.iconUrl);
+              setFeedbackText(state.success ?? merchantText.iconSuccess);
+              setPreviewStatus("success");
+            } catch {
+              setFeedbackText(merchantText.iconError);
+              setPreviewStatus("error");
+            }
           }}
+          size="small"
+          startIcon={<DownloadRoundedIcon />}
           sx={{
-            border: "1px solid",
-            borderColor: "divider",
             flexShrink: 0,
+            minHeight: 40,
+            whiteSpace: "nowrap",
           }}
+          type="button"
+          variant="outlined"
         >
-          <RefreshRoundedIcon />
-        </IconButton>
+          {merchantText.iconRefresh}
+        </Button>
       </Stack>
 
       <TextField

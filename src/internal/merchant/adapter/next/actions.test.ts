@@ -14,9 +14,11 @@ const mocks = vi.hoisted(() => ({
   archiveAlias: vi.fn(),
   archiveMerchant: vi.fn(),
   archiveTag: vi.fn(),
+  cacheMerchantIcon: vi.fn(),
   createAlias: vi.fn(),
   createMerchant: vi.fn(),
   createTag: vi.fn(),
+  fetchMerchantIcon: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   redirect: vi.fn(),
@@ -48,6 +50,7 @@ import {
   createMerchant,
   createMerchantAlias,
   createMerchantTag,
+  fetchMerchantIcon,
   reorderMerchantTags,
   updateMerchant,
   updateMerchantTag,
@@ -91,6 +94,12 @@ function expectErrorState(state: MerchantActionState, message: string) {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.archiveAlias.mockResolvedValue(merchantId);
+  mocks.cacheMerchantIcon.mockResolvedValue({
+    url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+  });
+  mocks.fetchMerchantIcon.mockResolvedValue({
+    url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+  });
   mocks.redirect.mockImplementation((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   });
@@ -104,9 +113,11 @@ beforeEach(() => {
         archiveAlias: mocks.archiveAlias,
         archiveMerchant: mocks.archiveMerchant,
         archiveTag: mocks.archiveTag,
+        cacheMerchantIcon: mocks.cacheMerchantIcon,
         createAlias: mocks.createAlias,
         createMerchant: mocks.createMerchant,
         createTag: mocks.createTag,
+        fetchMerchantIcon: mocks.fetchMerchantIcon,
         findSummariesByIds: vi.fn(),
         listActiveOptions: vi.fn(),
         reorderTags: mocks.reorderTags,
@@ -118,6 +129,37 @@ beforeEach(() => {
 });
 
 describe("Merchant Server Actions", () => {
+  it("编辑页手动获取图标时校验当前账本并缓存", async () => {
+    const state = await fetchMerchantIcon({}, merchantForm());
+
+    expect(state).toEqual({
+      iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+      success: "网站图标已缓存",
+    });
+    expect(mocks.cacheMerchantIcon).toHaveBeenCalledWith({
+      ledgerId,
+      merchantId,
+      websiteUrl: "https://example.com",
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+  });
+
+  it("新增页手动获取只返回预览，保存商家时再落库", async () => {
+    const formData = merchantForm({ merchantId: "" });
+
+    const state = await fetchMerchantIcon({}, formData);
+
+    expect(state).toEqual({
+      iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+      success: "网站图标已获取，保存商家后会缓存",
+    });
+    expect(mocks.fetchMerchantIcon).toHaveBeenCalledWith({
+      ledgerId,
+      websiteUrl: "https://example.com",
+    });
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       action: createMerchant,

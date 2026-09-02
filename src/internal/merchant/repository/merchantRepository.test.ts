@@ -204,6 +204,7 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(
       repository.updateMerchant({
+        iconUrl: null,
         ledgerId,
         merchantId,
         name: "ライフ",
@@ -214,12 +215,51 @@ describe("createSupabaseMerchantRepository", () => {
     ).resolves.toBe(true);
 
     expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_icon_url: null,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_name: "ライフ",
       p_note: null,
       p_tag_ids: [],
       p_website_url: null,
+    });
+  });
+
+  it("手动获取图标后只更新当前账本中的目标商家", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateMerchantIcon({
+        iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+        ledgerId,
+        merchantId,
+        userId,
+        websiteUrl: "https://example.com",
+      }),
+    ).resolves.toBe(true);
+    expect(supabase.queries[0]).toMatchObject({
+      calls: [
+        {
+          args: [
+            {
+              icon_url:
+                "https://t2.gstatic.com/faviconV2?url=https://example.com",
+              updated_by: userId,
+              website_url: "https://example.com",
+            },
+            { count: "exact" },
+          ],
+          method: "update",
+        },
+        { args: ["id", merchantId], method: "eq" },
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["is_archived", false], method: "eq" },
+      ],
+      table: "merchant",
     });
   });
 
@@ -235,6 +275,7 @@ describe("createSupabaseMerchantRepository", () => {
     );
 
     const operation = repository.createMerchant({
+      iconUrl: null,
       ledgerId,
       name: "LIFE",
       note: null,
@@ -253,6 +294,7 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.createMerchant({
+          iconUrl: null,
           ledgerId,
           name: "LIFE",
           note: null,
@@ -268,6 +310,7 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.updateMerchant({
+          iconUrl: null,
           ledgerId,
           merchantId,
           name: "LIFE",

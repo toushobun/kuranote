@@ -28,11 +28,39 @@ describe("createMerchantIconService", () => {
     await expect(
       service.fetchIcon("https://example.com/path"),
     ).resolves.toMatchObject({
-      contentType: "image/png",
+      url: expect.stringContaining("https://www.google.com/s2/favicons"),
     });
     const requestedUrl = String(vi.mocked(fetchImpl).mock.calls[0]?.[0]);
     expect(requestedUrl).toContain("https://www.google.com/s2/favicons");
     expect(requestedUrl).toContain("domain_url=https%3A%2F%2Fexample.com");
+  });
+
+  it("允许跳转到 Google favicon 静态资源域并返回最终地址", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          headers: {
+            location:
+              "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128",
+          },
+          status: 301,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "content-type": "image/png" },
+        }),
+      ) as unknown as typeof fetch;
+    const service = createMerchantIconService({
+      fetchImpl,
+      lookup: publicLookup,
+    });
+
+    await expect(service.fetchIcon("https://example.com")).resolves.toEqual({
+      url: "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it.each([
@@ -138,7 +166,7 @@ describe("createMerchantIconService", () => {
       service.fetchIcon("https://example.com"),
     ).rejects.toMatchObject({
       code: "merchant_icon_fetch_failed",
-      message: "商家头像暂时无法获取。",
+      message: "未能获取网站图标，请确认网址后重试。",
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

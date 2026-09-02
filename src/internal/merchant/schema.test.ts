@@ -10,6 +10,7 @@ import {
   validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
   validateCreateMerchantTagForm,
+  validateFetchMerchantIconForm,
   validateReorderMerchantTagsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
@@ -36,6 +37,22 @@ function createFormData(overrides: Record<string, string> = {}) {
 }
 
 describe("merchant schema", () => {
+  it("图标获取表单校验网址并允许新增页省略商家 ID", () => {
+    expect(validateFetchMerchantIconForm(createFormData())).toEqual({
+      ok: true,
+      value: { merchantId, websiteUrl: "https://example.com" },
+    });
+    expect(
+      validateFetchMerchantIconForm(createFormData({ merchantId: "" })),
+    ).toEqual({
+      ok: true,
+      value: { merchantId: null, websiteUrl: "https://example.com" },
+    });
+    expect(
+      validateFetchMerchantIconForm(createFormData({ websiteUrl: "" })),
+    ).toEqual({ error: "website_url_invalid", ok: false });
+  });
+
   it("展示名可选择正式名或有效别名", () => {
     expect(validateSetPreferredMerchantAliasForm(createFormData())).toEqual({
       ok: true,

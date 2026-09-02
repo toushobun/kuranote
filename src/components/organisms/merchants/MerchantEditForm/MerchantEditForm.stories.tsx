@@ -9,6 +9,7 @@ const meta = {
   component: MerchantEditForm,
   args: {
     action: async () => {},
+    fetchIconAction: async () => ({}),
     ledgerId: "ledger-1",
     merchant: createMerchantRow({ note: "常去的超市" }),
   },

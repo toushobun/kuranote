@@ -43,8 +43,14 @@ export type MerchantListInput = MerchantLedgerInput & {
   keyword: string;
   tagId?: string | null;
 };
-export type CreateMerchantServiceInput = Omit<CreateMerchantInput, "userId">;
-export type UpdateMerchantServiceInput = Omit<UpdateMerchantInput, "userId">;
+export type CreateMerchantServiceInput = Omit<
+  CreateMerchantInput,
+  "iconUrl" | "userId"
+>;
+export type UpdateMerchantServiceInput = Omit<
+  UpdateMerchantInput,
+  "iconUrl" | "userId"
+>;
 export type ArchiveMerchantServiceInput = MerchantLedgerInput & {
   merchantId: string;
 };
@@ -56,6 +62,7 @@ export type ArchiveMerchantAliasServiceInput = MerchantLedgerInput & {
   aliasId: string;
 };
 export type MerchantIconInput = MerchantLedgerInput & { websiteUrl: string };
+export type CacheMerchantIconInput = MerchantIconInput & { merchantId: string };
 export type SetPreferredMerchantAliasServiceInput = MerchantLedgerInput & {
   aliasId: string | null;
   merchantId: string;
@@ -86,8 +93,9 @@ export interface MerchantService extends MerchantQueryService {
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<void>;
   createTag(input: CreateMerchantTagServiceInput): Promise<void>;
+  cacheMerchantIcon(input: CacheMerchantIconInput): Promise<MerchantIcon>;
+  fetchMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
-  getMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
   listTags(input: MerchantLedgerInput): Promise<MerchantTagData[]>;
   reorderTags(input: MerchantLedgerInput & { tagIds: string[] }): Promise<void>;
@@ -120,6 +128,7 @@ function conflictError(
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.merchantTagArchiveFailed
     | typeof merchantErrorCodes.merchantTagUpdateFailed
+    | typeof merchantErrorCodes.merchantIconUpdateFailed
     | typeof merchantErrorCodes.updateFailed,
 ): ConflictError {
   return new ConflictError(
@@ -285,6 +294,23 @@ export function createMerchantService({
       await requireLedgerRole(ledgerId, true);
     },
 
+    async cacheMerchantIcon({ ledgerId, merchantId, websiteUrl }) {
+      const { userId } = await requireLedgerRole(ledgerId, true);
+      await requireActiveMerchant(ledgerId, merchantId);
+      const icon = await merchantIconService.fetchIcon(websiteUrl);
+      const updated = await merchantRepository.updateMerchantIcon({
+        iconUrl: icon.url,
+        ledgerId,
+        merchantId,
+        userId,
+        websiteUrl,
+      });
+      if (!updated) {
+        throw conflictError(merchantErrorCodes.merchantIconUpdateFailed);
+      }
+      return icon;
+    },
+
     async createAlias({ alias, ledgerId, merchantId }) {
       const { userId } = await requireLedgerRole(ledgerId, true);
       await requireActiveMerchant(ledgerId, merchantId);
@@ -295,7 +321,15 @@ export function createMerchantService({
       const { userId } = await requireLedgerRole(input.ledgerId, true);
       const tagIds = input.tagIds ?? [];
       await requireActiveTags(input.ledgerId, tagIds);
-      await merchantRepository.createMerchant({ ...input, tagIds, userId });
+      const iconUrl = input.siteUrl
+        ? (await merchantIconService.fetchIcon(input.siteUrl)).url
+        : null;
+      await merchantRepository.createMerchant({
+        ...input,
+        iconUrl,
+        tagIds,
+        userId,
+      });
     },
 
     async createTag(input) {
@@ -325,8 +359,8 @@ export function createMerchantService({
       return merchant;
     },
 
-    async getMerchantIcon({ ledgerId, websiteUrl }) {
-      await requireLedgerRole(ledgerId, false);
+    async fetchMerchantIcon({ ledgerId, websiteUrl }) {
+      await requireLedgerRole(ledgerId, true);
       return merchantIconService.fetchIcon(websiteUrl);
     },
 
@@ -375,11 +409,27 @@ export function createMerchantService({
 
     async updateMerchant(input) {
       const { userId } = await requireLedgerRole(input.ledgerId, true);
-      await requireActiveMerchant(input.ledgerId, input.merchantId);
+      const currentMerchant = await merchantRepository.findActiveMerchantData(
+        input.ledgerId,
+        input.merchantId,
+      );
+      if (!currentMerchant) {
+        throw new NotFoundError(
+          merchantErrorCodes.merchantInvalid,
+          getMerchantErrorMessage(merchantErrorCodes.merchantInvalid),
+        );
+      }
       const tagIds = input.tagIds ?? [];
       await requireActiveTags(input.ledgerId, tagIds);
+      const iconUrl =
+        currentMerchant.website_url === input.siteUrl
+          ? currentMerchant.icon_url
+          : input.siteUrl
+            ? (await merchantIconService.fetchIcon(input.siteUrl)).url
+            : null;
       const updated = await merchantRepository.updateMerchant({
         ...input,
+        iconUrl,
         tagIds,
         userId,
       });

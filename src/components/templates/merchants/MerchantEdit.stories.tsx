@@ -15,6 +15,10 @@ const meta = {
     archiveMerchantAction: action,
     archiveMerchantAliasAction: action,
     createMerchantAliasAction: action,
+    fetchIconAction: async () => ({
+      iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+      success: "网站图标已缓存",
+    }),
     ledgerId: "ledger-1",
     ledgerName: "家庭账本",
     merchant: createMerchantRow({

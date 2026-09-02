@@ -2,6 +2,7 @@ import {
   archiveMerchant,
   archiveMerchantAlias,
   createMerchantAlias,
+  fetchMerchantIcon,
   setPreferredMerchantAlias,
   updateMerchant,
 } from "internal/merchant/adapter/next/actions";
@@ -21,6 +22,7 @@ export default async function MerchantEditPage({
       archiveMerchantAction={archiveMerchant}
       archiveMerchantAliasAction={archiveMerchantAlias}
       createMerchantAliasAction={createMerchantAlias}
+      fetchIconAction={fetchMerchantIcon}
       ledgerId={view.ledgerId}
       ledgerName={view.ledgerName}
       merchant={view.merchant}

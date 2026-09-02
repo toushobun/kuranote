@@ -5,7 +5,6 @@ import {
   createMerchantAliasRequestSchema,
   createMerchantRequestSchema,
   merchantAliasParamsSchema,
-  merchantIconQuerySchema,
   merchantLedgerParamsSchema,
   merchantListQuerySchema,
   merchantParamsSchema,
@@ -23,7 +22,6 @@ type CreateMerchantAliasRequest = z.infer<
   typeof createMerchantAliasRequestSchema
 >;
 type MerchantAliasParams = z.infer<typeof merchantAliasParamsSchema>;
-type MerchantIconQuery = z.infer<typeof merchantIconQuerySchema>;
 
 export const listMerchantsHandler = async (
   c: ControllerContext<{
@@ -50,24 +48,6 @@ export const listMerchantOptionsHandler = async (
     .get("container")
     .merchant.service.listActiveOptions(c.req.valid("param"));
   return c.json({ merchants }, 200);
-};
-
-export const getMerchantIconHandler = async (
-  c: ControllerContext<{
-    param: MerchantLedgerParams;
-    query: MerchantIconQuery;
-  }>,
-) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  const icon = await c.get("container").merchant.service.getMerchantIcon({
-    ledgerId: c.req.valid("param").ledgerId,
-    websiteUrl: c.req.valid("query").websiteUrl,
-  });
-  return c.body(icon.bytes, 200, {
-    "Cache-Control": "private, max-age=86400",
-    "Content-Type": icon.contentType,
-    "X-Content-Type-Options": "nosniff",
-  });
 };
 
 export const createMerchantHandler = async (

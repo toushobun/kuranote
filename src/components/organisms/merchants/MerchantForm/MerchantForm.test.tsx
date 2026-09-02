@@ -7,7 +7,13 @@ afterEach(cleanup);
 
 describe("MerchantForm", () => {
   it("编辑新增商家的各字段", () => {
-    render(<MerchantForm action={vi.fn()} ledgerId="ledger-1" />);
+    render(
+      <MerchantForm
+        action={vi.fn()}
+        fetchIconAction={vi.fn()}
+        ledgerId="ledger-1"
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "Amazon" },
@@ -28,7 +34,12 @@ describe("MerchantForm", () => {
 
   it("提交中禁用按钮并显示进度", () => {
     const { container } = render(
-      <MerchantForm action={vi.fn()} ledgerId="ledger-1" pending />,
+      <MerchantForm
+        action={vi.fn()}
+        fetchIconAction={vi.fn()}
+        ledgerId="ledger-1"
+        pending
+      />,
     );
 
     expect(container.querySelector('button[type="submit"]')).toBeDisabled();

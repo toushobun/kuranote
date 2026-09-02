@@ -11,12 +11,17 @@ import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeed
 import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
-import type { MerchantStateAction, MerchantTag } from "types/merchants";
+import type {
+  MerchantIconStateAction,
+  MerchantStateAction,
+  MerchantTag,
+} from "types/merchants";
 
 import { useMerchantsActionState } from "./useMerchantsActionState";
 
 type MerchantCreateTemplateProps = {
   createMerchantAction: MerchantStateAction;
+  fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   ledgerName: string;
   tags: MerchantTag[];
@@ -24,6 +29,7 @@ type MerchantCreateTemplateProps = {
 
 export function MerchantCreateTemplate({
   createMerchantAction,
+  fetchIconAction,
   ledgerId,
   ledgerName,
   tags,
@@ -54,6 +60,7 @@ export function MerchantCreateTemplate({
       <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
         <MerchantForm
           action={create.action}
+          fetchIconAction={fetchIconAction}
           ledgerId={ledgerId}
           pending={create.pending}
           tags={tags}

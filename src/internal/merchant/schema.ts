@@ -57,6 +57,10 @@ export type UpdateMerchantTagValues = CreateMerchantTagValues & {
 };
 export type ArchiveMerchantTagValues = { tagId: string };
 export type ReorderMerchantTagsValues = { tagIds: string[] };
+export type FetchMerchantIconValues = {
+  merchantId: string | null;
+  websiteUrl: string;
+};
 
 const merchantTagIdsSchema = z
   .array(z.string().uuid())
@@ -139,6 +143,22 @@ export function validateCreateMerchantForm(
   formData: FormData,
 ): ValidationResult<CreateMerchantValues, MerchantValidationErrorCode> {
   return parseMerchantValues(formData);
+}
+
+export function validateFetchMerchantIconForm(
+  formData: FormData,
+): ValidationResult<FetchMerchantIconValues, MerchantValidationErrorCode> {
+  const websiteUrl = parseWebsiteUrl(getFormText(formData, "websiteUrl"));
+  if (!websiteUrl) return invalid(merchantErrorCodes.websiteUrlInvalid);
+
+  const merchantIdValue = getFormText(formData, "merchantId")?.trim();
+  if (merchantIdValue) {
+    const merchantId = z.string().uuid().safeParse(merchantIdValue);
+    if (!merchantId.success) return invalid(merchantErrorCodes.merchantInvalid);
+    return valid({ merchantId: merchantId.data, websiteUrl });
+  }
+
+  return valid({ merchantId: null, websiteUrl });
 }
 
 export function validateUpdateMerchantForm(
@@ -358,10 +378,6 @@ export const createMerchantRequestSchema = z.object({
 export const updateMerchantRequestSchema = createMerchantRequestSchema;
 export const createMerchantAliasRequestSchema = z.object({
   alias: z.string().trim().min(1).max(merchantAliasMaxLength),
-});
-
-export const merchantIconQuerySchema = z.object({
-  websiteUrl: z.string().url().max(2048),
 });
 
 export const merchantAliasSchema = z.object({

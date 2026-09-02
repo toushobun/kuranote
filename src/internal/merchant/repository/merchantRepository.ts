@@ -162,6 +162,7 @@ export type ActiveMerchantListData = {
 };
 
 export type CreateMerchantInput = {
+  iconUrl: string | null;
   ledgerId: string;
   name: string;
   note: string | null;
@@ -171,6 +172,13 @@ export type CreateMerchantInput = {
 };
 
 export type UpdateMerchantInput = CreateMerchantInput & { merchantId: string };
+export type UpdateMerchantIconInput = {
+  iconUrl: string;
+  ledgerId: string;
+  merchantId: string;
+  userId: string;
+  websiteUrl: string;
+};
 export type ArchiveMerchantInput = {
   ledgerId: string;
   merchantId: string;
@@ -230,6 +238,7 @@ export interface MerchantRepository {
   reorderTags(ledgerId: string, tagIds: string[]): Promise<void>;
   setPreferredAlias(input: SetPreferredMerchantAliasInput): Promise<boolean>;
   updateMerchant(input: UpdateMerchantInput): Promise<boolean>;
+  updateMerchantIcon(input: UpdateMerchantIconInput): Promise<boolean>;
   updateTag(input: UpdateMerchantTagInput): Promise<boolean>;
 }
 
@@ -581,6 +590,7 @@ export function createSupabaseMerchantRepository(
 
     async createMerchant(input) {
       const { error } = await supabase.rpc("create_merchant_with_tags", {
+        p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_name: input.name,
         p_note: input.note,
@@ -946,6 +956,7 @@ export function createSupabaseMerchantRepository(
 
     async updateMerchant(input) {
       const { data, error } = await supabase.rpc("update_merchant_with_tags", {
+        p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_name: input.name,
@@ -966,6 +977,32 @@ export function createSupabaseMerchantRepository(
         );
       }
       return data === true;
+    },
+
+    async updateMerchantIcon(input) {
+      const { error, count } = await supabase
+        .from("merchant")
+        .update(
+          {
+            icon_url: input.iconUrl,
+            updated_by: input.userId,
+            website_url: input.websiteUrl,
+          },
+          { count: "exact" },
+        )
+        .eq("id", input.merchantId)
+        .eq("ledger_id", input.ledgerId)
+        .eq("is_archived", false);
+      if (error) {
+        fail(
+          "[merchant] failed to update merchant icon",
+          merchantErrorCodes.merchantIconUpdateFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantIconUpdateFailed),
+          { ledgerId: input.ledgerId, merchantId: input.merchantId },
+          error,
+        );
+      }
+      return count === 1;
     },
 
     async updateTag(input) {
