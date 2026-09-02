@@ -12,7 +12,6 @@ import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -32,6 +31,7 @@ import {
 import { useFormStatus } from "react-dom";
 
 import { CreateButton } from "atoms/ui/CreateButton";
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
@@ -324,13 +324,12 @@ function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button
+    <PrimaryActionButton
       aria-label={`切换到${ledgerName}`}
       disabled={pending}
       size="small"
       sx={switchButtonSx}
       type="submit"
-      variant="contained"
     >
       {pending ? (
         <CircularProgress
@@ -341,7 +340,7 @@ function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
       ) : (
         "切换使用"
       )}
-    </Button>
+    </PrimaryActionButton>
   );
 }
 
@@ -584,18 +583,16 @@ const switchFormSx = {
 
 const switchButtonSx = {
   ...typographyStyles.button,
-  background: "var(--user-theme-fab-bg)",
   borderRadius: 999,
-  color: "var(--user-theme-fab-text)",
   fontSize: 13,
   fontWeight: 700,
   minHeight: 32,
   minWidth: 82,
   px: 1.35,
   whiteSpace: "nowrap",
-  "&:hover": {
+  "&.Mui-disabled": {
     background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
+    backgroundColor: "action.disabledBackground",
   },
 };
 
