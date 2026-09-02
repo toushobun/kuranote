@@ -43,7 +43,7 @@ const primaryActionButtonSx = {
   minHeight: 48,
   "&:not(.Mui-disabled)": {
     background: "var(--user-theme-fab-bg)",
-    color: "primary.contrastText",
+    color: "var(--user-theme-fab-text)",
   },
   "&:not(.Mui-disabled):hover": {
     background: "var(--user-theme-fab-bg)",
