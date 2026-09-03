@@ -42,6 +42,7 @@ import {
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 
@@ -452,7 +453,7 @@ const pageTitleSx = {
 
 const createButtonSx = {
   ...typographyStyles.button,
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   flexShrink: 0,
   fontSize: 14,
   fontWeight: 700,
@@ -468,7 +469,7 @@ const createButtonSx = {
 };
 
 const currentCardSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   px: { xs: 1.5, sm: 1.8 },
   py: { xs: 1.5, sm: 1.8 },
 };
@@ -512,7 +513,7 @@ function ledgerItemCardSx(isCurrent: boolean) {
     borderColor: isCurrent
       ? "var(--user-theme-action-text)"
       : "var(--user-theme-card-border)",
-    borderRadius: 1,
+    borderRadius: `${designTokens.radius.md}px`,
     overflow: "hidden",
     position: "relative",
   } as const;
@@ -583,7 +584,7 @@ const switchFormSx = {
 
 const switchButtonSx = {
   ...typographyStyles.button,
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   fontSize: 13,
   fontWeight: 700,
   minHeight: 32,
@@ -599,7 +600,7 @@ const switchButtonSx = {
 const statusChipSx = {
   ...typographyStyles.chipBadge,
   bgcolor: "var(--user-theme-business-completed-bg)",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   color: "var(--user-theme-business-completed-text)",
   flexShrink: 0,
   fontSize: 13,
@@ -620,7 +621,7 @@ const chevronSx = {
 const switchHintSx = {
   alignItems: "center",
   bgcolor: "action.hover",
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   mt: 0.35,
   px: 1.25,
   py: 1,
@@ -673,7 +674,7 @@ const metaValueSx = {
 };
 
 const emptyCardSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   p: { xs: 1.5, sm: 1.75 },
 };
 

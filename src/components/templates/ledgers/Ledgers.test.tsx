@@ -5,10 +5,12 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { LedgerWithMemberCount } from "internal/ledger";
+import { designTokens, theme } from "theme/theme";
 
 import { LedgersTemplate } from "./Ledgers";
 
@@ -48,7 +50,11 @@ const defaultProps: ComponentProps<typeof LedgersTemplate> = {
 function renderTemplate(
   overrides: Partial<ComponentProps<typeof LedgersTemplate>> = {},
 ) {
-  return render(<LedgersTemplate {...defaultProps} {...overrides} />);
+  return render(
+    <ThemeProvider theme={theme}>
+      <LedgersTemplate {...defaultProps} {...overrides} />
+    </ThemeProvider>,
+  );
 }
 
 afterEach(() => {
@@ -69,9 +75,9 @@ describe("LedgersTemplate", () => {
     });
 
     expect(createLink).toHaveAttribute("href", "/ledgers/new");
-    expect(
-      Number.parseFloat(getComputedStyle(createLink).borderRadius),
-    ).toBeGreaterThan(100);
+    expect(getComputedStyle(createLink).borderRadius).toBe(
+      `${designTokens.radius.full}px`,
+    );
     expect(getComputedStyle(createLink).fontWeight).toBe("700");
     expect(getComputedStyle(createLink).minHeight).toBe("40px");
   });

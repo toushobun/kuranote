@@ -39,6 +39,7 @@ import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatu
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
@@ -920,7 +921,7 @@ const actionBarSx = {
 
 const cancelButtonSx = {
   borderColor: "var(--user-theme-action-text)",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   color: "text.secondary",
   fontWeight: 900,
   minHeight: 48,
