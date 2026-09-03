@@ -52,7 +52,7 @@ export function AccountCard({
     >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-          <Box sx={accountIconSx}>
+          <Box data-testid="account-card-icon" sx={accountIconSx}>
             <AccountTypeIcon type={type} />
           </Box>
 

@@ -132,6 +132,7 @@ function CategoryRowItem({
 
         <Box
           aria-hidden="true"
+          data-testid="category-list-icon"
           sx={{
             alignItems: "center",
             bgcolor: "var(--user-theme-icon-badge-bg)",

@@ -154,6 +154,7 @@ function SummaryMetric({
   return (
     <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", flex: 1 }}>
       <Stack
+        data-testid="summary-metric-icon"
         sx={{
           alignItems: "center",
           bgcolor: "var(--user-theme-field-card-selected-bg)",

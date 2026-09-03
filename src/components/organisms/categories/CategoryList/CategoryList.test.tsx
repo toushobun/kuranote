@@ -6,7 +6,10 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { designTokens, theme } from "theme/theme";
 
 import { CategoryList } from "./CategoryList";
 
@@ -73,12 +76,41 @@ function renderList(
   );
 }
 
+function renderListWithTheme(
+  overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
+) {
+  return render(
+    <ThemeProvider theme={theme}>
+      <CategoryList
+        archiveCategoryAction={vi.fn(async () => {})}
+        categories={categories}
+        onReorderError={vi.fn()}
+        reorderCategoryAction={vi.fn(async () => ({}))}
+        updateCategoryAction={vi.fn(async () => {})}
+        {...overrides}
+      />
+    </ThemeProvider>,
+  );
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
 describe("CategoryList", () => {
+  it("大分类图标使用方圆角而不是被裸数字放大成整圆", () => {
+    const { container } = renderListWithTheme();
+
+    const icons = within(container).getAllByTestId("category-list-icon");
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) {
+      expect(getComputedStyle(icon).borderRadius).toBe(
+        `${designTokens.radius.sm}px`,
+      );
+    }
+  });
+
   it("默认显示支出分类并展开第一个大分类", () => {
     renderList();
 
