@@ -7,6 +7,7 @@ import { LoadingState } from "molecules/ui/LoadingState";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 
 export default function MerchantsLoading() {
   return (
@@ -54,30 +55,50 @@ export default function MerchantsLoading() {
             <Skeleton
               aria-hidden
               height={36}
-              sx={{ borderRadius: 1, flexShrink: 0 }}
+              sx={{
+                borderRadius: `${designTokens.radius.full}px`,
+                flexShrink: 0,
+              }}
               variant="rounded"
               width={112}
             />
           </Stack>
 
-          <SectionCard sx={{ borderRadius: 999, p: 0.75 }}>
+          <SectionCard
+            sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0.75 }}
+          >
             <Skeleton
               height={32}
-              sx={{ borderRadius: 999 }}
+              sx={{ borderRadius: `${designTokens.radius.full}px` }}
               variant="rounded"
             />
           </SectionCard>
 
-          <SectionCard sx={{ borderRadius: 3, p: 2 }}>
+          <SectionCard sx={{ p: 2 }}>
             <Stack spacing={1.5}>
               <Stack direction="row" sx={{ justifyContent: "space-between" }}>
                 <Skeleton width={96} />
                 <Skeleton width={72} />
               </Stack>
               <Stack direction="row" spacing={1}>
-                <Skeleton height={92} variant="rounded" width={86} />
-                <Skeleton height={92} variant="rounded" width={86} />
-                <Skeleton height={92} variant="rounded" width={86} />
+                <Skeleton
+                  height={92}
+                  sx={{ borderRadius: `${designTokens.radius.item}px` }}
+                  variant="rounded"
+                  width={86}
+                />
+                <Skeleton
+                  height={92}
+                  sx={{ borderRadius: `${designTokens.radius.item}px` }}
+                  variant="rounded"
+                  width={86}
+                />
+                <Skeleton
+                  height={92}
+                  sx={{ borderRadius: `${designTokens.radius.item}px` }}
+                  variant="rounded"
+                  width={86}
+                />
               </Stack>
             </Stack>
           </SectionCard>

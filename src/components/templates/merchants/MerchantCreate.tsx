@@ -57,7 +57,7 @@ export function MerchantCreateTemplate({
         subtitle={`商家管理 〉 新增商家 · ${ledgerName}`}
         title={merchantText.create}
       />
-      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantForm
           action={create.action}
           fetchIconAction={fetchIconAction}

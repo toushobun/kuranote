@@ -11,6 +11,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import type {
   MerchantTag,
   MerchantTagReorderAction,
@@ -63,14 +64,17 @@ export function MerchantTagsTemplate({
             <Button
               component={Link}
               href={routePaths.merchants}
-              sx={{ borderRadius: 999, flexShrink: 0 }}
+              sx={{
+                borderRadius: `${designTokens.radius.full}px`,
+                flexShrink: 0,
+              }}
               variant="outlined"
             >
               完成
             </Button>
           </Stack>
 
-          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+          <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
             <MerchantTagManager
               archiveAction={archiveAction}
               createAction={createAction}

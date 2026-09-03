@@ -19,6 +19,7 @@ import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import type { Merchant, MerchantTag } from "types/merchants";
 
 export type MerchantsTemplateProps = {
@@ -104,7 +105,7 @@ export function MerchantsTemplate({
                 href={routePaths.merchantsNew}
                 size="small"
                 sx={{
-                  borderRadius: 999,
+                  borderRadius: `${designTokens.radius.full}px`,
                   flexShrink: 0,
                   px: { xs: 1.5, sm: 2.5 },
                   whiteSpace: "nowrap",
@@ -116,7 +117,10 @@ export function MerchantsTemplate({
           </Stack>
 
           {hasMerchants || hasKeyword || selectedTag || tagFilterError ? (
-            <SectionCard component="form" sx={{ borderRadius: 999, p: 0 }}>
+            <SectionCard
+              component="form"
+              sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0 }}
+            >
               {selectedTag ? (
                 <input name="tagId" type="hidden" value={selectedTag.id} />
               ) : null}
@@ -138,13 +142,16 @@ export function MerchantsTemplate({
                 }}
                 sx={{
                   "& .MuiOutlinedInput-notchedOutline": { border: 0 },
-                  "& .MuiOutlinedInput-root": { borderRadius: 999, px: 0.75 },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: `${designTokens.radius.full}px`,
+                    px: 0.75,
+                  },
                 }}
               />
             </SectionCard>
           ) : null}
 
-          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+          <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
             <MerchantTagManager
               canManage={canManageMerchants}
               keyword={keyword}

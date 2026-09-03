@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 import { merchantText } from "config/merchantText";
+import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
 
@@ -128,7 +129,7 @@ function NameRow({
         alignItems: "center",
         border: "1px solid",
         borderColor: selected ? "var(--user-theme-action-text)" : "divider",
-        borderRadius: 2,
+        borderRadius: `${designTokens.radius.item}px`,
         px: 1.25,
         py: 0.5,
       }}

@@ -23,6 +23,7 @@ import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { routePaths } from "config/paths";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
+import { designTokens } from "theme/theme";
 import type {
   MerchantTag,
   MerchantTagActionState,
@@ -106,7 +107,7 @@ function MerchantTagFilter({
                 bgcolor: selected ? "primary.main" : "background.paper",
                 border: 1,
                 borderColor: selected ? "primary.main" : "divider",
-                borderRadius: 2.5,
+                borderRadius: `${designTokens.radius.item}px`,
                 color: selected ? "primary.contrastText" : "text.primary",
                 flexDirection: "column",
                 gap: 0.75,
@@ -128,7 +129,7 @@ function MerchantTagFilter({
                   bgcolor: selected
                     ? "rgba(255, 255, 255, 0.2)"
                     : "var(--user-theme-icon-badge-bg)",
-                  borderRadius: 2,
+                  borderRadius: `${designTokens.radius.sm}px`,
                   display: "flex",
                   fontSize: "1.6rem",
                   height: 44,
@@ -152,7 +153,7 @@ function MerchantTagFilter({
                 sx={{
                   alignItems: "center",
                   bgcolor: selected ? "primary.contrastText" : "primary.main",
-                  borderRadius: 999,
+                  borderRadius: `${designTokens.radius.full}px`,
                   color: selected ? "primary.main" : "primary.contrastText",
                   display: "flex",
                   fontSize: "0.6875rem",
@@ -254,7 +255,7 @@ function MerchantTagManagement({
               sx={{
                 alignItems: "center",
                 bgcolor: "var(--user-theme-icon-badge-bg)",
-                borderRadius: 2,
+                borderRadius: `${designTokens.radius.sm}px`,
                 display: "flex",
                 fontSize: "1.5rem",
                 height: 42,

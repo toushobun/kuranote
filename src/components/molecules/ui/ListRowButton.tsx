@@ -7,6 +7,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 
 export type ListRowButtonProps = {
@@ -62,7 +63,7 @@ export function ListRowButton({
 
 const rowButtonSx = {
   alignItems: "center",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.item}px`,
   color: "text.primary",
   gap: 1.3,
   justifyContent: "flex-start",

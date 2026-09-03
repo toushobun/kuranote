@@ -10,6 +10,7 @@ import { routePaths } from "config/paths";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
+import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { MerchantIconStateAction, MerchantTag } from "types/merchants";
 
@@ -48,7 +49,7 @@ export function MerchantForm({
           component={Link}
           fullWidth
           href={routePaths.merchants}
-          sx={{ borderRadius: 999 }}
+          sx={{ borderRadius: `${designTokens.radius.full}px` }}
           variant="outlined"
         >
           取消
@@ -56,7 +57,11 @@ export function MerchantForm({
         <PrimaryActionButton
           disabled={pending}
           fullWidth
-          sx={{ borderRadius: 999, fontWeight: 700, minHeight: 40 }}
+          sx={{
+            borderRadius: `${designTokens.radius.full}px`,
+            fontWeight: 700,
+            minHeight: 40,
+          }}
           type="submit"
         >
           {pending ? (

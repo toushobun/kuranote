@@ -27,8 +27,10 @@ export const designTokens = {
   },
   radius: {
     sm: 8,
+    item: 12,
     md: 16,
     lg: 24,
+    full: 999,
   },
   opacity: {
     disabled: 0.56,

@@ -1,6 +1,8 @@
 import Box, { type BoxProps } from "@mui/material/Box";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
+
 export type IconBadgeSize = "sm" | "md" | "lg";
 
 type IconBadgeProps = Omit<BoxProps, "children"> & {
@@ -34,7 +36,7 @@ export function IconBadge({
         {
           alignItems: "center",
           backgroundColor: "var(--user-theme-icon-badge-bg)",
-          borderRadius: 1.5,
+          borderRadius: `${designTokens.radius.sm}px`,
           color: "var(--user-theme-icon-badge-color)",
           display: "inline-flex",
           flexShrink: 0,

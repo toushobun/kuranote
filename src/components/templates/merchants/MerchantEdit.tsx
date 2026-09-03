@@ -15,6 +15,7 @@ import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantE
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
+import { designTokens } from "theme/theme";
 import type {
   Merchant,
   MerchantIconStateAction,
@@ -88,7 +89,7 @@ export function MerchantEditTemplate({
               disabled={archive.pending}
               onClick={() => setIsArchiveConfirmOpen(true)}
               size="small"
-              sx={{ borderRadius: 999 }}
+              sx={{ borderRadius: `${designTokens.radius.full}px` }}
               type="button"
               variant="outlined"
             >
@@ -110,7 +111,7 @@ export function MerchantEditTemplate({
         title={merchantText.edit}
       />
 
-      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm
           action={update.action}
           fetchIconAction={fetchIconAction}
@@ -121,7 +122,7 @@ export function MerchantEditTemplate({
         />
       </SectionCard>
 
-      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantDisplayNameEditor
           archiveAliasAction={archiveAlias.action}
           createAliasAction={createAlias.action}
