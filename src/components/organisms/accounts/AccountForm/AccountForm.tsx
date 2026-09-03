@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
+import { designTokens } from "theme/theme";
 
 import type { ServerAction } from "types/actions";
 import type { AccountHolderOption } from "types/accounts";
@@ -108,7 +109,7 @@ const createActionBarSx = {
 };
 
 const submitButtonSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   fontWeight: 800,
   minHeight: 48,
 };

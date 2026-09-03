@@ -9,6 +9,7 @@ import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionB
 import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
+import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { AccountHolderOption, Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";
@@ -144,7 +145,7 @@ const actionBarSx = {
 };
 
 const saveButtonSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   fontWeight: 800,
   minHeight: 48,
   minWidth: 0,

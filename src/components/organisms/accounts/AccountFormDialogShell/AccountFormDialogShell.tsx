@@ -5,6 +5,7 @@ import Slide, { type SlideProps } from "@mui/material/Slide";
 import { forwardRef, type ReactNode } from "react";
 
 import { useUserTheme } from "theme/UserThemeProvider";
+import { designTokens } from "theme/theme";
 import type { UserThemeKey } from "theme/userThemeTokens";
 
 const accountIllustrationByTheme = {
@@ -85,7 +86,7 @@ export function AccountFormDialogShell({
           aria-hidden="true"
           sx={{
             bgcolor: "divider",
-            borderRadius: 999,
+            borderRadius: `${designTokens.radius.full}px`,
             height: 4,
             mb: 2.4,
             mx: "auto",
