@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export function NewTransactionVisualFrame({
@@ -39,7 +40,7 @@ const transactionPageFrameSx = {
   "& .MuiToggleButtonGroup-root": {
     bgcolor: "var(--user-theme-segment-bg)",
     border: 0,
-    borderRadius: 2.5,
+    borderRadius: `${designTokens.radius.lg}px`,
     boxShadow: "none",
     gap: 0,
     mb: 2,
@@ -47,7 +48,7 @@ const transactionPageFrameSx = {
   },
   "& .MuiToggleButton-root": {
     border: 0,
-    borderRadius: 2.25,
+    borderRadius: `${designTokens.radius.md}px`,
     color: "var(--user-theme-segment-text)",
     fontSize: "0.875rem",
     fontWeight: 800,
@@ -65,12 +66,12 @@ const transactionPageFrameSx = {
   "& .MuiPaper-outlined": {
     bgcolor: "var(--user-theme-card-bg)",
     ...userThemeCardBorderSx,
-    borderRadius: 1.25,
+    borderRadius: `${designTokens.radius.lg}px`,
     boxShadow: "none",
   },
   "& .MuiTextField-root .MuiOutlinedInput-root": {
     bgcolor: "var(--user-theme-card-bg)",
-    borderRadius: 1.25,
+    borderRadius: `${designTokens.radius.md}px`,
   },
   "& .MuiTextField-root .MuiInputLabel-root": {
     color: "text.secondary",
@@ -78,7 +79,7 @@ const transactionPageFrameSx = {
   },
   "& .MuiButton-outlined": {
     borderColor: "var(--user-theme-field-card-selected-border)",
-    borderRadius: 1.25,
+    borderRadius: `${designTokens.radius.md}px`,
     color: "var(--user-theme-action-text)",
     fontWeight: 800,
   },

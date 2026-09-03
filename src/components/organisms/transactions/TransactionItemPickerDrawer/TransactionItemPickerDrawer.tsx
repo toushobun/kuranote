@@ -531,7 +531,7 @@ const drawerBodySx = {
 const searchFieldSx = {
   mb: 1,
   mt: 1.5,
-  "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+  "& .MuiOutlinedInput-root": { borderRadius: `${designTokens.radius.md}px` },
 };
 
 const sectionLabelSx = { fontWeight: 800, mt: 1, mb: 0.5 };
@@ -547,7 +547,7 @@ const quickCategoryChipSx = {
 const categoryListToggleSx = {
   border: 1,
   borderColor: "divider",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.md}px`,
   justifyContent: "space-between",
   mt: 1.5,
   px: 1.5,
@@ -622,7 +622,7 @@ const emptySearchSx = {
   alignItems: "center",
   border: 1,
   borderColor: "divider",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   display: "flex",
   justifyContent: "center",
   minHeight: 184,
@@ -639,7 +639,7 @@ const amountFieldSx = {
     fontWeight: 700,
     py: 1.75,
   },
-  "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+  "& .MuiOutlinedInput-root": { borderRadius: `${designTokens.radius.md}px` },
 };
 
 export const drawerFooterSx = {

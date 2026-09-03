@@ -1,8 +1,10 @@
 import { useState } from "react";
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { designTokens, theme } from "theme/theme";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
 
 import { TransactionAmountKeypad } from "./TransactionAmountKeypad";
@@ -31,6 +33,22 @@ function ControlledAmountKeypad({
 }
 
 describe("TransactionAmountKeypad", () => {
+  it("在真实 theme 下键盘外层圆角使用 xl token", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <TransactionAmountKeypad
+          value=""
+          onChange={vi.fn()}
+          onConfirm={vi.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(
+      getComputedStyle(screen.getByLabelText("金额计算器")).borderRadius,
+    ).toBe(`${designTokens.radius.xl}px`);
+  });
+
   it("可以通过数字键和确认键回填金额", () => {
     const handleChange = vi.fn();
     const handleConfirm = vi.fn();

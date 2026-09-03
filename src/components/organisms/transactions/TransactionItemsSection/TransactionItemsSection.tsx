@@ -269,7 +269,7 @@ const sectionCardSx = {
 const itemsCardSx = {
   bgcolor: "var(--user-theme-card-bg)",
   ...userThemeCardBorderSx,
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.lg}px`,
   overflow: "hidden",
 };
 

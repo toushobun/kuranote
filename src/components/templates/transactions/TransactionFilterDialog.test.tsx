@@ -1,5 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { designTokens, theme } from "theme/theme";
 
 import { TransactionFilterDialog } from "./TransactionFilterDialog";
 
@@ -26,6 +29,29 @@ const filterOptions = {
 };
 
 describe("TransactionFilterDialog", () => {
+  it("在真实 theme 下 Dialog 圆角使用 xl token", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <TransactionFilterDialog
+          draftFilters={{ recordType: "all" }}
+          draftGroupBy="month"
+          filterOptions={filterOptions}
+          isPending={false}
+          onApply={vi.fn()}
+          onChangeFilters={vi.fn()}
+          onChangeGroupBy={vi.fn()}
+          onClose={vi.fn()}
+          onReset={vi.fn()}
+          open
+        />
+      </ThemeProvider>,
+    );
+
+    expect(getComputedStyle(screen.getByRole("dialog")).borderRadius).toBe(
+      `${designTokens.radius.xl}px`,
+    );
+  });
+
   it("使用同一个分类选择框切换大分类和小分类", () => {
     const onChangeFilters = vi.fn();
 

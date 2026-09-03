@@ -1,5 +1,6 @@
 import Chip from "@mui/material/Chip";
 
+import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 type TransactionFilterChipProps = {
@@ -27,7 +28,7 @@ export function TransactionFilterChip({
 const chipSx = {
   bgcolor: "var(--user-theme-card-bg)",
   ...userThemeCardBorderSx,
-  borderRadius: 3,
+  borderRadius: `${designTokens.radius.item}px`,
   color: "text.primary",
   fontSize: 12,
   fontWeight: 800,
