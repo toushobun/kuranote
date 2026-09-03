@@ -2,6 +2,8 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import type { ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
+import { designTokens } from "theme/theme";
+
 import { PrimaryActionButton } from "./PrimaryActionButton/PrimaryActionButton";
 
 type CreateButtonCommonProps = "href" | "startIcon" | "variant";
@@ -37,7 +39,7 @@ export function CreateButton(props: CreateButtonProps) {
 }
 
 const createButtonBaseSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   fontWeight: 700,
   minHeight: 40,
 } as const;

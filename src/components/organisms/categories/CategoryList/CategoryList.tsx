@@ -23,6 +23,7 @@ import type { PointerEvent, ReactNode } from "react";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   CategoryAction,
@@ -268,11 +269,11 @@ export function CategoryList({
         onChange={(_, value: TransactionType) => setSelectedType(value)}
         sx={{
           bgcolor: "var(--user-theme-segment-bg)",
-          borderRadius: 999,
+          borderRadius: `${designTokens.radius.full}px`,
           minHeight: 48,
           p: 0.5,
           "& .MuiTab-root": {
-            borderRadius: 999,
+            borderRadius: `${designTokens.radius.full}px`,
             minHeight: 40,
             textTransform: "none",
           },

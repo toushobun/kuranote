@@ -17,6 +17,7 @@ import {
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { useUserTheme } from "theme/UserThemeProvider";
+import { designTokens } from "theme/theme";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import type { UserThemeKey } from "theme/userThemeTokens";
 import type { TransactionColorSchemeAction } from "types/user";
@@ -179,7 +180,7 @@ function ColorPreview({
       component="span"
       sx={{
         bgcolor: background,
-        borderRadius: 1.5,
+        borderRadius: `${designTokens.radius.lg}px`,
         color,
         fontSize: 12,
         fontWeight: 700,

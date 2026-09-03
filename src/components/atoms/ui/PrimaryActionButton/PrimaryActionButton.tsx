@@ -1,6 +1,8 @@
 import Button, { type ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
+import { designTokens } from "theme/theme";
+
 export const primaryActionButtonNoHoverBrightenSx = {
   "&:not(.Mui-disabled):hover": { filter: "none" },
 } as const;
@@ -42,7 +44,7 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
 }
 
 const primaryActionButtonSx = {
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   fontWeight: 900,
   minHeight: 48,
   "&:not(.Mui-disabled)": {

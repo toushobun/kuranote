@@ -8,6 +8,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import { useUserTheme } from "theme/UserThemeProvider";
+import { designTokens } from "theme/theme";
 
 export function UserThemePicker() {
   const { isThemeReady, themeKey, setThemeKey, themeKeys, tokens } =
@@ -25,7 +26,10 @@ export function UserThemePicker() {
           <Skeleton
             key={`theme-placeholder-${index}`}
             height={30}
-            sx={{ borderRadius: 999, flexShrink: 0 }}
+            sx={{
+              borderRadius: `${designTokens.radius.full}px`,
+              flexShrink: 0,
+            }}
             variant="rounded"
             width={96}
           />
@@ -68,7 +72,7 @@ export function UserThemePicker() {
                 borderColor: selected
                   ? "var(--user-theme-bottom-nav-active)"
                   : "transparent",
-                borderRadius: 999,
+                borderRadius: `${designTokens.radius.full}px`,
                 boxShadow: "var(--user-theme-card-shadow)",
                 color: selected ? "text.primary" : "text.secondary",
                 display: "inline-flex",

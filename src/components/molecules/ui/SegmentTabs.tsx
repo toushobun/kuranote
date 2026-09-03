@@ -6,6 +6,8 @@ import ToggleButtonGroup, {
 } from "@mui/material/ToggleButtonGroup";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
+
 export type SegmentTabItem = {
   disabled?: boolean;
   label: ReactNode;
@@ -49,7 +51,7 @@ export function SegmentTabs({
         {
           backgroundColor: "var(--user-theme-segment-bg)",
           border: 0,
-          borderRadius: 1.5,
+          borderRadius: `${designTokens.radius.lg}px`,
           gap: 0,
           p: 0.5,
           "& .MuiToggleButton-root": {
