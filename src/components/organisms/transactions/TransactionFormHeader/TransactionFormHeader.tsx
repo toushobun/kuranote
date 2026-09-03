@@ -5,7 +5,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { typographyStyles } from "theme/typographyTokens";
 
 type TransactionFormHeaderProps = {
@@ -50,10 +53,10 @@ export function TransactionFormHeader({
           form={formId}
           type="submit"
           sx={{
-            borderRadius: 2,
+            borderRadius: 1,
             fontWeight: 700,
             minHeight: 40,
-            "&:not(.Mui-disabled):hover": { filter: "none" },
+            ...primaryActionButtonNoHoverBrightenSx,
           }}
         >
           保存

@@ -16,7 +16,10 @@ import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
@@ -662,8 +665,8 @@ const deleteButtonSx = {
 };
 
 const drawerDoneButtonSx = {
-  borderRadius: 2,
+  borderRadius: 1,
   fontWeight: 700,
   minHeight: 48,
-  "&:not(.Mui-disabled):hover": { filter: "none" },
+  ...primaryActionButtonNoHoverBrightenSx,
 };

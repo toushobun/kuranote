@@ -8,7 +8,10 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
@@ -219,7 +222,7 @@ export function TransactionAmountKeypad({
               gridColumn: 4,
               gridRow: "3 / span 2",
               minHeight: 112,
-              "&:not(.Mui-disabled):hover": { filter: "none" },
+              ...primaryActionButtonNoHoverBrightenSx,
             }}
           >
             确认

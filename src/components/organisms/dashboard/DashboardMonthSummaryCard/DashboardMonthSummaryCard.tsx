@@ -7,7 +7,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { IconBadge } from "atoms/ui/IconBadge";
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
@@ -153,7 +156,7 @@ function DashboardNoLedgerAccountState() {
             px: 1.6,
             py: 0.85,
             textDecoration: "none",
-            "&:not(.Mui-disabled):hover": { filter: "none" },
+            ...primaryActionButtonNoHoverBrightenSx,
           }}
         >
           创建第一个账本

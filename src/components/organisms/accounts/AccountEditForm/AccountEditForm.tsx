@@ -144,7 +144,7 @@ const actionBarSx = {
 };
 
 const saveButtonSx = {
-  borderRadius: 2,
+  borderRadius: 1,
   fontWeight: 800,
   minHeight: 48,
   minWidth: 0,

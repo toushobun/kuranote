@@ -5,7 +5,10 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 
 import {
   PickerColumn,
@@ -101,10 +104,10 @@ export function MonthPicker({
           onClick={onSubmit}
           type="button"
           sx={{
-            borderRadius: 2,
+            borderRadius: 1,
             fontWeight: 700,
             minHeight: 40,
-            "&:not(.Mui-disabled):hover": { filter: "none" },
+            ...primaryActionButtonNoHoverBrightenSx,
           }}
         >
           确定

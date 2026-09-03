@@ -1,6 +1,10 @@
 import Button, { type ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
+export const primaryActionButtonNoHoverBrightenSx = {
+  "&:not(.Mui-disabled):hover": { filter: "none" },
+} as const;
+
 type PrimaryActionButtonCommonProps = "href" | "variant";
 
 export type PrimaryActionButtonProps =

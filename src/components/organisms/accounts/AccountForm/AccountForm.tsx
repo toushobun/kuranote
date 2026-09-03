@@ -108,7 +108,7 @@ const createActionBarSx = {
 };
 
 const submitButtonSx = {
-  borderRadius: 2,
+  borderRadius: 1,
   fontWeight: 800,
   minHeight: 48,
 };
