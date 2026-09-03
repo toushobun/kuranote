@@ -48,7 +48,7 @@ const radiusSamples = [
   ["item", "列表 / 筛选 item"],
   ["md", "按钮 / 输入控件"],
   ["lg", "卡片 / Dialog"],
-  ["full", "胶囊 / Chip"],
+  ["full", "胶囊 / 胶囊型 Chip"],
 ] as const;
 
 function createPageGradient(token: KuraThemeToken) {
