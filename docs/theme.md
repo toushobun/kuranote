@@ -65,7 +65,9 @@ KuraNote 是家庭共享的生活记录工具，不是企业后台，也不是�
 - `designTokens.radius.item`（12px）：列表 item、筛选 item 等需要保持偏方轮廓的可点击块。
 - `designTokens.radius.md`（16px）：普通按钮、输入控件等标准 control，也是 `theme.shape.borderRadius` 的基准值。
 - `designTokens.radius.lg`（24px）：卡片、Dialog、Paper 等较大的 surface。
-- `designTokens.radius.full`（999px）：明确需要胶囊形态的按钮、Chip、徽标、进度条等。
+- `designTokens.radius.full`（999px）：明确需要胶囊形态的按钮、胶囊型 Chip、徽标、进度条等。
+
+普通矩形标签 / Chip 不因为组件类型本身而使用 `radius.full`；应根据视觉语义选择 `sm`、`item` 等对应层级。
 
 真正的圆形头像或圆形状态层继续使用 MUI `Avatar` / `variant="circular"` 或 `50%`，不要用 `radius.full` 替代圆形语义。
 
