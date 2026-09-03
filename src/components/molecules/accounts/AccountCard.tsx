@@ -164,7 +164,7 @@ function AccountTypeIcon({ type }: { type: AccountType }) {
 const accountIconSx = {
   alignItems: "center",
   bgcolor: "var(--user-theme-field-card-selected-bg)",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.sm}px`,
   color: "var(--user-theme-action-text)",
   display: "flex",
   flex: "0 0 auto",

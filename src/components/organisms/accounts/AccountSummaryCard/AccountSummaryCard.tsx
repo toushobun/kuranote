@@ -157,7 +157,7 @@ function SummaryMetric({
         sx={{
           alignItems: "center",
           bgcolor: "var(--user-theme-field-card-selected-bg)",
-          borderRadius: 2,
+          borderRadius: `${designTokens.radius.sm}px`,
           color: "var(--user-theme-action-text)",
           height: 38,
           justifyContent: "center",
