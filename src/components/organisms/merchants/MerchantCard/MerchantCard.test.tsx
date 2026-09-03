@@ -1,10 +1,12 @@
 import { cleanup, render, within } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { theme } from "theme/theme";
 
 import { MerchantCard } from "./MerchantCard";
 
@@ -178,11 +180,13 @@ describe("MerchantCard", () => {
       ],
     });
     const { container } = render(
-      <MerchantCard
-        editHref="/merchants/merchant-1/edit"
-        ledgerId="ledger-1"
-        merchant={merchant}
-      />,
+      <ThemeProvider theme={theme}>
+        <MerchantCard
+          editHref="/merchants/merchant-1/edit"
+          ledgerId="ledger-1"
+          merchant={merchant}
+        />
+      </ThemeProvider>,
     );
 
     const supermarketLabel = within(container).getByText("超市");

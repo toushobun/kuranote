@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 
 export default function MerchantTagsLoading() {
   return (
@@ -23,10 +24,15 @@ export default function MerchantTagsLoading() {
               <Skeleton height={40} width={144} />
               <Skeleton width={220} />
             </Stack>
-            <Skeleton height={36} variant="rounded" width={64} />
+            <Skeleton
+              height={36}
+              sx={{ borderRadius: `${designTokens.radius.full}px` }}
+              variant="rounded"
+              width={64}
+            />
           </Stack>
 
-          <SectionCard sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+          <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
             <Stack spacing={1}>
               {[0, 1, 2, 3, 4].map((index) => (
                 <Skeleton height={56} key={index} variant="rounded" />

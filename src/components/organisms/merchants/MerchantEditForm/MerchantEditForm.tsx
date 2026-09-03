@@ -8,6 +8,7 @@ import { merchantText } from "config/merchantText";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
+import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type {
   Merchant,
@@ -60,7 +61,7 @@ export function MerchantEditForm({
       <Button
         disabled={pending}
         fullWidth
-        sx={{ borderRadius: 999 }}
+        sx={{ borderRadius: `${designTokens.radius.full}px` }}
         type="submit"
         variant="contained"
       >

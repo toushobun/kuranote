@@ -12,10 +12,7 @@ export default function MerchantEditLoading() {
       sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
     >
       <PageHeader subtitle="商家管理 > 编辑商家" title="编辑商家" />
-      <SectionCard
-        role="status"
-        sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}
-      >
+      <SectionCard role="status" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Skeleton
@@ -33,7 +30,7 @@ export default function MerchantEditLoading() {
           <Skeleton height={40} variant="rounded" />
         </Stack>
       </SectionCard>
-      <SectionCard sx={{ borderRadius: 3.5, p: { xs: 2, sm: 3 } }}>
+      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={1}>
           <Skeleton width="30%" />
           <Skeleton width="75%" />

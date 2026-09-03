@@ -23,6 +23,7 @@ import { routePaths } from "config/paths";
 import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
+import { designTokens } from "theme/theme";
 import type {
   MerchantTag,
   MerchantTagActionState,
@@ -190,7 +191,7 @@ function MerchantTagManagement({
               sx={{
                 alignItems: "center",
                 bgcolor: "var(--user-theme-icon-badge-bg)",
-                borderRadius: 2,
+                borderRadius: `${designTokens.radius.sm}px`,
                 display: "flex",
                 fontSize: "1.5rem",
                 height: 42,

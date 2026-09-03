@@ -11,6 +11,7 @@ import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { merchantText } from "config/merchantText";
+import { designTokens } from "theme/theme";
 import {
   getStableFallbackThemeColorKey,
   themeColorTokens,
@@ -28,7 +29,7 @@ type MerchantCardProps = {
 };
 
 const merchantChipSx = {
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   fontSize: (theme: Theme) => theme.typography.body2.fontSize,
   height: 28,
 } as const;
@@ -65,7 +66,7 @@ function getMerchantTagChipSx(tag: MerchantTag) {
     "& .MuiChip-label": { px: 0.75 },
     bgcolor: color.chipBackground,
     borderColor: color.chipBorder,
-    borderRadius: 2,
+    borderRadius: `${designTokens.radius.sm}px`,
     color: color.chipText,
     fontSize: (theme: Theme) => theme.typography.body2.fontSize,
     fontWeight: 600,
@@ -198,7 +199,7 @@ export function MerchantCard({
               "&:hover": { bgcolor: "action.hover" },
               border: "1px solid",
               borderColor: "divider",
-              borderRadius: 1,
+              borderRadius: `${designTokens.radius.md}px`,
               flexShrink: 0,
               height: 40,
               width: 40,

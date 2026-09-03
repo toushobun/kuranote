@@ -43,6 +43,14 @@ const semanticPairs = [
   ["neutral", "neutralBg"],
 ] as const;
 
+const radiusSamples = [
+  ["sm", "图标容器 / 紧凑元素"],
+  ["item", "列表 / 筛选 item"],
+  ["md", "按钮 / 输入控件"],
+  ["lg", "卡片 / Dialog"],
+  ["full", "胶囊 / 胶囊型 Chip"],
+] as const;
+
 function createPageGradient(token: KuraThemeToken) {
   const { pageGradientFrom, pageGradientTo } = token.palette;
 
@@ -129,6 +137,36 @@ function SemanticColorList() {
   );
 }
 
+function RadiusScaleList() {
+  return (
+    <Stack
+      direction="row"
+      sx={{ alignItems: "flex-end", flexWrap: "wrap", gap: 2 }}
+    >
+      {radiusSamples.map(([radiusKey, description]) => (
+        <Stack key={radiusKey} spacing={0.75} sx={{ minWidth: 120 }}>
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: `${designTokens.radius[radiusKey]}px`,
+              height: 56,
+              width: radiusKey === "full" ? 112 : 72,
+            }}
+          />
+          <Typography variant="caption" sx={{ fontWeight: 800 }}>
+            {radiusKey} · {designTokens.radius[radiusKey]}px
+          </Typography>
+          <Typography color="text.secondary" variant="caption">
+            {description}
+          </Typography>
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
 export const Themes: Story = {
   name: "6 款主题色盘",
   render: () => <ThemePaletteList />,
@@ -137,4 +175,9 @@ export const Themes: Story = {
 export const SemanticColors: Story = {
   name: "共通语义色",
   render: () => <SemanticColorList />,
+};
+
+export const RadiusScale: Story = {
+  name: "圆角层级",
+  render: () => <RadiusScaleList />,
 };

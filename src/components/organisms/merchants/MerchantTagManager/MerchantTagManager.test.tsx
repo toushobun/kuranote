@@ -7,6 +7,8 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { designTokens } from "theme/theme";
+
 import { MerchantTagManager } from "./MerchantTagManager";
 
 const tags = [
@@ -24,7 +26,7 @@ describe("MerchantTagManager", () => {
     );
   });
 
-  it("通过独立页面管理标签，并用方形卡片显示选中态", () => {
+  it("通过独立页面管理标签，并用统一圆角卡片显示选中态", () => {
     render(
       <MerchantTagManager
         canManage
@@ -38,10 +40,11 @@ describe("MerchantTagManager", () => {
       "href",
       "/merchants/tags",
     );
-    expect(screen.getByRole("link", { name: /超市/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    const selectedTag = screen.getByRole("link", { name: /超市/ });
+    expect(selectedTag).toHaveAttribute("aria-current", "page");
+    expect(selectedTag).toHaveStyle({
+      borderRadius: `${designTokens.radius.item}px`,
+    });
     expect(
       screen.queryByRole("button", { name: "新增标签" }),
     ).not.toBeInTheDocument();

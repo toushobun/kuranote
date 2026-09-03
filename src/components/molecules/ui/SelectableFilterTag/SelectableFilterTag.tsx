@@ -4,6 +4,8 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
+
 export type SelectableFilterTagProps = {
   ariaLabel: string;
   count: number;
@@ -31,7 +33,7 @@ export function SelectableFilterTag({
         bgcolor: selected ? "primary.main" : "background.paper",
         border: 1,
         borderColor: selected ? "primary.main" : "divider",
-        borderRadius: 2.5,
+        borderRadius: `${designTokens.radius.item}px`,
         color: selected ? "common.white" : "text.primary",
         flexDirection: "column",
         gap: 0.75,
@@ -53,7 +55,7 @@ export function SelectableFilterTag({
           bgcolor: selected
             ? "rgba(255, 255, 255, 0.2)"
             : "var(--user-theme-icon-badge-bg)",
-          borderRadius: 2,
+          borderRadius: `${designTokens.radius.sm}px`,
           display: "flex",
           fontSize: "1.6rem",
           height: 44,
@@ -77,7 +79,7 @@ export function SelectableFilterTag({
         sx={{
           alignItems: "center",
           bgcolor: selected ? "primary.contrastText" : "primary.main",
-          borderRadius: 999,
+          borderRadius: `${designTokens.radius.full}px`,
           color: selected ? "primary.main" : "primary.contrastText",
           display: "flex",
           fontSize: "0.6875rem",

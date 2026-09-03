@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { merchantEditHref } from "config/paths";
+import { designTokens } from "theme/theme";
 import type { Merchant } from "types/merchants";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 
@@ -84,7 +85,7 @@ export function MerchantList({
             href={createHref}
             size="large"
             sx={{
-              borderRadius: 999,
+              borderRadius: `${designTokens.radius.full}px`,
               minHeight: 48,
               minWidth: { xs: 240, sm: 280 },
               mt: 1,
