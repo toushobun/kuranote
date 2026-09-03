@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { designTokens, theme } from "theme/theme";
 import type { TransactionCategoryOption } from "types/transactions";
 
 import type { CategoryPickerGroup } from "../TransactionForm/TransactionForm.types";
@@ -56,22 +58,24 @@ describe("TransactionItemPickerDrawer", () => {
     const onGroupSelect = vi.fn();
 
     render(
-      <TransactionItemPickerDrawer
-        categoryGroups={categoryGroups}
-        filteredCategoryOptions={categoryOptions}
-        frequentCategoryIds={["traffic-train", "food-lunch"]}
-        onAmountChange={vi.fn()}
-        onCategoryToggle={onCategoryToggle}
-        onClose={vi.fn()}
-        onGroupSelect={onGroupSelect}
-        onPickerAdd={() => true}
-        onRemoveItem={vi.fn()}
-        open
-        pickerAmount=""
-        pickerCategoryId=""
-        pickerErrors={{}}
-        selectedCategoryGroup={categoryGroups[0]}
-      />,
+      <ThemeProvider theme={theme}>
+        <TransactionItemPickerDrawer
+          categoryGroups={categoryGroups}
+          filteredCategoryOptions={categoryOptions}
+          frequentCategoryIds={["traffic-train", "food-lunch"]}
+          onAmountChange={vi.fn()}
+          onCategoryToggle={onCategoryToggle}
+          onClose={vi.fn()}
+          onGroupSelect={onGroupSelect}
+          onPickerAdd={() => true}
+          onRemoveItem={vi.fn()}
+          open
+          pickerAmount=""
+          pickerCategoryId=""
+          pickerErrors={{}}
+          selectedCategoryGroup={categoryGroups[0]}
+        />
+      </ThemeProvider>,
     );
 
     const trainShortcut = screen.getByRole("button", {
@@ -83,6 +87,16 @@ describe("TransactionItemPickerDrawer", () => {
     expect(trainShortcut.compareDocumentPosition(lunchShortcut)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
+    const expectedItemRadius = `${designTokens.radius.item}px`;
+    expect(
+      getComputedStyle(screen.getByRole("button", { name: "餐饮" }))
+        .borderRadius,
+    ).toBe(expectedItemRadius);
+    expect(
+      getComputedStyle(screen.getByRole("button", { name: "午餐" }))
+        .borderRadius,
+    ).toBe(expectedItemRadius);
 
     fireEvent.click(trainShortcut);
     expect(onGroupSelect).toHaveBeenCalledWith("traffic");

@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
+import { designTokens } from "theme/theme";
 
 export default function StatisticsLoadingPage() {
   return (
@@ -30,17 +31,17 @@ export default function StatisticsLoadingPage() {
             <Skeleton
               variant="rounded"
               height={68}
-              sx={{ borderRadius: 1, flex: 1 }}
+              sx={{ borderRadius: `${designTokens.radius.md}px`, flex: 1 }}
             />
             <Skeleton
               variant="rounded"
               height={68}
-              sx={{ borderRadius: 1, flex: 1 }}
+              sx={{ borderRadius: `${designTokens.radius.md}px`, flex: 1 }}
             />
             <Skeleton
               variant="rounded"
               height={68}
-              sx={{ borderRadius: 1, flex: 1 }}
+              sx={{ borderRadius: `${designTokens.radius.md}px`, flex: 1 }}
             />
           </Stack>
         </SectionCard>
@@ -55,7 +56,7 @@ export default function StatisticsLoadingPage() {
                   key={i}
                   variant="rounded"
                   height={48}
-                  sx={{ borderRadius: 1, mb: 1 }}
+                  sx={{ borderRadius: `${designTokens.radius.md}px`, mb: 1 }}
                 />
               ))}
             </SectionCard>

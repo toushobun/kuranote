@@ -7,6 +7,7 @@ import type { MouseEvent, RefObject } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
@@ -362,7 +363,7 @@ const itemStatusBadgeSx = {
 
 const addItemButtonSx = {
   ...userThemeCardBorderSx,
-  borderRadius: 1.5,
+  borderRadius: `${designTokens.radius.lg}px`,
   color: "var(--user-theme-action-text)",
   fontSize: "0.9rem",
   fontWeight: 800,

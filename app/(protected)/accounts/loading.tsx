@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 
 const accountLoadingRows = 4;
 
@@ -23,7 +24,12 @@ export default function AccountsLoadingPage() {
             <Skeleton height={40} variant="rounded" width={112} />
           </Stack>
 
-          <SoftCard sx={{ borderRadius: 1, p: { xs: 1.8, sm: 2 } }}>
+          <SoftCard
+            sx={{
+              borderRadius: `${designTokens.radius.md}px`,
+              p: { xs: 1.8, sm: 2 },
+            }}
+          >
             <Stack spacing={1.5}>
               <Stack spacing={0.5}>
                 <Skeleton sx={{ fontSize: 14 }} width="24%" />
@@ -45,7 +51,10 @@ export default function AccountsLoadingPage() {
 
           <Stack spacing={0.9}>
             {Array.from({ length: accountLoadingRows }, (_, index) => (
-              <SoftCard key={index} sx={{ borderRadius: 1, p: 1.5 }}>
+              <SoftCard
+                key={index}
+                sx={{ borderRadius: `${designTokens.radius.md}px`, p: 1.5 }}
+              >
                 <Stack
                   direction="row"
                   spacing={1.25}

@@ -1,6 +1,7 @@
 import Typography from "@mui/material/Typography";
 
 import { SectionCard } from "molecules/ui/SectionCard";
+import { designTokens } from "theme/theme";
 import { formatNumber } from "utils/transactions";
 
 type PeriodExpenseCardProps = {
@@ -17,7 +18,7 @@ export function PeriodExpenseCard({
   return (
     <SectionCard
       sx={{
-        borderRadius: 1,
+        borderRadius: `${designTokens.radius.md}px`,
         flex: 1,
         p: 1.8,
       }}

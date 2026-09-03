@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import type { CSSProperties, ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { designTokens, theme } from "theme/theme";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
@@ -23,6 +25,19 @@ vi.mock("next/link", () => ({
 }));
 
 describe("PrimaryActionButton", () => {
+  it("使用统一胶囊圆角", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <PrimaryActionButton>保存修改</PrimaryActionButton>
+      </ThemeProvider>,
+    );
+
+    expect(
+      getComputedStyle(screen.getByRole("button", { name: "保存修改" }))
+        .borderRadius,
+    ).toBe(`${designTokens.radius.full}px`);
+  });
+
   it("使用主要操作样式且不假设图标", () => {
     render(<PrimaryActionButton type="submit">保存修改</PrimaryActionButton>);
 

@@ -10,6 +10,7 @@ import { routePaths } from "config/paths";
 import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { designTokens } from "theme/theme";
 import type { DashboardRecentTransaction } from "types/dashboard";
 
 type DashboardRecentTransactionsProps = {
@@ -133,7 +134,7 @@ function DashboardRecentPlaceholderLine() {
         aria-hidden="true"
         sx={{
           backgroundColor: "var(--user-theme-segment-bg)",
-          borderRadius: 999,
+          borderRadius: `${designTokens.radius.full}px`,
           flex: 1,
           height: 8,
         }}

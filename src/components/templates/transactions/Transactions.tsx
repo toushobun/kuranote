@@ -16,6 +16,7 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList/TransactionMonthList";
+import { designTokens } from "theme/theme";
 import type {
   TransactionFilterOptions,
   TransactionFilters,
@@ -201,7 +202,7 @@ export function TransactionsTemplate({
                 onClick={() => globalThis.location.reload()}
                 sx={{
                   bgcolor: "var(--user-theme-action-bg)",
-                  borderRadius: 999,
+                  borderRadius: `${designTokens.radius.full}px`,
                   color: "var(--user-theme-action-text)",
                   fontWeight: 900,
                   px: 2.4,

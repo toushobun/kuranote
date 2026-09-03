@@ -1,7 +1,9 @@
+import { designTokens } from "theme/theme";
+
 export const outlinedInputTokenSx = {
   "& .MuiOutlinedInput-root": {
     bgcolor: "var(--user-theme-card-bg)",
-    borderRadius: 1.5,
+    borderRadius: `${designTokens.radius.lg}px`,
   },
   "& .MuiOutlinedInput-notchedOutline": {
     borderColor: "var(--user-theme-card-border)",

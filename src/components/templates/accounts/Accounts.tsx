@@ -23,6 +23,7 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 import {
   accountTypeOptions,
   type AccountActionState,
@@ -320,7 +321,7 @@ const filterRowSx = {
 };
 
 const createButtonSx = {
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   flexShrink: 0,
   fontWeight: 800,
   minHeight: 40,

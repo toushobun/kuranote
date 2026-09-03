@@ -9,6 +9,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { designTokens } from "theme/theme";
 import type { AccountHolderOption } from "types/accounts";
 import { getAccountHolderLabel } from "utils/accounts";
 
@@ -120,7 +121,7 @@ const holderOptionSx = {
   bgcolor: "background.paper",
   border: "1px solid",
   borderColor: "divider",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   display: "inline-flex",
   gap: 0.5,
   m: 0,

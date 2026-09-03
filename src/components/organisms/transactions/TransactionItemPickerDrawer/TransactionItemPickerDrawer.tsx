@@ -22,6 +22,7 @@ import {
 } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { designTokens } from "theme/theme";
 import { appZIndex } from "theme/zIndex";
 import type {
   TransactionCategoryOption,
@@ -502,7 +503,7 @@ const drawerHandleSx = {
 
 const drawerHandleBarSx = {
   bgcolor: "divider",
-  borderRadius: 99,
+  borderRadius: `${designTokens.radius.full}px`,
   height: 4,
   width: 48,
 };
@@ -559,7 +560,7 @@ const categoryColumnsSx = { mt: 1, minHeight: 184 };
 const categoryColumnSx = {
   border: 1,
   borderColor: "divider",
-  borderRadius: 0.75,
+  borderRadius: `${designTokens.radius.item}px`,
   flex: 1,
   minWidth: 0,
   overflow: "hidden",
@@ -580,7 +581,7 @@ const categoryGroupOptionSx = (selected: boolean) => (theme: Theme) => ({
   bgcolor: selected
     ? `var(--user-theme-field-card-selected-bg, ${alpha(theme.palette.primary.main, 0.12)})`
     : "transparent",
-  borderRadius: 0.75,
+  borderRadius: `${designTokens.radius.item}px`,
   color: selected
     ? `var(--user-theme-action-text, ${theme.palette.primary.main})`
     : theme.palette.text.primary,
@@ -602,7 +603,7 @@ const categoryOptionSx = (selected: boolean) => (theme: Theme) => ({
   borderColor: selected
     ? `var(--user-theme-field-card-selected-border, ${theme.palette.primary.main})`
     : "transparent",
-  borderRadius: 0.75,
+  borderRadius: `${designTokens.radius.item}px`,
   color: selected
     ? `var(--user-theme-action-text, ${theme.palette.primary.main})`
     : theme.palette.text.primary,
@@ -665,7 +666,7 @@ const deleteButtonSx = {
 };
 
 const drawerDoneButtonSx = {
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   fontWeight: 700,
   minHeight: 48,
   ...primaryActionButtonNoHoverBrightenSx,

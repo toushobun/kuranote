@@ -4,6 +4,8 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 
+import { designTokens } from "theme/theme";
+
 import type { TimeParts } from "./dateTimePickerUtils";
 import { pad } from "./dateTimePickerUtils";
 import {
@@ -38,7 +40,7 @@ export function TimePickerColumns({
       <Box
         sx={{
           bgcolor: "action.hover",
-          borderRadius: 1,
+          borderRadius: `${designTokens.radius.md}px`,
           height: 40,
           left: 2,
           pointerEvents: "none",

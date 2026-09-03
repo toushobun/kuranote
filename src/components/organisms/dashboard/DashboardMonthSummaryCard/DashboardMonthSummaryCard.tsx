@@ -13,6 +13,7 @@ import {
 } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type { DashboardAccountSummary } from "types/dashboard";
 import { formatAmount } from "utils/accounts";
@@ -148,7 +149,7 @@ function DashboardNoLedgerAccountState() {
           href={routePaths.ledgersNew}
           size="small"
           sx={{
-            borderRadius: 1.5,
+            borderRadius: `${designTokens.radius.lg}px`,
             boxShadow: "0 6px 18px var(--user-theme-fab-shadow)",
             fontWeight: 900,
             minHeight: 40,

@@ -9,6 +9,7 @@ import {
   PrimaryActionButton,
   primaryActionButtonNoHoverBrightenSx,
 } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { designTokens } from "theme/theme";
 
 import {
   PickerColumn,
@@ -104,7 +105,7 @@ export function MonthPicker({
           onClick={onSubmit}
           type="button"
           sx={{
-            borderRadius: 1,
+            borderRadius: `${designTokens.radius.md}px`,
             fontWeight: 700,
             minHeight: 40,
             ...primaryActionButtonNoHoverBrightenSx,

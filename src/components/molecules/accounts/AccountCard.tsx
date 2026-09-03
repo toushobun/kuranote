@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
 
 import type { AccountHolder, AccountType } from "types/accounts";
@@ -43,7 +44,12 @@ export function AccountCard({
   onClick,
 }: AccountCardProps) {
   const card = (
-    <SoftCard sx={{ borderRadius: 1, p: { xs: 1.5, sm: 1.75 } }}>
+    <SoftCard
+      sx={{
+        borderRadius: `${designTokens.radius.md}px`,
+        p: { xs: 1.5, sm: 1.75 },
+      }}
+    >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
           <Box sx={accountIconSx}>
