@@ -1,8 +1,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import { designTokens, theme } from "theme/theme";
 import { getUserThemeStorageKey } from "theme/userThemeStorage";
 
 import {
@@ -133,6 +135,23 @@ describe("FailureFeedbackDialog", () => {
 });
 
 describe("ConfirmationDialog", () => {
+  it("在真实 theme 下 Dialog 圆角使用 xl token", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <ConfirmationDialog
+          onCancel={vi.fn()}
+          onConfirm={vi.fn()}
+          open
+          title="继续操作？"
+        />
+      </ThemeProvider>,
+    );
+
+    expect(getComputedStyle(screen.getByRole("dialog")).borderRadius).toBe(
+      `${designTokens.radius.xl}px`,
+    );
+  });
+
   it("显示取消与确认按钮并触发各自回调", () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();

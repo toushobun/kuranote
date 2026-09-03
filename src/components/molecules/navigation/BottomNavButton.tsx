@@ -4,6 +4,8 @@ import Button from "@mui/material/Button";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
+
 type BottomNavButtonProps = {
   href: string;
   icon?: ReactNode;
@@ -29,7 +31,7 @@ export function BottomNavButton({
         bgcolor: selected
           ? "var(--user-theme-bottom-nav-active-bg)"
           : "transparent",
-        borderRadius: 2,
+        borderRadius: `${designTokens.radius.md}px`,
         color: selected
           ? "var(--user-theme-bottom-nav-active)"
           : "var(--user-theme-bottom-nav-inactive)",

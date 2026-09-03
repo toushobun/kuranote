@@ -135,7 +135,7 @@ function CategoryRowItem({
           sx={{
             alignItems: "center",
             bgcolor: "var(--user-theme-icon-badge-bg)",
-            borderRadius: 2.5,
+            borderRadius: `${designTokens.radius.sm}px`,
             display: "flex",
             flexShrink: 0,
             fontSize: nested ? "1.35rem" : "1.75rem",

@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useId, useState, type ReactNode } from "react";
 
 import { useUserTheme } from "theme/UserThemeProvider";
+import { designTokens } from "theme/theme";
 import type { UserThemeKey } from "theme/userThemeTokens";
 import type { BaseActionState } from "types/auth";
 
@@ -265,7 +266,7 @@ function feedbackAlertSx(isError: boolean) {
     bgcolor: "background.paper",
     border: "1.5px solid",
     borderColor: isError ? "error.main" : "divider",
-    borderRadius: 2,
+    borderRadius: `${designTokens.radius.xl}px`,
     boxShadow: 6,
     color: "text.primary",
     maxWidth: 444,
@@ -305,7 +306,7 @@ function feedbackAlertSx(isError: boolean) {
 }
 
 const dialogPaperSx = {
-  borderRadius: 4,
+  borderRadius: `${designTokens.radius.xl}px`,
   mx: 1.5,
   width: "calc(100% - 24px)",
 };
