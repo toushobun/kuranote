@@ -252,7 +252,7 @@ function ProgressBar({ label, value }: { label: string; value: number }) {
       <Box
         sx={{
           backgroundColor: "var(--user-theme-budget-bar-1)",
-          borderRadius: 999,
+          borderRadius: `${designTokens.radius.full}px`,
           height: "100%",
           width: `${value}%`,
         }}
@@ -288,7 +288,7 @@ const summarySectionSx = {
 const summaryCardSx = {
   backgroundColor: "var(--user-theme-tx-summary-bg)",
   ...userThemeCardBorderSx,
-  borderRadius: 1.5,
+  borderRadius: `${designTokens.radius.lg}px`,
   flex: 1,
   minWidth: 0,
   p: 1.5,
@@ -308,7 +308,7 @@ const rankingSectionSx = {
 
 const rankingCountSx = {
   backgroundColor: "var(--user-theme-bottom-nav-active-bg)",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 800,
   px: 1,
@@ -330,7 +330,7 @@ const rankingRowSx = {
 const rankBadgeSx = {
   alignItems: "center",
   backgroundColor: "var(--user-theme-icon-badge-bg)",
-  borderRadius: 1,
+  borderRadius: `${designTokens.radius.md}px`,
   color: "var(--user-theme-icon-badge-color)",
   display: "inline-flex",
   flexShrink: 0,
@@ -344,7 +344,7 @@ const rankBadgeSx = {
 
 const progressTrackSx = {
   backgroundColor: "var(--user-theme-bottom-nav-active-bg)",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   height: 8,
   overflow: "hidden",
 };

@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { dashboardHeroLayout as heroLayout } from "templates/dashboard/dashboardLayout";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 
 export default function DashboardLoadingPage() {
@@ -142,7 +143,7 @@ function AccountBalanceSkeleton() {
                 variant="rounded"
                 width={28}
                 height={28}
-                sx={{ borderRadius: 0.75 }}
+                sx={{ borderRadius: `${designTokens.radius.item}px` }}
               />
               <Skeleton width="38%" sx={{ flex: 1, fontSize: 13 }} />
               <Skeleton width={92} sx={{ fontSize: 13 }} />
@@ -164,7 +165,7 @@ function QuickActionsSkeleton() {
               variant="rounded"
               width={28}
               height={28}
-              sx={{ borderRadius: 1 }}
+              sx={{ borderRadius: `${designTokens.radius.md}px` }}
             />
             <Skeleton width="72%" sx={{ fontSize: 11 }} />
           </Stack>
