@@ -230,14 +230,14 @@ const summaryGridSx = {
 };
 
 const summaryPillSkeletonSx = {
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.lg}px`,
   minWidth: 0,
   px: { xs: 0.8, sm: 1.2 },
   py: 1.05,
 };
 
 const panelSkeletonSx = {
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.lg}px`,
   overflow: "hidden",
   p: 1.5,
 };
@@ -261,14 +261,14 @@ const quickActionGridSx = {
 };
 
 const quickActionSkeletonSx = {
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.lg}px`,
   minHeight: 68,
   px: 0.7,
   py: 1,
 };
 
 const recentListSkeletonSx = {
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.lg}px`,
   overflow: "hidden",
   px: 1.2,
   py: 0,
