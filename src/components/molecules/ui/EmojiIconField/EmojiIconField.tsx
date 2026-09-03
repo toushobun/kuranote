@@ -16,7 +16,6 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
-import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export type EmojiIconOption = {
@@ -92,7 +91,7 @@ export function EmojiIconField({
               alignItems: "center",
               bgcolor: "var(--user-theme-icon-badge-bg)",
               ...userThemeCardBorderSx,
-              borderRadius: `${designTokens.radius.sm}px`,
+              borderRadius: 3,
               display: "flex",
               fontSize: "2.5rem",
               height: 88,
@@ -188,7 +187,7 @@ export function EmojiIconField({
                         borderColor: selected
                           ? "primary.main"
                           : "var(--user-theme-card-border)",
-                        borderRadius: `${designTokens.radius.item}px`,
+                        borderRadius: 3,
                         fontSize: "2rem",
                         position: "relative",
                       }}
