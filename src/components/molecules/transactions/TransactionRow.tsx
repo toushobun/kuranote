@@ -11,6 +11,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
+import { designTokens } from "theme/theme";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
 import { transactionAmountMessages } from "utils/transactionMessages";
@@ -163,7 +164,7 @@ export function TransactionRow({
           variant="rounded"
           sx={{
             bgcolor: getAvatarBackground(item.type),
-            borderRadius: 0.75,
+            borderRadius: `${designTokens.radius.item}px`,
             color: getAvatarColor(item.type),
             flexShrink: 0,
             fontSize: 15,

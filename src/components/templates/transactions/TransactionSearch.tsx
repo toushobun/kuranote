@@ -23,6 +23,7 @@ import {
   userThemeCardBorder,
   userThemeCardBorderSx,
 } from "theme/userThemeCardSx";
+import { designTokens } from "theme/theme";
 import type {
   TransactionListItem,
   TransactionRefundCandidate,
@@ -318,7 +319,7 @@ const searchFormSx = {
   alignItems: "center",
   bgcolor: "background.paper",
   ...userThemeCardBorderSx,
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   display: "flex",
   flex: 1,
   gap: 0.8,
@@ -402,7 +403,7 @@ const loadingStateSx = {
 
 const pillButtonSx = {
   bgcolor: "var(--user-theme-action-bg)",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 900,
   px: 2.4,
@@ -413,7 +414,7 @@ const pillButtonSx = {
 
 const loadMoreButtonSx = {
   alignSelf: "center",
-  borderRadius: 999,
+  borderRadius: `${designTokens.radius.full}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 900,
   minWidth: 120,

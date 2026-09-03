@@ -10,6 +10,7 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
@@ -112,7 +113,7 @@ function TagsSkeleton() {
             variant="rounded"
             width={64}
             height={28}
-            sx={{ borderRadius: 999 }}
+            sx={{ borderRadius: `${designTokens.radius.full}px` }}
           />
         ))}
       </Stack>

@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 
 import { EmptyState } from "molecules/ui/EmptyState";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionGroupPage,
@@ -442,7 +443,7 @@ function InlineLoadError({
         onClick={onRetry}
         size="small"
         sx={{
-          borderRadius: 999,
+          borderRadius: `${designTokens.radius.full}px`,
           color: "var(--user-theme-action-text)",
           fontSize: 12,
           fontWeight: 900,
