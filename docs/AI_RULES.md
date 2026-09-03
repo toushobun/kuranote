@@ -363,6 +363,7 @@ PR merge 前后需要回收相关状态：
 
 - 颜色、间距、圆角、阴影、字体大小必须优先来自 MUI theme token，禁止大量散落的 hard-coded 值（例如 `color: "#333"`、`padding: "12px"`）。
 - `sx` 可以使用，但应优先引用 theme token（如 `spacing`、`palette`、`shape` 等）。
+- 实现圆角时以 [docs/theme.md](theme.md) 的"圆角层级"一节为权威参照，必须从其中定义的 6 档 token 里选择，禁止裸数字或新增档位。
 - 面向用户显示的文案不得硬编码散落在多个组件中，至少集中到模块级常量文件统一管理。
 
 ## 实现时的注意事项

@@ -59,25 +59,26 @@ KuraNote 是家庭共享的生活记录工具，不是企业后台，也不是�
 
 ### 圆角层级
 
-项目圆角统一使用以下层级：
+项目圆角统一使用以下 6 档层级，新增或修改任何组件的圆角时**必须**从这 6 档里选一个：
 
 - `designTokens.radius.sm`（8px）：头像以外的图标容器、紧凑型小 surface。
 - `designTokens.radius.item`（12px）：列表 item、筛选 item 等需要保持偏方轮廓的可点击块。
 - `designTokens.radius.md`（16px）：普通按钮、输入控件等标准 control，也是 `theme.shape.borderRadius` 的基准值。
 - `designTokens.radius.lg`（24px）：卡片、Dialog、Paper 等较大的 surface。
+- `designTokens.radius.xl`（32px）：强调型大卡片 / 大尺寸 Dialog，比常规 `lg` 卡片更突出的展示型 surface。
 - `designTokens.radius.full`（999px）：明确需要胶囊形态的按钮、胶囊型 Chip、徽标、进度条等。
+
+不允许再新增档位，也不允许继续用裸数字（例如 `borderRadius: 2`、`borderRadius: 1.25`）表达组件圆角。
 
 普通矩形标签 / Chip 不因为组件类型本身而使用 `radius.full`；应根据视觉语义选择 `sm`、`item` 等对应层级。
 
 真正的圆形头像或圆形状态层继续使用 MUI `Avatar` / `variant="circular"` 或 `50%`，不要用 `radius.full` 替代圆形语义。
 
-MUI `sx` 中数字类型的 `borderRadius` 会按 `theme.shape.borderRadius` 做倍率换算。例如当前基准值为 16px 时，`borderRadius: 2.5` 实际会得到 40px。组件需要指定设计圆角时，应显式引用 token 并传入像素字符串，例如：
+MUI `sx` 中数字类型的 `borderRadius` 会按 `theme.shape.borderRadius` 做倍率换算。例如当前基准值为 16px 时，`borderRadius: 2.5` 实际会得到 40px。组件需要指定设计圆角时，必须显式引用 token 并传入像素字符串，例如：
 
 ```tsx
 borderRadius: `${designTokens.radius.item}px`,
 ```
-
-避免使用 `1`、`2`、`2.5` 等裸数字表达组件圆角。
 
 现有组件按页面范围分批迁移。商家管理专属组件及对应 loading skeleton，以及跨模块共通组件 `IconBadge`、`EmojiIconField`、`ListRowButton` 已完成代码迁移；跨模块组件影响页面的人工视觉验收仍待进行。上述规范不代表全仓组件已完成迁移或视觉验收。
 
