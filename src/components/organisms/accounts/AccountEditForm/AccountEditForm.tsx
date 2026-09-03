@@ -1,11 +1,11 @@
 import CloseIcon from "@mui/icons-material/Close";
-import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
@@ -109,15 +109,14 @@ export function AccountEditForm({
           {archiveAccountAction ? (
             <ArchiveAccountButton formId={archiveFormId} label="删除" />
           ) : null}
-          <Button
+          <PrimaryActionButton
             form={formId}
             fullWidth={Boolean(archiveAccountAction)}
             type="submit"
-            variant="contained"
             sx={saveButtonSx}
           >
             保存修改
-          </Button>
+          </PrimaryActionButton>
         </FormActions>
       </Stack>
 
@@ -145,14 +144,9 @@ const actionBarSx = {
 };
 
 const saveButtonSx = {
-  background: "var(--user-theme-fab-bg)",
-  color: "var(--user-theme-fab-text)",
+  borderRadius: 1,
   fontWeight: 800,
   minHeight: 48,
   minWidth: 0,
   width: "100%",
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };

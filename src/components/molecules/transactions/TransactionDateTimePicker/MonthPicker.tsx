@@ -5,7 +5,10 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
-import { designTokens } from "theme/theme";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 
 import {
   PickerColumn,
@@ -95,20 +98,20 @@ export function MonthPicker({
         </PickerColumn>
       </Stack>
       <Box sx={{ flexShrink: 0, px: 3, py: 1 }}>
-        <Button
+        <PrimaryActionButton
           aria-label={messages.selectMonth}
           fullWidth
           onClick={onSubmit}
           type="button"
-          variant="contained"
           sx={{
-            background: `var(--user-theme-fab-bg, ${designTokens.color.brand.main})`,
-            color: "white",
+            borderRadius: 1,
+            fontWeight: 700,
             minHeight: 40,
+            ...primaryActionButtonNoHoverBrightenSx,
           }}
         >
           确定
-        </Button>
+        </PrimaryActionButton>
       </Box>
     </Stack>
   );

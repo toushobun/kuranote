@@ -12,7 +12,6 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
@@ -20,6 +19,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
@@ -477,15 +477,14 @@ export function TransferTransactionForm({
         </Box>
 
         {hideSubmitButton ? null : (
-          <Button
+          <PrimaryActionButton
             disabled={isSubmitDisabled}
             size="large"
             type="submit"
-            variant="contained"
             sx={transactionSubmitButtonSx}
           >
             {effectiveSubmitLabel}
-          </Button>
+          </PrimaryActionButton>
         )}
       </Stack>
     </form>

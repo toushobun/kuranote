@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 
@@ -85,14 +86,13 @@ export function AccountForm({
               取消
             </Button>
           ) : null}
-          <Button
+          <PrimaryActionButton
             fullWidth={Boolean(onCancel)}
             sx={submitButtonSx}
             type="submit"
-            variant="contained"
           >
             {submitLabel}
-          </Button>
+          </PrimaryActionButton>
         </FormActions>
       </Stack>
     </Stack>
@@ -108,12 +108,7 @@ const createActionBarSx = {
 };
 
 const submitButtonSx = {
-  background: "var(--user-theme-fab-bg)",
-  color: "var(--user-theme-fab-text)",
+  borderRadius: 1,
   fontWeight: 800,
   minHeight: 48,
-  "&:hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
-  },
 };

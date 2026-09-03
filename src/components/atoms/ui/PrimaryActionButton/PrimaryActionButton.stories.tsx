@@ -9,7 +9,10 @@ import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { type UserThemeKey, userThemeTokens } from "theme/userThemeTokens";
 
-import { PrimaryActionButton } from "./PrimaryActionButton";
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "./PrimaryActionButton";
 
 const previewThemeKeys = [
   "amberWarmth",
@@ -76,4 +79,12 @@ export const Disabled: Story = {
 export const MultipleThemes: Story = {
   name: "多主题文字对比",
   render: () => <PrimaryActionButtonThemePreview />,
+};
+
+export const NoHoverBrighten: Story = {
+  name: "悬停不提亮",
+  args: {
+    children: "保存修改",
+    sx: primaryActionButtonNoHoverBrightenSx,
+  },
 };

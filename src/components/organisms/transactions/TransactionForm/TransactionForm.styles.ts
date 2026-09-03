@@ -1,3 +1,4 @@
+import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export const smallIconButtonSx = {
@@ -51,8 +52,7 @@ export const transactionSubmitButtonSx = {
   minHeight: 48,
   mt: 0.25,
   "&:not(.Mui-disabled)": {
-    background: "var(--user-theme-fab-bg)",
     boxShadow: "0 8px 18px var(--user-theme-fab-shadow)",
-    color: "var(--user-theme-fab-text)",
   },
+  ...primaryActionButtonNoHoverBrightenSx,
 };

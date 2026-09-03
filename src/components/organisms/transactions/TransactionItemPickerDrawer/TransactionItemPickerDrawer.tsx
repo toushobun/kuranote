@@ -16,6 +16,10 @@ import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
+import {
+  PrimaryActionButton,
+  primaryActionButtonNoHoverBrightenSx,
+} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { appZIndex } from "theme/zIndex";
@@ -456,15 +460,14 @@ export function TransactionItemPickerDrawer({
           >
             {editingItemId === null ? "取消" : "删除明细"}
           </Button>
-          <Button
+          <PrimaryActionButton
             fullWidth
             onClick={handleConfirm}
             type="button"
-            variant="contained"
             sx={drawerDoneButtonSx}
           >
             {editingItemId === null ? "确定" : "保存修改"}
-          </Button>
+          </PrimaryActionButton>
         </Stack>
       </Box>
     </Drawer>
@@ -661,11 +664,9 @@ const deleteButtonSx = {
   minHeight: 48,
 };
 
-const drawerDoneButtonSx = (theme: Theme) => ({
-  background: `var(--user-theme-fab-bg, ${theme.palette.primary.main})`,
-  color: theme.palette.common.white,
+const drawerDoneButtonSx = {
+  borderRadius: 1,
+  fontWeight: 700,
   minHeight: 48,
-  "&:hover": {
-    background: `var(--user-theme-fab-bg, ${theme.palette.primary.dark})`,
-  },
-});
+  ...primaryActionButtonNoHoverBrightenSx,
+};
