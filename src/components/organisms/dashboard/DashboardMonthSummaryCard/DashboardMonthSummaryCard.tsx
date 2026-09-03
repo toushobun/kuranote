@@ -77,7 +77,6 @@ export function DashboardMonthSummaryCard({
                 <IconBadge
                   size="sm"
                   sx={{
-                    borderRadius: 0.75,
                     height: 28,
                     width: 28,
                   }}
