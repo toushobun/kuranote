@@ -23,6 +23,15 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+function hexToRgbString(hexColor: string) {
+  const hex = hexColor.replace("#", "");
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+
+  return `rgb(${red}, ${green}, ${blue})`;
+}
+
 describe("SelectableFilterTag", () => {
   it("显示图标、文字和数量并作为筛选链接导航", () => {
     render(
@@ -44,7 +53,7 @@ describe("SelectableFilterTag", () => {
     expect(screen.getByText("6")).toBeInTheDocument();
   });
 
-  it("全部用户主题下选中态使用白色文字", () => {
+  it("全部用户主题下选中态使用主题色背景与白色文字", () => {
     userThemeKeys.forEach((themeKey) => {
       const theme = createDynamicMuiTheme(themeKey);
       const { unmount } = render(
@@ -61,11 +70,15 @@ describe("SelectableFilterTag", () => {
       );
 
       const link = screen.getByRole("link", { name: "超市，6 个商家" });
+      const label = screen.getByText("超市");
 
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
       );
-      expect(getComputedStyle(link).color).toBe("rgb(255, 255, 255)");
+      expect(getComputedStyle(link).backgroundColor).toBe(
+        hexToRgbString(userThemeTokens[themeKey].palette.accent),
+      );
+      expect(getComputedStyle(label).color).toBe("rgb(255, 255, 255)");
       expect(link).toHaveAttribute("aria-current", "page");
 
       unmount();
