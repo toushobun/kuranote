@@ -8,6 +8,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 
 const colorOptionCount = 6;
 const automaticItemCount = 4;
@@ -113,7 +114,7 @@ const headerSx = {
 };
 
 const formCardSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   p: { xs: 1.6, sm: 2 },
 };
 
@@ -124,7 +125,7 @@ const colorPickerSx = {
 };
 
 const automaticCardSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   p: { xs: 1.7, sm: 2 },
 };
 

@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
 
 import { createQrMatrix, qrMatrixToPath } from "lib/qr/qrCode";
+import { designTokens } from "theme/theme";
 
 const qrMargin = 4;
 
@@ -83,7 +84,7 @@ const qrFrameSx = {
   bgcolor: "common.white",
   border: "1px solid",
   borderColor: "divider",
-  borderRadius: 3,
+  borderRadius: `${designTokens.radius.xl}px`,
   boxShadow: 2,
   color: "common.black",
   maxWidth: 224,
@@ -102,7 +103,7 @@ const emptyContainerSx = {
   bgcolor: "background.default",
   border: "1px dashed",
   borderColor: "divider",
-  borderRadius: 3,
+  borderRadius: `${designTokens.radius.xl}px`,
   justifyContent: "center",
   minHeight: 168,
   px: 2,

@@ -738,7 +738,7 @@ const sectionTitleSx = {
 };
 
 const sectionCardSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.lg}px`,
   p: { xs: 1.5, sm: 1.75 },
 };
 
