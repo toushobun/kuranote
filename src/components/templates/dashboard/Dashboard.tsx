@@ -388,7 +388,6 @@ function DashboardQuickActions({ hasLedger }: { hasLedger: boolean }) {
                   backgroundColor: isActive
                     ? activeIconBackground
                     : inactiveIconBackground,
-                  borderRadius: 1,
                   color: isActive ? actionText : secondaryText,
                   height: 28,
                   width: 28,

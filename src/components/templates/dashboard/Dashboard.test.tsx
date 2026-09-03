@@ -1,14 +1,36 @@
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { describe, expect, it } from "vitest";
 
 import {
   createDashboardViewData,
   createNoLedgerDashboardViewData,
 } from "@/test/mocks/dashboard";
+import { designTokens, theme } from "theme/theme";
 
 import { DashboardTemplate } from "./Dashboard";
 
 describe("DashboardTemplate", () => {
+  it("首页账户和快捷操作图标使用共通小圆角", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <DashboardTemplate data={createDashboardViewData()} />
+      </ThemeProvider>,
+    );
+
+    const accountIcon = screen.getByText("现金钱包").previousElementSibling;
+    const quickActionIcon = screen.getByText("快速记账").previousElementSibling;
+
+    const expectedRadius = `${designTokens.radius.sm}px`;
+
+    expect(getComputedStyle(accountIcon as Element).borderRadius).toBe(
+      expectedRadius,
+    );
+    expect(getComputedStyle(quickActionIcon as Element).borderRadius).toBe(
+      expectedRadius,
+    );
+  });
+
   it("显示首页手账模块", () => {
     render(<DashboardTemplate data={createDashboardViewData()} />);
 
