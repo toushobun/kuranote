@@ -79,7 +79,7 @@ borderRadius: `${designTokens.radius.item}px`,
 
 避免使用 `1`、`2`、`2.5` 等裸数字表达组件圆角。
 
-现有组件按页面范围分批迁移，首批仅覆盖商家管理专属组件及对应 loading skeleton。跨模块共通组件 `IconBadge`、`EmojiIconField`、`ListRowButton` 保留原有圆角，留待后续 PR 配合受影响页面的真实人工视觉验收后再处理；上述规范不代表全仓组件已完成迁移或视觉验收。
+现有组件按页面范围分批迁移。商家管理专属组件及对应 loading skeleton，以及跨模块共通组件 `IconBadge`、`EmojiIconField`、`ListRowButton` 已完成代码迁移；跨模块组件影响页面的人工视觉验收仍待进行。上述规范不代表全仓组件已完成迁移或视觉验收。
 
 ## Card / Paper / Overlay 色值策略
 
