@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./Typography-CwLqrFKa.js";import{n as i,t as a}from"./SoftCard-BaIAlHtz.js";function o({sx:e,...t}){return(0,s.jsx)(a,{sx:{p:{xs:4,sm:5},...e},...t})}var s,c=e((()=>{s=t(),i(),o.__docgenInfo={description:``,methods:[],displayName:`PageCard`}})),l,u,d,f;e((()=>{l=t(),r(),c(),u={title:`Molecules/UI/PageCard`,component:o,args:{children:(0,l.jsx)(n,{children:`页面卡片内容区域`})}},d={name:`页面卡片`},d.parameters={...d.parameters,docs:{...d.parameters?.docs,source:{originalSource:`{
+  name: "页面卡片"
+}`,...d.parameters?.docs?.source}}},f=[`Default`]}))();export{d as Default,f as __namedExportsOrder,u as default};
