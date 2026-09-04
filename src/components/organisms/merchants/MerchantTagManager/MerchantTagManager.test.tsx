@@ -88,28 +88,28 @@ describe("MerchantTagManager", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
     expect(
-      screen.getByRole("heading", { name: "新增标签" }),
+      screen.getByRole("heading", { name: "新增分类" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveAttribute(
       "maxlength",
       "100",
     );
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: "新增标签" }),
+        screen.queryByRole("heading", { name: "新增分类" }),
       ).not.toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveAttribute(
       "maxlength",
       "100",
     );
     expect(
-      screen.getByRole("button", { name: "归档标签" }),
+      screen.getByRole("button", { name: "归档分类" }),
     ).toBeInTheDocument();
   });
 
@@ -150,16 +150,17 @@ describe("MerchantTagManager", () => {
     await waitFor(() => expect(createAction).toHaveBeenCalledOnce());
 
     await act(async () => {
-      resolveCreate?.({ error: "标签名称重复。", errorKey: "failure-1" });
+      resolveCreate?.({ error: "分类名称重复。", errorKey: "failure-1" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "新增标签" }),
+      screen.getByRole("heading", { name: "新增分类" }),
     ).toBeInTheDocument();
     expect(document.querySelector('input[name="name"]')).toHaveValue(
       "重复标签",
     );
     expect(document.querySelector('input[name="icon"]')).toHaveValue("📦");
+    expect(screen.getByText("分类新增失败")).toBeInTheDocument();
   });
 
   it("编辑失败时保留对话框和用户输入", async () => {
@@ -191,11 +192,11 @@ describe("MerchantTagManager", () => {
     await waitFor(() => expect(updateAction).toHaveBeenCalledOnce());
 
     await act(async () => {
-      resolveUpdate?.({ error: "标签名称重复。", errorKey: "failure-2" });
+      resolveUpdate?.({ error: "分类名称重复。", errorKey: "failure-2" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
     expect(document.querySelector('input[name="name"]')).toHaveValue(
       "重复标签",
@@ -224,18 +225,18 @@ describe("MerchantTagManager", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
-    fireEvent.click(screen.getByRole("button", { name: "归档标签" }));
+    fireEvent.click(screen.getByRole("button", { name: "归档分类" }));
     await waitFor(() => expect(archiveAction).toHaveBeenCalledOnce());
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
 
     await act(async () => {
-      resolveArchive?.({ error: "标签归档失败。", errorKey: "failure-3" });
+      resolveArchive?.({ error: "分类归档失败。", errorKey: "failure-3" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
   });
 });

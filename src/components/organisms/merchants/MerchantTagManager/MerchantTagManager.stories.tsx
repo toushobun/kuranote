@@ -48,7 +48,7 @@ export const Default: Story = { args: meta.args, name: "横向分类筛选" };
 
 export const Selected: Story = {
   args: { ...meta.args, selectedTagId: "tag-1" },
-  name: "选中标签",
+  name: "选中分类",
 };
 
 export const Management: Story = {

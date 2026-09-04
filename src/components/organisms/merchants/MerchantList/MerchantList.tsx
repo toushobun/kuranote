@@ -72,9 +72,9 @@ export function MerchantList({
           {isFilteredEmpty
             ? keyword.trim()
               ? tagFiltered
-                ? `没有找到与“${keyword.trim()}”及当前标签同时匹配的商家。`
+                ? `没有找到与“${keyword.trim()}”及当前分类同时匹配的商家。`
                 : `没有找到与“${keyword.trim()}”匹配的正式名或别名。`
-              : "当前标签下还没有商家。"
+              : "当前分类下还没有商家。"
             : canManageMerchants
               ? "添加常用商家，记账更快捷～"
               : "当前账本还没有可查看的商家。"}

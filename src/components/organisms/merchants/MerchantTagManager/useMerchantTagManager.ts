@@ -46,7 +46,7 @@ export function useMerchantTagManager({
       } catch {
         setOptimistic({ source: tags, tags: previous });
         onReorderError({
-          error: "标签排序保存失败，请稍后重试。",
+          error: "分类排序保存失败，请稍后重试。",
           errorKey: crypto.randomUUID(),
         });
       }

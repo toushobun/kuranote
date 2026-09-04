@@ -153,6 +153,44 @@ describe("MerchantsTemplate", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("展开后权限被移除时隐藏管理区并恢复筛选区", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    expect(
+      screen.getByRole("button", { name: "新增分类" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "管理分类" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "新增分类" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {
     const { container } = render(
       <MerchantsTemplate {...baseProps} keyword="便利" merchants={[]} />,
@@ -173,12 +211,12 @@ describe("MerchantsTemplate", () => {
         {...baseProps}
         keyword="  LIFE 超市  "
         merchants={[]}
-        tagFilterError="该商家标签不存在或已不可用。"
+        tagFilterError="该商家分类不存在或已不可用。"
       />,
     );
 
     expect(
-      screen.getByText("该商家标签不存在或已不可用。"),
+      screen.getByText("该商家分类不存在或已不可用。"),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
       "href",

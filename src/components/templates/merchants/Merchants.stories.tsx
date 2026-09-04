@@ -115,10 +115,10 @@ export const Empty: Story = {
 };
 
 export const UnavailableTagFilter: Story = {
-  name: "标签筛选已失效",
+  name: "分类筛选已失效",
   args: {
     ledgerId: "ledger-1",
     merchants: [],
-    tagFilterError: "该商家标签不存在或已不可用。",
+    tagFilterError: "该商家分类不存在或已不可用。",
   },
 };

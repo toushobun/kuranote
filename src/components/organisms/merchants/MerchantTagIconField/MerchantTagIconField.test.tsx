@@ -7,6 +7,7 @@ describe("MerchantTagIconField", () => {
   it("使用商家标签专属候选图标", () => {
     const onChange = vi.fn();
     render(<MerchantTagIconField onChange={onChange} value="🛒" />);
+    expect(screen.getByText("分类图标")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
     fireEvent.change(screen.getByLabelText("搜索图标"), {
       target: { value: "通讯" },

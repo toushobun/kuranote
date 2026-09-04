@@ -288,7 +288,7 @@ function MerchantTagManagement({
         onClose={() => setCreating(false)}
         open={creating}
       >
-        <DialogTitle>新增标签</DialogTitle>
+        <DialogTitle>{merchantText.addCategory}</DialogTitle>
         <DialogContent dividers>
           <Stack
             action={dispatchCreate}
@@ -299,7 +299,7 @@ function MerchantTagManagement({
             <TextField
               autoComplete="off"
               fullWidth
-              label="标签名称"
+              label={merchantText.categoryNameLabel}
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
@@ -328,7 +328,7 @@ function MerchantTagManagement({
         onClose={() => setEditingTag(null)}
         open={editingTag !== null}
       >
-        <DialogTitle>编辑标签</DialogTitle>
+        <DialogTitle>{merchantText.editCategoryTitle}</DialogTitle>
         <DialogContent dividers>
           <Stack
             action={dispatchUpdate}
@@ -340,7 +340,7 @@ function MerchantTagManagement({
             <TextField
               autoComplete="off"
               fullWidth
-              label="标签名称"
+              label={merchantText.categoryNameLabel}
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
@@ -359,7 +359,7 @@ function MerchantTagManagement({
               startIcon={<ArchiveRoundedIcon />}
               type="submit"
             >
-              归档标签
+              {merchantText.archiveCategory}
             </Button>
           </Stack>
           <Stack direction="row" spacing={1}>
@@ -376,10 +376,22 @@ function MerchantTagManagement({
         </DialogActions>
       </Dialog>
 
-      <MerchantFailureFeedback state={createState} title="标签新增失败" />
-      <MerchantFailureFeedback state={updateState} title="标签更新失败" />
-      <MerchantFailureFeedback state={archiveState} title="标签归档失败" />
-      <MerchantFailureFeedback state={reorderState} title="标签排序失败" />
+      <MerchantFailureFeedback
+        state={createState}
+        title={merchantText.categoryCreateErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={updateState}
+        title={merchantText.categoryUpdateErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={archiveState}
+        title={merchantText.categoryArchiveErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={reorderState}
+        title={merchantText.categoryReorderErrorTitle}
+      />
     </Stack>
   );
 }

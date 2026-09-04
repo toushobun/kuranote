@@ -13,6 +13,7 @@ describe("MerchantTagsField", () => {
     const { container } = render(
       <MerchantTagsField initialTagIds={["tag-1"]} tags={tags} />,
     );
+    expect(screen.getByText("商家分类")).toBeInTheDocument();
     fireEvent.click(screen.getByText("📦 电商"));
     expect(
       [...container.querySelectorAll('input[name="tagIds"]')].map(

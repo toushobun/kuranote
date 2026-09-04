@@ -59,6 +59,7 @@ export function MerchantsTemplate({
   updateAction,
 }: MerchantsTemplateProps) {
   const [isManagingTags, setIsManagingTags] = useState(false);
+  const isTagManagementExpanded = isManagingTags && canManageMerchants;
   const hasMerchants = merchants.length > 0;
   const normalizedKeyword = keyword.trim();
   const hasKeyword = normalizedKeyword.length > 0;
@@ -184,32 +185,32 @@ export function MerchantsTemplate({
               {canManageMerchants ? (
                 <Button
                   aria-controls="merchant-tag-management"
-                  aria-expanded={isManagingTags}
+                  aria-expanded={isTagManagementExpanded}
                   onClick={() => setIsManagingTags((expanded) => !expanded)}
                   size="small"
                   startIcon={
-                    isManagingTags ? undefined : (
+                    isTagManagementExpanded ? undefined : (
                       <TuneRoundedIcon fontSize="small" />
                     )
                   }
                   sx={{ borderRadius: `${designTokens.radius.full}px` }}
                   variant="outlined"
                 >
-                  {isManagingTags
+                  {isTagManagementExpanded
                     ? merchantText.managementDone
                     : merchantText.manageTags}
                 </Button>
               ) : null}
             </Stack>
 
-            {!isManagingTags ? (
+            {!isTagManagementExpanded ? (
               <MerchantTagManager
                 keyword={keyword}
                 selectedTagId={selectedTag?.id}
                 tags={tags}
               />
             ) : null}
-            {!isManagingTags && selectedTag ? (
+            {!isTagManagementExpanded && selectedTag ? (
               <Stack
                 direction="row"
                 spacing={1}
@@ -231,7 +232,7 @@ export function MerchantsTemplate({
                 </Button>
               </Stack>
             ) : null}
-            {!isManagingTags && tagFilterError ? (
+            {!isTagManagementExpanded && tagFilterError ? (
               <Alert
                 action={
                   <Button
@@ -251,7 +252,7 @@ export function MerchantsTemplate({
             ) : null}
             <Collapse
               id="merchant-tag-management"
-              in={isManagingTags}
+              in={isTagManagementExpanded}
               timeout="auto"
               unmountOnExit
             >
