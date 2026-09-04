@@ -6,6 +6,7 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -16,7 +17,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { merchantText } from "config/merchantText";
@@ -48,6 +49,7 @@ type MerchantTagManagementProps = {
   archiveAction: MerchantTagStateAction;
   createAction: MerchantTagStateAction;
   mode: "management";
+  onPendingChange?: (pending: boolean) => void;
   reorderAction: MerchantTagReorderAction;
   tags: MerchantTag[];
   updateAction: MerchantTagStateAction;
@@ -74,7 +76,7 @@ function MerchantTagFilter({
 }: MerchantTagFilterProps) {
   return (
     <Stack
-      aria-label="商家分类筛选"
+      aria-label={merchantText.categoryFilterAriaLabel}
       data-testid="merchant-tag-filter-list"
       direction="row"
       sx={{
@@ -97,7 +99,10 @@ function MerchantTagFilter({
 
         return (
           <SelectableFilterTag
-            ariaLabel={`${tag.name}，${tag.merchant_count} 个商家`}
+            ariaLabel={merchantText.categoryFilterItemAriaLabel(
+              tag.name,
+              tag.merchant_count,
+            )}
             count={tag.merchant_count}
             href={filterHref(keyword, tag.id)}
             icon={tag.icon}
@@ -114,6 +119,7 @@ function MerchantTagFilter({
 function MerchantTagManagement({
   archiveAction,
   createAction,
+  onPendingChange,
   reorderAction,
   tags,
   updateAction,
@@ -154,6 +160,17 @@ function MerchantTagManagement({
   });
   const pending =
     createPending || updatePending || archivePending || manager.isPending;
+
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [onPendingChange, pending]);
+
+  useEffect(
+    () => () => {
+      onPendingChange?.(false);
+    },
+    [onPendingChange],
+  );
 
   function openCreate() {
     setName("");
@@ -209,35 +226,29 @@ function MerchantTagManagement({
                 <Typography noWrap sx={{ fontWeight: 700 }}>
                   {tag.name}
                 </Typography>
-                <Box
-                  component="span"
+                <Chip
+                  aria-hidden
+                  color="primary"
+                  label={tag.merchant_count}
+                  size="small"
                   sx={{
-                    bgcolor: "var(--user-theme-icon-badge-bg)",
-                    borderRadius: `${designTokens.radius.full}px`,
-                    color: "primary.main",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    px: 0.75,
-                    py: 0.5,
+                    height: 22,
+                    minWidth: 22,
+                    "& .MuiChip-label": { px: 0.75 },
                   }}
-                >
-                  {tag.merchant_count}
-                </Box>
+                />
               </Stack>
             </Box>
-            <Tooltip title={`编辑${tag.name}`}>
-              <Button
-                aria-label={`编辑${tag.name}`}
-                disabled={pending}
-                onClick={() => openEdit(tag)}
-                size="small"
-                startIcon={<EditRoundedIcon fontSize="small" />}
-                sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
-              >
-                {merchantText.editCategory}
-              </Button>
-            </Tooltip>
+            <Button
+              aria-label={`编辑${tag.name}`}
+              disabled={pending}
+              onClick={() => openEdit(tag)}
+              size="small"
+              startIcon={<EditRoundedIcon fontSize="small" />}
+              sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
+            >
+              {merchantText.editCategory}
+            </Button>
             <Divider flexItem orientation="vertical" />
             <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
               <span>

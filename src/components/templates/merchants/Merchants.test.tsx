@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -127,6 +128,7 @@ describe("MerchantsTemplate", () => {
 
     const manageButton = screen.getByRole("button", { name: "管理分类" });
     expect(manageButton).toHaveAttribute("aria-expanded", "false");
+    expect(manageButton).not.toHaveAttribute("aria-controls");
     expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
 
     fireEvent.click(manageButton);
@@ -143,14 +145,14 @@ describe("MerchantsTemplate", () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(
         screen.getByTestId("merchant-tag-filter-list"),
-      ).toBeInTheDocument(),
-    );
-    expect(
-      screen.queryByRole("button", { name: "新增分类" }),
-    ).not.toBeInTheDocument();
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "新增分类" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("展开后权限被移除时隐藏管理区并恢复筛选区", async () => {
@@ -189,6 +191,59 @@ describe("MerchantsTemplate", () => {
         screen.queryByRole("button", { name: "新增分类" }),
       ).not.toBeInTheDocument(),
     );
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+
+    expect(screen.getByRole("button", { name: "管理分类" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+  });
+
+  it("分类排序提交期间禁止收起管理区", async () => {
+    let resolveReorder: ((state: Record<string, never>) => void) | null = null;
+    const pendingReorderAction = async () =>
+      new Promise<Record<string, never>>((resolve) => {
+        resolveReorder = resolve;
+      });
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        reorderAction={pendingReorderAction}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+          {
+            icon: "🍽️",
+            id: "tag-2",
+            merchant_count: 2,
+            name: "餐饮",
+            sort_order: 1,
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "调整超市排序" }), {
+      key: "ArrowDown",
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "完成" })).toBeDisabled(),
+    );
+
+    await act(async () => resolveReorder?.({}));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "完成" })).toBeEnabled(),
+    );
   });
 
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {
@@ -205,7 +260,7 @@ describe("MerchantsTemplate", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("标签筛选失效时显示原因和清除入口", () => {
+  it("分类筛选失效时在管理区展开后仍显示原因和清除入口", () => {
     render(
       <MerchantsTemplate
         {...baseProps}
@@ -223,5 +278,12 @@ describe("MerchantsTemplate", () => {
       "/merchants?q=LIFE%20%E8%B6%85%E5%B8%82",
     );
     expect(screen.getByText("没有找到匹配的商家")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.getByText("该商家分类不存在或已不可用。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "清除筛选" })).toBeInTheDocument();
   });
 });

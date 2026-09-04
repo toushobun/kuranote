@@ -32,6 +32,13 @@ function hexToRgbString(hexColor: string) {
   return `rgb(${red}, ${green}, ${blue})`;
 }
 
+function getDocumentCssText() {
+  return Array.from(document.styleSheets)
+    .flatMap((styleSheet) => Array.from(styleSheet.cssRules))
+    .map((rule) => rule.cssText)
+    .join("\n");
+}
+
 describe("SelectableFilterTag", () => {
   it("显示图标、文字和数量并作为筛选链接导航", () => {
     render(
@@ -75,8 +82,11 @@ describe("SelectableFilterTag", () => {
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
       );
-      expect(getComputedStyle(link).borderColor).toBe(
-        hexToRgbString(userThemeTokens[themeKey].palette.accent),
+      expect(getDocumentCssText()).toContain(
+        "var(--user-theme-field-card-selected-border)",
+      );
+      expect(getDocumentCssText()).toContain(
+        "var(--user-theme-field-card-selected-bg)",
       );
       expect(getComputedStyle(label).color).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),

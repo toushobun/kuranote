@@ -11,7 +11,13 @@ export const merchantText = {
   archiveErrorTitle: "商家归档失败",
   categoryArchiveErrorTitle: "分类归档失败",
   categoryCreateErrorTitle: "分类新增失败",
+  categoryFilterAriaLabel: "商家分类筛选",
+  categoryFilterItemAriaLabel: (name: string, merchantCount: number) =>
+    `${name}，${merchantCount} 个商家`,
   categoryIconLabel: "分类图标",
+  categoryKeywordEmpty: (keyword: string) =>
+    `没有找到与“${keyword}”及当前分类同时匹配的商家。`,
+  categoryEmpty: "当前分类下还没有商家。",
   create: "新增商家",
   createAliasErrorTitle: "商家别名新增失败",
   createErrorTitle: "商家新增失败",
@@ -37,6 +43,7 @@ export const merchantText = {
   managementDone: "完成",
   tagsLabel: "商家分类",
   tagsHelper: "可选择多个分类，便于在商家列表中筛选。",
+  tagsEmpty: "暂无可选分类，可在商家管理页新增。",
   noteLabel: "备注（可选）",
   notePlaceholder: "例如：日常购物与杂货采购",
   preferredHelper: "选择记账和列表中优先显示的名称。未选择别名时使用正式名。",

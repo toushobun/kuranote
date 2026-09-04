@@ -21,4 +21,12 @@ describe("MerchantTagsField", () => {
       ),
     ).toEqual(["tag-1", "tag-2"]);
   });
+
+  it("没有分类时使用统一的分类术语", () => {
+    render(<MerchantTagsField tags={[]} />);
+
+    expect(
+      screen.getByText("暂无可选分类，可在商家管理页新增。"),
+    ).toBeInTheDocument();
+  });
 });

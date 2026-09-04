@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
+import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -30,9 +31,13 @@ export function SelectableFilterTag({
       component={Link}
       href={href}
       sx={{
-        bgcolor: selected ? "action.selected" : "background.paper",
+        bgcolor: selected
+          ? "var(--user-theme-field-card-selected-bg)"
+          : "background.paper",
         border: 1,
-        borderColor: selected ? "primary.main" : "divider",
+        borderColor: selected
+          ? "var(--user-theme-field-card-selected-border)"
+          : "divider",
         borderRadius: `${designTokens.radius.item}px`,
         color: selected ? "primary.main" : "text.primary",
         flexDirection: "row",
@@ -71,25 +76,17 @@ export function SelectableFilterTag({
       >
         {label}
       </Typography>
-      <Box
+      <Chip
         aria-hidden
-        component="span"
+        color={selected ? "primary" : "default"}
+        label={count}
+        size="small"
         sx={{
-          alignItems: "center",
-          bgcolor: "var(--user-theme-icon-badge-bg)",
-          borderRadius: `${designTokens.radius.full}px`,
-          color: selected ? "primary.main" : "text.secondary",
-          display: "flex",
-          fontSize: "0.6875rem",
-          fontWeight: 800,
           height: 22,
-          justifyContent: "center",
           minWidth: 22,
-          px: 0.5,
+          "& .MuiChip-label": { px: 0.75 },
         }}
-      >
-        {count}
-      </Box>
+      />
     </ButtonBase>
   );
 }

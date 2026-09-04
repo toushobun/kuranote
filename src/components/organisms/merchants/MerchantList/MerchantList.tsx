@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
+import { merchantText } from "config/merchantText";
 import { merchantEditHref } from "config/paths";
 import { designTokens } from "theme/theme";
 import type { Merchant } from "types/merchants";
@@ -72,9 +73,9 @@ export function MerchantList({
           {isFilteredEmpty
             ? keyword.trim()
               ? tagFiltered
-                ? `没有找到与“${keyword.trim()}”及当前分类同时匹配的商家。`
+                ? merchantText.categoryKeywordEmpty(keyword.trim())
                 : `没有找到与“${keyword.trim()}”匹配的正式名或别名。`
-              : "当前分类下还没有商家。"
+              : merchantText.categoryEmpty
             : canManageMerchants
               ? "添加常用商家，记账更快捷～"
               : "当前账本还没有可查看的商家。"}
