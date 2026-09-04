@@ -39,15 +39,15 @@ describe("createDynamicMuiTheme", () => {
     });
   });
 
-  it("不会用按钮专用文字色覆盖全局 primary.contrastText", () => {
-    const dynamicTheme = createDynamicMuiTheme("amberWarmth");
+  it("会按每款用户主题的强调色计算 primary.contrastText", () => {
+    userThemeKeys.forEach((themeKey) => {
+      const token = userThemeTokens[themeKey];
+      const dynamicTheme = createDynamicMuiTheme(themeKey);
 
-    expect(dynamicTheme.palette.primary.contrastText).toBe(
-      dynamicTheme.palette.getContrastText(dynamicTheme.palette.primary.main),
-    );
-    expect(dynamicTheme.palette.primary.contrastText).not.toBe(
-      userThemeTokens.amberWarmth.component.buttonPrimaryText,
-    );
+      expect(dynamicTheme.palette.primary.contrastText).toBe(
+        baseTheme.palette.getContrastText(token.palette.accent),
+      );
+    });
   });
 
   it("会将 overlay 组件背景固定为基础 paper", () => {
