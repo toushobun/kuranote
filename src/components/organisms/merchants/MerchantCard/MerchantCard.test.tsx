@@ -6,11 +6,21 @@ import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { theme } from "theme/theme";
+import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
 import { MerchantCard } from "./MerchantCard";
 
 afterEach(cleanup);
+
+function toComputedColor(color: string) {
+  if (color === "#fff") {
+    return "rgb(255, 255, 255)";
+  }
+
+  return color;
+}
 
 describe("MerchantCard", () => {
   it("只显示商家信息并提供独立编辑页入口", () => {
@@ -130,6 +140,46 @@ describe("MerchantCard", () => {
       getComputedStyle(secondaryChip as Element).fontWeight,
     );
     expect(secondaryChip).toHaveClass("MuiChip-outlined");
+  });
+
+  it("全部用户主题下首选别名标签使用可读的对比文字色", () => {
+    const merchant = createMerchantRow({
+      aliases: [createMerchantAliasRow({ is_preferred: true })],
+      display_name: "来福",
+    });
+
+    userThemeKeys.forEach((themeKey) => {
+      const dynamicTheme = createDynamicMuiTheme(themeKey);
+      const { container, unmount } = render(
+        <ThemeProvider theme={dynamicTheme}>
+          <MerchantCard
+            editHref="/merchants/merchant-1/edit"
+            ledgerId="ledger-1"
+            merchant={merchant}
+          />
+        </ThemeProvider>,
+      );
+
+      const preferredChipLabel = container.querySelector(
+        ".MuiChip-colorPrimary .MuiChip-label",
+      );
+
+      expect(dynamicTheme.palette.primary.main).toBe(
+        userThemeTokens[themeKey].palette.accent,
+      );
+      expect(getComputedStyle(preferredChipLabel as Element).color).toBe(
+        toComputedColor(dynamicTheme.palette.primary.contrastText),
+      );
+      expect(
+        getComputedStyle(
+          container.querySelector(
+            ".MuiChip-colorPrimary .MuiChip-icon",
+          ) as Element,
+        ).color,
+      ).toBe(toComputedColor(dynamicTheme.palette.primary.contrastText));
+
+      unmount();
+    });
   });
 
   it("没有首选别名时显示名使用普通标签", () => {
