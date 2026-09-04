@@ -1,3 +1,9 @@
+import {
+  archiveMerchantTag,
+  createMerchantTag,
+  reorderMerchantTags,
+  updateMerchantTag,
+} from "internal/merchant/adapter/next/actions";
 import { loadMerchantsView } from "internal/merchant/adapter/next/loadMerchantsView";
 import { MerchantsTemplate } from "templates/merchants/Merchants";
 
@@ -14,13 +20,17 @@ export default async function MerchantsPage({
 
   return (
     <MerchantsTemplate
+      archiveAction={archiveMerchantTag}
       canManageMerchants={view.canManageMerchants}
+      createAction={createMerchantTag}
       keyword={params.q ?? ""}
       ledgerId={view.ledgerId}
       merchants={view.merchants}
       selectedTag={view.selectedTag}
+      reorderAction={reorderMerchantTags}
       tagFilterError={view.tagFilterError}
       tags={view.tags}
+      updateAction={updateMerchantTag}
     />
   );
 }

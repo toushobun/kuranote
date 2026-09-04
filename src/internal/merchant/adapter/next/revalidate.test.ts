@@ -12,11 +12,10 @@ import { revalidateMerchantMutation } from "internal/merchant/adapter/next/reval
 describe("revalidateMerchantMutation", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("统一刷新商家列表与标签管理页面", () => {
+  it("统一刷新包含分类管理的商家页面", () => {
     revalidateMerchantMutation();
 
-    expect(revalidatePath).toHaveBeenCalledTimes(2);
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
-    expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchantsTags);
   });
 });

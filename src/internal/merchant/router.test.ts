@@ -250,7 +250,7 @@ describe("merchant router", () => {
       merchantId,
     });
     expect(archiveAlias).toHaveBeenCalledWith({ aliasId, ledgerId });
-    expect(revalidatePath).toHaveBeenCalledTimes(4);
+    expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
 
   it("跨来源写请求返回 403 且不调用 Service 或缓存失效", async () => {

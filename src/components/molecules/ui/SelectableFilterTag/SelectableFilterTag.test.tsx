@@ -53,7 +53,7 @@ describe("SelectableFilterTag", () => {
     expect(screen.getByText("6")).toBeInTheDocument();
   });
 
-  it("全部用户主题下选中态使用主题色背景与白色文字", () => {
+  it("全部用户主题下选中态使用主题色边框与文字", () => {
     userThemeKeys.forEach((themeKey) => {
       const theme = createDynamicMuiTheme(themeKey);
       const { unmount } = render(
@@ -75,10 +75,12 @@ describe("SelectableFilterTag", () => {
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
       );
-      expect(getComputedStyle(link).backgroundColor).toBe(
+      expect(getComputedStyle(link).borderColor).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),
       );
-      expect(getComputedStyle(label).color).toBe("rgb(255, 255, 255)");
+      expect(getComputedStyle(label).color).toBe(
+        hexToRgbString(userThemeTokens[themeKey].palette.accent),
+      );
       expect(link).toHaveAttribute("aria-current", "page");
 
       unmount();

@@ -1,18 +1,22 @@
 "use client";
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
+import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
@@ -20,27 +24,41 @@ import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/Merch
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { designTokens } from "theme/theme";
-import type { Merchant, MerchantTag } from "types/merchants";
+import type {
+  Merchant,
+  MerchantTag,
+  MerchantTagReorderAction,
+  MerchantTagStateAction,
+} from "types/merchants";
 
 export type MerchantsTemplateProps = {
+  archiveAction: MerchantTagStateAction;
   canManageMerchants?: boolean;
+  createAction: MerchantTagStateAction;
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];
+  reorderAction: MerchantTagReorderAction;
+  updateAction: MerchantTagStateAction;
 };
 
 export function MerchantsTemplate({
+  archiveAction,
   canManageMerchants = true,
+  createAction,
   keyword,
   ledgerId,
   merchants,
   selectedTag,
   tagFilterError,
   tags,
+  reorderAction,
+  updateAction,
 }: MerchantsTemplateProps) {
+  const [isManagingTags, setIsManagingTags] = useState(false);
   const hasMerchants = merchants.length > 0;
   const normalizedKeyword = keyword.trim();
   const hasKeyword = normalizedKeyword.length > 0;
@@ -152,13 +170,46 @@ export function MerchantsTemplate({
           ) : null}
 
           <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
-            <MerchantTagManager
-              canManage={canManageMerchants}
-              keyword={keyword}
-              selectedTagId={selectedTag?.id}
-              tags={tags}
-            />
-            {selectedTag ? (
+            <Stack
+              direction="row"
+              sx={{
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1.5,
+              }}
+            >
+              <Typography component="h2" sx={{ fontWeight: 800 }} variant="h6">
+                {merchantText.categoryManagement}
+              </Typography>
+              {canManageMerchants ? (
+                <Button
+                  aria-controls="merchant-tag-management"
+                  aria-expanded={isManagingTags}
+                  onClick={() => setIsManagingTags((expanded) => !expanded)}
+                  size="small"
+                  startIcon={
+                    isManagingTags ? undefined : (
+                      <TuneRoundedIcon fontSize="small" />
+                    )
+                  }
+                  sx={{ borderRadius: `${designTokens.radius.full}px` }}
+                  variant="outlined"
+                >
+                  {isManagingTags
+                    ? merchantText.managementDone
+                    : merchantText.manageTags}
+                </Button>
+              ) : null}
+            </Stack>
+
+            {!isManagingTags ? (
+              <MerchantTagManager
+                keyword={keyword}
+                selectedTagId={selectedTag?.id}
+                tags={tags}
+              />
+            ) : null}
+            {!isManagingTags && selectedTag ? (
               <Stack
                 direction="row"
                 spacing={1}
@@ -180,7 +231,7 @@ export function MerchantsTemplate({
                 </Button>
               </Stack>
             ) : null}
-            {tagFilterError ? (
+            {!isManagingTags && tagFilterError ? (
               <Alert
                 action={
                   <Button
@@ -198,6 +249,21 @@ export function MerchantsTemplate({
                 {tagFilterError}
               </Alert>
             ) : null}
+            <Collapse
+              id="merchant-tag-management"
+              in={isManagingTags}
+              timeout="auto"
+              unmountOnExit
+            >
+              <MerchantTagManager
+                archiveAction={archiveAction}
+                createAction={createAction}
+                mode="management"
+                reorderAction={reorderAction}
+                tags={tags}
+                updateAction={updateAction}
+              />
+            </Collapse>
           </SectionCard>
 
           <MerchantList

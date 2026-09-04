@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
@@ -15,13 +22,20 @@ const componentSource = readFileSync(
 
 afterEach(cleanup);
 
+const tagAction = async () => ({});
+const reorderAction = async () => ({});
+
 const baseProps = {
+  archiveAction: tagAction,
+  createAction: tagAction,
   keyword: "",
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
   selectedTag: null,
+  reorderAction,
   tagFilterError: null,
   tags: [],
+  updateAction: tagAction,
 };
 
 describe("MerchantsTemplate", () => {
@@ -87,12 +101,56 @@ describe("MerchantsTemplate", () => {
     );
 
     const search = screen.getByLabelText("搜索商家");
-    const tagsHeading = screen.getByText("商家标签");
+    const tagsHeading = screen.getByRole("heading", { name: "分类管理" });
     expect(
       search.compareDocumentPosition(tagsHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
+  });
+
+  it("在页面内展开分类管理并通过完成按钮收起", async () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
+
+    const manageButton = screen.getByRole("button", { name: "管理分类" });
+    expect(manageButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+
+    fireEvent.click(manageButton);
+
+    expect(screen.getByRole("button", { name: "完成" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "新增分类" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("merchant-tag-filter-list"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("merchant-tag-filter-list"),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "新增分类" }),
+    ).not.toBeInTheDocument();
   });
 
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {

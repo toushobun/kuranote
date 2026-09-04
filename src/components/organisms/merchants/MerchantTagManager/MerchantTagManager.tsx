@@ -10,15 +10,16 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
+import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
@@ -37,7 +38,6 @@ import {
 } from "./useMerchantTagManager";
 
 type MerchantTagFilterProps = {
-  canManage: boolean;
   keyword: string;
   mode?: "filter";
   selectedTagId?: string | null;
@@ -68,47 +68,45 @@ function filterHref(keyword: string, tagId?: string) {
 }
 
 function MerchantTagFilter({
-  canManage,
   keyword,
   selectedTagId,
   tags,
 }: MerchantTagFilterProps) {
   return (
-    <Stack spacing={1.5}>
-      <Stack
-        direction="row"
-        sx={{ alignItems: "center", justifyContent: "space-between" }}
-      >
-        <Box>
-          <Typography sx={{ fontWeight: 800 }}>商家标签</Typography>
-          <Typography color="text.secondary" variant="body2">
-            按标签快速筛选常用商家
-          </Typography>
-        </Box>
-        {canManage ? (
-          <Button component={Link} href={routePaths.merchantsTags} size="small">
-            管理标签
-          </Button>
-        ) : null}
-      </Stack>
+    <Stack
+      aria-label="商家分类筛选"
+      data-testid="merchant-tag-filter-list"
+      direction="row"
+      sx={{
+        WebkitOverflowScrolling: "touch",
+        flexWrap: "nowrap",
+        gap: 1,
+        overflowX: "auto",
+        overscrollBehaviorX: "contain",
+        pb: 0.5,
+        scrollbarWidth: "thin",
+        "&::-webkit-scrollbar": { height: 4 },
+        "&::-webkit-scrollbar-thumb": {
+          bgcolor: "divider",
+          borderRadius: `${designTokens.radius.full}px`,
+        },
+      }}
+    >
+      {tags.map((tag) => {
+        const selected = selectedTagId === tag.id;
 
-      <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-        {tags.map((tag) => {
-          const selected = selectedTagId === tag.id;
-
-          return (
-            <SelectableFilterTag
-              ariaLabel={`${tag.name}，${tag.merchant_count} 个商家`}
-              count={tag.merchant_count}
-              href={filterHref(keyword, tag.id)}
-              icon={tag.icon}
-              key={tag.id}
-              label={tag.name}
-              selected={selected}
-            />
-          );
-        })}
-      </Stack>
+        return (
+          <SelectableFilterTag
+            ariaLabel={`${tag.name}，${tag.merchant_count} 个商家`}
+            count={tag.merchant_count}
+            href={filterHref(keyword, tag.id)}
+            icon={tag.icon}
+            key={tag.id}
+            label={tag.name}
+            selected={selected}
+          />
+        );
+      })}
     </Stack>
   );
 }
@@ -172,7 +170,7 @@ function MerchantTagManagement({
   return (
     <Stack spacing={1.5}>
       <Stack spacing={0.5}>
-        {manager.orderedTags.map((tag, index) => (
+        {manager.orderedTags.map((tag) => (
           <Stack
             data-merchant-tag-row-id={tag.id}
             direction="row"
@@ -182,8 +180,13 @@ function MerchantTagManagement({
             spacing={1}
             sx={{
               alignItems: "center",
-              minHeight: 56,
+              border: 1,
+              borderColor: "divider",
+              borderRadius: `${designTokens.radius.item}px`,
+              minHeight: 64,
               opacity: manager.draggedId === tag.id ? 0.58 : 1,
+              px: 1,
+              py: 0.5,
             }}
           >
             <Box
@@ -202,23 +205,40 @@ function MerchantTagManagement({
               {tag.icon}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography noWrap sx={{ fontWeight: 700 }}>
-                {tag.name}
-              </Typography>
-              <Typography color="text.secondary" variant="caption">
-                {tag.merchant_count} 个商家
-              </Typography>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Typography noWrap sx={{ fontWeight: 700 }}>
+                  {tag.name}
+                </Typography>
+                <Box
+                  component="span"
+                  sx={{
+                    bgcolor: "var(--user-theme-icon-badge-bg)",
+                    borderRadius: `${designTokens.radius.full}px`,
+                    color: "primary.main",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    px: 0.75,
+                    py: 0.5,
+                  }}
+                >
+                  {tag.merchant_count}
+                </Box>
+              </Stack>
             </Box>
             <Tooltip title={`编辑${tag.name}`}>
-              <IconButton
+              <Button
                 aria-label={`编辑${tag.name}`}
                 disabled={pending}
                 onClick={() => openEdit(tag)}
                 size="small"
+                startIcon={<EditRoundedIcon fontSize="small" />}
+                sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
               >
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
+                {merchantText.editCategory}
+              </Button>
             </Tooltip>
+            <Divider flexItem orientation="vertical" />
             <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
               <span>
                 <IconButton
@@ -244,23 +264,21 @@ function MerchantTagManagement({
                 </IconButton>
               </span>
             </Tooltip>
-            <Typography
-              color="text.disabled"
-              sx={{ width: 18 }}
-              variant="caption"
-            >
-              {index + 1}
-            </Typography>
           </Stack>
         ))}
         <Button
           disabled={pending}
           onClick={openCreate}
           startIcon={<AddRoundedIcon />}
-          sx={{ alignSelf: "flex-start" }}
+          sx={{
+            borderRadius: `${designTokens.radius.item}px`,
+            borderStyle: "dashed",
+            py: 1.25,
+          }}
           type="button"
+          variant="outlined"
         >
-          新增标签
+          {merchantText.addCategory}
         </Button>
       </Stack>
 
