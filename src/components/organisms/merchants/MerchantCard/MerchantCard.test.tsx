@@ -170,6 +170,13 @@ describe("MerchantCard", () => {
       expect(getComputedStyle(preferredChipLabel as Element).color).toBe(
         toComputedColor(dynamicTheme.palette.primary.contrastText),
       );
+      expect(
+        getComputedStyle(
+          container.querySelector(
+            ".MuiChip-colorPrimary .MuiChip-icon",
+          ) as Element,
+        ).color,
+      ).toBe(toComputedColor(dynamicTheme.palette.primary.contrastText));
 
       unmount();
     });
