@@ -106,9 +106,8 @@ export function MerchantAvatar({
               bgcolor: avatarTone.backgroundColor,
               height: "100%",
               inset: 0,
-              objectFit: "contain",
+              objectFit: "cover",
               opacity: loadedSrc === src ? 1 : 0,
-              p: padding,
               position: "absolute",
               width: "100%",
             }}
