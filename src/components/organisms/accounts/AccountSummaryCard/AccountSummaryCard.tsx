@@ -154,10 +154,11 @@ function SummaryMetric({
   return (
     <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", flex: 1 }}>
       <Stack
+        data-testid="summary-metric-icon"
         sx={{
           alignItems: "center",
           bgcolor: "var(--user-theme-field-card-selected-bg)",
-          borderRadius: 2,
+          borderRadius: `${designTokens.radius.sm}px`,
           color: "var(--user-theme-action-text)",
           height: 38,
           justifyContent: "center",

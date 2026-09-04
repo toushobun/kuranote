@@ -281,7 +281,7 @@ const pageContentSx = {
 };
 
 const summarySectionSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   p: { xs: 2, sm: 2.5 },
 };
 
@@ -301,7 +301,7 @@ const summaryAmountColorMap = {
 } as const;
 
 const rankingSectionSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   flex: 1,
   p: { xs: 2, sm: 2.5 },
 };

@@ -428,7 +428,7 @@ const pageSubtitleSx = {
 };
 
 const formCardSx = {
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   p: { xs: 1.6, sm: 2 },
 };
 
@@ -506,7 +506,7 @@ function colorSwatchSx(accent: string) {
 
 const automaticCardSx = {
   bgcolor: "var(--user-theme-card-bg)",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.xl}px`,
   boxShadow: "none",
   p: { xs: 1.7, sm: 2 },
 };

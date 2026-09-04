@@ -47,6 +47,7 @@ import {
 } from "organisms/transactions/TransactionForm/TransactionForm";
 import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm/TransactionForm.styles";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
+import { designTokens } from "theme/theme";
 import type { TransferEditInitialValues } from "types/transactions";
 import type {
   TransactionAccountOption,
@@ -669,7 +670,7 @@ const editTransactionActionBarSx = {
 };
 
 const editTransactionDeleteButtonSx = {
-  borderRadius: 1.75,
+  borderRadius: `${designTokens.radius.md}px`,
   fontSize: "1rem",
   fontWeight: 800,
   minHeight: 48,

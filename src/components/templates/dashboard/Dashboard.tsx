@@ -15,6 +15,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
+import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { DashboardViewData } from "types/dashboard";
 import { formatNumber } from "utils/transactions";
@@ -306,7 +307,7 @@ function DashboardSummaryPill({
   return (
     <SectionCard
       sx={{
-        borderRadius: 1.25,
+        borderRadius: `${designTokens.radius.lg}px`,
         minWidth: 0,
         px: { xs: 0.8, sm: 1.2 },
         py: 1.05,
@@ -373,7 +374,7 @@ function DashboardQuickActions({ hasLedger }: { hasLedger: boolean }) {
         const content = (
           <SectionCard
             sx={{
-              borderRadius: 1.25,
+              borderRadius: `${designTokens.radius.lg}px`,
               color: isActive ? actionText : inactiveActionText,
               minHeight: shouldShowLedgerCaption ? 74 : 68,
               px: 0.7,

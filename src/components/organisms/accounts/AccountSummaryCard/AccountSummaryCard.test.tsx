@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { designTokens, theme } from "theme/theme";
 import type { Account } from "types/accounts";
 
 import { AccountSummaryCard } from "./AccountSummaryCard";
@@ -45,6 +47,22 @@ const accounts: Account[] = [
 ];
 
 describe("AccountSummaryCard", () => {
+  it("统计指标图标使用方圆角而不是被裸数字放大成整圆", () => {
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <AccountSummaryCard accounts={accounts} baseCurrency="JPY" />
+      </ThemeProvider>,
+    );
+
+    const icons = within(container).getAllByTestId("summary-metric-icon");
+    expect(icons).toHaveLength(2);
+    for (const icon of icons) {
+      expect(getComputedStyle(icon).borderRadius).toBe(
+        `${designTokens.radius.sm}px`,
+      );
+    }
+  });
+
   it("显示账户总余额", () => {
     const { container } = render(
       <AccountSummaryCard accounts={accounts} baseCurrency="JPY" />,

@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import { keyframes } from "@mui/material/styles";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
+import { designTokens } from "theme/theme";
 
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
@@ -220,7 +221,7 @@ export function TransactionDateTimePicker({
           sx={{
             bgcolor: "var(--user-theme-card-bg)",
             borderColor: "var(--user-theme-card-border)",
-            borderRadius: 1.25,
+            borderRadius: `${designTokens.radius.md}px`,
             color: "text.primary",
             justifyContent: "flex-start",
             minHeight: 50,

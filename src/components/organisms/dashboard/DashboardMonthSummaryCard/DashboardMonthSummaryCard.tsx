@@ -39,7 +39,7 @@ export function DashboardMonthSummaryCard({
   return (
     <SectionCard
       sx={{
-        borderRadius: 1.25,
+        borderRadius: `${designTokens.radius.lg}px`,
         overflow: "hidden",
         p: 1.5,
       }}

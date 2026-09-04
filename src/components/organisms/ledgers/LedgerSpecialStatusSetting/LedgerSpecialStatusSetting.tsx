@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { transactionSpecialStatuses } from "internal/transaction";
+import { designTokens } from "theme/theme";
 
 // 退款不是 transaction_item.special_status 里的一个状态（它通过金额关联表
 // transaction_item_refund_link 表达，明细上展示的是"已退款 ¥X"这种带金额的
@@ -146,7 +147,10 @@ const sectionTitleSx = {
   px: 0.35,
 };
 
-const cardSx = { borderRadius: 2, p: { xs: 1.5, sm: 1.75 } };
+const cardSx = {
+  borderRadius: `${designTokens.radius.lg}px`,
+  p: { xs: 1.5, sm: 1.75 },
+};
 
 const stateSx = {
   alignItems: "center",

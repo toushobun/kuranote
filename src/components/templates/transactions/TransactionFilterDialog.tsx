@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
+import { designTokens } from "theme/theme";
 import type {
   TransactionFilterOptions,
   TransactionFilters,
@@ -61,7 +62,7 @@ export function TransactionFilterDialog({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: 4,
+            borderRadius: `${designTokens.radius.xl}px`,
             mx: 1.5,
             width: "calc(100% - 24px)",
           },
@@ -275,14 +276,14 @@ const errorMessageSx = {
 
 const resetButtonSx = {
   borderColor: "var(--user-theme-card-border)",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.md}px`,
   color: "text.primary",
   fontWeight: 900,
 };
 
 const applyButtonSx = {
   bgcolor: "var(--user-theme-action-bg)",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.md}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 900,
   "&:hover": {

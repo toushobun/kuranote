@@ -52,7 +52,7 @@ export function AccountCard({
     >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-          <Box sx={accountIconSx}>
+          <Box data-testid="account-card-icon" sx={accountIconSx}>
             <AccountTypeIcon type={type} />
           </Box>
 
@@ -164,7 +164,7 @@ function AccountTypeIcon({ type }: { type: AccountType }) {
 const accountIconSx = {
   alignItems: "center",
   bgcolor: "var(--user-theme-field-card-selected-bg)",
-  borderRadius: 2,
+  borderRadius: `${designTokens.radius.sm}px`,
   color: "var(--user-theme-action-text)",
   display: "flex",
   flex: "0 0 auto",

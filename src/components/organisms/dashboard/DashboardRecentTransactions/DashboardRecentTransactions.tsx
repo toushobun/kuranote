@@ -55,7 +55,7 @@ export function DashboardRecentTransactions({
 
       <SectionCard
         sx={{
-          borderRadius: 1.25,
+          borderRadius: `${designTokens.radius.lg}px`,
           overflow: "hidden",
           px: 1.2,
           py: 0,

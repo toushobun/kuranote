@@ -30,6 +30,7 @@ export const designTokens = {
     item: 12,
     md: 16,
     lg: 24,
+    xl: 32,
     full: 999,
   },
   opacity: {

@@ -12,6 +12,7 @@ import {
   PrimaryActionButton,
   primaryActionButtonNoHoverBrightenSx,
 } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { designTokens } from "theme/theme";
 import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
@@ -140,7 +141,7 @@ export function TransactionAmountKeypad({
         sx={{
           bgcolor: "background.paper",
           borderColor: "divider",
-          borderRadius: 2.5,
+          borderRadius: `${designTokens.radius.md}px`,
           color: isOperator ? "var(--user-theme-action-text)" : "text.primary",
           fontSize: "1.25rem",
           fontWeight: 800,
@@ -166,7 +167,7 @@ export function TransactionAmountKeypad({
       variant="outlined"
       sx={{
         borderColor: "divider",
-        borderRadius: 3,
+        borderRadius: `${designTokens.radius.xl}px`,
         boxShadow: 3,
         bgcolor: "background.paper",
         p: 2,
@@ -217,7 +218,7 @@ export function TransactionAmountKeypad({
             onClick={handleConfirm}
             type="button"
             sx={{
-              borderRadius: 2.5,
+              borderRadius: `${designTokens.radius.md}px`,
               fontWeight: 800,
               gridColumn: 4,
               gridRow: "3 / span 2",

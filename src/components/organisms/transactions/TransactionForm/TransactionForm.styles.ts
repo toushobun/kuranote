@@ -1,4 +1,5 @@
 import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 
 export const smallIconButtonSx = {
@@ -27,7 +28,7 @@ export const transactionSectionTitleSx = {
 export const transactionNoteFieldSx = {
   "& .MuiOutlinedInput-root": {
     bgcolor: "var(--user-theme-card-bg)",
-    borderRadius: 1.25,
+    borderRadius: `${designTokens.radius.md}px`,
     minHeight: 50,
     py: 0.75,
   },
@@ -39,14 +40,14 @@ export const transactionNoteFieldSx = {
 export const transactionSummarySurfaceSx = {
   bgcolor: "var(--user-theme-tx-summary-bg)",
   ...userThemeCardBorderSx,
-  borderRadius: 1.75,
+  borderRadius: `${designTokens.radius.lg}px`,
   boxShadow: "none",
   px: 1.5,
   py: 1.25,
 };
 
 export const transactionSubmitButtonSx = {
-  borderRadius: 1.75,
+  borderRadius: `${designTokens.radius.md}px`,
   fontSize: "1rem",
   fontWeight: 800,
   minHeight: 48,

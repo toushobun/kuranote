@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 
 import { IconBadge } from "atoms/ui/IconBadge";
 import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
+import { designTokens } from "theme/theme";
 
 type TransactionSelectionTone =
   | "account"
@@ -50,7 +51,7 @@ export const transactionSelectionSelectSx = {
   },
   "& .MuiOutlinedInput-root": {
     ...outlinedInputTokenSx["& .MuiOutlinedInput-root"],
-    borderRadius: 1.25,
+    borderRadius: `${designTokens.radius.md}px`,
     minHeight: 50,
     pr: 4.5,
   },

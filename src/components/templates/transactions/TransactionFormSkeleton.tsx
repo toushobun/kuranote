@@ -204,14 +204,14 @@ const titleSx = {
 
 const typeNavigationSkeletonSx = {
   bgcolor: "var(--user-theme-segment-bg)",
-  borderRadius: 2.5,
+  borderRadius: `${designTokens.radius.lg}px`,
   mb: 1.75,
 };
 
 const fieldSkeletonSx = {
   bgcolor: "var(--user-theme-card-bg)",
   ...userThemeCardBorderSx,
-  borderRadius: 1.25,
+  borderRadius: `${designTokens.radius.md}px`,
 };
 
 const itemCardSkeletonSx = {
@@ -237,5 +237,5 @@ const editActionBarSx = {
 };
 
 const editDeleteButtonSkeletonSx = {
-  borderRadius: 1.75,
+  borderRadius: `${designTokens.radius.md}px`,
 };

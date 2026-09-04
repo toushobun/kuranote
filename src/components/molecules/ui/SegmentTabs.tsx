@@ -56,7 +56,7 @@ export function SegmentTabs({
           p: 0.5,
           "& .MuiToggleButton-root": {
             border: 0,
-            borderRadius: 1.25,
+            borderRadius: `${designTokens.radius.md}px`,
             color: "var(--user-theme-segment-text)",
             fontWeight: 800,
             minHeight: 36,

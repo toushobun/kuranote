@@ -215,7 +215,7 @@ function schemeOptionSx(isSelected: boolean) {
     borderColor: isSelected
       ? "var(--user-theme-field-card-selected-border)"
       : "divider",
-    borderRadius: 2,
+    borderRadius: `${designTokens.radius.item}px`,
     display: "flex",
     gap: 1.25,
     justifyContent: "space-between",

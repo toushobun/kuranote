@@ -508,7 +508,7 @@ function GroupItemsSkeleton() {
           key={index}
           sx={{
             bgcolor: "var(--user-theme-receipt-bg)",
-            borderRadius: 2,
+            borderRadius: `${designTokens.radius.xl}px`,
             height: 82,
             opacity: 0.72,
           }}

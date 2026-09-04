@@ -1,5 +1,8 @@
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { designTokens, theme } from "theme/theme";
 
 import { AccountCard } from "./AccountCard";
 
@@ -16,6 +19,19 @@ const baseProps = {
 };
 
 describe("AccountCard", () => {
+  it("图标容器使用方圆角而不是被裸数字放大成整圆", () => {
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <AccountCard {...baseProps} />
+      </ThemeProvider>,
+    );
+
+    const icon = within(container).getByTestId("account-card-icon");
+    expect(getComputedStyle(icon).borderRadius).toBe(
+      `${designTokens.radius.sm}px`,
+    );
+  });
+
   it("显示账户名称", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 

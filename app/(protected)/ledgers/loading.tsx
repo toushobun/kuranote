@@ -7,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { designTokens } from "theme/theme";
 
 const ledgerLoadingRows = 4;
 
@@ -31,7 +32,12 @@ export default function LedgersLoadingPage() {
             </Stack>
           </Stack>
 
-          <SoftCard sx={{ borderRadius: 2, p: { xs: 1.7, sm: 2 } }}>
+          <SoftCard
+            sx={{
+              borderRadius: `${designTokens.radius.lg}px`,
+              p: { xs: 1.7, sm: 2 },
+            }}
+          >
             <Stack spacing={1.45}>
               <Stack
                 direction="row"
@@ -57,7 +63,10 @@ export default function LedgersLoadingPage() {
           <Stack spacing={0.8}>
             <Skeleton sx={{ fontSize: 18 }} width="38%" />
             {Array.from({ length: ledgerLoadingRows }, (_, index) => (
-              <SoftCard key={index} sx={{ borderRadius: 2, p: 1.35 }}>
+              <SoftCard
+                key={index}
+                sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 1.35 }}
+              >
                 <Stack
                   direction="row"
                   spacing={1.25}
