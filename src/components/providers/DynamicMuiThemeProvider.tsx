@@ -15,14 +15,17 @@ type DynamicMuiThemeProviderProps = {
 export function createDynamicMuiTheme(themeKey: UserThemeKey) {
   const token = userThemeTokens[themeKey];
   const overlayPaperBackground = baseTheme.palette.background.paper;
+  const primary = baseTheme.palette.augmentColor({
+    color: {
+      main: token.palette.accent,
+      light: token.palette.accentLight,
+      dark: token.palette.accentDeep,
+    },
+  });
 
   return createTheme(baseTheme, {
     palette: {
-      primary: {
-        main: token.palette.accent,
-        light: token.palette.accentLight,
-        dark: token.palette.accentDeep,
-      },
+      primary,
       background: {
         default: token.palette.page,
         // 普通 MUI Paper / Card 跟随用户主题 card；浮层组件在下方单独固定为 base paper。
