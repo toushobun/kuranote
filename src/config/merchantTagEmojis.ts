@@ -85,8 +85,8 @@ export const merchantTagEmojiOptions = [
   {
     emoji: "🏷️",
     groupId: "service",
-    keywords: ["默认", "标签", "其他"],
-    label: "标签",
+    keywords: ["默认", "分类", "其他"],
+    label: "分类",
   },
 ] as const;
 

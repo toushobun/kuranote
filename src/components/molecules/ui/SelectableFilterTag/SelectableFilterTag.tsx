@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
+import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -30,21 +31,27 @@ export function SelectableFilterTag({
       component={Link}
       href={href}
       sx={{
-        bgcolor: selected ? "primary.main" : "background.paper",
+        bgcolor: selected
+          ? "var(--user-theme-field-card-selected-bg)"
+          : "background.paper",
         border: 1,
-        borderColor: selected ? "primary.main" : "divider",
+        borderColor: selected
+          ? "var(--user-theme-field-card-selected-border)"
+          : "divider",
         borderRadius: `${designTokens.radius.item}px`,
-        color: selected ? "common.white" : "text.primary",
-        flexDirection: "column",
-        gap: 0.75,
-        minHeight: 92,
+        color: selected ? "primary.main" : "text.primary",
+        flexDirection: "row",
+        flexShrink: 0,
+        gap: 1,
+        minHeight: 56,
         overflow: "hidden",
-        position: "relative",
-        px: 1,
-        py: 1.25,
-        width: { xs: 86, sm: 96 },
+        px: 1.25,
+        py: 0.75,
+        whiteSpace: "nowrap",
         "&:hover": {
-          bgcolor: selected ? "primary.dark" : "action.hover",
+          bgcolor: selected
+            ? "var(--user-theme-field-card-selected-bg)"
+            : "action.hover",
         },
       }}
     >
@@ -52,15 +59,13 @@ export function SelectableFilterTag({
         aria-hidden
         sx={{
           alignItems: "center",
-          bgcolor: selected
-            ? "rgba(255, 255, 255, 0.2)"
-            : "var(--user-theme-icon-badge-bg)",
+          bgcolor: "var(--user-theme-icon-badge-bg)",
           borderRadius: `${designTokens.radius.sm}px`,
           display: "flex",
           fontSize: "1.6rem",
-          height: 44,
+          height: 40,
           justifyContent: "center",
-          width: 44,
+          width: 40,
         }}
       >
         {icon}
@@ -73,28 +78,17 @@ export function SelectableFilterTag({
       >
         {label}
       </Typography>
-      <Box
+      <Chip
         aria-hidden
-        component="span"
+        color={selected ? "primary" : "default"}
+        label={count}
+        size="small"
         sx={{
-          alignItems: "center",
-          bgcolor: selected ? "primary.contrastText" : "primary.main",
-          borderRadius: `${designTokens.radius.full}px`,
-          color: selected ? "primary.main" : "primary.contrastText",
-          display: "flex",
-          fontSize: "0.6875rem",
-          fontWeight: 800,
           height: 22,
-          justifyContent: "center",
           minWidth: 22,
-          px: 0.5,
-          position: "absolute",
-          right: 6,
-          top: 6,
+          "& .MuiChip-label": { px: 0.75 },
         }}
-      >
-        {count}
-      </Box>
+      />
     </ButtonBase>
   );
 }

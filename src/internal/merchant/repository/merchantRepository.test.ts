@@ -304,7 +304,7 @@ describe("createSupabaseMerchantRepository", () => {
 
       await expect(operation).rejects.toMatchObject({
         code: merchantErrorCodes.merchantTagInvalid,
-        message: "该商家标签不存在或已不可用。",
+        message: "该商家分类不存在或已不可用。",
       });
       await expect(operation).rejects.toBeInstanceOf(ValidationError);
     },
@@ -546,14 +546,14 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.merchantTagOrderInvalid,
       details: "merchant_tag_order_invalid",
       errorType: ValidationError,
-      message: "标签排序内容不正确。",
+      message: "分类排序内容不正确。",
     },
     {
       databaseCode: "22023",
       code: merchantErrorCodes.merchantTagSetInvalid,
       details: "merchant_tag_set_invalid",
       errorType: ConflictError,
-      message: "标签列表已发生变化，请刷新页面后重试。",
+      message: "分类列表已发生变化，请刷新页面后重试。",
     },
     {
       databaseCode: "P0002",
@@ -567,7 +567,7 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.merchantTagReorderFailed,
       details: "merchant_tag_write_failed",
       errorType: ConflictError,
-      message: "标签排序保存失败，请稍后重试。",
+      message: "分类排序保存失败，请稍后重试。",
     },
   ])(
     "标签排序 RPC 的 $details 会转换为对应业务错误",

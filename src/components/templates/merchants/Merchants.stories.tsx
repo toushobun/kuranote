@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import {
   createMerchantAliasRow,
@@ -6,6 +7,9 @@ import {
 } from "@/test/mocks/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
+
+const tagAction = async () => ({});
+const reorderAction = async () => ({});
 
 const tags = [
   {
@@ -21,6 +25,27 @@ const tags = [
     merchant_count: 1,
     name: "电商",
     sort_order: 1,
+  },
+  {
+    icon: "🍽️",
+    id: "00000000-0000-4000-8000-000000002003",
+    merchant_count: 4,
+    name: "餐饮",
+    sort_order: 2,
+  },
+  {
+    icon: "🛋️",
+    id: "00000000-0000-4000-8000-000000002004",
+    merchant_count: 3,
+    name: "家居",
+    sort_order: 3,
+  },
+  {
+    icon: "🧴",
+    id: "00000000-0000-4000-8000-000000002005",
+    merchant_count: 5,
+    name: "日用",
+    sort_order: 4,
   },
 ];
 
@@ -44,12 +69,16 @@ const meta = {
   title: "Templates/Merchants/MerchantsTemplate",
   component: MerchantsTemplate,
   args: {
+    archiveAction: tagAction,
+    createAction: tagAction,
     keyword: "",
     ledgerId: "ledger-1",
     merchants,
     selectedTag: null,
+    reorderAction,
     tagFilterError: null,
     tags,
+    updateAction: tagAction,
   },
 } satisfies Meta<typeof MerchantsTemplate>;
 
@@ -57,6 +86,23 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "商家页面" };
+
+export const CategoryManagementExpanded: Story = {
+  name: "展开分类管理",
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "管理分类" }),
+    );
+  },
+};
+
+export const CategorySelected: Story = {
+  args: {
+    merchants: [merchants[1]],
+    selectedTag: tags[1],
+  },
+  name: "已筛选分类",
+};
 
 export const WithKeyword: Story = {
   name: "带搜索词",
@@ -69,10 +115,10 @@ export const Empty: Story = {
 };
 
 export const UnavailableTagFilter: Story = {
-  name: "标签筛选已失效",
+  name: "分类筛选已失效",
   args: {
     ledgerId: "ledger-1",
     merchants: [],
-    tagFilterError: "该商家标签不存在或已不可用。",
+    tagFilterError: "该商家分类不存在或已不可用。",
   },
 };

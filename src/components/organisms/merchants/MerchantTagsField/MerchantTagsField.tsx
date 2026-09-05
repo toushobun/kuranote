@@ -54,7 +54,7 @@ export function MerchantTagsField({
         </Stack>
       ) : (
         <Typography color="text.secondary" variant="body2">
-          暂无可选标签，可在商家管理页新增。
+          {merchantText.tagsEmpty}
         </Typography>
       )}
       {[...selectedIds].map((tagId) => (

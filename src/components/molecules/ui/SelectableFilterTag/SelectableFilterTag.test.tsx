@@ -32,6 +32,13 @@ function hexToRgbString(hexColor: string) {
   return `rgb(${red}, ${green}, ${blue})`;
 }
 
+function getDocumentCssText() {
+  return Array.from(document.styleSheets)
+    .flatMap((styleSheet) => Array.from(styleSheet.cssRules))
+    .map((rule) => rule.cssText)
+    .join("\n");
+}
+
 describe("SelectableFilterTag", () => {
   it("显示图标、文字和数量并作为筛选链接导航", () => {
     render(
@@ -53,7 +60,7 @@ describe("SelectableFilterTag", () => {
     expect(screen.getByText("6")).toBeInTheDocument();
   });
 
-  it("全部用户主题下选中态使用主题色背景与白色文字", () => {
+  it("全部用户主题下选中态使用主题色边框与文字", () => {
     userThemeKeys.forEach((themeKey) => {
       const theme = createDynamicMuiTheme(themeKey);
       const { unmount } = render(
@@ -75,10 +82,18 @@ describe("SelectableFilterTag", () => {
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
       );
-      expect(getComputedStyle(link).backgroundColor).toBe(
+      expect(getDocumentCssText()).toContain(
+        "var(--user-theme-field-card-selected-border)",
+      );
+      expect(getDocumentCssText()).toContain(
+        "var(--user-theme-field-card-selected-bg)",
+      );
+      expect(getDocumentCssText()).toMatch(
+        /:hover[^}]*var\(--user-theme-field-card-selected-bg\)/,
+      );
+      expect(getComputedStyle(label).color).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),
       );
-      expect(getComputedStyle(label).color).toBe("rgb(255, 255, 255)");
       expect(link).toHaveAttribute("aria-current", "page");
 
       unmount();

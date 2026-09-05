@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,40 +20,38 @@ const action = vi.fn(async () => ({}));
 
 describe("MerchantTagManager", () => {
   it("标签徽标保留关键词并切换筛选", () => {
-    render(<MerchantTagManager canManage keyword="Life" tags={tags} />);
+    render(<MerchantTagManager keyword="Life" tags={tags} />);
     expect(screen.getByRole("link", { name: /超市/ })).toHaveAttribute(
       "href",
       "/merchants?q=Life&tagId=tag-1",
     );
   });
 
-  it("通过独立页面管理标签，并用统一圆角卡片显示选中态", () => {
-    render(
-      <MerchantTagManager
-        canManage
-        keyword=""
-        selectedTagId="tag-1"
-        tags={tags}
-      />,
-    );
+  it("以横向单行列表显示分类筛选并标记选中态", () => {
+    render(<MerchantTagManager keyword="" selectedTagId="tag-1" tags={tags} />);
 
-    expect(screen.getByRole("link", { name: "管理标签" })).toHaveAttribute(
-      "href",
-      "/merchants/tags",
-    );
+    expect(screen.queryByText("商家标签")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("按标签快速筛选常用商家"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-filter-list")).toHaveStyle({
+      flexWrap: "nowrap",
+      overflowX: "auto",
+    });
     const selectedTag = screen.getByRole("link", { name: /超市/ });
     expect(selectedTag).toHaveAttribute("aria-current", "page");
     expect(selectedTag).toHaveStyle({
       borderRadius: `${designTokens.radius.item}px`,
     });
     expect(
-      screen.queryByRole("button", { name: "新增标签" }),
+      screen.queryByRole("button", { name: "新增分类" }),
     ).not.toBeInTheDocument();
   });
 
-  it("在管理模式打开新增与编辑弹窗", async () => {
-    render(
+  it("管理行显示分类数量、编辑入口与排序入口，不显示序号列", () => {
+    const { container } = render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={action}
         mode="management"
@@ -62,30 +61,63 @@ describe("MerchantTagManager", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "新增标签" }));
+    const row = container.querySelector('[data-merchant-tag-row-id="tag-1"]');
+    expect(row).not.toBeNull();
+    expect(row).toHaveTextContent("🛒超市2编辑");
+    expect(row).not.toHaveTextContent("2 个商家");
     expect(
-      screen.getByRole("heading", { name: "新增标签" }),
+      within(row as HTMLElement)
+        .getByText("2")
+        .closest(".MuiChip-root"),
+    ).not.toHaveAttribute("aria-hidden");
+    expect(
+      screen.getByRole("button", { name: "编辑超市" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+    expect(
+      screen.getByRole("button", { name: "调整超市排序" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "新增分类" }),
+    ).toBeInTheDocument();
+  });
+
+  it("在管理模式打开新增与编辑弹窗", async () => {
+    render(
+      <MerchantTagManager
+        active
+        archiveAction={action}
+        createAction={action}
+        mode="management"
+        reorderAction={async () => ({})}
+        tags={tags}
+        updateAction={action}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    expect(
+      screen.getByRole("heading", { name: "新增分类" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveAttribute(
       "maxlength",
       "100",
     );
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: "新增标签" }),
+        screen.queryByRole("heading", { name: "新增分类" }),
       ).not.toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "标签名称" })).toHaveAttribute(
+    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveAttribute(
       "maxlength",
       "100",
     );
     expect(
-      screen.getByRole("button", { name: "归档标签" }),
+      screen.getByRole("button", { name: "归档分类" }),
     ).toBeInTheDocument();
   });
 
@@ -101,6 +133,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={createAction}
         mode="management"
@@ -110,7 +143,7 @@ describe("MerchantTagManager", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "新增标签" }));
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
     fireEvent.change(document.querySelector('input[name="name"]')!, {
       target: { value: "重复标签" },
     });
@@ -126,16 +159,17 @@ describe("MerchantTagManager", () => {
     await waitFor(() => expect(createAction).toHaveBeenCalledOnce());
 
     await act(async () => {
-      resolveCreate?.({ error: "标签名称重复。", errorKey: "failure-1" });
+      resolveCreate?.({ error: "分类名称重复。", errorKey: "failure-1" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "新增标签" }),
+      screen.getByRole("heading", { name: "新增分类" }),
     ).toBeInTheDocument();
     expect(document.querySelector('input[name="name"]')).toHaveValue(
       "重复标签",
     );
     expect(document.querySelector('input[name="icon"]')).toHaveValue("📦");
+    expect(screen.getByText("分类新增失败")).toBeInTheDocument();
   });
 
   it("编辑失败时保留对话框和用户输入", async () => {
@@ -150,6 +184,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={action}
         mode="management"
@@ -167,11 +202,11 @@ describe("MerchantTagManager", () => {
     await waitFor(() => expect(updateAction).toHaveBeenCalledOnce());
 
     await act(async () => {
-      resolveUpdate?.({ error: "标签名称重复。", errorKey: "failure-2" });
+      resolveUpdate?.({ error: "分类名称重复。", errorKey: "failure-2" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
     expect(document.querySelector('input[name="name"]')).toHaveValue(
       "重复标签",
@@ -190,6 +225,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={archiveAction}
         createAction={action}
         mode="management"
@@ -200,18 +236,18 @@ describe("MerchantTagManager", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
-    fireEvent.click(screen.getByRole("button", { name: "归档标签" }));
+    fireEvent.click(screen.getByRole("button", { name: "归档分类" }));
     await waitFor(() => expect(archiveAction).toHaveBeenCalledOnce());
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
 
     await act(async () => {
-      resolveArchive?.({ error: "标签归档失败。", errorKey: "failure-3" });
+      resolveArchive?.({ error: "分类归档失败。", errorKey: "failure-3" });
     });
 
     expect(
-      screen.getByRole("heading", { name: "编辑标签" }),
+      screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();
   });
 });

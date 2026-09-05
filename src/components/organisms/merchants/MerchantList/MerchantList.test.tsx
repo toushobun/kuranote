@@ -63,4 +63,14 @@ describe("MerchantList", () => {
       within(container).queryByRole("link", { name: "添加第一个商家" }),
     ).not.toBeInTheDocument();
   });
+
+  it("分类筛选无结果时使用分类术语", () => {
+    const { container } = render(
+      <MerchantList {...baseProps} merchants={[]} tagFiltered />,
+    );
+
+    expect(
+      within(container).getByText("当前分类下还没有商家。"),
+    ).toBeInTheDocument();
+  });
 });

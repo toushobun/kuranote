@@ -585,7 +585,7 @@ describe("createMerchantService", () => {
     ).resolves.toMatchObject({
       merchants: [],
       selectedTag: null,
-      tagFilterError: "该商家标签不存在或已不可用。",
+      tagFilterError: "该商家分类不存在或已不可用。",
       tags: [],
     });
   });

@@ -1,7 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
@@ -15,13 +23,20 @@ const componentSource = readFileSync(
 
 afterEach(cleanup);
 
+const tagAction = async () => ({});
+const reorderAction = async () => ({});
+
 const baseProps = {
+  archiveAction: tagAction,
+  createAction: tagAction,
   keyword: "",
   ledgerId: "ledger-1",
   merchants: [createMerchantRow()],
   selectedTag: null,
+  reorderAction,
   tagFilterError: null,
   tags: [],
+  updateAction: tagAction,
 };
 
 describe("MerchantsTemplate", () => {
@@ -87,12 +102,338 @@ describe("MerchantsTemplate", () => {
     );
 
     const search = screen.getByLabelText("搜索商家");
-    const tagsHeading = screen.getByText("商家标签");
+    const tagsHeading = screen.getByRole("heading", { name: "分类管理" });
     expect(
       search.compareDocumentPosition(tagsHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
+  });
+
+  it("在页面内展开分类管理并通过完成按钮收起", async () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
+
+    const manageButton = screen.getByRole("button", { name: "管理分类" });
+    expect(manageButton).toHaveAttribute("aria-expanded", "false");
+    expect(manageButton).not.toHaveAttribute("aria-controls");
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("merchant-tag-management-panel"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(manageButton);
+
+    expect(screen.getByRole("button", { name: "完成" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "新增分类" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("merchant-tag-filter-list"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(
+      screen.queryByTestId("merchant-tag-filter-list"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-management-panel")).toHaveAttribute(
+      "inert",
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("merchant-tag-filter-list"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "新增分类" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("展开后权限被移除时隐藏管理区并恢复筛选区", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    expect(
+      screen.getByRole("button", { name: "新增分类" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("搜索商家"), {
+      target: { value: "尚未提交的搜索" },
+    });
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "管理分类" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("merchant-tag-filter-list"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "新增分类" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("搜索商家")).toHaveValue("尚未提交的搜索");
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+
+    expect(screen.getByRole("button", { name: "管理分类" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+  });
+
+  it("只读成员不会挂载分类管理树", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("merchant-tag-management-panel"),
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelector('[data-merchant-tag-row-id="tag-1"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it("权限移除后关闭并清除旧的新增弹窗", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    expect(
+      screen.getByRole("heading", { name: "新增分类" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "新增分类" }),
+      ).not.toBeInTheDocument(),
+    );
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "管理分类" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "新增分类" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("权限移除后关闭并清除旧的编辑弹窗", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
+    expect(
+      screen.getByRole("heading", { name: "编辑分类" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "编辑分类" }),
+      ).not.toBeInTheDocument(),
+    );
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "管理分类" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "编辑分类" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("分类排序提交期间禁止收起管理区", async () => {
+    let resolveReorder: ((state: Record<string, never>) => void) | null = null;
+    const pendingReorderAction = async () =>
+      new Promise<Record<string, never>>((resolve) => {
+        resolveReorder = resolve;
+      });
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        reorderAction={pendingReorderAction}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+          {
+            icon: "🍽️",
+            id: "tag-2",
+            merchant_count: 2,
+            name: "餐饮",
+            sort_order: 1,
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "调整超市排序" }), {
+      key: "ArrowDown",
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "完成" })).toBeDisabled(),
+    );
+
+    await act(async () => resolveReorder?.({}));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "完成" })).toBeEnabled(),
+    );
+  });
+
+  it("权限变化时保留进行中的排序请求及失败反馈", async () => {
+    let resolveReorder:
+      | ((state: { error: string; errorKey: string }) => void)
+      | null = null;
+    const pendingReorderAction = async () =>
+      new Promise<{ error: string; errorKey: string }>((resolve) => {
+        resolveReorder = resolve;
+      });
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+      {
+        icon: "🍽️",
+        id: "tag-2",
+        merchant_count: 2,
+        name: "餐饮",
+        sort_order: 1,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate
+        {...baseProps}
+        reorderAction={pendingReorderAction}
+        tags={tags}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "调整超市排序" }), {
+      key: "ArrowDown",
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "完成" })).toBeDisabled(),
+    );
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        reorderAction={pendingReorderAction}
+        tags={tags}
+      />,
+    );
+
+    await act(async () =>
+      resolveReorder?.({
+        error: "分类排序未能保存。",
+        errorKey: "permission-change-error",
+      }),
+    );
+
+    expect(screen.getByText("分类排序失败")).toBeInTheDocument();
+    expect(screen.getByText("分类排序未能保存。")).toBeInTheDocument();
   });
 
   it("搜索无结果时保留搜索框并显示搜索空状态", () => {
@@ -109,23 +450,30 @@ describe("MerchantsTemplate", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("标签筛选失效时显示原因和清除入口", () => {
+  it("分类筛选失效时在管理区展开后仍显示原因和清除入口", () => {
     render(
       <MerchantsTemplate
         {...baseProps}
         keyword="  LIFE 超市  "
         merchants={[]}
-        tagFilterError="该商家标签不存在或已不可用。"
+        tagFilterError="该商家分类不存在或已不可用。"
       />,
     );
 
     expect(
-      screen.getByText("该商家标签不存在或已不可用。"),
+      screen.getByText("该商家分类不存在或已不可用。"),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
       "href",
       "/merchants?q=LIFE%20%E8%B6%85%E5%B8%82",
     );
     expect(screen.getByText("没有找到匹配的商家")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.getByText("该商家分类不存在或已不可用。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "清除筛选" })).toBeInTheDocument();
   });
 });

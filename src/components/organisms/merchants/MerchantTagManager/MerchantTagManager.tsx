@@ -6,19 +6,21 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
+import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
@@ -37,7 +39,6 @@ import {
 } from "./useMerchantTagManager";
 
 type MerchantTagFilterProps = {
-  canManage: boolean;
   keyword: string;
   mode?: "filter";
   selectedTagId?: string | null;
@@ -45,9 +46,11 @@ type MerchantTagFilterProps = {
 };
 
 type MerchantTagManagementProps = {
+  active: boolean;
   archiveAction: MerchantTagStateAction;
   createAction: MerchantTagStateAction;
   mode: "management";
+  onPendingChange?: (pending: boolean) => void;
   reorderAction: MerchantTagReorderAction;
   tags: MerchantTag[];
   updateAction: MerchantTagStateAction;
@@ -68,54 +71,57 @@ function filterHref(keyword: string, tagId?: string) {
 }
 
 function MerchantTagFilter({
-  canManage,
   keyword,
   selectedTagId,
   tags,
 }: MerchantTagFilterProps) {
   return (
-    <Stack spacing={1.5}>
-      <Stack
-        direction="row"
-        sx={{ alignItems: "center", justifyContent: "space-between" }}
-      >
-        <Box>
-          <Typography sx={{ fontWeight: 800 }}>商家标签</Typography>
-          <Typography color="text.secondary" variant="body2">
-            按标签快速筛选常用商家
-          </Typography>
-        </Box>
-        {canManage ? (
-          <Button component={Link} href={routePaths.merchantsTags} size="small">
-            管理标签
-          </Button>
-        ) : null}
-      </Stack>
+    <Stack
+      aria-label={merchantText.categoryFilterAriaLabel}
+      data-testid="merchant-tag-filter-list"
+      direction="row"
+      sx={{
+        WebkitOverflowScrolling: "touch",
+        flexWrap: "nowrap",
+        gap: 1,
+        overflowX: "auto",
+        overscrollBehaviorX: "contain",
+        pb: 0.5,
+        scrollbarWidth: "thin",
+        "&::-webkit-scrollbar": { height: 4 },
+        "&::-webkit-scrollbar-thumb": {
+          bgcolor: "divider",
+          borderRadius: `${designTokens.radius.full}px`,
+        },
+      }}
+    >
+      {tags.map((tag) => {
+        const selected = selectedTagId === tag.id;
 
-      <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-        {tags.map((tag) => {
-          const selected = selectedTagId === tag.id;
-
-          return (
-            <SelectableFilterTag
-              ariaLabel={`${tag.name}，${tag.merchant_count} 个商家`}
-              count={tag.merchant_count}
-              href={filterHref(keyword, tag.id)}
-              icon={tag.icon}
-              key={tag.id}
-              label={tag.name}
-              selected={selected}
-            />
-          );
-        })}
-      </Stack>
+        return (
+          <SelectableFilterTag
+            ariaLabel={merchantText.categoryFilterItemAriaLabel(
+              tag.name,
+              tag.merchant_count,
+            )}
+            count={tag.merchant_count}
+            href={filterHref(keyword, tag.id)}
+            icon={tag.icon}
+            key={tag.id}
+            label={tag.name}
+            selected={selected}
+          />
+        );
+      })}
     </Stack>
   );
 }
 
 function MerchantTagManagement({
+  active,
   archiveAction,
   createAction,
+  onPendingChange,
   reorderAction,
   tags,
   updateAction,
@@ -157,6 +163,17 @@ function MerchantTagManagement({
   const pending =
     createPending || updatePending || archivePending || manager.isPending;
 
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [onPendingChange, pending]);
+
+  useEffect(
+    () => () => {
+      onPendingChange?.(false);
+    },
+    [onPendingChange],
+  );
+
   function openCreate() {
     setName("");
     setIcon(defaultMerchantTagEmoji);
@@ -172,7 +189,7 @@ function MerchantTagManagement({
   return (
     <Stack spacing={1.5}>
       <Stack spacing={0.5}>
-        {manager.orderedTags.map((tag, index) => (
+        {manager.orderedTags.map((tag) => (
           <Stack
             data-merchant-tag-row-id={tag.id}
             direction="row"
@@ -182,8 +199,13 @@ function MerchantTagManagement({
             spacing={1}
             sx={{
               alignItems: "center",
-              minHeight: 56,
+              border: 1,
+              borderColor: "divider",
+              borderRadius: `${designTokens.radius.item}px`,
+              minHeight: 64,
               opacity: manager.draggedId === tag.id ? 0.58 : 1,
+              px: 1,
+              py: 0.5,
             }}
           >
             <Box
@@ -202,29 +224,39 @@ function MerchantTagManagement({
               {tag.icon}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography noWrap sx={{ fontWeight: 700 }}>
-                {tag.name}
-              </Typography>
-              <Typography color="text.secondary" variant="caption">
-                {tag.merchant_count} 个商家
-              </Typography>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Typography noWrap sx={{ fontWeight: 700 }}>
+                  {tag.name}
+                </Typography>
+                <Chip
+                  color="primary"
+                  label={tag.merchant_count}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    minWidth: 22,
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
+              </Stack>
             </Box>
-            <Tooltip title={`编辑${tag.name}`}>
-              <IconButton
-                aria-label={`编辑${tag.name}`}
-                disabled={pending}
-                onClick={() => openEdit(tag)}
-                size="small"
-              >
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Button
+              aria-label={`编辑${tag.name}`}
+              disabled={pending || !active}
+              onClick={() => openEdit(tag)}
+              size="small"
+              startIcon={<EditRoundedIcon fontSize="small" />}
+              sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
+            >
+              {merchantText.editCategory}
+            </Button>
+            <Divider flexItem orientation="vertical" />
             <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
               <span>
                 <IconButton
                   aria-keyshortcuts="ArrowUp ArrowDown"
                   aria-label={`调整${tag.name}排序`}
-                  disabled={pending}
+                  disabled={pending || !active}
                   draggable
                   onDragEnd={manager.finishDrag}
                   onDragStart={(event) => manager.startDrag(event, tag.id)}
@@ -244,23 +276,21 @@ function MerchantTagManagement({
                 </IconButton>
               </span>
             </Tooltip>
-            <Typography
-              color="text.disabled"
-              sx={{ width: 18 }}
-              variant="caption"
-            >
-              {index + 1}
-            </Typography>
           </Stack>
         ))}
         <Button
-          disabled={pending}
+          disabled={pending || !active}
           onClick={openCreate}
           startIcon={<AddRoundedIcon />}
-          sx={{ alignSelf: "flex-start" }}
+          sx={{
+            borderRadius: `${designTokens.radius.item}px`,
+            borderStyle: "dashed",
+            py: 1.25,
+          }}
           type="button"
+          variant="outlined"
         >
-          新增标签
+          {merchantText.addCategory}
         </Button>
       </Stack>
 
@@ -268,9 +298,10 @@ function MerchantTagManagement({
         fullWidth
         maxWidth="sm"
         onClose={() => setCreating(false)}
-        open={creating}
+        open={active && creating}
+        slotProps={{ transition: { onExited: () => setCreating(false) } }}
       >
-        <DialogTitle>新增标签</DialogTitle>
+        <DialogTitle>{merchantText.addCategory}</DialogTitle>
         <DialogContent dividers>
           <Stack
             action={dispatchCreate}
@@ -281,7 +312,7 @@ function MerchantTagManagement({
             <TextField
               autoComplete="off"
               fullWidth
-              label="标签名称"
+              label={merchantText.categoryNameLabel}
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
@@ -308,9 +339,10 @@ function MerchantTagManagement({
         fullWidth
         maxWidth="sm"
         onClose={() => setEditingTag(null)}
-        open={editingTag !== null}
+        open={active && editingTag !== null}
+        slotProps={{ transition: { onExited: () => setEditingTag(null) } }}
       >
-        <DialogTitle>编辑标签</DialogTitle>
+        <DialogTitle>{merchantText.editCategoryTitle}</DialogTitle>
         <DialogContent dividers>
           <Stack
             action={dispatchUpdate}
@@ -322,7 +354,7 @@ function MerchantTagManagement({
             <TextField
               autoComplete="off"
               fullWidth
-              label="标签名称"
+              label={merchantText.categoryNameLabel}
               name="name"
               onChange={(event) => setName(event.target.value)}
               required
@@ -341,7 +373,7 @@ function MerchantTagManagement({
               startIcon={<ArchiveRoundedIcon />}
               type="submit"
             >
-              归档标签
+              {merchantText.archiveCategory}
             </Button>
           </Stack>
           <Stack direction="row" spacing={1}>
@@ -358,10 +390,22 @@ function MerchantTagManagement({
         </DialogActions>
       </Dialog>
 
-      <MerchantFailureFeedback state={createState} title="标签新增失败" />
-      <MerchantFailureFeedback state={updateState} title="标签更新失败" />
-      <MerchantFailureFeedback state={archiveState} title="标签归档失败" />
-      <MerchantFailureFeedback state={reorderState} title="标签排序失败" />
+      <MerchantFailureFeedback
+        state={createState}
+        title={merchantText.categoryCreateErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={updateState}
+        title={merchantText.categoryUpdateErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={archiveState}
+        title={merchantText.categoryArchiveErrorTitle}
+      />
+      <MerchantFailureFeedback
+        state={reorderState}
+        title={merchantText.categoryReorderErrorTitle}
+      />
     </Stack>
   );
 }

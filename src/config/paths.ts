@@ -9,7 +9,6 @@ export const routePaths = {
   login: "/login",
   merchants: "/merchants",
   merchantsNew: "/merchants/new",
-  merchantsTags: "/merchants/tags",
   register: "/register",
   settings: "/settings",
   statistics: "/statistics",

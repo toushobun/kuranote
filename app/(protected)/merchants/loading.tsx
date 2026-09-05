@@ -3,6 +3,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { merchantText } from "config/merchantText";
 import { LoadingState } from "molecules/ui/LoadingState";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { PageShell } from "templates/layout/PageShell";
@@ -76,28 +77,37 @@ export default function MerchantsLoading() {
 
           <SectionCard sx={{ p: 2 }}>
             <Stack spacing={1.5}>
-              <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                <Skeleton width={96} />
+              <Stack
+                direction="row"
+                sx={{ alignItems: "center", justifyContent: "space-between" }}
+              >
+                <Typography
+                  component="h2"
+                  sx={{ fontWeight: 800 }}
+                  variant="h6"
+                >
+                  {merchantText.categoryManagement}
+                </Typography>
                 <Skeleton width={72} />
               </Stack>
               <Stack direction="row" spacing={1}>
                 <Skeleton
-                  height={92}
+                  height={56}
                   sx={{ borderRadius: `${designTokens.radius.item}px` }}
                   variant="rounded"
-                  width={86}
+                  width={112}
                 />
                 <Skeleton
-                  height={92}
+                  height={56}
                   sx={{ borderRadius: `${designTokens.radius.item}px` }}
                   variant="rounded"
-                  width={86}
+                  width={112}
                 />
                 <Skeleton
-                  height={92}
+                  height={56}
                   sx={{ borderRadius: `${designTokens.radius.item}px` }}
                   variant="rounded"
-                  width={86}
+                  width={112}
                 />
               </Stack>
             </Stack>

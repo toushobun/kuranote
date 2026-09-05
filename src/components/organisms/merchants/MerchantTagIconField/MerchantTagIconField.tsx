@@ -4,6 +4,7 @@ import {
   merchantTagEmojiGroups,
   merchantTagEmojiOptions,
 } from "config/merchantTagEmojis";
+import { merchantText } from "config/merchantText";
 import { EmojiIconField } from "molecules/ui/EmojiIconField/EmojiIconField";
 
 type MerchantTagIconFieldProps = {
@@ -17,7 +18,7 @@ export function MerchantTagIconField({
 }: MerchantTagIconFieldProps) {
   return (
     <EmojiIconField
-      fieldLabel="标签图标"
+      fieldLabel={merchantText.categoryIconLabel}
       groups={merchantTagEmojiGroups}
       helperText="选择能代表商家业态的 Emoji，方便快速筛选。"
       inputName="icon"

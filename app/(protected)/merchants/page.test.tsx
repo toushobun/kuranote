@@ -2,10 +2,20 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  archiveMerchantTag: vi.fn(),
+  createMerchantTag: vi.fn(),
   loadMerchantsView: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
+  reorderMerchantTags: vi.fn(),
+  updateMerchantTag: vi.fn(),
 }));
 
+vi.mock("internal/merchant/adapter/next/actions", () => ({
+  archiveMerchantTag: mocks.archiveMerchantTag,
+  createMerchantTag: mocks.createMerchantTag,
+  reorderMerchantTags: mocks.reorderMerchantTags,
+  updateMerchantTag: mocks.updateMerchantTag,
+}));
 vi.mock("internal/merchant/adapter/next/loadMerchantsView", () => ({
   loadMerchantsView: mocks.loadMerchantsView,
 }));
@@ -46,12 +56,16 @@ describe("MerchantsPage", () => {
     });
     const element = result as ReactElement<Record<string, unknown>>;
     expect(element.props).toMatchObject({
+      archiveAction: mocks.archiveMerchantTag,
       canManageMerchants: true,
+      createAction: mocks.createMerchantTag,
       keyword: "LIFE",
       ledgerId,
       merchants: [],
       selectedTag: null,
+      reorderAction: mocks.reorderMerchantTags,
       tags: [],
+      updateAction: mocks.updateMerchantTag,
     });
     expect(element.props).not.toHaveProperty("errorMessage");
   });
