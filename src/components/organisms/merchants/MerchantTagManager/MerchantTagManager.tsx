@@ -299,6 +299,7 @@ function MerchantTagManagement({
         maxWidth="sm"
         onClose={() => setCreating(false)}
         open={active && creating}
+        slotProps={{ transition: { onExited: () => setCreating(false) } }}
       >
         <DialogTitle>{merchantText.addCategory}</DialogTitle>
         <DialogContent dividers>
@@ -339,6 +340,7 @@ function MerchantTagManagement({
         maxWidth="sm"
         onClose={() => setEditingTag(null)}
         open={active && editingTag !== null}
+        slotProps={{ transition: { onExited: () => setEditingTag(null) } }}
       >
         <DialogTitle>{merchantText.editCategoryTitle}</DialogTitle>
         <DialogContent dividers>

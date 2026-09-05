@@ -241,7 +241,52 @@ describe("MerchantsTemplate", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("编辑弹窗会在管理权限被移除时关闭", async () => {
+  it("权限移除后关闭并清除旧的新增弹窗", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    expect(
+      screen.getByRole("heading", { name: "新增分类" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "新增分类" }),
+      ).not.toBeInTheDocument(),
+    );
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "管理分类" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "新增分类" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("权限移除后关闭并清除旧的编辑弹窗", async () => {
     const tags = [
       {
         icon: "🛒",
@@ -274,6 +319,16 @@ describe("MerchantsTemplate", () => {
         screen.queryByRole("heading", { name: "编辑分类" }),
       ).not.toBeInTheDocument(),
     );
+
+    rerender(<MerchantsTemplate {...baseProps} tags={tags} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "管理分类" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "编辑分类" }),
+    ).not.toBeInTheDocument();
   });
 
   it("分类排序提交期间禁止收起管理区", async () => {
