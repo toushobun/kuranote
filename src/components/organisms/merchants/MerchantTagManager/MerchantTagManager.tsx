@@ -22,7 +22,10 @@ import { useActionState, useEffect, useState } from "react";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
-import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
+import {
+  filterTagCountChipSx,
+  SelectableFilterTag,
+} from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
 import { designTokens } from "theme/theme";
@@ -229,14 +232,9 @@ function MerchantTagManagement({
                   {tag.name}
                 </Typography>
                 <Chip
-                  color="primary"
                   label={tag.merchant_count}
                   size="small"
-                  sx={{
-                    height: 22,
-                    minWidth: 22,
-                    "& .MuiChip-label": { px: 0.75 },
-                  }}
+                  sx={filterTagCountChipSx}
                 />
               </Stack>
             </Box>
