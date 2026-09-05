@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -63,6 +64,11 @@ describe("MerchantTagManager", () => {
     expect(row).not.toBeNull();
     expect(row).toHaveTextContent("🛒超市2编辑");
     expect(row).not.toHaveTextContent("2 个商家");
+    expect(
+      within(row as HTMLElement)
+        .getByText("2")
+        .closest(".MuiChip-root"),
+    ).not.toHaveAttribute("aria-hidden");
     expect(
       screen.getByRole("button", { name: "编辑超市" }),
     ).toBeInTheDocument();

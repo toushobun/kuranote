@@ -24,6 +24,7 @@ export const merchantText = {
   categoryManagement: "分类管理",
   categoryNameLabel: "分类名称",
   categoryReorderErrorTitle: "分类排序失败",
+  categoryReorderFallback: "分类排序保存失败，请稍后重试。",
   categoryUpdateErrorTitle: "分类更新失败",
   currentDisplayName: "当前展示名",
   edit: "编辑商家",

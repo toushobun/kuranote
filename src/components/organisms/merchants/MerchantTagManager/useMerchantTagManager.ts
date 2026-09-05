@@ -3,6 +3,7 @@
 import type { DragEvent } from "react";
 import { useRef, useState, useTransition } from "react";
 
+import { merchantText } from "config/merchantText";
 import type {
   MerchantTag,
   MerchantTagActionState,
@@ -46,7 +47,7 @@ export function useMerchantTagManager({
       } catch {
         setOptimistic({ source: tags, tags: previous });
         onReorderError({
-          error: "分类排序保存失败，请稍后重试。",
+          error: merchantText.categoryReorderFallback,
           errorKey: crypto.randomUUID(),
         });
       }

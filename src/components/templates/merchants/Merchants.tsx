@@ -45,7 +45,9 @@ export type MerchantsTemplateProps = {
   updateAction: MerchantTagStateAction;
 };
 
-function MerchantsTemplateContent({
+type TagManagementView = "filter" | "management" | "closing";
+
+export function MerchantsTemplate({
   archiveAction,
   canManageMerchants = true,
   createAction,
@@ -58,10 +60,12 @@ function MerchantsTemplateContent({
   reorderAction,
   updateAction,
 }: MerchantsTemplateProps) {
-  const [isManagingTags, setIsManagingTags] = useState(false);
+  const [tagManagementView, setTagManagementView] =
+    useState<TagManagementView>("filter");
   const [isTagManagementPending, setIsTagManagementPending] = useState(false);
-  const isTagManagementExpanded = isManagingTags && canManageMerchants;
-  const showTagFilter = !isTagManagementExpanded;
+  const isTagManagementExpanded =
+    tagManagementView === "management" && canManageMerchants;
+  const showTagFilter = tagManagementView === "filter";
   const hasMerchants = merchants.length > 0;
   const normalizedKeyword = keyword.trim();
   const hasKeyword = normalizedKeyword.length > 0;
@@ -187,8 +191,14 @@ function MerchantsTemplateContent({
               {canManageMerchants ? (
                 <Button
                   aria-expanded={isTagManagementExpanded}
-                  disabled={isTagManagementPending}
-                  onClick={() => setIsManagingTags((expanded) => !expanded)}
+                  disabled={
+                    isTagManagementPending || tagManagementView === "closing"
+                  }
+                  onClick={() =>
+                    setTagManagementView(
+                      isTagManagementExpanded ? "closing" : "management",
+                    )
+                  }
                   size="small"
                   startIcon={
                     isTagManagementExpanded ? undefined : (
@@ -252,7 +262,16 @@ function MerchantsTemplateContent({
                 {tagFilterError}
               </Alert>
             ) : null}
-            <Collapse in={isTagManagementExpanded} timeout="auto" unmountOnExit>
+            <Collapse
+              in={isTagManagementExpanded}
+              onExit={() =>
+                setTagManagementView((current) =>
+                  current === "management" ? "closing" : current,
+                )
+              }
+              onExited={() => setTagManagementView("filter")}
+              timeout="auto"
+            >
               <MerchantTagManager
                 archiveAction={archiveAction}
                 createAction={createAction}
@@ -277,11 +296,4 @@ function MerchantsTemplateContent({
       </PageShell>
     </>
   );
-}
-
-export function MerchantsTemplate(props: MerchantsTemplateProps) {
-  const permissionState =
-    props.canManageMerchants === false ? "read-only" : "manage";
-
-  return <MerchantsTemplateContent key={permissionState} {...props} />;
 }

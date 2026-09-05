@@ -88,6 +88,9 @@ describe("SelectableFilterTag", () => {
       expect(getDocumentCssText()).toContain(
         "var(--user-theme-field-card-selected-bg)",
       );
+      expect(getDocumentCssText()).toMatch(
+        /:hover[^}]*var\(--user-theme-field-card-selected-bg\)/,
+      );
       expect(getComputedStyle(label).color).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),
       );

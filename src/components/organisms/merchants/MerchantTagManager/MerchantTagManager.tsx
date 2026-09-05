@@ -227,7 +227,6 @@ function MerchantTagManagement({
                   {tag.name}
                 </Typography>
                 <Chip
-                  aria-hidden
                   color="primary"
                   label={tag.merchant_count}
                   size="small"

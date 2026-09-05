@@ -49,7 +49,9 @@ export function SelectableFilterTag({
         py: 0.75,
         whiteSpace: "nowrap",
         "&:hover": {
-          bgcolor: "action.hover",
+          bgcolor: selected
+            ? "var(--user-theme-field-card-selected-bg)"
+            : "action.hover",
         },
       }}
     >
