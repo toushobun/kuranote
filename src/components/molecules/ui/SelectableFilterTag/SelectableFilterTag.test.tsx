@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
+import { designTokens } from "theme/theme";
 
 import { SelectableFilterTag } from "./SelectableFilterTag";
 
@@ -58,6 +59,16 @@ describe("SelectableFilterTag", () => {
     expect(link).not.toHaveAttribute("aria-current");
     expect(screen.getByText("超市")).toBeInTheDocument();
     expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("超市").parentElement).toContainElement(
+      screen.getByText("6"),
+    );
+    expect(screen.getByText("🛒")).toHaveStyle({
+      borderRadius: `${designTokens.radius.sm}px`,
+    });
+    expect(screen.getByText("6").closest(".MuiChip-root")).toHaveStyle({
+      backgroundColor: "var(--user-theme-icon-badge-bg)",
+      color: "var(--user-theme-icon-badge-color)",
+    });
   });
 
   it("全部用户主题下选中态使用主题色边框与文字", () => {

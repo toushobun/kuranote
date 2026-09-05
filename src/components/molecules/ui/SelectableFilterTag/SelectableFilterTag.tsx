@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -15,6 +16,14 @@ export type SelectableFilterTagProps = {
   label: string;
   selected?: boolean;
 };
+
+export const filterTagCountChipSx = {
+  bgcolor: "var(--user-theme-icon-badge-bg)",
+  color: "var(--user-theme-icon-badge-color)",
+  height: 22,
+  minWidth: 22,
+  "& .MuiChip-label": { px: 0.75 },
+} as const;
 
 export function SelectableFilterTag({
   ariaLabel,
@@ -70,25 +79,22 @@ export function SelectableFilterTag({
       >
         {icon}
       </Box>
-      <Typography
-        component="span"
-        noWrap
-        sx={{ fontWeight: 700, maxWidth: "100%" }}
-        variant="body2"
-      >
-        {label}
-      </Typography>
-      <Chip
-        aria-hidden
-        color={selected ? "primary" : "default"}
-        label={count}
-        size="small"
-        sx={{
-          height: 22,
-          minWidth: 22,
-          "& .MuiChip-label": { px: 0.75 },
-        }}
-      />
+      <Stack spacing={0.25} sx={{ alignItems: "center", minWidth: 0 }}>
+        <Typography
+          component="span"
+          noWrap
+          sx={{ fontWeight: 700, maxWidth: "100%" }}
+          variant="body2"
+        >
+          {label}
+        </Typography>
+        <Chip
+          aria-hidden
+          label={count}
+          size="small"
+          sx={filterTagCountChipSx}
+        />
+      </Stack>
     </ButtonBase>
   );
 }

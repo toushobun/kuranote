@@ -66,7 +66,6 @@ export function MerchantsTemplate({
   const [isTagManagementPending, setIsTagManagementPending] = useState(false);
   const isTagManagementExpanded =
     tagManagementView === "management" && canManageMerchants;
-  const showTagFilter = tagManagementView === "filter";
   const hasMerchants = merchants.length > 0;
   const normalizedKeyword = keyword.trim();
   const hasKeyword = normalizedKeyword.length > 0;
@@ -222,35 +221,47 @@ export function MerchantsTemplate({
               ) : null}
             </Stack>
 
-            {showTagFilter ? (
-              <MerchantTagManager
-                keyword={keyword}
-                selectedTagId={selectedTag?.id}
-                tags={tags}
-              />
-            ) : null}
-            {showTagFilter && selectedTag ? (
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{
-                  alignItems: "center",
-                  borderTop: 1,
-                  borderColor: "divider",
-                  justifyContent: "space-between",
-                  mt: 1.5,
-                  pt: 1.5,
-                }}
+            <Collapse in={!isTagManagementExpanded} timeout="auto">
+              <Box
+                aria-hidden={isTagManagementExpanded}
+                inert={isTagManagementExpanded}
               >
-                <Typography variant="body2">
-                  当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
-                  {merchants.length} 个商家
-                </Typography>
-                <Button component={Link} href={clearTagFilterHref} size="small">
-                  清除筛选
-                </Button>
-              </Stack>
-            ) : null}
+                <MerchantTagManager
+                  keyword={keyword}
+                  selectedTagId={selectedTag?.id}
+                  tags={tags}
+                />
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    alignItems: "center",
+                    justifyContent: selectedTag
+                      ? "space-between"
+                      : "flex-start",
+                    mt: 1.5,
+                  }}
+                >
+                  <Typography
+                    color={selectedTag ? undefined : "text.secondary"}
+                    variant="body2"
+                  >
+                    {selectedTag
+                      ? `当前筛选：${selectedTag.icon} ${selectedTag.name} · ${merchants.length} 个商家`
+                      : merchantText.categoryFilterHint}
+                  </Typography>
+                  {selectedTag ? (
+                    <Button
+                      component={Link}
+                      href={clearTagFilterHref}
+                      size="small"
+                    >
+                      清除筛选
+                    </Button>
+                  ) : null}
+                </Stack>
+              </Box>
+            </Collapse>
             {tagFilterError ? (
               <Alert
                 action={
@@ -269,7 +280,7 @@ export function MerchantsTemplate({
                 {tagFilterError}
               </Alert>
             ) : null}
-            {hasOpenedTagManagement ? (
+            {canManageMerchants || hasOpenedTagManagement ? (
               <Collapse
                 in={isTagManagementExpanded}
                 onExit={() => setTagManagementView("closing")}

@@ -87,6 +87,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "商家页面" };
 
+export const CategoryFilterHint: Story = {
+  name: "未筛选分类提示",
+};
+
 export const CategoryManagementExpanded: Story = {
   name: "展开分类管理",
   play: async ({ canvasElement }) => {

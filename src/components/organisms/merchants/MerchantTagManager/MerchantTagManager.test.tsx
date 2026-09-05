@@ -69,7 +69,13 @@ describe("MerchantTagManager", () => {
       within(row as HTMLElement)
         .getByText("2")
         .closest(".MuiChip-root"),
-    ).not.toHaveAttribute("aria-hidden");
+    ).toHaveStyle({
+      backgroundColor: "var(--user-theme-icon-badge-bg)",
+      color: "var(--user-theme-icon-badge-color)",
+    });
+    expect(within(row as HTMLElement).getByText("🛒")).toHaveStyle({
+      borderRadius: `${designTokens.radius.sm}px`,
+    });
     expect(
       screen.getByRole("button", { name: "编辑超市" }),
     ).toBeInTheDocument();
