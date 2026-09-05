@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,t as n}from"./MerchantTagsField-Bf2mqsYt.js";var r,i,a;e((()=>{t(),r={title:`Organisms/Merchants/MerchantTagsField`,component:n,args:{initialTagIds:[`tag-1`],tags:[{icon:`🛒`,id:`tag-1`,merchant_count:2,name:`超市`,sort_order:0},{icon:`📦`,id:`tag-2`,merchant_count:1,name:`电商`,sort_order:1}]}},i={name:`商家分类多选`},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
+  name: "商家分类多选"
+}`,...i.parameters?.docs?.source}}},a=[`Default`]}))();export{i as Default,a as __namedExportsOrder,r as default};
