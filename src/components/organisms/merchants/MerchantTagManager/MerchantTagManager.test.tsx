@@ -51,6 +51,7 @@ describe("MerchantTagManager", () => {
   it("管理行显示分类数量、编辑入口与排序入口，不显示序号列", () => {
     const { container } = render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={action}
         mode="management"
@@ -83,6 +84,7 @@ describe("MerchantTagManager", () => {
   it("在管理模式打开新增与编辑弹窗", async () => {
     render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={action}
         mode="management"
@@ -131,6 +133,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={createAction}
         mode="management"
@@ -181,6 +184,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={action}
         createAction={action}
         mode="management"
@@ -221,6 +225,7 @@ describe("MerchantTagManager", () => {
     );
     render(
       <MerchantTagManager
+        active
         archiveAction={archiveAction}
         createAction={action}
         mode="management"

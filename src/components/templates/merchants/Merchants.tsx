@@ -62,6 +62,7 @@ export function MerchantsTemplate({
 }: MerchantsTemplateProps) {
   const [tagManagementView, setTagManagementView] =
     useState<TagManagementView>("filter");
+  const [hasOpenedTagManagement, setHasOpenedTagManagement] = useState(false);
   const [isTagManagementPending, setIsTagManagementPending] = useState(false);
   const isTagManagementExpanded =
     tagManagementView === "management" && canManageMerchants;
@@ -72,6 +73,16 @@ export function MerchantsTemplate({
   const clearTagFilterHref = hasKeyword
     ? `${routePaths.merchants}?q=${encodeURIComponent(normalizedKeyword)}`
     : routePaths.merchants;
+
+  function toggleTagManagement() {
+    if (isTagManagementExpanded) {
+      setTagManagementView("closing");
+      return;
+    }
+
+    setHasOpenedTagManagement(true);
+    setTagManagementView("management");
+  }
 
   return (
     <>
@@ -194,11 +205,7 @@ export function MerchantsTemplate({
                   disabled={
                     isTagManagementPending || tagManagementView === "closing"
                   }
-                  onClick={() =>
-                    setTagManagementView(
-                      isTagManagementExpanded ? "closing" : "management",
-                    )
-                  }
+                  onClick={toggleTagManagement}
                   size="small"
                   startIcon={
                     isTagManagementExpanded ? undefined : (
@@ -262,26 +269,31 @@ export function MerchantsTemplate({
                 {tagFilterError}
               </Alert>
             ) : null}
-            <Collapse
-              in={isTagManagementExpanded}
-              onExit={() =>
-                setTagManagementView((current) =>
-                  current === "management" ? "closing" : current,
-                )
-              }
-              onExited={() => setTagManagementView("filter")}
-              timeout="auto"
-            >
-              <MerchantTagManager
-                archiveAction={archiveAction}
-                createAction={createAction}
-                mode="management"
-                onPendingChange={setIsTagManagementPending}
-                reorderAction={reorderAction}
-                tags={tags}
-                updateAction={updateAction}
-              />
-            </Collapse>
+            {hasOpenedTagManagement ? (
+              <Collapse
+                in={isTagManagementExpanded}
+                onExit={() => setTagManagementView("closing")}
+                onExited={() => setTagManagementView("filter")}
+                timeout="auto"
+              >
+                <Box
+                  aria-hidden={!isTagManagementExpanded}
+                  data-testid="merchant-tag-management-panel"
+                  inert={!isTagManagementExpanded}
+                >
+                  <MerchantTagManager
+                    active={isTagManagementExpanded}
+                    archiveAction={archiveAction}
+                    createAction={createAction}
+                    mode="management"
+                    onPendingChange={setIsTagManagementPending}
+                    reorderAction={reorderAction}
+                    tags={tags}
+                    updateAction={updateAction}
+                  />
+                </Box>
+              </Collapse>
+            ) : null}
           </SectionCard>
 
           <MerchantList

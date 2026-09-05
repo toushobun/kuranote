@@ -130,6 +130,9 @@ describe("MerchantsTemplate", () => {
     expect(manageButton).toHaveAttribute("aria-expanded", "false");
     expect(manageButton).not.toHaveAttribute("aria-controls");
     expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("merchant-tag-management-panel"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(manageButton);
 
@@ -148,6 +151,9 @@ describe("MerchantsTemplate", () => {
     expect(
       screen.queryByTestId("merchant-tag-filter-list"),
     ).not.toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-management-panel")).toHaveAttribute(
+      "inert",
+    );
     await waitFor(() => {
       expect(
         screen.getByTestId("merchant-tag-filter-list"),
@@ -208,6 +214,66 @@ describe("MerchantsTemplate", () => {
       "false",
     );
     expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
+  });
+
+  it("只读成员不会挂载分类管理树", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("merchant-tag-management-panel"),
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelector('[data-merchant-tag-row-id="tag-1"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it("编辑弹窗会在管理权限被移除时关闭", async () => {
+    const tags = [
+      {
+        icon: "🛒",
+        id: "tag-1",
+        merchant_count: 1,
+        name: "超市",
+        sort_order: 0,
+      },
+    ];
+    const { rerender } = render(
+      <MerchantsTemplate {...baseProps} tags={tags} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+    fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
+    expect(
+      screen.getByRole("heading", { name: "编辑分类" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MerchantsTemplate
+        {...baseProps}
+        canManageMerchants={false}
+        tags={tags}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "编辑分类" }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("分类排序提交期间禁止收起管理区", async () => {

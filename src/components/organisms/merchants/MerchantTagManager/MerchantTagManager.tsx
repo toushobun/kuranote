@@ -46,6 +46,7 @@ type MerchantTagFilterProps = {
 };
 
 type MerchantTagManagementProps = {
+  active: boolean;
   archiveAction: MerchantTagStateAction;
   createAction: MerchantTagStateAction;
   mode: "management";
@@ -117,6 +118,7 @@ function MerchantTagFilter({
 }
 
 function MerchantTagManagement({
+  active,
   archiveAction,
   createAction,
   onPendingChange,
@@ -240,7 +242,7 @@ function MerchantTagManagement({
             </Box>
             <Button
               aria-label={`编辑${tag.name}`}
-              disabled={pending}
+              disabled={pending || !active}
               onClick={() => openEdit(tag)}
               size="small"
               startIcon={<EditRoundedIcon fontSize="small" />}
@@ -254,7 +256,7 @@ function MerchantTagManagement({
                 <IconButton
                   aria-keyshortcuts="ArrowUp ArrowDown"
                   aria-label={`调整${tag.name}排序`}
-                  disabled={pending}
+                  disabled={pending || !active}
                   draggable
                   onDragEnd={manager.finishDrag}
                   onDragStart={(event) => manager.startDrag(event, tag.id)}
@@ -277,7 +279,7 @@ function MerchantTagManagement({
           </Stack>
         ))}
         <Button
-          disabled={pending}
+          disabled={pending || !active}
           onClick={openCreate}
           startIcon={<AddRoundedIcon />}
           sx={{
@@ -296,7 +298,7 @@ function MerchantTagManagement({
         fullWidth
         maxWidth="sm"
         onClose={() => setCreating(false)}
-        open={creating}
+        open={active && creating}
       >
         <DialogTitle>{merchantText.addCategory}</DialogTitle>
         <DialogContent dividers>
@@ -336,7 +338,7 @@ function MerchantTagManagement({
         fullWidth
         maxWidth="sm"
         onClose={() => setEditingTag(null)}
-        open={editingTag !== null}
+        open={active && editingTag !== null}
       >
         <DialogTitle>{merchantText.editCategoryTitle}</DialogTitle>
         <DialogContent dividers>

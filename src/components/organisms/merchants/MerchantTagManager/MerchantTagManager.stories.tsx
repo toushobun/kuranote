@@ -53,6 +53,7 @@ export const Selected: Story = {
 
 export const Management: Story = {
   args: {
+    active: true,
     archiveAction: storyTagAction,
     createAction: storyTagAction,
     mode: "management",
