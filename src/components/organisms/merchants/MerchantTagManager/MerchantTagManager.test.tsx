@@ -34,12 +34,14 @@ describe("MerchantTagManager", () => {
     expect(
       screen.queryByText("按标签快速筛选常用商家"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("merchant-tag-filter-list")).toHaveStyle({
+    const filterList = screen.getByTestId("merchant-tag-filter-list");
+    expect(filterList).toHaveStyle({
       flexWrap: "nowrap",
       overflowX: "auto",
       paddingLeft: "8px",
       paddingRight: "8px",
     });
+    expect(filterList).not.toHaveStyle({ scrollbarWidth: "thin" });
     const selectedTag = screen.getByRole("link", { name: /超市/ });
     expect(selectedTag).toHaveAttribute("aria-current", "page");
     expect(selectedTag).toHaveStyle({

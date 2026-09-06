@@ -88,12 +88,6 @@ function MerchantTagFilter({
         overscrollBehaviorX: "contain",
         pb: 0.5,
         px: 1,
-        scrollbarWidth: "thin",
-        "&::-webkit-scrollbar": { height: 4 },
-        "&::-webkit-scrollbar-thumb": {
-          bgcolor: "divider",
-          borderRadius: `${designTokens.radius.full}px`,
-        },
       }}
     >
       {tags.map((tag) => {
