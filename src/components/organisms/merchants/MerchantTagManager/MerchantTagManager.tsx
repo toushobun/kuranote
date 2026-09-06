@@ -16,7 +16,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { IconBadge } from "atoms/ui/IconBadge";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
@@ -75,25 +75,60 @@ function MerchantTagFilter({
   selectedTagId,
   tags,
 }: MerchantTagFilterProps) {
+  const [scrollbarVisible, setScrollbarVisible] = useState(false);
+  const scrollInteractionRef = useRef(false);
+  const scrollbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
+    },
+    [],
+  );
+
+  function showScrollbar() {
+    setScrollbarVisible(true);
+    if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
+    scrollbarTimerRef.current = setTimeout(() => {
+      scrollInteractionRef.current = false;
+      setScrollbarVisible(false);
+    }, 300);
+  }
+
+  function startScrollInteraction() {
+    scrollInteractionRef.current = true;
+    showScrollbar();
+  }
+
   return (
     <Stack
       aria-label={merchantText.categoryFilterAriaLabel}
       data-testid="merchant-tag-filter-list"
       direction="row"
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          startScrollInteraction();
+        }
+      }}
+      onScroll={() => {
+        if (scrollInteractionRef.current) showScrollbar();
+      }}
+      onTouchMove={startScrollInteraction}
+      onWheel={startScrollInteraction}
       sx={{
         WebkitOverflowScrolling: "touch",
+        "&::-webkit-scrollbar": { height: scrollbarVisible ? 4 : 0 },
+        "&::-webkit-scrollbar-thumb": {
+          bgcolor: "divider",
+          borderRadius: `${designTokens.radius.full}px`,
+        },
         flexWrap: "nowrap",
         gap: 1,
         overflowX: "auto",
         overscrollBehaviorX: "contain",
         pb: 0.5,
         px: 1,
-        scrollbarWidth: "thin",
-        "&::-webkit-scrollbar": { height: 4 },
-        "&::-webkit-scrollbar-thumb": {
-          bgcolor: "divider",
-          borderRadius: `${designTokens.radius.full}px`,
-        },
+        scrollbarWidth: scrollbarVisible ? "thin" : "none",
       }}
     >
       {tags.map((tag) => {
