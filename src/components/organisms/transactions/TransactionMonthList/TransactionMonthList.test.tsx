@@ -177,6 +177,21 @@ describe("TransactionMonthList", () => {
     vi.unstubAllGlobals();
   });
 
+  it("展开月份内容底部不追加空白且下月标题保留内边距", () => {
+    const { container } = render(
+      <TransactionMonthList timeGroupView={createView()} />,
+    );
+
+    const mayHeader = screen.getByText("2026年5月").closest('[role="button"]');
+    const expandedContent = container.querySelector(
+      ".MuiCollapse-wrapperInner > .MuiStack-root",
+    );
+
+    expect(expandedContent).toHaveStyle({ paddingTop: "9.6px" });
+    expect(expandedContent).not.toHaveStyle({ paddingBottom: "9.6px" });
+    expect(mayHeader).toHaveStyle({ paddingTop: "16px" });
+  });
+
   it("折叠动画使用固定时长且不随内容高度增长", () => {
     expect(transactionGroupCollapseDuration).toBe(280);
   });

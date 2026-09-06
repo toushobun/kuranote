@@ -168,7 +168,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  name: "同日、跨日与跨月分组边界",
+};
 
 export const Empty: Story = {
   args: {

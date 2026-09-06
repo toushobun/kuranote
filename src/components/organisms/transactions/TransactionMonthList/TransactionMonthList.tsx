@@ -315,7 +315,7 @@ function TransactionMonthListContent({
                   sx={{
                     borderTop: userThemeCardBorder,
                     px: 0.75,
-                    py: 1.2,
+                    pt: 1.2,
                   }}
                 >
                   {dateGroups ? (
