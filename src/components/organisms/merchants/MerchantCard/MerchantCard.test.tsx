@@ -142,7 +142,13 @@ describe("MerchantCard", () => {
     );
     expect(
       getComputedStyle(preferredChip as Element).backgroundImage,
-    ).toContain("repeating-linear-gradient");
+    ).toContain("data:image/svg+xml");
+    expect(
+      getComputedStyle(preferredChip as Element).backgroundImage,
+    ).toContain("M6%200L12%206L6%2012L0%206Z");
+    expect(
+      getComputedStyle(preferredChip as Element).backgroundImage,
+    ).toContain("%200.02");
     expect(getComputedStyle(preferredChip as Element).borderRadius).toBe("8px");
     expect(getComputedStyle(secondaryChip as Element).borderRadius).toBe("8px");
     expect(getComputedStyle(preferredChip as Element).fontWeight).toBe(
@@ -279,7 +285,13 @@ describe("MerchantCard", () => {
     );
     expect(
       getComputedStyle(supermarketChip as Element).backgroundImage,
-    ).toContain("repeating-linear-gradient");
+    ).toContain("data:image/svg+xml");
+    expect(
+      getComputedStyle(supermarketChip as Element).backgroundImage,
+    ).toContain("M6%200L12%206L6%2012L0%206Z");
+    expect(
+      getComputedStyle(supermarketChip as Element).backgroundImage,
+    ).toContain("%200.02");
     expect(getComputedStyle(convenienceChip as Element).backgroundColor).toBe(
       "rgb(232, 244, 255)",
     );

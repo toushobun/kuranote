@@ -36,11 +36,13 @@ const merchantChipSx = {
 } as const;
 
 function createChipPattern(patternColor: string) {
-  return `repeating-linear-gradient(45deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px), repeating-linear-gradient(135deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px)`;
+  const pattern = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path fill="${patternColor}" d="M6 0L12 6L6 12L0 6Z"/></svg>`;
+
+  return `url("data:image/svg+xml,${encodeURIComponent(pattern)}")`;
 }
 
 const preferredMerchantChipSx = (theme: Theme) => {
-  const patternColor = alpha(theme.palette.common.white, 0.14);
+  const patternColor = alpha(theme.palette.common.white, 0.02);
 
   return {
     "& .MuiChip-label": {
@@ -85,7 +87,7 @@ function getMerchantTagChipSx(tag: MerchantTag) {
     },
     "& .MuiChip-label": { pl: 0.5, pr: 1.25 },
     bgcolor: color.chipBackground,
-    backgroundImage: createChipPattern(alpha(color.chipText, 0.06)),
+    backgroundImage: createChipPattern(alpha(color.chipText, 0.02)),
     borderColor: color.chipBorder,
     borderRadius: `${designTokens.radius.sm}px`,
     color: color.chipText,
