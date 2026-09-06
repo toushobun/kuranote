@@ -559,6 +559,8 @@ describe("TransactionRow", () => {
 
       expect(plainRow?.children).toHaveLength(2);
       expect(badgeRow?.children).toHaveLength(2);
+      expect(plainRow).toHaveStyle({ paddingBottom: "6.4px" });
+      expect(badgeRow).toHaveStyle({ paddingBottom: "11.6px" });
       expect(plainGroup).toHaveClass("MuiStack-root");
       expect(badgeGroup).toHaveClass("MuiStack-root");
       expect(plainGroup).toHaveStyle({ flexDirection: "column" });
