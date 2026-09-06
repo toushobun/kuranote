@@ -88,7 +88,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "商家页面" };
 
 export const CategoryFilterHint: Story = {
-  name: "未筛选分类提示",
+  name: "筛选提示与紧凑管理按钮",
 };
 
 export const CategoryManagementExpanded: Story = {

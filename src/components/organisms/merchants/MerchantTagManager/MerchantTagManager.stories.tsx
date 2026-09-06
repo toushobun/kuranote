@@ -44,10 +44,7 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = {
-  args: meta.args,
-  name: "偏方圆角图标的分类筛选",
-};
+export const Default: Story = { args: meta.args, name: "横向分类筛选" };
 
 export const Selected: Story = {
   args: { ...meta.args, selectedTagId: "tag-1" },
@@ -64,5 +61,5 @@ export const Management: Story = {
     tags: meta.args.tags,
     updateAction: storyTagAction,
   },
-  name: "偏方圆角图标的分类管理行",
+  name: "分类管理行",
 };

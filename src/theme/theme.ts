@@ -26,7 +26,6 @@ export const designTokens = {
     },
   },
   radius: {
-    xs: 4,
     sm: 8,
     item: 12,
     md: 16,

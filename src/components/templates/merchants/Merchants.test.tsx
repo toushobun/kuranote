@@ -178,6 +178,14 @@ describe("MerchantsTemplate", () => {
     const hint = screen.getByText("可按分类筛选商家");
     expect(hint).toBeInTheDocument();
     expect(
+      screen.getByTestId("TipsAndUpdatesOutlinedIcon"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "管理分类" })).toHaveStyle({
+      minHeight: "36px",
+      paddingBottom: "4px",
+      paddingTop: "4px",
+    });
+    expect(
       getComputedStyle(hint.parentElement as HTMLElement).borderTopStyle,
     ).not.toBe("solid");
   });

@@ -74,7 +74,7 @@ describe("MerchantTagManager", () => {
       color: "var(--user-theme-icon-badge-color)",
     });
     expect(within(row as HTMLElement).getByText("🛒")).toHaveStyle({
-      borderRadius: `${designTokens.radius.xs}px`,
+      borderRadius: `${designTokens.radius.sm}px`,
     });
     expect(
       screen.getByRole("button", { name: "编辑超市" }),

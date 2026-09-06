@@ -63,7 +63,7 @@ describe("SelectableFilterTag", () => {
       screen.getByText("6"),
     );
     expect(screen.getByText("🛒")).toHaveStyle({
-      borderRadius: `${designTokens.radius.xs}px`,
+      borderRadius: `${designTokens.radius.sm}px`,
     });
     expect(screen.getByText("6").closest(".MuiChip-root")).toHaveStyle({
       backgroundColor: "var(--user-theme-icon-badge-bg)",

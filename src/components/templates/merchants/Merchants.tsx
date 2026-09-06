@@ -1,8 +1,9 @@
 "use client";
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -211,7 +212,11 @@ export function MerchantsTemplate({
                       <TuneRoundedIcon fontSize="small" />
                     )
                   }
-                  sx={{ borderRadius: `${designTokens.radius.full}px` }}
+                  sx={{
+                    borderRadius: `${designTokens.radius.full}px`,
+                    minHeight: (theme) => theme.spacing(4.5),
+                    py: 0.5,
+                  }}
                   variant="outlined"
                 >
                   {isTagManagementExpanded
@@ -242,14 +247,25 @@ export function MerchantsTemplate({
                     mt: 1.5,
                   }}
                 >
-                  <Typography
-                    color={selectedTag ? undefined : "text.secondary"}
-                    variant="body2"
-                  >
-                    {selectedTag
-                      ? `当前筛选：${selectedTag.icon} ${selectedTag.name} · ${merchants.length} 个商家`
-                      : merchantText.categoryFilterHint}
-                  </Typography>
+                  {selectedTag ? (
+                    <Typography variant="body2">
+                      当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
+                      {merchants.length} 个商家
+                    </Typography>
+                  ) : (
+                    <>
+                      <TipsAndUpdatesOutlinedIcon
+                        sx={{
+                          color: "text.secondary",
+                          flexShrink: 0,
+                          fontSize: 20,
+                        }}
+                      />
+                      <Typography color="text.secondary" variant="body2">
+                        {merchantText.categoryFilterHint}
+                      </Typography>
+                    </>
+                  )}
                   {selectedTag ? (
                     <Button
                       component={Link}
