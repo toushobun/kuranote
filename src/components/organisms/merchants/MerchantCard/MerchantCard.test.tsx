@@ -183,13 +183,13 @@ describe("MerchantCard", () => {
         userThemeTokens[themeKey].palette.accent,
       );
       expect(getComputedStyle(preferredChipLabel as Element).color).toBe(
-        toComputedColor(dynamicTheme.palette.common.white),
+        toComputedColor(dynamicTheme.palette.primary.contrastText),
       );
       expect(
         getComputedStyle(
           container.querySelector(".MuiChip-colorPrimary svg") as Element,
         ).color,
-      ).toBe(toComputedColor(dynamicTheme.palette.common.white));
+      ).toBe(toComputedColor(dynamicTheme.palette.primary.contrastText));
 
       unmount();
     });

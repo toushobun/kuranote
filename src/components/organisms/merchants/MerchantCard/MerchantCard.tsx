@@ -52,7 +52,7 @@ const preferredMerchantChipSx = (theme: Theme) => {
     },
     "& .MuiSvgIcon-root": { color: "inherit", fontSize: 16 },
     backgroundImage: createChipPattern(patternColor),
-    color: "common.white",
+    color: "primary.contrastText",
   } as const;
 };
 
