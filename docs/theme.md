@@ -59,9 +59,10 @@ KuraNote 是家庭共享的生活记录工具，不是企业后台，也不是�
 
 ### 圆角层级
 
-项目圆角统一使用以下 6 档层级，新增或修改任何组件的圆角时**必须**从这 6 档里选一个：
+项目圆角统一使用以下 7 档层级，新增或修改任何组件的圆角时**必须**从这 7 档里选一个：
 
-- `designTokens.radius.sm`（8px）：头像以外的图标容器、紧凑型小 surface。
+- `designTokens.radius.xs`（4px）：需要保持偏方轮廓的紧凑型图标容器。
+- `designTokens.radius.sm`（8px）：普通图标容器、紧凑型小 surface。
 - `designTokens.radius.item`（12px）：列表 item、筛选 item 等需要保持偏方轮廓的可点击块。
 - `designTokens.radius.md`（16px）：普通按钮、输入控件等标准 control，也是 `theme.shape.borderRadius` 的基准值。
 - `designTokens.radius.lg`（24px）：卡片、Dialog、Paper 等较大的 surface。

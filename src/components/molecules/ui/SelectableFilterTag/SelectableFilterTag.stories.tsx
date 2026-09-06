@@ -73,7 +73,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "默认",
+  name: "偏方圆角图标",
 };
 
 export const Selected: Story = {

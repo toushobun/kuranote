@@ -216,7 +216,7 @@ function MerchantTagManagement({
               sx={{
                 alignItems: "center",
                 bgcolor: "var(--user-theme-icon-badge-bg)",
-                borderRadius: `${designTokens.radius.sm}px`,
+                borderRadius: `${designTokens.radius.xs}px`,
                 display: "flex",
                 fontSize: "1.5rem",
                 height: 42,
