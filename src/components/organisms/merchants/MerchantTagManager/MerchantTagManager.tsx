@@ -96,6 +96,7 @@ function MerchantTagFilter({
         overflowX: "auto",
         overscrollBehaviorX: "contain",
         pb: 0.5,
+        px: 1,
         scrollbarWidth: "thin",
         "&::-webkit-scrollbar": { height: 4 },
         "&::-webkit-scrollbar-thumb": {
@@ -196,8 +197,8 @@ function MerchantTagManagement({
   }
 
   return (
-    <Stack spacing={1.5}>
-      <Stack spacing={0.5}>
+    <Stack>
+      <Stack data-testid="merchant-tag-management-list" sx={{ gap: 1 }}>
         {manager.orderedTags.map((tag) => (
           <Stack
             data-merchant-tag-row-id={tag.id}
@@ -213,7 +214,7 @@ function MerchantTagManagement({
               borderRadius: `${designTokens.radius.item}px`,
               minHeight: 64,
               opacity: manager.draggedId === tag.id ? 0.58 : 1,
-              px: 1,
+              px: 1.5,
               py: 0.5,
             }}
           >
@@ -282,21 +283,22 @@ function MerchantTagManagement({
             </Tooltip>
           </Stack>
         ))}
-        <Button
-          disabled={pending || !active}
-          onClick={openCreate}
-          startIcon={<AddRoundedIcon />}
-          sx={{
-            borderRadius: `${designTokens.radius.item}px`,
-            borderStyle: "dashed",
-            py: 1.25,
-          }}
-          type="button"
-          variant="outlined"
-        >
-          {merchantText.addCategory}
-        </Button>
       </Stack>
+      <Button
+        disabled={pending || !active}
+        onClick={openCreate}
+        startIcon={<AddRoundedIcon />}
+        sx={{
+          borderRadius: `${designTokens.radius.item}px`,
+          borderStyle: "dashed",
+          mt: 1.5,
+          py: 1.25,
+        }}
+        type="button"
+        variant="outlined"
+      >
+        {merchantText.addCategory}
+      </Button>
 
       <Dialog
         fullWidth

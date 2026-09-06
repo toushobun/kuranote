@@ -88,11 +88,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "商家页面" };
 
 export const CategoryFilterHint: Story = {
-  name: "筛选提示与紧凑管理按钮",
+  name: "筛选提示、内缩胶囊与紧凑管理按钮",
 };
 
 export const CategoryManagementExpanded: Story = {
-  name: "展开分类管理",
+  name: "展开分类管理与宽松行距",
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "管理分类" }),
