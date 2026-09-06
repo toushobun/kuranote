@@ -41,7 +41,7 @@ describe("MerchantTagManager", () => {
       paddingLeft: "8px",
       paddingRight: "8px",
     });
-    expect(filterList).not.toHaveStyle({ scrollbarWidth: "thin" });
+    expect(filterList).toHaveStyle({ scrollbarWidth: "none" });
     const selectedTag = screen.getByRole("link", { name: /超市/ });
     expect(selectedTag).toHaveAttribute("aria-current", "page");
     expect(selectedTag).toHaveStyle({
@@ -50,6 +50,26 @@ describe("MerchantTagManager", () => {
     expect(
       screen.queryByRole("button", { name: "新增分类" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("仅在用户横向滚动期间显示滚动条", () => {
+    vi.useFakeTimers();
+    try {
+      render(<MerchantTagManager keyword="" tags={tags} />);
+      const filterList = screen.getByTestId("merchant-tag-filter-list");
+
+      fireEvent.scroll(filterList);
+      expect(filterList).toHaveStyle({ scrollbarWidth: "none" });
+
+      fireEvent.touchMove(filterList);
+      expect(filterList).toHaveStyle({ scrollbarWidth: "thin" });
+
+      fireEvent.scroll(filterList);
+      act(() => vi.advanceTimersByTime(300));
+      expect(filterList).toHaveStyle({ scrollbarWidth: "none" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("管理行显示分类数量、编辑入口与排序入口，不显示序号列", () => {
