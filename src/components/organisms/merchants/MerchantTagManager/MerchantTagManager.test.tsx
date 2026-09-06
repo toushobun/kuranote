@@ -71,7 +71,10 @@ describe("MerchantTagManager", () => {
         .closest(".MuiChip-root"),
     ).toHaveStyle({
       backgroundColor: "var(--user-theme-icon-badge-bg)",
+      borderRadius: `${designTokens.radius.sm}px`,
       color: "var(--user-theme-icon-badge-color)",
+      height: "24px",
+      minWidth: "24px",
     });
     expect(within(row as HTMLElement).getByText("🛒")).toHaveStyle({
       borderRadius: `${designTokens.radius.sm}px`,

@@ -61,5 +61,5 @@ export const Management: Story = {
     tags: meta.args.tags,
     updateAction: storyTagAction,
   },
-  name: "分类管理行",
+  name: "分类管理行（方形数量）",
 };

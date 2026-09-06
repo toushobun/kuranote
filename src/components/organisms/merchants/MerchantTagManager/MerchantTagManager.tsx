@@ -22,10 +22,7 @@ import { useActionState, useEffect, useState } from "react";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
-import {
-  filterTagCountChipSx,
-  SelectableFilterTag,
-} from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
+import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
 import { designTokens } from "theme/theme";
@@ -64,6 +61,15 @@ type MerchantTagManagerProps =
   | MerchantTagManagementProps;
 
 const initialState: MerchantTagActionState = {};
+
+const managementTagCountChipSx = {
+  bgcolor: "var(--user-theme-icon-badge-bg)",
+  borderRadius: `${designTokens.radius.sm}px`,
+  color: "var(--user-theme-icon-badge-color)",
+  height: 24,
+  minWidth: 24,
+  "& .MuiChip-label": { px: 0.75 },
+} as const;
 
 function filterHref(keyword: string, tagId?: string) {
   const query = new URLSearchParams();
@@ -234,7 +240,7 @@ function MerchantTagManagement({
                 <Chip
                   label={tag.merchant_count}
                   size="small"
-                  sx={filterTagCountChipSx}
+                  sx={managementTagCountChipSx}
                 />
               </Stack>
             </Box>

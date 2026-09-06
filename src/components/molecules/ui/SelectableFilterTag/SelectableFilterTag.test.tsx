@@ -65,10 +65,10 @@ describe("SelectableFilterTag", () => {
     expect(screen.getByText("🛒")).toHaveStyle({
       borderRadius: `${designTokens.radius.sm}px`,
     });
-    expect(screen.getByText("6").closest(".MuiChip-root")).toHaveStyle({
-      backgroundColor: "var(--user-theme-icon-badge-bg)",
-      color: "var(--user-theme-icon-badge-color)",
-    });
+    expect(getDocumentCssText()).toContain(
+      "var(--user-theme-icon-badge-color)",
+    );
+    expect(screen.getByText("6").closest(".MuiChip-root")).toBeNull();
   });
 
   it("全部用户主题下选中态使用主题色边框与文字", () => {
