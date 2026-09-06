@@ -9,7 +9,6 @@ import LuggageRoundedIcon from "@mui/icons-material/LuggageRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -39,6 +38,7 @@ import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
+import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
@@ -347,12 +347,11 @@ function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
 
 function LedgerSwitchHint() {
   return (
-    <Stack direction="row" spacing={0.9} sx={switchHintSx}>
-      <TipsAndUpdatesOutlinedIcon sx={switchHintIconSx} />
-      <Typography color="text.secondary" variant="body2">
+    <Box sx={{ mt: 0.35 }}>
+      <InlineHint>
         点击「切换使用」可切换当前账本，点击卡片可进入账本设置。
-      </Typography>
-    </Stack>
+      </InlineHint>
+    </Box>
   );
 }
 
@@ -616,21 +615,6 @@ const chevronSx = {
   color: "text.secondary",
   flexShrink: 0,
   fontSize: 26,
-};
-
-const switchHintSx = {
-  alignItems: "center",
-  bgcolor: "action.hover",
-  borderRadius: `${designTokens.radius.md}px`,
-  mt: 0.35,
-  px: 1.25,
-  py: 1,
-};
-
-const switchHintIconSx = {
-  color: "var(--user-theme-action-text)",
-  flexShrink: 0,
-  fontSize: 22,
 };
 
 const ledgerMetaRowSx = {

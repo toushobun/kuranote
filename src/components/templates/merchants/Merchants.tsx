@@ -1,8 +1,8 @@
 "use client";
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -18,6 +18,7 @@ import { useState } from "react";
 import { CreateButton } from "atoms/ui/CreateButton";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
+import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
@@ -66,7 +67,6 @@ export function MerchantsTemplate({
   const [isTagManagementPending, setIsTagManagementPending] = useState(false);
   const isTagManagementExpanded =
     tagManagementView === "management" && canManageMerchants;
-  const showTagFilter = tagManagementView === "filter";
   const hasMerchants = merchants.length > 0;
   const normalizedKeyword = keyword.trim();
   const hasKeyword = normalizedKeyword.length > 0;
@@ -212,7 +212,11 @@ export function MerchantsTemplate({
                       <TuneRoundedIcon fontSize="small" />
                     )
                   }
-                  sx={{ borderRadius: `${designTokens.radius.full}px` }}
+                  sx={{
+                    borderRadius: `${designTokens.radius.full}px`,
+                    minHeight: (theme) => theme.spacing(4.5),
+                    py: 0.5,
+                  }}
                   variant="outlined"
                 >
                   {isTagManagementExpanded
@@ -222,35 +226,48 @@ export function MerchantsTemplate({
               ) : null}
             </Stack>
 
-            {showTagFilter ? (
-              <MerchantTagManager
-                keyword={keyword}
-                selectedTagId={selectedTag?.id}
-                tags={tags}
-              />
-            ) : null}
-            {showTagFilter && selectedTag ? (
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{
-                  alignItems: "center",
-                  borderTop: 1,
-                  borderColor: "divider",
-                  justifyContent: "space-between",
-                  mt: 1.5,
-                  pt: 1.5,
-                }}
+            <Collapse in={!isTagManagementExpanded} timeout="auto">
+              <Box
+                aria-hidden={isTagManagementExpanded}
+                inert={isTagManagementExpanded}
               >
-                <Typography variant="body2">
-                  当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
-                  {merchants.length} 个商家
-                </Typography>
-                <Button component={Link} href={clearTagFilterHref} size="small">
-                  清除筛选
-                </Button>
-              </Stack>
-            ) : null}
+                <MerchantTagManager
+                  keyword={keyword}
+                  selectedTagId={selectedTag?.id}
+                  tags={tags}
+                />
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    alignItems: "center",
+                    justifyContent: selectedTag
+                      ? "space-between"
+                      : "flex-start",
+                    mt: 1.5,
+                  }}
+                >
+                  {selectedTag ? (
+                    <Typography variant="body2">
+                      当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
+                      {merchants.length} 个商家
+                    </Typography>
+                  ) : tags.length > 0 ? (
+                    <InlineHint>{merchantText.categoryFilterHint}</InlineHint>
+                  ) : null}
+                  {selectedTag ? (
+                    <Button
+                      component={Link}
+                      href={clearTagFilterHref}
+                      size="small"
+                      sx={{ minHeight: 0, py: 0 }}
+                    >
+                      清除筛选
+                    </Button>
+                  ) : null}
+                </Stack>
+              </Box>
+            </Collapse>
             {tagFilterError ? (
               <Alert
                 action={
@@ -269,7 +286,7 @@ export function MerchantsTemplate({
                 {tagFilterError}
               </Alert>
             ) : null}
-            {hasOpenedTagManagement ? (
+            {canManageMerchants || hasOpenedTagManagement ? (
               <Collapse
                 in={isTagManagementExpanded}
                 onExit={() => setTagManagementView("closing")}
@@ -296,14 +313,23 @@ export function MerchantsTemplate({
             ) : null}
           </SectionCard>
 
-          <MerchantList
-            canManageMerchants={canManageMerchants}
-            createHref={routePaths.merchantsNew}
-            keyword={keyword}
-            ledgerId={ledgerId}
-            merchants={merchants}
-            tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
-          />
+          <Box
+            sx={(theme) => ({
+              mt: {
+                xs: `${theme.spacing(1.5)} !important`,
+                sm: `${theme.spacing(2)} !important`,
+              },
+            })}
+          >
+            <MerchantList
+              canManageMerchants={canManageMerchants}
+              createHref={routePaths.merchantsNew}
+              keyword={keyword}
+              ledgerId={ledgerId}
+              merchants={merchants}
+              tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
+            />
+          </Box>
         </Stack>
       </PageShell>
     </>

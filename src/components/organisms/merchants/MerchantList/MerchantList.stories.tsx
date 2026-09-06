@@ -37,7 +37,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "商家列表",
+  name: "紧凑商家列表",
 };
 
 export const Empty: Story = {

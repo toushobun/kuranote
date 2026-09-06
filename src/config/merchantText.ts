@@ -12,6 +12,7 @@ export const merchantText = {
   categoryArchiveErrorTitle: "分类归档失败",
   categoryCreateErrorTitle: "分类新增失败",
   categoryFilterAriaLabel: "商家分类筛选",
+  categoryFilterHint: "可按分类筛选商家",
   categoryFilterItemAriaLabel: (name: string, merchantCount: number) =>
     `${name}，${merchantCount} 个商家`,
   categoryIconLabel: "分类图标",

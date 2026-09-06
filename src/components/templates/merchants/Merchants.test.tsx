@@ -108,6 +108,11 @@ describe("MerchantsTemplate", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
+    expect(screen.getByRole("link", { name: "清除筛选" })).toHaveStyle({
+      minHeight: "0",
+      paddingBottom: "0",
+      paddingTop: "0",
+    });
   });
 
   it("在页面内展开分类管理并通过完成按钮收起", async () => {
@@ -130,9 +135,10 @@ describe("MerchantsTemplate", () => {
     expect(manageButton).toHaveAttribute("aria-expanded", "false");
     expect(manageButton).not.toHaveAttribute("aria-controls");
     expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("merchant-tag-management-panel"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-management-panel")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
 
     fireEvent.click(manageButton);
 
@@ -143,14 +149,22 @@ describe("MerchantsTemplate", () => {
     expect(
       screen.getByRole("button", { name: "新增分类" }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("merchant-tag-filter-list"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).toHaveAttribute("aria-hidden", "true");
+    expect(
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).toHaveAttribute("inert");
 
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("merchant-tag-filter-list"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).toHaveAttribute("aria-hidden", "false");
+    expect(
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).not.toHaveAttribute("inert");
     expect(screen.getByTestId("merchant-tag-management-panel")).toHaveAttribute(
       "inert",
     );
@@ -159,9 +173,46 @@ describe("MerchantsTemplate", () => {
         screen.getByTestId("merchant-tag-filter-list"),
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole("button", { name: "新增分类" }),
-      ).not.toBeInTheDocument();
+        screen.getByTestId("merchant-tag-management-panel"),
+      ).toHaveAttribute("aria-hidden", "true");
     });
+  });
+
+  it("未筛选时显示分类筛选提示且筛选摘要没有分割线", () => {
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
+
+    const hint = screen.getByText("可按分类筛选商家");
+    expect(hint).toBeInTheDocument();
+    expect(
+      screen.getByTestId("TipsAndUpdatesOutlinedIcon"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "管理分类" })).toHaveStyle({
+      minHeight: "36px",
+      paddingBottom: "4px",
+      paddingTop: "4px",
+    });
+    expect(
+      getComputedStyle(hint.parentElement as HTMLElement).borderTopStyle,
+    ).not.toBe("solid");
+  });
+
+  it("没有分类时不显示分类筛选提示", () => {
+    render(<MerchantsTemplate {...baseProps} />);
+
+    expect(screen.queryByText("可按分类筛选商家")).not.toBeInTheDocument();
   });
 
   it("展开后权限被移除时隐藏管理区并恢复筛选区", async () => {

@@ -37,6 +37,8 @@ describe("MerchantTagManager", () => {
     expect(screen.getByTestId("merchant-tag-filter-list")).toHaveStyle({
       flexWrap: "nowrap",
       overflowX: "auto",
+      paddingLeft: "8px",
+      paddingRight: "8px",
     });
     const selectedTag = screen.getByRole("link", { name: /超市/ });
     expect(selectedTag).toHaveAttribute("aria-current", "page");
@@ -63,22 +65,35 @@ describe("MerchantTagManager", () => {
 
     const row = container.querySelector('[data-merchant-tag-row-id="tag-1"]');
     expect(row).not.toBeNull();
+    expect(row).toHaveStyle({ paddingLeft: "12px", paddingRight: "12px" });
     expect(row).toHaveTextContent("🛒超市2编辑");
     expect(row).not.toHaveTextContent("2 个商家");
-    expect(
-      within(row as HTMLElement)
-        .getByText("2")
-        .closest(".MuiChip-root"),
-    ).not.toHaveAttribute("aria-hidden");
+    const countBadge = within(row as HTMLElement).getByRole("img", {
+      name: "2 个商家",
+    });
+    expect(countBadge).not.toHaveAttribute("aria-hidden");
+    expect(countBadge).toHaveStyle({
+      backgroundColor: "var(--user-theme-icon-badge-bg)",
+      borderRadius: `${designTokens.radius.sm}px`,
+      color: "var(--user-theme-icon-badge-color)",
+      height: "24px",
+      minWidth: "24px",
+    });
+    expect(within(row as HTMLElement).getByText("🛒")).toHaveStyle({
+      borderRadius: `${designTokens.radius.sm}px`,
+    });
     expect(
       screen.getByRole("button", { name: "编辑超市" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "调整超市排序" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "新增分类" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("merchant-tag-management-list")).toHaveStyle({
+      gap: "8px",
+    });
+    expect(screen.getByRole("button", { name: "新增分类" })).toHaveStyle({
+      marginTop: "12px",
+    });
   });
 
   it("在管理模式打开新增与编辑弹窗", async () => {

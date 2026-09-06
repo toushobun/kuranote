@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
+import { designTokens } from "theme/theme";
 
 import { SelectableFilterTag } from "./SelectableFilterTag";
 
@@ -58,6 +59,16 @@ describe("SelectableFilterTag", () => {
     expect(link).not.toHaveAttribute("aria-current");
     expect(screen.getByText("超市")).toBeInTheDocument();
     expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("超市").parentElement).toContainElement(
+      screen.getByText("6"),
+    );
+    expect(screen.getByText("🛒")).toHaveStyle({
+      borderRadius: `${designTokens.radius.sm}px`,
+    });
+    expect(getDocumentCssText()).toContain(
+      "var(--user-theme-icon-badge-color)",
+    );
+    expect(screen.getByText("6").closest(".MuiChip-root")).toBeNull();
   });
 
   it("全部用户主题下选中态使用主题色边框与文字", () => {
@@ -78,6 +89,7 @@ describe("SelectableFilterTag", () => {
 
       const link = screen.getByRole("link", { name: "超市，6 个商家" });
       const label = screen.getByText("超市");
+      const count = screen.getByText("6");
 
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
@@ -93,6 +105,9 @@ describe("SelectableFilterTag", () => {
       );
       expect(getComputedStyle(label).color).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),
+      );
+      expect(getComputedStyle(count).color).toBe(
+        "var(--user-theme-icon-badge-color)",
       );
       expect(link).toHaveAttribute("aria-current", "page");
 
