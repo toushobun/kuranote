@@ -244,6 +244,7 @@ export function MerchantsTemplate({
                     justifyContent: selectedTag
                       ? "space-between"
                       : "flex-start",
+                    minHeight: 22,
                     mt: 1.5,
                   }}
                 >
@@ -253,7 +254,9 @@ export function MerchantsTemplate({
                       {merchants.length} 个商家
                     </Typography>
                   ) : tags.length > 0 ? (
-                    <InlineHint>{merchantText.categoryFilterHint}</InlineHint>
+                    <InlineHint variant="plain">
+                      {merchantText.categoryFilterHint}
+                    </InlineHint>
                   ) : null}
                   {selectedTag ? (
                     <Button

@@ -7,19 +7,24 @@ import { designTokens } from "theme/theme";
 
 type InlineHintProps = {
   children: ReactNode;
+  variant?: "filled" | "plain";
 };
 
-export function InlineHint({ children }: InlineHintProps) {
+export function InlineHint({ children, variant = "filled" }: InlineHintProps) {
   return (
     <Stack
       direction="row"
       spacing={0.9}
       sx={{
         alignItems: "center",
-        bgcolor: "action.hover",
-        borderRadius: `${designTokens.radius.md}px`,
-        px: 1.25,
-        py: 1,
+        ...(variant === "filled"
+          ? {
+              bgcolor: "action.hover",
+              borderRadius: `${designTokens.radius.md}px`,
+              px: 1.25,
+              py: 1,
+            }
+          : {}),
       }}
     >
       <TipsAndUpdatesOutlinedIcon
