@@ -183,13 +183,21 @@ export const BusinessBadgeHeightComparison: Story = {
       categoryItems: [
         {
           amount: "220",
-          categoryName: "🎫 JR地铁公交",
-          parentCategoryName: "🚃 交通",
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "0",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: null,
+          },
+          categoryName: "特产",
+          parentCategoryName: "购物",
           categoryType: "expense",
         },
       ],
-      merchant_name: "JR",
-      note: null,
+      merchant_name: "Rakuten",
+      note: "teset",
     };
     const businessBadgeItem: TransactionRowItem = {
       ...categoryOnlyItem,
@@ -197,15 +205,24 @@ export const BusinessBadgeHeightComparison: Story = {
       categoryItems: [
         {
           ...categoryOnlyItem.categoryItems[0],
-          businessStatus: reimbursementStatus,
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "0",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: "reimbursed",
+          },
         },
       ],
+      merchant_name: "日本铁路",
+      note: null,
     };
 
     return (
       <Stack divider={<Divider />}>
-        <TransactionRow item={categoryOnlyItem} receiptCard showTime />
-        <TransactionRow item={businessBadgeItem} receiptCard showTime />
+        <TransactionRow item={categoryOnlyItem} showTime />
+        <TransactionRow item={businessBadgeItem} showTime />
       </Stack>
     );
   },

@@ -156,7 +156,14 @@ export function TransactionRow({
   ].filter((segment): segment is MetaSegment => segment !== null);
 
   return (
-    <Stack spacing={receiptCard ? 1 : 0.8} sx={{ px: 1.4, py: 1.45 }}>
+    <Stack
+      spacing={receiptCard ? 1 : 0.8}
+      sx={{
+        px: 1.4,
+        pt: 1.45,
+        pb: detailText && businessStatuses.length === 0 ? 0.8 : 1.45,
+      }}
+    >
       <Stack direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
         <Avatar
           alt={merchantName}
