@@ -2,7 +2,6 @@
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -19,6 +18,7 @@ import { useState } from "react";
 import { CreateButton } from "atoms/ui/CreateButton";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
+import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
@@ -252,20 +252,9 @@ export function MerchantsTemplate({
                       当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
                       {merchants.length} 个商家
                     </Typography>
-                  ) : (
-                    <>
-                      <TipsAndUpdatesOutlinedIcon
-                        sx={{
-                          color: "text.secondary",
-                          flexShrink: 0,
-                          fontSize: 20,
-                        }}
-                      />
-                      <Typography color="text.secondary" variant="body2">
-                        {merchantText.categoryFilterHint}
-                      </Typography>
-                    </>
-                  )}
+                  ) : tags.length > 0 ? (
+                    <InlineHint>{merchantText.categoryFilterHint}</InlineHint>
+                  ) : null}
                   {selectedTag ? (
                     <Button
                       component={Link}
@@ -325,8 +314,12 @@ export function MerchantsTemplate({
           </SectionCard>
 
           <Box
-            data-testid="merchant-list-section"
-            sx={{ mt: { xs: "12px !important", sm: "16px !important" } }}
+            sx={(theme) => ({
+              mt: {
+                xs: `${theme.spacing(1.5)} !important`,
+                sm: `${theme.spacing(2)} !important`,
+              },
+            })}
           >
             <MerchantList
               canManageMerchants={canManageMerchants}

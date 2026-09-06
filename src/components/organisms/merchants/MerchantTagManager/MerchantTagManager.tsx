@@ -6,7 +6,6 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -19,6 +18,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useActionState, useEffect, useState } from "react";
 
+import { IconBadge } from "atoms/ui/IconBadge";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
@@ -61,15 +61,6 @@ type MerchantTagManagerProps =
   | MerchantTagManagementProps;
 
 const initialState: MerchantTagActionState = {};
-
-const managementTagCountChipSx = {
-  bgcolor: "var(--user-theme-icon-badge-bg)",
-  borderRadius: `${designTokens.radius.sm}px`,
-  color: "var(--user-theme-icon-badge-color)",
-  height: 24,
-  minWidth: 24,
-  "& .MuiChip-label": { px: 0.75 },
-} as const;
 
 function filterHref(keyword: string, tagId?: string) {
   const query = new URLSearchParams();
@@ -197,7 +188,7 @@ function MerchantTagManagement({
   }
 
   return (
-    <Stack>
+    <Stack spacing={1.5}>
       <Stack data-testid="merchant-tag-management-list" sx={{ gap: 1 }}>
         {manager.orderedTags.map((tag) => (
           <Stack
@@ -238,11 +229,19 @@ function MerchantTagManagement({
                 <Typography noWrap sx={{ fontWeight: 700 }}>
                   {tag.name}
                 </Typography>
-                <Chip
-                  label={tag.merchant_count}
-                  size="small"
-                  sx={managementTagCountChipSx}
-                />
+                <IconBadge
+                  label={`${tag.merchant_count} 个商家`}
+                  size="sm"
+                  sx={{
+                    height: (theme) => theme.spacing(3),
+                    minWidth: (theme) => theme.spacing(3),
+                    px: 0.75,
+                    typography: "caption",
+                    width: "auto",
+                  }}
+                >
+                  {tag.merchant_count}
+                </IconBadge>
               </Stack>
             </Box>
             <Button
@@ -291,7 +290,6 @@ function MerchantTagManagement({
         sx={{
           borderRadius: `${designTokens.radius.item}px`,
           borderStyle: "dashed",
-          mt: 1.5,
           py: 1.25,
         }}
         type="button"

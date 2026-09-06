@@ -89,6 +89,7 @@ describe("SelectableFilterTag", () => {
 
       const link = screen.getByRole("link", { name: "超市，6 个商家" });
       const label = screen.getByText("超市");
+      const count = screen.getByText("6");
 
       expect(theme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
@@ -104,6 +105,9 @@ describe("SelectableFilterTag", () => {
       );
       expect(getComputedStyle(label).color).toBe(
         hexToRgbString(userThemeTokens[themeKey].palette.accent),
+      );
+      expect(getComputedStyle(count).color).toBe(
+        "var(--user-theme-icon-badge-color)",
       );
       expect(link).toHaveAttribute("aria-current", "page");
 

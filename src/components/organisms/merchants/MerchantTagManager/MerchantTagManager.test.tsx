@@ -68,11 +68,11 @@ describe("MerchantTagManager", () => {
     expect(row).toHaveStyle({ paddingLeft: "12px", paddingRight: "12px" });
     expect(row).toHaveTextContent("🛒超市2编辑");
     expect(row).not.toHaveTextContent("2 个商家");
-    expect(
-      within(row as HTMLElement)
-        .getByText("2")
-        .closest(".MuiChip-root"),
-    ).toHaveStyle({
+    const countBadge = within(row as HTMLElement).getByRole("img", {
+      name: "2 个商家",
+    });
+    expect(countBadge).not.toHaveAttribute("aria-hidden");
+    expect(countBadge).toHaveStyle({
       backgroundColor: "var(--user-theme-icon-badge-bg)",
       borderRadius: `${designTokens.radius.sm}px`,
       color: "var(--user-theme-icon-badge-color)",

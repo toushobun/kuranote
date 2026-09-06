@@ -153,12 +153,18 @@ describe("MerchantsTemplate", () => {
     expect(
       screen.getByTestId("merchant-tag-filter-list").parentElement,
     ).toHaveAttribute("aria-hidden", "true");
+    expect(
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).toHaveAttribute("inert");
 
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
     expect(screen.getByTestId("merchant-tag-filter-list")).toBeInTheDocument();
     expect(
       screen.getByTestId("merchant-tag-filter-list").parentElement,
     ).toHaveAttribute("aria-hidden", "false");
+    expect(
+      screen.getByTestId("merchant-tag-filter-list").parentElement,
+    ).not.toHaveAttribute("inert");
     expect(screen.getByTestId("merchant-tag-management-panel")).toHaveAttribute(
       "inert",
     );
@@ -173,7 +179,20 @@ describe("MerchantsTemplate", () => {
   });
 
   it("未筛选时显示分类筛选提示且筛选摘要没有分割线", () => {
-    render(<MerchantsTemplate {...baseProps} />);
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        tags={[
+          {
+            icon: "🛒",
+            id: "tag-1",
+            merchant_count: 1,
+            name: "超市",
+            sort_order: 0,
+          },
+        ]}
+      />,
+    );
 
     const hint = screen.getByText("可按分类筛选商家");
     expect(hint).toBeInTheDocument();
@@ -188,6 +207,12 @@ describe("MerchantsTemplate", () => {
     expect(
       getComputedStyle(hint.parentElement as HTMLElement).borderTopStyle,
     ).not.toBe("solid");
+  });
+
+  it("没有分类时不显示分类筛选提示", () => {
+    render(<MerchantsTemplate {...baseProps} />);
+
+    expect(screen.queryByText("可按分类筛选商家")).not.toBeInTheDocument();
   });
 
   it("展开后权限被移除时隐藏管理区并恢复筛选区", async () => {
