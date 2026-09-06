@@ -314,6 +314,7 @@ function TransactionMonthListContent({
                   spacing={1.4}
                   sx={{
                     borderTop: userThemeCardBorder,
+                    pb: 0,
                     px: 0.75,
                     pt: 1.2,
                   }}

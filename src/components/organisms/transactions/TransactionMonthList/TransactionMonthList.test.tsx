@@ -188,7 +188,7 @@ describe("TransactionMonthList", () => {
     );
 
     expect(expandedContent).toHaveStyle({ paddingTop: "9.6px" });
-    expect(expandedContent).not.toHaveStyle({ paddingBottom: "9.6px" });
+    expect(expandedContent).toHaveStyle({ paddingBottom: "0px" });
     expect(mayHeader).toHaveStyle({ paddingTop: "16px" });
   });
 

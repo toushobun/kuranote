@@ -125,11 +125,12 @@ describe("TransactionGroupList", () => {
 
     const firstRow = screen.getByTestId(`row-${firstItem.id}`).closest("a");
     const secondRow = screen.getByTestId(`row-${secondItem.id}`).closest("a");
-    const nextDayContainer = container.firstElementChild?.children[1];
+    const dateGroupList = container.firstElementChild;
+    const nextDayContainer = dateGroupList?.children[1];
     const dateDivider = nextDayContainer?.children[0];
 
     expect(firstRow?.nextElementSibling).toBe(secondRow);
-    expect(nextDayContainer).not.toHaveStyle({ marginTop: "9.6px" });
+    expect(dateGroupList).toHaveStyle({ gap: "0px" });
     expect(dateDivider).toHaveAttribute("aria-hidden", "true");
   });
 

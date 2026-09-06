@@ -48,7 +48,7 @@ export function TransactionGroupList({
   useDateGroupLabelRefresh();
 
   return (
-    <Stack>
+    <Stack sx={{ gap: 0 }}>
       {groups.map((group, groupIndex) => (
         <Stack key={group.date} spacing={0.55}>
           {groupIndex > 0 ? (
