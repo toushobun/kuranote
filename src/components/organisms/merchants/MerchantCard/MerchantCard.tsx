@@ -2,10 +2,11 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
-import type { Theme } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
@@ -29,10 +30,25 @@ type MerchantCardProps = {
 };
 
 const merchantChipSx = {
-  borderRadius: `${designTokens.radius.full}px`,
+  borderRadius: `${designTokens.radius.sm}px`,
   fontSize: (theme: Theme) => theme.typography.body2.fontSize,
   height: 28,
 } as const;
+
+const preferredMerchantChipSx = (theme: Theme) => {
+  const patternColor = alpha(theme.palette.common.white, 0.14);
+
+  return {
+    "& .MuiChip-label": {
+      alignItems: "center",
+      display: "flex",
+      gap: 0.5,
+    },
+    "& .MuiSvgIcon-root": { color: "inherit", fontSize: 16 },
+    backgroundImage: `repeating-linear-gradient(45deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px), repeating-linear-gradient(135deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px)`,
+    color: "common.white",
+  } as const;
+};
 
 const merchantTagColorByName: Readonly<Record<string, ThemeColorKey>> = {
   生鲜: "lime",
@@ -146,16 +162,19 @@ export function MerchantCard({
           <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
             <Chip
               color={hasPreferredAlias ? "primary" : "default"}
-              icon={hasPreferredAlias ? <StarRoundedIcon /> : undefined}
-              label={merchant.display_name}
+              label={
+                <>
+                  {merchant.display_name}
+                  {hasPreferredAlias ? <StarRoundedIcon /> : null}
+                </>
+              }
               size="small"
               sx={[
                 merchantChipSx,
                 {
-                  color: hasPreferredAlias ? "primary.contrastText" : undefined,
                   fontWeight: 600,
-                  "& .MuiChip-icon": { color: "inherit" },
                 },
+                ...(hasPreferredAlias ? [preferredMerchantChipSx] : []),
               ]}
               variant={hasPreferredAlias ? "filled" : "outlined"}
             />
@@ -170,22 +189,25 @@ export function MerchantCard({
             ))}
           </Stack>
           {merchant.tags.length > 0 ? (
-            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
-              {merchant.tags.map((tag) => (
-                <Chip
-                  icon={
-                    <Box aria-hidden component="span">
-                      {tag.icon}
-                    </Box>
-                  }
-                  key={tag.id}
-                  label={tag.name}
-                  size="small"
-                  sx={getMerchantTagChipSx(tag)}
-                  variant="outlined"
-                />
-              ))}
-            </Stack>
+            <>
+              <Divider sx={{ borderStyle: "dashed", my: 1 }} />
+              <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75 }}>
+                {merchant.tags.map((tag) => (
+                  <Chip
+                    icon={
+                      <Box aria-hidden component="span">
+                        {tag.icon}
+                      </Box>
+                    }
+                    key={tag.id}
+                    label={tag.name}
+                    size="small"
+                    sx={getMerchantTagChipSx(tag)}
+                    variant="outlined"
+                  />
+                ))}
+              </Stack>
+            </>
           ) : null}
         </Box>
 

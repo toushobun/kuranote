@@ -127,15 +127,24 @@ describe("MerchantCard", () => {
     const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
     const preferredChip = chips[0]?.closest(".MuiChip-root");
     const secondaryChip = chips[1]?.closest(".MuiChip-root");
+    const preferredStar = preferredChip?.querySelector("svg");
 
     expect(chips.map((chip) => chip.textContent)).toEqual(["来福", "Life"]);
     expect(preferredChip).toHaveClass("MuiChip-filled");
+    expect(
+      preferredChip?.querySelector(".MuiChip-label")?.lastElementChild,
+    ).toBe(preferredStar);
     expect(getComputedStyle(preferredChip as Element).color).toBe(
       "rgb(255, 255, 255)",
     );
+    expect(getComputedStyle(preferredStar as Element).color).toBe(
+      "rgb(255, 255, 255)",
+    );
     expect(
-      getComputedStyle(preferredChip?.querySelector("svg") as Element).color,
-    ).toBe("rgb(255, 255, 255)");
+      getComputedStyle(preferredChip as Element).backgroundImage,
+    ).toContain("repeating-linear-gradient");
+    expect(getComputedStyle(preferredChip as Element).borderRadius).toBe("8px");
+    expect(getComputedStyle(secondaryChip as Element).borderRadius).toBe("8px");
     expect(getComputedStyle(preferredChip as Element).fontWeight).toBe(
       getComputedStyle(secondaryChip as Element).fontWeight,
     );
@@ -168,15 +177,13 @@ describe("MerchantCard", () => {
         userThemeTokens[themeKey].palette.accent,
       );
       expect(getComputedStyle(preferredChipLabel as Element).color).toBe(
-        toComputedColor(dynamicTheme.palette.primary.contrastText),
+        toComputedColor(dynamicTheme.palette.common.white),
       );
       expect(
         getComputedStyle(
-          container.querySelector(
-            ".MuiChip-colorPrimary .MuiChip-icon",
-          ) as Element,
+          container.querySelector(".MuiChip-colorPrimary svg") as Element,
         ).color,
-      ).toBe(toComputedColor(dynamicTheme.palette.primary.contrastText));
+      ).toBe(toComputedColor(dynamicTheme.palette.common.white));
 
       unmount();
     });
@@ -208,6 +215,7 @@ describe("MerchantCard", () => {
     expect(chips.map((chip) => chip.textContent)).toEqual(["LIFE超市", "Life"]);
     expect(displayNameChip).toHaveClass("MuiChip-outlined");
     expect(displayNameChip?.querySelector("svg")).toBeNull();
+    expect(within(container).queryByRole("separator")).not.toBeInTheDocument();
   });
 
   it("分类标签按设计稿分离图标与名称，并使用柔和彩色方圆角", () => {
@@ -243,6 +251,7 @@ describe("MerchantCard", () => {
     const convenienceLabel = within(container).getByText("便利店");
     const supermarketChip = supermarketLabel.closest(".MuiChip-root");
     const convenienceChip = convenienceLabel.closest(".MuiChip-root");
+    const divider = within(container).getByRole("separator");
 
     expect(supermarketChip?.querySelector(".MuiChip-icon")).toHaveTextContent(
       "🛒",
@@ -259,5 +268,6 @@ describe("MerchantCard", () => {
     expect(getComputedStyle(convenienceChip as Element).backgroundColor).toBe(
       "rgb(232, 244, 255)",
     );
+    expect(getComputedStyle(divider).borderBottomStyle).toBe("dashed");
   });
 });

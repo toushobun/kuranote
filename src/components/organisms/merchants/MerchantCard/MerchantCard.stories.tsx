@@ -17,10 +17,20 @@ import { MerchantCard } from "./MerchantCard";
 
 const merchant = createMerchantRow({
   aliases: [
-    createMerchantAliasRow(),
+    createMerchantAliasRow({ is_preferred: true }),
     createMerchantAliasRow({ alias: "LIFE", id: "alias-2", sort_order: 2 }),
   ],
+  display_name: "来福",
   note: "常去的超市",
+  tags: [
+    {
+      icon: "🛒",
+      id: "tag-supermarket",
+      merchant_count: 1,
+      name: "超市",
+      sort_order: 1,
+    },
+  ],
 });
 
 function MerchantCardThemePreview() {
@@ -71,7 +81,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "商家卡片",
+  name: "首选别名、纹理与分隔线",
 };
 
 export const WithoutAliases: Story = {
