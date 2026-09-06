@@ -255,6 +255,7 @@ export function MerchantsTemplate({
                       component={Link}
                       href={clearTagFilterHref}
                       size="small"
+                      sx={{ minHeight: 0, py: 0 }}
                     >
                       清除筛选
                     </Button>

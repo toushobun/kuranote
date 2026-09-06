@@ -108,6 +108,11 @@ describe("MerchantsTemplate", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(document.querySelector('input[name="tagId"]')).toHaveValue("tag-1");
+    expect(screen.getByRole("link", { name: "清除筛选" })).toHaveStyle({
+      minHeight: "0",
+      paddingBottom: "0",
+      paddingTop: "0",
+    });
   });
 
   it("在页面内展开分类管理并通过完成按钮收起", async () => {
