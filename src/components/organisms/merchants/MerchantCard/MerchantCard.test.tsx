@@ -252,6 +252,11 @@ describe("MerchantCard", () => {
     const supermarketChip = supermarketLabel.closest(".MuiChip-root");
     const convenienceChip = convenienceLabel.closest(".MuiChip-root");
     const divider = within(container).getByRole("separator");
+    const card = divider.parentElement;
+    const tagRow = convenienceChip?.parentElement;
+    const supermarketIcon = supermarketChip?.querySelector(".MuiChip-icon");
+    const supermarketChipLabel =
+      supermarketChip?.querySelector(".MuiChip-label");
 
     expect(supermarketChip?.querySelector(".MuiChip-icon")).toHaveTextContent(
       "🛒",
@@ -262,12 +267,26 @@ describe("MerchantCard", () => {
     expect(getComputedStyle(supermarketChip as Element).borderRadius).toBe(
       "8px",
     );
+    expect(getComputedStyle(supermarketChip as Element).height).toBe("28px");
+    expect(getComputedStyle(supermarketIcon as Element).marginRight).toBe(
+      "4px",
+    );
+    expect(getComputedStyle(supermarketChipLabel as Element).paddingRight).toBe(
+      "10px",
+    );
     expect(getComputedStyle(supermarketChip as Element).backgroundColor).toBe(
       "rgb(239, 249, 214)",
     );
+    expect(
+      getComputedStyle(supermarketChip as Element).backgroundImage,
+    ).toContain("repeating-linear-gradient");
     expect(getComputedStyle(convenienceChip as Element).backgroundColor).toBe(
       "rgb(232, 244, 255)",
     );
     expect(getComputedStyle(divider).borderBottomStyle).toBe("dashed");
+    expect(card?.children[1]).toBe(divider);
+    expect(card?.children[2]).toBe(tagRow);
+    expect(getComputedStyle(tagRow as Element).gap).toBe("12px");
+    expect(getComputedStyle(tagRow as Element).paddingLeft).toBe("16px");
   });
 });

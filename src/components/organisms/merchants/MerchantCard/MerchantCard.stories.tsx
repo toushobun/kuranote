@@ -30,6 +30,20 @@ const merchant = createMerchantRow({
       name: "超市",
       sort_order: 1,
     },
+    {
+      icon: "🧴",
+      id: "tag-daily",
+      merchant_count: 1,
+      name: "日用",
+      sort_order: 2,
+    },
+    {
+      icon: "🛋️",
+      id: "tag-home",
+      merchant_count: 1,
+      name: "家居",
+      sort_order: 3,
+    },
   ],
 });
 

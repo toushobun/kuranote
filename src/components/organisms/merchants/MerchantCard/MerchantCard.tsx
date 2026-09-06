@@ -35,6 +35,10 @@ const merchantChipSx = {
   height: 28,
 } as const;
 
+function createChipPattern(patternColor: string) {
+  return `repeating-linear-gradient(45deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px), repeating-linear-gradient(135deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px)`;
+}
+
 const preferredMerchantChipSx = (theme: Theme) => {
   const patternColor = alpha(theme.palette.common.white, 0.14);
 
@@ -45,7 +49,7 @@ const preferredMerchantChipSx = (theme: Theme) => {
       gap: 0.5,
     },
     "& .MuiSvgIcon-root": { color: "inherit", fontSize: 16 },
-    backgroundImage: `repeating-linear-gradient(45deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px), repeating-linear-gradient(135deg, transparent 0 5px, ${patternColor} 5px 6px, transparent 6px 10px)`,
+    backgroundImage: createChipPattern(patternColor),
     color: "common.white",
   } as const;
 };
@@ -76,11 +80,12 @@ function getMerchantTagChipSx(tag: MerchantTag) {
       color: "inherit",
       fontSize: 16,
       lineHeight: 1,
-      ml: 0.75,
-      mr: -0.25,
+      ml: 1.25,
+      mr: 0.5,
     },
-    "& .MuiChip-label": { px: 0.75 },
+    "& .MuiChip-label": { pl: 0.5, pr: 1.25 },
     bgcolor: color.chipBackground,
+    backgroundImage: createChipPattern(alpha(color.chipText, 0.06)),
     borderColor: color.chipBorder,
     borderRadius: `${designTokens.radius.sm}px`,
     color: color.chipText,
@@ -188,27 +193,6 @@ export function MerchantCard({
               />
             ))}
           </Stack>
-          {merchant.tags.length > 0 ? (
-            <>
-              <Divider sx={{ borderStyle: "dashed", my: 1 }} />
-              <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75 }}>
-                {merchant.tags.map((tag) => (
-                  <Chip
-                    icon={
-                      <Box aria-hidden component="span">
-                        {tag.icon}
-                      </Box>
-                    }
-                    key={tag.id}
-                    label={tag.name}
-                    size="small"
-                    sx={getMerchantTagChipSx(tag)}
-                    variant="outlined"
-                  />
-                ))}
-              </Stack>
-            </>
-          ) : null}
         </Box>
 
         {canManageMerchants ? (
@@ -231,6 +215,27 @@ export function MerchantCard({
           </IconButton>
         ) : null}
       </Stack>
+      {merchant.tags.length > 0 ? (
+        <>
+          <Divider sx={{ borderStyle: "dashed", my: 1 }} />
+          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1.5, pl: 2 }}>
+            {merchant.tags.map((tag) => (
+              <Chip
+                icon={
+                  <Box aria-hidden component="span">
+                    {tag.icon}
+                  </Box>
+                }
+                key={tag.id}
+                label={tag.name}
+                size="small"
+                sx={getMerchantTagChipSx(tag)}
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        </>
+      ) : null}
     </SoftCard>
   );
 }
