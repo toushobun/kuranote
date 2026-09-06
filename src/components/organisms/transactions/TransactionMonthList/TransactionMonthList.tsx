@@ -314,8 +314,9 @@ function TransactionMonthListContent({
                   spacing={1.4}
                   sx={{
                     borderTop: userThemeCardBorder,
+                    pb: 0,
                     px: 0.75,
-                    py: 1.2,
+                    pt: 1.2,
                   }}
                 >
                   {dateGroups ? (

@@ -94,6 +94,46 @@ describe("TransactionGroupList", () => {
     expect(within(container).getByText("1日（周一）")).toBeInTheDocument();
   });
 
+  it("同日记录紧邻且跨日仅保留可见分割线", () => {
+    const firstItem = createTransactionListItem({
+      id: "00000000-0000-4000-8000-000000009001",
+    });
+    const secondItem = createTransactionListItem({
+      id: "00000000-0000-4000-8000-000000009002",
+    });
+    const nextDayGroup = createTransactionDateGroup({
+      date: "2026-06-04",
+      items: [
+        createTransactionListItem({
+          id: "00000000-0000-4000-8000-000000009003",
+        }),
+      ],
+      label: "4日（周四）",
+    });
+    const { container } = render(
+      <TransactionGroupList
+        groups={[
+          createTransactionDateGroup({
+            date: "2026-06-05",
+            items: [firstItem, secondItem],
+            label: "5日（周五）",
+          }),
+          nextDayGroup,
+        ]}
+      />,
+    );
+
+    const firstRow = screen.getByTestId(`row-${firstItem.id}`).closest("a");
+    const secondRow = screen.getByTestId(`row-${secondItem.id}`).closest("a");
+    const dateGroupList = container.firstElementChild;
+    const nextDayContainer = dateGroupList?.children[1];
+    const dateDivider = nextDayContainer?.children[0];
+
+    expect(firstRow?.nextElementSibling).toBe(secondRow);
+    expect(dateGroupList).toHaveStyle({ gap: "0px" });
+    expect(dateDivider).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("跨过本地 0 点后自动重新计算相对日期标签", () => {
     vi.setSystemTime(new Date("2026-07-01T14:50:00.000Z"));
 
