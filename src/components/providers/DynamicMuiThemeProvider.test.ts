@@ -39,14 +39,13 @@ describe("createDynamicMuiTheme", () => {
     });
   });
 
-  it("会按每款用户主题的强调色计算 primary.contrastText", () => {
+  it("全部用户主题的 primary.contrastText 固定为白色，不依赖对比度阈值自动判断", () => {
+    // 「琥珀暖阳」默认主题的强调色与白色对比度低于 MUI 默认阈值 3，
+    // 若交给自动判断会被误判为黑字（#690），因此固定声明为白色。
     userThemeKeys.forEach((themeKey) => {
-      const token = userThemeTokens[themeKey];
       const dynamicTheme = createDynamicMuiTheme(themeKey);
 
-      expect(dynamicTheme.palette.primary.contrastText).toBe(
-        baseTheme.palette.getContrastText(token.palette.accent),
-      );
+      expect(dynamicTheme.palette.primary.contrastText).toBe("#fff");
     });
   });
 

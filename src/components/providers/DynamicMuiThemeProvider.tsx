@@ -15,11 +15,14 @@ type DynamicMuiThemeProviderProps = {
 export function createDynamicMuiTheme(themeKey: UserThemeKey) {
   const token = userThemeTokens[themeKey];
   const overlayPaperBackground = baseTheme.palette.background.paper;
+  // 强调色实心背景固定配白字，不依赖 MUI 按对比度阈值自动判断——
+  // 默认主题「琥珀暖阳」的强调色偏亮，自动判断会误选黑字（#690）。
   const primary = baseTheme.palette.augmentColor({
     color: {
       main: token.palette.accent,
       light: token.palette.accentLight,
       dark: token.palette.accentDeep,
+      contrastText: "#fff",
     },
   });
 
