@@ -85,7 +85,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "商家页面" };
+export const Default: Story = { name: "紧凑区块与商家卡片间距" };
 
 export const CategoryFilterHint: Story = {
   name: "筛选提示、内缩胶囊与紧凑管理按钮",

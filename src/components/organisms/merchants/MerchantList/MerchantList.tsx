@@ -101,7 +101,7 @@ export function MerchantList({
   }
 
   return (
-    <Stack spacing={1.5}>
+    <Stack data-testid="merchant-list" sx={{ gap: 1 }}>
       {merchants.map((merchant) => (
         <MerchantCard
           canManageMerchants={canManageMerchants}

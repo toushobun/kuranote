@@ -34,6 +34,9 @@ describe("MerchantList", () => {
       <MerchantList {...baseProps} merchants={[createMerchantRow()]} />,
     );
 
+    expect(within(container).getByTestId("merchant-list")).toHaveStyle({
+      gap: "8px",
+    });
     expect(
       within(container).getByRole("heading", { name: "LIFE超市" }),
     ).toBeInTheDocument();

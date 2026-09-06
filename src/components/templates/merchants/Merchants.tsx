@@ -324,14 +324,19 @@ export function MerchantsTemplate({
             ) : null}
           </SectionCard>
 
-          <MerchantList
-            canManageMerchants={canManageMerchants}
-            createHref={routePaths.merchantsNew}
-            keyword={keyword}
-            ledgerId={ledgerId}
-            merchants={merchants}
-            tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
-          />
+          <Box
+            data-testid="merchant-list-section"
+            sx={{ mt: { xs: "12px !important", sm: "16px !important" } }}
+          >
+            <MerchantList
+              canManageMerchants={canManageMerchants}
+              createHref={routePaths.merchantsNew}
+              keyword={keyword}
+              ledgerId={ledgerId}
+              merchants={merchants}
+              tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
+            />
+          </Box>
         </Stack>
       </PageShell>
     </>
