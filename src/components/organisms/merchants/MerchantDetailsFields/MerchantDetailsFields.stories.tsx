@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import type { MerchantIconStateAction } from "types/merchants";
 
@@ -28,6 +29,64 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Idle: Story = { name: "获取前" };
+
+export const EmptyFields: Story = {
+  name: "空值：聚焦与失焦对照",
+  args: { name: "", websiteUrl: "", note: "" },
+  render: function EmptyFieldsStory(args) {
+    const [name, setName] = useState(args.name);
+    const [websiteUrl, setWebsiteUrl] = useState(args.websiteUrl);
+    const [note, setNote] = useState(args.note);
+
+    return (
+      <MerchantDetailsFields
+        {...args}
+        name={name}
+        websiteUrl={websiteUrl}
+        note={note}
+        onNameChange={setName}
+        onWebsiteUrlChange={setWebsiteUrl}
+        onNoteChange={setNote}
+      />
+    );
+  },
+};
+
+export const NameFocused: Story = {
+  ...EmptyFields,
+  name: "空值：商家名称聚焦",
+  play: async ({ canvasElement }) => {
+    const field = within(canvasElement).getByRole("textbox", {
+      name: /商家名称/,
+    });
+    await userEvent.click(field);
+    await expect(field).toHaveFocus();
+  },
+};
+
+export const WebsiteFocused: Story = {
+  ...EmptyFields,
+  name: "空值：商家网址聚焦",
+  play: async ({ canvasElement }) => {
+    const field = within(canvasElement).getByRole("textbox", {
+      name: "商家网址",
+    });
+    await userEvent.click(field);
+    await expect(field).toHaveFocus();
+  },
+};
+
+export const NoteFocused: Story = {
+  ...EmptyFields,
+  name: "空值：备注聚焦",
+  play: async ({ canvasElement }) => {
+    const field = within(canvasElement).getByRole("textbox", {
+      name: "备注（可选）",
+    });
+    await userEvent.click(field);
+    await expect(field).toHaveFocus();
+  },
+};
 
 export const Loading: Story = {
   args: {
