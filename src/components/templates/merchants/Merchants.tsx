@@ -24,6 +24,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { useClearQueryParam } from "templates/useClearQueryParam";
@@ -111,61 +112,36 @@ export function MerchantsTemplate({
         sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
       >
         <Stack spacing={{ xs: 2, sm: 2.5 }}>
-          <Stack
-            direction="row"
-            spacing={1.25}
-            sx={{ alignItems: "flex-start" }}
-          >
-            <IconButton
-              aria-label="返回设置"
-              component={Link}
-              href={routePaths.settings}
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                boxShadow: "0 4px 14px rgba(91, 62, 34, 0.08)",
-                flexShrink: 0,
-              }}
-            >
-              <ArrowBackRoundedIcon />
-            </IconButton>
-
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                component="h1"
-                variant="h5"
-                sx={{
-                  color: "var(--user-theme-balance-text)",
-                  fontWeight: 900,
-                  lineHeight: 1.25,
-                }}
+          <PageHeader
+            action={
+              canManageMerchants ? (
+                <CreateButton
+                  href={routePaths.merchantsNew}
+                  size="small"
+                  sx={{
+                    borderRadius: `${designTokens.radius.full}px`,
+                    flexShrink: 0,
+                    px: { xs: 1.5, sm: 2.5 },
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  新增商家
+                </CreateButton>
+              ) : null
+            }
+            leading={
+              <IconButton
+                aria-label="返回设置"
+                component={Link}
+                href={routePaths.settings}
               >
-                商家管理
-              </Typography>
-              <Typography
-                color="text.secondary"
-                sx={{ mt: 0.25 }}
-                variant="body2"
-              >
-                管理常用商家和头像信息
-              </Typography>
-            </Box>
-
-            {canManageMerchants ? (
-              <CreateButton
-                href={routePaths.merchantsNew}
-                size="small"
-                sx={{
-                  borderRadius: `${designTokens.radius.full}px`,
-                  flexShrink: 0,
-                  px: { xs: 1.5, sm: 2.5 },
-                  whiteSpace: "nowrap",
-                }}
-              >
-                新增商家
-              </CreateButton>
-            ) : null}
-          </Stack>
+                <ArrowBackRoundedIcon />
+              </IconButton>
+            }
+            subtitle="管理常用商家和头像信息"
+            title="商家管理"
+            variant="compact"
+          />
 
           {hasMerchants || hasKeyword || selectedTag || tagFilterError ? (
             <SectionCard

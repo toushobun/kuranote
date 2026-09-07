@@ -1,4 +1,5 @@
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { cleanup, render, within } from "@testing-library/react";
@@ -72,5 +73,28 @@ describe("PageHeader", () => {
     expect(
       within(container).getByRole("img", { name: "账户图标" }),
     ).toBeInTheDocument();
+  });
+
+  it("紧凑模式使用列表页的标题层级和前置按钮样式", () => {
+    const { container } = render(
+      <PageHeader
+        leading={<IconButton aria-label="返回">返</IconButton>}
+        subtitle="商家管理 〉 新增商家"
+        title="新增商家"
+        variant="compact"
+      />,
+    );
+
+    const heading = within(container).getByRole("heading", {
+      name: "新增商家",
+    });
+    const subtitle = within(container).getByText("商家管理 〉 新增商家");
+    const backButton = within(container).getByRole("button", { name: "返回" });
+
+    expect(heading).toHaveClass("MuiTypography-h5");
+    expect(getComputedStyle(heading).fontWeight).toBe("900");
+    expect(subtitle).toHaveClass("MuiTypography-body2");
+    expect(getComputedStyle(backButton).borderTopStyle).toBe("solid");
+    expect(getComputedStyle(backButton).boxShadow).toContain("14px");
   });
 });

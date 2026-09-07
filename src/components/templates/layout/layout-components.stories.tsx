@@ -1,5 +1,7 @@
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
@@ -74,6 +76,27 @@ export const HeaderOnly: Story = {
         subtitle="管理常用商家、平台、公司和个人。"
         action={<Button variant="outlined">导入</Button>}
       />
+    </ThemeStory>
+  ),
+};
+
+export const CompactHeader: Story = {
+  name: "PageHeader（紧凑）",
+  render: () => (
+    <ThemeStory>
+      <PageShell maxWidth="sm">
+        <PageHeader
+          action={<Button size="small">新增商家</Button>}
+          leading={
+            <IconButton aria-label="返回">
+              <ArrowBackRoundedIcon />
+            </IconButton>
+          }
+          subtitle="管理常用商家和头像信息"
+          title="商家管理"
+          variant="compact"
+        />
+      </PageShell>
     </ThemeStory>
   ),
 };
