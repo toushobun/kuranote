@@ -23,6 +23,7 @@ import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { useClearQueryParam } from "templates/useClearQueryParam";
@@ -350,6 +351,7 @@ export function MerchantsTemplate({
         </Stack>
       </PageShell>
       <SuccessFeedbackDialog
+        bottomOffset={feedbackBottomOffset}
         onClose={closeSaveSuccessDialog}
         open={isSaveSuccessOpen}
         title={merchantText.saveSuccess}
@@ -357,3 +359,5 @@ export function MerchantsTemplate({
     </>
   );
 }
+
+const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
