@@ -1,3 +1,4 @@
+import { merchantResultValues } from "config/paths";
 import {
   archiveMerchantTag,
   createMerchantTag,
@@ -26,7 +27,11 @@ export default async function MerchantsPage({
       keyword={params.q ?? ""}
       ledgerId={view.ledgerId}
       merchants={view.merchants}
-      saveResult={params.result === "updated" ? "updated" : null}
+      saveResult={
+        params.result === merchantResultValues.updated
+          ? merchantResultValues.updated
+          : null
+      }
       selectedTag={view.selectedTag}
       reorderAction={reorderMerchantTags}
       tagFilterError={view.tagFilterError}

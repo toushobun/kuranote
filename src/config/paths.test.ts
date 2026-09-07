@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  merchantResultValues,
+  merchantsResultHref,
   accountResultValues,
   accountsResultHref,
   ledgerSwitchResultValues,
@@ -82,6 +84,14 @@ describe("transaction edit paths", () => {
   it("暴露 App Router 动态编辑页路径", () => {
     expect(transactionEditPagePath).toBe(
       "/transactions/[transactionRecordId]/edit",
+    );
+  });
+});
+
+describe("merchant paths", () => {
+  it("生成带保存成功结果的商家列表路由", () => {
+    expect(merchantsResultHref(merchantResultValues.updated)).toBe(
+      "/merchants?result=updated",
     );
   });
 });
