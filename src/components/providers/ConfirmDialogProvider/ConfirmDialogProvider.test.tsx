@@ -43,6 +43,29 @@ function ConfirmDialogTrigger() {
   );
 }
 
+function ConcurrentConfirmTrigger() {
+  const confirm = useConfirmDialog();
+  const [results, setResults] = useState<boolean[]>([]);
+
+  function openConfirm(title: string) {
+    void confirm({ title }).then((result) => {
+      setResults((current) => [...current, result]);
+    });
+  }
+
+  return (
+    <>
+      <button onClick={() => openConfirm("第一个操作？")} type="button">
+        第一个确认
+      </button>
+      <button onClick={() => openConfirm("第二个操作？")} type="button">
+        第二个确认
+      </button>
+      <output data-testid="concurrent-results">{results.join(",")}</output>
+    </>
+  );
+}
+
 function renderProvider() {
   return render(
     <ConfirmDialogProvider>
@@ -99,6 +122,39 @@ describe("ConfirmDialogProvider", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("result")).toHaveTextContent("false");
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("新的 confirm 调用会将前一个未完成调用按取消处理", async () => {
+    render(
+      <ConfirmDialogProvider>
+        <ConcurrentConfirmTrigger />
+      </ConfirmDialogProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "第一个确认" }));
+    expect(
+      screen.getByRole("heading", { name: "第一个操作？" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "第二个确认" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("concurrent-results")).toHaveTextContent(
+        "false",
+      );
+    });
+    expect(
+      screen.getByRole("heading", { name: "第二个操作？" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("concurrent-results")).toHaveTextContent(
+        "false,true",
+      );
     });
     expect(screen.queryByRole("dialog")).toBeNull();
   });

@@ -37,6 +37,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
 
   const confirm = useCallback((nextOptions: ConfirmDialogOptions) => {
     return new Promise<boolean>((resolve) => {
+      resolveRef.current?.(false);
       resolveRef.current = resolve;
       setOptions(nextOptions);
     });
