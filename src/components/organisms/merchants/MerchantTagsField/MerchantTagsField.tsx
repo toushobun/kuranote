@@ -47,6 +47,14 @@ export function MerchantTagsField({
                 key={tag.id}
                 label={`${tag.icon} ${tag.name}`}
                 onClick={() => toggleTag(tag.id)}
+                sx={
+                  selected
+                    ? {
+                        "&:hover": { bgcolor: "primary.main" },
+                        "&:active": { bgcolor: "primary.dark" },
+                      }
+                    : undefined
+                }
                 variant={selected ? "filled" : "outlined"}
               />
             );
