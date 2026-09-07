@@ -198,6 +198,14 @@ export const theme = createTheme({
         root: {
           borderRadius: designTokens.radius.md,
           backgroundColor: designTokens.color.background.paper,
+          // Safari（含 iOS）在 Stack 等 flex 布局内渲染 outlined 输入框时，
+          // 会错误计算 legend 的内在宽度，导致 notch 塌陷、label 被边框压住。
+          // `-webkit-touch-callout` 仅 WebKit 支持，用于精确定位 Safari。
+          "@supports (-webkit-touch-callout: none)": {
+            "& .MuiOutlinedInput-notchedOutline legend": {
+              visibility: "visible",
+            },
+          },
         },
       },
     },
