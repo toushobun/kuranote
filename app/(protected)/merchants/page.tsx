@@ -28,8 +28,9 @@ export default async function MerchantsPage({
       ledgerId={view.ledgerId}
       merchants={view.merchants}
       saveResult={
+        params.result === merchantResultValues.created ||
         params.result === merchantResultValues.updated
-          ? merchantResultValues.updated
+          ? params.result
           : null
       }
       selectedTag={view.selectedTag}

@@ -41,7 +41,7 @@ export type MerchantsTemplateProps = {
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
-  saveResult?: "updated" | null;
+  saveResult?: "created" | "updated" | null;
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];

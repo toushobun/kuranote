@@ -41,6 +41,7 @@ describe("MerchantsPage", () => {
   });
 
   it.each([
+    ["created", "created"],
     ["updated", "updated"],
     [undefined, null],
     ["unknown", null],

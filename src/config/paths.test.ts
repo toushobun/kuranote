@@ -89,6 +89,12 @@ describe("transaction edit paths", () => {
 });
 
 describe("merchant paths", () => {
+  it("生成带新增保存成功结果的商家列表路由", () => {
+    expect(merchantsResultHref(merchantResultValues.created)).toBe(
+      "/merchants?result=created",
+    );
+  });
+
   it("生成带保存成功结果的商家列表路由", () => {
     expect(merchantsResultHref(merchantResultValues.updated)).toBe(
       "/merchants?result=updated",
