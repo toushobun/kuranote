@@ -84,6 +84,16 @@ describe("MerchantsTemplate", () => {
     expect(componentSource.startsWith('"use client";')).toBe(true);
   });
 
+  it("保存成功提示向上偏移避开底部导航栏", () => {
+    expect(componentSource).toContain(
+      'import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";',
+    );
+    expect(componentSource).toContain("bottomOffset={feedbackBottomOffset}");
+    expect(componentSource).toContain(
+      "const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;",
+    );
+  });
+
   it("显示紧凑页面标题和独立新增入口", () => {
     const { container } = render(<MerchantsTemplate {...baseProps} />);
 
