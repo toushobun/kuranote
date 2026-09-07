@@ -12,6 +12,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
@@ -179,10 +180,13 @@ export function EmojiIconField({
                       aria-pressed={selected}
                       key={`${option.groupId}-${option.emoji}`}
                       onClick={() => setDraftValue(option.emoji)}
-                      sx={{
+                      sx={(theme) => ({
                         aspectRatio: "1 / 1",
                         bgcolor: selected
-                          ? "var(--user-theme-icon-badge-bg)"
+                          ? alpha(
+                              theme.palette.primary.main,
+                              theme.palette.action.selectedOpacity,
+                            )
                           : "background.paper",
                         border: 2,
                         borderColor: selected
@@ -191,7 +195,13 @@ export function EmojiIconField({
                         borderRadius: `${designTokens.radius.item}px`,
                         fontSize: "2rem",
                         position: "relative",
-                      }}
+                        "&:active": {
+                          bgcolor: alpha(
+                            theme.palette.primary.main,
+                            theme.palette.action.activatedOpacity,
+                          ),
+                        },
+                      })}
                     >
                       {option.emoji}
                       {selected ? (

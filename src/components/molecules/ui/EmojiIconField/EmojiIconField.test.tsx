@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ThemeProvider } from "@mui/material/styles";
+import { alpha, ThemeProvider } from "@mui/material/styles";
 import { describe, expect, it, vi } from "vitest";
 
 import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
@@ -48,6 +48,7 @@ describe("EmojiIconField", () => {
       borderRadius: `${designTokens.radius.item}px`,
     });
     fireEvent.click(travelOption);
+    expect(travelOption).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(onChange).toHaveBeenCalledWith("✈️");
   });
@@ -78,10 +79,19 @@ describe("EmojiIconField", () => {
       );
 
       fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+      const selectedOption = screen.getByRole("button", {
+        name: "选择超市图标",
+      });
       const checkIcon = screen.getByTestId("CheckRoundedIcon");
 
       expect(dynamicTheme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
+      );
+      expect(getComputedStyle(selectedOption).backgroundColor).toBe(
+        alpha(
+          dynamicTheme.palette.primary.main,
+          dynamicTheme.palette.action.selectedOpacity,
+        ),
       );
       expect(getComputedStyle(checkIcon).color).toBe(
         toComputedColor(dynamicTheme.palette.primary.contrastText),
