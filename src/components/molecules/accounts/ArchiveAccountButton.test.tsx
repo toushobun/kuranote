@@ -58,7 +58,9 @@ describe("ArchiveAccountButton", () => {
     expect(
       within(dialog).getByRole("heading", { name: dialogTitle }),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "取消" })).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "取消" }),
+    ).toBeInTheDocument();
     expect(
       within(dialog).getByRole("button", { name: confirmLabel }),
     ).toBeInTheDocument();
