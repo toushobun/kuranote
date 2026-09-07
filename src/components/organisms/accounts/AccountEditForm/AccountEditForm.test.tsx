@@ -3,11 +3,13 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { Account } from "types/accounts";
 
@@ -22,7 +24,7 @@ afterEach(() => {
 function renderWithUserTheme(children: ReactNode) {
   return render(
     <UserThemeProvider storageScope="account-edit-form-test">
-      {children}
+      <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );
 }
@@ -97,7 +99,7 @@ describe("AccountEditForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("点击删除并确认后提交独立的删除表单而非编辑表单", () => {
+  it("点击删除并确认后提交独立的删除表单而非编辑表单", async () => {
     const submittedFormIds: (string | undefined)[] = [];
     vi.spyOn(HTMLFormElement.prototype, "requestSubmit").mockImplementation(
       function (this: HTMLFormElement) {
@@ -115,9 +117,11 @@ describe("AccountEditForm", () => {
     fireEvent.click(within(container).getByRole("button", { name: "删除" }));
 
     const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除账户" }));
 
-    expect(submittedFormIds).toEqual([getAccountArchiveFormId(account.id)]);
+    await waitFor(() => {
+      expect(submittedFormIds).toEqual([getAccountArchiveFormId(account.id)]);
+    });
   });
 
   it("点击关闭按钮时触发 onCancel", async () => {

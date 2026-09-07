@@ -7,6 +7,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { TransactionColorScheme } from "internal/user";
 import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar/BottomNavigationBar";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
 import { UserThemeProvider, useUserTheme } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
@@ -30,9 +31,11 @@ export function AppShell({
       storageScope={email}
     >
       <DynamicMuiThemeProvider>
-        <AppShellContent canWriteTransactions={canWriteTransactions}>
-          {children}
-        </AppShellContent>
+        <ConfirmDialogProvider>
+          <AppShellContent canWriteTransactions={canWriteTransactions}>
+            {children}
+          </AppShellContent>
+        </ConfirmDialogProvider>
       </DynamicMuiThemeProvider>
     </UserThemeProvider>
   );
