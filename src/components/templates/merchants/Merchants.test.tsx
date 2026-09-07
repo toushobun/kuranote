@@ -49,28 +49,31 @@ const baseProps = {
 };
 
 describe("MerchantsTemplate", () => {
-  it("编辑保存后显示保存成功，关闭时清除结果参数并保留筛选", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/merchants?result=updated&q=LIFE#list",
-    );
-    const { unmount } = render(
-      <MerchantsTemplate {...baseProps} saveResult="updated" />,
-    );
+  it.each(["created", "updated"] as const)(
+    "保存后返回列表显示保存成功，关闭时清除结果参数并保留筛选：%s",
+    async (result) => {
+      window.history.replaceState(
+        null,
+        "",
+        `/merchants?result=${result}&q=LIFE#list`,
+      );
+      const { unmount } = render(
+        <MerchantsTemplate {...baseProps} saveResult={result} />,
+      );
 
-    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
-    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-    expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
-      scroll: false,
-    });
-    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+      expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+      fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+      expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
+        scroll: false,
+      });
+      await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
 
-    unmount();
-    window.history.replaceState(null, "", "/merchants?q=LIFE#list");
-    render(<MerchantsTemplate {...baseProps} />);
-    expect(screen.queryByRole("status")).toBeNull();
-  });
+      unmount();
+      window.history.replaceState(null, "", "/merchants?q=LIFE#list");
+      render(<MerchantsTemplate {...baseProps} />);
+      expect(screen.queryByRole("status")).toBeNull();
+    },
+  );
 
   it("普通进入列表时不显示保存成功提示", () => {
     render(<MerchantsTemplate {...baseProps} />);

@@ -92,7 +92,7 @@ export const createMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(routePaths.merchants);
+    redirect(merchantsResultHref(merchantResultValues.created));
   };
 
 export const fetchMerchantIcon: MerchantIconStateAction =
