@@ -31,12 +31,7 @@ export default function MerchantsLoading() {
               />
             }
             leading={
-              <Skeleton
-                aria-hidden
-                height={40}
-                variant="circular"
-                width={40}
-              />
+              <Skeleton aria-hidden height={40} variant="circular" width={40} />
             }
             subtitle="管理常用商家和头像信息"
             title="商家管理"
