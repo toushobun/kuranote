@@ -7,7 +7,6 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
@@ -23,6 +22,7 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import {
   accountTypeOptions,
@@ -94,7 +94,7 @@ export function AccountsTemplate({
     archiveAccountAction,
     initialAccountActionState,
   );
-  const router = useRouter();
+  const clearResultParam = useClearQueryParam("result");
 
   useEffect(() => {
     const actionStates = [
@@ -158,11 +158,7 @@ export function AccountsTemplate({
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("result");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+    clearResultParam();
   }
 
   return (

@@ -19,7 +19,6 @@ import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   createElement,
   type ElementType,
@@ -42,6 +41,7 @@ import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
@@ -91,7 +91,7 @@ export function LedgersTemplate({
     useState(switchResult);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
-  const router = useRouter();
+  const clearResultParam = useClearQueryParam("result");
 
   useEffect(() => {
     if (errorMessage === null || errorKey === null) return;
@@ -124,11 +124,7 @@ export function LedgersTemplate({
   function closeSwitchSuccessDialog() {
     setIsSwitchSuccessOpen(false);
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("result");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+    clearResultParam();
   }
 
   return (

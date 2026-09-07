@@ -19,7 +19,6 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
@@ -39,6 +38,7 @@ import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatu
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
@@ -95,7 +95,7 @@ export function LedgerSettingsTemplate({
   );
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
-  const router = useRouter();
+  const clearResultParam = useClearQueryParam("result");
 
   useEffect(() => {
     if (errorMessage === null || errorKey === null) return;
@@ -128,11 +128,7 @@ export function LedgerSettingsTemplate({
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("result");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+    clearResultParam();
   }
 
   return (

@@ -16,6 +16,7 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionMonthList } from "organisms/transactions/TransactionMonthList/TransactionMonthList";
+import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import type {
   TransactionFilterOptions,
@@ -85,6 +86,7 @@ export function TransactionsTemplate({
     saveResult !== null,
   );
   const router = useRouter();
+  const clearResultParam = useClearQueryParam("result");
 
   useEffect(() => {
     if (activeSaveResult) {
@@ -132,11 +134,7 @@ export function TransactionsTemplate({
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("result");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+    clearResultParam();
   }
 
   function openSearchPage() {

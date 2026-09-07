@@ -13,7 +13,6 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
@@ -26,6 +25,7 @@ import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import type {
   Merchant,
@@ -65,18 +65,14 @@ export function MerchantsTemplate({
   reorderAction,
   updateAction,
 }: MerchantsTemplateProps) {
-  const router = useRouter();
+  const clearResultParam = useClearQueryParam("result");
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
     saveResult !== null,
   );
 
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("result");
-    router.replace(`${url.pathname}${url.search}${url.hash}`, {
-      scroll: false,
-    });
+    clearResultParam();
   }
 
   const [tagManagementView, setTagManagementView] =
