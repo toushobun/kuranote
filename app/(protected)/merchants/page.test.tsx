@@ -40,6 +40,17 @@ describe("MerchantsPage", () => {
     });
   });
 
+  it.each([
+    ["updated", "updated"],
+    [undefined, null],
+    ["unknown", null],
+  ] as const)("仅将已知保存结果传递给列表：%s", async (result, expected) => {
+    const page = await MerchantsPage({
+      searchParams: Promise.resolve({ result }),
+    });
+    expect(page.props.saveResult).toBe(expected);
+  });
+
   it("把关键词和标签查询参数交给 Merchant loader", async () => {
     await MerchantsPage({
       searchParams: Promise.resolve({ q: " LIFE ", tagId }),

@@ -10,7 +10,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
 
@@ -21,7 +21,16 @@ const componentSource = readFileSync(
   "utf8",
 );
 
-afterEach(cleanup);
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  window.history.replaceState(null, "", "/");
+});
 
 const tagAction = async () => ({});
 const reorderAction = async () => ({});
@@ -40,6 +49,34 @@ const baseProps = {
 };
 
 describe("MerchantsTemplate", () => {
+  it("编辑保存后显示保存成功，关闭时清除结果参数并保留筛选", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/merchants?result=updated&q=LIFE#list",
+    );
+    const { unmount } = render(
+      <MerchantsTemplate {...baseProps} saveResult="updated" />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
+      scroll: false,
+    });
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+
+    unmount();
+    window.history.replaceState(null, "", "/merchants?q=LIFE#list");
+    render(<MerchantsTemplate {...baseProps} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("普通进入列表时不显示保存成功提示", () => {
+    render(<MerchantsTemplate {...baseProps} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("声明客户端边界以支持 MUI Link 组件", () => {
     expect(componentSource.startsWith('"use client";')).toBe(true);
   });

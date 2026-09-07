@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { merchantEditHref, routePaths } from "config/paths";
+import { merchantEditHref, routePaths, routeWithQuery } from "config/paths";
 import { merchantText } from "config/merchantText";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
@@ -133,7 +133,7 @@ export const updateMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(merchantEditHref(validation.value.merchantId));
+    redirect(routeWithQuery(routePaths.merchants, { result: "updated" }));
   };
 
 export const archiveMerchant: MerchantStateAction =

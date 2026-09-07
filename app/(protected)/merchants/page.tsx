@@ -10,7 +10,7 @@ import { MerchantsTemplate } from "templates/merchants/Merchants";
 export default async function MerchantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tagId?: string }>;
+  searchParams: Promise<{ q?: string; tagId?: string; result?: string }>;
 }) {
   const params = await searchParams;
   const view = await loadMerchantsView({
@@ -26,6 +26,7 @@ export default async function MerchantsPage({
       keyword={params.q ?? ""}
       ledgerId={view.ledgerId}
       merchants={view.merchants}
+      saveResult={params.result === "updated" ? "updated" : null}
       selectedTag={view.selectedTag}
       reorderAction={reorderMerchantTags}
       tagFilterError={view.tagFilterError}

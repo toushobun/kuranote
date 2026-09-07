@@ -52,6 +52,7 @@ export const merchantText = {
   preferredErrorTitle: "展示名更新失败",
   preferredTitle: "显示名",
   save: "保存修改",
+  saveSuccess: "保存成功",
   websiteHelper: "可先获取图标预览，保存表单后才会更新网址和图标。",
   websiteLabel: "商家网址",
   websitePlaceholder: "例如：https://www.example.com",
