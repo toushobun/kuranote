@@ -1,9 +1,9 @@
 "use client";
 
 import Button from "@mui/material/Button";
-import { useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useRef, type MouseEvent, type ReactNode } from "react";
 
-import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 
 type ArchiveAccountButtonProps = {
   description?: ReactNode;
@@ -18,43 +18,32 @@ export function ArchiveAccountButton({
   label = "删除账户",
   title = "删除账户？",
 }: ArchiveAccountButtonProps) {
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const confirm = useConfirmDialog();
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  function openConfirm(event: MouseEvent<HTMLButtonElement>) {
+  async function confirmArchive(event: MouseEvent<HTMLButtonElement>) {
     formRef.current = event.currentTarget.form;
-    setIsConfirmOpen(true);
-  }
+    const ok = await confirm({
+      confirmLabel: "删除账户",
+      description,
+      title,
+      tone: "delete",
+    });
 
-  function closeConfirm() {
-    setIsConfirmOpen(false);
-  }
-
-  function submitArchiveForm() {
-    setIsConfirmOpen(false);
-    formRef.current?.requestSubmit();
+    if (ok) {
+      formRef.current?.requestSubmit();
+    }
   }
 
   return (
-    <>
-      <Button
-        color="error"
-        form={formId}
-        onClick={openConfirm}
-        type="button"
-        variant="outlined"
-      >
-        {label}
-      </Button>
-      {isConfirmOpen ? (
-        <DeleteConfirmationDialog
-          description={description}
-          onCancel={closeConfirm}
-          onConfirm={submitArchiveForm}
-          open={isConfirmOpen}
-          title={title}
-        />
-      ) : null}
-    </>
+    <Button
+      color="error"
+      form={formId}
+      onClick={confirmArchive}
+      type="button"
+      variant="outlined"
+    >
+      {label}
+    </Button>
   );
 }

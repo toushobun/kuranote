@@ -1,14 +1,22 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { ArchiveAccountButton } from "./ArchiveAccountButton";
 
 const actionLabel = String.fromCharCode(21024, 38500, 36134, 25143);
 const dialogTitle = `${actionLabel}？`;
-const confirmLabel = String.fromCharCode(21024, 38500);
+const confirmLabel = actionLabel;
 
 afterEach(() => {
   cleanup();
@@ -19,7 +27,7 @@ afterEach(() => {
 function renderWithUserTheme(children: ReactNode) {
   return render(
     <UserThemeProvider storageScope="archive-account-button-test">
-      {children}
+      <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );
 }
@@ -46,16 +54,44 @@ describe("ArchiveAccountButton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: actionLabel }));
 
+    const dialog = screen.getByRole("dialog");
     expect(
-      screen.getByRole("heading", { name: dialogTitle }),
+      within(dialog).getByRole("heading", { name: dialogTitle }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "取消" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: confirmLabel }),
+      within(dialog).getByRole("button", { name: confirmLabel }),
     ).toBeInTheDocument();
   });
 
-  it("取消时关闭弹窗", () => {
+  it("确认后提交表单", async () => {
+    const handleSubmit = vi.fn();
+
+    renderWithUserTheme(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <ArchiveAccountButton />
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: confirmLabel,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(handleSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("取消时关闭弹窗且不提交", async () => {
     const handleSubmit = vi.fn();
 
     renderWithUserTheme(
@@ -67,7 +103,9 @@ describe("ArchiveAccountButton", () => {
     fireEvent.click(screen.getByRole("button", { name: actionLabel }));
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
 
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: dialogTitle })).toBeNull();
+    });
     expect(handleSubmit).not.toHaveBeenCalled();
-    expect(screen.queryByRole("heading", { name: dialogTitle })).toBeNull();
   });
 });
