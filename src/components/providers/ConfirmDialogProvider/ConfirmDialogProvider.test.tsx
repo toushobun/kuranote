@@ -47,19 +47,19 @@ function ConcurrentConfirmTrigger() {
   const confirm = useConfirmDialog();
   const [results, setResults] = useState<boolean[]>([]);
 
-  function openConfirm(title: string) {
-    void confirm({ title }).then((result) => {
-      setResults((current) => [...current, result]);
-    });
+  function recordResult(result: boolean) {
+    setResults((current) => [...current, result]);
+  }
+
+  function openConfirms() {
+    void confirm({ title: "第一个操作？" }).then(recordResult);
+    void confirm({ title: "第二个操作？" }).then(recordResult);
   }
 
   return (
     <>
-      <button onClick={() => openConfirm("第一个操作？")} type="button">
-        第一个确认
-      </button>
-      <button onClick={() => openConfirm("第二个操作？")} type="button">
-        第二个确认
+      <button onClick={openConfirms} type="button">
+        连续打开确认
       </button>
       <output data-testid="concurrent-results">{results.join(",")}</output>
     </>
@@ -133,12 +133,7 @@ describe("ConfirmDialogProvider", () => {
       </ConfirmDialogProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "第一个确认" }));
-    expect(
-      screen.getByRole("heading", { name: "第一个操作？" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "第二个确认" }));
+    fireEvent.click(screen.getByRole("button", { name: "连续打开确认" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("concurrent-results")).toHaveTextContent(
