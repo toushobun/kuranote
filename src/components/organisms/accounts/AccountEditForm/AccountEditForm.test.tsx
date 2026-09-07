@@ -117,9 +117,7 @@ describe("AccountEditForm", () => {
     fireEvent.click(within(container).getByRole("button", { name: "删除" }));
 
     const dialog = screen.getByRole("dialog");
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "删除账户" }),
-    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "删除账户" }));
 
     await waitFor(() => {
       expect(submittedFormIds).toEqual([getAccountArchiveFormId(account.id)]);
