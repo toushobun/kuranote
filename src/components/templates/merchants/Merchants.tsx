@@ -13,12 +13,14 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
@@ -39,6 +41,7 @@ export type MerchantsTemplateProps = {
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
+  saveResult?: "updated" | null;
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];
@@ -55,12 +58,27 @@ export function MerchantsTemplate({
   keyword,
   ledgerId,
   merchants,
+  saveResult = null,
   selectedTag,
   tagFilterError,
   tags,
   reorderAction,
   updateAction,
 }: MerchantsTemplateProps) {
+  const router = useRouter();
+  const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
+    saveResult !== null,
+  );
+
+  function closeSaveSuccessDialog() {
+    setIsSaveSuccessOpen(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("result");
+    router.replace(`${url.pathname}${url.search}${url.hash}`, {
+      scroll: false,
+    });
+  }
+
   const [tagManagementView, setTagManagementView] =
     useState<TagManagementView>("filter");
   const [hasOpenedTagManagement, setHasOpenedTagManagement] = useState(false);
@@ -335,6 +353,11 @@ export function MerchantsTemplate({
           </Box>
         </Stack>
       </PageShell>
+      <SuccessFeedbackDialog
+        onClose={closeSaveSuccessDialog}
+        open={isSaveSuccessOpen}
+        title={merchantText.saveSuccess}
+      />
     </>
   );
 }

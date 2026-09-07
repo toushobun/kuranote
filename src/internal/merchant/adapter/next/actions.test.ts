@@ -341,7 +341,7 @@ describe("Merchant Server Actions", () => {
   it("五个操作成功后均失效缓存并跳转到对应商家页面", async () => {
     for (const [action, path] of [
       [createMerchant, "/merchants"],
-      [updateMerchant, `/merchants/${merchantId}/edit`],
+      [updateMerchant, "/merchants?result=updated"],
       [archiveMerchant, "/merchants"],
       [createMerchantAlias, `/merchants/${merchantId}/edit`],
       [archiveMerchantAlias, `/merchants/${merchantId}/edit`],

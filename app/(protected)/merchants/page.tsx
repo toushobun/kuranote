@@ -1,3 +1,4 @@
+import { merchantResultValues } from "config/paths";
 import {
   archiveMerchantTag,
   createMerchantTag,
@@ -10,7 +11,7 @@ import { MerchantsTemplate } from "templates/merchants/Merchants";
 export default async function MerchantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tagId?: string }>;
+  searchParams: Promise<{ q?: string; tagId?: string; result?: string }>;
 }) {
   const params = await searchParams;
   const view = await loadMerchantsView({
@@ -26,6 +27,11 @@ export default async function MerchantsPage({
       keyword={params.q ?? ""}
       ledgerId={view.ledgerId}
       merchants={view.merchants}
+      saveResult={
+        params.result === merchantResultValues.updated
+          ? merchantResultValues.updated
+          : null
+      }
       selectedTag={view.selectedTag}
       reorderAction={reorderMerchantTags}
       tagFilterError={view.tagFilterError}

@@ -126,3 +126,8 @@ export const UnavailableTagFilter: Story = {
     tagFilterError: "该商家分类不存在或已不可用。",
   },
 };
+
+export const SaveSuccess: Story = {
+  name: "编辑保存成功反馈",
+  args: { saveResult: "updated" },
+};

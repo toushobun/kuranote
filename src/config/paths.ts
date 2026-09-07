@@ -35,6 +35,13 @@ export const accountResultValues = {
   updated: "updated",
 } as const;
 
+export const merchantResultValues = {
+  updated: "updated",
+} as const;
+
+type MerchantResultValue =
+  (typeof merchantResultValues)[keyof typeof merchantResultValues];
+
 export const ledgerSettingsResultValues = {
   updated: "updated",
 } as const;
@@ -134,6 +141,10 @@ export function ledgerSettingsResultHref(
 
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
+}
+
+export function merchantsResultHref(result: MerchantResultValue) {
+  return routeWithQuery(routePaths.merchants, { result });
 }
 
 export function merchantEditHref(merchantId: string) {
