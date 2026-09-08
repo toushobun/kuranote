@@ -35,10 +35,12 @@ function ActionStateHarness({ action }: { action: MerchantStateAction }) {
 
 describe("useMerchantsActionState", () => {
   it("保留成功返回态供当前页面显示反馈", async () => {
-    const action = vi.fn<MerchantStateAction>(async (_previousState, formData) => {
-      expect(formData.get("__merchantSubmissionToken")).toBeNull();
-      return { success: "显示名切换成功" };
-    });
+    const action = vi.fn<MerchantStateAction>(
+      async (_previousState, formData) => {
+        expect(formData.get("__merchantSubmissionToken")).toBeNull();
+        return { success: "显示名切换成功" };
+      },
+    );
 
     render(<ActionStateHarness action={action} />);
     fireEvent.click(screen.getByRole("button", { name: "切换显示名" }));
