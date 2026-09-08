@@ -1,4 +1,11 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MerchantActionState, MerchantStateAction } from "types/merchants";
@@ -36,10 +43,7 @@ function ActionHarness({ action }: { action: MerchantStateAction }) {
 
 describe("useMerchantDisplayNameListAction", () => {
   it("只锁定正在提交的商家并允许其他商家并发切换", async () => {
-    const resolvers = new Map<
-      string,
-      (state: MerchantActionState) => void
-    >();
+    const resolvers = new Map<string, (state: MerchantActionState) => void>();
     const action = vi.fn<MerchantStateAction>(
       async (_previousState, formData) =>
         new Promise<MerchantActionState>((resolve) => {
