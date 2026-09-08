@@ -5,10 +5,10 @@ import { useState } from "react";
 
 import { merchantText } from "config/merchantText";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import type { MerchantActionState } from "types/merchants";
 
+import { getMerchantFeedbackBottomOffset } from "../merchantFeedbackBottomOffset";
 import { MerchantFailureFeedback } from "../MerchantFailureFeedback/MerchantFailureFeedback";
+import type { MerchantActionState } from "types/merchants";
 
 export function MerchantDisplayNameFeedback({
   errorTitle = merchantText.preferredErrorTitle,
@@ -25,7 +25,7 @@ export function MerchantDisplayNameFeedback({
     <>
       <MerchantFailureFeedback state={state} title={errorTitle} />
       <SuccessFeedbackDialog
-        bottomOffset={`calc(${bottomNavigationLayout.shellPaddingBottom} + ${theme.spacing(1)})`}
+        bottomOffset={getMerchantFeedbackBottomOffset(theme)}
         onClose={() => setDismissedState(state)}
         open={Boolean(state.success) && state !== dismissedState}
         title={state.success ?? merchantText.preferredSuccess}
