@@ -1,3 +1,4 @@
+import { createTheme } from "@mui/material/styles";
 import {
   cleanup,
   fireEvent,
@@ -7,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { getMerchantFeedbackBottomOffset } from "../merchantFeedbackBottomOffset";
 import { MerchantFailureFeedback } from "./MerchantFailureFeedback";
 
 afterEach(cleanup);
@@ -46,5 +48,13 @@ describe("MerchantFailureFeedback", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("保存失败。");
+  });
+
+  it("失败提示使用共享底部偏移计算", () => {
+    const theme = createTheme();
+
+    expect(getMerchantFeedbackBottomOffset(theme)).toBe(
+      "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+    );
   });
 });
