@@ -109,7 +109,7 @@ describe("MerchantEditTemplate", () => {
     const createAlias = vi.fn(async () => ({ success: "添加成功" }));
     renderTemplate({ createMerchantAliasAction: createAlias });
 
-    fireEvent.change(screen.getByLabelText(/别名/), {
+    fireEvent.change(screen.getByRole("textbox", { name: "别名" }), {
       target: { value: "LIFE" },
     });
     fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
@@ -153,7 +153,7 @@ describe("MerchantEditTemplate", () => {
     }));
     renderTemplate({ createMerchantAliasAction: createAlias });
 
-    fireEvent.change(screen.getByLabelText(/别名/), {
+    fireEvent.change(screen.getByRole("textbox", { name: "别名" }), {
       target: { value: "来福" },
     });
     fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
