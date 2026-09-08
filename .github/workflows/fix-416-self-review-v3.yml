@@ -1,0 +1,91 @@
+name: Fix 416 Self Review V3
+
+on:
+  push:
+    branches:
+      - feature/416_transaction_consumer
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/416_transaction_consumer
+          fetch-depth: 0
+
+      - name: Apply edit-state fixes
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, got {count}\n{old}")
+              file.write_text(text.replace(old, new, 1))
+
+          path = "src/internal/transaction/service/read/transactionFormService.ts"
+          replace_once(
+              path,
+              '''  const consumerUserIds = consumerRows.map((consumer) => consumer.user_id);\n  const consumerInitialValues =\n    consumerUserIds.length > 0 ? { consumerUserIds } : {};\n  const recorderUserId = record.created_by ?? dependencies.currentUserId;''',
+              '''  const consumerUserIds = consumerRows.map((consumer) => consumer.user_id);\n  const recorderUserId = record.created_by ?? dependencies.currentUserId;''',
+          )
+          replace_once(path, '''        ...consumerInitialValues,\n        note: record.note ?? "",''', '''        consumerUserIds,\n        note: record.note ?? "",''')
+          replace_once(path, '''      ...consumerInitialValues,\n      items: items.map((item) => {''', '''      consumerUserIds,\n      items: items.map((item) => {''')
+
+          path = "src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.tsx"
+          replace_once(
+              path,
+              '''  const initialIds = useMemo(() => {\n    const configured = context?.initialConsumerUserIds ?? [];\n    return configured.length > 0\n      ? [...new Set(configured)]\n      : recorderUserId\n        ? [recorderUserId]\n        : [];\n  }, [context?.initialConsumerUserIds, recorderUserId]);''',
+              '''  const initialIds = useMemo(() => {\n    const configured = context?.initialConsumerUserIds;\n    if (configured !== undefined) return [...new Set(configured)];\n    return recorderUserId ? [recorderUserId] : [];\n  }, [context?.initialConsumerUserIds, recorderUserId]);''',
+          )
+
+          path = "src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.test.tsx"
+          marker = '''  it("编辑数据消费者不是仅记录人时初始直接展开", () => {'''
+          file = Path(path)
+          text = file.read_text()
+          if text.count(marker) != 1:
+              raise SystemExit(f"{path}: marker mismatch")
+          addition = '''  it("编辑数据明确没有消费者时按非默认状态直接展开", () => {\n    const { container } = renderSelector([]);\n\n    expect(screen.queryByRole("button", { name: "+ 指定消费者" })).toBeNull();\n    expect(\n      screen.getByRole("combobox", { name: "消费者" }),\n    ).toBeInTheDocument();\n    expect(container.querySelector('input[name="consumerUserId"]')).toBeNull();\n  });\n\n'''
+          file.write_text(text.replace(marker, addition + marker, 1))
+
+          path = "src/internal/transaction/service/read/transactionFormService.test.ts"
+          replace_once(
+              path,
+              '''    expect(view?.initialValues).toEqual({\n      accountId,\n      note: "账户调拨",''',
+              '''    expect(view?.initialValues).toEqual({\n      accountId,\n      consumerUserIds: [],\n      note: "账户调拨",''',
+          )
+          marker = '''  it("普通交易引用已归档账户时禁止编辑", async () => {'''
+          file = Path(path)
+          text = file.read_text()
+          if text.count(marker) != 1:
+              raise SystemExit(f"{path}: normal view marker mismatch")
+          addition = '''  it("编辑视图明确保留空消费者集合供页面按数据展开", async () => {\n    const repository = createRepository({\n      findActiveRecord: vi.fn().mockResolvedValue({\n        created_at: "2026-06-04T01:00:00.000Z",\n        created_by: userId,\n        id: transactionRecordId,\n        merchant_id: merchantId,\n        note: null,\n        transaction_at: "2026-06-04T01:30:05.000Z",\n        type: "normal",\n      }),\n      listConsumers: vi.fn().mockResolvedValue([]),\n      listItems: vi.fn().mockResolvedValue([\n        {\n          account_id: accountId,\n          amount: "1200",\n          balance_delta: "-1200",\n          category_id: categoryId,\n          note: null,\n          transaction_record_id: transactionRecordId,\n        },\n      ]),\n    });\n\n    const view = await getEditTransactionView(\n      createDependencies(repository),\n      currentLedger,\n      transactionRecordId,\n    );\n\n    expect(view?.initialValues.consumerUserIds).toEqual([]);\n  });\n\n'''
+          file.write_text(text.replace(marker, addition + marker, 1))
+          PY
+
+      - name: Format
+        run: |
+          npx --yes prettier@3.8.3 --write \
+            src/internal/transaction/service/read/transactionFormService.ts \
+            src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.tsx \
+            src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.test.tsx \
+            src/internal/transaction/service/read/transactionFormService.test.ts
+
+      - name: Commit and cleanup
+        shell: bash
+        run: |
+          rm .github/workflows/fix-416-self-review-v3.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: 按消费者数据驱动编辑页展开状态"
+          git push origin HEAD:feature/416_transaction_consumer
