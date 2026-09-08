@@ -120,7 +120,6 @@ export function MerchantsTemplate({
                   size="small"
                   sx={{
                     borderRadius: `${designTokens.radius.full}px`,
-                    flexShrink: 0,
                     px: { xs: 1.5, sm: 2.5 },
                     whiteSpace: "nowrap",
                   }}

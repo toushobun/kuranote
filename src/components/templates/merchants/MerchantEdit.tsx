@@ -102,13 +102,13 @@ export function MerchantEditTemplate({
             aria-label="返回商家管理"
             component={Link}
             href={routePaths.merchants}
-            sx={{ border: "1px solid", borderColor: "divider" }}
           >
             <ArrowBackRoundedIcon />
           </IconButton>
         }
         subtitle={`商家管理 〉 编辑商家 · ${ledgerName}`}
         title={merchantText.edit}
+        variant="compact"
       />
 
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>

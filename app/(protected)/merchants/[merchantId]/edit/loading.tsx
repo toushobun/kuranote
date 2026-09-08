@@ -11,7 +11,15 @@ export default function MerchantEditLoading() {
       maxWidth="sm"
       sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
     >
-      <PageHeader subtitle="商家管理 > 编辑商家" title="编辑商家" />
+      <PageHeader
+        action={<Skeleton aria-hidden height={30} width={88} />}
+        leading={
+          <Skeleton aria-hidden height={40} variant="circular" width={40} />
+        }
+        subtitle="商家管理 〉 编辑商家"
+        title="编辑商家"
+        variant="compact"
+      />
       <SectionCard role="status" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
