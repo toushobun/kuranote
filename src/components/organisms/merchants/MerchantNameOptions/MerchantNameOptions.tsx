@@ -90,26 +90,12 @@ function MerchantNameOptionButton({
         width: isRow ? "100%" : "auto",
       }}
     >
-      {isFormalName ? (
-        <Chip
-          color={isRow ? "primary" : undefined}
-          component="span"
-          label={merchantText.formalName}
-          size="small"
-          variant="outlined"
-          sx={{
-            borderColor: isRow ? undefined : "currentColor",
-            borderRadius: `${designTokens.radius.sm}px`,
-            color: isRow ? undefined : "inherit",
-          }}
-        />
-      ) : null}
       <Typography
         component="span"
         variant={isRow ? "body1" : "body2"}
         sx={{
           flex: 1,
-          fontWeight: isRow ? undefined : 600,
+          fontWeight: isFormalName ? 700 : isRow ? undefined : 600,
           minWidth: 0,
           overflowWrap: "anywhere",
         }}
