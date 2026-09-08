@@ -626,6 +626,7 @@ const normalTransactionRequestSchema = z.object({
 
 const transferTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),
+  consumerUserIds: z.array(z.string().uuid()).min(1).optional(),
   ledgerId: z.string().uuid(),
   note: z.string().max(2000).nullable(),
   transactionAt: z.string().datetime({ offset: true }),

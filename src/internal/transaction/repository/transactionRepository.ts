@@ -670,8 +670,7 @@ export function createSupabaseTransactionRepository(
         supabase
           .from("app_user")
           .select("id, display_name")
-          .in("id", uniqueUserIds)
-          .eq("status", "active"),
+          .in("id", uniqueUserIds),
         supabase
           .from("ledger_member_display_setting")
           .select("user_id, display_name, display_color")

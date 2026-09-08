@@ -85,6 +85,8 @@ describe("Transaction Action 写入流程", () => {
   const targetAccountId = "00000000-0000-4000-8000-000000000046";
   const categoryId = "00000000-0000-4000-8000-000000005072";
   const merchantId = "00000000-0000-4000-8000-000000001001";
+  const consumerA = "00000000-0000-4000-8000-000000000031";
+  const consumerB = "00000000-0000-4000-8000-000000000033";
   function createNormalFormData({
     sourceType,
     type = "expense",
@@ -116,6 +118,8 @@ describe("Transaction Action 写入流程", () => {
     formData.set("transferTargetAccountId", targetAccountId);
     formData.set("transferAmount", "5000");
     formData.set("note", "转账备注");
+    formData.append("consumerUserId", consumerA);
+    formData.append("consumerUserId", consumerB);
     return formData;
   }
   function createVoidFormData() {
@@ -171,6 +175,7 @@ describe("Transaction Action 写入流程", () => {
     );
     expect(mocks.createTransfer).toHaveBeenCalledWith({
       accountId,
+      consumerUserIds: [consumerA, consumerB],
       ledgerId,
       note: "转账备注",
       transactionAt: "2026-06-04T01:30:05.000Z",
@@ -249,6 +254,7 @@ describe("Transaction Action 写入流程", () => {
     expect(mocks.convert).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId,
+        consumerUserIds: [consumerA, consumerB],
         ledgerId,
         targetType: "transfer",
         transactionRecordId,
@@ -257,6 +263,21 @@ describe("Transaction Action 写入流程", () => {
     );
     expect(mocks.updateTransfer).not.toHaveBeenCalled();
   });
+  it("转账转换为普通交易时保留消费者", async () => {
+    const formData = createNormalFormData({ sourceType: "transfer" });
+    formData.append("consumerUserId", consumerA);
+    formData.append("consumerUserId", consumerB);
+    await expect(saveEditTransaction({}, formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
+    expect(mocks.convert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        consumerUserIds: [consumerA, consumerB],
+        targetType: "expense",
+        transactionRecordId,
+      }),
+    );
+  });
   it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {
     await expect(
       saveEditTransaction({}, createTransferFormData("transfer")),
@@ -264,7 +285,11 @@ describe("Transaction Action 写入流程", () => {
       "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
     );
     expect(mocks.updateTransfer).toHaveBeenCalledWith(
-      expect.objectContaining({ ledgerId, transactionRecordId }),
+      expect.objectContaining({
+        consumerUserIds: [consumerA, consumerB],
+        ledgerId,
+        transactionRecordId,
+      }),
     );
     expect(mocks.convert).not.toHaveBeenCalled();
   });

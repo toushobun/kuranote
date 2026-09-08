@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { transactionErrorCodes } from "internal/transaction/errors";
-import { validateTransactionForm } from "internal/transaction/schema";
+import {
+  convertTransactionRequestSchema,
+  createTransactionRequestSchema,
+  updateTransactionRequestSchema,
+  validateTransactionForm,
+} from "internal/transaction/schema";
 
 const accountId = "00000000-0000-4000-8000-000000000041";
 const categoryId = "00000000-0000-4000-8000-000000000101";
@@ -58,6 +63,42 @@ describe("transaction consumer form schema", () => {
         type: "transfer",
       },
     });
+  });
+
+  it("JSON 转账创建、更新和类型转换请求都保留消费者", () => {
+    const transferRequest = {
+      accountId,
+      consumerUserIds: [consumerA, consumerB],
+      ledgerId: "00000000-0000-4000-8000-000000000099",
+      note: null,
+      transactionAt: "2026-09-08T03:30:00.000Z",
+      transferAmount: 1200,
+      transferTargetAccountId: "00000000-0000-4000-8000-000000000042",
+      type: "transfer" as const,
+    };
+
+    expect(createTransactionRequestSchema.parse(transferRequest)).toMatchObject(
+      {
+        consumerUserIds: [consumerA, consumerB],
+      },
+    );
+    expect(updateTransactionRequestSchema.parse(transferRequest)).toMatchObject(
+      {
+        consumerUserIds: [consumerA, consumerB],
+      },
+    );
+    expect(
+      convertTransactionRequestSchema.parse({
+        accountId: transferRequest.accountId,
+        consumerUserIds: transferRequest.consumerUserIds,
+        ledgerId: transferRequest.ledgerId,
+        note: transferRequest.note,
+        targetType: "transfer",
+        transactionAt: transferRequest.transactionAt,
+        transferAmount: transferRequest.transferAmount,
+        transferTargetAccountId: transferRequest.transferTargetAccountId,
+      }),
+    ).toMatchObject({ consumerUserIds: [consumerA, consumerB] });
   });
 
   it("未提交消费者时保持 undefined 交由默认消费者逻辑处理", () => {

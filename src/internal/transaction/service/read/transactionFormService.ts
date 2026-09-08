@@ -343,13 +343,12 @@ export function resolveNormalTransactionDisplayType(
   }
 
   if (incomeTotal > expenseTotal) return "income";
-  return "expense";
+  if (expenseTotal > incomeTotal) return "expense";
+  return "income";
 }
 
 export function formatEditableAmount(amount: string, currency?: string) {
-  const numericAmount = Number(amount);
-  if (!Number.isFinite(numericAmount)) return amount;
-  return String(
-    Number(numericAmount.toFixed(getAmountDecimalPlaces(currency))),
-  );
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return amount;
+  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
 }

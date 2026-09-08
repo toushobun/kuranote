@@ -11,10 +11,12 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+import { designTokens } from "theme/theme";
 import {
   getStableFallbackThemeColorKey,
   themeColorTokens,
 } from "theme/themeColorTokens";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionConsumerOption } from "types/transactions";
 
 import { useTransactionConsumers } from "./TransactionConsumerContext";
@@ -146,11 +148,13 @@ export function TransactionConsumerSelector() {
           type="button"
           variant="text"
           sx={{
+            ...userThemeCardBorderSx,
+            borderRadius: `${designTokens.radius.lg}px`,
             color: "var(--user-theme-action-text)",
             fontSize: "0.9rem",
             fontWeight: 800,
             minHeight: 38,
-            px: 1.25,
+            width: "100%",
           }}
         >
           + 指定消费者

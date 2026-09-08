@@ -28,6 +28,7 @@ export const createTransactionHandler = async (
   if (input.type === "transfer") {
     await service.createTransfer({
       accountId: input.accountId,
+      consumerUserIds: input.consumerUserIds,
       ledgerId: input.ledgerId,
       note: input.note,
       transactionAt: input.transactionAt,
@@ -56,6 +57,7 @@ export const updateTransactionHandler = async (
   if (input.type === "transfer") {
     await service.updateTransfer({
       accountId: input.accountId,
+      consumerUserIds: input.consumerUserIds,
       ledgerId: input.ledgerId,
       note: input.note,
       transactionAt: input.transactionAt,
