@@ -698,6 +698,65 @@ describe("TransactionService", () => {
   });
 });
 
+describe("消费者相关", () => {
+  const userA = userId;
+  const userB = "00000000-0000-4000-8000-000000000033";
+  const inactiveUser = otherUserId;
+
+  function createConsumerValidationService(activeMemberIds: string[]) {
+    const listActiveMemberIds = vi.fn().mockResolvedValue(activeMemberIds);
+    const repository = createRepository({ listActiveMemberIds });
+    const { service } = createService("member", repository);
+
+    return { listActiveMemberIds, service };
+  }
+
+  it("未显式提交消费者时保持 undefined 并交由数据库默认逻辑处理", async () => {
+    const { listActiveMemberIds, service } = createConsumerValidationService([
+      userA,
+    ]);
+
+    await expect(
+      service.validateConsumerUserIds({ ledgerId }),
+    ).resolves.toBeUndefined();
+    expect(listActiveMemberIds).not.toHaveBeenCalled();
+  });
+
+  it("显式消费者只允许 active 成员并去重", async () => {
+    const { listActiveMemberIds, service } = createConsumerValidationService([
+      userA,
+      userB,
+    ]);
+
+    await expect(
+      service.validateConsumerUserIds({
+        consumerUserIds: [userB, userA, userB],
+        ledgerId,
+      }),
+    ).resolves.toEqual([userB, userA]);
+    expect(listActiveMemberIds).toHaveBeenCalledWith(ledgerId);
+  });
+
+  it("包含非 active 成员时拒绝保存", async () => {
+    const { service } = createConsumerValidationService([userA, userB]);
+
+    await expect(
+      service.validateConsumerUserIds({
+        consumerUserIds: [userA, inactiveUser],
+        ledgerId,
+      }),
+    ).rejects.toMatchObject({ code: transactionErrorCodes.consumerInvalid });
+  });
+
+  it("显式空数组时拒绝保存", async () => {
+    const { service } = createConsumerValidationService([userA]);
+
+    await expect(
+      service.validateConsumerUserIds({ consumerUserIds: [], ledgerId }),
+    ).rejects.toMatchObject({ code: transactionErrorCodes.consumerInvalid });
+  });
+});
+
 describe("特殊状态功能开关", () => {
   it("账本关闭特殊状态时拒绝特殊状态写入", async () => {
     const repository = createRepository({
