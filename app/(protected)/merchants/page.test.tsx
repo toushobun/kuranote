@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createMerchantTag: vi.fn(),
   loadMerchantsView: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
+  setPreferredMerchantAlias: vi.fn(),
   reorderMerchantTags: vi.fn(),
   updateMerchantTag: vi.fn(),
 }));
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("internal/merchant/adapter/next/actions", () => ({
   archiveMerchantTag: mocks.archiveMerchantTag,
   createMerchantTag: mocks.createMerchantTag,
+  setPreferredMerchantAlias: mocks.setPreferredMerchantAlias,
   reorderMerchantTags: mocks.reorderMerchantTags,
   updateMerchantTag: mocks.updateMerchantTag,
 }));
@@ -62,7 +64,7 @@ describe("MerchantsPage", () => {
     });
   });
 
-  it("传递商家列表视图数据，不读取错误查询参数", async () => {
+  it("传递商家列表视图数据和既有显示名切换 Action，不读取错误查询参数", async () => {
     const result = await MerchantsPage({
       searchParams: Promise.resolve({ q: "LIFE" }),
     });
@@ -76,6 +78,7 @@ describe("MerchantsPage", () => {
       merchants: [],
       selectedTag: null,
       reorderAction: mocks.reorderMerchantTags,
+      setPreferredMerchantAliasAction: mocks.setPreferredMerchantAlias,
       tags: [],
       updateAction: mocks.updateMerchantTag,
     });

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 
 import {
   createMerchantAliasRow,
@@ -40,3 +41,31 @@ export const FormalNameSelected: Story = {
     }),
   },
 };
+
+export const Interactive: Story = {
+  name: "点击名称切换显示名",
+  render: function InteractiveNames(args) {
+    const [merchant, setMerchant] = useState(args.merchant);
+    return (
+      <MerchantDisplayNameEditor
+        {...args}
+        merchant={merchant}
+        setPreferredAliasAction={async (data) => {
+          const aliasId = data.get("aliasId");
+          setMerchant((current) => ({
+            ...current,
+            display_name:
+              current.aliases.find((alias) => alias.id === aliasId)?.alias ??
+              current.name,
+            aliases: current.aliases.map((alias) => ({
+              ...alias,
+              is_preferred: alias.id === aliasId,
+            })),
+          }));
+        }}
+      />
+    );
+  },
+};
+
+export const Pending: Story = { name: "切换处理中", args: { pending: true } };

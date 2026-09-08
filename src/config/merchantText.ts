@@ -50,6 +50,10 @@ export const merchantText = {
   notePlaceholder: "例如：日常购物与杂货采购",
   preferredHelper: "选择记账和列表中优先显示的名称。未选择别名时使用正式名。",
   preferredErrorTitle: "展示名更新失败",
+  preferredSuccess: "显示名切换成功",
+  displayNameOptionLabel: (name: string, selected: boolean) =>
+    selected ? `${name}是当前展示名` : `将${name}设为展示名`,
+  removeAliasLabel: (name: string) => `移除别名${name}`,
   preferredTitle: "显示名",
   save: "保存修改",
   saveSuccess: "保存成功",

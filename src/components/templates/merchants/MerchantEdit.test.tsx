@@ -1,17 +1,20 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import type { MerchantStateAction } from "types/merchants";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { MerchantEditTemplate } from "./MerchantEdit";
 
 const action = vi.fn(async () => ({}));
 
-function renderTemplate() {
+function renderTemplate(
+  setPreferredMerchantAliasAction: MerchantStateAction = action,
+) {
   const merchant = createMerchantRow({
     aliases: [createMerchantAliasRow({ is_preferred: true })],
   });
@@ -26,7 +29,7 @@ function renderTemplate() {
         ledgerId="ledger-1"
         ledgerName="家庭账本"
         merchant={merchant}
-        setPreferredMerchantAliasAction={action}
+        setPreferredMerchantAliasAction={setPreferredMerchantAliasAction}
         tags={[]}
         updateMerchantAction={action}
       />
@@ -76,4 +79,14 @@ describe("MerchantEditTemplate", () => {
     expect(requestSubmit).toHaveBeenCalledOnce();
     requestSubmit.mockRestore();
   });
+});
+
+it("编辑页点击整行切换后显示成功提示", async () => {
+  const select = vi.fn(async () => ({ success: "显示名切换成功" }));
+  renderTemplate(select);
+  fireEvent.click(screen.getByText("正式名"));
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+  );
+  expect(select).toHaveBeenCalledOnce();
 });

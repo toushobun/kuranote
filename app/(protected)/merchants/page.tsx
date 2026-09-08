@@ -3,6 +3,7 @@ import {
   archiveMerchantTag,
   createMerchantTag,
   reorderMerchantTags,
+  setPreferredMerchantAlias,
   updateMerchantTag,
 } from "internal/merchant/adapter/next/actions";
 import { loadMerchantsView } from "internal/merchant/adapter/next/loadMerchantsView";
@@ -27,6 +28,7 @@ export default async function MerchantsPage({
       keyword={params.q ?? ""}
       ledgerId={view.ledgerId}
       merchants={view.merchants}
+      setPreferredMerchantAliasAction={setPreferredMerchantAlias}
       saveResult={
         params.result === merchantResultValues.created ||
         params.result === merchantResultValues.updated

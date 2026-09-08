@@ -1,7 +1,17 @@
-import { cleanup, render, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createMerchantRow } from "@/test/mocks/merchants";
+import {
+  createMerchantAliasRow,
+  createMerchantRow,
+} from "@/test/mocks/merchants";
 
 import { MerchantList } from "./MerchantList";
 
@@ -41,6 +51,67 @@ describe("MerchantList", () => {
       within(container).getByRole("heading", { name: "LIFE超市" }),
     ).toBeInTheDocument();
     expect(within(container).queryByText("还没有商家")).not.toBeInTheDocument();
+  });
+
+  it("切换显示名时只禁用当前商家的名称选项", async () => {
+    let finishMerchantA!: () => void;
+    const action = vi.fn((formData: FormData) => {
+      if (formData.get("merchantId") !== "merchant-a") return Promise.resolve();
+
+      return new Promise<void>((resolve) => {
+        finishMerchantA = resolve;
+      });
+    });
+    const merchantA = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "A别名",
+          id: "alias-a",
+          merchant_id: "merchant-a",
+        }),
+      ],
+      id: "merchant-a",
+      name: "商家A",
+    });
+    const merchantB = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "B别名",
+          id: "alias-b",
+          merchant_id: "merchant-b",
+        }),
+      ],
+      id: "merchant-b",
+      name: "商家B",
+    });
+    const { container } = render(
+      <MerchantList
+        {...baseProps}
+        merchants={[merchantA, merchantB]}
+        setPreferredAliasAction={action}
+      />,
+    );
+    const merchantAAlias = within(container).getByRole("button", {
+      name: "将A别名设为展示名",
+    });
+    const merchantAFormalName = within(container).getByRole("button", {
+      name: "商家A是当前展示名",
+    });
+    const merchantBAlias = within(container).getByRole("button", {
+      name: "将B别名设为展示名",
+    });
+
+    fireEvent.click(merchantAAlias);
+
+    await waitFor(() => expect(merchantAAlias).toBeDisabled());
+    expect(merchantAFormalName).toBeDisabled();
+    expect(merchantBAlias).toBeEnabled();
+    expect(action).toHaveBeenCalledOnce();
+    expect(action.mock.calls[0][0].get("merchantId")).toBe("merchant-a");
+    expect(action.mock.calls[0][0].get("aliasId")).toBe("alias-a");
+
+    await act(async () => finishMerchantA());
+    await waitFor(() => expect(merchantAAlias).toBeEnabled());
   });
 
   it("搜索无结果时显示搜索空状态且不显示新增入口", () => {

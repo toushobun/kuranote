@@ -21,6 +21,7 @@ import { routePaths } from "config/paths";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { MerchantDisplayNameFeedback } from "organisms/merchants/MerchantDisplayNameFeedback/MerchantDisplayNameFeedback";
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -32,9 +33,12 @@ import { designTokens } from "theme/theme";
 import type {
   Merchant,
   MerchantTag,
+  MerchantStateAction,
   MerchantTagReorderAction,
   MerchantTagStateAction,
 } from "types/merchants";
+
+import { useMerchantDisplayNameListAction } from "./useMerchantDisplayNameListAction";
 
 export type MerchantsTemplateProps = {
   archiveAction: MerchantTagStateAction;
@@ -43,6 +47,7 @@ export type MerchantsTemplateProps = {
   keyword: string;
   ledgerId: string;
   merchants: Merchant[];
+  setPreferredMerchantAliasAction: MerchantStateAction;
   saveResult?: "created" | "updated" | null;
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
@@ -61,12 +66,16 @@ export function MerchantsTemplate({
   ledgerId,
   merchants,
   saveResult = null,
+  setPreferredMerchantAliasAction,
   selectedTag,
   tagFilterError,
   tags,
   reorderAction,
   updateAction,
 }: MerchantsTemplateProps) {
+  const setPreferred = useMerchantDisplayNameListAction(
+    setPreferredMerchantAliasAction,
+  );
   const clearResultParam = useClearQueryParam("result");
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
     saveResult !== null,
@@ -75,6 +84,13 @@ export function MerchantsTemplate({
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
     clearResultParam();
+  }
+
+  function submitPreferredAlias(formData: FormData) {
+    if (isSaveSuccessOpen) {
+      closeSaveSuccessDialog();
+    }
+    return setPreferred.action(formData);
   }
 
   const [tagManagementView, setTagManagementView] =
@@ -320,11 +336,13 @@ export function MerchantsTemplate({
               keyword={keyword}
               ledgerId={ledgerId}
               merchants={merchants}
+              setPreferredAliasAction={submitPreferredAlias}
               tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
             />
           </Box>
         </Stack>
       </PageShell>
+      <MerchantDisplayNameFeedback state={setPreferred.state} />
       <SuccessFeedbackDialog
         bottomOffset={feedbackBottomOffset}
         onClose={closeSaveSuccessDialog}

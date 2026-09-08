@@ -101,3 +101,27 @@ describe("MerchantDisplayNameEditor", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+it("点击名称文字切换，删除按钮不触发切换，等待时禁止操作", () => {
+  const select = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
+  const archive = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
+  const props = {
+    merchant: createMerchantRow({ aliases: [createMerchantAliasRow()] }),
+    setPreferredAliasAction: select,
+    archiveAliasAction: archive,
+    createAliasAction: async () => {},
+  };
+  const { rerender } = render(<MerchantDisplayNameEditor {...props} />);
+  fireEvent.click(screen.getByText("来福"));
+  expect(select).toHaveBeenCalledOnce();
+  expect(select.mock.calls[0][0].get("aliasId")).toBe("alias-1");
+  fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
+  expect(archive).toHaveBeenCalledOnce();
+  expect(select).toHaveBeenCalledOnce();
+  expect(screen.queryByTestId("StarBorderRoundedIcon")).toBeNull();
+  rerender(<MerchantDisplayNameEditor {...props} pending />);
+  expect(
+    screen.getByRole("button", { name: "将来福设为展示名" }),
+  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "移除别名来福" })).toBeDisabled();
+});

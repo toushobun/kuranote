@@ -82,7 +82,7 @@ export function useMerchantsActionState(
     observedPendingRef.current = false;
     setSubmissionPending(false);
 
-    if (actionReturned && trackedState.actionState.error) {
+    if (actionReturned) {
       setActionState(trackedState.actionState);
       return;
     }

@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   requireCurrentUserAndLedger: vi.fn(),
   revalidateMerchantMutation: vi.fn(),
+  setPreferredAlias: vi.fn(),
   reorderTags: vi.fn(),
   updateMerchant: vi.fn(),
   updateTag: vi.fn(),
@@ -50,6 +51,7 @@ import {
   createMerchantAlias,
   createMerchantTag,
   fetchMerchantIcon,
+  setPreferredMerchantAlias,
   reorderMerchantTags,
   updateMerchant,
   updateMerchantTag,
@@ -115,6 +117,7 @@ beforeEach(() => {
         fetchMerchantIcon: mocks.fetchMerchantIcon,
         findSummariesByIds: vi.fn(),
         listActiveOptions: vi.fn(),
+        setPreferredAlias: mocks.setPreferredAlias,
         reorderTags: mocks.reorderTags,
         updateMerchant: mocks.updateMerchant,
         updateTag: mocks.updateTag,
@@ -422,5 +425,48 @@ describe("Merchant Server Actions", () => {
     });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(4);
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("显示名切换", () => {
+  it.each([aliasId, ""])(
+    "切换成功返回 inline 提示且不导航：%s",
+    async (value) => {
+      expect(
+        await runAction(
+          setPreferredMerchantAlias,
+          merchantForm({ aliasId: value }),
+        ),
+      ).toEqual({ success: "显示名切换成功" });
+      expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith(merchantId);
+      expect(mocks.setPreferredAlias).toHaveBeenCalledWith({
+        ledgerId,
+        merchantId,
+        aliasId: value || null,
+      });
+      expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    },
+  );
+
+  it("校验失败不调用服务，业务失败保留安全消息", async () => {
+    const invalid = await runAction(
+      setPreferredMerchantAlias,
+      merchantForm({ merchantId: "invalid" }),
+    );
+    expect(invalid.error).toBeTruthy();
+    expect(mocks.setPreferredAlias).not.toHaveBeenCalled();
+    mocks.setPreferredAlias.mockRejectedValue(
+      new ValidationError(
+        merchantErrorCodes.aliasPreferredUpdateFailed,
+        "无法切换显示名",
+      ),
+    );
+    expectErrorState(
+      await runAction(setPreferredMerchantAlias),
+      "无法切换显示名",
+    );
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
   });
 });

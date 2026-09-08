@@ -19,3 +19,11 @@ describe("revalidateMerchantMutation", () => {
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });
 });
+
+it("指定商家时同时刷新列表和编辑页，不扩展到明细缓存", () => {
+  vi.clearAllMocks();
+  revalidateMerchantMutation("merchant-1");
+  expect(revalidatePath).toHaveBeenCalledTimes(2);
+  expect(revalidatePath).toHaveBeenCalledWith("/merchants");
+  expect(revalidatePath).toHaveBeenCalledWith("/merchants/merchant-1/edit");
+});

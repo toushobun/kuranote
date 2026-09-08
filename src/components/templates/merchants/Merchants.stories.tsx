@@ -69,6 +69,9 @@ const meta = {
   title: "Templates/Merchants/MerchantsTemplate",
   component: MerchantsTemplate,
   args: {
+    setPreferredMerchantAliasAction: async () => ({
+      success: "显示名切换成功",
+    }),
     archiveAction: tagAction,
     createAction: tagAction,
     keyword: "",
