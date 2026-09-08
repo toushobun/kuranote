@@ -20,7 +20,7 @@ type MerchantListProps = {
   ledgerId: string;
   merchants: Merchant[];
   tagFiltered?: boolean;
-  pending?: boolean;
+  pendingMerchantIds?: ReadonlySet<string>;
   setPreferredAliasAction?: ServerAction;
 };
 
@@ -31,7 +31,7 @@ export function MerchantList({
   ledgerId,
   merchants,
   tagFiltered = false,
-  pending,
+  pendingMerchantIds,
   setPreferredAliasAction,
 }: MerchantListProps) {
   const isFilteredEmpty =
@@ -114,7 +114,7 @@ export function MerchantList({
           key={merchant.id}
           ledgerId={ledgerId}
           merchant={merchant}
-          pending={pending}
+          pending={pendingMerchantIds?.has(merchant.id)}
           setPreferredAliasAction={setPreferredAliasAction}
         />
       ))}
