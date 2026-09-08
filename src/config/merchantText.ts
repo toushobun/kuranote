@@ -1,7 +1,8 @@
 export const merchantText = {
   addCategory: "新增分类",
   addAlias: "添加别名",
-  aliasHelper: "别名既可作为展示名候选，也会用于搜索匹配。",
+  aliasHelper:
+    "别名既可作为展示名候选，也会用于搜索匹配。新增和删除会立即生效，无需点击下方的「保存修改」。",
   aliasLabel: "别名",
   archive: "归档商家",
   archiveCategory: "归档分类",
