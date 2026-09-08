@@ -25,6 +25,5 @@ export type TransactionGroupLoaderContext = {
   merchants: MerchantSummaryDbRow[];
   records: TransactionRecordDbRow[];
   recorders: AppUserSummaryDbRow[];
-  showConsumers?: boolean;
   showRecorder?: boolean;
 };

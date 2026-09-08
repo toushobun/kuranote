@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TransactionConsumerOption } from "types/transactions";
 
-import { TransactionConsumerProvider } from "./TransactionConsumerContext";
+import { TransactionConsumerProvider } from "../TransactionConsumerContext";
 import { TransactionConsumerSelector } from "./TransactionConsumerSelector";
 
 const recorderId = "00000000-0000-4000-8000-000000000001";
@@ -14,12 +14,15 @@ const options: TransactionConsumerOption[] = [
   { color: "sakura", id: partnerId, name: "秋爽" },
 ];
 
-function renderSelector(initialConsumerUserIds?: string[]) {
+function renderSelector(
+  initialConsumerUserIds?: string[],
+  consumerOptions = options,
+) {
   return render(
     <form>
       <TransactionConsumerProvider
         value={{
-          consumerOptions: options,
+          consumerOptions,
           initialConsumerUserIds,
           recorderUserId: recorderId,
         }}
@@ -61,7 +64,9 @@ describe("TransactionConsumerSelector", () => {
     expect(
       screen.getByRole("combobox", { name: "消费者" }),
     ).toBeInTheDocument();
-    expect(container.querySelector('input[name="consumerUserId"]')).toBeNull();
+    expect(container.querySelector('input[name="consumerUserId"]')).toHaveValue(
+      "",
+    );
   });
 
   it("编辑数据消费者不是仅记录人时初始直接展开", () => {
@@ -75,6 +80,50 @@ describe("TransactionConsumerSelector", () => {
     expect(container.querySelector('input[name="consumerUserId"]')).toHaveValue(
       partnerId,
     );
+  });
+
+  it.each([1, 2])(
+    "记录人已退出且剩余 %i 个成员时显示错误并允许修正消费者",
+    (memberCount) => {
+      const activeOptions = [
+        options[1]!,
+        {
+          id: "00000000-0000-4000-8000-000000000003",
+          name: "宝宝",
+          color: "sky" as const,
+        },
+      ].slice(0, memberCount);
+      const { container } = renderSelector([recorderId], activeOptions);
+      const input = screen.getByRole("combobox", { name: "消费者" });
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(screen.queryByRole("button", { name: "+ 指定消费者" })).toBeNull();
+      expect(
+        new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+      ).toEqual([recorderId]);
+      fireEvent.mouseDown(input);
+      fireEvent.click(screen.getByRole("option", { name: /秋爽/ }));
+      expect(
+        new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+      ).toEqual([partnerId]);
+      expect(input).toHaveAttribute("aria-invalid", "false");
+      fireEvent.click(screen.getByRole("option", { name: /秋爽/ }));
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(
+        new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+      ).toEqual([""]);
+    },
+  );
+
+  it("有效和失效消费者混合时不静默丢弃失效 ID", () => {
+    const invalidId = "00000000-0000-4000-8000-000000000009";
+    const { container } = renderSelector([partnerId, invalidId]);
+    expect(screen.getByRole("combobox", { name: "消费者" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(
+      new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+    ).toEqual([partnerId, invalidId]);
   });
 
   it("单人账本隐藏消费者入口", () => {

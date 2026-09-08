@@ -33,7 +33,6 @@ export function buildTransactionListItem({
   recorderById,
   recordConsumers,
   recordItems,
-  showConsumers = true,
   showRecorder = true,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
@@ -47,7 +46,6 @@ export function buildTransactionListItem({
   recorderById?: Map<string, AppUserSummaryDbRow>;
   recordConsumers?: TransactionConsumerDbRow[];
   recordItems: TransactionItemDbRow[];
-  showConsumers?: boolean;
   showRecorder?: boolean;
 }): TransactionListItem {
   const recorder =
@@ -77,7 +75,6 @@ export function buildTransactionListItem({
       record,
       recorder,
       recordItems,
-      showConsumers,
       showRecorder,
     });
   }
@@ -171,7 +168,7 @@ export function buildTransactionListItem({
     note: record.note ?? firstItem?.note ?? null,
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
-    show_consumers: showConsumers,
+    show_consumers: showRecorder,
     show_recorder: showRecorder,
     transaction_at: record.transaction_at,
     type: displayType,
@@ -196,7 +193,6 @@ function buildTransferListItem({
   record,
   recorder,
   recordItems,
-  showConsumers,
   showRecorder,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
@@ -207,7 +203,6 @@ function buildTransferListItem({
   record: TransactionRecordDbRow;
   recorder: AppUserSummaryDbRow | undefined;
   recordItems: TransactionItemDbRow[];
-  showConsumers: boolean;
   showRecorder: boolean;
 }): TransactionListItem {
   const fromItem = recordItems.find(
@@ -260,7 +255,7 @@ function buildTransferListItem({
     note: record.note ?? null,
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
-    show_consumers: showConsumers,
+    show_consumers: showRecorder,
     show_recorder: showRecorder,
     transaction_at: record.transaction_at,
     type: "transfer",

@@ -7,7 +7,6 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
@@ -18,8 +17,9 @@ import {
 } from "theme/themeColorTokens";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import type { TransactionConsumerOption } from "types/transactions";
+import { transactionConsumerMessages } from "utils/transactionMessages";
 
-import { useTransactionConsumers } from "./TransactionConsumerContext";
+import { useTransactionConsumers } from "../TransactionConsumerContext";
 
 export function TransactionConsumerSelector() {
   const context = useTransactionConsumers();
@@ -31,28 +31,34 @@ export function TransactionConsumerSelector() {
     if (configured !== undefined) return [...new Set(configured)];
     return recorderUserId ? [recorderUserId] : [];
   }, [context?.initialConsumerUserIds, recorderUserId]);
-  const initialValue = useMemo(
-    () => options.filter((option) => initialIds.includes(option.id)),
-    [initialIds, options],
+  const [selectedIds, setSelectedIds] = useState(initialIds);
+  const selectedConsumers = options.filter((option) =>
+    selectedIds.includes(option.id),
   );
-  const [selectedConsumers, setSelectedConsumers] =
-    useState<TransactionConsumerOption[]>(initialValue);
+  const hasInvalidConsumers = selectedConsumers.length !== selectedIds.length;
+  const hasSelectionError = hasInvalidConsumers || selectedIds.length === 0;
   const [expanded, setExpanded] = useState(
-    () => !isDefaultConsumerSelection(initialIds, recorderUserId),
+    () =>
+      !isDefaultConsumerSelection(initialIds, recorderUserId) ||
+      hasSelectionError,
   );
 
-  if (!context || options.length <= 1) return null;
+  const hasInitialSelectionError =
+    initialIds.length === 0 ||
+    initialIds.some((id) => !options.some((option) => option.id === id));
+  if (!context || (options.length <= 1 && !hasInitialSelectionError))
+    return null;
 
   const recorderOption = options.find((option) => option.id === recorderUserId);
 
   return (
     <Box sx={{ px: 0.25 }}>
-      {selectedConsumers.map((consumer) => (
+      {(selectedIds.length > 0 ? selectedIds : [""]).map((userId) => (
         <input
-          key={consumer.id}
+          key={userId}
           name="consumerUserId"
           type="hidden"
-          value={consumer.id}
+          value={userId}
         />
       ))}
 
@@ -64,8 +70,12 @@ export function TransactionConsumerSelector() {
           multiple
           onChange={(_event, value) => {
             markEditDirty?.();
-            setSelectedConsumers(
-              value.length > 0 ? value : recorderOption ? [recorderOption] : [],
+            setSelectedIds(
+              value.length > 0
+                ? value.map((option) => option.id)
+                : recorderOption
+                  ? [recorderOption.id]
+                  : [],
             );
           }}
           options={options}
@@ -132,8 +142,15 @@ export function TransactionConsumerSelector() {
           renderInput={(params) => (
             <TextField
               {...params}
-              helperText="支持多选；清空选择时会恢复为记账人本人。"
-              label="消费者"
+              error={hasSelectionError}
+              helperText={
+                hasSelectionError
+                  ? transactionConsumerMessages.selectionRequired
+                  : recorderOption
+                    ? transactionConsumerMessages.helper
+                    : transactionConsumerMessages.helperWithoutRecorder
+              }
+              label={transactionConsumerMessages.label}
               size="small"
             />
           )}
@@ -154,7 +171,7 @@ export function TransactionConsumerSelector() {
             width: "100%",
           }}
         >
-          + 指定消费者
+          {transactionConsumerMessages.specify}
         </Button>
       )}
     </Box>

@@ -46,7 +46,7 @@ import {
   transactionSummarySurfaceSx,
 } from "../TransactionForm/TransactionForm.styles";
 import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
-import { TransactionConsumerSelector } from "../TransactionForm/TransactionConsumerSelector";
+import { TransactionConsumerSelector } from "../TransactionForm/TransactionConsumerSelector/TransactionConsumerSelector";
 import {
   formatSignedCurrencyAmount,
   getCurrencySymbol,

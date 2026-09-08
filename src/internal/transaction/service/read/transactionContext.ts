@@ -60,7 +60,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
       merchants: [],
       records: [],
       recorders: [],
-      showConsumers: false,
       showRecorder: false,
     };
   }
@@ -134,7 +133,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
     merchants,
     records,
     recorders: members.filter((member) => recorderIdSet.has(member.id)),
-    showConsumers: accountContext.showRecorder,
     showRecorder: accountContext.showRecorder,
   };
 }
@@ -163,7 +161,6 @@ export function buildTransactionListItemsFromContext(
       recorderById: lookups.recorderById,
       recordConsumers: lookups.consumersByRecordId.get(record.id) ?? [],
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
-      showConsumers: context.showConsumers ?? true,
       showRecorder: context.showRecorder ?? true,
     }),
   );

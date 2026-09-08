@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { TransactionConsumerOption } from "types/transactions";
 
-import { TransactionConsumerProvider } from "./TransactionConsumerContext";
+import { TransactionConsumerProvider } from "../TransactionConsumerContext";
 import { TransactionConsumerSelector } from "./TransactionConsumerSelector";
 
 const recorderId = "00000000-0000-4000-8000-000000000001";
@@ -87,6 +87,23 @@ export const SingleMemberHidden: Story = {
       <TransactionConsumerProvider
         value={{
           consumerOptions: [consumerOptions[0]!],
+          recorderUserId: recorderId,
+        }}
+      >
+        <Story />
+      </TransactionConsumerProvider>
+    ),
+  ],
+};
+
+export const InactiveRecorder: Story = {
+  name: "记录人已退出，需要重新选择消费者",
+  decorators: [
+    (Story) => (
+      <TransactionConsumerProvider
+        value={{
+          consumerOptions: consumerOptions.slice(1),
+          initialConsumerUserIds: [recorderId],
           recorderUserId: recorderId,
         }}
       >

@@ -33,7 +33,7 @@ import {
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
 import type { TransactionFormProps } from "./TransactionForm.types";
-import { TransactionConsumerSelector } from "./TransactionConsumerSelector";
+import { TransactionConsumerSelector } from "./TransactionConsumerSelector/TransactionConsumerSelector";
 import { useTransactionIncomeLinks } from "./TransactionIncomeLinksContext";
 import { useTransactionForm } from "./useTransactionForm";
 

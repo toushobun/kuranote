@@ -110,9 +110,9 @@ describe("transaction consumer form schema", () => {
     }
   });
 
-  it("拒绝非法消费者 ID", () => {
+  it.each(["invalid", ""])("拒绝非法或明确清空的消费者 ID：%s", (value) => {
     const formData = createFormData();
-    formData.append("consumerUserId", "invalid");
+    formData.append("consumerUserId", value);
 
     expect(validateTransactionForm(formData)).toEqual({
       error: transactionErrorCodes.consumerInvalid,

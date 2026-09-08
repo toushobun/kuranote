@@ -382,6 +382,30 @@ describe("TransactionRepository", () => {
     expect(merchantQuery.is).toHaveBeenCalledWith("merchant_id", null);
     expect(memberQuery.is).toHaveBeenCalledWith("created_by", null);
   });
+  it("通过一次明确外键的关联查询过滤有效成员与有效用户并保持排序", async () => {
+    const memberQuery = createQuery({
+      data: [{ user_id: userId }],
+      error: null,
+    });
+    const { repository, from } = createRepository({
+      queries: { ledger_member: memberQuery },
+    });
+    await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
+      userId,
+    ]);
+    expect(from).toHaveBeenCalledExactlyOnceWith("ledger_member");
+    expect(memberQuery.select).toHaveBeenCalledWith(
+      "user_id, joined_at, app_user!ledger_member_user_id_fkey!inner(status)",
+    );
+    expect(memberQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(memberQuery.eq).toHaveBeenCalledWith("status", "active");
+    expect(memberQuery.eq).toHaveBeenCalledWith("app_user.status", "active");
+    expect(memberQuery.order.mock.calls).toEqual([
+      ["joined_at", { ascending: true }],
+      ["user_id", { ascending: true }],
+    ]);
+  });
+
   it("读取交易关联数据时限定账本并去重 ID", async () => {
     const memberQuery = createQuery({
       data: [{ joined_at: "2026-01-01T00:00:00.000Z", user_id: userId }],

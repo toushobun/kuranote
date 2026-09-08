@@ -711,9 +711,12 @@ export function createSupabaseTransactionRepository(
     async listActiveMemberIds(ledgerId) {
       const { data: memberData, error: memberError } = await supabase
         .from("ledger_member")
-        .select("user_id, joined_at")
+        .select(
+          "user_id, joined_at, app_user!ledger_member_user_id_fkey!inner(status)",
+        )
         .eq("ledger_id", ledgerId)
         .eq("status", "active")
+        .eq("app_user.status", "active")
         .order("joined_at", { ascending: true })
         .order("user_id", { ascending: true });
       if (memberError) {
@@ -728,27 +731,7 @@ export function createSupabaseTransactionRepository(
       }
 
       const memberRows = (memberData ?? []) as LedgerMemberOrderRow[];
-      const memberUserIds = memberRows.map((row) => row.user_id);
-      if (memberUserIds.length === 0) return [];
-
-      const { data: userData, error: userError } = await supabase
-        .from("app_user")
-        .select("id")
-        .in("id", memberUserIds)
-        .eq("status", "active");
-      if (userError) {
-        logger.error("[transaction] failed to validate active members", {
-          databaseCode: userError.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_members_load_failed",
-          "账本成员加载失败，请稍后重试。",
-        );
-      }
-
-      const activeUserIds = new Set((userData ?? []).map((row) => row.id));
-      return memberUserIds.filter((userId) => activeUserIds.has(userId));
+      return memberRows.map((row) => row.user_id);
     },
 
     async listConsumers(ledgerId, transactionRecordIds) {
