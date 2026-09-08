@@ -128,6 +128,23 @@ describe("TransactionService", () => {
     },
   );
 
+  it("创建交易统一去重消费者且不修改调用方输入", async () => {
+    const repository = createRepository({
+      listActiveMemberIds: vi.fn().mockResolvedValue([userId, otherUserId]),
+    });
+    const { service } = createService("member", repository);
+    const input = {
+      ...normalInput,
+      consumerUserIds: [otherUserId, userId, otherUserId],
+    };
+    await service.createNormal(input);
+    expect(repository.createNormal).toHaveBeenCalledWith({
+      ...input,
+      consumerUserIds: [otherUserId, userId],
+    });
+    expect(input.consumerUserIds).toEqual([otherUserId, userId, otherUserId]);
+  });
+
   it("转账显式消费者通过 active 成员校验后传给 Repository", async () => {
     const repository = createRepository({
       listActiveMemberIds: vi.fn().mockResolvedValue([userId, otherUserId]),

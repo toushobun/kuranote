@@ -552,7 +552,7 @@ describe("buildTransactionListItem", () => {
     ]);
   });
 
-  it("多人账本保留记录人的昵称和成员颜色", () => {
+  it("多人账本保留记录人的昵称", () => {
     const item = buildTransactionListItem({
       accountById,
       categoryById: new Map(),
@@ -573,7 +573,6 @@ describe("buildTransactionListItem", () => {
     });
 
     expect(item.recorder_name).toBe("淞文");
-    expect(item.recorder_color).toBe("amber");
   });
 
   it("单人账本保留记录人数据并通过展示标志隐藏", () => {
@@ -598,7 +597,6 @@ describe("buildTransactionListItem", () => {
     });
 
     expect(item.recorder_name).toBe("淞文");
-    expect(item.recorder_color).toBe("amber");
     expect(item.show_recorder).toBe(false);
   });
 

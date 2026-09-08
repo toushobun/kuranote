@@ -254,6 +254,18 @@ export function createTransactionService({
     return requestedUserIds;
   }
 
+  async function validateConsumerInput<
+    T extends { ledgerId: string; consumerUserIds?: string[] },
+  >(input: T): Promise<T> {
+    const consumerUserIds = await resolveConsumerUserIds(
+      input.ledgerId,
+      input.consumerUserIds,
+    );
+    return consumerUserIds === undefined
+      ? input
+      : { ...input, consumerUserIds };
+  }
+
   async function validateSpecialStatuses(input: {
     items: CreateNormalTransactionInput["items"];
     ledgerId: string;
@@ -387,13 +399,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const consumerUserIds = await resolveConsumerUserIds(
-        input.ledgerId,
-        input.consumerUserIds,
-      );
-      const validatedInput = consumerUserIds
-        ? { ...input, consumerUserIds }
-        : input;
+      const validatedInput = await validateConsumerInput(input);
       if (validatedInput.targetType !== "transfer") {
         await validateSpecialStatuses(validatedInput);
       }
@@ -406,13 +412,7 @@ export function createTransactionService({
 
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
-      const consumerUserIds = await resolveConsumerUserIds(
-        input.ledgerId,
-        input.consumerUserIds,
-      );
-      const validatedInput = consumerUserIds
-        ? { ...input, consumerUserIds }
-        : input;
+      const validatedInput = await validateConsumerInput(input);
       await validateSpecialStatuses(validatedInput);
       try {
         await transactionRepository.createNormal(validatedInput);
@@ -423,13 +423,7 @@ export function createTransactionService({
 
     async createTransfer(input) {
       await requireWritePermission(input.ledgerId);
-      const consumerUserIds = await resolveConsumerUserIds(
-        input.ledgerId,
-        input.consumerUserIds,
-      );
-      const validatedInput = consumerUserIds
-        ? { ...input, consumerUserIds }
-        : input;
+      const validatedInput = await validateConsumerInput(input);
       try {
         await transactionRepository.createTransfer(validatedInput);
       } catch (error) {
@@ -537,13 +531,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const consumerUserIds = await resolveConsumerUserIds(
-        input.ledgerId,
-        input.consumerUserIds,
-      );
-      const validatedInput = consumerUserIds
-        ? { ...input, consumerUserIds }
-        : input;
+      const validatedInput = await validateConsumerInput(input);
       await validateSpecialStatuses(validatedInput);
       await requireActiveTransactionAccounts({
         accountIds: [validatedInput.accountId],
@@ -562,13 +550,7 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const consumerUserIds = await resolveConsumerUserIds(
-        input.ledgerId,
-        input.consumerUserIds,
-      );
-      const validatedInput = consumerUserIds
-        ? { ...input, consumerUserIds }
-        : input;
+      const validatedInput = await validateConsumerInput(input);
       await requireActiveTransactionAccounts({
         accountIds: [
           validatedInput.accountId,

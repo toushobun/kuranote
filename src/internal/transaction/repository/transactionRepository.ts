@@ -738,11 +738,22 @@ export function createSupabaseTransactionRepository(
       const uniqueRecordIds = [...new Set(transactionRecordIds)];
       if (uniqueRecordIds.length === 0) return [];
 
-      const { data: consumerData, error: consumerError } = await supabase
-        .from("transaction_consumer")
-        .select("transaction_record_id, user_id")
-        .eq("ledger_id", ledgerId)
-        .in("transaction_record_id", uniqueRecordIds);
+      const [
+        { data: consumerData, error: consumerError },
+        { data: memberData, error: memberError },
+      ] = await Promise.all([
+        supabase
+          .from("transaction_consumer")
+          .select("transaction_record_id, user_id")
+          .eq("ledger_id", ledgerId)
+          .in("transaction_record_id", uniqueRecordIds),
+        supabase
+          .from("ledger_member")
+          .select("user_id, joined_at")
+          .eq("ledger_id", ledgerId)
+          .order("joined_at", { ascending: true })
+          .order("user_id", { ascending: true }),
+      ]);
       if (consumerError) {
         logger.error("[transaction] failed to load transaction consumers", {
           databaseCode: consumerError.code,
@@ -755,18 +766,6 @@ export function createSupabaseTransactionRepository(
       }
 
       const consumers = (consumerData ?? []) as TransactionConsumerDbRow[];
-      const consumerUserIds = [
-        ...new Set(consumers.map((consumer) => consumer.user_id)),
-      ];
-      if (consumerUserIds.length === 0) return [];
-
-      const { data: memberData, error: memberError } = await supabase
-        .from("ledger_member")
-        .select("user_id, joined_at")
-        .eq("ledger_id", ledgerId)
-        .in("user_id", consumerUserIds)
-        .order("joined_at", { ascending: true })
-        .order("user_id", { ascending: true });
       if (memberError) {
         logger.error("[transaction] failed to load consumer member order", {
           databaseCode: memberError.code,

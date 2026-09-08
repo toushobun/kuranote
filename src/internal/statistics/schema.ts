@@ -44,7 +44,6 @@ const transactionListItemSchema = z.object({
   merchant_icon_url: z.string().nullable(),
   merchant_name: z.string().nullable(),
   note: z.string().nullable(),
-  recorder_color: z.string().nullable().optional(),
   recorder_name: z.string().nullable(),
   show_recorder: z.boolean().optional(),
   transaction_at: z.string(),

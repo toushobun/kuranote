@@ -37,7 +37,6 @@ export type TransactionListItem = {
   merchant_icon_url: string | null;
   merchant_name: string | null;
   note: string | null;
-  recorder_color?: ThemeColorKey | null;
   recorder_name: string | null;
   show_recorder?: boolean;
   transaction_at: string;

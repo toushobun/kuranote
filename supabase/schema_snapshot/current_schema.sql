@@ -1775,12 +1775,14 @@ begin
         p_note
     );
 
-    perform public.replace_transaction_consumers(
-        p_ledger_id,
-        v_transaction_record_id,
-        p_consumer_user_ids,
-        v_user_id
-    );
+    if p_consumer_user_ids is not null then
+        perform public.replace_transaction_consumers(
+            p_ledger_id,
+            v_transaction_record_id,
+            p_consumer_user_ids,
+            v_user_id
+        );
+    end if;
 
     return v_transaction_record_id;
 end;
@@ -2073,12 +2075,14 @@ begin
         p_note
     );
 
-    perform public.replace_transaction_consumers(
-        p_ledger_id,
-        v_transaction_record_id,
-        p_consumer_user_ids,
-        v_user_id
-    );
+    if p_consumer_user_ids is not null then
+        perform public.replace_transaction_consumers(
+            p_ledger_id,
+            v_transaction_record_id,
+            p_consumer_user_ids,
+            v_user_id
+        );
+    end if;
 
     return v_transaction_record_id;
 end;
