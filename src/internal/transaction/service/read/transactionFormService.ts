@@ -84,8 +84,6 @@ export async function getEditTransactionView(
     ]),
   ]);
   const consumerUserIds = consumerRows.map((consumer) => consumer.user_id);
-  const consumerInitialValues =
-    consumerUserIds.length > 0 ? { consumerUserIds } : {};
   const recorderUserId = record.created_by ?? dependencies.currentUserId;
   const hasArchivedAccount = !areAccountIdsAvailable(
     items.map((item) => item.account_id),
@@ -122,7 +120,7 @@ export async function getEditTransactionView(
       editRestriction,
       initialValues: {
         accountId: fromItem.account_id,
-        ...consumerInitialValues,
+        consumerUserIds,
         note: record.note ?? "",
         transactionAt: record.transaction_at,
         transactionRecordId: record.id,
@@ -164,7 +162,7 @@ export async function getEditTransactionView(
     editRestriction,
     initialValues: {
       accountId: items[0]?.account_id ?? "",
-      ...consumerInitialValues,
+      consumerUserIds,
       items: items.map((item) => {
         const incomeLink = item.id
           ? incomeLinkByItemId.get(item.id)

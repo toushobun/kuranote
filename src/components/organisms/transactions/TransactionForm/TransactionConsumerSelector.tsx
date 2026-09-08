@@ -27,12 +27,9 @@ export function TransactionConsumerSelector() {
   const options = context?.consumerOptions ?? [];
   const recorderUserId = context?.recorderUserId ?? "";
   const initialIds = useMemo(() => {
-    const configured = context?.initialConsumerUserIds ?? [];
-    return configured.length > 0
-      ? [...new Set(configured)]
-      : recorderUserId
-        ? [recorderUserId]
-        : [];
+    const configured = context?.initialConsumerUserIds;
+    if (configured !== undefined) return [...new Set(configured)];
+    return recorderUserId ? [recorderUserId] : [];
   }, [context?.initialConsumerUserIds, recorderUserId]);
   const initialValue = useMemo(
     () => options.filter((option) => initialIds.includes(option.id)),

@@ -54,6 +54,16 @@ describe("TransactionConsumerSelector", () => {
     expect(screen.getByText("淞文")).toBeInTheDocument();
   });
 
+  it("编辑数据明确没有消费者时按非默认状态直接展开", () => {
+    const { container } = renderSelector([]);
+
+    expect(screen.queryByRole("button", { name: "+ 指定消费者" })).toBeNull();
+    expect(
+      screen.getByRole("combobox", { name: "消费者" }),
+    ).toBeInTheDocument();
+    expect(container.querySelector('input[name="consumerUserId"]')).toBeNull();
+  });
+
   it("编辑数据消费者不是仅记录人时初始直接展开", () => {
     const { container } = renderSelector([partnerId]);
 
