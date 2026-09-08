@@ -49,13 +49,13 @@ export function MerchantCreateTemplate({
             aria-label="返回商家管理"
             component={Link}
             href={routePaths.merchants}
-            sx={{ border: "1px solid", borderColor: "divider" }}
           >
             <ArrowBackRoundedIcon />
           </IconButton>
         }
-        subtitle={`商家管理 〉 新增商家 · ${ledgerName}`}
+        subtitle={`商家管理 〉 ${merchantText.create} · ${ledgerName}`}
         title={merchantText.create}
+        variant="compact"
       />
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantForm
