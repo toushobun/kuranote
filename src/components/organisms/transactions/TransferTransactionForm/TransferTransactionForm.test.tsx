@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import * as transactionsUtils from "utils/transactions";
+import { TransactionConsumerProvider } from "../TransactionForm/TransactionConsumerContext";
 
 import { TransferTransactionForm } from "./TransferTransactionForm";
 
@@ -103,6 +104,41 @@ describe("TransferTransactionForm", () => {
       within(container).getByRole("textbox", { name: "备注（选填）" }),
     ).toBeInTheDocument();
     expect(getSaveButton(container)).toBeInTheDocument();
+  });
+
+  it("多人账本可在转账表单指定消费者", () => {
+    const action = vi.fn(async () => undefined);
+    const { container } = render(
+      <TransactionConsumerProvider
+        value={{
+          consumerOptions: [
+            {
+              color: "amber",
+              id: "00000000-0000-4000-8000-000000000031",
+              name: "淞文",
+            },
+            {
+              color: "sakura",
+              id: "00000000-0000-4000-8000-000000000032",
+              name: "秋爽",
+            },
+          ],
+          recorderUserId: "00000000-0000-4000-8000-000000000031",
+        }}
+      >
+        <TransferTransactionForm
+          action={action}
+          accountOptions={[jpyAccount1, jpyAccount2]}
+        />
+      </TransactionConsumerProvider>,
+    );
+
+    expect(
+      within(container).getByRole("button", { name: "+ 指定消费者" }),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelectorAll('input[name="consumerUserId"]'),
+    ).toHaveLength(0);
   });
 
   it("表单内包含 type=transfer 的 hidden input", () => {

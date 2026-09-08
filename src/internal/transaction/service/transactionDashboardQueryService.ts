@@ -146,7 +146,6 @@ function toDashboardRecentTransaction(
   return {
     ...item,
     account_color: null,
-    recorder_color: null,
     recorder_name: null,
     show_recorder: true,
   };

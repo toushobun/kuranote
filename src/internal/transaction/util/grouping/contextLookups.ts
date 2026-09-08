@@ -3,6 +3,7 @@ import type {
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
+  TransactionConsumerDbRow,
   TransactionItemDbRow,
 } from "internal/db-types";
 
@@ -11,6 +12,8 @@ import type { TransactionGroupLoaderContext } from "internal/transaction/util/gr
 export type TransactionGroupContextLookups = {
   accountById: Map<string, AccountOptionDbRow>;
   categoryById: Map<string, CategorySummaryDbRow>;
+  consumerById: Map<string, AppUserSummaryDbRow>;
+  consumersByRecordId: Map<string, TransactionConsumerDbRow[]>;
   itemsByRecordId: Map<string, TransactionItemDbRow[]>;
   merchantById: Map<string, MerchantSummaryDbRow>;
   recorderById: Map<string, AppUserSummaryDbRow>;
@@ -38,6 +41,10 @@ export function getTransactionGroupContextLookups(
     categoryById: new Map(
       context.categories.map((category) => [category.id, category] as const),
     ),
+    consumerById: new Map(
+      (context.consumerMembers ?? []).map((user) => [user.id, user] as const),
+    ),
+    consumersByRecordId: groupConsumersByRecordId(context.consumers ?? []),
     itemsByRecordId: groupItemsByRecordId(context.items),
     merchantById: new Map(
       context.merchants.map((merchant) => [merchant.id, merchant] as const),
@@ -49,6 +56,19 @@ export function getTransactionGroupContextLookups(
 
   contextLookupsCache.set(context, lookups);
   return lookups;
+}
+
+function groupConsumersByRecordId(consumers: TransactionConsumerDbRow[]) {
+  const consumersByRecordId = new Map<string, TransactionConsumerDbRow[]>();
+
+  for (const consumer of consumers) {
+    const recordConsumers =
+      consumersByRecordId.get(consumer.transaction_record_id) ?? [];
+    recordConsumers.push(consumer);
+    consumersByRecordId.set(consumer.transaction_record_id, recordConsumers);
+  }
+
+  return consumersByRecordId;
 }
 
 function groupItemsByRecordId(items: TransactionItemDbRow[]) {

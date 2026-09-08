@@ -6,6 +6,7 @@ export {
   type VoidTransactionValidationErrorCode,
 } from "internal/transaction/errors";
 export * from "internal/transaction/schema";
+export type { TransactionConsumer } from "internal/transaction/entity/transactionConsumer";
 export {
   transactionRecordStorageTypes,
   transactionTypes,

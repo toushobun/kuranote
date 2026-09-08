@@ -86,6 +86,12 @@ function sameAmount(left: string | number, right: string | number): boolean {
   return leftUnits !== null && rightUnits !== null && leftUnits === rightUnits;
 }
 
+function sameConsumerUserIds(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightUserIds = new Set(right);
+  return left.every((userId) => rightUserIds.has(userId));
+}
+
 function getNormalInitialValues(
   view: EditTransactionView,
 ): NormalEditInitialValues {
@@ -301,6 +307,15 @@ export function createLinkedTransactionEditService({
       // 编辑页跨类型切换会重建空明细面板，无法在保留现有关联的前提下安全同步。
       if (input.type !== initial.type) throwUnlinkRequired();
 
+      const consumerUserIds = await transactionService.validateConsumerUserIds({
+        consumerUserIds: input.consumerUserIds,
+        ledgerId: input.ledgerId,
+      });
+      const consumerChanged = Boolean(
+        consumerUserIds &&
+        !sameConsumerUserIds(consumerUserIds, initial.consumerUserIds ?? []),
+      );
+
       const linkedItemIds = new Set(
         linkedItems.flatMap((item) => (item.id ? [item.id] : [])),
       );
@@ -435,10 +450,12 @@ export function createLinkedTransactionEditService({
       const metadataChanged =
         input.merchantId !== initial.merchantId ||
         (input.note || null) !== (initial.note || null) ||
-        input.transactionAt !== initial.transactionAt;
+        input.transactionAt !== initial.transactionAt ||
+        consumerChanged;
       if (itemUpdates.length === 0 && !metadataChanged) return;
 
       await linkedTransactionItemService.updateEdit({
+        ...(consumerChanged ? { consumerUserIds } : {}),
         itemUpdates,
         ledgerId: input.ledgerId,
         merchantId: input.merchantId,

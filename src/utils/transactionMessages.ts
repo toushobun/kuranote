@@ -25,3 +25,11 @@ export const transactionSearchPageErrorMessages = {
   initialLoadFailed: "搜索结果读取失败，请稍后重新读取。",
   loadMoreFailed: "更多搜索结果读取失败。",
 } as const;
+
+export const transactionConsumerMessages = {
+  label: "消费者",
+  specify: "+ 指定消费者",
+  helper: "支持多选；清空选择时会恢复为记账人本人。",
+  helperWithoutRecorder: "支持多选，请至少选择一位当前账本成员。",
+  selectionRequired: "消费者为空或包含已失效的成员，请重新选择当前账本成员。",
+} as const;

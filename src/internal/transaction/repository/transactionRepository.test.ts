@@ -90,6 +90,7 @@ describe("TransactionRepository", () => {
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
+      p_consumer_user_ids: null,
       p_items: [
         {
           ...normalInput.items[0],
@@ -153,6 +154,7 @@ describe("TransactionRepository", () => {
     await repository.createTransfer(transferInput);
     expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
       p_amount: 1200,
+      p_consumer_user_ids: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -213,6 +215,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
       p_amount: 1200,
+      p_consumer_user_ids: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -379,9 +382,127 @@ describe("TransactionRepository", () => {
     expect(merchantQuery.is).toHaveBeenCalledWith("merchant_id", null);
     expect(memberQuery.is).toHaveBeenCalledWith("created_by", null);
   });
-  it("读取交易关联数据时限定账本并去重 ID", async () => {
+  it("通过一次明确外键的关联查询过滤有效成员与有效用户并保持排序", async () => {
     const memberQuery = createQuery({
       data: [{ user_id: userId }],
+      error: null,
+    });
+    const { repository, from } = createRepository({
+      queries: { ledger_member: memberQuery },
+    });
+    await expect(repository.listActiveMemberIds(ledgerId)).resolves.toEqual([
+      userId,
+    ]);
+    expect(from).toHaveBeenCalledExactlyOnceWith("ledger_member");
+    expect(memberQuery.select).toHaveBeenCalledWith(
+      "user_id, joined_at, app_user!ledger_member_user_id_fkey!inner(status)",
+    );
+    expect(memberQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(memberQuery.eq).toHaveBeenCalledWith("status", "active");
+    expect(memberQuery.eq).toHaveBeenCalledWith("app_user.status", "active");
+    expect(memberQuery.order.mock.calls).toEqual([
+      ["joined_at", { ascending: true }],
+      ["user_id", { ascending: true }],
+    ]);
+  });
+
+  it("并行读取消费者与成员顺序，保留缺失成员并限定账本", async () => {
+    let finishConsumers!: (value: QueryResult) => void;
+    let finishMembers!: (value: QueryResult) => void;
+    const consumersPromise = new Promise<QueryResult>((resolve) => {
+      finishConsumers = resolve;
+    });
+    const membersPromise = new Promise<QueryResult>((resolve) => {
+      finishMembers = resolve;
+    });
+    const consumerQuery = createQuery();
+    const memberQuery = createQuery();
+    const consumerStarted = vi.fn();
+    const memberStarted = vi.fn();
+    consumerQuery.then = (resolve, reject) => {
+      consumerStarted();
+      return consumersPromise.then(resolve, reject);
+    };
+    memberQuery.then = (resolve, reject) => {
+      memberStarted();
+      return membersPromise.then(resolve, reject);
+    };
+    const { repository } = createRepository({
+      queries: {
+        transaction_consumer: consumerQuery,
+        ledger_member: memberQuery,
+      },
+    });
+    const result = repository.listConsumers(ledgerId, [
+      transactionRecordId,
+      transactionRecordId,
+    ]);
+    await Promise.resolve();
+    expect(consumerStarted).toHaveBeenCalledOnce();
+    expect(memberStarted).toHaveBeenCalledOnce();
+    finishMembers({
+      data: [{ user_id: "member-b" }, { user_id: "member-a" }],
+      error: null,
+    });
+    finishConsumers({
+      data: ["missing-z", "member-a", "missing-a", "member-b"].map(
+        (user_id) => ({ user_id, transaction_record_id: transactionRecordId }),
+      ),
+      error: null,
+    });
+    expect((await result).map((row) => row.user_id)).toEqual([
+      "member-b",
+      "member-a",
+      "missing-a",
+      "missing-z",
+    ]);
+    expect(consumerQuery.in).toHaveBeenCalledWith("transaction_record_id", [
+      transactionRecordId,
+    ]);
+    expect(consumerQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(memberQuery.eq).toHaveBeenCalledExactlyOnceWith(
+      "ledger_id",
+      ledgerId,
+    );
+    expect(memberQuery.order.mock.calls).toEqual([
+      ["joined_at", { ascending: true }],
+      ["user_id", { ascending: true }],
+    ]);
+  });
+
+  it("空交易集合不发起消费者查询", async () => {
+    const { repository, from } = createRepository();
+    await expect(repository.listConsumers(ledgerId, [])).resolves.toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it.each(["transaction_consumer", "ledger_member"])(
+    "消费者读取的 %s 查询失败时返回安全错误",
+    async (table) => {
+      const { repository } = createRepository({
+        queries: {
+          [table]: createQuery({
+            data: null,
+            error: { code: "XX000", message: "private SQL" },
+          }),
+        },
+      });
+      await expect(
+        repository.listConsumers(ledgerId, [transactionRecordId]),
+      ).rejects.toMatchObject({
+        code: "transaction_consumers_load_failed",
+        message: "交易消费者信息加载失败，请稍后重试。",
+      });
+    },
+  );
+
+  it("读取交易关联数据时限定账本并去重 ID", async () => {
+    const memberQuery = createQuery({
+      data: [{ joined_at: "2026-01-01T00:00:00.000Z", user_id: userId }],
+      error: null,
+    });
+    const userQuery = createQuery({
+      data: [{ id: userId }],
       error: null,
     });
     const itemQuery = createQuery({
@@ -398,6 +519,7 @@ describe("TransactionRepository", () => {
     });
     const { repository } = createRepository({
       queries: {
+        app_user: userQuery,
         ledger_member: memberQuery,
         transaction_item_with_refund: itemQuery,
       },

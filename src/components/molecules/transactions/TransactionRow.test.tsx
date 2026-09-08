@@ -895,7 +895,7 @@ describe("TransactionRow", () => {
     vi.stubGlobal("Intl", mockedIntl);
   }
 });
-describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
+describe("TransactionRow 消费者展示", () => {
   const item: TransactionRowItem = {
     account_color: "sakura",
     account_currency: "JPY",
@@ -913,7 +913,13 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
     merchant_icon_url: null,
     merchant_name: "便利店",
     note: null,
-    recorder_color: "amber",
+    consumers: [
+      {
+        color: "amber",
+        id: "00000000-0000-4000-8000-000000000031",
+        name: "淞文",
+      },
+    ],
     recorder_name: "淞文",
     transaction_at: "2026-06-05T03:20:10.000Z",
     type: "expense",
@@ -921,7 +927,7 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
   afterEach(() => {
     cleanup();
   });
-  it("多人账本使用成员个性色显示账户和记录人", () => {
+  it("多人账本使用成员个性色显示账户和消费者", () => {
     render(<TransactionRow item={item} showAccount showRecorder />);
     expect(screen.getByText("日元现金")).toHaveStyle({
       color: themeColorTokens.sakura.chipText,
@@ -930,10 +936,80 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
       color: themeColorTokens.amber.chipText,
     });
   });
-  it("单人账本保留记录人数据但不显示昵称", () => {
+  it("单人账本保留消费者数据但不显示昵称", () => {
     render(
       <TransactionRow item={{ ...item, show_recorder: false }} showRecorder />,
     );
     expect(screen.queryByText("淞文")).not.toBeInTheDocument();
+  });
+});
+
+describe("消费者相关", () => {
+  function createItem(
+    overrides: Partial<TransactionRowItem> = {},
+  ): TransactionRowItem {
+    return {
+      account_currency: "JPY",
+      account_name: "日元现金",
+      amount: "1200",
+      categoryItems: [
+        {
+          amount: "1200",
+          categoryName: "餐饮",
+          categoryType: "expense",
+          parentCategoryName: "饮食",
+        },
+      ],
+      id: "00000000-0000-4000-8000-000000009001",
+      merchant_icon_url: null,
+      merchant_name: "便利店",
+      note: null,
+      transaction_at: "2026-09-08T01:00:00.000Z",
+      type: "expense",
+      ...overrides,
+    };
+  }
+
+  it("最多显示两个消费者昵称并将其余折叠为 +N", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          consumers: [
+            { color: "jade", id: "1", name: "淞文" },
+            { color: "sakura", id: "2", name: "秋爽" },
+            { color: "sky", id: "3", name: "宝宝" },
+            { color: "amber", id: "4", name: "家人" },
+          ],
+        })}
+        showRecorder
+      />,
+    );
+
+    expect(screen.getByTestId("transaction-consumers")).toHaveTextContent(
+      "淞文、秋爽+2",
+    );
+    expect(screen.queryByText("宝宝")).toBeNull();
+    expect(screen.queryByText("家人")).toBeNull();
+  });
+
+  it("show_recorder 为 false 时隐藏消费者", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          consumers: [{ color: "jade", id: "1", name: "淞文" }],
+          show_recorder: false,
+        })}
+        showRecorder
+      />,
+    );
+
+    expect(screen.queryByTestId("transaction-consumers")).toBeNull();
+  });
+
+  it("兼容没有消费者字段的旧展示数据", () => {
+    render(<TransactionRow item={createItem()} showRecorder />);
+
+    expect(screen.queryByTestId("transaction-consumers")).toBeNull();
+    expect(screen.getByText("便利店")).toBeInTheDocument();
   });
 });

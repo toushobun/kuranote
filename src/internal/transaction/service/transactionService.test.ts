@@ -41,6 +41,7 @@ function createRepository(
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
@@ -126,6 +127,43 @@ describe("TransactionService", () => {
       expect(repository.createNormal).toHaveBeenCalledWith(normalInput);
     },
   );
+
+  it("创建交易统一去重消费者且不修改调用方输入", async () => {
+    const repository = createRepository({
+      listActiveMemberIds: vi.fn().mockResolvedValue([userId, otherUserId]),
+    });
+    const { service } = createService("member", repository);
+    const input = {
+      ...normalInput,
+      consumerUserIds: [otherUserId, userId, otherUserId],
+    };
+    await service.createNormal(input);
+    expect(repository.createNormal).toHaveBeenCalledWith({
+      ...input,
+      consumerUserIds: [otherUserId, userId],
+    });
+    expect(input.consumerUserIds).toEqual([otherUserId, userId, otherUserId]);
+  });
+
+  it("转账显式消费者通过 active 成员校验后传给 Repository", async () => {
+    const repository = createRepository({
+      listActiveMemberIds: vi.fn().mockResolvedValue([userId, otherUserId]),
+    });
+    const { service } = createService("member", repository);
+    const input = {
+      accountId: normalInput.accountId,
+      consumerUserIds: [otherUserId],
+      ledgerId,
+      note: null,
+      transactionAt: normalInput.transactionAt,
+      transferAmount: 1200,
+      transferTargetAccountId: "00000000-0000-4000-8000-000000000046",
+    };
+
+    await service.createTransfer(input);
+
+    expect(repository.createTransfer).toHaveBeenCalledWith(input);
+  });
 
   it("viewer 不能新增交易", async () => {
     const { repository, service } = createService("viewer");
@@ -657,6 +695,65 @@ describe("TransactionService", () => {
       name: NotFoundError.name,
     });
     expect(repository.loadGroupSummaries).not.toHaveBeenCalled();
+  });
+});
+
+describe("消费者相关", () => {
+  const userA = userId;
+  const userB = "00000000-0000-4000-8000-000000000033";
+  const inactiveUser = otherUserId;
+
+  function createConsumerValidationService(activeMemberIds: string[]) {
+    const listActiveMemberIds = vi.fn().mockResolvedValue(activeMemberIds);
+    const repository = createRepository({ listActiveMemberIds });
+    const { service } = createService("member", repository);
+
+    return { listActiveMemberIds, service };
+  }
+
+  it("未显式提交消费者时保持 undefined 并交由数据库默认逻辑处理", async () => {
+    const { listActiveMemberIds, service } = createConsumerValidationService([
+      userA,
+    ]);
+
+    await expect(
+      service.validateConsumerUserIds({ ledgerId }),
+    ).resolves.toBeUndefined();
+    expect(listActiveMemberIds).not.toHaveBeenCalled();
+  });
+
+  it("显式消费者只允许 active 成员并去重", async () => {
+    const { listActiveMemberIds, service } = createConsumerValidationService([
+      userA,
+      userB,
+    ]);
+
+    await expect(
+      service.validateConsumerUserIds({
+        consumerUserIds: [userB, userA, userB],
+        ledgerId,
+      }),
+    ).resolves.toEqual([userB, userA]);
+    expect(listActiveMemberIds).toHaveBeenCalledWith(ledgerId);
+  });
+
+  it("包含非 active 成员时拒绝保存", async () => {
+    const { service } = createConsumerValidationService([userA, userB]);
+
+    await expect(
+      service.validateConsumerUserIds({
+        consumerUserIds: [userA, inactiveUser],
+        ledgerId,
+      }),
+    ).rejects.toMatchObject({ code: transactionErrorCodes.consumerInvalid });
+  });
+
+  it("显式空数组时拒绝保存", async () => {
+    const { service } = createConsumerValidationService([userA]);
+
+    await expect(
+      service.validateConsumerUserIds({ consumerUserIds: [], ledgerId }),
+    ).rejects.toMatchObject({ code: transactionErrorCodes.consumerInvalid });
   });
 });
 

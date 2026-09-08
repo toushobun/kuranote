@@ -93,6 +93,7 @@ export async function createTransaction(
     if (values.type === "transfer") {
       await service.createTransfer({
         accountId: values.accountId,
+        consumerUserIds: values.consumerUserIds,
         ledgerId: currentLedger.id,
         note: values.note,
         transactionAt: values.transactionAt,
@@ -162,6 +163,7 @@ export async function updateTransferTransaction(
       await getTransactionService()
     ).updateTransfer({
       accountId: values.accountId,
+      consumerUserIds: values.consumerUserIds,
       ledgerId: currentLedger.id,
       note: values.note,
       transactionAt: values.transactionAt,
@@ -194,6 +196,7 @@ export async function convertTransactionType(
     if (values.targetType === "transfer") {
       await service.convert({
         accountId: values.accountId,
+        consumerUserIds: values.consumerUserIds,
         ledgerId: currentLedger.id,
         note: values.note,
         targetType: "transfer",
@@ -205,6 +208,7 @@ export async function convertTransactionType(
     } else {
       await service.convert({
         accountId: values.accountId,
+        consumerUserIds: values.consumerUserIds,
         items: values.items,
         ledgerId: currentLedger.id,
         merchantId: values.merchantId,

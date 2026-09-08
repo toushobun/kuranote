@@ -3,6 +3,7 @@ import { transactionErrorCodes } from "./errors";
 import {
   convertTransactionRequestSchema,
   createTransactionRequestSchema,
+  updateTransactionRequestSchema,
   validateTransactionForm,
   validateVoidTransactionForm,
   validateConvertTransactionTypeForm,
@@ -960,6 +961,119 @@ describe("退款关联 FormData 校验", () => {
   it("编辑 FormData 路径拒绝 0 元退款关联", () => {
     expect(validateUpdateTransactionForm(createRefundFormData())).toEqual({
       error: transactionErrorCodes.refundLinkInvalid,
+      ok: false,
+    });
+  });
+});
+
+describe("消费者相关", () => {
+  const accountId = "00000000-0000-4000-8000-000000000041";
+  const categoryId = "00000000-0000-4000-8000-000000000101";
+  const merchantId = "00000000-0000-4000-8000-000000001001";
+  const consumerA = "00000000-0000-4000-8000-000000000031";
+  const consumerB = "00000000-0000-4000-8000-000000000032";
+
+  function createFormData() {
+    const formData = new FormData();
+    formData.set("type", "expense");
+    formData.set("transactionAt", "2026-09-08T12:30:00");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", accountId);
+    formData.append("itemCategoryId", categoryId);
+    formData.append("itemAmount", "1200");
+    formData.set("merchantId", merchantId);
+    formData.set("note", "");
+    return formData;
+  }
+
+  it("接受多个消费者并按首次出现顺序去重", () => {
+    const formData = createFormData();
+    formData.append("consumerUserId", consumerA);
+    formData.append("consumerUserId", consumerB);
+    formData.append("consumerUserId", consumerA);
+
+    const result = validateTransactionForm(formData);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: { consumerUserIds: [consumerA, consumerB] },
+    });
+  });
+
+  it("转账同样解析多个消费者", () => {
+    const formData = new FormData();
+    formData.set("type", "transfer");
+    formData.set("transactionAt", "2026-09-08T12:30:00");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", accountId);
+    formData.set(
+      "transferTargetAccountId",
+      "00000000-0000-4000-8000-000000000042",
+    );
+    formData.set("transferAmount", "1200");
+    formData.append("consumerUserId", consumerA);
+    formData.append("consumerUserId", consumerB);
+
+    expect(validateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: {
+        consumerUserIds: [consumerA, consumerB],
+        type: "transfer",
+      },
+    });
+  });
+
+  it("JSON 转账创建、更新和类型转换请求都保留消费者", () => {
+    const transferRequest = {
+      accountId,
+      consumerUserIds: [consumerA, consumerB],
+      ledgerId: "00000000-0000-4000-8000-000000000099",
+      note: null,
+      transactionAt: "2026-09-08T03:30:00.000Z",
+      transferAmount: 1200,
+      transferTargetAccountId: "00000000-0000-4000-8000-000000000042",
+      type: "transfer" as const,
+    };
+
+    expect(createTransactionRequestSchema.parse(transferRequest)).toMatchObject(
+      {
+        consumerUserIds: [consumerA, consumerB],
+      },
+    );
+    expect(updateTransactionRequestSchema.parse(transferRequest)).toMatchObject(
+      {
+        consumerUserIds: [consumerA, consumerB],
+      },
+    );
+    expect(
+      convertTransactionRequestSchema.parse({
+        accountId: transferRequest.accountId,
+        consumerUserIds: transferRequest.consumerUserIds,
+        ledgerId: transferRequest.ledgerId,
+        note: transferRequest.note,
+        targetType: "transfer",
+        transactionAt: transferRequest.transactionAt,
+        transferAmount: transferRequest.transferAmount,
+        transferTargetAccountId: transferRequest.transferTargetAccountId,
+      }),
+    ).toMatchObject({ consumerUserIds: [consumerA, consumerB] });
+  });
+
+  it("未提交消费者时保持 undefined 交由默认消费者逻辑处理", () => {
+    const result = validateTransactionForm(createFormData());
+
+    expect(result.ok).toBe(true);
+    if (result.ok && result.value.type !== "transfer") {
+      expect(result.value.consumerUserIds).toBeUndefined();
+    }
+  });
+
+  it.each(["invalid", ""])("拒绝非法或明确清空的消费者 ID：%s", (value) => {
+    const formData = createFormData();
+    formData.append("consumerUserId", value);
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.consumerInvalid,
       ok: false,
     });
   });

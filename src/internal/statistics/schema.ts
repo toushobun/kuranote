@@ -25,6 +25,12 @@ const categoryItemSchema = z.object({
   parentCategoryName: z.string().nullable(),
 });
 
+const transactionConsumerSchema = z.object({
+  color: z.string().nullable(),
+  id: z.string(),
+  name: z.string(),
+});
+
 const transactionListItemSchema = z.object({
   account_color: z.string().nullable().optional(),
   account_currency: z.string(),
@@ -32,12 +38,12 @@ const transactionListItemSchema = z.object({
   amount: z.string(),
   canEdit: z.boolean().optional(),
   categoryItems: z.array(categoryItemSchema),
+  consumers: z.array(transactionConsumerSchema).optional(),
   created_at: z.string(),
   id: z.string(),
   merchant_icon_url: z.string().nullable(),
   merchant_name: z.string().nullable(),
   note: z.string().nullable(),
-  recorder_color: z.string().nullable().optional(),
   recorder_name: z.string().nullable(),
   show_recorder: z.boolean().optional(),
   transaction_at: z.string(),

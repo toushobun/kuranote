@@ -22,6 +22,10 @@ const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 const userId = "00000000-0000-4000-8000-000000000031";
+const consumerUserIds = [
+  "00000000-0000-4000-8000-000000000031",
+  "00000000-0000-4000-8000-000000000033",
+];
 const currentLedger = {
   baseCurrency: "JPY",
   currentUserRole: "owner" as const,
@@ -41,6 +45,7 @@ const normalInput = {
 
 const transferInput = {
   accountId,
+  consumerUserIds,
   ledgerId,
   note: "转入储蓄",
   transactionAt: "2026-07-20T01:00:00.000Z",
@@ -132,6 +137,7 @@ describe("transactionController", () => {
 
     expect(service.createTransfer).toHaveBeenCalledWith({
       accountId,
+      consumerUserIds,
       ledgerId,
       note: "转入储蓄",
       transactionAt: "2026-07-20T01:00:00.000Z",
@@ -194,6 +200,7 @@ describe("transactionController", () => {
 
     expect(service.updateTransfer).toHaveBeenCalledWith({
       accountId,
+      consumerUserIds,
       ledgerId,
       note: "转入储蓄",
       transactionAt: "2026-07-20T01:00:00.000Z",

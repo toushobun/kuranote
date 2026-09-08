@@ -52,6 +52,9 @@ function createRepository(
 ): TransactionFormRepository {
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
+    findUserSummaries: vi.fn().mockResolvedValue([]),
+    listActiveMemberIds: vi.fn().mockResolvedValue([userId]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     ...overrides,
@@ -114,6 +117,9 @@ function createLinkedDependencies({
       transaction_at: "2026-08-03T01:00:00.000Z",
       type: "normal",
     }),
+    findUserSummaries: vi.fn().mockResolvedValue([]),
+    listActiveMemberIds: vi.fn().mockResolvedValue([userId]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([
       {
@@ -218,6 +224,39 @@ describe("getEditTransactionView", () => {
     expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
   });
 
+  it("编辑视图明确保留空消费者集合供页面按数据展开", async () => {
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: merchantId,
+        note: null,
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "normal",
+      }),
+      listConsumers: vi.fn().mockResolvedValue([]),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "1200",
+          balance_delta: "-1200",
+          category_id: categoryId,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+
+    const view = await getEditTransactionView(
+      createDependencies(repository),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view?.initialValues.consumerUserIds).toEqual([]);
+  });
+
   it("普通交易引用已归档账户时禁止编辑", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({
@@ -307,6 +346,7 @@ describe("getEditTransactionView", () => {
     expect(view?.canEdit).toBe(true);
     expect(view?.initialValues).toEqual({
       accountId,
+      consumerUserIds: [],
       note: "账户调拨",
       transactionAt: "2026-06-04T01:30:05.000Z",
       transactionRecordId,
