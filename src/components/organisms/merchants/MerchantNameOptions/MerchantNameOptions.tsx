@@ -7,11 +7,140 @@ import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useFormStatus } from "react-dom";
 
 import { merchantText } from "config/merchantText";
 import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
+
+type MerchantNameOption = {
+  id: string;
+  isFormalName: boolean;
+  label: string;
+  selected: boolean;
+};
+
+function MerchantNameOptionButton({
+  disabled,
+  isRow,
+  option,
+}: {
+  disabled: boolean;
+  isRow: boolean;
+  option: MerchantNameOption;
+}) {
+  const { pending: formPending } = useFormStatus();
+  const { id, isFormalName, label, selected } = option;
+  const optionRadius = isRow
+    ? designTokens.radius.item
+    : designTokens.radius.sm;
+
+  return (
+    <ButtonBase
+      aria-label={merchantText.displayNameOptionLabel(label, selected)}
+      aria-pressed={selected}
+      disabled={disabled || formPending}
+      name={isRow ? undefined : "aliasId"}
+      type="submit"
+      value={isRow ? undefined : id}
+      sx={{
+        "&.Mui-focusVisible": {
+          outline: "auto",
+          outlineOffset: (theme) => theme.spacing(0.25),
+        },
+        "&:active": {
+          bgcolor: isRow
+            ? "action.selected"
+            : selected
+              ? "primary.dark"
+              : "action.selected",
+        },
+        "&:hover": {
+          bgcolor: isRow
+            ? "action.hover"
+            : selected
+              ? "primary.main"
+              : "action.hover",
+        },
+        bgcolor: isRow
+          ? "transparent"
+          : selected
+            ? "primary.main"
+            : "transparent",
+        border: isRow ? 0 : 1,
+        borderColor: isRow
+          ? "transparent"
+          : selected
+            ? "primary.main"
+            : "divider",
+        borderRadius: `${optionRadius}px`,
+        color: isRow
+          ? "text.primary"
+          : selected
+            ? "primary.contrastText"
+            : "text.primary",
+        display: "flex",
+        gap: 0.75,
+        justifyContent: "flex-start",
+        minHeight: (theme) => theme.spacing(isRow ? 5 : 3.5),
+        px: isRow ? 1.25 : 1,
+        py: isRow ? 0.5 : 0.25,
+        textAlign: "left",
+        width: isRow ? "100%" : "auto",
+      }}
+    >
+      {isFormalName ? (
+        <Chip
+          color={isRow ? "primary" : undefined}
+          component="span"
+          label={merchantText.formalName}
+          size="small"
+          variant="outlined"
+          sx={{
+            borderColor: isRow ? undefined : "currentColor",
+            borderRadius: `${designTokens.radius.sm}px`,
+            color: isRow ? undefined : "inherit",
+          }}
+        />
+      ) : null}
+      <Typography
+        component="span"
+        variant={isRow ? "body1" : "body2"}
+        sx={{
+          flex: 1,
+          fontWeight: isRow ? undefined : 600,
+          minWidth: 0,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {label}
+      </Typography>
+      {selected ? (
+        <>
+          <StarRoundedIcon
+            fontSize="small"
+            sx={{
+              color: isRow ? "var(--user-theme-action-text)" : "inherit",
+            }}
+          />
+          {isRow ? (
+            <Chip
+              component="span"
+              label={merchantText.currentDisplayName}
+              size="small"
+              sx={{
+                bgcolor: "var(--user-theme-field-card-selected-bg)",
+                color: "var(--user-theme-action-text)",
+                fontWeight: 700,
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </ButtonBase>
+  );
+}
 
 export function MerchantNameOptions({
   archiveAliasAction,
@@ -26,7 +155,7 @@ export function MerchantNameOptions({
   setPreferredAliasAction?: ServerAction;
   variant?: "chips" | "rows";
 }) {
-  const options = [
+  const options: MerchantNameOption[] = [
     {
       id: "",
       isFormalName: true,
@@ -41,28 +170,42 @@ export function MerchantNameOptions({
     })),
   ];
   const isRow = variant === "rows";
-  const optionRadius = isRow
-    ? designTokens.radius.item
-    : designTokens.radius.sm;
+  const switchDisabled = pending || !setPreferredAliasAction;
+
+  if (!isRow) {
+    return (
+      <Stack
+        component="form"
+        action={setPreferredAliasAction}
+        direction="row"
+        sx={{ flexWrap: "wrap", gap: 0.75 }}
+      >
+        <input name="merchantId" type="hidden" value={merchant.id} />
+        {options.map((option) => (
+          <MerchantNameOptionButton
+            disabled={switchDisabled}
+            isRow={false}
+            key={option.id}
+            option={option}
+          />
+        ))}
+      </Stack>
+    );
+  }
 
   return (
-    <Stack
-      direction={isRow ? "column" : "row"}
-      sx={{ flexWrap: "wrap", gap: isRow ? 1 : 0.75 }}
-    >
-      {options.map(({ id, isFormalName, label, selected }) => (
+    <Stack sx={{ gap: 1 }}>
+      {options.map((option) => (
         <Stack
-          key={id}
+          key={option.id}
           direction="row"
           sx={{
             alignItems: "center",
-            border: isRow ? 1 : 0,
-            borderColor: isRow
-              ? selected
-                ? "var(--user-theme-action-text)"
-                : "divider"
-              : "transparent",
-            borderRadius: isRow ? `${designTokens.radius.item}px` : undefined,
+            border: 1,
+            borderColor: option.selected
+              ? "var(--user-theme-action-text)"
+              : "divider",
+            borderRadius: `${designTokens.radius.item}px`,
             maxWidth: "100%",
             minWidth: 0,
           }}
@@ -70,118 +213,21 @@ export function MerchantNameOptions({
           <Stack
             component="form"
             action={setPreferredAliasAction}
-            sx={{ flex: isRow ? 1 : "0 1 auto", minWidth: 0 }}
+            sx={{ flex: 1, minWidth: 0 }}
           >
             <input name="merchantId" type="hidden" value={merchant.id} />
-            <input name="aliasId" type="hidden" value={id} />
-            <ButtonBase
-              aria-label={merchantText.displayNameOptionLabel(label, selected)}
-              aria-pressed={selected}
-              disabled={pending || !setPreferredAliasAction}
-              type="submit"
-              sx={{
-                "&.Mui-focusVisible": {
-                  outline: "auto",
-                  outlineOffset: (theme) => theme.spacing(0.25),
-                },
-                "&:active": {
-                  bgcolor: isRow
-                    ? "action.selected"
-                    : selected
-                      ? "primary.dark"
-                      : "action.selected",
-                },
-                "&:hover": {
-                  bgcolor: isRow
-                    ? "action.hover"
-                    : selected
-                      ? "primary.main"
-                      : "action.hover",
-                },
-                bgcolor: isRow
-                  ? "transparent"
-                  : selected
-                    ? "primary.main"
-                    : "transparent",
-                border: isRow ? 0 : 1,
-                borderColor: isRow
-                  ? "transparent"
-                  : selected
-                    ? "primary.main"
-                    : "divider",
-                borderRadius: `${optionRadius}px`,
-                color: isRow
-                  ? "text.primary"
-                  : selected
-                    ? "primary.contrastText"
-                    : "text.primary",
-                display: "flex",
-                gap: 0.75,
-                justifyContent: "flex-start",
-                minHeight: (theme) => theme.spacing(isRow ? 5 : 3.5),
-                px: isRow ? 1.25 : 1,
-                py: isRow ? 0.5 : 0.25,
-                textAlign: "left",
-                width: isRow ? "100%" : "auto",
-              }}
-            >
-              {isFormalName ? (
-                <Chip
-                  color={isRow ? "primary" : undefined}
-                  component="span"
-                  label={merchantText.formalName}
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    borderColor: isRow ? undefined : "currentColor",
-                    borderRadius: `${designTokens.radius.sm}px`,
-                    color: isRow ? undefined : "inherit",
-                  }}
-                />
-              ) : null}
-              <Typography
-                component="span"
-                variant={isRow ? "body1" : "body2"}
-                sx={{
-                  flex: 1,
-                  fontWeight: isRow ? undefined : 600,
-                  minWidth: 0,
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {label}
-              </Typography>
-              {selected ? (
-                <>
-                  <StarRoundedIcon
-                    fontSize="small"
-                    sx={{
-                      color: isRow
-                        ? "var(--user-theme-action-text)"
-                        : "inherit",
-                    }}
-                  />
-                  {isRow ? (
-                    <Chip
-                      component="span"
-                      label={merchantText.currentDisplayName}
-                      size="small"
-                      sx={{
-                        bgcolor: "var(--user-theme-field-card-selected-bg)",
-                        color: "var(--user-theme-action-text)",
-                        fontWeight: 700,
-                      }}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-            </ButtonBase>
+            <input name="aliasId" type="hidden" value={option.id} />
+            <MerchantNameOptionButton
+              disabled={switchDisabled}
+              isRow
+              option={option}
+            />
           </Stack>
-          {id && archiveAliasAction ? (
+          {option.id && archiveAliasAction ? (
             <form action={archiveAliasAction}>
-              <input name="aliasId" type="hidden" value={id} />
+              <input name="aliasId" type="hidden" value={option.id} />
               <IconButton
-                aria-label={merchantText.removeAliasLabel(label)}
+                aria-label={merchantText.removeAliasLabel(option.label)}
                 color="error"
                 disabled={pending}
                 type="submit"
