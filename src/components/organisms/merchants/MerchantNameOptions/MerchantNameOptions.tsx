@@ -49,12 +49,25 @@ export function MerchantNameOptions({
         <Stack
           key={id}
           direction="row"
-          sx={{ alignItems: "center", gap: 1, minWidth: 0, maxWidth: "100%" }}
+          sx={{
+            alignItems: "center",
+            border: isRow ? 1 : 0,
+            borderColor: isRow
+              ? selected
+                ? "var(--user-theme-action-text)"
+                : "divider"
+              : "transparent",
+            borderRadius: isRow
+              ? `${designTokens.radius.item}px`
+              : undefined,
+            maxWidth: "100%",
+            minWidth: 0,
+          }}
         >
           <Stack
             component="form"
             action={setPreferredAliasAction}
-            sx={{ flex: 1, minWidth: 0 }}
+            sx={{ flex: isRow ? 1 : "0 1 auto", minWidth: 0 }}
           >
             <input name="merchantId" type="hidden" value={merchant.id} />
             <input name="aliasId" type="hidden" value={id} />
@@ -64,64 +77,97 @@ export function MerchantNameOptions({
               disabled={pending || !setPreferredAliasAction}
               type="submit"
               sx={{
-                border: 1,
-                borderColor: selected ? "primary.main" : "divider",
-                borderRadius: `${isRow ? designTokens.radius.item : designTokens.radius.sm}px`,
-                bgcolor: selected ? "primary.main" : "transparent",
-                color: selected ? "primary.contrastText" : "text.primary",
-                display: "flex",
-                gap: 0.75,
-                justifyContent: "flex-start",
-                minHeight: (theme) => theme.spacing(isRow ? 5 : 4),
-                px: 1.25,
-                py: 0.5,
-                textAlign: "left",
-                "&:hover": {
-                  bgcolor: selected ? "primary.main" : "action.hover",
-                },
-                "&:active": {
-                  bgcolor: selected ? "primary.dark" : "action.selected",
-                },
                 "&.Mui-focusVisible": {
                   outline: "auto",
                   outlineOffset: (theme) => theme.spacing(0.25),
                 },
+                "&:active": {
+                  bgcolor: isRow
+                    ? "action.selected"
+                    : selected
+                      ? "primary.dark"
+                      : "action.selected",
+                },
+                "&:hover": {
+                  bgcolor: isRow
+                    ? "action.hover"
+                    : selected
+                      ? "primary.main"
+                      : "action.hover",
+                },
+                bgcolor: isRow
+                  ? "transparent"
+                  : selected
+                    ? "primary.main"
+                    : "transparent",
+                border: isRow ? 0 : 1,
+                borderColor: isRow
+                  ? "transparent"
+                  : selected
+                    ? "primary.main"
+                    : "divider",
+                borderRadius: `${isRow ? designTokens.radius.item : designTokens.radius.sm}px`,
+                color: isRow
+                  ? "text.primary"
+                  : selected
+                    ? "primary.contrastText"
+                    : "text.primary",
+                display: "flex",
+                gap: 0.75,
+                justifyContent: "flex-start",
+                minHeight: (theme) => theme.spacing(isRow ? 5 : 3.5),
+                px: isRow ? 1.25 : 1,
+                py: isRow ? 0.5 : 0.25,
+                textAlign: "left",
+                width: isRow ? "100%" : "auto",
               }}
             >
               {!id ? (
                 <Chip
+                  color={isRow ? "primary" : undefined}
                   component="span"
                   label={merchantText.formalName}
                   size="small"
                   variant="outlined"
                   sx={{
-                    color: "inherit",
-                    borderColor: "currentColor",
+                    borderColor: isRow ? undefined : "currentColor",
                     borderRadius: `${designTokens.radius.sm}px`,
+                    color: isRow ? undefined : "inherit",
                   }}
                 />
               ) : null}
               <Typography
                 component="span"
-                variant="body2"
+                variant={isRow ? "body1" : "body2"}
                 sx={{
                   flex: 1,
+                  fontWeight: isRow ? undefined : 600,
                   minWidth: 0,
                   overflowWrap: "anywhere",
-                  fontWeight: 600,
                 }}
               >
                 {label}
               </Typography>
               {selected ? (
                 <>
-                  <StarRoundedIcon fontSize="small" />
+                  <StarRoundedIcon
+                    fontSize="small"
+                    sx={{
+                      color: isRow
+                        ? "var(--user-theme-action-text)"
+                        : "inherit",
+                    }}
+                  />
                   {isRow ? (
                     <Chip
                       component="span"
                       label={merchantText.currentDisplayName}
                       size="small"
-                      sx={{ color: "inherit", bgcolor: "transparent" }}
+                      sx={{
+                        bgcolor: "var(--user-theme-field-card-selected-bg)",
+                        color: "var(--user-theme-action-text)",
+                        fontWeight: 700,
+                      }}
                     />
                   ) : null}
                 </>
