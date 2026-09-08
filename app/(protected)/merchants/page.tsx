@@ -31,7 +31,8 @@ export default async function MerchantsPage({
       setPreferredMerchantAliasAction={setPreferredMerchantAlias}
       saveResult={
         params.result === merchantResultValues.created ||
-        params.result === merchantResultValues.updated
+        params.result === merchantResultValues.updated ||
+        params.result === merchantResultValues.archived
           ? params.result
           : null
       }

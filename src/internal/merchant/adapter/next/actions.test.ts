@@ -345,7 +345,7 @@ describe("Merchant Server Actions", () => {
     for (const [action, path] of [
       [createMerchant, "/merchants?result=created"],
       [updateMerchant, "/merchants?result=updated"],
-      [archiveMerchant, "/merchants"],
+      [archiveMerchant, "/merchants?result=archived"],
     ] as const) {
       await expect(runAction(action)).rejects.toThrow(`NEXT_REDIRECT:${path}`);
     }

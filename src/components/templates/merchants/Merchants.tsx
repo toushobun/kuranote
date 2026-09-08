@@ -48,7 +48,7 @@ export type MerchantsTemplateProps = {
   ledgerId: string;
   merchants: Merchant[];
   setPreferredMerchantAliasAction: MerchantStateAction;
-  saveResult?: "created" | "updated" | null;
+  saveResult?: "archived" | "created" | "updated" | null;
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];
@@ -347,7 +347,11 @@ export function MerchantsTemplate({
         bottomOffset={feedbackBottomOffset}
         onClose={closeSaveSuccessDialog}
         open={isSaveSuccessOpen}
-        title={merchantText.saveSuccess}
+        title={
+          saveResult === "archived"
+            ? merchantText.archiveSuccess
+            : merchantText.saveSuccess
+        }
       />
     </>
   );
