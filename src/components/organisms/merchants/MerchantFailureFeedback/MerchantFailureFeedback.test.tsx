@@ -53,6 +53,8 @@ describe("MerchantFailureFeedback", () => {
   it("失败提示使用共享底部偏移计算", () => {
     const theme = createTheme();
 
-    expect(getMerchantFeedbackBottomOffset(theme)).toBe("calc(80px + 8px)");
+    expect(getMerchantFeedbackBottomOffset(theme)).toBe(
+      "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+    );
   });
 });
