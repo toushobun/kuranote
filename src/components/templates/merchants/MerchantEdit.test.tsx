@@ -152,6 +152,37 @@ describe("MerchantEditTemplate", () => {
     expect(formData.get("aliasId")).toBe("alias-1");
   });
 
+  it("连续别名操作时只显示最后一次成功提示", async () => {
+    const archiveAlias = vi.fn<MerchantStateAction>(async () => ({
+      success: "删除成功",
+    }));
+    const select = vi.fn<MerchantStateAction>(async () => ({
+      success: "显示名切换成功",
+    }));
+    renderTemplate({
+      archiveMerchantAliasAction: archiveAlias,
+      setPreferredMerchantAliasAction: select,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("删除成功"),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "将LIFE超市设为展示名" }),
+    );
+
+    await waitFor(() => {
+      const statuses = screen.getAllByRole("status");
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toHaveTextContent("显示名切换成功");
+      expect(screen.queryByText("删除成功")).not.toBeInTheDocument();
+    });
+  });
+
   it("新增别名失败时继续显示 inline error", async () => {
     const createAlias = vi.fn<MerchantStateAction>(async () => ({
       error: "别名已存在",
