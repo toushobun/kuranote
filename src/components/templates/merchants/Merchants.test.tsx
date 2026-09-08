@@ -483,7 +483,8 @@ describe("MerchantsTemplate", () => {
 
   it("权限变化时保留进行中的排序请求及失败反馈", async () => {
     let resolveReorder:
-      ((state: { error: string; errorKey: string }) => void) | null = null;
+      | ((state: { error: string; errorKey: string }) => void)
+      | null = null;
     const pendingReorderAction = async () =>
       new Promise<{ error: string; errorKey: string }>((resolve) => {
         resolveReorder = resolve;
@@ -616,6 +617,36 @@ describe("MerchantsTemplate 显示名切换", () => {
     expect(
       window.location.pathname + window.location.search + window.location.hash,
     ).toBe("/merchants?q=LIFE#list");
+  });
+
+  it("切换显示名前关闭旧保存成功提示，避免两个反馈重叠", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/merchants?result=updated&q=LIFE#list",
+    );
+    const action = vi.fn<import("types/merchants").MerchantStateAction>(
+      async () => ({ success: "显示名切换成功" }),
+    );
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        merchants={[createMerchantRow({ aliases: [createMerchantAliasRow()] })]}
+        saveResult="updated"
+        setPreferredMerchantAliasAction={action}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+    fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
+
+    expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
+      scroll: false,
+    });
+    await waitFor(() =>
+      expect(screen.getByText("显示名切换成功")).toBeInTheDocument(),
+    );
+    await waitFor(() => expect(screen.queryByText("保存成功")).toBeNull());
   });
 
   it("请求期间阻止重复提交，失败时只显示安全错误且保留选中项", async () => {
