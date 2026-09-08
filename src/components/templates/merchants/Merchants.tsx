@@ -38,7 +38,7 @@ import type {
   MerchantTagStateAction,
 } from "types/merchants";
 
-import { useMerchantsActionState } from "./useMerchantsActionState";
+import { useMerchantDisplayNameListAction } from "./useMerchantDisplayNameListAction";
 
 export type MerchantsTemplateProps = {
   archiveAction: MerchantTagStateAction;
@@ -73,9 +73,8 @@ export function MerchantsTemplate({
   reorderAction,
   updateAction,
 }: MerchantsTemplateProps) {
-  const setPreferred = useMerchantsActionState(
+  const setPreferred = useMerchantDisplayNameListAction(
     setPreferredMerchantAliasAction,
-    { operation: "setPreferred" },
   );
   const clearResultParam = useClearQueryParam("result");
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
@@ -91,7 +90,7 @@ export function MerchantsTemplate({
     if (isSaveSuccessOpen) {
       closeSaveSuccessDialog();
     }
-    setPreferred.action(formData);
+    return setPreferred.action(formData);
   }
 
   const [tagManagementView, setTagManagementView] =
@@ -337,7 +336,7 @@ export function MerchantsTemplate({
               keyword={keyword}
               ledgerId={ledgerId}
               merchants={merchants}
-              pending={setPreferred.pending}
+              pendingMerchantIds={setPreferred.pendingMerchantIds}
               setPreferredAliasAction={submitPreferredAlias}
               tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
             />
