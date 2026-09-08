@@ -10,9 +10,9 @@ const unknownMerchantScope = "__unknown_merchant__";
 export function useMerchantDisplayNameListAction(action: MerchantStateAction) {
   const pendingMerchantIdsRef = useRef(new Set<string>());
   const latestSubmissionIdRef = useRef(0);
-  const [pendingMerchantIds, setPendingMerchantIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+  const [pendingMerchantIds, setPendingMerchantIds] = useState<
+    ReadonlySet<string>
+  >(new Set());
   const [state, setState] = useState<MerchantActionState>(
     initialMerchantActionState,
   );
