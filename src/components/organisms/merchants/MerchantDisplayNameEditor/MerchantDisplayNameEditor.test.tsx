@@ -13,12 +13,35 @@ import {
 } from "@/test/mocks/merchants";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import { designTokens } from "theme/theme";
 
 import { MerchantDisplayNameEditor } from "./MerchantDisplayNameEditor";
 
 afterEach(cleanup);
 
 describe("MerchantDisplayNameEditor", () => {
+  it("别名输入框与添加按钮使用列表项圆角", () => {
+    render(
+      <MerchantDisplayNameEditor
+        archiveAliasAction={vi.fn(async () => {})}
+        createAliasAction={vi.fn(async () => {})}
+        merchant={createMerchantRow()}
+        setPreferredAliasAction={vi.fn(async () => {})}
+      />,
+    );
+
+    const aliasInput = screen.getByRole("textbox", { name: "别名" });
+    const inputRoot = aliasInput.closest(".MuiOutlinedInput-root");
+    const addButton = screen.getByRole("button", { name: "添加别名" });
+
+    expect(getComputedStyle(inputRoot as Element).borderRadius).toBe(
+      `${designTokens.radius.item}px`,
+    );
+    expect(getComputedStyle(addButton).borderRadius).toBe(
+      `${designTokens.radius.item}px`,
+    );
+  });
+
   it("正式名固定展示且加粗，首选别名可切回正式名", () => {
     const setPreferredAliasAction = vi.fn(async () => {});
     render(

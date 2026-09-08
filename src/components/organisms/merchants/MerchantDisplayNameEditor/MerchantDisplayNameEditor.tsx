@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 import { merchantText } from "config/merchantText";
+import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
 
@@ -54,7 +55,6 @@ export function MerchantDisplayNameEditor({
         direction="row"
         spacing={1}
       >
-        <input name="merchantId" type="hidden" value={merchant.id} />
         <TextField
           autoComplete="off"
           fullWidth
@@ -65,17 +65,30 @@ export function MerchantDisplayNameEditor({
           required
           size="small"
           slotProps={{ htmlInput: { maxLength: 100 } }}
+          sx={{
+            "& .MuiInputBase-input.MuiOutlinedInput-input": {
+              pl: 1.375,
+            },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: `${designTokens.radius.item}px`,
+            },
+          }}
           value={alias}
         />
         <Button
           disabled={pending}
           startIcon={<AddRoundedIcon />}
-          sx={{ borderStyle: "dashed", flexShrink: 0 }}
+          sx={{
+            borderRadius: `${designTokens.radius.item}px`,
+            borderStyle: "dashed",
+            flexShrink: 0,
+          }}
           type="submit"
           variant="outlined"
         >
           {merchantText.addAlias}
         </Button>
+        <input name="merchantId" type="hidden" value={merchant.id} />
       </Stack>
       <Typography color="text.secondary" variant="caption" sx={{ px: 0.5 }}>
         {merchantText.aliasHelper}
