@@ -106,7 +106,9 @@ export function MerchantNameOptions({
                   : selected
                     ? "primary.main"
                     : "divider",
-                borderRadius: `${isRow ? designTokens.radius.item : designTokens.radius.sm}px`,
+                borderRadius: `${
+                  isRow ? designTokens.radius.item : designTokens.radius.sm
+                }px`,
                 color: isRow
                   ? "text.primary"
                   : selected
