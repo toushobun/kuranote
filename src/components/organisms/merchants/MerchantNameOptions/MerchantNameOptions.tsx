@@ -62,9 +62,7 @@ export function MerchantNameOptions({
                 ? "var(--user-theme-action-text)"
                 : "divider"
               : "transparent",
-            borderRadius: isRow
-              ? `${designTokens.radius.item}px`
-              : undefined,
+            borderRadius: isRow ? `${designTokens.radius.item}px` : undefined,
             maxWidth: "100%",
             minWidth: 0,
           }}
