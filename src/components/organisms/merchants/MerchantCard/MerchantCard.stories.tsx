@@ -72,6 +72,7 @@ function MerchantCardThemePreview() {
                   editHref="/merchants/merchant-1/edit"
                   ledgerId="ledger-1"
                   merchant={merchant}
+                  setPreferredAliasAction={async () => {}}
                 />
               </Stack>
             </Box>
