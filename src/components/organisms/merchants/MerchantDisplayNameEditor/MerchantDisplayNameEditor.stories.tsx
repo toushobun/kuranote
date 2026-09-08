@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import { useState } from "react";
 
 import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { designTokens } from "theme/theme";
 
 import { MerchantDisplayNameEditor } from "./MerchantDisplayNameEditor";
 
@@ -29,7 +31,35 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "显示名与别名管理" };
+export const Default: Story = {
+  name: "显示名与别名管理",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nameButton = canvas.getByRole("button", {
+      name: "将晨光设为展示名",
+    });
+    const nameRow = nameButton.closest("form")?.parentElement;
+    const aliasInput = canvas.getByRole("textbox", { name: "别名" });
+    const inputRoot = aliasInput.closest(".MuiOutlinedInput-root");
+    const addButton = canvas.getByRole("button", { name: "添加别名" });
+
+    await expect(nameRow).not.toBeNull();
+    await expect(inputRoot).not.toBeNull();
+    await expect(inputRoot!.getBoundingClientRect().left).toBe(
+      nameRow!.getBoundingClientRect().left,
+    );
+    await expect(
+      aliasInput.getBoundingClientRect().left +
+        Number.parseFloat(getComputedStyle(aliasInput).paddingLeft),
+    ).toBe(nameButton.querySelector("span")!.getBoundingClientRect().left);
+    await expect(getComputedStyle(inputRoot!).borderRadius).toBe(
+      `${designTokens.radius.item}px`,
+    );
+    await expect(getComputedStyle(addButton).borderRadius).toBe(
+      `${designTokens.radius.item}px`,
+    );
+  },
+};
 
 export const FormalNameSelected: Story = {
   name: "正式名为当前展示名",
