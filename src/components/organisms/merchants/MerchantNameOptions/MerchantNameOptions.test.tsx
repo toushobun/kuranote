@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -58,7 +64,9 @@ describe("MerchantNameOptions", () => {
 
     expect(within(formalName).getByText("正式名")).toBeInTheDocument();
     expect(within(formalName).getByText("当前展示名")).toBeInTheDocument();
-    expect(within(formalName).getByTestId("StarRoundedIcon")).toBeInTheDocument();
+    expect(
+      within(formalName).getByTestId("StarRoundedIcon"),
+    ).toBeInTheDocument();
   });
 
   it("行模式点击名称切换显示名且删除按钮保持独立", () => {
