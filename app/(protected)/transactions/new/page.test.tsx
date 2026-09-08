@@ -64,10 +64,15 @@ const baseView = {
 };
 
 function getTemplateElement(result: ReactElement<Record<string, unknown>>) {
-  const provider = result.props.children as ReactElement<
+  const consumerProvider = result.props.children as ReactElement<
     Record<string, unknown>
   >;
-  return provider.props.children as ReactElement<Record<string, unknown>>;
+  const incomeLinksProvider = consumerProvider.props.children as ReactElement<
+    Record<string, unknown>
+  >;
+  return incomeLinksProvider.props.children as ReactElement<
+    Record<string, unknown>
+  >;
 }
 
 describe("TransactionsNewPage", () => {

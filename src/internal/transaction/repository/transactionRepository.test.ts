@@ -90,6 +90,7 @@ describe("TransactionRepository", () => {
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
       p_account_id: accountId,
+      p_consumer_user_ids: null,
       p_items: [
         {
           ...normalInput.items[0],
@@ -153,6 +154,7 @@ describe("TransactionRepository", () => {
     await repository.createTransfer(transferInput);
     expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
       p_amount: 1200,
+      p_consumer_user_ids: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -213,6 +215,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
       p_amount: 1200,
+      p_consumer_user_ids: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -381,7 +384,11 @@ describe("TransactionRepository", () => {
   });
   it("读取交易关联数据时限定账本并去重 ID", async () => {
     const memberQuery = createQuery({
-      data: [{ user_id: userId }],
+      data: [{ joined_at: "2026-01-01T00:00:00.000Z", user_id: userId }],
+      error: null,
+    });
+    const userQuery = createQuery({
+      data: [{ id: userId }],
       error: null,
     });
     const itemQuery = createQuery({
@@ -398,6 +405,7 @@ describe("TransactionRepository", () => {
     });
     const { repository } = createRepository({
       queries: {
+        app_user: userQuery,
         ledger_member: memberQuery,
         transaction_item_with_refund: itemQuery,
       },

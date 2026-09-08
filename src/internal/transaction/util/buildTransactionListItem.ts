@@ -3,6 +3,7 @@ import type {
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
+  TransactionConsumerDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
@@ -25,38 +26,58 @@ export function buildTransactionListItem({
   accountColorById,
   canEdit,
   categoryById,
+  consumerById,
   fallbackCurrency,
   merchantById,
   record,
   recorderById,
+  recordConsumers,
   recordItems,
+  showConsumers = true,
   showRecorder = true,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
   canEdit: boolean;
   categoryById: Map<string, CategorySummaryDbRow>;
+  consumerById?: Map<string, AppUserSummaryDbRow>;
   fallbackCurrency: string;
   merchantById: Map<string, MerchantSummaryDbRow>;
   record: TransactionRecordDbRow;
   recorderById?: Map<string, AppUserSummaryDbRow>;
+  recordConsumers?: TransactionConsumerDbRow[];
   recordItems: TransactionItemDbRow[];
+  showConsumers?: boolean;
   showRecorder?: boolean;
 }): TransactionListItem {
   const recorder =
     record.created_by && recorderById
       ? recorderById.get(record.created_by)
       : undefined;
+  const consumers = (recordConsumers ?? []).flatMap((consumer) => {
+    const member = consumerById?.get(consumer.user_id);
+    return member
+      ? [
+          {
+            color: member.display_color ?? null,
+            id: member.id,
+            name: member.display_name,
+          },
+        ]
+      : [];
+  });
 
   if (record.type === "transfer") {
     return buildTransferListItem({
       accountById,
       accountColorById,
       canEdit,
+      consumers,
       fallbackCurrency,
       record,
       recorder,
       recordItems,
+      showConsumers,
       showRecorder,
     });
   }
@@ -142,6 +163,7 @@ export function buildTransactionListItem({
       : {}),
     canEdit,
     categoryItems,
+    consumers,
     created_at: record.created_at,
     id: record.id,
     merchant_icon_url: merchant?.icon_url ?? null,
@@ -149,6 +171,7 @@ export function buildTransactionListItem({
     note: record.note ?? firstItem?.note ?? null,
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
+    show_consumers: showConsumers,
     show_recorder: showRecorder,
     transaction_at: record.transaction_at,
     type: displayType,
@@ -168,19 +191,23 @@ function buildTransferListItem({
   accountById,
   accountColorById,
   canEdit,
+  consumers,
   fallbackCurrency,
   record,
   recorder,
   recordItems,
+  showConsumers,
   showRecorder,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
   canEdit: boolean;
+  consumers: TransactionListItem["consumers"];
   fallbackCurrency: string;
   record: TransactionRecordDbRow;
   recorder: AppUserSummaryDbRow | undefined;
   recordItems: TransactionItemDbRow[];
+  showConsumers: boolean;
   showRecorder: boolean;
 }): TransactionListItem {
   const fromItem = recordItems.find(
@@ -225,6 +252,7 @@ function buildTransferListItem({
     amount,
     canEdit,
     categoryItems: [],
+    consumers,
     created_at: record.created_at,
     id: record.id,
     merchant_icon_url: null,
@@ -232,6 +260,7 @@ function buildTransferListItem({
     note: record.note ?? null,
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
+    show_consumers: showConsumers,
     show_recorder: showRecorder,
     transaction_at: record.transaction_at,
     type: "transfer",

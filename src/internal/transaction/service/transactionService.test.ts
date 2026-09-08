@@ -41,6 +41,7 @@ function createRepository(
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
@@ -126,6 +127,26 @@ describe("TransactionService", () => {
       expect(repository.createNormal).toHaveBeenCalledWith(normalInput);
     },
   );
+
+  it("转账显式消费者通过 active 成员校验后传给 Repository", async () => {
+    const repository = createRepository({
+      listActiveMemberIds: vi.fn().mockResolvedValue([userId, otherUserId]),
+    });
+    const { service } = createService("member", repository);
+    const input = {
+      accountId: normalInput.accountId,
+      consumerUserIds: [otherUserId],
+      ledgerId,
+      note: null,
+      transactionAt: normalInput.transactionAt,
+      transferAmount: 1200,
+      transferTargetAccountId: "00000000-0000-4000-8000-000000000046",
+    };
+
+    await service.createTransfer(input);
+
+    expect(repository.createTransfer).toHaveBeenCalledWith(input);
+  });
 
   it("viewer 不能新增交易", async () => {
     const { repository, service } = createService("viewer");

@@ -149,6 +149,7 @@ describe("TransactionDashboardQueryService", () => {
           },
         ],
       }),
+      listConsumers: vi.fn().mockResolvedValue([]),
       listItems,
       listRecords,
       listTagAssignments: vi.fn().mockResolvedValue([]),

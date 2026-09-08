@@ -16,6 +16,7 @@ import type { EditTransactionView } from "internal/transaction/service/read/tran
 import type { TransactionService } from "internal/transaction/service/transactionService";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
+const recorderUserId = "00000000-0000-4000-8000-000000000031";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
 const linkedItemId = "00000000-0000-4000-8000-000000000201";
 const siblingItemId = "00000000-0000-4000-8000-000000000202";
@@ -76,11 +77,13 @@ function formOptions() {
         type: "expense" as const,
       },
     ],
+    consumerOptions: [],
     frequentCategoryIds: [],
     merchantOptions: [
       { icon_url: null, id: merchantId, name: "商家" },
       { icon_url: null, id: otherMerchantId, name: "新商家" },
     ],
+    recorderUserId,
     transactionItemSpecialStatusEnabled: true,
   };
 }
@@ -303,6 +306,11 @@ function createService(view: EditTransactionView | null) {
     canModify: vi.fn().mockResolvedValue(true),
     getEditView: vi.fn().mockResolvedValue(view),
     updateNormal,
+    validateConsumerUserIds: vi
+      .fn()
+      .mockImplementation(({ consumerUserIds }) =>
+        Promise.resolve(consumerUserIds),
+      ),
     void: voidTransaction,
   } as unknown as TransactionService;
   const updateEdit = vi.fn();

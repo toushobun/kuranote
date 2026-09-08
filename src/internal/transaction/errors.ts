@@ -2,6 +2,7 @@ export const transactionErrorCodes = {
   accountInvalid: "account_invalid",
   amountInvalid: "amount_invalid",
   categoryInvalid: "category_invalid",
+  consumerInvalid: "consumer_invalid",
   createFailed: "create_failed",
   dateInvalid: "date_invalid",
   incomeLinkCategoryInvalid: "income_link_category_invalid",
@@ -29,6 +30,7 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.accountInvalid
   | typeof transactionErrorCodes.amountInvalid
   | typeof transactionErrorCodes.categoryInvalid
+  | typeof transactionErrorCodes.consumerInvalid
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
@@ -57,6 +59,8 @@ const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.accountInvalid]: "账户指定不正确。",
   [transactionErrorCodes.amountInvalid]: "金额不能为负数，且最多两位小数。",
   [transactionErrorCodes.categoryInvalid]: "分类指定不正确。",
+  [transactionErrorCodes.consumerInvalid]:
+    "消费者指定不正确，请从当前账本成员中选择。",
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",

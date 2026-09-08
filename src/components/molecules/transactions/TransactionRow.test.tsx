@@ -895,7 +895,7 @@ describe("TransactionRow", () => {
     vi.stubGlobal("Intl", mockedIntl);
   }
 });
-describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
+describe("TransactionRow 消费者展示", () => {
   const item: TransactionRowItem = {
     account_color: "sakura",
     account_currency: "JPY",
@@ -913,7 +913,13 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
     merchant_icon_url: null,
     merchant_name: "便利店",
     note: null,
-    recorder_color: "amber",
+    consumers: [
+      {
+        color: "amber",
+        id: "00000000-0000-4000-8000-000000000031",
+        name: "淞文",
+      },
+    ],
     recorder_name: "淞文",
     transaction_at: "2026-06-05T03:20:10.000Z",
     type: "expense",
@@ -921,7 +927,7 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
   afterEach(() => {
     cleanup();
   });
-  it("多人账本使用成员个性色显示账户和记录人", () => {
+  it("多人账本使用成员个性色显示账户和消费者", () => {
     render(<TransactionRow item={item} showAccount showRecorder />);
     expect(screen.getByText("日元现金")).toHaveStyle({
       color: themeColorTokens.sakura.chipText,
@@ -930,9 +936,9 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
       color: themeColorTokens.amber.chipText,
     });
   });
-  it("单人账本保留记录人数据但不显示昵称", () => {
+  it("单人账本保留消费者数据但不显示昵称", () => {
     render(
-      <TransactionRow item={{ ...item, show_recorder: false }} showRecorder />,
+      <TransactionRow item={{ ...item, show_consumers: false }} showRecorder />,
     );
     expect(screen.queryByText("淞文")).not.toBeInTheDocument();
   });

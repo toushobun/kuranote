@@ -1,6 +1,7 @@
 import type { CategoryType } from "internal/category";
 import type {
   TransactionBusinessStatus,
+  TransactionConsumer,
   TransactionRecordStorageType,
   TransactionSpecialStatusFilterValue,
   TransactionType,
@@ -22,7 +23,7 @@ export const transactionTypeOptions = [
   { label: "收入", value: "income" },
 ] as const;
 
-export type { TransactionBusinessStatus };
+export type { TransactionBusinessStatus, TransactionConsumer };
 export type { TransactionRecordStorageType, TransactionType };
 export type TransactionRecordType = TransactionType | "transfer";
 // 分类类型目前只对应支出 / 收入，用语义别名和包含 transfer 的展示类型区分。
@@ -89,11 +90,13 @@ export type TransactionRowItem = {
   account_color?: ThemeColorKey | null;
   canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
+  consumers?: TransactionConsumer[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
   note?: string | null;
   recorder_color?: ThemeColorKey | null;
   recorder_name?: string | null;
+  show_consumers?: boolean;
   show_recorder?: boolean;
 };
 
@@ -110,6 +113,8 @@ export type TransactionCategoryOption = {
   parentName: string | null;
   type: TransactionCategoryType;
 };
+
+export type TransactionConsumerOption = TransactionConsumer;
 
 export type TransactionMerchantOption = {
   id: string;
@@ -215,6 +220,7 @@ export type TransactionTimeGroupViewData = {
 
 export type TransferEditInitialValues = {
   accountId: string;
+  consumerUserIds?: string[];
   note: string;
   transactionAt: string;
   transactionRecordId: string;

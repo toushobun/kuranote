@@ -31,6 +31,7 @@ export type UpdateLinkedTransactionItemInput = {
 };
 
 export type UpdateLinkedTransactionEditInput = {
+  consumerUserIds?: string[];
   itemUpdates: Array<
     Omit<UpdateLinkedTransactionItemInput, "ledgerId" | "transactionRecordId">
   >;
@@ -76,6 +77,7 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
   transactionErrorCodes.categoryInvalid,
+  transactionErrorCodes.consumerInvalid,
   transactionErrorCodes.merchantInvalid,
   transactionErrorCodes.noteTooLong,
   transactionErrorCodes.specialStatusInvalid,
@@ -153,6 +155,12 @@ export function createSupabaseLinkedTransactionItemRepository(
       throw new ValidationError(
         transactionErrorCodes.categoryInvalid,
         "分类信息不正确，请确认后重试。",
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.consumerInvalid) {
+      throw new ValidationError(
+        transactionErrorCodes.consumerInvalid,
+        "消费者指定不正确，请从当前账本成员中选择。",
       );
     }
     if (rpcErrorCode === transactionErrorCodes.merchantInvalid) {
@@ -265,6 +273,7 @@ export function createSupabaseLinkedTransactionItemRepository(
 
     async updateEdit(input) {
       const { error } = await supabase.rpc("update_linked_transaction_edit", {
+        p_consumer_user_ids: input.consumerUserIds ?? null,
         p_item_updates: input.itemUpdates,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,

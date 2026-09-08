@@ -18,18 +18,21 @@ const item: TransactionRowItem = {
       parentCategoryName: "饮食",
     },
   ],
+  consumers: [
+    { color: "amber", id: "member-1", name: "淞文" },
+    { color: "sakura", id: "member-2", name: "秋爽" },
+    { color: "sky", id: "member-3", name: "宝宝" },
+  ],
   id: "00000000-0000-4000-8000-000000009001",
   merchant_icon_url: null,
   merchant_name: "便利店",
   note: null,
-  recorder_color: "amber",
-  recorder_name: "淞文",
-  transaction_at: "2026-06-05T10:30:00.000Z",
+  transaction_at: "2026-09-08T10:30:00.000Z",
   type: "expense",
 };
 
 const meta = {
-  title: "Molecules/Transactions/TransactionRowRecorder",
+  title: "Molecules/Transactions/TransactionRowConsumer",
   component: TransactionRow,
   decorators: [
     (Story) => (
@@ -50,13 +53,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const MultipleMembers: Story = {
-  name: "多人账本（成员颜色）",
+export const MultipleConsumers: Story = {
+  name: "多人消费者（最多 2 人 + N）",
 };
 
-export const SingleMember: Story = {
-  name: "单人账本（隐藏记录人）",
+export const SingleConsumer: Story = {
+  name: "单个消费者",
   args: {
-    item: { ...item, show_recorder: false },
+    item: { ...item, consumers: [item.consumers![0]!] },
+  },
+};
+
+export const SingleMemberLedger: Story = {
+  name: "单人账本（隐藏消费者）",
+  args: {
+    item: { ...item, show_consumers: false },
   },
 };

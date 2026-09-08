@@ -52,6 +52,9 @@ function createRepository(
 ): TransactionFormRepository {
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
+    findUserSummaries: vi.fn().mockResolvedValue([]),
+    listActiveMemberIds: vi.fn().mockResolvedValue([userId]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     ...overrides,
@@ -114,6 +117,9 @@ function createLinkedDependencies({
       transaction_at: "2026-08-03T01:00:00.000Z",
       type: "normal",
     }),
+    findUserSummaries: vi.fn().mockResolvedValue([]),
+    listActiveMemberIds: vi.fn().mockResolvedValue([userId]),
+    listConsumers: vi.fn().mockResolvedValue([]),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([
       {
