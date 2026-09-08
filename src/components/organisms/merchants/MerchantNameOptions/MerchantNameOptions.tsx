@@ -236,7 +236,9 @@ export function MerchantNameOptions({
                 aria-label={merchantText.removeAliasLabel(option.label)}
                 color="error"
                 disabled={pending}
-                onClick={(event) => void confirmArchiveAlias(event, option.label)}
+                onClick={(event) =>
+                  void confirmArchiveAlias(event, option.label)
+                }
                 type="button"
               >
                 <CloseRoundedIcon />
