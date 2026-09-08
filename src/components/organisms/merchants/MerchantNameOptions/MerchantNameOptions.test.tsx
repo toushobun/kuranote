@@ -17,7 +17,7 @@ import { MerchantNameOptions } from "./MerchantNameOptions";
 afterEach(cleanup);
 
 describe("MerchantNameOptions", () => {
-  it("正式名身份与当前显示名状态保持独立", () => {
+  it("正式名通过加粗与当前显示名状态保持独立", () => {
     render(
       <MerchantNameOptions
         merchant={createMerchantRow({
@@ -38,7 +38,10 @@ describe("MerchantNameOptions", () => {
       name: "来福是当前展示名",
     });
 
-    expect(within(formalName).getByText("正式名")).toBeInTheDocument();
+    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe(
+      "700",
+    );
+    expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
     expect(formalName).toHaveAttribute("aria-pressed", "false");
     expect(within(formalName).queryByTestId("StarRoundedIcon")).toBeNull();
     expect(preferredAlias).toHaveAttribute("aria-pressed", "true");
@@ -47,7 +50,7 @@ describe("MerchantNameOptions", () => {
     ).toBeInTheDocument();
   });
 
-  it("正式名被选中时同时显示身份标签和当前显示名标记", () => {
+  it("行模式下正式名被选中时保持加粗并显示当前显示名标记", () => {
     render(
       <MerchantNameOptions
         merchant={createMerchantRow({
@@ -62,7 +65,10 @@ describe("MerchantNameOptions", () => {
       name: "LIFE超市是当前展示名",
     });
 
-    expect(within(formalName).getByText("正式名")).toBeInTheDocument();
+    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe(
+      "700",
+    );
+    expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
     expect(within(formalName).getByText("当前展示名")).toBeInTheDocument();
     expect(
       within(formalName).getByTestId("StarRoundedIcon"),
