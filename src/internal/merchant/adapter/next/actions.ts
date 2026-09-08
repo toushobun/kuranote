@@ -238,8 +238,8 @@ export const setPreferredMerchantAlias: MerchantStateAction =
       );
     }
 
-    revalidateMerchantMutation();
-    redirect(merchantEditHref(validation.value.merchantId));
+    revalidateMerchantMutation(validation.value.merchantId);
+    return { success: merchantText.preferredSuccess };
   };
 
 export const createMerchantTag: MerchantTagStateAction =

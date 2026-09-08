@@ -1,6 +1,6 @@
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMerchantAliasRow,
@@ -23,10 +23,10 @@ function toComputedColor(color: string) {
 }
 
 describe("MerchantCard", () => {
-  it("只显示商家信息并提供独立编辑页入口", () => {
+  it("标题固定显示正式名并提供独立编辑页入口", () => {
     const merchant = createMerchantRow({
       aliases: [createMerchantAliasRow({ is_preferred: true })],
-      display_name: "来福",
+      display_name: "LIFE超市",
       note: "常去的超市",
     });
     const { container } = render(
@@ -38,9 +38,11 @@ describe("MerchantCard", () => {
     );
 
     expect(
-      within(container).getByRole("heading", { name: "来福" }),
+      within(container).getByRole("heading", { name: "LIFE超市" }),
     ).toBeInTheDocument();
-    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+    expect(
+      within(container).queryByText("正式名：LIFE超市"),
+    ).not.toBeInTheDocument();
     expect(within(container).getByText("常去的超市")).toBeInTheDocument();
     expect(
       within(container).getByRole("link", { name: "编辑LIFE超市" }),
@@ -81,147 +83,126 @@ describe("MerchantCard", () => {
     expect(container.innerHTML).not.toContain("/merchants/icon?");
   });
 
-  it("首选别名与正式名相同时仍显示正式名说明", () => {
-    const merchant = createMerchantRow({
-      aliases: [
-        createMerchantAliasRow({ alias: "LIFE超市", is_preferred: true }),
-      ],
-      display_name: "LIFE超市",
-      name: "LIFE超市",
-    });
+  it("正式名固定居首并保留身份标签，星标仅跟随首选别名", () => {
+    const action = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
     const { container } = render(
       <MerchantCard
-        editHref="/merchants/merchant-1/edit"
+        editHref="/edit"
         ledgerId="ledger-1"
-        merchant={merchant}
+        merchant={createMerchantRow({
+          aliases: [
+            createMerchantAliasRow({ is_preferred: true }),
+            createMerchantAliasRow({ id: "alias-2", alias: "LIFE" }),
+          ],
+          display_name: "来福",
+        })}
+        setPreferredAliasAction={action}
       />,
     );
-
-    expect(within(container).getByText("正式名：LIFE超市")).toBeInTheDocument();
+    const options = within(container).getAllByRole("button");
+    expect(options.map((option) => option.getAttribute("aria-label"))).toEqual([
+      "将LIFE超市设为展示名",
+      "来福是当前展示名",
+      "将LIFE设为展示名",
+    ]);
+    expect(within(options[0]).getByText("正式名")).toBeInTheDocument();
+    expect(options[0]).toHaveAttribute("aria-pressed", "false");
+    expect(options[0].querySelector("svg")).toBeNull();
+    expect(options[1]).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(options[1]).getByTestId("StarRoundedIcon"),
+    ).toBeInTheDocument();
+    fireEvent.click(within(options[0]).getByText("LIFE超市"));
+    expect(action).toHaveBeenCalledOnce();
+    const data = action.mock.calls[0][0] as FormData;
+    expect(data.get("merchantId")).toBe(createMerchantRow().id);
+    expect(data.get("aliasId")).toBe("");
   });
 
-  it("标签第一项显示真实首选名，后面再显示其他别名", () => {
-    const merchant = createMerchantRow({
-      aliases: [
-        createMerchantAliasRow({
-          alias: "Life",
-          id: "alias-secondary",
-          is_preferred: false,
-        }),
-        createMerchantAliasRow({
-          alias: "来福",
-          id: "alias-preferred",
-          is_preferred: true,
-        }),
-      ],
-      display_name: "来福",
+  it("未选别名时正式名同时带身份标签、星标和选中背景", () => {
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <MerchantCard
+          editHref="/edit"
+          ledgerId="ledger-1"
+          merchant={createMerchantRow()}
+          setPreferredAliasAction={async () => {}}
+        />
+      </ThemeProvider>,
+    );
+    const option = within(container).getByRole("button", {
+      name: "LIFE超市是当前展示名",
     });
+    expect(within(option).getByText("正式名")).toBeInTheDocument();
+    expect(within(option).getByTestId("StarRoundedIcon")).toBeInTheDocument();
+    expect(option).toHaveAttribute("aria-pressed", "true");
+    expect(getComputedStyle(option).backgroundColor).not.toBe("transparent");
+  });
+
+  it("同名别名仍按身份区分选中状态", () => {
     const { container } = render(
       <MerchantCard
-        editHref="/merchants/merchant-1/edit"
+        editHref="/edit"
         ledgerId="ledger-1"
-        merchant={merchant}
+        merchant={createMerchantRow({
+          aliases: [
+            createMerchantAliasRow({ alias: "LIFE超市", is_preferred: true }),
+          ],
+        })}
+        setPreferredAliasAction={async () => {}}
       />,
     );
-
-    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
-    const preferredChip = chips[0]?.closest(".MuiChip-root");
-    const secondaryChip = chips[1]?.closest(".MuiChip-root");
-    const preferredStar = preferredChip?.querySelector("svg");
-
-    expect(chips.map((chip) => chip.textContent)).toEqual(["来福", "Life"]);
-    expect(preferredChip).toHaveClass("MuiChip-filled");
     expect(
-      preferredChip?.querySelector(".MuiChip-label")?.lastElementChild,
-    ).toBe(preferredStar);
-    expect(getComputedStyle(preferredChip as Element).color).toBe(
-      "rgb(255, 255, 255)",
-    );
-    expect(getComputedStyle(preferredStar as Element).color).toBe(
-      "rgb(255, 255, 255)",
-    );
+      within(container).getByRole("button", { name: "将LIFE超市设为展示名" }),
+    ).toHaveAttribute("aria-pressed", "false");
     expect(
-      getComputedStyle(preferredChip as Element).backgroundImage,
-    ).toContain("data:image/svg+xml");
-    expect(
-      getComputedStyle(preferredChip as Element).backgroundImage,
-    ).toContain("M6%200L12%206L6%2012L0%206Z");
-    expect(
-      getComputedStyle(preferredChip as Element).backgroundImage,
-    ).toContain("%200.02");
-    expect(getComputedStyle(preferredChip as Element).borderRadius).toBe("8px");
-    expect(getComputedStyle(secondaryChip as Element).borderRadius).toBe("8px");
-    expect(getComputedStyle(preferredChip as Element).fontWeight).toBe(
-      getComputedStyle(secondaryChip as Element).fontWeight,
-    );
-    expect(secondaryChip).toHaveClass("MuiChip-outlined");
+      within(container).getByRole("button", { name: "LIFE超市是当前展示名" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("全部用户主题下首选别名标签使用可读的对比文字色", () => {
-    const merchant = createMerchantRow({
-      aliases: [createMerchantAliasRow({ is_preferred: true })],
-      display_name: "来福",
+  it("只读成员不能提交显示名切换", () => {
+    const action = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
+    const { container } = render(
+      <MerchantCard
+        canManageMerchants={false}
+        editHref="/edit"
+        ledgerId="ledger-1"
+        merchant={createMerchantRow()}
+        setPreferredAliasAction={action}
+      />,
+    );
+    const option = within(container).getByRole("button", {
+      name: "LIFE超市是当前展示名",
     });
+    expect(option).toBeDisabled();
+    fireEvent.click(option);
+    expect(action).not.toHaveBeenCalled();
+  });
 
+  it("全部用户主题下选中名称保持主题对比文字色", () => {
     userThemeKeys.forEach((themeKey) => {
       const dynamicTheme = createDynamicMuiTheme(themeKey);
       const { container, unmount } = render(
         <ThemeProvider theme={dynamicTheme}>
           <MerchantCard
-            editHref="/merchants/merchant-1/edit"
+            editHref="/edit"
             ledgerId="ledger-1"
-            merchant={merchant}
+            merchant={createMerchantRow()}
+            setPreferredAliasAction={async () => {}}
           />
         </ThemeProvider>,
       );
-
-      const preferredChipLabel = container.querySelector(
-        ".MuiChip-colorPrimary .MuiChip-label",
-      );
-
+      const option = within(container).getByRole("button", {
+        name: "LIFE超市是当前展示名",
+      });
       expect(dynamicTheme.palette.primary.main).toBe(
         userThemeTokens[themeKey].palette.accent,
       );
-      expect(getComputedStyle(preferredChipLabel as Element).color).toBe(
+      expect(getComputedStyle(option).color).toBe(
         toComputedColor(dynamicTheme.palette.primary.contrastText),
       );
-      expect(
-        getComputedStyle(
-          container.querySelector(".MuiChip-colorPrimary svg") as Element,
-        ).color,
-      ).toBe(toComputedColor(dynamicTheme.palette.primary.contrastText));
-
       unmount();
     });
-  });
-
-  it("没有首选别名时显示名使用普通标签", () => {
-    const merchant = createMerchantRow({
-      aliases: [
-        createMerchantAliasRow({
-          alias: "Life",
-          id: "alias-secondary",
-          is_preferred: false,
-        }),
-      ],
-      display_name: "LIFE超市",
-      name: "LIFE超市",
-    });
-    const { container } = render(
-      <MerchantCard
-        editHref="/merchants/merchant-1/edit"
-        ledgerId="ledger-1"
-        merchant={merchant}
-      />,
-    );
-
-    const chips = Array.from(container.querySelectorAll(".MuiChip-label"));
-    const displayNameChip = chips[0]?.closest(".MuiChip-root");
-
-    expect(chips.map((chip) => chip.textContent)).toEqual(["LIFE超市", "Life"]);
-    expect(displayNameChip).toHaveClass("MuiChip-outlined");
-    expect(displayNameChip?.querySelector("svg")).toBeNull();
-    expect(within(container).queryByRole("separator")).not.toBeInTheDocument();
   });
 
   it("分类标签按设计稿分离图标与名称，并使用柔和彩色方圆角", () => {

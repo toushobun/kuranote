@@ -7,6 +7,7 @@ import Link from "next/link";
 import { merchantText } from "config/merchantText";
 import { merchantEditHref } from "config/paths";
 import { designTokens } from "theme/theme";
+import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 
@@ -19,6 +20,8 @@ type MerchantListProps = {
   ledgerId: string;
   merchants: Merchant[];
   tagFiltered?: boolean;
+  pending?: boolean;
+  setPreferredAliasAction?: ServerAction;
 };
 
 export function MerchantList({
@@ -28,6 +31,8 @@ export function MerchantList({
   ledgerId,
   merchants,
   tagFiltered = false,
+  pending,
+  setPreferredAliasAction,
 }: MerchantListProps) {
   const isFilteredEmpty =
     (keyword.trim().length > 0 || tagFiltered) && merchants.length === 0;
@@ -109,6 +114,8 @@ export function MerchantList({
           key={merchant.id}
           ledgerId={ledgerId}
           merchant={merchant}
+          pending={pending}
+          setPreferredAliasAction={setPreferredAliasAction}
         />
       ))}
     </Stack>

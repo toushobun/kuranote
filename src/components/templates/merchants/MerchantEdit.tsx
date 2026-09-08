@@ -10,6 +10,7 @@ import { routePaths } from "config/paths";
 import { merchantText } from "config/merchantText";
 import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { MerchantDisplayNameFeedback } from "organisms/merchants/MerchantDisplayNameFeedback/MerchantDisplayNameFeedback";
 import { MerchantDisplayNameEditor } from "organisms/merchants/MerchantDisplayNameEditor/MerchantDisplayNameEditor";
 import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
@@ -148,10 +149,7 @@ export function MerchantEditTemplate({
         state={archiveAlias.state}
         title={merchantText.archiveAliasErrorTitle}
       />
-      <MerchantFailureFeedback
-        state={setPreferred.state}
-        title={merchantText.preferredErrorTitle}
-      />
+      <MerchantDisplayNameFeedback state={setPreferred.state} />
       {isArchiveConfirmOpen ? (
         <DeleteConfirmationDialog
           confirmLabel={merchantText.archive}

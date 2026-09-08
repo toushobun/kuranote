@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createMerchantTag: vi.fn(),
   loadMerchantsView: vi.fn(),
   MerchantsTemplate: vi.fn(() => null),
+  setPreferredMerchantAlias: vi.fn(),
   reorderMerchantTags: vi.fn(),
   updateMerchantTag: vi.fn(),
 }));
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("internal/merchant/adapter/next/actions", () => ({
   archiveMerchantTag: mocks.archiveMerchantTag,
   createMerchantTag: mocks.createMerchantTag,
+  setPreferredMerchantAlias: mocks.setPreferredMerchantAlias,
   reorderMerchantTags: mocks.reorderMerchantTags,
   updateMerchantTag: mocks.updateMerchantTag,
 }));

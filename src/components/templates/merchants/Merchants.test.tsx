@@ -12,7 +12,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createMerchantRow } from "@/test/mocks/merchants";
+import {
+  createMerchantAliasRow,
+  createMerchantRow,
+} from "@/test/mocks/merchants";
 
 import { MerchantsTemplate } from "./Merchants";
 
@@ -36,6 +39,7 @@ const tagAction = async () => ({});
 const reorderAction = async () => ({});
 
 const baseProps = {
+  setPreferredMerchantAliasAction: async () => ({ success: "显示名切换成功" }),
   archiveAction: tagAction,
   createAction: tagAction,
   keyword: "",
@@ -479,8 +483,7 @@ describe("MerchantsTemplate", () => {
 
   it("权限变化时保留进行中的排序请求及失败反馈", async () => {
     let resolveReorder:
-      | ((state: { error: string; errorKey: string }) => void)
-      | null = null;
+      ((state: { error: string; errorKey: string }) => void) | null = null;
     const pendingReorderAction = async () =>
       new Promise<{ error: string; errorKey: string }>((resolve) => {
         resolveReorder = resolve;
@@ -576,5 +579,75 @@ describe("MerchantsTemplate", () => {
       screen.getByText("该商家分类不存在或已不可用。"),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toBeInTheDocument();
+  });
+});
+
+describe("MerchantsTemplate 显示名切换", () => {
+  it("点击别名与正式名提交同一 Action，重复成功均显示提示且保留 URL", async () => {
+    window.history.replaceState(null, "", "/merchants?q=LIFE#list");
+    const action = vi.fn<import("types/merchants").MerchantStateAction>(
+      async () => ({ success: "显示名切换成功" }),
+    );
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        merchants={[createMerchantRow({ aliases: [createMerchantAliasRow()] })]}
+        setPreferredMerchantAliasAction={action}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+    );
+    expect(action.mock.calls[0][1].get("aliasId")).toBe("alias-1");
+    expect(action.mock.calls[0][1].get("merchantId")).toBe(
+      createMerchantRow().id,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    fireEvent.click(
+      screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+    );
+    expect(action.mock.calls[1][1].get("aliasId")).toBe("");
+    expect(replace).not.toHaveBeenCalled();
+    expect(
+      window.location.pathname + window.location.search + window.location.hash,
+    ).toBe("/merchants?q=LIFE#list");
+  });
+
+  it("请求期间阻止重复提交，失败时只显示安全错误且保留选中项", async () => {
+    let finish!: (value: { error: string; errorKey: string }) => void;
+    const action = vi.fn(
+      () =>
+        new Promise<{ error: string; errorKey: string }>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        merchants={[createMerchantRow({ aliases: [createMerchantAliasRow()] })]}
+        setPreferredMerchantAliasAction={action}
+      />,
+    );
+    const alias = screen.getByRole("button", { name: "将来福设为展示名" });
+    fireEvent.click(alias);
+    expect(alias).toBeDisabled();
+    fireEvent.click(alias);
+    expect(action).toHaveBeenCalledOnce();
+    await act(async () =>
+      finish({ error: "商家不可访问", errorKey: "failure-1" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("商家不可访问")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("显示名切换成功")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(alias).toBeEnabled();
   });
 });

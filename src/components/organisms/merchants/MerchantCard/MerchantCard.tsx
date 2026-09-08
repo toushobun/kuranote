@@ -1,5 +1,6 @@
+"use client";
+
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -11,14 +12,16 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { merchantText } from "config/merchantText";
 import { designTokens } from "theme/theme";
 import {
   getStableFallbackThemeColorKey,
   themeColorTokens,
   type ThemeColorKey,
 } from "theme/themeColorTokens";
+import type { ServerAction } from "types/actions";
 import type { Merchant, MerchantTag } from "types/merchants";
+
+import { MerchantNameOptions } from "../MerchantNameOptions/MerchantNameOptions";
 
 import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
@@ -27,34 +30,15 @@ type MerchantCardProps = {
   editHref: string;
   ledgerId: string;
   merchant: Merchant;
+  pending?: boolean;
+  setPreferredAliasAction?: ServerAction;
 };
-
-const merchantChipSx = {
-  borderRadius: `${designTokens.radius.sm}px`,
-  fontSize: (theme: Theme) => theme.typography.body2.fontSize,
-  height: 28,
-} as const;
 
 function createChipPattern(patternColor: string) {
   const pattern = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path fill="${patternColor}" d="M6 0L12 6L6 12L0 6Z"/></svg>`;
 
   return `url("data:image/svg+xml,${encodeURIComponent(pattern)}")`;
 }
-
-const preferredMerchantChipSx = (theme: Theme) => {
-  const patternColor = alpha(theme.palette.common.white, 0.02);
-
-  return {
-    "& .MuiChip-label": {
-      alignItems: "center",
-      display: "flex",
-      gap: 0.5,
-    },
-    "& .MuiSvgIcon-root": { color: "inherit", fontSize: 16 },
-    backgroundImage: createChipPattern(patternColor),
-    color: "primary.contrastText",
-  } as const;
-};
 
 const merchantTagColorByName: Readonly<Record<string, ThemeColorKey>> = {
   生鲜: "lime",
@@ -101,14 +85,9 @@ export function MerchantCard({
   canManageMerchants = true,
   editHref,
   merchant,
+  pending,
+  setPreferredAliasAction,
 }: MerchantCardProps) {
-  const hasPreferredAlias = merchant.aliases.some(
-    (alias) => alias.is_preferred,
-  );
-  const secondaryAliases = merchant.aliases.filter(
-    (alias) => alias.alias !== merchant.display_name,
-  );
-
   return (
     <SoftCard
       sx={{
@@ -130,14 +109,8 @@ export function MerchantCard({
             variant="subtitle1"
             sx={{ fontWeight: 900 }}
           >
-            {merchant.display_name}
+            {merchant.name}
           </Typography>
-          {hasPreferredAlias ? (
-            <Typography color="text.secondary" variant="caption">
-              {merchantText.formalName}：{merchant.name}
-            </Typography>
-          ) : null}
-
           {merchant.website_url ? (
             <Link
               color="text.secondary"
@@ -166,35 +139,15 @@ export function MerchantCard({
             </Typography>
           ) : null}
 
-          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1 }}>
-            <Chip
-              color={hasPreferredAlias ? "primary" : "default"}
-              label={
-                <>
-                  {merchant.display_name}
-                  {hasPreferredAlias ? <StarRoundedIcon /> : null}
-                </>
+          <Box sx={{ mt: 1 }}>
+            <MerchantNameOptions
+              merchant={merchant}
+              pending={pending}
+              setPreferredAliasAction={
+                canManageMerchants ? setPreferredAliasAction : undefined
               }
-              size="small"
-              sx={[
-                merchantChipSx,
-                {
-                  fontWeight: 600,
-                },
-                ...(hasPreferredAlias ? [preferredMerchantChipSx] : []),
-              ]}
-              variant={hasPreferredAlias ? "filled" : "outlined"}
             />
-            {secondaryAliases.map((alias) => (
-              <Chip
-                key={alias.id}
-                label={alias.alias}
-                size="small"
-                sx={[merchantChipSx, { fontWeight: 600 }]}
-                variant="outlined"
-              />
-            ))}
-          </Stack>
+          </Box>
         </Box>
 
         {canManageMerchants ? (

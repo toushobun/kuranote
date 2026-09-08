@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import { ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 
 import {
@@ -85,6 +86,7 @@ const meta = {
   title: "Organisms/Merchants/MerchantCard",
   component: MerchantCard,
   args: {
+    setPreferredAliasAction: async () => {},
     editHref: "/merchants/merchant-1/edit",
     ledgerId: "ledger-1",
     merchant,
@@ -95,7 +97,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "首选别名、纹理与分隔线",
+  name: "正式名身份与首选别名",
 };
 
 export const WithoutAliases: Story = {
@@ -110,4 +112,50 @@ export const WithoutAliases: Story = {
 export const MultipleThemes: Story = {
   name: "全部个人主题对比",
   render: () => <MerchantCardThemePreview />,
+};
+
+export const Interactive: Story = {
+  name: "点击名称切换显示名",
+  render: function InteractiveNames(args) {
+    const [merchant, setMerchant] = useState(args.merchant);
+    return (
+      <MerchantCard
+        {...args}
+        merchant={merchant}
+        setPreferredAliasAction={async (data) => {
+          const aliasId = data.get("aliasId");
+          setMerchant((current) => ({
+            ...current,
+            display_name:
+              current.aliases.find((alias) => alias.id === aliasId)?.alias ??
+              current.name,
+            aliases: current.aliases.map((alias) => ({
+              ...alias,
+              is_preferred: alias.id === aliasId,
+            })),
+          }));
+        }}
+      />
+    );
+  },
+};
+
+export const Pending: Story = { name: "切换处理中", args: { pending: true } };
+
+export const FormalNameSelected: Story = {
+  name: "正式名身份与当前显示名同时标记",
+  args: {
+    merchant: {
+      ...merchant,
+      display_name: merchant.name,
+      aliases: merchant.aliases.map((alias) => ({
+        ...alias,
+        is_preferred: false,
+      })),
+    },
+  },
+};
+export const ReadOnly: Story = {
+  name: "只读成员",
+  args: { canManageMerchants: false },
 };
