@@ -5,34 +5,45 @@ import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
-import type { MerchantStateAction } from "types/merchants";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import type { MerchantStateAction } from "types/merchants";
 
 import { MerchantEditTemplate } from "./MerchantEdit";
 
 const action = vi.fn(async () => ({}));
 
-function renderTemplate(
-  setPreferredMerchantAliasAction: MerchantStateAction = action,
-) {
+type RenderTemplateActions = {
+  archiveMerchantAliasAction?: MerchantStateAction;
+  createMerchantAliasAction?: MerchantStateAction;
+  setPreferredMerchantAliasAction?: MerchantStateAction;
+};
+
+function renderTemplate({
+  archiveMerchantAliasAction = action,
+  createMerchantAliasAction = action,
+  setPreferredMerchantAliasAction = action,
+}: RenderTemplateActions = {}) {
   const merchant = createMerchantRow({
     aliases: [createMerchantAliasRow({ is_preferred: true })],
   });
 
   render(
     <UserThemeProvider storageScope="merchant-edit-test">
-      <MerchantEditTemplate
-        archiveMerchantAction={action}
-        archiveMerchantAliasAction={action}
-        createMerchantAliasAction={action}
-        fetchIconAction={action}
-        ledgerId="ledger-1"
-        ledgerName="家庭账本"
-        merchant={merchant}
-        setPreferredMerchantAliasAction={setPreferredMerchantAliasAction}
-        tags={[]}
-        updateMerchantAction={action}
-      />
+      <ConfirmDialogProvider>
+        <MerchantEditTemplate
+          archiveMerchantAction={action}
+          archiveMerchantAliasAction={archiveMerchantAliasAction}
+          createMerchantAliasAction={createMerchantAliasAction}
+          fetchIconAction={action}
+          ledgerId="ledger-1"
+          ledgerName="家庭账本"
+          merchant={merchant}
+          setPreferredMerchantAliasAction={setPreferredMerchantAliasAction}
+          tags={[]}
+          updateMerchantAction={action}
+        />
+      </ConfirmDialogProvider>
     </UserThemeProvider>,
   );
 }
@@ -79,14 +90,76 @@ describe("MerchantEditTemplate", () => {
     expect(requestSubmit).toHaveBeenCalledOnce();
     requestSubmit.mockRestore();
   });
-});
 
-it("编辑页点击整行切换后显示成功提示", async () => {
-  const select = vi.fn(async () => ({ success: "显示名切换成功" }));
-  renderTemplate(select);
-  fireEvent.click(screen.getByRole("button", { name: "将LIFE超市设为展示名" }));
-  await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
-  );
-  expect(select).toHaveBeenCalledOnce();
+  it("点击整行切换后显示成功提示", async () => {
+    const select = vi.fn(async () => ({ success: "显示名切换成功" }));
+    renderTemplate({ setPreferredMerchantAliasAction: select });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "将LIFE超市设为展示名" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+    );
+    expect(select).toHaveBeenCalledOnce();
+  });
+
+  it("新增别名成功后显示添加成功", async () => {
+    const createAlias = vi.fn(async () => ({ success: "添加成功" }));
+    renderTemplate({ createMerchantAliasAction: createAlias });
+
+    fireEvent.change(screen.getByLabelText(/别名/), {
+      target: { value: "LIFE" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("添加成功"),
+    );
+    expect(createAlias).toHaveBeenCalledOnce();
+    const formData = createAlias.mock.calls[0][1] as FormData;
+    expect(formData.get("merchantId")).toBe("merchant-1");
+    expect(formData.get("alias")).toBe("LIFE");
+  });
+
+  it("确认删除别名后提交并显示删除成功", async () => {
+    const archiveAlias = vi.fn(async () => ({ success: "删除成功" }));
+    renderTemplate({ archiveMerchantAliasAction: archiveAlias });
+
+    fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
+
+    expect(
+      screen.getByRole("heading", { name: "删除别名？" }),
+    ).toBeInTheDocument();
+    expect(archiveAlias).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("删除成功"),
+    );
+    expect(archiveAlias).toHaveBeenCalledOnce();
+    const formData = archiveAlias.mock.calls[0][1] as FormData;
+    expect(formData.get("aliasId")).toBe("alias-1");
+  });
+
+  it("新增别名失败时继续显示 inline error", async () => {
+    const createAlias = vi.fn(async () => ({
+      error: "别名已存在",
+      errorKey: "create-alias-failure",
+    }));
+    renderTemplate({ createMerchantAliasAction: createAlias });
+
+    fireEvent.change(screen.getByLabelText(/别名/), {
+      target: { value: "来福" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("商家别名新增失败");
+      expect(screen.getByRole("alert")).toHaveTextContent("别名已存在");
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });
