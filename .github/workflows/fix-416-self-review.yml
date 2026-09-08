@@ -1,0 +1,330 @@
+name: Fix 416 Self Review
+
+on:
+  push:
+    branches:
+      - feature/416_transaction_consumer
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/416_transaction_consumer
+          fetch-depth: 0
+
+      - name: Apply self-review fixes
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, got {count}\n--- OLD ---\n{old}")
+              file.write_text(text.replace(old, new, 1))
+
+          # Server Actions：转账新增、编辑、类型转换均透传消费者。
+          path = "src/internal/transaction/adapter/next/actions.ts"
+          replace_once(path, '''      await service.createTransfer({
+              accountId: values.accountId,
+              ledgerId: currentLedger.id,''', '''      await service.createTransfer({
+              accountId: values.accountId,
+              consumerUserIds: values.consumerUserIds,
+              ledgerId: currentLedger.id,''')
+          replace_once(path, '''    ).updateTransfer({
+              accountId: values.accountId,
+              ledgerId: currentLedger.id,''', '''    ).updateTransfer({
+              accountId: values.accountId,
+              consumerUserIds: values.consumerUserIds,
+              ledgerId: currentLedger.id,''')
+          replace_once(path, '''      await service.convert({
+              accountId: values.accountId,
+              ledgerId: currentLedger.id,
+              note: values.note,
+              targetType: "transfer",''', '''      await service.convert({
+              accountId: values.accountId,
+              consumerUserIds: values.consumerUserIds,
+              ledgerId: currentLedger.id,
+              note: values.note,
+              targetType: "transfer",''')
+          replace_once(path, '''      await service.convert({
+              accountId: values.accountId,
+              items: values.items,
+              ledgerId: currentLedger.id,''', '''      await service.convert({
+              accountId: values.accountId,
+              consumerUserIds: values.consumerUserIds,
+              items: values.items,
+              ledgerId: currentLedger.id,''')
+
+          # JSON API schema：transfer 与 normal 一样接受消费者。
+          path = "src/internal/transaction/schema.ts"
+          replace_once(path, '''const transferTransactionRequestSchema = z.object({
+            accountId: z.string().uuid(),
+            ledgerId: z.string().uuid(),''', '''const transferTransactionRequestSchema = z.object({
+            accountId: z.string().uuid(),
+            consumerUserIds: z.array(z.string().uuid()).min(1).optional(),
+            ledgerId: z.string().uuid(),''')
+
+          # Controller：手工映射 transfer 参数时保留消费者。
+          path = "src/internal/transaction/controller/transactionController.ts"
+          replace_once(path, '''    await service.createTransfer({
+              accountId: input.accountId,
+              ledgerId: input.ledgerId,''', '''    await service.createTransfer({
+              accountId: input.accountId,
+              consumerUserIds: input.consumerUserIds,
+              ledgerId: input.ledgerId,''')
+          replace_once(path, '''    await service.updateTransfer({
+              accountId: input.accountId,
+              ledgerId: input.ledgerId,''', '''    await service.updateTransfer({
+              accountId: input.accountId,
+              consumerUserIds: input.consumerUserIds,
+              ledgerId: input.ledgerId,''')
+
+          # 恢复 #416 之外的既有展示类型与金额格式化行为。
+          path = "src/internal/transaction/service/read/transactionFormService.ts"
+          replace_once(path, '''  if (incomeTotal > expenseTotal) return "income";
+            return "expense";''', '''  if (incomeTotal > expenseTotal) return "income";
+            if (expenseTotal > incomeTotal) return "expense";
+            return "income";''')
+          replace_once(path, '''export function formatEditableAmount(amount: string, currency?: string) {
+            const numericAmount = Number(amount);
+            if (!Number.isFinite(numericAmount)) return amount;
+            return String(
+              Number(numericAmount.toFixed(getAmountDecimalPlaces(currency))),
+            );
+          }''', '''export function formatEditableAmount(amount: string, currency?: string) {
+            const value = Number(amount);
+            if (!Number.isFinite(value)) return amount;
+            return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
+          }''')
+
+          # 记录人摘要仍需支持历史失活用户；active 过滤只用于可选择消费者列表。
+          path = "src/internal/transaction/repository/transactionRepository.ts"
+          replace_once(path, '''        supabase
+                  .from("app_user")
+                  .select("id, display_name")
+                  .in("id", uniqueUserIds)
+                  .eq("status", "active"),''', '''        supabase
+                  .from("app_user")
+                  .select("id, display_name")
+                  .in("id", uniqueUserIds),''')
+          replace_once(path, '''        logger.error("[transaction] failed to load transaction members", {
+                  ledgerId,
+                  userDatabaseCode: userResult.error?.code,
+                  settingDatabaseCode: settingResult.error?.code,
+                });
+                throw toRepositoryError(
+                  "transaction_members_load_failed",
+                  "交易成员信息加载失败，请稍后重试。",
+                );''', '''        logger.error("[transaction] failed to load transaction recorders", {
+                  ledgerId,
+                  userDatabaseCode: userResult.error?.code,
+                  settingDatabaseCode: settingResult.error?.code,
+                });
+                throw toRepositoryError(
+                  "transaction_recorders_load_failed",
+                  "交易记录人信息加载失败，请稍后重试。",
+                );''')
+
+          # 折叠入口复用“+ 添加明细”的视觉 token。
+          path = "src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.tsx"
+          replace_once(path, '''import TextField from "@mui/material/TextField";
+
+          import { useEditTransactionDirty }''', '''import TextField from "@mui/material/TextField";
+
+          import { useEditTransactionDirty }''')
+          replace_once(path, '''import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+          import {
+            getStableFallbackThemeColorKey,''', '''import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+          import { designTokens } from "theme/theme";
+          import {
+            getStableFallbackThemeColorKey,''')
+          replace_once(path, '''} from "theme/themeColorTokens";
+          import type { TransactionConsumerOption }''', '''} from "theme/themeColorTokens";
+          import { userThemeCardBorderSx } from "theme/userThemeCardSx";
+          import type { TransactionConsumerOption }''')
+          replace_once(path, '''          sx={{
+                    color: "var(--user-theme-action-text)",
+                    fontSize: "0.9rem",
+                    fontWeight: 800,
+                    minHeight: 38,
+                    px: 1.25,
+                  }}''', '''          sx={{
+                    ...userThemeCardBorderSx,
+                    borderRadius: `${designTokens.radius.lg}px`,
+                    color: "var(--user-theme-action-text)",
+                    fontSize: "0.9rem",
+                    fontWeight: 800,
+                    minHeight: 38,
+                    width: "100%",
+                  }}''')
+
+          # Action 回归：转账新增/编辑/双向类型转换都要保留消费者。
+          path = "src/internal/transaction/adapter/next/actions.test.ts"
+          replace_once(path, '''  const merchantId = "00000000-0000-4000-8000-000000001001";
+            function createNormalFormData({''', '''  const merchantId = "00000000-0000-4000-8000-000000001001";
+            const consumerA = "00000000-0000-4000-8000-000000000031";
+            const consumerB = "00000000-0000-4000-8000-000000000033";
+            function createNormalFormData({''')
+          replace_once(path, '''    formData.set("note", "转账备注");
+            return formData;''', '''    formData.set("note", "转账备注");
+            formData.append("consumerUserId", consumerA);
+            formData.append("consumerUserId", consumerB);
+            return formData;''')
+          replace_once(path, '''    expect(mocks.createTransfer).toHaveBeenCalledWith({
+              accountId,
+              ledgerId,''', '''    expect(mocks.createTransfer).toHaveBeenCalledWith({
+              accountId,
+              consumerUserIds: [consumerA, consumerB],
+              ledgerId,''')
+          replace_once(path, '''      expect.objectContaining({
+                accountId,
+                ledgerId,
+                targetType: "transfer",''', '''      expect.objectContaining({
+                accountId,
+                consumerUserIds: [consumerA, consumerB],
+                ledgerId,
+                targetType: "transfer",''')
+          marker = '''  it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {'''
+          file = Path(path)
+          text = file.read_text()
+          if text.count(marker) != 1:
+              raise SystemExit(f"{path}: transfer update marker mismatch")
+          new_test = '''  it("转账转换为普通交易时保留消费者", async () => {
+            const formData = createNormalFormData({ sourceType: "transfer" });
+            formData.append("consumerUserId", consumerA);
+            formData.append("consumerUserId", consumerB);
+            await expect(saveEditTransaction({}, formData)).rejects.toThrow(
+              "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+            );
+            expect(mocks.convert).toHaveBeenCalledWith(
+              expect.objectContaining({
+                consumerUserIds: [consumerA, consumerB],
+                targetType: "expense",
+                transactionRecordId,
+              }),
+            );
+          });
+          '''
+          file.write_text(text.replace(marker, new_test + marker, 1))
+          replace_once(path, '''    expect(mocks.updateTransfer).toHaveBeenCalledWith(
+              expect.objectContaining({ ledgerId, transactionRecordId }),
+            );''', '''    expect(mocks.updateTransfer).toHaveBeenCalledWith(
+              expect.objectContaining({
+                consumerUserIds: [consumerA, consumerB],
+                ledgerId,
+                transactionRecordId,
+              }),
+            );''')
+
+          # Controller 回归：JSON transfer 创建/更新参数不丢消费者。
+          path = "src/internal/transaction/controller/transactionController.test.ts"
+          replace_once(path, '''const userId = "00000000-0000-4000-8000-000000000031";
+          const currentLedger = {''', '''const userId = "00000000-0000-4000-8000-000000000031";
+          const consumerUserIds = [
+            "00000000-0000-4000-8000-000000000031",
+            "00000000-0000-4000-8000-000000000033",
+          ];
+          const currentLedger = {''')
+          replace_once(path, '''const transferInput = {
+            accountId,
+            ledgerId,''', '''const transferInput = {
+            accountId,
+            consumerUserIds,
+            ledgerId,''')
+          replace_once(path, '''    expect(service.createTransfer).toHaveBeenCalledWith({
+              accountId,
+              ledgerId,''', '''    expect(service.createTransfer).toHaveBeenCalledWith({
+              accountId,
+              consumerUserIds,
+              ledgerId,''')
+          replace_once(path, '''    expect(service.updateTransfer).toHaveBeenCalledWith({
+              accountId,
+              ledgerId,''', '''    expect(service.updateTransfer).toHaveBeenCalledWith({
+              accountId,
+              consumerUserIds,
+              ledgerId,''')
+
+          # Schema 回归：JSON transfer 的 create/update/convert 都保留消费者字段。
+          path = "src/internal/transaction/transactionConsumerSchema.test.ts"
+          replace_once(path, '''import { transactionErrorCodes } from "internal/transaction/errors";
+          import { validateTransactionForm } from "internal/transaction/schema";''', '''import { transactionErrorCodes } from "internal/transaction/errors";
+          import {
+            convertTransactionRequestSchema,
+            createTransactionRequestSchema,
+            updateTransactionRequestSchema,
+            validateTransactionForm,
+          } from "internal/transaction/schema";''')
+          marker = '''  it("未提交消费者时保持 undefined 交由默认消费者逻辑处理", () => {'''
+          file = Path(path)
+          text = file.read_text()
+          if text.count(marker) != 1:
+              raise SystemExit(f"{path}: schema marker mismatch")
+          new_test = '''  it("JSON 转账创建、更新和类型转换请求都保留消费者", () => {
+            const transferRequest = {
+              accountId,
+              consumerUserIds: [consumerA, consumerB],
+              ledgerId: "00000000-0000-4000-8000-000000000099",
+              note: null,
+              transactionAt: "2026-09-08T03:30:00.000Z",
+              transferAmount: 1200,
+              transferTargetAccountId:
+                "00000000-0000-4000-8000-000000000042",
+              type: "transfer" as const,
+            };
+
+            expect(createTransactionRequestSchema.parse(transferRequest)).toMatchObject({
+              consumerUserIds: [consumerA, consumerB],
+            });
+            expect(updateTransactionRequestSchema.parse(transferRequest)).toMatchObject({
+              consumerUserIds: [consumerA, consumerB],
+            });
+            expect(
+              convertTransactionRequestSchema.parse({
+                accountId: transferRequest.accountId,
+                consumerUserIds: transferRequest.consumerUserIds,
+                ledgerId: transferRequest.ledgerId,
+                note: transferRequest.note,
+                targetType: "transfer",
+                transactionAt: transferRequest.transactionAt,
+                transferAmount: transferRequest.transferAmount,
+                transferTargetAccountId: transferRequest.transferTargetAccountId,
+              }),
+            ).toMatchObject({ consumerUserIds: [consumerA, consumerB] });
+          });
+
+          '''
+          file.write_text(text.replace(marker, new_test + marker, 1))
+          PY
+
+      - name: Format changed files
+        run: |
+          npx --yes prettier@3.8.3 --write \
+            src/internal/transaction/adapter/next/actions.ts \
+            src/internal/transaction/schema.ts \
+            src/internal/transaction/controller/transactionController.ts \
+            src/internal/transaction/service/read/transactionFormService.ts \
+            src/internal/transaction/repository/transactionRepository.ts \
+            src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.tsx \
+            src/internal/transaction/adapter/next/actions.test.ts \
+            src/internal/transaction/controller/transactionController.test.ts \
+            src/internal/transaction/transactionConsumerSchema.test.ts
+
+      - name: Commit fixes and remove helper workflow
+        shell: bash
+        run: |
+          rm .github/workflows/fix-416-self-review.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: 修正消费者提交链路与既有行为回归"
+          git push origin HEAD:feature/416_transaction_consumer
