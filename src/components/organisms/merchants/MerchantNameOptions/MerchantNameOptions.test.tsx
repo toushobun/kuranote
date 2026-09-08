@@ -13,6 +13,7 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { MerchantNameOptions } from "./MerchantNameOptions";
 
@@ -89,14 +90,16 @@ describe("MerchantNameOptions", () => {
     });
 
     render(
-      <ConfirmDialogProvider>
-        <MerchantNameOptions
-          archiveAliasAction={archiveAlias}
-          merchant={merchant}
-          setPreferredAliasAction={setPreferred}
-          variant="rows"
-        />
-      </ConfirmDialogProvider>,
+      <UserThemeProvider storageScope="merchant-name-options-test">
+        <ConfirmDialogProvider>
+          <MerchantNameOptions
+            archiveAliasAction={archiveAlias}
+            merchant={merchant}
+            setPreferredAliasAction={setPreferred}
+            variant="rows"
+          />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
