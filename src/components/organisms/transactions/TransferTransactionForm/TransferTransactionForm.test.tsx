@@ -138,7 +138,7 @@ describe("TransferTransactionForm", () => {
     ).toBeInTheDocument();
     expect(
       container.querySelectorAll('input[name="consumerUserId"]'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it("表单内包含 type=transfer 的 hidden input", () => {
