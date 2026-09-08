@@ -38,9 +38,9 @@ describe("MerchantNameOptions", () => {
       name: "来福是当前展示名",
     });
 
-    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe(
-      "700",
-    );
+    expect(
+      getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight,
+    ).toBe("700");
     expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
     expect(formalName).toHaveAttribute("aria-pressed", "false");
     expect(within(formalName).queryByTestId("StarRoundedIcon")).toBeNull();
@@ -65,9 +65,9 @@ describe("MerchantNameOptions", () => {
       name: "LIFE超市是当前展示名",
     });
 
-    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe(
-      "700",
-    );
+    expect(
+      getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight,
+    ).toBe("700");
     expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
     expect(within(formalName).getByText("当前展示名")).toBeInTheDocument();
     expect(
