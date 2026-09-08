@@ -10,7 +10,7 @@
     "test": "vitest run --exclude \"tests/rsc/**\"",
     "test:rsc": "vitest run tests/rsc",
     "format": "prettier . --write",
-    "format:check": "prettier . --check",
+    "format:check": "prettier . --write && git diff --exit-code",
     "db:security-definer:check": "node scripts/check-security-definer-search-path.mjs",
     "db:security-definer:test": "node --test scripts/check-security-definer-search-path-cases.mjs",
     "db:schema:snapshot:update": "bash scripts/update-schema-snapshot.sh",
@@ -33,7 +33,7 @@
     "next": "16.2.6",
     "pinyin-pro": "^3.28.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react-dom": "^19.2.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
