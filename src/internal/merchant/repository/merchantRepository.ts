@@ -572,7 +572,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to create merchant alias",
           merchantErrorCodes.aliasCreateFailed,
-          "商家别名新增失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasCreateFailed),
           { merchantId: input.merchantId },
           error,
           merchantErrorCodes.aliasCreateFailed,
