@@ -1,7 +1,10 @@
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createMerchantRow } from "@/test/mocks/merchants";
+import {
+  createMerchantAliasRow,
+  createMerchantRow,
+} from "@/test/mocks/merchants";
 
 import { MerchantList } from "./MerchantList";
 
@@ -41,6 +44,46 @@ describe("MerchantList", () => {
       within(container).getByRole("heading", { name: "LIFE超市" }),
     ).toBeInTheDocument();
     expect(within(container).queryByText("还没有商家")).not.toBeInTheDocument();
+  });
+
+  it("只禁用正在切换显示名的商家卡片", () => {
+    const merchantA = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "A别名",
+          id: "alias-a",
+          merchant_id: "merchant-a",
+        }),
+      ],
+      id: "merchant-a",
+      name: "商家A",
+    });
+    const merchantB = createMerchantRow({
+      aliases: [
+        createMerchantAliasRow({
+          alias: "B别名",
+          id: "alias-b",
+          merchant_id: "merchant-b",
+        }),
+      ],
+      id: "merchant-b",
+      name: "商家B",
+    });
+    const { container } = render(
+      <MerchantList
+        {...baseProps}
+        merchants={[merchantA, merchantB]}
+        pendingMerchantIds={new Set([merchantA.id])}
+        setPreferredAliasAction={async () => {}}
+      />,
+    );
+
+    expect(
+      within(container).getByRole("button", { name: "将A别名设为展示名" }),
+    ).toBeDisabled();
+    expect(
+      within(container).getByRole("button", { name: "将B别名设为展示名" }),
+    ).toBeEnabled();
   });
 
   it("搜索无结果时显示搜索空状态且不显示新增入口", () => {
