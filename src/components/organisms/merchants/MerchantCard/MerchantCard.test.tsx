@@ -26,7 +26,7 @@ describe("MerchantCard", () => {
   it("标题固定显示正式名并提供独立编辑页入口", () => {
     const merchant = createMerchantRow({
       aliases: [createMerchantAliasRow({ is_preferred: true })],
-      display_name: "LIFE超市",
+      display_name: "来福",
       note: "常去的超市",
     });
     const { container } = render(
@@ -40,6 +40,9 @@ describe("MerchantCard", () => {
     expect(
       within(container).getByRole("heading", { name: "LIFE超市" }),
     ).toBeInTheDocument();
+    expect(
+      within(container).queryByRole("heading", { name: "来福" }),
+    ).not.toBeInTheDocument();
     expect(
       within(container).queryByText("正式名：LIFE超市"),
     ).not.toBeInTheDocument();
