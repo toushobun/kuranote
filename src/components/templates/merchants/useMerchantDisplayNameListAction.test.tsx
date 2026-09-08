@@ -1,11 +1,4 @@
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MerchantActionState, MerchantStateAction } from "types/merchants";
@@ -26,12 +19,7 @@ function ActionHarness({ action }: { action: MerchantStateAction }) {
         <form action={result.action} key={merchantId}>
           <input name="merchantId" type="hidden" value={merchantId} />
           <input name="aliasId" type="hidden" value={aliasId} />
-          <button
-            disabled={result.pendingMerchantIds.has(merchantId)}
-            type="submit"
-          >
-            切换{merchantId}
-          </button>
+          <button type="submit">切换{merchantId}</button>
         </form>
       ))}
       <span data-testid="feedback">
@@ -42,7 +30,7 @@ function ActionHarness({ action }: { action: MerchantStateAction }) {
 }
 
 describe("useMerchantDisplayNameListAction", () => {
-  it("只锁定正在提交的商家并允许其他商家并发切换", async () => {
+  it("阻止同商家重复请求、允许跨商家并发且只采用最新操作反馈", async () => {
     const resolvers = new Map<string, (state: MerchantActionState) => void>();
     const action = vi.fn<MerchantStateAction>(
       async (_previousState, formData) =>
@@ -57,28 +45,23 @@ describe("useMerchantDisplayNameListAction", () => {
 
     fireEvent.click(merchantA);
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
-    expect(merchantA).toBeDisabled();
-    expect(merchantB).toBeEnabled();
+
+    fireEvent.click(merchantA);
+    expect(action).toHaveBeenCalledTimes(1);
 
     fireEvent.click(merchantB);
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
-    expect(merchantA).toBeDisabled();
-    expect(merchantB).toBeDisabled();
-
-    fireEvent.click(merchantA);
-    expect(action).toHaveBeenCalledTimes(2);
 
     await act(async () => {
       resolvers.get("merchant-a")?.({ success: "A 成功" });
     });
-    await waitFor(() => expect(merchantA).toBeEnabled());
-    expect(merchantB).toBeDisabled();
     expect(screen.getByTestId("feedback")).toHaveTextContent("");
 
     await act(async () => {
       resolvers.get("merchant-b")?.({ success: "B 成功" });
     });
-    await waitFor(() => expect(merchantB).toBeEnabled());
-    expect(screen.getByTestId("feedback")).toHaveTextContent("B 成功");
+    await waitFor(() =>
+      expect(screen.getByTestId("feedback")).toHaveTextContent("B 成功"),
+    );
   });
 });
