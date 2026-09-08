@@ -1,6 +1,9 @@
 "use client";
 
+import { useTheme } from "@mui/material/styles";
+
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { MerchantActionState } from "types/merchants";
 
 export function MerchantFailureFeedback({
@@ -10,5 +13,14 @@ export function MerchantFailureFeedback({
   state: MerchantActionState;
   title: string;
 }) {
-  return <ActionFailureFeedback aboveModal state={state} title={title} />;
+  const theme = useTheme();
+
+  return (
+    <ActionFailureFeedback
+      aboveModal
+      bottomOffset={`calc(${bottomNavigationLayout.shellPaddingBottom} + ${theme.spacing(1)})`}
+      state={state}
+      title={title}
+    />
+  );
 }
