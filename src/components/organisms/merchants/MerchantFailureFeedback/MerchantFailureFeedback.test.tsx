@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   cleanup,
   fireEvent,
@@ -8,6 +11,14 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MerchantFailureFeedback } from "./MerchantFailureFeedback";
+
+const componentSource = readFileSync(
+  join(
+    process.cwd(),
+    "src/components/organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback.tsx",
+  ),
+  "utf8",
+);
 
 afterEach(cleanup);
 
@@ -46,5 +57,14 @@ describe("MerchantFailureFeedback", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("保存失败。");
+  });
+
+  it("失败提示使用与成功提示一致的底部偏移", () => {
+    expect(componentSource).toContain(
+      'import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";',
+    );
+    expect(componentSource).toContain(
+      "bottomOffset={`calc(${bottomNavigationLayout.shellPaddingBottom} + ${theme.spacing(1)})`}",
+    );
   });
 });
