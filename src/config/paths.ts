@@ -36,6 +36,7 @@ export const accountResultValues = {
 } as const;
 
 export const merchantResultValues = {
+  archived: "archived",
   created: "created",
   updated: "updated",
 } as const;

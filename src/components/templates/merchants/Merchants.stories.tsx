@@ -134,3 +134,8 @@ export const SaveSuccess: Story = {
   name: "编辑保存成功反馈",
   args: { saveResult: "updated" },
 };
+
+export const ArchiveSuccess: Story = {
+  name: "归档成功反馈",
+  args: { saveResult: "archived" },
+};

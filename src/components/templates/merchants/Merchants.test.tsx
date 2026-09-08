@@ -53,9 +53,13 @@ const baseProps = {
 };
 
 describe("MerchantsTemplate", () => {
-  it.each(["created", "updated"] as const)(
-    "保存后返回列表显示保存成功，关闭时清除结果参数并保留筛选：%s",
-    async (result) => {
+  it.each([
+    ["created", "保存成功"],
+    ["updated", "保存成功"],
+    ["archived", "归档成功"],
+  ] as const)(
+    "操作后返回列表显示对应成功提示，关闭时清除结果参数并保留筛选：%s",
+    async (result, title) => {
       window.history.replaceState(
         null,
         "",
@@ -65,7 +69,7 @@ describe("MerchantsTemplate", () => {
         <MerchantsTemplate {...baseProps} saveResult={result} />,
       );
 
-      expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+      expect(screen.getByRole("status")).toHaveTextContent(title);
       fireEvent.click(screen.getByRole("button", { name: "关闭" }));
       expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
         scroll: false,

@@ -13,6 +13,7 @@ export const merchantText = {
   archiveAliasSuccess: "删除成功",
   archiveDescription: "归档后不会出现在新的记账选项中，既有记录仍会保留。",
   archiveErrorTitle: "商家归档失败",
+  archiveSuccess: "归档成功",
   categoryArchiveErrorTitle: "分类归档失败",
   categoryCreateErrorTitle: "分类新增失败",
   categoryFilterAriaLabel: "商家分类筛选",
