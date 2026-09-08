@@ -4594,12 +4594,20 @@ begin
     end if;
 
     update public.merchant_alias
-    set is_preferred = (p_alias_id is not null and id = p_alias_id),
+    set is_preferred = false,
         updated_by = auth.uid()
     where merchant_id = p_merchant_id
       and is_archived = false
-      and is_preferred is distinct from
-          (p_alias_id is not null and id = p_alias_id);
+      and is_preferred = true;
+
+    if p_alias_id is not null then
+        update public.merchant_alias
+        set is_preferred = true,
+            updated_by = auth.uid()
+        where id = p_alias_id
+          and merchant_id = p_merchant_id
+          and is_archived = false;
+    end if;
 
     return true;
 end;

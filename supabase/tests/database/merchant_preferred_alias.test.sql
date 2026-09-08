@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(6);
+select plan(12);
 
 select has_column(
     'public',
@@ -47,12 +47,22 @@ values (
 insert into public.merchant_alias (
     id, merchant_id, alias, is_preferred, sort_order, created_by, updated_by
 )
-values (
+values
+(
     '64400000-0000-4000-8000-000000000002',
     '64400000-0000-4000-8000-000000000001',
-    '首选展示名',
+    '首选展示名A',
     true,
     0,
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+),
+(
+    '64400000-0000-4000-8000-000000000003',
+    '64400000-0000-4000-8000-000000000001',
+    '首选展示名B',
+    false,
+    1,
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
 );
@@ -83,6 +93,75 @@ select is(
     ),
     false,
     '选择正式名后会清除别名的首选标记'
+);
+
+select lives_ok(
+    $$
+        select public.set_merchant_preferred_alias(
+            '00000000-0000-4000-8000-000000000032',
+            '64400000-0000-4000-8000-000000000001',
+            '64400000-0000-4000-8000-000000000002'
+        )
+    $$,
+    '切换到别名A时不会触发唯一索引冲突'
+);
+
+select is(
+    (
+        select count(*)
+        from public.merchant_alias
+        where merchant_id = '64400000-0000-4000-8000-000000000001'
+          and is_preferred = true
+          and is_archived = false
+    ),
+    1::bigint,
+    '切换到别名A后同一商家只有一个首选别名'
+);
+
+select lives_ok(
+    $$
+        select public.set_merchant_preferred_alias(
+            '00000000-0000-4000-8000-000000000032',
+            '64400000-0000-4000-8000-000000000001',
+            '64400000-0000-4000-8000-000000000003'
+        )
+    $$,
+    '从别名A切换到别名B时不会触发唯一索引冲突'
+);
+
+select is(
+    (
+        select count(*)
+        from public.merchant_alias
+        where merchant_id = '64400000-0000-4000-8000-000000000001'
+          and is_preferred = true
+          and is_archived = false
+    ),
+    1::bigint,
+    '切换到别名B后同一商家只有一个首选别名'
+);
+
+select lives_ok(
+    $$
+        select public.set_merchant_preferred_alias(
+            '00000000-0000-4000-8000-000000000032',
+            '64400000-0000-4000-8000-000000000001',
+            '64400000-0000-4000-8000-000000000002'
+        )
+    $$,
+    '从别名B切回别名A时不会触发唯一索引冲突'
+);
+
+select is(
+    (
+        select count(*)
+        from public.merchant_alias
+        where merchant_id = '64400000-0000-4000-8000-000000000001'
+          and is_preferred = true
+          and is_archived = false
+    ),
+    1::bigint,
+    '切回别名A后同一商家只有一个首选别名'
 );
 
 reset role;
