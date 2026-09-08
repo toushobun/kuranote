@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(17);
 
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by
@@ -151,6 +151,37 @@ select is((select array_agg(c.user_id) from public.transaction_consumer c where 
     array['00000000-0000-4000-8000-000000000031'::uuid],
     label || '消费者归属正确，显式指定=' || explicit_consumers)
 from created_consumer_records r;
+
+-- 使用真实请求角色检查表权限与 RLS，不能只在 postgres 角色下验证。
+select ok(has_table_privilege('authenticated', 'public.transaction_consumer', 'SELECT'),
+    'authenticated 具备消费者表读取权限');
+select ok(not has_table_privilege('anon', 'public.transaction_consumer', 'SELECT'),
+    '不向匿名用户开放消费者表读取权限');
+set local role authenticated;
+select is((select count(*) from public.transaction_consumer
+    where ledger_id = '71600000-0000-4000-8000-000000000001'), 4::bigint,
+    'active 成员使用 authenticated 角色可以读取消费者');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000034', true);
+select is((select count(*) from public.transaction_consumer
+    where ledger_id = '71600000-0000-4000-8000-000000000001'), 0::bigint,
+    '其他账本用户使用 authenticated 角色不能读取消费者');
+reset role;
+insert into public.ledger_member (
+    id, ledger_id, user_id, role, status, joined_at, removed_at, removed_by, created_by, updated_by
+) values (
+    '71600000-0000-4000-8000-000000000009',
+    '71600000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000034', 'member', 'removed', now(), now(),
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+set local role authenticated;
+select is((select count(*) from public.transaction_consumer
+    where ledger_id = '71600000-0000-4000-8000-000000000001'), 0::bigint,
+    '已退出成员使用 authenticated 角色不能读取消费者');
+reset role;
 
 select * from finish();
 rollback;

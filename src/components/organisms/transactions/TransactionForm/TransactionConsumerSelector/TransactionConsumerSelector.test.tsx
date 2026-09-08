@@ -41,13 +41,13 @@ describe("TransactionConsumerSelector", () => {
       screen.getByRole("button", { name: "+ 指定消费者" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "消费者" })).toBeNull();
-    expect(container.querySelector('input[name="consumerUserId"]')).toHaveValue(
-      recorderId,
-    );
+    expect(
+      new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+    ).toEqual([]);
   });
 
-  it("点击入口后展开多选消费者输入", () => {
-    renderSelector();
+  it("点击入口后展开多选消费者输入并显式提交选择", () => {
+    const { container } = renderSelector();
 
     fireEvent.click(screen.getByRole("button", { name: "+ 指定消费者" }));
 
@@ -55,6 +55,17 @@ describe("TransactionConsumerSelector", () => {
       screen.getByRole("combobox", { name: "消费者" }),
     ).toBeInTheDocument();
     expect(screen.getByText("淞文")).toBeInTheDocument();
+    expect(
+      new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+    ).toEqual([recorderId]);
+  });
+
+  it("编辑页默认消费者折叠时不提交字段，保留现有消费者", () => {
+    const { container } = renderSelector([recorderId]);
+    expect(screen.queryByRole("combobox", { name: "消费者" })).toBeNull();
+    expect(
+      new FormData(container.querySelector("form")!).getAll("consumerUserId"),
+    ).toEqual([]);
   });
 
   it("编辑数据明确没有消费者时按非默认状态直接展开", () => {

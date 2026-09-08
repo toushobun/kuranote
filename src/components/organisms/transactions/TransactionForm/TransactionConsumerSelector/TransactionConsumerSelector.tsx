@@ -53,14 +53,15 @@ export function TransactionConsumerSelector() {
 
   return (
     <Box sx={{ px: 0.25 }}>
-      {(selectedIds.length > 0 ? selectedIds : [""]).map((userId) => (
-        <input
-          key={userId}
-          name="consumerUserId"
-          type="hidden"
-          value={userId}
-        />
-      ))}
+      {expanded &&
+        (selectedIds.length > 0 ? selectedIds : [""]).map((userId) => (
+          <input
+            key={userId}
+            name="consumerUserId"
+            type="hidden"
+            value={userId}
+          />
+        ))}
 
       {expanded ? (
         <Autocomplete
