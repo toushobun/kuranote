@@ -1,10 +1,18 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { MerchantDisplayNameEditor } from "./MerchantDisplayNameEditor";
 
@@ -107,7 +115,7 @@ describe("MerchantDisplayNameEditor", () => {
   });
 });
 
-it("点击名称文字切换，删除按钮不触发切换，等待时禁止操作", () => {
+it("点击名称文字切换，删除需确认且不触发切换，等待时禁止操作", async () => {
   const select = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
   const archive = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
   const props = {
@@ -116,15 +124,32 @@ it("点击名称文字切换，删除按钮不触发切换，等待时禁止操�
     archiveAliasAction: archive,
     createAliasAction: async () => {},
   };
-  const { rerender } = render(<MerchantDisplayNameEditor {...props} />);
+  const renderEditor = (pending = false) => (
+    <UserThemeProvider storageScope="merchant-display-name-editor-test">
+      <ConfirmDialogProvider>
+        <MerchantDisplayNameEditor {...props} pending={pending} />
+      </ConfirmDialogProvider>
+    </UserThemeProvider>
+  );
+  const { rerender } = render(renderEditor());
+
   fireEvent.click(screen.getByText("来福"));
   expect(select).toHaveBeenCalledOnce();
   expect(select.mock.calls[0][0].get("aliasId")).toBe("alias-1");
+
   fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
-  expect(archive).toHaveBeenCalledOnce();
+  expect(
+    screen.getByRole("heading", { name: "删除别名？" }),
+  ).toBeInTheDocument();
+  expect(archive).not.toHaveBeenCalled();
+  expect(select).toHaveBeenCalledOnce();
+
+  fireEvent.click(screen.getByRole("button", { name: "删除" }));
+  await waitFor(() => expect(archive).toHaveBeenCalledOnce());
   expect(select).toHaveBeenCalledOnce();
   expect(screen.queryByTestId("StarBorderRoundedIcon")).toBeNull();
-  rerender(<MerchantDisplayNameEditor {...props} pending />);
+
+  rerender(renderEditor(true));
   expect(
     screen.getByRole("button", { name: "将来福设为展示名" }),
   ).toBeDisabled();
