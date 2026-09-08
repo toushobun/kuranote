@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +12,7 @@ import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 
 import { MerchantNameOptions } from "./MerchantNameOptions";
 
@@ -75,7 +77,7 @@ describe("MerchantNameOptions", () => {
     ).toBeInTheDocument();
   });
 
-  it("行模式点击名称切换显示名且删除按钮保持独立", () => {
+  it("行模式点击名称切换显示名且删除别名需要确认", async () => {
     const setPreferred = vi.fn<(formData: FormData) => Promise<void>>(
       async () => {},
     );
@@ -87,12 +89,14 @@ describe("MerchantNameOptions", () => {
     });
 
     render(
-      <MerchantNameOptions
-        archiveAliasAction={archiveAlias}
-        merchant={merchant}
-        setPreferredAliasAction={setPreferred}
-        variant="rows"
-      />,
+      <ConfirmDialogProvider>
+        <MerchantNameOptions
+          archiveAliasAction={archiveAlias}
+          merchant={merchant}
+          setPreferredAliasAction={setPreferred}
+          variant="rows"
+        />
+      </ConfirmDialogProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
@@ -104,7 +108,20 @@ describe("MerchantNameOptions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
 
-    expect(archiveAlias).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole("heading", { name: "删除别名？" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/确认删除别名“来福”/)).toBeInTheDocument();
+    expect(archiveAlias).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(archiveAlias).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+
+    await waitFor(() => expect(archiveAlias).toHaveBeenCalledOnce());
     expect(setPreferred).toHaveBeenCalledOnce();
     const archiveData = archiveAlias.mock.calls[0][0] as FormData;
     expect(archiveData.get("aliasId")).toBe("alias-1");
