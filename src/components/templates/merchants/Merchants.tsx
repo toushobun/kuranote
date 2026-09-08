@@ -336,7 +336,6 @@ export function MerchantsTemplate({
               keyword={keyword}
               ledgerId={ledgerId}
               merchants={merchants}
-              pendingMerchantIds={setPreferred.pendingMerchantIds}
               setPreferredAliasAction={submitPreferredAlias}
               tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
             />
