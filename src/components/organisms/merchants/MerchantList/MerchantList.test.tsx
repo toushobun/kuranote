@@ -1,5 +1,12 @@
-import { cleanup, render, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMerchantAliasRow,
@@ -46,7 +53,15 @@ describe("MerchantList", () => {
     expect(within(container).queryByText("还没有商家")).not.toBeInTheDocument();
   });
 
-  it("只禁用正在切换显示名的商家卡片", () => {
+  it("切换显示名时只禁用当前商家的名称选项", async () => {
+    let finishMerchantA!: () => void;
+    const action = vi.fn((formData: FormData) => {
+      if (formData.get("merchantId") !== "merchant-a") return Promise.resolve();
+
+      return new Promise<void>((resolve) => {
+        finishMerchantA = resolve;
+      });
+    });
     const merchantA = createMerchantRow({
       aliases: [
         createMerchantAliasRow({
@@ -73,17 +88,30 @@ describe("MerchantList", () => {
       <MerchantList
         {...baseProps}
         merchants={[merchantA, merchantB]}
-        pendingMerchantIds={new Set([merchantA.id])}
-        setPreferredAliasAction={async () => {}}
+        setPreferredAliasAction={action}
       />,
     );
+    const merchantAAlias = within(container).getByRole("button", {
+      name: "将A别名设为展示名",
+    });
+    const merchantAFormalName = within(container).getByRole("button", {
+      name: "商家A是当前展示名",
+    });
+    const merchantBAlias = within(container).getByRole("button", {
+      name: "将B别名设为展示名",
+    });
 
-    expect(
-      within(container).getByRole("button", { name: "将A别名设为展示名" }),
-    ).toBeDisabled();
-    expect(
-      within(container).getByRole("button", { name: "将B别名设为展示名" }),
-    ).toBeEnabled();
+    fireEvent.click(merchantAAlias);
+
+    await waitFor(() => expect(merchantAAlias).toBeDisabled());
+    expect(merchantAFormalName).toBeDisabled();
+    expect(merchantBAlias).toBeEnabled();
+    expect(action).toHaveBeenCalledOnce();
+    expect(action.mock.calls[0][0].get("merchantId")).toBe("merchant-a");
+    expect(action.mock.calls[0][0].get("aliasId")).toBe("alias-a");
+
+    await act(async () => finishMerchantA());
+    await waitFor(() => expect(merchantAAlias).toBeEnabled());
   });
 
   it("搜索无结果时显示搜索空状态且不显示新增入口", () => {
