@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 
 import { MerchantNameOptions } from "./MerchantNameOptions";
 
@@ -22,6 +24,13 @@ const meta = {
     merchant,
     setPreferredAliasAction: async () => {},
   },
+  decorators: [
+    (Story) => (
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
+    ),
+  ],
 } satisfies Meta<typeof MerchantNameOptions>;
 
 export default meta;
@@ -36,6 +45,25 @@ export const Rows: Story = {
   args: {
     archiveAliasAction: async () => {},
     variant: "rows",
+  },
+};
+
+export const DeleteConfirmation: Story = {
+  name: "删除别名前确认",
+  args: {
+    archiveAliasAction: async () => {},
+    variant: "rows",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+
+    await userEvent.click(canvas.getByRole("button", { name: "移除别名来福" }));
+
+    await expect(
+      body.getByRole("heading", { name: "删除别名？" }),
+    ).toBeInTheDocument();
+    await expect(body.getByText(/确认删除别名“来福”/)).toBeInTheDocument();
   },
 };
 
