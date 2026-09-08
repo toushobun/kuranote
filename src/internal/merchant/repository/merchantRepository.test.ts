@@ -249,6 +249,30 @@ describe("createSupabaseMerchantRepository", () => {
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it("重复别名使用统一权威文案返回 ConflictError", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { error: { code: "23505", message: "merchant_alias_active_unique" } },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const operation = repository.createAlias({
+      alias: "来福",
+      merchantId,
+      userId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.aliasCreateFailed,
+      message: "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+    });
+    await expect(operation).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it.each([
     {
       details: "merchant_tag_link_invalid",
