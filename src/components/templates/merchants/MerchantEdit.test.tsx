@@ -92,7 +92,9 @@ describe("MerchantEditTemplate", () => {
   });
 
   it("点击整行切换后显示成功提示", async () => {
-    const select = vi.fn(async () => ({ success: "显示名切换成功" }));
+    const select = vi.fn<MerchantStateAction>(async () => ({
+      success: "显示名切换成功",
+    }));
     renderTemplate({ setPreferredMerchantAliasAction: select });
 
     fireEvent.click(
@@ -106,7 +108,9 @@ describe("MerchantEditTemplate", () => {
   });
 
   it("新增别名成功后显示添加成功", async () => {
-    const createAlias = vi.fn(async () => ({ success: "添加成功" }));
+    const createAlias = vi.fn<MerchantStateAction>(async () => ({
+      success: "添加成功",
+    }));
     renderTemplate({ createMerchantAliasAction: createAlias });
 
     fireEvent.change(screen.getByRole("textbox", { name: "别名" }), {
@@ -126,7 +130,9 @@ describe("MerchantEditTemplate", () => {
   });
 
   it("确认删除别名后提交并显示删除成功", async () => {
-    const archiveAlias = vi.fn(async () => ({ success: "删除成功" }));
+    const archiveAlias = vi.fn<MerchantStateAction>(async () => ({
+      success: "删除成功",
+    }));
     renderTemplate({ archiveMerchantAliasAction: archiveAlias });
 
     fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
@@ -147,7 +153,7 @@ describe("MerchantEditTemplate", () => {
   });
 
   it("新增别名失败时继续显示 inline error", async () => {
-    const createAlias = vi.fn(async () => ({
+    const createAlias = vi.fn<MerchantStateAction>(async () => ({
       error: "别名已存在",
       errorKey: "create-alias-failure",
     }));
