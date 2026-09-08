@@ -119,7 +119,9 @@ describe("MerchantEditTemplate", () => {
     );
     expect(createAlias).toHaveBeenCalledOnce();
     const formData = createAlias.mock.calls[0][1] as FormData;
-    expect(formData.get("merchantId")).toBe("merchant-1");
+    expect(formData.get("merchantId")).toBe(
+      "00000000-0000-4000-8000-000000001001",
+    );
     expect(formData.get("alias")).toBe("LIFE");
   });
 
