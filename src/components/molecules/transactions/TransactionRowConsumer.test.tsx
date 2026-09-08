@@ -53,12 +53,12 @@ describe("TransactionRow consumers", () => {
     expect(screen.queryByText("家人")).toBeNull();
   });
 
-  it("show_consumers 为 false 时隐藏消费者", () => {
+  it("show_recorder 为 false 时隐藏消费者", () => {
     render(
       <TransactionRow
         item={createItem({
           consumers: [{ color: "jade", id: "1", name: "淞文" }],
-          show_consumers: false,
+          show_recorder: false,
         })}
         showRecorder
       />,

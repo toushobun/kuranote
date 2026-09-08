@@ -938,7 +938,7 @@ describe("TransactionRow 消费者展示", () => {
   });
   it("单人账本保留消费者数据但不显示昵称", () => {
     render(
-      <TransactionRow item={{ ...item, show_consumers: false }} showRecorder />,
+      <TransactionRow item={{ ...item, show_recorder: false }} showRecorder />,
     );
     expect(screen.queryByText("淞文")).not.toBeInTheDocument();
   });

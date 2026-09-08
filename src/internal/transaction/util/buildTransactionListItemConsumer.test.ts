@@ -78,7 +78,7 @@ describe("buildTransactionListItem consumers", () => {
         { color: "sakura", id: userB, name: "秋爽" },
         { color: "jade", id: userA, name: "淞文" },
       ]);
-      expect(item.show_consumers).toBe(showRecorder);
+      expect(item.show_recorder).toBe(showRecorder);
     },
   );
 

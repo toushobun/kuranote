@@ -39,7 +39,6 @@ export type TransactionListItem = {
   note: string | null;
   recorder_color?: ThemeColorKey | null;
   recorder_name: string | null;
-  show_consumers?: boolean;
   show_recorder?: boolean;
   transaction_at: string;
   type: TransactionType | "transfer";

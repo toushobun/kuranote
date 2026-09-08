@@ -61,7 +61,7 @@ export function TransactionRow({
   const isTransfer = item.type === "transfer";
   const consumers = item.consumers ?? [];
   const shouldShowConsumers =
-    showRecorder && (item.show_consumers ?? true) && consumers.length > 0;
+    showRecorder && (item.show_recorder ?? true) && consumers.length > 0;
   const merchantName = isTransfer
     ? "账户周转"
     : (item.merchant_name ?? "未知商家");

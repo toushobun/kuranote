@@ -96,7 +96,6 @@ export type TransactionRowItem = {
   note?: string | null;
   recorder_color?: ThemeColorKey | null;
   recorder_name?: string | null;
-  show_consumers?: boolean;
   show_recorder?: boolean;
 };
 

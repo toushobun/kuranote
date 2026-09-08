@@ -67,6 +67,6 @@ export const SingleConsumer: Story = {
 export const SingleMemberLedger: Story = {
   name: "单人账本（隐藏消费者）",
   args: {
-    item: { ...item, show_consumers: false },
+    item: { ...item, show_recorder: false },
   },
 };
