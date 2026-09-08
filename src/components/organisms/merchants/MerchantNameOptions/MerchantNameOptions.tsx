@@ -29,23 +29,28 @@ export function MerchantNameOptions({
   const options = [
     {
       id: "",
+      isFormalName: true,
       label: merchant.name,
       selected: !merchant.aliases.some((alias) => alias.is_preferred),
     },
     ...merchant.aliases.map((alias) => ({
       id: alias.id,
+      isFormalName: false,
       label: alias.alias,
       selected: alias.is_preferred,
     })),
   ];
   const isRow = variant === "rows";
+  const optionRadius = isRow
+    ? designTokens.radius.item
+    : designTokens.radius.sm;
 
   return (
     <Stack
       direction={isRow ? "column" : "row"}
       sx={{ flexWrap: "wrap", gap: isRow ? 1 : 0.75 }}
     >
-      {options.map(({ id, label, selected }) => (
+      {options.map(({ id, isFormalName, label, selected }) => (
         <Stack
           key={id}
           direction="row"
@@ -106,9 +111,7 @@ export function MerchantNameOptions({
                   : selected
                     ? "primary.main"
                     : "divider",
-                borderRadius: `${
-                  isRow ? designTokens.radius.item : designTokens.radius.sm
-                }px`,
+                borderRadius: `${optionRadius}px`,
                 color: isRow
                   ? "text.primary"
                   : selected
@@ -124,7 +127,7 @@ export function MerchantNameOptions({
                 width: isRow ? "100%" : "auto",
               }}
             >
-              {!id ? (
+              {isFormalName ? (
                 <Chip
                   color={isRow ? "primary" : undefined}
                   component="span"
