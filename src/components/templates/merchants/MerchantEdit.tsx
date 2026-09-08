@@ -141,13 +141,13 @@ export function MerchantEditTemplate({
         state={archive.state}
         title={merchantText.archiveErrorTitle}
       />
-      <MerchantFailureFeedback
+      <MerchantDisplayNameFeedback
+        errorTitle={merchantText.createAliasErrorTitle}
         state={createAlias.state}
-        title={merchantText.createAliasErrorTitle}
       />
-      <MerchantFailureFeedback
+      <MerchantDisplayNameFeedback
+        errorTitle={merchantText.archiveAliasErrorTitle}
         state={archiveAlias.state}
-        title={merchantText.archiveAliasErrorTitle}
       />
       <MerchantDisplayNameFeedback state={setPreferred.state} />
       {isArchiveConfirmOpen ? (
