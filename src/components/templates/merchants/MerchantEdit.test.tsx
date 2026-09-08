@@ -84,7 +84,7 @@ describe("MerchantEditTemplate", () => {
 it("编辑页点击整行切换后显示成功提示", async () => {
   const select = vi.fn(async () => ({ success: "显示名切换成功" }));
   renderTemplate(select);
-  fireEvent.click(screen.getByText("正式名"));
+  fireEvent.click(screen.getByRole("button", { name: "将LIFE超市设为展示名" }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
   );

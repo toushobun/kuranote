@@ -11,7 +11,7 @@ import { MerchantDisplayNameEditor } from "./MerchantDisplayNameEditor";
 afterEach(cleanup);
 
 describe("MerchantDisplayNameEditor", () => {
-  it("正式名固定展示且首选别名可切回正式名", () => {
+  it("正式名固定展示且加粗，首选别名可切回正式名", () => {
     const setPreferredAliasAction = vi.fn(async () => {});
     render(
       <MerchantDisplayNameEditor
@@ -26,8 +26,10 @@ describe("MerchantDisplayNameEditor", () => {
       />,
     );
 
-    expect(screen.getByText("正式名")).toBeInTheDocument();
-    expect(screen.getByText("正式商家名")).toBeInTheDocument();
+    expect(getComputedStyle(screen.getByText("正式商家名")).fontWeight).toBe(
+      "700",
+    );
+    expect(screen.queryByText("正式名")).not.toBeInTheDocument();
     expect(screen.getByText("当前展示名")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "移除别名正式商家名" }),
@@ -81,7 +83,7 @@ describe("MerchantDisplayNameEditor", () => {
     ).toBeInTheDocument();
   });
 
-  it("没有首选别名时正式名同时显示名称类型与当前展示名", () => {
+  it("没有首选别名时正式名保持加粗并显示当前展示名", () => {
     render(
       <MerchantDisplayNameEditor
         archiveAliasAction={vi.fn(async () => {})}
@@ -91,7 +93,10 @@ describe("MerchantDisplayNameEditor", () => {
       />,
     );
 
-    expect(screen.getByText("正式名")).toBeInTheDocument();
+    expect(getComputedStyle(screen.getByText("正式商家名")).fontWeight).toBe(
+      "700",
+    );
+    expect(screen.queryByText("正式名")).not.toBeInTheDocument();
     expect(screen.getByText("当前展示名")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "正式商家名是当前展示名" }),

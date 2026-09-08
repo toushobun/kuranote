@@ -86,7 +86,7 @@ describe("MerchantCard", () => {
     expect(container.innerHTML).not.toContain("/merchants/icon?");
   });
 
-  it("正式名固定居首并保留身份标签，星标仅跟随首选别名", () => {
+  it("正式名固定居首并加粗，星标仅跟随首选别名", () => {
     const action = vi.fn<(formData: FormData) => Promise<void>>(async () => {});
     const { container } = render(
       <MerchantCard
@@ -108,7 +108,10 @@ describe("MerchantCard", () => {
       "来福是当前展示名",
       "将LIFE设为展示名",
     ]);
-    expect(within(options[0]).getByText("正式名")).toBeInTheDocument();
+    expect(
+      getComputedStyle(within(options[0]).getByText("LIFE超市")).fontWeight,
+    ).toBe("700");
+    expect(within(options[0]).queryByText("正式名")).not.toBeInTheDocument();
     expect(options[0]).toHaveAttribute("aria-pressed", "false");
     expect(options[0].querySelector("svg")).toBeNull();
     expect(options[1]).toHaveAttribute("aria-pressed", "true");
@@ -122,7 +125,7 @@ describe("MerchantCard", () => {
     expect(data.get("aliasId")).toBe("");
   });
 
-  it("未选别名时正式名同时带身份标签、星标和选中背景", () => {
+  it("未选别名时正式名保持加粗并带星标和选中背景", () => {
     const { container } = render(
       <ThemeProvider theme={theme}>
         <MerchantCard
@@ -136,7 +139,10 @@ describe("MerchantCard", () => {
     const option = within(container).getByRole("button", {
       name: "LIFE超市是当前展示名",
     });
-    expect(within(option).getByText("正式名")).toBeInTheDocument();
+    expect(
+      getComputedStyle(within(option).getByText("LIFE超市")).fontWeight,
+    ).toBe("700");
+    expect(within(option).queryByText("正式名")).not.toBeInTheDocument();
     expect(within(option).getByTestId("StarRoundedIcon")).toBeInTheDocument();
     expect(option).toHaveAttribute("aria-pressed", "true");
     expect(getComputedStyle(option).backgroundColor).not.toBe("transparent");
