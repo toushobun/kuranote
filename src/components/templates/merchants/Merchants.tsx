@@ -87,6 +87,13 @@ export function MerchantsTemplate({
     clearResultParam();
   }
 
+  function submitPreferredAlias(formData: FormData) {
+    if (isSaveSuccessOpen) {
+      closeSaveSuccessDialog();
+    }
+    setPreferred.action(formData);
+  }
+
   const [tagManagementView, setTagManagementView] =
     useState<TagManagementView>("filter");
   const [hasOpenedTagManagement, setHasOpenedTagManagement] = useState(false);
@@ -331,7 +338,7 @@ export function MerchantsTemplate({
               ledgerId={ledgerId}
               merchants={merchants}
               pending={setPreferred.pending}
-              setPreferredAliasAction={setPreferred.action}
+              setPreferredAliasAction={submitPreferredAlias}
               tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
             />
           </Box>
