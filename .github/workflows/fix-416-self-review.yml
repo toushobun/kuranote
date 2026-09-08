@@ -23,287 +23,167 @@ jobs:
         run: |
           python <<'PY'
           from pathlib import Path
+          import re
 
-          def replace_once(path: str, old: str, new: str) -> None:
+          def sub_once(path: str, pattern: str, replacement: str) -> None:
               file = Path(path)
               text = file.read_text()
-              count = text.count(old)
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
               if count != 1:
-                  raise SystemExit(f"{path}: expected one match, got {count}\n--- OLD ---\n{old}")
-              file.write_text(text.replace(old, new, 1))
+                  raise SystemExit(f"{path}: expected one regex match, got {count}: {pattern}")
+              file.write_text(updated)
 
-          # Server Actions：转账新增、编辑、类型转换均透传消费者。
+          def insert_before_once(path: str, marker: str, content: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if text.count(marker) != 1:
+                  raise SystemExit(f"{path}: marker mismatch: {marker}")
+              file.write_text(text.replace(marker, content + marker, 1))
+
+          # Server Actions：转账新增、编辑、双向类型转换均透传消费者。
           path = "src/internal/transaction/adapter/next/actions.ts"
-          replace_once(path, '''      await service.createTransfer({
-              accountId: values.accountId,
-              ledgerId: currentLedger.id,''', '''      await service.createTransfer({
-              accountId: values.accountId,
-              consumerUserIds: values.consumerUserIds,
-              ledgerId: currentLedger.id,''')
-          replace_once(path, '''    ).updateTransfer({
-              accountId: values.accountId,
-              ledgerId: currentLedger.id,''', '''    ).updateTransfer({
-              accountId: values.accountId,
-              consumerUserIds: values.consumerUserIds,
-              ledgerId: currentLedger.id,''')
-          replace_once(path, '''      await service.convert({
-              accountId: values.accountId,
-              ledgerId: currentLedger.id,
-              note: values.note,
-              targetType: "transfer",''', '''      await service.convert({
-              accountId: values.accountId,
-              consumerUserIds: values.consumerUserIds,
-              ledgerId: currentLedger.id,
-              note: values.note,
-              targetType: "transfer",''')
-          replace_once(path, '''      await service.convert({
-              accountId: values.accountId,
-              items: values.items,
-              ledgerId: currentLedger.id,''', '''      await service.convert({
-              accountId: values.accountId,
-              consumerUserIds: values.consumerUserIds,
-              items: values.items,
-              ledgerId: currentLedger.id,''')
+          sub_once(
+              path,
+              r'(await service\.createTransfer\(\{\n)(\s+)(accountId: values\.accountId,\n)(\s+ledgerId: currentLedger\.id,)',
+              r'\1\2\3\2consumerUserIds: values.consumerUserIds,\n\4',
+          )
+          sub_once(
+              path,
+              r'(\)\.updateTransfer\(\{\n)(\s+)(accountId: values\.accountId,\n)(\s+ledgerId: currentLedger\.id,)',
+              r'\1\2\3\2consumerUserIds: values.consumerUserIds,\n\4',
+          )
+          sub_once(
+              path,
+              r'(await service\.convert\(\{\n)(\s+)(accountId: values\.accountId,\n)(\s+ledgerId: currentLedger\.id,\n\s+note: values\.note,\n\s+targetType: "transfer",)',
+              r'\1\2\3\2consumerUserIds: values.consumerUserIds,\n\4',
+          )
+          sub_once(
+              path,
+              r'(await service\.convert\(\{\n)(\s+)(accountId: values\.accountId,\n)(\s+items: values\.items,)',
+              r'\1\2\3\2consumerUserIds: values.consumerUserIds,\n\4',
+          )
 
-          # JSON API schema：transfer 与 normal 一样接受消费者。
+          # JSON API：transfer 与 normal 一样接受消费者。
           path = "src/internal/transaction/schema.ts"
-          replace_once(path, '''const transferTransactionRequestSchema = z.object({
-            accountId: z.string().uuid(),
-            ledgerId: z.string().uuid(),''', '''const transferTransactionRequestSchema = z.object({
-            accountId: z.string().uuid(),
-            consumerUserIds: z.array(z.string().uuid()).min(1).optional(),
-            ledgerId: z.string().uuid(),''')
+          sub_once(
+              path,
+              r'(const transferTransactionRequestSchema = z\.object\(\{\n)(\s+)(accountId: z\.string\(\)\.uuid\(\),\n)',
+              r'\1\2\3\2consumerUserIds: z.array(z.string().uuid()).min(1).optional(),\n',
+          )
 
           # Controller：手工映射 transfer 参数时保留消费者。
           path = "src/internal/transaction/controller/transactionController.ts"
-          replace_once(path, '''    await service.createTransfer({
-              accountId: input.accountId,
-              ledgerId: input.ledgerId,''', '''    await service.createTransfer({
-              accountId: input.accountId,
-              consumerUserIds: input.consumerUserIds,
-              ledgerId: input.ledgerId,''')
-          replace_once(path, '''    await service.updateTransfer({
-              accountId: input.accountId,
-              ledgerId: input.ledgerId,''', '''    await service.updateTransfer({
-              accountId: input.accountId,
-              consumerUserIds: input.consumerUserIds,
-              ledgerId: input.ledgerId,''')
+          sub_once(
+              path,
+              r'(await service\.createTransfer\(\{\n)(\s+)(accountId: input\.accountId,\n)',
+              r'\1\2\3\2consumerUserIds: input.consumerUserIds,\n',
+          )
+          sub_once(
+              path,
+              r'(await service\.updateTransfer\(\{\n)(\s+)(accountId: input\.accountId,\n)',
+              r'\1\2\3\2consumerUserIds: input.consumerUserIds,\n',
+          )
 
           # 恢复 #416 之外的既有展示类型与金额格式化行为。
           path = "src/internal/transaction/service/read/transactionFormService.ts"
-          replace_once(path, '''  if (incomeTotal > expenseTotal) return "income";
-            return "expense";''', '''  if (incomeTotal > expenseTotal) return "income";
-            if (expenseTotal > incomeTotal) return "expense";
-            return "income";''')
-          replace_once(path, '''export function formatEditableAmount(amount: string, currency?: string) {
-            const numericAmount = Number(amount);
-            if (!Number.isFinite(numericAmount)) return amount;
-            return String(
-              Number(numericAmount.toFixed(getAmountDecimalPlaces(currency))),
-            );
-          }''', '''export function formatEditableAmount(amount: string, currency?: string) {
-            const value = Number(amount);
-            if (!Number.isFinite(value)) return amount;
-            return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
-          }''')
+          sub_once(
+              path,
+              r'  if \(incomeTotal > expenseTotal\) return "income";\n  return "expense";',
+              '  if (incomeTotal > expenseTotal) return "income";\n  if (expenseTotal > incomeTotal) return "expense";\n  return "income";',
+          )
+          sub_once(
+              path,
+              r'export function formatEditableAmount\(amount: string, currency\?: string\) \{\n  const numericAmount = Number\(amount\);\n  if \(!Number\.isFinite\(numericAmount\)\) return amount;\n  return String\(\n    Number\(numericAmount\.toFixed\(getAmountDecimalPlaces\(currency\)\)\),\n  \);\n\}',
+              'export function formatEditableAmount(amount: string, currency?: string) {\n  const value = Number(amount);\n  if (!Number.isFinite(value)) return amount;\n  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));\n}',
+          )
 
-          # 记录人摘要仍需支持历史失活用户；active 过滤只用于可选择消费者列表。
+          # 历史记录人的摘要不能因 app_user 失活而消失；active 过滤只用于候选消费者。
           path = "src/internal/transaction/repository/transactionRepository.ts"
-          replace_once(path, '''        supabase
-                  .from("app_user")
-                  .select("id, display_name")
-                  .in("id", uniqueUserIds)
-                  .eq("status", "active"),''', '''        supabase
-                  .from("app_user")
-                  .select("id, display_name")
-                  .in("id", uniqueUserIds),''')
-          replace_once(path, '''        logger.error("[transaction] failed to load transaction members", {
-                  ledgerId,
-                  userDatabaseCode: userResult.error?.code,
-                  settingDatabaseCode: settingResult.error?.code,
-                });
-                throw toRepositoryError(
-                  "transaction_members_load_failed",
-                  "交易成员信息加载失败，请稍后重试。",
-                );''', '''        logger.error("[transaction] failed to load transaction recorders", {
-                  ledgerId,
-                  userDatabaseCode: userResult.error?.code,
-                  settingDatabaseCode: settingResult.error?.code,
-                });
-                throw toRepositoryError(
-                  "transaction_recorders_load_failed",
-                  "交易记录人信息加载失败，请稍后重试。",
-                );''')
+          sub_once(
+              path,
+              r'(\.from\("app_user"\)\n\s+\.select\("id, display_name"\)\n\s+\.in\("id", uniqueUserIds\))\n\s+\.eq\("status", "active"\),',
+              r'\1,',
+          )
+          sub_once(
+              path,
+              r'logger\.error\("\[transaction\] failed to load transaction members", \{\n(\s+ledgerId,\n\s+userDatabaseCode: userResult\.error\?\.code,\n\s+settingDatabaseCode: settingResult\.error\?\.code,\n\s+\});\n\s+throw toRepositoryError\(\n)\s+"transaction_members_load_failed",\n\s+"交易成员信息加载失败，请稍后重试。",',
+              r'logger.error("[transaction] failed to load transaction recorders", {\n\1        "transaction_recorders_load_failed",\n        "交易记录人信息加载失败，请稍后重试。",',
+          )
 
-          # 折叠入口复用“+ 添加明细”的视觉 token。
+          # 折叠入口对齐现有“+ 添加明细”的边框、圆角、字号与高度。
           path = "src/components/organisms/transactions/TransactionForm/TransactionConsumerSelector.tsx"
-          replace_once(path, '''import TextField from "@mui/material/TextField";
+          sub_once(
+              path,
+              r'(import \{ useEditTransactionDirty \} from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";\n)',
+              r'\1import { designTokens } from "theme/theme";\n',
+          )
+          sub_once(
+              path,
+              r'(\} from "theme/themeColorTokens";\n)',
+              r'\1import { userThemeCardBorderSx } from "theme/userThemeCardSx";\n',
+          )
+          sub_once(
+              path,
+              r'sx=\{\{\n\s+color: "var\(--user-theme-action-text\)",\n\s+fontSize: "0\.9rem",\n\s+fontWeight: 800,\n\s+minHeight: 38,\n\s+px: 1\.25,\n\s+\}\}',
+              'sx={{\n            ...userThemeCardBorderSx,\n            borderRadius: `${designTokens.radius.lg}px`,\n            color: "var(--user-theme-action-text)",\n            fontSize: "0.9rem",\n            fontWeight: 800,\n            minHeight: 38,\n            width: "100%",\n          }}',
+          )
 
-          import { useEditTransactionDirty }''', '''import TextField from "@mui/material/TextField";
-
-          import { useEditTransactionDirty }''')
-          replace_once(path, '''import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-          import {
-            getStableFallbackThemeColorKey,''', '''import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-          import { designTokens } from "theme/theme";
-          import {
-            getStableFallbackThemeColorKey,''')
-          replace_once(path, '''} from "theme/themeColorTokens";
-          import type { TransactionConsumerOption }''', '''} from "theme/themeColorTokens";
-          import { userThemeCardBorderSx } from "theme/userThemeCardSx";
-          import type { TransactionConsumerOption }''')
-          replace_once(path, '''          sx={{
-                    color: "var(--user-theme-action-text)",
-                    fontSize: "0.9rem",
-                    fontWeight: 800,
-                    minHeight: 38,
-                    px: 1.25,
-                  }}''', '''          sx={{
-                    ...userThemeCardBorderSx,
-                    borderRadius: `${designTokens.radius.lg}px`,
-                    color: "var(--user-theme-action-text)",
-                    fontSize: "0.9rem",
-                    fontWeight: 800,
-                    minHeight: 38,
-                    width: "100%",
-                  }}''')
-
-          # Action 回归：转账新增/编辑/双向类型转换都要保留消费者。
+          # Action 回归：transfer 创建、更新、双向类型转换都保留消费者。
           path = "src/internal/transaction/adapter/next/actions.test.ts"
-          replace_once(path, '''  const merchantId = "00000000-0000-4000-8000-000000001001";
-            function createNormalFormData({''', '''  const merchantId = "00000000-0000-4000-8000-000000001001";
-            const consumerA = "00000000-0000-4000-8000-000000000031";
-            const consumerB = "00000000-0000-4000-8000-000000000033";
-            function createNormalFormData({''')
-          replace_once(path, '''    formData.set("note", "转账备注");
-            return formData;''', '''    formData.set("note", "转账备注");
-            formData.append("consumerUserId", consumerA);
-            formData.append("consumerUserId", consumerB);
-            return formData;''')
-          replace_once(path, '''    expect(mocks.createTransfer).toHaveBeenCalledWith({
-              accountId,
-              ledgerId,''', '''    expect(mocks.createTransfer).toHaveBeenCalledWith({
-              accountId,
-              consumerUserIds: [consumerA, consumerB],
-              ledgerId,''')
-          replace_once(path, '''      expect.objectContaining({
-                accountId,
-                ledgerId,
-                targetType: "transfer",''', '''      expect.objectContaining({
-                accountId,
-                consumerUserIds: [consumerA, consumerB],
-                ledgerId,
-                targetType: "transfer",''')
-          marker = '''  it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {'''
-          file = Path(path)
-          text = file.read_text()
-          if text.count(marker) != 1:
-              raise SystemExit(f"{path}: transfer update marker mismatch")
-          new_test = '''  it("转账转换为普通交易时保留消费者", async () => {
-            const formData = createNormalFormData({ sourceType: "transfer" });
-            formData.append("consumerUserId", consumerA);
-            formData.append("consumerUserId", consumerB);
-            await expect(saveEditTransaction({}, formData)).rejects.toThrow(
-              "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
-            );
-            expect(mocks.convert).toHaveBeenCalledWith(
-              expect.objectContaining({
-                consumerUserIds: [consumerA, consumerB],
-                targetType: "expense",
-                transactionRecordId,
-              }),
-            );
-          });
-          '''
-          file.write_text(text.replace(marker, new_test + marker, 1))
-          replace_once(path, '''    expect(mocks.updateTransfer).toHaveBeenCalledWith(
-              expect.objectContaining({ ledgerId, transactionRecordId }),
-            );''', '''    expect(mocks.updateTransfer).toHaveBeenCalledWith(
-              expect.objectContaining({
-                consumerUserIds: [consumerA, consumerB],
-                ledgerId,
-                transactionRecordId,
-              }),
-            );''')
+          sub_once(
+              path,
+              r'(  const merchantId = "00000000-0000-4000-8000-000000001001";\n)',
+              r'\1  const consumerA = "00000000-0000-4000-8000-000000000031";\n  const consumerB = "00000000-0000-4000-8000-000000000033";\n',
+          )
+          sub_once(
+              path,
+              r'(    formData\.set\("note", "转账备注"\);\n)(    return formData;)',
+              r'\1    formData.append("consumerUserId", consumerA);\n    formData.append("consumerUserId", consumerB);\n\2',
+          )
+          sub_once(
+              path,
+              r'(expect\(mocks\.createTransfer\)\.toHaveBeenCalledWith\(\{\n\s+accountId,\n)',
+              r'\1      consumerUserIds: [consumerA, consumerB],\n',
+          )
+          sub_once(
+              path,
+              r'(expect\.objectContaining\(\{\n\s+accountId,\n)(\s+ledgerId,\n\s+targetType: "transfer",)',
+              r'\1        consumerUserIds: [consumerA, consumerB],\n\2',
+          )
+          insert_before_once(
+              path,
+              '  it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {',
+              '''  it("转账转换为普通交易时保留消费者", async () => {\n    const formData = createNormalFormData({ sourceType: "transfer" });\n    formData.append("consumerUserId", consumerA);\n    formData.append("consumerUserId", consumerB);\n    await expect(saveEditTransaction({}, formData)).rejects.toThrow(\n      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",\n    );\n    expect(mocks.convert).toHaveBeenCalledWith(\n      expect.objectContaining({\n        consumerUserIds: [consumerA, consumerB],\n        targetType: "expense",\n        transactionRecordId,\n      }),\n    );\n  });\n''',
+          )
+          sub_once(
+              path,
+              r'expect\(mocks\.updateTransfer\)\.toHaveBeenCalledWith\(\n\s+expect\.objectContaining\(\{ ledgerId, transactionRecordId \}\),\n\s+\);',
+              'expect(mocks.updateTransfer).toHaveBeenCalledWith(\n      expect.objectContaining({\n        consumerUserIds: [consumerA, consumerB],\n        ledgerId,\n        transactionRecordId,\n      }),\n    );',
+          )
 
-          # Controller 回归：JSON transfer 创建/更新参数不丢消费者。
+          # Controller 回归：JSON transfer 创建/更新映射不丢消费者。
           path = "src/internal/transaction/controller/transactionController.test.ts"
-          replace_once(path, '''const userId = "00000000-0000-4000-8000-000000000031";
-          const currentLedger = {''', '''const userId = "00000000-0000-4000-8000-000000000031";
-          const consumerUserIds = [
-            "00000000-0000-4000-8000-000000000031",
-            "00000000-0000-4000-8000-000000000033",
-          ];
-          const currentLedger = {''')
-          replace_once(path, '''const transferInput = {
-            accountId,
-            ledgerId,''', '''const transferInput = {
-            accountId,
-            consumerUserIds,
-            ledgerId,''')
-          replace_once(path, '''    expect(service.createTransfer).toHaveBeenCalledWith({
-              accountId,
-              ledgerId,''', '''    expect(service.createTransfer).toHaveBeenCalledWith({
-              accountId,
-              consumerUserIds,
-              ledgerId,''')
-          replace_once(path, '''    expect(service.updateTransfer).toHaveBeenCalledWith({
-              accountId,
-              ledgerId,''', '''    expect(service.updateTransfer).toHaveBeenCalledWith({
-              accountId,
-              consumerUserIds,
-              ledgerId,''')
+          sub_once(
+              path,
+              r'(const userId = "00000000-0000-4000-8000-000000000031";\n)',
+              r'\1const consumerUserIds = [\n  "00000000-0000-4000-8000-000000000031",\n  "00000000-0000-4000-8000-000000000033",\n];\n',
+          )
+          sub_once(path, r'(const transferInput = \{\n\s+accountId,\n)', r'\1  consumerUserIds,\n')
+          sub_once(path, r'(expect\(service\.createTransfer\)\.toHaveBeenCalledWith\(\{\n\s+accountId,\n)', r'\1      consumerUserIds,\n')
+          sub_once(path, r'(expect\(service\.updateTransfer\)\.toHaveBeenCalledWith\(\{\n\s+accountId,\n)', r'\1      consumerUserIds,\n')
 
-          # Schema 回归：JSON transfer 的 create/update/convert 都保留消费者字段。
+          # Schema 回归：JSON transfer 的 create/update/convert 均保留消费者。
           path = "src/internal/transaction/transactionConsumerSchema.test.ts"
-          replace_once(path, '''import { transactionErrorCodes } from "internal/transaction/errors";
-          import { validateTransactionForm } from "internal/transaction/schema";''', '''import { transactionErrorCodes } from "internal/transaction/errors";
-          import {
-            convertTransactionRequestSchema,
-            createTransactionRequestSchema,
-            updateTransactionRequestSchema,
-            validateTransactionForm,
-          } from "internal/transaction/schema";''')
-          marker = '''  it("未提交消费者时保持 undefined 交由默认消费者逻辑处理", () => {'''
-          file = Path(path)
-          text = file.read_text()
-          if text.count(marker) != 1:
-              raise SystemExit(f"{path}: schema marker mismatch")
-          new_test = '''  it("JSON 转账创建、更新和类型转换请求都保留消费者", () => {
-            const transferRequest = {
-              accountId,
-              consumerUserIds: [consumerA, consumerB],
-              ledgerId: "00000000-0000-4000-8000-000000000099",
-              note: null,
-              transactionAt: "2026-09-08T03:30:00.000Z",
-              transferAmount: 1200,
-              transferTargetAccountId:
-                "00000000-0000-4000-8000-000000000042",
-              type: "transfer" as const,
-            };
-
-            expect(createTransactionRequestSchema.parse(transferRequest)).toMatchObject({
-              consumerUserIds: [consumerA, consumerB],
-            });
-            expect(updateTransactionRequestSchema.parse(transferRequest)).toMatchObject({
-              consumerUserIds: [consumerA, consumerB],
-            });
-            expect(
-              convertTransactionRequestSchema.parse({
-                accountId: transferRequest.accountId,
-                consumerUserIds: transferRequest.consumerUserIds,
-                ledgerId: transferRequest.ledgerId,
-                note: transferRequest.note,
-                targetType: "transfer",
-                transactionAt: transferRequest.transactionAt,
-                transferAmount: transferRequest.transferAmount,
-                transferTargetAccountId: transferRequest.transferTargetAccountId,
-              }),
-            ).toMatchObject({ consumerUserIds: [consumerA, consumerB] });
-          });
-
-          '''
-          file.write_text(text.replace(marker, new_test + marker, 1))
+          sub_once(
+              path,
+              r'import \{ validateTransactionForm \} from "internal/transaction/schema";',
+              'import {\n  convertTransactionRequestSchema,\n  createTransactionRequestSchema,\n  updateTransactionRequestSchema,\n  validateTransactionForm,\n} from "internal/transaction/schema";',
+          )
+          insert_before_once(
+              path,
+              '  it("未提交消费者时保持 undefined 交由默认消费者逻辑处理", () => {',
+              '''  it("JSON 转账创建、更新和类型转换请求都保留消费者", () => {\n    const transferRequest = {\n      accountId,\n      consumerUserIds: [consumerA, consumerB],\n      ledgerId: "00000000-0000-4000-8000-000000000099",\n      note: null,\n      transactionAt: "2026-09-08T03:30:00.000Z",\n      transferAmount: 1200,\n      transferTargetAccountId: "00000000-0000-4000-8000-000000000042",\n      type: "transfer" as const,\n    };\n\n    expect(createTransactionRequestSchema.parse(transferRequest)).toMatchObject({\n      consumerUserIds: [consumerA, consumerB],\n    });\n    expect(updateTransactionRequestSchema.parse(transferRequest)).toMatchObject({\n      consumerUserIds: [consumerA, consumerB],\n    });\n    expect(\n      convertTransactionRequestSchema.parse({\n        accountId: transferRequest.accountId,\n        consumerUserIds: transferRequest.consumerUserIds,\n        ledgerId: transferRequest.ledgerId,\n        note: transferRequest.note,\n        targetType: "transfer",\n        transactionAt: transferRequest.transactionAt,\n        transferAmount: transferRequest.transferAmount,\n        transferTargetAccountId: transferRequest.transferTargetAccountId,\n      }),\n    ).toMatchObject({ consumerUserIds: [consumerA, consumerB] });\n  });\n\n''',
+          )
           PY
 
       - name: Format changed files
