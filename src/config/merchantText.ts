@@ -32,7 +32,6 @@ export const merchantText = {
   editCategory: "编辑",
   editCategoryTitle: "编辑分类",
   editErrorTitle: "商家更新失败",
-  formalName: "正式名",
   iconError: "未能获取网站图标，请确认网址后重试",
   iconIdle: "填写网址后，可按需获取网站图标",
   iconLoading: "正在获取并验证网站图标",
