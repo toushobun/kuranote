@@ -3,7 +3,8 @@
 import { useTheme } from "@mui/material/styles";
 
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+
+import { getMerchantFeedbackBottomOffset } from "../merchantFeedbackBottomOffset";
 import type { MerchantActionState } from "types/merchants";
 
 export function MerchantFailureFeedback({
@@ -18,7 +19,7 @@ export function MerchantFailureFeedback({
   return (
     <ActionFailureFeedback
       aboveModal
-      bottomOffset={`calc(${bottomNavigationLayout.shellPaddingBottom} + ${theme.spacing(1)})`}
+      bottomOffset={getMerchantFeedbackBottomOffset(theme)}
       state={state}
       title={title}
     />
