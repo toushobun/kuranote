@@ -167,6 +167,7 @@ select is((select count(*) from public.transaction_consumer
     where ledger_id = '71600000-0000-4000-8000-000000000001'), 0::bigint,
     '其他账本用户使用 authenticated 角色不能读取消费者');
 reset role;
+select set_config('request.jwt.claim.sub', '', true);
 insert into public.ledger_member (
     id, ledger_id, user_id, role, status, joined_at, removed_at, removed_by, created_by, updated_by
 ) values (
