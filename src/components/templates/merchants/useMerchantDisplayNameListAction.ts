@@ -8,11 +8,8 @@ const initialMerchantActionState: MerchantActionState = {};
 const unknownMerchantScope = "__unknown_merchant__";
 
 export function useMerchantDisplayNameListAction(action: MerchantStateAction) {
-  const pendingMerchantIdsRef = useRef(new Set<string>());
+  const inFlightMerchantIdsRef = useRef(new Set<string>());
   const latestSubmissionIdRef = useRef(0);
-  const [pendingMerchantIds, setPendingMerchantIds] = useState<
-    ReadonlySet<string>
-  >(new Set());
   const [state, setState] = useState<MerchantActionState>(
     initialMerchantActionState,
   );
@@ -25,12 +22,11 @@ export function useMerchantDisplayNameListAction(action: MerchantStateAction) {
           ? merchantIdValue
           : unknownMerchantScope;
 
-      if (pendingMerchantIdsRef.current.has(merchantScope)) return;
+      if (inFlightMerchantIdsRef.current.has(merchantScope)) return;
 
       const submissionId = latestSubmissionIdRef.current + 1;
       latestSubmissionIdRef.current = submissionId;
-      pendingMerchantIdsRef.current.add(merchantScope);
-      setPendingMerchantIds(new Set(pendingMerchantIdsRef.current));
+      inFlightMerchantIdsRef.current.add(merchantScope);
       setState({});
 
       try {
@@ -39,8 +35,7 @@ export function useMerchantDisplayNameListAction(action: MerchantStateAction) {
           setState(nextState);
         }
       } finally {
-        pendingMerchantIdsRef.current.delete(merchantScope);
-        setPendingMerchantIds(new Set(pendingMerchantIdsRef.current));
+        inFlightMerchantIdsRef.current.delete(merchantScope);
       }
     },
     [action],
@@ -48,7 +43,6 @@ export function useMerchantDisplayNameListAction(action: MerchantStateAction) {
 
   return {
     action: submitAction,
-    pendingMerchantIds,
     state,
   };
 }
