@@ -7,9 +7,11 @@ import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useRef, type MouseEvent } from "react";
 import { useFormStatus } from "react-dom";
 
 import { merchantText } from "config/merchantText";
+import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { Merchant } from "types/merchants";
@@ -141,6 +143,8 @@ export function MerchantNameOptions({
   setPreferredAliasAction?: ServerAction;
   variant?: "chips" | "rows";
 }) {
+  const confirm = useConfirmDialog();
+  const archiveFormRef = useRef<HTMLFormElement | null>(null);
   const options: MerchantNameOption[] = [
     {
       id: "",
@@ -157,6 +161,22 @@ export function MerchantNameOptions({
   ];
   const isRow = variant === "rows";
   const switchDisabled = pending || !setPreferredAliasAction;
+
+  async function confirmArchiveAlias(
+    event: MouseEvent<HTMLButtonElement>,
+    alias: string,
+  ) {
+    archiveFormRef.current = event.currentTarget.form;
+    const ok = await confirm({
+      description: merchantText.archiveAliasDescription(alias),
+      title: merchantText.archiveAliasConfirmTitle,
+      tone: "delete",
+    });
+
+    if (ok) {
+      archiveFormRef.current?.requestSubmit();
+    }
+  }
 
   if (!isRow) {
     return (
@@ -216,7 +236,10 @@ export function MerchantNameOptions({
                 aria-label={merchantText.removeAliasLabel(option.label)}
                 color="error"
                 disabled={pending}
-                type="submit"
+                onClick={(event) =>
+                  void confirmArchiveAlias(event, option.label)
+                }
+                type="button"
               >
                 <CloseRoundedIcon />
               </IconButton>

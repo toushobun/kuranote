@@ -4,7 +4,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { routePaths } from "config/paths";
 import { merchantText } from "config/merchantText";
@@ -39,6 +39,8 @@ type MerchantEditTemplateProps = {
   updateMerchantAction: MerchantStateAction;
 };
 
+type AliasFeedbackOperation = "archiveAlias" | "createAlias" | "setPreferred";
+
 export function MerchantEditTemplate({
   archiveMerchantAction,
   archiveMerchantAliasAction,
@@ -52,6 +54,8 @@ export function MerchantEditTemplate({
   updateMerchantAction,
 }: MerchantEditTemplateProps) {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const [aliasFeedbackOperation, setAliasFeedbackOperation] =
+    useState<AliasFeedbackOperation | null>(null);
   const archiveFormRef = useRef<HTMLFormElement>(null);
   const update = useMerchantsActionState(updateMerchantAction, {
     merchantId: merchant.id,
@@ -75,6 +79,44 @@ export function MerchantEditTemplate({
   );
   const aliasPending =
     createAlias.pending || archiveAlias.pending || setPreferred.pending;
+  const createAliasAction = useCallback(
+    (formData: FormData) => {
+      setAliasFeedbackOperation("createAlias");
+      createAlias.action(formData);
+    },
+    [createAlias.action],
+  );
+  const archiveAliasAction = useCallback(
+    (formData: FormData) => {
+      setAliasFeedbackOperation("archiveAlias");
+      archiveAlias.action(formData);
+    },
+    [archiveAlias.action],
+  );
+  const setPreferredAliasAction = useCallback(
+    (formData: FormData) => {
+      setAliasFeedbackOperation("setPreferred");
+      setPreferred.action(formData);
+    },
+    [setPreferred.action],
+  );
+  const aliasFeedback =
+    aliasFeedbackOperation === "createAlias"
+      ? {
+          errorTitle: merchantText.createAliasErrorTitle,
+          state: createAlias.state,
+        }
+      : aliasFeedbackOperation === "archiveAlias"
+        ? {
+            errorTitle: merchantText.archiveAliasErrorTitle,
+            state: archiveAlias.state,
+          }
+        : aliasFeedbackOperation === "setPreferred"
+          ? {
+              errorTitle: merchantText.preferredErrorTitle,
+              state: setPreferred.state,
+            }
+          : null;
 
   return (
     <PageShell
@@ -125,11 +167,11 @@ export function MerchantEditTemplate({
 
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantDisplayNameEditor
-          archiveAliasAction={archiveAlias.action}
-          createAliasAction={createAlias.action}
+          archiveAliasAction={archiveAliasAction}
+          createAliasAction={createAliasAction}
           merchant={merchant}
           pending={aliasPending}
-          setPreferredAliasAction={setPreferred.action}
+          setPreferredAliasAction={setPreferredAliasAction}
         />
       </SectionCard>
 
@@ -141,15 +183,12 @@ export function MerchantEditTemplate({
         state={archive.state}
         title={merchantText.archiveErrorTitle}
       />
-      <MerchantFailureFeedback
-        state={createAlias.state}
-        title={merchantText.createAliasErrorTitle}
-      />
-      <MerchantFailureFeedback
-        state={archiveAlias.state}
-        title={merchantText.archiveAliasErrorTitle}
-      />
-      <MerchantDisplayNameFeedback state={setPreferred.state} />
+      {aliasFeedback ? (
+        <MerchantDisplayNameFeedback
+          errorTitle={aliasFeedback.errorTitle}
+          state={aliasFeedback.state}
+        />
+      ) : null}
       {isArchiveConfirmOpen ? (
         <DeleteConfirmationDialog
           confirmLabel={merchantText.archive}

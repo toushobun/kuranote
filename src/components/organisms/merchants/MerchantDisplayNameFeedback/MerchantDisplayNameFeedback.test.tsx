@@ -40,4 +40,16 @@ describe("MerchantDisplayNameFeedback", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("无法切换显示名");
     expect(screen.queryByRole("status")).toBeNull();
   });
+
+  it("允许为其他商家操作传入失败标题", () => {
+    render(
+      <MerchantDisplayNameFeedback
+        errorTitle="商家别名新增失败"
+        state={{ error: "别名已存在", errorKey: "failure-2" }}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("商家别名新增失败");
+    expect(screen.getByRole("alert")).toHaveTextContent("别名已存在");
+  });
 });

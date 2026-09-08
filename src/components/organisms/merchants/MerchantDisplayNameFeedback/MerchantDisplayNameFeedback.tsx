@@ -11,8 +11,10 @@ import type { MerchantActionState } from "types/merchants";
 import { MerchantFailureFeedback } from "../MerchantFailureFeedback/MerchantFailureFeedback";
 
 export function MerchantDisplayNameFeedback({
+  errorTitle = merchantText.preferredErrorTitle,
   state,
 }: {
+  errorTitle?: string;
   state: MerchantActionState;
 }) {
   const theme = useTheme();
@@ -21,10 +23,7 @@ export function MerchantDisplayNameFeedback({
 
   return (
     <>
-      <MerchantFailureFeedback
-        state={state}
-        title={merchantText.preferredErrorTitle}
-      />
+      <MerchantFailureFeedback state={state} title={errorTitle} />
       <SuccessFeedbackDialog
         bottomOffset={`calc(${bottomNavigationLayout.shellPaddingBottom} + ${theme.spacing(1)})`}
         onClose={() => setDismissedState(state)}

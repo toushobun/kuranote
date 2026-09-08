@@ -341,16 +341,21 @@ describe("Merchant Server Actions", () => {
     expect(mocks.createMerchant).not.toHaveBeenCalled();
   });
 
-  it("五个操作成功后均失效缓存并跳转到对应商家页面", async () => {
+  it("商家操作成功后按流程导航或返回 inline 状态", async () => {
     for (const [action, path] of [
       [createMerchant, "/merchants?result=created"],
       [updateMerchant, "/merchants?result=updated"],
       [archiveMerchant, "/merchants"],
-      [createMerchantAlias, `/merchants/${merchantId}/edit`],
-      [archiveMerchantAlias, `/merchants/${merchantId}/edit`],
     ] as const) {
       await expect(runAction(action)).rejects.toThrow(`NEXT_REDIRECT:${path}`);
     }
+
+    await expect(runAction(createMerchantAlias)).resolves.toEqual({
+      success: "添加成功",
+    });
+    await expect(runAction(archiveMerchantAlias)).resolves.toEqual({
+      success: "删除成功",
+    });
 
     expect(mocks.createMerchant).toHaveBeenCalledWith({
       ledgerId,
@@ -380,7 +385,8 @@ describe("Merchant Server Actions", () => {
     });
     expect(mocks.archiveAlias).toHaveBeenCalledWith({ aliasId, ledgerId });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(5);
-    expect(mocks.redirect).toHaveBeenCalledTimes(5);
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith(merchantId);
+    expect(mocks.redirect).toHaveBeenCalledTimes(3);
   });
 
   it("连续相同错误生成不同 errorKey", async () => {

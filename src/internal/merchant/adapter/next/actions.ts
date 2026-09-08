@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 
 import {
-  merchantEditHref,
   merchantResultValues,
   merchantsResultHref,
   routePaths,
@@ -187,8 +186,8 @@ export const createMerchantAlias: MerchantStateAction =
       );
     }
 
-    revalidateMerchantMutation();
-    redirect(merchantEditHref(validation.value.merchantId));
+    revalidateMerchantMutation(validation.value.merchantId);
+    return { success: merchantText.createAliasSuccess };
   };
 
 export const archiveMerchantAlias: MerchantStateAction =
@@ -213,8 +212,8 @@ export const archiveMerchantAlias: MerchantStateAction =
       );
     }
 
-    revalidateMerchantMutation();
-    redirect(merchantEditHref(merchantId));
+    revalidateMerchantMutation(merchantId);
+    return { success: merchantText.archiveAliasSuccess };
   };
 
 export const setPreferredMerchantAlias: MerchantStateAction =
