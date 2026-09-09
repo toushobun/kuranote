@@ -85,7 +85,7 @@ describe("CategoriesActionStateTemplate", () => {
   it.each([
     ["新增", "新增分类", "新增分类", "新增成功"],
     ["编辑", "编辑餐饮", "保存", "保存成功"],
-    ["归档", "编辑餐饮", "隐藏分类", "归档成功"],
+    ["归档", "编辑餐饮", "归档该分类", "归档成功"],
   ])(
     "%s 成功后关闭弹窗、显示提示并支持再次提交",
     async (_, opener, submit, message) => {
@@ -159,7 +159,7 @@ describe("CategoriesActionStateTemplate", () => {
     const dialog = screen.getByRole("dialog", { name: "编辑分类" });
     const nameInput = within(dialog).getByRole("textbox", { name: "分类名称" });
     fireEvent.change(nameInput, { target: { value: "外食" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "隐藏分类" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "归档该分类" }));
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("分类归档失败")).toBeInTheDocument();
