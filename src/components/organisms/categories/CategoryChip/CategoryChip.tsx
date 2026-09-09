@@ -42,7 +42,9 @@ export function CategoryItemActions({
           <EditRoundedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title={`拖动${displayName}调整排序，也可使用上下方向键`}>
+      <Tooltip
+        title={`拖动${displayName}调整排序，键盘可使用上下方向键按顺序移动`}
+      >
         <span>
           <IconButton
             {...handleProps}
