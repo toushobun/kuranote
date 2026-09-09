@@ -21,9 +21,7 @@ vi.mock("@dnd-kit/sortable", async (importOriginal) => {
 
   return {
     ...actual,
-    SortableContext: (
-      props: ComponentProps<typeof actual.SortableContext>,
-    ) => {
+    SortableContext: (props: ComponentProps<typeof actual.SortableContext>) => {
       sortableContextStrategySpy(props.strategy);
       return createElement(actual.SortableContext, props);
     },
