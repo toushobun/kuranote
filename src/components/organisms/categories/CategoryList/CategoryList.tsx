@@ -27,7 +27,6 @@ import {
   type SortableHandleProps,
 } from "molecules/ui/SortableList/SortableItem";
 import { designTokens } from "theme/theme";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   CategoryAction,
   CategoryActionState,
