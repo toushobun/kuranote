@@ -18,7 +18,10 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { categoryArchiveMessages } from "config/categoryMessages";
+import {
+  categoryArchiveMessages,
+  categoryManagingMessages,
+} from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
@@ -248,7 +251,9 @@ export function CategoryList({
       {canManageCategories ? (
         <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
           <Button onClick={toggleManaging} size="small" type="button">
-            {isManaging ? "完成" : "管理排序"}
+            {isManaging
+              ? categoryManagingMessages.exit
+              : categoryManagingMessages.enter}
           </Button>
         </Stack>
       ) : null}
