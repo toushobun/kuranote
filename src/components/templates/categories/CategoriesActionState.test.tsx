@@ -242,6 +242,7 @@ describe("CategoriesActionStateTemplate", () => {
       errorKey: "reorder-error-1",
     }));
     renderTemplate({ reorderCategoryAction });
+    fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.keyDown(handle, { key: "ArrowDown" });
