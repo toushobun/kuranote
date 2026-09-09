@@ -180,7 +180,7 @@ describe("Category Server Actions", () => {
       createArchiveFormData,
       mocks.archive,
       "archive",
-      "分类隐藏失败。",
+      "分类归档失败。",
     ],
   ] as const)(
     "%s 未知异常时返回对应兜底提示且不跳转或失效缓存",
