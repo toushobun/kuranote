@@ -22,6 +22,7 @@ function CategorySuccessFeedback({ state }: { state: CategoryActionState }) {
 
   return (
     <SuccessFeedbackDialog
+      aboveModal
       onClose={() => setClosedState(state)}
       open={!!state.success && state !== closedState}
       title={state.success}

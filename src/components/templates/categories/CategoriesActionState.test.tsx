@@ -105,6 +105,9 @@ describe("CategoriesActionStateTemplate", () => {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         fireEvent.click(screen.getByRole("button", { name: opener }));
         const dialog = screen.getByRole("dialog");
+        const modal = dialog.closest(".MuiModal-root");
+        if (!modal) throw new Error("未找到弹窗容器");
+        const modalZIndex = Number(getComputedStyle(modal).zIndex);
         fireEvent.change(
           within(dialog).getByRole("textbox", { name: "分类名称" }),
           {
@@ -119,6 +122,12 @@ describe("CategoriesActionStateTemplate", () => {
         expect(status).not.toBeNull();
         if (!status) throw new Error("未找到成功提示");
         expect(status).toHaveTextContent(message);
+        const snackbar = status.closest(".MuiSnackbar-root");
+        expect(snackbar).not.toBeNull();
+        if (!snackbar) throw new Error("未找到成功提示容器");
+        expect(Number(getComputedStyle(snackbar).zIndex)).toBeGreaterThan(
+          modalZIndex,
+        );
         await waitFor(() =>
           expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
         );

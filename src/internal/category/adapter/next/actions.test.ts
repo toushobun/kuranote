@@ -157,24 +157,53 @@ describe("Category Server Actions", () => {
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
   });
 
-  it("未知异常时记录安全日志并返回对应操作提示", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    mocks.update.mockRejectedValue(new Error("database unavailable"));
-
-    const state = await updateCategory({}, createUpdateFormData());
-
-    expectErrorState(
-      state,
+  it.each([
+    [
+      "新增",
+      createCategory,
+      createCreateFormData,
+      mocks.create,
+      "create",
+      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+    ],
+    [
+      "编辑",
+      updateCategory,
+      createUpdateFormData,
+      mocks.update,
+      "update",
       "分类更新失败。请确认分类名称是否重复，或稍后重试。",
-    );
-    expect(consoleError).toHaveBeenCalledWith(
-      "[category] update failed unexpectedly",
-      { errorName: "Error" },
-    );
-    consoleError.mockRestore();
-  });
+    ],
+    [
+      "归档",
+      archiveCategory,
+      createArchiveFormData,
+      mocks.archive,
+      "archive",
+      "分类隐藏失败。",
+    ],
+  ] as const)(
+    "%s 未知异常时返回对应兜底提示且不跳转或失效缓存",
+    async (_, action, form, service, operation, message) => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      try {
+        service.mockRejectedValue(new Error("database unavailable"));
+        const state = await action({}, form());
+        expectErrorState(state, message);
+        expect(state.success).toBeUndefined();
+        expect(mocks.redirect).not.toHaveBeenCalled();
+        expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
+        expect(consoleError).toHaveBeenCalledWith(
+          `[category] ${operation} failed unexpectedly`,
+          { errorName: "Error" },
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
+    },
+  );
 
   it("依赖初始化失败时返回安全提示且不调用 Service", async () => {
     const consoleError = vi
@@ -260,17 +289,32 @@ describe("Category Server Actions", () => {
   });
 
   it.each([
-    ["新增", createCategory, createCreateFormData, mocks.create],
-    ["编辑", updateCategory, createUpdateFormData, mocks.update],
-    ["归档", archiveCategory, createArchiveFormData, mocks.archive],
+    [
+      "新增",
+      createCategory,
+      createCreateFormData,
+      mocks.create,
+      categoryErrorCodes.createFailed,
+    ],
+    [
+      "编辑",
+      updateCategory,
+      createUpdateFormData,
+      mocks.update,
+      categoryErrorCodes.updateFailed,
+    ],
+    [
+      "归档",
+      archiveCategory,
+      createArchiveFormData,
+      mocks.archive,
+      categoryErrorCodes.archiveFailed,
+    ],
   ] as const)(
     "%s 失败时保留安全错误且不跳转或失效缓存",
-    async (_, action, form, service) => {
+    async (_, action, form, service, errorCode) => {
       service.mockRejectedValue(
-        new ConflictError(
-          categoryErrorCodes.createFailed,
-          "分类操作无法完成。",
-        ),
+        new ConflictError(errorCode, "分类操作无法完成。"),
       );
       const state = await action({}, form());
       expectErrorState(state, "分类操作无法完成。");

@@ -21,6 +21,7 @@ import {
 import type { TransactionType } from "types/transactions";
 
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
+import { useCategoryActionSuccess } from "../useCategoryActionSuccess";
 
 type CategoryFormProps = {
   createCategoryAction: CategoryAction;
@@ -54,11 +55,7 @@ export function CategoryForm({
     setIconName(defaultCategoryEmoji);
   }
 
-  const [previousCreateState, setPreviousCreateState] = useState(createState);
-  if (createState !== previousCreateState) {
-    setPreviousCreateState(createState);
-    if (createState?.success) closeDialog();
-  }
+  useCategoryActionSuccess(createState, closeDialog);
 
   return (
     <>
