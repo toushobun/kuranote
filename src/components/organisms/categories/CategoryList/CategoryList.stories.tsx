@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryList } from "./CategoryList";
 
@@ -67,6 +69,13 @@ const categories = [
 const meta = {
   title: "Organisms/Categories/CategoryList",
   component: CategoryList,
+  decorators: [
+    (Story) => (
+      <UserThemeProvider storageScope="storybook-category-dialog">
+        <Story />
+      </UserThemeProvider>
+    ),
+  ],
   args: {
     archiveCategoryAction: async () => {},
     categories,
@@ -102,5 +111,30 @@ export const DragSorting: Story = {
           "拖动大分类时临时收起全部小分类，松手或按 Escape 后恢复原展开状态。小分类仅在原大分类内排序；支持触屏拖动与直接按上下方向键排序。",
       },
     },
+  },
+};
+
+export const DialogButtons: Story = {
+  name: "弹窗等宽按钮与归档样式",
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "编辑餐饮" }),
+    );
+    const dialog = within(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog"),
+    );
+    const cancel = dialog.getByRole("button", { name: "取消" });
+    const submit = dialog.getByRole("button", { name: "保存" });
+    await expect(cancel.getBoundingClientRect().width).toBeCloseTo(
+      submit.getBoundingClientRect().width,
+      0,
+    );
+    await expect(cancel.getBoundingClientRect().top).toBe(
+      submit.getBoundingClientRect().top,
+    );
+    const archive = dialog.getByRole("button", { name: "归档该分类" });
+    await expect(archive.getBoundingClientRect().bottom).toBeLessThan(
+      cancel.getBoundingClientRect().top,
+    );
   },
 };

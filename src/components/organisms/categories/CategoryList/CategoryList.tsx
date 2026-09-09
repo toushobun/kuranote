@@ -8,7 +8,6 @@ import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRigh
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
@@ -21,6 +20,7 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { categoryArchiveMessages } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
 import {
@@ -40,6 +40,7 @@ import type {
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
+import { CategoryDialogActions } from "../CategoryDialogActions/CategoryDialogActions";
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
 import { useCategoryActionSuccess } from "../useCategoryActionSuccess";
 import { useCategoryList } from "./useCategoryList";
@@ -375,9 +376,11 @@ export function CategoryList({
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <ArchiveRoundedIcon color="disabled" />
           <Box>
-            <Typography sx={{ fontWeight: 700 }}>已隐藏分类</Typography>
+            <Typography sx={{ fontWeight: 700 }}>
+              {categoryArchiveMessages.title}
+            </Typography>
             <Typography color="text.secondary" variant="body2">
-              隐藏的分类不会在记账选择中显示。
+              {categoryArchiveMessages.description}
             </Typography>
           </Box>
         </Stack>
@@ -420,7 +423,12 @@ export function CategoryList({
             </Stack>
           ) : null}
         </DialogContent>
-        <DialogActions sx={{ justifyContent: "space-between" }}>
+        <CategoryDialogActions
+          disabled={!canManageCategories}
+          form="category-edit-form"
+          onCancel={closeEditor}
+          submitLabel="保存"
+        >
           {editingCategory && canManageCategories ? (
             <Stack component="form" action={archiveCategoryAction}>
               <input
@@ -428,27 +436,18 @@ export function CategoryList({
                 type="hidden"
                 value={editingCategory.id}
               />
-              <Button color="error" type="submit">
-                隐藏分类
+              <Button
+                color="error"
+                fullWidth
+                startIcon={<ArchiveRoundedIcon />}
+                type="submit"
+                variant="outlined"
+              >
+                {categoryArchiveMessages.action}
               </Button>
             </Stack>
-          ) : (
-            <Box />
-          )}
-          <Stack direction="row" spacing={1}>
-            <Button onClick={closeEditor} type="button">
-              取消
-            </Button>
-            <Button
-              disabled={!canManageCategories}
-              form="category-edit-form"
-              type="submit"
-              variant="contained"
-            >
-              保存
-            </Button>
-          </Stack>
-        </DialogActions>
+          ) : null}
+        </CategoryDialogActions>
       </Dialog>
     </Stack>
   );

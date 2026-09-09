@@ -164,6 +164,37 @@ describe("CategoryList", () => {
     expect(screen.getByLabelText("当前分类图标：🍽️")).toBeInTheDocument();
   });
 
+  it("归档操作单独位于等宽取消和保存按钮上方并提交分类 ID", async () => {
+    const archiveCategoryAction = vi.fn(async (data: FormData) => {
+      void data;
+    });
+    renderListWithTheme({ archiveCategoryAction });
+    expect(screen.getByText("已归档分类")).toBeInTheDocument();
+    expect(
+      screen.getByText("归档的分类不会在记账选择中显示。"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    const dialog = within(screen.getByRole("dialog"));
+    const archive = dialog.getByRole("button", { name: "归档该分类" });
+    const cancel = dialog.getByRole("button", { name: "取消" });
+    const save = dialog.getByRole("button", { name: "保存" });
+    expect(cancel.parentElement).toBe(save.parentElement);
+    expect(getComputedStyle(cancel.parentElement!).flexDirection).toBe("row");
+    expect(getComputedStyle(cancel).width).toBe("100%");
+    expect(getComputedStyle(save).width).toBe("100%");
+    expect(archive.closest("form")?.nextElementSibling).toBe(
+      cancel.parentElement,
+    );
+    expect(archive).toHaveClass("MuiButton-colorError");
+    expect(archive.querySelector("svg")).not.toBeNull();
+    expect(save).toHaveAttribute("form", "category-edit-form");
+    fireEvent.click(archive);
+    await waitFor(() => expect(archiveCategoryAction).toHaveBeenCalledOnce());
+    expect(archiveCategoryAction.mock.calls[0][0].get("categoryId")).toBe(
+      expenseRootId,
+    );
+  });
+
   it("拖动大分类时提交同级分类顺序", async () => {
     const reorderCategoryAction = vi.fn(async (formData: FormData) => {
       void formData;

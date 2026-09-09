@@ -1,4 +1,11 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CategoryForm } from "./CategoryForm";
@@ -34,6 +41,23 @@ describe("CategoryForm", () => {
       screen.getByPlaceholderText("例如：餐饮、工资、交通"),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("当前分类图标：📁")).toBeInTheDocument();
+  });
+
+  it("新增弹窗的取消与提交按钮横向铺满并保持取消行为", async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    const dialog = within(screen.getByRole("dialog"));
+    const cancel = dialog.getByRole("button", { name: "取消" });
+    const submit = dialog.getByRole("button", { name: "新增分类" });
+    expect(cancel.parentElement).toBe(submit.parentElement);
+    expect(getComputedStyle(cancel.parentElement!).flexDirection).toBe("row");
+    expect(getComputedStyle(cancel).width).toBe("100%");
+    expect(getComputedStyle(submit).width).toBe("100%");
+    expect(submit).toHaveAttribute("type", "submit");
+    fireEvent.click(cancel);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("说明大分类和小分类的创建方式", () => {

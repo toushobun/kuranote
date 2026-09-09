@@ -1,9 +1,7 @@
 "use client";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
@@ -11,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { useState } from "react";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import {
   type CategoryAction,
@@ -20,6 +19,7 @@ import {
 } from "types/categories";
 import type { TransactionType } from "types/transactions";
 
+import { CategoryDialogActions } from "../CategoryDialogActions/CategoryDialogActions";
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
 import { useCategoryActionSuccess } from "../useCategoryActionSuccess";
 
@@ -59,14 +59,13 @@ export function CategoryForm({
 
   return (
     <>
-      <Button
+      <PrimaryActionButton
         onClick={() => setOpen(true)}
         startIcon={<AddRoundedIcon />}
         type="button"
-        variant="contained"
       >
         新增分类
-      </Button>
+      </PrimaryActionButton>
 
       <Dialog fullWidth maxWidth="sm" onClose={closeDialog} open={open}>
         <DialogTitle>新增分类</DialogTitle>
@@ -128,14 +127,10 @@ export function CategoryForm({
               <CategoryIconField onChange={setIconName} value={iconName} />
             </Stack>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={closeDialog} type="button">
-              取消
-            </Button>
-            <Button type="submit" variant="contained">
-              新增分类
-            </Button>
-          </DialogActions>
+          <CategoryDialogActions
+            onCancel={closeDialog}
+            submitLabel="新增分类"
+          />
         </Stack>
       </Dialog>
     </>
