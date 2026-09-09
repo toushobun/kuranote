@@ -94,10 +94,6 @@ export function useCategoryList({
   const visibleCategories = orderedCategories.filter(
     (category) => category.type === selectedType,
   );
-  const childCount = visibleCategories.reduce(
-    (count, category) => count + category.children.length,
-    0,
-  );
 
   function submitCategoryOrder(
     orderedIds: string[],
@@ -169,7 +165,6 @@ export function useCategoryList({
   }
 
   return {
-    childCount,
     closeEditor,
     editingCategory,
     editingIconName,

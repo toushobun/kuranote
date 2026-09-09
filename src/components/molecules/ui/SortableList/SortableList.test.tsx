@@ -1,17 +1,43 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  rectSortingStrategy,
+  verticalListSortingStrategy,
+  type SortingStrategy,
+} from "@dnd-kit/sortable";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { SortableList } from "./SortableList";
 import { SortableItem } from "./SortableItem";
 
+const { sortableContextStrategySpy } = vi.hoisted(() => ({
+  sortableContextStrategySpy: vi.fn(),
+}));
+
+vi.mock("@dnd-kit/sortable", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/sortable")>();
+  const { createElement } = await import("react");
+
+  return {
+    ...actual,
+    SortableContext: (
+      props: ComponentProps<typeof actual.SortableContext>,
+    ) => {
+      sortableContextStrategySpy(props.strategy);
+      return createElement(actual.SortableContext, props);
+    },
+  };
+});
+
 function Example({
   onReorder,
   disabled = false,
+  strategy,
 }: {
   onReorder: (ids: string[]) => void;
   disabled?: boolean;
+  strategy?: SortingStrategy;
 }) {
   const [items, setItems] = useState(["a", "b", "c"]);
   return (
@@ -22,6 +48,7 @@ function Example({
         setItems(ids);
         onReorder(ids);
       }}
+      strategy={strategy}
     >
       {items.map((id) => (
         <SortableItem id={id} key={id}>
@@ -32,9 +59,30 @@ function Example({
   );
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  sortableContextStrategySpy.mockClear();
+  vi.restoreAllMocks();
+});
 
 describe("SortableList", () => {
+  it("未指定排序策略时保持纵向列表策略", () => {
+    render(<Example onReorder={vi.fn()} />);
+
+    expect(sortableContextStrategySpy).toHaveBeenLastCalledWith(
+      verticalListSortingStrategy,
+    );
+  });
+
+  it("传入矩形排序策略时交给 SortableContext 使用", () => {
+    render(
+      <Example onReorder={vi.fn()} strategy={rectSortingStrategy} />,
+    );
+
+    expect(sortableContextStrategySpy).toHaveBeenLastCalledWith(
+      rectSortingStrategy,
+    );
+  });
+
   it("拖动时跟随指针并挤开其他项，仅在松手后提交最终顺序", async () => {
     const onReorder = vi.fn();
     const { container } = render(<Example onReorder={onReorder} />);
