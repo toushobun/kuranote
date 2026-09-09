@@ -114,10 +114,10 @@ beforeEach(() => {
 });
 
 describe("Category Server Actions", () => {
-  it("创建成功后调用模块级缓存失效并跳回分类页", async () => {
-    await expect(createCategory({}, createCreateFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/categories",
-    );
+  it("创建成功后失效缓存并返回成功状态且不跳转", async () => {
+    await expect(createCategory({}, createCreateFormData())).resolves.toEqual({
+      success: "新增成功",
+    });
 
     expect(mocks.create).toHaveBeenCalledWith({
       iconName: "🍽️",
@@ -128,6 +128,7 @@ describe("Category Server Actions", () => {
       userId,
     });
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it("创建表单无效时返回安全错误状态", async () => {
@@ -198,12 +199,12 @@ describe("Category Server Actions", () => {
     consoleError.mockRestore();
   });
 
-  it("编辑和隐藏成功时共用 Category Service 与缓存失效函数", async () => {
-    await expect(updateCategory({}, createUpdateFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/categories",
-    );
-    await expect(archiveCategory({}, createArchiveFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:/categories",
+  it("编辑和归档成功时返回成功状态并失效缓存且不跳转", async () => {
+    await expect(updateCategory({}, createUpdateFormData())).resolves.toEqual({
+      success: "保存成功",
+    });
+    await expect(archiveCategory({}, createArchiveFormData())).resolves.toEqual(
+      { success: "归档成功" },
     );
 
     expect(mocks.update).toHaveBeenCalledWith({
@@ -219,6 +220,7 @@ describe("Category Server Actions", () => {
       userId,
     });
     expect(mocks.revalidateCategoryMutation).toHaveBeenCalledTimes(2);
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -257,6 +259,26 @@ describe("Category Server Actions", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["新增", createCategory, createCreateFormData, mocks.create],
+    ["编辑", updateCategory, createUpdateFormData, mocks.update],
+    ["归档", archiveCategory, createArchiveFormData, mocks.archive],
+  ] as const)(
+    "%s 失败时保留安全错误且不跳转或失效缓存",
+    async (_, action, form, service) => {
+      service.mockRejectedValue(
+        new ConflictError(
+          categoryErrorCodes.createFailed,
+          "分类操作无法完成。",
+        ),
+      );
+      const state = await action({}, form());
+      expectErrorState(state, "分类操作无法完成。");
+      expect(state.success).toBeUndefined();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+      expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
+    },
+  );
   it("登录跳转保持原有 Next.js 控制流", async () => {
     mocks.requireCurrentUserAndLedger.mockRejectedValueOnce(
       new Error("NEXT_REDIRECT:/login"),

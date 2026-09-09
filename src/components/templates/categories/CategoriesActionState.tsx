@@ -2,7 +2,10 @@
 
 import { useActionState, useState, type ComponentProps } from "react";
 
-import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
+import {
+  ActionFailureFeedback,
+  SuccessFeedbackDialog,
+} from "molecules/ui/OperationFeedbackDialogs";
 import type {
   CategoryActionState,
   CategoryStateAction,
@@ -12,12 +15,29 @@ import { CategoriesTemplate } from "./Categories";
 
 const initialCategoryActionState: CategoryActionState = {};
 
+function CategorySuccessFeedback({ state }: { state: CategoryActionState }) {
+  const [closedState, setClosedState] = useState<CategoryActionState | null>(
+    null,
+  );
+
+  return (
+    <SuccessFeedbackDialog
+      onClose={() => setClosedState(state)}
+      open={!!state.success && state !== closedState}
+      title={state.success}
+    />
+  );
+}
+
 type CategoriesActionStateTemplateProps = Omit<
   ComponentProps<typeof CategoriesTemplate>,
   | "archiveCategoryAction"
+  | "archiveState"
   | "createCategoryAction"
+  | "createState"
   | "onReorderError"
   | "updateCategoryAction"
+  | "updateState"
 > & {
   archiveCategoryAction: CategoryStateAction;
   createCategoryAction: CategoryStateAction;
@@ -51,10 +71,16 @@ export function CategoriesActionStateTemplate({
       <CategoriesTemplate
         {...templateProps}
         archiveCategoryAction={archiveAction}
+        archiveState={archiveState}
         createCategoryAction={createAction}
+        createState={createState}
         onReorderError={setReorderState}
         updateCategoryAction={updateAction}
+        updateState={updateState}
       />
+      <CategorySuccessFeedback state={createState} />
+      <CategorySuccessFeedback state={updateState} />
+      <CategorySuccessFeedback state={archiveState} />
       <ActionFailureFeedback
         aboveModal
         state={createState}
@@ -68,7 +94,7 @@ export function CategoriesActionStateTemplate({
       <ActionFailureFeedback
         aboveModal
         state={archiveState}
-        title="分类隐藏失败"
+        title="分类归档失败"
       />
       <ActionFailureFeedback
         aboveModal

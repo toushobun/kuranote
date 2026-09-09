@@ -14,6 +14,7 @@ import { useState } from "react";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import {
   type CategoryAction,
+  type CategoryActionState,
   type CategoryParentOption,
   categoryTypeOptions,
 } from "types/categories";
@@ -23,6 +24,7 @@ import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
 
 type CategoryFormProps = {
   createCategoryAction: CategoryAction;
+  createState?: CategoryActionState;
   parentOptions: CategoryParentOption[];
 };
 
@@ -32,6 +34,7 @@ function isTransactionType(value: string): value is TransactionType {
 
 export function CategoryForm({
   createCategoryAction,
+  createState,
   parentOptions,
 }: CategoryFormProps) {
   const [open, setOpen] = useState(false);
@@ -49,6 +52,12 @@ export function CategoryForm({
     setSelectedType("expense");
     setSelectedParentId("");
     setIconName(defaultCategoryEmoji);
+  }
+
+  const [previousCreateState, setPreviousCreateState] = useState(createState);
+  if (createState !== previousCreateState) {
+    setPreviousCreateState(createState);
+    if (createState?.success) closeDialog();
   }
 
   return (

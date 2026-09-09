@@ -82,6 +82,88 @@ afterEach(() => {
 });
 
 describe("CategoriesActionStateTemplate", () => {
+  it.each([
+    ["新增", "新增分类", "新增分类", "新增成功"],
+    ["编辑", "编辑餐饮", "保存", "保存成功"],
+    ["归档", "编辑餐饮", "隐藏分类", "归档成功"],
+  ])(
+    "%s 成功后关闭弹窗、显示提示并支持再次提交",
+    async (_, opener, submit, message) => {
+      const action = vi.fn(
+        async (): Promise<CategoryActionState> => ({ success: message }),
+      );
+      renderTemplate({
+        createCategoryAction: action,
+        updateCategoryAction: action,
+        archiveCategoryAction: action,
+      });
+      expect(
+        screen.queryByText(/新增成功|保存成功|归档成功/),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "展开日常购物" }));
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        fireEvent.click(screen.getByRole("button", { name: opener }));
+        const dialog = screen.getByRole("dialog");
+        fireEvent.change(
+          within(dialog).getByRole("textbox", { name: "分类名称" }),
+          {
+            target: { value: "晚餐" },
+          },
+        );
+        fireEvent.click(within(dialog).getByRole("button", { name: submit }));
+
+        const status = (await screen.findByText(message)).closest<HTMLElement>(
+          '[role="status"]',
+        );
+        expect(status).not.toBeNull();
+        if (!status) throw new Error("未找到成功提示");
+        expect(status).toHaveTextContent(message);
+        await waitFor(() =>
+          expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+        );
+        expect(
+          screen.getByRole("button", { name: "收起日常购物" }),
+        ).toBeInTheDocument();
+        expect(window.location.pathname).toBe("/categories");
+        expect(window.location.search).toBe("");
+        expect(action).toHaveBeenCalledTimes(attempt + 1);
+
+        fireEvent.click(within(status).getByRole("button", { name: "关闭" }));
+        await waitFor(() =>
+          expect(
+            screen.queryByText(/新增成功|保存成功|归档成功/),
+          ).not.toBeInTheDocument(),
+        );
+      }
+    },
+  );
+
+  it("归档失败时显示归档失败标题并保留编辑弹窗和输入", async () => {
+    renderTemplate({
+      archiveCategoryAction: async () => ({
+        error: "分类归档失败，请稍后重试。",
+        errorKey: "archive-error-1",
+      }),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    const dialog = screen.getByRole("dialog", { name: "编辑分类" });
+    const nameInput = within(dialog).getByRole("textbox", { name: "分类名称" });
+    fireEvent.change(nameInput, { target: { value: "外食" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "隐藏分类" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByText("分类归档失败")).toBeInTheDocument();
+    expect(alert).toHaveTextContent("分类归档失败，请稍后重试。");
+    expect(screen.queryByText("分类隐藏失败")).not.toBeInTheDocument();
+    expect(dialog).toBeInTheDocument();
+    expect(nameInput).toHaveValue("外食");
+    expect(
+      screen.queryByText(/新增成功|保存成功|归档成功/),
+    ).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe("/categories");
+    expect(window.location.search).toBe("");
+  });
   it("新增失败时显示弹框、保留输入且 URL 保持干净", async () => {
     const createCategoryAction = vi.fn(
       async (

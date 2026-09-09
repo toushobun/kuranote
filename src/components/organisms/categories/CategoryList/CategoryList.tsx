@@ -18,7 +18,7 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
@@ -45,11 +45,13 @@ import { useCategoryList } from "./useCategoryList";
 
 type CategoryListProps = {
   archiveCategoryAction: CategoryAction;
+  archiveState?: CategoryActionState;
   canManageCategories?: boolean;
   categories: CategoryTreeItem[];
   onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
+  updateState?: CategoryActionState;
 };
 
 type CategoryRowItemProps = {
@@ -195,11 +197,13 @@ function CategorySection({ children }: { children: ReactNode }) {
 
 export function CategoryList({
   archiveCategoryAction,
+  archiveState,
   canManageCategories = true,
   categories,
   onReorderError,
   reorderCategoryAction,
   updateCategoryAction,
+  updateState,
 }: CategoryListProps) {
   const {
     childCount,
@@ -222,6 +226,23 @@ export function CategoryList({
     onReorderError,
     reorderCategoryAction,
   });
+
+  const [previousUpdateState, setPreviousUpdateState] = useState(updateState);
+  const [previousArchiveState, setPreviousArchiveState] =
+    useState(archiveState);
+  if (
+    updateState !== previousUpdateState ||
+    archiveState !== previousArchiveState
+  ) {
+    setPreviousUpdateState(updateState);
+    setPreviousArchiveState(archiveState);
+    if (
+      (updateState !== previousUpdateState && updateState?.success) ||
+      (archiveState !== previousArchiveState && archiveState?.success)
+    ) {
+      closeEditor();
+    }
+  }
 
   if (categories.length === 0) {
     return (

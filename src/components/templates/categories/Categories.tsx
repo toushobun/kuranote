@@ -14,26 +14,32 @@ import type {
 
 type CategoriesTemplateProps = {
   archiveCategoryAction: CategoryAction;
+  archiveState?: CategoryActionState;
   canManageCategories?: boolean;
   categories: CategoryTreeItem[];
   createCategoryAction: CategoryAction;
+  createState?: CategoryActionState;
   ledgerName: string;
   onReorderError: (state: CategoryActionState) => void;
   parentOptions: CategoryParentOption[];
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
+  updateState?: CategoryActionState;
 };
 
 export function CategoriesTemplate({
   archiveCategoryAction,
+  archiveState,
   canManageCategories = true,
   categories,
   createCategoryAction,
+  createState,
   ledgerName,
   onReorderError,
   parentOptions,
   reorderCategoryAction,
   updateCategoryAction,
+  updateState,
 }: CategoriesTemplateProps) {
   return (
     <PageShell>
@@ -42,6 +48,7 @@ export function CategoriesTemplate({
           canManageCategories ? (
             <CategoryForm
               createCategoryAction={createCategoryAction}
+              createState={createState}
               parentOptions={parentOptions}
             />
           ) : null
@@ -57,11 +64,13 @@ export function CategoriesTemplate({
 
       <CategoryList
         archiveCategoryAction={archiveCategoryAction}
+        archiveState={archiveState}
         canManageCategories={canManageCategories}
         categories={categories}
         onReorderError={onReorderError}
         reorderCategoryAction={reorderCategoryAction}
         updateCategoryAction={updateCategoryAction}
+        updateState={updateState}
       />
     </PageShell>
   );

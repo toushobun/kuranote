@@ -1,8 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
-import { routePaths } from "config/paths";
+import { categorySuccessMessages } from "config/categoryMessages";
 import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   categoryErrorCodes,
@@ -76,7 +74,7 @@ export async function createCategory(
   }
 
   revalidateCategoryMutation();
-  redirect(routePaths.categories);
+  return { success: categorySuccessMessages.create };
 }
 
 export async function updateCategory(
@@ -103,7 +101,7 @@ export async function updateCategory(
   }
 
   revalidateCategoryMutation();
-  redirect(routePaths.categories);
+  return { success: categorySuccessMessages.update };
 }
 
 export async function archiveCategory(
@@ -130,7 +128,7 @@ export async function archiveCategory(
   }
 
   revalidateCategoryMutation();
-  redirect(routePaths.categories);
+  return { success: categorySuccessMessages.archive };
 }
 
 export async function reorderCategories(
