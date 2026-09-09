@@ -18,10 +18,15 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import type { PointerEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { SortableList } from "molecules/ui/SortableList/SortableList";
+import {
+  SortableItem,
+  type SortableHandleProps,
+} from "molecules/ui/SortableList/SortableItem";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
@@ -36,7 +41,7 @@ import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
-import { type CategoryMoveDirection, useCategoryList } from "./useCategoryList";
+import { useCategoryList } from "./useCategoryList";
 
 type CategoryListProps = {
   archiveCategoryAction: CategoryAction;
@@ -54,18 +59,8 @@ type CategoryRowItemProps = {
   expanded?: boolean;
   isPending: boolean;
   nested?: boolean;
-  dragging: boolean;
-  onPointerCancel: () => void;
-  onPointerDown: (
-    event: PointerEvent<HTMLButtonElement>,
-    category: Category,
-  ) => void;
-  onPointerUp: (
-    event: PointerEvent<HTMLButtonElement>,
-    category: Category,
-  ) => void;
+  handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
-  onMove: (category: Category, direction: CategoryMoveDirection) => void;
   onToggle?: () => void;
 };
 
@@ -76,12 +71,8 @@ function CategoryRowItem({
   expanded = false,
   isPending,
   nested = false,
-  dragging,
-  onPointerCancel,
-  onPointerDown,
-  onPointerUp,
+  handleProps,
   onEdit,
-  onMove,
   onToggle,
 }: CategoryRowItemProps) {
   const displayName = getCategoryDisplayName(category.name, category.icon_name);
@@ -92,9 +83,7 @@ function CategoryRowItem({
       data-category-row-id={category.id}
       sx={{
         borderTop: nested ? userThemeCardBorder : 0,
-        opacity: dragging ? 0.58 : 1,
         px: nested ? { xs: 1, sm: 2 } : 0,
-        transition: "opacity 120ms ease",
       }}
     >
       <Stack
@@ -105,6 +94,7 @@ function CategoryRowItem({
         {onToggle ? (
           <IconButton
             aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
+            disabled={isPending}
             onClick={onToggle}
             size="small"
             type="button"
@@ -178,21 +168,8 @@ function CategoryRowItem({
             <Tooltip title={`拖动${displayName}调整排序，也可使用上下方向键`}>
               <span>
                 <IconButton
-                  aria-keyshortcuts="ArrowUp ArrowDown"
+                  {...handleProps}
                   aria-label={`调整${displayName}排序`}
-                  disabled={isPending}
-                  onKeyDown={(event) => {
-                    if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      onMove(category, -1);
-                    } else if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      onMove(category, 1);
-                    }
-                  }}
-                  onPointerCancel={onPointerCancel}
-                  onPointerDown={(event) => onPointerDown(event, category)}
-                  onPointerUp={(event) => onPointerUp(event, category)}
                   size="small"
                   sx={{ cursor: "grab", touchAction: "none" }}
                   type="button"
@@ -225,23 +202,19 @@ export function CategoryList({
   updateCategoryAction,
 }: CategoryListProps) {
   const {
-    cancelDrag,
     childCount,
     closeEditor,
-    draggedCategoryId,
     editingCategory,
     editingIconName,
     editingName,
     expandedIds,
-    finishDrag,
     isPending,
-    moveCategory,
     openEditor,
     selectedType,
     setEditingIconName,
     setEditingName,
     setSelectedType,
-    startDrag,
+    submitCategoryOrder,
     toggleCategory,
     visibleCategories,
   } = useCategoryList({
@@ -301,62 +274,85 @@ export function CategoryList({
           description="新增分类后会显示在这里。"
         />
       ) : (
-        <Stack spacing={1.5}>
-          {visibleCategories.map((category) => {
-            const expanded = expandedIds.has(category.id);
-
-            return (
-              <CategorySection key={category.id}>
-                <CategoryRowItem
-                  canManageCategories={canManageCategories}
-                  category={category}
-                  childCount={category.children.length}
-                  expanded={expanded}
-                  dragging={draggedCategoryId === category.id}
-                  isPending={isPending}
-                  onPointerCancel={cancelDrag}
-                  onPointerDown={startDrag}
-                  onPointerUp={finishDrag}
-                  onEdit={openEditor}
-                  onMove={moveCategory}
-                  onToggle={() => toggleCategory(category.id)}
-                />
-                {expanded ? (
-                  category.children.length > 0 ? (
-                    category.children.map((child) => (
-                      <CategoryRowItem
-                        canManageCategories={canManageCategories}
-                        category={child}
-                        dragging={draggedCategoryId === child.id}
-                        isPending={isPending}
-                        key={child.id}
-                        nested
-                        onPointerCancel={cancelDrag}
-                        onPointerDown={startDrag}
-                        onPointerUp={finishDrag}
-                        onEdit={openEditor}
-                        onMove={moveCategory}
-                      />
-                    ))
-                  ) : (
-                    <Typography
-                      color="text.secondary"
-                      sx={{
-                        borderTop: 1,
-                        borderColor: "divider",
-                        px: 2,
-                        py: 2,
-                      }}
-                      variant="body2"
-                    >
-                      还没有小分类。记账时只能选择小分类。
-                    </Typography>
-                  )
-                ) : null}
-              </CategorySection>
-            );
-          })}
-        </Stack>
+        <SortableList
+          key={selectedType}
+          disabled={isPending || !canManageCategories}
+          items={visibleCategories.map((category) => category.id)}
+          onReorder={(ids) => submitCategoryOrder(ids, null, selectedType)}
+        >
+          {(draggingRoots) => (
+            <Stack spacing={1.5}>
+              {visibleCategories.map((category) => {
+                const expanded = !draggingRoots && expandedIds.has(category.id);
+                return (
+                  <SortableItem
+                    key={category.id}
+                    id={category.id}
+                    sx={{ borderRadius: `${designTokens.radius.lg}px` }}
+                  >
+                    {(handleProps) => (
+                      <CategorySection>
+                        <CategoryRowItem
+                          canManageCategories={canManageCategories}
+                          category={category}
+                          childCount={category.children.length}
+                          expanded={expanded}
+                          isPending={isPending || draggingRoots}
+                          handleProps={handleProps}
+                          onEdit={openEditor}
+                          onToggle={() => toggleCategory(category.id)}
+                        />
+                        {expanded ? (
+                          category.children.length > 0 ? (
+                            <SortableList
+                              disabled={isPending || !canManageCategories}
+                              items={category.children.map((child) => child.id)}
+                              onReorder={(ids) =>
+                                submitCategoryOrder(
+                                  ids,
+                                  category.id,
+                                  category.type,
+                                )
+                              }
+                            >
+                              {category.children.map((child) => (
+                                <SortableItem key={child.id} id={child.id}>
+                                  {(childHandleProps) => (
+                                    <CategoryRowItem
+                                      canManageCategories={canManageCategories}
+                                      category={child}
+                                      isPending={isPending}
+                                      nested
+                                      handleProps={childHandleProps}
+                                      onEdit={openEditor}
+                                    />
+                                  )}
+                                </SortableItem>
+                              ))}
+                            </SortableList>
+                          ) : (
+                            <Typography
+                              color="text.secondary"
+                              sx={{
+                                borderTop: 1,
+                                borderColor: "divider",
+                                px: 2,
+                                py: 2,
+                              }}
+                              variant="body2"
+                            >
+                              还没有小分类。记账时只能选择小分类。
+                            </Typography>
+                          )
+                        ) : null}
+                      </CategorySection>
+                    )}
+                  </SortableItem>
+                );
+              })}
+            </Stack>
+          )}
+        </SortableList>
       )}
 
       <SoftCard

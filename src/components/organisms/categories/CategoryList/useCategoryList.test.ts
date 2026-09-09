@@ -1,5 +1,4 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { PointerEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { CategoryReorderAction, CategoryTreeItem } from "types/categories";
@@ -65,7 +64,13 @@ describe("useCategoryList", () => {
     });
     const { result } = renderCategoryListHook(reorderCategoryAction);
 
-    act(() => result.current.moveCategory(categories[0], 1));
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[1].id, categories[0].id],
+        null,
+        "expense",
+      ),
+    );
 
     expect(
       result.current.visibleCategories.map((category) => category.id),
@@ -82,21 +87,6 @@ describe("useCategoryList", () => {
     expect(formData.get("type")).toBe("expense");
   });
 
-  it("第一项向上或最后一项向下时不提交排序", () => {
-    const reorderCategoryAction = vi.fn(async () => ({}));
-    const { result } = renderCategoryListHook(reorderCategoryAction);
-
-    act(() => {
-      result.current.moveCategory(categories[0], -1);
-      result.current.moveCategory(categories[1], 1);
-    });
-
-    expect(reorderCategoryAction).not.toHaveBeenCalled();
-    expect(
-      result.current.visibleCategories.map((category) => category.id),
-    ).toEqual([categories[0].id, categories[1].id]);
-  });
-
   it("排序保存失败时恢复原顺序并上抛 Service message", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
       error: "分类排序保存失败，请稍后重试。",
@@ -106,7 +96,13 @@ describe("useCategoryList", () => {
       reorderCategoryAction,
     );
 
-    act(() => result.current.moveCategory(categories[0], 1));
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[1].id, categories[0].id],
+        null,
+        "expense",
+      ),
+    );
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
@@ -128,7 +124,13 @@ describe("useCategoryList", () => {
       reorderCategoryAction,
     );
 
-    act(() => result.current.moveCategory(categories[0], 1));
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[1].id, categories[0].id],
+        null,
+        "expense",
+      ),
+    );
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
@@ -149,7 +151,13 @@ describe("useCategoryList", () => {
       reorderCategoryAction,
     );
 
-    act(() => result.current.moveCategory(categories[0], 1));
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[1].id, categories[0].id],
+        null,
+        "expense",
+      ),
+    );
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
@@ -191,18 +199,31 @@ describe("useCategoryList", () => {
     ).toEqual([incomeCategory.id]);
   });
 
-  it("非主键按下时不启动拖动", () => {
-    const { result } = renderCategoryListHook(vi.fn(async () => ({})));
-    const event = {
-      button: 2,
-      currentTarget: { setPointerCapture: vi.fn() },
-      pointerId: 1,
-      preventDefault: vi.fn(),
-    } as unknown as PointerEvent<HTMLButtonElement>;
-
-    act(() => result.current.startDrag(event, categories[0]));
-
-    expect(result.current.draggedCategoryId).toBeNull();
-    expect(event.preventDefault).not.toHaveBeenCalled();
+  it("提交期间忽略再次排序", async () => {
+    let finish: (() => void) | undefined;
+    const action = vi.fn<CategoryReorderAction>(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve({});
+        }),
+    );
+    const { result } = renderCategoryListHook(action);
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[1].id, categories[0].id],
+        null,
+        "expense",
+      ),
+    );
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+    act(() =>
+      result.current.submitCategoryOrder(
+        [categories[0].id, categories[1].id],
+        null,
+        "expense",
+      ),
+    );
+    expect(action).toHaveBeenCalledOnce();
+    await act(async () => finish?.());
   });
 });

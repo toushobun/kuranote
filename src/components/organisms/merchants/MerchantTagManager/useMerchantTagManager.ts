@@ -1,7 +1,6 @@
 "use client";
 
-import type { DragEvent } from "react";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { merchantText } from "config/merchantText";
 import type {
@@ -9,8 +8,6 @@ import type {
   MerchantTagActionState,
   MerchantTagReorderAction,
 } from "types/merchants";
-
-export type MerchantTagMoveDirection = -1 | 1;
 
 type UseMerchantTagManagerParams = {
   onReorderError: (state: MerchantTagActionState) => void;
@@ -28,11 +25,15 @@ export function useMerchantTagManager({
     tags: MerchantTag[];
   } | null>(null);
   const orderedTags = optimistic?.source === tags ? optimistic.tags : tags;
-  const draggedIdRef = useRef<string | null>(null);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function submitOrder(nextTags: MerchantTag[]) {
+  function submitOrder(ids: string[]) {
+    if (isPending) return;
+    const tagById = new Map(orderedTags.map((tag) => [tag.id, tag]));
+    const nextTags = ids.flatMap((id) => {
+      const tag = tagById.get(id);
+      return tag ? [tag] : [];
+    });
     const previous = orderedTags;
     const formData = new FormData();
     formData.set("tagIds", JSON.stringify(nextTags.map((tag) => tag.id)));
@@ -54,63 +55,5 @@ export function useMerchantTagManager({
     });
   }
 
-  function moveTag(tagId: string, direction: MerchantTagMoveDirection) {
-    if (isPending) return;
-    const currentIndex = orderedTags.findIndex((tag) => tag.id === tagId);
-    const targetIndex = currentIndex + direction;
-    if (
-      currentIndex < 0 ||
-      targetIndex < 0 ||
-      targetIndex >= orderedTags.length
-    )
-      return;
-    const next = [...orderedTags];
-    const [tag] = next.splice(currentIndex, 1);
-    if (!tag) return;
-    next.splice(targetIndex, 0, tag);
-    submitOrder(next);
-  }
-
-  function startDrag(event: DragEvent<HTMLButtonElement>, tagId: string) {
-    if (isPending) {
-      event.preventDefault();
-      return;
-    }
-    draggedIdRef.current = tagId;
-    setDraggedId(tagId);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", tagId);
-  }
-
-  function dropOn(event: DragEvent<HTMLElement>, targetId: string) {
-    event.preventDefault();
-    if (isPending) return finishDrag();
-    const sourceId = draggedIdRef.current;
-    if (!sourceId || sourceId === targetId) return finishDrag();
-    const next = [...orderedTags];
-    const sourceIndex = next.findIndex((tag) => tag.id === sourceId);
-    if (sourceIndex < 0) return finishDrag();
-    const [tag] = next.splice(sourceIndex, 1);
-    if (!tag) return finishDrag();
-    const targetIndex = next.findIndex((item) => item.id === targetId);
-    if (targetIndex < 0) return finishDrag();
-    next.splice(targetIndex, 0, tag);
-    submitOrder(next);
-    finishDrag();
-  }
-
-  function finishDrag() {
-    draggedIdRef.current = null;
-    setDraggedId(null);
-  }
-
-  return {
-    draggedId,
-    dropOn,
-    finishDrag,
-    isPending,
-    moveTag,
-    orderedTags,
-    startDrag,
-  };
+  return { isPending, orderedTags, submitOrder };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, type PointerEvent } from "react";
+import { useState, useTransition } from "react";
 
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import type {
@@ -12,8 +12,6 @@ import type {
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
-type DraggedCategory = Pick<Category, "id" | "parent_id" | "type">;
-
 type UseCategoryListParams = {
   categories: CategoryTreeItem[];
   onReorderError: (state: CategoryActionState) => void;
@@ -24,8 +22,6 @@ type OptimisticCategoryOrder = {
   categories: CategoryTreeItem[];
   source: CategoryTreeItem[];
 };
-
-export type CategoryMoveDirection = -1 | 1;
 
 function orderItemsByIds<T extends { id: string }>(
   items: T[],
@@ -93,10 +89,6 @@ export function useCategoryList({
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
-  const draggedCategoryRef = useRef<DraggedCategory | null>(null);
-  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(
-    null,
-  );
   const [isPending, startTransition] = useTransition();
 
   const visibleCategories = orderedCategories.filter(
@@ -107,21 +99,12 @@ export function useCategoryList({
     0,
   );
 
-  function getSiblings(category: Pick<Category, "parent_id" | "type">) {
-    return category.parent_id === null
-      ? orderedCategories.filter(
-          (candidate) =>
-            candidate.type === category.type && candidate.parent_id === null,
-        )
-      : (orderedCategories.find((parent) => parent.id === category.parent_id)
-          ?.children ?? []);
-  }
-
   function submitCategoryOrder(
     orderedIds: string[],
     parentId: string | null,
     type: TransactionType,
   ) {
+    if (isPending) return;
     const previousCategories = orderedCategories;
     const nextCategories = applyCategoryOrder(
       previousCategories,
@@ -185,126 +168,20 @@ export function useCategoryList({
     });
   }
 
-  function startDrag(
-    event: PointerEvent<HTMLButtonElement>,
-    category: Category,
-  ) {
-    if (event.button !== 0 || isPending) return;
-
-    event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    draggedCategoryRef.current = {
-      id: category.id,
-      parent_id: category.parent_id,
-      type: category.type,
-    };
-    setDraggedCategoryId(category.id);
-  }
-
-  function cancelDrag() {
-    draggedCategoryRef.current = null;
-    setDraggedCategoryId(null);
-  }
-
-  function finishDrag(
-    event: PointerEvent<HTMLButtonElement>,
-    sourceCategory: Category,
-  ) {
-    const draggedCategory = draggedCategoryRef.current;
-    const targetElement = document
-      .elementFromPoint?.(event.clientX, event.clientY)
-      ?.closest<HTMLElement>("[data-category-row-id]");
-    const targetId = targetElement?.dataset.categoryRowId;
-    const allCategories = orderedCategories.flatMap((category) => [
-      category,
-      ...category.children,
-    ]);
-    const targetCategory = allCategories.find(
-      (category) => category.id === targetId,
-    );
-
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-      event.currentTarget.releasePointerCapture?.(event.pointerId);
-    }
-
-    if (
-      !draggedCategory ||
-      draggedCategory.id !== sourceCategory.id ||
-      !targetElement ||
-      !targetCategory ||
-      draggedCategory.id === targetCategory.id ||
-      draggedCategory.type !== targetCategory.type ||
-      draggedCategory.parent_id !== targetCategory.parent_id
-    ) {
-      cancelDrag();
-      return;
-    }
-
-    const orderedIds = getSiblings(targetCategory).map(
-      (category) => category.id,
-    );
-    const draggedIndex = orderedIds.indexOf(draggedCategory.id);
-    const targetIndex = orderedIds.indexOf(targetCategory.id);
-
-    if (draggedIndex < 0 || targetIndex < 0) {
-      cancelDrag();
-      return;
-    }
-
-    orderedIds.splice(draggedIndex, 1);
-    const targetRect = targetElement.getBoundingClientRect();
-    const insertAfter = event.clientY > targetRect.top + targetRect.height / 2;
-    let insertIndex = orderedIds.indexOf(targetCategory.id);
-
-    if (insertAfter) insertIndex += 1;
-    orderedIds.splice(insertIndex, 0, draggedCategory.id);
-
-    submitCategoryOrder(
-      orderedIds,
-      targetCategory.parent_id,
-      targetCategory.type,
-    );
-    cancelDrag();
-  }
-
-  function moveCategory(category: Category, direction: CategoryMoveDirection) {
-    if (isPending) return;
-
-    const orderedIds = getSiblings(category).map((sibling) => sibling.id);
-    const currentIndex = orderedIds.indexOf(category.id);
-    const targetIndex = currentIndex + direction;
-
-    if (
-      currentIndex < 0 ||
-      targetIndex < 0 ||
-      targetIndex >= orderedIds.length
-    ) {
-      return;
-    }
-
-    const [categoryId] = orderedIds.splice(currentIndex, 1);
-    orderedIds.splice(targetIndex, 0, categoryId);
-    submitCategoryOrder(orderedIds, category.parent_id, category.type);
-  }
-
   return {
-    cancelDrag,
     childCount,
     closeEditor,
-    draggedCategoryId,
     editingCategory,
     editingIconName,
     editingName,
     expandedIds,
-    finishDrag,
     isPending,
-    moveCategory,
     openEditor,
     selectedType,
     setEditingIconName,
     setEditingName,
     setSelectedType,
-    startDrag,
+    submitCategoryOrder,
     toggleCategory,
     visibleCategories,
   };

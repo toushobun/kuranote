@@ -14,12 +14,12 @@ const threeTags = [
 ];
 
 describe("useMerchantTagManager", () => {
-  it("键盘移动先乐观更新并提交完整标签顺序", async () => {
+  it("排序时先乐观更新并提交完整标签顺序", async () => {
     const reorderAction = vi.fn<MerchantTagReorderAction>(async () => ({}));
     const { result } = renderHook(() =>
       useMerchantTagManager({ onReorderError: vi.fn(), reorderAction, tags }),
     );
-    act(() => result.current.moveTag("tag-1", 1));
+    act(() => result.current.submitOrder(["tag-2", "tag-1"]));
     expect(result.current.orderedTags.map((tag) => tag.id)).toEqual([
       "tag-2",
       "tag-1",
@@ -33,7 +33,7 @@ describe("useMerchantTagManager", () => {
     ]);
   });
 
-  it("向下拖拽时把标签插入目标标签之前", async () => {
+  it("按拖动结果提交三个标签的新顺序", async () => {
     const reorderAction = vi.fn<MerchantTagReorderAction>(async () => ({}));
     const { result } = renderHook(() =>
       useMerchantTagManager({
@@ -42,18 +42,7 @@ describe("useMerchantTagManager", () => {
         tags: threeTags,
       }),
     );
-    const dragEvent = {
-      dataTransfer: {
-        effectAllowed: "none",
-        setData: vi.fn(),
-      },
-      preventDefault: vi.fn(),
-    };
-
-    act(() => {
-      result.current.startDrag(dragEvent as never, "tag-1");
-      result.current.dropOn(dragEvent as never, "tag-3");
-    });
+    act(() => result.current.submitOrder(["tag-2", "tag-1", "tag-3"]));
 
     expect(result.current.orderedTags.map((tag) => tag.id)).toEqual([
       "tag-2",
@@ -70,7 +59,7 @@ describe("useMerchantTagManager", () => {
     ]);
   });
 
-  it("排序请求处理中忽略已有拖拽的放置事件", async () => {
+  it("排序请求处理中忽略再次提交", async () => {
     let resolveReorder: (() => void) | undefined;
     const reorderAction = vi.fn<MerchantTagReorderAction>(
       () =>
@@ -81,24 +70,33 @@ describe("useMerchantTagManager", () => {
     const { result } = renderHook(() =>
       useMerchantTagManager({ onReorderError: vi.fn(), reorderAction, tags }),
     );
-    const dragEvent = {
-      dataTransfer: {
-        effectAllowed: "none",
-        setData: vi.fn(),
-      },
-      preventDefault: vi.fn(),
-    };
-
-    act(() => {
-      result.current.startDrag(dragEvent as never, "tag-1");
-      result.current.moveTag("tag-2", -1);
-    });
+    act(() => result.current.submitOrder(["tag-2", "tag-1"]));
     await waitFor(() => expect(result.current.isPending).toBe(true));
 
-    act(() => result.current.dropOn(dragEvent as never, "tag-2"));
+    act(() => result.current.submitOrder(["tag-1", "tag-2"]));
 
     expect(reorderAction).toHaveBeenCalledOnce();
-    expect(result.current.draggedId).toBeNull();
     await act(async () => resolveReorder?.());
   });
+  it.each([false, true])(
+    "保存失败时回滚并反馈错误（抛异常：%s）",
+    async (throws) => {
+      const error = { error: "排序保存失败", errorKey: "failure" };
+      const onReorderError = vi.fn();
+      const { result } = renderHook(() =>
+        useMerchantTagManager({
+          tags,
+          onReorderError,
+          reorderAction: async () => {
+            if (throws) throw new Error("network");
+            return error;
+          },
+        }),
+      );
+      act(() => result.current.submitOrder(["tag-2", "tag-1"]));
+      await waitFor(() => expect(onReorderError).toHaveBeenCalledOnce());
+      expect(result.current.orderedTags).toEqual(tags);
+      if (!throws) expect(onReorderError).toHaveBeenCalledWith(error);
+    },
+  );
 });

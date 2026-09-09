@@ -92,3 +92,15 @@ export const Empty: Story = {
   name: "空状态",
   args: { categories: [] },
 };
+
+export const DragSorting: Story = {
+  name: "拖动临时收起，松手恢复展开",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "拖动大分类时临时收起全部小分类，松手或按 Escape 后恢复原展开状态。小分类仅在原大分类内排序；支持触屏拖动与直接按上下方向键排序。",
+      },
+    },
+  },
+};

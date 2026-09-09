@@ -9,6 +9,7 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { designTokens, theme } from "theme/theme";
 
 import { CategoryList } from "./CategoryList";
@@ -170,40 +171,20 @@ describe("CategoryList", () => {
     });
     const { container } = renderList({ reorderCategoryAction });
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
-    const targetRow = container.querySelector<HTMLElement>(
-      `[data-category-row-id="${expenseSecondRootId}"]`,
-    );
-
-    expect(targetRow).not.toBeNull();
-    Object.defineProperties(handle, {
-      hasPointerCapture: { value: vi.fn(() => false) },
-      setPointerCapture: { value: vi.fn() },
-    });
-    Object.defineProperty(document, "elementFromPoint", {
-      configurable: true,
-      value: vi.fn(() => targetRow),
-    });
-    vi.spyOn(targetRow as HTMLElement, "getBoundingClientRect").mockReturnValue(
-      {
-        bottom: 100,
-        height: 40,
-        left: 0,
-        right: 320,
-        toJSON: () => ({}),
-        top: 60,
-        width: 320,
-        x: 0,
-        y: 60,
-      },
-    );
-
-    fireEvent.pointerDown(handle, {
-      button: 0,
-      clientX: 20,
-      clientY: 20,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(handle, { clientX: 20, clientY: 95, pointerId: 1 });
+    mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
+    await dragSortable(handle, 20, 140);
+    expect(screen.queryByText("外食")).not.toBeInTheDocument();
+    expect(reorderCategoryAction).not.toHaveBeenCalled();
+    expect(
+      container
+        .querySelector(`[data-sortable-id="${expenseSecondRootId}"]`)
+        ?.getAttribute("style"),
+    ).toContain("translate3d");
+    dropSortable();
+    expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "展开日常购物" }),
+    ).toBeInTheDocument();
 
     await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
     const formData = reorderCategoryAction.mock.calls[0]?.[0];
@@ -213,6 +194,87 @@ describe("CategoryList", () => {
     );
     expect(formData?.get("parentId")).toBe("");
     expect(formData?.get("type")).toBe("expense");
+  });
+
+  it.each(["Escape", "pointercancel"])(
+    "取消大分类拖动（%s）后恢复展开状态且不提交",
+    async (cancel) => {
+      const reorderCategoryAction = vi.fn(async () => ({}));
+      renderList({ reorderCategoryAction });
+      mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
+      await dragSortable(
+        screen.getByRole("button", { name: "调整餐饮排序" }),
+        20,
+        140,
+      );
+      expect(screen.queryByText("外食")).not.toBeInTheDocument();
+      if (cancel === "Escape")
+        fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
+      else fireEvent.pointerCancel(document, { pointerId: 1 });
+      expect(screen.getByText("外食")).toBeInTheDocument();
+      expect(reorderCategoryAction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("触屏拖动小分类只提交同一大分类下的新顺序", async () => {
+    const reorderCategoryAction = vi.fn(async (data: FormData) => {
+      void data;
+      return {};
+    });
+    const secondChildId = "child-2";
+    renderList({
+      reorderCategoryAction,
+      categories: [
+        {
+          ...categories[0],
+          children: [
+            ...categories[0].children,
+            { ...categories[0].children[0], id: secondChildId, name: "早餐" },
+          ],
+        },
+        ...categories.slice(1),
+      ],
+    });
+    mockSortableRects({
+      [expenseRootId]: 0,
+      [expenseChildId]: 100,
+      [secondChildId]: 200,
+      [expenseSecondRootId]: 300,
+    });
+    await dragSortable(
+      screen.getByRole("button", { name: "调整外食排序" }),
+      120,
+      240,
+      "touch",
+    );
+    expect(screen.getByText("早餐")).toBeInTheDocument();
+    expect(reorderCategoryAction).not.toHaveBeenCalled();
+    dropSortable();
+    await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
+    const data = reorderCategoryAction.mock.calls[0][0];
+    expect(data.get("categoryIds")).toBe(
+      JSON.stringify([secondChildId, expenseChildId]),
+    );
+    expect(data.get("parentId")).toBe(expenseRootId);
+    expect(data.get("type")).toBe("expense");
+  });
+
+  it("小分类拖到其他大分类时不提交且不触发父级收起", async () => {
+    const reorderCategoryAction = vi.fn(async () => ({}));
+    renderList({ reorderCategoryAction });
+    mockSortableRects({
+      [expenseRootId]: 0,
+      [expenseChildId]: 100,
+      [expenseSecondRootId]: 300,
+    });
+    await dragSortable(
+      screen.getByRole("button", { name: "调整外食排序" }),
+      120,
+      340,
+    );
+    expect(screen.getByText("外食")).toBeInTheDocument();
+    dropSortable();
+    expect(reorderCategoryAction).not.toHaveBeenCalled();
   });
 
   it("非主键按下排序按钮时不启动拖动", () => {

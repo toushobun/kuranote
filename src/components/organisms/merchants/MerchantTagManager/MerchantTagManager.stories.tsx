@@ -63,3 +63,16 @@ export const Management: Story = {
   },
   name: "分类管理行（方形数量与宽松间距）",
 };
+
+export const DragSorting: Story = {
+  ...Management,
+  name: "触屏拖动与实时让位",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "按住排序手柄拖动，标签跟手抬起并实时挤开其他行；松手提交。也可聚焦手柄后直接按上下方向键排序。",
+      },
+    },
+  },
+};
