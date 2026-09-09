@@ -124,6 +124,41 @@ describe("CategoryList", () => {
     expect(screen.queryByText("工资")).toBeNull();
   });
 
+  it("移除分类统计文字并把展开的小分类渲染为可换行胶囊", () => {
+    const { container } = renderListWithTheme();
+
+    expect(screen.queryByText("2 个大分类 · 1 个小分类")).toBeNull();
+    expect(
+      container.querySelector(`[data-category-chip-id="${expenseChildId}"]`),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(`[data-category-row-id="${expenseChildId}"]`),
+    ).toBeNull();
+
+    const chipList = screen.getByTestId("category-chip-list");
+    expect(getComputedStyle(chipList).display).toBe("flex");
+    expect(getComputedStyle(chipList).flexWrap).toBe("wrap");
+
+    const sortableItem = container.querySelector(
+      `[data-sortable-id="${expenseChildId}"]`,
+    );
+    expect(sortableItem).not.toBeNull();
+    expect(getComputedStyle(sortableItem!).display).toBe("inline-flex");
+    expect(getComputedStyle(sortableItem!).width).toBe("auto");
+  });
+
+  it("展开空的大分类时保留没有小分类提示", () => {
+    renderList();
+
+    expect(
+      screen.queryByText("还没有小分类。记账时只能选择小分类。"),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "展开日常购物" }));
+    expect(
+      screen.getByText("还没有小分类。记账时只能选择小分类。"),
+    ).toBeInTheDocument();
+  });
+
   it("切换收入分类后显示收入列表", () => {
     renderList();
 

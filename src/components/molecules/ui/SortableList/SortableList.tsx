@@ -13,6 +13,7 @@ import {
   arrayMove,
   SortableContext,
   verticalListSortingStrategy,
+  type SortingStrategy,
 } from "@dnd-kit/sortable";
 import { createContext, useId, useState, type ReactNode } from "react";
 
@@ -59,6 +60,7 @@ type SortableListProps = {
   disabled?: boolean;
   items: string[];
   onReorder: (ids: string[]) => void;
+  strategy?: SortingStrategy;
 };
 
 export function SortableList({
@@ -66,6 +68,7 @@ export function SortableList({
   disabled = false,
   items,
   onReorder,
+  strategy = verticalListSortingStrategy,
 }: SortableListProps) {
   const id = useId();
   const [dragging, setDragging] = useState(false);
@@ -116,7 +119,7 @@ export function SortableList({
           },
         }}
       >
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <SortableContext items={items} strategy={strategy}>
           {typeof children === "function" ? children(dragging) : children}
         </SortableContext>
       </SortableListContext.Provider>

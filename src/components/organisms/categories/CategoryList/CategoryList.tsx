@@ -1,8 +1,7 @@
 "use client";
 
+import { rectSortingStrategy } from "@dnd-kit/sortable";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Box from "@mui/material/Box";
@@ -15,21 +14,19 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import { categoryArchiveMessages } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
 import {
   SortableItem,
   type SortableHandleProps,
 } from "molecules/ui/SortableList/SortableItem";
-import { EmptyState } from "molecules/ui/EmptyState";
 import { designTokens } from "theme/theme";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   CategoryAction,
   CategoryActionState,
@@ -40,6 +37,10 @@ import type {
 import type { TransactionType } from "types/transactions";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
+import {
+  CategoryChip,
+  CategoryItemActions,
+} from "../CategoryChip/CategoryChip";
 import { CategoryDialogActions } from "../CategoryDialogActions/CategoryDialogActions";
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
 import { useCategoryActionSuccess } from "../useCategoryActionSuccess";
@@ -62,7 +63,6 @@ type CategoryRowItemProps = {
   childCount?: number;
   expanded?: boolean;
   isPending: boolean;
-  nested?: boolean;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
   onToggle?: () => void;
@@ -74,7 +74,6 @@ function CategoryRowItem({
   childCount,
   expanded = false,
   isPending,
-  nested = false,
   handleProps,
   onEdit,
   onToggle,
@@ -83,17 +82,11 @@ function CategoryRowItem({
   const iconName = category.icon_name ?? defaultCategoryEmoji;
 
   return (
-    <Box
-      data-category-row-id={category.id}
-      sx={{
-        borderTop: nested ? userThemeCardBorder : 0,
-        px: nested ? { xs: 1, sm: 2 } : 0,
-      }}
-    >
+    <Box data-category-row-id={category.id}>
       <Stack
         direction="row"
         spacing={{ xs: 0.5, sm: 1 }}
-        sx={{ alignItems: "center", minHeight: nested ? 66 : 78, py: 1 }}
+        sx={{ alignItems: "center", minHeight: 78, py: 1 }}
       >
         {onToggle ? (
           <IconButton
@@ -133,21 +126,17 @@ function CategoryRowItem({
             borderRadius: `${designTokens.radius.sm}px`,
             display: "flex",
             flexShrink: 0,
-            fontSize: nested ? "1.35rem" : "1.75rem",
-            height: nested ? 42 : 52,
+            fontSize: "1.75rem",
+            height: 52,
             justifyContent: "center",
-            width: nested ? 42 : 52,
+            width: 52,
           }}
         >
           {iconName}
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            noWrap
-            sx={{ fontWeight: nested ? 650 : 800 }}
-            variant={nested ? "body1" : "subtitle1"}
-          >
+          <Typography noWrap sx={{ fontWeight: 800 }} variant="subtitle1">
             {displayName}
           </Typography>
           {childCount !== undefined ? (
@@ -157,33 +146,12 @@ function CategoryRowItem({
           ) : null}
         </Box>
 
-        {canManageCategories ? (
-          <>
-            <Tooltip title={`编辑${displayName}`}>
-              <IconButton
-                aria-label={`编辑${displayName}`}
-                onClick={() => onEdit(category)}
-                size="small"
-                type="button"
-              >
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={`拖动${displayName}调整排序，也可使用上下方向键`}>
-              <span>
-                <IconButton
-                  {...handleProps}
-                  aria-label={`调整${displayName}排序`}
-                  size="small"
-                  sx={{ cursor: "grab", touchAction: "none" }}
-                  type="button"
-                >
-                  <DragIndicatorRoundedIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </>
-        ) : null}
+        <CategoryItemActions
+          canManageCategories={canManageCategories}
+          category={category}
+          handleProps={handleProps}
+          onEdit={onEdit}
+        />
       </Stack>
     </Box>
   );
@@ -208,7 +176,6 @@ export function CategoryList({
   updateState,
 }: CategoryListProps) {
   const {
-    childCount,
     closeEditor,
     editingCategory,
     editingIconName,
@@ -273,10 +240,6 @@ export function CategoryList({
         <Tab label="收入分类" value="income" />
       </Tabs>
 
-      <Typography color="text.secondary" variant="body2">
-        {visibleCategories.length} 个大分类 · {childCount} 个小分类
-      </Typography>
-
       {visibleCategories.length === 0 ? (
         <EmptyState
           title={`还没有${selectedType === "expense" ? "支出" : "收入"}分类`}
@@ -323,21 +286,41 @@ export function CategoryList({
                                   category.type,
                                 )
                               }
+                              strategy={rectSortingStrategy}
                             >
-                              {category.children.map((child) => (
-                                <SortableItem key={child.id} id={child.id}>
-                                  {(childHandleProps) => (
-                                    <CategoryRowItem
-                                      canManageCategories={canManageCategories}
-                                      category={child}
-                                      isPending={isPending}
-                                      nested
-                                      handleProps={childHandleProps}
-                                      onEdit={openEditor}
-                                    />
-                                  )}
-                                </SortableItem>
-                              ))}
+                              <Box
+                                data-testid="category-chip-list"
+                                sx={{
+                                  borderTop: 1,
+                                  borderColor: "divider",
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 1,
+                                  py: 1.5,
+                                }}
+                              >
+                                {category.children.map((child) => (
+                                  <SortableItem
+                                    key={child.id}
+                                    id={child.id}
+                                    sx={{
+                                      display: "inline-flex",
+                                      width: "auto",
+                                    }}
+                                  >
+                                    {(childHandleProps) => (
+                                      <CategoryChip
+                                        canManageCategories={
+                                          canManageCategories
+                                        }
+                                        category={child}
+                                        handleProps={childHandleProps}
+                                        onEdit={openEditor}
+                                      />
+                                    )}
+                                  </SortableItem>
+                                ))}
+                              </Box>
                             </SortableList>
                           ) : (
                             <Typography
