@@ -28,7 +28,7 @@ export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.typeInvalid;
 
 const categoryErrorMessages: Record<CategoryErrorCode, string> = {
-  [categoryErrorCodes.archiveFailed]: "分类隐藏失败。",
+  [categoryErrorCodes.archiveFailed]: "分类归档失败。",
   [categoryErrorCodes.categoryInvalid]: "分类指定不正确。",
   [categoryErrorCodes.createFailed]:
     "分类新增失败。请确认分类名称是否重复，或稍后重试。",
