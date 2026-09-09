@@ -17,17 +17,17 @@ describe("CategoryIconField", () => {
     expect(container.querySelector('input[name="iconName"]')).toHaveValue("🍜");
   });
 
-  it("搜索并确认选择 Emoji", () => {
+  it("分组展示并确认选择 Emoji", () => {
     const onChange = vi.fn();
     render(<CategoryIconField onChange={onChange} value="🍜" />);
 
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
-    fireEvent.change(screen.getByLabelText("搜索图标"), {
-      target: { value: "咖啡" },
-    });
-
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "餐饮 15个图标" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "选择咖啡图标" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "选择面条图标" })).toBeNull();
+    expect(screen.getByRole("button", { name: "选择面条图标" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "选择咖啡图标" }));
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
