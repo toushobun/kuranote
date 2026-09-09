@@ -74,9 +74,7 @@ describe("SortableList", () => {
   });
 
   it("传入矩形排序策略时交给 SortableContext 使用", () => {
-    render(
-      <Example onReorder={vi.fn()} strategy={rectSortingStrategy} />,
-    );
+    render(<Example onReorder={vi.fn()} strategy={rectSortingStrategy} />);
 
     expect(sortableContextStrategySpy).toHaveBeenLastCalledWith(
       rectSortingStrategy,
