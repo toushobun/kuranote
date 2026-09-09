@@ -17,7 +17,7 @@ const category: Category = {
 };
 
 describe("CategoryChip", () => {
-  it("渲染图标和名称并保留编辑与排序操作", () => {
+  it("渲染图标和名称并保留编辑与排序操作", async () => {
     const onEdit = vi.fn();
     const onKeyDown = vi.fn();
     const { container } = render(
@@ -43,6 +43,12 @@ describe("CategoryChip", () => {
 
     const handle = screen.getByRole("button", { name: "调整外食排序" });
     expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
+    fireEvent.mouseOver(handle);
+    expect(
+      await screen.findByText(
+        "拖动外食调整排序，键盘可使用上下方向键按顺序移动",
+      ),
+    ).toBeInTheDocument();
     fireEvent.keyDown(handle, { key: "ArrowDown" });
     expect(onKeyDown).toHaveBeenCalledOnce();
   });
