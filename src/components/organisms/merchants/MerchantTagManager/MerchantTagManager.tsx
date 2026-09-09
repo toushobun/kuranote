@@ -22,6 +22,8 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
+import { SortableList } from "molecules/ui/SortableList/SortableList";
+import { SortableItem } from "molecules/ui/SortableList/SortableItem";
 import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
@@ -33,10 +35,7 @@ import type {
   MerchantTagStateAction,
 } from "types/merchants";
 
-import {
-  type MerchantTagMoveDirection,
-  useMerchantTagManager,
-} from "./useMerchantTagManager";
+import { useMerchantTagManager } from "./useMerchantTagManager";
 
 type MerchantTagFilterProps = {
   keyword: string;
@@ -224,100 +223,99 @@ function MerchantTagManagement({
 
   return (
     <Stack spacing={1.5}>
-      <Stack data-testid="merchant-tag-management-list" sx={{ gap: 1 }}>
-        {manager.orderedTags.map((tag) => (
-          <Stack
-            data-merchant-tag-row-id={tag.id}
-            direction="row"
-            key={tag.id}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => manager.dropOn(event, tag.id)}
-            spacing={1}
-            sx={{
-              alignItems: "center",
-              border: 1,
-              borderColor: "divider",
-              borderRadius: `${designTokens.radius.item}px`,
-              minHeight: 64,
-              opacity: manager.draggedId === tag.id ? 0.58 : 1,
-              px: 1.5,
-              py: 0.5,
-            }}
-          >
-            <Box
-              aria-hidden
-              sx={{
-                alignItems: "center",
-                bgcolor: "var(--user-theme-icon-badge-bg)",
-                borderRadius: `${designTokens.radius.sm}px`,
-                display: "flex",
-                fontSize: "1.5rem",
-                height: 42,
-                justifyContent: "center",
-                width: 42,
-              }}
-            >
-              {tag.icon}
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <Typography noWrap sx={{ fontWeight: 700 }}>
-                  {tag.name}
-                </Typography>
-                <IconBadge
-                  label={`${tag.merchant_count} 个商家`}
-                  size="sm"
+      <SortableList
+        disabled={pending || !active}
+        items={manager.orderedTags.map((tag) => tag.id)}
+        onReorder={manager.submitOrder}
+      >
+        <Stack data-testid="merchant-tag-management-list" sx={{ gap: 1 }}>
+          {manager.orderedTags.map((tag) => (
+            <SortableItem key={tag.id} id={tag.id}>
+              {(handleProps) => (
+                <Stack
+                  data-merchant-tag-row-id={tag.id}
+                  direction="row"
+                  spacing={1}
                   sx={{
-                    height: (theme) => theme.spacing(3),
-                    minWidth: (theme) => theme.spacing(3),
-                    px: 0.75,
-                    typography: "caption",
-                    width: "auto",
+                    alignItems: "center",
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: `${designTokens.radius.item}px`,
+                    minHeight: 64,
+                    px: 1.5,
+                    py: 0.5,
                   }}
                 >
-                  {tag.merchant_count}
-                </IconBadge>
-              </Stack>
-            </Box>
-            <Button
-              aria-label={`编辑${tag.name}`}
-              disabled={pending || !active}
-              onClick={() => openEdit(tag)}
-              size="small"
-              startIcon={<EditRoundedIcon fontSize="small" />}
-              sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
-            >
-              {merchantText.editCategory}
-            </Button>
-            <Divider flexItem orientation="vertical" />
-            <Tooltip title={`拖动${tag.name}调整排序，也可使用上下方向键`}>
-              <span>
-                <IconButton
-                  aria-keyshortcuts="ArrowUp ArrowDown"
-                  aria-label={`调整${tag.name}排序`}
-                  disabled={pending || !active}
-                  draggable
-                  onDragEnd={manager.finishDrag}
-                  onDragStart={(event) => manager.startDrag(event, tag.id)}
-                  onKeyDown={(event) => {
-                    let direction: MerchantTagMoveDirection | null = null;
-                    if (event.key === "ArrowUp") direction = -1;
-                    if (event.key === "ArrowDown") direction = 1;
-                    if (direction) {
-                      event.preventDefault();
-                      manager.moveTag(tag.id, direction);
-                    }
-                  }}
-                  size="small"
-                  sx={{ cursor: "grab" }}
-                >
-                  <DragIndicatorRoundedIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
-        ))}
-      </Stack>
+                  <Box
+                    aria-hidden
+                    sx={{
+                      alignItems: "center",
+                      bgcolor: "var(--user-theme-icon-badge-bg)",
+                      borderRadius: `${designTokens.radius.sm}px`,
+                      display: "flex",
+                      fontSize: "1.5rem",
+                      height: 42,
+                      justifyContent: "center",
+                      width: 42,
+                    }}
+                  >
+                    {tag.icon}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "center" }}
+                    >
+                      <Typography noWrap sx={{ fontWeight: 700 }}>
+                        {tag.name}
+                      </Typography>
+                      <IconBadge
+                        label={`${tag.merchant_count} 个商家`}
+                        size="sm"
+                        sx={{
+                          height: (theme) => theme.spacing(3),
+                          minWidth: (theme) => theme.spacing(3),
+                          px: 0.75,
+                          typography: "caption",
+                          width: "auto",
+                        }}
+                      >
+                        {tag.merchant_count}
+                      </IconBadge>
+                    </Stack>
+                  </Box>
+                  <Button
+                    aria-label={`编辑${tag.name}`}
+                    disabled={pending || !active}
+                    onClick={() => openEdit(tag)}
+                    size="small"
+                    startIcon={<EditRoundedIcon fontSize="small" />}
+                    sx={{ color: "text.secondary", flexShrink: 0, minWidth: 0 }}
+                  >
+                    {merchantText.editCategory}
+                  </Button>
+                  <Divider flexItem orientation="vertical" />
+                  <Tooltip
+                    title={`拖动${tag.name}调整排序，也可使用上下方向键`}
+                  >
+                    <span>
+                      <IconButton
+                        {...handleProps}
+                        aria-label={`调整${tag.name}排序`}
+                        size="small"
+                        sx={{ cursor: "grab", touchAction: "none" }}
+                      >
+                        <DragIndicatorRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Stack>
+              )}
+            </SortableItem>
+          ))}
+        </Stack>
+      </SortableList>
       <Button
         disabled={pending || !active}
         onClick={openCreate}

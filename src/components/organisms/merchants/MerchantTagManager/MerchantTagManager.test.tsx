@@ -6,8 +6,9 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { designTokens } from "theme/theme";
 
 import { MerchantTagManager } from "./MerchantTagManager";
@@ -18,7 +19,65 @@ const tags = [
 ];
 const action = vi.fn(async () => ({}));
 
+afterEach(() => vi.restoreAllMocks());
+
 describe("MerchantTagManager", () => {
+  it("触屏拖动标签时实时让位，松手后提交排序", async () => {
+    const reorderAction = vi.fn(async (data: FormData) => {
+      void data;
+      return {};
+    });
+    const { container } = render(
+      <MerchantTagManager
+        active
+        archiveAction={action}
+        createAction={action}
+        mode="management"
+        reorderAction={reorderAction}
+        tags={tags}
+        updateAction={action}
+      />,
+    );
+    mockSortableRects({ "tag-1": 0, "tag-2": 100 });
+    await dragSortable(
+      screen.getByRole("button", { name: "调整超市排序" }),
+      20,
+      140,
+      "touch",
+    );
+    expect(
+      container
+        .querySelector('[data-sortable-id="tag-2"]')
+        ?.getAttribute("style"),
+    ).toContain("-100px");
+    expect(reorderAction).not.toHaveBeenCalled();
+    dropSortable();
+    await waitFor(() => expect(reorderAction).toHaveBeenCalledOnce());
+    expect(reorderAction.mock.calls[0][0].get("tagIds")).toBe(
+      JSON.stringify(["tag-2", "tag-1"]),
+    );
+  });
+
+  it("方向键排序保留按钮焦点", async () => {
+    const reorderAction = vi.fn(async () => ({}));
+    render(
+      <MerchantTagManager
+        active
+        archiveAction={action}
+        createAction={action}
+        mode="management"
+        reorderAction={reorderAction}
+        tags={tags}
+        updateAction={action}
+      />,
+    );
+    const handle = screen.getByRole("button", { name: "调整超市排序" });
+    handle.focus();
+    fireEvent.keyDown(handle, { key: "ArrowDown" });
+    await waitFor(() => expect(reorderAction).toHaveBeenCalledOnce());
+    expect(handle).toHaveFocus();
+  });
+
   it("标签徽标保留关键词并切换筛选", () => {
     render(<MerchantTagManager keyword="Life" tags={tags} />);
     expect(screen.getByRole("link", { name: /超市/ })).toHaveAttribute(
