@@ -1,4 +1,4 @@
-import { fireEvent, waitFor } from "@testing-library/react";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 import { expect, vi } from "vitest";
 
 // jsdom 没有布局；保留真实 dnd-kit 传感器，只提供列表项的测量值。
@@ -55,6 +55,23 @@ export async function dragSortable(
   });
 }
 
+async function finishSortable(dispatch: () => void) {
+  await act(async () => {
+    dispatch();
+    // dnd-kit 的 detach 在 50ms 后才移除 document 上拦截 click 的监听器。
+    // 等待完整清理，避免同一用例的后续点击或下一个用例被上一轮拖动拦截。
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+}
+
 export function dropSortable() {
-  fireEvent.pointerUp(document, { pointerId: 1 });
+  return finishSortable(() => fireEvent.pointerUp(document, { pointerId: 1 }));
+}
+
+export function cancelSortable(cancel: "Escape" | "pointercancel") {
+  return finishSortable(() => {
+    if (cancel === "Escape")
+      fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
+    else fireEvent.pointerCancel(document, { pointerId: 1 });
+  });
 }

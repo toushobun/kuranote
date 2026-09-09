@@ -51,7 +51,7 @@ describe("MerchantTagManager", () => {
         ?.getAttribute("style"),
     ).toContain("-100px");
     expect(reorderAction).not.toHaveBeenCalled();
-    dropSortable();
+    await dropSortable();
     await waitFor(() => expect(reorderAction).toHaveBeenCalledOnce());
     expect(reorderAction.mock.calls[0][0].get("tagIds")).toBe(
       JSON.stringify(["tag-2", "tag-1"]),

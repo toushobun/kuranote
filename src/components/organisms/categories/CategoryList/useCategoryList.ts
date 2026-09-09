@@ -86,6 +86,7 @@ export function useCategoryList({
           .map((category) => category.id),
       ),
   );
+  const [isManaging, setIsManaging] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
@@ -164,12 +165,17 @@ export function useCategoryList({
     });
   }
 
+  function toggleManaging() {
+    setIsManaging((current) => !current);
+  }
+
   return {
     closeEditor,
     editingCategory,
     editingIconName,
     editingName,
     expandedIds,
+    isManaging,
     isPending,
     openEditor,
     selectedType,
@@ -178,6 +184,7 @@ export function useCategoryList({
     setSelectedType,
     submitCategoryOrder,
     toggleCategory,
+    toggleManaging,
     visibleCategories,
   };
 }

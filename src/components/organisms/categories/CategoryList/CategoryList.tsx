@@ -18,7 +18,10 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
-import { categoryArchiveMessages } from "config/categoryMessages";
+import {
+  categoryArchiveMessages,
+  categoryManagingMessages,
+} from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
@@ -66,6 +69,7 @@ type CategoryRowItemProps = {
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
   onToggle?: () => void;
+  showDragHandle: boolean;
 };
 
 function CategoryRowItem({
@@ -77,6 +81,7 @@ function CategoryRowItem({
   handleProps,
   onEdit,
   onToggle,
+  showDragHandle,
 }: CategoryRowItemProps) {
   const displayName = getCategoryDisplayName(category.name, category.icon_name);
   const iconName = category.icon_name ?? defaultCategoryEmoji;
@@ -151,6 +156,7 @@ function CategoryRowItem({
           category={category}
           handleProps={handleProps}
           onEdit={onEdit}
+          showDragHandle={showDragHandle}
         />
       </Stack>
     </Box>
@@ -181,6 +187,7 @@ export function CategoryList({
     editingIconName,
     editingName,
     expandedIds,
+    isManaging,
     isPending,
     openEditor,
     selectedType,
@@ -189,6 +196,7 @@ export function CategoryList({
     setSelectedType,
     submitCategoryOrder,
     toggleCategory,
+    toggleManaging,
     visibleCategories,
   } = useCategoryList({
     categories,
@@ -240,6 +248,16 @@ export function CategoryList({
         <Tab label="收入分类" value="income" />
       </Tabs>
 
+      {canManageCategories ? (
+        <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+          <Button onClick={toggleManaging} size="small" type="button">
+            {isManaging
+              ? categoryManagingMessages.exit
+              : categoryManagingMessages.enter}
+          </Button>
+        </Stack>
+      ) : null}
+
       {visibleCategories.length === 0 ? (
         <EmptyState
           title={`还没有${selectedType === "expense" ? "支出" : "收入"}分类`}
@@ -273,6 +291,7 @@ export function CategoryList({
                           handleProps={handleProps}
                           onEdit={openEditor}
                           onToggle={() => toggleCategory(category.id)}
+                          showDragHandle={isManaging}
                         />
                         {expanded ? (
                           category.children.length > 0 ? (
@@ -316,6 +335,7 @@ export function CategoryList({
                                         category={child}
                                         handleProps={childHandleProps}
                                         onEdit={openEditor}
+                                        showDragHandle={isManaging}
                                       />
                                     )}
                                   </SortableItem>

@@ -9,7 +9,12 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import {
+  cancelSortable,
+  dragSortable,
+  dropSortable,
+  mockSortableRects,
+} from "test/sortable";
 import { designTokens, theme } from "theme/theme";
 
 import { CategoryList } from "./CategoryList";
@@ -94,6 +99,10 @@ function renderListWithTheme(
   );
 }
 
+function enterManagingMode() {
+  fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -168,21 +177,48 @@ describe("CategoryList", () => {
     expect(screen.queryByText("餐饮")).toBeNull();
   });
 
-  it("大分类和小分类都显示编辑与排序按钮", () => {
+  it("点击管理排序后显示拖拽手柄并在完成后隐藏，编辑按钮保持可见", () => {
     renderList();
 
     expect(
       screen.getByRole("button", { name: "编辑餐饮" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "调整餐饮排序" }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole("button", { name: "编辑外食" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "调整餐饮排序" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
+
+    enterManagingMode();
+
+    expect(screen.getByRole("button", { name: "完成" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "调整餐饮排序" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "调整外食排序" }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+
+    expect(
+      screen.getByRole("button", { name: "管理排序" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "调整餐饮排序" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "编辑餐饮" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "编辑外食" }),
+    ).toBeInTheDocument();
+  });
+
+  it("只读用户看不到管理排序按钮", () => {
+    renderList({ canManageCategories: false });
+
+    expect(screen.queryByRole("button", { name: "管理排序" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "完成" })).toBeNull();
   });
 
   it("编辑分类时显示名称与当前 Emoji", () => {
@@ -236,6 +272,7 @@ describe("CategoryList", () => {
       return {};
     });
     const { container } = renderList({ reorderCategoryAction });
+    enterManagingMode();
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
     await dragSortable(handle, 20, 140);
@@ -246,7 +283,7 @@ describe("CategoryList", () => {
         .querySelector(`[data-sortable-id="${expenseSecondRootId}"]`)
         ?.getAttribute("style"),
     ).toContain("translate3d");
-    dropSortable();
+    await dropSortable();
     expect(screen.getByText("外食")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "展开日常购物" }),
@@ -262,11 +299,12 @@ describe("CategoryList", () => {
     expect(formData?.get("type")).toBe("expense");
   });
 
-  it.each(["Escape", "pointercancel"])(
+  it.each(["Escape", "pointercancel"] as const)(
     "取消大分类拖动（%s）后恢复展开状态且不提交",
     async (cancel) => {
       const reorderCategoryAction = vi.fn(async () => ({}));
       renderList({ reorderCategoryAction });
+      enterManagingMode();
       mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
       await dragSortable(
         screen.getByRole("button", { name: "调整餐饮排序" }),
@@ -274,9 +312,7 @@ describe("CategoryList", () => {
         140,
       );
       expect(screen.queryByText("外食")).not.toBeInTheDocument();
-      if (cancel === "Escape")
-        fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
-      else fireEvent.pointerCancel(document, { pointerId: 1 });
+      await cancelSortable(cancel);
       expect(screen.getByText("外食")).toBeInTheDocument();
       expect(reorderCategoryAction).not.toHaveBeenCalled();
     },
@@ -301,6 +337,7 @@ describe("CategoryList", () => {
         ...categories.slice(1),
       ],
     });
+    enterManagingMode();
     mockSortableRects({
       [expenseRootId]: 0,
       [expenseChildId]: 100,
@@ -315,7 +352,7 @@ describe("CategoryList", () => {
     );
     expect(screen.getByText("早餐")).toBeInTheDocument();
     expect(reorderCategoryAction).not.toHaveBeenCalled();
-    dropSortable();
+    await dropSortable();
     await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
     const data = reorderCategoryAction.mock.calls[0][0];
     expect(data.get("categoryIds")).toBe(
@@ -328,6 +365,7 @@ describe("CategoryList", () => {
   it("小分类拖到其他大分类时不提交且不触发父级收起", async () => {
     const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
+    enterManagingMode();
     mockSortableRects({
       [expenseRootId]: 0,
       [expenseChildId]: 100,
@@ -339,13 +377,14 @@ describe("CategoryList", () => {
       340,
     );
     expect(screen.getByText("外食")).toBeInTheDocument();
-    dropSortable();
+    await dropSortable();
     expect(reorderCategoryAction).not.toHaveBeenCalled();
   });
 
   it("非主键按下排序按钮时不启动拖动", () => {
     const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
+    enterManagingMode();
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.pointerDown(handle, { button: 2, pointerId: 1 });
@@ -360,6 +399,7 @@ describe("CategoryList", () => {
       return {};
     });
     renderList({ reorderCategoryAction });
+    enterManagingMode();
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     handle.focus();
 
@@ -378,6 +418,7 @@ describe("CategoryList", () => {
       errorKey: "reorder-error-1",
     }));
     renderList({ onReorderError, reorderCategoryAction });
+    enterManagingMode();
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.keyDown(handle, { key: "ArrowDown" });

@@ -9,3 +9,8 @@ export const categoryArchiveMessages = {
   title: "已归档分类",
   description: "归档的分类不会在记账选择中显示。",
 } as const;
+
+export const categoryManagingMessages = {
+  enter: "管理排序",
+  exit: "完成",
+} as const;

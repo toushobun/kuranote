@@ -17,7 +17,7 @@ const category: Category = {
 };
 
 describe("CategoryChip", () => {
-  it("渲染图标和名称并保留编辑与排序操作", async () => {
+  it("显示拖拽手柄时保持原有排序行为", async () => {
     const onEdit = vi.fn();
     const onKeyDown = vi.fn();
     const { container } = render(
@@ -29,6 +29,7 @@ describe("CategoryChip", () => {
           onKeyDown,
         }}
         onEdit={onEdit}
+        showDragHandle
       />,
     );
 
@@ -53,6 +54,23 @@ describe("CategoryChip", () => {
     expect(onKeyDown).toHaveBeenCalledOnce();
   });
 
+  it("隐藏拖拽手柄时仍保留编辑操作", () => {
+    render(
+      <CategoryChip
+        canManageCategories
+        category={category}
+        handleProps={{}}
+        onEdit={vi.fn()}
+        showDragHandle={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "编辑外食" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
+  });
+
   it("只读时隐藏编辑与拖动操作", () => {
     render(
       <CategoryChip
@@ -60,6 +78,7 @@ describe("CategoryChip", () => {
         category={category}
         handleProps={{}}
         onEdit={vi.fn()}
+        showDragHandle
       />,
     );
 
@@ -74,6 +93,7 @@ describe("CategoryChip", () => {
         category={{ ...category, icon_name: null, name: "其他" }}
         handleProps={{}}
         onEdit={vi.fn()}
+        showDragHandle={false}
       />,
     );
 
