@@ -64,7 +64,6 @@ type CategoryRowItemProps = {
   childCount?: number;
   expanded?: boolean;
   isPending: boolean;
-  nested?: boolean;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
   onToggle?: () => void;
@@ -76,7 +75,6 @@ function CategoryRowItem({
   childCount,
   expanded = false,
   isPending,
-  nested = false,
   handleProps,
   onEdit,
   onToggle,
@@ -85,17 +83,11 @@ function CategoryRowItem({
   const iconName = category.icon_name ?? defaultCategoryEmoji;
 
   return (
-    <Box
-      data-category-row-id={category.id}
-      sx={{
-        borderTop: nested ? userThemeCardBorder : 0,
-        px: nested ? { xs: 1, sm: 2 } : 0,
-      }}
-    >
+    <Box data-category-row-id={category.id}>
       <Stack
         direction="row"
         spacing={{ xs: 0.5, sm: 1 }}
-        sx={{ alignItems: "center", minHeight: nested ? 66 : 78, py: 1 }}
+        sx={{ alignItems: "center", minHeight: 78, py: 1 }}
       >
         {onToggle ? (
           <IconButton
@@ -135,21 +127,17 @@ function CategoryRowItem({
             borderRadius: `${designTokens.radius.sm}px`,
             display: "flex",
             flexShrink: 0,
-            fontSize: nested ? "1.35rem" : "1.75rem",
-            height: nested ? 42 : 52,
+            fontSize: "1.75rem",
+            height: 52,
             justifyContent: "center",
-            width: nested ? 42 : 52,
+            width: 52,
           }}
         >
           {iconName}
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            noWrap
-            sx={{ fontWeight: nested ? 650 : 800 }}
-            variant={nested ? "body1" : "subtitle1"}
-          >
+          <Typography noWrap sx={{ fontWeight: 800 }} variant="subtitle1">
             {displayName}
           </Typography>
           {childCount !== undefined ? (
