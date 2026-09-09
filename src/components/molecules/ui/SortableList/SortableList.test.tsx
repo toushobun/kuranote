@@ -7,7 +7,12 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState, type ComponentProps } from "react";
 
-import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import {
+  cancelSortable,
+  dragSortable,
+  dropSortable,
+  mockSortableRects,
+} from "test/sortable";
 import { SortableList } from "./SortableList";
 import { SortableItem } from "./SortableItem";
 
@@ -91,7 +96,7 @@ describe("SortableList", () => {
       container.querySelector('[data-sortable-id="b"]')?.getAttribute("style"),
     ).toContain("-100px");
     expect(onReorder).not.toHaveBeenCalled();
-    dropSortable();
+    await dropSortable();
     await waitFor(() =>
       expect(onReorder).toHaveBeenCalledExactlyOnceWith(["b", "c", "a"]),
     );
@@ -105,9 +110,34 @@ describe("SortableList", () => {
     render(<Example onReorder={onReorder} />);
     mockSortableRects({ a: 0, b: 100, c: 200 });
     await dragSortable(screen.getByRole("button", { name: "a" }), 20, targetY);
-    dropSortable();
+    await dropSortable();
     expect(onReorder).not.toHaveBeenCalled();
   });
+
+  it.each(["pointerup", "pointercancel", "Escape"] as const)(
+    "结束拖动（%s）并卸载后不拦截新组件的点击",
+    async (ending) => {
+      const originalRect = HTMLElement.prototype.getBoundingClientRect;
+      const onReorder = vi.fn();
+      const { unmount } = render(<Example onReorder={onReorder} />);
+      mockSortableRects({ a: 0, b: 100, c: 200 });
+      await dragSortable(screen.getByRole("button", { name: "a" }), 20, 240);
+
+      if (ending === "pointerup") await dropSortable();
+      else await cancelSortable(ending);
+      if (ending === "pointerup")
+        expect(onReorder).toHaveBeenCalledExactlyOnceWith(["b", "c", "a"]);
+      else expect(onReorder).not.toHaveBeenCalled();
+      unmount();
+      vi.restoreAllMocks();
+      expect(HTMLElement.prototype.getBoundingClientRect).toBe(originalRect);
+
+      const onClick = vi.fn();
+      render(<button onClick={onClick}>管理排序</button>);
+      fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
+      expect(onClick).toHaveBeenCalledOnce();
+    },
+  );
 
   it("方向键保留焦点并忽略首尾越界", () => {
     const onReorder = vi.fn();
@@ -125,7 +155,7 @@ describe("SortableList", () => {
     expect(onReorder).toHaveBeenCalledOnce();
   });
 
-  it("禁用时不允许指针或键盘调整顺序", () => {
+  it("禁用时不允许指针或键盘调整顺序", async () => {
     const onReorder = vi.fn();
     render(<Example disabled onReorder={onReorder} />);
     const handle = screen.getByRole("button", { name: "a" });
@@ -133,7 +163,7 @@ describe("SortableList", () => {
     fireEvent.keyDown(handle, { key: "ArrowDown" });
     fireEvent.pointerDown(handle, { button: 0, isPrimary: true, pointerId: 1 });
     fireEvent.pointerMove(document, { clientY: 140, pointerId: 1 });
-    dropSortable();
+    await dropSortable();
     expect(onReorder).not.toHaveBeenCalled();
   });
 });

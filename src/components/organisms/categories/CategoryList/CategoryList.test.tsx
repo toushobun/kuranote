@@ -9,7 +9,12 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import {
+  cancelSortable,
+  dragSortable,
+  dropSortable,
+  mockSortableRects,
+} from "test/sortable";
 import { designTokens, theme } from "theme/theme";
 
 import { CategoryList } from "./CategoryList";
@@ -278,7 +283,7 @@ describe("CategoryList", () => {
         .querySelector(`[data-sortable-id="${expenseSecondRootId}"]`)
         ?.getAttribute("style"),
     ).toContain("translate3d");
-    dropSortable();
+    await dropSortable();
     expect(screen.getByText("外食")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "展开日常购物" }),
@@ -294,7 +299,7 @@ describe("CategoryList", () => {
     expect(formData?.get("type")).toBe("expense");
   });
 
-  it.each(["Escape", "pointercancel"])(
+  it.each(["Escape", "pointercancel"] as const)(
     "取消大分类拖动（%s）后恢复展开状态且不提交",
     async (cancel) => {
       const reorderCategoryAction = vi.fn(async () => ({}));
@@ -307,9 +312,7 @@ describe("CategoryList", () => {
         140,
       );
       expect(screen.queryByText("外食")).not.toBeInTheDocument();
-      if (cancel === "Escape")
-        fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
-      else fireEvent.pointerCancel(document, { pointerId: 1 });
+      await cancelSortable(cancel);
       expect(screen.getByText("外食")).toBeInTheDocument();
       expect(reorderCategoryAction).not.toHaveBeenCalled();
     },
@@ -349,7 +352,7 @@ describe("CategoryList", () => {
     );
     expect(screen.getByText("早餐")).toBeInTheDocument();
     expect(reorderCategoryAction).not.toHaveBeenCalled();
-    dropSortable();
+    await dropSortable();
     await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
     const data = reorderCategoryAction.mock.calls[0][0];
     expect(data.get("categoryIds")).toBe(
@@ -374,7 +377,7 @@ describe("CategoryList", () => {
       340,
     );
     expect(screen.getByText("外食")).toBeInTheDocument();
-    dropSortable();
+    await dropSortable();
     expect(reorderCategoryAction).not.toHaveBeenCalled();
   });
 
