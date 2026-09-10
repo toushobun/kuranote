@@ -69,8 +69,9 @@ const categories = [
 
 function renderList(
   overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
+  expandFirst = true,
 ) {
-  return render(
+  const result = render(
     <CategoryList
       archiveCategoryAction={vi.fn(async () => {})}
       categories={categories}
@@ -80,12 +81,20 @@ function renderList(
       {...overrides}
     />,
   );
+
+  if (expandFirst) {
+    const toggle = screen.queryByRole("button", { name: "展开餐饮" });
+    if (toggle) fireEvent.click(toggle);
+  }
+
+  return result;
 }
 
 function renderListWithTheme(
   overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
+  expandFirst = true,
 ) {
-  return render(
+  const result = render(
     <ThemeProvider theme={theme}>
       <CategoryList
         archiveCategoryAction={vi.fn(async () => {})}
@@ -97,6 +106,13 @@ function renderListWithTheme(
       />
     </ThemeProvider>,
   );
+
+  if (expandFirst) {
+    const toggle = screen.queryByRole("button", { name: "展开餐饮" });
+    if (toggle) fireEvent.click(toggle);
+  }
+
+  return result;
 }
 
 function enterManagingMode() {
@@ -228,15 +244,16 @@ describe("CategoryList", () => {
     }
   });
 
-  it("默认显示支出分类并展开第一个大分类", () => {
-    renderList();
+  it("默认显示支出分类并折叠所有大分类", () => {
+    renderList({}, false);
 
     expect(screen.getByRole("tab", { name: "支出分类" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(screen.getByText("餐饮")).toBeInTheDocument();
-    expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
+    expect(screen.queryByText("外食")).toBeNull();
     expect(screen.queryByText("工资")).toBeNull();
   });
 
