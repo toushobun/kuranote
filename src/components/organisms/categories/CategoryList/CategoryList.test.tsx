@@ -9,6 +9,7 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import {
   cancelSortable,
   dragSortable,
@@ -78,14 +79,16 @@ function renderList(
   expandFirst = true,
 ) {
   const result = render(
-    <CategoryList
-      archiveCategoryAction={vi.fn(async () => {})}
-      categories={categories}
-      onReorderError={vi.fn()}
-      reorderCategoryAction={vi.fn(async () => ({}))}
-      updateCategoryAction={vi.fn(async () => {})}
-      {...overrides}
-    />,
+    <ConfirmDialogProvider>
+      <CategoryList
+        archiveCategoryAction={vi.fn(async () => {})}
+        categories={categories}
+        onReorderError={vi.fn()}
+        reorderCategoryAction={vi.fn(async () => ({}))}
+        updateCategoryAction={vi.fn(async () => {})}
+        {...overrides}
+      />
+    </ConfirmDialogProvider>,
   );
 
   expandFirstCategoryIfNeeded(expandFirst);
@@ -99,14 +102,16 @@ function renderListWithTheme(
 ) {
   const result = render(
     <ThemeProvider theme={theme}>
-      <CategoryList
-        archiveCategoryAction={vi.fn(async () => {})}
-        categories={categories}
-        onReorderError={vi.fn()}
-        reorderCategoryAction={vi.fn(async () => ({}))}
-        updateCategoryAction={vi.fn(async () => {})}
-        {...overrides}
-      />
+      <ConfirmDialogProvider>
+        <CategoryList
+          archiveCategoryAction={vi.fn(async () => {})}
+          categories={categories}
+          onReorderError={vi.fn()}
+          reorderCategoryAction={vi.fn(async () => ({}))}
+          updateCategoryAction={vi.fn(async () => {})}
+          {...overrides}
+        />
+      </ConfirmDialogProvider>
     </ThemeProvider>,
   );
 
@@ -115,13 +120,21 @@ function renderListWithTheme(
   return result;
 }
 
+async function selectCoffeeIcon() {
+  fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+  const picker = screen.getByRole("dialog", { name: "选择图标" });
+  fireEvent.click(within(picker).getByRole("button", { name: "选择咖啡图标" }));
+  fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
+  await waitFor(() => expect(picker).not.toBeInTheDocument());
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
 describe("CategoryList", () => {
-  it("编辑小分类并确认新图标后提交完整表单，取消编辑不会归档", async () => {
+  it("编辑小分类并确认新图标后提交完整表单", async () => {
     const updateCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
       async () => {},
     );
@@ -131,13 +144,7 @@ describe("CategoryList", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
       target: { value: "新的外食" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
-    const picker = screen.getByRole("dialog", { name: "选择图标" });
-    fireEvent.click(
-      within(picker).getByRole("button", { name: "选择咖啡图标" }),
-    );
-    fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
-    await waitFor(() => expect(picker).not.toBeInTheDocument());
+    await selectCoffeeIcon();
     expect(updateCategoryAction).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());
@@ -145,13 +152,71 @@ describe("CategoryList", () => {
     expect(data.get("categoryId")).toBe(expenseChildId);
     expect(data.get("name")).toBe("新的外食");
     expect(data.get("iconName")).toBe("☕");
+    expect(archiveCategoryAction).not.toHaveBeenCalled();
+  });
+
+  it("编辑内容有改动时取消需要确认，继续编辑保留内容，放弃后才关闭", async () => {
+    renderList();
+    fireEvent.click(screen.getByRole("button", { name: "编辑外食" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
+      target: { value: "新的外食" },
+    });
+    await selectCoffeeIcon();
+
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
+
+    const confirmDialog = await screen.findByRole("dialog", {
+      name: "尚未保存",
+    });
+    expect(
+      within(confirmDialog).getByText("有未保存的修改，确定要放弃吗？"),
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue("新的外食")).toBeInTheDocument();
     expect(screen.getByLabelText("当前分类图标：☕")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+
+    fireEvent.click(
+      within(confirmDialog).getByRole("button", { name: "继续编辑" }),
     );
-    expect(archiveCategoryAction).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "尚未保存" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("heading", { name: "编辑分类" }),
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("新的外食")).toBeInTheDocument();
+    expect(screen.getByLabelText("当前分类图标：☕")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    const secondConfirmDialog = await screen.findByRole("dialog", {
+      name: "尚未保存",
+    });
+    fireEvent.click(
+      within(secondConfirmDialog).getByRole("button", { name: "放弃修改" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "编辑分类" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("编辑内容没有改动时取消直接关闭且不显示确认", async () => {
+    renderList();
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveValue(
+      "餐饮",
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "编辑分类" }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("搜索框位于 Tabs 之前，输入名称过滤列表，无匹配时显示搜索提示", () => {

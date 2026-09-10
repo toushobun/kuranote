@@ -10,6 +10,13 @@ export const categorySuccessMessages = {
   archive: "归档成功",
 } as const;
 
+export const categoryEditMessages = {
+  unsavedTitle: "尚未保存",
+  unsavedDescription: "有未保存的修改，确定要放弃吗？",
+  continueEditing: "继续编辑",
+  discardChanges: "放弃修改",
+} as const;
+
 export const categoryArchiveMessages = {
   action: "归档该分类",
   title: "已归档分类",
