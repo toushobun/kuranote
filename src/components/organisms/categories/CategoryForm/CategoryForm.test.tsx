@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -51,12 +52,14 @@ describe("CategoryForm", () => {
     fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
     await waitFor(() => expect(picker).not.toBeInTheDocument());
     expect(createCategoryAction).not.toHaveBeenCalled();
-    fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
-        name: "新增分类",
-      }),
-    );
-    await waitFor(() => expect(createCategoryAction).toHaveBeenCalledOnce());
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "新增分类",
+        }),
+      );
+    });
+    expect(createCategoryAction).toHaveBeenCalledOnce();
     const data = createCategoryAction.mock.calls[0][0] as FormData;
     expect(data.get("name")).toBe("验收分类");
     expect(data.get("iconName")).toBe("🍜");
