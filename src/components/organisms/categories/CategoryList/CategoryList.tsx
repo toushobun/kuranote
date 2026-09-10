@@ -189,11 +189,13 @@ export function CategoryList({
     editingName,
     renderedExpandedIds,
     forcedExpandedIds,
+    isEditorOpen,
     isSearching,
     searchQuery,
     setSearchQuery,
     isPending,
     openEditor,
+    resetEditor,
     selectedType,
     setEditingIconName,
     setEditingName,
@@ -422,7 +424,8 @@ export function CategoryList({
         fullWidth
         maxWidth="sm"
         onClose={closeEditor}
-        open={editingCategory !== null}
+        open={isEditorOpen}
+        slotProps={{ transition: { onExited: resetEditor } }}
       >
         <DialogTitle>编辑分类</DialogTitle>
         <DialogContent dividers>

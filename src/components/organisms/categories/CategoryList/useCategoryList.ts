@@ -82,6 +82,7 @@ export function useCategoryList({
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const keyword = searchQuery.trim().toLowerCase();
@@ -155,9 +156,14 @@ export function useCategoryList({
     setEditingCategory(category);
     setEditingName(getCategoryDisplayName(category.name, category.icon_name));
     setEditingIconName(category.icon_name ?? defaultCategoryEmoji);
+    setIsEditorOpen(true);
   }
 
   function closeEditor() {
+    setIsEditorOpen(false);
+  }
+
+  function resetEditor() {
     setEditingCategory(null);
     setEditingName("");
     setEditingIconName(defaultCategoryEmoji);
@@ -183,11 +189,13 @@ export function useCategoryList({
     expandedIds,
     renderedExpandedIds,
     forcedExpandedIds,
+    isEditorOpen,
     isSearching,
     searchQuery,
     setSearchQuery,
     isPending,
     openEditor,
+    resetEditor,
     selectedType,
     setEditingIconName,
     setEditingName,

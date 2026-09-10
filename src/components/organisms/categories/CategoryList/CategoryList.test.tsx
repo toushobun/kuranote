@@ -146,6 +146,8 @@ describe("CategoryList", () => {
     expect(data.get("name")).toBe("新的外食");
     expect(data.get("iconName")).toBe("☕");
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(screen.getByDisplayValue("新的外食")).toBeInTheDocument();
+    expect(screen.getByLabelText("当前分类图标：☕")).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
