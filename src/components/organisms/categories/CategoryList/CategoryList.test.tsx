@@ -67,6 +67,12 @@ const categories = [
   },
 ];
 
+function expandFirstCategoryIfNeeded(expandFirst: boolean) {
+  if (!expandFirst) return;
+  const toggle = screen.queryByRole("button", { name: "展开餐饮" });
+  if (toggle) fireEvent.click(toggle);
+}
+
 function renderList(
   overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
   expandFirst = true,
@@ -82,10 +88,7 @@ function renderList(
     />,
   );
 
-  if (expandFirst) {
-    const toggle = screen.queryByRole("button", { name: "展开餐饮" });
-    if (toggle) fireEvent.click(toggle);
-  }
+  expandFirstCategoryIfNeeded(expandFirst);
 
   return result;
 }
@@ -107,10 +110,7 @@ function renderListWithTheme(
     </ThemeProvider>,
   );
 
-  if (expandFirst) {
-    const toggle = screen.queryByRole("button", { name: "展开餐饮" });
-    if (toggle) fireEvent.click(toggle);
-  }
+  expandFirstCategoryIfNeeded(expandFirst);
 
   return result;
 }
