@@ -79,7 +79,6 @@ export function useCategoryList({
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [isManaging, setIsManaging] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
@@ -176,10 +175,6 @@ export function useCategoryList({
     });
   }
 
-  function toggleManaging() {
-    setIsManaging((current) => !current);
-  }
-
   return {
     closeEditor,
     editingCategory,
@@ -191,7 +186,6 @@ export function useCategoryList({
     isSearching,
     searchQuery,
     setSearchQuery,
-    isManaging,
     isPending,
     openEditor,
     selectedType,
@@ -200,7 +194,6 @@ export function useCategoryList({
     setSelectedType,
     submitCategoryOrder,
     toggleCategory,
-    toggleManaging,
     visibleCategories,
   };
 }

@@ -133,34 +133,31 @@ describe("SortableList", () => {
       expect(HTMLElement.prototype.getBoundingClientRect).toBe(originalRect);
 
       const onClick = vi.fn();
-      render(<button onClick={onClick}>管理排序</button>);
-      fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
+      render(<button onClick={onClick}>新操作</button>);
+      fireEvent.click(screen.getByRole("button", { name: "新操作" }));
       expect(onClick).toHaveBeenCalledOnce();
     },
   );
 
-  it("方向键保留焦点并忽略首尾越界", () => {
+  it("方向键和空格不会启动或提交排序，也不声明快捷键", () => {
     const onReorder = vi.fn();
-    render(<Example onReorder={onReorder} />);
+    const { container } = render(<Example onReorder={onReorder} />);
     const handle = screen.getByRole("button", { name: "a" });
     handle.focus();
-    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    for (const key of ["ArrowUp", "ArrowDown", " "]) {
+      fireEvent.keyDown(handle, { key, code: key === " " ? "Space" : key });
+      fireEvent.keyUp(handle, { key, code: key === " " ? "Space" : key });
+    }
     expect(onReorder).not.toHaveBeenCalled();
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
-    expect(onReorder).toHaveBeenCalledExactlyOnceWith(["b", "a", "c"]);
-    expect(handle).toHaveFocus();
-    fireEvent.keyDown(screen.getByRole("button", { name: "c" }), {
-      key: "ArrowDown",
-    });
-    expect(onReorder).toHaveBeenCalledOnce();
+    expect(container.querySelector("[data-dragging]")).toBeNull();
+    expect(handle).not.toHaveAttribute("aria-keyshortcuts");
   });
 
-  it("禁用时不允许指针或键盘调整顺序", async () => {
+  it("禁用时不允许指针调整顺序", async () => {
     const onReorder = vi.fn();
     render(<Example disabled onReorder={onReorder} />);
     const handle = screen.getByRole("button", { name: "a" });
     expect(handle).toBeDisabled();
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
     fireEvent.pointerDown(handle, { button: 0, isPrimary: true, pointerId: 1 });
     fireEvent.pointerMove(document, { clientY: 140, pointerId: 1 });
     await dropSortable();

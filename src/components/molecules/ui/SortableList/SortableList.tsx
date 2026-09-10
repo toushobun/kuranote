@@ -22,11 +22,9 @@ import { sortableText } from "config/sortableText";
 export const SortableListContext = createContext<{
   disabled: boolean;
   dragging: boolean;
-  move: (id: string, direction: -1 | 1) => void;
 }>({
   disabled: false,
   dragging: false,
-  move: () => {},
 });
 
 // 只在本组列表范围内寻找目标，避免离开小分类后误提交到最近的兄弟项。
@@ -113,10 +111,6 @@ export function SortableList({
         value={{
           disabled,
           dragging,
-          move: (itemId, direction) => {
-            if (!dragging)
-              reorder(items.indexOf(itemId), items.indexOf(itemId) + direction);
-          },
         }}
       >
         <SortableContext items={items} strategy={strategy}>

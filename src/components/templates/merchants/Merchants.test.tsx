@@ -17,6 +17,8 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+
 import { MerchantsTemplate } from "./Merchants";
 
 const componentSource = readFileSync(
@@ -32,6 +34,7 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   window.history.replaceState(null, "", "/");
 });
 
@@ -51,6 +54,17 @@ const baseProps = {
   tags: [],
   updateAction: tagAction,
 };
+
+async function reorderFirstTag() {
+  fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
+  mockSortableRects({ "tag-1": 0, "tag-2": 100 });
+  await dragSortable(
+    screen.getByRole("button", { name: "调整超市排序" }),
+    20,
+    140,
+  );
+  await dropSortable();
+}
 
 describe("MerchantsTemplate", () => {
   it.each([
@@ -469,10 +483,7 @@ describe("MerchantsTemplate", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "调整超市排序" }), {
-      key: "ArrowDown",
-    });
+    await reorderFirstTag();
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "完成" })).toBeDisabled(),
@@ -517,10 +528,7 @@ describe("MerchantsTemplate", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "调整超市排序" }), {
-      key: "ArrowDown",
-    });
+    await reorderFirstTag();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "完成" })).toBeDisabled(),
     );

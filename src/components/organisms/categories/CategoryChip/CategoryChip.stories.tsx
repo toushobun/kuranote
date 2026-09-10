@@ -27,9 +27,8 @@ const meta = {
   args: {
     canManageCategories: true,
     category,
-    handleProps: { "aria-keyshortcuts": "ArrowUp ArrowDown" },
+    handleProps: {},
     onEdit: () => {},
-    showDragHandle: false,
   },
 } satisfies Meta<typeof CategoryChip>;
 
@@ -37,12 +36,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "浏览模式分类胶囊",
-};
-
-export const Managing: Story = {
-  name: "管理排序模式分类胶囊",
-  args: { showDragHandle: true },
+  name: "常驻拖拽手柄分类胶囊",
 };
 
 export const ReadOnly: Story = {

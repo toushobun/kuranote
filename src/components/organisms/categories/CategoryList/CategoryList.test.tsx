@@ -115,10 +115,6 @@ function renderListWithTheme(
   return result;
 }
 
-function enterManagingMode() {
-  fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
-}
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -214,9 +210,9 @@ describe("CategoryList", () => {
     expect(screen.getByText("早餐")).toBeInTheDocument();
   });
 
-  it("搜索期间禁用排序手柄，清空后恢复管理模式排序", () => {
+  it("搜索期间禁用排序手柄，清空后恢复排序", () => {
     renderList();
-    enterManagingMode();
+
     const search = screen.getByRole("textbox", { name: "搜索分类名称" });
     fireEvent.change(search, { target: { value: "外食" } });
     for (const handle of screen.getAllByRole("button", {
@@ -301,45 +297,25 @@ describe("CategoryList", () => {
     expect(screen.queryByText("餐饮")).toBeNull();
   });
 
-  it("点击管理排序后显示拖拽手柄并在完成后隐藏，编辑按钮保持可见", () => {
+  it("默认常驻显示大分类和小分类的编辑与拖拽手柄，没有模式开关", () => {
     renderList();
-
-    expect(
-      screen.getByRole("button", { name: "编辑餐饮" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "编辑外食" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "调整餐饮排序" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
-
-    enterManagingMode();
-
-    expect(screen.getByRole("button", { name: "完成" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "调整餐饮排序" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "调整外食排序" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "完成" }));
-
-    expect(
-      screen.getByRole("button", { name: "管理排序" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "调整餐饮排序" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "编辑餐饮" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "编辑外食" }),
-    ).toBeInTheDocument();
+    for (const name of [
+      "编辑餐饮",
+      "编辑外食",
+      "调整餐饮排序",
+      "调整外食排序",
+    ]) {
+      expect(screen.getByRole("button", { name })).toBeEnabled();
+    }
+    expect(screen.queryByRole("button", { name: "管理排序" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "完成" })).toBeNull();
   });
 
-  it("只读用户看不到管理排序按钮", () => {
+  it("只读用户看不到编辑和排序手柄", () => {
     renderList({ canManageCategories: false });
+
+    expect(screen.queryByRole("button", { name: /^调整.+排序$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^编辑/ })).toBeNull();
 
     expect(screen.queryByRole("button", { name: "管理排序" })).toBeNull();
     expect(screen.queryByRole("button", { name: "完成" })).toBeNull();
@@ -396,7 +372,7 @@ describe("CategoryList", () => {
       return {};
     });
     const { container } = renderList({ reorderCategoryAction });
-    enterManagingMode();
+
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
     await dragSortable(handle, 20, 140);
@@ -428,7 +404,7 @@ describe("CategoryList", () => {
     async (cancel) => {
       const reorderCategoryAction = vi.fn(async () => ({}));
       renderList({ reorderCategoryAction });
-      enterManagingMode();
+
       mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
       await dragSortable(
         screen.getByRole("button", { name: "调整餐饮排序" }),
@@ -461,7 +437,7 @@ describe("CategoryList", () => {
         ...categories.slice(1),
       ],
     });
-    enterManagingMode();
+
     mockSortableRects({
       [expenseRootId]: 0,
       [expenseChildId]: 100,
@@ -489,7 +465,7 @@ describe("CategoryList", () => {
   it("小分类拖到其他大分类时不提交且不触发父级收起", async () => {
     const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
-    enterManagingMode();
+
     mockSortableRects({
       [expenseRootId]: 0,
       [expenseChildId]: 100,
@@ -508,31 +484,13 @@ describe("CategoryList", () => {
   it("非主键按下排序按钮时不启动拖动", () => {
     const reorderCategoryAction = vi.fn(async () => ({}));
     renderList({ reorderCategoryAction });
-    enterManagingMode();
+
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
     fireEvent.pointerDown(handle, { button: 2, pointerId: 1 });
     fireEvent.pointerUp(handle, { button: 2, pointerId: 1 });
 
     expect(reorderCategoryAction).not.toHaveBeenCalled();
-  });
-
-  it("使用方向键调整顺序时不重置展开状态或焦点", async () => {
-    const reorderCategoryAction = vi.fn(async (formData: FormData) => {
-      void formData;
-      return {};
-    });
-    renderList({ reorderCategoryAction });
-    enterManagingMode();
-    const handle = screen.getByRole("button", { name: "调整餐饮排序" });
-    handle.focus();
-
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
-
-    await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
-    expect(screen.getByText("外食")).toBeInTheDocument();
-    expect(handle).toHaveFocus();
-    expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
   });
 
   it("排序失败时恢复页面状态并上抛统一错误状态", async () => {
@@ -542,10 +500,12 @@ describe("CategoryList", () => {
       errorKey: "reorder-error-1",
     }));
     renderList({ onReorderError, reorderCategoryAction });
-    enterManagingMode();
+
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
+    mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
+    await dragSortable(handle, 20, 140);
+    await dropSortable();
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({

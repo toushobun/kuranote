@@ -296,9 +296,7 @@ function MerchantTagManagement({
                     {merchantText.editCategory}
                   </Button>
                   <Divider flexItem orientation="vertical" />
-                  <Tooltip
-                    title={`拖动${tag.name}调整排序，也可使用上下方向键`}
-                  >
+                  <Tooltip title={`拖动${tag.name}调整排序`}>
                     <span>
                       <IconButton
                         {...handleProps}
