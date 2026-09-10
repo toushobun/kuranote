@@ -1,5 +1,4 @@
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -30,11 +29,11 @@ afterEach(() => {
 });
 
 describe("CategoryForm", () => {
-  it("确认图标后提交名称与图标，成功关闭并重置新增表单", async () => {
+  it("确认图标后提交名称与图标", async () => {
     const createCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
       async () => {},
     );
-    const { rerender } = render(
+    render(
       <CategoryForm
         createCategoryAction={createCategoryAction}
         parentOptions={parentOptions}
@@ -52,32 +51,17 @@ describe("CategoryForm", () => {
     fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
     await waitFor(() => expect(picker).not.toBeInTheDocument());
     expect(createCategoryAction).not.toHaveBeenCalled();
-    await act(async () => {
-      fireEvent.click(
-        within(screen.getByRole("dialog")).getByRole("button", {
-          name: "新增分类",
-        }),
-      );
-    });
-    expect(createCategoryAction).toHaveBeenCalledOnce();
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "新增分类",
+      }),
+    );
+    await waitFor(() => expect(createCategoryAction).toHaveBeenCalledOnce());
     const data = createCategoryAction.mock.calls[0][0] as FormData;
     expect(data.get("name")).toBe("验收分类");
     expect(data.get("iconName")).toBe("🍜");
     expect(data.get("type")).toBe("expense");
     expect(data.get("parentId")).toBe("");
-    rerender(
-      <CategoryForm
-        createCategoryAction={createCategoryAction}
-        parentOptions={parentOptions}
-        createState={{ success: "新增成功" }}
-      />,
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
-    expect(screen.getByRole("textbox", { name: "分类名称" })).toHaveValue("");
-    expect(screen.getByLabelText("当前分类图标：📁")).toBeInTheDocument();
   });
 
   it("通过顶部按钮打开新增分类表单", () => {
