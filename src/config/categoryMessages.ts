@@ -1,3 +1,9 @@
+export const categoryPageMessages = {
+  title: "分类管理",
+  backToSettings: "返回设置",
+  subtitle: (ledgerName: string) => `整理「${ledgerName}」的收支分类`,
+} as const;
+
 export const categorySuccessMessages = {
   create: "新增成功",
   update: "保存成功",

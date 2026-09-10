@@ -1,4 +1,9 @@
-import Stack from "@mui/material/Stack";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import IconButton from "@mui/material/IconButton";
+import Link from "next/link";
+
+import { categoryPageMessages } from "config/categoryMessages";
+import { routePaths } from "config/paths";
 
 import { CategoryForm } from "organisms/categories/CategoryForm/CategoryForm";
 import { CategoryList } from "organisms/categories/CategoryList/CategoryList";
@@ -53,13 +58,18 @@ export function CategoriesTemplate({
             />
           ) : null
         }
-        title="分类管理"
-        subtitle={
-          <Stack spacing={0.5}>
-            <span>当前账本：{ledgerName}</span>
-            <span>整理家庭账本里的收支分类。</span>
-          </Stack>
+        leading={
+          <IconButton
+            aria-label={categoryPageMessages.backToSettings}
+            component={Link}
+            href={routePaths.settings}
+          >
+            <ArrowBackRoundedIcon />
+          </IconButton>
         }
+        title={categoryPageMessages.title}
+        subtitle={categoryPageMessages.subtitle(ledgerName)}
+        variant="compact"
       />
 
       <CategoryList

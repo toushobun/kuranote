@@ -3,6 +3,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { categoryPageMessages } from "config/categoryMessages";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import { designTokens } from "theme/theme";
@@ -15,13 +16,10 @@ export default function CategoriesLoadingPage() {
       <PageShell>
         <PageHeader
           action={<Skeleton height={38} variant="rounded" width={118} />}
-          subtitle={
-            <Stack spacing={0.75}>
-              <Skeleton width={180} />
-              <Skeleton width={230} />
-            </Stack>
-          }
-          title="分类管理"
+          leading={<Skeleton height={40} variant="circular" width={40} />}
+          subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={230} />}
+          title={categoryPageMessages.title}
+          variant="compact"
         />
 
         <Stack spacing={2.5} sx={{ mt: 3 }}>
