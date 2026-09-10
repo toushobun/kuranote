@@ -8,6 +8,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+
 import type {
   CategoryActionState,
   CategoryStateAction,
@@ -242,10 +244,11 @@ describe("CategoriesActionStateTemplate", () => {
       errorKey: "reorder-error-1",
     }));
     renderTemplate({ reorderCategoryAction });
-    fireEvent.click(screen.getByRole("button", { name: "管理排序" }));
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
 
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
+    mockSortableRects({ [rootId]: 0, [secondRootId]: 100 });
+    await dragSortable(handle, 20, 140);
+    await dropSortable();
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("分类排序保存失败");

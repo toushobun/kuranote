@@ -17,19 +17,17 @@ const category: Category = {
 };
 
 describe("CategoryChip", () => {
-  it("显示拖拽手柄时保持原有排序行为", async () => {
+  it("默认显示编辑和拖拽手柄并传递指针操作", async () => {
     const onEdit = vi.fn();
-    const onKeyDown = vi.fn();
+    const onPointerDown = vi.fn();
     const { container } = render(
       <CategoryChip
         canManageCategories
         category={category}
         handleProps={{
-          "aria-keyshortcuts": "ArrowUp ArrowDown",
-          onKeyDown,
+          onPointerDown,
         }}
         onEdit={onEdit}
-        showDragHandle
       />,
     );
 
@@ -43,32 +41,11 @@ describe("CategoryChip", () => {
     expect(onEdit).toHaveBeenCalledExactlyOnceWith(category);
 
     const handle = screen.getByRole("button", { name: "调整外食排序" });
-    expect(handle).toHaveAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
+    expect(handle).not.toHaveAttribute("aria-keyshortcuts");
     fireEvent.mouseOver(handle);
-    expect(
-      await screen.findByText(
-        "拖动外食调整排序，键盘可使用上下方向键按顺序移动",
-      ),
-    ).toBeInTheDocument();
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
-    expect(onKeyDown).toHaveBeenCalledOnce();
-  });
-
-  it("隐藏拖拽手柄时仍保留编辑操作", () => {
-    render(
-      <CategoryChip
-        canManageCategories
-        category={category}
-        handleProps={{}}
-        onEdit={vi.fn()}
-        showDragHandle={false}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: "编辑外食" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "调整外食排序" })).toBeNull();
+    expect(await screen.findByText("拖动外食调整排序")).toBeInTheDocument();
+    fireEvent.pointerDown(handle, { button: 0, isPrimary: true, pointerId: 1 });
+    expect(onPointerDown).toHaveBeenCalledOnce();
   });
 
   it("只读时隐藏编辑与拖动操作", () => {
@@ -78,7 +55,6 @@ describe("CategoryChip", () => {
         category={category}
         handleProps={{}}
         onEdit={vi.fn()}
-        showDragHandle
       />,
     );
 
@@ -93,7 +69,6 @@ describe("CategoryChip", () => {
         category={{ ...category, icon_name: null, name: "其他" }}
         handleProps={{}}
         onEdit={vi.fn()}
-        showDragHandle={false}
       />,
     );
 

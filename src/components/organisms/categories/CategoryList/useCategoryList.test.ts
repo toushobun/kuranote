@@ -178,18 +178,6 @@ describe("useCategoryList", () => {
     expect(action).not.toHaveBeenCalled();
   });
 
-  it("管理模式默认关闭并可切换开关", () => {
-    const { result } = renderCategoryListHook(vi.fn(async () => ({})));
-
-    expect(result.current.isManaging).toBe(false);
-
-    act(() => result.current.toggleManaging());
-    expect(result.current.isManaging).toBe(true);
-
-    act(() => result.current.toggleManaging());
-    expect(result.current.isManaging).toBe(false);
-  });
-
   it("编辑分类时使用去除 Emoji 前缀后的名称", () => {
     const { result } = renderCategoryListHook(vi.fn(async () => ({})));
 
@@ -329,13 +317,11 @@ describe("useCategoryList", () => {
     act(() => {
       result.current.setSelectedType("income");
       result.current.toggleCategory(categories[1].id);
-      result.current.toggleManaging();
     });
     rerender({ categoryItems: [...categories, incomeCategory] });
 
     expect(result.current.selectedType).toBe("income");
     expect(result.current.expandedIds).toEqual(new Set([categories[1].id]));
-    expect(result.current.isManaging).toBe(true);
     expect(
       result.current.visibleCategories.map((category) => category.id),
     ).toEqual([incomeCategory.id]);

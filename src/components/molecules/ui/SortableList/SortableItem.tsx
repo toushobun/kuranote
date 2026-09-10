@@ -11,13 +11,7 @@ import { SortableListContext } from "./SortableList";
 
 export type SortableHandleProps = Pick<
   ComponentProps<"button">,
-  | "ref"
-  | "onPointerDown"
-  | "onKeyDown"
-  | "aria-describedby"
-  | "aria-disabled"
-  | "aria-keyshortcuts"
-  | "disabled"
+  "ref" | "onPointerDown" | "aria-describedby" | "aria-disabled" | "disabled"
 >;
 
 export function SortableItem({
@@ -29,7 +23,7 @@ export function SortableItem({
   children: (handleProps: SortableHandleProps) => ReactNode;
   sx?: BoxProps["sx"];
 }) {
-  const { disabled, move } = useContext(SortableListContext);
+  const { disabled } = useContext(SortableListContext);
   const {
     attributes,
     listeners,
@@ -76,14 +70,7 @@ export function SortableItem({
         onPointerDown: (event) => listeners?.onPointerDown?.(event),
         "aria-describedby": attributes["aria-describedby"],
         "aria-disabled": disabled,
-        "aria-keyshortcuts": "ArrowUp ArrowDown",
         disabled,
-        onKeyDown: (event) => {
-          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-          event.preventDefault();
-          event.stopPropagation();
-          move(id, event.key === "ArrowUp" ? -1 : 1);
-        },
       })}
     </Box>
   );

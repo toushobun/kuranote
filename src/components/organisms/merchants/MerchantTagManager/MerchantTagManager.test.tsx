@@ -58,26 +58,6 @@ describe("MerchantTagManager", () => {
     );
   });
 
-  it("方向键排序保留按钮焦点", async () => {
-    const reorderAction = vi.fn(async () => ({}));
-    render(
-      <MerchantTagManager
-        active
-        archiveAction={action}
-        createAction={action}
-        mode="management"
-        reorderAction={reorderAction}
-        tags={tags}
-        updateAction={action}
-      />,
-    );
-    const handle = screen.getByRole("button", { name: "调整超市排序" });
-    handle.focus();
-    fireEvent.keyDown(handle, { key: "ArrowDown" });
-    await waitFor(() => expect(reorderAction).toHaveBeenCalledOnce());
-    expect(handle).toHaveFocus();
-  });
-
   it("标签徽标保留关键词并切换筛选", () => {
     render(<MerchantTagManager keyword="Life" tags={tags} />);
     expect(screen.getByRole("link", { name: /超市/ })).toHaveAttribute(

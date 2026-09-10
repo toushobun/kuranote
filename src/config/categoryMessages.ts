@@ -10,11 +10,6 @@ export const categoryArchiveMessages = {
   description: "归档的分类不会在记账选择中显示。",
 } as const;
 
-export const categoryManagingMessages = {
-  enter: "管理排序",
-  exit: "完成",
-} as const;
-
 export const categorySearchMessages = {
   placeholder: "搜索分类名称",
   emptyTitle: "没有找到匹配的分类",

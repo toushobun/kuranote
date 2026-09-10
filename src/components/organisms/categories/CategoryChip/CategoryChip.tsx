@@ -18,7 +18,6 @@ type CategoryItemActionsProps = {
   category: Category;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
-  showDragHandle: boolean;
 };
 
 export function CategoryItemActions({
@@ -26,7 +25,6 @@ export function CategoryItemActions({
   category,
   handleProps,
   onEdit,
-  showDragHandle,
 }: CategoryItemActionsProps) {
   if (!canManageCategories) return null;
 
@@ -44,23 +42,19 @@ export function CategoryItemActions({
           <EditRoundedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      {showDragHandle ? (
-        <Tooltip
-          title={`拖动${displayName}调整排序，键盘可使用上下方向键按顺序移动`}
-        >
-          <span>
-            <IconButton
-              {...handleProps}
-              aria-label={`调整${displayName}排序`}
-              size="small"
-              sx={{ cursor: "grab", touchAction: "none" }}
-              type="button"
-            >
-              <DragIndicatorRoundedIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-      ) : null}
+      <Tooltip title={`拖动${displayName}调整排序`}>
+        <span>
+          <IconButton
+            {...handleProps}
+            aria-label={`调整${displayName}排序`}
+            size="small"
+            sx={{ cursor: "grab", touchAction: "none" }}
+            type="button"
+          >
+            <DragIndicatorRoundedIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
     </>
   );
 }
@@ -72,7 +66,6 @@ export function CategoryChip({
   category,
   handleProps,
   onEdit,
-  showDragHandle,
 }: CategoryChipProps) {
   const displayName = getCategoryDisplayName(category.name, category.icon_name);
   const iconName = category.icon_name ?? defaultCategoryEmoji;
@@ -106,7 +99,6 @@ export function CategoryChip({
         category={category}
         handleProps={handleProps}
         onEdit={onEdit}
-        showDragHandle={showDragHandle}
       />
     </Box>
   );

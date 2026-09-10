@@ -93,7 +93,7 @@ export const Default: Story = {
 };
 
 export const WrappingChips: Story = {
-  name: "多行胶囊管理排序",
+  name: "多行胶囊拖动排序",
   args: {
     categories: [
       {
@@ -120,7 +120,6 @@ export const WrappingChips: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "展开餐饮" }));
-    await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
   },
 };
 
@@ -158,7 +157,6 @@ export const DragSorting: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "展开餐饮" }));
-    await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
     await expect(
       canvas.getByRole("button", { name: "调整外食排序" }),
     ).toBeEnabled();
@@ -167,7 +165,7 @@ export const DragSorting: Story = {
     docs: {
       description: {
         story:
-          "拖动大分类时临时收起全部小分类，松手或按 Escape 后恢复原展开状态。小分类仅在原大分类内排序；支持触屏拖动与直接按上下方向键排序。",
+          "拖动大分类时临时收起全部小分类，松手或按 Escape 后恢复原展开状态。小分类仅在原大分类内排序；支持鼠标与触屏拖动。",
       },
     },
   },
@@ -196,11 +194,10 @@ export const NoSearchResults: Story = {
   },
 };
 
-export const SearchRestoresManaging: Story = {
-  name: "清空搜索恢复折叠状态与管理排序",
+export const SearchRestoresSorting: Story = {
+  name: "清空搜索恢复折叠状态与拖动排序",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
     const search = canvas.getByRole("textbox", { name: "搜索分类名称" });
     await userEvent.type(search, "外食");
     await expect(
