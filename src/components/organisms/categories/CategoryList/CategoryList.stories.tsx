@@ -118,9 +118,9 @@ export const WrappingChips: Story = {
     ],
   },
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement).getByRole("button", { name: "管理排序" }),
-    );
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "展开餐饮" }));
+    await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
   },
 };
 
@@ -128,7 +128,6 @@ export const ChildSearch: Story = {
   name: "搜索小分类并自动展开",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "收起餐饮" }));
     await userEvent.type(
       canvas.getByRole("textbox", { name: "搜索分类名称" }),
       "外食",
@@ -158,6 +157,7 @@ export const DragSorting: Story = {
   name: "拖动临时收起，松手恢复展开",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "展开餐饮" }));
     await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
     await expect(
       canvas.getByRole("button", { name: "调整外食排序" }),
@@ -177,7 +177,9 @@ export const Collapsed: Story = {
   name: "大分类全部折叠",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "收起餐饮" }));
+    await expect(
+      canvas.getByRole("button", { name: "展开餐饮" }),
+    ).toBeVisible();
     await expect(canvas.queryByText("外食")).not.toBeInTheDocument();
   },
 };
@@ -199,7 +201,6 @@ export const SearchRestoresManaging: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "管理排序" }));
-    await userEvent.click(canvas.getByRole("button", { name: "收起餐饮" }));
     const search = canvas.getByRole("textbox", { name: "搜索分类名称" });
     await userEvent.type(search, "外食");
     await expect(
