@@ -1,7 +1,6 @@
 "use client";
 
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
@@ -11,10 +10,8 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useActionState, useEffect, useRef, useState } from "react";
 
@@ -27,6 +24,7 @@ import { SortableItem } from "molecules/ui/SortableList/SortableItem";
 import { SelectableFilterTag } from "molecules/ui/SelectableFilterTag/SelectableFilterTag";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantTagIconField } from "organisms/merchants/MerchantTagIconField/MerchantTagIconField";
+import { SortableDragHandle } from "molecules/ui/SortableList/SortableDragHandle/SortableDragHandle";
 import { designTokens } from "theme/theme";
 import type {
   MerchantTag,
@@ -296,18 +294,10 @@ function MerchantTagManagement({
                     {merchantText.editCategory}
                   </Button>
                   <Divider flexItem orientation="vertical" />
-                  <Tooltip title={`拖动${tag.name}调整排序`}>
-                    <span>
-                      <IconButton
-                        {...handleProps}
-                        aria-label={`调整${tag.name}排序`}
-                        size="small"
-                        sx={{ cursor: "grab", touchAction: "none" }}
-                      >
-                        <DragIndicatorRoundedIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                  <SortableDragHandle
+                    name={tag.name}
+                    handleProps={handleProps}
+                  />
                 </Stack>
               )}
             </SortableItem>

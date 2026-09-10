@@ -39,12 +39,8 @@ describe("MerchantTagManager", () => {
       />,
     );
     mockSortableRects({ "tag-1": 0, "tag-2": 100 });
-    await dragSortable(
-      screen.getByRole("button", { name: "调整超市排序" }),
-      20,
-      140,
-      "touch",
-    );
+    const handle = screen.getByRole("button", { name: "调整超市排序" });
+    await dragSortable(handle, 20, 140, "touch");
     expect(
       container
         .querySelector('[data-sortable-id="tag-2"]')
