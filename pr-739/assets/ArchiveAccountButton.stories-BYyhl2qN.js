@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./UserThemeProvider-7ZtwB18g.js";import{n as i,t as a}from"./ConfirmDialogProvider-UAvywuPC.js";import{n as o,t as s}from"./ArchiveAccountButton-DIBgsjSH.js";var c,l,u,d;e((()=>{c=t(),i(),n(),o(),l={title:`Molecules/Accounts/ArchiveAccountButton`,component:s,decorators:[e=>(0,c.jsx)(r,{storageScope:`storybook-archive-account-button`,children:(0,c.jsx)(a,{children:(0,c.jsx)(e,{})})})]},u={name:`归档按钮`},u.parameters={...u.parameters,docs:{...u.parameters?.docs,source:{originalSource:`{
+  name: "归档按钮"
+}`,...u.parameters?.docs?.source}}},d=[`Default`]}))();export{u as Default,d as __namedExportsOrder,l as default};
