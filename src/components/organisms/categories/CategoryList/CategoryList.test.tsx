@@ -109,6 +109,37 @@ afterEach(() => {
 });
 
 describe("CategoryList", () => {
+  it("编辑小分类并确认新图标后提交完整表单，取消编辑不会归档", async () => {
+    const updateCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
+      async () => {},
+    );
+    const archiveCategoryAction = vi.fn(async () => {});
+    renderList({ updateCategoryAction, archiveCategoryAction });
+    fireEvent.click(screen.getByRole("button", { name: "编辑外食" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
+      target: { value: "新的外食" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+    const picker = screen.getByRole("dialog", { name: "选择图标" });
+    fireEvent.click(
+      within(picker).getByRole("button", { name: "选择咖啡图标" }),
+    );
+    fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
+    await waitFor(() => expect(picker).not.toBeInTheDocument());
+    expect(updateCategoryAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());
+    const data = updateCategoryAction.mock.calls[0][0];
+    expect(data.get("categoryId")).toBe(expenseChildId);
+    expect(data.get("name")).toBe("新的外食");
+    expect(data.get("iconName")).toBe("☕");
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(archiveCategoryAction).not.toHaveBeenCalled();
+  });
+
   it("搜索框位于 Tabs 之前，输入名称过滤列表，无匹配时显示搜索提示", () => {
     renderList();
     const search = screen.getByRole("textbox", { name: "搜索分类名称" });

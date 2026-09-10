@@ -5,7 +5,7 @@ import { CategoryChip } from "./CategoryChip";
 
 const category = {
   created_at: "2026-01-01T00:00:00.000Z",
-  icon_name: "🍜",
+  icon_name: "🍜" as string | null,
   id: "00000000-0000-4000-8000-000000000103",
   name: "外食",
   parent_id: "00000000-0000-4000-8000-000000000101",
@@ -47,4 +47,9 @@ export const Managing: Story = {
 export const ReadOnly: Story = {
   name: "只读分类胶囊",
   args: { canManageCategories: false },
+};
+
+export const MissingIcon: Story = {
+  name: "缺省分类图标",
+  args: { category: { ...category, icon_name: null, name: "其他" } },
 };
