@@ -46,15 +46,18 @@ afterEach(() => {
 });
 
 describe("CategoriesTemplate", () => {
-  it("显示分类管理标题和当前账本", () => {
+  it("显示分类管理标题、当前账本说明和返回设置链接", () => {
     const { container } = render(<CategoriesTemplate {...baseProps} />);
 
     expect(
       within(container).getByRole("heading", { name: "分类管理" }),
     ).toBeInTheDocument();
     expect(
-      within(container).getByText("当前账本：家庭账本"),
+      within(container).getByText("整理「家庭账本」的收支分类"),
     ).toBeInTheDocument();
+    expect(
+      within(container).getByRole("link", { name: "返回设置" }),
+    ).toHaveAttribute("href", "/settings");
   });
 
   it("显示新增入口和默认折叠的分类列表", () => {
