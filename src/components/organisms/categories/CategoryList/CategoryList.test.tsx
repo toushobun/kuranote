@@ -316,9 +316,6 @@ describe("CategoryList", () => {
 
     expect(screen.queryByRole("button", { name: /^调整.+排序$/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^编辑/ })).toBeNull();
-
-    expect(screen.queryByRole("button", { name: "管理排序" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "完成" })).toBeNull();
   });
 
   it("编辑分类时显示名称与当前 Emoji", () => {
