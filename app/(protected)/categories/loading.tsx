@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
+import { designTokens } from "theme/theme";
 
 const categoryLoadingRows = [0, 1, 2] as const;
 
@@ -24,6 +25,11 @@ export default function CategoriesLoadingPage() {
         />
 
         <Stack spacing={2.5} sx={{ mt: 3 }}>
+          <Skeleton
+            height={40}
+            variant="rounded"
+            sx={{ borderRadius: `${designTokens.radius.full}px` }}
+          />
           <Skeleton height={48} variant="rounded" />
           <Skeleton width={160} />
 

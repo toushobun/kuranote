@@ -14,3 +14,9 @@ export const categoryManagingMessages = {
   enter: "管理排序",
   exit: "完成",
 } as const;
+
+export const categorySearchMessages = {
+  placeholder: "搜索分类名称",
+  emptyTitle: "没有找到匹配的分类",
+  emptyDescription: "试试其他分类名称，或清空搜索查看全部分类。",
+} as const;
