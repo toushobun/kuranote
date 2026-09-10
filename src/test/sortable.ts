@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 import { expect, vi } from "vitest";
 
 // jsdom 没有布局；保留真实 dnd-kit 传感器，只提供列表项的测量值。
@@ -74,27 +74,4 @@ export function cancelSortable(cancel: "Escape" | "pointercancel") {
       fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
     else fireEvent.pointerCancel(document, { pointerId: 1 });
   });
-}
-
-export async function showSortableTooltip(handle: HTMLElement) {
-  fireEvent.mouseOver(handle);
-  expect(await screen.findByRole("tooltip")).toBeVisible();
-}
-
-export async function dropSortableWithTooltip(handle: HTMLElement) {
-  fireEvent.mouseLeave(handle);
-  await dropSortable();
-  await waitFor(() => expect(handle).toBeEnabled());
-  // jsdom 不可靠地实现 :focus-visible，仅补足浏览器的焦点可见性判断。
-  const matches = handle.matches.bind(handle);
-  vi.spyOn(handle, "matches").mockImplementation(
-    (selector) => selector === ":focus-visible" || matches(selector),
-  );
-  // 指针已离开；覆盖松手后焦点回到手柄的路径，不假设 dnd-kit 会替指针恢复焦点。
-  await act(async () => {
-    handle.focus();
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  });
-  expect(handle).toHaveFocus();
-  await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
 }

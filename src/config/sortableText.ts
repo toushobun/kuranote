@@ -1,6 +1,5 @@
 export const sortableText = {
   handleLabel: (name: string) => `调整${name}排序`,
-  handleTooltip: (name: string) => `拖动${name}调整排序`,
   instructions: "按住排序按钮拖动调整顺序。拖动时按 Escape 可取消。",
   announcements: {
     onDragStart: () => "已开始拖动排序。",

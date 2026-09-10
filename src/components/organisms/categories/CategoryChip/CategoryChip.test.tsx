@@ -17,7 +17,7 @@ const category: Category = {
 };
 
 describe("CategoryChip", () => {
-  it("默认显示编辑和拖拽手柄并传递指针操作", async () => {
+  it("默认显示编辑和拖拽手柄并传递指针操作", () => {
     const onEdit = vi.fn();
     const onPointerDown = vi.fn();
     const { container } = render(
@@ -42,8 +42,6 @@ describe("CategoryChip", () => {
 
     const handle = screen.getByRole("button", { name: "调整外食排序" });
     expect(handle).not.toHaveAttribute("aria-keyshortcuts");
-    fireEvent.mouseOver(handle);
-    expect(await screen.findByText("拖动外食调整排序")).toBeInTheDocument();
     fireEvent.pointerDown(handle, { button: 0, isPrimary: true, pointerId: 1 });
     expect(onPointerDown).toHaveBeenCalledOnce();
   });

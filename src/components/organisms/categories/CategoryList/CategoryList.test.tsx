@@ -13,8 +13,6 @@ import {
   cancelSortable,
   dragSortable,
   dropSortable,
-  dropSortableWithTooltip,
-  showSortableTooltip,
   mockSortableRects,
 } from "test/sortable";
 import { designTokens, theme } from "theme/theme";
@@ -374,7 +372,6 @@ describe("CategoryList", () => {
 
     const handle = screen.getByRole("button", { name: "调整餐饮排序" });
     mockSortableRects({ [expenseRootId]: 0, [expenseSecondRootId]: 100 });
-    await showSortableTooltip(handle);
     await dragSortable(handle, 20, 140);
     expect(screen.queryByText("外食")).not.toBeInTheDocument();
     expect(reorderCategoryAction).not.toHaveBeenCalled();
@@ -383,7 +380,7 @@ describe("CategoryList", () => {
         .querySelector(`[data-sortable-id="${expenseSecondRootId}"]`)
         ?.getAttribute("style"),
     ).toContain("translate3d");
-    await dropSortableWithTooltip(handle);
+    await dropSortable();
     expect(screen.getByText("外食")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "展开日常购物" }),

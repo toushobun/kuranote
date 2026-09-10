@@ -8,12 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  dragSortable,
-  dropSortableWithTooltip,
-  showSortableTooltip,
-  mockSortableRects,
-} from "test/sortable";
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { designTokens } from "theme/theme";
 
 import { MerchantTagManager } from "./MerchantTagManager";
@@ -45,7 +40,6 @@ describe("MerchantTagManager", () => {
     );
     mockSortableRects({ "tag-1": 0, "tag-2": 100 });
     const handle = screen.getByRole("button", { name: "调整超市排序" });
-    await showSortableTooltip(handle);
     await dragSortable(handle, 20, 140, "touch");
     expect(
       container
@@ -53,7 +47,7 @@ describe("MerchantTagManager", () => {
         ?.getAttribute("style"),
     ).toContain("-100px");
     expect(reorderAction).not.toHaveBeenCalled();
-    await dropSortableWithTooltip(handle);
+    await dropSortable();
     await waitFor(() => expect(reorderAction).toHaveBeenCalledOnce());
     expect(reorderAction.mock.calls[0][0].get("tagIds")).toBe(
       JSON.stringify(["tag-2", "tag-1"]),

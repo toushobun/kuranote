@@ -46,12 +46,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = {
-  name: "拖动后移开提示消失",
+  name: "拖拽调整排序",
   parameters: {
     docs: {
       description: {
         story:
-          "悬停显示排序说明；拖动松手后移开指针，提示消失。Tab 聚焦手柄不会打开提示，触屏长按提示在松手后自动消失。",
+          "按住手柄拖动，列表项跟随指针并实时让位，松手后更新顺序。支持鼠标与触屏操作。",
       },
     },
   },
