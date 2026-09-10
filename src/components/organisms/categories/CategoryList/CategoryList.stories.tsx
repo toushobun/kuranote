@@ -102,6 +102,9 @@ export const ChildSearch: Story = {
       "外食",
     );
     await expect(canvas.getByText("外食")).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: "收起餐饮" }),
+    ).toBeDisabled();
     await expect(canvas.queryByText("早餐")).not.toBeInTheDocument();
     await expect(
       canvas.getByRole("button", { name: "收起餐饮" }),

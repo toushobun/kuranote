@@ -96,6 +96,7 @@ export function useCategoryList({
   const keyword = searchQuery.trim().toLowerCase();
   const isSearching = keyword.length > 0;
   const renderedExpandedIds = new Set(expandedIds);
+  const forcedExpandedIds = new Set<string>();
   const matchesName = (category: Category) =>
     getCategoryDisplayName(category.name, category.icon_name)
       .toLowerCase()
@@ -105,7 +106,10 @@ export function useCategoryList({
     .flatMap((category) => {
       if (!isSearching) return [category];
       const children = category.children.filter(matchesName);
-      if (children.length > 0) renderedExpandedIds.add(category.id);
+      if (children.length > 0) {
+        forcedExpandedIds.add(category.id);
+        renderedExpandedIds.add(category.id);
+      }
       if (matchesName(category)) return [category];
       return children.length > 0 ? [{ ...category, children }] : [];
     });
@@ -169,6 +173,7 @@ export function useCategoryList({
   }
 
   function toggleCategory(categoryId: string) {
+    if (forcedExpandedIds.has(categoryId)) return;
     setExpandedIds((current) => {
       const next = new Set(current);
 
@@ -190,6 +195,7 @@ export function useCategoryList({
     editingName,
     expandedIds,
     renderedExpandedIds,
+    forcedExpandedIds,
     isSearching,
     searchQuery,
     setSearchQuery,

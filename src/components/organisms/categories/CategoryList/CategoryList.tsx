@@ -69,6 +69,7 @@ type CategoryRowItemProps = {
   childCount?: number;
   expanded?: boolean;
   isPending: boolean;
+  isExpansionForced: boolean;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
   onToggle?: () => void;
@@ -81,6 +82,7 @@ function CategoryRowItem({
   childCount,
   expanded = false,
   isPending,
+  isExpansionForced,
   handleProps,
   onEdit,
   onToggle,
@@ -99,7 +101,7 @@ function CategoryRowItem({
         {onToggle ? (
           <IconButton
             aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
-            disabled={isPending}
+            disabled={isPending || isExpansionForced}
             onClick={onToggle}
             size="small"
             type="button"
@@ -190,6 +192,7 @@ export function CategoryList({
     editingIconName,
     editingName,
     renderedExpandedIds,
+    forcedExpandedIds,
     isSearching,
     searchQuery,
     setSearchQuery,
@@ -328,6 +331,7 @@ export function CategoryList({
                           category={category}
                           childCount={category.children.length}
                           expanded={expanded}
+                          isExpansionForced={forcedExpandedIds.has(category.id)}
                           isPending={isPending || draggingRoots}
                           handleProps={handleProps}
                           onEdit={openEditor}

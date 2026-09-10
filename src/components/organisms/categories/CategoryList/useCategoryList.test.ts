@@ -48,6 +48,27 @@ function renderCategoryListHook(
 }
 
 describe("useCategoryList", () => {
+  it.each([false, true])(
+    "搜索强制展开期间切换不会改变原有展开状态：%s",
+    (initiallyExpanded) => {
+      const { result } = renderCategoryListHook(
+        vi.fn(async () => ({})),
+        searchCategories,
+      );
+      const id = searchCategories[0].id;
+      if (!initiallyExpanded) act(() => result.current.toggleCategory(id));
+      const before = result.current.expandedIds;
+      act(() => result.current.setSearchQuery("外食"));
+      act(() => result.current.toggleCategory(id));
+      expect(result.current.expandedIds).toBe(before);
+      expect(result.current.renderedExpandedIds.has(id)).toBe(true);
+      act(() => result.current.setSearchQuery(""));
+      expect(result.current.renderedExpandedIds.has(id)).toBe(
+        initiallyExpanded,
+      );
+    },
+  );
+
   const searchCategories: CategoryTreeItem[] = [
     {
       ...categories[0],

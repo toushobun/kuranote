@@ -144,6 +144,9 @@ describe("CategoryList", () => {
     fireEvent.click(screen.getByRole("button", { name: "展开日常购物" }));
     const search = screen.getByRole("textbox", { name: "搜索分类名称" });
     fireEvent.change(search, { target: { value: "外食" } });
+    const forcedToggle = screen.getByRole("button", { name: "收起餐饮" });
+    expect(forcedToggle).toBeDisabled();
+    fireEvent.click(forcedToggle);
     expect(
       screen.getByRole("button", { name: "收起餐饮" }),
     ).toBeInTheDocument();
@@ -158,6 +161,7 @@ describe("CategoryList", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("外食")).toBeNull();
     fireEvent.change(search, { target: { value: "餐饮" } });
+    expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "展开餐饮" }));
     expect(screen.getByText("外食")).toBeInTheDocument();
     expect(screen.getByText("早餐")).toBeInTheDocument();
