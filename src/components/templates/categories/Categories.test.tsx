@@ -1,4 +1,4 @@
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CategoriesTemplate } from "./Categories";
@@ -57,13 +57,18 @@ describe("CategoriesTemplate", () => {
     ).toBeInTheDocument();
   });
 
-  it("显示新增入口和分类列表", () => {
+  it("显示新增入口和默认折叠的分类列表", () => {
     const { container } = render(<CategoriesTemplate {...baseProps} />);
+    const canvas = within(container);
 
     expect(
-      within(container).getByRole("button", { name: "新增分类" }),
+      canvas.getByRole("button", { name: "新增分类" }),
     ).toBeInTheDocument();
-    expect(within(container).getByText("餐饮")).toBeInTheDocument();
-    expect(within(container).getByText("外食")).toBeInTheDocument();
+    expect(canvas.getByText("餐饮")).toBeInTheDocument();
+    expect(canvas.queryByText("外食")).toBeNull();
+
+    fireEvent.click(canvas.getByRole("button", { name: "展开餐饮" }));
+
+    expect(canvas.getByText("外食")).toBeInTheDocument();
   });
 });
