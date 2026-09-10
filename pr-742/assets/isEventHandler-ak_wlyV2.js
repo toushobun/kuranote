@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t}from"./createSvgIcon-DPRTItHW.js";var n=e((()=>{t()}));function r(e,t){let n=e.charCodeAt(2);return e[0]===`o`&&e[1]===`n`&&n>=65&&n<=90&&typeof t==`function`}var i=e((()=>{})),a=e((()=>{i()}));export{n as i,i as n,r,a as t};
