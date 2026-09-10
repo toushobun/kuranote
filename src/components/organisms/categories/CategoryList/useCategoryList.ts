@@ -78,15 +78,7 @@ export function useCategoryList({
       : categories;
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () =>
-      new Set(
-        categories
-          .filter((category) => category.type === "expense")
-          .slice(0, 1)
-          .map((category) => category.id),
-      ),
-  );
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [isManaging, setIsManaging] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingName, setEditingName] = useState("");

@@ -67,10 +67,17 @@ const categories = [
   },
 ];
 
+function expandFirstCategoryIfNeeded(expandFirst: boolean) {
+  if (!expandFirst) return;
+  const toggle = screen.queryByRole("button", { name: "展开餐饮" });
+  if (toggle) fireEvent.click(toggle);
+}
+
 function renderList(
   overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
+  expandFirst = true,
 ) {
-  return render(
+  const result = render(
     <CategoryList
       archiveCategoryAction={vi.fn(async () => {})}
       categories={categories}
@@ -80,12 +87,17 @@ function renderList(
       {...overrides}
     />,
   );
+
+  expandFirstCategoryIfNeeded(expandFirst);
+
+  return result;
 }
 
 function renderListWithTheme(
   overrides: Partial<Parameters<typeof CategoryList>[0]> = {},
+  expandFirst = true,
 ) {
-  return render(
+  const result = render(
     <ThemeProvider theme={theme}>
       <CategoryList
         archiveCategoryAction={vi.fn(async () => {})}
@@ -97,6 +109,10 @@ function renderListWithTheme(
       />
     </ThemeProvider>,
   );
+
+  expandFirstCategoryIfNeeded(expandFirst);
+
+  return result;
 }
 
 function enterManagingMode() {
@@ -109,6 +125,37 @@ afterEach(() => {
 });
 
 describe("CategoryList", () => {
+  it("编辑小分类并确认新图标后提交完整表单，取消编辑不会归档", async () => {
+    const updateCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
+      async () => {},
+    );
+    const archiveCategoryAction = vi.fn(async () => {});
+    renderList({ updateCategoryAction, archiveCategoryAction });
+    fireEvent.click(screen.getByRole("button", { name: "编辑外食" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
+      target: { value: "新的外食" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+    const picker = screen.getByRole("dialog", { name: "选择图标" });
+    fireEvent.click(
+      within(picker).getByRole("button", { name: "选择咖啡图标" }),
+    );
+    fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
+    await waitFor(() => expect(picker).not.toBeInTheDocument());
+    expect(updateCategoryAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());
+    const data = updateCategoryAction.mock.calls[0][0];
+    expect(data.get("categoryId")).toBe(expenseChildId);
+    expect(data.get("name")).toBe("新的外食");
+    expect(data.get("iconName")).toBe("☕");
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(archiveCategoryAction).not.toHaveBeenCalled();
+  });
+
   it("搜索框位于 Tabs 之前，输入名称过滤列表，无匹配时显示搜索提示", () => {
     renderList();
     const search = screen.getByRole("textbox", { name: "搜索分类名称" });
@@ -197,15 +244,16 @@ describe("CategoryList", () => {
     }
   });
 
-  it("默认显示支出分类并展开第一个大分类", () => {
-    renderList();
+  it("默认显示支出分类并折叠所有大分类", () => {
+    renderList({}, false);
 
     expect(screen.getByRole("tab", { name: "支出分类" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(screen.getByText("餐饮")).toBeInTheDocument();
-    expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
+    expect(screen.queryByText("外食")).toBeNull();
     expect(screen.queryByText("工资")).toBeNull();
   });
 

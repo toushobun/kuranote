@@ -68,3 +68,22 @@ export const Empty: Story = {
     );
   },
 };
+
+export const UnavailableValue: Story = {
+  name: "旧图标不可确认，重选有效图标",
+  args: { value: "📁" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "选择图标" }));
+    const dialog = within(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog"),
+    );
+    const confirm = dialog.getByRole("button", { name: "确定" });
+    await expect(confirm).toBeDisabled();
+
+    await userEvent.click(dialog.getByRole("button", { name: "选择面条图标" }));
+    await expect(confirm).toBeEnabled();
+    await userEvent.click(confirm);
+    await expect(canvas.getByLabelText("当前记录图标：🍜")).toBeVisible();
+  },
+};

@@ -29,6 +29,41 @@ afterEach(() => {
 });
 
 describe("CategoryForm", () => {
+  it("确认图标后提交名称与图标", async () => {
+    const createCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
+      async () => {},
+    );
+    render(
+      <CategoryForm
+        createCategoryAction={createCategoryAction}
+        parentOptions={parentOptions}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
+      target: { value: "验收分类" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+    const picker = screen.getByRole("dialog", { name: "选择图标" });
+    fireEvent.click(
+      within(picker).getByRole("button", { name: "选择面条图标" }),
+    );
+    fireEvent.click(within(picker).getByRole("button", { name: "确定" }));
+    await waitFor(() => expect(picker).not.toBeInTheDocument());
+    expect(createCategoryAction).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "新增分类",
+      }),
+    );
+    await waitFor(() => expect(createCategoryAction).toHaveBeenCalledOnce());
+    const data = createCategoryAction.mock.calls[0][0] as FormData;
+    expect(data.get("name")).toBe("验收分类");
+    expect(data.get("iconName")).toBe("🍜");
+    expect(data.get("type")).toBe("expense");
+    expect(data.get("parentId")).toBe("");
+  });
+
   it("通过顶部按钮打开新增分类表单", () => {
     renderForm();
 

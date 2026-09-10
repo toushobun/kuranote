@@ -48,6 +48,13 @@ function renderCategoryListHook(
 }
 
 describe("useCategoryList", () => {
+  it("默认不展开任何大分类", () => {
+    const { result } = renderCategoryListHook(vi.fn(async () => ({})));
+
+    expect(result.current.expandedIds).toEqual(new Set());
+    expect(result.current.renderedExpandedIds).toEqual(new Set());
+  });
+
   it.each([false, true])(
     "搜索强制展开期间切换不会改变原有展开状态：%s",
     (initiallyExpanded) => {
@@ -56,7 +63,7 @@ describe("useCategoryList", () => {
         searchCategories,
       );
       const id = searchCategories[0].id;
-      if (!initiallyExpanded) act(() => result.current.toggleCategory(id));
+      if (initiallyExpanded) act(() => result.current.toggleCategory(id));
       const before = result.current.expandedIds;
       act(() => result.current.setSearchQuery("外食"));
       act(() => result.current.toggleCategory(id));
@@ -109,7 +116,6 @@ describe("useCategoryList", () => {
       vi.fn(async () => ({})),
       searchCategories,
     );
-    act(() => result.current.toggleCategory(categories[0].id));
     act(() => result.current.setSearchQuery("  cAfE  "));
     expect(result.current.visibleCategories).toEqual([
       { ...searchCategories[0], children: [searchCategories[0].children[0]] },
@@ -157,7 +163,6 @@ describe("useCategoryList", () => {
       vi.fn(async () => ({})),
       items,
     );
-    act(() => result.current.toggleCategory(items[0].id));
     act(() => result.current.setSearchQuery("外食"));
     expect(result.current.visibleCategories).toEqual(items);
     expect(result.current.renderedExpandedIds.has(items[0].id)).toBe(true);
@@ -329,9 +334,7 @@ describe("useCategoryList", () => {
     rerender({ categoryItems: [...categories, incomeCategory] });
 
     expect(result.current.selectedType).toBe("income");
-    expect(result.current.expandedIds).toEqual(
-      new Set([categories[0].id, categories[1].id]),
-    );
+    expect(result.current.expandedIds).toEqual(new Set([categories[1].id]));
     expect(result.current.isManaging).toBe(true);
     expect(
       result.current.visibleCategories.map((category) => category.id),
