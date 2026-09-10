@@ -48,6 +48,131 @@ function renderCategoryListHook(
 }
 
 describe("useCategoryList", () => {
+  it.each([false, true])(
+    "搜索强制展开期间切换不会改变原有展开状态：%s",
+    (initiallyExpanded) => {
+      const { result } = renderCategoryListHook(
+        vi.fn(async () => ({})),
+        searchCategories,
+      );
+      const id = searchCategories[0].id;
+      if (!initiallyExpanded) act(() => result.current.toggleCategory(id));
+      const before = result.current.expandedIds;
+      act(() => result.current.setSearchQuery("外食"));
+      act(() => result.current.toggleCategory(id));
+      expect(result.current.expandedIds).toBe(before);
+      expect(result.current.renderedExpandedIds.has(id)).toBe(true);
+      act(() => result.current.setSearchQuery(""));
+      expect(result.current.renderedExpandedIds.has(id)).toBe(
+        initiallyExpanded,
+      );
+    },
+  );
+
+  const searchCategories: CategoryTreeItem[] = [
+    {
+      ...categories[0],
+      children: [
+        {
+          ...categories[0],
+          id: "child-1",
+          parent_id: categories[0].id,
+          name: "🍜 外食 Cafe",
+          icon_name: "🍜",
+        },
+        {
+          ...categories[0],
+          id: "child-2",
+          parent_id: categories[0].id,
+          name: "早餐",
+        },
+      ],
+    },
+    categories[1],
+    { ...categories[1], id: "income", name: "Cafe 收入", type: "income" },
+  ];
+
+  it("搜索状态默认为空，大分类名称命中时保留全部小分类", () => {
+    const { result } = renderCategoryListHook(
+      vi.fn(async () => ({})),
+      searchCategories,
+    );
+    expect(result.current.searchQuery).toBe("");
+    act(() => result.current.setSearchQuery("餐饮"));
+    expect(result.current.visibleCategories).toEqual([searchCategories[0]]);
+    act(() => result.current.setSearchQuery("🍽️"));
+    expect(result.current.visibleCategories).toEqual([]);
+  });
+
+  it("小分类按显示名忽略大小写与首尾空白匹配，自动展开且仅保留命中项", () => {
+    const { result } = renderCategoryListHook(
+      vi.fn(async () => ({})),
+      searchCategories,
+    );
+    act(() => result.current.toggleCategory(categories[0].id));
+    act(() => result.current.setSearchQuery("  cAfE  "));
+    expect(result.current.visibleCategories).toEqual([
+      { ...searchCategories[0], children: [searchCategories[0].children[0]] },
+    ]);
+    expect(result.current.renderedExpandedIds.has(categories[0].id)).toBe(true);
+    expect(result.current.expandedIds.has(categories[0].id)).toBe(false);
+    act(() => result.current.setSearchQuery("🍜"));
+    expect(result.current.visibleCategories).toEqual([]);
+    act(() => {
+      result.current.setSearchQuery("cafe");
+      result.current.setSelectedType("income");
+    });
+    expect(result.current.visibleCategories).toEqual([searchCategories[2]]);
+  });
+
+  it.each(["", "   \t  "])(
+    "清空或仅空白关键词恢复完整列表与手动展开状态：%j",
+    (query) => {
+      const { result } = renderCategoryListHook(
+        vi.fn(async () => ({})),
+        searchCategories,
+      );
+      act(() => {
+        result.current.toggleCategory(categories[0].id);
+        result.current.toggleCategory(categories[1].id);
+      });
+      const expandedBefore = result.current.expandedIds;
+      act(() => result.current.setSearchQuery("外食"));
+      expect(result.current.renderedExpandedIds.has(categories[0].id)).toBe(
+        true,
+      );
+      act(() => result.current.setSearchQuery(query));
+      expect(result.current.isSearching).toBe(false);
+      expect(result.current.visibleCategories).toEqual(
+        searchCategories.slice(0, 2),
+      );
+      expect(result.current.expandedIds).toBe(expandedBefore);
+      expect(result.current.renderedExpandedIds).toEqual(expandedBefore);
+    },
+  );
+
+  it("大分类和小分类同时命中时自动展开并保留其他小分类", () => {
+    const items = [{ ...searchCategories[0], name: "外食相关" }];
+    const { result } = renderCategoryListHook(
+      vi.fn(async () => ({})),
+      items,
+    );
+    act(() => result.current.toggleCategory(items[0].id));
+    act(() => result.current.setSearchQuery("外食"));
+    expect(result.current.visibleCategories).toEqual(items);
+    expect(result.current.renderedExpandedIds.has(items[0].id)).toBe(true);
+  });
+
+  it("搜索时不提交不完整的分类排序集合", () => {
+    const action = vi.fn(async () => ({}));
+    const { result } = renderCategoryListHook(action, searchCategories);
+    act(() => result.current.setSearchQuery("外食"));
+    act(() =>
+      result.current.submitCategoryOrder([categories[0].id], null, "expense"),
+    );
+    expect(action).not.toHaveBeenCalled();
+  });
+
   it("管理模式默认关闭并可切换开关", () => {
     const { result } = renderCategoryListHook(vi.fn(async () => ({})));
 

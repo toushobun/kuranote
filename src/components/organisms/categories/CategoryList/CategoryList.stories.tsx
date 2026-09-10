@@ -92,6 +92,26 @@ export const Default: Story = {
   name: "分类管理列表",
 };
 
+export const ChildSearch: Story = {
+  name: "搜索小分类并自动展开",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "收起餐饮" }));
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: "搜索分类名称" }),
+      "外食",
+    );
+    await expect(canvas.getByText("外食")).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: "收起餐饮" }),
+    ).toBeDisabled();
+    await expect(canvas.queryByText("早餐")).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole("button", { name: "收起餐饮" }),
+    ).toBeVisible();
+  },
+};
+
 export const ReadOnly: Story = {
   name: "只读列表",
   args: { canManageCategories: false },

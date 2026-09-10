@@ -2,6 +2,7 @@
 
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Box from "@mui/material/Box";
@@ -10,6 +11,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
@@ -21,6 +23,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import {
   categoryArchiveMessages,
   categoryManagingMessages,
+  categorySearchMessages,
 } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { EmptyState } from "molecules/ui/EmptyState";
@@ -66,6 +69,7 @@ type CategoryRowItemProps = {
   childCount?: number;
   expanded?: boolean;
   isPending: boolean;
+  isExpansionForced: boolean;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
   onToggle?: () => void;
@@ -78,6 +82,7 @@ function CategoryRowItem({
   childCount,
   expanded = false,
   isPending,
+  isExpansionForced,
   handleProps,
   onEdit,
   onToggle,
@@ -96,7 +101,7 @@ function CategoryRowItem({
         {onToggle ? (
           <IconButton
             aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
-            disabled={isPending}
+            disabled={isPending || isExpansionForced}
             onClick={onToggle}
             size="small"
             type="button"
@@ -186,7 +191,11 @@ export function CategoryList({
     editingCategory,
     editingIconName,
     editingName,
-    expandedIds,
+    renderedExpandedIds,
+    forcedExpandedIds,
+    isSearching,
+    searchQuery,
+    setSearchQuery,
     isManaging,
     isPending,
     openEditor,
@@ -222,6 +231,32 @@ export function CategoryList({
 
   return (
     <Stack spacing={2.5} sx={{ mt: 3 }}>
+      <SoftCard sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0 }}>
+        <TextField
+          fullWidth
+          placeholder={categorySearchMessages.placeholder}
+          size="small"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          slotProps={{
+            htmlInput: { "aria-label": categorySearchMessages.placeholder },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon color="action" />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{
+            "& .MuiOutlinedInput-notchedOutline": { border: 0 },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: `${designTokens.radius.full}px`,
+              px: 0.75,
+            },
+          }}
+        />
+      </SoftCard>
       <Tabs
         aria-label="分类类型"
         onChange={(_, value: TransactionType) => setSelectedType(value)}
@@ -260,20 +295,29 @@ export function CategoryList({
 
       {visibleCategories.length === 0 ? (
         <EmptyState
-          title={`还没有${selectedType === "expense" ? "支出" : "收入"}分类`}
-          description="新增分类后会显示在这里。"
+          title={
+            isSearching
+              ? categorySearchMessages.emptyTitle
+              : `还没有${selectedType === "expense" ? "支出" : "收入"}分类`
+          }
+          description={
+            isSearching
+              ? categorySearchMessages.emptyDescription
+              : "新增分类后会显示在这里。"
+          }
         />
       ) : (
         <SortableList
           key={selectedType}
-          disabled={isPending || !canManageCategories}
+          disabled={isPending || isSearching || !canManageCategories}
           items={visibleCategories.map((category) => category.id)}
           onReorder={(ids) => submitCategoryOrder(ids, null, selectedType)}
         >
           {(draggingRoots) => (
             <Stack spacing={1.5}>
               {visibleCategories.map((category) => {
-                const expanded = !draggingRoots && expandedIds.has(category.id);
+                const expanded =
+                  !draggingRoots && renderedExpandedIds.has(category.id);
                 return (
                   <SortableItem
                     key={category.id}
@@ -287,6 +331,7 @@ export function CategoryList({
                           category={category}
                           childCount={category.children.length}
                           expanded={expanded}
+                          isExpansionForced={forcedExpandedIds.has(category.id)}
                           isPending={isPending || draggingRoots}
                           handleProps={handleProps}
                           onEdit={openEditor}
@@ -296,7 +341,9 @@ export function CategoryList({
                         {expanded ? (
                           category.children.length > 0 ? (
                             <SortableList
-                              disabled={isPending || !canManageCategories}
+                              disabled={
+                                isPending || isSearching || !canManageCategories
+                              }
                               items={category.children.map((child) => child.id)}
                               onReorder={(ids) =>
                                 submitCategoryOrder(

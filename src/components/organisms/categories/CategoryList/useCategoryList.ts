@@ -77,6 +77,7 @@ export function useCategoryList({
       ? optimisticCategoryOrder.categories
       : categories;
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () =>
       new Set(
@@ -92,16 +93,33 @@ export function useCategoryList({
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
   const [isPending, startTransition] = useTransition();
 
-  const visibleCategories = orderedCategories.filter(
-    (category) => category.type === selectedType,
-  );
+  const keyword = searchQuery.trim().toLowerCase();
+  const isSearching = keyword.length > 0;
+  const renderedExpandedIds = new Set(expandedIds);
+  const forcedExpandedIds = new Set<string>();
+  const matchesName = (category: Category) =>
+    getCategoryDisplayName(category.name, category.icon_name)
+      .toLowerCase()
+      .includes(keyword);
+  const visibleCategories = orderedCategories
+    .filter((category) => category.type === selectedType)
+    .flatMap((category) => {
+      if (!isSearching) return [category];
+      const children = category.children.filter(matchesName);
+      if (children.length > 0) {
+        forcedExpandedIds.add(category.id);
+        renderedExpandedIds.add(category.id);
+      }
+      if (matchesName(category)) return [category];
+      return children.length > 0 ? [{ ...category, children }] : [];
+    });
 
   function submitCategoryOrder(
     orderedIds: string[],
     parentId: string | null,
     type: TransactionType,
   ) {
-    if (isPending) return;
+    if (isPending || isSearching) return;
     const previousCategories = orderedCategories;
     const nextCategories = applyCategoryOrder(
       previousCategories,
@@ -155,6 +173,7 @@ export function useCategoryList({
   }
 
   function toggleCategory(categoryId: string) {
+    if (forcedExpandedIds.has(categoryId)) return;
     setExpandedIds((current) => {
       const next = new Set(current);
 
@@ -175,6 +194,11 @@ export function useCategoryList({
     editingIconName,
     editingName,
     expandedIds,
+    renderedExpandedIds,
+    forcedExpandedIds,
+    isSearching,
+    searchQuery,
+    setSearchQuery,
     isManaging,
     isPending,
     openEditor,

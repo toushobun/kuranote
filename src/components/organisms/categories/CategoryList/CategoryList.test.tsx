@@ -109,6 +109,82 @@ afterEach(() => {
 });
 
 describe("CategoryList", () => {
+  it("搜索框位于 Tabs 之前，输入名称过滤列表，无匹配时显示搜索提示", () => {
+    renderList();
+    const search = screen.getByRole("textbox", { name: "搜索分类名称" });
+    expect(search).toHaveAttribute("placeholder", "搜索分类名称");
+    expect(
+      search.compareDocumentPosition(screen.getByRole("tablist")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.change(search, { target: { value: "购物" } });
+    expect(screen.getByText("日常购物")).toBeInTheDocument();
+    expect(screen.queryByText("餐饮")).toBeNull();
+    fireEvent.change(search, { target: { value: "不存在" } });
+    expect(screen.getByText("没有找到匹配的分类")).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: "" } });
+    expect(screen.getByText("餐饮")).toBeInTheDocument();
+    expect(screen.getByText("外食")).toBeInTheDocument();
+  });
+
+  it("搜索小分类自动展开且过滤其他小分类，清空后恢复原有手动展开状态", () => {
+    renderList({
+      categories: [
+        {
+          ...categories[0],
+          children: [
+            categories[0].children[0],
+            { ...categories[0].children[0], id: "breakfast", name: "早餐" },
+          ],
+        },
+        ...categories.slice(1),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "收起餐饮" }));
+    fireEvent.click(screen.getByRole("button", { name: "展开日常购物" }));
+    const search = screen.getByRole("textbox", { name: "搜索分类名称" });
+    fireEvent.change(search, { target: { value: "外食" } });
+    const forcedToggle = screen.getByRole("button", { name: "收起餐饮" });
+    expect(forcedToggle).toBeDisabled();
+    fireEvent.click(forcedToggle);
+    expect(
+      screen.getByRole("button", { name: "收起餐饮" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.queryByText("早餐")).toBeNull();
+    fireEvent.change(search, { target: { value: "" } });
+    expect(
+      screen.getByRole("button", { name: "展开餐饮" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "收起日常购物" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("外食")).toBeNull();
+    fireEvent.change(search, { target: { value: "餐饮" } });
+    expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "展开餐饮" }));
+    expect(screen.getByText("外食")).toBeInTheDocument();
+    expect(screen.getByText("早餐")).toBeInTheDocument();
+  });
+
+  it("搜索期间禁用排序手柄，清空后恢复管理模式排序", () => {
+    renderList();
+    enterManagingMode();
+    const search = screen.getByRole("textbox", { name: "搜索分类名称" });
+    fireEvent.change(search, { target: { value: "外食" } });
+    for (const handle of screen.getAllByRole("button", {
+      name: /^调整.+排序$/,
+    })) {
+      expect(handle).toBeDisabled();
+    }
+    fireEvent.change(search, { target: { value: "" } });
+    for (const handle of screen.getAllByRole("button", {
+      name: /^调整.+排序$/,
+    })) {
+      expect(handle).toBeEnabled();
+    }
+  });
+
   it("大分类图标使用方圆角而不是被裸数字放大成整圆", () => {
     const { container } = renderListWithTheme();
 
