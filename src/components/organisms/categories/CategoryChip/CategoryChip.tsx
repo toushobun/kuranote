@@ -1,6 +1,5 @@
 "use client";
 
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -9,6 +8,7 @@ import Typography from "@mui/material/Typography";
 
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import type { SortableHandleProps } from "molecules/ui/SortableList/SortableItem";
+import { SortableDragHandle } from "molecules/ui/SortableList/SortableDragHandle/SortableDragHandle";
 import { designTokens } from "theme/theme";
 import type { Category } from "types/categories";
 import { getCategoryDisplayName } from "utils/categoryNames";
@@ -42,19 +42,7 @@ export function CategoryItemActions({
           <EditRoundedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title={`拖动${displayName}调整排序`}>
-        <span>
-          <IconButton
-            {...handleProps}
-            aria-label={`调整${displayName}排序`}
-            size="small"
-            sx={{ cursor: "grab", touchAction: "none" }}
-            type="button"
-          >
-            <DragIndicatorRoundedIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
+      <SortableDragHandle name={displayName} handleProps={handleProps} />
     </>
   );
 }
