@@ -74,9 +74,7 @@ export const UnavailableValue: Story = {
   args: { value: "📁" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(
-      canvas.getByRole("button", { name: "选择图标" }),
-    );
+    await userEvent.click(canvas.getByRole("button", { name: "选择图标" }));
     const dialog = within(
       await within(canvasElement.ownerDocument.body).findByRole("dialog"),
     );
