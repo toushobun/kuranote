@@ -109,9 +109,7 @@ describe("DestructiveSubmitButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: "删除账户？" }),
-      ).toBeNull();
+      expect(screen.queryByRole("heading", { name: "删除账户？" })).toBeNull();
     });
     expect(handleSubmit).not.toHaveBeenCalled();
   });
