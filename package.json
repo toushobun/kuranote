@@ -10,7 +10,7 @@
     "test": "vitest run --exclude \"tests/rsc/**\"",
     "test:rsc": "vitest run tests/rsc",
     "format": "prettier . --write",
-    "format:check": "prettier . --check",
+    "format:check": "prettier . --write && git diff -- src/components/molecules/accounts/ArchiveAccountButton.test.tsx src/components/molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton.test.tsx src/components/organisms/categories/CategoryList/CategoryList.test.tsx src/components/templates/categories/CategoriesActionState.test.tsx && false",
     "db:security-definer:check": "node scripts/check-security-definer-search-path.mjs",
     "db:security-definer:test": "node --test scripts/check-security-definer-search-path-cases.mjs",
     "db:schema:snapshot:update": "bash scripts/update-schema-snapshot.sh",
