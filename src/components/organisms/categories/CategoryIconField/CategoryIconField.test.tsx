@@ -25,7 +25,7 @@ describe("CategoryIconField", () => {
     expect(screen.getByRole("dialog")).not.toHaveClass(
       "MuiDialog-paperFullScreen",
     );
-    expect(screen.getByRole("dialog")).toHaveClass("MuiDialog-paperWidthXs");
+    expect(screen.getByRole("dialog")).toHaveClass("MuiDialog-paperWidthSm");
     expect(screen.getByText("🍴")).toBeVisible();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(

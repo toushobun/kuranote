@@ -91,7 +91,7 @@ export function GroupedIconPicker({
       </Stack>
       <Dialog
         fullWidth
-        maxWidth="xs"
+        maxWidth="sm"
         slotProps={{ paper: { sx: { maxHeight: "70dvh" } } }}
         open={draftValue !== null}
         onClose={closePicker}
@@ -131,10 +131,7 @@ export function GroupedIconPicker({
                   sx={{
                     display: "grid",
                     gap: 1.25,
-                    gridTemplateColumns: {
-                      xs: "repeat(5, minmax(0, 1fr))",
-                      sm: "repeat(7, minmax(0, 1fr))",
-                    },
+                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
                   }}
                 >
                   {group.options.map((option) => (

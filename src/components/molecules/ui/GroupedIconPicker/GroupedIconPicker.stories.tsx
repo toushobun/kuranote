@@ -110,7 +110,7 @@ export const CategoryGroups: Story = {
     await expect(dialog).not.toHaveClass("MuiDialog-paperFullScreen");
     await expect(dialog).toHaveClass(
       "MuiDialog-paperFullWidth",
-      "MuiDialog-paperWidthXs",
+      "MuiDialog-paperWidthSm",
     );
     await expect(within(dialog).getAllByRole("region")).toHaveLength(8);
   },
