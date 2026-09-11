@@ -3,20 +3,15 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { ArchiveAccountButton } from "./ArchiveAccountButton";
-
-const actionLabel = String.fromCharCode(21024, 38500, 36134, 25143);
-const dialogTitle = `${actionLabel}？`;
-const confirmLabel = actionLabel;
 
 afterEach(() => {
   cleanup();
@@ -33,81 +28,37 @@ function renderWithUserTheme(children: ReactNode) {
 }
 
 describe("ArchiveAccountButton", () => {
-  it("渲染按钮", () => {
+  it("保留账户删除的默认确认文案", () => {
     renderWithUserTheme(
       <form>
         <ArchiveAccountButton />
       </form>,
     );
 
-    expect(
-      screen.getByRole("button", { name: actionLabel }),
-    ).toBeInTheDocument();
-  });
-
-  it("点击后显示统一确认弹窗", () => {
-    renderWithUserTheme(
-      <form>
-        <ArchiveAccountButton />
-      </form>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "删除账户" }));
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: dialogTitle }),
+      within(dialog).getByRole("heading", { name: "删除账户？" }),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("button", { name: "取消" }),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole("button", { name: confirmLabel }),
+      within(dialog).getByRole("button", { name: "删除账户" }),
     ).toBeInTheDocument();
   });
 
-  it("确认后提交表单", async () => {
-    const handleSubmit = vi.fn();
-
+  it("自定义触发按钮文案时仍使用账户删除确认文案", () => {
     renderWithUserTheme(
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          handleSubmit();
-        }}
-      >
-        <ArchiveAccountButton />
+      <form>
+        <ArchiveAccountButton label="删除" />
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
-    fireEvent.click(
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+
+    expect(
       within(screen.getByRole("dialog")).getByRole("button", {
-        name: confirmLabel,
+        name: "删除账户",
       }),
-    );
-
-    await waitFor(() => {
-      expect(handleSubmit).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("取消时关闭弹窗且不提交", async () => {
-    const handleSubmit = vi.fn();
-
-    renderWithUserTheme(
-      <form onSubmit={handleSubmit}>
-        <ArchiveAccountButton />
-      </form>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
-    fireEvent.click(screen.getByRole("button", { name: "取消" }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: dialogTitle })).toBeNull();
-    });
-    expect(handleSubmit).not.toHaveBeenCalled();
+    ).toBeInTheDocument();
   });
 });

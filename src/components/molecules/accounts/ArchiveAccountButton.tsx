@@ -1,9 +1,8 @@
 "use client";
 
-import Button from "@mui/material/Button";
-import { useRef, type MouseEvent, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
 
 type ArchiveAccountButtonProps = {
   description?: ReactNode;
@@ -18,32 +17,13 @@ export function ArchiveAccountButton({
   label = "删除账户",
   title = "删除账户？",
 }: ArchiveAccountButtonProps) {
-  const confirm = useConfirmDialog();
-  const formRef = useRef<HTMLFormElement | null>(null);
-
-  async function confirmArchive(event: MouseEvent<HTMLButtonElement>) {
-    formRef.current = event.currentTarget.form;
-    const ok = await confirm({
-      confirmLabel: "删除账户",
-      description,
-      title,
-      tone: "delete",
-    });
-
-    if (ok) {
-      formRef.current?.requestSubmit();
-    }
-  }
-
   return (
-    <Button
-      color="error"
-      form={formId}
-      onClick={confirmArchive}
-      type="button"
-      variant="outlined"
-    >
-      {label}
-    </Button>
+    <DestructiveSubmitButton
+      confirmLabel="删除账户"
+      description={description}
+      formId={formId}
+      label={label}
+      title={title}
+    />
   );
 }
