@@ -20,10 +20,10 @@ const meta = {
     ),
   ],
   args: {
-    confirmLabel: "删除账户",
-    description: "删除后该账户将从账户列表中隐藏，历史记录不会被删除。",
-    label: "删除账户",
-    title: "删除账户？",
+    confirmLabel: "归档",
+    description: "归档后该分类不会在记账选择中显示，确定要归档吗？",
+    label: "归档该分类",
+    title: "归档该分类？",
   },
 } satisfies Meta<typeof DestructiveSubmitButton>;
 

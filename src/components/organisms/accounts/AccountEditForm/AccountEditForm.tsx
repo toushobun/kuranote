@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
-import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
+import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
 import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 import { designTokens } from "theme/theme";
@@ -108,13 +108,7 @@ export function AccountEditForm({
 
         <FormActions direction="row" sx={actionBarSx}>
           {archiveAccountAction ? (
-            <DestructiveSubmitButton
-              confirmLabel="删除账户"
-              description="删除后该账户将从账户列表中隐藏，历史记录不会被删除。"
-              formId={archiveFormId}
-              label="删除"
-              title="删除账户？"
-            />
+            <ArchiveAccountButton formId={archiveFormId} label="删除" />
           ) : null}
           <PrimaryActionButton
             form={formId}
