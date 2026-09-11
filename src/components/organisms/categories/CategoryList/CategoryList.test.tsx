@@ -17,6 +17,7 @@ import {
   mockSortableRects,
 } from "test/sortable";
 import { designTokens, theme } from "theme/theme";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryList } from "./CategoryList";
 
@@ -79,16 +80,18 @@ function renderList(
   expandFirst = true,
 ) {
   const result = render(
-    <ConfirmDialogProvider>
-      <CategoryList
-        archiveCategoryAction={vi.fn(async () => {})}
-        categories={categories}
-        onReorderError={vi.fn()}
-        reorderCategoryAction={vi.fn(async () => ({}))}
-        updateCategoryAction={vi.fn(async () => {})}
-        {...overrides}
-      />
-    </ConfirmDialogProvider>,
+    <UserThemeProvider storageScope="category-list-test">
+      <ConfirmDialogProvider>
+        <CategoryList
+          archiveCategoryAction={vi.fn(async () => {})}
+          categories={categories}
+          onReorderError={vi.fn()}
+          reorderCategoryAction={vi.fn(async () => ({}))}
+          updateCategoryAction={vi.fn(async () => {})}
+          {...overrides}
+        />
+      </ConfirmDialogProvider>
+    </UserThemeProvider>,
   );
 
   expandFirstCategoryIfNeeded(expandFirst);
@@ -101,18 +104,20 @@ function renderListWithTheme(
   expandFirst = true,
 ) {
   const result = render(
-    <ThemeProvider theme={theme}>
-      <ConfirmDialogProvider>
-        <CategoryList
-          archiveCategoryAction={vi.fn(async () => {})}
-          categories={categories}
-          onReorderError={vi.fn()}
-          reorderCategoryAction={vi.fn(async () => ({}))}
-          updateCategoryAction={vi.fn(async () => {})}
-          {...overrides}
-        />
-      </ConfirmDialogProvider>
-    </ThemeProvider>,
+    <UserThemeProvider storageScope="category-list-theme-test">
+      <ThemeProvider theme={theme}>
+        <ConfirmDialogProvider>
+          <CategoryList
+            archiveCategoryAction={vi.fn(async () => {})}
+            categories={categories}
+            onReorderError={vi.fn()}
+            reorderCategoryAction={vi.fn(async () => ({}))}
+            updateCategoryAction={vi.fn(async () => {})}
+            {...overrides}
+          />
+        </ConfirmDialogProvider>
+      </ThemeProvider>
+    </UserThemeProvider>,
   );
 
   expandFirstCategoryIfNeeded(expandFirst);
@@ -136,6 +141,8 @@ async function openArchiveConfirm(archive: HTMLElement) {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  window.localStorage.clear();
+  document.documentElement.removeAttribute("data-user-theme");
 });
 
 describe("CategoryList", () => {
@@ -445,7 +452,9 @@ describe("CategoryList", () => {
     expect(archiveCategoryAction).not.toHaveBeenCalled();
 
     const secondConfirm = await openArchiveConfirm(archive);
-    fireEvent.click(within(secondConfirm).getByRole("button", { name: "归档" }));
+    fireEvent.click(
+      within(secondConfirm).getByRole("button", { name: "归档" }),
+    );
     await waitFor(() => expect(archiveCategoryAction).toHaveBeenCalledOnce());
     expect(archiveCategoryAction.mock.calls[0][0].get("categoryId")).toBe(
       expenseRootId,
