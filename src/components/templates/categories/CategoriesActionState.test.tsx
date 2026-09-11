@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { UserThemeProvider } from "theme/UserThemeProvider";
@@ -18,6 +19,8 @@ import type {
 } from "types/categories";
 
 import { CategoriesActionStateTemplate } from "./CategoriesActionState";
+
+vi.mock("molecules/ui/OperationFeedbackDialogs", { spy: true });
 
 const rootId = "00000000-0000-4000-8000-000000000101";
 const secondRootId = "00000000-0000-4000-8000-000000000102";
@@ -149,6 +152,15 @@ describe("CategoriesActionStateTemplate", () => {
         const snackbar = status.closest(".MuiSnackbar-root");
         expect(snackbar).not.toBeNull();
         if (!snackbar) throw new Error("未找到成功提示容器");
+        expect(SuccessFeedbackDialog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            bottomOffset:
+              "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+            open: true,
+            title: message,
+          }),
+          undefined,
+        );
         expect(Number(getComputedStyle(snackbar).zIndex)).toBeGreaterThan(
           modalZIndex,
         );
