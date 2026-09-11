@@ -195,6 +195,7 @@ export function CategoryList({
     setSearchQuery,
     isPending,
     openEditor,
+    requestCloseEditor,
     resetEditor,
     selectedType,
     setEditingIconName,
@@ -423,7 +424,7 @@ export function CategoryList({
       <Dialog
         fullWidth
         maxWidth="sm"
-        onClose={closeEditor}
+        onClose={requestCloseEditor}
         open={isEditorOpen}
         slotProps={{ transition: { onExited: resetEditor } }}
       >
@@ -461,7 +462,7 @@ export function CategoryList({
         <CategoryDialogActions
           disabled={!canManageCategories}
           form="category-edit-form"
-          onCancel={closeEditor}
+          onCancel={requestCloseEditor}
           submitLabel="保存"
         >
           {editingCategory && canManageCategories ? (

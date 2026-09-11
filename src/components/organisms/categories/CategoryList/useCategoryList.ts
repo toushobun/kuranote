@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { categoryEditMessages } from "config/categoryMessages";
+import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   CategoryActionState,
   CategoryReorderAction,
@@ -70,6 +72,7 @@ export function useCategoryList({
   onReorderError,
   reorderCategoryAction,
 }: UseCategoryListParams) {
+  const confirm = useConfirmDialog();
   const [optimisticCategoryOrder, setOptimisticCategoryOrder] =
     useState<OptimisticCategoryOrder | null>(null);
   const orderedCategories =
@@ -163,6 +166,31 @@ export function useCategoryList({
     setIsEditorOpen(false);
   }
 
+  async function requestCloseEditor() {
+    const originalName = editingCategory
+      ? getCategoryDisplayName(editingCategory.name, editingCategory.icon_name)
+      : "";
+    const originalIconName = editingCategory?.icon_name ?? defaultCategoryEmoji;
+    const hasUnsavedChanges =
+      editingCategory !== null &&
+      (editingName !== originalName || editingIconName !== originalIconName);
+
+    if (!hasUnsavedChanges) {
+      closeEditor();
+      return;
+    }
+
+    const ok = await confirm({
+      cancelLabel: categoryEditMessages.continueEditing,
+      confirmColor: "error",
+      confirmLabel: categoryEditMessages.discardChanges,
+      description: categoryEditMessages.unsavedDescription,
+      title: categoryEditMessages.unsavedTitle,
+    });
+
+    if (ok) closeEditor();
+  }
+
   function resetEditor() {
     setEditingCategory(null);
     setEditingName("");
@@ -195,6 +223,7 @@ export function useCategoryList({
     setSearchQuery,
     isPending,
     openEditor,
+    requestCloseEditor,
     resetEditor,
     selectedType,
     setEditingIconName,

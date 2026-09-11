@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryList } from "./CategoryList";
@@ -72,7 +73,9 @@ const meta = {
   decorators: [
     (Story) => (
       <UserThemeProvider storageScope="storybook-category-dialog">
-        <Story />
+        <ConfirmDialogProvider>
+          <Story />
+        </ConfirmDialogProvider>
       </UserThemeProvider>
     ),
   ],
