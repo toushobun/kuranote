@@ -90,14 +90,15 @@ export function GroupedIconPicker({
         </Stack>
       </Stack>
       <Dialog
-        fullScreen
+        fullWidth
+        maxWidth="sm"
         open={draftValue !== null}
         onClose={closePicker}
         aria-labelledby={`${id}-title`}
       >
         <DialogTitle id={`${id}-title`}>选择图标</DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3} sx={{ maxWidth: "md", mx: "auto" }}>
+          <Stack spacing={3}>
             {sections.map((group, index) => (
               <Box
                 component="section"
@@ -110,6 +111,11 @@ export function GroupedIconPicker({
                   id={`${id}-group-${index}`}
                   sx={{ mb: 1.5, fontWeight: 700 }}
                 >
+                  {group.groupIcon && (
+                    <Box component="span" aria-hidden="true" sx={{ mr: 1 }}>
+                      {group.groupIcon}
+                    </Box>
+                  )}
                   {group.label} {group.options.length}个图标
                 </Typography>
                 <Box
@@ -118,7 +124,7 @@ export function GroupedIconPicker({
                     gap: 1.5,
                     gridTemplateColumns: {
                       xs: "repeat(4, minmax(0, 1fr))",
-                      sm: "repeat(8, minmax(0, 1fr))",
+                      sm: "repeat(7, minmax(0, 1fr))",
                     },
                   }}
                 >
@@ -167,11 +173,7 @@ export function GroupedIconPicker({
           </Stack>
         </DialogContent>
         <DialogActions disableSpacing sx={{ p: 2 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ width: "100%", maxWidth: "md", mx: "auto" }}
-          >
+          <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
             <Button
               fullWidth
               type="button"

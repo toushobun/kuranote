@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GroupedIconPicker } from "./GroupedIconPicker";
 
 const groups = [
-  { id: "food", label: "餐饮" },
+  { id: "food", label: "餐饮", groupIcon: "🍴" },
   { id: "travel", label: "出行" },
 ];
 const options = [
@@ -31,13 +31,21 @@ const props = {
 afterEach(cleanup);
 
 describe("GroupedIconPicker", () => {
-  it("全屏同时展示所有分组、数量和对应网格，不提供搜索或全部筛选", () => {
+  it("小弹窗同时展示所有分组、数量和对应网格，不提供搜索或全部筛选", () => {
     render(<GroupedIconPicker {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
     const dialog = screen.getByRole("dialog", { name: "选择图标" });
-    expect(dialog).toHaveClass("MuiDialog-paperFullScreen");
+    expect(dialog).not.toHaveClass("MuiDialog-paperFullScreen");
+    expect(dialog).toHaveClass(
+      "MuiDialog-paperFullWidth",
+      "MuiDialog-paperWidthSm",
+    );
     const sections = within(dialog).getAllByRole("region");
     expect(sections).toHaveLength(2);
+    expect(within(sections[0]).getByText("🍴")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(sections[0]).toHaveAccessibleName("餐饮 2个图标");
     expect(sections[1]).toHaveAccessibleName("出行 1个图标");
     expect(within(sections[0]).getAllByRole("button")).toHaveLength(2);

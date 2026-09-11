@@ -1,4 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import {
+  categoryEmojiGroups,
+  categoryEmojiOptions,
+} from "config/categoryEmojis";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { UserThemeProvider } from "theme/UserThemeProvider";
@@ -21,7 +25,7 @@ const meta = {
     value: "☕",
     onChange: () => {},
     groups: [
-      { id: "food", label: "餐饮" },
+      { id: "food", label: "餐饮", groupIcon: "🍴" },
       { id: "travel", label: "出行" },
     ],
     options: [
@@ -39,7 +43,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "图标字段" };
 export const Grouped: Story = {
-  name: "全屏分组与草稿选中态",
+  name: "小弹窗分组与草稿选中态",
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "选择图标" }),
@@ -85,5 +89,29 @@ export const UnavailableValue: Story = {
     await expect(confirm).toBeEnabled();
     await userEvent.click(confirm);
     await expect(canvas.getByLabelText("当前记录图标：🍜")).toBeVisible();
+  },
+};
+
+export const CategoryGroups: Story = {
+  ...Grouped,
+  name: "小弹窗完整分类图标库",
+  args: {
+    groups: categoryEmojiGroups,
+    options: categoryEmojiOptions,
+    value: "🍜",
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "选择图标" }),
+    );
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole(
+      "dialog",
+    );
+    await expect(dialog).not.toHaveClass("MuiDialog-paperFullScreen");
+    await expect(dialog).toHaveClass(
+      "MuiDialog-paperFullWidth",
+      "MuiDialog-paperWidthSm",
+    );
+    await expect(within(dialog).getAllByRole("region")).toHaveLength(8);
   },
 };

@@ -22,6 +22,11 @@ describe("CategoryIconField", () => {
     render(<CategoryIconField onChange={onChange} value="🍜" />);
 
     fireEvent.click(screen.getByRole("button", { name: "选择图标" }));
+    expect(screen.getByRole("dialog")).not.toHaveClass(
+      "MuiDialog-paperFullScreen",
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("MuiDialog-paperWidthSm");
+    expect(screen.getByText("🍴")).toBeVisible();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "餐饮 15个图标" }),
@@ -30,6 +35,7 @@ describe("CategoryIconField", () => {
     expect(screen.getByRole("button", { name: "选择面条图标" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "选择咖啡图标" }));
+    expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
 
     expect(onChange).toHaveBeenCalledWith("☕");
