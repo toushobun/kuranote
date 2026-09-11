@@ -31,7 +31,7 @@ export const Default: Story = {
 };
 
 export const Grouped: Story = {
-  name: "分类图标全屏分组浏览",
+  name: "分类图标小弹窗分组浏览",
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "选择图标" }),

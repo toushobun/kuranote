@@ -26,7 +26,7 @@ export type EmojiIconOption = {
   label: string;
 };
 
-export type EmojiIconGroup = { id: string; label: string };
+export type EmojiIconGroup = { id: string; label: string; groupIcon?: string };
 
 type EmojiIconFieldProps = {
   fieldLabel: string;

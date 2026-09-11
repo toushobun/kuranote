@@ -4,6 +4,7 @@ export const categoryEmojiGroups = [
   {
     id: "food",
     label: "餐饮",
+    groupIcon: "🍴",
     options: [
       { emoji: "🍽️", keywords: ["餐饮", "吃饭"], label: "餐饮" },
       { emoji: "🍚", keywords: ["米饭", "主食"], label: "米饭" },
@@ -25,6 +26,7 @@ export const categoryEmojiGroups = [
   {
     id: "shopping",
     label: "购物",
+    groupIcon: "🛍️",
     options: [
       { emoji: "🛒", keywords: ["超市", "采购"], label: "购物车" },
       { emoji: "🛍️", keywords: ["商场", "购物袋"], label: "购物袋" },
@@ -44,6 +46,7 @@ export const categoryEmojiGroups = [
   {
     id: "transport",
     label: "交通",
+    groupIcon: "🚗",
     options: [
       { emoji: "🚃", keywords: ["电车", "铁路"], label: "电车" },
       { emoji: "🚄", keywords: ["高铁", "新干线"], label: "高铁" },
@@ -63,6 +66,7 @@ export const categoryEmojiGroups = [
   {
     id: "home",
     label: "家庭",
+    groupIcon: "🏠",
     options: [
       { emoji: "🏠", keywords: ["住房", "房租"], label: "住房" },
       { emoji: "🏢", keywords: ["物业", "公寓"], label: "物业" },
@@ -83,6 +87,7 @@ export const categoryEmojiGroups = [
   {
     id: "entertainment",
     label: "娱乐",
+    groupIcon: "🎭",
     options: [
       { emoji: "🎮", keywords: ["游戏", "娱乐"], label: "游戏" },
       { emoji: "🎣", keywords: ["钓鱼", "兴趣"], label: "钓鱼" },
@@ -100,6 +105,7 @@ export const categoryEmojiGroups = [
   {
     id: "healthEducation",
     label: "健康学习",
+    groupIcon: "📚",
     options: [
       { emoji: "💊", keywords: ["药品", "医疗"], label: "药品" },
       { emoji: "🏥", keywords: ["医院", "看病", "保险"], label: "医院" },
@@ -115,6 +121,7 @@ export const categoryEmojiGroups = [
   {
     id: "finance",
     label: "财务",
+    groupIcon: "💰",
     options: [
       { emoji: "💰", keywords: ["收入", "工资"], label: "收入" },
       { emoji: "💸", keywords: ["支出", "花费"], label: "支出" },
@@ -139,6 +146,7 @@ export const categoryEmojiGroups = [
   {
     id: "other",
     label: "其他",
+    groupIcon: "🧩",
     options: [
       {
         emoji: defaultCategoryEmoji,
