@@ -38,7 +38,7 @@ describe("GroupedIconPicker", () => {
     expect(dialog).not.toHaveClass("MuiDialog-paperFullScreen");
     expect(dialog).toHaveClass(
       "MuiDialog-paperFullWidth",
-      "MuiDialog-paperWidthSm",
+      "MuiDialog-paperWidthXs",
     );
     const sections = within(dialog).getAllByRole("region");
     expect(sections).toHaveLength(2);

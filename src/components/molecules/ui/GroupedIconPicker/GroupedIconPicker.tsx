@@ -91,14 +91,15 @@ export function GroupedIconPicker({
       </Stack>
       <Dialog
         fullWidth
-        maxWidth="sm"
+        maxWidth="xs"
+        slotProps={{ paper: { sx: { maxHeight: "70dvh" } } }}
         open={draftValue !== null}
         onClose={closePicker}
         aria-labelledby={`${id}-title`}
       >
         <DialogTitle id={`${id}-title`}>选择图标</DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3}>
+          <Stack spacing={2.5}>
             {sections.map((group, index) => (
               <Box
                 component="section"
@@ -129,9 +130,9 @@ export function GroupedIconPicker({
                 <Box
                   sx={{
                     display: "grid",
-                    gap: 1.5,
+                    gap: 1.25,
                     gridTemplateColumns: {
-                      xs: "repeat(4, minmax(0, 1fr))",
+                      xs: "repeat(5, minmax(0, 1fr))",
                       sm: "repeat(7, minmax(0, 1fr))",
                     },
                   }}
@@ -145,7 +146,6 @@ export function GroupedIconPicker({
                       onClick={() => setDraftValue(option.emoji)}
                       sx={{
                         aspectRatio: "1",
-                        minHeight: (theme) => theme.spacing(6),
                         border: 2,
                         borderColor:
                           draftValue === option.emoji
@@ -156,7 +156,7 @@ export function GroupedIconPicker({
                             ? "primary.light"
                             : "background.paper",
                         borderRadius: `${designTokens.radius.item}px`,
-                        typography: "h4",
+                        fontSize: "2rem",
                         position: "relative",
                         "&.Mui-focusVisible": {
                           outline: "2px solid",
