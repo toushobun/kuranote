@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import type {
   CategoryActionState,
@@ -58,22 +59,24 @@ function renderTemplate({
   updateCategoryAction?: CategoryStateAction;
 } = {}) {
   return render(
-    <ConfirmDialogProvider>
-      <CategoriesActionStateTemplate
-        archiveCategoryAction={archiveCategoryAction}
-        canManageCategories
-        categories={categories}
-        createCategoryAction={createCategoryAction}
-        ledgerName="家庭账本"
-        parentOptions={categories.map((category) => ({
-          id: category.id,
-          name: category.name,
-          type: category.type,
-        }))}
-        reorderCategoryAction={reorderCategoryAction}
-        updateCategoryAction={updateCategoryAction}
-      />
-    </ConfirmDialogProvider>,
+    <UserThemeProvider storageScope="categories-action-state-test">
+      <ConfirmDialogProvider>
+        <CategoriesActionStateTemplate
+          archiveCategoryAction={archiveCategoryAction}
+          canManageCategories
+          categories={categories}
+          createCategoryAction={createCategoryAction}
+          ledgerName="家庭账本"
+          parentOptions={categories.map((category) => ({
+            id: category.id,
+            name: category.name,
+            type: category.type,
+          }))}
+          reorderCategoryAction={reorderCategoryAction}
+          updateCategoryAction={updateCategoryAction}
+        />
+      </ConfirmDialogProvider>
+    </UserThemeProvider>,
   );
 }
 
@@ -95,6 +98,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  window.localStorage.clear();
+  document.documentElement.removeAttribute("data-user-theme");
 });
 
 describe("CategoriesActionStateTemplate", () => {
@@ -193,6 +198,7 @@ describe("CategoriesActionStateTemplate", () => {
     expect(window.location.pathname).toBe("/categories");
     expect(window.location.search).toBe("");
   });
+
   it("新增失败时显示弹框、保留输入且 URL 保持干净", async () => {
     const createCategoryAction = vi.fn(
       async (
