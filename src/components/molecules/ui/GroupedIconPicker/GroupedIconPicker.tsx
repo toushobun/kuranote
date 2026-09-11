@@ -109,14 +109,22 @@ export function GroupedIconPicker({
                   component="h3"
                   variant="subtitle1"
                   id={`${id}-group-${index}`}
-                  sx={{ mb: 1.5, fontWeight: 700 }}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    mb: 1.5,
+                    fontWeight: 700,
+                  }}
                 >
                   {group.groupIcon && (
                     <Box component="span" aria-hidden="true" sx={{ mr: 1 }}>
                       {group.groupIcon}
                     </Box>
                   )}
-                  {group.label} {group.options.length}个图标
+                  {group.label}{" "}
+                  <Box component="span" sx={{ ml: "auto" }}>
+                    {group.options.length}个图标
+                  </Box>
                 </Typography>
                 <Box
                   sx={{
