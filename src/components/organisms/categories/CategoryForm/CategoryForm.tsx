@@ -1,6 +1,5 @@
 "use client";
 
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -9,7 +8,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { useState } from "react";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { CreateButton } from "atoms/ui/CreateButton";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import {
   type CategoryAction,
@@ -59,13 +58,9 @@ export function CategoryForm({
 
   return (
     <>
-      <PrimaryActionButton
-        onClick={() => setOpen(true)}
-        startIcon={<AddRoundedIcon />}
-        type="button"
-      >
+      <CreateButton onClick={() => setOpen(true)} size="small" type="button">
         新增分类
-      </PrimaryActionButton>
+      </CreateButton>
 
       <Dialog fullWidth maxWidth="sm" onClose={closeDialog} open={open}>
         <DialogTitle>新增分类</DialogTitle>
