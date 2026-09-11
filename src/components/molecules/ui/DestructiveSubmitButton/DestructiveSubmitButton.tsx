@@ -5,26 +5,32 @@ import { useRef, type MouseEvent, type ReactNode } from "react";
 
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 
-type ArchiveAccountButtonProps = {
-  description?: ReactNode;
+type DestructiveSubmitButtonProps = {
+  confirmLabel?: ReactNode;
+  description: ReactNode;
   formId?: string;
-  label?: ReactNode;
-  title?: ReactNode;
+  fullWidth?: boolean;
+  label: ReactNode;
+  startIcon?: ReactNode;
+  title: ReactNode;
 };
 
-export function ArchiveAccountButton({
-  description = "删除后该账户将从账户列表中隐藏，历史记录不会被删除。",
+export function DestructiveSubmitButton({
+  confirmLabel,
+  description,
   formId,
-  label = "删除账户",
-  title = "删除账户？",
-}: ArchiveAccountButtonProps) {
+  fullWidth = false,
+  label,
+  startIcon,
+  title,
+}: DestructiveSubmitButtonProps) {
   const confirm = useConfirmDialog();
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  async function confirmArchive(event: MouseEvent<HTMLButtonElement>) {
+  async function confirmSubmit(event: MouseEvent<HTMLButtonElement>) {
     formRef.current = event.currentTarget.form;
     const ok = await confirm({
-      confirmLabel: "删除账户",
+      confirmLabel: confirmLabel ?? label,
       description,
       title,
       tone: "delete",
@@ -39,7 +45,9 @@ export function ArchiveAccountButton({
     <Button
       color="error"
       form={formId}
-      onClick={confirmArchive}
+      fullWidth={fullWidth}
+      onClick={confirmSubmit}
+      startIcon={startIcon}
       type="button"
       variant="outlined"
     >

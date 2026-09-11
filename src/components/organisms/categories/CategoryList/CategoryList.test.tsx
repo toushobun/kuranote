@@ -128,6 +128,11 @@ async function selectCoffeeIcon() {
   await waitFor(() => expect(picker).not.toBeInTheDocument());
 }
 
+async function openArchiveConfirm(archive: HTMLElement) {
+  fireEvent.click(archive);
+  return screen.findByRole("dialog", { name: "归档该分类？" });
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -399,7 +404,7 @@ describe("CategoryList", () => {
     expect(screen.getByLabelText("当前分类图标：🍽️")).toBeInTheDocument();
   });
 
-  it("归档操作单独位于等宽取消和保存按钮上方并提交分类 ID", async () => {
+  it("归档操作先确认，取消不提交，确认后提交分类 ID", async () => {
     const archiveCategoryAction = vi.fn(async (data: FormData) => {
       void data;
     });
@@ -409,7 +414,7 @@ describe("CategoryList", () => {
       screen.getByText("归档的分类不会在记账选择中显示。"),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
-    const dialog = within(screen.getByRole("dialog"));
+    const dialog = within(screen.getByRole("dialog", { name: "编辑分类" }));
     const archive = dialog.getByRole("button", { name: "归档该分类" });
     const cancel = dialog.getByRole("button", { name: "取消" });
     const save = dialog.getByRole("button", { name: "保存" });
@@ -423,7 +428,24 @@ describe("CategoryList", () => {
     expect(archive).toHaveClass("MuiButton-colorError");
     expect(archive.querySelector("svg")).not.toBeNull();
     expect(save).toHaveAttribute("form", "category-edit-form");
-    fireEvent.click(archive);
+
+    const firstConfirm = await openArchiveConfirm(archive);
+    expect(archiveCategoryAction).not.toHaveBeenCalled();
+    expect(
+      within(firstConfirm).getByText(
+        "归档后该分类不会在记账选择中显示，确定要归档吗？",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(within(firstConfirm).getByRole("button", { name: "取消" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "归档该分类？" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(archiveCategoryAction).not.toHaveBeenCalled();
+
+    const secondConfirm = await openArchiveConfirm(archive);
+    fireEvent.click(within(secondConfirm).getByRole("button", { name: "归档" }));
     await waitFor(() => expect(archiveCategoryAction).toHaveBeenCalledOnce());
     expect(archiveCategoryAction.mock.calls[0][0].get("categoryId")).toBe(
       expenseRootId,

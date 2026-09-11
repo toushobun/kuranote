@@ -12,11 +12,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
-import { ArchiveAccountButton } from "./ArchiveAccountButton";
+import { DestructiveSubmitButton } from "./DestructiveSubmitButton";
 
-const actionLabel = String.fromCharCode(21024, 38500, 36134, 25143);
-const dialogTitle = `${actionLabel}？`;
-const confirmLabel = actionLabel;
+const buttonProps = {
+  confirmLabel: "删除账户",
+  description: "删除后该账户将从账户列表中隐藏，历史记录不会被删除。",
+  label: "删除",
+  title: "删除账户？",
+} as const;
 
 afterEach(() => {
   cleanup();
@@ -26,64 +29,64 @@ afterEach(() => {
 
 function renderWithUserTheme(children: ReactNode) {
   return render(
-    <UserThemeProvider storageScope="archive-account-button-test">
+    <UserThemeProvider storageScope="destructive-submit-button-test">
       <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );
 }
 
-describe("ArchiveAccountButton", () => {
+describe("DestructiveSubmitButton", () => {
   it("渲染按钮", () => {
     renderWithUserTheme(
       <form>
-        <ArchiveAccountButton />
+        <DestructiveSubmitButton {...buttonProps} />
       </form>,
     );
 
-    expect(
-      screen.getByRole("button", { name: actionLabel }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
   });
 
   it("点击后显示统一确认弹窗", () => {
     renderWithUserTheme(
       <form>
-        <ArchiveAccountButton />
+        <DestructiveSubmitButton {...buttonProps} />
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: dialogTitle }),
+      within(dialog).getByRole("heading", { name: "删除账户？" }),
     ).toBeInTheDocument();
     expect(
       within(dialog).getByRole("button", { name: "取消" }),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("button", { name: confirmLabel }),
+      within(dialog).getByRole("button", { name: "删除账户" }),
     ).toBeInTheDocument();
   });
 
-  it("确认后提交表单", async () => {
+  it("确认后提交指定表单", async () => {
     const handleSubmit = vi.fn();
 
     renderWithUserTheme(
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          handleSubmit();
-        }}
-      >
-        <ArchiveAccountButton />
-      </form>,
+      <>
+        <form
+          id="archive-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmit();
+          }}
+        />
+        <DestructiveSubmitButton {...buttonProps} formId="archive-form" />
+      </>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
-        name: confirmLabel,
+        name: "删除账户",
       }),
     );
 
@@ -98,15 +101,17 @@ describe("ArchiveAccountButton", () => {
 
     renderWithUserTheme(
       <form onSubmit={handleSubmit}>
-        <ArchiveAccountButton />
+        <DestructiveSubmitButton {...buttonProps} />
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: actionLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: dialogTitle })).toBeNull();
+      expect(
+        screen.queryByRole("heading", { name: "删除账户？" }),
+      ).toBeNull();
     });
     expect(handleSubmit).not.toHaveBeenCalled();
   });

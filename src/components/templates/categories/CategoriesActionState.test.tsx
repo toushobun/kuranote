@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 
 import type {
@@ -57,20 +58,33 @@ function renderTemplate({
   updateCategoryAction?: CategoryStateAction;
 } = {}) {
   return render(
-    <CategoriesActionStateTemplate
-      archiveCategoryAction={archiveCategoryAction}
-      canManageCategories
-      categories={categories}
-      createCategoryAction={createCategoryAction}
-      ledgerName="家庭账本"
-      parentOptions={categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        type: category.type,
-      }))}
-      reorderCategoryAction={reorderCategoryAction}
-      updateCategoryAction={updateCategoryAction}
-    />,
+    <ConfirmDialogProvider>
+      <CategoriesActionStateTemplate
+        archiveCategoryAction={archiveCategoryAction}
+        canManageCategories
+        categories={categories}
+        createCategoryAction={createCategoryAction}
+        ledgerName="家庭账本"
+        parentOptions={categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          type: category.type,
+        }))}
+        reorderCategoryAction={reorderCategoryAction}
+        updateCategoryAction={updateCategoryAction}
+      />
+    </ConfirmDialogProvider>,
+  );
+}
+
+async function confirmCategoryArchive() {
+  const confirmDialog = await screen.findByRole("dialog", {
+    name: "归档该分类？",
+  });
+  fireEvent.click(
+    within(confirmDialog).getByRole("button", {
+      name: "归档",
+    }),
   );
 }
 
@@ -117,6 +131,9 @@ describe("CategoriesActionStateTemplate", () => {
           },
         );
         fireEvent.click(within(dialog).getByRole("button", { name: submit }));
+        if (submit === "归档该分类") {
+          await confirmCategoryArchive();
+        }
 
         const status = (await screen.findByText(message)).closest<HTMLElement>(
           '[role="status"]',
@@ -162,6 +179,7 @@ describe("CategoriesActionStateTemplate", () => {
     const nameInput = within(dialog).getByRole("textbox", { name: "分类名称" });
     fireEvent.change(nameInput, { target: { value: "外食" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "归档该分类" }));
+    await confirmCategoryArchive();
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("分类归档失败")).toBeInTheDocument();

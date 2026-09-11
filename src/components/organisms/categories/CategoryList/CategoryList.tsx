@@ -6,7 +6,6 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -21,10 +20,12 @@ import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
 import {
+  categoryArchiveConfirmMessages,
   categoryArchiveMessages,
   categorySearchMessages,
 } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
 import {
@@ -472,15 +473,14 @@ export function CategoryList({
                 type="hidden"
                 value={editingCategory.id}
               />
-              <Button
-                color="error"
+              <DestructiveSubmitButton
+                confirmLabel={categoryArchiveConfirmMessages.confirm}
+                description={categoryArchiveConfirmMessages.description}
                 fullWidth
+                label={categoryArchiveMessages.action}
                 startIcon={<ArchiveRoundedIcon />}
-                type="submit"
-                variant="outlined"
-              >
-                {categoryArchiveMessages.action}
-              </Button>
+                title={categoryArchiveConfirmMessages.title}
+              />
             </Stack>
           ) : null}
         </CategoryDialogActions>
