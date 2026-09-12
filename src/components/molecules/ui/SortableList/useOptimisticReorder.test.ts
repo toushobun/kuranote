@@ -65,10 +65,23 @@ describe("useOptimisticReorder", () => {
     hook.submit(["b", "a"]);
     const refreshed = [{ id: "c", name: "丙" }, ...items];
     hook.rerender({ source: refreshed });
-    expect(hook.result.current.orderedItems).toHaveLength(3);
+    expect(hook.result.current.orderedItems).toEqual([
+      items[1],
+      items[0],
+      refreshed[0],
+    ]);
     await hook.finish({ error: "集合已变化" });
     expect(hook.result.current.orderedItems).toBe(refreshed);
     expect(hook.onError).toHaveBeenCalledWith({ error: "集合已变化" });
+  });
+  it("保存中归档的条目不会被旧排序重新带回", async () => {
+    const hook = setup();
+    hook.submit(["b", "a"]);
+    const refreshed = [items[0], { id: "c", name: "丙" }];
+    hook.rerender({ source: refreshed });
+    expect(hook.result.current.orderedItems).toEqual(refreshed);
+    await hook.finish({ error: "集合已变化" });
+    expect(hook.result.current.orderedItems).toBe(refreshed);
   });
   it("连续排序失败时恢复上次成功顺序", async () => {
     const hook = setup();
@@ -90,5 +103,21 @@ describe("useOptimisticReorder", () => {
     });
     expect(hook.action).toHaveBeenCalledOnce();
     await hook.finish({});
+  });
+});
+
+describe("orderItemsByIds", () => {
+  it("按指定顺序排列现有项，新增项保持相对顺序追加且不修改源数组", () => {
+    const added = [
+      { id: "c", name: "丙" },
+      { id: "d", name: "丁" },
+    ];
+    const source = [added[0], ...items, added[1]];
+    expect(orderItemsByIds(source, ["missing", "b", "a"])).toEqual([
+      items[1],
+      items[0],
+      ...added,
+    ]);
+    expect(source).toEqual([added[0], ...items, added[1]]);
   });
 });

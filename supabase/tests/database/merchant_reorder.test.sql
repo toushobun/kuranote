@@ -1,6 +1,6 @@
 begin;
 set local search_path = public, extensions;
-select plan(18);
+select plan(21);
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by
 ) values
@@ -83,5 +83,26 @@ select is(public.reorder_merchants('73700000-0000-4000-8000-000000000001', array
 select is((select array_agg(sort_order order by id) from public.merchant where ledger_id = '73700000-0000-4000-8000-000000000001'), array[1,0,40], '按提交位置从零排序且归档商家保持不变');
 select is((select sort_order from public.merchant where id = '73710000-0000-4000-8000-000000000003'), 30, '其他账本顺序不变');
 select is((select array_agg(name order by id) from public.merchant where ledger_id = '73700000-0000-4000-8000-000000000001'), array['甲','乙','归档'], '商家名称保持不变');
+-- 事务内替换授权查询，稳定模拟首次检查通过、取得锁后权限失效。
+-- 序列调用次数不会随 throws_ok 的异常子事务回滚，测试结束后统一回滚替换。
+reset role;
+create temporary sequence merchant_reorder_permission_checks;
+create or replace function public.current_user_can_manage_ledger(p_ledger_id uuid)
+returns boolean
+language sql
+volatile
+security definer
+set search_path = pg_catalog, pg_temp
+as $$
+    select nextval('pg_temp.merchant_reorder_permission_checks') = 1;
+$$;
+set local role authenticated;
+select throws_ok(
+    $$select public.reorder_merchants('73700000-0000-4000-8000-000000000001', array['73710000-0000-4000-8000-000000000001','73710000-0000-4000-8000-000000000002']::uuid[])$$,
+    '42501', 'permission_denied', '首次授权通过但锁后权限失效时拒绝排序'
+);
+reset role;
+select is(currval('pg_temp.merchant_reorder_permission_checks'), 2::bigint, '拒绝来自第二次权限检查');
+select is((select array_agg(sort_order order by id) from public.merchant where ledger_id = '73700000-0000-4000-8000-000000000001'), array[1,0,40], '锁后权限失效不会修改原顺序');
 select * from finish();
 rollback;

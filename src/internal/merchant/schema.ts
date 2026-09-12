@@ -21,6 +21,7 @@ export const merchantNoteMaxLength = 1000;
 export const merchantAliasMaxLength = 100;
 export const merchantTagNameMaxLength = 100;
 export const merchantTagIconMaxLength = 32;
+export const maxMerchantReorderCount = 200;
 
 export type CreateMerchantValues = {
   name: string;
@@ -341,7 +342,11 @@ export function validateReorderMerchantsForm(
   { merchantIds: string[] },
   typeof merchantErrorCodes.merchantOrderInvalid
 > {
-  const result = parseOrderIds(formData, "merchantIds", 200);
+  const result = parseOrderIds(
+    formData,
+    "merchantIds",
+    maxMerchantReorderCount,
+  );
   return result?.success
     ? valid({ merchantIds: result.data })
     : invalid(merchantErrorCodes.merchantOrderInvalid);
@@ -353,7 +358,7 @@ export function validateReorderMerchantTagsForm(
   ReorderMerchantTagsValues,
   typeof merchantErrorCodes.merchantTagOrderInvalid
 > {
-  const result = parseOrderIds(formData, "tagIds", 200);
+  const result = parseOrderIds(formData, "tagIds", maxMerchantReorderCount);
   return result?.success
     ? valid({ tagIds: result.data })
     : invalid(merchantErrorCodes.merchantTagOrderInvalid);
