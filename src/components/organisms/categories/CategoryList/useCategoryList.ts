@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
+import {
+  orderItemsByIds,
+  useOptimisticReorder,
+} from "molecules/ui/SortableList/useOptimisticReorder";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { categoryEditMessages } from "config/categoryMessages";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -19,23 +23,6 @@ type UseCategoryListParams = {
   onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
 };
-
-type OptimisticCategoryOrder = {
-  categories: CategoryTreeItem[];
-  source: CategoryTreeItem[];
-};
-
-function orderItemsByIds<T extends { id: string }>(
-  items: T[],
-  orderedIds: string[],
-) {
-  const itemById = new Map(items.map((item) => [item.id, item]));
-
-  return orderedIds.flatMap((id) => {
-    const item = itemById.get(id);
-    return item ? [item] : [];
-  });
-}
 
 function applyCategoryOrder(
   categories: CategoryTreeItem[],
@@ -73,12 +60,16 @@ export function useCategoryList({
   reorderCategoryAction,
 }: UseCategoryListParams) {
   const confirm = useConfirmDialog();
-  const [optimisticCategoryOrder, setOptimisticCategoryOrder] =
-    useState<OptimisticCategoryOrder | null>(null);
-  const orderedCategories =
-    optimisticCategoryOrder?.source === categories
-      ? optimisticCategoryOrder.categories
-      : categories;
+  const {
+    orderedItems: orderedCategories,
+    isPending,
+    submitOrder: reorder,
+  } = useOptimisticReorder({
+    items: categories,
+    action: reorderCategoryAction,
+    onError: onReorderError,
+    fallbackMessage: "分类排序保存失败，请稍后重试。",
+  });
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
@@ -86,7 +77,6 @@ export function useCategoryList({
   const [editingName, setEditingName] = useState("");
   const [editingIconName, setEditingIconName] = useState(defaultCategoryEmoji);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const keyword = searchQuery.trim().toLowerCase();
   const isSearching = keyword.length > 0;
@@ -115,44 +105,14 @@ export function useCategoryList({
     type: TransactionType,
   ) {
     if (isPending || isSearching) return;
-    const previousCategories = orderedCategories;
-    const nextCategories = applyCategoryOrder(
-      previousCategories,
-      orderedIds,
-      parentId,
-      type,
-    );
     const formData = new FormData();
     formData.set("categoryIds", JSON.stringify(orderedIds));
     formData.set("parentId", parentId ?? "");
     formData.set("type", type);
 
-    setOptimisticCategoryOrder({
-      categories: nextCategories,
-      source: categories,
-    });
-    startTransition(async () => {
-      try {
-        const result = await reorderCategoryAction(formData);
-
-        if (result.error) {
-          setOptimisticCategoryOrder({
-            categories: previousCategories,
-            source: categories,
-          });
-          onReorderError(result);
-        }
-      } catch {
-        setOptimisticCategoryOrder({
-          categories: previousCategories,
-          source: categories,
-        });
-        onReorderError({
-          error: "分类排序保存失败，请稍后重试。",
-          errorKey: crypto.randomUUID(),
-        });
-      }
-    });
+    reorder(formData, (items) =>
+      applyCategoryOrder(items, orderedIds, parentId, type),
+    );
   }
 
   function openEditor(category: Category) {

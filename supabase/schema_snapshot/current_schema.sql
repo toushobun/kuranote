@@ -4546,7 +4546,7 @@ begin
     end if;
 
     v_merchant_count := coalesce(cardinality(p_merchant_ids), 0);
-    if p_ledger_id is null or v_merchant_count < 1 then
+    if p_ledger_id is null or v_merchant_count < 1 or v_merchant_count > 200 then
         raise exception 'merchant_order_invalid'
             using errcode = '22023', detail = 'merchant_order_invalid';
     end if;
@@ -4574,6 +4574,12 @@ begin
     end if;
 
     perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));
+
+    -- 等待排序锁期间成员资格可能被撤销，取得锁后重新验证。
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
 
     if not exists (
         select 1 from public.ledger l

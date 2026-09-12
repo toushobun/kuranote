@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   getMerchantActionErrorMessage,
   merchantErrorCodes,
 } from "internal/merchant";
+import {
+  orderItemsByIds,
+  useOptimisticReorder,
+} from "molecules/ui/SortableList/useOptimisticReorder";
 import type {
   Merchant,
   MerchantActionState,
@@ -20,47 +24,26 @@ export function useMerchantList({
   reorderAction?: MerchantReorderAction;
   disabled: boolean;
 }) {
-  const [order, setOrder] = useState<{
-    source: Merchant[];
-    merchants: Merchant[];
-  } | null>(null);
   const [errorState, setErrorState] = useState<MerchantActionState>({});
-  const [pending, startTransition] = useTransition();
-  const orderedMerchants =
-    order?.source === merchants ? order.merchants : merchants;
-  const sortingDisabled = disabled || pending || !reorderAction;
+  const reorder = useOptimisticReorder({
+    items: merchants,
+    action: async (formData) => (reorderAction ? reorderAction(formData) : {}),
+    onError: setErrorState,
+    fallbackMessage: getMerchantActionErrorMessage(
+      merchantErrorCodes.merchantReorderFailed,
+    )!,
+  });
+  const sortingDisabled = disabled || reorder.isPending || !reorderAction;
 
   function submitOrder(ids: string[]) {
     if (sortingDisabled || !reorderAction) return;
-    const previous = orderedMerchants;
-    const byId = new Map(
-      orderedMerchants.map((merchant) => [merchant.id, merchant]),
-    );
     const formData = new FormData();
     formData.set("merchantIds", JSON.stringify(ids));
-    setOrder({
-      source: merchants,
-      merchants: ids.flatMap((id) => byId.get(id) ?? []),
-    });
-    startTransition(async () => {
-      try {
-        const result = await reorderAction(formData);
-        if (!result.error) return;
-        setErrorState(result);
-      } catch {
-        setErrorState({
-          error: getMerchantActionErrorMessage(
-            merchantErrorCodes.merchantReorderFailed,
-          )!,
-          errorKey: crypto.randomUUID(),
-        });
-      }
-      setOrder({ source: merchants, merchants: previous });
-    });
+    reorder.submitOrder(formData, (items) => orderItemsByIds(items, ids));
   }
 
   return {
-    orderedMerchants,
+    orderedMerchants: reorder.orderedItems,
     disabled: sortingDisabled,
     submitOrder,
     errorState,

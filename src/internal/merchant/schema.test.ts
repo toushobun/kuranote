@@ -12,6 +12,7 @@ import {
   validateCreateMerchantTagForm,
   validateFetchMerchantIconForm,
   validateReorderMerchantTagsForm,
+  validateReorderMerchantsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
   validateUpdateMerchantTagForm,
@@ -201,5 +202,20 @@ describe("merchant schema", () => {
       error: "merchant_tag_icon_invalid",
       ok: false,
     });
+  });
+});
+
+describe("validateReorderMerchantsForm", () => {
+  it.each([200, 201])("排序数组最多允许 200 个商家：%s", (count) => {
+    const merchantIds = Array.from(
+      { length: count },
+      (_, index) =>
+        `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    );
+    const result = validateReorderMerchantsForm(
+      createFormData({ merchantIds: JSON.stringify(merchantIds) }),
+    );
+    expect(result.ok).toBe(count === 200);
+    if (!result.ok) expect(result.error).toBe("merchant_order_invalid");
   });
 });

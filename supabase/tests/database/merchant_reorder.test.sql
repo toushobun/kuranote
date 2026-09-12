@@ -1,6 +1,6 @@
 begin;
 set local search_path = public, extensions;
-select plan(16);
+select plan(18);
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by
 ) values
@@ -76,6 +76,8 @@ select throws_ok($$select public.reorder_merchants('73700000-0000-4000-8000-0000
 select throws_ok($$select public.reorder_merchants('73700000-0000-4000-8000-000000000001', array['73710000-0000-4000-8000-000000000001','73710000-0000-4000-8000-000000000003']::uuid[])$$, '22023', 'merchant_set_invalid', '拒绝跨账本商家');
 select throws_ok($$select public.reorder_merchants('73700000-0000-4000-8000-000000000001', array['73710000-0000-4000-8000-000000000001','73710000-0000-4000-8000-000000000004']::uuid[])$$, '22023', 'merchant_set_invalid', '拒绝归档商家');
 
+select throws_ok($$select public.reorder_merchants('73700000-0000-4000-8000-000000000001', array(select md5(i::text)::uuid from generate_series(1,201) i))$$, '22023', 'merchant_order_invalid', '超过 200 项在读取集合前拒绝');
+select throws_ok($$select public.reorder_merchants('73700000-0000-4000-8000-000000000001', array(select md5(i::text)::uuid from generate_series(1,200) i))$$, '22023', 'merchant_set_invalid', '200 项通过长度检查并继续验证完整集合');
 select is((select array_agg(sort_order order by id) from public.merchant where ledger_id = '73700000-0000-4000-8000-000000000001'), array[10,20,40], '失败不修改任何顺序');
 select is(public.reorder_merchants('73700000-0000-4000-8000-000000000001', array['73710000-0000-4000-8000-000000000002','73710000-0000-4000-8000-000000000001']::uuid[]), 2, '完整集合成功更新两行');
 select is((select array_agg(sort_order order by id) from public.merchant where ledger_id = '73700000-0000-4000-8000-000000000001'), array[1,0,40], '按提交位置从零排序且归档商家保持不变');

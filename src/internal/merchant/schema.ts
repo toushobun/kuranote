@@ -322,12 +322,14 @@ export function validateArchiveMerchantTagForm(
 
 function parseOrderIds(formData: FormData, field: string, max: number) {
   try {
+    const ids: unknown = JSON.parse(getFormText(formData, field));
+    if (!Array.isArray(ids) || ids.length > max) return null;
     return z
       .array(z.string().uuid())
       .min(1)
       .max(max)
       .refine((values) => new Set(values).size === values.length)
-      .safeParse(JSON.parse(getFormText(formData, field)) as unknown);
+      .safeParse(ids);
   } catch {
     return null;
   }
@@ -339,11 +341,7 @@ export function validateReorderMerchantsForm(
   { merchantIds: string[] },
   typeof merchantErrorCodes.merchantOrderInvalid
 > {
-  const result = parseOrderIds(
-    formData,
-    "merchantIds",
-    Number.MAX_SAFE_INTEGER,
-  );
+  const result = parseOrderIds(formData, "merchantIds", 200);
   return result?.success
     ? valid({ merchantIds: result.data })
     : invalid(merchantErrorCodes.merchantOrderInvalid);
