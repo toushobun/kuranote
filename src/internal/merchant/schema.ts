@@ -21,6 +21,7 @@ export const merchantNoteMaxLength = 1000;
 export const merchantAliasMaxLength = 100;
 export const merchantTagNameMaxLength = 100;
 export const merchantTagIconMaxLength = 32;
+export const maxMerchantReorderCount = 200;
 
 export type CreateMerchantValues = {
   name: string;
@@ -320,25 +321,45 @@ export function validateArchiveMerchantTagForm(
   return result.ok ? valid({ tagId: result.value }) : result;
 }
 
+function parseOrderIds(formData: FormData, field: string, max: number) {
+  try {
+    const ids: unknown = JSON.parse(getFormText(formData, field));
+    if (!Array.isArray(ids) || ids.length > max) return null;
+    return z
+      .array(z.string().uuid())
+      .min(1)
+      .max(max)
+      .refine((values) => new Set(values).size === values.length)
+      .safeParse(ids);
+  } catch {
+    return null;
+  }
+}
+
+export function validateReorderMerchantsForm(
+  formData: FormData,
+): ValidationResult<
+  { merchantIds: string[] },
+  typeof merchantErrorCodes.merchantOrderInvalid
+> {
+  const result = parseOrderIds(
+    formData,
+    "merchantIds",
+    maxMerchantReorderCount,
+  );
+  return result?.success
+    ? valid({ merchantIds: result.data })
+    : invalid(merchantErrorCodes.merchantOrderInvalid);
+}
+
 export function validateReorderMerchantTagsForm(
   formData: FormData,
 ): ValidationResult<
   ReorderMerchantTagsValues,
   typeof merchantErrorCodes.merchantTagOrderInvalid
 > {
-  let tagIds: unknown;
-  try {
-    tagIds = JSON.parse(getFormText(formData, "tagIds"));
-  } catch {
-    return invalid(merchantErrorCodes.merchantTagOrderInvalid);
-  }
-  const result = z
-    .array(z.string().uuid())
-    .min(1)
-    .max(200)
-    .refine((values) => new Set(values).size === values.length)
-    .safeParse(tagIds);
-  return result.success
+  const result = parseOrderIds(formData, "tagIds", maxMerchantReorderCount);
+  return result?.success
     ? valid({ tagIds: result.data })
     : invalid(merchantErrorCodes.merchantTagOrderInvalid);
 }

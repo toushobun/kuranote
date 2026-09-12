@@ -22,6 +22,7 @@ import {
   validateCreateMerchantTagForm,
   validateFetchMerchantIconForm,
   validateReorderMerchantTagsForm,
+  validateReorderMerchantsForm,
   validateSetPreferredMerchantAliasForm,
   validateUpdateMerchantForm,
   validateUpdateMerchantTagForm,
@@ -33,6 +34,7 @@ import type {
   MerchantIconStateAction,
   MerchantStateAction,
   MerchantTagReorderAction,
+  MerchantReorderAction,
   MerchantTagStateAction,
 } from "types/merchants";
 
@@ -323,6 +325,29 @@ export const reorderMerchantTags: MerchantTagReorderAction =
         error,
         merchantErrorCodes.merchantTagReorderFailed,
         "reorder tags",
+      );
+    }
+    revalidateMerchantMutation();
+    return {};
+  };
+
+export const reorderMerchants: MerchantReorderAction =
+  async function reorderMerchants(formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const validation = validateReorderMerchantsForm(formData);
+    if (!validation.ok) return validationErrorState(validation.error);
+    try {
+      await (
+        await getMerchantService()
+      ).reorder({
+        ledgerId: currentLedger.id,
+        merchantIds: validation.value.merchantIds,
+      });
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantReorderFailed,
+        "reorder merchants",
       );
     }
     revalidateMerchantMutation();

@@ -60,3 +60,7 @@ export type MerchantTagStateAction = (
 export type MerchantTagReorderAction = (
   formData: FormData,
 ) => Promise<MerchantTagActionState>;
+
+export type MerchantReorderAction = (
+  formData: FormData,
+) => Promise<MerchantActionState>;

@@ -23,8 +23,11 @@ export const merchantErrorCodes = {
   merchantTagListFailed: "merchant_tag_list_failed",
   merchantTagNameRequired: "merchant_tag_name_required",
   merchantTagNameTooLong: "merchant_tag_name_too_long",
+  merchantOrderInvalid: "merchant_order_invalid",
   merchantTagOrderInvalid: "merchant_tag_order_invalid",
+  merchantReorderFailed: "merchant_reorder_failed",
   merchantTagReorderFailed: "merchant_tag_reorder_failed",
+  merchantSetInvalid: "merchant_set_invalid",
   merchantTagSetInvalid: "merchant_tag_set_invalid",
   merchantTagUpdateFailed: "merchant_tag_update_failed",
   nameRequired: "name_required",
@@ -47,6 +50,7 @@ export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.merchantTagInvalid
   | typeof merchantErrorCodes.merchantTagNameRequired
   | typeof merchantErrorCodes.merchantTagNameTooLong
+  | typeof merchantErrorCodes.merchantOrderInvalid
   | typeof merchantErrorCodes.merchantTagOrderInvalid
   | typeof merchantErrorCodes.nameRequired
   | typeof merchantErrorCodes.nameTooLong
@@ -66,7 +70,9 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.merchantIconRedirectInvalid
   | typeof merchantErrorCodes.merchantTagArchiveFailed
   | typeof merchantErrorCodes.merchantTagCreateFailed
+  | typeof merchantErrorCodes.merchantReorderFailed
   | typeof merchantErrorCodes.merchantTagReorderFailed
+  | typeof merchantErrorCodes.merchantSetInvalid
   | typeof merchantErrorCodes.merchantTagSetInvalid
   | typeof merchantErrorCodes.merchantTagUpdateFailed
   | typeof merchantErrorCodes.permissionDenied
@@ -92,8 +98,11 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.merchantTagInvalid,
   merchantErrorCodes.merchantTagNameRequired,
   merchantErrorCodes.merchantTagNameTooLong,
+  merchantErrorCodes.merchantOrderInvalid,
   merchantErrorCodes.merchantTagOrderInvalid,
+  merchantErrorCodes.merchantReorderFailed,
   merchantErrorCodes.merchantTagReorderFailed,
+  merchantErrorCodes.merchantSetInvalid,
   merchantErrorCodes.merchantTagSetInvalid,
   merchantErrorCodes.merchantTagUpdateFailed,
   merchantErrorCodes.nameRequired,
@@ -137,9 +146,13 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.merchantTagListFailed]: "商家分类加载失败，请稍后重试。",
   [merchantErrorCodes.merchantTagNameRequired]: "请输入分类名称。",
   [merchantErrorCodes.merchantTagNameTooLong]: "分类名称不能超过 100 个字符。",
+  [merchantErrorCodes.merchantOrderInvalid]: "商家排序内容不正确。",
   [merchantErrorCodes.merchantTagOrderInvalid]: "分类排序内容不正确。",
+  [merchantErrorCodes.merchantReorderFailed]: "商家排序保存失败，请稍后重试。",
   [merchantErrorCodes.merchantTagReorderFailed]:
     "分类排序保存失败，请稍后重试。",
+  [merchantErrorCodes.merchantSetInvalid]:
+    "商家列表已发生变化，请刷新页面后重试。",
   [merchantErrorCodes.merchantTagSetInvalid]:
     "分类列表已发生变化，请刷新页面后重试。",
   [merchantErrorCodes.merchantTagUpdateFailed]:

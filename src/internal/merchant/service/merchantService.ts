@@ -98,6 +98,9 @@ export interface MerchantService extends MerchantQueryService {
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
   listTags(input: MerchantLedgerInput): Promise<MerchantTagData[]>;
+  reorder(
+    input: MerchantLedgerInput & { merchantIds: string[] },
+  ): Promise<void>;
   reorderTags(input: MerchantLedgerInput & { tagIds: string[] }): Promise<void>;
   setPreferredAlias(
     input: SetPreferredMerchantAliasServiceInput,
@@ -380,6 +383,11 @@ export function createMerchantService({
     async listTags({ ledgerId }) {
       await requireLedgerRole(ledgerId, false);
       return merchantRepository.listActiveTags(ledgerId);
+    },
+
+    async reorder({ ledgerId, merchantIds }) {
+      await requireLedgerRole(ledgerId, true);
+      await merchantRepository.reorder(ledgerId, merchantIds);
     },
 
     async reorderTags({ ledgerId, tagIds }) {

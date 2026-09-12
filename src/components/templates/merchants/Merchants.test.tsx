@@ -55,6 +55,16 @@ const baseProps = {
   updateAction: tagAction,
 };
 
+function querySuccessFeedback() {
+  return (
+    screen
+      .queryAllByRole("status")
+      .find((status) =>
+        within(status).queryByRole("button", { name: "关闭" }),
+      ) ?? null
+  );
+}
+
 async function reorderFirstTag() {
   fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
   mockSortableRects({ "tag-1": 0, "tag-2": 100 });
@@ -83,23 +93,23 @@ describe("MerchantsTemplate", () => {
         <MerchantsTemplate {...baseProps} saveResult={result} />,
       );
 
-      expect(screen.getByRole("status")).toHaveTextContent(title);
+      expect(querySuccessFeedback()).toHaveTextContent(title);
       fireEvent.click(screen.getByRole("button", { name: "关闭" }));
       expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {
         scroll: false,
       });
-      await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+      await waitFor(() => expect(querySuccessFeedback()).toBeNull());
 
       unmount();
       window.history.replaceState(null, "", "/merchants?q=LIFE#list");
       render(<MerchantsTemplate {...baseProps} />);
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(querySuccessFeedback()).toBeNull();
     },
   );
 
   it("普通进入列表时不显示保存成功提示", () => {
     render(<MerchantsTemplate {...baseProps} />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(querySuccessFeedback()).toBeNull();
   });
 
   it("声明客户端边界以支持 MUI Link 组件", () => {
@@ -610,19 +620,19 @@ describe("MerchantsTemplate 显示名切换", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+      expect(querySuccessFeedback()).toHaveTextContent("显示名切换成功"),
     );
     expect(action.mock.calls[0][1].get("aliasId")).toBe("alias-1");
     expect(action.mock.calls[0][1].get("merchantId")).toBe(
       createMerchantRow().id,
     );
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    await waitFor(() => expect(querySuccessFeedback()).toBeNull());
     fireEvent.click(
       screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
     );
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("显示名切换成功"),
+      expect(querySuccessFeedback()).toHaveTextContent("显示名切换成功"),
     );
     expect(action.mock.calls[1][1].get("aliasId")).toBe("");
     expect(replace).not.toHaveBeenCalled();
@@ -649,7 +659,7 @@ describe("MerchantsTemplate 显示名切换", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+    expect(querySuccessFeedback()).toHaveTextContent("保存成功");
     fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
 
     expect(replace).toHaveBeenCalledWith("/merchants?q=LIFE#list", {

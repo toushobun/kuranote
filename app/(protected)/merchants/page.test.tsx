@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   MerchantsTemplate: vi.fn(() => null),
   setPreferredMerchantAlias: vi.fn(),
   reorderMerchantTags: vi.fn(),
+  reorderMerchants: vi.fn(),
   updateMerchantTag: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("internal/merchant/adapter/next/actions", () => ({
   createMerchantTag: mocks.createMerchantTag,
   setPreferredMerchantAlias: mocks.setPreferredMerchantAlias,
   reorderMerchantTags: mocks.reorderMerchantTags,
+  reorderMerchants: mocks.reorderMerchants,
   updateMerchantTag: mocks.updateMerchantTag,
 }));
 vi.mock("internal/merchant/adapter/next/loadMerchantsView", () => ({
@@ -79,6 +81,7 @@ describe("MerchantsPage", () => {
       merchants: [],
       selectedTag: null,
       reorderAction: mocks.reorderMerchantTags,
+      reorderMerchantsAction: mocks.reorderMerchants,
       setPreferredMerchantAliasAction: mocks.setPreferredMerchantAlias,
       tags: [],
       updateAction: mocks.updateMerchantTag,
