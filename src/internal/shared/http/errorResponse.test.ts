@@ -4,6 +4,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  getMerchantActionErrorMessage,
+  merchantErrorCodes,
+} from "internal/merchant";
 import type { AppEnv } from "internal/appEnv";
 import {
   AuthenticationError,
@@ -31,6 +35,38 @@ function appThatThrows(error: unknown) {
 
 describe("errorHandlingMiddleware", () => {
   it.each([
+    [
+      new ValidationError(
+        merchantErrorCodes.merchantOrderInvalid,
+        getMerchantActionErrorMessage(merchantErrorCodes.merchantOrderInvalid)!,
+      ),
+      400,
+    ],
+    [
+      new ConflictError(
+        merchantErrorCodes.merchantSetInvalid,
+        getMerchantActionErrorMessage(merchantErrorCodes.merchantSetInvalid)!,
+      ),
+      409,
+    ],
+    [
+      new ConflictError(
+        merchantErrorCodes.merchantReorderFailed,
+        getMerchantActionErrorMessage(
+          merchantErrorCodes.merchantReorderFailed,
+        )!,
+      ),
+      409,
+    ],
+    [
+      new RepositoryError(
+        merchantErrorCodes.merchantReorderFailed,
+        getMerchantActionErrorMessage(
+          merchantErrorCodes.merchantReorderFailed,
+        )!,
+      ),
+      500,
+    ],
     [new ValidationError("invalid_request", "请求内容无效。"), 400],
     [new AuthenticationError("auth_required", "请先登录后再继续。"), 401],
     [new AuthorizationError("permission_denied", "没有操作权限。"), 403],

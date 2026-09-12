@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   revalidateMerchantMutation: vi.fn(),
   setPreferredAlias: vi.fn(),
   reorderTags: vi.fn(),
+  reorder: vi.fn(),
   updateMerchant: vi.fn(),
   updateTag: vi.fn(),
 }));
@@ -53,6 +54,7 @@ import {
   fetchMerchantIcon,
   setPreferredMerchantAlias,
   reorderMerchantTags,
+  reorderMerchants,
   updateMerchant,
   updateMerchantTag,
 } from "internal/merchant/adapter/next/actions";
@@ -119,6 +121,7 @@ beforeEach(() => {
         listActiveOptions: vi.fn(),
         setPreferredAlias: mocks.setPreferredAlias,
         reorderTags: mocks.reorderTags,
+        reorder: mocks.reorder,
         updateMerchant: mocks.updateMerchant,
         updateTag: mocks.updateTag,
       },
@@ -474,5 +477,53 @@ describe("显示名切换", () => {
     );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+  });
+});
+
+describe("reorderMerchants", () => {
+  it("只使用服务端当前账本与会话身份并刷新页面缓存", async () => {
+    const form = merchantForm({
+      ledgerId: "forged-ledger",
+      userId: "forged-user",
+      role: "owner",
+      merchantIds: JSON.stringify([merchantId]),
+    });
+    await expect(reorderMerchants(form)).resolves.toEqual({});
+    expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
+    expect(mocks.reorder).toHaveBeenCalledWith({
+      ledgerId,
+      merchantIds: [merchantId],
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+  it.each([
+    "",
+    "null",
+    "{}",
+    "[]",
+    '["invalid"]',
+    JSON.stringify([merchantId, merchantId]),
+  ])("非法排序内容返回当前请求错误：%s", async (merchantIds) => {
+    expectErrorState(
+      await reorderMerchants(merchantForm({ merchantIds })),
+      "商家排序内容不正确。",
+    );
+    expect(mocks.reorder).not.toHaveBeenCalled();
+  });
+  it("排序失败返回安全文案和新的反馈标识且不导航", async () => {
+    mocks.reorder.mockRejectedValue(
+      new ConflictError(
+        merchantErrorCodes.merchantSetInvalid,
+        "商家列表已发生变化，请刷新页面后重试。",
+      ),
+    );
+    const form = merchantForm({ merchantIds: JSON.stringify([merchantId]) });
+    const first = await reorderMerchants(form);
+    const second = await reorderMerchants(form);
+    expectErrorState(first, "商家列表已发生变化，请刷新页面后重试。");
+    expect(first.errorKey).not.toBe(second.errorKey);
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });

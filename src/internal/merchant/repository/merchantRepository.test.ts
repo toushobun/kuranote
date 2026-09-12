@@ -617,3 +617,40 @@ describe("createSupabaseMerchantRepository", () => {
     },
   );
 });
+
+describe("reorder", () => {
+  it("提交当前账本和完整顺序到原子 RPC", async () => {
+    const supabase = createSupabaseMock();
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+    await repository.reorder(ledgerId, [merchantId]);
+    expect(supabase.client.rpc).toHaveBeenCalledWith("reorder_merchants", {
+      p_ledger_id: ledgerId,
+      p_merchant_ids: [merchantId],
+    });
+  });
+  it.each([
+    ["merchant_order_invalid", "22023", ValidationError],
+    ["merchant_set_invalid", "22023", ConflictError],
+    ["merchant_write_failed", "P0001", ConflictError],
+    ["permission_denied", "42501", AuthorizationError],
+    ["auth_required", "42501", AuthenticationError],
+    ["ledger_not_found", "P0002", NotFoundError],
+    ["private detail", "XX000", RepositoryError],
+  ])("将 RPC %s 转换为安全应用错误", async (details, code, errorType) => {
+    const supabase = createSupabaseMock({
+      rpcResponse: { error: { code, details, message: "private SQL" } },
+    });
+    const logger = createLogger();
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      logger,
+    );
+    const result = repository.reorder(ledgerId, [merchantId]);
+    await expect(result).rejects.toBeInstanceOf(errorType);
+    await expect(result).rejects.not.toHaveProperty("message", "private SQL");
+    expect(logger.error).toHaveBeenCalled();
+  });
+});

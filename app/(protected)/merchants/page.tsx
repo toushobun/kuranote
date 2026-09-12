@@ -3,6 +3,7 @@ import {
   archiveMerchantTag,
   createMerchantTag,
   reorderMerchantTags,
+  reorderMerchants,
   setPreferredMerchantAlias,
   updateMerchantTag,
 } from "internal/merchant/adapter/next/actions";
@@ -38,6 +39,7 @@ export default async function MerchantsPage({
       }
       selectedTag={view.selectedTag}
       reorderAction={reorderMerchantTags}
+      reorderMerchantsAction={reorderMerchants}
       tagFilterError={view.tagFilterError}
       tags={view.tags}
       updateAction={updateMerchantTag}

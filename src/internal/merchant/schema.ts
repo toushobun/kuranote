@@ -320,25 +320,43 @@ export function validateArchiveMerchantTagForm(
   return result.ok ? valid({ tagId: result.value }) : result;
 }
 
+function parseOrderIds(formData: FormData, field: string, max: number) {
+  try {
+    return z
+      .array(z.string().uuid())
+      .min(1)
+      .max(max)
+      .refine((values) => new Set(values).size === values.length)
+      .safeParse(JSON.parse(getFormText(formData, field)) as unknown);
+  } catch {
+    return null;
+  }
+}
+
+export function validateReorderMerchantsForm(
+  formData: FormData,
+): ValidationResult<
+  { merchantIds: string[] },
+  typeof merchantErrorCodes.merchantOrderInvalid
+> {
+  const result = parseOrderIds(
+    formData,
+    "merchantIds",
+    Number.MAX_SAFE_INTEGER,
+  );
+  return result?.success
+    ? valid({ merchantIds: result.data })
+    : invalid(merchantErrorCodes.merchantOrderInvalid);
+}
+
 export function validateReorderMerchantTagsForm(
   formData: FormData,
 ): ValidationResult<
   ReorderMerchantTagsValues,
   typeof merchantErrorCodes.merchantTagOrderInvalid
 > {
-  let tagIds: unknown;
-  try {
-    tagIds = JSON.parse(getFormText(formData, "tagIds"));
-  } catch {
-    return invalid(merchantErrorCodes.merchantTagOrderInvalid);
-  }
-  const result = z
-    .array(z.string().uuid())
-    .min(1)
-    .max(200)
-    .refine((values) => new Set(values).size === values.length)
-    .safeParse(tagIds);
-  return result.success
+  const result = parseOrderIds(formData, "tagIds", 200);
+  return result?.success
     ? valid({ tagIds: result.data })
     : invalid(merchantErrorCodes.merchantTagOrderInvalid);
 }
