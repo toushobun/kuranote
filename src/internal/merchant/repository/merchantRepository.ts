@@ -83,6 +83,21 @@ const merchantRpcBusinessErrors: Partial<
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
     type: "validation",
   },
+  [merchantErrorCodes.merchantOrderInvalid]: {
+    code: merchantErrorCodes.merchantOrderInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantOrderInvalid),
+    type: "validation",
+  },
+  [merchantErrorCodes.merchantReorderFailed]: {
+    code: merchantErrorCodes.merchantReorderFailed,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantReorderFailed),
+    type: "conflict",
+  },
+  [merchantErrorCodes.merchantSetInvalid]: {
+    code: merchantErrorCodes.merchantSetInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.merchantSetInvalid),
+    type: "conflict",
+  },
   [merchantErrorCodes.merchantTagOrderInvalid]: {
     code: merchantErrorCodes.merchantTagOrderInvalid,
     message: getMerchantErrorMessage(
@@ -117,6 +132,13 @@ const merchantAccessBusinessErrorCodes = {
 const merchantTagWriteBusinessErrorCodes = {
   merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
   merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
+} as const;
+
+const merchantReorderBusinessErrorCodes = {
+  ledger_not_found: merchantErrorCodes.ledgerInvalid,
+  merchant_order_invalid: merchantErrorCodes.merchantOrderInvalid,
+  merchant_set_invalid: merchantErrorCodes.merchantSetInvalid,
+  merchant_write_failed: merchantErrorCodes.merchantReorderFailed,
 } as const;
 
 const merchantTagReorderBusinessErrorCodes = {
@@ -228,6 +250,7 @@ export interface MerchantRepository {
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
   listActiveTagIds(ledgerId: string): Promise<string[]>;
   listActiveTags(ledgerId: string): Promise<MerchantTagData[]>;
+  reorder(ledgerId: string, merchantIds: string[]): Promise<void>;
   reorderTags(ledgerId: string, tagIds: string[]): Promise<void>;
   setPreferredAlias(input: SetPreferredMerchantAliasInput): Promise<boolean>;
   updateMerchant(input: UpdateMerchantInput): Promise<boolean>;
@@ -899,6 +922,24 @@ export function createSupabaseMerchantRepository(
       ]);
       if (tags.length === 0) return tags;
       return attachMerchantCounts(tags, await loadTagLinks(merchantIds));
+    },
+
+    async reorder(ledgerId, merchantIds) {
+      const { error } = await supabase.rpc("reorder_merchants", {
+        p_ledger_id: ledgerId,
+        p_merchant_ids: merchantIds,
+      });
+      if (error) {
+        fail(
+          "[merchant] failed to reorder merchants",
+          merchantErrorCodes.merchantReorderFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantReorderFailed),
+          { ledgerId },
+          error,
+          undefined,
+          merchantReorderBusinessErrorCodes,
+        );
+      }
     },
 
     async reorderTags(ledgerId, tagIds) {

@@ -1,3 +1,5 @@
+"use client";
+
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -8,6 +10,11 @@ import { merchantText } from "config/merchantText";
 import { merchantEditHref } from "config/paths";
 import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
+import { SortableList } from "molecules/ui/SortableList/SortableList";
+import { SortableItem } from "molecules/ui/SortableList/SortableItem";
+import { MerchantFailureFeedback } from "../MerchantFailureFeedback/MerchantFailureFeedback";
+import { useMerchantList } from "./useMerchantList";
+import type { MerchantReorderAction } from "types/merchants";
 import type { Merchant } from "types/merchants";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 
@@ -20,6 +27,7 @@ type MerchantListProps = {
   ledgerId: string;
   merchants: Merchant[];
   tagFiltered?: boolean;
+  reorderAction?: MerchantReorderAction;
   setPreferredAliasAction?: ServerAction;
 };
 
@@ -30,8 +38,15 @@ export function MerchantList({
   ledgerId,
   merchants,
   tagFiltered = false,
+  reorderAction,
   setPreferredAliasAction,
 }: MerchantListProps) {
+  const { orderedMerchants, disabled, submitOrder, errorState } =
+    useMerchantList({
+      merchants,
+      reorderAction,
+      disabled: !canManageMerchants || keyword.trim().length > 0 || tagFiltered,
+    });
   const isFilteredEmpty =
     (keyword.trim().length > 0 || tagFiltered) && merchants.length === 0;
 
@@ -104,17 +119,33 @@ export function MerchantList({
   }
 
   return (
-    <Stack data-testid="merchant-list" sx={{ gap: 1 }}>
-      {merchants.map((merchant) => (
-        <MerchantCard
-          canManageMerchants={canManageMerchants}
-          editHref={merchantEditHref(merchant.id)}
-          key={merchant.id}
-          ledgerId={ledgerId}
-          merchant={merchant}
-          setPreferredAliasAction={setPreferredAliasAction}
-        />
-      ))}
-    </Stack>
+    <>
+      <SortableList
+        disabled={disabled}
+        items={orderedMerchants.map((merchant) => merchant.id)}
+        onReorder={submitOrder}
+      >
+        <Stack data-testid="merchant-list" sx={{ gap: 1 }}>
+          {orderedMerchants.map((merchant) => (
+            <SortableItem key={merchant.id} id={merchant.id}>
+              {(handleProps) => (
+                <MerchantCard
+                  canManageMerchants={canManageMerchants}
+                  editHref={merchantEditHref(merchant.id)}
+                  handleProps={handleProps}
+                  ledgerId={ledgerId}
+                  merchant={merchant}
+                  setPreferredAliasAction={setPreferredAliasAction}
+                />
+              )}
+            </SortableItem>
+          ))}
+        </Stack>
+      </SortableList>
+      <MerchantFailureFeedback
+        state={errorState}
+        title={merchantText.reorderErrorTitle}
+      />
+    </>
   );
 }

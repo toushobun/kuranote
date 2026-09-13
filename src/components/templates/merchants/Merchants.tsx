@@ -35,6 +35,7 @@ import type {
   MerchantTag,
   MerchantStateAction,
   MerchantTagReorderAction,
+  MerchantReorderAction,
   MerchantTagStateAction,
 } from "types/merchants";
 
@@ -52,6 +53,7 @@ export type MerchantsTemplateProps = {
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];
+  reorderMerchantsAction?: MerchantReorderAction;
   reorderAction: MerchantTagReorderAction;
   updateAction: MerchantTagStateAction;
 };
@@ -71,6 +73,7 @@ export function MerchantsTemplate({
   tagFilterError,
   tags,
   reorderAction,
+  reorderMerchantsAction,
   updateAction,
 }: MerchantsTemplateProps) {
   const setPreferred = useMerchantDisplayNameListAction(
@@ -336,6 +339,7 @@ export function MerchantsTemplate({
               keyword={keyword}
               ledgerId={ledgerId}
               merchants={merchants}
+              reorderAction={reorderMerchantsAction}
               setPreferredAliasAction={submitPreferredAlias}
               tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
             />

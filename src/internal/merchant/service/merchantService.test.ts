@@ -56,6 +56,7 @@ function createRepository(
     listActiveTagIds: vi.fn().mockResolvedValue([]),
     listActiveTags: vi.fn().mockResolvedValue([]),
     reorderTags: vi.fn(),
+    reorder: vi.fn(),
     setPreferredAlias: vi.fn().mockResolvedValue(true),
     updateMerchant: vi.fn().mockResolvedValue(true),
     updateTag: vi.fn().mockResolvedValue(true),
@@ -710,5 +711,46 @@ describe("createMerchantService", () => {
         ledgerId,
       }),
     ).rejects.toMatchObject({ code: "ledger_member_load_failed" });
+  });
+});
+
+describe("reorder", () => {
+  it("校验当前用户的账本管理权限后保存顺序", async () => {
+    const repository = createRepository();
+    const access = createLedgerAccessService();
+    await createService(repository, access).reorder({
+      ledgerId,
+      merchantIds: [merchantId],
+    });
+    expect(access.getActiveMemberRole).toHaveBeenCalledWith({
+      ledgerId,
+      userId,
+    });
+    expect(repository.reorder).toHaveBeenCalledWith(ledgerId, [merchantId]);
+  });
+  it.each(["member", null])("拒绝无管理权限或非成员：%s", async (role) => {
+    const repository = createRepository();
+    const service = createService(
+      repository,
+      createLedgerAccessService({
+        getActiveMemberRole: vi.fn().mockResolvedValue(role),
+      }),
+    );
+    await expect(
+      service.reorder({ ledgerId, merchantIds: [merchantId] }),
+    ).rejects.toBeInstanceOf(
+      role === null ? NotFoundError : AuthorizationError,
+    );
+    expect(repository.reorder).not.toHaveBeenCalled();
+  });
+  it("未登录时拒绝排序", async () => {
+    const repository = createRepository();
+    await expect(
+      createService(repository, createLedgerAccessService(), null).reorder({
+        ledgerId,
+        merchantIds: [merchantId],
+      }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    expect(repository.reorder).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  screen,
   waitFor,
   within,
 } from "@testing-library/react";
@@ -13,9 +14,14 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 
+import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import type { MerchantActionState } from "types/merchants";
 import { MerchantList } from "./MerchantList";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const baseProps = { createHref: "/merchants/new", ledgerId: "ledger-1" };
 
@@ -146,5 +152,97 @@ describe("MerchantList", () => {
     expect(
       within(container).getByText("当前分类下还没有商家。"),
     ).toBeInTheDocument();
+  });
+});
+
+const sortableMerchants = [
+  createMerchantRow({ id: "first", name: "商家甲" }),
+  createMerchantRow({ id: "second", name: "商家乙" }),
+];
+function renderSortableList(
+  props: Partial<Parameters<typeof MerchantList>[0]> = {},
+) {
+  mockSortableRects({ first: 0, second: 100 });
+  return render(
+    <MerchantList
+      {...baseProps}
+      merchants={sortableMerchants}
+      reorderAction={async () => ({})}
+      {...props}
+    />,
+  );
+}
+function merchantOrder() {
+  return screen
+    .getAllByRole("heading", { level: 2 })
+    .map((heading) => heading.textContent);
+}
+describe("商家排序", () => {
+  it("手柄位于编辑按钮右侧，拖拽乐观更新且成功保留顺序", async () => {
+    let finish!: (state: MerchantActionState) => void;
+    const action = vi.fn<(formData: FormData) => Promise<MerchantActionState>>(
+      () =>
+        new Promise<MerchantActionState>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderSortableList({ reorderAction: action });
+    const handle = screen.getByRole("button", { name: "调整商家甲排序" });
+    expect(
+      screen.getByRole("link", { name: "编辑商家甲" }).nextElementSibling,
+    ).toBe(handle);
+    await dragSortable(handle, 40, 140);
+    await dropSortable();
+    expect(merchantOrder()).toEqual(["商家乙", "商家甲"]);
+    expect(handle).toBeDisabled();
+    expect(action).toHaveBeenCalledOnce();
+    expect(action.mock.calls[0][0].get("merchantIds")).toBe(
+      '["second","first"]',
+    );
+    await act(async () => finish({}));
+    expect(handle).toBeEnabled();
+    expect(merchantOrder()).toEqual(["商家乙", "商家甲"]);
+  });
+  it.each([false, true])(
+    "保存失败回滚并显示反馈（网络异常：%s）",
+    async (networkError) => {
+      const action = vi.fn(async () => {
+        if (networkError) throw new Error("private");
+        return { error: "排序冲突，请刷新", errorKey: "failure" };
+      });
+      renderSortableList({ reorderAction: action });
+      await dragSortable(
+        screen.getByRole("button", { name: "调整商家甲排序" }),
+        40,
+        140,
+      );
+      await dropSortable();
+      await waitFor(() =>
+        expect(merchantOrder()).toEqual(["商家甲", "商家乙"]),
+      );
+      expect(
+        await screen.findByText(
+          networkError ? "商家排序保存失败，请稍后重试。" : "排序冲突，请刷新",
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+  it.each([{ keyword: "商家" }, { tagFiltered: true }])(
+    "筛选期间保留手柄但禁止局部排序：%o",
+    (props) => {
+      renderSortableList(props);
+      expect(
+        screen.getByRole("button", { name: "调整商家甲排序" }),
+      ).toBeDisabled();
+    },
+  );
+  it("只读成员没有排序或编辑入口", () => {
+    renderSortableList({ canManageMerchants: false });
+    expect(
+      screen.queryByRole("button", { name: "调整商家甲排序" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "编辑商家甲" }),
+    ).not.toBeInTheDocument();
   });
 });

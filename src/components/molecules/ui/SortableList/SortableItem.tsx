@@ -46,6 +46,7 @@ export function SortableItem({
       style={{
         transform: `${CSS.Translate.toString(transform) ?? ""}${isDragging ? " scale(1.01)" : ""}`,
         transition,
+        willChange: isDragging ? "transform" : undefined,
       }}
       sx={[
         {

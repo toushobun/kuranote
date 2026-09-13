@@ -11,6 +11,8 @@ import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
+import { SortableDragHandle } from "molecules/ui/SortableList/SortableDragHandle/SortableDragHandle";
+import type { SortableHandleProps } from "molecules/ui/SortableList/SortableItem";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { designTokens } from "theme/theme";
 import {
@@ -27,12 +29,23 @@ import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
 type MerchantCardProps = {
   canManageMerchants?: boolean;
+  handleProps?: SortableHandleProps;
   editHref: string;
   ledgerId: string;
   merchant: Merchant;
   pending?: boolean;
   setPreferredAliasAction?: ServerAction;
 };
+
+const merchantCardActionButtonSx = {
+  "&:hover": { bgcolor: "action.hover" },
+  border: "1px solid",
+  borderColor: "divider",
+  borderRadius: `${designTokens.radius.md}px`,
+  flexShrink: 0,
+  height: 40,
+  width: 40,
+} as const;
 
 function createChipPattern(patternColor: string) {
   const pattern = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path fill="${patternColor}" d="M6 0L12 6L6 12L0 6Z"/></svg>`;
@@ -84,6 +97,7 @@ function getMerchantTagChipSx(tag: MerchantTag) {
 export function MerchantCard({
   canManageMerchants = true,
   editHref,
+  handleProps,
   merchant,
   pending,
   setPreferredAliasAction,
@@ -151,23 +165,24 @@ export function MerchantCard({
         </Box>
 
         {canManageMerchants ? (
-          <IconButton
-            aria-label={`编辑${merchant.name}`}
-            component={NextLink}
-            href={editHref}
-            size="small"
-            sx={{
-              "&:hover": { bgcolor: "action.hover" },
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: `${designTokens.radius.md}px`,
-              flexShrink: 0,
-              height: 40,
-              width: 40,
-            }}
-          >
-            <EditRoundedIcon fontSize="small" />
-          </IconButton>
+          <>
+            <IconButton
+              aria-label={`编辑${merchant.name}`}
+              component={NextLink}
+              href={editHref}
+              size="small"
+              sx={merchantCardActionButtonSx}
+            >
+              <EditRoundedIcon fontSize="small" />
+            </IconButton>
+            {handleProps ? (
+              <SortableDragHandle
+                name={merchant.name}
+                handleProps={handleProps}
+                sx={merchantCardActionButtonSx}
+              />
+            ) : null}
+          </>
         ) : null}
       </Stack>
       {merchant.tags.length > 0 ? (

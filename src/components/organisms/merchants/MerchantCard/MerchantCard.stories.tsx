@@ -14,6 +14,8 @@ import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 
+import { SortableList } from "molecules/ui/SortableList/SortableList";
+import { SortableItem } from "molecules/ui/SortableList/SortableItem";
 import { MerchantCard } from "./MerchantCard";
 
 const merchant = createMerchantRow({
@@ -159,4 +161,42 @@ export const FormalNameSelected: Story = {
 export const ReadOnly: Story = {
   name: "只读成员",
   args: { canManageMerchants: false },
+};
+
+export const Sortable: Story = {
+  name: "常驻手柄与拖拽排序",
+  render: function SortableCards(args) {
+    const [merchants, setMerchants] = useState([
+      args.merchant,
+      createMerchantRow({ id: "merchant-2", name: "便利店" }),
+    ]);
+    return (
+      <SortableList
+        items={merchants.map((item) => item.id)}
+        onReorder={(ids) =>
+          setMerchants(
+            ids.flatMap((id) => merchants.find((item) => item.id === id) ?? []),
+          )
+        }
+      >
+        <Stack spacing={1} sx={{ maxWidth: 480 }}>
+          {merchants.map((item) => (
+            <SortableItem key={item.id} id={item.id}>
+              {(handleProps) => (
+                <MerchantCard
+                  {...args}
+                  merchant={item}
+                  handleProps={handleProps}
+                />
+              )}
+            </SortableItem>
+          ))}
+        </Stack>
+      </SortableList>
+    );
+  },
+};
+export const SortingDisabled: Story = {
+  name: "筛选或保存期间禁用排序",
+  args: { handleProps: { disabled: true } },
 };

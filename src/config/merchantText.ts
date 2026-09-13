@@ -1,4 +1,5 @@
 export const merchantText = {
+  reorderErrorTitle: "商家排序失败",
   addCategory: "新增分类",
   addAlias: "添加别名",
   aliasHelper:
