@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -17,9 +18,56 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { MerchantNameOptions } from "./MerchantNameOptions";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("MerchantNameOptions", () => {
+  it.each(["chips", "rows"] as const)(
+    "%s 模式等待本次提交完成后恢复滚动，连续切换重新记录位置",
+    async (variant) => {
+      const scrollTo = vi
+        .spyOn(window, "scrollTo")
+        .mockImplementation(() => {});
+      let complete: () => void = () => {};
+      const action = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            complete = resolve;
+          }),
+      );
+      render(
+        <MerchantNameOptions
+          merchant={createMerchantRow({ aliases: [createMerchantAliasRow()] })}
+          setPreferredAliasAction={action}
+          variant={variant}
+        />,
+      );
+      expect(scrollTo).not.toHaveBeenCalled();
+
+      for (const top of [513, 900]) {
+        scrollTo.mockClear();
+        vi.stubGlobal("scrollX", 0);
+        vi.stubGlobal("scrollY", top);
+        const option = screen.getByRole("button", { name: "将来福设为展示名" });
+        fireEvent.click(option);
+        await waitFor(() => expect(option).toBeDisabled());
+        vi.stubGlobal("scrollY", 0);
+        expect(scrollTo).not.toHaveBeenCalled();
+        await act(async () => complete());
+        expect(option).toBeEnabled();
+        expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
+          left: 0,
+          top,
+          behavior: "instant",
+        });
+      }
+      expect(action).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it("正式名通过加粗与当前显示名状态保持独立", () => {
     render(
       <MerchantNameOptions
