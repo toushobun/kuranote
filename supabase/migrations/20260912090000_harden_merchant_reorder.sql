@@ -1,3 +1,4 @@
+-- 本 RPC 的 200 项排序上限须与 src/internal/merchant/schema.ts 的 maxMerchantReorderCount 同步调整。
 create or replace function public.reorder_merchants(
     p_ledger_id uuid,
     p_merchant_ids uuid[]
