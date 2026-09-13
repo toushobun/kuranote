@@ -60,8 +60,10 @@ const transactionPageFrameSx = {
     boxShadow: "var(--user-theme-card-shadow)",
     color: "var(--user-theme-fab-text) !important",
   },
-  "& .MuiToggleButton-root.Mui-selected:hover": {
-    background: "var(--user-theme-fab-bg)",
+  "@media (hover: hover)": {
+    "& .MuiToggleButton-root.Mui-selected:hover": {
+      background: "var(--user-theme-fab-bg)",
+    },
   },
   "& .MuiPaper-outlined": {
     bgcolor: "var(--user-theme-card-bg)",
