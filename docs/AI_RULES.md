@@ -365,6 +365,12 @@ PR merge 前后需要回收相关状态：
 - `sx` 可以使用，但应优先引用 theme token（如 `spacing`、`palette`、`shape` 等）。
 - 实现圆角时以 [docs/theme.md](theme.md) 的"圆角层级"一节为权威参照，必须从其中定义的 6 档 token 里选择，禁止裸数字或新增档位。
 - 面向用户显示的文案不得硬编码散落在多个组件中，至少集中到模块级常量文件统一管理。
+- 自定义 `sx` 中使用 `"&:hover"` 时必须包一层 `"@media (hover: hover)"`，避免触屏设备没有 `mouseleave` 事件，点击后 hover 样式卡住不消失；`:active`、`:focus-visible` 不受此问题影响，不需要同样处理。参考写法见 `src/components/molecules/transactions/TransactionDateTimePicker/DateTimeSettingRows.tsx` 的 `settingRowSx`：
+  ```tsx
+  "@media (hover: hover)": {
+    "&:hover": { bgcolor: "action.hover" },
+  },
+  ```
 
 ## 实现时的注意事项
 
