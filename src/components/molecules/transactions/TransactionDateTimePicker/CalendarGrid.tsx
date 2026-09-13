@@ -65,6 +65,11 @@ export function CalendarGrid({
               onClick={() => onDateChange(day.value)}
               type="button"
               sx={{
+                "@media (hover: hover)": {
+                  "&:hover": {
+                    bgcolor: isSelected ? selectedBackground : "action.hover",
+                  },
+                },
                 bgcolor: isSelected ? selectedBackground : "transparent",
                 borderRadius: "50%",
                 color: isSelected ? "common.white" : "text.secondary",
@@ -75,9 +80,6 @@ export function CalendarGrid({
                 minWidth: 38,
                 p: 0,
                 width: 38,
-                "&:hover": {
-                  bgcolor: isSelected ? selectedBackground : "action.hover",
-                },
               }}
             >
               {isToday ? messages.todayShort : day.date.getDate()}

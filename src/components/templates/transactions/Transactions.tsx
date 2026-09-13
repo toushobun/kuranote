@@ -199,14 +199,16 @@ export function TransactionsTemplate({
               <Button
                 onClick={() => globalThis.location.reload()}
                 sx={{
+                  "@media (hover: hover)": {
+                    "&:hover": {
+                      bgcolor: "var(--user-theme-field-card-selected-bg)",
+                    },
+                  },
                   bgcolor: "var(--user-theme-action-bg)",
                   borderRadius: `${designTokens.radius.full}px`,
                   color: "var(--user-theme-action-text)",
                   fontWeight: 900,
                   px: 2.4,
-                  "&:hover": {
-                    bgcolor: "var(--user-theme-field-card-selected-bg)",
-                  },
                 }}
                 variant="contained"
               >
@@ -294,14 +296,16 @@ const saveSuccessDialogTextByResult: Record<
 const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const headerActionSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-badge-bg)",
+    },
+  },
   color: "text.primary",
   height: 40,
   p: 0,
   transition: "background-color 120ms ease, transform 120ms ease",
   width: 40,
-  "&:hover": {
-    bgcolor: "var(--user-theme-badge-bg)",
-  },
   "&:active": {
     bgcolor: "var(--user-theme-field-card-selected-bg)",
     transform: "translateY(1px)",

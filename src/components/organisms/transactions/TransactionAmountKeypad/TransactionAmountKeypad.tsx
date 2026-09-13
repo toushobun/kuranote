@@ -139,6 +139,14 @@ export function TransactionAmountKeypad({
         type="button"
         variant="outlined"
         sx={{
+          "@media (hover: hover)": {
+            "&:hover": {
+              bgcolor: "background.default",
+              borderColor: isOperator
+                ? "var(--user-theme-action-text)"
+                : "divider",
+            },
+          },
           bgcolor: "background.paper",
           borderColor: "divider",
           borderRadius: `${designTokens.radius.md}px`,
@@ -148,12 +156,6 @@ export function TransactionAmountKeypad({
           minHeight: 52,
           minWidth: 0,
           p: 0,
-          "&:hover": {
-            bgcolor: "background.default",
-            borderColor: isOperator
-              ? "var(--user-theme-action-text)"
-              : "divider",
-          },
         }}
       >
         {keyLabels[key]}

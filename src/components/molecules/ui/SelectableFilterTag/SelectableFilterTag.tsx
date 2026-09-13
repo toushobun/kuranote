@@ -31,6 +31,13 @@ export function SelectableFilterTag({
       component={Link}
       href={href}
       sx={{
+        "@media (hover: hover)": {
+          "&:hover": {
+            bgcolor: selected
+              ? "var(--user-theme-field-card-selected-bg)"
+              : "action.hover",
+          },
+        },
         bgcolor: selected
           ? "var(--user-theme-field-card-selected-bg)"
           : "background.paper",
@@ -48,11 +55,6 @@ export function SelectableFilterTag({
         px: 1.25,
         py: 0.75,
         whiteSpace: "nowrap",
-        "&:hover": {
-          bgcolor: selected
-            ? "var(--user-theme-field-card-selected-bg)"
-            : "action.hover",
-        },
       }}
     >
       <Box

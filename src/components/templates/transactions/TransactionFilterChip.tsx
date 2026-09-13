@@ -26,6 +26,11 @@ export function TransactionFilterChip({
 }
 
 const chipSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-badge-bg)",
+    },
+  },
   bgcolor: "var(--user-theme-card-bg)",
   ...userThemeCardBorderSx,
   borderRadius: `${designTokens.radius.item}px`,
@@ -34,9 +39,6 @@ const chipSx = {
   fontWeight: 800,
   height: 34,
   px: 0.4,
-  "&:hover": {
-    bgcolor: "var(--user-theme-badge-bg)",
-  },
 };
 
 const selectedChipSx = {

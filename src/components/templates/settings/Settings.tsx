@@ -435,8 +435,13 @@ function settingsEntryButtonSx(isLast: boolean) {
     textAlign: "left",
     textDecoration: "none",
     width: "100%",
-    "&:focus-visible, &:hover": {
+    "&:focus-visible": {
       backgroundColor: "action.hover",
+    },
+    "@media (hover: hover)": {
+      "&:hover": {
+        backgroundColor: "action.hover",
+      },
     },
   } as const;
 }

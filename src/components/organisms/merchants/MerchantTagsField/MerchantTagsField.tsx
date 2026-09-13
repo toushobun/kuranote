@@ -50,8 +50,10 @@ export function MerchantTagsField({
                 sx={
                   selected
                     ? {
-                        "&:hover": { bgcolor: "primary.main" },
                         "&:active": { bgcolor: "primary.dark" },
+                        "@media (hover: hover)": {
+                          "&:hover": { bgcolor: "primary.main" },
+                        },
                       }
                     : undefined
                 }
