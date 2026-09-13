@@ -7,7 +7,7 @@ import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useRef, type MouseEvent } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
 import { useFormStatus } from "react-dom";
 
 import { merchantText } from "config/merchantText";
@@ -33,6 +33,19 @@ function MerchantNameOptionButton({
   option: MerchantNameOption;
 }) {
   const { pending: formPending } = useFormStatus();
+  const scrollPosition = useRef<{ left: number; top: number } | null>(null);
+  const isPending = disabled || formPending;
+
+  useEffect(() => {
+    if (isPending || !scrollPosition.current) return;
+    const position = scrollPosition.current;
+    scrollPosition.current = null;
+    // Next.js 在 revalidate 后可能重置滚动，等提交完成再恢复本次操作位置。
+    if (window.scrollX !== position.left || window.scrollY !== position.top) {
+      window.scrollTo({ ...position, behavior: "instant" });
+    }
+  }, [isPending]);
+
   const { id, isFormalName, label, selected } = option;
   const optionRadius = isRow
     ? designTokens.radius.item
@@ -42,7 +55,10 @@ function MerchantNameOptionButton({
     <ButtonBase
       aria-label={merchantText.displayNameOptionLabel(label, selected)}
       aria-pressed={selected}
-      disabled={disabled || formPending}
+      disabled={isPending}
+      onClick={() => {
+        scrollPosition.current = { left: window.scrollX, top: window.scrollY };
+      }}
       name={isRow ? undefined : "aliasId"}
       type="submit"
       value={isRow ? undefined : id}
