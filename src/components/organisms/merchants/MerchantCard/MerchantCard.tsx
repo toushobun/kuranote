@@ -38,7 +38,9 @@ type MerchantCardProps = {
 };
 
 const merchantCardActionButtonSx = {
-  "&:hover": { bgcolor: "action.hover" },
+  "@media (hover: hover)": {
+    "&:hover": { bgcolor: "action.hover" },
+  },
   border: "1px solid",
   borderColor: "divider",
   borderRadius: `${designTokens.radius.md}px`,

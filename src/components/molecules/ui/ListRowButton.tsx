@@ -62,6 +62,11 @@ export function ListRowButton({
 }
 
 const rowButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "action.hover",
+    },
+  },
   alignItems: "center",
   borderRadius: `${designTokens.radius.item}px`,
   color: "text.primary",
@@ -71,9 +76,6 @@ const rowButtonSx = {
   p: 0,
   textAlign: "left",
   textTransform: "none",
-  "&:hover": {
-    bgcolor: "action.hover",
-  },
 } as const;
 
 const defaultAvatarSx: SxProps<Theme> = {

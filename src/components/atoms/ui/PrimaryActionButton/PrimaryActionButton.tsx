@@ -4,7 +4,9 @@ import Link from "next/link";
 import { designTokens } from "theme/theme";
 
 export const primaryActionButtonNoHoverBrightenSx = {
-  "&:not(.Mui-disabled):hover": { filter: "none" },
+  "@media (hover: hover)": {
+    "&:not(.Mui-disabled):hover": { filter: "none" },
+  },
 } as const;
 
 type PrimaryActionButtonCommonProps = "href" | "variant";
@@ -51,8 +53,10 @@ const primaryActionButtonSx = {
     background: "var(--user-theme-fab-bg)",
     color: "var(--user-theme-fab-text)",
   },
-  "&:not(.Mui-disabled):hover": {
-    background: "var(--user-theme-fab-bg)",
-    filter: "brightness(1.04)",
+  "@media (hover: hover)": {
+    "&:not(.Mui-disabled):hover": {
+      background: "var(--user-theme-fab-bg)",
+      filter: "brightness(1.04)",
+    },
   },
 } as const;

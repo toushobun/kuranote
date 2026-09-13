@@ -130,11 +130,19 @@ export function BottomNavigationBar({
                 "& .MuiTouchRipple-root": {
                   display: "none",
                 },
-                "&:active, &:focus, &:focus-visible, &:hover": {
+                "&:active, &:focus, &:focus-visible": {
                   bgcolor: "transparent",
                   boxShadow: "none",
                   filter: "brightness(1.04)",
                   outline: "none",
+                },
+                "@media (hover: hover)": {
+                  "&:hover": {
+                    bgcolor: "transparent",
+                    boxShadow: "none",
+                    filter: "brightness(1.04)",
+                    outline: "none",
+                  },
                 },
               }}
             >

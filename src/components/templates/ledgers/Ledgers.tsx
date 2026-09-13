@@ -526,8 +526,13 @@ const ledgerItemButtonSx = {
   textAlign: "left",
   textDecoration: "none",
   width: "100%",
-  "&:focus-visible, &:hover": {
+  "&:focus-visible": {
     filter: "brightness(1.02)",
+  },
+  "@media (hover: hover)": {
+    "&:hover": {
+      filter: "brightness(1.02)",
+    },
   },
 };
 

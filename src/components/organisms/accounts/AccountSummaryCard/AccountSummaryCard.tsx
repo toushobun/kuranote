@@ -178,12 +178,14 @@ function SummaryMetric({
 }
 
 const balanceVisibilityButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-field-card-selected-bg)",
+    },
+  },
   color: "text.secondary",
   flexShrink: 0,
   transform: "translateY(5px)",
-  "&:hover": {
-    bgcolor: "var(--user-theme-field-card-selected-bg)",
-  },
 };
 
 const balanceCurrencySx = {

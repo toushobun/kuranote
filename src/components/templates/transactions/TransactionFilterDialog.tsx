@@ -282,11 +282,13 @@ const resetButtonSx = {
 };
 
 const applyButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-field-card-selected-bg)",
+    },
+  },
   bgcolor: "var(--user-theme-action-bg)",
   borderRadius: `${designTokens.radius.md}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 900,
-  "&:hover": {
-    bgcolor: "var(--user-theme-field-card-selected-bg)",
-  },
 };

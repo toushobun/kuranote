@@ -74,12 +74,14 @@ function MerchantNameOptionButton({
               ? "primary.dark"
               : "action.selected",
         },
-        "&:hover": {
-          bgcolor: isRow
-            ? "action.hover"
-            : selected
-              ? "primary.main"
-              : "action.hover",
+        "@media (hover: hover)": {
+          "&:hover": {
+            bgcolor: isRow
+              ? "action.hover"
+              : selected
+                ? "primary.main"
+                : "action.hover",
+          },
         },
         bgcolor: isRow
           ? "transparent"

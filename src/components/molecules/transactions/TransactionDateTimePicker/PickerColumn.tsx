@@ -178,7 +178,10 @@ export function pickerOptionSx(selected: boolean, withOverlay = false) {
     minHeight: 40,
     scrollSnapAlign: "center",
     zIndex: 1,
-    "&:hover, &:active, &.Mui-focusVisible": { bgcolor: "transparent" },
+    "&:active, &.Mui-focusVisible": { bgcolor: "transparent" },
+    "@media (hover: hover)": {
+      "&:hover": { bgcolor: "transparent" },
+    },
   };
 }
 

@@ -227,15 +227,17 @@ const illustrationSlotSx = {
 };
 
 const backButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "rgba(255, 255, 255, 0.95)",
+    },
+  },
   bgcolor: "rgba(255, 255, 255, 0.85)",
   boxShadow: 2,
   color: "text.primary",
   left: 12,
   position: "absolute",
   top: 12,
-  "&:hover": {
-    bgcolor: "rgba(255, 255, 255, 0.95)",
-  },
 };
 
 const ledgerIconSx = {

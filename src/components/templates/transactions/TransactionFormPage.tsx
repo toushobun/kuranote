@@ -447,11 +447,13 @@ const newTransactionTopBarSx = {
 };
 
 const newTransactionCloseButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "action.hover",
+    },
+  },
   color: "text.secondary",
   justifySelf: "start",
-  "&:hover": {
-    bgcolor: "action.hover",
-  },
 };
 
 const newTransactionTitleSx = {

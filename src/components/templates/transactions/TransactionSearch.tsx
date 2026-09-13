@@ -305,14 +305,16 @@ const searchHeaderSx = {
 };
 
 const headerActionSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-badge-bg)",
+    },
+  },
   color: "text.primary",
   flexShrink: 0,
   height: 38,
   p: 0,
   width: 38,
-  "&:hover": {
-    bgcolor: "var(--user-theme-badge-bg)",
-  },
 };
 
 const searchFormSx = {
@@ -402,14 +404,16 @@ const loadingStateSx = {
 };
 
 const pillButtonSx = {
+  "@media (hover: hover)": {
+    "&:hover": {
+      bgcolor: "var(--user-theme-field-card-selected-bg)",
+    },
+  },
   bgcolor: "var(--user-theme-action-bg)",
   borderRadius: `${designTokens.radius.full}px`,
   color: "var(--user-theme-action-text)",
   fontWeight: 900,
   px: 2.4,
-  "&:hover": {
-    bgcolor: "var(--user-theme-field-card-selected-bg)",
-  },
 };
 
 const loadMoreButtonSx = {
