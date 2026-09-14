@@ -3,6 +3,24 @@ import { z } from "@hono/zod-openapi";
 import { accountHolderRoles } from "internal/account/entity/accountHolderRole";
 import { accountTypes } from "internal/account/entity/accountType";
 import { themeColorKeys } from "theme/themeColorTokens";
+import { accountErrorCodes, getAccountErrorMessage } from "./errors";
+
+export const accountBalanceAdjustmentSchema = z.object({
+  targetBalance: z
+    .number()
+    .finite()
+    .refine(
+      (value) => Math.abs(value) < 1e12 && Number(value.toFixed(2)) === value,
+      { message: getAccountErrorMessage(accountErrorCodes.balanceInvalid)! },
+    )
+    .optional(),
+  balanceAdjustmentNote: z
+    .string()
+    .trim()
+    .max(2000, getAccountErrorMessage(accountErrorCodes.adjustmentNoteInvalid)!)
+    .nullable()
+    .optional(),
+});
 
 const moneyValueSchema = z.union([z.number(), z.string()]);
 
@@ -28,7 +46,9 @@ export const createAccountRequestSchema = accountFieldsSchema.extend({
   initialBalance: z.number().finite(),
 });
 
-export const updateAccountRequestSchema = accountFieldsSchema;
+export const updateAccountRequestSchema = accountFieldsSchema.extend(
+  accountBalanceAdjustmentSchema.shape,
+);
 
 const accountHolderSchema = z.object({
   display_color: z.enum(themeColorKeys),

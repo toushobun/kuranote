@@ -1,9 +1,13 @@
+import InputAdornment from "@mui/material/InputAdornment";
+import { getCurrencySymbol } from "utils/currency";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { balanceAdjustmentText } from "config/balanceAdjustmentText";
+import { formatNumber } from "utils/transactions";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
@@ -12,7 +16,6 @@ import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { AccountHolderOption, Account } from "types/accounts";
-import { formatAmount } from "utils/accounts";
 
 export function getAccountEditFormId(accountId: string) {
   return `edit-account-form-${accountId}`;
@@ -43,6 +46,17 @@ export function AccountEditForm({
   onSubmit,
   updateAccountAction,
 }: AccountEditFormProps) {
+  const [targetBalance, setTargetBalance] = useState(
+    String(account.current_balance),
+  );
+  const validBalance =
+    /^-?\d+(\.\d{1,2})?$/.test(targetBalance) &&
+    Math.abs(Number(targetBalance)) < 1e12;
+  const delta = validBalance
+    ? (Math.round(Number(targetBalance) * 100) -
+        Math.round(Number(account.current_balance) * 100)) /
+      100
+    : 0;
   const formId = getAccountEditFormId(account.id);
   const archiveFormId = getAccountArchiveFormId(account.id);
   const selectableHolderUserIds = new Set(
@@ -94,12 +108,48 @@ export function AccountEditForm({
           nameId="edit-account-name"
           preservedHolderOptions={preservedHolderOptions}
           renderBalanceField={(selectedCurrency) => (
-            <TextField
-              disabled
-              fullWidth
-              value={formatAmount(account.current_balance, selectedCurrency)}
-              slotProps={{ htmlInput: { "aria-label": "当前余额" } }}
-            />
+            <Stack spacing={1.5}>
+              <TextField
+                fullWidth
+                name="targetBalance"
+                required
+                value={targetBalance}
+                onChange={(event) => setTargetBalance(event.target.value)}
+                error={!validBalance}
+                helperText={
+                  !validBalance
+                    ? balanceAdjustmentText.invalidBalance
+                    : delta === 0
+                      ? undefined
+                      : `${delta > 0 ? balanceAdjustmentText.increase : balanceAdjustmentText.decrease} ${formatNumber(String(Math.abs(delta)), selectedCurrency)}`
+                }
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        {getCurrencySymbol(selectedCurrency)}
+                      </InputAdornment>
+                    ),
+                  },
+                  htmlInput: {
+                    "aria-label": balanceAdjustmentText.balanceLabel,
+                    inputMode: "decimal",
+                  },
+                  formHelperText: {
+                    sx: { color: delta > 0 ? "success.main" : "error.main" },
+                  },
+                }}
+              />
+              {delta !== 0 ? (
+                <TextField
+                  fullWidth
+                  multiline
+                  name="balanceAdjustmentNote"
+                  label={balanceAdjustmentText.noteLabel}
+                  slotProps={{ htmlInput: { maxLength: 2000 } }}
+                />
+              ) : null}
+            </Stack>
           )}
           selectedHolderUserIds={account.holders.map(
             (holder) => holder.user_id,
@@ -112,6 +162,7 @@ export function AccountEditForm({
           ) : null}
           <PrimaryActionButton
             form={formId}
+            disabled={!validBalance}
             fullWidth={Boolean(archiveAccountAction)}
             type="submit"
             sx={saveButtonSx}

@@ -1,5 +1,6 @@
 export {
   transactionErrorCodes,
+  balanceAdjustmentErrorMessages,
   type TransactionServiceErrorCode,
   type TransactionValidationErrorCode,
   type UpdateTransactionValidationErrorCode,
@@ -54,3 +55,5 @@ export {
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,
 } from "internal/transaction/util/transactionSearchHelpers";
+
+export type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";

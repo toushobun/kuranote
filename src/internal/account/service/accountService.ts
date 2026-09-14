@@ -1,4 +1,5 @@
 import type { CurrentLedgerRole } from "internal/ledger";
+import { accountBalanceAdjustmentSchema } from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
 import {
   accountErrorCodes,
@@ -327,6 +328,14 @@ export function createAccountService({
     async update(input) {
       const role = await requireActiveMemberRole(input.ledgerId, input.userId);
       requireManagement(role);
+      const adjustment = accountBalanceAdjustmentSchema.safeParse(input);
+      if (!adjustment.success) {
+        const code =
+          adjustment.error.issues[0]?.path[0] === "balanceAdjustmentNote"
+            ? accountErrorCodes.adjustmentNoteInvalid
+            : accountErrorCodes.balanceInvalid;
+        throw new ValidationError(code, accountErrorMessage(code));
+      }
 
       if (
         !(await accountRepository.isActiveAccount(
@@ -342,6 +351,7 @@ export function createAccountService({
 
       const members = await accountRepository.listActiveMembers(input.ledgerId);
       const updated = await accountRepository.update({
+        ...adjustment.data,
         accountId: input.accountId,
         currency: normalizeCurrency(input.currency),
         holderUserIds: await requireValidHolders(input.holderUserIds, members),

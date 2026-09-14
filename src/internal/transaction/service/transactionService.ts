@@ -1,3 +1,8 @@
+import {
+  updateBalanceAdjustmentRequestSchema,
+  type UpdateBalanceAdjustmentInput,
+} from "internal/transaction/schema";
+import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
 import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { CurrentLedger } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
@@ -90,6 +95,7 @@ export type TransactionServiceDependencies = {
 };
 
 export interface TransactionService {
+  updateBalanceAdjustment(input: UpdateBalanceAdjustmentInput): Promise<void>;
   canModify(input: {
     ledgerId: string;
     transactionRecordId: string;
@@ -545,6 +551,32 @@ export function createTransactionService({
       }
     },
 
+    async updateBalanceAdjustment(input) {
+      await requireModificationPermission(
+        input.ledgerId,
+        input.transactionRecordId,
+      );
+      const { ledgerId, ...fields } = input;
+      const parsed = updateBalanceAdjustmentRequestSchema.safeParse(fields);
+      if (!parsed.success)
+        throw new ValidationError(
+          transactionErrorCodes.updateInvalid,
+          parsed.error.issues[0].message,
+        );
+      const record = await transactionRepository.findActiveRecord(
+        ledgerId,
+        input.transactionRecordId,
+      );
+      if (record?.type !== "balance_adjustment")
+        throw new ValidationError(
+          transactionErrorCodes.updateInvalid,
+          balanceAdjustmentErrorMessages.invalid,
+        );
+      await transactionRepository.updateBalanceAdjustment({
+        ledgerId,
+        ...parsed.data,
+      });
+    },
     async updateTransfer(input) {
       await requireModificationPermission(
         input.ledgerId,
@@ -572,6 +604,30 @@ export function createTransactionService({
 
     async void({ ledgerId, transactionRecordId }) {
       await requireModificationPermission(ledgerId, transactionRecordId);
+      const record = await transactionRepository.findActiveRecord(
+        ledgerId,
+        transactionRecordId,
+      );
+      if (record?.type === "balance_adjustment") {
+        const [items, accounts] = await Promise.all([
+          transactionRepository.listItems(ledgerId, [transactionRecordId]),
+          accountQueryService.listTransactionOptions({
+            ledgerId,
+            userId: requireTransactionUserId(currentUserId),
+          }),
+        ]);
+        if (
+          !areAccountIdsAvailable(
+            items.map((item) => item.account_id),
+            accounts,
+          )
+        ) {
+          throw new ValidationError(
+            transactionErrorCodes.balanceAdjustmentAccountArchived,
+            balanceAdjustmentErrorMessages.archivedAccount,
+          );
+        }
+      }
       try {
         await transactionRepository.void(ledgerId, transactionRecordId);
       } catch (error) {

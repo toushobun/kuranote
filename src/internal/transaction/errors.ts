@@ -1,4 +1,5 @@
 export const transactionErrorCodes = {
+  balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
   accountInvalid: "account_invalid",
   amountInvalid: "amount_invalid",
   categoryInvalid: "category_invalid",
@@ -109,3 +110,11 @@ export function getVoidTransactionValidationErrorMessage(error?: string) {
     ? "删除对象不正确。"
     : null;
 }
+
+export const balanceAdjustmentErrorMessages = {
+  archivedAccount: "该账户已归档，无法撤销余额调整",
+  invalid: "余额调整记录不正确，请刷新页面后重试。",
+  dateInvalid: "发生时间不正确。",
+  noteTooLong: "备注不能超过 2000 个字符。",
+  updateFailed: "余额调整更新失败，请稍后重试。",
+} as const;

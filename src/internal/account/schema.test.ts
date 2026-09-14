@@ -33,3 +33,34 @@ describe("Account Schema", () => {
     ).toBe(false);
   });
 });
+
+import { accountBalanceAdjustmentSchema } from "./schema";
+describe("目标余额校验", () => {
+  it.each([0, -100, 12.34, 999999999999.99])(
+    "接受合法余额 %s",
+    (targetBalance) => {
+      expect(
+        accountBalanceAdjustmentSchema.safeParse({ targetBalance }).success,
+      ).toBe(true);
+    },
+  );
+  it.each([NaN, Infinity, -Infinity, 0.001, 1.00001, 1e12])(
+    "拒绝非法余额 %s",
+    (targetBalance) => {
+      expect(
+        accountBalanceAdjustmentSchema.safeParse({ targetBalance }).success,
+      ).toBe(false);
+    },
+  );
+  it("备注可空但不得超过长度限制", () => {
+    expect(
+      accountBalanceAdjustmentSchema.safeParse({ balanceAdjustmentNote: null })
+        .success,
+    ).toBe(true);
+    expect(
+      accountBalanceAdjustmentSchema.safeParse({
+        balanceAdjustmentNote: "a".repeat(2001),
+      }).success,
+    ).toBe(false);
+  });
+});

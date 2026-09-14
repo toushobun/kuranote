@@ -1,0 +1,18 @@
+export const balanceAdjustmentText = {
+  title: "余额调整",
+  failureTitle: "操作失败",
+  balanceLabel: "当前余额",
+  noteLabel: "余额调整备注",
+  increase: "将增加",
+  decrease: "将减少",
+  account: "账户",
+  amount: "调整金额",
+  time: "交易时间",
+  note: "备注（选填）",
+  save: "保存修改",
+  remove: "删除",
+  cancel: "返回",
+  deleteTitle: "删除余额调整",
+  deleteDescription: "删除后将按原调整金额反向冲销账户余额。确定删除吗？",
+  invalidBalance: "请输入最多两位小数的有效余额。",
+} as const;

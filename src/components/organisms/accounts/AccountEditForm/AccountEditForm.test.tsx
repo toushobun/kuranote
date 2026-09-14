@@ -56,7 +56,7 @@ describe("AccountEditForm", () => {
     expect(
       within(container).getByRole("heading", { name: "编辑账户" }),
     ).toBeInTheDocument();
-    expect(within(container).getByLabelText("当前余额")).toHaveValue("¥85,000");
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
   });
 
   it("显示插图预留位", () => {
@@ -140,15 +140,37 @@ describe("AccountEditForm", () => {
       <AccountEditForm {...baseProps} />,
     );
 
-    expect(within(container).getByLabelText("当前余额")).toHaveValue("¥85,000");
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
 
     fireEvent.mouseDown(
       within(container).getByRole("combobox", { name: "货币" }),
     );
     fireEvent.click(screen.getByRole("option", { name: "USD 美元" }));
+    expect(screen.getByText("$")).toBeInTheDocument();
 
-    expect(within(container).getByLabelText("当前余额")).toHaveValue(
-      "$85,000.00",
-    );
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
+  });
+});
+
+describe("余额调整", () => {
+  it("实时显示增减差值，恢复原余额后隐藏备注", () => {
+    renderWithUserTheme(<AccountEditForm {...baseProps} />);
+    const balance = screen.getByLabelText("当前余额");
+    expect(balance).toBeEnabled();
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+    fireEvent.change(balance, { target: { value: "87500" } });
+    expect(screen.getByText("将增加 2,500")).toBeInTheDocument();
+    expect(screen.getByLabelText("余额调整备注")).not.toBeRequired();
+    fireEvent.change(balance, { target: { value: "82500" } });
+    expect(screen.getByText("将减少 2,500")).toBeInTheDocument();
+    fireEvent.change(balance, { target: { value: "85000" } });
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+  });
+  it("无效余额禁止保存", () => {
+    renderWithUserTheme(<AccountEditForm {...baseProps} />);
+    fireEvent.change(screen.getByLabelText("当前余额"), {
+      target: { value: "1.001" },
+    });
+    expect(screen.getByRole("button", { name: "保存修改" })).toBeDisabled();
   });
 });

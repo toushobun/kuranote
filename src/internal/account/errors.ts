@@ -1,4 +1,6 @@
 export const accountErrorCodes = {
+  balanceInvalid: "account_balance_invalid",
+  adjustmentNoteInvalid: "account_adjustment_note_invalid",
   accountInvalid: "account_invalid",
   accountNotFound: "account_not_found",
   archiveFailed: "archive_failed",
@@ -17,6 +19,10 @@ export type AccountErrorCode =
   (typeof accountErrorCodes)[keyof typeof accountErrorCodes];
 
 const accountErrorMessages: Record<AccountErrorCode, string> = {
+  [accountErrorCodes.balanceInvalid]:
+    "当前余额必须是绝对值小于一万亿、最多两位小数的数字。",
+  [accountErrorCodes.adjustmentNoteInvalid]:
+    "余额调整备注不能超过 2000 个字符。",
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
   [accountErrorCodes.accountNotFound]: "账户不存在或已删除。",
   [accountErrorCodes.archiveFailed]: "账户删除失败，请稍后重试。",

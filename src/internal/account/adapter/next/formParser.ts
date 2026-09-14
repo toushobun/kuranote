@@ -1,4 +1,8 @@
-import { accountErrorCodes } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
+import { accountBalanceAdjustmentSchema } from "internal/account/schema";
 import {
   accountTypes,
   type AccountType,
@@ -22,6 +26,8 @@ export type CreateAccountFormValues = AccountFormFields & {
 
 export type UpdateAccountFormValues = AccountFormFields & {
   accountId: string;
+  targetBalance?: number;
+  balanceAdjustmentNote?: string | null;
 };
 
 function invalid(error: string): AccountFormParseResult<never> {
@@ -93,7 +99,28 @@ export function parseUpdateAccountForm(
   const fields = parseAccountFields(formData);
   if (!fields.ok) return fields;
 
-  return { ok: true, value: { ...fields.value, accountId } };
+  const balanceText = getFormText(formData, "targetBalance").trim();
+  if (
+    formData.has("targetBalance") &&
+    !/^-?\d+(\.\d{1,2})?$/.test(balanceText)
+  ) {
+    return invalid(getAccountErrorMessage(accountErrorCodes.balanceInvalid)!);
+  }
+  const adjustment = accountBalanceAdjustmentSchema.safeParse({
+    ...(formData.has("targetBalance")
+      ? { targetBalance: Number(balanceText) }
+      : {}),
+    ...(formData.has("balanceAdjustmentNote")
+      ? {
+          balanceAdjustmentNote: getFormText(formData, "balanceAdjustmentNote"),
+        }
+      : {}),
+  });
+  if (!adjustment.success) return invalid(adjustment.error.issues[0].message);
+  return {
+    ok: true,
+    value: { ...fields.value, accountId, ...adjustment.data },
+  };
 }
 
 export function parseArchiveAccountForm(

@@ -46,6 +46,7 @@ function createRepository(
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
+    updateBalanceAdjustment: vi.fn(),
     updateTransfer: vi.fn(),
     void: vi.fn(),
     ...overrides,
@@ -827,5 +828,90 @@ describe("特殊状态功能开关", () => {
       name: ValidationError.name,
     });
     expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+});
+
+describe("余额调整编辑和撤销", () => {
+  function adjustmentRepository() {
+    return createRepository({
+      findActiveRecord: vi
+        .fn()
+        .mockResolvedValue({
+          id: transactionRecordId,
+          type: "balance_adjustment",
+          created_by: userId,
+        }),
+      listItems: vi
+        .fn()
+        .mockResolvedValue([
+          { account_id: normalInput.accountId, balance_delta: "2500" },
+        ]),
+    });
+  }
+  const editInput = {
+    ledgerId,
+    transactionRecordId,
+    transactionAt: "2026-09-14T00:00:00.000Z",
+    note: "盘点",
+  };
+  it("归档账户仍可修改时间备注且不提交账户或金额", async () => {
+    const { service, repository, accountQueryService } = createService(
+      "member",
+      adjustmentRepository(),
+    );
+    accountQueryService.listTransactionOptions.mockResolvedValue([]);
+    await service.updateBalanceAdjustment(editInput);
+    expect(repository.updateBalanceAdjustment).toHaveBeenCalledExactlyOnceWith(
+      editInput,
+    );
+    expect(repository.listActiveMemberIds).not.toHaveBeenCalled();
+  });
+  it("拒绝修改账户和金额", async () => {
+    const { service, repository } = createService(
+      "member",
+      adjustmentRepository(),
+    );
+    await expect(
+      service.updateBalanceAdjustment({
+        ...editInput,
+        ...{ signedDelta: "999" },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(repository.updateBalanceAdjustment).not.toHaveBeenCalled();
+  });
+  it("查看者不能修改余额调整", async () => {
+    const { service, repository } = createService(
+      "viewer",
+      adjustmentRepository(),
+    );
+    await expect(
+      service.updateBalanceAdjustment(editInput),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.updateBalanceAdjustment).not.toHaveBeenCalled();
+  });
+  it("归档账户禁止撤销并返回可展示原因", async () => {
+    const { service, repository, accountQueryService } = createService(
+      "member",
+      adjustmentRepository(),
+    );
+    accountQueryService.listTransactionOptions.mockResolvedValue([]);
+    await expect(
+      service.void({ ledgerId, transactionRecordId }),
+    ).rejects.toMatchObject({
+      code: "balance_adjustment_account_archived",
+      message: "该账户已归档，无法撤销余额调整",
+    });
+    expect(repository.void).not.toHaveBeenCalled();
+  });
+  it("活动账户撤销走原子冲销 RPC", async () => {
+    const { service, repository } = createService(
+      "member",
+      adjustmentRepository(),
+    );
+    await service.void({ ledgerId, transactionRecordId });
+    expect(repository.void).toHaveBeenCalledExactlyOnceWith(
+      ledgerId,
+      transactionRecordId,
+    );
   });
 });
