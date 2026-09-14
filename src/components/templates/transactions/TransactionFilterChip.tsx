@@ -27,9 +27,12 @@ export function TransactionFilterChip({
 
 const chipSx = {
   "@media (hover: hover)": {
-    "&:hover": {
+    "&&.MuiChip-clickable:hover": {
       bgcolor: "var(--user-theme-badge-bg)",
     },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "var(--user-theme-card-bg)" },
   },
   bgcolor: "var(--user-theme-card-bg)",
   ...userThemeCardBorderSx,
@@ -42,6 +45,11 @@ const chipSx = {
 };
 
 const selectedChipSx = {
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": {
+      bgcolor: "var(--user-theme-field-card-selected-bg)",
+    },
+  },
   bgcolor: "var(--user-theme-field-card-selected-bg)",
   borderColor: "var(--user-theme-action-bg)",
   color: "var(--user-theme-action-bg)",

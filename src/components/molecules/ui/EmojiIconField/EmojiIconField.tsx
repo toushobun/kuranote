@@ -148,6 +148,7 @@ export function EmojiIconField({
                 color={groupFilter === "all" ? "primary" : "default"}
                 label="全部"
                 onClick={() => setGroupFilter("all")}
+                sx={groupFilter === "all" ? selectedGroupChipSx : groupChipSx}
                 variant={groupFilter === "all" ? "filled" : "outlined"}
               />
               {groups.map((group) => (
@@ -156,6 +157,9 @@ export function EmojiIconField({
                   key={group.id}
                   label={group.label}
                   onClick={() => setGroupFilter(group.id)}
+                  sx={
+                    groupFilter === group.id ? selectedGroupChipSx : groupChipSx
+                  }
                   variant={groupFilter === group.id ? "filled" : "outlined"}
                 />
               ))}
@@ -246,3 +250,21 @@ export function EmojiIconField({
     </>
   );
 }
+
+const groupChipSx = {
+  "@media (hover: hover)": {
+    "&&.MuiChip-clickable:hover": { bgcolor: "action.hover" },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "transparent" },
+  },
+};
+
+const selectedGroupChipSx = {
+  "@media (hover: hover)": {
+    "&&.MuiChip-clickable:hover": { bgcolor: "primary.main" },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "primary.main" },
+  },
+};
