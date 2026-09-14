@@ -7,7 +7,10 @@ import {
   parseCreateAccountForm,
   parseUpdateAccountForm,
 } from "internal/account/adapter/next/formParser";
-import { accountErrorCodes } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 
 const accountId = "00000000-0000-4000-8000-000000000045";
 const holderUserId = "00000000-0000-4000-8000-000000000041";
@@ -82,6 +85,26 @@ describe("Account form parser", () => {
     expect(parseArchiveAccountForm(formData)).toEqual({
       error: accountErrorCodes.accountInvalid,
       ok: false,
+    });
+  });
+  it.each(["", "1e2", "1.001", "1000000000000"])(
+    "更新表单拒绝非法目标余额 %s",
+    (value) => {
+      const formData = createFormData();
+      formData.set("targetBalance", value);
+      expect(parseUpdateAccountForm(formData)).toEqual({
+        ok: false,
+        error: getAccountErrorMessage(accountErrorCodes.balanceInvalid),
+      });
+    },
+  );
+  it("更新表单接受负余额并规范化备注", () => {
+    const formData = createFormData();
+    formData.set("targetBalance", " -12.34 ");
+    formData.set("balanceAdjustmentNote", " 盘点 ");
+    expect(parseUpdateAccountForm(formData)).toMatchObject({
+      ok: true,
+      value: { targetBalance: -12.34, balanceAdjustmentNote: "盘点" },
     });
   });
 });

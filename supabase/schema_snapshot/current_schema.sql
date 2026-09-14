@@ -3464,7 +3464,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
         select
             ra.*,
             case
-                when ra.type = 'transfer' then 'transfer'
+                when ra.type in ('transfer', 'balance_adjustment') then ra.type
                 when ra.net_amount > 0 then 'income'
                 when ra.net_amount < 0 then 'expense'
                 when ra.has_expense then 'expense'
@@ -9138,23 +9138,25 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger_member" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_member" TO "service_role";
+GRANT ALL ON TABLE "public"."ledger_member" TO "authenticated";
+GRANT ALL ON TABLE "public"."ledger_member" TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."accept_ledger_invitation"("p_ledger_member_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."accept_ledger_invitation"("p_ledger_member_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."accept_ledger_invitation"("p_ledger_member_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."accept_ledger_invite"("p_token" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."accept_ledger_invite"("p_token" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."accept_ledger_invite"("p_token" "text") TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."account" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."account" TO "service_role";
+GRANT ALL ON TABLE "public"."account" TO "authenticated";
+GRANT ALL ON TABLE "public"."account" TO "service_role";
 
 
 
@@ -9164,174 +9166,231 @@ GRANT ALL ON FUNCTION "public"."apply_account_balance_delta"("p_ledger_id" "uuid
 
 
 REVOKE ALL ON FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."archive_merchant_tag"("p_ledger_id" "uuid", "p_tag_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."archive_merchant_tag"("p_ledger_id" "uuid", "p_tag_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."archive_merchant_tag"("p_ledger_id" "uuid", "p_tag_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() TO "anon";
+GRANT ALL ON FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") TO "service_role";
 
 
 
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger" TO "service_role";
+GRANT SELECT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger" TO "authenticated";
+GRANT ALL ON TABLE "public"."ledger" TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_ledger_with_owner"("p_name" "text", "p_base_currency" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_ledger_with_owner_settings"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_merchant_tag"("p_ledger_id" "uuid", "p_name" "text", "p_icon" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_app_user_is_active"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_app_user_is_active"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_app_user_is_active"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_can_manage_member_display_setting"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_user_can_manage_member_display_setting"("p_ledger_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_can_manage_member_display_setting"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_can_mutate_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_roles" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_roles" "text"[]) TO "anon";
 GRANT ALL ON FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_roles" "text"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_has_ledger_role"("p_ledger_id" "uuid", "p_roles" "text"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_ledger_management_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_ledger_management_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_ledger_member_management_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_ledger_member_management_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_merchant_alias_management_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_merchant_alias_management_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_merchant_tag_link_management_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_merchant_tag_link_management_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_transaction_child_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_transaction_child_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_transaction_record_permission"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."enforce_transaction_record_permission"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_item"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_item"() TO "anon";
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_item"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_item"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_record"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_record"() TO "anon";
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_record"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."guard_balance_adjustment_record"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data_without_merchant_tags"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."initialize_ledger_default_data_without_merchant_tags"("p_ledger_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
 
 
@@ -9342,179 +9401,312 @@ GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "servi
 
 REVOKE ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_special_statuses" "text"[], "p_offset" integer, "p_limit" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_special_statuses" "text"[], "p_offset" integer, "p_limit" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_special_statuses" "text"[], "p_offset" integer, "p_limit" integer) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."prevent_direct_account_balance_update"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_direct_account_balance_update"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_direct_account_balance_update"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."prevent_disable_special_status_with_active_items"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."prevent_disable_special_status_with_active_items"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_display_setting_identity_change"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_display_setting_identity_change"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_display_setting_identity_change"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_identity_change"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_identity_change"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_member_identity_change"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."prevent_linked_transaction_void"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_linked_transaction_void"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_linked_transaction_void"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."prevent_merchant_alias_identity_change"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_merchant_alias_identity_change"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_merchant_alias_identity_change"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."prevent_used_category_type_change"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."prevent_used_category_type_change"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."recalculate_refund_link_target_status"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."recalculate_refund_link_target_status"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."recalculate_reimbursement_link_target_status"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."recalculate_reimbursement_link_target_status"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."recalculate_targets_for_income_status_change"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."recalculate_targets_for_income_status_change"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."reorder_merchant_tags"("p_ledger_id" "uuid", "p_tag_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reorder_merchant_tags"("p_ledger_id" "uuid", "p_tag_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."reorder_merchant_tags"("p_ledger_id" "uuid", "p_tag_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merchant_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merchant_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merchant_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."replace_transaction_consumers"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_consumer_user_ids" "uuid"[], "p_default_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."replace_transaction_consumers"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_consumer_user_ids" "uuid"[], "p_default_user_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_account_initial_current_balance"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_account_initial_current_balance"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_account_initial_current_balance"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."set_default_transaction_consumer"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."set_default_transaction_consumer"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_ledger_member_display_setting_audit_user"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_ledger_member_display_setting_audit_user"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_ledger_member_display_setting_audit_user"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_account_holder_active_member"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_account_holder_active_member"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_account_holder_active_member"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_app_user_current_ledger"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_app_user_current_ledger"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_app_user_current_ledger"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_budget_category"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_budget_category"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_budget_category"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_category_parent"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_category_parent"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_category_parent"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_ledger_member_display_setting_member"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_ledger_member_display_setting_member"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_ledger_member_display_setting_member"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."validate_linked_transaction_item_mutation"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."validate_linked_transaction_item_mutation"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_merchant_tag_link_ledger"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_merchant_tag_link_ledger"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_merchant_tag_link_ledger"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_transaction_consumer_active_member"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_transaction_consumer_active_member"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_transaction_consumer_active_member"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."validate_transaction_item_category_shape"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."validate_transaction_item_category_shape"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."validate_transaction_item_reimbursement_link"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."validate_transaction_item_reimbursement_link"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."validate_transaction_item_special_status"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."validate_transaction_item_special_status"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_transaction_record"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_transaction_record"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_transaction_record"() TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."void_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."void_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."void_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."void_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."void_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."account_holder" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."account_holder" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."account_holder" TO "service_role";
+GRANT ALL ON TABLE "public"."account_holder" TO "anon";
+GRANT ALL ON TABLE "public"."account_holder" TO "authenticated";
+GRANT ALL ON TABLE "public"."account_holder" TO "service_role";
 
 
 
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."app_user" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."app_user" TO "service_role";
+GRANT ALL ON TABLE "public"."app_user" TO "authenticated";
+GRANT ALL ON TABLE "public"."app_user" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."auth_otp_attempt" TO "service_role";
+GRANT ALL ON TABLE "public"."auth_otp_attempt" TO "service_role";
 
 
 
@@ -9522,42 +9714,42 @@ GRANT ALL ON SEQUENCE "public"."auth_otp_attempt_id_seq" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."budget" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."budget" TO "service_role";
+GRANT ALL ON TABLE "public"."budget" TO "authenticated";
+GRANT ALL ON TABLE "public"."budget" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."category" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."category" TO "service_role";
+GRANT ALL ON TABLE "public"."category" TO "authenticated";
+GRANT ALL ON TABLE "public"."category" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_invite" TO "service_role";
+GRANT ALL ON TABLE "public"."ledger_invite" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger_member_display_setting" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_member_display_setting" TO "service_role";
+GRANT ALL ON TABLE "public"."ledger_member_display_setting" TO "authenticated";
+GRANT ALL ON TABLE "public"."ledger_member_display_setting" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."merchant" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant" TO "service_role";
+GRANT ALL ON TABLE "public"."merchant" TO "authenticated";
+GRANT ALL ON TABLE "public"."merchant" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO "anon";
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."merchant_alias" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_alias" TO "service_role";
+GRANT ALL ON TABLE "public"."merchant_alias" TO "anon";
+GRANT ALL ON TABLE "public"."merchant_alias" TO "authenticated";
+GRANT ALL ON TABLE "public"."merchant_alias" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tag_links" TO "service_role";
+GRANT ALL ON TABLE "public"."merchant_tag_links" TO "service_role";
 GRANT SELECT,INSERT,DELETE ON TABLE "public"."merchant_tag_links" TO "authenticated";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."merchant_tags" TO "service_role";
+GRANT ALL ON TABLE "public"."merchant_tags" TO "service_role";
 GRANT SELECT,INSERT ON TABLE "public"."merchant_tags" TO "authenticated";
 
 
@@ -9570,44 +9762,44 @@ GRANT UPDATE("icon") ON TABLE "public"."merchant_tags" TO "authenticated";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "service_role";
+GRANT ALL ON TABLE "public"."transaction_consumer" TO "anon";
+GRANT ALL ON TABLE "public"."transaction_consumer" TO "authenticated";
+GRANT ALL ON TABLE "public"."transaction_consumer" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."transaction_item" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item" TO "service_role";
+GRANT ALL ON TABLE "public"."transaction_item" TO "authenticated";
+GRANT ALL ON TABLE "public"."transaction_item" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "anon";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "anon";
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "service_role";
+GRANT ALL ON TABLE "public"."transaction_item_refund_link" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "anon";
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "anon";
 GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "authenticated";
-GRANT REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "service_role";
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."transaction_record" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record" TO "service_role";
+GRANT ALL ON TABLE "public"."transaction_record" TO "authenticated";
+GRANT ALL ON TABLE "public"."transaction_record" TO "service_role";
 
 
 
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "service_role";
+GRANT ALL ON TABLE "public"."transaction_item_with_refund" TO "anon";
+GRANT ALL ON TABLE "public"."transaction_item_with_refund" TO "authenticated";
+GRANT ALL ON TABLE "public"."transaction_item_with_refund" TO "service_role";
 
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT UPDATE ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT UPDATE ON SEQUENCES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT UPDATE ON SEQUENCES TO "service_role";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
 
 
@@ -9615,6 +9807,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT UPDATE ON 
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 
 
@@ -9622,9 +9817,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "service_role";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 -- 应用维护的非 public 对象：auth.users trigger
 CREATE OR REPLACE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_auth_user"();

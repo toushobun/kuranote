@@ -7,6 +7,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
+import { isAccountBalanceText, isValidTargetBalance } from "internal/account";
 import { formatNumber } from "utils/transactions";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
@@ -49,9 +50,10 @@ export function AccountEditForm({
   const [targetBalance, setTargetBalance] = useState(
     String(account.current_balance),
   );
+  const [adjustmentNote, setAdjustmentNote] = useState("");
   const validBalance =
-    /^-?\d+(\.\d{1,2})?$/.test(targetBalance) &&
-    Math.abs(Number(targetBalance)) < 1e12;
+    isAccountBalanceText(targetBalance) &&
+    isValidTargetBalance(Number(targetBalance));
   const delta = validBalance
     ? (Math.round(Number(targetBalance) * 100) -
         Math.round(Number(account.current_balance) * 100)) /
@@ -145,6 +147,8 @@ export function AccountEditForm({
                   fullWidth
                   multiline
                   name="balanceAdjustmentNote"
+                  value={adjustmentNote}
+                  onChange={(event) => setAdjustmentNote(event.target.value)}
                   label={balanceAdjustmentText.noteLabel}
                   slotProps={{ htmlInput: { maxLength: 2000 } }}
                 />

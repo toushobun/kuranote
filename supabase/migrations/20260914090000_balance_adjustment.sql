@@ -414,7 +414,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
         select
             ra.*,
             case
-                when ra.type = 'transfer' then 'transfer'
+                when ra.type in ('transfer', 'balance_adjustment') then ra.type
                 when ra.net_amount > 0 then 'income'
                 when ra.net_amount < 0 then 'expense'
                 when ra.has_expense then 'expense'

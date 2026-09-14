@@ -227,6 +227,7 @@ export function createTransactionService({
     ) {
       throw permissionError();
     }
+    return record;
   }
 
   async function resolveConsumerUserIds(
@@ -552,7 +553,7 @@ export function createTransactionService({
     },
 
     async updateBalanceAdjustment(input) {
-      await requireModificationPermission(
+      const record = await requireModificationPermission(
         input.ledgerId,
         input.transactionRecordId,
       );
@@ -563,11 +564,7 @@ export function createTransactionService({
           transactionErrorCodes.updateInvalid,
           parsed.error.issues[0].message,
         );
-      const record = await transactionRepository.findActiveRecord(
-        ledgerId,
-        input.transactionRecordId,
-      );
-      if (record?.type !== "balance_adjustment")
+      if (record.type !== "balance_adjustment")
         throw new ValidationError(
           transactionErrorCodes.updateInvalid,
           balanceAdjustmentErrorMessages.invalid,
@@ -603,12 +600,11 @@ export function createTransactionService({
     },
 
     async void({ ledgerId, transactionRecordId }) {
-      await requireModificationPermission(ledgerId, transactionRecordId);
-      const record = await transactionRepository.findActiveRecord(
+      const record = await requireModificationPermission(
         ledgerId,
         transactionRecordId,
       );
-      if (record?.type === "balance_adjustment") {
+      if (record.type === "balance_adjustment") {
         const [items, accounts] = await Promise.all([
           transactionRepository.listItems(ledgerId, [transactionRecordId]),
           accountQueryService.listTransactionOptions({

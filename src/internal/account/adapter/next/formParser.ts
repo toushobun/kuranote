@@ -1,3 +1,4 @@
+import { isAccountBalanceText } from "internal/account/util/accountBalance";
 import {
   accountErrorCodes,
   getAccountErrorMessage,
@@ -78,14 +79,11 @@ export function parseCreateAccountForm(
 
   const balanceText = String(formData.get("initialBalance") ?? "").trim();
   const normalizedBalance = balanceText || "0";
-  if (!/^-?\d+(\.\d{1,2})?$/.test(normalizedBalance)) {
+  if (!isAccountBalanceText(normalizedBalance)) {
     return invalid(accountErrorCodes.initialBalanceInvalid);
   }
 
   const initialBalance = Number(normalizedBalance);
-  if (!Number.isFinite(initialBalance)) {
-    return invalid(accountErrorCodes.initialBalanceInvalid);
-  }
 
   return { ok: true, value: { ...fields.value, initialBalance } };
 }
@@ -100,10 +98,7 @@ export function parseUpdateAccountForm(
   if (!fields.ok) return fields;
 
   const balanceText = getFormText(formData, "targetBalance").trim();
-  if (
-    formData.has("targetBalance") &&
-    !/^-?\d+(\.\d{1,2})?$/.test(balanceText)
-  ) {
+  if (formData.has("targetBalance") && !isAccountBalanceText(balanceText)) {
     return invalid(getAccountErrorMessage(accountErrorCodes.balanceInvalid)!);
   }
   const adjustment = accountBalanceAdjustmentSchema.safeParse({

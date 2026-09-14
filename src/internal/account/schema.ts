@@ -1,3 +1,4 @@
+import { isValidTargetBalance } from "./util/accountBalance";
 import { z } from "@hono/zod-openapi";
 
 import { accountHolderRoles } from "internal/account/entity/accountHolderRole";
@@ -9,10 +10,9 @@ export const accountBalanceAdjustmentSchema = z.object({
   targetBalance: z
     .number()
     .finite()
-    .refine(
-      (value) => Math.abs(value) < 1e12 && Number(value.toFixed(2)) === value,
-      { message: getAccountErrorMessage(accountErrorCodes.balanceInvalid)! },
-    )
+    .refine(isValidTargetBalance, {
+      message: getAccountErrorMessage(accountErrorCodes.balanceInvalid)!,
+    })
     .optional(),
   balanceAdjustmentNote: z
     .string()

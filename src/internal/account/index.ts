@@ -13,3 +13,7 @@ export {
 } from "internal/account/entity/accountHolderRole";
 export type { AccountSummary } from "internal/account/entity/accountSummary";
 export type { AccountQueryService } from "internal/account/service/accountService";
+export {
+  isAccountBalanceText,
+  isValidTargetBalance,
+} from "internal/account/util/accountBalance";

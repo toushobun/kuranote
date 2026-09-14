@@ -859,6 +859,10 @@ describe("余额调整编辑和撤销", () => {
     );
     accountQueryService.listTransactionOptions.mockResolvedValue([]);
     await service.updateBalanceAdjustment(editInput);
+    expect(repository.findActiveRecord).toHaveBeenCalledExactlyOnceWith(
+      ledgerId,
+      transactionRecordId,
+    );
     expect(repository.updateBalanceAdjustment).toHaveBeenCalledExactlyOnceWith(
       editInput,
     );
@@ -907,6 +911,10 @@ describe("余额调整编辑和撤销", () => {
       adjustmentRepository(),
     );
     await service.void({ ledgerId, transactionRecordId });
+    expect(repository.findActiveRecord).toHaveBeenCalledExactlyOnceWith(
+      ledgerId,
+      transactionRecordId,
+    );
     expect(repository.void).toHaveBeenCalledExactlyOnceWith(
       ledgerId,
       transactionRecordId,

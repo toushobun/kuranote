@@ -21,6 +21,18 @@ select is((select count(*) from public.transaction_record where ledger_id='75500
 select is((select income+expense from public.load_transaction_group_summaries_with_special_status('75500000-0000-4000-8000-000000000001','account')),0::numeric,'账户流水汇总不包含调整');
 select is((select transaction_count from public.load_transaction_group_summaries_with_special_status('75500000-0000-4000-8000-000000000001','account')),1,'账户流水包含调整记录');
 select is((select count(*) from public.load_transaction_group_summaries_with_special_status('75500000-0000-4000-8000-000000000001','account',p_record_type=>'transfer')),0::bigint,'余额调整不混入转账筛选');
+-- 两个已授权 RPC 均应保留全部流水，但不得将余额调整纳入收支或转账筛选。
+select results_eq(
+  format($query$
+    select filter, coalesce(sum(summary.transaction_count), 0)::bigint,
+      coalesce(sum(summary.income), 0), coalesce(sum(summary.expense), 0)
+    from unnest(array['all','expense','income','transfer']) as filters(filter)
+    left join lateral public.%I('75500000-0000-4000-8000-000000000001', 'account', p_record_type => filter) summary on true
+    group by filter order by filter
+  $query$, rpc),
+  $$values ('all', 1::bigint, 0::numeric, 0::numeric), ('expense', 0::bigint, 0::numeric, 0::numeric), ('income', 0::bigint, 0::numeric, 0::numeric), ('transfer', 0::bigint, 0::numeric, 0::numeric)$$,
+  rpc || '正确排除余额调整的收支筛选及金额'
+) from unnest(array['load_transaction_group_summaries','load_transaction_group_summaries_with_special_status']) as functions(rpc);
 select throws_ok($$update public.transaction_item set balance_delta=999 where ledger_id='75500000-0000-4000-8000-000000000001'$$,'22023','transaction_type_invalid','禁止篡改原始调整金额');
 select lives_ok($$select public.void_transaction('75500000-0000-4000-8000-000000000001',(select id from public.transaction_record where ledger_id='75500000-0000-4000-8000-000000000001'))$$,'删除正调整成功');
 select is((select current_balance from public.account where id='75510000-0000-4000-8000-000000000001'),10000::numeric,'删除按原差值反向冲销');
