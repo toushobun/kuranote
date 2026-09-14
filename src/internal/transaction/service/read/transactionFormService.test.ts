@@ -218,7 +218,11 @@ describe("getEditTransactionView", () => {
       ledgerName: "家庭账本",
       transactionItemSpecialStatusEnabled: true,
     });
-    if (!view || view.initialValues.type === "transfer") {
+    if (
+      !view ||
+      (view.initialValues.type !== "expense" &&
+        view.initialValues.type !== "income")
+    ) {
       throw new Error("预期普通交易编辑视图");
     }
     expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
@@ -254,7 +258,10 @@ describe("getEditTransactionView", () => {
       transactionRecordId,
     );
 
-    expect(view?.initialValues.consumerUserIds).toEqual([]);
+    if (!view || view.initialValues.type === "balance_adjustment") {
+      throw new Error("预期普通交易编辑视图");
+    }
+    expect(view.initialValues.consumerUserIds).toEqual([]);
   });
 
   it("普通交易引用已归档账户时禁止编辑", async () => {
