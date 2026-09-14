@@ -2691,6 +2691,52 @@ COMMENT ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id
 
 
 
+CREATE OR REPLACE FUNCTION "public"."guard_balance_adjustment_item"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare v_type text;
+begin
+ select type into v_type from public.transaction_record where id=coalesce(new.transaction_record_id,old.transaction_record_id);
+ if v_type='balance_adjustment' then
+  if tg_op <> 'INSERT' or current_user <> 'postgres' then
+   raise exception 'transaction_type_invalid' using errcode='22023',detail='transaction_type_invalid';
+  end if;
+  if new.category_id is not null or new.special_status is not null or new.balance_delta=0 or new.amount<>abs(new.balance_delta)
+     or exists(select 1 from public.transaction_item where transaction_record_id=new.transaction_record_id) then
+   raise exception 'items_invalid' using errcode='22023',detail='items_invalid';
+  end if;
+ end if;
+ return coalesce(new,old);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."guard_balance_adjustment_item"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_balance_adjustment_record"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+ if tg_op='INSERT' and new.type='balance_adjustment' and current_user<>'postgres' then
+  raise exception 'permission_denied' using errcode='42501',detail='permission_denied';
+ end if;
+ if tg_op='UPDATE' and (old.type='balance_adjustment' or new.type='balance_adjustment') then
+  if new.type is distinct from old.type or new.created_by is distinct from old.created_by or new.ledger_id is distinct from old.ledger_id or new.id is distinct from old.id
+     or (new.status is distinct from old.status and current_user<>'postgres') then
+   raise exception 'transaction_type_invalid' using errcode='22023',detail='transaction_type_invalid';
+  end if;
+ end if;
+ return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."guard_balance_adjustment_record"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3404,7 +3450,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
          and c.ledger_id = ti.ledger_id
         where tr.ledger_id = p_ledger_id
           and tr.status = 'active'
-          and tr.type in ('normal', 'transfer')
+          and tr.type in ('normal', 'transfer', 'balance_adjustment')
           and public.current_user_is_active_ledger_member(p_ledger_id)
         group by
             tr.id,
@@ -3500,7 +3546,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
             fr.id as transaction_record_id,
             fr.transaction_at,
             case
-                when fr.type = 'transfer' then 0
+                when fr.type in ('transfer', 'balance_adjustment') then 0
                 else fr.net_amount
             end as signed_amount
         from filtered_records fr
@@ -3534,7 +3580,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger
             fr.id as transaction_record_id,
             fr.transaction_at,
             case
-                when fr.type = 'transfer' then 0
+                when fr.type in ('transfer', 'balance_adjustment') then 0
                 when c.type = 'income' then ti.amount
                 when c.type = 'expense' then -ti.amount
                 else 0
@@ -3602,6 +3648,7 @@ CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_speci
 with base_items as (
     select
         tr.id as record_id,
+        tr.type as record_type,
         tr.transaction_at,
         tr.merchant_id,
         tr.created_by,
@@ -3616,7 +3663,7 @@ with base_items as (
         c.type as category_type,
         c.parent_id,
         case
-            when tr.type = 'transfer' then 0::numeric
+            when tr.type in ('transfer', 'balance_adjustment') then 0::numeric
             when c.type = 'income' then ti.business_net_amount
             when c.type = 'expense' then -ti.business_net_amount
             else 0::numeric
@@ -3630,7 +3677,7 @@ with base_items as (
      and c.ledger_id = ti.ledger_id
     where tr.ledger_id = p_ledger_id
       and tr.status = 'active'
-      and tr.type in ('normal', 'transfer')
+      and tr.type in ('normal', 'transfer', 'balance_adjustment')
       and public.current_user_is_active_ledger_member(p_ledger_id)
       and (p_date_start is null or tr.transaction_at >= p_date_start)
       and (p_date_end is null or tr.transaction_at < p_date_end)
@@ -3652,7 +3699,7 @@ matched_items as (
     join record_profiles rp on rp.record_id = bi.record_id
     where (
         p_record_type = 'all'
-        or (p_record_type = 'transfer' and bi.category_type is null)
+        or (p_record_type = 'transfer' and bi.record_type = 'transfer')
         or (
             p_record_type = 'income'
             and (
@@ -4902,6 +4949,51 @@ $$;
 ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+ v_balance numeric;
+ v_delta numeric;
+ v_record_id uuid;
+ v_user_id uuid := auth.uid();
+begin
+ if v_user_id is null then
+  raise exception 'not_authenticated' using errcode = '28000', detail = 'not_authenticated';
+ end if;
+ if not public.current_user_can_manage_ledger(p_ledger_id) then
+  raise exception 'ledger_forbidden' using errcode = '42501', detail = 'ledger_forbidden';
+ end if;
+ if p_target_balance is not null and (p_target_balance::text in ('NaN','Infinity','-Infinity') or abs(p_target_balance) >= 1000000000000 or p_target_balance <> round(p_target_balance,2)) then
+  raise exception 'account_balance_invalid' using errcode = '22023', detail = 'account_balance_invalid';
+ end if;
+ if length(p_adjustment_note) > 2000 then
+  raise exception 'account_adjustment_note_invalid' using errcode = '22023', detail = 'account_adjustment_note_invalid';
+ end if;
+ -- 与既有账户资料 RPC 保持锁定顺序，资料更新取得账户行锁后再读取最新余额。
+ perform public.update_account_with_holders(p_ledger_id,p_account_id,p_name,p_type,p_currency,p_holder_user_ids);
+ select current_balance into strict v_balance from public.account where id=p_account_id and ledger_id=p_ledger_id for update;
+ v_delta := p_target_balance - v_balance;
+ if v_delta is not null and v_delta <> 0 then
+  if abs(v_delta) >= 1000000000000 then
+   raise exception 'account_balance_invalid' using errcode = '22023', detail = 'account_balance_invalid';
+  end if;
+  insert into public.transaction_record(ledger_id,type,transaction_at,note,created_by,updated_by)
+  values(p_ledger_id,'balance_adjustment',now(),nullif(btrim(p_adjustment_note),''),v_user_id,v_user_id)
+  returning id into v_record_id;
+  insert into public.transaction_item(ledger_id,transaction_record_id,account_id,amount,balance_delta,created_by,updated_by)
+  values(p_ledger_id,v_record_id,p_account_id,abs(v_delta),v_delta,v_user_id,v_user_id);
+  perform public.apply_account_balance_delta(p_ledger_id,p_account_id,v_delta,v_user_id);
+ end if;
+ return p_account_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5009,6 +5101,37 @@ $$;
 
 
 ALTER FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+ if auth.uid() is null then
+  raise exception 'not_authenticated' using errcode='28000', detail='not_authenticated';
+ end if;
+ perform 1 from public.transaction_record where id=p_transaction_record_id and ledger_id=p_ledger_id and type='balance_adjustment' and status='active' for update;
+ if not found then
+  raise exception 'transaction_not_found' using errcode='22023', detail='transaction_not_found';
+ end if;
+ if not public.current_user_can_mutate_transaction(p_ledger_id,p_transaction_record_id) then
+  raise exception 'ledger_forbidden' using errcode='42501', detail='ledger_forbidden';
+ end if;
+ if p_transaction_at is null or not isfinite(p_transaction_at) then
+  raise exception 'transaction_at_invalid' using errcode='22023', detail='transaction_at_invalid';
+ end if;
+ if length(p_note)>2000 then
+  raise exception 'note_too_long' using errcode='22023', detail='note_too_long';
+ end if;
+ update public.transaction_record set transaction_at=p_transaction_at,note=nullif(btrim(p_note),''),updated_by=auth.uid()
+ where id=p_transaction_record_id and ledger_id=p_ledger_id;
+ return p_transaction_record_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") RETURNS "void"
@@ -6794,7 +6917,7 @@ begin
         raise exception 'transaction_record_invalid' using errcode = '23503';
     end if;
 
-    if v_record_type = 'transfer' and new.category_id is not null then
+    if v_record_type in ('transfer', 'balance_adjustment') and new.category_id is not null then
         raise exception 'transaction_item_category_invalid' using errcode = '23514';
     end if;
 
@@ -7126,7 +7249,7 @@ begin
         where record_row.id = p_transaction_record_id
           and record_row.ledger_id = p_ledger_id
           and record_row.status = 'active'
-          and record_row.type in ('normal', 'transfer')
+          and record_row.type in ('normal', 'transfer', 'balance_adjustment')
     ) then
         raise exception 'transaction_not_found'
             using errcode = '22023', detail = 'transaction_not_found';
@@ -7227,7 +7350,7 @@ begin
     where tr.id = p_transaction_record_id
       and tr.ledger_id = p_ledger_id
       and tr.status = 'active'
-      and tr.type in ('normal', 'transfer')
+      and tr.type in ('normal', 'transfer', 'balance_adjustment')
     for update;
 
     if not found then
@@ -7245,6 +7368,13 @@ begin
       )
     order by a.id
     for update;
+
+    if v_record.type = 'balance_adjustment' and exists (
+        select 1 from public.transaction_item ti join public.account a on a.id=ti.account_id and a.ledger_id=ti.ledger_id
+        where ti.ledger_id=p_ledger_id and ti.transaction_record_id=p_transaction_record_id and a.is_archived
+    ) then
+        raise exception 'balance_adjustment_account_archived' using errcode='22023', detail='balance_adjustment_account_archived';
+    end if;
 
     if v_record.type = 'transfer' then
         perform 1
@@ -7683,14 +7813,15 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_record" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "balance_adjustment_no_merchant" CHECK ((("type" <> 'balance_adjustment'::"text") OR ("merchant_id" IS NULL))),
     CONSTRAINT "transaction_record_deleted_check" CHECK (((("status" = 'active'::"text") AND ("deleted_at" IS NULL) AND ("deleted_by" IS NULL)) OR (("status" = 'deleted'::"text") AND ("deleted_at" IS NOT NULL)))),
     CONSTRAINT "transaction_record_discount_allocation_method_check" CHECK (("discount_allocation_method" = ANY (ARRAY['none'::"text", 'proportional'::"text", 'manual'::"text"]))),
     CONSTRAINT "transaction_record_discount_amount_check" CHECK (("discount_amount" >= (0)::numeric)),
-    CONSTRAINT "transaction_record_merchant_required_for_non_transfer" CHECK ((("type" = 'transfer'::"text") OR ("merchant_id" IS NOT NULL))),
+    CONSTRAINT "transaction_record_merchant_required_for_non_transfer" CHECK ((("type" = ANY (ARRAY['transfer'::"text", 'balance_adjustment'::"text"])) OR ("merchant_id" IS NOT NULL))),
     CONSTRAINT "transaction_record_note_check" CHECK ((("note" IS NULL) OR ("length"("note") <= 2000))),
     CONSTRAINT "transaction_record_status_check" CHECK (("status" = ANY (ARRAY['active'::"text", 'deleted'::"text"]))),
     CONSTRAINT "transaction_record_title_check" CHECK ((("title" IS NULL) OR (("length"(TRIM(BOTH FROM "title")) >= 1) AND ("length"(TRIM(BOTH FROM "title")) <= 200)))),
-    CONSTRAINT "transaction_record_type_check" CHECK (("type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])))
+    CONSTRAINT "transaction_record_type_check" CHECK (("type" = ANY (ARRAY['normal'::"text", 'transfer'::"text", 'balance_adjustment'::"text"])))
 );
 
 
@@ -8277,6 +8408,10 @@ CREATE OR REPLACE TRIGGER "transaction_item_freeze_linked_mutation" BEFORE UPDAT
 
 
 
+CREATE OR REPLACE TRIGGER "transaction_item_guard_balance_adjustment" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."guard_balance_adjustment_item"();
+
+
+
 CREATE OR REPLACE TRIGGER "transaction_item_prevent_linked_delete" BEFORE DELETE ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
 
 
@@ -8310,6 +8445,10 @@ CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status" BEFORE UPDA
 
 
 CREATE OR REPLACE TRIGGER "transaction_item_validate_special_status_insert" BEFORE INSERT ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_special_status"();
+
+
+
+CREATE OR REPLACE TRIGGER "transaction_record_guard_balance_adjustment" BEFORE INSERT OR UPDATE ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."guard_balance_adjustment_record"();
 
 
 
@@ -9180,6 +9319,14 @@ REVOKE ALL ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger
 
 
 
+REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_item"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_record"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -9274,8 +9421,18 @@ GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uui
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") TO "authenticated";
 
 
 

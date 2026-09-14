@@ -1001,7 +1001,11 @@ describe("TransactionDashboardRepository", () => {
       }),
     ).resolves.toEqual([accountId, secondAccountId]);
     expect(recordQuery.select).toHaveBeenCalledWith("id");
-    expect(recordQuery.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
+    expect(recordQuery.in).toHaveBeenCalledWith("type", [
+      "normal",
+      "transfer",
+      "balance_adjustment",
+    ]);
     expect(recordQuery.range).toHaveBeenCalledWith(0, 99);
     expect(itemQuery.select).toHaveBeenCalledWith(
       "transaction_record_id, account_id",

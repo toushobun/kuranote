@@ -10,9 +10,13 @@ import { routePaths } from "config/paths";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
 
 describe("revalidateAccountMutation", () => {
-  it("只刷新账户页面", () => {
+  it("刷新账户、交易记录和仪表盘页面", () => {
     revalidateAccountMutation();
-    expect(revalidatePath).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
+    expect(revalidatePath).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      [routePaths.accounts],
+      [routePaths.transactions],
+      [routePaths.dashboard],
+    ]);
   });
 });

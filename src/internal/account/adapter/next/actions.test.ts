@@ -126,7 +126,7 @@ describe("Account Server Actions", () => {
       ledgerId,
       userId,
     });
-    expect(mocks.revalidatePath).toHaveBeenCalledTimes(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(3);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
   });
 

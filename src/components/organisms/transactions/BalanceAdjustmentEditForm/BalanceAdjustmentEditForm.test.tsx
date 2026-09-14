@@ -5,7 +5,9 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { BalanceAdjustmentEditForm } from "./BalanceAdjustmentEditForm";
 import type { BalanceAdjustmentEditInitialValues } from "internal/transaction";
@@ -25,13 +27,15 @@ function setup(archived = false) {
   const action = vi.fn(async () => ({}));
   const deleteAction = vi.fn(async () => ({}));
   render(
-    <ConfirmDialogProvider>
-      <BalanceAdjustmentEditForm
-        initialValues={{ ...initialValues, accountArchived: archived }}
-        action={action}
-        deleteAction={deleteAction}
-      />
-    </ConfirmDialogProvider>,
+    <UserThemeProvider>
+      <ConfirmDialogProvider>
+        <BalanceAdjustmentEditForm
+          initialValues={{ ...initialValues, accountArchived: archived }}
+          action={action}
+          deleteAction={deleteAction}
+        />
+      </ConfirmDialogProvider>
+    </UserThemeProvider>,
   );
   return { action, deleteAction };
 }
@@ -57,7 +61,9 @@ describe("BalanceAdjustmentEditForm", () => {
       screen.getByText("删除后将按原调整金额反向冲销账户余额。确定删除吗？"),
     ).toBeInTheDocument();
     expect(deleteAction).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "取消" }),
+    );
     expect(deleteAction).not.toHaveBeenCalled();
   });
   it("归档账户禁止删除但允许保存", () => {
