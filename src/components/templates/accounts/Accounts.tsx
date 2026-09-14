@@ -289,11 +289,32 @@ function AccountTypeFilterChip({
       color={selected ? "warning" : "default"}
       label={label}
       onClick={onClick}
-      sx={{ fontWeight: 800 }}
+      sx={[
+        { fontWeight: 800 },
+        selected ? selectedAccountTypeChipSx : accountTypeChipSx,
+      ]}
       variant={selected ? "filled" : "outlined"}
     />
   );
 }
+
+const accountTypeChipSx = {
+  "@media (hover: hover)": {
+    "&&.MuiChip-clickable:hover": { bgcolor: "action.hover" },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "transparent" },
+  },
+};
+
+const selectedAccountTypeChipSx = {
+  "@media (hover: hover)": {
+    "&&.MuiChip-clickable:hover": { bgcolor: "warning.main" },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "warning.main" },
+  },
+};
 
 const headerIconButtonSx = {
   color: "text.primary",

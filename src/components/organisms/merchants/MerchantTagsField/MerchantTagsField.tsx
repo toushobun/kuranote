@@ -52,10 +52,24 @@ export function MerchantTagsField({
                     ? {
                         "&:active": { bgcolor: "primary.dark" },
                         "@media (hover: hover)": {
-                          "&:hover": { bgcolor: "primary.main" },
+                          "&&.MuiChip-clickable:hover": {
+                            bgcolor: "primary.main",
+                          },
+                        },
+                        "@media (hover: none)": {
+                          "&&.MuiChip-clickable": { bgcolor: "primary.main" },
                         },
                       }
-                    : undefined
+                    : {
+                        "@media (hover: hover)": {
+                          "&&.MuiChip-clickable:hover": {
+                            bgcolor: "action.hover",
+                          },
+                        },
+                        "@media (hover: none)": {
+                          "&&.MuiChip-clickable": { bgcolor: "transparent" },
+                        },
+                      }
                 }
                 variant={selected ? "filled" : "outlined"}
               />

@@ -539,6 +539,12 @@ const sectionLabelSx = { fontWeight: 800, mt: 1, mb: 0.5 };
 const quickCategoryListSx = { flexWrap: "wrap", gap: 0.75 };
 
 const quickCategoryChipSx = {
+  "@media (hover: hover)": {
+    "&&.MuiChip-clickable:hover": { bgcolor: "action.hover" },
+  },
+  "@media (hover: none)": {
+    "&&.MuiChip-clickable": { bgcolor: "background.paper" },
+  },
   bgcolor: "background.paper",
   borderColor: "divider",
   fontWeight: 600,
