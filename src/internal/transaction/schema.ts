@@ -713,12 +713,10 @@ export const updateBalanceAdjustmentRequestSchema = z
     transactionRecordId: z
       .string()
       .uuid(balanceAdjustmentErrorMessages.invalid),
-    transactionAt: z
-      .string()
-      .datetime({
-        offset: true,
-        message: balanceAdjustmentErrorMessages.dateInvalid,
-      }),
+    transactionAt: z.string().datetime({
+      offset: true,
+      message: balanceAdjustmentErrorMessages.dateInvalid,
+    }),
     note: z
       .string()
       .trim()

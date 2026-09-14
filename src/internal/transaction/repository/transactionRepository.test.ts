@@ -105,15 +105,13 @@ describe("TransactionRepository", () => {
   });
   it("数据库归档竞争转成安全校验错误", async () => {
     const { repository } = createRepository({
-      rpc: vi
-        .fn()
-        .mockResolvedValue({
-          error: {
-            code: "22023",
-            details: "balance_adjustment_account_archived",
-            message: "private database details",
-          },
-        }),
+      rpc: vi.fn().mockResolvedValue({
+        error: {
+          code: "22023",
+          details: "balance_adjustment_account_archived",
+          message: "private database details",
+        },
+      }),
     });
     await expect(
       repository.void(ledgerId, transactionRecordId),

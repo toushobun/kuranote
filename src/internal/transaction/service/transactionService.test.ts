@@ -834,13 +834,11 @@ describe("特殊状态功能开关", () => {
 describe("余额调整编辑和撤销", () => {
   function adjustmentRepository() {
     return createRepository({
-      findActiveRecord: vi
-        .fn()
-        .mockResolvedValue({
-          id: transactionRecordId,
-          type: "balance_adjustment",
-          created_by: userId,
-        }),
+      findActiveRecord: vi.fn().mockResolvedValue({
+        id: transactionRecordId,
+        type: "balance_adjustment",
+        created_by: userId,
+      }),
       listItems: vi
         .fn()
         .mockResolvedValue([
