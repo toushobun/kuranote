@@ -16,6 +16,7 @@ import {
 } from "config/dataImportExportMessages";
 import { routePaths, type AppRoutePath } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { actionHoverInteractionSx } from "theme/actionHoverSx";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
@@ -70,7 +71,11 @@ function DataTransferEntryCard({
 }: DataTransferEntryCardProps) {
   return (
     <SectionCard sx={{ overflow: "hidden", p: 0 }}>
-      <ButtonBase component={Link} href={href} sx={dataTransferEntryButtonSx}>
+      <ButtonBase
+        component={Link}
+        href={href}
+        sx={[dataTransferEntryButtonSx, actionHoverInteractionSx]}
+      >
         <Stack sx={dataTransferEntryIconBoxSx}>
           <Icon fontSize="medium" />
         </Stack>
@@ -108,14 +113,6 @@ const dataTransferEntryButtonSx = {
   textAlign: "left",
   textDecoration: "none",
   width: "100%",
-  "&:focus-visible": {
-    backgroundColor: "action.hover",
-  },
-  "@media (hover: hover)": {
-    "&:hover": {
-      backgroundColor: "action.hover",
-    },
-  },
 } as const;
 
 const dataTransferEntryIconBoxSx = {

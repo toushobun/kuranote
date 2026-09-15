@@ -31,6 +31,7 @@ import { TransactionColorSchemePicker } from "molecules/theme/TransactionColorSc
 import { SectionCard } from "molecules/ui/SectionCard";
 import { UserThemePicker } from "molecules/theme/UserThemePicker";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { actionHoverInteractionSx } from "theme/actionHoverSx";
 import { typographyStyles } from "theme/typographyTokens";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type { ServerAction } from "types/actions";
@@ -423,28 +424,23 @@ const themePickerPanelSx = {
 };
 
 function settingsEntryButtonSx(isLast: boolean) {
-  return {
-    alignItems: "center",
-    backgroundColor: "transparent",
-    border: 0,
-    borderBottom: isLast ? 0 : userThemeCardBorder,
-    color: "text.primary",
-    display: "flex",
-    minHeight: 52,
-    px: 2,
-    py: 1.25,
-    textAlign: "left",
-    textDecoration: "none",
-    width: "100%",
-    "&:focus-visible": {
-      backgroundColor: "action.hover",
+  return [
+    {
+      alignItems: "center",
+      backgroundColor: "transparent",
+      border: 0,
+      borderBottom: isLast ? 0 : userThemeCardBorder,
+      color: "text.primary",
+      display: "flex",
+      minHeight: 52,
+      px: 2,
+      py: 1.25,
+      textAlign: "left",
+      textDecoration: "none",
+      width: "100%",
     },
-    "@media (hover: hover)": {
-      "&:hover": {
-        backgroundColor: "action.hover",
-      },
-    },
-  } as const;
+    actionHoverInteractionSx,
+  ] as const;
 }
 
 function settingsIconBoxSx(isDanger = false) {
