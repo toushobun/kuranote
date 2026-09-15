@@ -113,7 +113,7 @@ export function AccountEditForm({
             <Stack spacing={1.5}>
               <TextField
                 fullWidth
-                name="targetBalance"
+                name={delta !== 0 ? "targetBalance" : undefined}
                 required
                 value={targetBalance}
                 onChange={(event) => setTargetBalance(event.target.value)}

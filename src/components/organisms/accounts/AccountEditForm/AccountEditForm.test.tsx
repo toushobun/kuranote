@@ -166,6 +166,21 @@ describe("余额调整", () => {
     fireEvent.change(balance, { target: { value: "85000" } });
     expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
   });
+  it("余额未变化时不提交目标余额，实际修改后才提交", () => {
+    const { container } = renderWithUserTheme(
+      <AccountEditForm {...baseProps} />,
+    );
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    const balance = screen.getByLabelText("当前余额");
+
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+
+    fireEvent.change(balance, { target: { value: "87500" } });
+    expect(new FormData(form).get("targetBalance")).toBe("87500");
+
+    fireEvent.change(balance, { target: { value: "85000" } });
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+  });
   it.each(["85000", "", "1.001"])(
     "余额暂时变为 %s 后恢复调整仍保留备注",
     (temporaryBalance) => {
