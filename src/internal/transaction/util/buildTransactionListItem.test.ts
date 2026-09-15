@@ -655,3 +655,42 @@ describe("buildTransactionListItem", () => {
     expect(item.account_color).toBeNull();
   });
 });
+
+it.each(["2500", "-2500"])(
+  "余额调整保留差值 %s 和记账人，不生成分类商家消费者",
+  (delta) => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      record: {
+        ...baseRecord,
+        type: "balance_adjustment",
+        created_by: "recorder",
+        note: "余额盘点",
+      },
+      recorderById: new Map([
+        ["recorder", { id: "recorder", display_name: "记账人" }],
+      ]),
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "2500",
+          balance_delta: delta,
+          category_id: null,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+    expect(item).toMatchObject({
+      type: "balance_adjustment",
+      amount: delta,
+      account_name: accountA.name,
+      note: "余额盘点",
+      recorder_name: "记账人",
+      merchant_name: null,
+      categoryItems: [],
+    });
+  },
+);

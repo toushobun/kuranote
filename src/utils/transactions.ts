@@ -54,10 +54,17 @@ export function hasBusinessNetAmountOffset(
 }
 
 export function formatTransactionRowAmount(
-  type: TransactionRecordType,
+  type: TransactionRecordType | "balance_adjustment",
   amount: string,
   currency = "",
 ) {
+  if (type === "balance_adjustment") {
+    return formatTransactionRowAmount(
+      Number(amount) < 0 ? "expense" : "income",
+      String(Math.abs(Number(amount))),
+      currency,
+    );
+  }
   const formattedAmount = formatNumber(amount, currency);
   const displayAmount = currency
     ? `${getCurrencySymbol(currency)} ${formattedAmount}`
@@ -98,10 +105,10 @@ export function createTransactionAmountSummary(
 
 export function addTransactionAmount(
   summary: TransactionAmountSummary,
-  type: TransactionRecordType,
+  type: TransactionRecordType | "balance_adjustment",
   amount: string,
 ) {
-  if (type === "transfer") return;
+  if (type === "transfer" || type === "balance_adjustment") return;
 
   const value = Number(amount);
 

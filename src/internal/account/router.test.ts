@@ -191,7 +191,7 @@ describe("account router", () => {
       ledgerId,
       userId,
     });
-    expect(revalidatePath).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledTimes(3);
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
   });
 
@@ -207,7 +207,7 @@ describe("account router", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     expect(archive).toHaveBeenCalledWith({ accountId, ledgerId, userId });
-    expect(revalidatePath).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledTimes(3);
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.accounts);
   });
 

@@ -177,3 +177,34 @@ describe("AccountRepository", () => {
     expect(supabase.from).not.toHaveBeenCalled();
   });
 });
+
+it("账户资料和目标余额通过同一 RPC 保存", async () => {
+  const supabase = createSupabaseMock({ rpcResponse: { data: accountId } });
+  const repository = createSupabaseAccountRepository(
+    supabase.client as never,
+    logger,
+  );
+  await repository.update({
+    accountId,
+    ledgerId,
+    currency: "JPY",
+    holderUserIds: [holderUserId],
+    name: "现金",
+    type: "cash",
+    targetBalance: -100,
+    balanceAdjustmentNote: "盘点",
+  });
+  expect(supabase.rpc).toHaveBeenCalledExactlyOnceWith(
+    "update_account_with_balance_adjustment",
+    {
+      p_account_id: accountId,
+      p_ledger_id: ledgerId,
+      p_currency: "JPY",
+      p_holder_user_ids: [holderUserId],
+      p_name: "现金",
+      p_type: "cash",
+      p_target_balance: -100,
+      p_adjustment_note: "盘点",
+    },
+  );
+});

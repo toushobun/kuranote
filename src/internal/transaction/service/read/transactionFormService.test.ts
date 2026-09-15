@@ -212,7 +212,11 @@ describe("getEditTransactionView", () => {
       ledgerName: "家庭账本",
       transactionItemSpecialStatusEnabled: true,
     });
-    if (!view || view.initialValues.type === "transfer") {
+    if (
+      !view ||
+      (view.initialValues.type !== "expense" &&
+        view.initialValues.type !== "income")
+    ) {
       throw new Error("预期普通交易编辑视图");
     }
     expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
@@ -585,5 +589,47 @@ describe("getEditTransactionView income links", () => {
         ],
       },
     });
+  });
+});
+
+it("归档账户余额调整仍可编辑时间备注并展示原账户", async () => {
+  const repository = createRepository({
+    findActiveRecord: vi.fn().mockResolvedValue({
+      id: transactionRecordId,
+      type: "balance_adjustment",
+      created_by: userId,
+      transaction_at: "2026-09-14T00:00:00Z",
+      note: "盘点",
+    }),
+    listItems: vi.fn().mockResolvedValue([
+      {
+        account_id: accountId,
+        category_id: null,
+        amount: "2500",
+        balance_delta: "-2500",
+      },
+    ]),
+  });
+  const dependencies = createDependencies(repository);
+  dependencies.accountQueryService.listTransactionOptions.mockResolvedValue([]);
+  dependencies.accountQueryService.getTransactionContext.mockResolvedValue({
+    accounts: [{ id: accountId, name: "归档现金", currency: "JPY" }],
+    accountColorById: new Map(),
+    showRecorder: true,
+  });
+  const view = await getEditTransactionView(
+    dependencies,
+    currentLedger,
+    transactionRecordId,
+  );
+  expect(view).toMatchObject({
+    canEdit: true,
+    editRestriction: null,
+    initialValues: {
+      type: "balance_adjustment",
+      accountArchived: true,
+      signedDelta: "-2500",
+      accountName: "归档现金",
+    },
   });
 });

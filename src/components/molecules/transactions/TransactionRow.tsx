@@ -9,6 +9,7 @@ import { Fragment, useSyncExternalStore } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
+import { balanceAdjustmentText } from "config/balanceAdjustmentText";
 import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { designTokens } from "theme/theme";
@@ -60,11 +61,14 @@ export function TransactionRow({
   showRecorder = false,
   showTime = false,
 }: TransactionRowProps) {
+  const isAdjustment = item.type === "balance_adjustment";
   const isTransfer = item.type === "transfer";
   const shouldShowRecorder = showRecorder && (item.show_recorder ?? true);
-  const merchantName = isTransfer
-    ? "账户周转"
-    : (item.merchant_name ?? "未知商家");
+  const merchantName = isAdjustment
+    ? balanceAdjustmentText.title
+    : isTransfer
+      ? "账户周转"
+      : (item.merchant_name ?? "未知商家");
   const statisticsAdjustment = getStatisticsAdjustment(item);
   const shouldDisplayOriginalAmount =
     statisticsAdjustment?.kind === "partiallyOffset" &&
@@ -72,11 +76,15 @@ export function TransactionRow({
   const displayedAmountType = shouldDisplayOriginalAmount
     ? (item.originalType ?? statisticsAdjustment.type ?? item.type)
     : item.type;
-  const amountColor = isTransfer
-    ? textColor
-    : displayedAmountType === "income"
+  const amountColor = isAdjustment
+    ? Number(item.amount) > 0
       ? incomeColor
-      : expenseColor;
+      : expenseColor
+    : isTransfer
+      ? textColor
+      : displayedAmountType === "income"
+        ? incomeColor
+        : expenseColor;
   const businessStatuses = getBusinessStatuses(
     item.categoryItems,
     item.account_currency,
@@ -129,7 +137,7 @@ export function TransactionRow({
     ) : null;
 
   const metaSegments = [
-    showAccount
+    showAccount || isAdjustment
       ? {
           color: getMemberColor(item.account_color),
           key: "account",
@@ -137,7 +145,7 @@ export function TransactionRow({
           label: item.account_name,
         }
       : null,
-    shouldShowRecorder && item.recorder_name
+    (shouldShowRecorder || isAdjustment) && item.recorder_name
       ? {
           color: getMemberColor(item.recorder_color),
           key: "recorder",
@@ -145,7 +153,7 @@ export function TransactionRow({
           label: item.recorder_name,
         }
       : null,
-    showTime
+    showTime || isAdjustment
       ? {
           color: mutedText,
           key: "time",
@@ -418,7 +426,11 @@ function getStatisticsAdjustment(
   if (item.originalAmount !== undefined && Number(item.amount) === 0) {
     return {
       kind: "fullyExcluded",
-      type: item.originalType ?? (item.type === "transfer" ? null : item.type),
+      type:
+        item.originalType ??
+        (item.type === "transfer" || item.type === "balance_adjustment"
+          ? null
+          : item.type),
     };
   }
 
@@ -522,18 +534,21 @@ function compareCategoryAmountDesc(
 
 function getAvatarBackground(type: TransactionRowItem["type"]) {
   if (type === "income") return "var(--user-theme-income-bg)";
-  if (type === "transfer") return "var(--user-theme-transfer-bg)";
+  if (type === "transfer" || type === "balance_adjustment")
+    return "var(--user-theme-transfer-bg)";
   return "var(--user-theme-negative-bg)";
 }
 
 function getAvatarColor(type: TransactionRowItem["type"]) {
   if (type === "income") return incomeColor;
-  if (type === "transfer") return themeDotColor;
+  if (type === "transfer" || type === "balance_adjustment")
+    return themeDotColor;
   return expenseColor;
 }
 
 function getAvatarFallback(item: TransactionRowItem, merchantName: string) {
-  if (item.type === "transfer") return <SyncAltIcon fontSize="small" />;
+  if (item.type === "transfer" || item.type === "balance_adjustment")
+    return <SyncAltIcon fontSize="small" />;
   if (item.merchant_name === null) return "?";
   return getMerchantInitial(merchantName, "?");
 }

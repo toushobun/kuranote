@@ -84,4 +84,24 @@ describe("Account form parser", () => {
       ok: false,
     });
   });
+  it.each(["", "1e2", "1.001", "1000000000000"])(
+    "更新表单拒绝非法目标余额 %s",
+    (value) => {
+      const formData = createFormData();
+      formData.set("targetBalance", value);
+      expect(parseUpdateAccountForm(formData)).toEqual({
+        ok: false,
+        error: accountErrorCodes.balanceInvalid,
+      });
+    },
+  );
+  it("更新表单接受负余额并规范化备注", () => {
+    const formData = createFormData();
+    formData.set("targetBalance", " -12.34 ");
+    formData.set("balanceAdjustmentNote", " 盘点 ");
+    expect(parseUpdateAccountForm(formData)).toMatchObject({
+      ok: true,
+      value: { targetBalance: -12.34, balanceAdjustmentNote: "盘点" },
+    });
+  });
 });

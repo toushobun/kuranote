@@ -1,3 +1,4 @@
+import type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
@@ -39,7 +40,7 @@ export type TransactionListItem = {
   recorder_name: string | null;
   show_recorder?: boolean;
   transaction_at: string;
-  type: TransactionType | "transfer";
+  type: TransactionType | "transfer" | "balance_adjustment";
 };
 
 export type TransactionAccountOption = {
@@ -140,6 +141,7 @@ export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
   editRestriction: "archivedAccount" | "linked" | "permission" | null;
   initialValues:
+    | BalanceAdjustmentEditInitialValues
     | TransferEditInitialValues
     | {
         accountId: string;

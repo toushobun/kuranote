@@ -41,7 +41,7 @@ const transactionListItemSchema = z.object({
   recorder_name: z.string().nullable(),
   show_recorder: z.boolean().optional(),
   transaction_at: z.string(),
-  type: z.enum(["expense", "income", "transfer"]),
+  type: z.enum(["expense", "income", "transfer", "balance_adjustment"]),
 });
 
 export const dashboardResponseSchema = z.object({

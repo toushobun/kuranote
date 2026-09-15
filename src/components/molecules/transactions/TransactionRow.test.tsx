@@ -44,6 +44,29 @@ describe("TransactionRow", () => {
       ...overrides,
     };
   }
+  it.each([
+    ["2500", "+ ¥ 2,500"],
+    ["-2500", "- ¥ 2,500"],
+  ])("余额调整展示有符号金额 %s 和记账人", (amount, expected) => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "balance_adjustment",
+          amount,
+          categoryItems: [],
+          merchant_name: null,
+          recorder_name: "记账人",
+          note: "盘点",
+        })}
+      />,
+    );
+    expect(screen.getByText("余额调整")).toBeInTheDocument();
+    expect(screen.getByText(expected)).toBeInTheDocument();
+    expect(screen.getByText("日元现金")).toBeInTheDocument();
+    expect(screen.getByText("记账人")).toBeInTheDocument();
+    expect(screen.getByText("盘点")).toBeInTheDocument();
+    expect(screen.queryByText("未知商家")).not.toBeInTheDocument();
+  });
   it("显示商家名称", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.getByText("便利店")).toBeInTheDocument();

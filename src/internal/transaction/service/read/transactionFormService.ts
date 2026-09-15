@@ -92,6 +92,42 @@ export async function getEditTransactionView(
       : null
     : "permission";
 
+  if (record.type === "balance_adjustment") {
+    const item = items[0];
+    if (
+      items.length !== 1 ||
+      !item ||
+      !Number.isFinite(Number(item.balance_delta)) ||
+      Number(item.balance_delta) === 0
+    )
+      return null;
+    const context =
+      await dependencies.accountQueryService.getTransactionContext({
+        accountIds: [item.account_id],
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      });
+    const account = context.accounts.find(
+      (account) => account.id === item.account_id,
+    );
+    return {
+      ...options,
+      canEdit: canModify,
+      editRestriction: canModify ? null : "permission",
+      initialValues: {
+        type: "balance_adjustment",
+        accountId: item.account_id,
+        accountName: account?.name ?? "未知账户",
+        currency: account?.currency ?? currentLedger.baseCurrency,
+        signedDelta: item.balance_delta!,
+        transactionAt: record.transaction_at,
+        transactionRecordId: record.id,
+        note: record.note ?? "",
+        accountArchived: hasArchivedAccount,
+      },
+      ledgerName: currentLedger.name,
+    };
+  }
   if (record.type === "transfer") {
     const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
     const toItems = items.filter((item) => Number(item.balance_delta) > 0);

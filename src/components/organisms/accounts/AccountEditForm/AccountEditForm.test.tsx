@@ -56,7 +56,7 @@ describe("AccountEditForm", () => {
     expect(
       within(container).getByRole("heading", { name: "编辑账户" }),
     ).toBeInTheDocument();
-    expect(within(container).getByLabelText("当前余额")).toHaveValue("¥85,000");
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
   });
 
   it("显示插图预留位", () => {
@@ -140,15 +140,99 @@ describe("AccountEditForm", () => {
       <AccountEditForm {...baseProps} />,
     );
 
-    expect(within(container).getByLabelText("当前余额")).toHaveValue("¥85,000");
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
 
     fireEvent.mouseDown(
       within(container).getByRole("combobox", { name: "货币" }),
     );
     fireEvent.click(screen.getByRole("option", { name: "USD 美元" }));
+    expect(screen.getByText("$")).toBeInTheDocument();
 
-    expect(within(container).getByLabelText("当前余额")).toHaveValue(
-      "$85,000.00",
+    expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
+  });
+});
+
+describe("余额调整", () => {
+  it("实时显示增减差值，恢复原余额后隐藏备注", () => {
+    renderWithUserTheme(<AccountEditForm {...baseProps} />);
+    const balance = screen.getByLabelText("当前余额");
+    expect(balance).toBeEnabled();
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+    fireEvent.change(balance, { target: { value: "87500" } });
+    expect(screen.getByText("将增加 2,500")).toBeInTheDocument();
+    expect(screen.getByLabelText("余额调整备注")).not.toBeRequired();
+    fireEvent.change(balance, { target: { value: "82500" } });
+    expect(screen.getByText("将减少 2,500")).toBeInTheDocument();
+    fireEvent.change(balance, { target: { value: "85000" } });
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+  });
+  it("余额未变化时不提交目标余额，实际修改后才提交", () => {
+    const { container } = renderWithUserTheme(
+      <AccountEditForm {...baseProps} />,
     );
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    const balance = screen.getByLabelText("当前余额");
+
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+
+    fireEvent.change(balance, { target: { value: "87500" } });
+    expect(new FormData(form).get("targetBalance")).toBe("87500");
+
+    fireEvent.change(balance, { target: { value: "85000" } });
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+  });
+  it.each(["85000", "", "1.001"])(
+    "余额暂时变为 %s 后恢复调整仍保留备注",
+    (temporaryBalance) => {
+      const { container } = renderWithUserTheme(
+        <AccountEditForm {...baseProps} />,
+      );
+      const balance = screen.getByLabelText("当前余额");
+      fireEvent.change(balance, { target: { value: "87500" } });
+      fireEvent.change(screen.getByLabelText("余额调整备注"), {
+        target: { value: "盘点差额" },
+      });
+      fireEvent.change(balance, { target: { value: temporaryBalance } });
+      expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+      const form = container.querySelector("form")!;
+      expect(new FormData(form).has("balanceAdjustmentNote")).toBe(false);
+      fireEvent.change(balance, { target: { value: "82500" } });
+      expect(screen.getByLabelText("余额调整备注")).toHaveValue("盘点差额");
+      expect(new FormData(form).get("balanceAdjustmentNote")).toBe("盘点差额");
+    },
+  );
+  it("无效余额禁止保存", () => {
+    renderWithUserTheme(<AccountEditForm {...baseProps} />);
+    fireEvent.change(screen.getByLabelText("当前余额"), {
+      target: { value: "1.001" },
+    });
+    expect(screen.getByRole("button", { name: "保存修改" })).toBeDisabled();
+  });
+  it("弹窗未关闭时账户余额被外部改变，重新校准基准而不是沿用旧快照", () => {
+    const { container, rerender } = render(
+      <UserThemeProvider storageScope="account-edit-form-test">
+        <ConfirmDialogProvider>
+          <AccountEditForm {...baseProps} />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
+    );
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    expect(screen.getByLabelText("当前余额")).toHaveValue("85000");
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+
+    rerender(
+      <UserThemeProvider storageScope="account-edit-form-test">
+        <ConfirmDialogProvider>
+          <AccountEditForm
+            {...baseProps}
+            account={{ ...account, current_balance: 90000 }}
+          />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
+    );
+
+    expect(screen.getByLabelText("当前余额")).toHaveValue("90000");
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+    expect(new FormData(form).has("targetBalance")).toBe(false);
   });
 });

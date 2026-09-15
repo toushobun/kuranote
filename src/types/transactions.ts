@@ -79,7 +79,7 @@ export type CategorySummaryItem = {
 
 export type TransactionRowItem = {
   id: string;
-  type: TransactionRecordType;
+  type: TransactionRecordType | "balance_adjustment";
   transaction_at: string;
   amount: string;
   originalAmount?: string;

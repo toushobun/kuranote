@@ -55,6 +55,7 @@ function createService() {
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
     updateNormal: vi.fn(),
+    updateBalanceAdjustment: vi.fn(),
     updateTransfer: vi.fn(),
     void: vi.fn(),
   } as unknown as RequestContainer["transaction"]["service"];

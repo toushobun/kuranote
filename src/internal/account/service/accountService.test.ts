@@ -262,3 +262,47 @@ describe("AccountService", () => {
     expect(repository.listAccounts).not.toHaveBeenCalled();
   });
 });
+
+describe("余额调整", () => {
+  it("将目标余额和独立备注一次性交给原子保存", async () => {
+    const repository = createRepository();
+    await createService(repository).update({
+      ...createInput(),
+      accountId,
+      targetBalance: -250,
+      balanceAdjustmentNote: " 盘点 ",
+    });
+    expect(repository.update).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        accountId,
+        targetBalance: -250,
+        balanceAdjustmentNote: "盘点",
+      }),
+    );
+  });
+  it.each([NaN, Infinity, 1.001, 1e12])(
+    "拒绝无效目标余额 %s",
+    async (targetBalance) => {
+      const repository = createRepository();
+      await expect(
+        createService(repository).update({
+          ...createInput(),
+          accountId,
+          targetBalance,
+        }),
+      ).rejects.toMatchObject({ code: accountErrorCodes.balanceInvalid });
+      expect(repository.update).not.toHaveBeenCalled();
+    },
+  );
+  it("非管理成员不能调整余额", async () => {
+    const repository = createRepository();
+    await expect(
+      createService(repository, createLedgerAccessService("member")).update({
+        ...createInput(),
+        accountId,
+        targetBalance: 10,
+      }),
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+});

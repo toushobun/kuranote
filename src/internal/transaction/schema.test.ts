@@ -964,3 +964,50 @@ describe("退款关联 FormData 校验", () => {
     });
   });
 });
+
+import {
+  parseUpdateBalanceAdjustmentForm,
+  updateBalanceAdjustmentRequestSchema,
+} from "./schema";
+describe("余额调整更新校验", () => {
+  const values = {
+    transactionRecordId: "75500000-0000-4000-8000-000000000001",
+    transactionAt: "2026-09-14T00:00:00.000Z",
+    note: null,
+  };
+  it("只接受时间备注和记录标识", () => {
+    expect(updateBalanceAdjustmentRequestSchema.safeParse(values).success).toBe(
+      true,
+    );
+    for (const extra of [
+      { accountId: values.transactionRecordId },
+      { signedDelta: 1 },
+      { merchantId: values.transactionRecordId },
+    ]) {
+      expect(
+        updateBalanceAdjustmentRequestSchema.safeParse({ ...values, ...extra })
+          .success,
+      ).toBe(false);
+    }
+  });
+  it.each([
+    { transactionAt: "bad" },
+    { note: "a".repeat(2001) },
+    { transactionRecordId: "bad" },
+  ])("拒绝无效更新 %s", (invalid) => {
+    expect(
+      updateBalanceAdjustmentRequestSchema.safeParse({ ...values, ...invalid })
+        .success,
+    ).toBe(false);
+  });
+  it("本地时间按提交时区转为 UTC，备注可为空", () => {
+    const form = new FormData();
+    form.set("transactionRecordId", values.transactionRecordId);
+    form.set("transactionAt", "2026-09-14T09:00:00");
+    form.set("timeZoneOffsetMinutes", "-540");
+    expect(parseUpdateBalanceAdjustmentForm(form)).toMatchObject({
+      success: true,
+      data: values,
+    });
+  });
+});

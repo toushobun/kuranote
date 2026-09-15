@@ -29,6 +29,8 @@ import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
+import type { UpdateBalanceAdjustmentInput } from "internal/transaction/schema";
+import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { isThemeColorKey } from "theme/themeColorTokens";
 
@@ -158,6 +160,7 @@ export type FrequentCategoryHistoryQuery = {
 };
 
 export interface TransactionCommandRepository {
+  updateBalanceAdjustment(input: UpdateBalanceAdjustmentInput): Promise<void>;
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
@@ -250,6 +253,8 @@ type RpcError = {
 };
 
 const transactionRpcErrorCodes = [
+  transactionErrorCodes.balanceAdjustmentAccountArchived,
+  "note_too_long",
   "not_authenticated",
   "ledger_forbidden",
   transactionErrorCodes.permissionDenied,
@@ -317,6 +322,20 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (
+      rpcErrorCode === transactionErrorCodes.balanceAdjustmentAccountArchived
+    ) {
+      throw new ValidationError(
+        rpcErrorCode,
+        balanceAdjustmentErrorMessages.archivedAccount,
+      );
+    }
+    if (rpcErrorCode === "note_too_long") {
+      throw new ValidationError(
+        rpcErrorCode,
+        balanceAdjustmentErrorMessages.noteTooLong,
+      );
+    }
     if (rpcErrorCode === "transaction_not_found") {
       throw new NotFoundError(
         "transaction_not_found",
@@ -610,7 +629,7 @@ export function createSupabaseTransactionRepository(
         .eq("id", transactionRecordId)
         .eq("ledger_id", ledgerId)
         .eq("status", "active")
-        .in("type", ["normal", "transfer"])
+        .in("type", ["normal", "transfer", "balance_adjustment"])
         .maybeSingle();
       if (error) {
         logger.error(
@@ -761,7 +780,7 @@ export function createSupabaseTransactionRepository(
         .select("id")
         .eq("ledger_id", ledgerId)
         .eq("status", "active")
-        .in("type", ["normal", "transfer"])
+        .in("type", ["normal", "transfer", "balance_adjustment"])
         .order("transaction_at", { ascending: false })
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -915,7 +934,7 @@ export function createSupabaseTransactionRepository(
         )
         .eq("ledger_id", input.ledgerId)
         .eq("status", "active")
-        .in("type", ["normal", "transfer"]);
+        .in("type", ["normal", "transfer", "balance_adjustment"]);
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);
       if (input.recordType === "transfer") query = query.eq("type", "transfer");
@@ -1024,6 +1043,24 @@ export function createSupabaseTransactionRepository(
       }
     },
 
+    async updateBalanceAdjustment(input) {
+      const { error } = await supabase.rpc(
+        "update_balance_adjustment_transaction",
+        {
+          p_ledger_id: input.ledgerId,
+          p_transaction_record_id: input.transactionRecordId,
+          p_transaction_at: input.transactionAt,
+          p_note: input.note,
+        },
+      );
+      if (error)
+        throwRpcError(
+          "failed to update balance adjustment",
+          transactionErrorCodes.updateFailed,
+          error,
+          { ledgerId: input.ledgerId },
+        );
+    },
     async updateTransfer(input) {
       const { error } = await supabase.rpc("update_transfer_transaction", {
         p_amount: input.transferAmount,
