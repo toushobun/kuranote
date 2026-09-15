@@ -54,6 +54,21 @@ describe("BalanceAdjustmentEditForm", () => {
     expect(form.has("accountId")).toBe(false);
     expect(form.has("signedDelta")).toBe(false);
   });
+  it("复用共享的日期时间选择器修改交易时间，提交组合后的值", async () => {
+    const { action } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "2026年9月20日" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("grid", { name: "记账日期" })).toBeNull(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const form = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(form.get("transactionAt")).toBe("2026-09-20T00:00:00");
+  });
   it("删除须二次确认，取消不提交", async () => {
     const { deleteAction } = setup();
     fireEvent.click(screen.getByRole("button", { name: "删除" }));
