@@ -120,8 +120,9 @@ function createSettingsEntryGroups(
           trailing: "简体中文",
         },
         {
+          href: routePaths.settingsData,
           icon: ImportExportOutlinedIcon,
-          kind: "comingSoon",
+          kind: "link",
           label: "数据导入导出",
         },
         { icon: TuneOutlinedIcon, kind: "comingSoon", label: "App 偏好设置" },
