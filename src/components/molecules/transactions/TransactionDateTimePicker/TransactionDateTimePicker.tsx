@@ -12,7 +12,9 @@ import Typography from "@mui/material/Typography";
 import { keyframes } from "@mui/material/styles";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
+import { amountKeypadZIndex } from "theme/zIndex";
 
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
@@ -29,6 +31,13 @@ import {
   splitTimeValue,
   type MonthSlideDirection,
 } from "./dateTimePickerUtils";
+
+// 这个抽屉除了在独立页面里使用，还会在 TransactionFilterDialog 等 Dialog 内触发，
+// 因此复用 amountKeypadZIndex（明确高于 dialog / dropdown 的层级），而不是只
+// 够用来避开底部导航栏的 appZIndex.bottomSheet。
+export const dateTimePickerDrawerSx = {
+  zIndex: amountKeypadZIndex,
+};
 
 type TransactionDateTimePickerProps = {
   date: string;
@@ -238,6 +247,7 @@ export function TransactionDateTimePicker({
         anchor="bottom"
         onClose={closeDrawer}
         open={open}
+        sx={dateTimePickerDrawerSx}
         slotProps={{
           paper: {
             sx: {
@@ -248,7 +258,7 @@ export function TransactionDateTimePicker({
           },
         }}
       >
-        <Stack>
+        <Stack sx={{ pb: bottomNavigationLayout.safeAreaPaddingBottom }}>
           <Stack
             direction="row"
             sx={{

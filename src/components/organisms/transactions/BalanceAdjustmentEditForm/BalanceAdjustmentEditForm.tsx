@@ -14,12 +14,15 @@ import {
   balanceAdjustmentErrorMessages,
   type BalanceAdjustmentEditInitialValues,
 } from "internal/transaction";
+import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type { TransactionStateAction } from "types/transactions";
 import {
+  composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
   formatTransactionRowAmount,
+  splitDateTimeLocalValue,
 } from "utils/transactions";
 
 export function BalanceAdjustmentEditForm({
@@ -35,16 +38,24 @@ export function BalanceAdjustmentEditForm({
   const [deleteState, remove, deleting] = useActionState(deleteAction, {});
   const [, startTransition] = useTransition();
   const confirm = useConfirmDialog();
-  const [transactionAt, setTransactionAt] = useState("");
+  const [transactionDate, setTransactionDate] = useState("");
+  const [transactionTime, setTransactionTime] = useState("");
   const [offset, setOffset] = useState("");
   useEffect(() => {
     // 客户端挂载后按本地时区还原交易时间，避免水合差异。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTransactionAt(
-      formatDateTimeLocalInputValue(initialValues.transactionAt),
+    const localValue = formatDateTimeLocalInputValue(
+      initialValues.transactionAt,
     );
+    const nextDateTime = splitDateTimeLocalValue(localValue);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTransactionDate(nextDateTime.date);
+    setTransactionTime(nextDateTime.time);
     setOffset(String(new Date().getTimezoneOffset()));
   }, [initialValues.transactionAt]);
+  const transactionAtValue = composeTransactionDateTimeLocalValue(
+    transactionDate,
+    transactionTime,
+  );
   const failure = deleteState.error ? deleteState : state;
   async function requestDelete() {
     if (
@@ -90,14 +101,17 @@ export function BalanceAdjustmentEditForm({
             )}
             slotProps={{ input: { readOnly: true } }}
           />
-          <TextField
-            required
-            label={text.time}
-            type="datetime-local"
+          <input
+            type="hidden"
             name="transactionAt"
-            value={transactionAt}
-            onChange={(event) => setTransactionAt(event.target.value)}
-            slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 1 } }}
+            value={transactionAtValue}
+          />
+          <TransactionDateTimePicker
+            date={transactionDate}
+            fieldLabel={text.time}
+            onDateChange={setTransactionDate}
+            onTimeChange={setTransactionTime}
+            time={transactionTime}
           />
           <TextField
             label={text.note}
@@ -108,7 +122,7 @@ export function BalanceAdjustmentEditForm({
           />
           <PrimaryActionButton
             type="submit"
-            disabled={pending || deleting || !transactionAt}
+            disabled={pending || deleting || !transactionAtValue}
           >
             {text.save}
           </PrimaryActionButton>

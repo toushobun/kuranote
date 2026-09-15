@@ -1,9 +1,23 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { TransactionDateTimePicker } from "./TransactionDateTimePicker";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
+
+import {
+  dateTimePickerDrawerSx,
+  TransactionDateTimePicker,
+} from "./TransactionDateTimePicker";
 
 describe("TransactionDateTimePicker", () => {
+  it("抽屉层级高于底部导航栏和 Dialog，避免被遮挡", () => {
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
+    );
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(appZIndex.dialog);
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(appZIndex.dropdown);
+  });
+
   it("显示日期时间并在抽屉中选择日期", async () => {
     const onDateChange = vi.fn();
     render(
