@@ -88,8 +88,9 @@ export async function updateAccount(
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseUpdateAccountForm(formData);
   if (!parsed.ok) {
-    return createErrorState(
-      getAccountErrorMessage(parsed.error) ?? parsed.error,
+    return getValidationErrorState(
+      parsed.error,
+      "账户信息不正确，请确认后重试。",
     );
   }
 

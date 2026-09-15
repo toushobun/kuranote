@@ -7,10 +7,7 @@ import {
   parseCreateAccountForm,
   parseUpdateAccountForm,
 } from "internal/account/adapter/next/formParser";
-import {
-  accountErrorCodes,
-  getAccountErrorMessage,
-} from "internal/account/errors";
+import { accountErrorCodes } from "internal/account/errors";
 
 const accountId = "00000000-0000-4000-8000-000000000045";
 const holderUserId = "00000000-0000-4000-8000-000000000041";
@@ -94,7 +91,7 @@ describe("Account form parser", () => {
       formData.set("targetBalance", value);
       expect(parseUpdateAccountForm(formData)).toEqual({
         ok: false,
-        error: getAccountErrorMessage(accountErrorCodes.balanceInvalid),
+        error: accountErrorCodes.balanceInvalid,
       });
     },
   );

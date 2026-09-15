@@ -1,9 +1,9 @@
 import { isAccountBalanceText } from "internal/account/util/accountBalance";
+import { accountErrorCodes } from "internal/account/errors";
 import {
-  accountErrorCodes,
-  getAccountErrorMessage,
-} from "internal/account/errors";
-import { accountBalanceAdjustmentSchema } from "internal/account/schema";
+  accountBalanceAdjustmentSchema,
+  getAccountBalanceAdjustmentErrorCode,
+} from "internal/account/schema";
 import {
   accountTypes,
   type AccountType,
@@ -99,7 +99,7 @@ export function parseUpdateAccountForm(
 
   const balanceText = getFormText(formData, "targetBalance").trim();
   if (formData.has("targetBalance") && !isAccountBalanceText(balanceText)) {
-    return invalid(getAccountErrorMessage(accountErrorCodes.balanceInvalid)!);
+    return invalid(accountErrorCodes.balanceInvalid);
   }
   const adjustment = accountBalanceAdjustmentSchema.safeParse({
     ...(formData.has("targetBalance")
@@ -111,7 +111,9 @@ export function parseUpdateAccountForm(
         }
       : {}),
   });
-  if (!adjustment.success) return invalid(adjustment.error.issues[0].message);
+  if (!adjustment.success) {
+    return invalid(getAccountBalanceAdjustmentErrorCode(adjustment.error));
+  }
   return {
     ok: true,
     value: { ...fields.value, accountId, ...adjustment.data },

@@ -1,5 +1,8 @@
 import type { CurrentLedgerRole } from "internal/ledger";
-import { accountBalanceAdjustmentSchema } from "internal/account/schema";
+import {
+  accountBalanceAdjustmentSchema,
+  getAccountBalanceAdjustmentErrorCode,
+} from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
 import {
   accountErrorCodes,
@@ -330,10 +333,7 @@ export function createAccountService({
       requireManagement(role);
       const adjustment = accountBalanceAdjustmentSchema.safeParse(input);
       if (!adjustment.success) {
-        const code =
-          adjustment.error.issues[0]?.path[0] === "balanceAdjustmentNote"
-            ? accountErrorCodes.adjustmentNoteInvalid
-            : accountErrorCodes.balanceInvalid;
+        const code = getAccountBalanceAdjustmentErrorCode(adjustment.error);
         throw new ValidationError(code, accountErrorMessage(code));
       }
 

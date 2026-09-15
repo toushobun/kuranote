@@ -4,7 +4,11 @@ import { z } from "@hono/zod-openapi";
 import { accountHolderRoles } from "internal/account/entity/accountHolderRole";
 import { accountTypes } from "internal/account/entity/accountType";
 import { themeColorKeys } from "theme/themeColorTokens";
-import { accountErrorCodes, getAccountErrorMessage } from "./errors";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+  type AccountErrorCode,
+} from "./errors";
 
 export const accountBalanceAdjustmentSchema = z.object({
   targetBalance: z
@@ -21,6 +25,19 @@ export const accountBalanceAdjustmentSchema = z.object({
     .nullable()
     .optional(),
 });
+
+/**
+ * zod 的失败原因只按字段路径映射错误码，不依赖 issue.message 的具体文本，
+ * 因此当 targetBalance 在到达 refine 前就被 `.finite()` 拦下（例如 NaN、Infinity）
+ * 时也能得到正确的错误码。formParser 和 Service 共用同一份判定逻辑。
+ */
+export function getAccountBalanceAdjustmentErrorCode(
+  error: z.ZodError,
+): AccountErrorCode {
+  return error.issues[0]?.path[0] === "balanceAdjustmentNote"
+    ? accountErrorCodes.adjustmentNoteInvalid
+    : accountErrorCodes.balanceInvalid;
+}
 
 const moneyValueSchema = z.union([z.number(), z.string()]);
 
