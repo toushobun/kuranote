@@ -139,7 +139,6 @@ describe("LinkedTransactionItemRepository", () => {
     await repository.updateEdit(updateEditInput);
 
     expect(rpc).toHaveBeenCalledWith("update_linked_transaction_edit", {
-      p_consumer_user_ids: null,
       p_item_updates: updateEditInput.itemUpdates,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,

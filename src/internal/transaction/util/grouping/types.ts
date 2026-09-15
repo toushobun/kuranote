@@ -4,7 +4,6 @@ import type {
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
-  TransactionConsumerDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
@@ -17,8 +16,6 @@ export type TransactionGroupLoaderContext = {
   accountColorById: Map<string, ThemeColorKey>;
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
-  consumerMembers?: AppUserSummaryDbRow[];
-  consumers?: TransactionConsumerDbRow[];
   currentLedger: CurrentLedger;
   currentUserId?: string;
   items: TransactionItemDbRow[];

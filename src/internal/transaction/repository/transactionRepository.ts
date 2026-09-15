@@ -12,7 +12,6 @@ import type {
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
   LedgerMemberDisplaySettingDbRow,
-  TransactionConsumerDbRow,
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
@@ -57,14 +56,8 @@ type TransactionItemRepositoryRow = Omit<
   reimbursement_amount?: number | string | null;
 };
 
-type LedgerMemberOrderRow = {
-  joined_at: string | null;
-  user_id: string;
-};
-
 export type CreateNormalTransactionInput = {
   accountId: string;
-  consumerUserIds?: string[];
   items: TransactionItemInput[];
   ledgerId: string;
   merchantId: string;
@@ -75,7 +68,6 @@ export type CreateNormalTransactionInput = {
 
 export type CreateTransferTransactionInput = {
   accountId: string;
-  consumerUserIds?: string[];
   ledgerId: string;
   note: string | null;
   transactionAt: string;
@@ -184,11 +176,6 @@ export interface TransactionContextRepository {
     ledgerId: string,
     userIds: string[],
   ): Promise<AppUserSummaryDbRow[]>;
-  listActiveMemberIds(ledgerId: string): Promise<string[]>;
-  listConsumers(
-    ledgerId: string,
-    transactionRecordIds: string[],
-  ): Promise<TransactionConsumerDbRow[]>;
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
@@ -201,15 +188,6 @@ export interface TransactionFormRepository {
     ledgerId: string,
     transactionRecordId: string,
   ): Promise<TransactionRecordDbRow | null>;
-  findUserSummaries(
-    ledgerId: string,
-    userIds: string[],
-  ): Promise<AppUserSummaryDbRow[]>;
-  listActiveMemberIds(ledgerId: string): Promise<string[]>;
-  listConsumers(
-    ledgerId: string,
-    transactionRecordIds: string[],
-  ): Promise<TransactionConsumerDbRow[]>;
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
@@ -282,7 +260,6 @@ const transactionRpcErrorCodes = [
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
   transactionErrorCodes.categoryInvalid,
-  transactionErrorCodes.consumerInvalid,
   transactionErrorCodes.merchantInvalid,
   "transfer_account_invalid",
   "from_account_invalid",
@@ -377,13 +354,6 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.categoryInvalid,
         "分类信息不正确，请确认后重试。",
-      );
-    }
-
-    if (rpcErrorCode === transactionErrorCodes.consumerInvalid) {
-      throw new ValidationError(
-        transactionErrorCodes.consumerInvalid,
-        "消费者指定不正确，请从当前账本成员中选择。",
       );
     }
 
@@ -532,7 +502,6 @@ export function createSupabaseTransactionRepository(
         input.targetType === "transfer"
           ? {
               p_account_id: null,
-              p_consumer_user_ids: input.consumerUserIds ?? null,
               p_from_account_id: input.accountId,
               p_items: null,
               p_ledger_id: input.ledgerId,
@@ -546,7 +515,6 @@ export function createSupabaseTransactionRepository(
             }
           : {
               p_account_id: input.accountId,
-              p_consumer_user_ids: input.consumerUserIds ?? null,
               p_from_account_id: null,
               p_items: toTransactionRpcItems(input.items),
               p_ledger_id: input.ledgerId,
@@ -578,7 +546,6 @@ export function createSupabaseTransactionRepository(
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
         p_account_id: input.accountId,
-        p_consumer_user_ids: input.consumerUserIds ?? null,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
@@ -599,7 +566,6 @@ export function createSupabaseTransactionRepository(
     async createTransfer(input) {
       const { error } = await supabase.rpc("create_transfer_transaction", {
         p_amount: input.transferAmount,
-        p_consumer_user_ids: input.consumerUserIds ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,
@@ -678,14 +644,14 @@ export function createSupabaseTransactionRepository(
           .in("user_id", uniqueUserIds),
       ]);
       if (userResult.error || settingResult.error) {
-        logger.error("[transaction] failed to load transaction members", {
+        logger.error("[transaction] failed to load transaction recorders", {
           ledgerId,
           userDatabaseCode: userResult.error?.code,
           settingDatabaseCode: settingResult.error?.code,
         });
         throw toRepositoryError(
-          "transaction_members_load_failed",
-          "交易成员信息加载失败，请稍后重试。",
+          "transaction_recorders_load_failed",
+          "交易记录人信息加载失败，请稍后重试。",
         );
       }
       const settingByUserId = new Map(
@@ -709,19 +675,14 @@ export function createSupabaseTransactionRepository(
     },
 
     async listActiveMemberIds(ledgerId) {
-      const { data: memberData, error: memberError } = await supabase
+      const { data, error } = await supabase
         .from("ledger_member")
-        .select(
-          "user_id, joined_at, app_user!ledger_member_user_id_fkey!inner(status)",
-        )
+        .select("user_id")
         .eq("ledger_id", ledgerId)
-        .eq("status", "active")
-        .eq("app_user.status", "active")
-        .order("joined_at", { ascending: true })
-        .order("user_id", { ascending: true });
-      if (memberError) {
+        .eq("status", "active");
+      if (error) {
         logger.error("[transaction] failed to load active members", {
-          databaseCode: memberError.code,
+          databaseCode: error.code,
           ledgerId,
         });
         throw toRepositoryError(
@@ -729,69 +690,7 @@ export function createSupabaseTransactionRepository(
           "账本成员加载失败，请稍后重试。",
         );
       }
-
-      const memberRows = (memberData ?? []) as LedgerMemberOrderRow[];
-      return memberRows.map((row) => row.user_id);
-    },
-
-    async listConsumers(ledgerId, transactionRecordIds) {
-      const uniqueRecordIds = [...new Set(transactionRecordIds)];
-      if (uniqueRecordIds.length === 0) return [];
-
-      const [
-        { data: consumerData, error: consumerError },
-        { data: memberData, error: memberError },
-      ] = await Promise.all([
-        supabase
-          .from("transaction_consumer")
-          .select("transaction_record_id, user_id")
-          .eq("ledger_id", ledgerId)
-          .in("transaction_record_id", uniqueRecordIds),
-        supabase
-          .from("ledger_member")
-          .select("user_id, joined_at")
-          .eq("ledger_id", ledgerId)
-          .order("joined_at", { ascending: true })
-          .order("user_id", { ascending: true }),
-      ]);
-      if (consumerError) {
-        logger.error("[transaction] failed to load transaction consumers", {
-          databaseCode: consumerError.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_consumers_load_failed",
-          "交易消费者信息加载失败，请稍后重试。",
-        );
-      }
-
-      const consumers = (consumerData ?? []) as TransactionConsumerDbRow[];
-      if (memberError) {
-        logger.error("[transaction] failed to load consumer member order", {
-          databaseCode: memberError.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_consumers_load_failed",
-          "交易消费者信息加载失败，请稍后重试。",
-        );
-      }
-
-      const memberOrder = new Map(
-        ((memberData ?? []) as LedgerMemberOrderRow[]).map((row, index) => [
-          row.user_id,
-          index,
-        ]),
-      );
-      return consumers.sort((left, right) => {
-        const leftOrder =
-          memberOrder.get(left.user_id) ?? Number.MAX_SAFE_INTEGER;
-        const rightOrder =
-          memberOrder.get(right.user_id) ?? Number.MAX_SAFE_INTEGER;
-        return (
-          leftOrder - rightOrder || left.user_id.localeCompare(right.user_id)
-        );
-      });
+      return (data ?? []).map((row) => row.user_id);
     },
 
     async listItems(ledgerId, transactionRecordIds) {
@@ -1104,7 +1003,6 @@ export function createSupabaseTransactionRepository(
     async updateNormal(input) {
       const { error } = await supabase.rpc("update_transaction", {
         p_account_id: input.accountId,
-        p_consumer_user_ids: input.consumerUserIds ?? null,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
@@ -1129,7 +1027,6 @@ export function createSupabaseTransactionRepository(
     async updateTransfer(input) {
       const { error } = await supabase.rpc("update_transfer_transaction", {
         p_amount: input.transferAmount,
-        p_consumer_user_ids: input.consumerUserIds ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,

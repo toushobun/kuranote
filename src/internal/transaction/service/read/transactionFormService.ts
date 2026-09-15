@@ -52,7 +52,6 @@ export async function getNewTransactionView(
     ...options,
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
     ledgerName: currentLedger.name,
-    recorderUserId: dependencies.currentUserId,
   };
 }
 
@@ -75,16 +74,10 @@ export async function getEditTransactionView(
     role: currentLedger.currentUserRole,
     userId: dependencies.currentUserId,
   });
-  const [items, consumerRows] = await Promise.all([
-    dependencies.transactionRepository.listItems(currentLedger.id, [
-      transactionRecordId,
-    ]),
-    dependencies.transactionRepository.listConsumers(currentLedger.id, [
-      transactionRecordId,
-    ]),
-  ]);
-  const consumerUserIds = consumerRows.map((consumer) => consumer.user_id);
-  const recorderUserId = record.created_by ?? dependencies.currentUserId;
+  const items = await dependencies.transactionRepository.listItems(
+    currentLedger.id,
+    [transactionRecordId],
+  );
   const hasArchivedAccount = !areAccountIdsAvailable(
     items.map((item) => item.account_id),
     options.accountOptions,
@@ -120,7 +113,6 @@ export async function getEditTransactionView(
       editRestriction,
       initialValues: {
         accountId: fromItem.account_id,
-        consumerUserIds,
         note: record.note ?? "",
         transactionAt: record.transaction_at,
         transactionRecordId: record.id,
@@ -133,7 +125,6 @@ export async function getEditTransactionView(
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
-      recorderUserId,
     };
   }
 
@@ -162,7 +153,6 @@ export async function getEditTransactionView(
     editRestriction,
     initialValues: {
       accountId: items[0]?.account_id ?? "",
-      consumerUserIds,
       items: items.map((item) => {
         const incomeLink = item.id
           ? incomeLinkByItemId.get(item.id)
@@ -219,7 +209,6 @@ export async function getEditTransactionView(
       type: resolveNormalTransactionDisplayType(items, options.categoryOptions),
     },
     ledgerName: currentLedger.name,
-    recorderUserId,
   };
 }
 

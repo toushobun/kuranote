@@ -52,8 +52,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
       accountColorById: new Map(),
       accounts: [],
       categories: [],
-      consumerMembers: [],
-      consumers: [],
       currentLedger,
       currentUserId,
       items: [],
@@ -64,13 +62,10 @@ export async function loadTransactionGroupLoaderContextForRecords(
     };
   }
 
-  const [items, consumers] = await Promise.all([
-    dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
-    dependencies.transactionRepository.listConsumers(
-      currentLedger.id,
-      recordIds,
-    ),
-  ]);
+  const items = await dependencies.transactionRepository.listItems(
+    currentLedger.id,
+    recordIds,
+  );
   const accountIds = [...new Set(items.map((item) => item.account_id))];
   const categoryIds = [
     ...new Set(
@@ -93,12 +88,8 @@ export async function loadTransactionGroupLoaderContextForRecords(
         .filter((id): id is string => typeof id === "string"),
     ),
   ];
-  const consumerIds = [
-    ...new Set(consumers.map((consumer) => consumer.user_id)),
-  ];
-  const memberIds = [...new Set([...recorderIds, ...consumerIds])];
 
-  const [accountContext, categories, merchants, members] = await Promise.all([
+  const [accountContext, categories, merchants, recorders] = await Promise.all([
     dependencies.accountQueryService.getTransactionContext({
       accountIds,
       ledgerId: currentLedger.id,
@@ -115,24 +106,19 @@ export async function loadTransactionGroupLoaderContextForRecords(
     }),
     dependencies.transactionRepository.findUserSummaries(
       currentLedger.id,
-      memberIds,
+      recorderIds,
     ),
   ]);
-  const recorderIdSet = new Set(recorderIds);
-  const consumerIdSet = new Set(consumerIds);
-
   return {
     accountColorById: accountContext.accountColorById,
     accounts: accountContext.accounts,
     categories,
-    consumerMembers: members.filter((member) => consumerIdSet.has(member.id)),
-    consumers,
     currentLedger,
     currentUserId,
     items,
     merchants,
     records,
-    recorders: members.filter((member) => recorderIdSet.has(member.id)),
+    recorders,
     showRecorder: accountContext.showRecorder,
   };
 }
@@ -154,12 +140,10 @@ export function buildTransactionListItemsFromContext(
           })
         : false,
       categoryById: lookups.categoryById,
-      consumerById: lookups.consumerById,
       fallbackCurrency: context.currentLedger.baseCurrency,
       merchantById: lookups.merchantById,
       record,
       recorderById: lookups.recorderById,
-      recordConsumers: lookups.consumersByRecordId.get(record.id) ?? [],
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
       showRecorder: context.showRecorder ?? true,
     }),

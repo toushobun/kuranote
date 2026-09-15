@@ -46,7 +46,6 @@ import {
   transactionSummarySurfaceSx,
 } from "../TransactionForm/TransactionForm.styles";
 import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
-import { TransactionConsumerSelector } from "../TransactionForm/TransactionConsumerSelector/TransactionConsumerSelector";
 import {
   formatSignedCurrencyAmount,
   getCurrencySymbol,
@@ -357,8 +356,6 @@ export function TransferTransactionForm({
             ))}
           </TextField>
         </Box>
-
-        <TransactionConsumerSelector />
 
         <Box ref={amountFieldRef} sx={transactionFieldGroupSx}>
           <TransferSectionTitle>转账金额</TransferSectionTitle>

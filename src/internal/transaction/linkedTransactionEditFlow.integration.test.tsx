@@ -27,7 +27,6 @@ const serverMocks = vi.hoisted(() => ({
 }));
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
-const recorderUserId = "00000000-0000-4000-8000-000000000031";
 const transactionRecordId = "57492000-0000-4000-8000-000000000001";
 const transactionItemId = "57492100-0000-4000-8000-000000000001";
 const targetItemId = "57492100-0000-4000-8000-000000000002";
@@ -92,7 +91,6 @@ function createView(side: "parent" | "child"): NormalEditView {
     accountOptions,
     canEdit: true,
     categoryOptions,
-    consumerOptions: [],
     editRestriction: null,
     frequentCategoryIds: [],
     initialValues: {
@@ -134,7 +132,6 @@ function createView(side: "parent" | "child"): NormalEditView {
     },
     ledgerName: "家庭账本",
     merchantOptions,
-    recorderUserId,
     transactionItemSpecialStatusEnabled: true,
   };
 }
@@ -155,7 +152,6 @@ function createScenario(side: "parent" | "child") {
   const transactionService = {
     canModify: vi.fn().mockResolvedValue(true),
     getEditView: vi.fn().mockResolvedValue(view),
-    validateConsumerUserIds: vi.fn().mockResolvedValue(undefined),
   } as unknown as TransactionService;
   const service: LinkedTransactionEditService =
     createLinkedTransactionEditService({
@@ -174,7 +170,7 @@ function createScenario(side: "parent" | "child") {
   );
   transactionActionModuleMocks.requireCurrentUserAndLedger.mockResolvedValue({
     currentLedger,
-    userId: recorderUserId,
+    userId: "00000000-0000-4000-8000-000000000031",
   });
   serverMocks.linkedUpdateNormal.mockImplementation(service.updateNormal);
 
