@@ -12,7 +12,9 @@ import Typography from "@mui/material/Typography";
 import { keyframes } from "@mui/material/styles";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
+import { appZIndex } from "theme/zIndex";
 
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
@@ -238,6 +240,7 @@ export function TransactionDateTimePicker({
         anchor="bottom"
         onClose={closeDrawer}
         open={open}
+        sx={{ zIndex: appZIndex.bottomSheet }}
         slotProps={{
           paper: {
             sx: {
@@ -248,7 +251,7 @@ export function TransactionDateTimePicker({
           },
         }}
       >
-        <Stack>
+        <Stack sx={{ pb: bottomNavigationLayout.safeAreaPaddingBottom }}>
           <Stack
             direction="row"
             sx={{

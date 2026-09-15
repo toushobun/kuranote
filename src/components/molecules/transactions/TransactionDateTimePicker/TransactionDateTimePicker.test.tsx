@@ -1,9 +1,27 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { TransactionDateTimePicker } from "./TransactionDateTimePicker";
 
+const componentSource = readFileSync(
+  join(
+    process.cwd(),
+    "src/components/molecules/transactions/TransactionDateTimePicker/TransactionDateTimePicker.tsx",
+  ),
+  "utf8",
+);
+
 describe("TransactionDateTimePicker", () => {
+  it("抽屉层级高于底部导航栏，避免被遮挡", () => {
+    expect(componentSource).toContain(
+      'import { appZIndex } from "theme/zIndex";',
+    );
+    expect(componentSource).toContain("zIndex: appZIndex.bottomSheet");
+  });
+
   it("显示日期时间并在抽屉中选择日期", async () => {
     const onDateChange = vi.fn();
     render(
