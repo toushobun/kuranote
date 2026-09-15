@@ -13,7 +13,6 @@ import {
   loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
 import { BalanceAdjustmentEditForm } from "organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
-import { TransactionConsumerProvider } from "organisms/transactions/TransactionForm/TransactionConsumerContext";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
   EditTransactionTemplate,
@@ -70,42 +69,12 @@ export default async function TransactionEditPage({
     refundPickerView,
     reimbursementPickerView,
   };
-  const consumerValue = {
-    consumerOptions: view.consumerOptions,
-    initialConsumerUserIds: initialValues.consumerUserIds,
-    recorderUserId: view.recorderUserId,
-  };
 
   if (initialValues.type === "transfer") {
     return (
       <NewTransactionVisualFrame>
-        <TransactionConsumerProvider value={consumerValue}>
-          <TransactionIncomeLinksProvider value={incomeLinksValue}>
-            <EditTransferTransactionTemplate
-              accountOptions={view.accountOptions}
-              action={saveEditTransaction}
-              categoryOptions={view.categoryOptions}
-              deleteAction={voidTransaction}
-              errorMessage={errorMessage}
-              frequentCategoryIds={view.frequentCategoryIds}
-              initialValues={initialValues}
-              ledgerName={view.ledgerName}
-              merchantOptions={view.merchantOptions}
-              transactionItemSpecialStatusEnabled={
-                view.transactionItemSpecialStatusEnabled
-              }
-            />
-          </TransactionIncomeLinksProvider>
-        </TransactionConsumerProvider>
-      </NewTransactionVisualFrame>
-    );
-  }
-
-  return (
-    <NewTransactionVisualFrame>
-      <TransactionConsumerProvider value={consumerValue}>
         <TransactionIncomeLinksProvider value={incomeLinksValue}>
-          <EditTransactionTemplate
+          <EditTransferTransactionTemplate
             accountOptions={view.accountOptions}
             action={saveEditTransaction}
             categoryOptions={view.categoryOptions}
@@ -120,7 +89,28 @@ export default async function TransactionEditPage({
             }
           />
         </TransactionIncomeLinksProvider>
-      </TransactionConsumerProvider>
+      </NewTransactionVisualFrame>
+    );
+  }
+
+  return (
+    <NewTransactionVisualFrame>
+      <TransactionIncomeLinksProvider value={incomeLinksValue}>
+        <EditTransactionTemplate
+          accountOptions={view.accountOptions}
+          action={saveEditTransaction}
+          categoryOptions={view.categoryOptions}
+          deleteAction={voidTransaction}
+          errorMessage={errorMessage}
+          frequentCategoryIds={view.frequentCategoryIds}
+          initialValues={initialValues}
+          ledgerName={view.ledgerName}
+          merchantOptions={view.merchantOptions}
+          transactionItemSpecialStatusEnabled={
+            view.transactionItemSpecialStatusEnabled
+          }
+        />
+      </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );
 }

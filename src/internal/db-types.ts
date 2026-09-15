@@ -13,11 +13,6 @@ export type TransactionRecordDbRow = {
   created_at: string;
 };
 
-export type TransactionConsumerDbRow = {
-  transaction_record_id: string;
-  user_id: string;
-};
-
 export type TransactionItemDbRow = {
   id?: string;
   transaction_record_id: string;

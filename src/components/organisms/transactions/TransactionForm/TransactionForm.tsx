@@ -33,7 +33,6 @@ import {
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
 import type { TransactionFormProps } from "./TransactionForm.types";
-import { TransactionConsumerSelector } from "./TransactionConsumerSelector/TransactionConsumerSelector";
 import { useTransactionIncomeLinks } from "./TransactionIncomeLinksContext";
 import { useTransactionForm } from "./useTransactionForm";
 
@@ -284,8 +283,6 @@ export function TransactionForm({
             ))}
           </TextField>
         </Box>
-
-        <TransactionConsumerSelector />
 
         <TransactionItemsSection
           fieldError={fieldErrors.items}

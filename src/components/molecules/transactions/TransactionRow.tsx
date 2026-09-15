@@ -5,7 +5,7 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Fragment, type ReactNode, useSyncExternalStore } from "react";
+import { Fragment, useSyncExternalStore } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
@@ -14,7 +14,7 @@ import { serverFallbackTimeZone } from "config/dateTime";
 import type { TransactionBusinessStatus } from "internal/transaction";
 import { designTokens } from "theme/theme";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
-import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
+import { themeColorTokens } from "theme/themeColorTokens";
 import { transactionAmountMessages } from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
@@ -37,8 +37,10 @@ export type TransactionRowProps = {
 };
 
 type MetaSegment = {
+  color: string;
   key: string;
-  node: ReactNode;
+  kind: "text";
+  label: string;
 };
 
 type StatisticsAdjustment = {
@@ -61,12 +63,7 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const isAdjustment = item.type === "balance_adjustment";
   const isTransfer = item.type === "transfer";
-  const consumers = item.consumers ?? [];
-  const shouldShowConsumers =
-    !isAdjustment &&
-    showRecorder &&
-    (item.show_recorder ?? true) &&
-    consumers.length > 0;
+  const shouldShowRecorder = showRecorder && (item.show_recorder ?? true);
   const merchantName = isAdjustment
     ? balanceAdjustmentText.title
     : isTransfer
@@ -139,45 +136,32 @@ export function TransactionRow({
       />
     ) : null;
 
-  const metaSegments: MetaSegment[] = [];
-  if (showAccount || isAdjustment) {
-    metaSegments.push({
-      key: "account",
-      node: (
-        <Typography
-          noWrap
-          sx={{ color: getMemberColor(item.account_color), fontSize: 11 }}
-        >
-          {item.account_name}
-        </Typography>
-      ),
-    });
-  }
-  if (shouldShowConsumers) {
-    metaSegments.push({
-      key: "consumers",
-      node: <TransactionConsumerSummary consumers={consumers} />,
-    });
-  }
-  if (isAdjustment && item.recorder_name)
-    metaSegments.push({
-      key: "recorder",
-      node: (
-        <Typography noWrap sx={{ color: mutedText, fontSize: 11 }}>
-          {item.recorder_name}
-        </Typography>
-      ),
-    });
-  if (showTime || isAdjustment) {
-    metaSegments.push({
-      key: "time",
-      node: (
-        <Typography noWrap sx={{ color: mutedText, fontSize: 11 }}>
-          {time}
-        </Typography>
-      ),
-    });
-  }
+  const metaSegments = [
+    showAccount || isAdjustment
+      ? {
+          color: getMemberColor(item.account_color),
+          key: "account",
+          kind: "text" as const,
+          label: item.account_name,
+        }
+      : null,
+    (shouldShowRecorder || isAdjustment) && item.recorder_name
+      ? {
+          color: getMemberColor(item.recorder_color),
+          key: "recorder",
+          kind: "text" as const,
+          label: item.recorder_name,
+        }
+      : null,
+    showTime || isAdjustment
+      ? {
+          color: mutedText,
+          key: "time",
+          kind: "text" as const,
+          label: time,
+        }
+      : null,
+  ].filter((segment): segment is MetaSegment => segment !== null);
 
   return (
     <Stack
@@ -274,7 +258,12 @@ export function TransactionRow({
                         {"|"}
                       </Typography>
                     )}
-                    {segment.node}
+                    <Typography
+                      noWrap
+                      sx={{ color: segment.color, fontSize: 11 }}
+                    >
+                      {segment.label}
+                    </Typography>
                   </Fragment>
                 ))}
               </Stack>
@@ -320,56 +309,6 @@ export function TransactionRow({
             </Stack>
           ) : null}
         </Stack>
-      ) : null}
-    </Stack>
-  );
-}
-
-function TransactionConsumerSummary({
-  consumers,
-}: {
-  consumers: NonNullable<TransactionRowItem["consumers"]>;
-}) {
-  const visibleConsumers = consumers.slice(0, 2);
-  const remainingCount = Math.max(
-    0,
-    consumers.length - visibleConsumers.length,
-  );
-
-  return (
-    <Stack
-      component="span"
-      data-testid="transaction-consumers"
-      direction="row"
-      sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}
-    >
-      {visibleConsumers.map((consumer, index) => (
-        <Fragment key={consumer.id}>
-          {index > 0 ? (
-            <Typography
-              component="span"
-              sx={{ color: mutedText, flexShrink: 0, fontSize: 11 }}
-            >
-              、
-            </Typography>
-          ) : null}
-          <Typography
-            component="span"
-            noWrap
-            sx={{ color: getMemberColor(consumer.color), fontSize: 11 }}
-          >
-            {consumer.name}
-          </Typography>
-        </Fragment>
-      ))}
-      {remainingCount > 0 ? (
-        <Typography
-          component="span"
-          noWrap
-          sx={{ color: mutedText, flexShrink: 0, fontSize: 11, ml: 0.5 }}
-        >
-          +{remainingCount}
-        </Typography>
       ) : null}
     </Stack>
   );
@@ -614,7 +553,11 @@ function getAvatarFallback(item: TransactionRowItem, merchantName: string) {
   return getMerchantInitial(merchantName, "?");
 }
 
-function getMemberColor(colorKey: ThemeColorKey | null | undefined) {
+function getMemberColor(
+  colorKey:
+    | TransactionRowItem["account_color"]
+    | TransactionRowItem["recorder_color"],
+) {
   return colorKey ? themeColorTokens[colorKey].chipText : mutedText;
 }
 

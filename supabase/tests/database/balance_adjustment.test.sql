@@ -14,7 +14,6 @@ select is((select current_balance from public.account where id='75510000-0000-40
 select is((select name from public.account where id='75510000-0000-4000-8000-000000000001'),'现金新名称','账户资料同步保存');
 select is((select balance_delta from public.transaction_item where ledger_id='75500000-0000-4000-8000-000000000001'),2500::numeric,'保存正差值');
 select is((select count(*) from public.transaction_item where ledger_id='75500000-0000-4000-8000-000000000001' and category_id is null),1::bigint,'仅一条无分类账户明细');
-select is((select count(*) from public.transaction_consumer where ledger_id='75500000-0000-4000-8000-000000000001'),0::bigint,'不自动创建消费者');
 select is((select count(*) from public.transaction_record where ledger_id='75500000-0000-4000-8000-000000000001' and merchant_id is null and created_by=auth.uid() and note='盘点'),1::bigint,'保存记账人和独立备注而无商家');
 select lives_ok($$select public.update_account_with_balance_adjustment('75500000-0000-4000-8000-000000000001','75510000-0000-4000-8000-000000000001','现金新名称','cash','JPY',array['00000000-0000-4000-8000-000000000031']::uuid[],12500,null)$$,'余额不变仍可保存资料');
 select is((select count(*) from public.transaction_record where ledger_id='75500000-0000-4000-8000-000000000001'),1::bigint,'零差值不生成记录');

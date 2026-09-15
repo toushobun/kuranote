@@ -11,7 +11,6 @@ import {
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
-import { TransactionConsumerProvider } from "organisms/transactions/TransactionForm/TransactionConsumerContext";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
   NewTransactionTemplate,
@@ -41,8 +40,6 @@ export default async function TransactionsNewPage({
 
   const {
     canWriteTransactions,
-    consumerOptions,
-    recorderUserId,
     refundPickerView,
     reimbursementPickerView,
     ...view
@@ -66,20 +63,17 @@ export default async function TransactionsNewPage({
     refundPickerView,
     reimbursementPickerView,
   };
-  const consumerValue = { consumerOptions, recorderUserId };
 
   return (
     <NewTransactionVisualFrame>
-      <TransactionConsumerProvider value={consumerValue}>
-        <TransactionIncomeLinksProvider value={incomeLinksValue}>
-          <NewTransactionTemplate
-            action={createTransaction}
-            errorMessage={null}
-            initialType={parseInitialType(params.type)}
-            {...view}
-          />
-        </TransactionIncomeLinksProvider>
-      </TransactionConsumerProvider>
+      <TransactionIncomeLinksProvider value={incomeLinksValue}>
+        <NewTransactionTemplate
+          action={createTransaction}
+          errorMessage={null}
+          initialType={parseInitialType(params.type)}
+          {...view}
+        />
+      </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );
 }

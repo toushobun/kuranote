@@ -1155,13 +1155,12 @@ $$;
 ALTER FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric, "p_consumer_user_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_transaction_record_id uuid;
-    v_record_created_by uuid;
 begin
     v_transaction_record_id := public.convert_transaction_type(
         p_ledger_id,
@@ -1186,22 +1185,7 @@ begin
             p_items,
             p_account_id,
             p_merchant_id,
-            p_note,
-            p_consumer_user_ids
-        );
-    elsif p_consumer_user_ids is not null then
-        select tr.created_by
-        into v_record_created_by
-        from public.transaction_record tr
-        where tr.id = p_transaction_record_id
-          and tr.ledger_id = p_ledger_id
-          and tr.status = 'active';
-
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            p_transaction_record_id,
-            p_consumer_user_ids,
-            v_record_created_by
+            p_note
         );
     end if;
 
@@ -1210,7 +1194,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
@@ -1728,14 +1712,13 @@ $$;
 ALTER FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text", "p_consumer_user_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
     v_requires_link_lock boolean := false;
-    v_transaction_record_id uuid;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated'
@@ -1765,7 +1748,7 @@ begin
         for update;
     end if;
 
-    v_transaction_record_id := public.create_transaction_locked_impl(
+    return public.create_transaction_locked_impl(
         p_ledger_id,
         p_type,
         p_transaction_at,
@@ -1774,22 +1757,11 @@ begin
         p_merchant_id,
         p_note
     );
-
-    if p_consumer_user_ids is not null then
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            v_transaction_record_id,
-            p_consumer_user_ids,
-            v_user_id
-        );
-    end if;
-
-    return v_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -2056,40 +2028,6 @@ $$;
 
 
 ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_user_id uuid := auth.uid();
-    v_transaction_record_id uuid;
-begin
-    v_transaction_record_id := public.create_transfer_transaction(
-        p_ledger_id,
-        p_transaction_at,
-        p_amount,
-        p_from_account_id,
-        p_to_account_id,
-        p_note
-    );
-
-    if p_consumer_user_ids is not null then
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            v_transaction_record_id,
-            p_consumer_user_ids,
-            v_user_id
-        );
-    end if;
-
-    return v_transaction_record_id;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."current_app_user_is_active"() RETURNS boolean
@@ -4681,88 +4619,6 @@ $$;
 ALTER FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merchant_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."replace_transaction_consumers"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_consumer_user_ids" "uuid"[], "p_default_user_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_consumer_user_ids uuid[];
-begin
-    if not exists (
-        select 1
-        from public.transaction_record tr
-        where tr.id = p_transaction_record_id
-          and tr.ledger_id = p_ledger_id
-          and tr.status = 'active'
-          and tr.type in ('normal', 'transfer')
-    ) then
-        raise exception 'transaction_not_found'
-            using errcode = '22023', detail = 'transaction_not_found';
-    end if;
-
-    if p_consumer_user_ids is null or cardinality(p_consumer_user_ids) = 0 then
-        if p_default_user_id is null then
-            raise exception 'consumer_invalid'
-                using errcode = '22023', detail = 'consumer_invalid';
-        end if;
-        v_consumer_user_ids := array[p_default_user_id];
-    else
-        if array_position(p_consumer_user_ids, null) is not null then
-            raise exception 'consumer_invalid'
-                using errcode = '22023', detail = 'consumer_invalid';
-        end if;
-
-        select array_agg(distinct consumer_user_id)
-        into v_consumer_user_ids
-        from pg_catalog.unnest(p_consumer_user_ids) consumer_user_id;
-    end if;
-
-    if v_consumer_user_ids is null
-       or cardinality(v_consumer_user_ids) = 0
-       or exists (
-            select 1
-            from pg_catalog.unnest(v_consumer_user_ids) consumer_user_id
-            where not exists (
-                select 1
-                from public.ledger_member lm
-                join public.app_user au on au.id = lm.user_id
-                where lm.ledger_id = p_ledger_id
-                  and lm.user_id = consumer_user_id
-                  and lm.status = 'active'
-                  and au.status = 'active'
-            )
-       ) then
-        raise exception 'consumer_invalid'
-            using errcode = '22023', detail = 'consumer_invalid';
-    end if;
-
-    delete from public.transaction_consumer tc
-    where tc.ledger_id = p_ledger_id
-      and tc.transaction_record_id = p_transaction_record_id;
-
-    insert into public.transaction_consumer (
-        ledger_id,
-        transaction_record_id,
-        user_id,
-        created_by
-    )
-    select
-        p_ledger_id,
-        p_transaction_record_id,
-        lm.user_id,
-        auth.uid()
-    from public.ledger_member lm
-    where lm.ledger_id = p_ledger_id
-      and lm.status = 'active'
-      and lm.user_id = any(v_consumer_user_ids)
-    order by lm.joined_at, lm.user_id;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."replace_transaction_consumers"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_consumer_user_ids" "uuid"[], "p_default_user_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4831,30 +4687,6 @@ $$;
 
 
 ALTER FUNCTION "public"."set_account_initial_current_balance"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."set_default_transaction_consumer"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-begin
-    if new.created_by is not null
-       and new.status = 'active'
-       and new.type in ('normal', 'transfer') then
-        perform public.replace_transaction_consumers(
-            new.ledger_id,
-            new.id,
-            array[new.created_by],
-            new.created_by
-        );
-    end if;
-
-    return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."set_default_transaction_consumer"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."set_ledger_member_display_setting_audit_user"() RETURNS "trigger"
@@ -5272,7 +5104,7 @@ $$;
 ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -5284,7 +5116,6 @@ declare
     v_amount numeric;
     v_account_id uuid;
     v_category_id uuid;
-    v_record_created_by uuid;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated'
@@ -5400,27 +5231,11 @@ begin
         raise exception 'transaction_not_found'
             using errcode = '22023', detail = 'transaction_not_found';
     end if;
-
-    if p_consumer_user_ids is not null then
-        select tr.created_by
-        into v_record_created_by
-        from public.transaction_record tr
-        where tr.id = p_transaction_record_id
-          and tr.ledger_id = p_ledger_id
-          and tr.status = 'active';
-
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            p_transaction_record_id,
-            p_consumer_user_ids,
-            v_record_created_by
-        );
-    end if;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") RETURNS "void"
@@ -5851,15 +5666,13 @@ $$;
 ALTER FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_consumer_user_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
     v_requires_link_lock boolean := p_type = 'income';
-    v_record_created_by uuid;
-    v_transaction_record_id uuid;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated'
@@ -5889,7 +5702,7 @@ begin
         for update;
     end if;
 
-    v_transaction_record_id := public.update_transaction_locked_impl(
+    return public.update_transaction_locked_impl(
         p_ledger_id,
         p_transaction_record_id,
         p_type,
@@ -5899,29 +5712,11 @@ begin
         p_merchant_id,
         p_note
     );
-
-    if p_consumer_user_ids is not null then
-        select tr.created_by
-        into v_record_created_by
-        from public.transaction_record tr
-        where tr.id = p_transaction_record_id
-          and tr.ledger_id = p_ledger_id
-          and tr.status = 'active';
-
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            p_transaction_record_id,
-            p_consumer_user_ids,
-            v_record_created_by
-        );
-    end if;
-
-    return v_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -6453,48 +6248,6 @@ $$;
 ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_record_created_by uuid;
-    v_transaction_record_id uuid;
-begin
-    v_transaction_record_id := public.update_transfer_transaction(
-        p_ledger_id,
-        p_transaction_record_id,
-        p_transaction_at,
-        p_amount,
-        p_from_account_id,
-        p_to_account_id,
-        p_note
-    );
-
-    if p_consumer_user_ids is not null then
-        select tr.created_by
-        into v_record_created_by
-        from public.transaction_record tr
-        where tr.id = p_transaction_record_id
-          and tr.ledger_id = p_ledger_id
-          and tr.status = 'active';
-
-        perform public.replace_transaction_consumers(
-            p_ledger_id,
-            p_transaction_record_id,
-            p_consumer_user_ids,
-            v_record_created_by
-        );
-    end if;
-
-    return v_transaction_record_id;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."validate_account_holder_active_member"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -6873,31 +6626,6 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_merchant_tag_link_ledger"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."validate_transaction_consumer_active_member"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-begin
-    if not exists (
-        select 1
-        from public.ledger_member lm
-        join public.app_user au on au.id = lm.user_id
-        where lm.ledger_id = new.ledger_id
-          and lm.user_id = new.user_id
-          and lm.status = 'active'
-          and au.status = 'active'
-    ) then
-        raise exception 'consumer_invalid'
-            using errcode = '22023', detail = 'consumer_invalid';
-    end if;
-
-    return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."validate_transaction_consumer_active_member"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_transaction_item_category_shape"() RETURNS "trigger"
@@ -7727,18 +7455,6 @@ CREATE TABLE IF NOT EXISTS "public"."merchant_tags" (
 ALTER TABLE "public"."merchant_tags" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."transaction_consumer" (
-    "ledger_id" "uuid" NOT NULL,
-    "transaction_record_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "created_by" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."transaction_consumer" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."transaction_item" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "ledger_id" "uuid" NOT NULL,
@@ -8008,11 +7724,6 @@ ALTER TABLE ONLY "public"."merchant_tags"
 
 
 
-ALTER TABLE ONLY "public"."transaction_consumer"
-    ADD CONSTRAINT "transaction_consumer_pkey" PRIMARY KEY ("transaction_record_id", "user_id");
-
-
-
 ALTER TABLE ONLY "public"."transaction_item"
     ADD CONSTRAINT "transaction_item_id_ledger_id_unique" UNIQUE ("id", "ledger_id");
 
@@ -8204,14 +7915,6 @@ CREATE INDEX "merchant_tags_active_order_idx" ON "public"."merchant_tags" USING 
 
 
 
-CREATE INDEX "transaction_consumer_ledger_id_idx" ON "public"."transaction_consumer" USING "btree" ("ledger_id");
-
-
-
-CREATE INDEX "transaction_consumer_user_id_idx" ON "public"."transaction_consumer" USING "btree" ("user_id");
-
-
-
 CREATE INDEX "transaction_item_account_id_idx" ON "public"."transaction_item" USING "btree" ("ledger_id", "account_id", "created_at" DESC, "id" DESC);
 
 
@@ -8400,10 +8103,6 @@ CREATE OR REPLACE TRIGGER "merchant_tags_require_management_permission" BEFORE I
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_consumer_validate_active_member" BEFORE INSERT OR UPDATE ON "public"."transaction_consumer" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_consumer_active_member"();
-
-
-
 CREATE OR REPLACE TRIGGER "transaction_item_freeze_linked_mutation" BEFORE UPDATE OF "amount", "account_id", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
 
 
@@ -8465,10 +8164,6 @@ CREATE OR REPLACE TRIGGER "transaction_record_recalculate_link_targets" AFTER UP
 
 
 CREATE OR REPLACE TRIGGER "transaction_record_require_write_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_transaction_record_permission"();
-
-
-
-CREATE OR REPLACE TRIGGER "transaction_record_set_default_consumer" AFTER INSERT ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."set_default_transaction_consumer"();
 
 
 
@@ -8747,21 +8442,6 @@ ALTER TABLE ONLY "public"."merchant_tags"
 
 ALTER TABLE ONLY "public"."merchant"
     ADD CONSTRAINT "merchant_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_consumer"
-    ADD CONSTRAINT "transaction_consumer_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
-
-
-
-ALTER TABLE ONLY "public"."transaction_consumer"
-    ADD CONSTRAINT "transaction_consumer_record_same_ledger_fk" FOREIGN KEY ("transaction_record_id", "ledger_id") REFERENCES "public"."transaction_record"("id", "ledger_id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."transaction_consumer"
-    ADD CONSTRAINT "transaction_consumer_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."app_user"("id") ON DELETE RESTRICT;
 
 
 
@@ -9060,21 +8740,6 @@ CREATE POLICY "merchant_update_admin" ON "public"."merchant" FOR UPDATE TO "auth
 
 
 
-ALTER TABLE "public"."transaction_consumer" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "transaction_consumer_delete_transaction_editor" ON "public"."transaction_consumer" FOR DELETE TO "authenticated" USING ("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id"));
-
-
-
-CREATE POLICY "transaction_consumer_insert_transaction_editor" ON "public"."transaction_consumer" FOR INSERT TO "authenticated" WITH CHECK ("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id"));
-
-
-
-CREATE POLICY "transaction_consumer_select_active_ledger_member" ON "public"."transaction_consumer" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
-
-
-
 ALTER TABLE "public"."transaction_item" ENABLE ROW LEVEL SECURITY;
 
 
@@ -9193,8 +8858,8 @@ REVOKE ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger
 
 
 
-REVOKE ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric, "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
 
 
 
@@ -9232,8 +8897,8 @@ GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
@@ -9242,11 +8907,6 @@ REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "
 
 
 GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
-
-
-
-REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -9403,16 +9063,8 @@ GRANT ALL ON FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merc
 
 
 
-REVOKE ALL ON FUNCTION "public"."replace_transaction_consumers"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_consumer_user_ids" "uuid"[], "p_default_user_id" "uuid") FROM PUBLIC;
-
-
-
 REVOKE ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "authenticated";
-
-
-
-REVOKE ALL ON FUNCTION "public"."set_default_transaction_consumer"() FROM PUBLIC;
 
 
 
@@ -9441,8 +9093,8 @@ GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uu
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") TO "authenticated";
 
 
 
@@ -9460,8 +9112,8 @@ GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
@@ -9470,11 +9122,6 @@ REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "
 
 
 GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
-
-
-
-REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_consumer_user_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -9567,12 +9214,6 @@ GRANT UPDATE("name") ON TABLE "public"."merchant_tags" TO "authenticated";
 
 
 GRANT UPDATE("icon") ON TABLE "public"."merchant_tags" TO "authenticated";
-
-
-
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "anon";
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_consumer" TO "service_role";
 
 
 

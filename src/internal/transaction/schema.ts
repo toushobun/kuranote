@@ -38,7 +38,6 @@ export type TransactionFormValues = {
   type: TransactionType;
   transactionAt: string;
   accountId: string;
-  consumerUserIds?: string[];
   items: TransactionFormItemValues[];
   merchantId: string;
   note: string | null;
@@ -48,7 +47,6 @@ export type TransferTransactionFormValues = {
   type: "transfer";
   transactionAt: string;
   accountId: string;
-  consumerUserIds?: string[];
   transferTargetAccountId: string;
   transferAmount: number;
   note: string | null;
@@ -255,27 +253,6 @@ function parseTransactionItems(
   return valid(items);
 }
 
-function parseConsumerUserIds(
-  formData: FormData,
-): ValidationResult<string[] | undefined, TransactionValidationErrorCode> {
-  const values = formData.getAll("consumerUserId");
-  if (values.length === 0) return valid(undefined);
-
-  const userIds: string[] = [];
-  for (const value of values) {
-    const result = parseOptionalUuidText(
-      String(value).trim(),
-      transactionErrorCodes.consumerInvalid,
-    );
-    if (!result.ok || !result.value) {
-      return invalid(transactionErrorCodes.consumerInvalid);
-    }
-    userIds.push(result.value);
-  }
-
-  return valid([...new Set(userIds)]);
-}
-
 export function validateTransactionForm(
   formData: FormData,
 ): ValidationResult<
@@ -358,14 +335,8 @@ export function validateTransactionForm(
       return noteResult;
     }
 
-    const consumerResult = parseConsumerUserIds(formData);
-    if (!consumerResult.ok) return consumerResult;
-
     return valid({
       accountId: accountIdResult.value,
-      ...(consumerResult.value
-        ? { consumerUserIds: consumerResult.value }
-        : {}),
       note: noteResult.value,
       transactionAt,
       transferAmount: transferAmountResult.value,
@@ -401,12 +372,8 @@ export function validateTransactionForm(
     return noteResult;
   }
 
-  const consumerResult = parseConsumerUserIds(formData);
-  if (!consumerResult.ok) return consumerResult;
-
   return valid({
     accountId: accountIdResult.value,
-    ...(consumerResult.value ? { consumerUserIds: consumerResult.value } : {}),
     items: itemsResult.value,
     merchantId: merchantIdResult.value,
     note: noteResult.value,
@@ -616,7 +583,6 @@ const transactionItemRequestSchema = z
 
 const normalTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),
-  consumerUserIds: z.array(z.string().uuid()).min(1).optional(),
   items: z.array(transactionItemRequestSchema).min(1),
   ledgerId: z.string().uuid(),
   merchantId: z.string().uuid(),
@@ -627,7 +593,6 @@ const normalTransactionRequestSchema = z.object({
 
 const transferTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),
-  consumerUserIds: z.array(z.string().uuid()).min(1).optional(),
   ledgerId: z.string().uuid(),
   note: z.string().max(2000).nullable(),
   transactionAt: z.string().datetime({ offset: true }),

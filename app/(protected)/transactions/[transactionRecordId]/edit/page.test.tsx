@@ -93,18 +93,6 @@ function createTransferEditView() {
   };
 }
 
-function getTemplateElement(result: ReactElement<Record<string, unknown>>) {
-  const consumerProvider = result.props.children as ReactElement<
-    Record<string, unknown>
-  >;
-  const incomeLinksProvider = consumerProvider.props.children as ReactElement<
-    Record<string, unknown>
-  >;
-  return incomeLinksProvider.props.children as ReactElement<
-    Record<string, unknown>
-  >;
-}
-
 describe("TransactionEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -140,7 +128,10 @@ describe("TransactionEditPage", () => {
       params: Promise.resolve({ transactionRecordId }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-    const child = getTemplateElement(element);
+    const provider = element.props.children as ReactElement<{
+      children: ReactElement<Record<string, unknown>>;
+    }>;
+    const child = provider.props.children;
 
     expect(child.type).toBe(mocks.EditTransactionTemplate);
     expect(child.props.initialValues).toMatchObject({
@@ -158,7 +149,12 @@ describe("TransactionEditPage", () => {
       params: Promise.resolve({ transactionRecordId }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-    const child = getTemplateElement(element);
+    const provider = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
+    const child = provider.props.children as ReactElement<
+      Record<string, unknown>
+    >;
 
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
@@ -184,7 +180,12 @@ describe("TransactionEditPage", () => {
       params: Promise.resolve({ transactionRecordId }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-    const child = getTemplateElement(element);
+    const provider = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
+    const child = provider.props.children as ReactElement<
+      Record<string, unknown>
+    >;
 
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
@@ -208,7 +209,12 @@ describe("TransactionEditPage", () => {
       params: Promise.resolve({ transactionRecordId }),
     });
     const element = result as ReactElement<Record<string, unknown>>;
-    const child = getTemplateElement(element);
+    const provider = element.props.children as ReactElement<
+      Record<string, unknown>
+    >;
+    const child = provider.props.children as ReactElement<
+      Record<string, unknown>
+    >;
 
     expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransferTransactionTemplate);

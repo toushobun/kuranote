@@ -137,10 +137,6 @@ export interface TransactionService {
   ): Promise<TransactionSearchPage>;
   updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
   updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
-  validateConsumerUserIds(input: {
-    consumerUserIds?: string[];
-    ledgerId: string;
-  }): Promise<string[] | undefined>;
   void(input: { ledgerId: string; transactionRecordId: string }): Promise<void>;
 }
 
@@ -228,49 +224,6 @@ export function createTransactionService({
       throw permissionError();
     }
     return record;
-  }
-
-  async function resolveConsumerUserIds(
-    ledgerId: string,
-    consumerUserIds: string[] | undefined,
-  ): Promise<string[] | undefined> {
-    if (consumerUserIds === undefined) return undefined;
-
-    const requestedUserIds = [...new Set(consumerUserIds)];
-    if (requestedUserIds.length === 0) {
-      throw new ValidationError(
-        transactionErrorCodes.consumerInvalid,
-        getTransactionValidationErrorMessage(
-          transactionErrorCodes.consumerInvalid,
-        )!,
-      );
-    }
-
-    const activeMemberIds = new Set(
-      await transactionRepository.listActiveMemberIds(ledgerId),
-    );
-    if (requestedUserIds.some((userId) => !activeMemberIds.has(userId))) {
-      throw new ValidationError(
-        transactionErrorCodes.consumerInvalid,
-        getTransactionValidationErrorMessage(
-          transactionErrorCodes.consumerInvalid,
-        )!,
-      );
-    }
-
-    return requestedUserIds;
-  }
-
-  async function validateConsumerInput<
-    T extends { ledgerId: string; consumerUserIds?: string[] },
-  >(input: T): Promise<T> {
-    const consumerUserIds = await resolveConsumerUserIds(
-      input.ledgerId,
-      input.consumerUserIds,
-    );
-    return consumerUserIds === undefined
-      ? input
-      : { ...input, consumerUserIds };
   }
 
   async function validateSpecialStatuses(input: {
@@ -406,12 +359,11 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const validatedInput = await validateConsumerInput(input);
-      if (validatedInput.targetType !== "transfer") {
-        await validateSpecialStatuses(validatedInput);
+      if (input.targetType !== "transfer") {
+        await validateSpecialStatuses(input);
       }
       try {
-        await transactionRepository.convert(validatedInput);
+        await transactionRepository.convert(input);
       } catch (error) {
         operationError(error, transactionErrorCodes.updateFailed);
       }
@@ -419,10 +371,9 @@ export function createTransactionService({
 
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
-      const validatedInput = await validateConsumerInput(input);
-      await validateSpecialStatuses(validatedInput);
+      await validateSpecialStatuses(input);
       try {
-        await transactionRepository.createNormal(validatedInput);
+        await transactionRepository.createNormal(input);
       } catch (error) {
         operationError(error, transactionErrorCodes.createFailed);
       }
@@ -430,9 +381,8 @@ export function createTransactionService({
 
     async createTransfer(input) {
       await requireWritePermission(input.ledgerId);
-      const validatedInput = await validateConsumerInput(input);
       try {
-        await transactionRepository.createTransfer(validatedInput);
+        await transactionRepository.createTransfer(input);
       } catch (error) {
         operationError(error, transactionErrorCodes.createFailed);
       }
@@ -538,15 +488,14 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const validatedInput = await validateConsumerInput(input);
-      await validateSpecialStatuses(validatedInput);
+      await validateSpecialStatuses(input);
       await requireActiveTransactionAccounts({
-        accountIds: [validatedInput.accountId],
-        ledgerId: validatedInput.ledgerId,
-        transactionRecordId: validatedInput.transactionRecordId,
+        accountIds: [input.accountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
       });
       try {
-        await transactionRepository.updateNormal(validatedInput);
+        await transactionRepository.updateNormal(input);
       } catch (error) {
         operationError(error, transactionErrorCodes.updateFailed);
       }
@@ -579,24 +528,16 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const validatedInput = await validateConsumerInput(input);
       await requireActiveTransactionAccounts({
-        accountIds: [
-          validatedInput.accountId,
-          validatedInput.transferTargetAccountId,
-        ],
-        ledgerId: validatedInput.ledgerId,
-        transactionRecordId: validatedInput.transactionRecordId,
+        accountIds: [input.accountId, input.transferTargetAccountId],
+        ledgerId: input.ledgerId,
+        transactionRecordId: input.transactionRecordId,
       });
       try {
-        await transactionRepository.updateTransfer(validatedInput);
+        await transactionRepository.updateTransfer(input);
       } catch (error) {
         operationError(error, transactionErrorCodes.updateFailed);
       }
-    },
-
-    async validateConsumerUserIds({ consumerUserIds, ledgerId }) {
-      return resolveConsumerUserIds(ledgerId, consumerUserIds);
     },
 
     async void({ ledgerId, transactionRecordId }) {

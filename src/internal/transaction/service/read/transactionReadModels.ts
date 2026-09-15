@@ -1,7 +1,6 @@
 import type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
-import type { TransactionConsumer } from "internal/transaction/entity/transactionConsumer";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type {
@@ -32,12 +31,12 @@ export type TransactionListItem = {
   originalType?: CategoryType;
   canEdit?: boolean;
   categoryItems: TransactionCategorySummaryItem[];
-  consumers?: TransactionConsumer[];
   created_at: string;
   id: string;
   merchant_icon_url: string | null;
   merchant_name: string | null;
   note: string | null;
+  recorder_color?: ThemeColorKey | null;
   recorder_name: string | null;
   show_recorder?: boolean;
   transaction_at: string;
@@ -58,8 +57,6 @@ export type TransactionCategoryOption = {
   type: CategoryType;
 };
 
-export type TransactionConsumerOption = TransactionConsumer;
-
 export type TransactionMemberOption = {
   id: string;
   name: string;
@@ -76,7 +73,6 @@ export type TransactionFilterOptions = {
 export type TransactionFormOptions = {
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
-  consumerOptions: TransactionConsumerOption[];
   frequentCategoryIds: string[];
   merchantOptions: MerchantSummary[];
   transactionItemSpecialStatusEnabled: boolean;
@@ -115,7 +111,6 @@ export type TransactionTimeGroupViewData = {
 
 export type TransferEditInitialValues = {
   accountId: string;
-  consumerUserIds?: string[];
   note: string;
   transactionAt: string;
   transactionRecordId: string;
@@ -140,7 +135,6 @@ type TransactionIncomeLinkCandidate = {
 export type NewTransactionView = TransactionFormOptions & {
   canWriteTransactions: boolean;
   ledgerName: string;
-  recorderUserId: string;
 };
 
 export type EditTransactionView = TransactionFormOptions & {
@@ -151,7 +145,6 @@ export type EditTransactionView = TransactionFormOptions & {
     | TransferEditInitialValues
     | {
         accountId: string;
-        consumerUserIds?: string[];
         items: {
           amount: string;
           businessNetAmount?: string;
@@ -171,5 +164,4 @@ export type EditTransactionView = TransactionFormOptions & {
         type: TransactionType;
       };
   ledgerName: string;
-  recorderUserId: string;
 };

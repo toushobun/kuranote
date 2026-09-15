@@ -7,7 +7,6 @@ import type {
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   TransactionCategoryOption,
-  TransactionConsumerOption,
   TransactionFilterOptions,
   TransactionFormOptions,
   TransactionMemberOption,
@@ -27,7 +26,6 @@ export async function loadTransactionFormOptions(
     categoryRows,
     frequentCategoryHistory,
     merchantOptions,
-    memberIds,
   ] = await Promise.all([
     dependencies.accountQueryService.listTransactionOptions({
       ledgerId: currentLedger.id,
@@ -44,19 +42,12 @@ export async function loadTransactionFormOptions(
     dependencies.merchantQueryService.listActiveOptions({
       ledgerId: currentLedger.id,
     }),
-    dependencies.transactionRepository.listActiveMemberIds(currentLedger.id),
   ]);
   const categoryOptions = buildFormCategoryOptions(categoryRows);
-  const consumerOptions = await loadConsumerOptions(
-    dependencies,
-    currentLedger.id,
-    memberIds,
-  );
 
   return {
     accountOptions,
     categoryOptions,
-    consumerOptions,
     frequentCategoryIds: selectFrequentCategoryIds(
       frequentCategoryHistory,
       categoryOptions.map((category) => category.id),
@@ -99,31 +90,6 @@ export async function loadTransactionFilterOptions(
     transactionItemSpecialStatusEnabled:
       currentLedger.transactionItemSpecialStatusEnabled ?? false,
   };
-}
-
-async function loadConsumerOptions(
-  dependencies: TransactionReadDependencies<TransactionFormRepository>,
-  ledgerId: string,
-  memberUserIds: string[],
-): Promise<TransactionConsumerOption[]> {
-  const members = await dependencies.transactionRepository.findUserSummaries(
-    ledgerId,
-    memberUserIds,
-  );
-  const memberById = new Map(members.map((member) => [member.id, member]));
-
-  return memberUserIds.flatMap((userId) => {
-    const member = memberById.get(userId);
-    return member
-      ? [
-          {
-            color: member.display_color ?? null,
-            id: member.id,
-            name: member.display_name,
-          },
-        ]
-      : [];
-  });
 }
 
 async function loadMemberOptions(
