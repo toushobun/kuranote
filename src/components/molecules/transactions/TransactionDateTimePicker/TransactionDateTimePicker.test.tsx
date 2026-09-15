@@ -1,25 +1,21 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { TransactionDateTimePicker } from "./TransactionDateTimePicker";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { appZIndex } from "theme/zIndex";
 
-const componentSource = readFileSync(
-  join(
-    process.cwd(),
-    "src/components/molecules/transactions/TransactionDateTimePicker/TransactionDateTimePicker.tsx",
-  ),
-  "utf8",
-);
+import {
+  dateTimePickerDrawerSx,
+  TransactionDateTimePicker,
+} from "./TransactionDateTimePicker";
 
 describe("TransactionDateTimePicker", () => {
-  it("抽屉层级高于底部导航栏，避免被遮挡", () => {
-    expect(componentSource).toContain(
-      'import { appZIndex } from "theme/zIndex";',
+  it("抽屉层级高于底部导航栏和 Dialog，避免被遮挡", () => {
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(
+      bottomNavigationLayout.navigationZIndex,
     );
-    expect(componentSource).toContain("zIndex: appZIndex.bottomSheet");
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(appZIndex.dialog);
+    expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(appZIndex.dropdown);
   });
 
   it("显示日期时间并在抽屉中选择日期", async () => {
