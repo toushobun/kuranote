@@ -16,12 +16,15 @@ describe("DataTransferPlaceholderTemplate", () => {
     ).toHaveAttribute("href", "/settings/data");
   });
 
-  it("导出占位页显示标题和即将上线提示", () => {
+  it("导出占位页显示标题、即将上线提示和返回入口", () => {
     render(<DataTransferPlaceholderTemplate kind="export" />);
 
     expect(
       screen.getByRole("heading", { name: "数据导出" }),
     ).toBeInTheDocument();
     expect(screen.getByText("数据导出功能即将上线")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "返回数据导入导出" }),
+    ).toHaveAttribute("href", "/settings/data");
   });
 });
