@@ -18,6 +18,7 @@ import {
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
   getTransactionValidationErrorMessage,
+  balanceAdjustmentErrorMessages,
   getUpdateTransactionValidationErrorMessage,
   getVoidTransactionValidationErrorMessage,
   transactionLinkedEditErrorMessages,
@@ -27,6 +28,7 @@ import {
   validateTransactionForm,
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
+  parseUpdateBalanceAdjustmentForm,
 } from "internal/transaction/schema";
 import type { TransactionActionState } from "types/transactions";
 
@@ -269,4 +271,30 @@ export async function voidTransaction(
   }
   revalidateTransactionMutation();
   redirect(transactionsResultHref(transactionResultValues.deleted));
+}
+
+export async function updateBalanceAdjustmentTransaction(
+  _previousState: TransactionActionState,
+  formData: FormData,
+): Promise<TransactionActionState> {
+  const { currentLedger } = await requireCurrentUserAndLedger();
+  const parsed = parseUpdateBalanceAdjustmentForm(formData);
+  if (!parsed.success)
+    return {
+      error: parsed.error.issues[0].message,
+      errorKey: crypto.randomUUID(),
+    };
+  try {
+    await (
+      await getTransactionService()
+    ).updateBalanceAdjustment({ ledgerId: currentLedger.id, ...parsed.data });
+  } catch (error) {
+    const state = appErrorState(
+      error,
+      balanceAdjustmentErrorMessages.updateFailed,
+    );
+    return { ...state, errorKey: crypto.randomUUID() };
+  }
+  revalidateTransactionMutation();
+  redirect(updatedHref(parsed.data.transactionAt));
 }

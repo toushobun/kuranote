@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
   transactionErrorCodes,
+  balanceAdjustmentErrorMessages,
   type TransactionValidationErrorCode,
   type UpdateTransactionValidationErrorCode,
   type VoidTransactionValidationErrorCode,
@@ -706,3 +707,37 @@ export const errorResponseSchema = z.object({
     status: z.number().int(),
   }),
 });
+
+export const updateBalanceAdjustmentRequestSchema = z
+  .object({
+    transactionRecordId: z
+      .string()
+      .uuid(balanceAdjustmentErrorMessages.invalid),
+    transactionAt: z.string().datetime({
+      offset: true,
+      message: balanceAdjustmentErrorMessages.dateInvalid,
+    }),
+    note: z
+      .string()
+      .trim()
+      .max(2000, balanceAdjustmentErrorMessages.noteTooLong)
+      .nullable(),
+  })
+  .strict();
+export type UpdateBalanceAdjustmentInput = z.infer<
+  typeof updateBalanceAdjustmentRequestSchema
+> & { ledgerId: string };
+export function parseUpdateBalanceAdjustmentForm(formData: FormData) {
+  const offset = parseTimeZoneOffsetMinutes(
+    getFormText(formData, "timeZoneOffsetMinutes"),
+  );
+  const transactionAt =
+    offset === null
+      ? null
+      : parseTransactionAt(getFormText(formData, "transactionAt"), offset);
+  return updateBalanceAdjustmentRequestSchema.safeParse({
+    transactionRecordId: getFormText(formData, "transactionRecordId"),
+    transactionAt: transactionAt ?? "",
+    note: getFormText(formData, "note").trim() || null,
+  });
+}

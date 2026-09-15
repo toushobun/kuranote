@@ -1,5 +1,6 @@
 import {
   saveEditTransaction,
+  updateBalanceAdjustmentTransaction,
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
 import {
@@ -11,6 +12,7 @@ import {
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
+import { BalanceAdjustmentEditForm } from "organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
 import { TransactionConsumerProvider } from "organisms/transactions/TransactionForm/TransactionConsumerContext";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import {
@@ -47,6 +49,17 @@ export default async function TransactionEditPage({
 
   const errorMessage = null;
   const initialValues = view.initialValues;
+  if (initialValues.type === "balance_adjustment") {
+    return (
+      <NewTransactionVisualFrame>
+        <BalanceAdjustmentEditForm
+          initialValues={initialValues}
+          action={updateBalanceAdjustmentTransaction}
+          deleteAction={voidTransaction}
+        />
+      </NewTransactionVisualFrame>
+    );
+  }
   const incomeLinksValue = {
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,

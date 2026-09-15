@@ -214,3 +214,24 @@ describe("buildTransactionGroupSummaryPage", () => {
     expect(page.groups[1].summary.expense).toBe("0");
   });
 });
+
+it.each(["2500", "-2500"])("余额调整 %s 计入流水笔数但不计入收支", (delta) => {
+  const page = buildTransactionGroupSummaryPage({
+    accounts,
+    categories,
+    currency: "JPY",
+    groupBy: "month",
+    items: [{ ...item("adjustment", null, "2500"), balance_delta: delta }],
+    merchants,
+    offset: 0,
+    pageSize: 20,
+    records: [
+      record("adjustment", "2026-09-14T00:00:00Z", "balance_adjustment"),
+    ],
+    recorders,
+  });
+  expect(page.groups[0]).toMatchObject({
+    transactionCount: 1,
+    summary: { income: "0", expense: "0", balance: "0" },
+  });
+});

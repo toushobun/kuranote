@@ -11,7 +11,11 @@ import type {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export const transactionPageSize = 20;
-export const activeTransactionRecordTypes = ["normal", "transfer"] as const;
+export const activeTransactionRecordTypes = [
+  "normal",
+  "transfer",
+  "balance_adjustment",
+] as const;
 
 export type TransactionGroupLoaderContext = {
   accountColorById: Map<string, ThemeColorKey>;

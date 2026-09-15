@@ -360,7 +360,7 @@ function addRecordToGroup(
 ) {
   group.recordIds.add(record.id);
 
-  if (record.type === "transfer") return;
+  if (record.type !== "normal") return;
 
   addSignedAmount(group.summary, calculateRecordNetAmount(items, categoryById));
 }
@@ -374,7 +374,7 @@ function addItemToGroup(
   group.recordIds.add(record.id);
   group.itemCount += 1;
 
-  if (record.type === "transfer") return;
+  if (record.type !== "normal") return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
   addSignedAmount(group.summary, signedAmount);

@@ -3,7 +3,12 @@ import type { AccountType } from "internal/account/entity/accountType";
 import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
 import type { AccountSummary } from "internal/account/entity/accountSummary";
 import type { Logger } from "internal/shared/logging/logger";
-import { ConflictError } from "internal/shared/errors/appError";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ValidationError,
+  ConflictError,
+} from "internal/shared/errors/appError";
 import {
   accountErrorCodes,
   getAccountErrorMessage,
@@ -105,6 +110,8 @@ export type CreateAccountInput = {
 };
 
 export type UpdateAccountInput = {
+  targetBalance?: number;
+  balanceAdjustmentNote?: string | null;
   accountId: string;
   currency: string;
   holderUserIds: string[];
@@ -439,9 +446,11 @@ export function createSupabaseAccountRepository(
 
     async update(input) {
       const { data, error } = await supabase.rpc(
-        "update_account_with_holders",
+        "update_account_with_balance_adjustment",
         {
           p_account_id: input.accountId,
+          p_target_balance: input.targetBalance ?? null,
+          p_adjustment_note: input.balanceAdjustmentNote ?? null,
           p_currency: input.currency,
           p_holder_user_ids: input.holderUserIds,
           p_ledger_id: input.ledgerId,
@@ -455,6 +464,22 @@ export function createSupabaseAccountRepository(
           accountId: input.accountId,
           ledgerId: input.ledgerId,
         });
+        if (error.code === "28000")
+          throw new AuthenticationError("auth_required", "请先登录。");
+        if (error.code === "42501")
+          throw new AuthorizationError(
+            accountErrorCodes.permissionDenied,
+            getAccountErrorMessage(accountErrorCodes.permissionDenied)!,
+          );
+        if (
+          error.details === accountErrorCodes.balanceInvalid ||
+          error.details === accountErrorCodes.adjustmentNoteInvalid
+        ) {
+          throw new ValidationError(
+            error.details,
+            getAccountErrorMessage(error.details)!,
+          );
+        }
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.updateFailed,

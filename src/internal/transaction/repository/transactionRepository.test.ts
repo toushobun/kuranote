@@ -85,6 +85,41 @@ describe("TransactionRepository", () => {
     transferAmount: 1200,
     transferTargetAccountId: targetAccountId,
   };
+  it("余额调整仅提交时间备注到原子更新 RPC", async () => {
+    const { repository, rpc } = createRepository();
+    await repository.updateBalanceAdjustment({
+      ledgerId,
+      transactionRecordId,
+      transactionAt: "2026-09-14T00:00:00.000Z",
+      note: "盘点",
+    });
+    expect(rpc).toHaveBeenCalledExactlyOnceWith(
+      "update_balance_adjustment_transaction",
+      {
+        p_ledger_id: ledgerId,
+        p_transaction_record_id: transactionRecordId,
+        p_transaction_at: "2026-09-14T00:00:00.000Z",
+        p_note: "盘点",
+      },
+    );
+  });
+  it("数据库归档竞争转成安全校验错误", async () => {
+    const { repository } = createRepository({
+      rpc: vi.fn().mockResolvedValue({
+        error: {
+          code: "22023",
+          details: "balance_adjustment_account_archived",
+          message: "private database details",
+        },
+      }),
+    });
+    await expect(
+      repository.void(ledgerId, transactionRecordId),
+    ).rejects.toMatchObject({
+      name: "ValidationError",
+      message: "该账户已归档，无法撤销余额调整",
+    });
+  });
   it("普通交易创建继续调用原子 RPC", async () => {
     const { repository, rpc } = createRepository();
     await repository.createNormal(normalInput);
@@ -966,7 +1001,11 @@ describe("TransactionDashboardRepository", () => {
       }),
     ).resolves.toEqual([accountId, secondAccountId]);
     expect(recordQuery.select).toHaveBeenCalledWith("id");
-    expect(recordQuery.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
+    expect(recordQuery.in).toHaveBeenCalledWith("type", [
+      "normal",
+      "transfer",
+      "balance_adjustment",
+    ]);
     expect(recordQuery.range).toHaveBeenCalledWith(0, 99);
     expect(itemQuery.select).toHaveBeenCalledWith(
       "transaction_record_id, account_id",

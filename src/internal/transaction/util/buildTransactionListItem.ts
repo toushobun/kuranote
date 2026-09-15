@@ -65,6 +65,30 @@ export function buildTransactionListItem({
       : [];
   });
 
+  if (record.type === "balance_adjustment") {
+    const item = recordItems[0];
+    const account = item ? accountById.get(item.account_id) : undefined;
+    return {
+      account_color: item
+        ? (accountColorById?.get(item.account_id) ?? null)
+        : null,
+      account_currency: account?.currency ?? fallbackCurrency,
+      account_name: account?.name ?? "未知账户",
+      amount: item?.balance_delta ?? "0",
+      canEdit,
+      categoryItems: [],
+      created_at: record.created_at,
+      id: record.id,
+      merchant_icon_url: null,
+      merchant_name: null,
+      note: record.note,
+      recorder_name: recorder?.display_name ?? null,
+      show_recorder: true,
+      transaction_at: record.transaction_at,
+      type: "balance_adjustment",
+    };
+  }
+
   if (record.type === "transfer") {
     return buildTransferListItem({
       accountById,

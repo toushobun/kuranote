@@ -67,6 +67,21 @@ describe("errorHandlingMiddleware", () => {
       ),
       500,
     ],
+    [new ValidationError("account_balance_invalid", "当前余额无效。"), 400],
+    [
+      new ValidationError(
+        "account_adjustment_note_invalid",
+        "余额调整备注过长。",
+      ),
+      400,
+    ],
+    [
+      new ValidationError(
+        "balance_adjustment_account_archived",
+        "该账户已归档，无法撤销余额调整",
+      ),
+      400,
+    ],
     [new ValidationError("invalid_request", "请求内容无效。"), 400],
     [new AuthenticationError("auth_required", "请先登录后再继续。"), 401],
     [new AuthorizationError("permission_denied", "没有操作权限。"), 403],

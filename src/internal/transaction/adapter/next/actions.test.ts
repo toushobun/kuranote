@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   linkedUpdate: vi.fn(),
   linkedUpdateEdit: vi.fn(),
   updateNormal: vi.fn(),
+  updateBalanceAdjustment: vi.fn(),
   updateTransfer: vi.fn(),
   void: vi.fn(),
 }));
