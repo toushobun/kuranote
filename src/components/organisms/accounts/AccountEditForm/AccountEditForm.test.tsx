@@ -208,4 +208,31 @@ describe("余额调整", () => {
     });
     expect(screen.getByRole("button", { name: "保存修改" })).toBeDisabled();
   });
+  it("弹窗未关闭时账户余额被外部改变，重新校准基准而不是沿用旧快照", () => {
+    const { container, rerender } = render(
+      <UserThemeProvider storageScope="account-edit-form-test">
+        <ConfirmDialogProvider>
+          <AccountEditForm {...baseProps} />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
+    );
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    expect(screen.getByLabelText("当前余额")).toHaveValue("85000");
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+
+    rerender(
+      <UserThemeProvider storageScope="account-edit-form-test">
+        <ConfirmDialogProvider>
+          <AccountEditForm
+            {...baseProps}
+            account={{ ...account, current_balance: 90000 }}
+          />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
+    );
+
+    expect(screen.getByLabelText("当前余额")).toHaveValue("90000");
+    expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
+    expect(new FormData(form).has("targetBalance")).toBe(false);
+  });
 });

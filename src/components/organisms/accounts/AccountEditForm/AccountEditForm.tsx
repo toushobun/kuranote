@@ -5,7 +5,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
 import { isAccountBalanceText, isValidTargetBalance } from "internal/account";
 import { formatNumber } from "utils/transactions";
@@ -51,6 +51,13 @@ export function AccountEditForm({
     String(account.current_balance),
   );
   const [adjustmentNote, setAdjustmentNote] = useState("");
+  useEffect(() => {
+    // 弹窗保持挂载期间账户余额被外部改变时，以最新余额重新校准基准，
+    // 避免拿挂载时的旧快照和最新余额算出虚假差值。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTargetBalance(String(account.current_balance));
+    setAdjustmentNote("");
+  }, [account.current_balance]);
   const validBalance =
     isAccountBalanceText(targetBalance) &&
     isValidTargetBalance(Number(targetBalance));
