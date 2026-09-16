@@ -26,7 +26,7 @@ describe("DataImportExportTemplate", () => {
 
     expect(importEntry).toHaveAttribute("href", "/settings/data/import");
     expect(
-      within(importEntry).getByText("从 CSV / xlsx 文件批量导入收支和转账记录"),
+      within(importEntry).getByText("从 xlsx 文件批量导入收支和转账记录"),
     ).toBeInTheDocument();
   });
 

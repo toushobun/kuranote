@@ -32,6 +32,7 @@
     "@mui/material-nextjs": "^9.0.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "exceljs": "^4.4.0",
     "hono": "^4.12.30",
     "next": "16.2.6",
     "pinyin-pro": "^3.28.1",

@@ -240,6 +240,13 @@ describe("createRequestContainer", () => {
     expect(typeof container.category.service.reorder).toBe("function");
   });
 
+  it("提供惰性缓存的 dataImport.service", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(container.dataImport).toBe(container.dataImport);
+    expect(typeof container.dataImport.service.checkFile).toBe("function");
+  });
+
   it("提供惰性缓存的 user.service 和显示名同步窄接口", () => {
     const container = createRequestContainer(createDependenciesStub());
 
