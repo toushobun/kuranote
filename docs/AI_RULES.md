@@ -18,6 +18,8 @@
 > `src/internal/<module>/index.ts` 是模块公共契约入口，Router 与 `basePath` 只在 `moduleRegistry.ts` 集中登记。`src/internal/` 外部代码只能通过模块根入口或模块内 `adapter/next/**` 访问业务模块，不得深度导入 Controller、Service、Repository、Schema、errors、entity 或 util 等实现文件。
 > 前端与后端相关的核心行为约束均已整理在本文件中，无需每次强制读取 #1 / #90 / #468。
 
+`AGENTS.md`（Codex）与 `CLAUDE.md`（Claude Code）只保留指向本文件的最小说明，二者内容必须保持一致（仅工具名与文件名不同），由 `agentInstructions.test.ts` 校验。新增或修改 AI Agent 行为规则一律写入本文件，不得回退到在 `AGENTS.md` / `CLAUDE.md` 中堆叠规则。
+
 ## CodeGraph
 
 如果仓库根目录存在 `.codegraph/`，需要优先使用 CodeGraph 理解或定位代码，再使用 grep/find 或直接读取文件。
@@ -53,6 +55,7 @@
 - 所有来自客户端的数据（表单、URL 参数、searchParams、headers）必须在服务端重新校验，不能直接使用。
 - 数据访问逻辑优先封装在 server-only 的 Data Access Layer 中，避免敏感逻辑被 Client Component 引入。
 - Route Handler 的 `POST / PUT / PATCH / DELETE` 请求需要进行认证、授权与来源校验。使用 cookie 型认证时，写操作需考虑 CSRF 风险，并通过 SameSite、Origin 校验或 CSRF token 等方式处理。
+- Cookie 认证的写请求必须复用 `internal/shared/middleware/sameOriginRequest` 进行同源校验，或采用项目后续统一的 CSRF 防护机制，不得各自实现一套判断逻辑。
 - 服务端不得自动抓取任意外部 URL。若未来实现外部 URL 抓取（如商家 icon），必须限制协议、校验域名、禁止内网 IP / localhost / metadata address，并处理重定向，单独设计 SSRF 防护后方可实现。
 
 ## TypeScript 类型安全
@@ -113,9 +116,19 @@
 - Server Action 不是独立 HTTP API。失败态以 `BaseActionState` 为基础返回
   inline `{ error, errorKey? }`，由当前页面复用 `FailureFeedbackDialog`
   展示；Action 记录未知异常并返回安全 message，不得为制造 HTTP `500`
-  破坏 `useActionState`。
-- Server Action 的解析失败、前置校验和 Service 失败文案必须来自对应模块的
-  单一权威错误定义。页面和组件不得按错误码重复维护文案。
+  破坏 `useActionState`。`errorKey` 仅用于区分连续发生的失败并触发本次
+  反馈，每次失败可生成新的随机值，不是稳定业务错误码；禁止为各 flow
+  新增 `{ ok, error }` 协议或失败 `redirect()`，成功后的真实页面导航仍
+  可使用 `redirect()`。
+- 无论失败发生在表单解析、前置校验还是 Service 调用阶段，用户侧错误文案
+  都必须由对应的校验或业务错误源头提供为可直接展示的安全 message，Action
+  只负责写入状态。Server Action 的解析失败、前置校验和 Service 失败文案
+  必须来自对应模块的单一权威错误定义。页面和组件不得按错误码重复维护
+  文案；现有 flow 中的页面层映射应在迁移该 flow 时清理，不得继续扩散。
+- `RequestRegisterOtpActionState` 与 `SubmitRegisterOtpActionState` 的既有
+  `status` 枚举属于 Issue #462 范围外的存量协议，不要求改造，也不得作为
+  新 flow 的实现先例。
+- 弹框关闭后应维持当前 URL，刷新页面不得重复显示已经处理完毕的历史异常。
 - 模块错误定义默认集中在模块根目录的 `errors.ts`。当模块错误数量较多且可按
   独立业务流程清晰拆分时，可以使用 `errors/` 目录，并以业务流程命名目录内
   文件；不得使用 `categoryErrors.ts` 一类重复模块名前缀的命名。Service、
@@ -166,8 +179,12 @@ Issue #532、#533 保留 `service/read/` 与类型归属的试点落地记录。
   模块外代码不得绕过它深度导入实现文件。模块公共 API 只由此入口决定，不按
   单个文件 export 的数量判断某个符号是否公共。
 - **`router.ts`**：声明路由 path、method 与 handler 的静态映射，不包含业务
-  逻辑，也不负责输入校验；不是每个模块都必须有 HTTP 路由。统一 request
-  context 与错误处理中间件的挂载规则见上文「统一错误处理」。
+  逻辑，也不负责输入校验；不是每个模块都必须有 HTTP 路由。`router.ts`
+  必须是主 HTTP 路由的可视入口，在同一文件中声明 Method、Path 与
+  Controller Handler 绑定；额外 basePath 的路由使用语义明确的
+  `*Router.ts` 文件。Controller 不得定义 `createRoute()`，也不得反向
+  依赖 Router。统一 request context 与错误处理中间件的挂载规则见上文
+  「统一错误处理」。
 - **`controller/`**：读取 `schema` 校验结果、调用 Service，并封装成功状态码
   与响应，不包含业务逻辑。Controller 维持具名 handler 分别导出，不打包成
   对象；路由在应用启动时静态注册，此时还没有请求级 Container 可以注入，
@@ -209,6 +226,11 @@ XxxService` 或对象字面量 `type XxxService` 均可，不强制机械统一�
 - 跨模块调用只能依赖目标模块 `index.ts` 导出的窄接口，禁止深度导入。
 - `container.ts` 是组合根，也是唯一允许深度导入各模块具体工厂函数的地方。
 - 模块之间不得出现双向依赖。
+- 通用错误、日志、Schema、Supabase 与 middleware 能力放入 `src/internal/shared/`，
+  不得把业务规则塞入 `shared/`。
+- Router / Controller 与模块公共边界由基于 TypeScript AST 的
+  `internalBoundary.test.ts` 检查，不得退回依赖源码格式的正则解析；
+  最终 Method、URL 与模块挂载结果由 `routeRegistry.test.ts` 固化。
 
 ### DI 与 RequestContainer
 
@@ -302,6 +324,9 @@ Component 优先直接调用 `loadXxxView()`，不向自身发送 HTTP 请求；
   - `refactor/158_fab_text_color`
 - 通过 Claude Code on the web 开发时，执行环境会预分配形如 `claude/xxx` 的分支名，但此命名不符合规范。必须无视预分配名称，按上述规则另建正确命名的分支后再开发。
 - 保持最小差分，不混入无关重构。
+- 同一个 Issue 下，如果多个模块采用完全相同且已经定型的机械模式、模块之间没有耦合，并且拆分后子 PR 因 base 不是 `main` 而无法独立触发 CI，必须合并为一个以 `main` 为 base 的 PR，不得按模块堆叠。
+- 只有当后一个改动确实依赖前一个先合并才能验证或避免冲突，并且每个子 PR 都能以 `main` 为 base 独立运行 CI 时，才允许使用堆叠 PR。
+- 开 PR 或将 draft 转为 ready for review 前，常规 TypeScript 改动必须在本地运行 `npx tsc --noEmit`、`npx eslint .`、`npx prettier . --check`、`npx vitest run --exclude "tests/rsc/**"` 并全部通过。不得以"本轮暂不以 CI 结果作为处理重点"等说明替代本地验证。
 
 ## PR 正文规则
 
