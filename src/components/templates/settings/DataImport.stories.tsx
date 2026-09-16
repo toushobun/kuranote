@@ -6,7 +6,7 @@ import { DataImportTemplate } from "./DataImport";
 
 async function selectFileAndSubmit(canvasElement: HTMLElement) {
   const canvas = within(canvasElement);
-  const file = new File(["a,b"], "demo.csv", { type: "text/csv" });
+  const file = new File(["binary"], "demo.xlsx");
   await userEvent.upload(canvas.getByLabelText("选择文件"), file);
   await userEvent.click(
     await canvas.findByRole("button", { name: "检查格式" }),

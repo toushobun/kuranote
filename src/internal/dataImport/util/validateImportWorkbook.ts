@@ -1,23 +1,25 @@
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
-import type {
-  IncomeExpenseImportRow,
-  TransferImportRow,
-} from "internal/dataImport/entity/importRow";
+import type { TransferImportRow } from "internal/dataImport/entity/importRow";
 import type {
   ImportValidationIssue,
   ImportValidationResult,
 } from "internal/dataImport/entity/importValidationIssue";
 import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
 import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
-import { parseIncomeExpenseSheet } from "internal/dataImport/util/parseIncomeExpenseSheet";
+import {
+  parseIncomeExpenseSheet,
+  type IncomeExpenseSheetRow,
+} from "internal/dataImport/util/parseIncomeExpenseSheet";
 import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet";
 
 /**
- * 按表头识别每个 ParsedTable 属于「收支」「转账」「余额变更」中的哪一种，
- * 分别解析并校验，最终汇总为一个 ImportValidationResult。
+ * 按 sheet 名识别每个 ParsedTable 属于「收支」「转账」「余额变更」中的哪一种，
+ * 分别解析并校验，最终汇总为一个 ImportValidationResult。不匹配这三个名字的
+ * 工作表忽略，不算错误。
  *
- * 「余额变更」sheet 只做识别、不解析内容（#755 完成前本期不支持），
- * 识别到本身不算失败，会体现在成功结果的 `balanceAdjustmentDetected` 里。
+ * 「收支」「转账」至少要存在一个，否则视为结构性错误。「余额变更」sheet 只做
+ * 识别、不解析内容（#755 完成前本期不支持），识别到本身不算失败，会体现在
+ * 成功结果的 `balanceAdjustmentDetected` 里。
  */
 export function validateImportWorkbook(
   tables: ParsedTable[],
@@ -37,7 +39,7 @@ export function validateImportWorkbook(
   let balanceAdjustmentDetected = false;
 
   for (const table of tables) {
-    const kind = detectSheetKind(table.headerRow);
+    const kind = detectSheetKind(table.sourceName);
 
     if (kind === "incomeExpense") {
       incomeExpenseTables.push(table);
@@ -45,34 +47,24 @@ export function validateImportWorkbook(
       transferTables.push(table);
     } else if (kind === "balanceAdjustment") {
       balanceAdjustmentDetected = true;
-    } else {
-      issues.push({
-        kind: "structural",
-        message: `无法识别「${table.sourceName}」的表格类型，请确认表头是否符合「收支」或「转账」模板要求。`,
-      });
     }
   }
 
-  if (
-    incomeExpenseTables.length === 0 &&
-    transferTables.length === 0 &&
-    !balanceAdjustmentDetected &&
-    issues.length === 0
-  ) {
+  if (incomeExpenseTables.length === 0 && transferTables.length === 0) {
     issues.push({
       kind: "structural",
       message: "未找到「收支」或「转账」表，无法导入。",
     });
   }
 
-  const incomeExpenseRows: IncomeExpenseImportRow[] = [];
+  const incomeExpenseSheetRows: IncomeExpenseSheetRow[] = [];
   for (const table of incomeExpenseTables) {
     const result = parseIncomeExpenseSheet(table);
     issues.push(...result.issues);
-    incomeExpenseRows.push(...result.rows);
+    incomeExpenseSheetRows.push(...result.rows);
   }
 
-  const grouped = groupIncomeExpenseRows(incomeExpenseRows);
+  const grouped = groupIncomeExpenseRows(incomeExpenseSheetRows);
   issues.push(...grouped.issues);
 
   const transferRows: TransferImportRow[] = [];

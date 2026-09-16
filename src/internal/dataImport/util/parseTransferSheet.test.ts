@@ -18,7 +18,7 @@ function validRowCells(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
     交易类型: "转账",
     备注: "",
-    日期: "2026-01-05",
+    日期: "2026-01-05 12:00:00",
     转出账户: "现金",
     转出账户币种: "CNY",
     转出账户持有人: "鄧",
@@ -53,16 +53,25 @@ describe("parseTransferSheet", () => {
       {
         amount: 500,
         fromAccountCurrency: "CNY",
-        fromAccountHolders: ["鄧"],
+        fromAccountHolder: "鄧",
         fromAccountName: "现金",
         note: null,
         rowNumber: 2,
         toAccountCurrency: "CNY",
-        toAccountHolders: ["鄧"],
+        toAccountHolder: "鄧",
         toAccountName: "招行储蓄卡",
-        transactionAt: "2026-01-05",
+        transactionAt: "2026-01-05 12:00:00",
       },
     ]);
+  });
+
+  it("持有人列留空时解析为 null（0 个持有人）", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 转出账户持有人: "", 转入账户持有人: "" })]),
+    );
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0].fromAccountHolder).toBeNull();
+    expect(result.rows[0].toAccountHolder).toBeNull();
   });
 
   it("交易类型必须严格等于「转账」", () => {
@@ -71,6 +80,15 @@ describe("parseTransferSheet", () => {
     );
     expect(result.issues).toEqual([
       expect.objectContaining({ column: "交易类型", kind: "row" }),
+    ]);
+  });
+
+  it("日期格式不正确（缺少时间部分）时报告错误", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 日期: "2026-01-05" })]),
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({ column: "日期", kind: "row" }),
     ]);
   });
 
@@ -83,14 +101,14 @@ describe("parseTransferSheet", () => {
     ]);
   });
 
-  it("转出账户与转入账户完全相同（含币种、持有人集合）时报告错误", () => {
+  it("转出账户与转入账户完全相同（含币种、持有人）时报告错误", () => {
     const result = parseTransferSheet(
       buildTable([
         validRowCells({
           转出账户: "现金",
-          转出账户持有人: "鄧;聶",
+          转出账户持有人: "鄧",
           转入账户: "现金",
-          转入账户持有人: "聶;鄧",
+          转入账户持有人: "鄧",
         }),
       ]),
     );

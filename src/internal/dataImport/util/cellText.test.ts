@@ -16,8 +16,10 @@ describe("cellToText", () => {
     expect(cellToText(123.45)).toBe("123.45");
   });
 
-  it("Date 转换为 YYYY-MM-DD（按 UTC）", () => {
-    expect(cellToText(new Date(Date.UTC(2026, 0, 5)))).toBe("2026-01-05");
+  it("Date 转换为 YYYY-MM-DD HH:MM:SS（按 UTC）", () => {
+    expect(cellToText(new Date(Date.UTC(2026, 0, 5, 19, 10, 19)))).toBe(
+      "2026-01-05 19:10:19",
+    );
   });
 
   it("富文本对象拼接各段文字", () => {

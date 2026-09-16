@@ -11,10 +11,7 @@ import {
   buildColumnIndex,
   findMissingRequiredColumns,
 } from "internal/dataImport/util/columnIndex";
-import {
-  isSameHolderSet,
-  parseHolderList,
-} from "internal/dataImport/util/parseHolderList";
+import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
@@ -76,7 +73,7 @@ export function parseTransferSheet(
 
     const dateResult = parseImportDate(get("日期"));
     if (!dateResult.ok) {
-      addIssue("日期", "日期格式不正确，应为 YYYY-MM-DD。");
+      addIssue("日期", "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。");
     }
 
     const fromAccountName = get("转出账户");
@@ -109,15 +106,15 @@ export function parseTransferSheet(
       addIssue("备注", `备注不能超过 ${importNoteMaxLength} 个字符。`);
     }
 
-    const fromAccountHolders = parseHolderList(get("转出账户持有人"));
-    const toAccountHolders = parseHolderList(get("转入账户持有人"));
+    const fromAccountHolder = parseHolderName(get("转出账户持有人"));
+    const toAccountHolder = parseHolderName(get("转入账户持有人"));
 
     if (
       !hasError &&
       fromAccountName === toAccountName &&
       fromAccountCurrencyText.toUpperCase() ===
         toAccountCurrencyText.toUpperCase() &&
-      isSameHolderSet(fromAccountHolders, toAccountHolders)
+      fromAccountHolder === toAccountHolder
     ) {
       addIssue("转入账户", "转出账户与转入账户不能是同一个账户。");
     }
@@ -129,12 +126,12 @@ export function parseTransferSheet(
     rows.push({
       amount: amountResult.ok ? amountResult.value : 0,
       fromAccountCurrency: fromAccountCurrencyText.toUpperCase(),
-      fromAccountHolders,
+      fromAccountHolder,
       fromAccountName,
       note: note || null,
       rowNumber,
       toAccountCurrency: toAccountCurrencyText.toUpperCase(),
-      toAccountHolders,
+      toAccountHolder,
       toAccountName,
       transactionAt: dateResult.ok ? dateResult.value : "",
     });

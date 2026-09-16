@@ -12,7 +12,7 @@ export type DataImportErrorCode =
 const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.fileRequired]: "请选择要导入的文件。",
   [dataImportErrorCodes.fileTooLarge]: "文件大小不能超过 10MB。",
-  [dataImportErrorCodes.fileTypeUnsupported]: "仅支持 CSV 或 xlsx 文件。",
+  [dataImportErrorCodes.fileTypeUnsupported]: "仅支持 xlsx 文件。",
   [dataImportErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",
   [dataImportErrorCodes.validationFailed]: "文件检查失败，请稍后重试。",
 };

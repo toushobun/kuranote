@@ -32,15 +32,14 @@ export const dataImportPageMessages = {
 
 export const dataImportFormatDescriptionMessages = {
   title: "文件格式要求",
-  fileTypeHint: "支持 CSV（.csv）或 Excel（.xlsx）文件，大小不超过 10MB。",
-  csvSingleTableHint:
-    "CSV 文件只能容纳一张表格，请按下方「收支」或「转账」其中一种列结构准备；xlsx 可以把两种表格分别放在不同工作表中，不要求工作表名称。",
+  fileTypeHint:
+    "支持 Excel（.xlsx）文件，大小不超过 10MB，工作表名需精确为「收支」「转账」「余额变更」。",
   holderColumnHint:
-    "「账户持有人」列可以留空（不归属任何持有人），也可以填写多个持有人，用英文分号「;」或中文分号「；」分隔，例如「鄧;聶」；导入时按「账户名 + 持有人集合」整体匹配或创建账户。",
+    "「账户持有人」列可以留空（0 个持有人），也可以填写一个持有人姓名（1 个持有人），不支持填写多个持有人。",
   recorderColumnHint:
     "「记账人」列不会被读取，导入的记账人统一为当前登录账号。",
   billRefHint:
-    "「账单关联」列相同且「交易类型」相同的多行会合并为一笔交易的多个分类金额；「交易类型」不同则各自独立成交易。",
+    "「账单关联」列相同的多行中，除第一次出现的行外，日期、账户、账户持有人、账户币种、商家、商家分类、记账人、备注需填写「-」以继承首次出现那行的值（也可以原样复述该行内容）；「交易类型」不同则各自独立成交易。",
   balanceAdjustmentHint:
     "「余额变更」表本期暂不支持导入，识别到会在结果中提示并跳过，不影响其余表格。",
   incomeExpenseColumnsTitle: "「收支」表列名（*为必填）",

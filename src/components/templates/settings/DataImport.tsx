@@ -77,7 +77,7 @@ export function DataImportTemplate({
             >
               {dataImportFileFieldMessages.chooseFileButton}
               <input
-                accept=".csv,.xlsx"
+                accept=".xlsx"
                 aria-label={dataImportFileFieldMessages.chooseFileButton}
                 hidden
                 name="file"
@@ -138,7 +138,6 @@ function FormatDescriptionCard() {
         >
           {[
             messages.fileTypeHint,
-            messages.csvSingleTableHint,
             messages.holderColumnHint,
             messages.recorderColumnHint,
             messages.billRefHint,

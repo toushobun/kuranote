@@ -9,7 +9,7 @@ import {
 } from "internal/shared/schema/formValidation";
 
 const maxFileSizeBytes = 10 * 1024 * 1024;
-const acceptedExtensions = [".csv", ".xlsx"];
+const acceptedExtensions = [".xlsx"];
 
 export type DataImportFormFields = {
   file: File;

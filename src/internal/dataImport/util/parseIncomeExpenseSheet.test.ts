@@ -22,7 +22,7 @@ function validRowCells(overrides: Partial<Record<string, string>> = {}) {
     备注: "",
     商家: "便利店",
     商家分类: "",
-    日期: "2026-01-05",
+    日期: "2026-01-05 12:00:00",
     账单关联: "",
     账户: "现金",
     账户币种: "CNY",
@@ -38,7 +38,7 @@ describe("parseIncomeExpenseSheet", () => {
   it("缺少必填列时返回结构性错误，不解析任何行", () => {
     const table: ParsedTable = {
       headerRow: ["日期", "金额"],
-      rows: [{ cells: ["2026-01-01", "100"], rowNumber: 2 }],
+      rows: [{ cells: ["2026-01-01 00:00:00", "100"], rowNumber: 2 }],
       sourceName: "收支",
     };
 
@@ -58,37 +58,40 @@ describe("parseIncomeExpenseSheet", () => {
     expect(result.issues).toEqual([]);
     expect(result.rows).toEqual([
       {
-        accountCurrency: "CNY",
-        accountHolders: [],
-        accountName: "现金",
         amount: 35.5,
         billRef: null,
         childCategoryName: "午餐",
-        merchantName: "便利店",
-        merchantTag: null,
-        note: null,
         parentCategoryName: "餐饮",
         rowNumber: 2,
-        transactionAt: "2026-01-05",
+        sharedTexts: {
+          商家: "便利店",
+          商家分类: "",
+          日期: "2026-01-05 12:00:00",
+          账户: "现金",
+          账户币种: "CNY",
+          账户持有人: "",
+          记账人: "忽略此列",
+          备注: "",
+        },
         transactionType: "expense",
       },
     ]);
   });
 
-  it("不读取「记账人」列内容（仅要求列存在）", () => {
+  it("不读取「记账人」列内容对结果的影响（仅要求列存在）", () => {
     const table = buildTable([validRowCells({ 记账人: "任意值" })]);
     const result = parseIncomeExpenseSheet(table);
     expect(result.issues).toEqual([]);
   });
 
-  it("解析「账户持有人」多值（分号分隔）", () => {
-    const table = buildTable([validRowCells({ 账户持有人: "鄧;聶" })]);
+  it("「账户持有人」只保留原始文本，留给分组阶段解析为单个持有人", () => {
+    const table = buildTable([validRowCells({ 账户持有人: "鄧" })]);
     const result = parseIncomeExpenseSheet(table);
-    expect(result.rows[0].accountHolders).toEqual(["鄧", "聶"]);
+    expect(result.rows[0].sharedTexts["账户持有人"]).toBe("鄧");
   });
 
   it("日期格式不正确时报告行错误并跳过该行", () => {
-    const table = buildTable([validRowCells({ 日期: "2026/01/05" })]);
+    const table = buildTable([validRowCells({ 日期: "2026-01-05" })]);
     const result = parseIncomeExpenseSheet(table);
     expect(result.rows).toEqual([]);
     expect(result.issues).toEqual([
@@ -143,5 +146,43 @@ describe("parseIncomeExpenseSheet", () => {
     ]);
     const result = parseIncomeExpenseSheet(table);
     expect(result.issues).toHaveLength(3);
+  });
+
+  describe("账单关联占位符「-」", () => {
+    it("账单关联非空时，共享字段填「-」视为合法占位，不报错", () => {
+      const table = buildTable([
+        validRowCells({
+          账单关联: "BILL-1",
+          账户: "-",
+          账户币种: "-",
+          商家: "-",
+          日期: "-",
+          备注: "-",
+        }),
+      ]);
+      const result = parseIncomeExpenseSheet(table);
+      expect(result.issues).toEqual([]);
+      expect(result.rows[0].sharedTexts["日期"]).toBe("-");
+      expect(result.rows[0].sharedTexts["账户"]).toBe("-");
+    });
+
+    it("账单关联为空时，「-」按普通值校验，格式不合法的字段仍报错", () => {
+      const table = buildTable([
+        validRowCells({ 账单关联: "", 日期: "-", 账户币种: "-" }),
+      ]);
+      const result = parseIncomeExpenseSheet(table);
+      expect(
+        result.issues.map((issue) => issue.kind === "row" && issue.column),
+      ).toEqual(["日期", "账户币种"]);
+    });
+
+    it("账单关联为空时，「-」作为无格式约束的账户名/ 商家名可以直接通过", () => {
+      const table = buildTable([
+        validRowCells({ 账单关联: "", 账户: "-", 商家: "-" }),
+      ]);
+      const result = parseIncomeExpenseSheet(table);
+      expect(result.issues).toEqual([]);
+      expect(result.rows[0].sharedTexts["账户"]).toBe("-");
+    });
   });
 });

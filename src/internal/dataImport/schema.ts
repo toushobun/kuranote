@@ -58,6 +58,32 @@ export const importColumnsBySheetKind: Record<
   transfer: transferColumns,
 };
 
+/**
+ * 「收支」表里「账单关联」分组共用的字段：一组账单关联记录里只有第一次出现
+ * 的行提供真实值，后续行必须填字面 `-` 继承首行的值，或原样复述首行内容。
+ */
+export const incomeExpenseSharedColumns = [
+  "日期",
+  "账户",
+  "账户持有人",
+  "账户币种",
+  "商家",
+  "商家分类",
+  "记账人",
+  "备注",
+] as const;
+
+export type IncomeExpenseSharedColumn =
+  (typeof incomeExpenseSharedColumns)[number];
+
+/** 「收支」表里每一行都要各自单独填写、不受「账单关联」共享规则影响的字段。 */
+export const incomeExpenseRepeatableColumns = [
+  "一级分类",
+  "二级分类",
+  "交易类型",
+  "金额",
+] as const;
+
 export const incomeExpenseTypeValues = ["支出", "收入"] as const;
 export const transferTypeValue = "转账";
 

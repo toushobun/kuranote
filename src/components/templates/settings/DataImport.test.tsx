@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { DataImportActionState } from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
 
-function selectFile(name = "data.csv") {
+function selectFile(name = "data.xlsx") {
   const input = screen.getByLabelText("选择文件") as HTMLInputElement;
-  const file = new File(["a,b"], name, { type: "text/csv" });
+  const file = new File(["binary"], name);
   fireEvent.change(input, { target: { files: [file] } });
   return file;
 }
@@ -33,15 +33,15 @@ describe("DataImportTemplate", () => {
 
   it("选择文件后展示文件名并启用提交按钮", () => {
     render(<DataImportTemplate checkFormatAction={vi.fn(async () => ({}))} />);
-    selectFile("income.csv");
-    expect(screen.getByText("income.csv")).toBeInTheDocument();
+    selectFile("income.xlsx");
+    expect(screen.getByText("income.xlsx")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
   });
 
   it("表单提交调用 Server Action 并展示错误状态", async () => {
     const action = vi.fn(
       async (): Promise<DataImportActionState> => ({
-        error: "仅支持 CSV 或 xlsx 文件。",
+        error: "仅支持 xlsx 文件。",
         errorKey: "err-1",
       }),
     );
@@ -49,9 +49,7 @@ describe("DataImportTemplate", () => {
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
-    expect(
-      await screen.findByText("仅支持 CSV 或 xlsx 文件。"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("仅支持 xlsx 文件。")).toBeInTheDocument();
     expect(action).toHaveBeenCalledOnce();
   });
 

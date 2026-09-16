@@ -1,6 +1,6 @@
 export type IncomeExpenseImportRow = {
   accountCurrency: string;
-  accountHolders: string[];
+  accountHolder: string | null;
   accountName: string;
   amount: number;
   billRef: string | null;
@@ -17,12 +17,12 @@ export type IncomeExpenseImportRow = {
 export type TransferImportRow = {
   amount: number;
   fromAccountCurrency: string;
-  fromAccountHolders: string[];
+  fromAccountHolder: string | null;
   fromAccountName: string;
   note: string | null;
   rowNumber: number;
   toAccountCurrency: string;
-  toAccountHolders: string[];
+  toAccountHolder: string | null;
   toAccountName: string;
   transactionAt: string;
 };

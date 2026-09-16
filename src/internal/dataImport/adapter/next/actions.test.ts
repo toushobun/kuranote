@@ -69,7 +69,7 @@ describe("checkDataImportFormat", () => {
   });
 
   it("校验通过时返回 Service 结果", async () => {
-    const file = new File(["a,b\n1,2"], "data.csv", { type: "text/csv" });
+    const file = new File(["binary"], "data.xlsx");
     mocks.checkFile.mockResolvedValue({
       ok: true,
       summary: {
@@ -93,12 +93,12 @@ describe("checkDataImportFormat", () => {
     });
     expect(mocks.checkFile).toHaveBeenCalledWith({
       fileBuffer: expect.any(ArrayBuffer),
-      fileName: "data.csv",
+      fileName: "data.xlsx",
     });
   });
 
   it("校验失败时也原样返回 issues 结果（不是错误状态）", async () => {
-    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
+    const file = new File(["binary"], "data.xlsx");
     mocks.checkFile.mockResolvedValue({
       issues: [{ kind: "structural", message: "无法识别的表格类型。" }],
       ok: false,
@@ -117,7 +117,7 @@ describe("checkDataImportFormat", () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
+    const file = new File(["binary"], "data.xlsx");
     mocks.checkFile.mockRejectedValue(new Error("unexpected"));
 
     const state = await checkDataImportFormat({}, createFormData(file));

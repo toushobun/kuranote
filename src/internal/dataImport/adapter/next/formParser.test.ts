@@ -21,7 +21,7 @@ describe("parseCheckDataImportFileForm", () => {
   });
 
   it("空文件（0 字节）视为未选择文件", () => {
-    const file = new File([], "empty.csv", { type: "text/csv" });
+    const file = new File([], "empty.xlsx");
     const result = parseCheckDataImportFileForm(buildFormData(file));
     expect(result).toEqual({
       error: dataImportErrorCodes.fileRequired,
@@ -29,8 +29,8 @@ describe("parseCheckDataImportFileForm", () => {
     });
   });
 
-  it("不支持的扩展名返回 fileTypeUnsupported", () => {
-    const file = new File(["a,b"], "data.txt", { type: "text/plain" });
+  it("不支持的扩展名（包括 csv）返回 fileTypeUnsupported", () => {
+    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
     const result = parseCheckDataImportFileForm(buildFormData(file));
     expect(result).toEqual({
       error: dataImportErrorCodes.fileTypeUnsupported,
@@ -39,20 +39,12 @@ describe("parseCheckDataImportFileForm", () => {
   });
 
   it("超过 10MB 时返回 fileTooLarge", () => {
-    const file = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "big.csv", {
-      type: "text/csv",
-    });
+    const file = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "big.xlsx");
     const result = parseCheckDataImportFileForm(buildFormData(file));
     expect(result).toEqual({
       error: dataImportErrorCodes.fileTooLarge,
       ok: false,
     });
-  });
-
-  it("合法 csv 文件解析成功", () => {
-    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
-    const result = parseCheckDataImportFileForm(buildFormData(file));
-    expect(result).toEqual({ ok: true, value: { file } });
   });
 
   it("合法 xlsx 文件（大小写不敏感）解析成功", () => {

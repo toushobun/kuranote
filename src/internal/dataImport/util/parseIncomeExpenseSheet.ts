@@ -1,23 +1,60 @@
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
-import type { IncomeExpenseImportRow } from "internal/dataImport/entity/importRow";
 import type { ImportValidationIssue } from "internal/dataImport/entity/importValidationIssue";
 import {
   importCurrencyPattern,
   importNoteMaxLength,
   incomeExpenseColumns,
+  incomeExpenseSharedColumns,
   incomeExpenseTypeValues,
+  type IncomeExpenseSharedColumn,
 } from "internal/dataImport/schema";
 import {
   buildColumnIndex,
   findMissingRequiredColumns,
 } from "internal/dataImport/util/columnIndex";
-import { parseHolderList } from "internal/dataImport/util/parseHolderList";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
+/**
+ * 「收支」表一行的解析结果。共享字段（见 `incomeExpenseSharedColumns`）只做
+ * 逐字段的格式合法性校验（字面 `-` 也算合法），保留原始文本，不解析成最终
+ * 值——是否是「账单关联」分组的首行、首行与后续行是否一致，依赖分组关系，
+ * 交给 `groupIncomeExpenseRows` 处理。
+ */
+export type IncomeExpenseSheetRow = {
+  amount: number;
+  billRef: string | null;
+  childCategoryName: string | null;
+  parentCategoryName: string;
+  rowNumber: number;
+  sharedTexts: Record<IncomeExpenseSharedColumn, string>;
+  transactionType: "expense" | "income";
+};
+
 export type ParseIncomeExpenseSheetResult = {
   issues: ImportValidationIssue[];
-  rows: IncomeExpenseImportRow[];
+  rows: IncomeExpenseSheetRow[];
+};
+
+const billRefPlaceholder = "-";
+
+const sharedColumnValidators: Partial<
+  Record<IncomeExpenseSharedColumn, (text: string) => string | null>
+> = {
+  商家: (text) => (text ? null : "商家不能为空。"),
+  日期: (text) =>
+    parseImportDate(text).ok
+      ? null
+      : "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
+  账户: (text) => (text ? null : "账户不能为空。"),
+  账户币种: (text) =>
+    importCurrencyPattern.test(text)
+      ? null
+      : "账户币种必须是 3 位字母代码，例如 CNY。",
+  备注: (text) =>
+    text.length > importNoteMaxLength
+      ? `备注不能超过 ${importNoteMaxLength} 个字符。`
+      : null,
 };
 
 export function parseIncomeExpenseSheet(
@@ -43,7 +80,7 @@ export function parseIncomeExpenseSheet(
   }
 
   const issues: ImportValidationIssue[] = [];
-  const rows: IncomeExpenseImportRow[] = [];
+  const rows: IncomeExpenseSheetRow[] = [];
 
   for (const tableRow of table.rows) {
     const get = (name: string) => {
@@ -66,9 +103,22 @@ export function parseIncomeExpenseSheet(
       hasError = true;
     };
 
-    const dateResult = parseImportDate(get("日期"));
-    if (!dateResult.ok) {
-      addIssue("日期", "日期格式不正确，应为 YYYY-MM-DD。");
+    const billRef = get("账单关联") || null;
+    const isGrouped = billRef !== null;
+
+    const sharedTexts = {} as Record<IncomeExpenseSharedColumn, string>;
+    for (const column of incomeExpenseSharedColumns) {
+      const text = get(column);
+      sharedTexts[column] = text;
+
+      if (isGrouped && text === billRefPlaceholder) {
+        continue;
+      }
+
+      const errorMessage = sharedColumnValidators[column]?.(text);
+      if (errorMessage) {
+        addIssue(column, errorMessage);
+      }
     }
 
     const typeText = get("交易类型");
@@ -76,24 +126,9 @@ export function parseIncomeExpenseSheet(
       addIssue("交易类型", "交易类型必须是「支出」或「收入」。");
     }
 
-    const merchantName = get("商家");
-    if (!merchantName) {
-      addIssue("商家", "商家不能为空。");
-    }
-
     const parentCategoryName = get("一级分类");
     if (!parentCategoryName) {
       addIssue("一级分类", "一级分类不能为空。");
-    }
-
-    const accountName = get("账户");
-    if (!accountName) {
-      addIssue("账户", "账户不能为空。");
-    }
-
-    const accountCurrencyText = get("账户币种");
-    if (!importCurrencyPattern.test(accountCurrencyText)) {
-      addIssue("账户币种", "账户币种必须是 3 位字母代码，例如 CNY。");
     }
 
     const amountResult = parseImportAmount(get("金额"), { allowZero: true });
@@ -101,28 +136,17 @@ export function parseIncomeExpenseSheet(
       addIssue("金额", "金额必须是不超过两位小数的非负数字。");
     }
 
-    const note = get("备注");
-    if (note.length > importNoteMaxLength) {
-      addIssue("备注", `备注不能超过 ${importNoteMaxLength} 个字符。`);
-    }
-
     if (hasError) {
       continue;
     }
 
     rows.push({
-      accountCurrency: accountCurrencyText.toUpperCase(),
-      accountHolders: parseHolderList(get("账户持有人")),
-      accountName,
       amount: amountResult.ok ? amountResult.value : 0,
-      billRef: get("账单关联") || null,
+      billRef,
       childCategoryName: get("二级分类") || null,
-      merchantName,
-      merchantTag: get("商家分类") || null,
-      note: note || null,
       parentCategoryName,
       rowNumber,
-      transactionAt: dateResult.ok ? dateResult.value : "",
+      sharedTexts,
       transactionType: typeText === "支出" ? "expense" : "income",
     });
   }

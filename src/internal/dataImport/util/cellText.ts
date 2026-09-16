@@ -7,6 +7,8 @@ function pad2(value: number) {
 function formatDateCell(date: Date) {
   return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(
     date.getUTCDate(),
+  )} ${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}:${pad2(
+    date.getUTCSeconds(),
   )}`;
 }
 

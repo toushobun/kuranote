@@ -18,7 +18,7 @@ function incomeExpenseRowCells(overrides: Record<string, string> = {}) {
     备注: "",
     商家: "便利店",
     商家分类: "",
-    日期: "2026-01-05",
+    日期: "2026-01-05 12:00:00",
     账单关联: "",
     账户: "现金",
     账户币种: "CNY",
@@ -34,7 +34,7 @@ function transferRowCells(overrides: Record<string, string> = {}) {
   const values: Record<string, string> = {
     交易类型: "转账",
     备注: "",
-    日期: "2026-01-05",
+    日期: "2026-01-05 12:00:00",
     转出账户: "现金",
     转出账户币种: "CNY",
     转出账户持有人: "",
@@ -60,13 +60,30 @@ function table(
   };
 }
 
+const balanceAdjustmentHeader = [
+  "交易类型",
+  "日期",
+  "记账人",
+  "账户",
+  "账户币种",
+  "账户持有人",
+  "金额",
+  "备注",
+];
+
+function balanceAdjustmentTable(): ParsedTable {
+  return table("余额变更", balanceAdjustmentHeader, [
+    ["余额变更", "2026-01-05 12:00:00", "", "现金", "CNY", "", "100", ""],
+  ]);
+}
+
 describe("validateImportWorkbook", () => {
   it("空表格数组返回结构性错误", () => {
     const result = validateImportWorkbook([]);
     expect(result.ok).toBe(false);
   });
 
-  it("同时包含收支与转账表时正确统计条数", () => {
+  it("按 sheet 名识别「收支」与「转账」表，正确统计条数", () => {
     const result = validateImportWorkbook([
       table("收支", incomeExpenseHeader, [
         incomeExpenseRowCells(),
@@ -84,23 +101,10 @@ describe("validateImportWorkbook", () => {
     }
   });
 
-  it("识别到余额变更表时标记 balanceAdjustmentDetected 且不视为失败", () => {
+  it("识别到「余额变更」sheet 时标记 balanceAdjustmentDetected 且不视为失败", () => {
     const result = validateImportWorkbook([
       table("收支", incomeExpenseHeader, [incomeExpenseRowCells()]),
-      table(
-        "余额变更",
-        [
-          "交易类型",
-          "日期",
-          "记账人",
-          "账户",
-          "账户币种",
-          "账户持有人",
-          "金额",
-          "备注",
-        ],
-        [["余额变更", "2026-01-05", "", "现金", "CNY", "", "100", ""]],
-      ),
+      balanceAdjustmentTable(),
     ]);
 
     expect(result.ok).toBe(true);
@@ -110,40 +114,39 @@ describe("validateImportWorkbook", () => {
     }
   });
 
-  it("无法识别的表头返回结构性错误", () => {
+  it("sheet 名不匹配「收支」「转账」「余额变更」时忽略、不算错误", () => {
     const result = validateImportWorkbook([
-      table("未知表", ["姓名", "电话"], [["张三", "123"]]),
+      table("收支", incomeExpenseHeader, [incomeExpenseRowCells()]),
+      table("说明", ["姓名", "电话"], [["张三", "123"]]),
+    ]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.summary.incomeExpenseCount).toBe(1);
+    }
+  });
+
+  it("只有「余额变更」sheet、没有「收支」或「转账」时报结构性错误", () => {
+    const result = validateImportWorkbook([balanceAdjustmentTable()]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toEqual([
+        expect.objectContaining({
+          kind: "structural",
+          message: "未找到「收支」或「转账」表，无法导入。",
+        }),
+      ]);
+    }
+  });
+
+  it("只有无法识别的 sheet 时报结构性错误", () => {
+    const result = validateImportWorkbook([
+      table("说明", ["姓名", "电话"], [["张三", "123"]]),
     ]);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.issues).toEqual([
         expect.objectContaining({ kind: "structural" }),
       ]);
-    }
-  });
-
-  it("只有余额变更表、没有收支或转账时仍算校验通过（数量为 0）", () => {
-    const result = validateImportWorkbook([
-      table(
-        "余额变更",
-        [
-          "交易类型",
-          "日期",
-          "记账人",
-          "账户",
-          "账户币种",
-          "账户持有人",
-          "金额",
-          "备注",
-        ],
-        [["余额变更", "2026-01-05", "", "现金", "CNY", "", "100", ""]],
-      ),
-    ]);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.summary.incomeExpenseCount).toBe(0);
-      expect(result.summary.transferCount).toBe(0);
-      expect(result.summary.balanceAdjustmentDetected).toBe(true);
     }
   });
 
