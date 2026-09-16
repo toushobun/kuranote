@@ -139,7 +139,7 @@ export const WithArchiveAction: Story = {
 };
 
 export const InactiveHolderPreserved: Story = {
-  name: "保留非活跃持有人（已选持有人被锁定）",
+  name: "保留非活跃持有人",
   args: {
     account: {
       ...baseAccount,

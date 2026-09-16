@@ -70,7 +70,7 @@ export const SingleHolder: Story = {
 };
 
 export const SelectedWithPreserved: Story = {
-  name: "存量数据：活跃持有人因保留非活跃持有人被锁定",
+  name: "选中活跃持有人 + 保留非活跃持有人",
   args: {
     selectedUserIds: ["user-1"],
     preservedHolderOptions: [

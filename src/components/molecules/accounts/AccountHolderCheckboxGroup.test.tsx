@@ -75,7 +75,7 @@ describe("AccountHolderCheckboxGroup", () => {
     expect(new FormData(form).getAll("holderUserIds")).toEqual([]);
   });
 
-  it("非活跃持有人禁用显示，但保存时继续提交", () => {
+  it("非活跃持有人禁用显示，且不通过表单提交（由数据库保存时自动保留）", () => {
     const { container } = render(
       <form>
         <AccountHolderCheckboxGroup
@@ -90,17 +90,27 @@ describe("AccountHolderCheckboxGroup", () => {
     const formData = new FormData(container.querySelector("form")!);
 
     expect(preservedCheckbox).toBeDisabled();
-    expect(formData.getAll("holderUserIds")).toContain(preservedHolder.user_id);
+    expect(formData.getAll("holderUserIds")).not.toContain(
+      preservedHolder.user_id,
+    );
   });
 
-  it("存在非活跃持有人时，活跃持有人选项被禁用", () => {
+  it("存在非活跃持有人时，仍可以选择活跃持有人", () => {
     const { container } = render(
-      <AccountHolderCheckboxGroup
-        holderOptions={[activeHolder]}
-        preservedHolderOptions={[preservedHolder]}
-      />,
+      <form>
+        <AccountHolderCheckboxGroup
+          holderOptions={[activeHolder]}
+          preservedHolderOptions={[preservedHolder]}
+        />
+      </form>,
     );
 
-    expect(within(container).getByLabelText("淞文")).toBeDisabled();
+    const activeCheckbox = within(container).getByLabelText("淞文");
+    expect(activeCheckbox).not.toBeDisabled();
+
+    fireEvent.click(activeCheckbox);
+
+    const formData = new FormData(container.querySelector("form")!);
+    expect(formData.getAll("holderUserIds")).toEqual([activeHolder.user_id]);
   });
 });

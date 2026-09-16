@@ -27,8 +27,6 @@ export function AccountHolderCheckboxGroup({
 }: AccountHolderCheckboxGroupProps) {
   const hasOptions = holderOptions.length > 0;
   const hasPreservedOptions = preservedHolderOptions.length > 0;
-  // 持有人最多只能选 1 个，非活跃持有人已经占用了这个名额，不能再选择其他持有人。
-  const selectionDisabled = hasPreservedOptions;
   const [selectedUserId, setSelectedUserId] = useState(
     () =>
       holderOptions.find((option) => selectedUserIds.includes(option.user_id))
@@ -55,7 +53,6 @@ export function AccountHolderCheckboxGroup({
                         checkedIcon={
                           <CheckCircleRoundedIcon fontSize="small" />
                         }
-                        disabled={selectionDisabled}
                         icon={<Box sx={uncheckedIconSx} />}
                         name="holderUserIds"
                         onChange={() =>
@@ -80,16 +77,7 @@ export function AccountHolderCheckboxGroup({
                       disabled
                     />
                   }
-                  label={
-                    <>
-                      {getAccountHolderLabel(option)}（非活跃，保存时保留）
-                      <input
-                        name="holderUserIds"
-                        type="hidden"
-                        value={option.user_id}
-                      />
-                    </>
-                  }
+                  label={`${getAccountHolderLabel(option)}（非活跃，保存时保留）`}
                   labelPlacement="start"
                   sx={holderOptionSx}
                 />
@@ -108,7 +96,7 @@ export function AccountHolderCheckboxGroup({
         <Typography color="text.secondary" variant="body2">
           {hasOptions || hasPreservedOptions
             ? hasPreservedOptions
-              ? "持有人用于标识该账户的主要使用者；非活跃持有人会在保存时保留，此时不能再选择其他持有人。"
+              ? "持有人用于标识该账户的主要使用者，最多选择 1 个；非活跃持有人会在保存时保留。"
               : "持有人用于标识该账户的主要使用者，最多选择 1 个。"
             : "当前账本没有可选持有人。"}
         </Typography>
