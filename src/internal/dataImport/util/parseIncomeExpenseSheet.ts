@@ -10,8 +10,7 @@ import {
 } from "internal/dataImport/schema";
 import {
   buildColumnIndex,
-  findMissingRequiredColumns,
-  findUnknownColumns,
+  findColumnStructuralIssues,
 } from "internal/dataImport/util/columnIndex";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
@@ -66,37 +65,17 @@ const sharedColumnValidators: Partial<
 export function parseIncomeExpenseSheet(
   table: ParsedTable,
 ): ParseIncomeExpenseSheetResult {
-  const columnIndex = buildColumnIndex(table.headerRow);
-  const missingColumns = findMissingRequiredColumns(
-    columnIndex,
+  const structuralIssues = findColumnStructuralIssues(
+    table,
     incomeExpenseColumns,
-  );
-  const unknownColumns = findUnknownColumns(
-    table.headerRow,
-    incomeExpenseColumns,
+    "incomeExpense",
   );
 
-  if (missingColumns.length > 0 || unknownColumns.length > 0) {
-    const structuralIssues: ImportValidationIssue[] = [];
-
-    if (missingColumns.length > 0) {
-      structuralIssues.push({
-        kind: "structural",
-        message: `「收支」表缺少必填列：${missingColumns.join("、")}。`,
-        sheet: "incomeExpense",
-      });
-    }
-
-    if (unknownColumns.length > 0) {
-      structuralIssues.push({
-        kind: "structural",
-        message: `「收支」表存在无法识别的列：${unknownColumns.join("、")}，请确认列名是否正确。`,
-        sheet: "incomeExpense",
-      });
-    }
-
+  if (structuralIssues.length > 0) {
     return { issues: structuralIssues, rows: [] };
   }
+
+  const columnIndex = buildColumnIndex(table.headerRow);
 
   const issues: ImportValidationIssue[] = [];
   const rows: IncomeExpenseSheetRow[] = [];

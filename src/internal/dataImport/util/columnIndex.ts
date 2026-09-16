@@ -1,3 +1,11 @@
+import {
+  importSheetKindLabels,
+  type ImportSheetKind,
+} from "internal/dataImport/entity/importSheetKind";
+import type { ImportStructuralIssue } from "internal/dataImport/entity/importValidationIssue";
+import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import type { ImportColumnDef } from "internal/dataImport/schema";
+
 /** 按列名建立「列名 → 列下标」映射；同名列取第一次出现的位置。 */
 export function buildColumnIndex(headerRow: string[]): Record<string, number> {
   const index: Record<string, number> = {};
@@ -46,4 +54,38 @@ export function findUnknownColumns(
   }
 
   return unknown;
+}
+
+/**
+ * 「收支」「转账」表共用的表头结构性校验：缺少必填列、存在无法识别的列。
+ * 返回空数组代表表头结构合法，调用方可以继续逐行解析。
+ */
+export function findColumnStructuralIssues(
+  table: ParsedTable,
+  columns: ImportColumnDef[],
+  sheetKind: ImportSheetKind,
+): ImportStructuralIssue[] {
+  const columnIndex = buildColumnIndex(table.headerRow);
+  const missingColumns = findMissingRequiredColumns(columnIndex, columns);
+  const unknownColumns = findUnknownColumns(table.headerRow, columns);
+  const sheetLabel = importSheetKindLabels[sheetKind];
+  const issues: ImportStructuralIssue[] = [];
+
+  if (missingColumns.length > 0) {
+    issues.push({
+      kind: "structural",
+      message: `「${sheetLabel}」表缺少必填列：${missingColumns.join("、")}。`,
+      sheet: sheetKind,
+    });
+  }
+
+  if (unknownColumns.length > 0) {
+    issues.push({
+      kind: "structural",
+      message: `「${sheetLabel}」表存在无法识别的列：${unknownColumns.join("、")}，请确认列名是否正确。`,
+      sheet: sheetKind,
+    });
+  }
+
+  return issues;
 }

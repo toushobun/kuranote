@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { findUnknownColumns } from "internal/dataImport/util/columnIndex";
+import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import {
+  findColumnStructuralIssues,
+  findUnknownColumns,
+} from "internal/dataImport/util/columnIndex";
 
 const columns = [{ name: "账户" }, { name: "账户币种" }];
 
@@ -25,5 +29,65 @@ describe("findUnknownColumns", () => {
     expect(findUnknownColumns(["  ", " 账户 ", "备注"], columns)).toEqual([
       "备注",
     ]);
+  });
+});
+
+describe("findColumnStructuralIssues", () => {
+  const structuralColumns = [
+    { name: "账户", required: true },
+    { name: "账户币种", required: true },
+    { name: "备注", required: false },
+  ];
+
+  function table(headerRow: string[]): ParsedTable {
+    return { headerRow, rows: [], sourceName: "收支" };
+  }
+
+  it("表头合法时返回空数组", () => {
+    const issues = findColumnStructuralIssues(
+      table(["账户", "账户币种", "备注"]),
+      structuralColumns,
+      "incomeExpense",
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("缺少必填列时报告结构性错误", () => {
+    const issues = findColumnStructuralIssues(
+      table(["账户"]),
+      structuralColumns,
+      "incomeExpense",
+    );
+    expect(issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: "「收支」表缺少必填列：账户币种。",
+        sheet: "incomeExpense",
+      }),
+    ]);
+  });
+
+  it("存在无法识别的列时报告结构性错误", () => {
+    const issues = findColumnStructuralIssues(
+      table(["账户", "账户币种", "多余列"]),
+      structuralColumns,
+      "transfer",
+    );
+    expect(issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: "「转账」表存在无法识别的列：多余列，请确认列名是否正确。",
+        sheet: "transfer",
+      }),
+    ]);
+  });
+
+  it("同时缺少必填列与存在无法识别的列时，两条错误都返回", () => {
+    const issues = findColumnStructuralIssues(
+      table(["账户", "多余列"]),
+      structuralColumns,
+      "incomeExpense",
+    );
+    expect(issues).toHaveLength(2);
   });
 });
