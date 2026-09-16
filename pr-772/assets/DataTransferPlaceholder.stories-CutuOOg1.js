@@ -1,0 +1,11 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{t as n}from"./createSvgIcon-DPRTItHW.js";import{a as r,n as i}from"./paths-BabFpEj2.js";import{n as a,t as o}from"./link-Du4AGLbo.js";import{t as s}from"./createSvgIcon-BBgq6tgd.js";import{n as c,t as l}from"./IconButton-BvjujjMV.js";import{n as u,t as d}from"./EmptyState-kd2ZZsbg.js";import{n as f,t as p}from"./ArrowBackRounded-CxlZpNyn.js";import{n as m,t as h}from"./PageShell-D2W5xXUN.js";import{n as g,t as _}from"./PageHeader-BShj_Y9b.js";import{a as v,i as y,r as b}from"./dataImportExportMessages-CYnZPRp6.js";var x,S,C=e((()=>{s(),x=t(),S=n((0,x.jsx)(`path`,{d:`M8 2c-1.1 0-2 .9-2 2v3.17c0 .53.21 1.04.59 1.42L10 12l-3.42 3.42c-.37.38-.58.89-.58 1.42V20c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-3.16c0-.53-.21-1.04-.58-1.41L14 12l3.41-3.4c.38-.38.59-.89.59-1.42V4c0-1.1-.9-2-2-2zm8 14.5V19c0 .55-.45 1-1 1H9c-.55 0-1-.45-1-1v-2.5l4-4zm-4-5-4-4V5c0-.55.45-1 1-1h6c.55 0 1 .45 1 1v2.5z`}),`HourglassEmptyRounded`)}));function w({kind:e}){let t=y[e];return(0,T.jsxs)(h,{maxWidth:`sm`,children:[(0,T.jsx)(_,{leading:(0,T.jsx)(c,{"aria-label":b.backToEntry,component:a,href:r.settingsData,children:(0,T.jsx)(p,{})}),title:t.title,variant:`compact`}),(0,T.jsx)(d,{description:t.comingSoonDescription,illustration:(0,T.jsx)(S,{sx:{color:`text.secondary`,fontSize:40}}),title:t.comingSoonTitle})]})}var T,E=e((()=>{T=t(),f(),C(),l(),o(),v(),i(),u(),g(),m(),w.__docgenInfo={description:``,methods:[],displayName:`DataTransferPlaceholderTemplate`,props:{kind:{required:!0,tsType:{name:`union`,raw:`"export" | "import"`,elements:[{name:`literal`,value:`"export"`},{name:`literal`,value:`"import"`}]},description:``}}}})),D,O,k,A;e((()=>{E(),D={title:`Templates/Settings/DataTransferPlaceholderTemplate`,component:w},O={name:`数据导入 / 即将上线`,args:{kind:`import`}},k={name:`数据导出 / 即将上线`,args:{kind:`export`}},O.parameters={...O.parameters,docs:{...O.parameters?.docs,source:{originalSource:`{
+  name: "数据导入 / 即将上线",
+  args: {
+    kind: "import"
+  }
+}`,...O.parameters?.docs?.source}}},k.parameters={...k.parameters,docs:{...k.parameters?.docs,source:{originalSource:`{
+  name: "数据导出 / 即将上线",
+  args: {
+    kind: "export"
+  }
+}`,...k.parameters?.docs?.source}}},A=[`Import`,`Export`]}))();export{k as Export,O as Import,A as __namedExportsOrder,D as default};
