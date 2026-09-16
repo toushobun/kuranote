@@ -38,10 +38,7 @@ describe("Account Schema", () => {
     expect(
       createAccountRequestSchema.safeParse({
         currency: "JPY",
-        holderUserIds: [
-          holderUserId,
-          "00000000-0000-4000-8000-000000000042",
-        ],
+        holderUserIds: [holderUserId, "00000000-0000-4000-8000-000000000042"],
         initialBalance: 1000,
         name: "现金",
         type: "cash",
