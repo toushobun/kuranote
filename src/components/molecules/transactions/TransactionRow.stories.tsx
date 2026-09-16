@@ -44,7 +44,6 @@ const expenseItem: TransactionRowItem = {
   merchant_name: "業務スーパー",
   merchant_icon_url: null,
   note: "猪肉・鸡腿・蔬菜",
-  recorder_name: "淞文",
 };
 
 // seed 9016: 株式会社共逹 2026-06-01, income, 323000 JPY, 4 categories
@@ -84,7 +83,6 @@ const incomeItem: TransactionRowItem = {
   merchant_name: "株式会社共逹",
   merchant_icon_url: null,
   note: null,
-  recorder_name: null,
 };
 
 const refundStatus = {
@@ -131,7 +129,6 @@ const transferItem: TransactionRowItem = {
   merchant_name: null,
   merchant_icon_url: null,
   note: null,
-  recorder_name: "淞文",
 };
 
 const meta = {
@@ -148,7 +145,6 @@ const meta = {
     item: expenseItem,
     receiptCard: true,
     showAccount: true,
-    showRecorder: true,
     showTime: true,
   },
 } satisfies Meta<typeof TransactionRow>;
@@ -356,10 +352,9 @@ export const NoMetaRow: Story = {
   args: {
     item: {
       ...expenseItem,
-      recorder_name: null,
+      note: null,
     },
     showAccount: false,
-    showRecorder: false,
     showTime: false,
   },
 };
@@ -509,14 +504,12 @@ export const TitleAlignmentAndMetaSpacingComparison: Story = {
         item={{ ...expenseItem, originalAmount: "3000" }}
         receiptCard={false}
         showAccount
-        showRecorder
         showTime
       />
       <TransactionRow
         item={{ ...expenseItem, originalAmount: "3000" }}
         receiptCard
         showAccount
-        showRecorder
         showTime
       />
     </Stack>
@@ -538,7 +531,7 @@ export const MerchantToMetaGapComparison: Story = {
     const longMetaItem: TransactionRowItem = {
       ...expenseItem,
       account_name: "💴 很长的家庭共同日元现金账户名称",
-      recorder_name: "名字很长的家庭成员淞文",
+      note: "这是一条很长的备注内容用于对比换行表现",
     };
     const comparisonItems: TransactionRowItem[] = [
       expenseItem,
@@ -547,7 +540,7 @@ export const MerchantToMetaGapComparison: Story = {
       {
         ...adjustedItem,
         account_name: longMetaItem.account_name,
-        recorder_name: longMetaItem.recorder_name,
+        note: longMetaItem.note,
       },
     ];
 
@@ -559,7 +552,6 @@ export const MerchantToMetaGapComparison: Story = {
             key={`${item.id}-${item.originalAmount ?? "ordinary"}-${item.account_name}`}
             receiptCard={false}
             showAccount
-            showRecorder
             showTime
           />
         ))}

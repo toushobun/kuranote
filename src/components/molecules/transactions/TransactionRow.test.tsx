@@ -47,7 +47,7 @@ describe("TransactionRow", () => {
   it.each([
     ["2500", "+ ¥ 2,500"],
     ["-2500", "- ¥ 2,500"],
-  ])("余额调整展示有符号金额 %s 和记账人", (amount, expected) => {
+  ])("余额调整展示有符号金额 %s 和备注", (amount, expected) => {
     render(
       <TransactionRow
         item={createItem({
@@ -55,7 +55,6 @@ describe("TransactionRow", () => {
           amount,
           categoryItems: [],
           merchant_name: null,
-          recorder_name: "记账人",
           note: "盘点",
         })}
       />,
@@ -63,7 +62,6 @@ describe("TransactionRow", () => {
     expect(screen.getByText("余额调整")).toBeInTheDocument();
     expect(screen.getByText(expected)).toBeInTheDocument();
     expect(screen.getByText("日元现金")).toBeInTheDocument();
-    expect(screen.getByText("记账人")).toBeInTheDocument();
     expect(screen.getByText("盘点")).toBeInTheDocument();
     expect(screen.queryByText("未知商家")).not.toBeInTheDocument();
   });
@@ -132,9 +130,17 @@ describe("TransactionRow", () => {
     );
     expect(screen.getByText("日元现金 → 储蓄账户")).toBeInTheDocument();
   });
-  it("备注紧挨小分类显示在第三行", () => {
-    render(<TransactionRow item={createItem({ note: "测试备注" })} />);
-    expect(screen.getByText("餐饮 | 测试备注")).toBeInTheDocument();
+  it("备注展示在账户/时间行，不与小分类摘要合并", () => {
+    render(
+      <TransactionRow
+        item={createItem({ note: "测试备注" })}
+        showAccount
+        showTime
+      />,
+    );
+    expect(screen.getByText("测试备注")).toBeInTheDocument();
+    expect(screen.getByText("餐饮")).toBeInTheDocument();
+    expect(screen.queryByText("餐饮 | 测试备注")).not.toBeInTheDocument();
   });
   it("第二行全部为空时不显示 meta 内容", () => {
     render(<TransactionRow item={createItem()} />);
@@ -534,7 +540,7 @@ describe("TransactionRow", () => {
 
   describe("业务标签", () => {
     it("有无业务标签时分类摘要均独占详情首行", () => {
-      const detailText = "🥬 做饭食材/调料 | 猪肉・鸡腿・蔬菜";
+      const detailText = "🥬 做饭食材/调料";
       render(
         <div>
           <div data-testid="category-only-row">
@@ -548,7 +554,6 @@ describe("TransactionRow", () => {
                     parentCategoryName: "饮食",
                   },
                 ],
-                note: "猪肉・鸡腿・蔬菜",
               })}
             />
           </div>
@@ -565,7 +570,6 @@ describe("TransactionRow", () => {
                     parentCategoryName: "饮食",
                   },
                 ],
-                note: "猪肉・鸡腿・蔬菜",
               })}
             />
           </div>
@@ -918,7 +922,7 @@ describe("TransactionRow", () => {
     vi.stubGlobal("Intl", mockedIntl);
   }
 });
-describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
+describe("TransactionRow \u4E0D\u5C55\u793A\u8BB0\u8D26\u4EBA", () => {
   const item: TransactionRowItem = {
     account_color: "sakura",
     account_currency: "JPY",
@@ -935,7 +939,7 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
     id: "00000000-0000-4000-8000-000000009001",
     merchant_icon_url: null,
     merchant_name: "便利店",
-    note: null,
+    note: "买菜",
     recorder_color: "amber",
     recorder_name: "淞文",
     transaction_at: "2026-06-05T03:20:10.000Z",
@@ -944,19 +948,22 @@ describe("TransactionRow \u8BB0\u5F55\u4EBA\u5C55\u793A", () => {
   afterEach(() => {
     cleanup();
   });
-  it("多人账本使用成员个性色显示账户和记录人", () => {
-    render(<TransactionRow item={item} showAccount showRecorder />);
+  it("账户/时间/备注行不再展示记账人，即使数据中存在", () => {
+    render(<TransactionRow item={item} showAccount showTime />);
     expect(screen.getByText("日元现金")).toHaveStyle({
       color: themeColorTokens.sakura.chipText,
     });
-    expect(screen.getByText("淞文")).toHaveStyle({
-      color: themeColorTokens.amber.chipText,
-    });
-  });
-  it("单人账本保留记录人数据但不显示昵称", () => {
-    render(
-      <TransactionRow item={{ ...item, show_recorder: false }} showRecorder />,
-    );
     expect(screen.queryByText("淞文")).not.toBeInTheDocument();
+  });
+  it("账户、时间、备注按顺序展示", () => {
+    render(<TransactionRow item={item} showAccount showTime />);
+    const account = screen.getByText("日元现金");
+    const note = screen.getByText("买菜");
+    const metaRow = account.parentElement;
+
+    expect(metaRow?.textContent?.indexOf("日元现金")).toBeLessThan(
+      metaRow?.textContent?.indexOf("买菜") ?? -1,
+    );
+    expect(note).toBeInTheDocument();
   });
 });

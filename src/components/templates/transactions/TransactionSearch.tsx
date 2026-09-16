@@ -212,9 +212,7 @@ function SearchResultList({
           ...searchResultRowSx,
           borderBottom: isLastItem ? "none" : userThemeCardBorder,
         };
-        const content = (
-          <TransactionRow item={item} showAccount showTime showRecorder />
-        );
+        const content = <TransactionRow item={item} showAccount showTime />;
 
         if (item.canEdit === false) {
           return (

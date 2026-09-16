@@ -32,7 +32,6 @@ export type TransactionRowProps = {
   item: TransactionRowItem;
   receiptCard?: boolean;
   showAccount?: boolean;
-  showRecorder?: boolean;
   showTime?: boolean;
 };
 
@@ -58,12 +57,10 @@ export function TransactionRow({
   item,
   receiptCard = false,
   showAccount = false,
-  showRecorder = false,
   showTime = false,
 }: TransactionRowProps) {
   const isAdjustment = item.type === "balance_adjustment";
   const isTransfer = item.type === "transfer";
-  const shouldShowRecorder = showRecorder && (item.show_recorder ?? true);
   const merchantName = isAdjustment
     ? balanceAdjustmentText.title
     : isTransfer
@@ -103,9 +100,7 @@ export function TransactionRow({
       )
     : formatRowAmount(item);
   const categorySummaryText = getTransactionCategorySummaryText(item);
-  const detailText = [categorySummaryText, item.note]
-    .filter(Boolean)
-    .join(" | ");
+  const detailText = categorySummaryText ?? "";
   const adjustmentNode =
     statisticsAdjustment?.kind === "fullyExcluded" ? (
       item.originalAmount !== undefined ? (
@@ -145,20 +140,20 @@ export function TransactionRow({
           label: item.account_name,
         }
       : null,
-    (shouldShowRecorder || isAdjustment) && item.recorder_name
-      ? {
-          color: getMemberColor(item.recorder_color),
-          key: "recorder",
-          kind: "text" as const,
-          label: item.recorder_name,
-        }
-      : null,
     showTime || isAdjustment
       ? {
           color: mutedText,
           key: "time",
           kind: "text" as const,
           label: time,
+        }
+      : null,
+    item.note
+      ? {
+          color: mutedText,
+          key: "note",
+          kind: "text" as const,
+          label: item.note,
         }
       : null,
   ].filter((segment): segment is MetaSegment => segment !== null);
@@ -553,11 +548,7 @@ function getAvatarFallback(item: TransactionRowItem, merchantName: string) {
   return getMerchantInitial(merchantName, "?");
 }
 
-function getMemberColor(
-  colorKey:
-    | TransactionRowItem["account_color"]
-    | TransactionRowItem["recorder_color"],
-) {
+function getMemberColor(colorKey: TransactionRowItem["account_color"]) {
   return colorKey ? themeColorTokens[colorKey].chipText : mutedText;
 }
 
