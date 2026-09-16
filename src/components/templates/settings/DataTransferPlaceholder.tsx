@@ -1,3 +1,5 @@
+"use client";
+
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import HourglassEmptyRoundedIcon from "@mui/icons-material/HourglassEmptyRounded";
 import IconButton from "@mui/material/IconButton";

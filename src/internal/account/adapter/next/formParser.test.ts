@@ -84,6 +84,19 @@ describe("Account form parser", () => {
     });
   });
 
+  it("持有人超过 1 个时拒绝", () => {
+    const tooManyHolders = createFormData();
+    tooManyHolders.append(
+      "holderUserIds",
+      "00000000-0000-4000-8000-000000000042",
+    );
+
+    expect(parseCreateAccountForm(tooManyHolders)).toEqual({
+      error: accountErrorCodes.holderTooMany,
+      ok: false,
+    });
+  });
+
   it("更新和归档表单拒绝非法账户 ID", () => {
     const formData = createFormData();
     formData.set("accountId", "invalid");
