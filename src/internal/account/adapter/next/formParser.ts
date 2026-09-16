@@ -61,6 +61,9 @@ function parseAccountFields(
   if (holderUserIds.some((userId) => !isUuid(userId))) {
     return invalid(accountErrorCodes.holderInvalid);
   }
+  if (holderUserIds.length > 1) {
+    return invalid(accountErrorCodes.holderTooMany);
+  }
 
   return {
     ok: true,

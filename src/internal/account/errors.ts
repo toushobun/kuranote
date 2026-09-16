@@ -7,6 +7,7 @@ export const accountErrorCodes = {
   createFailed: "create_failed",
   currencyInvalid: "currency_invalid",
   holderInvalid: "holder_invalid",
+  holderTooMany: "holder_too_many",
   initialBalanceInvalid: "initial_balance_invalid",
   ledgerInvalid: "ledger_invalid",
   nameRequired: "name_required",
@@ -30,6 +31,7 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
     "账户新增失败。请确认账户名称是否重复，或稍后重试。",
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
   [accountErrorCodes.holderInvalid]: "账户持有人必须是当前账本的有效成员。",
+  [accountErrorCodes.holderTooMany]: "账户持有人最多只能选择 1 个。",
   [accountErrorCodes.initialBalanceInvalid]:
     "初始余额必须是最多两位小数的数字。",
   [accountErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",

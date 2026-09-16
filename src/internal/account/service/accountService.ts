@@ -181,6 +181,14 @@ export function createAccountService({
     members: AccountLedgerMember[],
   ): Promise<string[]> {
     const normalized = normalizeHolderUserIds(holderUserIds);
+
+    if (normalized.length > 1) {
+      throw new ValidationError(
+        accountErrorCodes.holderTooMany,
+        accountErrorMessage(accountErrorCodes.holderTooMany),
+      );
+    }
+
     const activeMemberIds = new Set(members.map((member) => member.user_id));
 
     if (normalized.some((userId) => !activeMemberIds.has(userId))) {

@@ -222,6 +222,19 @@ describe("AccountService", () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
 
+  it("持有人超过 1 个时拒绝创建", async () => {
+    const repository = createRepository();
+    const service = createService(repository);
+
+    await expect(
+      service.create({
+        ...createInput(),
+        holderUserIds: [userId, holderUserId],
+      }),
+    ).rejects.toMatchObject({ code: accountErrorCodes.holderTooMany });
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it("更新不存在或已删除的账户时返回 account_not_found", async () => {
     const repository = createRepository();
     vi.mocked(repository.isActiveAccount).mockResolvedValue(false);

@@ -34,6 +34,21 @@ describe("Account Schema", () => {
     ).toBe(true);
   });
 
+  it("拒绝超过 1 个持有人", () => {
+    expect(
+      createAccountRequestSchema.safeParse({
+        currency: "JPY",
+        holderUserIds: [
+          holderUserId,
+          "00000000-0000-4000-8000-000000000042",
+        ],
+        initialBalance: 1000,
+        name: "现金",
+        type: "cash",
+      }).success,
+    ).toBe(false);
+  });
+
   it("拒绝非法货币和非法账户类型", () => {
     expect(
       updateAccountRequestSchema.safeParse({

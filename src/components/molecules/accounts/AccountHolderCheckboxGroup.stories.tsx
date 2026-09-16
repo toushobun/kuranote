@@ -55,13 +55,6 @@ export const WithPreservedOptions: Story = {
   },
 };
 
-export const AllSelected: Story = {
-  name: "全部选中",
-  args: {
-    selectedUserIds: ["user-1", "user-2"],
-  },
-};
-
 export const SingleHolder: Story = {
   name: "仅一位持有人",
   args: {
@@ -77,7 +70,7 @@ export const SingleHolder: Story = {
 };
 
 export const SelectedWithPreserved: Story = {
-  name: "选中活跃 + 保留非活跃",
+  name: "存量数据：活跃持有人因保留非活跃持有人被锁定",
   args: {
     selectedUserIds: ["user-1"],
     preservedHolderOptions: [
