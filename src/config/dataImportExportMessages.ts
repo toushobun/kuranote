@@ -7,7 +7,7 @@ export const dataImportExportPageMessages = {
 export const dataImportExportEntryMessages = {
   import: {
     title: "数据导入",
-    description: "从 CSV / xlsx 文件批量导入收支和转账记录",
+    description: "从 xlsx 文件批量导入收支和转账记录",
   },
   export: {
     title: "数据导出",
@@ -27,7 +27,7 @@ export const dataTransferBackMessages = {
 
 export const dataImportPageMessages = {
   title: "数据导入",
-  subtitle: "从 CSV / xlsx 文件批量导入收支和转账记录",
+  subtitle: "从 xlsx 文件批量导入收支和转账记录",
 } as const;
 
 export const dataImportFormatDescriptionMessages = {
