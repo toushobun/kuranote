@@ -89,6 +89,15 @@ describe("parseIncomeExpenseSheet", () => {
     expect(result.rows[0].sharedTexts["账户持有人"]).toBe("鄧");
   });
 
+  it("「账户持有人」填多个持有人（分号分隔）时报告格式错误", () => {
+    const table = buildTable([validRowCells({ 账户持有人: "鄧;聶" })]);
+    const result = parseIncomeExpenseSheet(table);
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({ column: "账户持有人", kind: "row" }),
+    ]);
+  });
+
   it("日期格式不正确时报告行错误并跳过该行", () => {
     const table = buildTable([validRowCells({ 日期: "2026-01-05" })]);
     const result = parseIncomeExpenseSheet(table);

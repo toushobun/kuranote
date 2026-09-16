@@ -35,7 +35,7 @@ export const dataImportFormatDescriptionMessages = {
   fileTypeHint:
     "支持 Excel（.xlsx）文件，大小不超过 10MB，工作表名需精确为「收支」「转账」「余额变更」。",
   holderColumnHint:
-    "「账户持有人」列可以留空（0 个持有人），也可以填写一个持有人姓名（1 个持有人），不支持填写多个持有人。",
+    "「账户持有人」列可以留空（0 个持有人），也可以填写一个持有人姓名（1 个持有人）；用分号「;」「；」填写多个持有人会被判定为格式错误。",
   recorderColumnHint:
     "「记账人」列不会被读取，导入的记账人统一为当前登录账号。",
   billRefHint:

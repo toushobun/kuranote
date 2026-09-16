@@ -29,10 +29,13 @@ function normalizedSharedText(column: IncomeExpenseSharedColumn, text: string) {
 function resolveSharedFields(row: IncomeExpenseSheetRow) {
   const dateText = row.sharedTexts["日期"];
   const dateResult = parseImportDate(dateText);
+  // 走到这里的行已经在 parseIncomeExpenseSheet 里通过了账户持有人格式校验，
+  // 因此这里必定是 ok:true，取值时兜底 null 只是满足类型、不会实际触发。
+  const holderResult = parseHolderName(row.sharedTexts["账户持有人"]);
 
   return {
     accountCurrency: row.sharedTexts["账户币种"].toUpperCase(),
-    accountHolder: parseHolderName(row.sharedTexts["账户持有人"]),
+    accountHolder: holderResult.ok ? holderResult.value : null,
     accountName: row.sharedTexts["账户"],
     merchantName: row.sharedTexts["商家"],
     merchantTag: row.sharedTexts["商家分类"] || null,

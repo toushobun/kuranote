@@ -12,6 +12,7 @@ import {
   buildColumnIndex,
   findMissingRequiredColumns,
 } from "internal/dataImport/util/columnIndex";
+import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
@@ -47,6 +48,10 @@ const sharedColumnValidators: Partial<
       ? null
       : "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
   账户: (text) => (text ? null : "账户不能为空。"),
+  账户持有人: (text) =>
+    parseHolderName(text).ok
+      ? null
+      : "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
   账户币种: (text) =>
     importCurrencyPattern.test(text)
       ? null

@@ -140,6 +140,24 @@ describe("parseTransferSheet", () => {
     ).toEqual(["转出账户", "转入账户"]);
   });
 
+  it("转出账户持有人填多个持有人（分号分隔）时报告格式错误", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 转出账户持有人: "鄧;聶" })]),
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({ column: "转出账户持有人", kind: "row" }),
+    ]);
+  });
+
+  it("转入账户持有人填多个持有人（分号分隔）时报告格式错误", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 转入账户持有人: "鄧；聶" })]),
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({ column: "转入账户持有人", kind: "row" }),
+    ]);
+  });
+
   it("同一行内其它字段（如金额）已报错时，仍会一并报告转出/转入账户相同的错误", () => {
     const result = parseTransferSheet(
       buildTable([

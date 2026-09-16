@@ -112,10 +112,23 @@ export function parseTransferSheet(
       addIssue("备注", `备注不能超过 ${importNoteMaxLength} 个字符。`);
     }
 
-    const fromAccountHolder = parseHolderName(get("转出账户持有人"));
-    const toAccountHolder = parseHolderName(get("转入账户持有人"));
+    const fromAccountHolderResult = parseHolderName(get("转出账户持有人"));
+    if (!fromAccountHolderResult.ok) {
+      addIssue(
+        "转出账户持有人",
+        "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
+      );
+    }
 
-    // 「转出/转入账户是否相同」只依赖这四个字段自身是否合法，与「交易类型」
+    const toAccountHolderResult = parseHolderName(get("转入账户持有人"));
+    if (!toAccountHolderResult.ok) {
+      addIssue(
+        "转入账户持有人",
+        "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
+      );
+    }
+
+    // 「转出/转入账户是否相同」只依赖这几个字段自身是否合法，与「交易类型」
     // 「日期」「金额」「备注」等无关字段是否报错无关，避免这些字段的错误
     // 掩盖同账户错误，导致用户要多次上传才能看到完整的错误列表。
     if (
@@ -123,27 +136,29 @@ export function parseTransferSheet(
       toAccountName &&
       fromAccountCurrencyValid &&
       toAccountCurrencyValid &&
+      fromAccountHolderResult.ok &&
+      toAccountHolderResult.ok &&
       fromAccountName === toAccountName &&
       fromAccountCurrencyText.toUpperCase() ===
         toAccountCurrencyText.toUpperCase() &&
-      fromAccountHolder === toAccountHolder
+      fromAccountHolderResult.value === toAccountHolderResult.value
     ) {
       addIssue("转入账户", "转出账户与转入账户不能是同一个账户。");
     }
 
-    if (hasError) {
+    if (hasError || !fromAccountHolderResult.ok || !toAccountHolderResult.ok) {
       continue;
     }
 
     rows.push({
       amount: amountResult.ok ? amountResult.value : 0,
       fromAccountCurrency: fromAccountCurrencyText.toUpperCase(),
-      fromAccountHolder,
+      fromAccountHolder: fromAccountHolderResult.value,
       fromAccountName,
       note: note || null,
       rowNumber,
       toAccountCurrency: toAccountCurrencyText.toUpperCase(),
-      toAccountHolder,
+      toAccountHolder: toAccountHolderResult.value,
       toAccountName,
       transactionAt: dateResult.ok ? dateResult.value : "",
     });
