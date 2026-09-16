@@ -10,6 +10,7 @@ import {
 import {
   buildColumnIndex,
   findMissingRequiredColumns,
+  findUnknownColumns,
 } from "internal/dataImport/util/columnIndex";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
@@ -28,18 +29,28 @@ export function parseTransferSheet(
     columnIndex,
     transferColumns,
   );
+  const unknownColumns = findUnknownColumns(table.headerRow, transferColumns);
 
-  if (missingColumns.length > 0) {
-    return {
-      issues: [
-        {
-          kind: "structural",
-          message: `「转账」表缺少必填列：${missingColumns.join("、")}。`,
-          sheet: "transfer",
-        },
-      ],
-      rows: [],
-    };
+  if (missingColumns.length > 0 || unknownColumns.length > 0) {
+    const structuralIssues: ImportValidationIssue[] = [];
+
+    if (missingColumns.length > 0) {
+      structuralIssues.push({
+        kind: "structural",
+        message: `「转账」表缺少必填列：${missingColumns.join("、")}。`,
+        sheet: "transfer",
+      });
+    }
+
+    if (unknownColumns.length > 0) {
+      structuralIssues.push({
+        kind: "structural",
+        message: `「转账」表存在无法识别的列：${unknownColumns.join("、")}，请确认列名是否正确。`,
+        sheet: "transfer",
+      });
+    }
+
+    return { issues: structuralIssues, rows: [] };
   }
 
   const issues: ImportValidationIssue[] = [];

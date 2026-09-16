@@ -11,6 +11,7 @@ import {
 import {
   buildColumnIndex,
   findMissingRequiredColumns,
+  findUnknownColumns,
 } from "internal/dataImport/util/columnIndex";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
@@ -70,18 +71,31 @@ export function parseIncomeExpenseSheet(
     columnIndex,
     incomeExpenseColumns,
   );
+  const unknownColumns = findUnknownColumns(
+    table.headerRow,
+    incomeExpenseColumns,
+  );
 
-  if (missingColumns.length > 0) {
-    return {
-      issues: [
-        {
-          kind: "structural",
-          message: `「收支」表缺少必填列：${missingColumns.join("、")}。`,
-          sheet: "incomeExpense",
-        },
-      ],
-      rows: [],
-    };
+  if (missingColumns.length > 0 || unknownColumns.length > 0) {
+    const structuralIssues: ImportValidationIssue[] = [];
+
+    if (missingColumns.length > 0) {
+      structuralIssues.push({
+        kind: "structural",
+        message: `「收支」表缺少必填列：${missingColumns.join("、")}。`,
+        sheet: "incomeExpense",
+      });
+    }
+
+    if (unknownColumns.length > 0) {
+      structuralIssues.push({
+        kind: "structural",
+        message: `「收支」表存在无法识别的列：${unknownColumns.join("、")}，请确认列名是否正确。`,
+        sheet: "incomeExpense",
+      });
+    }
+
+    return { issues: structuralIssues, rows: [] };
   }
 
   const issues: ImportValidationIssue[] = [];

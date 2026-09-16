@@ -138,6 +138,7 @@ function FormatDescriptionCard() {
         >
           {[
             messages.fileTypeHint,
+            messages.unknownColumnHint,
             messages.holderColumnHint,
             messages.recorderColumnHint,
             messages.billRefHint,

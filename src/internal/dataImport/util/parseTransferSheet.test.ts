@@ -46,6 +46,87 @@ describe("parseTransferSheet", () => {
     ]);
   });
 
+  it("表头存在无法识别的列时返回结构性错误，不解析任何行", () => {
+    const table: ParsedTable = {
+      headerRow: [...header, "备注1"],
+      rows: [
+        {
+          cells: [...validRowCells(), "多出来的列"],
+          rowNumber: 2,
+        },
+      ],
+      sourceName: "转账",
+    };
+
+    const result = parseTransferSheet(table);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: expect.stringContaining("备注1"),
+        sheet: "transfer",
+      }),
+    ]);
+  });
+
+  it("转出/转入两侧共用不带前缀的列名（如只写「账户币种」）时，既报缺列也报无法识别的列", () => {
+    const table: ParsedTable = {
+      headerRow: [
+        "交易类型",
+        "转出账户",
+        "账户币种",
+        "账户持有人",
+        "转入账户",
+        "账户币种",
+        "账户持有人",
+        "金额",
+        "日期",
+        "记账人",
+        "备注",
+      ],
+      rows: [
+        {
+          cells: [
+            "转账",
+            "Debit",
+            "JPY",
+            "鄧",
+            "现金",
+            "JPY",
+            "鄧",
+            "500",
+            "2026-01-05 12:00:00",
+            "鄧",
+            "",
+          ],
+          rowNumber: 2,
+        },
+      ],
+      sourceName: "转账",
+    };
+
+    const result = parseTransferSheet(table);
+
+    expect(result.rows).toEqual([]);
+    expect(
+      result.issues.some(
+        (issue) =>
+          issue.message.includes("缺少必填列") &&
+          issue.message.includes("转出账户币种") &&
+          issue.message.includes("转入账户币种"),
+      ),
+    ).toBe(true);
+    expect(
+      result.issues.some(
+        (issue) =>
+          issue.message.includes("无法识别的列") &&
+          issue.message.includes("账户币种") &&
+          issue.message.includes("账户持有人"),
+      ),
+    ).toBe(true);
+  });
+
   it("解析格式正确的一行", () => {
     const result = parseTransferSheet(buildTable([validRowCells()]));
     expect(result.issues).toEqual([]);

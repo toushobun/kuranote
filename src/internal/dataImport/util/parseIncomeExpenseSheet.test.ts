@@ -50,6 +50,44 @@ describe("parseIncomeExpenseSheet", () => {
     ]);
   });
 
+  it("表头存在无法识别的列时返回结构性错误，不解析任何行", () => {
+    const table = buildTable([validRowCells()]);
+    table.headerRow = [...header, "关联"];
+    table.rows = table.rows.map((row) => ({
+      ...row,
+      cells: [...row.cells, "1"],
+    }));
+
+    const result = parseIncomeExpenseSheet(table);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: expect.stringContaining("关联"),
+        sheet: "incomeExpense",
+      }),
+    ]);
+  });
+
+  it("既缺少必填列又存在无法识别的列时，两条结构性错误都返回", () => {
+    const table: ParsedTable = {
+      headerRow: ["日期", "金额", "关联"],
+      rows: [{ cells: ["2026-01-01 00:00:00", "100", "1"], rowNumber: 2 }],
+      sourceName: "收支",
+    };
+
+    const result = parseIncomeExpenseSheet(table);
+
+    expect(result.issues).toHaveLength(2);
+    expect(
+      result.issues.some((issue) => issue.message.includes("缺少必填列")),
+    ).toBe(true);
+    expect(
+      result.issues.some((issue) => issue.message.includes("无法识别的列")),
+    ).toBe(true);
+  });
+
   it("解析格式正确的一行", () => {
     const table = buildTable([validRowCells()]);
 
