@@ -54,7 +54,6 @@ describe("SettingsTemplate", () => {
       "主题换装",
       "收支颜色",
       "语言设置",
-      "数据导入导出",
       "App 偏好设置",
       "帮助与反馈",
       "关于 KuraNote",
@@ -77,6 +76,9 @@ describe("SettingsTemplate", () => {
     expect(
       within(container).getByRole("link", { name: /商家管理/ }),
     ).toHaveAttribute("href", "/merchants");
+    expect(
+      within(container).getByRole("link", { name: /数据导入导出/ }),
+    ).toHaveAttribute("href", "/settings/data");
   });
 
   it("账本管理入口显示当前账本名称", () => {
