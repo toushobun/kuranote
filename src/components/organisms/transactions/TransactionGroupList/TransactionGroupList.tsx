@@ -221,9 +221,7 @@ function TransactionListRow({
   isLastItem: boolean;
   item: TransactionListItem;
 }) {
-  const content = (
-    <TransactionRow item={item} showAccount showTime showRecorder />
-  );
+  const content = <TransactionRow item={item} showAccount showTime />;
   const sx = {
     borderBottom: isLastItem ? "none" : userThemeCardBorder,
     color: "inherit",
