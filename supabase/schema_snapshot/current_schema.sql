@@ -1221,6 +1221,10 @@ begin
     into v_holder_user_ids
     from unnest(coalesce(p_holder_user_ids, '{}'::uuid[])) as holder_user_ids(holder_user_id);
 
+    if cardinality(v_holder_user_ids) > 1 then
+        raise exception 'account can have at most one holder';
+    end if;
+
     if cardinality(v_holder_user_ids) > 0 then
         with locked_active_holders as (
             select lm.user_id
@@ -1277,10 +1281,7 @@ begin
             p_ledger_id,
             v_account_id,
             holder_user_id,
-            case
-                when cardinality(v_holder_user_ids) = 1 then 'owner'
-                else 'co_owner'
-            end,
+            'owner',
             v_user_id,
             v_user_id
         from unnest(v_holder_user_ids) as holder_user_ids(holder_user_id);
@@ -4850,6 +4851,10 @@ begin
     into v_holder_user_ids
     from unnest(coalesce(p_holder_user_ids, '{}'::uuid[])) as holder_user_ids(holder_user_id);
 
+    if cardinality(v_holder_user_ids) > 1 then
+        raise exception 'account can have at most one holder';
+    end if;
+
     if cardinality(v_holder_user_ids) > 0 then
         with locked_active_holders as (
             select lm.user_id
@@ -4914,10 +4919,7 @@ begin
             p_ledger_id,
             p_account_id,
             holder_user_id,
-            case
-                when cardinality(v_holder_user_ids) = 1 then 'owner'
-                else 'co_owner'
-            end,
+            'owner',
             v_user_id,
             v_user_id
         from unnest(v_holder_user_ids) as holder_user_ids(holder_user_id)

@@ -69,7 +69,7 @@ export const SingleHolderAccount: Story = {
 };
 
 export const SharedHolderAccount: Story = {
-  name: "多人共同持有账户",
+  name: "存量数据：多人共同持有账户（仅预选第一个持有人）",
   args: {
     account: {
       ...baseAccount,

@@ -28,7 +28,7 @@ describe("AccountHolderCheckboxGroup", () => {
     expect(within(container).getByLabelText("淞文")).toBeInTheDocument();
   });
 
-  it("胶囊选项支持多选并提交持有人", () => {
+  it("胶囊选项最多只能选中一个并提交持有人", () => {
     const { container } = render(
       <form>
         <AccountHolderCheckboxGroup
@@ -48,12 +48,34 @@ describe("AccountHolderCheckboxGroup", () => {
     }
 
     expect(new FormData(form).getAll("holderUserIds")).toEqual([
-      activeHolder.user_id,
       preservedHolder.user_id,
     ]);
+    expect(activeCheckbox).not.toBeChecked();
+    expect(familyCheckbox).toBeChecked();
   });
 
-  it("非活跃持有人禁用显示，但保存时继续提交", () => {
+  it("再次点击已选中项可以取消选择", () => {
+    const { container } = render(
+      <form>
+        <AccountHolderCheckboxGroup holderOptions={[activeHolder]} />
+      </form>,
+    );
+    const activeCheckbox = within(container).getByLabelText("淞文");
+
+    fireEvent.click(activeCheckbox);
+    expect(activeCheckbox).toBeChecked();
+
+    fireEvent.click(activeCheckbox);
+    expect(activeCheckbox).not.toBeChecked();
+
+    const form = container.querySelector("form");
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error("持有人测试表单未渲染。");
+    }
+    expect(new FormData(form).getAll("holderUserIds")).toEqual([]);
+  });
+
+  it("非活跃持有人禁用显示，且不通过表单提交（由数据库保存时自动保留）", () => {
     const { container } = render(
       <form>
         <AccountHolderCheckboxGroup
@@ -68,6 +90,27 @@ describe("AccountHolderCheckboxGroup", () => {
     const formData = new FormData(container.querySelector("form")!);
 
     expect(preservedCheckbox).toBeDisabled();
-    expect(formData.getAll("holderUserIds")).toContain(preservedHolder.user_id);
+    expect(formData.getAll("holderUserIds")).not.toContain(
+      preservedHolder.user_id,
+    );
+  });
+
+  it("存在非活跃持有人时，仍可以选择活跃持有人", () => {
+    const { container } = render(
+      <form>
+        <AccountHolderCheckboxGroup
+          holderOptions={[activeHolder]}
+          preservedHolderOptions={[preservedHolder]}
+        />
+      </form>,
+    );
+
+    const activeCheckbox = within(container).getByLabelText("淞文");
+    expect(activeCheckbox).not.toBeDisabled();
+
+    fireEvent.click(activeCheckbox);
+
+    const formData = new FormData(container.querySelector("form")!);
+    expect(formData.getAll("holderUserIds")).toEqual([activeHolder.user_id]);
   });
 });
