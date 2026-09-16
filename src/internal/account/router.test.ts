@@ -158,7 +158,7 @@ describe("account router", () => {
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/accounts`,
       {
-        body: JSON.stringify({ ...createBody(), holderUserIds: [] }),
+        body: JSON.stringify({ ...createBody(), currency: "JP" }),
         headers: requestHeaders,
         method: "POST",
       },
@@ -167,6 +167,28 @@ describe("account router", () => {
     expect(response.status).toBe(400);
     expect(create).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("创建请求允许空持有人列表", async () => {
+    const create = vi.fn().mockResolvedValue({ accountId });
+    const app = createApp(createContainer({ create }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts`,
+      {
+        body: JSON.stringify({ ...createBody(), holderUserIds: [] }),
+        headers: requestHeaders,
+        method: "POST",
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(create).toHaveBeenCalledWith({
+      ...createBody(),
+      holderUserIds: [],
+      ledgerId,
+      userId,
+    });
   });
 
   it("更新账户成功时传递路径和请求参数并刷新账户页面", async () => {

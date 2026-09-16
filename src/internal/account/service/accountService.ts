@@ -129,18 +129,9 @@ function normalizeCurrency(currency: string): string {
 }
 
 function normalizeHolderUserIds(holderUserIds: string[]): string[] {
-  const normalized = [
-    ...new Set(holderUserIds.map((value) => value.trim())),
-  ].filter(Boolean);
-
-  if (normalized.length === 0) {
-    throw new ValidationError(
-      accountErrorCodes.holderInvalid,
-      accountErrorMessage(accountErrorCodes.holderInvalid),
-    );
-  }
-
-  return normalized;
+  return [...new Set(holderUserIds.map((value) => value.trim()))].filter(
+    Boolean,
+  );
 }
 
 function normalizeInitialBalance(initialBalance: number): number {

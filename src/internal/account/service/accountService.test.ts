@@ -196,6 +196,19 @@ describe("AccountService", () => {
     });
   });
 
+  it("允许不指定任何持有人创建账户", async () => {
+    const repository = createRepository();
+    const service = createService(repository);
+
+    await expect(
+      service.create({ ...createInput(), holderUserIds: [] }),
+    ).resolves.toEqual({ accountId });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ holderUserIds: [] }),
+    );
+  });
+
   it("持有人不是当前账本有效成员时拒绝创建", async () => {
     const repository = createRepository();
     const service = createService(repository);

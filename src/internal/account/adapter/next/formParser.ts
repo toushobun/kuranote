@@ -58,10 +58,7 @@ function parseAccountFields(
         .filter(Boolean),
     ),
   ];
-  if (
-    holderUserIds.length === 0 ||
-    holderUserIds.some((userId) => !isUuid(userId))
-  ) {
+  if (holderUserIds.some((userId) => !isUuid(userId))) {
     return invalid(accountErrorCodes.holderInvalid);
   }
 

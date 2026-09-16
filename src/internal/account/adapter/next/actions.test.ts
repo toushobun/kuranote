@@ -132,15 +132,28 @@ describe("Account Server Actions", () => {
 
   it("表单参数无效时不创建账户也不触发缓存失效", async () => {
     const formData = createFormData();
-    formData.delete("holderUserIds");
+    formData.set("name", "");
 
     await expect(createAccount({}, formData)).resolves.toEqual({
-      error: "账户持有人必须是当前账本的有效成员。",
+      error: "请输入账户名称。",
       errorKey: expect.any(String),
     });
 
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("不勾选持有人时仍可以创建账户", async () => {
+    const formData = createFormData();
+    formData.delete("holderUserIds");
+
+    await expect(createAccount({}, formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/accounts?result=created",
+    );
+
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ holderUserIds: [] }),
+    );
   });
 
   it("归档账户失败时保留安全错误码且不触发缓存失效", async () => {
