@@ -25,7 +25,6 @@ function row(
       账户: "现金",
       账户币种: "CNY",
       账户持有人: "",
-      记账人: "",
       备注: "",
       ...sharedTexts,
     },
@@ -41,7 +40,6 @@ function continuationSharedTexts(): Record<IncomeExpenseSharedColumn, string> {
     账户: "-",
     账户币种: "-",
     账户持有人: "-",
-    记账人: "-",
     备注: "-",
   };
 }
@@ -100,7 +98,6 @@ describe("groupIncomeExpenseRows", () => {
           账户: "现金",
           账户币种: "CNY",
           账户持有人: "",
-          记账人: "",
           备注: "",
         },
         transactionType: "income",
@@ -271,6 +268,36 @@ describe("groupIncomeExpenseRows", () => {
         message: expect.stringContaining("备注"),
       }),
     ]);
+  });
+
+  it("账户币种大小写不同但语义相同时允许合并（按大写比较）", () => {
+    const result = groupIncomeExpenseRows([
+      row({
+        billRef: "BILL-7",
+        rowNumber: 2,
+        sharedTexts: { 账户币种: "CNY" },
+      }),
+      row({
+        billRef: "BILL-7",
+        rowNumber: 3,
+        sharedTexts: { ...continuationSharedTexts(), 账户币种: "cny" },
+      }),
+    ]);
+    expect(result.issues).toEqual([]);
+    expect(result.groups[0].items).toHaveLength(2);
+  });
+
+  it("「记账人」不参与共享字段一致性校验（列内容本就不会被读取）", () => {
+    const result = groupIncomeExpenseRows([
+      row({ billRef: "BILL-8", rowNumber: 2 }),
+      row({
+        billRef: "BILL-8",
+        rowNumber: 3,
+        sharedTexts: continuationSharedTexts(),
+      }),
+    ]);
+    expect(result.issues).toEqual([]);
+    expect(result.groups[0].items).toHaveLength(2);
   });
 
   it("不同账单关联值各自独立分组", () => {

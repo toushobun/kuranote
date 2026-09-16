@@ -130,4 +130,30 @@ describe("parseTransferSheet", () => {
     );
     expect(result.issues).toEqual([]);
   });
+
+  it("转出/转入账户均为空时，不会因为两者都是空字符串而误报「账户相同」", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 转出账户: "", 转入账户: "" })]),
+    );
+    expect(
+      result.issues.map((issue) => issue.kind === "row" && issue.column),
+    ).toEqual(["转出账户", "转入账户"]);
+  });
+
+  it("同一行内其它字段（如金额）已报错时，仍会一并报告转出/转入账户相同的错误", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          金额: "0",
+          转出账户: "现金",
+          转出账户持有人: "鄧",
+          转入账户: "现金",
+          转入账户持有人: "鄧",
+        }),
+      ]),
+    );
+    expect(
+      result.issues.map((issue) => issue.kind === "row" && issue.column),
+    ).toEqual(["金额", "转入账户"]);
+  });
 });

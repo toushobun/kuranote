@@ -1,4 +1,4 @@
-import type { ImportValidationResult } from "internal/dataImport/entity/importValidationIssue";
+import type { ImportValidationResult } from "internal/dataImport";
 import type { BaseActionState } from "types/auth";
 
 export type DataImportActionState = BaseActionState & {

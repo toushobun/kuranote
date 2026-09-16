@@ -3,7 +3,10 @@ import type {
   IncomeExpenseImportRow,
 } from "internal/dataImport/entity/importRow";
 import type { ImportRowIssue } from "internal/dataImport/entity/importValidationIssue";
-import { incomeExpenseSharedColumns } from "internal/dataImport/schema";
+import {
+  incomeExpenseSharedColumns,
+  type IncomeExpenseSharedColumn,
+} from "internal/dataImport/schema";
 import type { IncomeExpenseSheetRow } from "internal/dataImport/util/parseIncomeExpenseSheet";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
@@ -14,6 +17,14 @@ export type GroupIncomeExpenseRowsResult = {
 };
 
 const billRefPlaceholder = "-";
+
+/**
+ * 「账户币种」最终以大写存储、校验时也不区分大小写，因此比较后续行是否
+ * 「与首行完全相同」时同样按大写比较，避免 `cny` 与 `CNY` 被误判为不一致。
+ */
+function normalizedSharedText(column: IncomeExpenseSharedColumn, text: string) {
+  return column === "账户币种" ? text.toUpperCase() : text;
+}
 
 function resolveSharedFields(row: IncomeExpenseSheetRow) {
   const dateText = row.sharedTexts["日期"];
@@ -96,7 +107,9 @@ export function groupIncomeExpenseRows(
       const mismatchedColumns = incomeExpenseSharedColumns.filter((column) => {
         const text = row.sharedTexts[column];
         return (
-          text !== billRefPlaceholder && text !== firstRow!.sharedTexts[column]
+          text !== billRefPlaceholder &&
+          normalizedSharedText(column, text) !==
+            normalizedSharedText(column, firstRow!.sharedTexts[column])
         );
       });
 

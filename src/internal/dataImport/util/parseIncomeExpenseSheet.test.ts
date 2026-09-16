@@ -70,7 +70,6 @@ describe("parseIncomeExpenseSheet", () => {
           账户: "现金",
           账户币种: "CNY",
           账户持有人: "",
-          记账人: "忽略此列",
           备注: "",
         },
         transactionType: "expense",

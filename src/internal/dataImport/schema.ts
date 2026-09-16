@@ -61,6 +61,8 @@ export const importColumnsBySheetKind: Record<
 /**
  * 「收支」表里「账单关联」分组共用的字段：一组账单关联记录里只有第一次出现
  * 的行提供真实值，后续行必须填字面 `-` 继承首行的值，或原样复述首行内容。
+ * 「记账人」列本身不会被读取（见 `recorderColumnHint`），不参与共享字段
+ * 一致性校验，因此不在此列表中。
  */
 export const incomeExpenseSharedColumns = [
   "日期",
@@ -69,7 +71,6 @@ export const incomeExpenseSharedColumns = [
   "账户币种",
   "商家",
   "商家分类",
-  "记账人",
   "备注",
 ] as const;
 

@@ -82,7 +82,10 @@ export function parseTransferSheet(
     }
 
     const fromAccountCurrencyText = get("转出账户币种");
-    if (!importCurrencyPattern.test(fromAccountCurrencyText)) {
+    const fromAccountCurrencyValid = importCurrencyPattern.test(
+      fromAccountCurrencyText,
+    );
+    if (!fromAccountCurrencyValid) {
       addIssue("转出账户币种", "转出账户币种必须是 3 位字母代码，例如 CNY。");
     }
 
@@ -92,7 +95,10 @@ export function parseTransferSheet(
     }
 
     const toAccountCurrencyText = get("转入账户币种");
-    if (!importCurrencyPattern.test(toAccountCurrencyText)) {
+    const toAccountCurrencyValid = importCurrencyPattern.test(
+      toAccountCurrencyText,
+    );
+    if (!toAccountCurrencyValid) {
       addIssue("转入账户币种", "转入账户币种必须是 3 位字母代码，例如 CNY。");
     }
 
@@ -109,8 +115,14 @@ export function parseTransferSheet(
     const fromAccountHolder = parseHolderName(get("转出账户持有人"));
     const toAccountHolder = parseHolderName(get("转入账户持有人"));
 
+    // 「转出/转入账户是否相同」只依赖这四个字段自身是否合法，与「交易类型」
+    // 「日期」「金额」「备注」等无关字段是否报错无关，避免这些字段的错误
+    // 掩盖同账户错误，导致用户要多次上传才能看到完整的错误列表。
     if (
-      !hasError &&
+      fromAccountName &&
+      toAccountName &&
+      fromAccountCurrencyValid &&
+      toAccountCurrencyValid &&
       fromAccountName === toAccountName &&
       fromAccountCurrencyText.toUpperCase() ===
         toAccountCurrencyText.toUpperCase() &&
