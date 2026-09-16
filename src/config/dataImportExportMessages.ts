@@ -37,7 +37,7 @@ export const dataImportFormatDescriptionMessages = {
   unknownColumnHint:
     "表头列名必须与下方列表完全一致（包括「转出/转入」等前缀），出现列表之外的列名会被判定为格式错误，不会被静默忽略。",
   holderColumnHint:
-    "「账户持有人」列可以留空（0 个持有人），也可以填写一个持有人姓名（1 个持有人）；用分号「;」「；」填写多个持有人会被判定为格式错误。",
+    "「账户持有人」列只能填写 0 个（留空）或 1 个持有人姓名，不支持填写多个持有人。",
   recorderColumnHint:
     "「记账人」列不会被读取，导入的记账人统一为当前登录账号。",
   billRefHint:
