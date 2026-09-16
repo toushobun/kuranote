@@ -145,11 +145,9 @@ export const theme = createTheme({
       styleOverrides: {
         html: {
           background: "var(--user-theme-page-bg)",
-          minHeight: "100vh",
         },
         body: {
           background: "var(--user-theme-page-bg)",
-          minHeight: "100vh",
         },
       },
     },
