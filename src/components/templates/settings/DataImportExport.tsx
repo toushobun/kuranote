@@ -1,3 +1,5 @@
+"use client";
+
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
