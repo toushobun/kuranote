@@ -50,6 +50,7 @@ function createContainer(
         ...overrides,
       },
     },
+    dataImport: {} as RequestContainer["dataImport"],
     ledger: {} as RequestContainer["ledger"],
     merchant: {} as RequestContainer["merchant"],
     statistics: {} as RequestContainer["statistics"],

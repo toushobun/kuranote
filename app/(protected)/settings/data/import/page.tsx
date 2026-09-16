@@ -1,5 +1,6 @@
-import { DataTransferPlaceholderTemplate } from "templates/settings/DataTransferPlaceholder";
+import { checkDataImportFormat } from "internal/dataImport/adapter/next/actions";
+import { DataImportTemplate } from "templates/settings/DataImport";
 
 export default function SettingsDataImportRoute() {
-  return <DataTransferPlaceholderTemplate kind="import" />;
+  return <DataImportTemplate checkFormatAction={checkDataImportFormat} />;
 }

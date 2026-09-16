@@ -35,6 +35,7 @@ function containerWithAccept(
     account: {} as RequestContainer["account"],
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
+    dataImport: {} as RequestContainer["dataImport"],
     ledger: {
       currentLedgerService:
         {} as RequestContainer["ledger"]["currentLedgerService"],

@@ -4,25 +4,15 @@ import IconButton from "@mui/material/IconButton";
 import Link from "next/link";
 
 import {
+  dataExportPlaceholderMessages,
   dataTransferBackMessages,
-  dataTransferPlaceholderMessages,
 } from "config/dataImportExportMessages";
 import { routePaths } from "config/paths";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
-type DataTransferPlaceholderKind = "export" | "import";
-
-type DataTransferPlaceholderProps = {
-  kind: DataTransferPlaceholderKind;
-};
-
-export function DataTransferPlaceholderTemplate({
-  kind,
-}: DataTransferPlaceholderProps) {
-  const messages = dataTransferPlaceholderMessages[kind];
-
+export function DataTransferPlaceholderTemplate() {
   return (
     <PageShell maxWidth="sm">
       <PageHeader
@@ -35,18 +25,18 @@ export function DataTransferPlaceholderTemplate({
             <ArrowBackRoundedIcon />
           </IconButton>
         }
-        title={messages.title}
+        title={dataExportPlaceholderMessages.title}
         variant="compact"
       />
 
       <EmptyState
-        description={messages.comingSoonDescription}
+        description={dataExportPlaceholderMessages.comingSoonDescription}
         illustration={
           <HourglassEmptyRoundedIcon
             sx={{ color: "text.secondary", fontSize: 40 }}
           />
         }
-        title={messages.comingSoonTitle}
+        title={dataExportPlaceholderMessages.comingSoonTitle}
       />
     </PageShell>
   );

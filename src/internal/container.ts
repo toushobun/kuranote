@@ -13,6 +13,7 @@ import {
   createCategoryService,
   type CategoryQueryService,
 } from "internal/category/service/categoryService";
+import { createDataImportValidationService } from "internal/dataImport/service/dataImportValidationService";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
@@ -73,6 +74,9 @@ export type RequestContainer = {
   readonly category: {
     readonly service: ReturnType<typeof createCategoryService>;
   };
+  readonly dataImport: {
+    readonly service: ReturnType<typeof createDataImportValidationService>;
+  };
   readonly merchant: {
     readonly service: ReturnType<typeof createMerchantService>;
   };
@@ -100,6 +104,7 @@ export function createRequestContainer(
   let authContainer: RequestContainer["auth"] | undefined;
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
+  let dataImportContainer: RequestContainer["dataImport"] | undefined;
   let merchantContainer: RequestContainer["merchant"] | undefined;
   let statisticsContainer: RequestContainer["statistics"] | undefined;
   let transactionContainer: RequestContainer["transaction"] | undefined;
@@ -243,6 +248,16 @@ export function createRequestContainer(
       }
 
       return categoryContainer;
+    },
+
+    get dataImport() {
+      if (!dataImportContainer) {
+        dataImportContainer = {
+          service: createDataImportValidationService(),
+        };
+      }
+
+      return dataImportContainer;
     },
 
     get ledger() {

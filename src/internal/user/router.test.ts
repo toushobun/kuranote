@@ -41,6 +41,7 @@ function createContainer(
     account: {} as RequestContainer["account"],
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
+    dataImport: {} as RequestContainer["dataImport"],
     ledger: {} as RequestContainer["ledger"],
     merchant: {} as RequestContainer["merchant"],
     statistics: {} as RequestContainer["statistics"],
