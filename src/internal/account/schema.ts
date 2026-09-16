@@ -54,7 +54,7 @@ const accountFieldsSchema = z.object({
     .string()
     .trim()
     .regex(/^[A-Z]{3}$/),
-  holderUserIds: z.array(z.string().uuid()).min(1),
+  holderUserIds: z.array(z.string().uuid()),
   name: z.string().trim().min(1),
   type: z.enum(accountTypes),
 });

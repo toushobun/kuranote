@@ -48,7 +48,7 @@ describe("Account form parser", () => {
     });
   });
 
-  it("拒绝超过两位小数、非法货币和空持有人", () => {
+  it("拒绝超过两位小数和非法货币", () => {
     const invalidBalance = createFormData();
     invalidBalance.set("initialBalance", "1.234");
     expect(parseCreateAccountForm(invalidBalance)).toEqual({
@@ -62,9 +62,22 @@ describe("Account form parser", () => {
       error: accountErrorCodes.currencyInvalid,
       ok: false,
     });
+  });
 
+  it("接受空持有人（0 个持有人）", () => {
+    const noHolders = createFormData();
+    noHolders.delete("holderUserIds");
+
+    expect(parseCreateAccountForm(noHolders)).toEqual({
+      ok: true,
+      value: expect.objectContaining({ holderUserIds: [] }),
+    });
+  });
+
+  it("持有人列表中存在非法 UUID 时拒绝", () => {
     const invalidHolders = createFormData();
-    invalidHolders.delete("holderUserIds");
+    invalidHolders.append("holderUserIds", "not-a-uuid");
+
     expect(parseCreateAccountForm(invalidHolders)).toEqual({
       error: accountErrorCodes.holderInvalid,
       ok: false,

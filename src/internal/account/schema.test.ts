@@ -22,11 +22,23 @@ describe("Account Schema", () => {
     ).toBe(true);
   });
 
-  it("拒绝空持有人、非法货币和非法账户类型", () => {
+  it("接受空持有人数组", () => {
+    expect(
+      createAccountRequestSchema.safeParse({
+        currency: "JPY",
+        holderUserIds: [],
+        initialBalance: 1000,
+        name: "现金",
+        type: "cash",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("拒绝非法货币和非法账户类型", () => {
     expect(
       updateAccountRequestSchema.safeParse({
         currency: "jpy",
-        holderUserIds: [],
+        holderUserIds: [holderUserId],
         name: "现金",
         type: "unknown",
       }).success,
