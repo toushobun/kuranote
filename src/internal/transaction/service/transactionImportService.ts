@@ -59,10 +59,12 @@ export function createTransactionImportService({
 }): TransactionImportService {
   async function loadDayItems(
     transactionAt: string,
-    filters: Parameters<TransactionService["getGroupItems"]>[5],
+    filters: Parameters<TransactionService["getGroupItems"]>[4],
   ) {
     const day = transactionAt.slice(0, 10);
-    const items = [];
+    const items: Awaited<
+      ReturnType<TransactionService["getGroupItems"]>
+    >["groups"][number]["items"] = [];
     let offset = 0;
 
     while (true) {
@@ -86,8 +88,15 @@ export function createTransactionImportService({
       await service.createNormal(input);
     },
 
-    async createTransfer({ fromAccountName: _from, toAccountName: _to, ...input }) {
-      await service.createTransfer(input);
+    async createTransfer(input) {
+      await service.createTransfer({
+        accountId: input.accountId,
+        ledgerId: input.ledgerId,
+        note: input.note,
+        transactionAt: input.transactionAt,
+        transferAmount: input.transferAmount,
+        transferTargetAccountId: input.transferTargetAccountId,
+      });
     },
 
     async hasPossibleNormalDuplicate(input) {
