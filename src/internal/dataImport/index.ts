@@ -1,3 +1,11 @@
+export type {
+  ImportBatchResult,
+  ImportExecutionDetail,
+  ImportExecutionResult,
+  ImportExecutionRowResult,
+  ImportExecutionRowStatus,
+  ImportExecutionSheetKind,
+} from "internal/dataImport/entity/importExecution";
 export {
   importSheetKindLabels,
   importSheetKinds,
@@ -17,3 +25,8 @@ export {
   balanceAdjustmentColumns,
   type ImportColumnDef,
 } from "internal/dataImport/schema";
+export {
+  createDataImportExecutionService,
+  type DataImportExecutionService,
+  type ExecuteImportBatchInput,
+} from "internal/dataImport/service/dataImportExecutionService";
