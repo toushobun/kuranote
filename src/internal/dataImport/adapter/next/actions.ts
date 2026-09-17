@@ -1,8 +1,6 @@
 "use server";
 
-import {
-  createAccountImportService,
-} from "internal/account";
+import { createAccountImportService } from "internal/account";
 import { createCategoryImportService } from "internal/category";
 import {
   parseCheckDataImportFileForm,
@@ -26,9 +24,9 @@ async function getDataImportValidationService() {
   return createRequestContainer(dependencies).dataImport.service;
 }
 
-function createErrorState<T extends DataImportActionState | DataImportBatchActionState>(
-  message: string,
-): T {
+function createErrorState<
+  T extends DataImportActionState | DataImportBatchActionState,
+>(message: string): T {
   return { error: message, errorKey: crypto.randomUUID() } as T;
 }
 
@@ -107,6 +105,7 @@ export async function executeDataImportBatch(
       fileName: parsed.value.file.name,
       ledgerId: currentLedger.id,
       offset: parsed.value.offset,
+      timeZoneOffsetMinutes: parsed.value.timeZoneOffsetMinutes,
       userId,
     });
     return { batch };
