@@ -1,4 +1,5 @@
 export const dataImportErrorCodes = {
+  executionFailed: "execution_failed",
   executionInvalid: "execution_invalid",
   fileRequired: "file_required",
   fileTooLarge: "file_too_large",
@@ -12,6 +13,7 @@ export type DataImportErrorCode =
   (typeof dataImportErrorCodes)[keyof typeof dataImportErrorCodes];
 
 const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
+  [dataImportErrorCodes.executionFailed]: "数据导入失败，请稍后重试。",
   [dataImportErrorCodes.executionInvalid]:
     "导入文件或进度信息已变化，请重新检查格式后再导入。",
   [dataImportErrorCodes.fileRequired]: "请选择要导入的文件。",
