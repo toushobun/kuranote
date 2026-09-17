@@ -254,6 +254,7 @@ export function AccountsTemplate({
         ) : null}
         {errorFeedbacks.map((feedback, index) => (
           <FailureFeedbackDialog
+            aboveModal
             key={feedback.id}
             bottomOffset={errorFeedbackBottomOffset(index)}
             description={feedback.message}

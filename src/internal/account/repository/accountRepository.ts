@@ -225,9 +225,8 @@ export function createSupabaseAccountRepository(
         });
         if (error.code === "23505") {
           throw new ConflictError(
-            accountErrorCodes.createFailed,
-            getAccountErrorMessage(accountErrorCodes.createFailed) ??
-              "账户新增失败，请稍后重试。",
+            accountErrorCodes.nameDuplicate,
+            getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
           );
         }
         throw toRepositoryError(
@@ -482,9 +481,8 @@ export function createSupabaseAccountRepository(
         }
         if (error.code === "23505") {
           throw new ConflictError(
-            accountErrorCodes.updateFailed,
-            getAccountErrorMessage(accountErrorCodes.updateFailed) ??
-              "账户更新失败，请稍后重试。",
+            accountErrorCodes.nameDuplicate,
+            getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
           );
         }
         throw toRepositoryError(

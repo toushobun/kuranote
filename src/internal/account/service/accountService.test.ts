@@ -3,7 +3,11 @@
 import type { CurrentLedgerRole } from "internal/ledger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { accountErrorCodes } from "internal/account/errors";
+import { ConflictError } from "internal/shared/errors/appError";
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 import type { AccountRepository } from "internal/account/repository/accountRepository";
 import { createAccountService } from "internal/account/service/accountService";
 import type { LedgerAccessService } from "internal/ledger";
@@ -194,6 +198,21 @@ describe("AccountService", () => {
       name: "现金",
       type: "cash",
     });
+  });
+
+  it("保留数据库同维度重名冲突，不增加账本全局预判重", async () => {
+    const repository = createRepository();
+    const service = createAccountService({
+      accountRepository: repository,
+      ledgerAccessService: createLedgerAccessService(),
+    });
+    const error = new ConflictError(
+      accountErrorCodes.nameDuplicate,
+      getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+    );
+    vi.mocked(repository.create).mockRejectedValue(error);
+    await expect(service.create(createInput())).rejects.toBe(error);
+    expect(repository.listAccounts).not.toHaveBeenCalled();
   });
 
   it("允许不指定任何持有人创建账户", async () => {

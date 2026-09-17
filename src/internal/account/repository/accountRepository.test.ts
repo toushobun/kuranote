@@ -2,6 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
 import { createSupabaseMock } from "test/supabaseMock";
 
@@ -70,32 +74,41 @@ describe("AccountRepository", () => {
     });
   });
 
-  it("账户名称唯一约束冲突转换为 ConflictError", async () => {
-    const supabase = createSupabaseMock({
-      rpcResponse: {
-        error: { code: "23505", message: "private constraint name" },
-      },
-    });
-    const repository = createSupabaseAccountRepository(
-      supabase.client as never,
-      logger,
-    );
+  it.each(["create", "update"] as const)(
+    "账户同维度名称冲突在 %s 中转换为安全 ConflictError",
+    async (operation) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: "23505",
+            message: "private constraint name",
+            details: "private details",
+          },
+        },
+      });
+      const repository = createSupabaseAccountRepository(
+        supabase.client as never,
+        logger,
+      );
 
-    await expect(
-      repository.create({
-        currency: "JPY",
-        holderUserIds: [holderUserId],
-        initialBalance: 1000,
-        ledgerId,
-        name: "现金",
-        type: "cash",
-      }),
-    ).rejects.toMatchObject({
-      code: "create_failed",
-      message: "账户新增失败。请确认账户名称是否重复，或稍后重试。",
-      name: "ConflictError",
-    });
-  });
+      await expect(
+        repository[operation]({
+          accountId,
+          currency: "JPY",
+          holderUserIds: [holderUserId],
+          initialBalance: 1000,
+          ledgerId,
+          name: "现金",
+          type: "cash",
+        }),
+      ).rejects.toMatchObject({
+        code: accountErrorCodes.nameDuplicate,
+        message: getAccountErrorMessage(accountErrorCodes.nameDuplicate),
+        details: undefined,
+        name: "ConflictError",
+      });
+    },
+  );
 
   it("账户列表只查询目标账本中的未归档账户并保持排序", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ data: [] }] });
