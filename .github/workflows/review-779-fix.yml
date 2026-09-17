@@ -28,50 +28,230 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Unify transaction timestamp conversion
+      - name: Apply review fixes
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
-          util = Path('src/internal/transaction/util/transactionTimestamp.ts')
-          util.write_text('''export type TransactionTimestampFormat = "form" | "import";\n\nconst minTimeZoneOffsetMinutes = -840;\nconst maxTimeZoneOffsetMinutes = 840;\n\nexport function parseTimeZoneOffsetMinutes(value: string): number | null {\n  if (!/^-?\\d+$/.test(value)) return null;\n\n  const offset = Number(value);\n  if (\n    !Number.isInteger(offset) ||\n    offset < minTimeZoneOffsetMinutes ||\n    offset > maxTimeZoneOffsetMinutes\n  ) {\n    return null;\n  }\n\n  return offset;\n}\n\nexport function toTransactionTimestamp(\n  value: string,\n  offsetMinutes: number,\n  format: TransactionTimestampFormat,\n): string | null {\n  if (\n    !Number.isInteger(offsetMinutes) ||\n    offsetMinutes < minTimeZoneOffsetMinutes ||\n    offsetMinutes > maxTimeZoneOffsetMinutes\n  ) {\n    return null;\n  }\n\n  const pattern =\n    format === "form"\n      ? /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?$/\n      : /^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})$/;\n  const match = value.match(pattern);\n  if (!match) return null;\n\n  const [, yearText, monthText, dayText, hourText, minuteText, secondText] =\n    match;\n  const year = Number(yearText);\n  const month = Number(monthText);\n  const day = Number(dayText);\n  const hour = Number(hourText);\n  const minute = Number(minuteText);\n  const second = Number(secondText ?? "0");\n  const utcLikeDate = new Date(\n    Date.UTC(year, month - 1, day, hour, minute, second),\n  );\n\n  if (\n    utcLikeDate.getUTCFullYear() !== year ||\n    utcLikeDate.getUTCMonth() !== month - 1 ||\n    utcLikeDate.getUTCDate() !== day ||\n    utcLikeDate.getUTCHours() !== hour ||\n    utcLikeDate.getUTCMinutes() !== minute ||\n    utcLikeDate.getUTCSeconds() !== second\n  ) {\n    return null;\n  }\n\n  return new Date(\n    utcLikeDate.getTime() + offsetMinutes * 60 * 1000,\n  ).toISOString();\n}\n''')
+          util = Path("src/internal/transaction/util/transactionTimestamp.ts")
+          util.write_text(r'''export type TransactionTimestampFormat = "form" | "import";
 
-          schema = Path('src/internal/transaction/schema.ts')
-          s = schema.read_text()
-          import_line = 'import {\n  parseTimeZoneOffsetMinutes,\n  toTransactionTimestamp,\n} from "internal/transaction/util/transactionTimestamp";\n'
-          if import_line not in s:
-              s = s.replace('import { z } from "@hono/zod-openapi";\n', 'import { z } from "@hono/zod-openapi";\n' + import_line)
-          pattern = re.compile(
-              r'function parseTimeZoneOffsetMinutes\(value: string\) \{.*?\n\}\n\nfunction parseTransactionAt\(value: string, offsetMinutes: number\) \{.*?\n\}\n\nfunction parseTransactionItems',
-              re.S,
-          )
-          replacement = '''function parseTransactionAt(value: string, offsetMinutes: number) {\n  return toTransactionTimestamp(value, offsetMinutes, "form");\n}\n\nfunction parseTransactionItems'''
-          s, count = pattern.subn(replacement, s, count=1)
-          if count != 1:
-              raise SystemExit(f'expected one schema timestamp block, got {count}')
-          schema.write_text(s)
+const minTimeZoneOffsetMinutes = -840;
+const maxTimeZoneOffsetMinutes = 840;
 
-          service = Path('src/internal/transaction/service/transactionImportService.ts')
-          s = service.read_text()
-          import_line = 'import { toTransactionTimestamp } from "internal/transaction/util/transactionTimestamp";\n'
-          if import_line not in s:
-              marker = 'import type { TransactionService } from "internal/transaction/service/transactionService";\n'
-              s = s.replace(marker, marker + import_line)
+export function parseTimeZoneOffsetMinutes(value: string): number | null {
+  if (!/^-?\d+$/.test(value)) return null;
+
+  const offset = Number(value);
+  if (
+    !Number.isInteger(offset) ||
+    offset < minTimeZoneOffsetMinutes ||
+    offset > maxTimeZoneOffsetMinutes
+  ) {
+    return null;
+  }
+
+  return offset;
+}
+
+export function toTransactionTimestamp(
+  value: string,
+  offsetMinutes: number,
+  format: TransactionTimestampFormat,
+): string | null {
+  if (
+    !Number.isInteger(offsetMinutes) ||
+    offsetMinutes < minTimeZoneOffsetMinutes ||
+    offsetMinutes > maxTimeZoneOffsetMinutes
+  ) {
+    return null;
+  }
+
+  const pattern =
+    format === "form"
+      ? /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/
+      : /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
+  const match = value.match(pattern);
+  if (!match) return null;
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] =
+    match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText ?? "0");
+  const utcLikeDate = new Date(
+    Date.UTC(year, month - 1, day, hour, minute, second),
+  );
+
+  if (
+    utcLikeDate.getUTCFullYear() !== year ||
+    utcLikeDate.getUTCMonth() !== month - 1 ||
+    utcLikeDate.getUTCDate() !== day ||
+    utcLikeDate.getUTCHours() !== hour ||
+    utcLikeDate.getUTCMinutes() !== minute ||
+    utcLikeDate.getUTCSeconds() !== second
+  ) {
+    return null;
+  }
+
+  return new Date(
+    utcLikeDate.getTime() + offsetMinutes * 60 * 1000,
+  ).toISOString();
+}
+''')
+
+          schema = Path("src/internal/transaction/schema.ts")
+          text = schema.read_text()
+          import_text = '''import {
+  parseTimeZoneOffsetMinutes,
+  toTransactionTimestamp,
+} from "internal/transaction/util/transactionTimestamp";
+'''
+          if import_text not in text:
+            text = text.replace(
+              'import { z } from "@hono/zod-openapi";\n',
+              'import { z } from "@hono/zod-openapi";\n' + import_text,
+            )
           pattern = re.compile(
-              r'/\*\* 与普通记账表单相同：把浏览器本地时间 \+ getTimezoneOffset\(\) 转成 UTC ISO。 \*/\nfunction toTransactionTimestamp\(value: string, offsetMinutes: number\) \{.*?\n\}\n\nfunction sameAmount',
-              re.S,
+            r'function parseTimeZoneOffsetMinutes\(value: string\) \{.*?\n\}\n\nfunction parseTransactionAt\(value: string, offsetMinutes: number\) \{.*?\n\}\n\nfunction parseTransactionItems',
+            re.S,
           )
-          replacement = '''function toImportTransactionTimestamp(\n  value: string,\n  offsetMinutes: number,\n) {\n  const timestamp = toTransactionTimestamp(value, offsetMinutes, "import");\n  if (!timestamp) throw dateInvalid();\n  return timestamp;\n}\n\nfunction sameAmount'''
-          s, count = pattern.subn(replacement, s, count=1)
+          replacement = '''function parseTransactionAt(value: string, offsetMinutes: number) {
+  return toTransactionTimestamp(value, offsetMinutes, "form");
+}
+
+function parseTransactionItems'''
+          text, count = pattern.subn(replacement, text, count=1)
           if count != 1:
-              raise SystemExit(f'expected one import-service timestamp block, got {count}')
-          s = s.replace('toTransactionTimestamp(\n          input.transactionAt,', 'toImportTransactionTimestamp(\n          input.transactionAt,')
-          s = s.replace('const transactionAtIso = toTransactionTimestamp(\n        input.transactionAt,', 'const transactionAtIso = toImportTransactionTimestamp(\n        input.transactionAt,')
-          service.write_text(s)
+            raise SystemExit(f"expected one schema timestamp block, got {count}")
+          schema.write_text(text)
+
+          service = Path("src/internal/transaction/service/transactionImportService.ts")
+          text = service.read_text()
+          import_text = 'import { toTransactionTimestamp } from "internal/transaction/util/transactionTimestamp";\n'
+          marker = 'import type { TransactionService } from "internal/transaction/service/transactionService";\n'
+          if import_text not in text:
+            text = text.replace(marker, marker + import_text)
+          pattern = re.compile(
+            r'/\*\* 与普通记账表单相同：把浏览器本地时间 \+ getTimezoneOffset\(\) 转成 UTC ISO。 \*/\nfunction toTransactionTimestamp\(value: string, offsetMinutes: number\) \{.*?\n\}\n\nfunction sameAmount',
+            re.S,
+          )
+          replacement = '''function toImportTransactionTimestamp(
+  value: string,
+  offsetMinutes: number,
+) {
+  const timestamp = toTransactionTimestamp(value, offsetMinutes, "import");
+  if (!timestamp) throw dateInvalid();
+  return timestamp;
+}
+
+function sameAmount'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+            raise SystemExit(f"expected one import timestamp block, got {count}")
+          text = text.replace(
+            "toTransactionTimestamp(\n          input.transactionAt,",
+            "toImportTransactionTimestamp(\n          input.transactionAt,",
+          )
+          text = text.replace(
+            "const transactionAtIso = toTransactionTimestamp(\n        input.transactionAt,",
+            "const transactionAtIso = toImportTransactionTimestamp(\n        input.transactionAt,",
+          )
+          service.write_text(text)
+
+          actions = Path("src/internal/dataImport/adapter/next/actions.ts")
+          text = actions.read_text().replace(
+            'import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";\n',
+            'import { createDataImportExecutionService } from "internal/dataImport";\n',
+          )
+          actions.write_text(text)
+
+          actions_test = Path("src/internal/dataImport/adapter/next/actions.test.ts")
+          text = actions_test.read_text()
+          text = text.replace(
+            'vi.mock("internal/dataImport/service/dataImportExecutionService", () => ({\n  createDataImportExecutionService: mocks.createDataImportExecutionService,\n}));',
+            'vi.mock("internal/dataImport", () => ({\n  createDataImportExecutionService: mocks.createDataImportExecutionService,\n}));',
+          )
+          text = text.replace(
+            'function createFormData(file: File | null, offset?: string) {',
+            'function createFormData(\n  file: File | null,\n  offset?: string,\n  timeZoneOffsetMinutes = "-540",\n) {',
+          )
+          text = text.replace(
+            '  if (offset !== undefined) {\n    formData.set("offset", offset);\n  }\n  return formData;',
+            '  if (offset !== undefined) {\n    formData.set("offset", offset);\n    formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);\n  }\n  return formData;',
+          )
+          old = '''    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const file = new File(["binary"], "data.xlsx");'''
+          text = text.replace(old, '    const file = new File(["binary"], "data.xlsx");')
+          text = text.replace(
+            '''    expect(consoleError).toHaveBeenCalledWith(
+      "[dataImport] check format action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();''',
+            '''    expect(mocks.loggerError).toHaveBeenCalledWith(
+      "[dataImport] check format action failed unexpectedly",
+      { errorName: "Error" },
+    );''',
+          )
+          text = text.replace(
+            '''      ledgerId,
+      offset: 0,
+      userId,''',
+            '''      ledgerId,
+      offset: 0,
+      timeZoneOffsetMinutes: -540,
+      userId,''',
+          )
+          actions_test.write_text(text)
+
+          parser_test = Path("src/internal/dataImport/adapter/next/formParser.test.ts")
+          text = parser_test.read_text()
+          text = text.replace(
+            'function buildFormData(file: File | null, offset?: string) {',
+            'function buildFormData(\n  file: File | null,\n  offset?: string,\n  timeZoneOffsetMinutes?: string,\n) {',
+          )
+          text = text.replace(
+            '  if (offset !== undefined) {\n    formData.set("offset", offset);\n  }\n  return formData;',
+            '  if (offset !== undefined) {\n    formData.set("offset", offset);\n  }\n  if (timeZoneOffsetMinutes !== undefined) {\n    formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);\n  }\n  return formData;',
+          )
+          text = text.replace(
+            'buildFormData(file, "25")',
+            'buildFormData(file, "25", "-540")',
+          )
+          text = text.replace(
+            'value: { file, offset: 25 },',
+            'value: { file, offset: 25, timeZoneOffsetMinutes: -540 },',
+          )
+          text = text.replace(
+            'buildFormData(file, offset),',
+            'buildFormData(file, offset, "-540"),',
+          )
+          parser_test.write_text(text)
+
+          transaction_test = Path("src/internal/transaction/service/transactionImportService.test.ts")
+          text = transaction_test.read_text().replace(
+            "timeZoneOffsetMinutes: 0,",
+            "timeZoneOffsetMinutes: -540,",
+          )
+          transaction_test.write_text(text)
           PY
 
-          npx prettier src/internal/transaction/schema.ts src/internal/transaction/service/transactionImportService.ts src/internal/transaction/util/transactionTimestamp.ts --write
+          npx prettier \
+            src/internal/dataImport/adapter/next/actions.ts \
+            src/internal/dataImport/adapter/next/actions.test.ts \
+            src/internal/dataImport/adapter/next/formParser.test.ts \
+            src/internal/transaction/schema.ts \
+            src/internal/transaction/service/transactionImportService.ts \
+            src/internal/transaction/service/transactionImportService.test.ts \
+            src/internal/transaction/util/transactionTimestamp.ts \
+            --write
 
       - name: Type check
         run: npx tsc --noEmit
@@ -85,12 +265,11 @@ jobs:
       - name: Unit tests
         run: npx vitest run --exclude "tests/rsc/**"
 
-      - name: Commit fixes
+      - name: Commit fixes and remove temporary workflow
         run: |
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/internal/transaction/schema.ts src/internal/transaction/service/transactionImportService.ts src/internal/transaction/util/transactionTimestamp.ts
-            git commit -m "refactor: 统一交易时间转换逻辑"
-            git push origin HEAD:feature/777_data_import_execution
-          fi
+          rm .github/workflows/review-779-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: 修正数据导入 review 指摘"
+          git push origin HEAD:feature/777_data_import_execution
