@@ -2,27 +2,22 @@
 
 import { createAccountImportService } from "internal/account";
 import { createCategoryImportService } from "internal/category";
+import { createRequestContainer } from "internal/container";
 import {
   parseCheckDataImportFileForm,
   parseExecuteDataImportBatchForm,
 } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
 import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
-import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createMerchantImportService } from "internal/merchant";
-import { AppError } from "internal/shared/errors/appError";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import { AppError } from "internal/shared/errors/appError";
 import { createTransactionImportService } from "internal/transaction";
 import type {
   DataImportActionState,
   DataImportBatchActionState,
 } from "types/dataImport";
-
-async function getDataImportValidationService() {
-  const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).dataImport.service;
-}
 
 function createErrorState<
   T extends DataImportActionState | DataImportBatchActionState,
@@ -45,9 +40,13 @@ export async function checkDataImportFormat(
   }
 
   const fileBuffer = await parsed.value.file.arrayBuffer();
+  let dependencies:
+    | Awaited<ReturnType<typeof createServerRequestDependencies>>
+    | undefined;
 
   try {
-    const service = await getDataImportValidationService();
+    dependencies = await createServerRequestDependencies();
+    const service = createRequestContainer(dependencies).dataImport.service;
     const result = await service.checkFile({
       fileBuffer,
       fileName: parsed.value.file.name,
@@ -55,9 +54,20 @@ export async function checkDataImportFormat(
 
     return { result };
   } catch (error) {
-    console.error("[dataImport] check format action failed unexpectedly", {
+    const logContext = {
       errorName: error instanceof Error ? error.name : "unknown",
-    });
+    };
+    if (dependencies) {
+      dependencies.logger.error(
+        "[dataImport] check format action failed unexpectedly",
+        logContext,
+      );
+    } else {
+      console.error(
+        "[dataImport] check format action failed unexpectedly",
+        logContext,
+      );
+    }
     return createErrorState(
       getDataImportErrorMessage("validation_failed") ??
         "文件检查失败，请稍后重试。",
