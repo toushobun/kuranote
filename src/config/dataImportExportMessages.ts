@@ -85,4 +85,10 @@ export const dataImportExecutionMessages = {
   downloadButton: "下载导入结果文件",
   downloadingButton: "正在生成结果文件…",
   downloadFailed: "结果文件生成失败，请稍后重试。",
+  resultColumnTitle: "导入结果",
+  reasonColumnTitle: "原因",
+  resultSuccess: "成功",
+  resultDuplicate: "成功（疑似重复）",
+  resultFailed: "失败",
+  resultFileSuffix: "_导入结果.xlsx",
 } as const;
