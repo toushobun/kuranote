@@ -38,7 +38,7 @@ describe("DataImportExecutionStatus", () => {
       "aria-valuenow",
       "30",
     );
-    expect(screen.queryByText("需要确认的记录")).not.toBeInTheDocument();
+    expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
   });
 
   it("全部成功时展示成功汇总与下载按钮", () => {
@@ -90,8 +90,36 @@ describe("DataImportExecutionStatus", () => {
 
     expect(screen.getByText("失败 1 条")).toBeInTheDocument();
     expect(screen.getByText("疑似重复 1 条")).toBeInTheDocument();
-    expect(screen.getByText("需要确认的记录")).toBeInTheDocument();
-    expect(screen.getByText(/第 2 行.*失败/)).toBeInTheDocument();
-    expect(screen.getByText(/第 4 行.*疑似重复/)).toBeInTheDocument();
+    expect(screen.getByText("失败的记录")).toBeInTheDocument();
+    expect(screen.getByText("疑似重复的记录")).toBeInTheDocument();
+    expect(screen.getByText(/第 2 行/)).toBeInTheDocument();
+    expect(screen.getByText(/第 4 行/)).toBeInTheDocument();
+  });
+
+  it("只有其中一类明细时不展示另一类标题", () => {
+    render(
+      <DataImportExecutionStatus
+        result={{
+          ...baseResult,
+          details: [
+            {
+              content: "2026-09-17 商家A 1000",
+              reason: "数据库写入失败。",
+              rowNumbers: [2],
+              sheet: "incomeExpense",
+              status: "failed",
+            },
+          ],
+          failureCount: 1,
+          processedCount: 3,
+          successCount: 2,
+          totalCount: 3,
+        }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByText("失败的记录")).toBeInTheDocument();
+    expect(screen.queryByText("疑似重复的记录")).not.toBeInTheDocument();
   });
 });

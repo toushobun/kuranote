@@ -33,6 +33,12 @@ export function DataImportExecutionStatus({
     result.totalCount === 0
       ? 0
       : Math.min(100, (result.processedCount / result.totalCount) * 100);
+  const failedDetails = result.details.filter(
+    (detail) => detail.status === "failed",
+  );
+  const duplicateDetails = result.details.filter(
+    (detail) => detail.status === "duplicate",
+  );
 
   return (
     <SectionCard>
@@ -72,36 +78,18 @@ export function DataImportExecutionStatus({
           ) : null}
         </Stack>
 
-        {status === "completed" && result.details.length > 0 ? (
-          <Stack spacing={1}>
-            <Typography sx={{ fontWeight: 700 }} variant="body2">
-              {messages.detailTitle}
-            </Typography>
-            <Stack
-              component="ul"
-              spacing={1}
-              sx={{ listStyle: "none", m: 0, p: 0 }}
-            >
-              {result.details.map((detail, index) => (
-                <Box
-                  component="li"
-                  key={`${detail.sheet}-${detail.rowNumbers.join("-")}-${index}`}
-                >
-                  <Typography sx={{ fontWeight: 600 }} variant="body2">
-                    [{importSheetKindLabels[detail.sheet]}]{" "}
-                    {messages.detailRows(detail.rowNumbers)} ·{" "}
-                    {detail.status === "duplicate"
-                      ? messages.duplicateLabel
-                      : messages.failedLabel}
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }} variant="body2">
-                    {detail.content}
-                  </Typography>
-                  <Typography variant="body2">{detail.reason}</Typography>
-                </Box>
-              ))}
-            </Stack>
-          </Stack>
+        {status === "completed" && failedDetails.length > 0 ? (
+          <DetailList
+            items={failedDetails}
+            title={messages.failedDetailTitle}
+          />
+        ) : null}
+
+        {status === "completed" && duplicateDetails.length > 0 ? (
+          <DetailList
+            items={duplicateDetails}
+            title={messages.duplicateDetailTitle}
+          />
         ) : null}
 
         {status === "completed" && onDownload ? (
@@ -119,5 +107,38 @@ export function DataImportExecutionStatus({
         ) : null}
       </Stack>
     </SectionCard>
+  );
+}
+
+function DetailList({
+  items,
+  title,
+}: {
+  items: ImportExecutionResult["details"];
+  title: string;
+}) {
+  return (
+    <Stack spacing={1}>
+      <Typography sx={{ fontWeight: 700 }} variant="body2">
+        {title}
+      </Typography>
+      <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>
+        {items.map((detail, index) => (
+          <Box
+            component="li"
+            key={`${detail.sheet}-${detail.rowNumbers.join("-")}-${index}`}
+          >
+            <Typography sx={{ fontWeight: 600 }} variant="body2">
+              [{importSheetKindLabels[detail.sheet]}]{" "}
+              {dataImportExecutionMessages.detailRows(detail.rowNumbers)}
+            </Typography>
+            <Typography sx={{ color: "text.secondary" }} variant="body2">
+              {detail.content}
+            </Typography>
+            <Typography variant="body2">{detail.reason}</Typography>
+          </Box>
+        ))}
+      </Stack>
+    </Stack>
   );
 }

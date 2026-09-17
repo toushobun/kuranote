@@ -75,13 +75,12 @@ export const dataImportExecutionMessages = {
   successCount: (count: number) => `成功导入 ${count} 条`,
   failureCount: (count: number) => `失败 ${count} 条`,
   duplicateCount: (count: number) => `疑似重复 ${count} 条`,
-  detailTitle: "需要确认的记录",
+  failedDetailTitle: "失败的记录",
+  duplicateDetailTitle: "疑似重复的记录",
   detailRows: (rowNumbers: number[]) =>
     rowNumbers.length === 1
       ? `第 ${rowNumbers[0]} 行`
       : `第 ${rowNumbers.join("、")} 行`,
-  duplicateLabel: "疑似重复",
-  failedLabel: "失败",
   downloadButton: "下载导入结果文件",
   downloadingButton: "正在生成结果文件…",
   downloadFailed: "结果文件生成失败，请稍后重试。",
