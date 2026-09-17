@@ -115,6 +115,123 @@ beforeEach(() => {
 });
 
 describe("DataImportExecutionService", () => {
+  it.each([null, "user-1"])(
+    "同名同持有人 %s 的账户按币种匹配收支与转账",
+    async (holderUserId) => {
+      const holderName = holderUserId ? "淞文" : "";
+      parseImportFileMock.mockResolvedValue({
+        ok: true,
+        tables: [
+          incomeTable([incomeRow({ 账户持有人: holderName })]),
+          transferTable([
+            {
+              交易类型: "转账",
+              日期: "2026-09-17 10:00:00",
+              转出账户: "钱包",
+              转出账户币种: "JPY",
+              转出账户持有人: holderName,
+              转入账户: "银行卡",
+              转入账户币种: "JPY",
+              转入账户持有人: holderName,
+              金额: "100",
+            },
+          ]),
+        ],
+      });
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.accountImportService.loadContext,
+      ).mockResolvedValue({
+        accounts: ["钱包", "银行卡"].flatMap((name) =>
+          ["USD", "JPY"].map((currency) => ({
+            currency,
+            holderUserId,
+            id: `${name}-${currency}`,
+            name,
+          })),
+        ),
+        holders: [{ displayName: "淞文", userId: "user-1" }],
+      });
+      const result = await createDataImportExecutionService(
+        dependencies,
+      ).executeBatch({
+        fileBuffer: new ArrayBuffer(1),
+        fileName: "data.xlsx",
+        ledgerId: "ledger-1",
+        offset: 0,
+        timeZoneOffsetMinutes: -540,
+        userId: "user-1",
+      });
+      expect(result.successCount).toBe(2);
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).not.toHaveBeenCalled();
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId: "钱包-JPY" }),
+      );
+      expect(
+        dependencies.transactionImportService.createTransfer,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: "钱包-JPY",
+          transferTargetAccountId: "银行卡-JPY",
+        }),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    "币种匹配不存在时创建、同币种仍有歧义时拒绝：%s",
+    async (ambiguous) => {
+      parseImportFileMock.mockResolvedValue({
+        ok: true,
+        tables: [incomeTable([incomeRow(), incomeRow({ 商家: "另一个商家" })])],
+      });
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.accountImportService.loadContext,
+      ).mockResolvedValue({
+        accounts: ["account-1", "account-2"].map((id) => ({
+          currency: ambiguous ? "JPY" : "USD",
+          holderUserId: "user-1",
+          id,
+          name: "钱包",
+        })),
+        holders: [{ displayName: "淞文", userId: "user-1" }],
+      });
+      const result = await createDataImportExecutionService(
+        dependencies,
+      ).executeBatch({
+        fileBuffer: new ArrayBuffer(1),
+        fileName: "data.xlsx",
+        ledgerId: "ledger-1",
+        offset: 0,
+        timeZoneOffsetMinutes: -540,
+        userId: "user-1",
+      });
+      expect(result.failureCount).toBe(ambiguous ? 2 : 0);
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledTimes(ambiguous ? 0 : 2);
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).toHaveBeenCalledTimes(ambiguous ? 0 : 1);
+      if (!ambiguous) {
+        expect(
+          dependencies.accountImportService.createAccount,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            currency: "JPY",
+            holderUserId: "user-1",
+            name: "钱包",
+          }),
+        );
+      }
+    },
+  );
+
   it("缺失的分类、商家标签、商家和账户会自动创建后写入交易", async () => {
     parseImportFileMock.mockResolvedValue({
       ok: true,

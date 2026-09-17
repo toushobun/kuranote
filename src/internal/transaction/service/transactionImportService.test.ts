@@ -51,6 +51,39 @@ function createService() {
 }
 
 describe("TransactionImportService", () => {
+  it.each(["createNormal", "createTransfer"] as const)(
+    "%s 使用共享转换并在非法日期时阻止写入",
+    async (method) => {
+      const services = createService();
+      const input = {
+        accountId: "account-1",
+        items: [{ amount: 1200, categoryId: "category-1" }],
+        ledgerId: "ledger-1",
+        merchantId: "merchant-1",
+        note: null,
+        timeZoneOffsetMinutes: -540,
+        transactionAt: "2026-01-01 00:30:15",
+        transferAmount: 1200,
+        transferTargetAccountId: "account-2",
+        type: "expense" as const,
+      };
+      await services.importService[method](input);
+      const { timeZoneOffsetMinutes: offset, ...transaction } = input;
+      expect(offset).toBe(-540);
+      expect(services[method]).toHaveBeenCalledExactlyOnceWith({
+        ...transaction,
+        transactionAt: "2025-12-31T15:30:15.000Z",
+      });
+      await expect(
+        services.importService[method]({
+          ...input,
+          transactionAt: "2026-02-30 10:00:00",
+        }),
+      ).rejects.toMatchObject({ code: "date_invalid" });
+      expect(services[method]).toHaveBeenCalledOnce();
+    },
+  );
+
   it("收支按日期、金额、商家和账户判定疑似重复", async () => {
     const { getGroupItems, importService } = createService();
     getGroupItems.mockResolvedValue({
@@ -76,7 +109,7 @@ describe("TransactionImportService", () => {
       ledgerId: "ledger-1",
       merchantId: "merchant-1",
       note: null,
-      timeZoneOffsetMinutes: 0,
+      timeZoneOffsetMinutes: -540,
       totalAmount: 1200,
       transactionAt: "2026-09-17 10:00:00",
       type: "expense",
@@ -132,7 +165,7 @@ describe("TransactionImportService", () => {
       accountId: "from-account",
       ledgerId: "ledger-1",
       note: null,
-      timeZoneOffsetMinutes: 0,
+      timeZoneOffsetMinutes: -540,
       transactionAt: "2026-09-17 10:00:00",
       transferAmount: 5000,
       transferTargetAccountId: "to-account",
@@ -178,7 +211,7 @@ describe("TransactionImportService", () => {
         accountId: "from-account",
         ledgerId: "ledger-1",
         note: null,
-        timeZoneOffsetMinutes: 0,
+        timeZoneOffsetMinutes: -540,
         transactionAt: "2026-09-17 10:00:00",
         transferAmount: 5000,
         transferTargetAccountId: "to-account",

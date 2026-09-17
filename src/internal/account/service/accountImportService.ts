@@ -43,6 +43,7 @@ export function createAccountImportService(
         initialBalance: 0,
         ledgerId,
         name,
+        // 导入模板没有账户类型列，无法推断时统一归为“其他”。
         type: "other",
         userId,
       });

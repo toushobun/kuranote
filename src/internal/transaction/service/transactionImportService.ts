@@ -5,6 +5,7 @@ import {
   transactionErrorCodes,
 } from "internal/transaction/errors";
 import type { TransactionService } from "internal/transaction/service/transactionService";
+import { toTransactionTimestamp } from "internal/transaction/util/transactionTimestamp";
 
 export type ImportTransactionItemInput = {
   amount: number;
@@ -51,47 +52,10 @@ function dateInvalid(): ValidationError {
   );
 }
 
-/** 与普通记账表单相同：把浏览器本地时间 + getTimezoneOffset() 转成 UTC ISO。 */
-function toTransactionTimestamp(value: string, offsetMinutes: number) {
-  if (
-    !Number.isInteger(offsetMinutes) ||
-    offsetMinutes < -840 ||
-    offsetMinutes > 840
-  ) {
-    throw dateInvalid();
-  }
-
-  const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-  );
-  if (!match) throw dateInvalid();
-
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText] =
-    match;
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-  const second = Number(secondText);
-  const utcLikeDate = new Date(
-    Date.UTC(year, month - 1, day, hour, minute, second),
-  );
-
-  if (
-    utcLikeDate.getUTCFullYear() !== year ||
-    utcLikeDate.getUTCMonth() !== month - 1 ||
-    utcLikeDate.getUTCDate() !== day ||
-    utcLikeDate.getUTCHours() !== hour ||
-    utcLikeDate.getUTCMinutes() !== minute ||
-    utcLikeDate.getUTCSeconds() !== second
-  ) {
-    throw dateInvalid();
-  }
-
-  return new Date(
-    utcLikeDate.getTime() + offsetMinutes * 60 * 1000,
-  ).toISOString();
+function toImportTransactionTimestamp(value: string, offsetMinutes: number) {
+  const timestamp = toTransactionTimestamp(value, offsetMinutes, "import");
+  if (!timestamp) throw dateInvalid();
+  return timestamp;
 }
 
 function sameAmount(left: string, right: number) {
@@ -154,7 +118,7 @@ export function createTransactionImportService({
       const { timeZoneOffsetMinutes, ...transaction } = input;
       await service.createNormal({
         ...transaction,
-        transactionAt: toTransactionTimestamp(
+        transactionAt: toImportTransactionTimestamp(
           input.transactionAt,
           timeZoneOffsetMinutes,
         ),
@@ -165,7 +129,7 @@ export function createTransactionImportService({
       const { timeZoneOffsetMinutes, ...transaction } = input;
       await service.createTransfer({
         ...transaction,
-        transactionAt: toTransactionTimestamp(
+        transactionAt: toImportTransactionTimestamp(
           input.transactionAt,
           timeZoneOffsetMinutes,
         ),
@@ -173,7 +137,7 @@ export function createTransactionImportService({
     },
 
     async hasPossibleNormalDuplicate(input) {
-      const transactionAtIso = toTransactionTimestamp(
+      const transactionAtIso = toImportTransactionTimestamp(
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );
@@ -190,7 +154,7 @@ export function createTransactionImportService({
     },
 
     async hasPossibleTransferDuplicate(input) {
-      const transactionAtIso = toTransactionTimestamp(
+      const transactionAtIso = toImportTransactionTimestamp(
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );

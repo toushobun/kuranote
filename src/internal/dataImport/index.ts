@@ -25,8 +25,7 @@ export {
   balanceAdjustmentColumns,
   type ImportColumnDef,
 } from "internal/dataImport/schema";
-export {
-  createDataImportExecutionService,
-  type DataImportExecutionService,
-  type ExecuteImportBatchInput,
+export type {
+  DataImportExecutionService,
+  ExecuteImportBatchInput,
 } from "internal/dataImport/service/dataImportExecutionService";

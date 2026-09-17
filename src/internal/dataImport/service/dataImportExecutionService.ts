@@ -154,8 +154,12 @@ function categoryKey(
   return `${type}\u0000${parentId ?? "root"}\u0000${name}`;
 }
 
-function accountKey(name: string, holderUserId: string | null) {
-  return `${name}\u0000${holderUserId ?? ""}`;
+function accountKey(
+  name: string,
+  holderUserId: string | null,
+  currency: string,
+) {
+  return `${name}\u0000${holderUserId ?? ""}\u0000${currency}`;
 }
 
 /**
@@ -204,7 +208,11 @@ export function createDataImportExecutionService({
       );
       const accountByKey = new Map<string, typeof accounts>();
       for (const account of accounts) {
-        const key = accountKey(account.name, account.holderUserId);
+        const key = accountKey(
+          account.name,
+          account.holderUserId,
+          account.currency,
+        );
         accountByKey.set(key, [...(accountByKey.get(key) ?? []), account]);
       }
 
@@ -234,7 +242,7 @@ export function createDataImportExecutionService({
         name: string;
       }) {
         const holderUserId = await resolveHolderUserId(input.holderName);
-        const key = accountKey(input.name, holderUserId);
+        const key = accountKey(input.name, holderUserId, input.currency);
         const matches = accountByKey.get(key) ?? [];
         if (matches.length > 1) {
           throw new ValidationError(
@@ -243,18 +251,7 @@ export function createDataImportExecutionService({
           );
         }
         if (matches.length === 1) {
-          const account = matches[0];
-          if (account.currency !== input.currency) {
-            throw new ValidationError(
-              dataImportErrorCodes.referenceInvalid,
-              dataImportExecutionErrorMessages.accountCurrencyMismatch(
-                input.name,
-                input.currency,
-                account.currency,
-              ),
-            );
-          }
-          return account;
+          return matches[0];
         }
 
         const created = await accountImportService.createAccount({

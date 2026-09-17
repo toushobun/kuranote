@@ -13,12 +13,11 @@ export {
 } from "internal/account/entity/accountHolderRole";
 export type { AccountSummary } from "internal/account/entity/accountSummary";
 export type { AccountQueryService } from "internal/account/service/accountService";
-export {
-  createAccountImportService,
-  type AccountImportContext,
-  type AccountImportEntry,
-  type AccountImportHolder,
-  type AccountImportService,
+export type {
+  AccountImportContext,
+  AccountImportEntry,
+  AccountImportHolder,
+  AccountImportService,
 } from "internal/account/service/accountImportService";
 export {
   isAccountBalanceText,

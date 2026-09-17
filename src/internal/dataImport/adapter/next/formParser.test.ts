@@ -97,7 +97,13 @@ describe("parseExecuteDataImportBatchForm", () => {
   it("时区偏移缺失、越界或非整数时返回 executionInvalid", () => {
     const file = new File(["binary"], "data.xlsx");
 
-    for (const timeZoneOffsetMinutes of [undefined, "-841", "841", "1.5", "abc"]) {
+    for (const timeZoneOffsetMinutes of [
+      undefined,
+      "-841",
+      "841",
+      "1.5",
+      "abc",
+    ]) {
       const result = parseExecuteDataImportBatchForm(
         buildFormData(file, "0", timeZoneOffsetMinutes),
       );

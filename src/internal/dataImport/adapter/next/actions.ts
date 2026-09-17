@@ -1,19 +1,14 @@
 "use server";
 
-import { createAccountImportService } from "internal/account";
-import { createCategoryImportService } from "internal/category";
 import { createRequestContainer } from "internal/container";
-import { createDataImportExecutionService } from "internal/dataImport";
 import {
   parseCheckDataImportFileForm,
   parseExecuteDataImportBatchForm,
 } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
-import { createMerchantImportService } from "internal/merchant";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import { createTransactionImportService } from "internal/transaction";
 import type {
   DataImportActionState,
   DataImportBatchActionState,
@@ -94,20 +89,7 @@ export async function executeDataImportBatch(
 
   const dependencies = await createServerRequestDependencies();
   const container = createRequestContainer(dependencies);
-  const service = createDataImportExecutionService({
-    accountImportService: createAccountImportService(container.account.service),
-    categoryImportService: createCategoryImportService(
-      container.category.service,
-    ),
-    logger: dependencies.logger,
-    merchantImportService: createMerchantImportService(
-      container.merchant.service,
-    ),
-    transactionImportService: createTransactionImportService({
-      currentLedger,
-      service: container.transaction.service,
-    }),
-  });
+  const service = container.dataImport.createExecutionService(currentLedger);
 
   try {
     const batch = await service.executeBatch({

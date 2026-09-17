@@ -148,6 +148,39 @@ describe("createRequestContainer", () => {
     expect(first).toBe(second);
   });
 
+  it("格式校验不组装写入依赖，导入执行复用容器中的正式服务", () => {
+    const container = createRequestContainer(createDependenciesStub());
+    const dataImport = container.dataImport;
+    expect(dataImport).toBe(container.dataImport);
+    expect(createAccountService).not.toHaveBeenCalled();
+    expect(createCategoryService).not.toHaveBeenCalled();
+    expect(createMerchantService).not.toHaveBeenCalled();
+
+    const service = dataImport.createExecutionService({
+      baseCurrency: "JPY",
+      currentUserRole: "owner",
+      id: "ledger-1",
+      name: "家庭账本",
+    });
+    expect(typeof service.executeBatch).toBe("function");
+    const accountService = container.account.service;
+    const categoryService = container.category.service;
+    const merchantService = container.merchant.service;
+    vi.clearAllMocks();
+    dataImport.createExecutionService({
+      baseCurrency: "USD",
+      currentUserRole: "owner",
+      id: "ledger-2",
+      name: "另一个账本",
+    });
+    expect(container.account.service).toBe(accountService);
+    expect(container.category.service).toBe(categoryService);
+    expect(container.merchant.service).toBe(merchantService);
+    expect(createAccountService).not.toHaveBeenCalled();
+    expect(createCategoryService).not.toHaveBeenCalled();
+    expect(createMerchantService).not.toHaveBeenCalled();
+  });
+
   it("提供已关联明细编辑 Service 的读取快照与原子更新能力", () => {
     const container = createRequestContainer(createDependenciesStub());
 

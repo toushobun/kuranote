@@ -4,33 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   checkFile: vi.fn(),
-  createAccountImportService: vi.fn(() => ({ kind: "account" })),
-  createCategoryImportService: vi.fn(() => ({ kind: "category" })),
-  createDataImportExecutionService: vi.fn(),
-  createMerchantImportService: vi.fn(() => ({ kind: "merchant" })),
+  createExecutionService: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
-  createTransactionImportService: vi.fn(() => ({ kind: "transaction" })),
   executeBatch: vi.fn(),
   loggerError: vi.fn(),
   requireCurrentUserAndLedger: vi.fn(),
 }));
 
-vi.mock("internal/account", () => ({
-  createAccountImportService: mocks.createAccountImportService,
-}));
-vi.mock("internal/category", () => ({
-  createCategoryImportService: mocks.createCategoryImportService,
-}));
-vi.mock("internal/dataImport", () => ({
-  createDataImportExecutionService: mocks.createDataImportExecutionService,
-}));
-vi.mock("internal/merchant", () => ({
-  createMerchantImportService: mocks.createMerchantImportService,
-}));
-vi.mock("internal/transaction", () => ({
-  createTransactionImportService: mocks.createTransactionImportService,
-}));
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
@@ -82,15 +63,12 @@ beforeEach(() => {
     logger: { error: mocks.loggerError, info: vi.fn(), warn: vi.fn() },
   });
   mocks.createRequestContainer.mockReturnValue({
-    account: { service: { kind: "account-service" } },
-    category: { service: { kind: "category-service" } },
     dataImport: {
+      createExecutionService: mocks.createExecutionService,
       service: { checkFile: mocks.checkFile },
     },
-    merchant: { service: { kind: "merchant-service" } },
-    transaction: { service: { kind: "transaction-service" } },
   });
-  mocks.createDataImportExecutionService.mockReturnValue({
+  mocks.createExecutionService.mockReturnValue({
     executeBatch: mocks.executeBatch,
   });
 });
@@ -197,6 +175,7 @@ describe("executeDataImportBatch", () => {
     const state = await executeDataImportBatch({}, createFormData(file, "0"));
 
     expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
+    expect(mocks.createExecutionService).toHaveBeenCalledWith(currentLedger);
     expect(mocks.executeBatch).toHaveBeenCalledWith({
       fileBuffer: expect.any(ArrayBuffer),
       fileName: "data.xlsx",
