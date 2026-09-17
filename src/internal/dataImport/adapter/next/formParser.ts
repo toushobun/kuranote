@@ -15,12 +15,16 @@ export type DataImportFormFields = {
   file: File;
 };
 
+export type DataImportBatchFormFields = DataImportFormFields & {
+  offset: number;
+};
+
 function hasAcceptedExtension(fileName: string) {
   const lowerName = fileName.toLowerCase();
   return acceptedExtensions.some((extension) => lowerName.endsWith(extension));
 }
 
-export function parseCheckDataImportFileForm(
+function parseDataImportFile(
   formData: FormData,
 ): ValidationResult<DataImportFormFields, DataImportErrorCode> {
   const value = formData.get("file");
@@ -38,4 +42,25 @@ export function parseCheckDataImportFileForm(
   }
 
   return valid({ file: value });
+}
+
+export function parseCheckDataImportFileForm(
+  formData: FormData,
+): ValidationResult<DataImportFormFields, DataImportErrorCode> {
+  return parseDataImportFile(formData);
+}
+
+export function parseExecuteDataImportBatchForm(
+  formData: FormData,
+): ValidationResult<DataImportBatchFormFields, DataImportErrorCode> {
+  const fileResult = parseDataImportFile(formData);
+  if (!fileResult.ok) return fileResult;
+
+  const offsetText = formData.get("offset");
+  const offset = typeof offsetText === "string" ? Number(offsetText) : NaN;
+  if (!Number.isInteger(offset) || offset < 0) {
+    return invalid(dataImportErrorCodes.executionInvalid);
+  }
+
+  return valid({ file: fileResult.value.file, offset });
 }
