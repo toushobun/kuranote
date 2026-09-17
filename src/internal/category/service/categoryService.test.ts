@@ -19,6 +19,7 @@ const userId = "00000000-0000-4000-8000-000000000031";
 const categoryId = "00000000-0000-4000-8000-000000000101";
 const secondCategoryId = "00000000-0000-4000-8000-000000000102";
 const parentId = "00000000-0000-4000-8000-000000000103";
+const newCategoryId = "00000000-0000-4000-8000-000000000104";
 
 function createRepository(
   overrides: Partial<CategoryRepository> = {},
@@ -37,7 +38,7 @@ function createRepository(
       parentId: null,
       type: "expense",
     }),
-    insert: vi.fn(),
+    insert: vi.fn().mockResolvedValue(newCategoryId),
     listActiveSiblings: vi.fn().mockResolvedValue([]),
     reorder: vi.fn(),
     updateDetails: vi.fn().mockResolvedValue(true),
@@ -183,14 +184,16 @@ describe("createCategoryService", () => {
     });
     const service = createService(repository);
 
-    await service.create({
-      iconName: "🍽️",
-      ledgerId,
-      name: "餐饮",
-      parentId: null,
-      type: "expense",
-      userId,
-    });
+    await expect(
+      service.create({
+        iconName: "🍽️",
+        ledgerId,
+        name: "餐饮",
+        parentId: null,
+        type: "expense",
+        userId,
+      }),
+    ).resolves.toBe(newCategoryId);
 
     expect(repository.insert).toHaveBeenCalledWith({
       createdBy: userId,

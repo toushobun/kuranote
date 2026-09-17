@@ -230,8 +230,8 @@ export interface MerchantRepository {
   archiveMerchant(input: ArchiveMerchantInput): Promise<boolean>;
   archiveTag(ledgerId: string, tagId: string): Promise<boolean>;
   createAlias(input: CreateMerchantAliasInput): Promise<void>;
-  createMerchant(input: CreateMerchantInput): Promise<void>;
-  createTag(input: CreateMerchantTagInput): Promise<void>;
+  createMerchant(input: CreateMerchantInput): Promise<string>;
+  createTag(input: CreateMerchantTagInput): Promise<string>;
   findActiveAlias(aliasId: string): Promise<{ merchantId: string } | null>;
   findActiveMerchant(ledgerId: string, merchantId: string): Promise<boolean>;
   findActiveMerchantData(
@@ -604,7 +604,7 @@ export function createSupabaseMerchantRepository(
     },
 
     async createMerchant(input) {
-      const { error } = await supabase.rpc("create_merchant_with_tags", {
+      const { data, error } = await supabase.rpc("create_merchant_with_tags", {
         p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_name: input.name,
@@ -624,10 +624,18 @@ export function createSupabaseMerchantRepository(
           merchantTagWriteBusinessErrorCodes,
         );
       }
+
+      if (typeof data !== "string") {
+        throw toRepositoryError(
+          merchantErrorCodes.createFailed,
+          "商家新增失败，请稍后重试。",
+        );
+      }
+      return data;
     },
 
     async createTag(input) {
-      const { error } = await supabase.rpc("create_merchant_tag", {
+      const { data, error } = await supabase.rpc("create_merchant_tag", {
         p_icon: input.icon,
         p_ledger_id: input.ledgerId,
         p_name: input.name,
@@ -642,6 +650,14 @@ export function createSupabaseMerchantRepository(
           merchantErrorCodes.merchantTagCreateFailed,
         );
       }
+
+      if (typeof data !== "string") {
+        throw toRepositoryError(
+          merchantErrorCodes.merchantTagCreateFailed,
+          getMerchantErrorMessage(merchantErrorCodes.merchantTagCreateFailed),
+        );
+      }
+      return data;
     },
 
     async findActiveAlias(aliasId) {

@@ -277,6 +277,15 @@ export function createDataImportExecutionService({
         parentName: string;
         type: CategoryType;
       }): Promise<CategoryImportEntry> {
+        if (!input.childName) {
+          throw new ValidationError(
+            dataImportErrorCodes.referenceInvalid,
+            dataImportExecutionErrorMessages.childCategoryRequired(
+              input.parentName,
+            ),
+          );
+        }
+
         const rootKey = categoryKey(input.type, null, input.parentName);
         let parent = categoryByKey.get(rootKey);
         if (!parent) {
@@ -295,15 +304,6 @@ export function createDataImportExecutionService({
           };
           categories.push(parent);
           categoryByKey.set(rootKey, parent);
-        }
-
-        if (!input.childName) {
-          throw new ValidationError(
-            dataImportErrorCodes.referenceInvalid,
-            dataImportExecutionErrorMessages.childCategoryRequired(
-              input.parentName,
-            ),
-          );
         }
 
         const childKey = categoryKey(input.type, parent.id, input.childName);
@@ -343,7 +343,6 @@ export function createDataImportExecutionService({
       }
 
       async function resolveMerchant(name: string, tagName: string | null) {
-        const tag = await resolveMerchantTag(tagName);
         const matches = resolveUniqueByName(
           merchants,
           (merchant) => merchant.matchNames,
@@ -355,6 +354,8 @@ export function createDataImportExecutionService({
             dataImportExecutionErrorMessages.merchantAmbiguous(name),
           );
         }
+
+        const tag = await resolveMerchantTag(tagName);
         if (matches.length === 1) {
           const merchant = matches[0];
           if (tag && !merchant.tagIds.includes(tag.id)) {

@@ -332,6 +332,63 @@ describe("DataImportExecutionService", () => {
     });
   });
 
+  it("缺失二级分类时该行失败，且不会残留新建的一级分类", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [incomeTable([incomeRow({ 二级分类: "" })])],
+    });
+    const dependencies = createDependencies();
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(
+      dependencies.categoryImportService.createCategory,
+    ).not.toHaveBeenCalled();
+    expect(result.failureCount).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(result.details[0]).toMatchObject({ status: "failed" });
+  });
+
+  it("商家名称歧义时该行失败，且不会残留新建的商家标签", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [incomeTable([incomeRow()])],
+    });
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.merchantImportService.loadContext).mockResolvedValue(
+      {
+        merchants: [
+          { id: "merchant-1", matchNames: ["业务超市"], tagIds: [] },
+          { id: "merchant-2", matchNames: ["业务超市"], tagIds: [] },
+        ],
+        tags: [],
+      },
+    );
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(dependencies.merchantImportService.createTag).not.toHaveBeenCalled();
+    expect(result.failureCount).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(result.details[0]).toMatchObject({ status: "failed" });
+  });
+
   it("单笔数据库失败不会阻断同批次后续记录", async () => {
     parseImportFileMock.mockResolvedValue({
       ok: true,

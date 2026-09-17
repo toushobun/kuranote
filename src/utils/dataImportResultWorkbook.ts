@@ -46,7 +46,11 @@ export async function buildDataImportResultWorkbook(
 
   const sheetKinds: ImportExecutionSheetKind[] = ["incomeExpense", "transfer"];
   for (const sheetKind of sheetKinds) {
-    const worksheet = workbook.getWorksheet(importSheetKindLabels[sheetKind]);
+    // 与 detectSheetKind 保持一致按 trim 后的名称匹配，避免原表 sheet 名带有
+    // 多余空格时，导入本身成功但结果文件因精确匹配失败而漏写该表的结果列。
+    const worksheet = workbook.worksheets.find(
+      (candidate) => candidate.name.trim() === importSheetKindLabels[sheetKind],
+    );
     if (!worksheet) continue;
 
     let headerRowNumber: number | null = null;

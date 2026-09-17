@@ -227,4 +227,19 @@ describe("executeDataImportBatch", () => {
       expect.objectContaining({ errorName: "Error", ledgerId, offset: 0 }),
     );
   });
+
+  it("依赖构造瞬时异常时返回安全兜底提示，而不是抛给客户端", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    mocks.createServerRequestDependencies.mockRejectedValue(
+      new Error("connection reset"),
+    );
+
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
+
+    expect(state).toEqual({
+      error: "数据导入失败，请稍后重试。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.executeBatch).not.toHaveBeenCalled();
+  });
 });

@@ -175,6 +175,38 @@ describe("TransactionImportService", () => {
     expect(getEditView).toHaveBeenCalledWith(currentLedger, "transfer-1");
   });
 
+  it("非 JST 时区用户查重时按查询实际使用的 JST 边界推导日期", async () => {
+    const { getGroupItems, importService } = createService();
+    getGroupItems.mockResolvedValue({ groups: [], nextOffset: null });
+
+    // 本地时间 09-17 09:00，时区 UTC-8（offsetMinutes=480），
+    // 对应真实 UTC 09-17T17:00Z，落在查询实际按 JST（+09:00）分桶的 09-18。
+    // 若仍按本地或 UTC 日期猜测（均为 09-17），会漏查真实重复所在的分桶。
+    await importService.hasPossibleNormalDuplicate({
+      accountId: "account-1",
+      items: [{ amount: 1200, categoryId: "category-1" }],
+      ledgerId: "ledger-1",
+      merchantId: "merchant-1",
+      note: null,
+      timeZoneOffsetMinutes: 480,
+      totalAmount: 1200,
+      transactionAt: "2026-09-17 09:00:00",
+      type: "expense",
+    });
+
+    expect(getGroupItems).toHaveBeenCalledWith(
+      currentLedger,
+      "day",
+      "2026-09-18",
+      0,
+      {
+        accountId: "account-1",
+        merchantId: "merchant-1",
+        recordType: "expense",
+      },
+    );
+  });
+
   it("转账两侧账户都一致时判定为疑似重复", async () => {
     const { getEditView, getGroupItems, importService } = createService();
     getGroupItems.mockResolvedValue({

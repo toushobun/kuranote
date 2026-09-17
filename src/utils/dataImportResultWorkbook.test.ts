@@ -72,6 +72,25 @@ describe("dataImportResultWorkbook", () => {
     expect(balanceAdjustment.getRow(2).getCell(2).value).toBe("100");
   });
 
+  it("sheet 名带多余空格时仍能匹配并追加结果列", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const incomeExpense = workbook.addWorksheet(" 收支 ");
+    incomeExpense.addRow(["日期", "金额"]);
+    incomeExpense.addRow(["2026-09-17 10:00:00", "1200"]);
+    const source =
+      (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;
+
+    const output = await buildDataImportResultWorkbook(source, [
+      { reason: null, rowNumber: 2, sheet: "incomeExpense", status: "success" },
+    ]);
+    const result = new ExcelJS.Workbook();
+    await result.xlsx.load(output);
+
+    const sheet = result.getWorksheet(" 收支 ")!;
+    expect(sheet.getRow(1).getCell(3).value).toBe("导入结果");
+    expect(sheet.getRow(2).getCell(3).value).toBe("成功");
+  });
+
   it("结果文件名在原文件名后追加导入结果后缀", () => {
     expect(buildDataImportResultFileName("history.xlsx")).toBe(
       "history_导入结果.xlsx",

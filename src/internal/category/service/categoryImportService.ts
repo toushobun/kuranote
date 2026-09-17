@@ -1,7 +1,6 @@
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import type { CategoryType } from "internal/category/entity/categoryType";
 import type { CategoryService } from "internal/category/service/categoryService";
-import { RepositoryError } from "internal/shared/errors/appError";
 import { getCategoryDisplayName } from "utils/categoryNames";
 
 export type CategoryImportEntry = {
@@ -43,7 +42,7 @@ export function createCategoryImportService(
 
   return {
     async createCategory({ ledgerId, name, parentId, type, userId }) {
-      await service.create({
+      const categoryId = await service.create({
         iconName: defaultCategoryEmoji,
         ledgerId,
         name,
@@ -52,21 +51,7 @@ export function createCategoryImportService(
         userId,
       });
 
-      const created = (await listCategories({ ledgerId, userId })).find(
-        (category) =>
-          category.name === name &&
-          category.parentId === parentId &&
-          category.type === type,
-      );
-
-      if (!created) {
-        throw new RepositoryError(
-          "category_create_failed",
-          "分类新增失败，请稍后重试。",
-        );
-      }
-
-      return { categoryId: created.id };
+      return { categoryId };
     },
     listCategories,
   };

@@ -1,3 +1,4 @@
+import { serverFallbackTimeZone } from "config/dateTime";
 import type { CurrentLedger } from "internal/ledger";
 import { ValidationError } from "internal/shared/errors/appError";
 import {
@@ -6,6 +7,7 @@ import {
 } from "internal/transaction/errors";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 import { toTransactionTimestamp } from "internal/transaction/util/transactionTimestamp";
+import { getDateKeyInTimeZone } from "utils/transactions";
 
 export type ImportTransactionItemInput = {
   amount: number;
@@ -80,34 +82,28 @@ export function createTransactionImportService({
   service: TransactionService;
 }): TransactionImportService {
   async function loadDayItems(
-    localTransactionAt: string,
     transactionAtIso: string,
     filters: Parameters<TransactionService["getGroupItems"]>[4],
   ) {
-    const days = [
-      ...new Set([
-        localTransactionAt.slice(0, 10),
-        transactionAtIso.slice(0, 10),
-      ]),
-    ];
+    // getGroupItems 的 "day" 分组按硬编码 JST 边界查询（groupLoaders.ts），
+    // 因此查重必须用同一时区推导 day key，不能按本地/UTC 日期猜测。
+    const day = getDateKeyInTimeZone(transactionAtIso, serverFallbackTimeZone);
     const items: Awaited<
       ReturnType<TransactionService["getGroupItems"]>
     >["groups"][number]["items"] = [];
 
-    for (const day of days) {
-      let offset = 0;
-      while (true) {
-        const page = await service.getGroupItems(
-          currentLedger,
-          "day",
-          day,
-          offset,
-          filters,
-        );
-        for (const group of page.groups) items.push(...group.items);
-        if (page.nextOffset === null) break;
-        offset = page.nextOffset;
-      }
+    let offset = 0;
+    while (true) {
+      const page = await service.getGroupItems(
+        currentLedger,
+        "day",
+        day,
+        offset,
+        filters,
+      );
+      for (const group of page.groups) items.push(...group.items);
+      if (page.nextOffset === null) break;
+      offset = page.nextOffset;
     }
 
     return items;
@@ -141,7 +137,7 @@ export function createTransactionImportService({
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );
-      const items = await loadDayItems(input.transactionAt, transactionAtIso, {
+      const items = await loadDayItems(transactionAtIso, {
         accountId: input.accountId,
         merchantId: input.merchantId,
         recordType: input.type,
@@ -158,7 +154,7 @@ export function createTransactionImportService({
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );
-      const items = await loadDayItems(input.transactionAt, transactionAtIso, {
+      const items = await loadDayItems(transactionAtIso, {
         accountId: input.accountId,
         recordType: "transfer",
       });

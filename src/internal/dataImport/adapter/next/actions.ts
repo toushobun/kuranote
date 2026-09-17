@@ -87,11 +87,14 @@ export async function executeDataImportBatch(
     );
   }
 
-  const dependencies = await createServerRequestDependencies();
-  const container = createRequestContainer(dependencies);
-  const service = container.dataImport.createExecutionService(currentLedger);
+  let dependencies:
+    | Awaited<ReturnType<typeof createServerRequestDependencies>>
+    | undefined;
 
   try {
+    dependencies = await createServerRequestDependencies();
+    const container = createRequestContainer(dependencies);
+    const service = container.dataImport.createExecutionService(currentLedger);
     const batch = await service.executeBatch({
       fileBuffer: await parsed.value.file.arrayBuffer(),
       fileName: parsed.value.file.name,
@@ -106,14 +109,22 @@ export async function executeDataImportBatch(
       return createErrorState(error.message);
     }
 
-    dependencies.logger.error(
-      "[dataImport] execute batch action failed unexpectedly",
-      {
-        errorName: error instanceof Error ? error.name : "unknown",
-        ledgerId: currentLedger.id,
-        offset: parsed.value.offset,
-      },
-    );
+    const logContext = {
+      errorName: error instanceof Error ? error.name : "unknown",
+      ledgerId: currentLedger.id,
+      offset: parsed.value.offset,
+    };
+    if (dependencies) {
+      dependencies.logger.error(
+        "[dataImport] execute batch action failed unexpectedly",
+        logContext,
+      );
+    } else {
+      console.error(
+        "[dataImport] execute batch action failed unexpectedly",
+        logContext,
+      );
+    }
     return createErrorState(
       getDataImportErrorMessage("execution_failed") ??
         "数据导入失败，请稍后重试。",

@@ -1,6 +1,5 @@
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import type { MerchantService } from "internal/merchant/service/merchantService";
-import { RepositoryError } from "internal/shared/errors/appError";
 
 export type MerchantImportEntry = {
   id: string;
@@ -83,7 +82,7 @@ export function createMerchantImportService(
     },
 
     async createMerchant({ ledgerId, name, tagIds }) {
-      await service.createMerchant({
+      const merchantId = await service.createMerchant({
         ledgerId,
         name,
         note: null,
@@ -91,36 +90,16 @@ export function createMerchantImportService(
         siteUrl: null,
         tagIds,
       });
-
-      const { merchants } = await loadContext({ ledgerId });
-      const created = merchants.find((merchant) =>
-        merchant.matchNames.includes(name),
-      );
-      if (!created) {
-        throw new RepositoryError(
-          "merchant_create_failed",
-          "商家新增失败，请稍后重试。",
-        );
-      }
-      return { merchantId: created.id };
+      return { merchantId };
     },
 
     async createTag({ ledgerId, name }) {
-      await service.createTag({
+      const tagId = await service.createTag({
         icon: defaultMerchantTagEmoji,
         ledgerId,
         name,
       });
-      const created = (await service.listTags({ ledgerId })).find(
-        (tag) => tag.name === name,
-      );
-      if (!created) {
-        throw new RepositoryError(
-          "merchant_tag_create_failed",
-          "商家标签新增失败，请稍后重试。",
-        );
-      }
-      return { tagId: created.id };
+      return { tagId };
     },
 
     loadContext,

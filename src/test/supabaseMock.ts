@@ -19,6 +19,7 @@ type QueryMethodName =
   | "or"
   | "order"
   | "select"
+  | "single"
   | "update"
   | "upsert";
 
@@ -70,6 +71,10 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
   query.in = vi.fn((...args: unknown[]) => addCall("in", args));
   query.maybeSingle = vi.fn(async (...args: unknown[]) => {
     addCall("maybeSingle", args);
+    return record.response;
+  });
+  query.single = vi.fn(async (...args: unknown[]) => {
+    addCall("single", args);
     return record.response;
   });
   query.then = <TResult1 = SupabaseMockResponse, TResult2 = never>(

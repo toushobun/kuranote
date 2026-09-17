@@ -44,8 +44,8 @@ function createRepository(
     archiveMerchant: vi.fn().mockResolvedValue(true),
     archiveTag: vi.fn().mockResolvedValue(true),
     createAlias: vi.fn(),
-    createMerchant: vi.fn(),
-    createTag: vi.fn(),
+    createMerchant: vi.fn().mockResolvedValue(merchantId),
+    createTag: vi.fn().mockResolvedValue(tagId),
     findActiveAlias: vi.fn().mockResolvedValue({ merchantId }),
     findActiveMerchant: vi.fn().mockResolvedValue(true),
     findActiveMerchantData: vi.fn().mockResolvedValue(null),
@@ -219,7 +219,7 @@ describe("createMerchantService", () => {
         note: null,
         siteUrl: "https://example.com",
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(merchantId);
     expect(repository.createMerchant).toHaveBeenCalledWith(
       expect.objectContaining({ iconUrl: null }),
     );
@@ -443,14 +443,16 @@ describe("createMerchantService", () => {
     expect(repository.listActiveTags).not.toHaveBeenCalled();
   });
 
-  it("创建标签由 Repository 原子分配排序", async () => {
+  it("创建标签由 Repository 原子分配排序，并返回新标签 id", async () => {
     const repository = createRepository();
 
-    await createService(repository).createTag({
-      icon: "🛒",
-      ledgerId,
-      name: "超市",
-    });
+    await expect(
+      createService(repository).createTag({
+        icon: "🛒",
+        ledgerId,
+        name: "超市",
+      }),
+    ).resolves.toBe(tagId);
 
     expect(repository.createTag).toHaveBeenCalledWith({
       icon: "🛒",

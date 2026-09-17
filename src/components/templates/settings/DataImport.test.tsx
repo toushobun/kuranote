@@ -152,6 +152,39 @@ describe("DataImportTemplate", () => {
     expect(executeAction).toHaveBeenCalledOnce();
   });
 
+  it("批处理出错后重置导入状态，检查格式与开始导入按钮恢复可用", async () => {
+    const checkAction = vi.fn(
+      async (): Promise<DataImportActionState> => ({
+        result: {
+          ok: true,
+          summary: {
+            balanceAdjustmentDetected: false,
+            incomeExpenseCount: 1,
+            transferCount: 0,
+          },
+        },
+      }),
+    );
+    const executeAction = vi.fn(
+      async (): Promise<DataImportBatchActionState> => ({
+        error: "登录状态已失效，请重新登录后再试。",
+      }),
+    );
+    renderTemplate({
+      checkFormatAction: checkAction,
+      executeBatchAction: executeAction,
+    });
+    selectFile();
+    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
+
+    expect(
+      await screen.findByText("登录状态已失效，请重新登录后再试。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "开始导入" })).not.toBeDisabled();
+  });
+
   it("校验未通过时展示每一条错误", async () => {
     const action = vi.fn(
       async (): Promise<DataImportActionState> => ({

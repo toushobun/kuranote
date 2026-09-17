@@ -127,6 +127,7 @@ export function useDataImportForm(
           setExecutionError(
             state.error ?? dataImportExecutionMessages.downloadFailed,
           );
+          setExecutionStatus(null);
           return;
         }
 
