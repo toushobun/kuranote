@@ -64,3 +64,25 @@ export const dataImportResultMessages = {
   successTitle: "格式检查通过",
   transferCountLabel: (count: number) => `转账记录 ${count} 笔`,
 } as const;
+
+export const dataImportExecutionMessages = {
+  startButton: "开始导入",
+  importingButton: "正在导入…",
+  progressTitle: "正在导入",
+  progressLabel: (processed: number, total: number) =>
+    `已处理 ${processed} / 共 ${total} 条`,
+  completedTitle: "导入完成",
+  successCount: (count: number) => `成功导入 ${count} 条`,
+  failureCount: (count: number) => `失败 ${count} 条`,
+  duplicateCount: (count: number) => `疑似重复 ${count} 条`,
+  detailTitle: "需要确认的记录",
+  detailRows: (rowNumbers: number[]) =>
+    rowNumbers.length === 1
+      ? `第 ${rowNumbers[0]} 行`
+      : `第 ${rowNumbers.join("、")} 行`,
+  duplicateLabel: "疑似重复",
+  failedLabel: "失败",
+  downloadButton: "下载导入结果文件",
+  downloadingButton: "正在生成结果文件…",
+  downloadFailed: "结果文件生成失败，请稍后重试。",
+} as const;
