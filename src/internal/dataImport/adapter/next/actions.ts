@@ -3,12 +3,12 @@
 import { createAccountImportService } from "internal/account";
 import { createCategoryImportService } from "internal/category";
 import { createRequestContainer } from "internal/container";
+import { createDataImportExecutionService } from "internal/dataImport";
 import {
   parseCheckDataImportFileForm,
   parseExecuteDataImportBatchForm,
 } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
-import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createMerchantImportService } from "internal/merchant";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
