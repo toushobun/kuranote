@@ -7,7 +7,7 @@ import {
   buildDataImportResultWorkbook,
 } from "utils/dataImportResultWorkbook";
 
-async function createSourceWorkbook() {
+async function createSourceWorkbook(): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   const incomeExpense = workbook.addWorksheet("收支");
   incomeExpense.addRow(["日期", "金额"]);
@@ -22,7 +22,10 @@ async function createSourceWorkbook() {
   ignored.addRow(["日期", "金额"]);
   ignored.addRow(["2026-09-17 13:00:00", "100"]);
 
-  return workbook.xlsx.writeBuffer();
+  const output = await workbook.xlsx.writeBuffer();
+  const bytes = new Uint8Array(output.byteLength);
+  bytes.set(output);
+  return bytes.buffer;
 }
 
 describe("dataImportResultWorkbook", () => {
@@ -49,10 +52,7 @@ describe("dataImportResultWorkbook", () => {
       },
     ];
 
-    const output = await buildDataImportResultWorkbook(
-      source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength),
-      rowResults,
-    );
+    const output = await buildDataImportResultWorkbook(source, rowResults);
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(output);
 
