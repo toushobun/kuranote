@@ -1,0 +1,86 @@
+import ExcelJS from "exceljs";
+import { describe, expect, it } from "vitest";
+
+import type { ImportExecutionRowResult } from "internal/dataImport";
+import {
+  buildDataImportResultFileName,
+  buildDataImportResultWorkbook,
+} from "utils/dataImportResultWorkbook";
+
+async function createSourceWorkbook() {
+  const workbook = new ExcelJS.Workbook();
+  const incomeExpense = workbook.addWorksheet("收支");
+  incomeExpense.addRow(["日期", "金额"]);
+  incomeExpense.addRow(["2026-09-17 10:00:00", "1200"]);
+  incomeExpense.addRow(["2026-09-17 11:00:00", "800"]);
+
+  const transfer = workbook.addWorksheet("转账");
+  transfer.addRow(["日期", "金额"]);
+  transfer.addRow(["2026-09-17 12:00:00", "5000"]);
+
+  const ignored = workbook.addWorksheet("余额变更");
+  ignored.addRow(["日期", "金额"]);
+  ignored.addRow(["2026-09-17 13:00:00", "100"]);
+
+  return workbook.xlsx.writeBuffer();
+}
+
+describe("dataImportResultWorkbook", () => {
+  it("保留原工作表并在收支和转账右侧追加导入结果与原因", async () => {
+    const source = await createSourceWorkbook();
+    const rowResults: ImportExecutionRowResult[] = [
+      {
+        reason: null,
+        rowNumber: 2,
+        sheet: "incomeExpense",
+        status: "success",
+      },
+      {
+        reason: "疑似与现有记录重复，但已继续导入。",
+        rowNumber: 3,
+        sheet: "incomeExpense",
+        status: "duplicate",
+      },
+      {
+        reason: "账户不存在。",
+        rowNumber: 2,
+        sheet: "transfer",
+        status: "failed",
+      },
+    ];
+
+    const output = await buildDataImportResultWorkbook(
+      source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength),
+      rowResults,
+    );
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(output);
+
+    const incomeExpense = workbook.getWorksheet("收支")!;
+    expect(incomeExpense.getRow(1).getCell(3).value).toBe("导入结果");
+    expect(incomeExpense.getRow(1).getCell(4).value).toBe("原因");
+    expect(incomeExpense.getRow(2).getCell(3).value).toBe("成功");
+    expect(incomeExpense.getRow(2).getCell(4).value).toBe("");
+    expect(incomeExpense.getRow(3).getCell(3).value).toBe("成功（疑似重复）");
+    expect(incomeExpense.getRow(3).getCell(4).value).toBe(
+      "疑似与现有记录重复，但已继续导入。",
+    );
+
+    const transfer = workbook.getWorksheet("转账")!;
+    expect(transfer.getRow(2).getCell(3).value).toBe("失败");
+    expect(transfer.getRow(2).getCell(4).value).toBe("账户不存在。");
+
+    const balanceAdjustment = workbook.getWorksheet("余额变更")!;
+    expect(balanceAdjustment.getRow(1).cellCount).toBe(2);
+    expect(balanceAdjustment.getRow(2).getCell(2).value).toBe("100");
+  });
+
+  it("结果文件名在原文件名后追加导入结果后缀", () => {
+    expect(buildDataImportResultFileName("history.xlsx")).toBe(
+      "history_导入结果.xlsx",
+    );
+    expect(buildDataImportResultFileName("HISTORY.XLSX")).toBe(
+      "HISTORY_导入结果.xlsx",
+    );
+  });
+});
