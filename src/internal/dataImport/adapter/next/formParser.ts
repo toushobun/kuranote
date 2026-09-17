@@ -17,6 +17,7 @@ export type DataImportFormFields = {
 
 export type DataImportBatchFormFields = DataImportFormFields & {
   offset: number;
+  timeZoneOffsetMinutes: number;
 };
 
 function hasAcceptedExtension(fileName: string) {
@@ -62,5 +63,20 @@ export function parseExecuteDataImportBatchForm(
     return invalid(dataImportErrorCodes.executionInvalid);
   }
 
-  return valid({ file: fileResult.value.file, offset });
+  const timeZoneOffsetText = formData.get("timeZoneOffsetMinutes");
+  const timeZoneOffsetMinutes =
+    typeof timeZoneOffsetText === "string" ? Number(timeZoneOffsetText) : NaN;
+  if (
+    !Number.isInteger(timeZoneOffsetMinutes) ||
+    timeZoneOffsetMinutes < -840 ||
+    timeZoneOffsetMinutes > 840
+  ) {
+    return invalid(dataImportErrorCodes.executionInvalid);
+  }
+
+  return valid({
+    file: fileResult.value.file,
+    offset,
+    timeZoneOffsetMinutes,
+  });
 }
