@@ -1,0 +1,36 @@
+name: Issue 777 pre-PR checks
+
+on:
+  push:
+    branches:
+      - feature/777_data_import_execution
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Format check
+        run: npx prettier . --check
+
+      - name: Unit tests
+        run: npx vitest run --exclude "tests/rsc/**"
