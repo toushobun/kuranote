@@ -1,0 +1,52 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";import{t as r}from"./jsx-runtime-Dwpk6tgA.js";import{$ as i,A as a,H as o,V as s,a as c,ct as l,et as u,ft as d,k as f,mt as p,nt as m,r as ee,rt as h,s as g,st as te,t as _}from"./DefaultPropsProvider-BrOASIGE.js";import{a as v,i as ne,n as re,o as y,r as b,t as x}from"./createSimplePaletteValueFilter-BYycgg0u.js";import{i as S,o as ie,t as C}from"./utils-DIk0ymYl.js";import{n as w,t as ae}from"./Stack-DRbcmy6F.js";import{n as T,t as oe}from"./Box-BWEbYFI_.js";import{n as E,t as se}from"./Typography-CwLqrFKa.js";import{n as ce,t as le}from"./Button-BvhFbL6z.js";import{n as D,t as ue}from"./Alert-FNoXH4YT.js";import{n as de,t as fe}from"./SectionCard-DGjxPBv6.js";import{n as pe,t as me}from"./DownloadRounded-BL-mtMVa.js";import{n as O,u as he}from"./dataImportExportMessages-9cHHwTW4.js";function ge(e){return h(`MuiLinearProgress`,e)}var k=t((()=>{i(),m(),u(`MuiLinearProgress`,[`root`,`colorPrimary`,`colorSecondary`,`determinate`,`indeterminate`,`buffer`,`query`,`dashed`,`bar`,`bar1`,`bar2`])})),A,j,M,N,P,F,I,L,R,z,_e,B,V,H,U,W,G,ve=t((()=>{A=e(n(),1),l(),f(),s(),c(),v(),re(),_(),ne(),ie(),k(),j=r(),M=4,N={},P=p`
+  0% {
+    left: -35%;
+    right: 100%;
+  }
+
+  60% {
+    left: 100%;
+    right: -90%;
+  }
+
+  100% {
+    left: 100%;
+    right: -90%;
+  }
+`,F=typeof P==`string`?null:d`
+        animation: ${P} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+      `,I=p`
+  0% {
+    left: -200%;
+    right: 100%;
+  }
+
+  60% {
+    left: 107%;
+    right: -8%;
+  }
+
+  100% {
+    left: 107%;
+    right: -8%;
+  }
+`,L=typeof I==`string`?null:d`
+        animation: ${I} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
+      `,R=p`
+  0% {
+    opacity: 1;
+    background-position: 0 -23px;
+  }
+
+  60% {
+    opacity: 0;
+    background-position: 0 -23px;
+  }
+
+  100% {
+    opacity: 1;
+    background-position: -200px -23px;
+  }
+`,z=typeof R==`string`?null:d`
+        animation: ${R} 3s infinite linear;
+      `,_e=e=>{let{classes:t,variant:n,color:r}=e;return a({root:[`root`,`color${b(r)}`,n],dashed:[`dashed`],bar1:[`bar`,`bar1`],bar2:[`bar`,`bar2`,n===`buffer`&&`color${b(r)}`]},ge,t)},B=(e,t)=>e.vars?e.vars.palette.LinearProgress[`${t}Bg`]:e.palette.mode===`light`?e.lighten(e.palette[t].main,.62):e.darken(e.palette[t].main,.5),V=g(`span`,{name:`MuiLinearProgress`,slot:`Root`,overridesResolver:(e,t)=>{let{ownerState:n}=e;return[t.root,t[`color${b(n.color)}`],t[n.variant]]}})(y(({theme:e})=>({position:`relative`,overflow:`hidden`,display:`block`,height:4,zIndex:0,"@media print":{colorAdjust:`exact`},variants:[...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{backgroundColor:B(e,t)}})),{props:({ownerState:e})=>e.color===`inherit`&&e.variant!==`buffer`,style:{"&::before":{content:`""`,position:`absolute`,left:0,top:0,right:0,bottom:0,backgroundColor:`currentColor`,opacity:.3}}},{props:{variant:`buffer`},style:{backgroundColor:`transparent`}},{props:{variant:`query`},style:{transform:`rotate(180deg)`}}]}))),H=g(`span`,{name:`MuiLinearProgress`,slot:`Dashed`})(y(({theme:e})=>({position:`absolute`,marginTop:0,height:`100%`,width:`100%`,backgroundSize:`10px 10px`,backgroundPosition:`0 -23px`,variants:[{props:{color:`inherit`},style:{opacity:.3,backgroundImage:`radial-gradient(currentColor 0%, currentColor 16%, transparent 42%)`}},...Object.entries(e.palette).filter(x()).map(([t])=>{let n=B(e,t);return{props:{color:t},style:{backgroundImage:`radial-gradient(${n} 0%, ${n} 16%, transparent 42%)`}}})]})),z||{animation:`${R} 3s infinite linear`},y(({theme:e})=>C(e,{animation:`none`})||N)),U=g(`span`,{name:`MuiLinearProgress`,slot:`Bar1`,overridesResolver:(e,t)=>[t.bar,t.bar1]})(y(({theme:e})=>{let t=C(e,{animation:`none`,left:`30%`,right:`auto`,width:`40%`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...S(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[{props:{color:`inherit`},style:{backgroundColor:`currentColor`}},...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{backgroundColor:(e.vars||e).palette[t].main}})),{props:{variant:`determinate`},style:{...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}},{props:{variant:`buffer`},style:{zIndex:1,...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:F||{animation:`${P} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),W=g(`span`,{name:`MuiLinearProgress`,slot:`Bar2`,overridesResolver:(e,t)=>[t.bar,t.bar2]})(y(({theme:e})=>{let t=C(e,{animation:`none`,display:`none`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...S(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{"--LinearProgressBar2-barColor":(e.vars||e).palette[t].main}})),{props:({ownerState:e})=>e.variant!==`buffer`&&e.color!==`inherit`,style:{backgroundColor:`var(--LinearProgressBar2-barColor, currentColor)`}},{props:({ownerState:e})=>e.variant!==`buffer`&&e.color===`inherit`,style:{backgroundColor:`currentColor`}},{props:{color:`inherit`},style:{opacity:.3}},...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t,variant:`buffer`},style:{backgroundColor:B(e,t),...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}})),{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:L||{animation:`${I} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),G=A.forwardRef(function(e,t){let n=ee({props:e,name:`MuiLinearProgress`}),{className:r,color:i=`primary`,max:a,min:s,value:c,valueBuffer:l,variant:u=`indeterminate`,...d}=n,f={...n,color:i,variant:u},p=s??0,m=a??100,h=_e(f),g=o(),_={},v={bar1:{},bar2:{}};if((u===`determinate`||u===`buffer`)&&c!==void 0){let e=m-p,t=(c-p)/e*100-100;g&&(t=-t),v.bar1.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`,_[`aria-valuenow`]=c,_[`aria-valuemin`]=p,_[`aria-valuemax`]=m}if(u===`buffer`&&l!==void 0){let e=m-p,t=(l-p)/e*100-100;g&&(t=-t),v.bar2.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`}return(0,j.jsxs)(V,{className:te(h.root,r),ownerState:f,role:`progressbar`,..._,ref:t,...d,children:[u===`buffer`?(0,j.jsx)(H,{className:h.dashed,ownerState:f}):null,(0,j.jsx)(U,{className:h.bar1,ownerState:f,style:v.bar1}),u===`determinate`?null:(0,j.jsx)(W,{className:h.bar2,ownerState:f,style:v.bar2})]})})})),ye=t((()=>{ve(),k(),k()})),K,q=t((()=>{K={incomeExpense:`收支`,transfer:`转账`,balanceAdjustment:`余额变更`}})),J,Y,X,Z,be=t((()=>{J=[{name:`账单关联`,required:!1},{name:`日期`,required:!0},{name:`记账人`,required:!1},{name:`商家分类`,required:!1},{name:`商家`,required:!0},{name:`交易类型`,required:!0},{name:`一级分类`,required:!0},{name:`二级分类`,required:!1},{name:`账户`,required:!0},{name:`账户持有人`,required:!1},{name:`账户币种`,required:!0},{name:`金额`,required:!0},{name:`备注`,required:!1}],Y=[{name:`交易类型`,required:!0},{name:`日期`,required:!0},{name:`记账人`,required:!1},{name:`转出账户`,required:!0},{name:`转出账户币种`,required:!0},{name:`转出账户持有人`,required:!1},{name:`转入账户`,required:!0},{name:`转入账户币种`,required:!0},{name:`转入账户持有人`,required:!1},{name:`金额`,required:!0},{name:`备注`,required:!1}],X=[{name:`交易类型`,required:!0},{name:`日期`,required:!0},{name:`记账人`,required:!1},{name:`账户`,required:!0},{name:`账户币种`,required:!0},{name:`账户持有人`,required:!1},{name:`金额`,required:!0},{name:`备注`,required:!1}],Z={balanceAdjustment:X,incomeExpense:J,transfer:Y}})),xe=t((()=>{q(),be()}));function Se({isDownloading:e=!1,onDownload:t,result:n,status:r}){let i=O,a=n.totalCount===0?0:Math.min(100,n.processedCount/n.totalCount*100),o=n.details.filter(e=>e.status===`failed`),s=n.details.filter(e=>e.status===`duplicate`);return(0,$.jsx)(fe,{children:(0,$.jsxs)(w,{spacing:2,children:[(0,$.jsxs)(T,{children:[(0,$.jsx)(E,{sx:{fontWeight:700},children:r===`importing`?i.progressTitle:i.completedTitle}),(0,$.jsx)(E,{sx:{color:`text.secondary`,mt:.5},variant:`body2`,children:i.progressLabel(n.processedCount,n.totalCount)})]}),r===`importing`?(0,$.jsx)(G,{"aria-label":i.progressTitle,value:a,variant:`determinate`}):null,(0,$.jsxs)(w,{direction:{xs:`column`,sm:`row`},spacing:1,children:[(0,$.jsx)(D,{severity:`success`,children:i.successCount(n.successCount)}),n.failureCount>0?(0,$.jsx)(D,{severity:`error`,children:i.failureCount(n.failureCount)}):null,n.duplicateCount>0?(0,$.jsx)(D,{severity:`warning`,children:i.duplicateCount(n.duplicateCount)}):null]}),r===`completed`&&o.length>0?(0,$.jsx)(Q,{items:o,title:i.failedDetailTitle}):null,r===`completed`&&s.length>0?(0,$.jsx)(Q,{items:s,title:i.duplicateDetailTitle}):null,r===`completed`&&t?(0,$.jsx)(ce,{disabled:e,onClick:t,startIcon:(0,$.jsx)(me,{}),sx:{alignSelf:`flex-start`},variant:`outlined`,children:e?i.downloadingButton:i.downloadButton}):null]})})}function Q({items:e,title:t}){return(0,$.jsxs)(w,{spacing:1,children:[(0,$.jsx)(E,{sx:{fontWeight:700},variant:`body2`,children:t}),(0,$.jsx)(w,{component:`ul`,spacing:1,sx:{listStyle:`none`,m:0,p:0},children:e.map((e,t)=>(0,$.jsxs)(T,{component:`li`,children:[(0,$.jsxs)(E,{sx:{fontWeight:600},variant:`body2`,children:[`[`,K[e.sheet],`]`,` `,O.detailRows(e.rowNumbers)]}),(0,$.jsx)(E,{sx:{color:`text.secondary`},variant:`body2`,children:e.content}),(0,$.jsx)(E,{variant:`body2`,children:e.reason})]},`${e.sheet}-${e.rowNumbers.join(`-`)}-${t}`))})]})}var $,Ce=t((()=>{$=r(),pe(),ue(),oe(),le(),ye(),ae(),se(),he(),xe(),de(),Se.__docgenInfo={description:``,methods:[],displayName:`DataImportExecutionStatus`,props:{isDownloading:{required:!1,tsType:{name:`boolean`},description:``,defaultValue:{value:`false`,computed:!1}},onDownload:{required:!1,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``},result:{required:!0,tsType:{name:`ImportExecutionResult`},description:``},status:{required:!0,tsType:{name:`union`,raw:`"completed" | "importing"`,elements:[{name:`literal`,value:`"completed"`},{name:`literal`,value:`"importing"`}]},description:``}}}}));export{be as a,Z as i,Ce as n,K as o,xe as r,q as s,Se as t};
