@@ -12,7 +12,6 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import { DataImportExecutionStatus } from "components/organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import {
   dataImportExecutionMessages,
   dataImportFileFieldMessages,
@@ -30,6 +29,7 @@ import {
   type ImportValidationResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import { useDataImportForm } from "templates/settings/useDataImportForm";
