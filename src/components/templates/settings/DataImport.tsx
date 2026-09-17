@@ -152,7 +152,9 @@ export function DataImportTemplate({
           </SectionCard>
         ) : null}
 
-        {executionError ? <Alert severity="error">{executionError}</Alert> : null}
+        {executionError ? (
+          <Alert severity="error">{executionError}</Alert>
+        ) : null}
 
         {executionResult && executionStatus ? (
           <DataImportExecutionStatus

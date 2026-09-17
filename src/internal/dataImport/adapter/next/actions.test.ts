@@ -69,7 +69,10 @@ function createFormData(file: File | null, offset?: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.requireCurrentUserAndLedger.mockResolvedValue({ currentLedger, userId });
+  mocks.requireCurrentUserAndLedger.mockResolvedValue({
+    currentLedger,
+    userId,
+  });
   mocks.createServerRequestDependencies.mockResolvedValue({
     logger: { error: mocks.loggerError, info: vi.fn(), warn: vi.fn() },
   });
@@ -190,10 +193,7 @@ describe("executeDataImportBatch", () => {
       totalCount: 1,
     });
 
-    const state = await executeDataImportBatch(
-      {},
-      createFormData(file, "0"),
-    );
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
 
     expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
     expect(mocks.executeBatch).toHaveBeenCalledWith({
@@ -208,10 +208,7 @@ describe("executeDataImportBatch", () => {
 
   it("非法 offset 在调用执行 Service 前返回安全错误", async () => {
     const file = new File(["binary"], "data.xlsx");
-    const state = await executeDataImportBatch(
-      {},
-      createFormData(file, "-1"),
-    );
+    const state = await executeDataImportBatch({}, createFormData(file, "-1"));
 
     expect(state).toEqual({
       error: "导入文件或进度信息已变化，请重新检查格式后再导入。",
@@ -226,10 +223,7 @@ describe("executeDataImportBatch", () => {
       new ValidationError("reference_invalid", "账户持有人不存在。"),
     );
 
-    const state = await executeDataImportBatch(
-      {},
-      createFormData(file, "0"),
-    );
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
 
     expect(state).toEqual({
       error: "账户持有人不存在。",
@@ -241,10 +235,7 @@ describe("executeDataImportBatch", () => {
     const file = new File(["binary"], "data.xlsx");
     mocks.executeBatch.mockRejectedValue(new Error("database secret"));
 
-    const state = await executeDataImportBatch(
-      {},
-      createFormData(file, "0"),
-    );
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
 
     expect(state).toEqual({
       error: "数据导入失败，请稍后重试。",

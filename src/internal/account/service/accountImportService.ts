@@ -36,13 +36,7 @@ export function createAccountImportService(
   service: AccountService,
 ): AccountImportService {
   return {
-    async createAccount({
-      currency,
-      holderUserId,
-      ledgerId,
-      name,
-      userId,
-    }) {
+    async createAccount({ currency, holderUserId, ledgerId, name, userId }) {
       return service.create({
         currency,
         holderUserIds: holderUserId ? [holderUserId] : [],

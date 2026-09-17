@@ -49,6 +49,7 @@ export type ExecuteImportBatchInput = {
   fileName: string;
   ledgerId: string;
   offset: number;
+  timeZoneOffsetMinutes: number;
   userId: string;
 };
 
@@ -145,7 +146,11 @@ function detailForUnit(
   };
 }
 
-function categoryKey(type: CategoryType, parentId: string | null, name: string) {
+function categoryKey(
+  type: CategoryType,
+  parentId: string | null,
+  name: string,
+) {
   return `${type}\u0000${parentId ?? "root"}\u0000${name}`;
 }
 
@@ -166,7 +171,14 @@ export function createDataImportExecutionService({
   transactionImportService,
 }: DataImportExecutionDependencies): DataImportExecutionService {
   return {
-    async executeBatch({ fileBuffer, fileName, ledgerId, offset, userId }) {
+    async executeBatch({
+      fileBuffer,
+      fileName,
+      ledgerId,
+      offset,
+      timeZoneOffsetMinutes,
+      userId,
+    }) {
       const units = await parseExecutionUnits(fileName, fileBuffer);
       if (!Number.isInteger(offset) || offset < 0 || offset > units.length) {
         throw executionInvalid();
@@ -403,6 +415,7 @@ export function createDataImportExecutionService({
           ledgerId,
           merchantId: merchant.id,
           note: first.note,
+          timeZoneOffsetMinutes,
           transactionAt: first.transactionAt,
           type: first.transactionType,
         } as const;
@@ -428,10 +441,9 @@ export function createDataImportExecutionService({
         });
         const input = {
           accountId: fromAccount.id,
-          fromAccountName: row.fromAccountName,
           ledgerId,
           note: row.note,
-          toAccountName: row.toAccountName,
+          timeZoneOffsetMinutes,
           transactionAt: row.transactionAt,
           transferAmount: row.amount,
           transferTargetAccountId: toAccount.id,

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
 import type { ImportExecutionResult } from "internal/dataImport";
@@ -110,6 +105,7 @@ export function useDataImportForm(
       validationState.result.summary.transferCount;
     let aggregate = createEmptyExecutionResult(totalCount);
     let offset = 0;
+    const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
     setExecutionError(null);
@@ -123,6 +119,7 @@ export function useDataImportForm(
         const formData = new FormData();
         formData.set("file", selectedFile);
         formData.set("offset", String(offset));
+        formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
         const state = await executeBatchAction({}, formData);
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
@@ -135,8 +132,7 @@ export function useDataImportForm(
 
         aggregate = {
           details: [...aggregate.details, ...state.batch.details],
-          duplicateCount:
-            aggregate.duplicateCount + state.batch.duplicateCount,
+          duplicateCount: aggregate.duplicateCount + state.batch.duplicateCount,
           failureCount: aggregate.failureCount + state.batch.failureCount,
           processedCount: aggregate.processedCount + state.batch.processedCount,
           rowResults: [...aggregate.rowResults, ...state.batch.rowResults],

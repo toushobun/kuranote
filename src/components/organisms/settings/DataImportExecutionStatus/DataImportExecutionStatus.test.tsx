@@ -34,7 +34,10 @@ describe("DataImportExecutionStatus", () => {
     );
 
     expect(screen.getByText("已处理 3 / 共 10 条")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "30");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "30",
+    );
     expect(screen.queryByText("需要确认的记录")).not.toBeInTheDocument();
   });
 

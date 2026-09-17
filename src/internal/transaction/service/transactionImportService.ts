@@ -53,7 +53,11 @@ function dateInvalid(): ValidationError {
 
 /** 与普通记账表单相同：把浏览器本地时间 + getTimezoneOffset() 转成 UTC ISO。 */
 function toTransactionTimestamp(value: string, offsetMinutes: number) {
-  if (!Number.isInteger(offsetMinutes) || offsetMinutes < -840 || offsetMinutes > 840) {
+  if (
+    !Number.isInteger(offsetMinutes) ||
+    offsetMinutes < -840 ||
+    offsetMinutes > 840
+  ) {
     throw dateInvalid();
   }
 
@@ -117,7 +121,10 @@ export function createTransactionImportService({
     filters: Parameters<TransactionService["getGroupItems"]>[4],
   ) {
     const days = [
-      ...new Set([localTransactionAt.slice(0, 10), transactionAtIso.slice(0, 10)]),
+      ...new Set([
+        localTransactionAt.slice(0, 10),
+        transactionAtIso.slice(0, 10),
+      ]),
     ];
     const items: Awaited<
       ReturnType<TransactionService["getGroupItems"]>
@@ -170,15 +177,11 @@ export function createTransactionImportService({
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );
-      const items = await loadDayItems(
-        input.transactionAt,
-        transactionAtIso,
-        {
-          accountId: input.accountId,
-          merchantId: input.merchantId,
-          recordType: input.type,
-        },
-      );
+      const items = await loadDayItems(input.transactionAt, transactionAtIso, {
+        accountId: input.accountId,
+        merchantId: input.merchantId,
+        recordType: input.type,
+      });
       return items.some(
         (item) =>
           sameTimestamp(item.transaction_at, transactionAtIso) &&
@@ -191,14 +194,10 @@ export function createTransactionImportService({
         input.transactionAt,
         input.timeZoneOffsetMinutes,
       );
-      const items = await loadDayItems(
-        input.transactionAt,
-        transactionAtIso,
-        {
-          accountId: input.accountId,
-          recordType: "transfer",
-        },
-      );
+      const items = await loadDayItems(input.transactionAt, transactionAtIso, {
+        accountId: input.accountId,
+        recordType: "transfer",
+      });
       const candidates = items.filter(
         (item) =>
           sameTimestamp(item.transaction_at, transactionAtIso) &&

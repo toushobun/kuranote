@@ -67,7 +67,9 @@ function incomeRow(overrides: Record<string, string> = {}) {
 
 function createDependencies() {
   const accountImportService: AccountImportService = {
-    createAccount: vi.fn(async ({ name }) => ({ accountId: `account-${name}` })),
+    createAccount: vi.fn(async ({ name }) => ({
+      accountId: `account-${name}`,
+    })),
     loadContext: vi.fn(async () => ({
       accounts: [],
       holders: [{ displayName: "淞文", userId: "user-1" }],
@@ -81,7 +83,9 @@ function createDependencies() {
   };
   const merchantImportService: MerchantImportService = {
     addTag: vi.fn(async () => undefined),
-    createMerchant: vi.fn(async ({ name }) => ({ merchantId: `merchant-${name}` })),
+    createMerchant: vi.fn(async ({ name }) => ({
+      merchantId: `merchant-${name}`,
+    })),
     createTag: vi.fn(async ({ name }) => ({ tagId: `tag-${name}` })),
     loadContext: vi.fn(async () => ({ merchants: [], tags: [] })),
   };
@@ -124,21 +128,32 @@ describe("DataImportExecutionService", () => {
       fileName: "data.xlsx",
       ledgerId: "ledger-1",
       offset: 0,
+      timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
 
-    expect(dependencies.accountImportService.createAccount).toHaveBeenCalledWith({
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith({
       currency: "JPY",
       holderUserId: "user-1",
       ledgerId: "ledger-1",
       name: "钱包",
       userId: "user-1",
     });
-    expect(dependencies.categoryImportService.createCategory).toHaveBeenNthCalledWith(
+    expect(
+      dependencies.categoryImportService.createCategory,
+    ).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ name: "餐饮", parentId: null, type: "expense" }),
+      expect.objectContaining({
+        name: "餐饮",
+        parentId: null,
+        type: "expense",
+      }),
     );
-    expect(dependencies.categoryImportService.createCategory).toHaveBeenNthCalledWith(
+    expect(
+      dependencies.categoryImportService.createCategory,
+    ).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ name: "食材", type: "expense" }),
     );
@@ -146,12 +161,16 @@ describe("DataImportExecutionService", () => {
       ledgerId: "ledger-1",
       name: "超市",
     });
-    expect(dependencies.merchantImportService.createMerchant).toHaveBeenCalledWith({
+    expect(
+      dependencies.merchantImportService.createMerchant,
+    ).toHaveBeenCalledWith({
       ledgerId: "ledger-1",
       name: "业务超市",
       tagIds: ["tag-超市"],
     });
-    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledOnce();
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
       done: true,
       duplicateCount: 0,
@@ -178,10 +197,13 @@ describe("DataImportExecutionService", () => {
       fileName: "data.xlsx",
       ledgerId: "ledger-1",
       offset: 0,
+      timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
 
-    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledOnce();
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledOnce();
     expect(result.successCount).toBe(1);
     expect(result.duplicateCount).toBe(1);
     expect(result.details).toEqual([
@@ -216,10 +238,13 @@ describe("DataImportExecutionService", () => {
       fileName: "data.xlsx",
       ledgerId: "ledger-1",
       offset: 0,
+      timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
 
-    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledTimes(2);
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledTimes(2);
     expect(result.failureCount).toBe(1);
     expect(result.successCount).toBe(1);
     expect(result.details[0]).toMatchObject({
@@ -248,6 +273,7 @@ describe("DataImportExecutionService", () => {
       fileName: "data.xlsx",
       ledgerId: "ledger-1",
       offset: 0,
+      timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
 
@@ -257,7 +283,9 @@ describe("DataImportExecutionService", () => {
       processedCount: 25,
       totalCount: 26,
     });
-    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledTimes(25);
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledTimes(25);
   });
 
   it("转账按两侧账户创建并调用转账写入接口", async () => {
@@ -287,11 +315,16 @@ describe("DataImportExecutionService", () => {
       fileName: "data.xlsx",
       ledgerId: "ledger-1",
       offset: 0,
+      timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
 
-    expect(dependencies.accountImportService.createAccount).toHaveBeenCalledTimes(2);
-    expect(dependencies.transactionImportService.createTransfer).toHaveBeenCalledWith(
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      dependencies.transactionImportService.createTransfer,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: "account-钱包",
         transferAmount: 5000,

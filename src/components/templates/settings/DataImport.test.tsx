@@ -95,7 +95,9 @@ describe("DataImportTemplate", () => {
     expect(await screen.findByText("格式检查通过")).toBeInTheDocument();
     expect(screen.getByText(/收支记录 3 笔/)).toBeInTheDocument();
     expect(screen.getByText(/转账记录 1 笔/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "开始导入" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "开始导入" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("另识别到「余额变更」表，本期暂不支持导入，已跳过。"),
     ).toBeInTheDocument();

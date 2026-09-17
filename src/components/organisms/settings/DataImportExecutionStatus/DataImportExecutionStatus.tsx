@@ -9,7 +9,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import { importSheetKindLabels, type ImportExecutionResult } from "internal/dataImport";
+import {
+  importSheetKindLabels,
+  type ImportExecutionResult,
+} from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
 
 type DataImportExecutionStatusProps = {
@@ -46,13 +49,21 @@ export function DataImportExecutionStatus({
         </Box>
 
         {status === "importing" ? (
-          <LinearProgress aria-label={messages.progressTitle} value={progress} variant="determinate" />
+          <LinearProgress
+            aria-label={messages.progressTitle}
+            value={progress}
+            variant="determinate"
+          />
         ) : null}
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          <Alert severity="success">{messages.successCount(result.successCount)}</Alert>
+          <Alert severity="success">
+            {messages.successCount(result.successCount)}
+          </Alert>
           {result.failureCount > 0 ? (
-            <Alert severity="error">{messages.failureCount(result.failureCount)}</Alert>
+            <Alert severity="error">
+              {messages.failureCount(result.failureCount)}
+            </Alert>
           ) : null}
           {result.duplicateCount > 0 ? (
             <Alert severity="warning">
@@ -66,11 +77,22 @@ export function DataImportExecutionStatus({
             <Typography sx={{ fontWeight: 700 }} variant="body2">
               {messages.detailTitle}
             </Typography>
-            <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>
+            <Stack
+              component="ul"
+              spacing={1}
+              sx={{ listStyle: "none", m: 0, p: 0 }}
+            >
               {result.details.map((detail, index) => (
-                <Box component="li" key={`${detail.sheet}-${detail.rowNumbers.join("-")}-${index}`}>
+                <Box
+                  component="li"
+                  key={`${detail.sheet}-${detail.rowNumbers.join("-")}-${index}`}
+                >
                   <Typography sx={{ fontWeight: 600 }} variant="body2">
-                    [{importSheetKindLabels[detail.sheet]}] {messages.detailRows(detail.rowNumbers)} · {detail.status === "duplicate" ? messages.duplicateLabel : messages.failedLabel}
+                    [{importSheetKindLabels[detail.sheet]}]{" "}
+                    {messages.detailRows(detail.rowNumbers)} ·{" "}
+                    {detail.status === "duplicate"
+                      ? messages.duplicateLabel
+                      : messages.failedLabel}
                   </Typography>
                   <Typography sx={{ color: "text.secondary" }} variant="body2">
                     {detail.content}
