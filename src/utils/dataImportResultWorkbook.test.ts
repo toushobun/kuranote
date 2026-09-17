@@ -22,10 +22,7 @@ async function createSourceWorkbook(): Promise<ArrayBuffer> {
   ignored.addRow(["日期", "金额"]);
   ignored.addRow(["2026-09-17 13:00:00", "100"]);
 
-  const output = await workbook.xlsx.writeBuffer();
-  const bytes = new Uint8Array(output.byteLength);
-  bytes.set(output);
-  return bytes.buffer;
+  return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;
 }
 
 describe("dataImportResultWorkbook", () => {
