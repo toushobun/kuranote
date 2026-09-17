@@ -30,7 +30,7 @@ export function buildDataImportResultFileName(fileName: string) {
 export async function buildDataImportResultWorkbook(
   source: ArrayBuffer,
   rowResults: ImportExecutionRowResult[],
-): Promise<Uint8Array> {
+): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(source);
 
@@ -71,5 +71,7 @@ export async function buildDataImportResultWorkbook(
   }
 
   const output = await workbook.xlsx.writeBuffer();
-  return new Uint8Array(output);
+  const bytes = new Uint8Array(output.byteLength);
+  bytes.set(output);
+  return bytes.buffer;
 }
