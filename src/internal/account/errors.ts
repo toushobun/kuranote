@@ -10,6 +10,7 @@ export const accountErrorCodes = {
   holderTooMany: "holder_too_many",
   initialBalanceInvalid: "initial_balance_invalid",
   ledgerInvalid: "ledger_invalid",
+  nameDuplicate: "account_name_duplicate",
   nameRequired: "name_required",
   permissionDenied: "permission_denied",
   typeInvalid: "type_invalid",
@@ -27,19 +28,19 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
   [accountErrorCodes.accountNotFound]: "账户不存在或已删除。",
   [accountErrorCodes.archiveFailed]: "账户删除失败，请稍后重试。",
-  [accountErrorCodes.createFailed]:
-    "账户新增失败。请确认账户名称是否重复，或稍后重试。",
+  [accountErrorCodes.createFailed]: "账户新增失败，请稍后重试。",
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
   [accountErrorCodes.holderInvalid]: "账户持有人必须是当前账本的有效成员。",
   [accountErrorCodes.holderTooMany]: "账户持有人最多只能选择 1 个。",
   [accountErrorCodes.initialBalanceInvalid]:
     "初始余额必须是最多两位小数的数字。",
   [accountErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",
+  [accountErrorCodes.nameDuplicate]:
+    "同一账本中，相同账户类型、货币和持有人下已存在同名账户（不区分大小写），请修改账户名称。",
   [accountErrorCodes.nameRequired]: "请输入账户名称。",
   [accountErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护账户。",
   [accountErrorCodes.typeInvalid]: "账户类型不正确。",
-  [accountErrorCodes.updateFailed]:
-    "账户更新失败。请确认账户名称是否重复，或稍后重试。",
+  [accountErrorCodes.updateFailed]: "账户更新失败，请稍后重试。",
 };
 
 export function getAccountErrorMessage(code?: string) {

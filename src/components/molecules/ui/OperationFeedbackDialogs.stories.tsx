@@ -47,6 +47,26 @@ export const Failure: Story = {
   ),
 };
 
+export const FailureAboveModal: Story = {
+  name: "弹窗保持打开时显示失败反馈",
+  render: () => (
+    <>
+      <ConfirmationDialog
+        open
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+        title="编辑账户"
+      />
+      <FailureFeedbackDialog
+        open
+        onClose={() => undefined}
+        title="账户操作失败"
+        description="请修改账户名称后重试。"
+      />
+    </>
+  ),
+};
+
 export const DeleteConfirmation: Story = {
   name: "删除确认",
   render: () => (

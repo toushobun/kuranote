@@ -97,6 +97,36 @@ describe("SuccessFeedbackDialog", () => {
 });
 
 describe("FailureFeedbackDialog", () => {
+  it.each([undefined, false])(
+    "失败提示默认高于弹窗且允许显式关闭：%s",
+    (aboveModal) => {
+      const { container } = render(
+        <ThemeProvider theme={theme}>
+          <ConfirmationDialog
+            open
+            onCancel={vi.fn()}
+            onConfirm={vi.fn()}
+            title="编辑"
+          />
+          <FailureFeedbackDialog
+            aboveModal={aboveModal}
+            open
+            onClose={vi.fn()}
+            title="保存失败"
+          />
+        </ThemeProvider>,
+      );
+      const alert = screen.getByRole("alert", { hidden: true });
+      const snackbar = alert.closest(".MuiSnackbar-root")!;
+      expect(getComputedStyle(snackbar).zIndex).toBe(
+        String(
+          aboveModal === false ? theme.zIndex.modal - 1 : theme.zIndex.snackbar,
+        ),
+      );
+      expect(container.contains(alert)).toBe(aboveModal === false);
+    },
+  );
+
   it("显示失败内容并触发关闭回调", () => {
     const onClose = vi.fn();
 

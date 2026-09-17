@@ -8,6 +8,7 @@ import {
   getMerchantActionErrorMessage,
   merchantErrorCodes,
 } from "internal/merchant";
+import { accountErrorCodes, getAccountErrorMessage } from "internal/account";
 import type { AppEnv } from "internal/appEnv";
 import {
   AuthenticationError,
@@ -35,6 +36,13 @@ function appThatThrows(error: unknown) {
 
 describe("errorHandlingMiddleware", () => {
   it.each([
+    [
+      new ConflictError(
+        accountErrorCodes.nameDuplicate,
+        getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+      ),
+      409,
+    ],
     [
       new ValidationError(
         merchantErrorCodes.merchantOrderInvalid,

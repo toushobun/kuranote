@@ -4243,6 +4243,29 @@ $$;
 ALTER FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."refresh_account_name_scope"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_table_name = 'account' then
+        perform public.sync_account_name_scope(new.id);
+    else
+        if tg_op <> 'INSERT' then
+            perform public.sync_account_name_scope(old.account_id);
+        end if;
+        if tg_op <> 'DELETE' then
+            perform public.sync_account_name_scope(new.account_id);
+        end if;
+    end if;
+    return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."refresh_account_name_scope"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4780,6 +4803,38 @@ $$;
 
 
 ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    -- 与账户编辑串行化，持有人写入不能用旧账户属性覆盖投影。
+    perform 1 from public.account where id = p_account_id for update;
+
+    delete from public.account_name_scope s
+    where s.account_id = p_account_id
+      and not exists (
+          select 1 from public.account a where a.id = p_account_id and not a.is_archived
+      );
+
+    insert into public.account_name_scope (account_id, ledger_id, name, type, currency, holder_user_id)
+    select a.id, a.ledger_id, lower(a.name), a.type, a.currency, h.user_id
+    from public.account a
+    left join public.account_holder h on h.account_id = a.id
+    where a.id = p_account_id and not a.is_archived
+    on conflict (account_id) do update set
+        ledger_id = excluded.ledger_id,
+        name = excluded.name,
+        type = excluded.type,
+        currency = excluded.currency,
+        holder_user_id = excluded.holder_user_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -7214,6 +7269,19 @@ CREATE TABLE IF NOT EXISTS "public"."account_holder" (
 ALTER TABLE "public"."account_holder" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."account_name_scope" (
+    "account_id" "uuid" NOT NULL,
+    "ledger_id" "uuid" NOT NULL,
+    "name" "text" NOT NULL,
+    "type" "text" NOT NULL,
+    "currency" "text" NOT NULL,
+    "holder_user_id" "uuid"
+);
+
+
+ALTER TABLE "public"."account_name_scope" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."app_user" (
     "id" "uuid" NOT NULL,
     "display_name" "text" NOT NULL,
@@ -7611,6 +7679,11 @@ ALTER TABLE ONLY "public"."auth_otp_attempt" ALTER COLUMN "id" SET DEFAULT "next
 
 
 
+ALTER TABLE ONLY "public"."account_name_scope"
+    ADD CONSTRAINT "account_active_name_unique" UNIQUE NULLS NOT DISTINCT ("ledger_id", "name", "type", "currency", "holder_user_id") DEFERRABLE INITIALLY DEFERRED;
+
+
+
 ALTER TABLE ONLY "public"."account_holder"
     ADD CONSTRAINT "account_holder_pkey" PRIMARY KEY ("id");
 
@@ -7623,6 +7696,11 @@ ALTER TABLE ONLY "public"."account_holder"
 
 ALTER TABLE ONLY "public"."account"
     ADD CONSTRAINT "account_id_ledger_id_unique" UNIQUE ("id", "ledger_id");
+
+
+
+ALTER TABLE ONLY "public"."account_name_scope"
+    ADD CONSTRAINT "account_name_scope_pkey" PRIMARY KEY ("account_id");
 
 
 
@@ -7765,15 +7843,15 @@ CREATE INDEX "account_active_idx" ON "public"."account" USING "btree" ("ledger_i
 
 
 
-CREATE UNIQUE INDEX "account_active_name_unique" ON "public"."account" USING "btree" ("ledger_id", "lower"("name")) WHERE ("is_archived" = false);
-
-
-
 CREATE INDEX "account_holder_account_ledger_idx" ON "public"."account_holder" USING "btree" ("account_id", "ledger_id");
 
 
 
 CREATE INDEX "account_holder_ledger_id_idx" ON "public"."account_holder" USING "btree" ("ledger_id");
+
+
+
+CREATE UNIQUE INDEX "account_holder_single_user_unique" ON "public"."account_holder" USING "btree" ("account_id");
 
 
 
@@ -7961,6 +8039,10 @@ CREATE INDEX "transaction_record_merchant_id_idx" ON "public"."transaction_recor
 
 
 
+CREATE OR REPLACE TRIGGER "account_holder_name_scope_refresh" AFTER INSERT OR DELETE OR UPDATE ON "public"."account_holder" FOR EACH ROW EXECUTE FUNCTION "public"."refresh_account_name_scope"();
+
+
+
 CREATE OR REPLACE TRIGGER "account_holder_require_management_permission" BEFORE INSERT OR DELETE OR UPDATE ON "public"."account_holder" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_ledger_management_permission"('ledger_id');
 
 
@@ -7970,6 +8052,10 @@ CREATE OR REPLACE TRIGGER "account_holder_set_updated_at" BEFORE UPDATE ON "publ
 
 
 CREATE OR REPLACE TRIGGER "account_holder_validate_active_member" BEFORE INSERT OR UPDATE ON "public"."account_holder" FOR EACH ROW EXECUTE FUNCTION "public"."validate_account_holder_active_member"();
+
+
+
+CREATE OR REPLACE TRIGGER "account_name_scope_refresh" AFTER INSERT OR UPDATE OF "ledger_id", "name", "type", "currency", "is_archived" ON "public"."account" FOR EACH ROW EXECUTE FUNCTION "public"."refresh_account_name_scope"();
 
 
 
@@ -8209,6 +8295,11 @@ ALTER TABLE ONLY "public"."account_holder"
 
 ALTER TABLE ONLY "public"."account"
     ADD CONSTRAINT "account_ledger_id_fkey" FOREIGN KEY ("ledger_id") REFERENCES "public"."ledger"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."account_name_scope"
+    ADD CONSTRAINT "account_name_scope_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "public"."account"("id") ON DELETE CASCADE;
 
 
 
@@ -8564,6 +8655,9 @@ CREATE POLICY "account_holder_update_admin" ON "public"."account_holder" FOR UPD
 
 CREATE POLICY "account_insert_admin" ON "public"."account" FOR INSERT TO "authenticated" WITH CHECK ("public"."current_user_can_manage_ledger"("ledger_id"));
 
+
+
+ALTER TABLE "public"."account_name_scope" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "account_select_active_member" ON "public"."account" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
@@ -9050,6 +9144,10 @@ REVOKE ALL ON FUNCTION "public"."recalculate_transaction_item_settlement_status"
 
 
 
+REVOKE ALL ON FUNCTION "public"."refresh_account_name_scope"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) TO "authenticated";
 
@@ -9072,6 +9170,10 @@ GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_i
 
 REVOKE ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") FROM PUBLIC;
 
 
 
