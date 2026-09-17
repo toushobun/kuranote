@@ -36,7 +36,9 @@ export interface MerchantImportService {
   loadContext(input: { ledgerId: string }): Promise<MerchantImportContext>;
 }
 
-function toImportEntry(merchant: Awaited<ReturnType<MerchantService["getMerchant"]>>): MerchantImportEntry {
+function toImportEntry(
+  merchant: Awaited<ReturnType<MerchantService["getMerchant"]>>,
+): MerchantImportEntry {
   return {
     id: merchant.id,
     matchNames: [
@@ -59,15 +61,7 @@ export function createMerchantImportService(
   }): Promise<MerchantImportContext> {
     const { merchants, tags } = await service.list({ keyword: "", ledgerId });
     return {
-      merchants: merchants.map((merchant) => ({
-        id: merchant.id,
-        matchNames: [
-          merchant.name,
-          merchant.display_name,
-          ...merchant.aliases.map((alias) => alias.alias),
-        ].filter((name, index, names) => names.indexOf(name) === index),
-        tagIds: merchant.tags.map((tag) => tag.id),
-      })),
+      merchants: merchants.map(toImportEntry),
       tags: tags.map((tag) => ({ id: tag.id, name: tag.name })),
     };
   }
