@@ -70,8 +70,5 @@ export async function buildDataImportResultWorkbook(
     }
   }
 
-  const output = await workbook.xlsx.writeBuffer();
-  const bytes = new Uint8Array(output.byteLength);
-  bytes.set(output);
-  return bytes.buffer;
+  return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;
 }
