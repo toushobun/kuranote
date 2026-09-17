@@ -22,14 +22,14 @@ vi.mock("internal/account", () => ({
 vi.mock("internal/category", () => ({
   createCategoryImportService: mocks.createCategoryImportService,
 }));
+vi.mock("internal/dataImport", () => ({
+  createDataImportExecutionService: mocks.createDataImportExecutionService,
+}));
 vi.mock("internal/merchant", () => ({
   createMerchantImportService: mocks.createMerchantImportService,
 }));
 vi.mock("internal/transaction", () => ({
   createTransactionImportService: mocks.createTransactionImportService,
-}));
-vi.mock("internal/dataImport/service/dataImportExecutionService", () => ({
-  createDataImportExecutionService: mocks.createDataImportExecutionService,
 }));
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
@@ -56,13 +56,18 @@ const currentLedger = {
   role: "owner" as const,
 };
 
-function createFormData(file: File | null, offset?: string) {
+function createFormData(
+  file: File | null,
+  offset?: string,
+  timeZoneOffsetMinutes = "-540",
+) {
   const formData = new FormData();
   if (file) {
     formData.set("file", file);
   }
   if (offset !== undefined) {
     formData.set("offset", offset);
+    formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);
   }
   return formData;
 }
@@ -158,9 +163,6 @@ describe("checkDataImportFormat", () => {
   });
 
   it("Service 抛出未知异常时返回安全兜底提示", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
     const file = new File(["binary"], "data.xlsx");
     mocks.checkFile.mockRejectedValue(new Error("unexpected"));
 
@@ -170,11 +172,10 @@ describe("checkDataImportFormat", () => {
       error: "文件检查失败，请稍后重试。",
       errorKey: expect.any(String),
     });
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(mocks.loggerError).toHaveBeenCalledWith(
       "[dataImport] check format action failed unexpectedly",
       { errorName: "Error" },
     );
-    consoleError.mockRestore();
   });
 });
 
@@ -201,6 +202,7 @@ describe("executeDataImportBatch", () => {
       fileName: "data.xlsx",
       ledgerId,
       offset: 0,
+      timeZoneOffsetMinutes: -540,
       userId,
     });
     expect(state.batch).toMatchObject({ done: true, successCount: 1 });
