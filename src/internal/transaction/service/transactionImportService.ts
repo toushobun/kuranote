@@ -1,4 +1,9 @@
 import type { CurrentLedger } from "internal/ledger";
+import { ValidationError } from "internal/shared/errors/appError";
+import {
+  getTransactionValidationErrorMessage,
+  transactionErrorCodes,
+} from "internal/transaction/errors";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 
 export type ImportTransactionItemInput = {
@@ -12,6 +17,7 @@ export type ImportNormalTransactionInput = {
   ledgerId: string;
   merchantId: string;
   note: string | null;
+  timeZoneOffsetMinutes: number;
   transactionAt: string;
   type: "expense" | "income";
 };
@@ -20,6 +26,7 @@ export type ImportTransferTransactionInput = {
   accountId: string;
   ledgerId: string;
   note: string | null;
+  timeZoneOffsetMinutes: number;
   transactionAt: string;
   transferAmount: number;
   transferTargetAccountId: string;
@@ -36,12 +43,61 @@ export interface TransactionImportService {
   ): Promise<boolean>;
 }
 
-function normalizeTransactionAt(value: string) {
-  return value.replace("T", " ").slice(0, 19);
+function dateInvalid(): ValidationError {
+  return new ValidationError(
+    transactionErrorCodes.dateInvalid,
+    getTransactionValidationErrorMessage(transactionErrorCodes.dateInvalid) ??
+      "记账时间不正确。",
+  );
+}
+
+/** 与普通记账表单相同：把浏览器本地时间 + getTimezoneOffset() 转成 UTC ISO。 */
+function toTransactionTimestamp(value: string, offsetMinutes: number) {
+  if (!Number.isInteger(offsetMinutes) || offsetMinutes < -840 || offsetMinutes > 840) {
+    throw dateInvalid();
+  }
+
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+  );
+  if (!match) throw dateInvalid();
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] =
+    match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const utcLikeDate = new Date(
+    Date.UTC(year, month - 1, day, hour, minute, second),
+  );
+
+  if (
+    utcLikeDate.getUTCFullYear() !== year ||
+    utcLikeDate.getUTCMonth() !== month - 1 ||
+    utcLikeDate.getUTCDate() !== day ||
+    utcLikeDate.getUTCHours() !== hour ||
+    utcLikeDate.getUTCMinutes() !== minute ||
+    utcLikeDate.getUTCSeconds() !== second
+  ) {
+    throw dateInvalid();
+  }
+
+  return new Date(
+    utcLikeDate.getTime() + offsetMinutes * 60 * 1000,
+  ).toISOString();
 }
 
 function sameAmount(left: string, right: number) {
   return Math.abs(Number(left) - right) < 0.000001;
+}
+
+function sameTimestamp(left: string, rightIso: string) {
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(rightIso);
+  return Number.isFinite(leftTime) && leftTime === rightTime;
 }
 
 /**
@@ -56,26 +112,31 @@ export function createTransactionImportService({
   service: TransactionService;
 }): TransactionImportService {
   async function loadDayItems(
-    transactionAt: string,
+    localTransactionAt: string,
+    transactionAtIso: string,
     filters: Parameters<TransactionService["getGroupItems"]>[4],
   ) {
-    const day = transactionAt.slice(0, 10);
+    const days = [
+      ...new Set([localTransactionAt.slice(0, 10), transactionAtIso.slice(0, 10)]),
+    ];
     const items: Awaited<
       ReturnType<TransactionService["getGroupItems"]>
     >["groups"][number]["items"] = [];
-    let offset = 0;
 
-    while (true) {
-      const page = await service.getGroupItems(
-        currentLedger,
-        "day",
-        day,
-        offset,
-        filters,
-      );
-      for (const group of page.groups) items.push(...group.items);
-      if (page.nextOffset === null) break;
-      offset = page.nextOffset;
+    for (const day of days) {
+      let offset = 0;
+      while (true) {
+        const page = await service.getGroupItems(
+          currentLedger,
+          "day",
+          day,
+          offset,
+          filters,
+        );
+        for (const group of page.groups) items.push(...group.items);
+        if (page.nextOffset === null) break;
+        offset = page.nextOffset;
+      }
     }
 
     return items;
@@ -83,34 +144,64 @@ export function createTransactionImportService({
 
   return {
     async createNormal(input) {
-      await service.createNormal(input);
+      const { timeZoneOffsetMinutes, ...transaction } = input;
+      await service.createNormal({
+        ...transaction,
+        transactionAt: toTransactionTimestamp(
+          input.transactionAt,
+          timeZoneOffsetMinutes,
+        ),
+      });
     },
 
     async createTransfer(input) {
-      await service.createTransfer(input);
+      const { timeZoneOffsetMinutes, ...transaction } = input;
+      await service.createTransfer({
+        ...transaction,
+        transactionAt: toTransactionTimestamp(
+          input.transactionAt,
+          timeZoneOffsetMinutes,
+        ),
+      });
     },
 
     async hasPossibleNormalDuplicate(input) {
-      const items = await loadDayItems(input.transactionAt, {
-        accountId: input.accountId,
-        merchantId: input.merchantId,
-        recordType: input.type,
-      });
+      const transactionAtIso = toTransactionTimestamp(
+        input.transactionAt,
+        input.timeZoneOffsetMinutes,
+      );
+      const items = await loadDayItems(
+        input.transactionAt,
+        transactionAtIso,
+        {
+          accountId: input.accountId,
+          merchantId: input.merchantId,
+          recordType: input.type,
+        },
+      );
       return items.some(
         (item) =>
-          normalizeTransactionAt(item.transaction_at) === input.transactionAt &&
+          sameTimestamp(item.transaction_at, transactionAtIso) &&
           sameAmount(item.amount, input.totalAmount),
       );
     },
 
     async hasPossibleTransferDuplicate(input) {
-      const items = await loadDayItems(input.transactionAt, {
-        accountId: input.accountId,
-        recordType: "transfer",
-      });
+      const transactionAtIso = toTransactionTimestamp(
+        input.transactionAt,
+        input.timeZoneOffsetMinutes,
+      );
+      const items = await loadDayItems(
+        input.transactionAt,
+        transactionAtIso,
+        {
+          accountId: input.accountId,
+          recordType: "transfer",
+        },
+      );
       const candidates = items.filter(
         (item) =>
-          normalizeTransactionAt(item.transaction_at) === input.transactionAt &&
+          sameTimestamp(item.transaction_at, transactionAtIso) &&
           sameAmount(item.amount, input.transferAmount),
       );
 
