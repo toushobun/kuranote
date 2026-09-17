@@ -1,0 +1,1 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";function r({name:e=``,note:t=``,websiteUrl:n=``}={}){let[r,a]=(0,i.useState)(e),[o,s]=(0,i.useState)(t),[c,l]=(0,i.useState)(n);return{name:r,note:o,setName:a,setNote:s,setWebsiteUrl:l,websiteUrl:c}}var i,a=t((()=>{i=e(n())}));export{r as n,a as t};

@@ -1,0 +1,55 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,t as n}from"./DataImportExecutionStatus-DiNF9Gwt.js";var r,i,a,o,s;e((()=>{t(),r={title:`Organisms/Settings/DataImportExecutionStatus`,component:n,args:{onDownload:()=>void 0}},i={name:`导入中`,args:{result:{details:[],duplicateCount:0,failureCount:0,processedCount:36,rowResults:[],successCount:36,totalCount:80},status:`importing`}},a={name:`全部成功`,args:{result:{details:[],duplicateCount:0,failureCount:0,processedCount:80,rowResults:[],successCount:80,totalCount:80},status:`completed`}},o={name:`成功、失败与疑似重复混合`,args:{result:{details:[{content:`2026-09-17 业务超市 1200`,reason:`账户持有人无法匹配。`,rowNumbers:[12],sheet:`incomeExpense`,status:`failed`},{content:`2026-09-17 钱包 → 银行卡 5000`,reason:`疑似与现有记录重复，但已继续导入。`,rowNumbers:[18],sheet:`transfer`,status:`duplicate`}],duplicateCount:1,failureCount:1,processedCount:80,rowResults:[],successCount:79,totalCount:80},status:`completed`}},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
+  name: "导入中",
+  args: {
+    result: {
+      details: [],
+      duplicateCount: 0,
+      failureCount: 0,
+      processedCount: 36,
+      rowResults: [],
+      successCount: 36,
+      totalCount: 80
+    },
+    status: "importing"
+  }
+}`,...i.parameters?.docs?.source}}},a.parameters={...a.parameters,docs:{...a.parameters?.docs,source:{originalSource:`{
+  name: "全部成功",
+  args: {
+    result: {
+      details: [],
+      duplicateCount: 0,
+      failureCount: 0,
+      processedCount: 80,
+      rowResults: [],
+      successCount: 80,
+      totalCount: 80
+    },
+    status: "completed"
+  }
+}`,...a.parameters?.docs?.source}}},o.parameters={...o.parameters,docs:{...o.parameters?.docs,source:{originalSource:`{
+  name: "成功、失败与疑似重复混合",
+  args: {
+    result: {
+      details: [{
+        content: "2026-09-17 业务超市 1200",
+        reason: "账户持有人无法匹配。",
+        rowNumbers: [12],
+        sheet: "incomeExpense",
+        status: "failed"
+      }, {
+        content: "2026-09-17 钱包 → 银行卡 5000",
+        reason: "疑似与现有记录重复，但已继续导入。",
+        rowNumbers: [18],
+        sheet: "transfer",
+        status: "duplicate"
+      }],
+      duplicateCount: 1,
+      failureCount: 1,
+      processedCount: 80,
+      rowResults: [],
+      successCount: 79,
+      totalCount: 80
+    },
+    status: "completed"
+  }
+}`,...o.parameters?.docs?.source}}},s=[`Importing`,`AllSucceeded`,`MixedResult`]}))();export{a as AllSucceeded,i as Importing,o as MixedResult,s as __namedExportsOrder,r as default};
