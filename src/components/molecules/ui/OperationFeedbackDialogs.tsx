@@ -106,8 +106,11 @@ export function SuccessFeedbackDialog(props: FeedbackDialogProps) {
   return <FeedbackDialog {...props} tone="success" />;
 }
 
-export function FailureFeedbackDialog(props: FeedbackDialogProps) {
-  return <FeedbackDialog {...props} tone="error" />;
+export function FailureFeedbackDialog({
+  aboveModal = true,
+  ...props
+}: FeedbackDialogProps) {
+  return <FeedbackDialog {...props} aboveModal={aboveModal} tone="error" />;
 }
 
 type ActionFailureFeedbackProps = Omit<

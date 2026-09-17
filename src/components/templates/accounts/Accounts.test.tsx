@@ -135,6 +135,16 @@ describe("AccountsTemplate", () => {
     await waitFor(() => {
       expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
     });
+    const alert = screen.getByRole("alert");
+    const dialog = screen.getByRole("dialog");
+    expect(alert).toBeVisible();
+    expect(dialog).toBeVisible();
+    expect(container).not.toContainElement(alert);
+    expect(
+      Number(getComputedStyle(alert.closest(".MuiSnackbar-root")!).zIndex),
+    ).toBeGreaterThan(
+      Number(getComputedStyle(dialog.closest(".MuiModal-root")!).zIndex),
+    );
     expect(createAccountAction).toHaveBeenCalled();
     expect(routerReplaceMock).not.toHaveBeenCalled();
     expect(`${window.location.pathname}${window.location.search}`).toBe(

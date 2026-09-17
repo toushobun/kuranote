@@ -9,8 +9,14 @@ import {
 } from "internal/account/adapter/next/actions";
 import {
   AuthorizationError,
+  ConflictError,
   RepositoryError,
 } from "internal/shared/errors/appError";
+
+import {
+  accountErrorCodes,
+  getAccountErrorMessage,
+} from "internal/account/errors";
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
@@ -80,6 +86,17 @@ beforeEach(() => {
 });
 
 describe("Account Server Actions", () => {
+  it("同维度重名返回权威文案与新错误标识且不跳转", async () => {
+    const message = getAccountErrorMessage(accountErrorCodes.nameDuplicate)!;
+    mocks.create.mockRejectedValue(
+      new ConflictError(accountErrorCodes.nameDuplicate, message),
+    );
+    const result = await createAccount({}, createFormData());
+    expect(result).toEqual({ error: message, errorKey: expect.any(String) });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("创建账户时忽略客户端伪造的 ledgerId 并复用模块缓存失效", async () => {
     const formData = createFormData();
     formData.set("ledgerId", "00000000-0000-4000-8000-000000000099");

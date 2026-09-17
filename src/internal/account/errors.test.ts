@@ -18,6 +18,18 @@ describe("getAccountErrorMessage", () => {
     );
   });
 
+  it("同名错误说明全部判重维度且普通失败不误报重名", () => {
+    expect(getAccountErrorMessage(accountErrorCodes.nameDuplicate)).toBe(
+      "同一账本中，相同账户类型、货币和持有人下已存在同名账户（不区分大小写），请修改账户名称。",
+    );
+    for (const code of [
+      accountErrorCodes.createFailed,
+      accountErrorCodes.updateFailed,
+    ]) {
+      expect(getAccountErrorMessage(code)).not.toContain("重复");
+    }
+  });
+
   it("未知错误码不返回文案", () => {
     expect(getAccountErrorMessage()).toBeNull();
     expect(getAccountErrorMessage("unknown")).toBeNull();
