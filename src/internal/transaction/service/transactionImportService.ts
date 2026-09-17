@@ -18,10 +18,8 @@ export type ImportNormalTransactionInput = {
 
 export type ImportTransferTransactionInput = {
   accountId: string;
-  fromAccountName: string;
   ledgerId: string;
   note: string | null;
-  toAccountName: string;
   transactionAt: string;
   transferAmount: number;
   transferTargetAccountId: string;
@@ -89,14 +87,7 @@ export function createTransactionImportService({
     },
 
     async createTransfer(input) {
-      await service.createTransfer({
-        accountId: input.accountId,
-        ledgerId: input.ledgerId,
-        note: input.note,
-        transactionAt: input.transactionAt,
-        transferAmount: input.transferAmount,
-        transferTargetAccountId: input.transferTargetAccountId,
-      });
+      await service.createTransfer(input);
     },
 
     async hasPossibleNormalDuplicate(input) {
@@ -117,13 +108,24 @@ export function createTransactionImportService({
         accountId: input.accountId,
         recordType: "transfer",
       });
-      const expectedAccountName = `${input.fromAccountName} → ${input.toAccountName}`;
-      return items.some(
+      const candidates = items.filter(
         (item) =>
           normalizeTransactionAt(item.transaction_at) === input.transactionAt &&
-          item.account_name === expectedAccountName &&
           sameAmount(item.amount, input.transferAmount),
       );
+
+      for (const candidate of candidates) {
+        const view = await service.getEditView(currentLedger, candidate.id);
+        if (
+          view?.initialValues.type === "transfer" &&
+          view.initialValues.accountId === input.accountId &&
+          view.initialValues.transferTargetAccountId ===
+            input.transferTargetAccountId
+        ) {
+          return true;
+        }
+      }
+      return false;
     },
   };
 }
