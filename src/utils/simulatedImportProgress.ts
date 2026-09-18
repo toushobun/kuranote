@@ -3,6 +3,7 @@ export const simulatedImportProgressCap = 0.95;
 export const simulatedImportProgressGrowthRate = 3.5;
 export const simulatedImportProgressTickIntervalMs = 200;
 export const initialEstimatedBatchDurationMs = 3000;
+export const initialBatchSizeGuess = 25;
 export const estimatedBatchDurationEmaWeight = 0.5;
 
 export function computeBatchProgressRatio(

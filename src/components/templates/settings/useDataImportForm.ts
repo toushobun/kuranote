@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import {
-  importBatchSize,
-  type ImportExecutionResult,
-} from "internal/dataImport";
+import type { ImportExecutionResult } from "internal/dataImport";
 import type {
   DataImportActionState,
   DataImportBatchStateAction,
@@ -18,6 +15,7 @@ import {
 } from "utils/dataImportResultWorkbook";
 import {
   computeDisplayProcessed,
+  initialBatchSizeGuess,
   initialEstimatedBatchDurationMs,
   simulatedImportProgressTickIntervalMs,
   toProgressPercentage,
@@ -61,6 +59,7 @@ export function useDataImportForm(
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
   const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
+  const observedBatchSizeRef = useRef<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -123,6 +122,7 @@ export function useDataImportForm(
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
     estimatedBatchDurationRef.current = initialEstimatedBatchDurationMs;
+    observedBatchSizeRef.current = null;
     setExecutionError(null);
     setDownloadError(null);
     setExecutionResult(aggregate);
@@ -134,7 +134,7 @@ export function useDataImportForm(
       while (mountedRef.current && runTokenRef.current === runToken) {
         const confirmedProcessed = aggregate.processedCount;
         const pendingBatchSize = Math.min(
-          importBatchSize,
+          observedBatchSizeRef.current ?? initialBatchSizeGuess,
           totalCount - confirmedProcessed,
         );
         const batchStartedAt = performance.now();
@@ -199,6 +199,9 @@ export function useDataImportForm(
           toProgressPercentage(aggregate.processedCount, totalCount),
         );
         offset = state.batch.nextOffset;
+        if (!state.batch.done) {
+          observedBatchSizeRef.current = state.batch.processedCount;
+        }
 
         if (state.batch.done) {
           setExecutionStatus("completed");
