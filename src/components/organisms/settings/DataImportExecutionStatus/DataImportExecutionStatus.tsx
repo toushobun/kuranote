@@ -14,8 +14,11 @@ import {
   type ImportExecutionResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
+  displayProcessedCount?: number;
+  displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
   result: ImportExecutionResult;
@@ -23,16 +26,24 @@ type DataImportExecutionStatusProps = {
 };
 
 export function DataImportExecutionStatus({
+  displayProcessedCount,
+  displayProgress,
   isDownloading = false,
   onDownload,
   result,
   status,
 }: DataImportExecutionStatusProps) {
   const messages = dataImportExecutionMessages;
+  const realProgress = toProgressPercentage(
+    result.processedCount,
+    result.totalCount,
+  );
   const progress =
-    result.totalCount === 0
-      ? 0
-      : Math.min(100, (result.processedCount / result.totalCount) * 100);
+    status === "completed" ? 100 : (displayProgress ?? realProgress);
+  // 可见文字跟随预测行数（向下取整避免小数）；aria-valuetext 始终读真实值。
+  const visibleProcessedCount = Math.floor(
+    displayProcessedCount ?? result.processedCount,
+  );
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
   );
@@ -53,17 +64,19 @@ export function DataImportExecutionStatus({
               : messages.completedTitle}
           </Typography>
           <Typography sx={{ color: "text.secondary", mt: 0.5 }} variant="body2">
-            {messages.progressLabel(result.processedCount, result.totalCount)}
+            {messages.progressLabel(visibleProcessedCount, result.totalCount)}
           </Typography>
         </Box>
 
-        {status === "importing" ? (
-          <LinearProgress
-            aria-label={messages.progressTitle}
-            value={progress}
-            variant="determinate"
-          />
-        ) : null}
+        <LinearProgress
+          aria-label={messages.progressTitle}
+          aria-valuetext={messages.progressLabel(
+            result.processedCount,
+            result.totalCount,
+          )}
+          value={progress}
+          variant="determinate"
+        />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <Alert severity="success">

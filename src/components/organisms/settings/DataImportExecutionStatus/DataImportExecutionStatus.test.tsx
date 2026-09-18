@@ -39,7 +39,81 @@ describe("DataImportExecutionStatus", () => {
       "aria-valuenow",
       "30",
     );
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
+  });
+
+  it("只传 displayProgress 不传 displayProcessedCount 时，进度条用预测值，文案退化为真实进度", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProgress={62}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+
+    expect(screen.getByText("已处理 3 / 共 10 条")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
+  });
+
+  it("传入 displayProcessedCount 时可见文字使用预测行数（向下取整），aria-valuetext 仍读真实 processedCount", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProcessedCount={7.6}
+        displayProgress={76}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+
+    expect(screen.getByText("已处理 7 / 共 10 条")).toBeInTheDocument();
+    expect(screen.queryByText("已处理 3 / 共 10 条")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
+  });
+
+  it("完成态可见文字展示真实计数，aria-valuetext 与之一致", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProcessedCount={10}
+        displayProgress={100}
+        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByText("已处理 10 / 共 10 条")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 10 / 共 10 条",
+    );
+  });
+
+  it("完成态进度条固定展示 100，不受 displayProgress 影响", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProgress={62}
+        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
   });
 
   it("全部成功时展示成功汇总与下载按钮", () => {
