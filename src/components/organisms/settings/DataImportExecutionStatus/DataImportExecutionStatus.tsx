@@ -14,6 +14,7 @@ import {
   type ImportExecutionResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
   displayProgress?: number;
@@ -31,10 +32,10 @@ export function DataImportExecutionStatus({
   status,
 }: DataImportExecutionStatusProps) {
   const messages = dataImportExecutionMessages;
-  const realProgress =
-    result.totalCount === 0
-      ? 0
-      : Math.min(100, (result.processedCount / result.totalCount) * 100);
+  const realProgress = toProgressPercentage(
+    result.processedCount,
+    result.totalCount,
+  );
   const progress =
     status === "completed" ? 100 : (displayProgress ?? realProgress);
   const failedDetails = result.details.filter(
