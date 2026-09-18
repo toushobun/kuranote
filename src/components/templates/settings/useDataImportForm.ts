@@ -56,6 +56,9 @@ export function useDataImportForm(
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [displayProgress, setDisplayProgress] = useState<number | null>(null);
+  const [displayProcessedCount, setDisplayProcessedCount] = useState<
+    number | null
+  >(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
   const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
@@ -78,6 +81,7 @@ export function useDataImportForm(
     setExecutionStatus(null);
     setDownloadError(null);
     setDisplayProgress(null);
+    setDisplayProcessedCount(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -127,7 +131,12 @@ export function useDataImportForm(
     setDownloadError(null);
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
-    setDisplayProgress(toProgressPercentage(0, totalCount));
+    // 百分比与预测行数出自同一次计算，统一经此函数写入，避免只更新其中一处。
+    function applyDisplayProcessed(processed: number) {
+      setDisplayProcessedCount(processed);
+      setDisplayProgress(toProgressPercentage(processed, totalCount));
+    }
+    applyDisplayProcessed(0);
     setIsImporting(true);
 
     try {
@@ -147,16 +156,13 @@ export function useDataImportForm(
               return;
             }
             const elapsedMs = performance.now() - batchStartedAt;
-            setDisplayProgress(
-              toProgressPercentage(
-                computeDisplayProcessed({
-                  confirmedProcessed,
-                  elapsedMs,
-                  estimatedDurationMs: estimatedBatchDurationRef.current,
-                  pendingBatchSize,
-                }),
-                totalCount,
-              ),
+            applyDisplayProcessed(
+              computeDisplayProcessed({
+                confirmedProcessed,
+                elapsedMs,
+                estimatedDurationMs: estimatedBatchDurationRef.current,
+                pendingBatchSize,
+              }),
             );
           }, simulatedImportProgressTickIntervalMs);
 
@@ -195,9 +201,7 @@ export function useDataImportForm(
           totalCount: state.batch.totalCount,
         };
         setExecutionResult(aggregate);
-        setDisplayProgress(
-          toProgressPercentage(aggregate.processedCount, totalCount),
-        );
+        applyDisplayProcessed(aggregate.processedCount);
         offset = state.batch.nextOffset;
         if (!state.batch.done) {
           observedBatchSizeRef.current = state.batch.processedCount;
@@ -246,6 +250,7 @@ export function useDataImportForm(
   }
 
   return {
+    displayProcessedCount,
     displayProgress,
     downloadError,
     executionError,

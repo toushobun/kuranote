@@ -115,16 +115,26 @@ describe("useDataImportForm 预测式进度动画", () => {
     });
 
     expect(result.current.displayProgress).toBe(0);
+    expect(result.current.displayProcessedCount).toBe(0);
 
     await advance(200);
     const firstTick = result.current.displayProgress ?? 0;
+    const firstTickCount = result.current.displayProcessedCount ?? 0;
     expect(firstTick).toBeGreaterThan(0);
     expect(firstTick).toBeLessThan(100);
+    expect(firstTickCount).toBeGreaterThan(0);
+    expect(firstTickCount).toBeLessThan(totalCount);
+    // 百分比与行数出自同一次计算。
+    expect(firstTick).toBeCloseTo((firstTickCount / totalCount) * 100, 5);
 
     await advance(200);
     const secondTick = result.current.displayProgress ?? 0;
+    const secondTickCount = result.current.displayProcessedCount ?? 0;
     expect(secondTick).toBeGreaterThan(firstTick);
     expect(secondTick).toBeLessThan(100);
+    expect(secondTickCount).toBeGreaterThan(firstTickCount);
+    expect(secondTickCount).toBeLessThan(totalCount);
+    expect(secondTick).toBeCloseTo((secondTickCount / totalCount) * 100, 5);
 
     await act(async () => {
       batchDeferred.resolve({ batch: makeDoneBatch(totalCount) });
@@ -133,6 +143,10 @@ describe("useDataImportForm 预测式进度动画", () => {
 
     expect(result.current.executionStatus).toBe("completed");
     expect(result.current.displayProgress).toBe(100);
+    expect(result.current.displayProcessedCount).toBe(totalCount);
+    expect(result.current.displayProcessedCount).toBe(
+      result.current.executionResult?.processedCount,
+    );
   });
 
   it("批次直接 throw 时仍清理该批次计时器，不残留泄漏", async () => {
@@ -153,6 +167,7 @@ describe("useDataImportForm 预测式进度动画", () => {
 
     await advance(200);
     expect(result.current.displayProgress).toBeGreaterThan(0);
+    expect(result.current.displayProcessedCount).toBeGreaterThan(0);
 
     const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
     await act(async () => {
@@ -164,8 +179,10 @@ describe("useDataImportForm 预测式进度动画", () => {
     expect(clearIntervalSpy).toHaveBeenCalled();
 
     const progressAfterThrow = result.current.displayProgress;
+    const countAfterThrow = result.current.displayProcessedCount;
     await advance(1000);
     expect(result.current.displayProgress).toBe(progressAfterThrow);
+    expect(result.current.displayProcessedCount).toBe(countAfterThrow);
   });
 
   it("组件卸载后批次结算仍会清理计时器，且不再触发状态更新", async () => {
@@ -241,6 +258,10 @@ describe("useDataImportForm 预测式进度动画", () => {
       expectedRatioWithFreshEstimate,
       5,
     );
+    expect(result.current.displayProcessedCount).toBeCloseTo(
+      (expectedRatioWithFreshEstimate / 100) * totalCount,
+      5,
+    );
   });
 
   it("批次进行中被重置（runToken 变化）时，过期批次的计时器不再更新 displayProgress", async () => {
@@ -259,6 +280,7 @@ describe("useDataImportForm 预测式进度动画", () => {
     });
     await advance(200);
     expect(result.current.displayProgress).toBeGreaterThan(0);
+    expect(result.current.displayProcessedCount).toBeGreaterThan(0);
 
     // 页面上文件 input 在导入中会被禁用，这里直接调用 handleFileChange
     // 复现「守卫被绕过」时的竞态：重置会让 runTokenRef 变化，但上一轮批次
@@ -270,15 +292,18 @@ describe("useDataImportForm 预测式进度动画", () => {
       } as unknown as ChangeEvent<HTMLInputElement>);
     });
     expect(result.current.displayProgress).toBeNull();
+    expect(result.current.displayProcessedCount).toBeNull();
 
     await advance(200);
     expect(result.current.displayProgress).toBeNull();
+    expect(result.current.displayProcessedCount).toBeNull();
 
     await act(async () => {
       batchDeferred.resolve({ batch: makeDoneBatch(totalCount) });
       await flushMicrotasks();
     });
     expect(result.current.displayProgress).toBeNull();
+    expect(result.current.displayProcessedCount).toBeNull();
     expect(result.current.executionStatus).toBeNull();
   });
 });

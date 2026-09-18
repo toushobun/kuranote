@@ -46,7 +46,7 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
   });
 
-  it("传入 displayProgress 时驱动进度条视觉值，但文案仍展示真实进度", () => {
+  it("只传 displayProgress 不传 displayProcessedCount 时，进度条用预测值，文案退化为真实进度", () => {
     render(
       <DataImportExecutionStatus
         displayProgress={62}
@@ -63,6 +63,41 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuetext",
       "已处理 3 / 共 10 条",
+    );
+  });
+
+  it("传入 displayProcessedCount 时可见文字使用预测行数（向下取整），aria-valuetext 仍读真实 processedCount", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProcessedCount={7.6}
+        displayProgress={76}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+
+    expect(screen.getByText("已处理 7 / 共 10 条")).toBeInTheDocument();
+    expect(screen.queryByText("已处理 3 / 共 10 条")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
+  });
+
+  it("完成态可见文字展示真实计数，aria-valuetext 与之一致", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProcessedCount={10}
+        displayProgress={100}
+        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByText("已处理 10 / 共 10 条")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 10 / 共 10 条",
     );
   });
 
