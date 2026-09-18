@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import type { ImportExecutionResult } from "internal/dataImport";
+import {
+  importBatchSize,
+  type ImportExecutionResult,
+} from "internal/dataImport";
 import type {
   DataImportActionState,
   DataImportBatchStateAction,
@@ -13,6 +16,13 @@ import {
   buildDataImportResultFileName,
   buildDataImportResultWorkbook,
 } from "utils/dataImportResultWorkbook";
+import {
+  computeDisplayProcessed,
+  initialEstimatedBatchDurationMs,
+  simulatedImportProgressTickIntervalMs,
+  toProgressPercentage,
+  updateEstimatedBatchDuration,
+} from "utils/simulatedImportProgress";
 
 const initialValidationState: DataImportActionState = {};
 
@@ -47,8 +57,10 @@ export function useDataImportForm(
   >(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [displayProgress, setDisplayProgress] = useState<number | null>(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
+  const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -66,6 +78,7 @@ export function useDataImportForm(
     setExecutionResult(null);
     setExecutionStatus(null);
     setDownloadError(null);
+    setDisplayProgress(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -109,19 +122,55 @@ export function useDataImportForm(
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
+    estimatedBatchDurationRef.current = initialEstimatedBatchDurationMs;
     setExecutionError(null);
     setDownloadError(null);
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
+    setDisplayProgress(toProgressPercentage(0, totalCount));
     setIsImporting(true);
 
     try {
       while (mountedRef.current && runTokenRef.current === runToken) {
-        const formData = new FormData();
-        formData.set("file", selectedFile);
-        formData.set("offset", String(offset));
-        formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
-        const state = await executeBatchAction({}, formData);
+        const confirmedProcessed = aggregate.processedCount;
+        const pendingBatchSize = Math.min(
+          importBatchSize,
+          totalCount - confirmedProcessed,
+        );
+        const batchStartedAt = performance.now();
+        let state: Awaited<ReturnType<DataImportBatchStateAction>>;
+
+        let tickTimer: ReturnType<typeof setInterval> | undefined;
+        try {
+          tickTimer = setInterval(() => {
+            if (!mountedRef.current) return;
+            const elapsedMs = performance.now() - batchStartedAt;
+            setDisplayProgress(
+              toProgressPercentage(
+                computeDisplayProcessed({
+                  confirmedProcessed,
+                  elapsedMs,
+                  estimatedDurationMs: estimatedBatchDurationRef.current,
+                  pendingBatchSize,
+                }),
+                totalCount,
+              ),
+            );
+          }, simulatedImportProgressTickIntervalMs);
+
+          const formData = new FormData();
+          formData.set("file", selectedFile);
+          formData.set("offset", String(offset));
+          formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
+          state = await executeBatchAction({}, formData);
+
+          estimatedBatchDurationRef.current = updateEstimatedBatchDuration(
+            estimatedBatchDurationRef.current,
+            performance.now() - batchStartedAt,
+          );
+        } finally {
+          if (tickTimer !== undefined) clearInterval(tickTimer);
+        }
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
         if (state.error || !state.batch) {
@@ -144,6 +193,9 @@ export function useDataImportForm(
           totalCount: state.batch.totalCount,
         };
         setExecutionResult(aggregate);
+        setDisplayProgress(
+          toProgressPercentage(aggregate.processedCount, totalCount),
+        );
         offset = state.batch.nextOffset;
 
         if (state.batch.done) {
@@ -189,6 +241,7 @@ export function useDataImportForm(
   }
 
   return {
+    displayProgress,
     downloadError,
     executionError,
     executionResult,

@@ -30,7 +30,7 @@ import { AppError, ValidationError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
 
-const importBatchSize = 25;
+export const importBatchSize = 25;
 
 type ImportExecutionUnit =
   | { group: ImportTransactionGroup; kind: "incomeExpense" }

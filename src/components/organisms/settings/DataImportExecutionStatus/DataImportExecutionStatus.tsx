@@ -16,6 +16,7 @@ import {
 import { SectionCard } from "molecules/ui/SectionCard";
 
 type DataImportExecutionStatusProps = {
+  displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
   result: ImportExecutionResult;
@@ -23,16 +24,19 @@ type DataImportExecutionStatusProps = {
 };
 
 export function DataImportExecutionStatus({
+  displayProgress,
   isDownloading = false,
   onDownload,
   result,
   status,
 }: DataImportExecutionStatusProps) {
   const messages = dataImportExecutionMessages;
-  const progress =
+  const realProgress =
     result.totalCount === 0
       ? 0
       : Math.min(100, (result.processedCount / result.totalCount) * 100);
+  const progress =
+    status === "completed" ? 100 : displayProgress ?? realProgress;
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
   );
@@ -57,13 +61,15 @@ export function DataImportExecutionStatus({
           </Typography>
         </Box>
 
-        {status === "importing" ? (
-          <LinearProgress
-            aria-label={messages.progressTitle}
-            value={progress}
-            variant="determinate"
-          />
-        ) : null}
+        <LinearProgress
+          aria-label={messages.progressTitle}
+          aria-valuetext={messages.progressLabel(
+            result.processedCount,
+            result.totalCount,
+          )}
+          value={progress}
+          variant="determinate"
+        />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <Alert severity="success">

@@ -48,6 +48,7 @@ export function DataImportTemplate({
   executeBatchAction,
 }: DataImportTemplateProps) {
   const {
+    displayProgress,
     downloadError,
     executionError,
     executionResult,
@@ -158,6 +159,7 @@ export function DataImportTemplate({
 
         {executionResult && executionStatus ? (
           <DataImportExecutionStatus
+            displayProgress={displayProgress ?? undefined}
             isDownloading={isDownloading}
             onDownload={
               executionStatus === "completed" ? handleDownloadResult : undefined

@@ -39,7 +39,46 @@ describe("DataImportExecutionStatus", () => {
       "aria-valuenow",
       "30",
     );
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
+  });
+
+  it("传入 displayProgress 时驱动进度条视觉值，但文案仍展示真实进度", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProgress={62}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+
+    expect(screen.getByText("已处理 3 / 共 10 条")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "已处理 3 / 共 10 条",
+    );
+  });
+
+  it("完成态进度条固定展示 100，不受 displayProgress 影响", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProgress={62}
+        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
   });
 
   it("全部成功时展示成功汇总与下载按钮", () => {

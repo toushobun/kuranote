@@ -30,6 +30,24 @@ export const Importing: Story = {
   },
 };
 
+export const ImportingWithSimulatedProgress: Story = {
+  name: "导入中（预测式动画进度）",
+  args: {
+    displayProgress: 68,
+    result: {
+      details: [],
+      duplicateCount: 0,
+      failureCount: 0,
+      holderMissingCount: 0,
+      processedCount: 36,
+      rowResults: [],
+      successCount: 36,
+      totalCount: 80,
+    },
+    status: "importing",
+  },
+};
+
 export const AllSucceeded: Story = {
   name: "全部成功",
   args: {
