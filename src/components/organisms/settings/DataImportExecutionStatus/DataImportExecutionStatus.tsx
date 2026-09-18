@@ -36,7 +36,7 @@ export function DataImportExecutionStatus({
       ? 0
       : Math.min(100, (result.processedCount / result.totalCount) * 100);
   const progress =
-    status === "completed" ? 100 : displayProgress ?? realProgress;
+    status === "completed" ? 100 : (displayProgress ?? realProgress);
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
   );
