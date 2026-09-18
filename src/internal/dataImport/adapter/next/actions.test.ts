@@ -165,6 +165,7 @@ describe("executeDataImportBatch", () => {
       done: true,
       duplicateCount: 0,
       failureCount: 0,
+      holderMissingCount: 0,
       nextOffset: 1,
       processedCount: 1,
       rowResults: [],

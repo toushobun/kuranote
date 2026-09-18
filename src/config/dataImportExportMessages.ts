@@ -75,8 +75,10 @@ export const dataImportExecutionMessages = {
   successCount: (count: number) => `成功导入 ${count} 条`,
   failureCount: (count: number) => `失败 ${count} 条`,
   duplicateCount: (count: number) => `疑似重复 ${count} 条`,
+  holderMissingCount: (count: number) => `未匹配持有人 ${count} 条`,
   failedDetailTitle: "失败的记录",
   duplicateDetailTitle: "疑似重复的记录",
+  holderMissingDetailTitle: "未匹配持有人的记录",
   detailRows: (rowNumbers: number[]) =>
     rowNumbers.length === 1
       ? `第 ${rowNumbers[0]} 行`
@@ -88,6 +90,7 @@ export const dataImportExecutionMessages = {
   reasonColumnTitle: "原因",
   resultSuccess: "成功",
   resultDuplicate: "成功（疑似重复）",
+  resultHolderMissing: "成功（未匹配持有人）",
   resultFailed: "失败",
   resultFileSuffix: "_导入结果.xlsx",
 } as const;

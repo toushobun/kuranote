@@ -21,6 +21,7 @@ function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
     details: [],
     duplicateCount: 0,
     failureCount: 0,
+    holderMissingCount: 0,
     processedCount: 0,
     rowResults: [],
     successCount: 0,
@@ -135,6 +136,8 @@ export function useDataImportForm(
           details: [...aggregate.details, ...state.batch.details],
           duplicateCount: aggregate.duplicateCount + state.batch.duplicateCount,
           failureCount: aggregate.failureCount + state.batch.failureCount,
+          holderMissingCount:
+            aggregate.holderMissingCount + state.batch.holderMissingCount,
           processedCount: aggregate.processedCount + state.batch.processedCount,
           rowResults: [...aggregate.rowResults, ...state.batch.rowResults],
           successCount: aggregate.successCount + state.batch.successCount,

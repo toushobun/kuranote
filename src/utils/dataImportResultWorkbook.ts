@@ -12,6 +12,9 @@ function resultLabel(status: ImportExecutionRowResult["status"]) {
   if (status === "duplicate") {
     return dataImportExecutionMessages.resultDuplicate;
   }
+  if (status === "holderMissing") {
+    return dataImportExecutionMessages.resultHolderMissing;
+  }
   return dataImportExecutionMessages.resultSuccess;
 }
 

@@ -42,10 +42,11 @@ describe("dataImportResultWorkbook", () => {
         status: "duplicate",
       },
       {
-        reason: "账户不存在。",
+        reason:
+          "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
         rowNumber: 2,
         sheet: "transfer",
-        status: "failed",
+        status: "holderMissing",
       },
     ];
 
@@ -64,8 +65,10 @@ describe("dataImportResultWorkbook", () => {
     );
 
     const transfer = workbook.getWorksheet("转账")!;
-    expect(transfer.getRow(2).getCell(3).value).toBe("失败");
-    expect(transfer.getRow(2).getCell(4).value).toBe("账户不存在。");
+    expect(transfer.getRow(2).getCell(3).value).toBe("成功（未匹配持有人）");
+    expect(transfer.getRow(2).getCell(4).value).toBe(
+      "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+    );
 
     const balanceAdjustment = workbook.getWorksheet("余额变更")!;
     expect(balanceAdjustment.getRow(1).cellCount).toBe(2);
