@@ -143,7 +143,9 @@ export function useDataImportForm(
         let tickTimer: ReturnType<typeof setInterval> | undefined;
         try {
           tickTimer = setInterval(() => {
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || runTokenRef.current !== runToken) {
+              return;
+            }
             const elapsedMs = performance.now() - batchStartedAt;
             setDisplayProgress(
               toProgressPercentage(

@@ -242,4 +242,43 @@ describe("useDataImportForm 预测式进度动画", () => {
       5,
     );
   });
+
+  it("批次进行中被重置（runToken 变化）时，过期批次的计时器不再更新 displayProgress", async () => {
+    const totalCount = 10;
+    const batchDeferred = deferred<DataImportBatchActionState>();
+    const executeBatchAction: DataImportBatchStateAction = vi.fn(
+      async () => batchDeferred.promise,
+    );
+    const { result } = renderHook(() =>
+      useDataImportForm(makeCheckFormatAction(totalCount), executeBatchAction),
+    );
+    await selectFileAndCheckFormat(result, "first.xlsx");
+
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    await advance(200);
+    expect(result.current.displayProgress).toBeGreaterThan(0);
+
+    // 页面上文件 input 在导入中会被禁用，这里直接调用 handleFileChange
+    // 复现「守卫被绕过」时的竞态：重置会让 runTokenRef 变化，但上一轮批次
+    // 的 executeBatchAction 仍未结算，其 tick 计时器不应该再覆盖新一轮的
+    // displayProgress。
+    act(() => {
+      result.current.handleFileChange({
+        target: { files: [new File(["binary"], "second.xlsx")] },
+      } as unknown as ChangeEvent<HTMLInputElement>);
+    });
+    expect(result.current.displayProgress).toBeNull();
+
+    await advance(200);
+    expect(result.current.displayProgress).toBeNull();
+
+    await act(async () => {
+      batchDeferred.resolve({ batch: makeDoneBatch(totalCount) });
+      await flushMicrotasks();
+    });
+    expect(result.current.displayProgress).toBeNull();
+    expect(result.current.executionStatus).toBeNull();
+  });
 });
