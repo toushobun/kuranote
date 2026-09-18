@@ -7,6 +7,7 @@ const baseResult = {
   details: [],
   duplicateCount: 0,
   failureCount: 0,
+  holderMissingCount: 0,
   processedCount: 3,
   rowResults: [],
   successCount: 3,
@@ -94,6 +95,37 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("疑似重复的记录")).toBeInTheDocument();
     expect(screen.getByText(/第 2 行/)).toBeInTheDocument();
     expect(screen.getByText(/第 4 行/)).toBeInTheDocument();
+  });
+
+  it("完成后展示未匹配持有人的记录且计入警告统计", () => {
+    render(
+      <DataImportExecutionStatus
+        result={{
+          ...baseResult,
+          details: [
+            {
+              content: "2026-09-17 全家便利店 600",
+              reason:
+                "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+              rowNumbers: [6],
+              sheet: "incomeExpense",
+              status: "holderMissing",
+            },
+          ],
+          holderMissingCount: 1,
+          processedCount: 3,
+          successCount: 3,
+          totalCount: 3,
+        }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByText("未匹配持有人 1 条")).toBeInTheDocument();
+    expect(screen.getByText("未匹配持有人的记录")).toBeInTheDocument();
+    expect(screen.getByText(/第 6 行/)).toBeInTheDocument();
+    expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
+    expect(screen.queryByText("疑似重复的记录")).not.toBeInTheDocument();
   });
 
   it("只有其中一类明细时不展示另一类标题", () => {

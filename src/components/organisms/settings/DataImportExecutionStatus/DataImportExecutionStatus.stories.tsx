@@ -20,6 +20,7 @@ export const Importing: Story = {
       details: [],
       duplicateCount: 0,
       failureCount: 0,
+      holderMissingCount: 0,
       processedCount: 36,
       rowResults: [],
       successCount: 36,
@@ -36,6 +37,7 @@ export const AllSucceeded: Story = {
       details: [],
       duplicateCount: 0,
       failureCount: 0,
+      holderMissingCount: 0,
       processedCount: 80,
       rowResults: [],
       successCount: 80,
@@ -46,13 +48,14 @@ export const AllSucceeded: Story = {
 };
 
 export const MixedResult: Story = {
-  name: "成功、失败与疑似重复混合",
+  name: "成功、失败、疑似重复与未匹配持有人混合",
   args: {
     result: {
       details: [
         {
           content: "2026-09-17 业务超市 1200",
-          reason: "账户持有人无法匹配。",
+          reason:
+            "一级分类「餐饮」没有填写二级分类；当前交易记录必须使用二级分类。",
           rowNumbers: [12],
           sheet: "incomeExpense",
           status: "failed",
@@ -64,12 +67,21 @@ export const MixedResult: Story = {
           sheet: "transfer",
           status: "duplicate",
         },
+        {
+          content: "2026-09-17 全家便利店 600",
+          reason:
+            "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+          rowNumbers: [22],
+          sheet: "incomeExpense",
+          status: "holderMissing",
+        },
       ],
       duplicateCount: 1,
       failureCount: 1,
+      holderMissingCount: 1,
       processedCount: 80,
       rowResults: [],
-      successCount: 79,
+      successCount: 78,
       totalCount: 80,
     },
     status: "completed",

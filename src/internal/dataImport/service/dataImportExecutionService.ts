@@ -216,16 +216,20 @@ export function createDataImportExecutionService({
         accountByKey.set(key, [...(accountByKey.get(key) ?? []), account]);
       }
 
+      /**
+       * 持有人姓名在账本成员里找不到匹配时不阻断导入：账户持有人必须绑定真实
+       * 账本成员身份，无法像分类/商家/账户那样凭空新建一行数据，因此按「无
+       * 持有人」继续导入并单独提示，而不是直接判定整条记录失败（Refs #780）。
+       */
       async function resolveHolderUserId(holderName: string | null) {
-        if (!holderName) return null;
+        if (!holderName) {
+          return { missingName: null, userId: null };
+        }
         const matches = holders.filter(
           (holder) => holder.displayName === holderName,
         );
         if (matches.length === 0) {
-          throw new ValidationError(
-            dataImportErrorCodes.referenceInvalid,
-            dataImportExecutionErrorMessages.holderNotFound(holderName),
-          );
+          return { missingName: holderName, userId: null };
         }
         if (matches.length > 1) {
           throw new ValidationError(
@@ -233,7 +237,7 @@ export function createDataImportExecutionService({
             dataImportExecutionErrorMessages.holderAmbiguous(holderName),
           );
         }
-        return matches[0].userId;
+        return { missingName: null, userId: matches[0].userId };
       }
 
       async function resolveAccount(input: {
@@ -241,7 +245,8 @@ export function createDataImportExecutionService({
         holderName: string | null;
         name: string;
       }) {
-        const holderUserId = await resolveHolderUserId(input.holderName);
+        const { missingName: holderMissingName, userId: holderUserId } =
+          await resolveHolderUserId(input.holderName);
         const key = accountKey(input.name, holderUserId, input.currency);
         const matches = accountByKey.get(key) ?? [];
         if (matches.length > 1) {
@@ -251,7 +256,7 @@ export function createDataImportExecutionService({
           );
         }
         if (matches.length === 1) {
-          return matches[0];
+          return { account: matches[0], holderMissingName };
         }
 
         const created = await accountImportService.createAccount({
@@ -269,7 +274,7 @@ export function createDataImportExecutionService({
         };
         accounts.push(account);
         accountByKey.set(key, [account]);
-        return account;
+        return { account, holderMissingName };
       }
 
       async function resolveCategory(input: {
@@ -385,7 +390,7 @@ export function createDataImportExecutionService({
 
       async function executeIncomeExpense(group: ImportTransactionGroup) {
         const first = group.items[0] as IncomeExpenseImportRow;
-        const account = await resolveAccount({
+        const { account, holderMissingName } = await resolveAccount({
           currency: first.accountCurrency,
           holderName: first.accountHolder,
           name: first.accountName,
@@ -423,20 +428,25 @@ export function createDataImportExecutionService({
             totalAmount,
           });
         await transactionImportService.createNormal(input);
-        return duplicate;
+        return {
+          duplicate,
+          holderMissingNames: holderMissingName ? [holderMissingName] : [],
+        };
       }
 
       async function executeTransfer(row: TransferImportRow) {
-        const fromAccount = await resolveAccount({
-          currency: row.fromAccountCurrency,
-          holderName: row.fromAccountHolder,
-          name: row.fromAccountName,
-        });
-        const toAccount = await resolveAccount({
-          currency: row.toAccountCurrency,
-          holderName: row.toAccountHolder,
-          name: row.toAccountName,
-        });
+        const { account: fromAccount, holderMissingName: fromHolderMissing } =
+          await resolveAccount({
+            currency: row.fromAccountCurrency,
+            holderName: row.fromAccountHolder,
+            name: row.fromAccountName,
+          });
+        const { account: toAccount, holderMissingName: toHolderMissing } =
+          await resolveAccount({
+            currency: row.toAccountCurrency,
+            holderName: row.toAccountHolder,
+            name: row.toAccountName,
+          });
         const input = {
           accountId: fromAccount.id,
           ledgerId,
@@ -449,7 +459,12 @@ export function createDataImportExecutionService({
         const duplicate =
           await transactionImportService.hasPossibleTransferDuplicate(input);
         await transactionImportService.createTransfer(input);
-        return duplicate;
+        return {
+          duplicate,
+          holderMissingNames: [fromHolderMissing, toHolderMissing].filter(
+            (name): name is string => name !== null,
+          ),
+        };
       }
 
       const batch = units.slice(offset, offset + importBatchSize);
@@ -458,15 +473,30 @@ export function createDataImportExecutionService({
       let successCount = 0;
       let failureCount = 0;
       let duplicateCount = 0;
+      let holderMissingCount = 0;
 
       for (const unit of batch) {
         try {
-          const duplicate =
+          const { duplicate, holderMissingNames } =
             unit.kind === "incomeExpense"
               ? await executeIncomeExpense(unit.group)
               : await executeTransfer(unit.row);
           successCount += 1;
-          if (duplicate) {
+          if (holderMissingNames.length > 0) {
+            holderMissingCount += 1;
+            const reason = [
+              ...holderMissingNames.map((name) =>
+                dataImportExecutionErrorMessages.holderMissingWarning(name),
+              ),
+              ...(duplicate
+                ? [dataImportExecutionErrorMessages.duplicateWarning]
+                : []),
+            ].join("；");
+            details.push(detailForUnit(unit, "holderMissing", reason));
+            rowResults.push(
+              ...rowResultsForUnit(unit, "holderMissing", reason),
+            );
+          } else if (duplicate) {
             duplicateCount += 1;
             details.push(
               detailForUnit(
@@ -510,6 +540,7 @@ export function createDataImportExecutionService({
         done: nextOffset >= units.length,
         duplicateCount,
         failureCount,
+        holderMissingCount,
         nextOffset,
         processedCount: batch.length,
         rowResults,

@@ -5,7 +5,11 @@ export type ImportExecutionSheetKind = Exclude<
   "balanceAdjustment"
 >;
 
-export type ImportExecutionRowStatus = "duplicate" | "failed" | "success";
+export type ImportExecutionRowStatus =
+  | "duplicate"
+  | "failed"
+  | "holderMissing"
+  | "success";
 
 export type ImportExecutionRowResult = {
   reason: string | null;
@@ -27,6 +31,7 @@ export type ImportBatchResult = {
   done: boolean;
   duplicateCount: number;
   failureCount: number;
+  holderMissingCount: number;
   nextOffset: number;
   processedCount: number;
   rowResults: ImportExecutionRowResult[];
@@ -38,6 +43,7 @@ export type ImportExecutionResult = {
   details: ImportExecutionDetail[];
   duplicateCount: number;
   failureCount: number;
+  holderMissingCount: number;
   processedCount: number;
   rowResults: ImportExecutionRowResult[];
   successCount: number;

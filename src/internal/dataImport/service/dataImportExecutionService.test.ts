@@ -332,6 +332,116 @@ describe("DataImportExecutionService", () => {
     });
   });
 
+  it("账户持有人匹配不到账本成员时按无持有人继续导入并计入警告", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [incomeTable([incomeRow({ 账户持有人: "小明" })])],
+    });
+    const dependencies = createDependencies();
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: null }));
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledOnce();
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(0);
+    expect(result.holderMissingCount).toBe(1);
+    expect(result.details).toEqual([
+      expect.objectContaining({
+        status: "holderMissing",
+        reason: expect.stringContaining("小明"),
+      }),
+    ]);
+    expect(result.rowResults[0]).toMatchObject({
+      rowNumber: 2,
+      status: "holderMissing",
+    });
+  });
+
+  it("转账两侧持有人都匹配不到账本成员时合并展示提示且仍继续导入", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [
+        transferTable([
+          {
+            交易类型: "转账",
+            日期: "2026-09-17 12:00:00",
+            转出账户: "钱包",
+            转出账户币种: "JPY",
+            转出账户持有人: "小明",
+            转入账户: "银行卡",
+            转入账户币种: "JPY",
+            转入账户持有人: "小红",
+            金额: "5000",
+          },
+        ]),
+      ],
+    });
+    const dependencies = createDependencies();
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(
+      dependencies.transactionImportService.createTransfer,
+    ).toHaveBeenCalledOnce();
+    expect(result.successCount).toBe(1);
+    expect(result.holderMissingCount).toBe(1);
+    expect(result.details[0]?.reason).toContain("小明");
+    expect(result.details[0]?.reason).toContain("小红");
+  });
+
+  it("账本内存在多个同显示名成员时该行判定为失败", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [incomeTable([incomeRow()])],
+    });
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [],
+      holders: [
+        { displayName: "淞文", userId: "user-1" },
+        { displayName: "淞文", userId: "user-2" },
+      ],
+    });
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    expect(result.successCount).toBe(0);
+    expect(result.failureCount).toBe(1);
+    expect(result.details[0]).toMatchObject({ status: "failed" });
+  });
+
   it("缺失二级分类时该行失败，且不会残留新建的一级分类", async () => {
     parseImportFileMock.mockResolvedValue({
       ok: true,

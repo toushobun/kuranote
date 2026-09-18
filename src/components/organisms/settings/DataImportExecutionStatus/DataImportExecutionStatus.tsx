@@ -39,6 +39,9 @@ export function DataImportExecutionStatus({
   const duplicateDetails = result.details.filter(
     (detail) => detail.status === "duplicate",
   );
+  const holderMissingDetails = result.details.filter(
+    (detail) => detail.status === "holderMissing",
+  );
 
   return (
     <SectionCard>
@@ -76,6 +79,11 @@ export function DataImportExecutionStatus({
               {messages.duplicateCount(result.duplicateCount)}
             </Alert>
           ) : null}
+          {result.holderMissingCount > 0 ? (
+            <Alert severity="warning">
+              {messages.holderMissingCount(result.holderMissingCount)}
+            </Alert>
+          ) : null}
         </Stack>
 
         {status === "completed" && failedDetails.length > 0 ? (
@@ -89,6 +97,13 @@ export function DataImportExecutionStatus({
           <DetailList
             items={duplicateDetails}
             title={messages.duplicateDetailTitle}
+          />
+        ) : null}
+
+        {status === "completed" && holderMissingDetails.length > 0 ? (
+          <DetailList
+            items={holderMissingDetails}
+            title={messages.holderMissingDetailTitle}
           />
         ) : null}
 
