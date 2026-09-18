@@ -410,6 +410,42 @@ describe("DataImportExecutionService", () => {
     expect(result.details[0]?.reason).toContain("小红");
   });
 
+  it("转账两侧持有人是同一个未匹配姓名时提示只展示一次", async () => {
+    parseImportFileMock.mockResolvedValue({
+      ok: true,
+      tables: [
+        transferTable([
+          {
+            交易类型: "转账",
+            日期: "2026-09-17 12:00:00",
+            转出账户: "钱包",
+            转出账户币种: "JPY",
+            转出账户持有人: "小明",
+            转入账户: "银行卡",
+            转入账户币种: "JPY",
+            转入账户持有人: "小明",
+            金额: "5000",
+          },
+        ]),
+      ],
+    });
+    const dependencies = createDependencies();
+    const service = createDataImportExecutionService(dependencies);
+
+    const result = await service.executeBatch({
+      fileBuffer: new ArrayBuffer(1),
+      fileName: "data.xlsx",
+      ledgerId: "ledger-1",
+      offset: 0,
+      timeZoneOffsetMinutes: 0,
+      userId: "user-1",
+    });
+
+    expect(result.holderMissingCount).toBe(1);
+    const occurrences = result.details[0]?.reason.split("小明").length ?? 0;
+    expect(occurrences - 1).toBe(1);
+  });
+
   it("账本内存在多个同显示名成员时该行判定为失败", async () => {
     parseImportFileMock.mockResolvedValue({
       ok: true,

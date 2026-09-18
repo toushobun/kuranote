@@ -485,7 +485,7 @@ export function createDataImportExecutionService({
           if (holderMissingNames.length > 0) {
             holderMissingCount += 1;
             const reason = [
-              ...holderMissingNames.map((name) =>
+              ...[...new Set(holderMissingNames)].map((name) =>
                 dataImportExecutionErrorMessages.holderMissingWarning(name),
               ),
               ...(duplicate
