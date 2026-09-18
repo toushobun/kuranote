@@ -225,6 +225,28 @@ describe("createSupabaseMerchantRepository", () => {
     });
   });
 
+  it("通过 RPC 原子创建商家并返回新商家 id", async () => {
+    const newMerchantId = "00000000-0000-4000-8000-000000002099";
+    const supabase = createSupabaseMock({
+      rpcResponse: { data: newMerchantId },
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.createMerchant({
+        iconUrl: null,
+        ledgerId,
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+        userId,
+      }),
+    ).resolves.toBe(newMerchantId);
+  });
+
   it("唯一约束冲突会转换为安全的 ConflictError", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
@@ -517,7 +539,9 @@ describe("createSupabaseMerchantRepository", () => {
       createLogger(),
     );
 
-    await repository.createTag({ icon: "🛒", ledgerId, name: "超市" });
+    await expect(
+      repository.createTag({ icon: "🛒", ledgerId, name: "超市" }),
+    ).resolves.toBe(tagId);
 
     expect(supabase.rpc).toHaveBeenCalledWith("create_merchant_tag", {
       p_icon: "🛒",

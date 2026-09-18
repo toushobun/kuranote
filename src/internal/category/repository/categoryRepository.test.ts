@@ -110,21 +110,26 @@ describe("createSupabaseCategoryRepository", () => {
       method: "eq",
     });
   });
-  it("创建分类时写入名称、Emoji、排序和审计字段", async () => {
-    const supabase = createSupabaseMock({ queryResponses: [{}] });
+  it("创建分类时写入名称、Emoji、排序和审计字段，并返回新分类 id", async () => {
+    const categoryId = "00000000-0000-4000-8000-000000003001";
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: { id: categoryId } }],
+    });
     const repository = createSupabaseCategoryRepository(
       supabase.client as never,
       createLogger(),
     );
-    await repository.insert({
-      createdBy: userId,
-      iconName: "🍽️",
-      ledgerId,
-      name: "🍽️ 餐饮",
-      parentId: null,
-      sortOrder: 20,
-      type: "expense",
-    });
+    await expect(
+      repository.insert({
+        createdBy: userId,
+        iconName: "🍽️",
+        ledgerId,
+        name: "🍽️ 餐饮",
+        parentId: null,
+        sortOrder: 20,
+        type: "expense",
+      }),
+    ).resolves.toBe(categoryId);
     expect(supabase.queries[0].calls).toContainEqual({
       args: [
         {

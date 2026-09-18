@@ -73,7 +73,7 @@ export interface CategoryQueryService {
 
 export interface CategoryService extends CategoryQueryService {
   archive(input: ArchiveCategoryInput): Promise<void>;
-  create(input: CreateCategoryInput): Promise<void>;
+  create(input: CreateCategoryInput): Promise<string>;
   getCategoriesView(input: {
     ledgerId: string;
     ledgerName: string;
@@ -237,7 +237,7 @@ export function createCategoryService({
         );
       }
 
-      await withOperationError(categoryErrorCodes.createFailed, () =>
+      return withOperationError(categoryErrorCodes.createFailed, () =>
         categoryRepository.insert({
           createdBy: input.userId,
           iconName: input.iconName,

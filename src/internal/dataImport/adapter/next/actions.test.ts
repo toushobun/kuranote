@@ -4,8 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   checkFile: vi.fn(),
+  createExecutionService: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
+  executeBatch: vi.fn(),
+  loggerError: vi.fn(),
   requireCurrentUserAndLedger: vi.fn(),
 }));
 
@@ -19,15 +22,33 @@ vi.mock("internal/container", () => ({
   createRequestContainer: mocks.createRequestContainer,
 }));
 
-import { checkDataImportFormat } from "internal/dataImport/adapter/next/actions";
+import {
+  checkDataImportFormat,
+  executeDataImportBatch,
+} from "internal/dataImport/adapter/next/actions";
+import { ValidationError } from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
+const currentLedger = {
+  baseCurrency: "JPY",
+  id: ledgerId,
+  name: "家庭账本",
+  role: "owner" as const,
+};
 
-function createFormData(file: File | null) {
+function createFormData(
+  file: File | null,
+  offset?: string,
+  timeZoneOffsetMinutes = "-540",
+) {
   const formData = new FormData();
   if (file) {
     formData.set("file", file);
+  }
+  if (offset !== undefined) {
+    formData.set("offset", offset);
+    formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);
   }
   return formData;
 }
@@ -35,14 +56,20 @@ function createFormData(file: File | null) {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.requireCurrentUserAndLedger.mockResolvedValue({
-    currentLedger: { id: ledgerId },
+    currentLedger,
     userId,
   });
-  mocks.createServerRequestDependencies.mockResolvedValue({});
+  mocks.createServerRequestDependencies.mockResolvedValue({
+    logger: { error: mocks.loggerError, info: vi.fn(), warn: vi.fn() },
+  });
   mocks.createRequestContainer.mockReturnValue({
     dataImport: {
+      createExecutionService: mocks.createExecutionService,
       service: { checkFile: mocks.checkFile },
     },
+  });
+  mocks.createExecutionService.mockReturnValue({
+    executeBatch: mocks.executeBatch,
   });
 });
 
@@ -114,9 +141,6 @@ describe("checkDataImportFormat", () => {
   });
 
   it("Service 抛出未知异常时返回安全兜底提示", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
     const file = new File(["binary"], "data.xlsx");
     mocks.checkFile.mockRejectedValue(new Error("unexpected"));
 
@@ -126,10 +150,96 @@ describe("checkDataImportFormat", () => {
       error: "文件检查失败，请稍后重试。",
       errorKey: expect.any(String),
     });
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(mocks.loggerError).toHaveBeenCalledWith(
       "[dataImport] check format action failed unexpectedly",
       { errorName: "Error" },
     );
-    consoleError.mockRestore();
+  });
+});
+
+describe("executeDataImportBatch", () => {
+  it("每批重新确认当前账本，并将当前用户与 offset 交给执行 Service", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    mocks.executeBatch.mockResolvedValue({
+      details: [],
+      done: true,
+      duplicateCount: 0,
+      failureCount: 0,
+      nextOffset: 1,
+      processedCount: 1,
+      rowResults: [],
+      successCount: 1,
+      totalCount: 1,
+    });
+
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
+
+    expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
+    expect(mocks.createExecutionService).toHaveBeenCalledWith(currentLedger);
+    expect(mocks.executeBatch).toHaveBeenCalledWith({
+      fileBuffer: expect.any(ArrayBuffer),
+      fileName: "data.xlsx",
+      ledgerId,
+      offset: 0,
+      timeZoneOffsetMinutes: -540,
+      userId,
+    });
+    expect(state.batch).toMatchObject({ done: true, successCount: 1 });
+  });
+
+  it("非法 offset 在调用执行 Service 前返回安全错误", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    const state = await executeDataImportBatch({}, createFormData(file, "-1"));
+
+    expect(state).toEqual({
+      error: "导入文件或进度信息已变化，请重新检查格式后再导入。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.executeBatch).not.toHaveBeenCalled();
+  });
+
+  it("执行 Service 的应用错误安全返回给客户端", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    mocks.executeBatch.mockRejectedValue(
+      new ValidationError("reference_invalid", "账户持有人不存在。"),
+    );
+
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
+
+    expect(state).toEqual({
+      error: "账户持有人不存在。",
+      errorKey: expect.any(String),
+    });
+  });
+
+  it("未知异常只记录安全日志并返回统一兜底提示", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    mocks.executeBatch.mockRejectedValue(new Error("database secret"));
+
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
+
+    expect(state).toEqual({
+      error: "数据导入失败，请稍后重试。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      "[dataImport] execute batch action failed unexpectedly",
+      expect.objectContaining({ errorName: "Error", ledgerId, offset: 0 }),
+    );
+  });
+
+  it("依赖构造瞬时异常时返回安全兜底提示，而不是抛给客户端", async () => {
+    const file = new File(["binary"], "data.xlsx");
+    mocks.createServerRequestDependencies.mockRejectedValue(
+      new Error("connection reset"),
+    );
+
+    const state = await executeDataImportBatch({}, createFormData(file, "0"));
+
+    expect(state).toEqual({
+      error: "数据导入失败，请稍后重试。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.executeBatch).not.toHaveBeenCalled();
   });
 });

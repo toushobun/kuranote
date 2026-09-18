@@ -1,4 +1,10 @@
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
+import { createAccountImportService } from "internal/account/service/accountImportService";
+import { createCategoryImportService } from "internal/category/service/categoryImportService";
+import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
+import type { CurrentLedger } from "internal/ledger";
+import { createMerchantImportService } from "internal/merchant/service/merchantImportService";
+import { createTransactionImportService } from "internal/transaction/service/transactionImportService";
 import {
   createAccountService,
   type AccountQueryService,
@@ -76,6 +82,9 @@ export type RequestContainer = {
   };
   readonly dataImport: {
     readonly service: ReturnType<typeof createDataImportValidationService>;
+    createExecutionService(
+      currentLedger: CurrentLedger,
+    ): ReturnType<typeof createDataImportExecutionService>;
   };
   readonly merchant: {
     readonly service: ReturnType<typeof createMerchantService>;
@@ -254,6 +263,24 @@ export function createRequestContainer(
       if (!dataImportContainer) {
         dataImportContainer = {
           service: createDataImportValidationService(),
+          createExecutionService: (currentLedger) => {
+            return createDataImportExecutionService({
+              accountImportService: createAccountImportService(
+                this.account.service,
+              ),
+              categoryImportService: createCategoryImportService(
+                this.category.service,
+              ),
+              logger: dependencies.logger,
+              merchantImportService: createMerchantImportService(
+                this.merchant.service,
+              ),
+              transactionImportService: createTransactionImportService({
+                currentLedger,
+                service: this.transaction.service,
+              }),
+            });
+          },
         };
       }
 

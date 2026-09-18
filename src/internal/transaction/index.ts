@@ -34,6 +34,12 @@ export {
 } from "internal/transaction/service/linkedTransactionEditService";
 export type { TransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 export type {
+  ImportNormalTransactionInput,
+  ImportTransactionItemInput,
+  ImportTransferTransactionInput,
+  TransactionImportService,
+} from "internal/transaction/service/transactionImportService";
+export type {
   TransactionFilters,
   TransactionGroupBy,
 } from "internal/transaction/entity/transactionGrouping";

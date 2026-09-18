@@ -94,7 +94,7 @@ export interface CategoryRepository {
     ledgerId: string;
     type: CategoryType;
   }): Promise<CategoryRecord | null>;
-  insert(input: InsertCategoryInput): Promise<void>;
+  insert(input: InsertCategoryInput): Promise<string>;
   listActiveSiblings(scope: CategoryScope): Promise<CategorySibling[]>;
   reorder(input: ReorderCategoriesInput): Promise<void>;
   updateDetails(input: UpdateCategoryDetailsInput): Promise<boolean>;
@@ -413,23 +413,27 @@ export function createSupabaseCategoryRepository(
     },
 
     async insert(input) {
-      const { error } = await supabase.from("category").insert({
-        created_by: input.createdBy,
-        icon_name: input.iconName,
-        ledger_id: input.ledgerId,
-        name: input.name,
-        parent_id: input.parentId,
-        sort_order: input.sortOrder,
-        type: input.type,
-        updated_by: input.createdBy,
-      });
+      const { data, error } = await supabase
+        .from("category")
+        .insert({
+          created_by: input.createdBy,
+          icon_name: input.iconName,
+          ledger_id: input.ledgerId,
+          name: input.name,
+          parent_id: input.parentId,
+          sort_order: input.sortOrder,
+          type: input.type,
+          updated_by: input.createdBy,
+        })
+        .select("id")
+        .single();
 
-      if (error) {
+      if (error || !data) {
         throwRepositoryError(
           "category_create_failed",
           "分类创建失败，请稍后重试。",
           "[category] failed to create category",
-          error,
+          error ?? { message: "insert returned no row" },
           {
             ledgerId: input.ledgerId,
             parentId: input.parentId,
@@ -437,6 +441,8 @@ export function createSupabaseCategoryRepository(
           },
         );
       }
+
+      return (data as { id: string }).id;
     },
 
     async listActiveSiblings(scope) {

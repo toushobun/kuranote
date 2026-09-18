@@ -1,12 +1,25 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  parseCheckDataImportFileForm,
+  parseExecuteDataImportBatchForm,
+} from "internal/dataImport/adapter/next/formParser";
 import { dataImportErrorCodes } from "internal/dataImport/errors";
-import { parseCheckDataImportFileForm } from "internal/dataImport/adapter/next/formParser";
 
-function buildFormData(file: File | null) {
+function buildFormData(
+  file: File | null,
+  offset?: string,
+  timeZoneOffsetMinutes?: string,
+) {
   const formData = new FormData();
   if (file) {
     formData.set("file", file);
+  }
+  if (offset !== undefined) {
+    formData.set("offset", offset);
+  }
+  if (timeZoneOffsetMinutes !== undefined) {
+    formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);
   }
   return formData;
 }
@@ -51,5 +64,53 @@ describe("parseCheckDataImportFileForm", () => {
     const file = new File(["binary"], "DATA.XLSX");
     const result = parseCheckDataImportFileForm(buildFormData(file));
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("parseExecuteDataImportBatchForm", () => {
+  it("合法文件、非负整数 offset 与时区偏移解析成功", () => {
+    const file = new File(["binary"], "data.xlsx");
+    const result = parseExecuteDataImportBatchForm(
+      buildFormData(file, "25", "-540"),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      value: { file, offset: 25, timeZoneOffsetMinutes: -540 },
+    });
+  });
+
+  it("offset 缺失、负数或小数时返回 executionInvalid", () => {
+    const file = new File(["binary"], "data.xlsx");
+
+    for (const offset of [undefined, "-1", "1.5", "abc"]) {
+      const result = parseExecuteDataImportBatchForm(
+        buildFormData(file, offset, "-540"),
+      );
+      expect(result).toEqual({
+        error: dataImportErrorCodes.executionInvalid,
+        ok: false,
+      });
+    }
+  });
+
+  it("时区偏移缺失、越界或非整数时返回 executionInvalid", () => {
+    const file = new File(["binary"], "data.xlsx");
+
+    for (const timeZoneOffsetMinutes of [
+      undefined,
+      "-841",
+      "841",
+      "1.5",
+      "abc",
+    ]) {
+      const result = parseExecuteDataImportBatchForm(
+        buildFormData(file, "0", timeZoneOffsetMinutes),
+      );
+      expect(result).toEqual({
+        error: dataImportErrorCodes.executionInvalid,
+        ok: false,
+      });
+    }
   });
 });

@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import {
+  dataImportExecutionMessages,
   dataImportFileFieldMessages,
   dataImportFormatDescriptionMessages,
   dataImportPageMessages,
@@ -28,20 +29,39 @@ import {
   type ImportValidationResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { useDataImportForm } from "templates/settings/useDataImportForm";
+import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
-import type { DataImportStateAction } from "types/dataImport";
+import { useDataImportForm } from "templates/settings/useDataImportForm";
+import type {
+  DataImportBatchStateAction,
+  DataImportStateAction,
+} from "types/dataImport";
 
 type DataImportTemplateProps = {
   checkFormatAction: DataImportStateAction;
+  executeBatchAction: DataImportBatchStateAction;
 };
 
 export function DataImportTemplate({
   checkFormatAction,
+  executeBatchAction,
 }: DataImportTemplateProps) {
-  const { formAction, handleFileChange, isPending, selectedFileName, state } =
-    useDataImportForm(checkFormatAction);
+  const {
+    downloadError,
+    executionError,
+    executionResult,
+    executionStatus,
+    handleCheckFormat,
+    handleDownloadResult,
+    handleFileChange,
+    handleStartImport,
+    isChecking,
+    isDownloading,
+    isImporting,
+    selectedFileName,
+    validationState,
+  } = useDataImportForm(checkFormatAction, executeBatchAction);
 
   return (
     <PageShell maxWidth="sm">
@@ -64,13 +84,14 @@ export function DataImportTemplate({
         <FormatDescriptionCard />
 
         <SectionCard>
-          <Stack action={formAction} component="form" spacing={1.5}>
+          <Stack spacing={1.5}>
             <Typography sx={{ fontWeight: 700 }}>
               {dataImportFileFieldMessages.chooseFileButton}
             </Typography>
 
             <Button
               component="label"
+              disabled={isChecking || isImporting}
               startIcon={<UploadFileOutlinedIcon />}
               sx={{ alignSelf: "flex-start" }}
               variant="outlined"
@@ -79,6 +100,7 @@ export function DataImportTemplate({
               <input
                 accept=".xlsx"
                 aria-label={dataImportFileFieldMessages.chooseFileButton}
+                disabled={isChecking || isImporting}
                 hidden
                 name="file"
                 onChange={handleFileChange}
@@ -90,21 +112,62 @@ export function DataImportTemplate({
               {selectedFileName ?? dataImportFileFieldMessages.noFileSelected}
             </Typography>
 
-            {state.error ? <Alert severity="error">{state.error}</Alert> : null}
+            {validationState.error ? (
+              <Alert severity="error">{validationState.error}</Alert>
+            ) : null}
 
             <Button
-              disabled={isPending || !selectedFileName}
-              type="submit"
+              disabled={
+                isChecking ||
+                isImporting ||
+                !selectedFileName ||
+                executionStatus !== null
+              }
+              onClick={handleCheckFormat}
               variant="contained"
             >
-              {isPending
+              {isChecking
                 ? dataImportFileFieldMessages.checking
                 : dataImportFileFieldMessages.checkFormatButton}
             </Button>
           </Stack>
         </SectionCard>
 
-        {state.result ? <ResultSection result={state.result} /> : null}
+        {validationState.result ? (
+          <ResultSection result={validationState.result} />
+        ) : null}
+
+        {validationState.result?.ok && executionStatus === null ? (
+          <SectionCard>
+            <Button
+              disabled={isImporting}
+              fullWidth
+              onClick={handleStartImport}
+              variant="contained"
+            >
+              {isImporting
+                ? dataImportExecutionMessages.importingButton
+                : dataImportExecutionMessages.startButton}
+            </Button>
+          </SectionCard>
+        ) : null}
+
+        {executionError ? (
+          <Alert severity="error">{executionError}</Alert>
+        ) : null}
+
+        {executionResult && executionStatus ? (
+          <DataImportExecutionStatus
+            isDownloading={isDownloading}
+            onDownload={
+              executionStatus === "completed" ? handleDownloadResult : undefined
+            }
+            result={executionResult}
+            status={executionStatus}
+          />
+        ) : null}
+
+        {downloadError ? <Alert severity="error">{downloadError}</Alert> : null}
       </Stack>
     </PageShell>
   );

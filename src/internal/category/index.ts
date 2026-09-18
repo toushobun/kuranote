@@ -8,3 +8,7 @@ export {
   type CategoryType,
 } from "internal/category/entity/categoryType";
 export type { CategoryQueryService } from "internal/category/service/categoryService";
+export type {
+  CategoryImportEntry,
+  CategoryImportService,
+} from "internal/category/service/categoryImportService";

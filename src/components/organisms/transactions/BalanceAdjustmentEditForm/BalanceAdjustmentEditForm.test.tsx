@@ -18,7 +18,7 @@ const initialValues: BalanceAdjustmentEditInitialValues = {
   currency: "JPY",
   signedDelta: "-2500",
   transactionRecordId: "record",
-  transactionAt: "2026-09-14T00:00:00Z",
+  transactionAt: "2026-09-14T00:00:00",
   note: "盘点",
   accountArchived: false,
 };

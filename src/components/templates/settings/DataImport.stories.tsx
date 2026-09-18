@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
-import type { DataImportStateAction } from "types/dataImport";
+import type {
+  DataImportBatchStateAction,
+  DataImportStateAction,
+} from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
 
 async function selectFileAndSubmit(canvasElement: HTMLElement) {
@@ -14,6 +17,7 @@ async function selectFileAndSubmit(canvasElement: HTMLElement) {
 }
 
 const defaultAction: DataImportStateAction = async () => ({});
+const defaultBatchAction: DataImportBatchStateAction = async () => ({});
 
 const successAction: DataImportStateAction = async () => ({
   result: {
@@ -52,7 +56,10 @@ const failureAction: DataImportStateAction = async () => ({
 const meta = {
   title: "Templates/Settings/DataImportTemplate",
   component: DataImportTemplate,
-  args: { checkFormatAction: defaultAction },
+  args: {
+    checkFormatAction: defaultAction,
+    executeBatchAction: defaultBatchAction,
+  },
 } satisfies Meta<typeof DataImportTemplate>;
 
 export default meta;

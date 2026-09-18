@@ -92,8 +92,8 @@ export interface MerchantService extends MerchantQueryService {
   archiveTag(input: MerchantTagServiceInput): Promise<void>;
   assertCanManage(input: MerchantLedgerInput): Promise<void>;
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
-  createMerchant(input: CreateMerchantServiceInput): Promise<void>;
-  createTag(input: CreateMerchantTagServiceInput): Promise<void>;
+  createMerchant(input: CreateMerchantServiceInput): Promise<string>;
+  createTag(input: CreateMerchantTagServiceInput): Promise<string>;
   fetchMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
@@ -331,7 +331,7 @@ export function createMerchantService({
         ? (reusableIconUrl ??
           (await fetchIconUrlOrNull(input.ledgerId, input.siteUrl)))
         : null;
-      await merchantRepository.createMerchant({
+      return merchantRepository.createMerchant({
         ...merchantInput,
         iconUrl,
         tagIds,
@@ -341,7 +341,7 @@ export function createMerchantService({
 
     async createTag(input) {
       await requireLedgerRole(input.ledgerId, true);
-      await merchantRepository.createTag(input);
+      return merchantRepository.createTag(input);
     },
 
     async findSummariesByIds({ ledgerId, merchantIds }) {
