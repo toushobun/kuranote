@@ -28,6 +28,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],
     dataImport: {} as RequestContainer["dataImport"],
+    dataExport: {} as RequestContainer["dataExport"],
     ledger: {
       currentLedgerService: {
         getAccessibleLedger: vi.fn(),

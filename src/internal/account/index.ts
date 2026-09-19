@@ -23,3 +23,5 @@ export {
   isAccountBalanceText,
   isValidTargetBalance,
 } from "internal/account/util/accountBalance";
+export type { AccountExportSummary } from "internal/account/entity/accountExportSummary";
+export type { AccountExportQueryService } from "internal/account/service/accountExportQueryService";

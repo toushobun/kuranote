@@ -68,6 +68,22 @@ describe("TransactionRepository", () => {
     );
     return { defaultQuery, from, logger, repository, rpc };
   }
+  it("导出明细的内部分页保留账本限制及稳定排序", async () => {
+    const query = createQuery();
+    const { repository } = createRepository({
+      queries: { transaction_item_with_refund: query },
+    });
+    await repository.listItems(ledgerId, [transactionRecordId], {
+      offset: 500,
+      limit: 500,
+    });
+    expect(query.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(query.in).toHaveBeenCalledWith("transaction_record_id", [
+      transactionRecordId,
+    ]);
+    expect(query.range).toHaveBeenCalledWith(500, 999);
+    expect(query.order).toHaveBeenCalledWith("id", { ascending: true });
+  });
   const normalInput = {
     accountId,
     items: [{ amount: 1200, categoryId }],

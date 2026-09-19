@@ -273,6 +273,13 @@ describe("createRequestContainer", () => {
     expect(typeof container.category.service.reorder).toBe("function");
   });
 
+  it("提供惰性缓存的导出服务并共享账本权限依赖", () => {
+    const container = createRequestContainer(createDependenciesStub());
+    expect(container.dataExport).toBe(container.dataExport);
+    expect(typeof container.dataExport.service.getData).toBe("function");
+    expect(createLedgerAccessService).toHaveBeenCalledTimes(1);
+  });
+
   it("提供惰性缓存的 dataImport.service", () => {
     const container = createRequestContainer(createDependenciesStub());
 

@@ -81,6 +81,7 @@ function createApp(
       auth: {} as RequestContainer["auth"],
       category: {} as RequestContainer["category"],
       dataImport: {} as RequestContainer["dataImport"],
+      dataExport: {} as RequestContainer["dataExport"],
       ledger: {} as RequestContainer["ledger"],
       merchant: { service },
       statistics: {} as RequestContainer["statistics"],

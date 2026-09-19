@@ -1,3 +1,7 @@
+import { createAccountExportQueryService } from "internal/account/service/accountExportQueryService";
+import { createMerchantExportQueryService } from "internal/merchant/service/merchantExportQueryService";
+import { createTransactionExportQueryService } from "internal/transaction/service/transactionExportQueryService";
+import { createDataExportService } from "internal/dataExport/service/dataExportService";
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
 import { createAccountImportService } from "internal/account/service/accountImportService";
 import { createCategoryImportService } from "internal/category/service/categoryImportService";
@@ -80,6 +84,9 @@ export type RequestContainer = {
   readonly category: {
     readonly service: ReturnType<typeof createCategoryService>;
   };
+  readonly dataExport: {
+    readonly service: ReturnType<typeof createDataExportService>;
+  };
   readonly dataImport: {
     readonly service: ReturnType<typeof createDataImportValidationService>;
     createExecutionService(
@@ -113,6 +120,7 @@ export function createRequestContainer(
   let authContainer: RequestContainer["auth"] | undefined;
   let ledgerContainer: RequestContainer["ledger"] | undefined;
   let categoryContainer: RequestContainer["category"] | undefined;
+  let dataExportContainer: RequestContainer["dataExport"] | undefined;
   let dataImportContainer: RequestContainer["dataImport"] | undefined;
   let merchantContainer: RequestContainer["merchant"] | undefined;
   let statisticsContainer: RequestContainer["statistics"] | undefined;
@@ -257,6 +265,32 @@ export function createRequestContainer(
       }
 
       return categoryContainer;
+    },
+
+    get dataExport() {
+      if (!dataExportContainer) {
+        dataExportContainer = {
+          service: createDataExportService({
+            accountQueryService: createAccountExportQueryService({
+              accountRepository: getAccountRepository(),
+              ledgerAccessService: getLedgerAccessService(),
+            }),
+            categoryQueryService: getCategoryQueryService(),
+            merchantQueryService: createMerchantExportQueryService({
+              merchantRepository: getMerchantRepository(),
+              ledgerAccessService: getLedgerAccessService(),
+            }),
+            transactionQueryService: createTransactionExportQueryService({
+              transactionRepository: createSupabaseTransactionRepository(
+                dependencies.supabase,
+                dependencies.logger,
+              ),
+              ledgerAccessService: getLedgerAccessService(),
+            }),
+          }),
+        };
+      }
+      return dataExportContainer;
     },
 
     get dataImport() {

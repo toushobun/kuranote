@@ -1,3 +1,4 @@
+import { readAllPages } from "internal/shared/supabase/readAllPages";
 import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantErrorMessage,
@@ -226,6 +227,10 @@ export type UpdateMerchantTagInput = {
 };
 
 export interface MerchantRepository {
+  listExportTagNames(
+    ledgerId: string,
+    merchantIds: string[],
+  ): Promise<{ merchantId: string; name: string }[]>;
   archiveAlias(input: ArchiveMerchantAliasInput): Promise<boolean>;
   archiveMerchant(input: ArchiveMerchantInput): Promise<boolean>;
   archiveTag(ledgerId: string, tagId: string): Promise<boolean>;
@@ -508,6 +513,37 @@ export function createSupabaseMerchantRepository(
   }
 
   return {
+    async listExportTagNames(ledgerId, merchantIds) {
+      if (merchantIds.length === 0) return [];
+      return readAllPages(async (offset, limit) => {
+        const { data, error } = await supabase
+          .from("merchant_tag_links")
+          .select("merchant_id, merchant_tags!inner(name, ledger_id)")
+          .in("merchant_id", merchantIds)
+          .eq("merchant_tags.ledger_id", ledgerId)
+          .order("merchant_id", { ascending: true })
+          .order("tag_id", { ascending: true })
+          .range(offset, offset + limit - 1);
+        if (error) {
+          fail(
+            "[merchant] failed to load export tag names",
+            merchantErrorCodes.merchantTagListFailed,
+            getMerchantErrorMessage(merchantErrorCodes.merchantTagListFailed),
+            { ledgerId },
+            error,
+          );
+        }
+        const rows = (data ?? []) as unknown as {
+          merchant_id: string;
+          merchant_tags: { name: string };
+        }[];
+        return rows.map((row) => ({
+          merchantId: row.merchant_id,
+          name: row.merchant_tags.name,
+        }));
+      });
+    },
+
     async archiveAlias(input) {
       // merchant_alias 没有 ledger_id；别名归属当前账本的不变量由 Service 层在调用前保证。
       const { error, count } = await supabase

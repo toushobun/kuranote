@@ -26,6 +26,57 @@ function createLogger() {
 }
 
 describe("createSupabaseMerchantRepository", () => {
+  it("导出标签按账本过滤并读取后续页，保留历史关联", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [{ merchant_id: merchantId, merchant_tags: { name: "餐饮" } }],
+        },
+        {
+          data: [{ merchant_id: merchantId, merchant_tags: { name: "附近" } }],
+        },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+    await expect(
+      repository.listExportTagNames(ledgerId, [merchantId]),
+    ).resolves.toEqual([
+      { merchantId, name: "餐饮" },
+      { merchantId, name: "附近" },
+    ]);
+    expect(supabase.queries[0].calls).toContainEqual({
+      method: "eq",
+      args: ["merchant_tags.ledger_id", ledgerId],
+    });
+    expect(supabase.queries[1].calls).toContainEqual({
+      method: "range",
+      args: [1, 500],
+    });
+  });
+
+  it("导出标签查询失败转成安全的持久层错误", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ error: { message: "private SQL", code: "XX000" } }],
+    });
+    const logger = createLogger();
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      logger,
+    );
+    const operation = repository.listExportTagNames(ledgerId, [merchantId]);
+    await expect(operation).rejects.toBeInstanceOf(RepositoryError);
+    await expect(operation).rejects.toMatchObject({
+      message: getMerchantErrorMessage(
+        merchantErrorCodes.merchantTagListFailed,
+      ),
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
+
   it("交易选项优先使用首选别名作为展示名称", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [

@@ -18,6 +18,7 @@ type QueryMethodName =
   | "maybeSingle"
   | "or"
   | "order"
+  | "range"
   | "select"
   | "single"
   | "update"
@@ -66,6 +67,7 @@ function createQueryMock(record: SupabaseQueryRecord): SupabaseQueryMock {
   query.lt = vi.fn((...args: unknown[]) => addCall("lt", args));
   query.is = vi.fn((...args: unknown[]) => addCall("is", args));
   query.order = vi.fn((...args: unknown[]) => addCall("order", args));
+  query.range = vi.fn((...args: unknown[]) => addCall("range", args));
   query.limit = vi.fn((...args: unknown[]) => addCall("limit", args));
   query.or = vi.fn((...args: unknown[]) => addCall("or", args));
   query.in = vi.fn((...args: unknown[]) => addCall("in", args));
