@@ -182,6 +182,7 @@ export interface TransactionContextRepository {
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
+    page?: { offset: number; limit: number },
   ): Promise<TransactionItemDbRow[]>;
   listRecords(input: TransactionRecordQuery): Promise<TransactionRecordDbRow[]>;
 }
@@ -194,6 +195,7 @@ export interface TransactionFormRepository {
   listItems(
     ledgerId: string,
     transactionRecordIds: string[],
+    page?: { offset: number; limit: number },
   ): Promise<TransactionItemDbRow[]>;
   loadFrequentCategoryCounts(
     input: FrequentCategoryHistoryQuery,
@@ -712,10 +714,10 @@ export function createSupabaseTransactionRepository(
       return (data ?? []).map((row) => row.user_id);
     },
 
-    async listItems(ledgerId, transactionRecordIds) {
+    async listItems(ledgerId, transactionRecordIds, page) {
       const uniqueIds = [...new Set(transactionRecordIds)];
       if (uniqueIds.length === 0) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("transaction_item_with_refund")
         .select(
           "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link, updated_at",
@@ -724,6 +726,8 @@ export function createSupabaseTransactionRepository(
         .in("transaction_record_id", uniqueIds)
         .order("sort_order", { ascending: true })
         .order("id", { ascending: true });
+      if (page) query = query.range(page.offset, page.offset + page.limit - 1);
+      const { data, error } = await query;
       if (error) {
         logger.error("[transaction] failed to load transaction items", {
           databaseCode: error.code,

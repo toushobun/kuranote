@@ -38,6 +38,7 @@ describe("auth router", () => {
         auth: { service },
         category: {} as RequestContainer["category"],
         dataImport: {} as RequestContainer["dataImport"],
+        dataExport: {} as RequestContainer["dataExport"],
         ledger: {} as RequestContainer["ledger"],
         merchant: {} as RequestContainer["merchant"],
         statistics: {} as RequestContainer["statistics"],

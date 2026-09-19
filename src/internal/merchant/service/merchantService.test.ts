@@ -40,6 +40,7 @@ function createRepository(
   overrides: Partial<MerchantRepository> = {},
 ): MerchantRepository {
   return {
+    listExportTagNames: vi.fn().mockResolvedValue([]),
     archiveAlias: vi.fn().mockResolvedValue(true),
     archiveMerchant: vi.fn().mockResolvedValue(true),
     archiveTag: vi.fn().mockResolvedValue(true),

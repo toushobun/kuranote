@@ -15,10 +15,20 @@ export const dataImportExportEntryMessages = {
   },
 } as const;
 
-export const dataExportPlaceholderMessages = {
+export const dataExportPageMessages = {
   title: "数据导出",
-  comingSoonTitle: "数据导出功能即将上线",
-  comingSoonDescription: "正在开发中，敬请期待。",
+  subtitle: "下载当前账本的全部交易记录",
+  scopeTitle: "导出内容",
+  scope: "包含全部收支、转账和余额变更记录，分别保存到三个工作表。",
+  format:
+    "文件格式为 Excel（.xlsx），列名与导入模板一致。日期使用当前设备时区。",
+  empty: "没有交易记录时，仍会下载包含三个工作表表头的文件。",
+  button: "导出 xlsx",
+  exporting: "正在导出…",
+  success: "导出文件已生成，已开始下载。",
+  failureTitle: "导出失败",
+  fileName: "KuraNote-账本交易.xlsx",
+  loading: "导出页面加载中",
 } as const;
 
 export const dataTransferBackMessages = {
