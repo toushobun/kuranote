@@ -1,14 +1,6 @@
-import {
-  checkDataImportFormat,
-  executeDataImportBatch,
-} from "internal/dataImport/adapter/next/actions";
+import { executeDataImportBatch } from "internal/dataImport/adapter/next/actions";
 import { DataImportTemplate } from "templates/settings/DataImport";
 
 export default function SettingsDataImportRoute() {
-  return (
-    <DataImportTemplate
-      checkFormatAction={checkDataImportFormat}
-      executeBatchAction={executeDataImportBatch}
-    />
-  );
+  return <DataImportTemplate executeBatchAction={executeDataImportBatch} />;
 }

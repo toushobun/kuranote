@@ -8,16 +8,11 @@ import {
   transferColumns,
 } from "internal/dataImport/schema";
 import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
+import { buildImportExecutionUnits } from "internal/dataImport/util/analyzeImportFile";
 import type { MerchantImportService } from "internal/merchant";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
-
-const parseImportFileMock = vi.hoisted(() => vi.fn());
-
-vi.mock("internal/dataImport/util/parseImportFile", () => ({
-  parseImportFile: parseImportFileMock,
-}));
 
 function tableRow(
   headers: string[],
@@ -119,25 +114,22 @@ describe("DataImportExecutionService", () => {
     "同名同持有人 %s 的账户按币种匹配收支与转账",
     async (holderUserId) => {
       const holderName = holderUserId ? "淞文" : "";
-      parseImportFileMock.mockResolvedValue({
-        ok: true,
-        tables: [
-          incomeTable([incomeRow({ 账户持有人: holderName })]),
-          transferTable([
-            {
-              交易类型: "转账",
-              日期: "2026-09-17 10:00:00",
-              转出账户: "钱包",
-              转出账户币种: "JPY",
-              转出账户持有人: holderName,
-              转入账户: "银行卡",
-              转入账户币种: "JPY",
-              转入账户持有人: holderName,
-              金额: "100",
-            },
-          ]),
-        ],
-      });
+      const units = buildImportExecutionUnits([
+        incomeTable([incomeRow({ 账户持有人: holderName })]),
+        transferTable([
+          {
+            交易类型: "转账",
+            日期: "2026-09-17 10:00:00",
+            转出账户: "钱包",
+            转出账户币种: "JPY",
+            转出账户持有人: holderName,
+            转入账户: "银行卡",
+            转入账户币种: "JPY",
+            转入账户持有人: holderName,
+            金额: "100",
+          },
+        ]),
+      ]);
       const dependencies = createDependencies();
       vi.mocked(
         dependencies.accountImportService.loadContext,
@@ -155,10 +147,8 @@ describe("DataImportExecutionService", () => {
       const result = await createDataImportExecutionService(
         dependencies,
       ).executeBatch({
-        fileBuffer: new ArrayBuffer(1),
-        fileName: "data.xlsx",
         ledgerId: "ledger-1",
-        offset: 0,
+        units,
         timeZoneOffsetMinutes: -540,
         userId: "user-1",
       });
@@ -185,10 +175,9 @@ describe("DataImportExecutionService", () => {
   it.each([false, true])(
     "币种匹配不存在时创建、同币种仍有歧义时拒绝：%s",
     async (ambiguous) => {
-      parseImportFileMock.mockResolvedValue({
-        ok: true,
-        tables: [incomeTable([incomeRow(), incomeRow({ 商家: "另一个商家" })])],
-      });
+      const units = buildImportExecutionUnits([
+        incomeTable([incomeRow(), incomeRow({ 商家: "另一个商家" })]),
+      ]);
       const dependencies = createDependencies();
       vi.mocked(
         dependencies.accountImportService.loadContext,
@@ -204,10 +193,8 @@ describe("DataImportExecutionService", () => {
       const result = await createDataImportExecutionService(
         dependencies,
       ).executeBatch({
-        fileBuffer: new ArrayBuffer(1),
-        fileName: "data.xlsx",
         ledgerId: "ledger-1",
-        offset: 0,
+        units,
         timeZoneOffsetMinutes: -540,
         userId: "user-1",
       });
@@ -233,18 +220,13 @@ describe("DataImportExecutionService", () => {
   );
 
   it("缺失的分类、商家标签、商家和账户会自动创建后写入交易", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow()])],
-    });
+    const units = buildImportExecutionUnits([incomeTable([incomeRow()])]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -289,20 +271,15 @@ describe("DataImportExecutionService", () => {
       dependencies.transactionImportService.createNormal,
     ).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
-      done: true,
       duplicateCount: 0,
       failureCount: 0,
       processedCount: 1,
       successCount: 1,
-      totalCount: 1,
     });
   });
 
   it("疑似重复仍继续写入并单独统计警告", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow()])],
-    });
+    const units = buildImportExecutionUnits([incomeTable([incomeRow()])]);
     const dependencies = createDependencies();
     vi.mocked(
       dependencies.transactionImportService.hasPossibleNormalDuplicate,
@@ -310,10 +287,8 @@ describe("DataImportExecutionService", () => {
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -333,18 +308,15 @@ describe("DataImportExecutionService", () => {
   });
 
   it("账户持有人匹配不到账本成员时按无持有人继续导入并计入警告", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow({ 账户持有人: "小明" })])],
-    });
+    const units = buildImportExecutionUnits([
+      incomeTable([incomeRow({ 账户持有人: "小明" })]),
+    ]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -371,32 +343,27 @@ describe("DataImportExecutionService", () => {
   });
 
   it("转账两侧持有人都匹配不到账本成员时合并展示提示且仍继续导入", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [
-        transferTable([
-          {
-            交易类型: "转账",
-            日期: "2026-09-17 12:00:00",
-            转出账户: "钱包",
-            转出账户币种: "JPY",
-            转出账户持有人: "小明",
-            转入账户: "银行卡",
-            转入账户币种: "JPY",
-            转入账户持有人: "小红",
-            金额: "5000",
-          },
-        ]),
-      ],
-    });
+    const units = buildImportExecutionUnits([
+      transferTable([
+        {
+          交易类型: "转账",
+          日期: "2026-09-17 12:00:00",
+          转出账户: "钱包",
+          转出账户币种: "JPY",
+          转出账户持有人: "小明",
+          转入账户: "银行卡",
+          转入账户币种: "JPY",
+          转入账户持有人: "小红",
+          金额: "5000",
+        },
+      ]),
+    ]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -411,32 +378,27 @@ describe("DataImportExecutionService", () => {
   });
 
   it("转账两侧持有人是同一个未匹配姓名时提示只展示一次", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [
-        transferTable([
-          {
-            交易类型: "转账",
-            日期: "2026-09-17 12:00:00",
-            转出账户: "钱包",
-            转出账户币种: "JPY",
-            转出账户持有人: "小明",
-            转入账户: "银行卡",
-            转入账户币种: "JPY",
-            转入账户持有人: "小明",
-            金额: "5000",
-          },
-        ]),
-      ],
-    });
+    const units = buildImportExecutionUnits([
+      transferTable([
+        {
+          交易类型: "转账",
+          日期: "2026-09-17 12:00:00",
+          转出账户: "钱包",
+          转出账户币种: "JPY",
+          转出账户持有人: "小明",
+          转入账户: "银行卡",
+          转入账户币种: "JPY",
+          转入账户持有人: "小明",
+          金额: "5000",
+        },
+      ]),
+    ]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -447,10 +409,7 @@ describe("DataImportExecutionService", () => {
   });
 
   it("账本内存在多个同显示名成员时该行判定为失败", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow()])],
-    });
+    const units = buildImportExecutionUnits([incomeTable([incomeRow()])]);
     const dependencies = createDependencies();
     vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
       accounts: [],
@@ -462,10 +421,8 @@ describe("DataImportExecutionService", () => {
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -479,18 +436,15 @@ describe("DataImportExecutionService", () => {
   });
 
   it("缺失二级分类时该行失败，且不会残留新建的一级分类", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow({ 二级分类: "" })])],
-    });
+    const units = buildImportExecutionUnits([
+      incomeTable([incomeRow({ 二级分类: "" })]),
+    ]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -504,10 +458,7 @@ describe("DataImportExecutionService", () => {
   });
 
   it("商家名称歧义时该行失败，且不会残留新建的商家标签", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable([incomeRow()])],
-    });
+    const units = buildImportExecutionUnits([incomeTable([incomeRow()])]);
     const dependencies = createDependencies();
     vi.mocked(dependencies.merchantImportService.loadContext).mockResolvedValue(
       {
@@ -521,10 +472,8 @@ describe("DataImportExecutionService", () => {
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -536,15 +485,12 @@ describe("DataImportExecutionService", () => {
   });
 
   it("单笔数据库失败不会阻断同批次后续记录", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [
-        incomeTable([
-          incomeRow({ 商家: "商家A" }),
-          incomeRow({ 商家: "商家B", 日期: "2026-09-17 11:00:00" }),
-        ]),
-      ],
-    });
+    const units = buildImportExecutionUnits([
+      incomeTable([
+        incomeRow({ 商家: "商家A" }),
+        incomeRow({ 商家: "商家B", 日期: "2026-09-17 11:00:00" }),
+      ]),
+    ]);
     const dependencies = createDependencies();
     vi.mocked(dependencies.transactionImportService.createNormal)
       .mockRejectedValueOnce(
@@ -554,10 +500,8 @@ describe("DataImportExecutionService", () => {
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });
@@ -574,67 +518,49 @@ describe("DataImportExecutionService", () => {
     });
   });
 
-  it("每次只处理固定批次并返回下一批 offset", async () => {
-    const rows = Array.from({ length: 26 }, (_, index) =>
-      incomeRow({
-        日期: `2026-09-17 ${String(index % 24).padStart(2, "0")}:00:00`,
-        商家: `商家${index + 1}`,
-      }),
+  it("只执行传入的这一批单元并返回本批统计", async () => {
+    const rows = Array.from({ length: 3 }, (_, index) =>
+      incomeRow({ 商家: `商家${index + 1}` }),
     );
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [incomeTable(rows)],
-    });
+    const units = buildImportExecutionUnits([incomeTable(rows)]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
       timeZoneOffsetMinutes: 0,
+      units,
       userId: "user-1",
     });
 
-    expect(result).toMatchObject({
-      done: false,
-      nextOffset: 25,
-      processedCount: 25,
-      totalCount: 26,
-    });
+    expect(result).toMatchObject({ processedCount: 3, successCount: 3 });
     expect(
       dependencies.transactionImportService.createNormal,
-    ).toHaveBeenCalledTimes(25);
+    ).toHaveBeenCalledTimes(3);
   });
 
   it("转账按两侧账户创建并调用转账写入接口", async () => {
-    parseImportFileMock.mockResolvedValue({
-      ok: true,
-      tables: [
-        transferTable([
-          {
-            交易类型: "转账",
-            日期: "2026-09-17 12:00:00",
-            转出账户: "钱包",
-            转出账户币种: "JPY",
-            转出账户持有人: "淞文",
-            转入账户: "银行卡",
-            转入账户币种: "JPY",
-            转入账户持有人: "淞文",
-            金额: "5000",
-          },
-        ]),
-      ],
-    });
+    const units = buildImportExecutionUnits([
+      transferTable([
+        {
+          交易类型: "转账",
+          日期: "2026-09-17 12:00:00",
+          转出账户: "钱包",
+          转出账户币种: "JPY",
+          转出账户持有人: "淞文",
+          转入账户: "银行卡",
+          转入账户币种: "JPY",
+          转入账户持有人: "淞文",
+          金额: "5000",
+        },
+      ]),
+    ]);
     const dependencies = createDependencies();
     const service = createDataImportExecutionService(dependencies);
 
     const result = await service.executeBatch({
-      fileBuffer: new ArrayBuffer(1),
-      fileName: "data.xlsx",
       ledgerId: "ledger-1",
-      offset: 0,
+      units,
       timeZoneOffsetMinutes: 0,
       userId: "user-1",
     });

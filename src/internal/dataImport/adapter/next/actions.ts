@@ -1,78 +1,20 @@
 "use server";
 
 import { createRequestContainer } from "internal/container";
-import {
-  parseCheckDataImportFileForm,
-  parseExecuteDataImportBatchForm,
-} from "internal/dataImport/adapter/next/formParser";
+import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import type {
-  DataImportActionState,
-  DataImportBatchActionState,
-} from "types/dataImport";
+import type { DataImportBatchActionState } from "types/dataImport";
 
-function createErrorState<
-  T extends DataImportActionState | DataImportBatchActionState,
->(message: string): T {
-  return { error: message, errorKey: crypto.randomUUID() } as T;
-}
-
-/** 「检查格式」Server Action：只做纯校验，不写入数据库。 */
-export async function checkDataImportFormat(
-  _previousState: DataImportActionState,
-  formData: FormData,
-): Promise<DataImportActionState> {
-  await requireCurrentUserAndLedger();
-
-  const parsed = parseCheckDataImportFileForm(formData);
-  if (!parsed.ok) {
-    return createErrorState(
-      getDataImportErrorMessage(parsed.error) ?? "文件不正确，请确认后重试。",
-    );
-  }
-
-  const fileBuffer = await parsed.value.file.arrayBuffer();
-  let dependencies:
-    | Awaited<ReturnType<typeof createServerRequestDependencies>>
-    | undefined;
-
-  try {
-    dependencies = await createServerRequestDependencies();
-    const service = createRequestContainer(dependencies).dataImport.service;
-    const result = await service.checkFile({
-      fileBuffer,
-      fileName: parsed.value.file.name,
-    });
-
-    return { result };
-  } catch (error) {
-    const logContext = {
-      errorName: error instanceof Error ? error.name : "unknown",
-    };
-    if (dependencies) {
-      dependencies.logger.error(
-        "[dataImport] check format action failed unexpectedly",
-        logContext,
-      );
-    } else {
-      console.error(
-        "[dataImport] check format action failed unexpectedly",
-        logContext,
-      );
-    }
-    return createErrorState(
-      getDataImportErrorMessage("validation_failed") ??
-        "文件检查失败，请稍后重试。",
-    );
-  }
+function createErrorState(message: string): DataImportBatchActionState {
+  return { error: message, errorKey: crypto.randomUUID() };
 }
 
 /**
- * 「开始导入」的单批 Server Action。每次调用都重新确认当前用户与当前账本，
- * 重新解析同一个文件，并且只执行传入 offset 对应的固定批次。
+ * 「开始导入」的单批 Server Action。文件由浏览器端解析，这里每次只接收这一批
+ * 的行数据（JSON），重新校验其结构，并重新确认当前用户与当前账本后执行。
  */
 export async function executeDataImportBatch(
   _previousState: DataImportBatchActionState,
@@ -96,11 +38,9 @@ export async function executeDataImportBatch(
     const container = createRequestContainer(dependencies);
     const service = container.dataImport.createExecutionService(currentLedger);
     const batch = await service.executeBatch({
-      fileBuffer: await parsed.value.file.arrayBuffer(),
-      fileName: parsed.value.file.name,
       ledgerId: currentLedger.id,
-      offset: parsed.value.offset,
       timeZoneOffsetMinutes: parsed.value.timeZoneOffsetMinutes,
+      units: parsed.value.units,
       userId,
     });
     return { batch };
@@ -112,7 +52,6 @@ export async function executeDataImportBatch(
     const logContext = {
       errorName: error instanceof Error ? error.name : "unknown",
       ledgerId: currentLedger.id,
-      offset: parsed.value.offset,
     };
     if (dependencies) {
       dependencies.logger.error(

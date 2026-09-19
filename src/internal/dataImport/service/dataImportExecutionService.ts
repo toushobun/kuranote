@@ -11,6 +11,7 @@ import type {
   ImportExecutionSheetKind,
 } from "internal/dataImport/entity/importExecution";
 import type {
+  ImportExecutionUnit,
   ImportTransactionGroup,
   IncomeExpenseImportRow,
   TransferImportRow,
@@ -19,22 +20,10 @@ import {
   dataImportErrorCodes,
   dataImportExecutionErrorMessages,
 } from "internal/dataImport/errors";
-import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
-import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
-import { parseImportFile } from "internal/dataImport/util/parseImportFile";
-import { parseIncomeExpenseSheet } from "internal/dataImport/util/parseIncomeExpenseSheet";
-import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet";
-import { validateImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
 import type { MerchantImportService } from "internal/merchant";
 import { AppError, ValidationError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
-
-const importBatchSize = 25;
-
-type ImportExecutionUnit =
-  | { group: ImportTransactionGroup; kind: "incomeExpense" }
-  | { kind: "transfer"; row: TransferImportRow };
 
 type DataImportExecutionDependencies = {
   accountImportService: AccountImportService;
@@ -45,53 +34,15 @@ type DataImportExecutionDependencies = {
 };
 
 export type ExecuteImportBatchInput = {
-  fileBuffer: ArrayBuffer;
-  fileName: string;
   ledgerId: string;
-  offset: number;
   timeZoneOffsetMinutes: number;
+  /** 浏览器端已解析好的这一批执行单元，数量不得超过 `importBatchSize`。 */
+  units: ImportExecutionUnit[];
   userId: string;
 };
 
 export interface DataImportExecutionService {
   executeBatch(input: ExecuteImportBatchInput): Promise<ImportBatchResult>;
-}
-
-function executionInvalid(): ValidationError {
-  return new ValidationError(
-    dataImportErrorCodes.executionInvalid,
-    "导入文件或进度信息已变化，请重新检查格式后再导入。",
-  );
-}
-
-async function parseExecutionUnits(
-  fileName: string,
-  fileBuffer: ArrayBuffer,
-): Promise<ImportExecutionUnit[]> {
-  const parsed = await parseImportFile(fileName, fileBuffer);
-  if (!parsed.ok) throw executionInvalid();
-
-  const validation = validateImportWorkbook(parsed.tables);
-  if (!validation.ok) throw executionInvalid();
-
-  const incomeExpenseRows = parsed.tables
-    .filter((table) => detectSheetKind(table.sourceName) === "incomeExpense")
-    .flatMap((table) => parseIncomeExpenseSheet(table).rows);
-  const grouped = groupIncomeExpenseRows(incomeExpenseRows);
-  if (grouped.issues.length > 0) throw executionInvalid();
-
-  const transferRows = parsed.tables
-    .filter((table) => detectSheetKind(table.sourceName) === "transfer")
-    .flatMap((table) => parseTransferSheet(table).rows);
-
-  return [
-    ...grouped.groups.map(
-      (group): ImportExecutionUnit => ({ group, kind: "incomeExpense" }),
-    ),
-    ...transferRows.map(
-      (row): ImportExecutionUnit => ({ kind: "transfer", row }),
-    ),
-  ];
 }
 
 function resolveUniqueByName<T>(
@@ -163,9 +114,9 @@ function accountKey(
 }
 
 /**
- * 小文件导入的同步批处理编排。每次调用重新解析同一个 xlsx，只执行当前 offset
- * 对应的固定批次；每个逻辑交易单独捕获执行期错误，因此一条失败不会回滚已成功
- * 的其它交易。真正脱离浏览器的后台任务不属于本 Service 的职责。
+ * 小文件导入的同步批处理编排。文件由浏览器端解析，每次调用只接收并执行这一批
+ * 已解析好的执行单元；每个逻辑交易单独捕获执行期错误，因此一条失败不会回滚
+ * 已成功的其它交易。真正脱离浏览器的后台任务不属于本 Service 的职责。
  */
 export function createDataImportExecutionService({
   accountImportService,
@@ -175,19 +126,7 @@ export function createDataImportExecutionService({
   transactionImportService,
 }: DataImportExecutionDependencies): DataImportExecutionService {
   return {
-    async executeBatch({
-      fileBuffer,
-      fileName,
-      ledgerId,
-      offset,
-      timeZoneOffsetMinutes,
-      userId,
-    }) {
-      const units = await parseExecutionUnits(fileName, fileBuffer);
-      if (!Number.isInteger(offset) || offset < 0 || offset > units.length) {
-        throw executionInvalid();
-      }
-
+    async executeBatch({ ledgerId, timeZoneOffsetMinutes, units, userId }) {
       const [categoryEntries, merchantContext, accountContext] =
         await Promise.all([
           categoryImportService.listCategories({ ledgerId, userId }),
@@ -467,7 +406,6 @@ export function createDataImportExecutionService({
         };
       }
 
-      const batch = units.slice(offset, offset + importBatchSize);
       const rowResults: ImportExecutionRowResult[] = [];
       const details: ImportExecutionDetail[] = [];
       let successCount = 0;
@@ -475,7 +413,7 @@ export function createDataImportExecutionService({
       let duplicateCount = 0;
       let holderMissingCount = 0;
 
-      for (const unit of batch) {
+      for (const unit of units) {
         try {
           const { duplicate, holderMissingNames } =
             unit.kind === "incomeExpense"
@@ -534,18 +472,14 @@ export function createDataImportExecutionService({
         }
       }
 
-      const nextOffset = offset + batch.length;
       return {
         details,
-        done: nextOffset >= units.length,
         duplicateCount,
         failureCount,
         holderMissingCount,
-        nextOffset,
-        processedCount: batch.length,
+        processedCount: units.length,
         rowResults,
         successCount,
-        totalCount: units.length,
       };
     },
   };

@@ -1,22 +1,57 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  parseCheckDataImportFileForm,
-  parseExecuteDataImportBatchForm,
-} from "internal/dataImport/adapter/next/formParser";
+import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
+import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import { dataImportErrorCodes } from "internal/dataImport/errors";
+import { importBatchSize } from "internal/dataImport/schema";
 
-function buildFormData(
-  file: File | null,
-  offset?: string,
-  timeZoneOffsetMinutes?: string,
-) {
+const incomeExpenseUnit: ImportExecutionUnit = {
+  group: {
+    items: [
+      {
+        accountCurrency: "JPY",
+        accountHolder: null,
+        accountName: "钱包",
+        amount: 1200,
+        billRef: null,
+        childCategoryName: "食材",
+        merchantName: "超市",
+        merchantTag: null,
+        note: null,
+        parentCategoryName: "餐饮",
+        rowNumber: 2,
+        transactionAt: "2026-09-17 10:00:00",
+        transactionType: "expense",
+      },
+    ],
+    rowNumbers: [2],
+  },
+  kind: "incomeExpense",
+};
+
+const transferUnit: ImportExecutionUnit = {
+  kind: "transfer",
+  row: {
+    amount: 100,
+    fromAccountCurrency: "JPY",
+    fromAccountHolder: "淞文",
+    fromAccountName: "钱包",
+    note: "备注",
+    rowNumber: 3,
+    toAccountCurrency: "JPY",
+    toAccountHolder: null,
+    toAccountName: "银行卡",
+    transactionAt: "2026-09-17 10:00:00",
+  },
+};
+
+function buildFormData(units?: unknown, timeZoneOffsetMinutes?: string) {
   const formData = new FormData();
-  if (file) {
-    formData.set("file", file);
-  }
-  if (offset !== undefined) {
-    formData.set("offset", offset);
+  if (units !== undefined) {
+    formData.set(
+      "units",
+      typeof units === "string" ? units : JSON.stringify(units),
+    );
   }
   if (timeZoneOffsetMinutes !== undefined) {
     formData.set("timeZoneOffsetMinutes", timeZoneOffsetMinutes);
@@ -24,93 +59,76 @@ function buildFormData(
   return formData;
 }
 
-describe("parseCheckDataImportFileForm", () => {
-  it("未选择文件时返回 fileRequired", () => {
-    const result = parseCheckDataImportFileForm(buildFormData(null));
-    expect(result).toEqual({
-      error: dataImportErrorCodes.fileRequired,
-      ok: false,
-    });
-  });
-
-  it("空文件（0 字节）视为未选择文件", () => {
-    const file = new File([], "empty.xlsx");
-    const result = parseCheckDataImportFileForm(buildFormData(file));
-    expect(result).toEqual({
-      error: dataImportErrorCodes.fileRequired,
-      ok: false,
-    });
-  });
-
-  it("不支持的扩展名（包括 csv）返回 fileTypeUnsupported", () => {
-    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
-    const result = parseCheckDataImportFileForm(buildFormData(file));
-    expect(result).toEqual({
-      error: dataImportErrorCodes.fileTypeUnsupported,
-      ok: false,
-    });
-  });
-
-  it("超过 10MB 时返回 fileTooLarge", () => {
-    const file = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "big.xlsx");
-    const result = parseCheckDataImportFileForm(buildFormData(file));
-    expect(result).toEqual({
-      error: dataImportErrorCodes.fileTooLarge,
-      ok: false,
-    });
-  });
-
-  it("合法 xlsx 文件（大小写不敏感）解析成功", () => {
-    const file = new File(["binary"], "DATA.XLSX");
-    const result = parseCheckDataImportFileForm(buildFormData(file));
-    expect(result.ok).toBe(true);
-  });
-});
+const executionInvalid = {
+  error: dataImportErrorCodes.executionInvalid,
+  ok: false,
+};
 
 describe("parseExecuteDataImportBatchForm", () => {
-  it("合法文件、非负整数 offset 与时区偏移解析成功", () => {
-    const file = new File(["binary"], "data.xlsx");
+  it("合法的收支与转账单元连同时区偏移一起解析", () => {
     const result = parseExecuteDataImportBatchForm(
-      buildFormData(file, "25", "-540"),
+      buildFormData([incomeExpenseUnit, transferUnit], "-540"),
     );
 
     expect(result).toEqual({
       ok: true,
-      value: { file, offset: 25, timeZoneOffsetMinutes: -540 },
+      value: {
+        timeZoneOffsetMinutes: -540,
+        units: [incomeExpenseUnit, transferUnit],
+      },
     });
   });
 
-  it("offset 缺失、负数或小数时返回 executionInvalid", () => {
-    const file = new File(["binary"], "data.xlsx");
-
-    for (const offset of [undefined, "-1", "1.5", "abc"]) {
-      const result = parseExecuteDataImportBatchForm(
-        buildFormData(file, offset, "-540"),
-      );
-      expect(result).toEqual({
-        error: dataImportErrorCodes.executionInvalid,
-        ok: false,
-      });
-    }
+  it.each([
+    ["缺少 units", undefined],
+    ["units 不是合法 JSON", "{not json"],
+    ["units 不是数组", { kind: "transfer" }],
+    ["units 为空数组", []],
+    [
+      "units 超过单批上限",
+      Array.from({ length: importBatchSize + 1 }, () => transferUnit),
+    ],
+    ["未知的单元类型", [{ kind: "other" }]],
+    [
+      "日期格式不正确",
+      [
+        {
+          ...transferUnit,
+          row: { ...transferUnit.row, transactionAt: "2026-09-17" },
+        },
+      ],
+    ],
+    [
+      "金额为负数",
+      [{ ...transferUnit, row: { ...transferUnit.row, amount: -1 } }],
+    ],
+    [
+      "币种格式不正确",
+      [
+        {
+          ...transferUnit,
+          row: { ...transferUnit.row, fromAccountCurrency: "JPYY" },
+        },
+      ],
+    ],
+    [
+      "收支组没有任何明细",
+      [{ group: { items: [], rowNumbers: [2] }, kind: "incomeExpense" }],
+    ],
+  ])("%s时返回 executionInvalid", (_name, units) => {
+    expect(
+      parseExecuteDataImportBatchForm(buildFormData(units, "-540")),
+    ).toEqual(executionInvalid);
   });
 
-  it("时区偏移缺失、越界或非整数时返回 executionInvalid", () => {
-    const file = new File(["binary"], "data.xlsx");
-
-    for (const timeZoneOffsetMinutes of [
-      undefined,
-      "-841",
-      "841",
-      "1.5",
-      "abc",
-    ]) {
-      const result = parseExecuteDataImportBatchForm(
-        buildFormData(file, "0", timeZoneOffsetMinutes),
-      );
-      expect(result).toEqual({
-        error: dataImportErrorCodes.executionInvalid,
-        ok: false,
-      });
-    }
-  });
+  it.each([undefined, "abc", "1.5", "841", "-841"])(
+    "非法时区偏移 %s 返回 executionInvalid",
+    (timeZoneOffsetMinutes) => {
+      expect(
+        parseExecuteDataImportBatchForm(
+          buildFormData([transferUnit], timeZoneOffsetMinutes),
+        ),
+      ).toEqual(executionInvalid);
+    },
+  );
 });

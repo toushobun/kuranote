@@ -1,9 +1,7 @@
 export const dataImportErrorCodes = {
   executionFailed: "execution_failed",
   executionInvalid: "execution_invalid",
-  fileRequired: "file_required",
   fileTooLarge: "file_too_large",
-  fileTypeUnsupported: "file_type_unsupported",
   ledgerInvalid: "ledger_invalid",
   referenceInvalid: "reference_invalid",
   validationFailed: "validation_failed",
@@ -16,9 +14,7 @@ const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.executionFailed]: "数据导入失败，请稍后重试。",
   [dataImportErrorCodes.executionInvalid]:
     "导入文件或进度信息已变化，请重新检查格式后再导入。",
-  [dataImportErrorCodes.fileRequired]: "请选择要导入的文件。",
-  [dataImportErrorCodes.fileTooLarge]: "文件大小不能超过 10MB。",
-  [dataImportErrorCodes.fileTypeUnsupported]: "仅支持 xlsx 文件。",
+  [dataImportErrorCodes.fileTooLarge]: "文件大小不能超过 50MB。",
   [dataImportErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",
   [dataImportErrorCodes.referenceInvalid]: "导入数据引用的基础资料不正确。",
   [dataImportErrorCodes.validationFailed]: "文件检查失败，请稍后重试。",
