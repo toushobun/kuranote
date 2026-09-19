@@ -2,7 +2,10 @@
 
 import { useRef, useState } from "react";
 import { dataExportPageMessages } from "config/dataImportExportMessages";
-import { dataExportErrorMessages } from "internal/dataExport";
+import {
+  dataExportErrorMessages,
+  IncompleteDataExportError,
+} from "internal/dataExport";
 import type { DataExportAction } from "types/dataExport";
 
 export function useDataExport(exportAction: DataExportAction) {
@@ -42,8 +45,12 @@ export function useDataExport(exportAction: DataExportAction) {
         // 延后释放，给浏览器接管下载留出时间。
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-    } catch {
-      setError(dataExportErrorMessages.downloadFailed);
+    } catch (error) {
+      setError(
+        error instanceof IncompleteDataExportError
+          ? error.message
+          : dataExportErrorMessages.downloadFailed,
+      );
     } finally {
       busy.current = false;
       setIsExporting(false);

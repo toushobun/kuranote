@@ -77,4 +77,26 @@ describe("accountExportQueryService", () => {
     });
     expect(accountRepository.findSummariesByIds).not.toHaveBeenCalled();
   });
+  it("账户超过一批时分批读取账户与持有人，账本级设置只读一次", async () => {
+    const { service, accountRepository } = setup();
+    accountRepository.findSummariesByIds.mockResolvedValue([]);
+    accountRepository.listHolders.mockResolvedValue([]);
+    const accountIds = Array.from({ length: 204 }, (_, index) => `a-${index}`);
+    await service.findExportSummaries({ ...input, accountIds });
+    expect(
+      accountRepository.findSummariesByIds.mock.calls.map(
+        ([, ids]) => ids.length,
+      ),
+    ).toEqual([100, 100, 4]);
+    expect(accountRepository.listDisplaySettings).toHaveBeenCalledTimes(1);
+    expect(accountRepository.listActiveMembers).toHaveBeenCalledTimes(1);
+  });
+  it("没有账户标识时不发起任何仓储查询", async () => {
+    const { service, accountRepository } = setup();
+    await expect(
+      service.findExportSummaries({ ...input, accountIds: [] }),
+    ).resolves.toEqual([]);
+    expect(accountRepository.findSummariesByIds).not.toHaveBeenCalled();
+    expect(accountRepository.listDisplaySettings).not.toHaveBeenCalled();
+  });
 });

@@ -5,7 +5,6 @@ import {
   type ThemeColorKey,
 } from "theme/themeColorTokens";
 import type {
-  AccountData,
   AccountHolderData,
   AccountLedgerMember,
   AccountMemberDisplaySetting,
@@ -23,7 +22,7 @@ type AccountHolderView = {
   user_id: string;
 };
 
-type AccountView = AccountData & {
+type AccountView<T> = T & {
   holders: AccountHolderView[];
 };
 
@@ -33,17 +32,17 @@ type AccountHolderOptionView = {
   user_id: string;
 };
 
-export function buildAccountsWithHolders({
+export function buildAccountsWithHolders<T extends { id: string }>({
   accounts,
   appUserById,
   displayColorByUserId,
   holders,
 }: {
-  accounts: AccountData[];
+  accounts: T[];
   appUserById: Map<string, AccountUser>;
   displayColorByUserId: Map<string, ThemeColorKey>;
   holders: AccountHolderData[];
-}): AccountView[] {
+}): AccountView<T>[] {
   const holdersByAccountId = new Map<string, AccountHolderView[]>();
 
   for (const holder of holders) {

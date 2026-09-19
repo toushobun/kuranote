@@ -83,6 +83,42 @@ describe("dataExportWorkbook", () => {
     expect(cell(sheet, 3, "账户").font.color).toEqual({ argb: "FF3F9FF4" });
   });
 
+  it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
+    const broken = (
+      mutate: (data: ReturnType<typeof createDataExportFixture>) => void,
+    ) => {
+      const data = createDataExportFixture();
+      mutate(data);
+      return buildDataExportWorkbook(data);
+    };
+    const error = { code: "data_export_incomplete" };
+    await expect(
+      broken((d) => {
+        d.categories = [];
+      }),
+    ).rejects.toMatchObject(error);
+    await expect(
+      broken((d) => {
+        d.categories = d.categories.filter((c) => c.id !== "food");
+      }),
+    ).rejects.toMatchObject(error);
+    await expect(
+      broken((d) => {
+        d.accounts = d.accounts.filter((a) => a.id !== "cash");
+      }),
+    ).rejects.toMatchObject(error);
+    await expect(
+      broken((d) => {
+        d.records[1].items[0].balanceDelta = "0";
+      }),
+    ).rejects.toMatchObject(error);
+    await expect(
+      broken((d) => {
+        d.records[1].items = [];
+      }),
+    ).rejects.toMatchObject(error);
+  });
+
   it("空账本也生成三个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
     const workbook = await loadWorkbook(createEmptyDataExport());
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([

@@ -56,7 +56,7 @@ describe("dataExportService", () => {
     );
     expect(accountQueryService.findExportSummaries).not.toHaveBeenCalled();
   });
-  it("关联标识超过一批时分批读取，避免查询 URL 和行数上限", async () => {
+  it("账户标识一次性交给账户查询服务，由其负责分批", async () => {
     const data = createDataExportFixture();
     data.records[0].items = Array.from({ length: 201 }, (_, index) => ({
       ...data.records[0].items[0],
@@ -68,6 +68,6 @@ describe("dataExportService", () => {
       accountQueryService.findExportSummaries.mock.calls.map(
         ([input]) => input.accountIds.length,
       ),
-    ).toEqual([100, 100, 4]);
+    ).toEqual([204]);
   });
 });

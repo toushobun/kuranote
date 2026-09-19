@@ -36,11 +36,12 @@ export function createDataExportService({
       const records = await transactionQueryService.listAllForExport(input);
       const items = records.flatMap((record) => record.items);
       const [accounts, categories, merchants] = await Promise.all([
-        loadReferences(
-          items.map((item) => item.accountId),
-          (accountIds) =>
-            accountQueryService.findExportSummaries({ ...input, accountIds }),
-        ),
+        items.length > 0
+          ? accountQueryService.findExportSummaries({
+              ...input,
+              accountIds: [...new Set(items.map((item) => item.accountId))],
+            })
+          : Promise.resolve([]),
         loadReferences(
           items.flatMap((item) => (item.categoryId ? [item.categoryId] : [])),
           (categoryIds) =>

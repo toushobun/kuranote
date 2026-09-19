@@ -1,12 +1,14 @@
 import type { AccountExportSummary } from "internal/account/entity/accountExportSummary";
 import type { AccountRepository } from "internal/account/repository/accountRepository";
 import { mergeLedgerDisplayNames } from "internal/account/service/read/accountsView";
-import { buildDisplayColorByUserId } from "internal/account/util/accountView";
+import {
+  buildAccountsWithHolders,
+  buildDisplayColorByUserId,
+} from "internal/account/util/accountView";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
 } from "internal/ledger";
-import { getStableFallbackThemeColorKey } from "theme/themeColorTokens";
 
 export interface AccountExportQueryService {
   findExportSummaries(input: {
@@ -36,39 +38,52 @@ export function createAccountExportQueryService({
         ledgerId,
         userId,
       });
-      const [accounts, holders, settings, members] = await Promise.all([
-        accountRepository.findSummariesByIds(ledgerId, accountIds),
-        accountRepository.listHolders(ledgerId, accountIds),
+      const uniqueAccountIds = [...new Set(accountIds)];
+      if (uniqueAccountIds.length === 0) return [];
+      const [settings, members] = await Promise.all([
         accountRepository.listDisplaySettings(ledgerId),
         accountRepository.listActiveMembers(ledgerId),
       ]);
-      const users = mergeLedgerDisplayNames(
-        await accountRepository.listUsers([
-          ...new Set(holders.map((holder) => holder.user_id)),
-        ]),
+      const displayColorByUserId = buildDisplayColorByUserId({
+        members,
         settings,
-      );
-      const userById = new Map(users.map((user) => [user.id, user]));
-      const holderByAccount = new Map(
-        holders.map((holder) => [holder.account_id, holder]),
-      );
-      const colors = buildDisplayColorByUserId({ members, settings });
-      return accounts.map((account) => {
-        const holder = holderByAccount.get(account.id);
-        const user = holder ? userById.get(holder.user_id) : undefined;
-        return {
-          ...account,
-          holder:
-            holder && user
+      });
+      const result: AccountExportSummary[] = [];
+      for (let offset = 0; offset < uniqueAccountIds.length; offset += 100) {
+        const ids = uniqueAccountIds.slice(offset, offset + 100);
+        const [accounts, holders] = await Promise.all([
+          accountRepository.findSummariesByIds(ledgerId, ids),
+          accountRepository.listHolders(ledgerId, ids),
+        ]);
+        const users = mergeLedgerDisplayNames(
+          await accountRepository.listUsers([
+            ...new Set(holders.map((holder) => holder.user_id)),
+          ]),
+          settings,
+        );
+        const accountsWithHolders = buildAccountsWithHolders({
+          accounts,
+          holders,
+          appUserById: new Map(users.map((user) => [user.id, user])),
+          displayColorByUserId,
+        });
+        for (const {
+          holders: accountHolders,
+          ...account
+        } of accountsWithHolders) {
+          const holder = accountHolders[0];
+          result.push({
+            ...account,
+            holder: holder
               ? {
-                  name: user.display_name,
-                  displayColor:
-                    colors.get(holder.user_id) ??
-                    getStableFallbackThemeColorKey(holder.user_id),
+                  name: holder.display_name,
+                  displayColor: holder.display_color,
                 }
               : null,
-        };
-      });
+          });
+        }
+      }
+      return result;
     },
   };
 }
