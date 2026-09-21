@@ -49,6 +49,19 @@ const transferUnit: ImportExecutionUnit = {
   },
 };
 
+const balanceAdjustmentUnit: ImportExecutionUnit = {
+  kind: "balanceAdjustment",
+  row: {
+    accountCurrency: "JPY",
+    accountHolder: "淞文",
+    accountName: "现金",
+    amount: -20.5,
+    note: null,
+    rowNumber: 4,
+    transactionAt: "2026-09-17 10:00:00",
+  },
+};
+
 function buildFormData(units?: unknown, timeZoneOffsetMinutes?: string) {
   const formData = new FormData();
   if (units !== undefined) {
@@ -81,6 +94,27 @@ describe("parseExecuteDataImportBatchForm", () => {
         units: [incomeExpenseUnit, transferUnit],
       },
     });
+  });
+
+  it("余额变更单元保留带符号差值", () => {
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData([balanceAdjustmentUnit], "-540"),
+      ),
+    ).toEqual({
+      ok: true,
+      value: { timeZoneOffsetMinutes: -540, units: [balanceAdjustmentUnit] },
+    });
+  });
+
+  it.each([0, 1e12, -1e12, 1.234])("拒绝非法的余额变更金额 %s", (amount) => {
+    const unit = {
+      ...balanceAdjustmentUnit,
+      row: { ...balanceAdjustmentUnit.row, amount },
+    };
+    expect(parseExecuteDataImportBatchForm(buildFormData([unit], "0"))).toEqual(
+      executionInvalid,
+    );
   });
 
   it.each([

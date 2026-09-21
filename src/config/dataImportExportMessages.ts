@@ -53,8 +53,9 @@ export const dataImportFormatDescriptionMessages = {
   billRefHint:
     "「账单关联」列相同的多行中，除第一次出现的行外，日期、账户、账户持有人、账户币种、商家、商家分类、备注需填写「-」以继承首次出现那行的值（也可以原样复述该行内容）；「交易类型」不同则各自独立成交易。",
   balanceAdjustmentHint:
-    "「余额变更」表本期暂不支持导入，识别到会在结果中提示并跳过，不影响其余表格。",
+    "「余额变更」的金额为带符号差值：正数增加余额，负数减少余额，不能为 0。按收支、转账、余额变更的顺序导入。",
   incomeExpenseColumnsTitle: "「收支」表列名（*为必填）",
+  balanceAdjustmentColumnsTitle: "「余额变更」表列名（*为必填）",
   transferColumnsTitle: "「转账」表列名（*为必填）",
 } as const;
 
@@ -66,8 +67,7 @@ export const dataImportFileFieldMessages = {
 } as const;
 
 export const dataImportResultMessages = {
-  balanceAdjustmentDetectedNotice:
-    "另识别到「余额变更」表，本期暂不支持导入，已跳过。",
+  balanceAdjustmentCountLabel: (count: number) => `余额变更记录 ${count} 笔`,
   failureTitle: "格式检查未通过",
   incomeExpenseCountLabel: (count: number) => `收支记录 ${count} 笔`,
   issueRowLabel: (rowNumber: number) => `第 ${rowNumber} 行`,

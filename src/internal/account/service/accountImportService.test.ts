@@ -8,12 +8,14 @@ function createService(overrides: Partial<AccountService> = {}) {
   const getView = vi.fn(async () => ({
     accounts: [
       {
+        is_archived: false,
         currency: "JPY",
         holders: [{ user_id: "user-1" }],
         id: "account-1",
         name: "钱包",
       },
       {
+        is_archived: false,
         currency: "JPY",
         holders: [],
         id: "account-2",
@@ -86,12 +88,14 @@ describe("AccountImportService", () => {
     expect(context).toEqual({
       accounts: [
         {
+          isArchived: false,
           currency: "JPY",
           holderUserId: "user-1",
           id: "account-1",
           name: "钱包",
         },
         {
+          isArchived: false,
           currency: "JPY",
           holderUserId: null,
           id: "account-2",

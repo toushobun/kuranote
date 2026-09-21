@@ -27,12 +27,23 @@ export type TransferImportRow = {
   transactionAt: string;
 };
 
+export type BalanceAdjustmentImportRow = {
+  accountCurrency: string;
+  accountHolder: string | null;
+  accountName: string;
+  amount: number;
+  note: string | null;
+  rowNumber: number;
+  transactionAt: string;
+};
+
 export type ImportTransactionGroup = {
   items: IncomeExpenseImportRow[];
   rowNumbers: number[];
 };
 
-/** 导入执行的最小单位：一个收支交易组，或一条转账。 */
+/** 导入执行的最小单位：一个收支交易组，或一条转账、余额变更。 */
 export type ImportExecutionUnit =
   | { group: ImportTransactionGroup; kind: "incomeExpense" }
-  | { kind: "transfer"; row: TransferImportRow };
+  | { kind: "transfer"; row: TransferImportRow }
+  | { kind: "balanceAdjustment"; row: BalanceAdjustmentImportRow };

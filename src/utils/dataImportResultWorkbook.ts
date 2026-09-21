@@ -47,7 +47,11 @@ export async function buildDataImportResultWorkbook(
     resultsBySheet.set(result.sheet, rows);
   }
 
-  const sheetKinds: ImportExecutionSheetKind[] = ["incomeExpense", "transfer"];
+  const sheetKinds: ImportExecutionSheetKind[] = [
+    "incomeExpense",
+    "transfer",
+    "balanceAdjustment",
+  ];
   for (const sheetKind of sheetKinds) {
     // 与 detectSheetKind 保持一致按 trim 后的名称匹配，避免原表 sheet 名带有
     // 多余空格时，导入本身成功但结果文件因精确匹配失败而漏写该表的结果列。

@@ -1297,6 +1297,54 @@ $$;
 ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_archived boolean;
+    v_record_id uuid;
+begin
+    if v_user_id is null then
+        raise exception 'not_authenticated' using errcode='28000', detail='not_authenticated';
+    end if;
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden' using errcode='42501', detail='ledger_forbidden';
+    end if;
+    if p_signed_delta is null or p_signed_delta::text in ('NaN','Infinity','-Infinity')
+       or p_signed_delta = 0 or abs(p_signed_delta) >= 1000000000000
+       or p_signed_delta <> round(p_signed_delta,2) then
+        raise exception 'amount_invalid' using errcode='22023', detail='amount_invalid';
+    end if;
+    if p_transaction_at is null or not isfinite(p_transaction_at) then
+        raise exception 'transaction_at_invalid' using errcode='22023', detail='transaction_at_invalid';
+    end if;
+    if length(p_note) > 2000 then
+        raise exception 'note_too_long' using errcode='22023', detail='note_too_long';
+    end if;
+    select is_archived into v_archived from public.account
+    where id=p_account_id and ledger_id=p_ledger_id for update;
+    if not found then
+        raise exception 'account_invalid' using errcode='22023', detail='account_invalid';
+    end if;
+    if v_archived then
+        raise exception 'balance_adjustment_account_archived' using errcode='22023', detail='balance_adjustment_account_archived';
+    end if;
+    insert into public.transaction_record(ledger_id,type,transaction_at,note,created_by,updated_by)
+    values(p_ledger_id,'balance_adjustment',p_transaction_at,nullif(btrim(p_note),''),v_user_id,v_user_id)
+    returning id into v_record_id;
+    insert into public.transaction_item(ledger_id,transaction_record_id,account_id,amount,balance_delta,created_by,updated_by)
+    values(p_ledger_id,v_record_id,p_account_id,abs(p_signed_delta),p_signed_delta,v_user_id,v_user_id);
+    perform public.apply_account_balance_delta(p_ledger_id,p_account_id,p_signed_delta,v_user_id);
+    return v_record_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text" DEFAULT 'member'::"text") RETURNS TABLE("invite_id" "uuid", "token" "text", "ledger_name" "text", "invite_role" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -8998,6 +9046,11 @@ GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p
 
 REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text") TO "authenticated";
 
 
 

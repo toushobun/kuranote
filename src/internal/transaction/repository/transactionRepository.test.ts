@@ -136,6 +136,65 @@ describe("TransactionRepository", () => {
       message: "该账户已归档，无法撤销余额调整",
     });
   });
+  describe("创建余额变更", () => {
+    const adjustmentInput = {
+      accountId,
+      ledgerId,
+      note: null,
+      signedDelta: -20,
+      transactionAt: "2026-06-04T01:00:00.000Z",
+    };
+    it("提交带符号差值到原子 RPC", async () => {
+      const { repository, rpc } = createRepository();
+      await repository.createBalanceAdjustment(adjustmentInput);
+      expect(rpc).toHaveBeenCalledExactlyOnceWith(
+        "create_balance_adjustment_transaction",
+        {
+          p_ledger_id: ledgerId,
+          p_account_id: accountId,
+          p_signed_delta: -20,
+          p_transaction_at: "2026-06-04T01:00:00.000Z",
+          p_note: null,
+        },
+      );
+    });
+    it.each([
+      [
+        "balance_adjustment_account_archived",
+        "该账户已归档，无法导入余额变更。",
+      ],
+      [
+        "amount_invalid",
+        "余额变更金额必须非零、绝对值小于 1 万亿且最多两位小数。",
+      ],
+    ])(
+      "数据库 %s 转成安全校验错误且不泄露原始信息",
+      async (details, message) => {
+        const { repository } = createRepository({
+          rpc: vi.fn().mockResolvedValue({
+            error: {
+              code: "22023",
+              details,
+              message: "private database details",
+            },
+          }),
+        });
+        await expect(
+          repository.createBalanceAdjustment(adjustmentInput),
+        ).rejects.toMatchObject({ name: "ValidationError", message });
+      },
+    );
+    it("其他数据库失败转成仓储错误", async () => {
+      const { repository } = createRepository({
+        rpc: vi.fn().mockResolvedValue({
+          error: { code: "XX000", details: "boom", message: "private" },
+        }),
+      });
+      await expect(
+        repository.createBalanceAdjustment(adjustmentInput),
+      ).rejects.toBeInstanceOf(RepositoryError);
+    });
+  });
   it("普通交易创建继续调用原子 RPC", async () => {
     const { repository, rpc } = createRepository();
     await repository.createNormal(normalInput);

@@ -17,7 +17,7 @@ export type ImportRowIssue = {
 export type ImportValidationIssue = ImportStructuralIssue | ImportRowIssue;
 
 export type ImportValidationSummary = {
-  balanceAdjustmentDetected: boolean;
+  balanceAdjustmentCount: number;
   incomeExpenseCount: number;
   transferCount: number;
 };

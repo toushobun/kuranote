@@ -99,6 +99,7 @@ describe("AccountService", () => {
         currency: "JPY",
         current_balance: "1000",
         id: accountId,
+        is_archived: false,
         initial_balance: "1000",
         name: "现金",
         sort_order: 0,
@@ -152,8 +153,17 @@ describe("AccountService", () => {
         }),
       ]),
     );
-    expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId);
+    expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId, undefined);
     expect(repository.listHolders).toHaveBeenCalledWith(ledgerId, [accountId]);
+  });
+
+  it("includeArchived 透传给仓储以读取归档账户", async () => {
+    const repository = createRepository();
+    const service = createService(repository);
+
+    await service.getView({ ledgerId, userId, includeArchived: true });
+
+    expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId, true);
   });
 
   it("非 active 成员在读取账户数据前被账本窄接口拒绝", async () => {

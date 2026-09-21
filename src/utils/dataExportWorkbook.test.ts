@@ -2,6 +2,7 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import {
+  analyzeImportFile,
   importColumnsBySheetKind,
   importSheetKindLabels,
 } from "internal/dataImport";
@@ -106,6 +107,59 @@ describe("dataExportWorkbook", () => {
       expect(workbook.getWorksheet("转账")!.rowCount).toBe(1);
     },
   );
+
+  it("只含余额变更（含非零初始余额）的导出文件可直接导入，差值总和与导出前账户余额一致", async () => {
+    const data = createDataExportFixture();
+    const [, , adjustment] = data.records;
+    const adjustmentOf = (
+      id: string,
+      accountId: string,
+      balanceDelta: string,
+      note: string,
+    ) => ({
+      ...adjustment,
+      id,
+      note,
+      items: [
+        {
+          ...adjustment.items[0],
+          accountId,
+          amount: balanceDelta.replace("-", ""),
+          balanceDelta,
+        },
+      ],
+    });
+    data.records = [
+      adjustmentOf("initial", "cash", "1000", "初始余额"),
+      adjustmentOf("plus", "cash", "7.00", "盘点"),
+      adjustmentOf("minus", "cash", "-20.5", ""),
+      adjustmentOf("no-holder", "none", "-12.34", ""),
+    ];
+    const file = new File([await buildDataExportWorkbook(data)], "export.xlsx");
+
+    const { result, units } = await analyzeImportFile(file);
+
+    expect(result).toMatchObject({
+      ok: true,
+      summary: {
+        balanceAdjustmentCount: 4,
+        incomeExpenseCount: 0,
+        transferCount: 0,
+      },
+    });
+    const balances = new Map<string, number>();
+    for (const unit of units) {
+      if (unit.kind !== "balanceAdjustment") throw new Error("意外的单元");
+      const key = `${unit.row.accountName}/${unit.row.accountHolder}`;
+      balances.set(key, (balances.get(key) ?? 0) + unit.row.amount);
+    }
+    expect(
+      [...balances.values()].map((v) => Math.round(v * 100) / 100),
+    ).toEqual([986.5, -12.34]);
+    expect(units[0]).toMatchObject({
+      row: { amount: 1000, note: "初始余额" },
+    });
+  });
 
   it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
     const broken = (

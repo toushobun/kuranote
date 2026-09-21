@@ -13,6 +13,7 @@ import {
   parseIncomeExpenseSheet,
   type IncomeExpenseSheetRow,
 } from "internal/dataImport/util/parseIncomeExpenseSheet";
+import { parseBalanceAdjustmentSheet } from "internal/dataImport/util/parseBalanceAdjustmentSheet";
 import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet";
 
 /**
@@ -20,9 +21,7 @@ import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet"
  * 分别解析并校验，最终汇总为一个 ImportValidationResult。不匹配这三个名字的
  * 工作表忽略，不算错误。
  *
- * 「收支」「转账」至少要存在一个，否则视为结构性错误。「余额变更」sheet 只做
- * 识别、不解析内容（#755 完成前本期不支持），识别到本身不算失败，会体现在
- * 成功结果的 `balanceAdjustmentDetected` 里。
+ * 三种 sheet 至少存在一个，否则视为结构性错误。
  */
 export function validateImportWorkbook(
   tables: ParsedTable[],
@@ -32,7 +31,7 @@ export function validateImportWorkbook(
 
 export type AnalyzeImportWorkbookResult = {
   result: ImportValidationResult;
-  /** 仅在校验通过时非空：按「收支」再「转账」的顺序展开的全部执行单元。 */
+  /** 仅在校验通过时非空：按「收支」「转账」「余额变更」的顺序展开的全部执行单元。 */
   units: ImportExecutionUnit[];
 };
 
@@ -58,7 +57,7 @@ export function analyzeImportWorkbook(
   const issues: ImportValidationIssue[] = [];
   const incomeExpenseTables: ParsedTable[] = [];
   const transferTables: ParsedTable[] = [];
-  let balanceAdjustmentDetected = false;
+  const balanceAdjustmentTables: ParsedTable[] = [];
 
   for (const table of tables) {
     const kind = detectSheetKind(table.sourceName);
@@ -68,14 +67,18 @@ export function analyzeImportWorkbook(
     } else if (kind === "transfer") {
       transferTables.push(table);
     } else if (kind === "balanceAdjustment") {
-      balanceAdjustmentDetected = true;
+      balanceAdjustmentTables.push(table);
     }
   }
 
-  if (incomeExpenseTables.length === 0 && transferTables.length === 0) {
+  if (
+    incomeExpenseTables.length === 0 &&
+    transferTables.length === 0 &&
+    balanceAdjustmentTables.length === 0
+  ) {
     issues.push({
       kind: "structural",
-      message: "未找到「收支」或「转账」表，无法导入。",
+      message: "未找到「收支」「转账」或「余额变更」表，无法导入。",
     });
   }
 
@@ -96,6 +99,12 @@ export function analyzeImportWorkbook(
     transferRows.push(...result.rows);
   }
 
+  const balanceAdjustmentRows = balanceAdjustmentTables.flatMap((table) => {
+    const parsed = parseBalanceAdjustmentSheet(table);
+    issues.push(...parsed.issues);
+    return parsed.rows;
+  });
+
   if (issues.length > 0) {
     return { result: { issues, ok: false }, units: [] };
   }
@@ -104,7 +113,7 @@ export function analyzeImportWorkbook(
     result: {
       ok: true,
       summary: {
-        balanceAdjustmentDetected,
+        balanceAdjustmentCount: balanceAdjustmentRows.length,
         incomeExpenseCount: grouped.groups.length,
         transferCount: transferRows.length,
       },
@@ -115,6 +124,9 @@ export function analyzeImportWorkbook(
       ),
       ...transferRows.map(
         (row): ImportExecutionUnit => ({ kind: "transfer", row }),
+      ),
+      ...balanceAdjustmentRows.map(
+        (row): ImportExecutionUnit => ({ kind: "balanceAdjustment", row }),
       ),
     ],
   };

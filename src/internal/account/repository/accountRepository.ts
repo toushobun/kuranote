@@ -22,6 +22,7 @@ type AccountRow = {
   current_balance: number | string;
   id: string;
   initial_balance: number | string;
+  is_archived: boolean;
   name: string;
   sort_order: number;
   type: AccountType;
@@ -61,6 +62,7 @@ export type AccountData = {
   current_balance: number | string;
   id: string;
   initial_balance: number | string;
+  is_archived: boolean;
   name: string;
   sort_order: number;
   type: AccountType;
@@ -136,7 +138,10 @@ export interface AccountRepository {
   ): Promise<AccountSummary[]>;
   findActiveLedger(ledgerId: string): Promise<AccountLedgerSummary | null>;
   isActiveAccount(ledgerId: string, accountId: string): Promise<boolean>;
-  listAccounts(ledgerId: string): Promise<AccountData[]>;
+  listAccounts(
+    ledgerId: string,
+    includeArchived?: boolean,
+  ): Promise<AccountData[]>;
   listActiveMembers(ledgerId: string): Promise<AccountLedgerMember[]>;
   listDisplaySettings(ledgerId: string): Promise<AccountMemberDisplaySetting[]>;
   listHolders(
@@ -311,16 +316,18 @@ export function createSupabaseAccountRepository(
       return Boolean(data);
     },
 
-    async listAccounts(ledgerId) {
-      const { data, error } = await supabase
+    async listAccounts(ledgerId, includeArchived = false) {
+      let query = supabase
         .from("account")
         .select(
-          "id, name, type, currency, initial_balance, current_balance, sort_order, created_at",
+          "id, name, type, currency, initial_balance, current_balance, sort_order, created_at, is_archived",
         )
         .eq("ledger_id", ledgerId)
-        .eq("is_archived", false)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
+
+      if (!includeArchived) query = query.eq("is_archived", false);
+      const { data, error } = await query;
 
       if (error) {
         logError("failed to load accounts", error, { ledgerId });
@@ -336,6 +343,7 @@ export function createSupabaseAccountRepository(
         current_balance: row.current_balance,
         id: row.id,
         initial_balance: row.initial_balance,
+        is_archived: row.is_archived,
         name: row.name,
         sort_order: row.sort_order,
         type: row.type,

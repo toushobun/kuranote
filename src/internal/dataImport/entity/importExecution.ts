@@ -1,9 +1,6 @@
 import type { ImportSheetKind } from "internal/dataImport/entity/importSheetKind";
 
-export type ImportExecutionSheetKind = Exclude<
-  ImportSheetKind,
-  "balanceAdjustment"
->;
+export type ImportExecutionSheetKind = ImportSheetKind;
 
 export type ImportExecutionRowStatus =
   | "duplicate"

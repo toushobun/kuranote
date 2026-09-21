@@ -25,11 +25,47 @@ export function makeAnalyzeImportFileResult(count: number) {
     result: {
       ok: true as const,
       summary: {
-        balanceAdjustmentDetected: false,
+        balanceAdjustmentCount: 0,
         incomeExpenseCount: 0,
         transferCount: count,
       },
     },
     units,
+  };
+}
+
+export function makeBalanceAdjustmentTable(
+  overrides: Record<string, string>[] = [{}],
+) {
+  const headerRow = [
+    "交易类型",
+    "日期",
+    "记账人",
+    "账户",
+    "账户币种",
+    "账户持有人",
+    "金额",
+    "备注",
+  ];
+  return {
+    sourceName: "余额变更",
+    headerRow,
+    rows: overrides.map((override, index) => {
+      const values: Record<string, string> = {
+        交易类型: "余额变更",
+        日期: "2026-01-05 12:00:00",
+        记账人: "不会被读取",
+        账户: "现金",
+        账户币种: "JPY",
+        账户持有人: "",
+        金额: "100",
+        备注: "初始余额",
+        ...override,
+      };
+      return {
+        rowNumber: index + 2,
+        cells: headerRow.map((name) => values[name]),
+      };
+    }),
   };
 }

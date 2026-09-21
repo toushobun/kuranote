@@ -23,6 +23,11 @@ import {
 import type { MerchantImportService } from "internal/merchant";
 import { AppError, ValidationError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
+import {
+  balanceAdjustmentErrorMessages,
+  transactionErrorCodes,
+} from "internal/transaction";
+import type { BalanceAdjustmentImportRow } from "internal/dataImport/entity/importRow";
 import type { TransactionImportService } from "internal/transaction";
 
 type DataImportExecutionDependencies = {
@@ -64,6 +69,8 @@ function unitContent(unit: ImportExecutionUnit): string {
     return `${unit.row.transactionAt} ${unit.row.fromAccountName} → ${unit.row.toAccountName} ${unit.row.amount}`;
   }
 
+  if (unit.kind === "balanceAdjustment")
+    return `${unit.row.transactionAt} ${unit.row.accountName} ${unit.row.amount > 0 ? "+" : ""}${unit.row.amount}`;
   const first = unit.group.items[0];
   const total = unit.group.items.reduce((sum, item) => sum + item.amount, 0);
   return `${first.transactionAt} ${first.merchantName} ${total}`;
@@ -180,6 +187,7 @@ export function createDataImportExecutionService({
       }
 
       async function resolveAccount(input: {
+        rejectArchived?: boolean;
         currency: string;
         holderName: string | null;
         name: string;
@@ -187,7 +195,18 @@ export function createDataImportExecutionService({
         const { missingName: holderMissingName, userId: holderUserId } =
           await resolveHolderUserId(input.holderName);
         const key = accountKey(input.name, holderUserId, input.currency);
-        const matches = accountByKey.get(key) ?? [];
+        const candidates = accountByKey.get(key) ?? [];
+        const matches = candidates.filter((account) => !account.isArchived);
+        if (
+          input.rejectArchived &&
+          matches.length === 0 &&
+          candidates.length > 0
+        ) {
+          throw new ValidationError(
+            transactionErrorCodes.balanceAdjustmentAccountArchived,
+            balanceAdjustmentErrorMessages.archivedCreate,
+          );
+        }
         if (matches.length > 1) {
           throw new ValidationError(
             dataImportErrorCodes.referenceInvalid,
@@ -206,6 +225,7 @@ export function createDataImportExecutionService({
           userId,
         });
         const account = {
+          isArchived: false,
           currency: input.currency,
           holderUserId,
           id: created.accountId,
@@ -373,6 +393,32 @@ export function createDataImportExecutionService({
         };
       }
 
+      async function executeBalanceAdjustment(row: BalanceAdjustmentImportRow) {
+        const { account, holderMissingName } = await resolveAccount({
+          rejectArchived: true,
+          currency: row.accountCurrency,
+          holderName: row.accountHolder,
+          name: row.accountName,
+        });
+        const input = {
+          accountId: account.id,
+          ledgerId,
+          note: row.note,
+          timeZoneOffsetMinutes,
+          transactionAt: row.transactionAt,
+          signedDelta: row.amount,
+        };
+        const duplicate =
+          await transactionImportService.hasPossibleBalanceAdjustmentDuplicate(
+            input,
+          );
+        await transactionImportService.createBalanceAdjustment(input);
+        return {
+          duplicate,
+          holderMissingNames: holderMissingName ? [holderMissingName] : [],
+        };
+      }
+
       async function executeTransfer(row: TransferImportRow) {
         const { account: fromAccount, holderMissingName: fromHolderMissing } =
           await resolveAccount({
@@ -418,7 +464,9 @@ export function createDataImportExecutionService({
           const { duplicate, holderMissingNames } =
             unit.kind === "incomeExpense"
               ? await executeIncomeExpense(unit.group)
-              : await executeTransfer(unit.row);
+              : unit.kind === "transfer"
+                ? await executeTransfer(unit.row)
+                : await executeBalanceAdjustment(unit.row);
           successCount += 1;
           if (holderMissingNames.length > 0) {
             holderMissingCount += 1;

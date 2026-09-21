@@ -36,6 +36,7 @@ import {
 export type AccountsView = Awaited<ReturnType<typeof buildAccountsView>>;
 
 export type GetAccountsViewInput = {
+  includeArchived?: boolean;
   ledgerId: string;
   userId: string;
 };
@@ -288,12 +289,12 @@ export function createAccountService({
       );
     },
 
-    async getView({ ledgerId, userId }) {
+    async getView({ ledgerId, userId, includeArchived }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
       const [ledger, members, accounts, displaySettings] = await Promise.all([
         accountRepository.findActiveLedger(ledgerId),
         accountRepository.listActiveMembers(ledgerId),
-        accountRepository.listAccounts(ledgerId),
+        accountRepository.listAccounts(ledgerId, includeArchived),
         accountRepository.listDisplaySettings(ledgerId),
       ]);
 

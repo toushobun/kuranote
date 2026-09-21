@@ -1,9 +1,15 @@
 import {
+  createBalanceAdjustmentSchema,
+  type CreateBalanceAdjustmentInput,
   updateBalanceAdjustmentRequestSchema,
   type UpdateBalanceAdjustmentInput,
 } from "internal/transaction/schema";
 import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
-import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
+import {
+  canManageMasterData,
+  canModifyTransaction,
+  canWriteTransaction,
+} from "internal/ledger";
 import type { CurrentLedger } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
@@ -95,6 +101,7 @@ export type TransactionServiceDependencies = {
 };
 
 export interface TransactionService {
+  createBalanceAdjustment(input: CreateBalanceAdjustmentInput): Promise<void>;
   updateBalanceAdjustment(input: UpdateBalanceAdjustmentInput): Promise<void>;
   canModify(input: {
     ledgerId: string;
@@ -374,6 +381,29 @@ export function createTransactionService({
       await validateSpecialStatuses(input);
       try {
         await transactionRepository.createNormal(input);
+      } catch (error) {
+        operationError(error, transactionErrorCodes.createFailed);
+      }
+    },
+
+    async createBalanceAdjustment(input) {
+      const { role } = await requireWritePermission(input.ledgerId);
+      if (!canManageMasterData(role)) throw permissionError();
+      const parsed = createBalanceAdjustmentSchema.safeParse(input);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        const code =
+          issue.path[0] === "signedDelta"
+            ? transactionErrorCodes.amountInvalid
+            : issue.path[0] === "note"
+              ? transactionErrorCodes.noteTooLong
+              : issue.path[0] === "transactionAt"
+                ? transactionErrorCodes.dateInvalid
+                : transactionErrorCodes.accountInvalid;
+        throw new ValidationError(code, issue.message);
+      }
+      try {
+        await transactionRepository.createBalanceAdjustment(parsed.data);
       } catch (error) {
         operationError(error, transactionErrorCodes.createFailed);
       }
