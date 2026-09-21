@@ -26,6 +26,7 @@ function createRepository(
 ): TransactionServiceDependencies["transactionRepository"] {
   return {
     convert: vi.fn(),
+    createBalanceAdjustment: vi.fn(),
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
     isSpecialStatusEnabled: vi.fn().mockResolvedValue(true),
@@ -822,5 +823,59 @@ describe("余额调整编辑和撤销", () => {
       ledgerId,
       transactionRecordId,
     );
+  });
+});
+
+describe("创建余额变更（导入）", () => {
+  const accountId = "00000000-0000-4000-8000-000000000045";
+  const input = {
+    accountId,
+    ledgerId,
+    note: "初始余额",
+    signedDelta: -20.5,
+    transactionAt: "2026-01-05T03:00:00.000Z",
+  };
+
+  it("管理员合法差值直接提交给仓储", async () => {
+    const { service, repository } = createService("owner");
+    await service.createBalanceAdjustment(input);
+    expect(repository.createBalanceAdjustment).toHaveBeenCalledExactlyOnceWith(
+      input,
+    );
+  });
+
+  it("普通成员没有管理权限，拒绝写入", async () => {
+    const { service, repository } = createService("member");
+    await expect(service.createBalanceAdjustment(input)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+    expect(repository.createBalanceAdjustment).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["零差值", { signedDelta: 0 }, transactionErrorCodes.amountInvalid],
+    [
+      "超过两位小数",
+      { signedDelta: 1.234 },
+      transactionErrorCodes.amountInvalid,
+    ],
+    ["超过上限", { signedDelta: 1e12 }, transactionErrorCodes.amountInvalid],
+    [
+      "备注过长",
+      { note: "字".repeat(2001) },
+      transactionErrorCodes.noteTooLong,
+    ],
+    [
+      "时间格式不正确",
+      { transactionAt: "2026-01-05" },
+      transactionErrorCodes.dateInvalid,
+    ],
+    ["账户 id 非法", { accountId: "x" }, transactionErrorCodes.accountInvalid],
+  ])("服务端重新校验：%s", async (_name, patch, code) => {
+    const { service, repository } = createService("owner");
+    await expect(
+      service.createBalanceAdjustment({ ...input, ...patch }),
+    ).rejects.toMatchObject({ code, name: ValidationError.name });
+    expect(repository.createBalanceAdjustment).not.toHaveBeenCalled();
   });
 });

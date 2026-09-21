@@ -10,6 +10,7 @@ import {
   importCurrencyPattern,
   importNoteMaxLength,
 } from "internal/dataImport/schema";
+import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 import {
   invalid,
@@ -104,6 +105,28 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
     kind: z.literal("incomeExpense"),
   }),
   z.object({ kind: z.literal("transfer"), row: transferRowSchema }),
+  z.object({
+    kind: z.literal("balanceAdjustment"),
+    row: z.object({
+      accountCurrency: currencySchema,
+      accountHolder: holderSchema,
+      accountName: nameSchema,
+      amount: z
+        .number()
+        .finite()
+        .refine(
+          (value) =>
+            Math.abs(value) < 1e12 &&
+            parseImportAmount(String(value), {
+              allowNegative: true,
+              allowZero: false,
+            }).ok,
+        ),
+      note: noteSchema,
+      rowNumber: rowNumberSchema,
+      transactionAt: transactionAtSchema,
+    }),
+  }),
 ]);
 
 const unitsSchema = z.array(executionUnitSchema).min(1).max(importBatchSize);

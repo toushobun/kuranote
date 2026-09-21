@@ -51,8 +51,11 @@ describe("DataImportTemplate", () => {
       screen.getByRole("link", { name: "返回数据导入导出" }),
     ).toHaveAttribute("href", "/settings/data");
     expect(screen.getByText("文件格式要求")).toBeInTheDocument();
-    expect(screen.getByText("账户*")).toBeInTheDocument();
+    expect(screen.getAllByText("账户*")).toHaveLength(2);
     expect(screen.getByText("转出账户*")).toBeInTheDocument();
+    expect(
+      screen.getByText("「余额变更」表列名（*为必填）"),
+    ).toBeInTheDocument();
   });
 
   it("未选择文件时提交按钮禁用", () => {
@@ -88,7 +91,7 @@ describe("DataImportTemplate", () => {
     mockValidationResult({
       ok: true,
       summary: {
-        balanceAdjustmentDetected: true,
+        balanceAdjustmentCount: 1,
         incomeExpenseCount: 3,
         transferCount: 1,
       },
@@ -103,16 +106,15 @@ describe("DataImportTemplate", () => {
     expect(
       screen.getByRole("button", { name: "开始导入" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("另识别到「余额变更」表，本期暂不支持导入，已跳过。"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/余额变更记录 1 笔/)).toBeInTheDocument();
+    expect(screen.queryByText(/暂不支持/)).not.toBeInTheDocument();
   });
 
   it("开始导入后调用批处理 Action 并展示完成汇总", async () => {
     mockValidationResult({
       ok: true,
       summary: {
-        balanceAdjustmentDetected: false,
+        balanceAdjustmentCount: 0,
         incomeExpenseCount: 1,
         transferCount: 0,
       },
@@ -151,7 +153,7 @@ describe("DataImportTemplate", () => {
     mockValidationResult({
       ok: true,
       summary: {
-        balanceAdjustmentDetected: false,
+        balanceAdjustmentCount: 0,
         incomeExpenseCount: 1,
         transferCount: 0,
       },

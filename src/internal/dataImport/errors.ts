@@ -20,6 +20,16 @@ const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.validationFailed]: "文件检查失败，请稍后重试。",
 };
 
+export const balanceAdjustmentImportErrorMessages = {
+  typeInvalid: "交易类型必须是「余额变更」。",
+  dateInvalid: "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
+  accountRequired: "账户不能为空。",
+  currencyInvalid: "账户币种必须是 3 位字母代码，例如 CNY。",
+  amountInvalid: "金额必须是非零、绝对值小于 1 万亿且不超过两位小数的数字。",
+  holderInvalid:
+    "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
+} as const;
+
 export const dataImportExecutionErrorMessages = {
   accountAmbiguous: (name: string) =>
     `账本内存在多个名称、持有人和币种都相同的账户「${name}」，无法确定应使用哪一个。`,

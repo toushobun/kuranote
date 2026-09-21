@@ -59,6 +59,7 @@ describe("accountsView", () => {
           currency: "JPY",
           current_balance: "1200",
           id: accountId,
+          is_archived: false,
           initial_balance: "1000",
           name: "现金",
           sort_order: 10,

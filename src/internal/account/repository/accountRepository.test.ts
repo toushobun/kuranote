@@ -130,6 +130,25 @@ describe("AccountRepository", () => {
     );
   });
 
+  it("includeArchived 时账户列表不再过滤归档状态", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ data: [] }] });
+    const repository = createSupabaseAccountRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await repository.listAccounts(ledgerId, true);
+
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: ["ledger_id", ledgerId],
+      method: "eq",
+    });
+    expect(supabase.queries[0].calls).not.toContainEqual({
+      args: ["is_archived", false],
+      method: "eq",
+    });
+  });
+
   it("归档账户时同时限定账户 ID、账本 ID 和未归档状态", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
     const repository = createSupabaseAccountRepository(

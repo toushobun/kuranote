@@ -10,7 +10,7 @@ import { analyzeImportWorkbook } from "internal/dataImport/util/validateImportWo
 
 export type AnalyzeImportFileResult = {
   result: ImportValidationResult;
-  /** 仅在 `result.ok` 时非空：按「收支」再「转账」的顺序展开的全部执行单元。 */
+  /** 仅在 `result.ok` 时非空：按「收支」「转账」「余额变更」的顺序展开的全部执行单元。 */
   units: ImportExecutionUnit[];
 };
 

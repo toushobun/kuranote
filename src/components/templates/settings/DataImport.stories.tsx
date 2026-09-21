@@ -1,3 +1,4 @@
+import { makeBalanceAdjustmentTable } from "test/mocks/dataImport";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import ExcelJS from "exceljs";
 import { userEvent, within } from "storybook/test";
@@ -40,12 +41,24 @@ function incomeExpenseRow(amount: string) {
 }
 
 // 「检查格式」在浏览器端真实解析文件，因此 Story 也现场生成真实的 xlsx。
-async function buildXlsxFile(amounts: string[]) {
+async function buildXlsxFile(
+  amounts: string[],
+  includeBalanceAdjustment = false,
+) {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("收支");
   worksheet.addRow(incomeExpenseHeader);
   for (const amount of amounts) {
     worksheet.addRow(incomeExpenseRow(amount));
+  }
+  if (includeBalanceAdjustment) {
+    const table = makeBalanceAdjustmentTable([
+      { 金额: "1000" },
+      { 金额: "-25" },
+    ]);
+    const sheet = workbook.addWorksheet(table.sourceName);
+    sheet.addRow(table.headerRow);
+    table.rows.forEach((row) => sheet.addRow(row.cells));
   }
   return new File([await workbook.xlsx.writeBuffer()], "demo.xlsx");
 }
@@ -89,5 +102,15 @@ export const CheckFailed: Story = {
   name: "格式检查未通过",
   play: async ({ canvasElement }) => {
     await selectFileAndSubmit(canvasElement, await buildXlsxFile(["abc"]));
+  },
+};
+
+export const BalanceAdjustmentCheckPassed: Story = {
+  name: "包含余额变更的格式检查通过态",
+  play: async ({ canvasElement }) => {
+    await selectFileAndSubmit(
+      canvasElement,
+      await buildXlsxFile(["1200"], true),
+    );
   },
 };

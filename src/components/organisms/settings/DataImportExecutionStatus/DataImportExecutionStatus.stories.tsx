@@ -105,3 +105,54 @@ export const MixedResult: Story = {
     status: "completed",
   },
 };
+
+export const BalanceAdjustmentResult: Story = {
+  name: "余额变更成功、失败与疑似重复汇总",
+  args: {
+    status: "completed",
+    result: {
+      successCount: 2,
+      failureCount: 1,
+      duplicateCount: 1,
+      holderMissingCount: 0,
+      processedCount: 3,
+      totalCount: 3,
+      details: [
+        {
+          sheet: "balanceAdjustment",
+          rowNumbers: [3],
+          content: "2026-01-05 现金 -20",
+          status: "duplicate",
+          reason: "疑似与现有记录重复，但已继续导入。",
+        },
+        {
+          sheet: "balanceAdjustment",
+          rowNumbers: [4],
+          content: "2026-01-05 已归档账户 +50",
+          status: "failed",
+          reason: "该账户已归档，无法导入余额变更。",
+        },
+      ],
+      rowResults: [
+        {
+          sheet: "balanceAdjustment",
+          rowNumber: 2,
+          status: "success",
+          reason: null,
+        },
+        {
+          sheet: "balanceAdjustment",
+          rowNumber: 3,
+          status: "duplicate",
+          reason: "疑似重复",
+        },
+        {
+          sheet: "balanceAdjustment",
+          rowNumber: 4,
+          status: "failed",
+          reason: "账户已归档",
+        },
+      ],
+    },
+  },
+};

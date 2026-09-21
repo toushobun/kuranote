@@ -18,15 +18,15 @@ async function createSourceWorkbook(): Promise<ArrayBuffer> {
   transfer.addRow(["日期", "金额"]);
   transfer.addRow(["2026-09-17 12:00:00", "5000"]);
 
-  const ignored = workbook.addWorksheet("余额变更");
-  ignored.addRow(["日期", "金额"]);
-  ignored.addRow(["2026-09-17 13:00:00", "100"]);
+  const balanceAdjustment = workbook.addWorksheet("余额变更");
+  balanceAdjustment.addRow(["日期", "金额"]);
+  balanceAdjustment.addRow(["2026-09-17 13:00:00", "100"]);
 
   return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;
 }
 
 describe("dataImportResultWorkbook", () => {
-  it("保留原工作表并在收支和转账右侧追加导入结果与原因", async () => {
+  it("保留原工作表并在收支、转账和余额变更右侧追加导入结果与原因", async () => {
     const source = await createSourceWorkbook();
     const rowResults: ImportExecutionRowResult[] = [
       {
@@ -47,6 +47,12 @@ describe("dataImportResultWorkbook", () => {
         rowNumber: 2,
         sheet: "transfer",
         status: "holderMissing",
+      },
+      {
+        reason: "该账户已归档，无法导入余额变更。",
+        rowNumber: 2,
+        sheet: "balanceAdjustment",
+        status: "failed",
       },
     ];
 
@@ -71,8 +77,11 @@ describe("dataImportResultWorkbook", () => {
     );
 
     const balanceAdjustment = workbook.getWorksheet("余额变更")!;
-    expect(balanceAdjustment.getRow(1).cellCount).toBe(2);
-    expect(balanceAdjustment.getRow(2).getCell(2).value).toBe("100");
+    expect(balanceAdjustment.getRow(1).getCell(3).value).toBe("导入结果");
+    expect(balanceAdjustment.getRow(2).getCell(3).value).toBe("失败");
+    expect(balanceAdjustment.getRow(2).getCell(4).value).toBe(
+      "该账户已归档，无法导入余额变更。",
+    );
   });
 
   it("sheet 名带多余空格时仍能匹配并追加结果列", async () => {

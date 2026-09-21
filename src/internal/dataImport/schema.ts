@@ -37,7 +37,7 @@ export const transferColumns: ImportColumnDef[] = [
   { name: "备注", required: false },
 ];
 
-/** 「余额变更」sheet 列定义：本期仅用于识别，不解析内容（见 #755）。 */
+/** 「余额变更」sheet 列定义：金额为带符号的余额差值。 */
 export const balanceAdjustmentColumns: ImportColumnDef[] = [
   { name: "交易类型", required: true },
   { name: "日期", required: true },
@@ -87,6 +87,7 @@ export const incomeExpenseRepeatableColumns = [
 
 export const incomeExpenseTypeValues = ["支出", "收入"] as const;
 export const transferTypeValue = "转账";
+export const balanceAdjustmentTypeValue = "余额变更";
 
 export const importNoteMaxLength = 2000;
 

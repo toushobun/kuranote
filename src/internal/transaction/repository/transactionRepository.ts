@@ -29,7 +29,10 @@ import {
   toTransactionSpecialStatusStorageValue,
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
-import type { UpdateBalanceAdjustmentInput } from "internal/transaction/schema";
+import type {
+  CreateBalanceAdjustmentInput,
+  UpdateBalanceAdjustmentInput,
+} from "internal/transaction/schema";
 import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { isThemeColorKey } from "theme/themeColorTokens";
@@ -168,6 +171,7 @@ export interface TransactionCommandRepository {
   convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
+  createBalanceAdjustment(input: CreateBalanceAdjustmentInput): Promise<void>;
   isSpecialStatusEnabled(ledgerId: string): Promise<boolean>;
   findActiveRecord(
     ledgerId: string,
@@ -581,6 +585,43 @@ export function createSupabaseTransactionRepository(
       if (error) {
         throwRpcError(
           "failed to create transaction",
+          transactionErrorCodes.createFailed,
+          error,
+          { ledgerId: input.ledgerId },
+        );
+      }
+    },
+
+    async createBalanceAdjustment(input) {
+      const { error } = await supabase.rpc(
+        "create_balance_adjustment_transaction",
+        {
+          p_ledger_id: input.ledgerId,
+          p_account_id: input.accountId,
+          p_signed_delta: input.signedDelta,
+          p_transaction_at: input.transactionAt,
+          p_note: input.note,
+        },
+      );
+      if (error) {
+        const code = findRpcErrorCode(error.details, transactionRpcErrorCodes);
+        if (
+          code === transactionErrorCodes.balanceAdjustmentAccountArchived ||
+          code === transactionErrorCodes.amountInvalid
+        ) {
+          logger.error("[transaction] 余额变更写入校验失败", {
+            databaseCode: error.code,
+            databaseDetails: error.details,
+          });
+          throw new ValidationError(
+            code,
+            code === transactionErrorCodes.amountInvalid
+              ? balanceAdjustmentErrorMessages.amountInvalid
+              : balanceAdjustmentErrorMessages.archivedCreate,
+          );
+        }
+        throwRpcError(
+          "余额变更写入失败",
           transactionErrorCodes.createFailed,
           error,
           { ledgerId: input.ledgerId },

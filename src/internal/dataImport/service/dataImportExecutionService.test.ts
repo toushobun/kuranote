@@ -1,3 +1,4 @@
+import { makeBalanceAdjustmentTable } from "test/mocks/dataImport";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AccountImportService } from "internal/account";
@@ -89,6 +90,8 @@ function createDependencies() {
     loadContext: vi.fn(async () => ({ merchants: [], tags: [] })),
   };
   const transactionImportService: TransactionImportService = {
+    createBalanceAdjustment: vi.fn(async () => undefined),
+    hasPossibleBalanceAdjustmentDuplicate: vi.fn(async () => false),
     createNormal: vi.fn(async () => undefined),
     createTransfer: vi.fn(async () => undefined),
     hasPossibleNormalDuplicate: vi.fn(async () => false),
@@ -141,6 +144,7 @@ describe("DataImportExecutionService", () => {
         accounts: ["钱包", "银行卡"].flatMap((name) =>
           ["USD", "JPY"].map((currency) => ({
             currency,
+            isArchived: false,
             holderUserId,
             id: `${name}-${currency}`,
             name,
@@ -188,6 +192,7 @@ describe("DataImportExecutionService", () => {
       ).mockResolvedValue({
         accounts: ["account-1", "account-2"].map((id) => ({
           currency: ambiguous ? "JPY" : "USD",
+          isArchived: false,
           holderUserId: "user-1",
           id,
           name: "钱包",
@@ -578,5 +583,125 @@ describe("DataImportExecutionService", () => {
       }),
     );
     expect(result.successCount).toBe(1);
+  });
+});
+
+describe("余额变更导入", () => {
+  it("正负差值使用独立写入，失败不阻断后续行并正确汇总疑似重复", async () => {
+    const d = createDependencies();
+    vi.mocked(
+      d.transactionImportService.createBalanceAdjustment,
+    ).mockRejectedValueOnce(
+      new RepositoryError("create_failed", "该条记录导入失败，请稍后重试。"),
+    );
+    vi.mocked(d.transactionImportService.hasPossibleBalanceAdjustmentDuplicate)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const units = unitsOf([
+      makeBalanceAdjustmentTable([
+        { 金额: "100" },
+        { 金额: "-20" },
+        { 金额: "30" },
+      ]),
+    ]);
+    const result = await createDataImportExecutionService(d).executeBatch({
+      ledgerId: "ledger-1",
+      userId: "user-1",
+      timeZoneOffsetMinutes: -540,
+      units,
+    });
+    expect(result).toMatchObject({
+      successCount: 2,
+      failureCount: 1,
+      duplicateCount: 1,
+      processedCount: 3,
+    });
+    expect(result.rowResults.map((row) => [row.sheet, row.status])).toEqual([
+      ["balanceAdjustment", "failed"],
+      ["balanceAdjustment", "duplicate"],
+      ["balanceAdjustment", "success"],
+    ]);
+    expect(
+      d.transactionImportService.createBalanceAdjustment,
+    ).toHaveBeenCalledTimes(3);
+    expect(
+      d.transactionImportService.createBalanceAdjustment,
+    ).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        signedDelta: -20,
+        accountId: "account-现金",
+        timeZoneOffsetMinutes: -540,
+      }),
+    );
+    expect(d.accountImportService.createAccount).toHaveBeenCalledTimes(1);
+    expect(d.accountImportService.createAccount).toHaveBeenCalledWith({
+      ledgerId: "ledger-1",
+      userId: "user-1",
+      currency: "JPY",
+      name: "现金",
+      holderUserId: null,
+    });
+  });
+  it.each([false, true])(
+    "归档账户不会误建同名账户；有效账户存在时优先使用：%s",
+    async (active) => {
+      const d = createDependencies();
+      const archived = {
+        id: "archived",
+        isArchived: true,
+        currency: "JPY",
+        name: "现金",
+        holderUserId: null,
+      };
+      vi.mocked(d.accountImportService.loadContext).mockResolvedValue({
+        accounts: [
+          archived,
+          ...(active ? [{ ...archived, id: "active", isArchived: false }] : []),
+        ],
+        holders: [],
+      });
+      const result = await createDataImportExecutionService(d).executeBatch({
+        ledgerId: "ledger-1",
+        userId: "user-1",
+        timeZoneOffsetMinutes: 0,
+        units: unitsOf([makeBalanceAdjustmentTable()]),
+      });
+      expect(result.successCount).toBe(active ? 1 : 0);
+      expect(d.accountImportService.createAccount).not.toHaveBeenCalled();
+      if (active)
+        expect(
+          d.transactionImportService.createBalanceAdjustment,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({ accountId: "active" }),
+        );
+      else {
+        expect(
+          d.transactionImportService.createBalanceAdjustment,
+        ).not.toHaveBeenCalled();
+        expect(result.details[0].reason).toBe(
+          "该账户已归档，无法导入余额变更。",
+        );
+      }
+    },
+  );
+  it("未知持有人按无持有人创建并显示警告", async () => {
+    const d = createDependencies();
+    const result = await createDataImportExecutionService(d).executeBatch({
+      ledgerId: "ledger-1",
+      userId: "user-1",
+      timeZoneOffsetMinutes: 0,
+      units: unitsOf([
+        makeBalanceAdjustmentTable([{ 账户持有人: "陌生成员" }]),
+      ]),
+    });
+    expect(result).toMatchObject({
+      successCount: 1,
+      failureCount: 0,
+      holderMissingCount: 1,
+    });
+    expect(d.accountImportService.createAccount).toHaveBeenCalledWith(
+      expect.objectContaining({ holderUserId: null }),
+    );
   });
 });

@@ -109,6 +109,8 @@ export function getVoidTransactionValidationErrorMessage(error?: string) {
 
 export const balanceAdjustmentErrorMessages = {
   archivedAccount: "该账户已归档，无法撤销余额调整",
+  archivedCreate: "该账户已归档，无法导入余额变更。",
+  amountInvalid: "余额变更金额必须非零、绝对值小于 1 万亿且最多两位小数。",
   invalid: "余额调整记录不正确，请刷新页面后重试。",
   dateInvalid: "发生时间不正确。",
   noteTooLong: "备注不能超过 2000 个字符。",

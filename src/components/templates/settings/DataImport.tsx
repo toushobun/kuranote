@@ -224,6 +224,10 @@ function FormatDescriptionCard() {
           {messages.transferColumnsTitle}
         </Typography>
         <ColumnList columns={importColumnsBySheetKind.transfer} />
+        <Typography sx={{ fontWeight: 700 }} variant="body2">
+          {messages.balanceAdjustmentColumnsTitle}
+        </Typography>
+        <ColumnList columns={importColumnsBySheetKind.balanceAdjustment} />
       </Stack>
     </SectionCard>
   );
@@ -258,11 +262,11 @@ function ResultSection({ result }: { result: ImportValidationResult }) {
             result.summary.transferCount,
           )}
         </Typography>
-        {result.summary.balanceAdjustmentDetected ? (
-          <Typography sx={{ color: "text.secondary" }} variant="body2">
-            {dataImportResultMessages.balanceAdjustmentDetectedNotice}
-          </Typography>
-        ) : null}
+        <Typography variant="body2">
+          {dataImportResultMessages.balanceAdjustmentCountLabel(
+            result.summary.balanceAdjustmentCount,
+          )}
+        </Typography>
       </Alert>
     );
   }

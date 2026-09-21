@@ -661,3 +661,29 @@ export function parseUpdateBalanceAdjustmentForm(formData: FormData) {
     note: getFormText(formData, "note").trim() || null,
   });
 }
+
+export const createBalanceAdjustmentSchema = z.object({
+  ledgerId: z.string().uuid(balanceAdjustmentErrorMessages.invalid),
+  accountId: z.string().uuid(balanceAdjustmentErrorMessages.invalid),
+  signedDelta: z
+    .number()
+    .finite()
+    .refine(
+      (value) =>
+        value !== 0 &&
+        Math.abs(value) < 1e12 &&
+        /^-?\d+(\.\d{1,2})?$/.test(String(value)),
+      balanceAdjustmentErrorMessages.amountInvalid,
+    ),
+  transactionAt: z.string().datetime({
+    offset: true,
+    message: balanceAdjustmentErrorMessages.dateInvalid,
+  }),
+  note: z
+    .string()
+    .max(2000, balanceAdjustmentErrorMessages.noteTooLong)
+    .nullable(),
+});
+export type CreateBalanceAdjustmentInput = z.infer<
+  typeof createBalanceAdjustmentSchema
+>;

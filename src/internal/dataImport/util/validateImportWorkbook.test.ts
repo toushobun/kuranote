@@ -1,3 +1,4 @@
+import { makeBalanceAdjustmentTable as balanceAdjustmentTable } from "test/mocks/dataImport";
 import { describe, expect, it } from "vitest";
 
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
@@ -63,23 +64,6 @@ function table(
   };
 }
 
-const balanceAdjustmentHeader = [
-  "交易类型",
-  "日期",
-  "记账人",
-  "账户",
-  "账户币种",
-  "账户持有人",
-  "金额",
-  "备注",
-];
-
-function balanceAdjustmentTable(): ParsedTable {
-  return table("余额变更", balanceAdjustmentHeader, [
-    ["余额变更", "2026-01-05 12:00:00", "", "现金", "CNY", "", "100", ""],
-  ]);
-}
-
 describe("validateImportWorkbook", () => {
   it("空表格数组返回结构性错误", () => {
     const result = validateImportWorkbook([]);
@@ -100,11 +84,11 @@ describe("validateImportWorkbook", () => {
     if (result.ok) {
       expect(result.summary.incomeExpenseCount).toBe(2);
       expect(result.summary.transferCount).toBe(1);
-      expect(result.summary.balanceAdjustmentDetected).toBe(false);
+      expect(result.summary.balanceAdjustmentCount).toBe(0);
     }
   });
 
-  it("识别到「余额变更」sheet 时标记 balanceAdjustmentDetected 且不视为失败", () => {
+  it("识别到「余额变更」sheet 时统计余额变更数量 且不视为失败", () => {
     const result = validateImportWorkbook([
       table("收支", incomeExpenseHeader, [incomeExpenseRowCells()]),
       balanceAdjustmentTable(),
@@ -112,7 +96,7 @@ describe("validateImportWorkbook", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.summary.balanceAdjustmentDetected).toBe(true);
+      expect(result.summary.balanceAdjustmentCount).toBe(1);
       expect(result.summary.transferCount).toBe(0);
     }
   });
@@ -128,17 +112,15 @@ describe("validateImportWorkbook", () => {
     }
   });
 
-  it("只有「余额变更」sheet、没有「收支」或「转账」时报结构性错误", () => {
-    const result = validateImportWorkbook([balanceAdjustmentTable()]);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.issues).toEqual([
-        expect.objectContaining({
-          kind: "structural",
-          message: "未找到「收支」或「转账」表，无法导入。",
-        }),
-      ]);
-    }
+  it("只有余额变更表也能解析并产出执行单元", () => {
+    const { result, units } = analyzeImportWorkbook([balanceAdjustmentTable()]);
+    expect(result).toMatchObject({
+      ok: true,
+      summary: { balanceAdjustmentCount: 1 },
+    });
+    expect(units).toMatchObject([
+      { kind: "balanceAdjustment", row: { amount: 100 } },
+    ]);
   });
 
   it("只有无法识别的 sheet 时报结构性错误", () => {
@@ -169,8 +151,9 @@ describe("validateImportWorkbook", () => {
 });
 
 describe("analyzeImportWorkbook", () => {
-  it("一次解析同时返回校验结果与按收支、转账顺序展开的执行单元", () => {
+  it("一次解析同时返回校验结果与按收支、转账、余额变更顺序展开的执行单元", () => {
     const { result, units } = analyzeImportWorkbook([
+      balanceAdjustmentTable(),
       table("转账", transferHeader, [transferRowCells()]),
       table("收支", incomeExpenseHeader, [
         incomeExpenseRowCells({ 账单关联: "BILL-1" }),
@@ -184,6 +167,7 @@ describe("analyzeImportWorkbook", () => {
       "incomeExpense",
       "incomeExpense",
       "transfer",
+      "balanceAdjustment",
     ]);
     expect(units[0]).toMatchObject({ group: { rowNumbers: [2, 3] } });
   });

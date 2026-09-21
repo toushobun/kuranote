@@ -1,6 +1,7 @@
 import type { AccountService } from "internal/account/service/accountService";
 
 export type AccountImportEntry = {
+  isArchived: boolean;
   currency: string;
   holderUserId: string | null;
   id: string;
@@ -50,10 +51,15 @@ export function createAccountImportService(
     },
 
     async loadContext({ ledgerId, userId }) {
-      const view = await service.getView({ ledgerId, userId });
+      const view = await service.getView({
+        ledgerId,
+        userId,
+        includeArchived: true,
+      });
 
       return {
         accounts: view.accounts.map((account) => ({
+          isArchived: account.is_archived,
           currency: account.currency,
           holderUserId: account.holders[0]?.user_id ?? null,
           id: account.id,

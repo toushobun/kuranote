@@ -9,7 +9,7 @@ const moneyAmountPattern = /^-?\d+(\.\d{1,2})?$/;
 /** 解析「金额」列文本：要求非负、最多两位小数；`allowZero` 默认允许 0。 */
 export function parseImportAmount(
   cellText: string,
-  options: { allowZero?: boolean } = {},
+  options: { allowZero?: boolean; allowNegative?: boolean } = {},
 ): ParseImportAmountResult {
   const text = cellText.trim();
 
@@ -19,7 +19,7 @@ export function parseImportAmount(
 
   const amount = Number(text);
 
-  if (!Number.isFinite(amount) || amount < 0) {
+  if (!Number.isFinite(amount) || (amount < 0 && !options.allowNegative)) {
     return { ok: false };
   }
 

@@ -32,9 +32,11 @@ function transactionListItem(overrides: Record<string, unknown> = {}) {
 function createService() {
   const getGroupItems = vi.fn();
   const getEditView = vi.fn();
+  const createBalanceAdjustment = vi.fn(async () => undefined);
   const createNormal = vi.fn(async () => undefined);
   const createTransfer = vi.fn(async () => undefined);
   const service = {
+    createBalanceAdjustment,
     createNormal,
     createTransfer,
     getEditView,
@@ -42,6 +44,7 @@ function createService() {
   } as unknown as TransactionService;
 
   return {
+    createBalanceAdjustment,
     createNormal,
     createTransfer,
     getEditView,
@@ -51,38 +54,40 @@ function createService() {
 }
 
 describe("TransactionImportService", () => {
-  it.each(["createNormal", "createTransfer"] as const)(
-    "%s 使用共享转换并在非法日期时阻止写入",
-    async (method) => {
-      const services = createService();
-      const input = {
-        accountId: "account-1",
-        items: [{ amount: 1200, categoryId: "category-1" }],
-        ledgerId: "ledger-1",
-        merchantId: "merchant-1",
-        note: null,
-        timeZoneOffsetMinutes: -540,
-        transactionAt: "2026-01-01 00:30:15",
-        transferAmount: 1200,
-        transferTargetAccountId: "account-2",
-        type: "expense" as const,
-      };
-      await services.importService[method](input);
-      const { timeZoneOffsetMinutes: offset, ...transaction } = input;
-      expect(offset).toBe(-540);
-      expect(services[method]).toHaveBeenCalledExactlyOnceWith({
-        ...transaction,
-        transactionAt: "2025-12-31T15:30:15.000Z",
-      });
-      await expect(
-        services.importService[method]({
-          ...input,
-          transactionAt: "2026-02-30 10:00:00",
-        }),
-      ).rejects.toMatchObject({ code: "date_invalid" });
-      expect(services[method]).toHaveBeenCalledOnce();
-    },
-  );
+  it.each([
+    "createNormal",
+    "createTransfer",
+    "createBalanceAdjustment",
+  ] as const)("%s 使用共享转换并在非法日期时阻止写入", async (method) => {
+    const services = createService();
+    const input = {
+      signedDelta: -1200,
+      accountId: "account-1",
+      items: [{ amount: 1200, categoryId: "category-1" }],
+      ledgerId: "ledger-1",
+      merchantId: "merchant-1",
+      note: null,
+      timeZoneOffsetMinutes: -540,
+      transactionAt: "2026-01-01 00:30:15",
+      transferAmount: 1200,
+      transferTargetAccountId: "account-2",
+      type: "expense" as const,
+    };
+    await services.importService[method](input);
+    const { timeZoneOffsetMinutes: offset, ...transaction } = input;
+    expect(offset).toBe(-540);
+    expect(services[method]).toHaveBeenCalledExactlyOnceWith({
+      ...transaction,
+      transactionAt: "2025-12-31T15:30:15.000Z",
+    });
+    await expect(
+      services.importService[method]({
+        ...input,
+        transactionAt: "2026-02-30 10:00:00",
+      }),
+    ).rejects.toMatchObject({ code: "date_invalid" });
+    expect(services[method]).toHaveBeenCalledOnce();
+  });
 
   it("收支按日期、金额、商家和账户判定疑似重复", async () => {
     const { getGroupItems, importService } = createService();
@@ -250,4 +255,48 @@ describe("TransactionImportService", () => {
       }),
     ).resolves.toBe(true);
   });
+});
+
+it("余额变更查重区分正负差值并复用账户和交易时间匹配", async () => {
+  const d = createService();
+  d.getGroupItems.mockResolvedValue({
+    groups: [
+      {
+        items: [
+          transactionListItem({ type: "balance_adjustment", amount: "-1200" }),
+        ],
+      },
+    ],
+    nextOffset: null,
+  });
+  const input = {
+    ledgerId: "ledger-1",
+    accountId: "account-1",
+    note: null,
+    timeZoneOffsetMinutes: -540,
+    transactionAt: "2026-09-17 10:00:00",
+    signedDelta: -1200,
+  };
+  expect(
+    await d.importService.hasPossibleBalanceAdjustmentDuplicate(input),
+  ).toBe(true);
+  expect(
+    await d.importService.hasPossibleBalanceAdjustmentDuplicate({
+      ...input,
+      signedDelta: 1200,
+    }),
+  ).toBe(false);
+  expect(
+    await d.importService.hasPossibleBalanceAdjustmentDuplicate({
+      ...input,
+      transactionAt: "2026-09-17 10:00:01",
+    }),
+  ).toBe(false);
+  expect(d.getGroupItems).toHaveBeenCalledWith(
+    currentLedger,
+    "day",
+    expect.any(String),
+    0,
+    { accountId: "account-1", recordType: "all" },
+  );
 });

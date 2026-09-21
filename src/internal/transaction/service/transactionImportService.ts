@@ -35,7 +35,16 @@ export type ImportTransferTransactionInput = {
   transferTargetAccountId: string;
 };
 
+export type ImportBalanceAdjustmentInput = Omit<
+  ImportTransferTransactionInput,
+  "transferAmount" | "transferTargetAccountId"
+> & { signedDelta: number };
+
 export interface TransactionImportService {
+  createBalanceAdjustment(input: ImportBalanceAdjustmentInput): Promise<void>;
+  hasPossibleBalanceAdjustmentDuplicate(
+    input: ImportBalanceAdjustmentInput,
+  ): Promise<boolean>;
   createNormal(input: ImportNormalTransactionInput): Promise<void>;
   createTransfer(input: ImportTransferTransactionInput): Promise<void>;
   hasPossibleNormalDuplicate(
@@ -119,6 +128,33 @@ export function createTransactionImportService({
           timeZoneOffsetMinutes,
         ),
       });
+    },
+
+    async createBalanceAdjustment(input) {
+      const { timeZoneOffsetMinutes, ...transaction } = input;
+      await service.createBalanceAdjustment({
+        ...transaction,
+        transactionAt: toImportTransactionTimestamp(
+          input.transactionAt,
+          timeZoneOffsetMinutes,
+        ),
+      });
+    },
+    async hasPossibleBalanceAdjustmentDuplicate(input) {
+      const timestamp = toImportTransactionTimestamp(
+        input.transactionAt,
+        input.timeZoneOffsetMinutes,
+      );
+      const items = await loadDayItems(timestamp, {
+        accountId: input.accountId,
+        recordType: "all",
+      });
+      return items.some(
+        (item) =>
+          item.type === "balance_adjustment" &&
+          sameTimestamp(item.transaction_at, timestamp) &&
+          sameAmount(item.amount, input.signedDelta),
+      );
     },
 
     async createTransfer(input) {
