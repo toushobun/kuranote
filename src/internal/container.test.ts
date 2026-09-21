@@ -148,7 +148,7 @@ describe("createRequestContainer", () => {
     expect(first).toBe(second);
   });
 
-  it("格式校验不组装写入依赖，导入执行复用容器中的正式服务", () => {
+  it("惰性缓存 dataImport，导入执行复用容器中的正式服务", () => {
     const container = createRequestContainer(createDependenciesStub());
     const dataImport = container.dataImport;
     expect(dataImport).toBe(container.dataImport);
@@ -278,13 +278,6 @@ describe("createRequestContainer", () => {
     expect(container.dataExport).toBe(container.dataExport);
     expect(typeof container.dataExport.service.getData).toBe("function");
     expect(createLedgerAccessService).toHaveBeenCalledTimes(1);
-  });
-
-  it("提供惰性缓存的 dataImport.service", () => {
-    const container = createRequestContainer(createDependenciesStub());
-
-    expect(container.dataImport).toBe(container.dataImport);
-    expect(typeof container.dataImport.service.checkFile).toBe("function");
   });
 
   it("提供惰性缓存的 user.service 和显示名同步窄接口", () => {

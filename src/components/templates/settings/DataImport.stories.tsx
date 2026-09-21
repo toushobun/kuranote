@@ -1,63 +1,69 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import ExcelJS from "exceljs";
 import { userEvent, within } from "storybook/test";
 
-import type {
-  DataImportBatchStateAction,
-  DataImportStateAction,
-} from "types/dataImport";
+import type { DataImportBatchStateAction } from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
 
-async function selectFileAndSubmit(canvasElement: HTMLElement) {
+const incomeExpenseHeader = [
+  "账单关联",
+  "日期",
+  "记账人",
+  "商家分类",
+  "商家",
+  "交易类型",
+  "一级分类",
+  "二级分类",
+  "账户",
+  "账户持有人",
+  "账户币种",
+  "金额",
+  "备注",
+];
+
+function incomeExpenseRow(amount: string) {
+  return [
+    "",
+    "2026-09-17 10:00:00",
+    "",
+    "",
+    "便利店",
+    "支出",
+    "餐饮",
+    "午餐",
+    "现金",
+    "",
+    "JPY",
+    amount,
+    "",
+  ];
+}
+
+// 「检查格式」在浏览器端真实解析文件，因此 Story 也现场生成真实的 xlsx。
+async function buildXlsxFile(amounts: string[]) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("收支");
+  worksheet.addRow(incomeExpenseHeader);
+  for (const amount of amounts) {
+    worksheet.addRow(incomeExpenseRow(amount));
+  }
+  return new File([await workbook.xlsx.writeBuffer()], "demo.xlsx");
+}
+
+async function selectFileAndSubmit(canvasElement: HTMLElement, file: File) {
   const canvas = within(canvasElement);
-  const file = new File(["binary"], "demo.xlsx");
   await userEvent.upload(canvas.getByLabelText("选择文件"), file);
   await userEvent.click(
     await canvas.findByRole("button", { name: "检查格式" }),
   );
 }
 
-const defaultAction: DataImportStateAction = async () => ({});
 const defaultBatchAction: DataImportBatchStateAction = async () => ({});
-
-const successAction: DataImportStateAction = async () => ({
-  result: {
-    ok: true,
-    summary: {
-      balanceAdjustmentDetected: true,
-      incomeExpenseCount: 12,
-      transferCount: 3,
-    },
-  },
-});
-
-const failureAction: DataImportStateAction = async () => ({
-  result: {
-    issues: [
-      { kind: "structural", message: "「收支」表缺少必填列：账户币种。" },
-      {
-        column: "金额",
-        kind: "row",
-        message: "金额必须是不超过两位小数的非负数字。",
-        rowNumber: 3,
-        sheet: "incomeExpense",
-      },
-      {
-        column: "转入账户",
-        kind: "row",
-        message: "转出账户与转入账户不能是同一个账户。",
-        rowNumber: 5,
-        sheet: "transfer",
-      },
-    ],
-    ok: false,
-  },
-});
 
 const meta = {
   title: "Templates/Settings/DataImportTemplate",
   component: DataImportTemplate,
   args: {
-    checkFormatAction: defaultAction,
     executeBatchAction: defaultBatchAction,
   },
 } satisfies Meta<typeof DataImportTemplate>;
@@ -71,16 +77,17 @@ export const Default: Story = {
 
 export const CheckPassed: Story = {
   name: "格式检查通过",
-  args: { checkFormatAction: successAction },
   play: async ({ canvasElement }) => {
-    await selectFileAndSubmit(canvasElement);
+    await selectFileAndSubmit(
+      canvasElement,
+      await buildXlsxFile(["1200", "35.5"]),
+    );
   },
 };
 
 export const CheckFailed: Story = {
   name: "格式检查未通过",
-  args: { checkFormatAction: failureAction },
   play: async ({ canvasElement }) => {
-    await selectFileAndSubmit(canvasElement);
+    await selectFileAndSubmit(canvasElement, await buildXlsxFile(["abc"]));
   },
 };

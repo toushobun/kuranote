@@ -1,13 +1,27 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type { ImportValidationResult } from "internal/dataImport";
+import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
 import type {
-  DataImportActionState,
   DataImportBatchActionState,
   DataImportBatchStateAction,
-  DataImportStateAction,
 } from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
+
+const analyzeImportFileMock = vi.hoisted(() => vi.fn());
+
+vi.mock("internal/dataImport", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("internal/dataImport")>()),
+  analyzeImportFile: analyzeImportFileMock,
+}));
+
+function mockValidationResult(result: ImportValidationResult) {
+  analyzeImportFileMock.mockResolvedValue({
+    result,
+    units: result.ok ? makeAnalyzeImportFileResult(1).units : [],
+  });
+}
 
 function selectFile(name = "data.xlsx") {
   const input = screen.getByLabelText("选择文件") as HTMLInputElement;
@@ -17,20 +31,13 @@ function selectFile(name = "data.xlsx") {
 }
 
 function renderTemplate({
-  checkFormatAction = vi.fn(async (): Promise<DataImportActionState> => ({})),
   executeBatchAction = vi.fn(
     async (): Promise<DataImportBatchActionState> => ({}),
   ),
 }: {
-  checkFormatAction?: DataImportStateAction;
   executeBatchAction?: DataImportBatchStateAction;
 } = {}) {
-  return render(
-    <DataImportTemplate
-      checkFormatAction={checkFormatAction}
-      executeBatchAction={executeBatchAction}
-    />,
-  );
+  return render(<DataImportTemplate executeBatchAction={executeBatchAction} />);
 }
 
 describe("DataImportTemplate", () => {
@@ -60,35 +67,33 @@ describe("DataImportTemplate", () => {
     expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
   });
 
-  it("检查格式调用 Server Action 并展示错误状态", async () => {
-    const action = vi.fn(
-      async (): Promise<DataImportActionState> => ({
-        error: "仅支持 xlsx 文件。",
-        errorKey: "err-1",
-      }),
+  it("检查格式在浏览器端解析文件，解析异常时展示错误提示", async () => {
+    analyzeImportFileMock.mockRejectedValue(new Error("out of memory"));
+    const executeAction = vi.fn(
+      async (): Promise<DataImportBatchActionState> => ({}),
     );
-    renderTemplate({ checkFormatAction: action });
-    selectFile();
+    renderTemplate({ executeBatchAction: executeAction });
+    const file = selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
-    expect(await screen.findByText("仅支持 xlsx 文件。")).toBeInTheDocument();
-    expect(action).toHaveBeenCalledOnce();
+    expect(
+      await screen.findByText("文件检查失败，请稍后重试。"),
+    ).toBeInTheDocument();
+    expect(analyzeImportFileMock).toHaveBeenCalledWith(file);
+    expect(executeAction).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
   });
 
   it("校验通过时展示成功统计与开始导入按钮", async () => {
-    const action = vi.fn(
-      async (): Promise<DataImportActionState> => ({
-        result: {
-          ok: true,
-          summary: {
-            balanceAdjustmentDetected: true,
-            incomeExpenseCount: 3,
-            transferCount: 1,
-          },
-        },
-      }),
-    );
-    renderTemplate({ checkFormatAction: action });
+    mockValidationResult({
+      ok: true,
+      summary: {
+        balanceAdjustmentDetected: true,
+        incomeExpenseCount: 3,
+        transferCount: 1,
+      },
+    });
+    renderTemplate();
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
@@ -104,27 +109,21 @@ describe("DataImportTemplate", () => {
   });
 
   it("开始导入后调用批处理 Action 并展示完成汇总", async () => {
-    const checkAction = vi.fn(
-      async (): Promise<DataImportActionState> => ({
-        result: {
-          ok: true,
-          summary: {
-            balanceAdjustmentDetected: false,
-            incomeExpenseCount: 1,
-            transferCount: 0,
-          },
-        },
-      }),
-    );
+    mockValidationResult({
+      ok: true,
+      summary: {
+        balanceAdjustmentDetected: false,
+        incomeExpenseCount: 1,
+        transferCount: 0,
+      },
+    });
     const executeAction = vi.fn(
       async (): Promise<DataImportBatchActionState> => ({
         batch: {
           details: [],
-          done: true,
           duplicateCount: 0,
           failureCount: 0,
           holderMissingCount: 0,
-          nextOffset: 1,
           processedCount: 1,
           rowResults: [
             {
@@ -135,46 +134,34 @@ describe("DataImportTemplate", () => {
             },
           ],
           successCount: 1,
-          totalCount: 1,
         },
       }),
     );
-    renderTemplate({
-      checkFormatAction: checkAction,
-      executeBatchAction: executeAction,
-    });
+    renderTemplate({ executeBatchAction: executeAction });
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
 
     expect(await screen.findByText("导入完成")).toBeInTheDocument();
-    expect(screen.getByText("已处理 1 / 共 1 条")).toBeInTheDocument();
     expect(screen.getByText("成功导入 1 条")).toBeInTheDocument();
     expect(executeAction).toHaveBeenCalledOnce();
   });
 
   it("批处理出错后重置导入状态，检查格式与开始导入按钮恢复可用", async () => {
-    const checkAction = vi.fn(
-      async (): Promise<DataImportActionState> => ({
-        result: {
-          ok: true,
-          summary: {
-            balanceAdjustmentDetected: false,
-            incomeExpenseCount: 1,
-            transferCount: 0,
-          },
-        },
-      }),
-    );
+    mockValidationResult({
+      ok: true,
+      summary: {
+        balanceAdjustmentDetected: false,
+        incomeExpenseCount: 1,
+        transferCount: 0,
+      },
+    });
     const executeAction = vi.fn(
       async (): Promise<DataImportBatchActionState> => ({
         error: "登录状态已失效，请重新登录后再试。",
       }),
     );
-    renderTemplate({
-      checkFormatAction: checkAction,
-      executeBatchAction: executeAction,
-    });
+    renderTemplate({ executeBatchAction: executeAction });
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
@@ -187,24 +174,20 @@ describe("DataImportTemplate", () => {
   });
 
   it("校验未通过时展示每一条错误", async () => {
-    const action = vi.fn(
-      async (): Promise<DataImportActionState> => ({
-        result: {
-          issues: [
-            { kind: "structural", message: "文件为空或没有可识别的数据表。" },
-            {
-              column: "金额",
-              kind: "row",
-              message: "金额必须是不超过两位小数的非负数字。",
-              rowNumber: 3,
-              sheet: "incomeExpense",
-            },
-          ],
-          ok: false,
+    mockValidationResult({
+      issues: [
+        { kind: "structural", message: "文件为空或没有可识别的数据表。" },
+        {
+          column: "金额",
+          kind: "row",
+          message: "金额必须是不超过两位小数的非负数字。",
+          rowNumber: 3,
+          sheet: "incomeExpense",
         },
-      }),
-    );
-    renderTemplate({ checkFormatAction: action });
+      ],
+      ok: false,
+    });
+    renderTemplate();
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 

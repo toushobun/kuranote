@@ -38,7 +38,7 @@ describe("computeDisplayProcessed", () => {
       confirmedProcessed: 10,
       elapsedMs: 0,
       estimatedDurationMs: 3000,
-      pendingBatchSize: 25,
+      pendingBatchSize: 100,
     });
     expect(value).toBe(10);
   });

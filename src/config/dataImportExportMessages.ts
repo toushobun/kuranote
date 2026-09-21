@@ -43,7 +43,7 @@ export const dataImportPageMessages = {
 export const dataImportFormatDescriptionMessages = {
   title: "文件格式要求",
   fileTypeHint:
-    "支持 Excel（.xlsx）文件，大小不超过 10MB，工作表名需精确为「收支」「转账」「余额变更」。",
+    "支持 Excel（.xlsx）文件，大小不超过 50MB，工作表名需精确为「收支」「转账」「余额变更」。",
   unknownColumnHint:
     "表头列名必须与下方列表完全一致（包括「转出/转入」等前缀），出现列表之外的列名会被判定为格式错误，不会被静默忽略。",
   holderColumnHint:
@@ -79,8 +79,7 @@ export const dataImportExecutionMessages = {
   startButton: "开始导入",
   importingButton: "正在导入…",
   progressTitle: "正在导入",
-  progressLabel: (processed: number, total: number) =>
-    `已处理 ${processed} / 共 ${total} 条`,
+  keepPageOpenHint: "导入需要一些时间，请保持页面打开，不要离开。",
   completedTitle: "导入完成",
   successCount: (count: number) => `成功导入 ${count} 条`,
   failureCount: (count: number) => `失败 ${count} 条`,

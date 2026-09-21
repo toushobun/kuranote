@@ -17,7 +17,7 @@ import { SectionCard } from "molecules/ui/SectionCard";
 import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
-  displayProcessedCount?: number;
+  /** 进度条展示值（0–100，可为预测值）；不传时按真实处理进度展示。 */
   displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
@@ -26,7 +26,6 @@ type DataImportExecutionStatusProps = {
 };
 
 export function DataImportExecutionStatus({
-  displayProcessedCount,
   displayProgress,
   isDownloading = false,
   onDownload,
@@ -34,16 +33,6 @@ export function DataImportExecutionStatus({
   status,
 }: DataImportExecutionStatusProps) {
   const messages = dataImportExecutionMessages;
-  const realProgress = toProgressPercentage(
-    result.processedCount,
-    result.totalCount,
-  );
-  const progress =
-    status === "completed" ? 100 : (displayProgress ?? realProgress);
-  // 可见文字跟随预测行数（向下取整避免小数）；aria-valuetext 始终读真实值。
-  const visibleProcessedCount = Math.floor(
-    displayProcessedCount ?? result.processedCount,
-  );
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
   );
@@ -63,41 +52,49 @@ export function DataImportExecutionStatus({
               ? messages.progressTitle
               : messages.completedTitle}
           </Typography>
-          <Typography sx={{ color: "text.secondary", mt: 0.5 }} variant="body2">
-            {messages.progressLabel(visibleProcessedCount, result.totalCount)}
-          </Typography>
+          {status === "importing" ? (
+            <Typography
+              sx={{ color: "text.secondary", mt: 0.5 }}
+              variant="body2"
+            >
+              {messages.keepPageOpenHint}
+            </Typography>
+          ) : null}
         </Box>
 
-        <LinearProgress
-          aria-label={messages.progressTitle}
-          aria-valuetext={messages.progressLabel(
-            result.processedCount,
-            result.totalCount,
-          )}
-          value={progress}
-          variant="determinate"
-        />
+        {status === "importing" ? (
+          <LinearProgress
+            aria-label={messages.progressTitle}
+            value={
+              displayProgress ??
+              toProgressPercentage(result.processedCount, result.totalCount)
+            }
+            variant="determinate"
+          />
+        ) : null}
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          <Alert severity="success">
-            {messages.successCount(result.successCount)}
-          </Alert>
-          {result.failureCount > 0 ? (
-            <Alert severity="error">
-              {messages.failureCount(result.failureCount)}
+        {status === "completed" ? (
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Alert severity="success">
+              {messages.successCount(result.successCount)}
             </Alert>
-          ) : null}
-          {result.duplicateCount > 0 ? (
-            <Alert severity="warning">
-              {messages.duplicateCount(result.duplicateCount)}
-            </Alert>
-          ) : null}
-          {result.holderMissingCount > 0 ? (
-            <Alert severity="warning">
-              {messages.holderMissingCount(result.holderMissingCount)}
-            </Alert>
-          ) : null}
-        </Stack>
+            {result.failureCount > 0 ? (
+              <Alert severity="error">
+                {messages.failureCount(result.failureCount)}
+              </Alert>
+            ) : null}
+            {result.duplicateCount > 0 ? (
+              <Alert severity="warning">
+                {messages.duplicateCount(result.duplicateCount)}
+              </Alert>
+            ) : null}
+            {result.holderMissingCount > 0 ? (
+              <Alert severity="warning">
+                {messages.holderMissingCount(result.holderMissingCount)}
+              </Alert>
+            ) : null}
+          </Stack>
+        ) : null}
 
         {status === "completed" && failedDetails.length > 0 ? (
           <DetailList

@@ -31,3 +31,8 @@ export type ImportTransactionGroup = {
   items: IncomeExpenseImportRow[];
   rowNumbers: number[];
 };
+
+/** 导入执行的最小单位：一个收支交易组，或一条转账。 */
+export type ImportExecutionUnit =
+  | { group: ImportTransactionGroup; kind: "incomeExpense" }
+  | { kind: "transfer"; row: TransferImportRow };

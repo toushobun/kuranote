@@ -14,11 +14,6 @@ export type DataImportBatchActionState = BaseActionState & {
   errorKey?: string;
 };
 
-export type DataImportStateAction = (
-  previousState: DataImportActionState,
-  formData: FormData,
-) => Promise<DataImportActionState>;
-
 export type DataImportBatchStateAction = (
   previousState: DataImportBatchActionState,
   formData: FormData,

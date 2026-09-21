@@ -31,9 +31,8 @@ export const Importing: Story = {
 };
 
 export const ImportingWithSimulatedProgress: Story = {
-  name: "导入中（预测式动画进度）",
+  name: "导入中（虚拟进度条）",
   args: {
-    displayProcessedCount: 54.4,
     displayProgress: 68,
     result: {
       details: [],

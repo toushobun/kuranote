@@ -33,22 +33,16 @@ import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutio
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 import { useDataImportForm } from "templates/settings/useDataImportForm";
-import type {
-  DataImportBatchStateAction,
-  DataImportStateAction,
-} from "types/dataImport";
+import type { DataImportBatchStateAction } from "types/dataImport";
 
 type DataImportTemplateProps = {
-  checkFormatAction: DataImportStateAction;
   executeBatchAction: DataImportBatchStateAction;
 };
 
 export function DataImportTemplate({
-  checkFormatAction,
   executeBatchAction,
 }: DataImportTemplateProps) {
   const {
-    displayProcessedCount,
     displayProgress,
     downloadError,
     executionError,
@@ -63,7 +57,7 @@ export function DataImportTemplate({
     isImporting,
     selectedFileName,
     validationState,
-  } = useDataImportForm(checkFormatAction, executeBatchAction);
+  } = useDataImportForm(executeBatchAction);
 
   return (
     <PageShell maxWidth="sm">
@@ -160,7 +154,6 @@ export function DataImportTemplate({
 
         {executionResult && executionStatus ? (
           <DataImportExecutionStatus
-            displayProcessedCount={displayProcessedCount ?? undefined}
             displayProgress={displayProgress ?? undefined}
             isDownloading={isDownloading}
             onDownload={

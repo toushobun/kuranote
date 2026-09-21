@@ -3,11 +3,17 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import type { ImportExecutionResult } from "internal/dataImport";
+import {
+  analyzeImportFile,
+  dataImportErrorCodes,
+  getDataImportErrorMessage,
+  importBatchSize,
+  type ImportExecutionResult,
+  type ImportExecutionUnit,
+} from "internal/dataImport";
 import type {
   DataImportActionState,
   DataImportBatchStateAction,
-  DataImportStateAction,
 } from "types/dataImport";
 import {
   buildDataImportResultFileName,
@@ -15,7 +21,6 @@ import {
 } from "utils/dataImportResultWorkbook";
 import {
   computeDisplayProcessed,
-  initialBatchSizeGuess,
   initialEstimatedBatchDurationMs,
   simulatedImportProgressTickIntervalMs,
   toProgressPercentage,
@@ -23,6 +28,10 @@ import {
 } from "utils/simulatedImportProgress";
 
 const initialValidationState: DataImportActionState = {};
+
+const executionFailedMessage = getDataImportErrorMessage(
+  dataImportErrorCodes.executionFailed,
+)!;
 
 function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
   return {
@@ -38,7 +47,6 @@ function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
 }
 
 export function useDataImportForm(
-  checkFormatAction: DataImportStateAction,
   executeBatchAction: DataImportBatchStateAction,
 ) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -55,14 +63,13 @@ export function useDataImportForm(
   >(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  // 仅用于进度条的展示值：批次等待期间按预测平滑推进，批次返回后对齐真实进度。
   const [displayProgress, setDisplayProgress] = useState<number | null>(null);
-  const [displayProcessedCount, setDisplayProcessedCount] = useState<
-    number | null
-  >(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
   const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
-  const observedBatchSizeRef = useRef<number | null>(null);
+  // 浏览器端「检查格式」解析出的全部执行单元，「开始导入」按批切片发给服务端。
+  const unitsRef = useRef<ImportExecutionUnit[]>([]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -74,6 +81,7 @@ export function useDataImportForm(
 
   function resetAfterFileChange(file: File | null) {
     runTokenRef.current += 1;
+    unitsRef.current = [];
     setSelectedFile(file);
     setValidationState(initialValidationState);
     setExecutionError(null);
@@ -81,7 +89,6 @@ export function useDataImportForm(
     setExecutionStatus(null);
     setDownloadError(null);
     setDisplayProgress(null);
-    setDisplayProcessedCount(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -97,11 +104,18 @@ export function useDataImportForm(
     setExecutionStatus(null);
     setDownloadError(null);
 
-    const formData = new FormData();
-    formData.set("file", selectedFile);
     try {
-      const nextState = await checkFormatAction({}, formData);
-      if (mountedRef.current) setValidationState(nextState);
+      const { result, units } = await analyzeImportFile(selectedFile);
+      unitsRef.current = units;
+      if (mountedRef.current) setValidationState({ result });
+    } catch {
+      if (mountedRef.current) {
+        setValidationState({
+          error:
+            getDataImportErrorMessage(dataImportErrorCodes.validationFailed) ??
+            undefined,
+        });
+      }
     } finally {
       if (mountedRef.current) setIsChecking(false);
     }
@@ -117,35 +131,30 @@ export function useDataImportForm(
       return;
     }
 
-    const totalCount =
-      validationState.result.summary.incomeExpenseCount +
-      validationState.result.summary.transferCount;
+    const units = unitsRef.current;
+    const totalCount = units.length;
     let aggregate = createEmptyExecutionResult(totalCount);
     let offset = 0;
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
     estimatedBatchDurationRef.current = initialEstimatedBatchDurationMs;
-    observedBatchSizeRef.current = null;
     setExecutionError(null);
     setDownloadError(null);
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
-    // 百分比与预测行数出自同一次计算，统一经此函数写入，避免只更新其中一处。
-    function applyDisplayProcessed(processed: number) {
-      setDisplayProcessedCount(processed);
-      setDisplayProgress(toProgressPercentage(processed, totalCount));
+    setDisplayProgress(0);
+    // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
+    if (totalCount === 0) {
+      setExecutionStatus("completed");
+      return;
     }
-    applyDisplayProcessed(0);
     setIsImporting(true);
 
     try {
       while (mountedRef.current && runTokenRef.current === runToken) {
         const confirmedProcessed = aggregate.processedCount;
-        const pendingBatchSize = Math.min(
-          observedBatchSizeRef.current ?? initialBatchSizeGuess,
-          totalCount - confirmedProcessed,
-        );
+        const batchUnits = units.slice(offset, offset + importBatchSize);
         const batchStartedAt = performance.now();
         let state: Awaited<ReturnType<DataImportBatchStateAction>>;
 
@@ -155,20 +164,21 @@ export function useDataImportForm(
             if (!mountedRef.current || runTokenRef.current !== runToken) {
               return;
             }
-            const elapsedMs = performance.now() - batchStartedAt;
-            applyDisplayProcessed(
-              computeDisplayProcessed({
-                confirmedProcessed,
-                elapsedMs,
-                estimatedDurationMs: estimatedBatchDurationRef.current,
-                pendingBatchSize,
-              }),
+            setDisplayProgress(
+              toProgressPercentage(
+                computeDisplayProcessed({
+                  confirmedProcessed,
+                  elapsedMs: performance.now() - batchStartedAt,
+                  estimatedDurationMs: estimatedBatchDurationRef.current,
+                  pendingBatchSize: batchUnits.length,
+                }),
+                totalCount,
+              ),
             );
           }, simulatedImportProgressTickIntervalMs);
 
           const formData = new FormData();
-          formData.set("file", selectedFile);
-          formData.set("offset", String(offset));
+          formData.set("units", JSON.stringify(batchUnits));
           formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
           state = await executeBatchAction({}, formData);
 
@@ -182,9 +192,7 @@ export function useDataImportForm(
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
         if (state.error || !state.batch) {
-          setExecutionError(
-            state.error ?? dataImportExecutionMessages.downloadFailed,
-          );
+          setExecutionError(state.error ?? executionFailedMessage);
           setExecutionStatus(null);
           return;
         }
@@ -198,19 +206,25 @@ export function useDataImportForm(
           processedCount: aggregate.processedCount + state.batch.processedCount,
           rowResults: [...aggregate.rowResults, ...state.batch.rowResults],
           successCount: aggregate.successCount + state.batch.successCount,
-          totalCount: state.batch.totalCount,
+          totalCount,
         };
         setExecutionResult(aggregate);
-        applyDisplayProcessed(aggregate.processedCount);
-        offset = state.batch.nextOffset;
-        if (!state.batch.done) {
-          observedBatchSizeRef.current = state.batch.processedCount;
-        }
+        setDisplayProgress(
+          toProgressPercentage(aggregate.processedCount, totalCount),
+        );
+        offset += batchUnits.length;
 
-        if (state.batch.done) {
+        if (offset >= totalCount) {
           setExecutionStatus("completed");
           return;
         }
+      }
+    } catch {
+      // 网络中断、请求超时等导致某一批请求直接抛出：已写入的批次不会回滚，
+      // 这里只负责让界面退出「导入中」并给出提示，避免一直停在转圈状态。
+      if (mountedRef.current && runTokenRef.current === runToken) {
+        setExecutionError(executionFailedMessage);
+        setExecutionStatus(null);
       }
     } finally {
       if (mountedRef.current && runTokenRef.current === runToken) {
@@ -250,7 +264,6 @@ export function useDataImportForm(
   }
 
   return {
-    displayProcessedCount,
     displayProgress,
     downloadError,
     executionError,

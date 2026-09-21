@@ -23,7 +23,6 @@ import {
   createCategoryService,
   type CategoryQueryService,
 } from "internal/category/service/categoryService";
-import { createDataImportValidationService } from "internal/dataImport/service/dataImportValidationService";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
@@ -88,7 +87,6 @@ export type RequestContainer = {
     readonly service: ReturnType<typeof createDataExportService>;
   };
   readonly dataImport: {
-    readonly service: ReturnType<typeof createDataImportValidationService>;
     createExecutionService(
       currentLedger: CurrentLedger,
     ): ReturnType<typeof createDataImportExecutionService>;
@@ -296,7 +294,6 @@ export function createRequestContainer(
     get dataImport() {
       if (!dataImportContainer) {
         dataImportContainer = {
-          service: createDataImportValidationService(),
           createExecutionService: (currentLedger) => {
             return createDataImportExecutionService({
               accountImportService: createAccountImportService(

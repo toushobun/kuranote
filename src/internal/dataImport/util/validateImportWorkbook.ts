@@ -1,5 +1,8 @@
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
-import type { TransferImportRow } from "internal/dataImport/entity/importRow";
+import type {
+  ImportExecutionUnit,
+  TransferImportRow,
+} from "internal/dataImport/entity/importRow";
 import type {
   ImportValidationIssue,
   ImportValidationResult,
@@ -24,12 +27,31 @@ import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet"
 export function validateImportWorkbook(
   tables: ParsedTable[],
 ): ImportValidationResult {
+  return analyzeImportWorkbook(tables).result;
+}
+
+export type AnalyzeImportWorkbookResult = {
+  result: ImportValidationResult;
+  /** 仅在校验通过时非空：按「收支」再「转账」的顺序展开的全部执行单元。 */
+  units: ImportExecutionUnit[];
+};
+
+/**
+ * 与 `validateImportWorkbook` 相同的校验，同时在同一次解析中产出执行单元，
+ * 避免调用方为拿到执行单元把同一份表格再解析一遍。
+ */
+export function analyzeImportWorkbook(
+  tables: ParsedTable[],
+): AnalyzeImportWorkbookResult {
   if (tables.length === 0) {
     return {
-      issues: [
-        { kind: "structural", message: "文件为空或没有可识别的数据表。" },
-      ],
-      ok: false,
+      result: {
+        issues: [
+          { kind: "structural", message: "文件为空或没有可识别的数据表。" },
+        ],
+        ok: false,
+      },
+      units: [],
     };
   }
 
@@ -75,15 +97,25 @@ export function validateImportWorkbook(
   }
 
   if (issues.length > 0) {
-    return { issues, ok: false };
+    return { result: { issues, ok: false }, units: [] };
   }
 
   return {
-    ok: true,
-    summary: {
-      balanceAdjustmentDetected,
-      incomeExpenseCount: grouped.groups.length,
-      transferCount: transferRows.length,
+    result: {
+      ok: true,
+      summary: {
+        balanceAdjustmentDetected,
+        incomeExpenseCount: grouped.groups.length,
+        transferCount: transferRows.length,
+      },
     },
+    units: [
+      ...grouped.groups.map(
+        (group): ImportExecutionUnit => ({ group, kind: "incomeExpense" }),
+      ),
+      ...transferRows.map(
+        (row): ImportExecutionUnit => ({ kind: "transfer", row }),
+      ),
+    ],
   };
 }

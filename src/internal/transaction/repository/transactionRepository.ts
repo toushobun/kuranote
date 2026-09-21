@@ -33,6 +33,10 @@ import type { UpdateBalanceAdjustmentInput } from "internal/transaction/schema";
 import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { isThemeColorKey } from "theme/themeColorTokens";
+import { chunkArray } from "utils/collections";
+
+/** 单次 `in.(...)` 查询最多携带的记录 id 数：36 位 uuid × 100 ≈ 4KB，远低于网关 URL 上限。 */
+const itemQueryRecordIdChunkSize = 100;
 
 export type TransactionItemInput = {
   amount: number;
@@ -717,30 +721,47 @@ export function createSupabaseTransactionRepository(
     async listItems(ledgerId, transactionRecordIds, page) {
       const uniqueIds = [...new Set(transactionRecordIds)];
       if (uniqueIds.length === 0) return [];
-      let query = supabase
-        .from("transaction_item_with_refund")
-        .select(
-          "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link, updated_at",
-        )
-        .eq("ledger_id", ledgerId)
-        .in("transaction_record_id", uniqueIds)
-        .order("sort_order", { ascending: true })
-        .order("id", { ascending: true });
-      if (page) query = query.range(page.offset, page.offset + page.limit - 1);
-      const { data, error } = await query;
-      if (error) {
-        logger.error("[transaction] failed to load transaction items", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_items_load_failed",
-          "交易明细加载失败，请稍后重试。",
-        );
-      }
-      return (data ?? []).map((row) =>
-        toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+
+      // `in.(...)` 的 id 列表会写进请求 URL，过长会被网关以 414 拒绝（导入大量
+      // 数据后一次扫描上千条记录时会触发），因此按块分别查询。同一条记录的明细
+      // 始终落在同一块内，块内保持原有排序；分页读取时不切块以保证 range 语义。
+      const idChunks = page
+        ? [uniqueIds]
+        : chunkArray(uniqueIds, itemQueryRecordIdChunkSize);
+      const chunkRows = await Promise.all(
+        idChunks.map(async (ids) => {
+          let query = supabase
+            .from("transaction_item_with_refund")
+            .select(
+              "id, transaction_record_id, account_id, category_id, amount, business_net_amount, balance_delta, note, special_status, refunded_amount, reimbursement_amount, is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link, updated_at",
+            )
+            .eq("ledger_id", ledgerId)
+            .in("transaction_record_id", ids)
+            .order("sort_order", { ascending: true })
+            .order("id", { ascending: true });
+          if (page) {
+            query = query.range(page.offset, page.offset + page.limit - 1);
+          }
+          const { data, error } = await query;
+          if (error) {
+            logger.error("[transaction] failed to load transaction items", {
+              databaseCode: error.code,
+              ledgerId,
+            });
+            throw toRepositoryError(
+              "transaction_items_load_failed",
+              "交易明细加载失败，请稍后重试。",
+            );
+          }
+          return data ?? [];
+        }),
       );
+
+      return chunkRows
+        .flat()
+        .map((row) =>
+          toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+        );
     },
 
     async loadFrequentCategoryCounts({

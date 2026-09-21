@@ -1,3 +1,8 @@
+export type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
+export {
+  dataImportErrorCodes,
+  getDataImportErrorMessage,
+} from "internal/dataImport/errors";
 export type {
   ImportBatchResult,
   ImportExecutionDetail,
@@ -23,8 +28,11 @@ export {
   importColumnsBySheetKind,
   transferColumns,
   balanceAdjustmentColumns,
+  importBatchSize,
+  maxImportFileSizeBytes,
   type ImportColumnDef,
 } from "internal/dataImport/schema";
+export { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 export type {
   DataImportExecutionService,
   ExecuteImportBatchInput,

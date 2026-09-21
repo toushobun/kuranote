@@ -28,15 +28,12 @@ export type ImportExecutionDetail = {
 
 export type ImportBatchResult = {
   details: ImportExecutionDetail[];
-  done: boolean;
   duplicateCount: number;
   failureCount: number;
   holderMissingCount: number;
-  nextOffset: number;
   processedCount: number;
   rowResults: ImportExecutionRowResult[];
   successCount: number;
-  totalCount: number;
 };
 
 export type ImportExecutionResult = {
