@@ -83,6 +83,30 @@ describe("dataExportWorkbook", () => {
     expect(cell(sheet, 3, "账户").font.color).toEqual({ argb: "FF3F9FF4" });
   });
 
+  it.each(["123.45", "-67.89"])(
+    "初始余额 %s 按普通余额变更导出并保留创建时间和固定备注",
+    async (balanceDelta) => {
+      const data = createDataExportFixture();
+      const record = data.records[2];
+      record.note = "初始余额";
+      record.items[0].balanceDelta = balanceDelta;
+      record.items[0].amount = String(Math.abs(Number(balanceDelta)));
+      data.records = [record];
+      const workbook = await loadWorkbook(data);
+      const sheet = workbook.getWorksheet("余额变更")!;
+      expect(sheet.rowCount).toBe(2);
+      expect(cell(sheet, 2, "交易类型").value).toBe("余额变更");
+      expect(cell(sheet, 2, "金额").value).toBe(balanceDelta);
+      expect(cell(sheet, 2, "备注").value).toBe("初始余额");
+      expect(cell(sheet, 2, "记账人").value).toBe(record.recorderName);
+      expect(cell(sheet, 2, "日期").value).toBe(
+        cell((await loadWorkbook()).getWorksheet("余额变更")!, 2, "日期").value,
+      );
+      expect(workbook.getWorksheet("收支")!.rowCount).toBe(1);
+      expect(workbook.getWorksheet("转账")!.rowCount).toBe(1);
+    },
+  );
+
   it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
     const broken = (
       mutate: (data: ReturnType<typeof createDataExportFixture>) => void,

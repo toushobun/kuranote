@@ -488,6 +488,18 @@ set
     updated_by = excluded.updated_by,
     updated_at = now();
 
+-- 初始余额记录复用创建账户的内部写入逻辑，重复执行 seed 时不重复生成。
+select public.record_account_initial_balance(a.id)
+from public.account a
+where a.ledger_id = '00000000-0000-4000-8000-000000000032'
+  and a.initial_balance <> 0
+  and not exists (
+      select 1 from public.transaction_item ti
+      join public.transaction_record tr on tr.id = ti.transaction_record_id
+      where ti.account_id = a.id and tr.type = 'balance_adjustment'
+        and tr.note = '初始余额'
+  );
+
 insert into public.merchant (
     id,
     ledger_id,

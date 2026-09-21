@@ -1287,6 +1287,8 @@ begin
         from unnest(v_holder_user_ids) as holder_user_ids(holder_user_id);
     end if;
 
+    perform public.record_account_initial_balance(v_account_id);
+
     return v_account_id;
 end;
 $$;
@@ -4241,6 +4243,41 @@ $$;
 
 
 ALTER FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."record_account_initial_balance"("p_account_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_account public.account;
+    v_record_id uuid;
+begin
+    select * into strict v_account from public.account where id = p_account_id;
+    if v_account.initial_balance = 0 then
+        return;
+    end if;
+
+    insert into public.transaction_record (
+        ledger_id, type, transaction_at, note, created_by, updated_by
+    ) values (
+        v_account.ledger_id, 'balance_adjustment', v_account.created_at,
+        '初始余额', v_account.created_by, v_account.created_by
+    ) returning id into v_record_id;
+
+    insert into public.transaction_item (
+        ledger_id, transaction_record_id, account_id, amount, balance_delta,
+        created_by, updated_by
+    ) values (
+        v_account.ledger_id, v_record_id, v_account.id,
+        abs(v_account.initial_balance), v_account.initial_balance,
+        v_account.created_by, v_account.created_by
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."record_account_initial_balance"("p_account_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."refresh_account_name_scope"() RETURNS "trigger"
@@ -9141,6 +9178,10 @@ REVOKE ALL ON FUNCTION "public"."recalculate_targets_for_income_status_change"()
 
 
 REVOKE ALL ON FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."record_account_initial_balance"("p_account_id" "uuid") FROM PUBLIC;
 
 
 
