@@ -11,6 +11,16 @@ create temporary table issue_574_void_wait_result (
     value text
 ) on commit drop;
 
+-- 并发 fixture 由远端会话提交，外层 rollback 不会撤销；先记下会被 fixture 与真实
+-- void 改动的账户余额、账本开关原值，收尾时还原，避免污染 seed 供后续测试使用。
+create temporary table issue_574_void_original on commit drop as
+select
+    account.current_balance,
+    ledger.transaction_item_special_status_enabled as special_status_enabled
+from public.account account
+join public.ledger ledger on ledger.id = account.ledger_id
+where account.id = '00000000-0000-4000-8000-000000000043';
+
 select dblink_connect(
     'issue574_void_gate',
     format(
@@ -424,25 +434,43 @@ select is(
 
 select dblink_exec(
     'issue574_void_gate',
-    $cleanup$
-    do $remote$
-    begin
-        delete from public.transaction_item_reimbursement_link
-        where target_expense_item_id =
-              '57482000-0000-4000-8000-000000000001';
-        delete from public.transaction_item
-        where id in (
-            '57482000-0000-4000-8000-000000000001',
-            '57482000-0000-4000-8000-000000000002'
-        );
-        delete from public.transaction_record
-        where id in (
-            '57483000-0000-4000-8000-000000000001',
-            '57483000-0000-4000-8000-000000000002'
-        );
-    end
-    $remote$;
-    $cleanup$
+    format(
+        $cleanup$
+        do $remote$
+        begin
+            delete from public.transaction_item_reimbursement_link
+            where target_expense_item_id =
+                  '57482000-0000-4000-8000-000000000001';
+            delete from public.transaction_item
+            where id in (
+                '57482000-0000-4000-8000-000000000001',
+                '57482000-0000-4000-8000-000000000002'
+            );
+            delete from public.transaction_record
+            where id in (
+                '57483000-0000-4000-8000-000000000001',
+                '57483000-0000-4000-8000-000000000002'
+            );
+
+            -- 余额受触发器保护，只能通过受控函数按差值还原。
+            perform public.apply_account_balance_delta(
+                '00000000-0000-4000-8000-000000000032',
+                '00000000-0000-4000-8000-000000000043',
+                %L::numeric - (
+                    select current_balance from public.account
+                    where id = '00000000-0000-4000-8000-000000000043'
+                ),
+                '00000000-0000-4000-8000-000000000031'
+            );
+            update public.ledger
+            set transaction_item_special_status_enabled = %L::boolean
+            where id = '00000000-0000-4000-8000-000000000032';
+        end
+        $remote$;
+        $cleanup$,
+        (select current_balance from issue_574_void_original),
+        (select special_status_enabled from issue_574_void_original)
+    )
 );
 
 select dblink_disconnect('issue574_void_gate');
