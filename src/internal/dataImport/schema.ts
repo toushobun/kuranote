@@ -91,7 +91,7 @@ export const transferTypeValue = "转账";
 export const importNoteMaxLength = 2000;
 
 /** 单次 Server Action 请求最多携带的执行单元数，客户端切批与服务端校验共用。 */
-export const importBatchSize = 25;
+export const importBatchSize = 100;
 
 /** 浏览器端解析文件前的大小上限；文件不会上传到服务器，只受浏览器内存约束。 */
 export const maxImportFileSizeBytes = 50 * 1024 * 1024;
