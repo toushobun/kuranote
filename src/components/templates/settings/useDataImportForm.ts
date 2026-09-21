@@ -29,6 +29,10 @@ import {
 
 const initialValidationState: DataImportActionState = {};
 
+const executionFailedMessage = getDataImportErrorMessage(
+  dataImportErrorCodes.executionFailed,
+)!;
+
 function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
   return {
     details: [],
@@ -188,9 +192,7 @@ export function useDataImportForm(
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
         if (state.error || !state.batch) {
-          setExecutionError(
-            state.error ?? dataImportExecutionMessages.downloadFailed,
-          );
+          setExecutionError(state.error ?? executionFailedMessage);
           setExecutionStatus(null);
           return;
         }
@@ -216,6 +218,13 @@ export function useDataImportForm(
           setExecutionStatus("completed");
           return;
         }
+      }
+    } catch {
+      // 网络中断、请求超时等导致某一批请求直接抛出：已写入的批次不会回滚，
+      // 这里只负责让界面退出「导入中」并给出提示，避免一直停在转圈状态。
+      if (mountedRef.current && runTokenRef.current === runToken) {
+        setExecutionError(executionFailedMessage);
+        setExecutionStatus(null);
       }
     } finally {
       if (mountedRef.current && runTokenRef.current === runToken) {

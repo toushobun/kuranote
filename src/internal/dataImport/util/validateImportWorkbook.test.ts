@@ -5,7 +5,10 @@ import {
   incomeExpenseColumns,
   transferColumns,
 } from "internal/dataImport/schema";
-import { validateImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
+import {
+  analyzeImportWorkbook,
+  validateImportWorkbook,
+} from "internal/dataImport/util/validateImportWorkbook";
 
 const incomeExpenseHeader = incomeExpenseColumns.map((column) => column.name);
 const transferHeader = transferColumns.map((column) => column.name);
@@ -162,5 +165,40 @@ describe("validateImportWorkbook", () => {
         expect.objectContaining({ column: "金额", kind: "row" }),
       ]);
     }
+  });
+});
+
+describe("analyzeImportWorkbook", () => {
+  it("一次解析同时返回校验结果与按收支、转账顺序展开的执行单元", () => {
+    const { result, units } = analyzeImportWorkbook([
+      table("转账", transferHeader, [transferRowCells()]),
+      table("收支", incomeExpenseHeader, [
+        incomeExpenseRowCells({ 账单关联: "BILL-1" }),
+        incomeExpenseRowCells({ 账单关联: "BILL-1" }),
+        incomeExpenseRowCells(),
+      ]),
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(units.map((unit) => unit.kind)).toEqual([
+      "incomeExpense",
+      "incomeExpense",
+      "transfer",
+    ]);
+    expect(units[0]).toMatchObject({ group: { rowNumbers: [2, 3] } });
+  });
+
+  it("校验未通过时不产出执行单元，结果与 validateImportWorkbook 一致", () => {
+    const tables = [
+      table("收支", incomeExpenseHeader, [
+        incomeExpenseRowCells({ 金额: "abc" }),
+      ]),
+    ];
+
+    const { result, units } = analyzeImportWorkbook(tables);
+
+    expect(result.ok).toBe(false);
+    expect(units).toEqual([]);
+    expect(result).toEqual(validateImportWorkbook(tables));
   });
 });

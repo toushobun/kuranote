@@ -323,6 +323,30 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.executionResult?.totalCount).toBe(totalCount);
   });
 
+  it.each([
+    ["第一批请求直接抛出", 0],
+    ["第二批请求直接抛出", 1],
+  ])("%s时退出导入中状态并给出错误提示", async (_name, failingBatchIndex) => {
+    mockAnalyzeImportFile(importBatchSize * 2);
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>(async () => {
+      if (executeBatchAction.mock.calls.length - 1 === failingBatchIndex) {
+        throw new Error("network error");
+      }
+      return { batch: makeDoneBatch(importBatchSize) };
+    });
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+    await selectFileAndCheckFormat(result);
+
+    await act(async () => {
+      await result.current.handleStartImport();
+    });
+
+    expect(result.current.executionStatus).toBeNull();
+    expect(result.current.executionError).toBe("数据导入失败，请稍后重试。");
+    expect(result.current.isImporting).toBe(false);
+    expect(executeBatchAction).toHaveBeenCalledTimes(failingBatchIndex + 1);
+  });
+
   it("只有表头没有数据行时开始导入直接完成，不请求服务端", async () => {
     mockAnalyzeImportFile(0);
     const executeBatchAction = vi.fn<DataImportBatchStateAction>();

@@ -5,40 +5,14 @@ import {
   getDataImportErrorMessage,
 } from "internal/dataImport/errors";
 import { maxImportFileSizeBytes } from "internal/dataImport/schema";
-import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
-import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
 import { parseImportFile } from "internal/dataImport/util/parseImportFile";
-import { parseIncomeExpenseSheet } from "internal/dataImport/util/parseIncomeExpenseSheet";
-import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet";
-import { validateImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
-import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { analyzeImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
 
 export type AnalyzeImportFileResult = {
   result: ImportValidationResult;
   /** 仅在 `result.ok` 时非空：按「收支」再「转账」的顺序展开的全部执行单元。 */
   units: ImportExecutionUnit[];
 };
-
-/** 从已通过校验的 ParsedTable 展开全部执行单元。 */
-export function buildImportExecutionUnits(
-  tables: ParsedTable[],
-): ImportExecutionUnit[] {
-  const incomeExpenseRows = tables
-    .filter((table) => detectSheetKind(table.sourceName) === "incomeExpense")
-    .flatMap((table) => parseIncomeExpenseSheet(table).rows);
-  const transferRows = tables
-    .filter((table) => detectSheetKind(table.sourceName) === "transfer")
-    .flatMap((table) => parseTransferSheet(table).rows);
-
-  return [
-    ...groupIncomeExpenseRows(incomeExpenseRows).groups.map(
-      (group): ImportExecutionUnit => ({ group, kind: "incomeExpense" }),
-    ),
-    ...transferRows.map(
-      (row): ImportExecutionUnit => ({ kind: "transfer", row }),
-    ),
-  ];
-}
 
 /**
  * 浏览器端一次性解析并校验导入文件：文件本身不会上传到服务器，校验通过后
@@ -75,9 +49,5 @@ export async function analyzeImportFile(
     };
   }
 
-  const result = validateImportWorkbook(parsed.tables);
-  return {
-    result,
-    units: result.ok ? buildImportExecutionUnits(parsed.tables) : [],
-  };
+  return analyzeImportWorkbook(parsed.tables);
 }
