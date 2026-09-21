@@ -148,6 +148,11 @@ export function useDataImportForm(
       setDisplayProgress(toProgressPercentage(processed, totalCount));
     }
     applyDisplayProcessed(0);
+    // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
+    if (totalCount === 0) {
+      setExecutionStatus("completed");
+      return;
+    }
     setIsImporting(true);
 
     try {

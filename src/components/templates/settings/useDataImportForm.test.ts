@@ -362,4 +362,21 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.executionResult?.processedCount).toBe(totalCount);
     expect(result.current.executionResult?.totalCount).toBe(totalCount);
   });
+
+  it("只有表头没有数据行时开始导入直接完成，不请求服务端", async () => {
+    mockAnalyzeImportFile(0);
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>();
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+    await selectFileAndCheckFormat(result);
+
+    await act(async () => {
+      await result.current.handleStartImport();
+    });
+
+    expect(executeBatchAction).not.toHaveBeenCalled();
+    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.executionError).toBeNull();
+    expect(result.current.executionResult?.totalCount).toBe(0);
+    expect(result.current.isImporting).toBe(false);
+  });
 });

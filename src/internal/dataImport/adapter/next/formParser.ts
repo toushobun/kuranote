@@ -61,12 +61,46 @@ const transferRowSchema = z.object({
   transactionAt: transactionAtSchema,
 });
 
+/**
+ * 同一交易组的所有明细必须共享账户、商家、日期、备注与交易类型（`groupIncomeExpenseRows`
+ * 保证浏览器端产出的分组满足这一点），且 rowNumbers 与明细一一对应。服务端只读取首条明细
+ * 的共享字段，这里复核以免请求把不一致的明细并入同一笔交易。
+ */
+const sharedGroupKeys = [
+  "accountCurrency",
+  "accountHolder",
+  "accountName",
+  "billRef",
+  "merchantName",
+  "merchantTag",
+  "note",
+  "transactionAt",
+  "transactionType",
+] as const;
+
+function isConsistentGroup(group: {
+  items: z.infer<typeof incomeExpenseRowSchema>[];
+  rowNumbers: number[];
+}) {
+  const [first] = group.items;
+  return (
+    group.rowNumbers.length === group.items.length &&
+    group.items.every(
+      (item, index) =>
+        item.rowNumber === group.rowNumbers[index] &&
+        sharedGroupKeys.every((key) => item[key] === first[key]),
+    )
+  );
+}
+
 const executionUnitSchema = z.discriminatedUnion("kind", [
   z.object({
-    group: z.object({
-      items: z.array(incomeExpenseRowSchema).min(1),
-      rowNumbers: z.array(rowNumberSchema).min(1),
-    }),
+    group: z
+      .object({
+        items: z.array(incomeExpenseRowSchema).min(1),
+        rowNumbers: z.array(rowNumberSchema).min(1),
+      })
+      .refine(isConsistentGroup),
     kind: z.literal("incomeExpense"),
   }),
   z.object({ kind: z.literal("transfer"), row: transferRowSchema }),
