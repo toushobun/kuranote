@@ -5,6 +5,10 @@ import type { ChangeEvent } from "react";
 
 import { importBatchSize } from "internal/dataImport";
 import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
+import {
+  computeDisplayProcessed,
+  toProgressPercentage,
+} from "utils/simulatedImportProgress";
 import type {
   DataImportBatchActionState,
   DataImportBatchStateAction,
@@ -69,6 +73,192 @@ async function selectFileAndCheckFormat(
     await result.current.handleCheckFormat();
   });
 }
+
+describe("useDataImportForm 虚拟进度条", () => {
+  let clock = 0;
+
+  beforeEach(() => {
+    analyzeImportFileMock.mockReset();
+    vi.useFakeTimers();
+    clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  async function advance(ms: number) {
+    clock += ms;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  }
+
+  it("批次等待期间平滑推进 displayProgress 且不到 100，返回后对齐真实进度", async () => {
+    const totalCount = 10;
+    const batchDeferred = deferred<DataImportBatchActionState>();
+    const executeBatchAction: DataImportBatchStateAction = vi.fn(
+      async () => batchDeferred.promise,
+    );
+    mockAnalyzeImportFile(totalCount);
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+    await selectFileAndCheckFormat(result);
+
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    expect(result.current.displayProgress).toBe(0);
+
+    await advance(200);
+    const first = result.current.displayProgress ?? 0;
+    expect(first).toBeGreaterThan(0);
+    expect(first).toBeLessThan(100);
+
+    await advance(2000);
+    const second = result.current.displayProgress ?? 0;
+    expect(second).toBeGreaterThan(first);
+    expect(second).toBeLessThan(100);
+
+    await act(async () => {
+      batchDeferred.resolve({ batch: makeDoneBatch(totalCount) });
+      await flushMicrotasks();
+    });
+
+    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.displayProgress).toBe(100);
+  });
+
+  it("多批导入时每批返回后进度对齐真实值，不会倒退", async () => {
+    const totalCount = importBatchSize * 2;
+    const batchDeferreds = [
+      deferred<DataImportBatchActionState>(),
+      deferred<DataImportBatchActionState>(),
+    ];
+    const executeBatchAction = vi
+      .fn<DataImportBatchStateAction>()
+      .mockImplementationOnce(async () => batchDeferreds[0].promise)
+      .mockImplementationOnce(async () => batchDeferreds[1].promise);
+    mockAnalyzeImportFile(totalCount);
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+    await selectFileAndCheckFormat(result);
+
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    await advance(5000);
+    const beforeFirstBatchReturns = result.current.displayProgress ?? 0;
+    expect(beforeFirstBatchReturns).toBeLessThan(50);
+
+    await act(async () => {
+      batchDeferreds[0].resolve({ batch: makeDoneBatch(importBatchSize) });
+      await flushMicrotasks();
+    });
+    expect(result.current.displayProgress).toBe(50);
+
+    await advance(200);
+    expect(result.current.displayProgress ?? 0).toBeGreaterThanOrEqual(50);
+    expect(result.current.displayProgress ?? 0).toBeLessThan(100);
+
+    await act(async () => {
+      batchDeferreds[1].resolve({ batch: makeDoneBatch(importBatchSize) });
+      await flushMicrotasks();
+    });
+    expect(result.current.displayProgress).toBe(100);
+  });
+
+  it("批次抛出异常时清理计时器，进度不再变化", async () => {
+    const totalCount = 10;
+    const batchDeferred = deferred<DataImportBatchActionState>();
+    const executeBatchAction: DataImportBatchStateAction = vi.fn(
+      async () => batchDeferred.promise,
+    );
+    mockAnalyzeImportFile(totalCount);
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+    await selectFileAndCheckFormat(result);
+
+    let importPromise!: Promise<void>;
+    act(() => {
+      importPromise = result.current.handleStartImport().catch(() => undefined);
+    });
+    await advance(200);
+
+    const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
+    await act(async () => {
+      batchDeferred.reject(new Error("network error"));
+      await flushMicrotasks();
+    });
+    await importPromise;
+    expect(clearIntervalSpy).toHaveBeenCalled();
+
+    const progressAfterThrow = result.current.displayProgress;
+    await advance(1000);
+    expect(result.current.displayProgress).toBe(progressAfterThrow);
+  });
+
+  it("连续两次导入之间预估耗时被重置，不互相污染", async () => {
+    const totalCount = 10;
+    const first = deferred<DataImportBatchActionState>();
+    const second = deferred<DataImportBatchActionState>();
+    const executeBatchAction = vi
+      .fn<DataImportBatchStateAction>()
+      .mockImplementationOnce(async () => first.promise)
+      .mockImplementationOnce(async () => second.promise);
+    mockAnalyzeImportFile(totalCount);
+    const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+
+    await selectFileAndCheckFormat(result, "first.xlsx");
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    // 第一批耗时远超初始预估，拉高预估耗时。
+    await advance(60000);
+    await act(async () => {
+      first.resolve({ batch: makeDoneBatch(totalCount) });
+      await flushMicrotasks();
+    });
+
+    await selectFileAndCheckFormat(result, "second.xlsx");
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    await advance(200);
+
+    expect(result.current.displayProgress).toBeCloseTo(
+      toProgressPercentage(
+        computeDisplayProcessed({
+          confirmedProcessed: 0,
+          elapsedMs: 200,
+          estimatedDurationMs: 10000,
+          pendingBatchSize: totalCount,
+        }),
+        totalCount,
+      ),
+      5,
+    );
+  });
+
+  it("更换文件会清空进度展示值", async () => {
+    mockAnalyzeImportFile(10);
+    const { result } = renderHook(() =>
+      useDataImportForm(vi.fn(async () => new Promise<never>(() => undefined))),
+    );
+    await selectFileAndCheckFormat(result);
+    act(() => {
+      void result.current.handleStartImport();
+    });
+    await advance(200);
+    expect(result.current.displayProgress).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.handleFileChange({
+        target: { files: [new File(["binary"], "other.xlsx")] },
+      } as unknown as ChangeEvent<HTMLInputElement>);
+    });
+    expect(result.current.displayProgress).toBeNull();
+  });
+});
 
 describe("useDataImportForm 浏览器端解析与分批发送", () => {
   beforeEach(() => {

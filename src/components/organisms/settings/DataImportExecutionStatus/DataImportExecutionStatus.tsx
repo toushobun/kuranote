@@ -4,7 +4,7 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -14,8 +14,11 @@ import {
   type ImportExecutionResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
+  /** 进度条展示值（0–100，可为预测值）；不传时按真实处理进度展示。 */
+  displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
   result: ImportExecutionResult;
@@ -23,6 +26,7 @@ type DataImportExecutionStatusProps = {
 };
 
 export function DataImportExecutionStatus({
+  displayProgress,
   isDownloading = false,
   onDownload,
   result,
@@ -42,26 +46,32 @@ export function DataImportExecutionStatus({
   return (
     <SectionCard>
       <Stack spacing={2}>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+        <Box>
+          <Typography sx={{ fontWeight: 700 }}>
+            {status === "importing"
+              ? messages.progressTitle
+              : messages.completedTitle}
+          </Typography>
           {status === "importing" ? (
-            <CircularProgress aria-label={messages.progressTitle} size={24} />
-          ) : null}
-          <Box>
-            <Typography sx={{ fontWeight: 700 }}>
-              {status === "importing"
-                ? messages.progressTitle
-                : messages.completedTitle}
+            <Typography
+              sx={{ color: "text.secondary", mt: 0.5 }}
+              variant="body2"
+            >
+              {messages.keepPageOpenHint}
             </Typography>
-            {status === "importing" ? (
-              <Typography
-                sx={{ color: "text.secondary", mt: 0.5 }}
-                variant="body2"
-              >
-                {messages.keepPageOpenHint}
-              </Typography>
-            ) : null}
-          </Box>
-        </Stack>
+          ) : null}
+        </Box>
+
+        {status === "importing" ? (
+          <LinearProgress
+            aria-label={messages.progressTitle}
+            value={
+              displayProgress ??
+              toProgressPercentage(result.processedCount, result.totalCount)
+            }
+            variant="determinate"
+          />
+        ) : null}
 
         {status === "completed" ? (
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>

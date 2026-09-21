@@ -19,6 +19,13 @@ import {
   buildDataImportResultFileName,
   buildDataImportResultWorkbook,
 } from "utils/dataImportResultWorkbook";
+import {
+  computeDisplayProcessed,
+  initialEstimatedBatchDurationMs,
+  simulatedImportProgressTickIntervalMs,
+  toProgressPercentage,
+  updateEstimatedBatchDuration,
+} from "utils/simulatedImportProgress";
 
 const initialValidationState: DataImportActionState = {};
 
@@ -52,8 +59,11 @@ export function useDataImportForm(
   >(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  // 仅用于进度条的展示值：批次等待期间按预测平滑推进，批次返回后对齐真实进度。
+  const [displayProgress, setDisplayProgress] = useState<number | null>(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
+  const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
   // 浏览器端「检查格式」解析出的全部执行单元，「开始导入」按批切片发给服务端。
   const unitsRef = useRef<ImportExecutionUnit[]>([]);
 
@@ -74,6 +84,7 @@ export function useDataImportForm(
     setExecutionResult(null);
     setExecutionStatus(null);
     setDownloadError(null);
+    setDisplayProgress(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -123,10 +134,12 @@ export function useDataImportForm(
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
+    estimatedBatchDurationRef.current = initialEstimatedBatchDurationMs;
     setExecutionError(null);
     setDownloadError(null);
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
+    setDisplayProgress(0);
     // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
     if (totalCount === 0) {
       setExecutionStatus("completed");
@@ -136,11 +149,42 @@ export function useDataImportForm(
 
     try {
       while (mountedRef.current && runTokenRef.current === runToken) {
+        const confirmedProcessed = aggregate.processedCount;
         const batchUnits = units.slice(offset, offset + importBatchSize);
-        const formData = new FormData();
-        formData.set("units", JSON.stringify(batchUnits));
-        formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
-        const state = await executeBatchAction({}, formData);
+        const batchStartedAt = performance.now();
+        let state: Awaited<ReturnType<DataImportBatchStateAction>>;
+
+        let tickTimer: ReturnType<typeof setInterval> | undefined;
+        try {
+          tickTimer = setInterval(() => {
+            if (!mountedRef.current || runTokenRef.current !== runToken) {
+              return;
+            }
+            setDisplayProgress(
+              toProgressPercentage(
+                computeDisplayProcessed({
+                  confirmedProcessed,
+                  elapsedMs: performance.now() - batchStartedAt,
+                  estimatedDurationMs: estimatedBatchDurationRef.current,
+                  pendingBatchSize: batchUnits.length,
+                }),
+                totalCount,
+              ),
+            );
+          }, simulatedImportProgressTickIntervalMs);
+
+          const formData = new FormData();
+          formData.set("units", JSON.stringify(batchUnits));
+          formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
+          state = await executeBatchAction({}, formData);
+
+          estimatedBatchDurationRef.current = updateEstimatedBatchDuration(
+            estimatedBatchDurationRef.current,
+            performance.now() - batchStartedAt,
+          );
+        } finally {
+          if (tickTimer !== undefined) clearInterval(tickTimer);
+        }
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
         if (state.error || !state.batch) {
@@ -163,6 +207,9 @@ export function useDataImportForm(
           totalCount,
         };
         setExecutionResult(aggregate);
+        setDisplayProgress(
+          toProgressPercentage(aggregate.processedCount, totalCount),
+        );
         offset += batchUnits.length;
 
         if (offset >= totalCount) {
@@ -208,6 +255,7 @@ export function useDataImportForm(
   }
 
   return {
+    displayProgress,
     downloadError,
     executionError,
     executionResult,

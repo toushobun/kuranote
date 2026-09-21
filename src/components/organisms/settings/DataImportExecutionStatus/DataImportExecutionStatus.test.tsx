@@ -15,7 +15,7 @@ const baseResult = {
 };
 
 describe("DataImportExecutionStatus", () => {
-  it("导入中只展示转圈与保持页面打开的提示，不展示计数与明细", () => {
+  it("导入中展示进度条与保持页面打开的提示，不展示计数与明细", () => {
     render(
       <DataImportExecutionStatus
         result={{
@@ -34,18 +34,34 @@ describe("DataImportExecutionStatus", () => {
       />,
     );
 
-    expect(screen.queryByText(/已处理/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/成功导入/)).not.toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).not.toHaveAttribute(
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
+      "30",
     );
     expect(
       screen.getByText("导入需要一些时间，请保持页面打开，不要离开。"),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/已处理/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/成功导入/)).not.toBeInTheDocument();
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
   });
 
-  it("完成态不再展示转圈与保持页面打开的提示", () => {
+  it("传入 displayProgress 时进度条使用该展示值", () => {
+    render(
+      <DataImportExecutionStatus
+        displayProgress={62}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
+  });
+
+  it("完成态不再展示进度条与保持页面打开的提示", () => {
     render(
       <DataImportExecutionStatus
         result={{ ...baseResult, processedCount: 10, successCount: 10 }}
