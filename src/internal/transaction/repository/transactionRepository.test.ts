@@ -477,6 +477,23 @@ describe("TransactionRepository", () => {
       transactionRecordId,
     ]);
   });
+  it("记录 id 很多时交易明细按块查询，避免请求 URL 过长", async () => {
+    const recordIds = Array.from(
+      { length: 250 },
+      (_, index) => `record-${index}`,
+    );
+    const itemQuery = createQuery({ data: [], error: null });
+    const { repository } = createRepository({
+      queries: { transaction_item_with_refund: itemQuery },
+    });
+
+    await repository.listItems(ledgerId, recordIds);
+
+    const chunkSizes = vi
+      .mocked(itemQuery.in)
+      .mock.calls.map(([, ids]) => (ids as string[]).length);
+    expect(chunkSizes).toEqual([100, 100, 50]);
+  });
   it("交易明细查询失败时记录日志并抛出安全仓储错误", async () => {
     const itemQuery = createQuery({
       data: null,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeUniqueById, paginateItems } from "./collections";
+import { chunkArray, mergeUniqueById, paginateItems } from "./collections";
 
 describe("mergeUniqueById", () => {
   it("追加不存在的 id 并保留已有顺序", () => {
@@ -54,5 +54,15 @@ describe("paginateItems", () => {
       nextOffset: null,
       totalCount: 3,
     });
+  });
+});
+
+describe("chunkArray", () => {
+  it("按固定大小切段，最后一段可以不满", () => {
+    expect(chunkArray([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+
+  it("空数组返回空结果", () => {
+    expect(chunkArray([], 3)).toEqual([]);
   });
 });
