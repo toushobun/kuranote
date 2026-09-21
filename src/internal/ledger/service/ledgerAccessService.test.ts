@@ -57,4 +57,55 @@ describe("createLedgerAccessService", () => {
       name: NotFoundError.name,
     });
   });
+
+  it("同一请求内对同一账本与用户的有权限判定只查询一次", async () => {
+    const repository = createRepository("owner", true);
+    const service = createLedgerAccessService(repository);
+
+    await service.getActiveMemberRole({ ledgerId, userId });
+    await service.getActiveMemberRole({ ledgerId, userId });
+
+    expect(repository.getMemberRole).toHaveBeenCalledOnce();
+    expect(repository.isLedgerActive).toHaveBeenCalledOnce();
+  });
+
+  it("不同用户或账本各自查询，互不共用缓存", async () => {
+    const repository = createRepository("owner", true);
+    const service = createLedgerAccessService(repository);
+
+    await service.getActiveMemberRole({ ledgerId, userId });
+    await service.getActiveMemberRole({ ledgerId, userId: "other-user" });
+    await service.getActiveMemberRole({ ledgerId: "other-ledger", userId });
+
+    expect(repository.getMemberRole).toHaveBeenCalledTimes(3);
+  });
+
+  it("无权限结果不缓存，后续加入后可立即通过", async () => {
+    const repository = createRepository(null, true);
+    const service = createLedgerAccessService(repository);
+
+    await expect(
+      service.getActiveMemberRole({ ledgerId, userId }),
+    ).resolves.toBeNull();
+    vi.mocked(repository.getMemberRole).mockResolvedValue("member");
+
+    await expect(
+      service.getActiveMemberRole({ ledgerId, userId }),
+    ).resolves.toBe("member");
+  });
+
+  it("查询失败不缓存，下次重新查询", async () => {
+    const repository = createRepository("owner", true);
+    vi.mocked(repository.getMemberRole).mockRejectedValueOnce(
+      new Error("temporary"),
+    );
+    const service = createLedgerAccessService(repository);
+
+    await expect(
+      service.getActiveMemberRole({ ledgerId, userId }),
+    ).rejects.toThrow("temporary");
+    await expect(
+      service.getActiveMemberRole({ ledgerId, userId }),
+    ).resolves.toBe("owner");
+  });
 });

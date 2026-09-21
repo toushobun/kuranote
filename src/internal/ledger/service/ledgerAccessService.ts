@@ -30,17 +30,30 @@ export async function requireActiveLedgerMemberRole(
   return role;
 }
 
+/**
+ * 服务实例随请求级 Container 创建，因此这里只在单次请求内缓存「有权限」的
+ * 判定结果：数据导入一个批次会对同一账本重复调用上百次权限检查，每次都是
+ * 两个数据库往返。无权限（null）与查询失败都不缓存，随后仍会重新查询。
+ */
 export function createLedgerAccessService(
   ledgerSettingsRepository: LedgerSettingsRepository,
 ): LedgerAccessService {
+  const activeRoleByLedgerAndUser = new Map<string, CurrentLedgerRole>();
+
   return {
     async getActiveMemberRole({ ledgerId, userId }) {
+      const cacheKey = `${ledgerId}:${userId}`;
+      const cachedRole = activeRoleByLedgerAndUser.get(cacheKey);
+      if (cachedRole) return cachedRole;
+
       const [role, isLedgerActive] = await Promise.all([
         ledgerSettingsRepository.getMemberRole(ledgerId, userId),
         ledgerSettingsRepository.isLedgerActive(ledgerId),
       ]);
 
-      return role && isLedgerActive ? role : null;
+      if (!role || !isLedgerActive) return null;
+      activeRoleByLedgerAndUser.set(cacheKey, role);
+      return role;
     },
   };
 }

@@ -4,7 +4,7 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -14,11 +14,8 @@ import {
   type ImportExecutionResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
-  displayProcessedCount?: number;
-  displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
   result: ImportExecutionResult;
@@ -26,24 +23,12 @@ type DataImportExecutionStatusProps = {
 };
 
 export function DataImportExecutionStatus({
-  displayProcessedCount,
-  displayProgress,
   isDownloading = false,
   onDownload,
   result,
   status,
 }: DataImportExecutionStatusProps) {
   const messages = dataImportExecutionMessages;
-  const realProgress = toProgressPercentage(
-    result.processedCount,
-    result.totalCount,
-  );
-  const progress =
-    status === "completed" ? 100 : (displayProgress ?? realProgress);
-  // 可见文字跟随预测行数（向下取整避免小数）；aria-valuetext 始终读真实值。
-  const visibleProcessedCount = Math.floor(
-    displayProcessedCount ?? result.processedCount,
-  );
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
   );
@@ -57,26 +42,32 @@ export function DataImportExecutionStatus({
   return (
     <SectionCard>
       <Stack spacing={2}>
-        <Box>
-          <Typography sx={{ fontWeight: 700 }}>
-            {status === "importing"
-              ? messages.progressTitle
-              : messages.completedTitle}
-          </Typography>
-          <Typography sx={{ color: "text.secondary", mt: 0.5 }} variant="body2">
-            {messages.progressLabel(visibleProcessedCount, result.totalCount)}
-          </Typography>
-        </Box>
-
-        <LinearProgress
-          aria-label={messages.progressTitle}
-          aria-valuetext={messages.progressLabel(
-            result.processedCount,
-            result.totalCount,
-          )}
-          value={progress}
-          variant="determinate"
-        />
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          {status === "importing" ? (
+            <CircularProgress aria-label={messages.progressTitle} size={24} />
+          ) : null}
+          <Box>
+            <Typography sx={{ fontWeight: 700 }}>
+              {status === "importing"
+                ? messages.progressTitle
+                : messages.completedTitle}
+            </Typography>
+            <Typography
+              sx={{ color: "text.secondary", mt: 0.5 }}
+              variant="body2"
+            >
+              {messages.progressLabel(result.processedCount, result.totalCount)}
+            </Typography>
+            {status === "importing" ? (
+              <Typography
+                sx={{ color: "text.secondary", mt: 0.5 }}
+                variant="body2"
+              >
+                {messages.keepPageOpenHint}
+              </Typography>
+            ) : null}
+          </Box>
+        </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <Alert severity="success">
