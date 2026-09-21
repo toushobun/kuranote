@@ -15,7 +15,7 @@ const baseResult = {
 };
 
 describe("DataImportExecutionStatus", () => {
-  it("导入中展示转圈、真实处理数字与保持页面打开的提示，且不提前展示明细", () => {
+  it("导入中只展示转圈与保持页面打开的提示，不展示计数与明细", () => {
     render(
       <DataImportExecutionStatus
         result={{
@@ -34,7 +34,8 @@ describe("DataImportExecutionStatus", () => {
       />,
     );
 
-    expect(screen.getByText("已处理 3 / 共 10 条")).toBeInTheDocument();
+    expect(screen.queryByText(/已处理/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/成功导入/)).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar")).not.toHaveAttribute(
       "aria-valuenow",
     );
@@ -52,7 +53,7 @@ describe("DataImportExecutionStatus", () => {
       />,
     );
 
-    expect(screen.getByText("已处理 10 / 共 10 条")).toBeInTheDocument();
+    expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(
       screen.queryByText("导入需要一些时间，请保持页面打开，不要离开。"),

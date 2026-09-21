@@ -52,12 +52,6 @@ export function DataImportExecutionStatus({
                 ? messages.progressTitle
                 : messages.completedTitle}
             </Typography>
-            <Typography
-              sx={{ color: "text.secondary", mt: 0.5 }}
-              variant="body2"
-            >
-              {messages.progressLabel(result.processedCount, result.totalCount)}
-            </Typography>
             {status === "importing" ? (
               <Typography
                 sx={{ color: "text.secondary", mt: 0.5 }}
@@ -69,26 +63,28 @@ export function DataImportExecutionStatus({
           </Box>
         </Stack>
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          <Alert severity="success">
-            {messages.successCount(result.successCount)}
-          </Alert>
-          {result.failureCount > 0 ? (
-            <Alert severity="error">
-              {messages.failureCount(result.failureCount)}
+        {status === "completed" ? (
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Alert severity="success">
+              {messages.successCount(result.successCount)}
             </Alert>
-          ) : null}
-          {result.duplicateCount > 0 ? (
-            <Alert severity="warning">
-              {messages.duplicateCount(result.duplicateCount)}
-            </Alert>
-          ) : null}
-          {result.holderMissingCount > 0 ? (
-            <Alert severity="warning">
-              {messages.holderMissingCount(result.holderMissingCount)}
-            </Alert>
-          ) : null}
-        </Stack>
+            {result.failureCount > 0 ? (
+              <Alert severity="error">
+                {messages.failureCount(result.failureCount)}
+              </Alert>
+            ) : null}
+            {result.duplicateCount > 0 ? (
+              <Alert severity="warning">
+                {messages.duplicateCount(result.duplicateCount)}
+              </Alert>
+            ) : null}
+            {result.holderMissingCount > 0 ? (
+              <Alert severity="warning">
+                {messages.holderMissingCount(result.holderMissingCount)}
+              </Alert>
+            ) : null}
+          </Stack>
+        ) : null}
 
         {status === "completed" && failedDetails.length > 0 ? (
           <DetailList

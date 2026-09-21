@@ -80,8 +80,6 @@ export const dataImportExecutionMessages = {
   importingButton: "正在导入…",
   progressTitle: "正在导入",
   keepPageOpenHint: "导入需要一些时间，请保持页面打开，不要离开。",
-  progressLabel: (processed: number, total: number) =>
-    `已处理 ${processed} / 共 ${total} 条`,
   completedTitle: "导入完成",
   successCount: (count: number) => `成功导入 ${count} 条`,
   failureCount: (count: number) => `失败 ${count} 条`,

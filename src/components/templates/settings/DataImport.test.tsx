@@ -143,7 +143,6 @@ describe("DataImportTemplate", () => {
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
 
     expect(await screen.findByText("导入完成")).toBeInTheDocument();
-    expect(screen.getByText("已处理 1 / 共 1 条")).toBeInTheDocument();
     expect(screen.getByText("成功导入 1 条")).toBeInTheDocument();
     expect(executeAction).toHaveBeenCalledOnce();
   });
