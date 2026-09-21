@@ -1,0 +1,52 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";import{t as r}from"./jsx-runtime-Dwpk6tgA.js";import{$ as i,A as a,H as o,V as s,a as c,ct as l,et as u,ft as d,k as f,mt as p,nt as m,r as ee,rt as h,s as g,st as te,t as _}from"./DefaultPropsProvider-BrOASIGE.js";import{a as v,i as ne,n as re,o as y,r as b,t as x}from"./createSimplePaletteValueFilter-BYycgg0u.js";import{i as S,o as ie,t as C}from"./utils-DIk0ymYl.js";import{n as w,t as ae}from"./Stack-DRbcmy6F.js";import{n as T,t as oe}from"./Box-C_IPvMNA.js";import{n as E,t as se}from"./Typography-CwLqrFKa.js";import{n as ce,t as le}from"./Button-BvhFbL6z.js";import{n as D,t as ue}from"./Alert-FNoXH4YT.js";import{n as de,t as fe}from"./SectionCard-wZxx7-dP.js";import{n as pe,t as me}from"./DownloadRounded-BL-mtMVa.js";import{n as O,u as he}from"./dataImportExportMessages-CTg2nJqd.js";import{t as ge,u as _e}from"./dataImport-D-ixUJTH.js";function ve(e){return h(`MuiLinearProgress`,e)}var k=t((()=>{i(),m(),u(`MuiLinearProgress`,[`root`,`colorPrimary`,`colorSecondary`,`determinate`,`indeterminate`,`buffer`,`query`,`dashed`,`bar`,`bar1`,`bar2`])})),A,j,M,N,P,F,I,L,R,z,B,V,H,U,W,G,K,ye=t((()=>{A=e(n(),1),l(),f(),s(),c(),v(),re(),_(),ne(),ie(),k(),j=r(),M=4,N={},P=p`
+  0% {
+    left: -35%;
+    right: 100%;
+  }
+
+  60% {
+    left: 100%;
+    right: -90%;
+  }
+
+  100% {
+    left: 100%;
+    right: -90%;
+  }
+`,F=typeof P==`string`?null:d`
+        animation: ${P} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+      `,I=p`
+  0% {
+    left: -200%;
+    right: 100%;
+  }
+
+  60% {
+    left: 107%;
+    right: -8%;
+  }
+
+  100% {
+    left: 107%;
+    right: -8%;
+  }
+`,L=typeof I==`string`?null:d`
+        animation: ${I} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
+      `,R=p`
+  0% {
+    opacity: 1;
+    background-position: 0 -23px;
+  }
+
+  60% {
+    opacity: 0;
+    background-position: 0 -23px;
+  }
+
+  100% {
+    opacity: 1;
+    background-position: -200px -23px;
+  }
+`,z=typeof R==`string`?null:d`
+        animation: ${R} 3s infinite linear;
+      `,B=e=>{let{classes:t,variant:n,color:r}=e;return a({root:[`root`,`color${b(r)}`,n],dashed:[`dashed`],bar1:[`bar`,`bar1`],bar2:[`bar`,`bar2`,n===`buffer`&&`color${b(r)}`]},ve,t)},V=(e,t)=>e.vars?e.vars.palette.LinearProgress[`${t}Bg`]:e.palette.mode===`light`?e.lighten(e.palette[t].main,.62):e.darken(e.palette[t].main,.5),H=g(`span`,{name:`MuiLinearProgress`,slot:`Root`,overridesResolver:(e,t)=>{let{ownerState:n}=e;return[t.root,t[`color${b(n.color)}`],t[n.variant]]}})(y(({theme:e})=>({position:`relative`,overflow:`hidden`,display:`block`,height:4,zIndex:0,"@media print":{colorAdjust:`exact`},variants:[...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{backgroundColor:V(e,t)}})),{props:({ownerState:e})=>e.color===`inherit`&&e.variant!==`buffer`,style:{"&::before":{content:`""`,position:`absolute`,left:0,top:0,right:0,bottom:0,backgroundColor:`currentColor`,opacity:.3}}},{props:{variant:`buffer`},style:{backgroundColor:`transparent`}},{props:{variant:`query`},style:{transform:`rotate(180deg)`}}]}))),U=g(`span`,{name:`MuiLinearProgress`,slot:`Dashed`})(y(({theme:e})=>({position:`absolute`,marginTop:0,height:`100%`,width:`100%`,backgroundSize:`10px 10px`,backgroundPosition:`0 -23px`,variants:[{props:{color:`inherit`},style:{opacity:.3,backgroundImage:`radial-gradient(currentColor 0%, currentColor 16%, transparent 42%)`}},...Object.entries(e.palette).filter(x()).map(([t])=>{let n=V(e,t);return{props:{color:t},style:{backgroundImage:`radial-gradient(${n} 0%, ${n} 16%, transparent 42%)`}}})]})),z||{animation:`${R} 3s infinite linear`},y(({theme:e})=>C(e,{animation:`none`})||N)),W=g(`span`,{name:`MuiLinearProgress`,slot:`Bar1`,overridesResolver:(e,t)=>[t.bar,t.bar1]})(y(({theme:e})=>{let t=C(e,{animation:`none`,left:`30%`,right:`auto`,width:`40%`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...S(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[{props:{color:`inherit`},style:{backgroundColor:`currentColor`}},...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{backgroundColor:(e.vars||e).palette[t].main}})),{props:{variant:`determinate`},style:{...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}},{props:{variant:`buffer`},style:{zIndex:1,...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:F||{animation:`${P} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),G=g(`span`,{name:`MuiLinearProgress`,slot:`Bar2`,overridesResolver:(e,t)=>[t.bar,t.bar2]})(y(({theme:e})=>{let t=C(e,{animation:`none`,display:`none`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...S(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t},style:{"--LinearProgressBar2-barColor":(e.vars||e).palette[t].main}})),{props:({ownerState:e})=>e.variant!==`buffer`&&e.color!==`inherit`,style:{backgroundColor:`var(--LinearProgressBar2-barColor, currentColor)`}},{props:({ownerState:e})=>e.variant!==`buffer`&&e.color===`inherit`,style:{backgroundColor:`currentColor`}},{props:{color:`inherit`},style:{opacity:.3}},...Object.entries(e.palette).filter(x()).map(([t])=>({props:{color:t,variant:`buffer`},style:{backgroundColor:V(e,t),...S(e,`transform`,{duration:`.${M}s`,easing:`linear`})}})),{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:L||{animation:`${I} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),K=A.forwardRef(function(e,t){let n=ee({props:e,name:`MuiLinearProgress`}),{className:r,color:i=`primary`,max:a,min:s,value:c,valueBuffer:l,variant:u=`indeterminate`,...d}=n,f={...n,color:i,variant:u},p=s??0,m=a??100,h=B(f),g=o(),_={},v={bar1:{},bar2:{}};if((u===`determinate`||u===`buffer`)&&c!==void 0){let e=m-p,t=(c-p)/e*100-100;g&&(t=-t),v.bar1.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`,_[`aria-valuenow`]=c,_[`aria-valuemin`]=p,_[`aria-valuemax`]=m}if(u===`buffer`&&l!==void 0){let e=m-p,t=(l-p)/e*100-100;g&&(t=-t),v.bar2.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`}return(0,j.jsxs)(H,{className:te(h.root,r),ownerState:f,role:`progressbar`,..._,ref:t,...d,children:[u===`buffer`?(0,j.jsx)(U,{className:h.dashed,ownerState:f}):null,(0,j.jsx)(W,{className:h.bar1,ownerState:f,style:v.bar1}),u===`determinate`?null:(0,j.jsx)(G,{className:h.bar2,ownerState:f,style:v.bar2})]})})})),be=t((()=>{ye(),k(),k()}));function xe(e,t){let n=t>0?t:2**-52,r=J*(1-Math.exp(-3.5*e/n));return Math.min(J,Math.max(0,r))}function Se(e){let t=xe(e.elapsedMs,e.estimatedDurationMs);return e.confirmedProcessed+e.pendingBatchSize*t}function Ce(e,t){return X*e+(1-X)*t}function q(e,t){return t===0?0:Math.min(100,e/t*100)}var J,Y,X,Z=t((()=>{J=.95,Y=3e3,X=.5}));function we({displayProcessedCount:e,displayProgress:t,isDownloading:n=!1,onDownload:r,result:i,status:a}){let o=O,s=q(i.processedCount,i.totalCount),c=a===`completed`?100:t??s,l=Math.floor(e??i.processedCount),u=i.details.filter(e=>e.status===`failed`),d=i.details.filter(e=>e.status===`duplicate`),f=i.details.filter(e=>e.status===`holderMissing`);return(0,$.jsx)(fe,{children:(0,$.jsxs)(w,{spacing:2,children:[(0,$.jsxs)(T,{children:[(0,$.jsx)(E,{sx:{fontWeight:700},children:a===`importing`?o.progressTitle:o.completedTitle}),(0,$.jsx)(E,{sx:{color:`text.secondary`,mt:.5},variant:`body2`,children:o.progressLabel(l,i.totalCount)})]}),(0,$.jsx)(K,{"aria-label":o.progressTitle,"aria-valuetext":o.progressLabel(i.processedCount,i.totalCount),value:c,variant:`determinate`}),(0,$.jsxs)(w,{direction:{xs:`column`,sm:`row`},spacing:1,children:[(0,$.jsx)(D,{severity:`success`,children:o.successCount(i.successCount)}),i.failureCount>0?(0,$.jsx)(D,{severity:`error`,children:o.failureCount(i.failureCount)}):null,i.duplicateCount>0?(0,$.jsx)(D,{severity:`warning`,children:o.duplicateCount(i.duplicateCount)}):null,i.holderMissingCount>0?(0,$.jsx)(D,{severity:`warning`,children:o.holderMissingCount(i.holderMissingCount)}):null]}),a===`completed`&&u.length>0?(0,$.jsx)(Q,{items:u,title:o.failedDetailTitle}):null,a===`completed`&&d.length>0?(0,$.jsx)(Q,{items:d,title:o.duplicateDetailTitle}):null,a===`completed`&&f.length>0?(0,$.jsx)(Q,{items:f,title:o.holderMissingDetailTitle}):null,a===`completed`&&r?(0,$.jsx)(ce,{disabled:n,onClick:r,startIcon:(0,$.jsx)(me,{}),sx:{alignSelf:`flex-start`},variant:`outlined`,children:n?o.downloadingButton:o.downloadButton}):null]})})}function Q({items:e,title:t}){return(0,$.jsxs)(w,{spacing:1,children:[(0,$.jsx)(E,{sx:{fontWeight:700},variant:`body2`,children:t}),(0,$.jsx)(w,{component:`ul`,spacing:1,sx:{listStyle:`none`,m:0,p:0},children:e.map((e,t)=>(0,$.jsxs)(T,{component:`li`,children:[(0,$.jsxs)(E,{sx:{fontWeight:600},variant:`body2`,children:[`[`,_e[e.sheet],`]`,` `,O.detailRows(e.rowNumbers)]}),(0,$.jsx)(E,{sx:{color:`text.secondary`},variant:`body2`,children:e.content}),(0,$.jsx)(E,{variant:`body2`,children:e.reason})]},`${e.sheet}-${e.rowNumbers.join(`-`)}-${t}`))})]})}var $,Te=t((()=>{$=r(),pe(),ue(),oe(),le(),be(),ae(),se(),he(),ge(),de(),Z(),we.__docgenInfo={description:``,methods:[],displayName:`DataImportExecutionStatus`,props:{displayProcessedCount:{required:!1,tsType:{name:`number`},description:``},displayProgress:{required:!1,tsType:{name:`number`},description:``},isDownloading:{required:!1,tsType:{name:`boolean`},description:``,defaultValue:{value:`false`,computed:!1}},onDownload:{required:!1,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``},result:{required:!0,tsType:{name:`ImportExecutionResult`},description:``},status:{required:!0,tsType:{name:`union`,raw:`"completed" | "importing"`,elements:[{name:`literal`,value:`"completed"`},{name:`literal`,value:`"importing"`}]},description:``}}}}));export{Y as a,Z as i,Te as n,q as o,Se as r,Ce as s,we as t};
