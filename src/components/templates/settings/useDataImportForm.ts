@@ -3,13 +3,17 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
+import type { AccountImportHolder } from "internal/account";
 import {
   analyzeImportFile,
+  collectHolderMappingCandidates,
   dataImportErrorCodes,
   getDataImportErrorMessage,
   importBatchSize,
   type ImportExecutionResult,
   type ImportExecutionUnit,
+  type ImportHolderMapping,
+  type ImportHolderMappingCandidate,
 } from "internal/dataImport";
 import type {
   DataImportActionState,
@@ -48,6 +52,7 @@ function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
 
 export function useDataImportForm(
   executeBatchAction: DataImportBatchStateAction,
+  holderMembers: AccountImportHolder[] = [],
 ) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [validationState, setValidationState] = useState<DataImportActionState>(
@@ -61,6 +66,10 @@ export function useDataImportForm(
   const [executionStatus, setExecutionStatus] = useState<
     "completed" | "importing" | null
   >(null);
+  // 无法唯一匹配账本成员的持有人姓名；非空时「开始导入」前需要先做持有人映射。
+  const [holderMappingCandidates, setHolderMappingCandidates] = useState<
+    ImportHolderMappingCandidate[]
+  >([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   // 仅用于进度条的展示值：批次等待期间按预测平滑推进，批次返回后对齐真实进度。
@@ -84,6 +93,7 @@ export function useDataImportForm(
     unitsRef.current = [];
     setSelectedFile(file);
     setValidationState(initialValidationState);
+    setHolderMappingCandidates([]);
     setExecutionError(null);
     setExecutionResult(null);
     setExecutionStatus(null);
@@ -107,7 +117,12 @@ export function useDataImportForm(
     try {
       const { result, units } = await analyzeImportFile(selectedFile);
       unitsRef.current = units;
-      if (mountedRef.current) setValidationState({ result });
+      if (mountedRef.current) {
+        setHolderMappingCandidates(
+          result.ok ? collectHolderMappingCandidates(units, holderMembers) : [],
+        );
+        setValidationState({ result });
+      }
     } catch {
       if (mountedRef.current) {
         setValidationState({
@@ -121,7 +136,7 @@ export function useDataImportForm(
     }
   }
 
-  async function handleStartImport() {
+  async function startImport(holderMapping: ImportHolderMapping) {
     if (
       !selectedFile ||
       !validationState.result?.ok ||
@@ -179,6 +194,7 @@ export function useDataImportForm(
 
           const formData = new FormData();
           formData.set("units", JSON.stringify(batchUnits));
+          formData.set("holderMapping", JSON.stringify(holderMapping));
           formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
           state = await executeBatchAction({}, formData);
 
@@ -233,6 +249,15 @@ export function useDataImportForm(
     }
   }
 
+  function handleStartImport() {
+    return startImport({});
+  }
+
+  /** 取消映射即放弃本次导入：保留已选文件，清掉解析结果，不向服务端发送任何请求。 */
+  function handleCancelHolderMapping() {
+    resetAfterFileChange(selectedFile);
+  }
+
   async function handleDownloadResult() {
     if (!selectedFile || !executionResult || executionStatus !== "completed") {
       return;
@@ -269,10 +294,13 @@ export function useDataImportForm(
     executionError,
     executionResult,
     executionStatus,
+    handleCancelHolderMapping,
     handleCheckFormat,
+    handleConfirmHolderMapping: startImport,
     handleDownloadResult,
     handleFileChange,
     handleStartImport,
+    holderMappingCandidates,
     isChecking,
     isDownloading,
     isImporting,

@@ -37,3 +37,8 @@ export type {
   DataImportExecutionService,
   ExecuteImportBatchInput,
 } from "internal/dataImport/service/dataImportExecutionService";
+export type {
+  ImportHolderMapping,
+  ImportHolderMappingCandidate,
+} from "internal/dataImport/entity/importHolderMapping";
+export { collectHolderMappingCandidates } from "internal/dataImport/util/collectHolderMappingCandidates";

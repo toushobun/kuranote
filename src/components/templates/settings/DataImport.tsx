@@ -21,6 +21,7 @@ import {
   dataTransferBackMessages,
 } from "config/dataImportExportMessages";
 import { routePaths } from "config/paths";
+import type { AccountImportHolder } from "internal/account";
 import {
   importColumnsBySheetKind,
   importSheetKindLabels,
@@ -29,6 +30,7 @@ import {
   type ImportValidationResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { DataImportHolderMapping } from "organisms/settings/DataImportHolderMapping/DataImportHolderMapping";
 import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
@@ -37,10 +39,13 @@ import type { DataImportBatchStateAction } from "types/dataImport";
 
 type DataImportTemplateProps = {
   executeBatchAction: DataImportBatchStateAction;
+  /** 当前账本的 active 成员，用于持有人映射步骤的下拉候选。 */
+  holderMembers: AccountImportHolder[];
 };
 
 export function DataImportTemplate({
   executeBatchAction,
+  holderMembers,
 }: DataImportTemplateProps) {
   const {
     displayProgress,
@@ -48,16 +53,19 @@ export function DataImportTemplate({
     executionError,
     executionResult,
     executionStatus,
+    handleCancelHolderMapping,
     handleCheckFormat,
+    handleConfirmHolderMapping,
     handleDownloadResult,
     handleFileChange,
     handleStartImport,
+    holderMappingCandidates,
     isChecking,
     isDownloading,
     isImporting,
     selectedFileName,
     validationState,
-  } = useDataImportForm(executeBatchAction);
+  } = useDataImportForm(executeBatchAction, holderMembers);
 
   return (
     <PageShell maxWidth="sm">
@@ -133,7 +141,20 @@ export function DataImportTemplate({
           <ResultSection result={validationState.result} />
         ) : null}
 
-        {validationState.result?.ok && executionStatus === null ? (
+        {validationState.result?.ok &&
+        executionStatus === null &&
+        holderMappingCandidates.length > 0 ? (
+          <DataImportHolderMapping
+            candidates={holderMappingCandidates}
+            members={holderMembers}
+            onCancel={handleCancelHolderMapping}
+            onConfirm={handleConfirmHolderMapping}
+          />
+        ) : null}
+
+        {validationState.result?.ok &&
+        executionStatus === null &&
+        holderMappingCandidates.length === 0 ? (
           <SectionCard>
             <Button
               disabled={isImporting}

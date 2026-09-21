@@ -705,3 +705,254 @@ describe("余额变更导入", () => {
     );
   });
 });
+
+describe("持有人映射", () => {
+  function executeWithMapping(
+    dependencies: ReturnType<typeof createDependencies>,
+    units: ReturnType<typeof unitsOf>,
+    holderMapping: Record<string, string | null>,
+  ) {
+    return createDataImportExecutionService(dependencies).executeBatch({
+      holderMapping,
+      ledgerId: "ledger-1",
+      timeZoneOffsetMinutes: 0,
+      units,
+      userId: "user-1",
+    });
+  }
+
+  it("未匹配姓名映射到账本成员后按该成员创建账户且不再警告", async () => {
+    const dependencies = createDependencies();
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
+      { 小明: "user-1" },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-1" }));
+    expect(result).toMatchObject({
+      failureCount: 0,
+      holderMissingCount: 0,
+      successCount: 1,
+    });
+    expect(result.details).toEqual([]);
+  });
+
+  it("明确映射为无持有人时按无持有人创建账户且不再警告", async () => {
+    const dependencies = createDependencies();
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
+      { 小明: null },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: null }));
+    expect(result).toMatchObject({ holderMissingCount: 0, successCount: 1 });
+    expect(result.details).toEqual([]);
+  });
+
+  it("映射优先于按显示名匹配", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [],
+      holders: [
+        { displayName: "淞文", userId: "user-1" },
+        { displayName: "小红", userId: "user-2" },
+      ],
+    });
+
+    await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow()])]),
+      { 淞文: "user-2" },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-2" }));
+  });
+
+  it("同显示名成员的歧义姓名有映射时不再失败", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [],
+      holders: [
+        { displayName: "淞文", userId: "user-1" },
+        { displayName: "淞文", userId: "user-2" },
+      ],
+    });
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow()])]),
+      { 淞文: "user-2" },
+    );
+
+    expect(result).toMatchObject({ failureCount: 0, successCount: 1 });
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-2" }));
+  });
+
+  it("映射后命中已有账户时复用而不重复创建", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [
+        {
+          currency: "JPY",
+          holderUserId: "user-1",
+          id: "account-existing",
+          isArchived: false,
+          name: "钱包",
+        },
+      ],
+      holders: [{ displayName: "淞文", userId: "user-1" }],
+    });
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([
+        incomeTable([
+          incomeRow({ 账户持有人: "小明" }),
+          incomeRow({ 账户持有人: "小红", 日期: "2026-09-18 10:00:00" }),
+        ]),
+      ]),
+      { 小明: "user-1", 小红: "user-1" },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "account-existing" }),
+    );
+    expect(result.successCount).toBe(2);
+  });
+
+  it("多个姓名映射到同一成员时共用同一个新建账户", async () => {
+    const dependencies = createDependencies();
+
+    await executeWithMapping(
+      dependencies,
+      unitsOf([
+        incomeTable([
+          incomeRow({ 账户持有人: "小明" }),
+          incomeRow({ 账户持有人: "小红", 日期: "2026-09-18 10:00:00" }),
+        ]),
+      ]),
+      { 小明: "user-1", 小红: "user-1" },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it("转账两侧持有人都应用映射", async () => {
+    const dependencies = createDependencies();
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([
+        transferTable([
+          {
+            交易类型: "转账",
+            日期: "2026-09-17 10:00:00",
+            转出账户: "钱包",
+            转出账户币种: "JPY",
+            转出账户持有人: "小明",
+            转入账户: "银行卡",
+            转入账户币种: "JPY",
+            转入账户持有人: "小红",
+            金额: "100",
+          },
+        ]),
+      ]),
+      { 小明: "user-1", 小红: null },
+    );
+
+    expect(
+      vi
+        .mocked(dependencies.accountImportService.createAccount)
+        .mock.calls.map(([input]) => [input.name, input.holderUserId]),
+    ).toEqual([
+      ["钱包", "user-1"],
+      ["银行卡", null],
+    ]);
+    expect(result).toMatchObject({ holderMissingCount: 0, successCount: 1 });
+  });
+
+  it("映射未覆盖的未匹配姓名仍按无持有人继续并警告", async () => {
+    const dependencies = createDependencies();
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
+      { 小红: "user-1" },
+    );
+
+    expect(result.holderMissingCount).toBe(1);
+  });
+
+  it("映射包含非账本成员的 userId 时整批拒绝且不写入任何数据", async () => {
+    const dependencies = createDependencies();
+
+    await expect(
+      executeWithMapping(
+        dependencies,
+        unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
+        { 小明: "user-outsider" },
+      ),
+    ).rejects.toMatchObject({
+      code: "reference_invalid",
+      message: "持有人映射里包含不属于当前账本的成员，请重新检查格式后再导入。",
+    });
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.categoryImportService.createCategory,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.merchantImportService.createMerchant,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("文件姓名与对象原型属性同名时不会被当作映射命中", async () => {
+    const dependencies = createDependencies();
+
+    const result = await executeWithMapping(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "constructor" })])]),
+      {},
+    );
+
+    expect(result.holderMissingCount).toBe(1);
+  });
+
+  it("listHolderMembers 返回与校验映射一致的账本成员", async () => {
+    const dependencies = createDependencies();
+
+    await expect(
+      createDataImportExecutionService(dependencies).listHolderMembers({
+        ledgerId: "ledger-1",
+        userId: "user-1",
+      }),
+    ).resolves.toEqual([{ displayName: "淞文", userId: "user-1" }]);
+  });
+});

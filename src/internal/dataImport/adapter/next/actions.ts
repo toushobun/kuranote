@@ -38,6 +38,7 @@ export async function executeDataImportBatch(
     const container = createRequestContainer(dependencies);
     const service = container.dataImport.createExecutionService(currentLedger);
     const batch = await service.executeBatch({
+      holderMapping: parsed.value.holderMapping,
       ledgerId: currentLedger.id,
       timeZoneOffsetMinutes: parsed.value.timeZoneOffsetMinutes,
       units: parsed.value.units,

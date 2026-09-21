@@ -49,9 +49,15 @@ const transferUnit = {
   },
 };
 
-function createFormData(units: unknown = [transferUnit]) {
+const mappedUserId = "00000000-0000-4000-8000-000000000033";
+
+function createFormData(
+  units: unknown = [transferUnit],
+  holderMapping: unknown = { 小明: mappedUserId },
+) {
   const formData = new FormData();
   formData.set("units", JSON.stringify(units));
+  formData.set("holderMapping", JSON.stringify(holderMapping));
   formData.set("timeZoneOffsetMinutes", "-540");
   return formData;
 }
@@ -92,6 +98,7 @@ describe("executeDataImportBatch", () => {
     expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
     expect(mocks.createExecutionService).toHaveBeenCalledWith(currentLedger);
     expect(mocks.executeBatch).toHaveBeenCalledWith({
+      holderMapping: { 小明: mappedUserId },
       ledgerId,
       timeZoneOffsetMinutes: -540,
       units: [transferUnit],

@@ -364,3 +364,84 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.isImporting).toBe(false);
   });
 });
+
+describe("useDataImportForm 持有人映射", () => {
+  const holderMembers = [{ displayName: "张三", userId: "user-1" }];
+
+  beforeEach(() => {
+    analyzeImportFileMock.mockReset();
+  });
+
+  function setup(fromAccountHolder: string | null) {
+    analyzeImportFileMock.mockResolvedValue(
+      makeAnalyzeImportFileResult(2, fromAccountHolder),
+    );
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>(async () => ({
+      batch: makeDoneBatch(2),
+    }));
+    const { result } = renderHook(() =>
+      useDataImportForm(executeBatchAction, holderMembers),
+    );
+    return { executeBatchAction, result };
+  }
+
+  it("存在未匹配持有人时汇总待映射姓名", async () => {
+    const { result } = setup("小明");
+
+    await selectFileAndCheckFormat(result);
+
+    expect(result.current.holderMappingCandidates).toEqual([
+      { name: "小明", recordCount: 2, reason: "unmatched" },
+    ]);
+  });
+
+  it("持有人都能唯一匹配时没有待映射姓名", async () => {
+    const { result } = setup("张三");
+
+    await selectFileAndCheckFormat(result);
+
+    expect(result.current.holderMappingCandidates).toEqual([]);
+  });
+
+  it("继续导入时每一批都带上持有人映射", async () => {
+    const { executeBatchAction, result } = setup("小明");
+    await selectFileAndCheckFormat(result);
+
+    await act(async () => {
+      await result.current.handleConfirmHolderMapping({ 小明: "user-1" });
+    });
+
+    expect(
+      executeBatchAction.mock.calls.map(([, formData]) =>
+        formData.get("holderMapping"),
+      ),
+    ).toEqual([JSON.stringify({ 小明: "user-1" })]);
+    expect(result.current.executionStatus).toBe("completed");
+  });
+
+  it("没有映射步骤时开始导入发送空映射", async () => {
+    const { executeBatchAction, result } = setup("张三");
+    await selectFileAndCheckFormat(result);
+
+    await act(async () => {
+      await result.current.handleStartImport();
+    });
+
+    expect(executeBatchAction.mock.calls[0][1].get("holderMapping")).toBe("{}");
+  });
+
+  it("取消映射放弃本次导入，保留文件、清空解析结果且不请求服务端", async () => {
+    const { executeBatchAction, result } = setup("小明");
+    await selectFileAndCheckFormat(result);
+
+    act(() => {
+      result.current.handleCancelHolderMapping();
+    });
+
+    expect(executeBatchAction).not.toHaveBeenCalled();
+    expect(result.current.holderMappingCandidates).toEqual([]);
+    expect(result.current.validationState).toEqual({});
+    expect(result.current.executionStatus).toBeNull();
+    expect(result.current.selectedFileName).toBe("data.xlsx");
+  });
+});

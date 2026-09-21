@@ -10,6 +10,8 @@ export type AccountImportEntry = {
 
 export type AccountImportHolder = {
   displayName: string;
+  /** 仅用于在同名成员之间做区分，不参与匹配。 */
+  email?: string | null;
   userId: string;
 };
 
@@ -67,6 +69,7 @@ export function createAccountImportService(
         })),
         holders: view.holderOptions.map((holder) => ({
           displayName: holder.display_name,
+          email: holder.email,
           userId: holder.user_id,
         })),
       };

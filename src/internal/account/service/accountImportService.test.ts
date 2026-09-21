@@ -22,7 +22,9 @@ function createService(overrides: Partial<AccountService> = {}) {
         name: "银行卡",
       },
     ],
-    holderOptions: [{ display_name: "淞文", user_id: "user-1" }],
+    holderOptions: [
+      { display_name: "淞文", email: "a@example.com", user_id: "user-1" },
+    ],
   })) as unknown as AccountService["getView"];
   const service = {
     create,
@@ -102,7 +104,9 @@ describe("AccountImportService", () => {
           name: "银行卡",
         },
       ],
-      holders: [{ displayName: "淞文", userId: "user-1" }],
+      holders: [
+        { displayName: "淞文", email: "a@example.com", userId: "user-1" },
+      ],
     });
   });
 });

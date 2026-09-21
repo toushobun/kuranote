@@ -1,4 +1,7 @@
-import type { AccountImportService } from "internal/account";
+import type {
+  AccountImportHolder,
+  AccountImportService,
+} from "internal/account";
 import type {
   CategoryImportEntry,
   CategoryImportService,
@@ -10,6 +13,7 @@ import type {
   ImportExecutionRowResult,
   ImportExecutionSheetKind,
 } from "internal/dataImport/entity/importExecution";
+import type { ImportHolderMapping } from "internal/dataImport/entity/importHolderMapping";
 import type {
   ImportExecutionUnit,
   ImportTransactionGroup,
@@ -39,6 +43,8 @@ type DataImportExecutionDependencies = {
 };
 
 export type ExecuteImportBatchInput = {
+  /** 用户在持有人映射步骤里选择的「姓名 → 成员」；优先于按显示名匹配。 */
+  holderMapping?: ImportHolderMapping;
   ledgerId: string;
   timeZoneOffsetMinutes: number;
   /** 浏览器端已解析好的这一批执行单元，数量不得超过 `importBatchSize`。 */
@@ -48,6 +54,11 @@ export type ExecuteImportBatchInput = {
 
 export interface DataImportExecutionService {
   executeBatch(input: ExecuteImportBatchInput): Promise<ImportBatchResult>;
+  /** 持有人映射步骤的下拉候选；与 `executeBatch` 校验映射用的是同一份成员数据。 */
+  listHolderMembers(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<AccountImportHolder[]>;
 }
 
 function resolveUniqueByName<T>(
@@ -133,7 +144,18 @@ export function createDataImportExecutionService({
   transactionImportService,
 }: DataImportExecutionDependencies): DataImportExecutionService {
   return {
-    async executeBatch({ ledgerId, timeZoneOffsetMinutes, units, userId }) {
+    async listHolderMembers({ ledgerId, userId }) {
+      return (await accountImportService.loadContext({ ledgerId, userId }))
+        .holders;
+    },
+
+    async executeBatch({
+      holderMapping = {},
+      ledgerId,
+      timeZoneOffsetMinutes,
+      units,
+      userId,
+    }) {
       const [categoryEntries, merchantContext, accountContext] =
         await Promise.all([
           categoryImportService.listCategories({ ledgerId, userId }),
@@ -146,6 +168,19 @@ export function createDataImportExecutionService({
       const merchantTags = [...merchantContext.tags];
       const accounts = [...accountContext.accounts];
       const holders = [...accountContext.holders];
+      // 映射来自客户端，不能信任：只接受当前账本的有效成员，否则整批拒绝，不写入任何数据。
+      if (
+        Object.values(holderMapping).some(
+          (mappedUserId) =>
+            mappedUserId !== null &&
+            !holders.some((holder) => holder.userId === mappedUserId),
+        )
+      ) {
+        throw new ValidationError(
+          dataImportErrorCodes.referenceInvalid,
+          dataImportExecutionErrorMessages.holderMappingInvalid,
+        );
+      }
       const categoryByKey = new Map(
         categories.map((category) => [
           categoryKey(category.type, category.parentId, category.name),
@@ -170,6 +205,10 @@ export function createDataImportExecutionService({
       async function resolveHolderUserId(holderName: string | null) {
         if (!holderName) {
           return { missingName: null, userId: null };
+        }
+        // 用户在映射步骤里明确选择过的姓名（含「无持有人」）优先，且不再算未匹配。
+        if (Object.hasOwn(holderMapping, holderName)) {
+          return { missingName: null, userId: holderMapping[holderName] };
         }
         const matches = holders.filter(
           (holder) => holder.displayName === holderName,
