@@ -38,6 +38,8 @@ export const dataImportExecutionErrorMessages = {
   duplicateWarning: "疑似与现有记录重复，但已继续导入。",
   holderAmbiguous: (name: string) =>
     `账本内存在多个显示名为「${name}」的成员，无法确定账户持有人。`,
+  holderMappingInvalid:
+    "持有人映射里包含不属于当前账本的成员，请重新检查格式后再导入。",
   holderMissingWarning: (name: string) =>
     `账本内找不到显示名为「${name}」的有效成员，已按无持有人继续导入该笔记录。`,
   merchantAmbiguous: (name: string) =>

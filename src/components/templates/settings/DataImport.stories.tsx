@@ -78,6 +78,7 @@ const meta = {
   component: DataImportTemplate,
   args: {
     executeBatchAction: defaultBatchAction,
+    holderMembers: [],
   },
 } satisfies Meta<typeof DataImportTemplate>;
 

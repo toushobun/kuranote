@@ -38,6 +38,7 @@ export const dataTransferBackMessages = {
 export const dataImportPageMessages = {
   title: "数据导入",
   subtitle: "从 xlsx 文件批量导入收支和转账记录",
+  loading: "导入页面加载中",
 } as const;
 
 export const dataImportFormatDescriptionMessages = {
@@ -102,4 +103,17 @@ export const dataImportExecutionMessages = {
   resultHolderMissing: "成功（未匹配持有人）",
   resultFailed: "失败",
   resultFileSuffix: "_导入结果.xlsx",
+} as const;
+
+export const dataImportHolderMappingMessages = {
+  title: (count: number) =>
+    `文件里有 ${count} 位持有人在账本中找不到唯一对应的成员`,
+  description: "请选择每位持有人对应的账本成员，或选择「无持有人」。",
+  cardTitle: (name: string) => `「${name}」`,
+  recordCount: (count: number) => `涉及 ${count} 条记录`,
+  ambiguousHint: "账本中有多位同名成员，请选择对应的一位",
+  selectLabel: "对应到",
+  noHolderOption: "无持有人",
+  cancelButton: "取消导入",
+  confirmButton: "继续导入",
 } as const;

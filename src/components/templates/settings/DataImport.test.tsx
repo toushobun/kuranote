@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type { AccountImportHolder } from "internal/account";
 import type { ImportValidationResult } from "internal/dataImport";
 import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
 import type {
@@ -34,10 +35,17 @@ function renderTemplate({
   executeBatchAction = vi.fn(
     async (): Promise<DataImportBatchActionState> => ({}),
   ),
+  holderMembers = [],
 }: {
   executeBatchAction?: DataImportBatchStateAction;
+  holderMembers?: AccountImportHolder[];
 } = {}) {
-  return render(<DataImportTemplate executeBatchAction={executeBatchAction} />);
+  return render(
+    <DataImportTemplate
+      executeBatchAction={executeBatchAction}
+      holderMembers={holderMembers}
+    />,
+  );
 }
 
 describe("DataImportTemplate", () => {
@@ -200,5 +208,85 @@ describe("DataImportTemplate", () => {
     expect(
       screen.getByText(/第 3 行.*金额.*金额必须是不超过两位小数的非负数字。/),
     ).toBeInTheDocument();
+  });
+
+  describe("持有人映射步骤", () => {
+    const holderMembers = [{ displayName: "张三", userId: "user-1" }];
+
+    async function checkFormatWithHolder(
+      fromAccountHolder: string,
+      executeBatchAction = vi.fn(
+        async (): Promise<DataImportBatchActionState> => ({}),
+      ),
+    ) {
+      const analyzed = makeAnalyzeImportFileResult(1, fromAccountHolder);
+      analyzeImportFileMock.mockResolvedValue(analyzed);
+      renderTemplate({ executeBatchAction, holderMembers });
+      selectFile();
+      fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
+      await screen.findByText("格式检查通过");
+      return executeBatchAction;
+    }
+
+    it("存在未匹配持有人时展示映射步骤并替换开始导入按钮", async () => {
+      await checkFormatWithHolder("小明");
+
+      expect(
+        screen.getByRole("group", { name: "「小明」" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("涉及 1 条记录")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "开始导入" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("持有人都能唯一匹配时跳过映射步骤", async () => {
+      await checkFormatWithHolder("张三");
+
+      expect(screen.queryByRole("group")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "开始导入" }),
+      ).toBeInTheDocument();
+    });
+
+    it("继续导入时带着映射调用批处理 Action", async () => {
+      const executeAction = vi.fn(
+        async (): Promise<DataImportBatchActionState> => ({
+          batch: {
+            details: [],
+            duplicateCount: 0,
+            failureCount: 0,
+            holderMissingCount: 0,
+            processedCount: 1,
+            rowResults: [],
+            successCount: 1,
+          },
+        }),
+      );
+      await checkFormatWithHolder("小明", executeAction);
+
+      fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
+
+      expect(await screen.findByText("导入完成")).toBeInTheDocument();
+      const formData = (
+        executeAction.mock.calls[0] as unknown as [unknown, FormData]
+      )[1];
+      expect(formData.get("holderMapping")).toBe(
+        JSON.stringify({ 小明: null }),
+      );
+    });
+
+    it("取消导入后回到选文件状态且不调用批处理 Action", async () => {
+      const executeAction = await checkFormatWithHolder("小明");
+
+      fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
+
+      expect(screen.queryByRole("group")).not.toBeInTheDocument();
+      expect(screen.queryByText("格式检查通过")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "检查格式" }),
+      ).not.toBeDisabled();
+      expect(executeAction).not.toHaveBeenCalled();
+    });
   });
 });

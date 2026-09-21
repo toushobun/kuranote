@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
+import type { ImportHolderMapping } from "internal/dataImport/entity/importHolderMapping";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import {
   dataImportErrorCodes,
@@ -19,6 +20,7 @@ import {
 } from "internal/shared/schema/formValidation";
 
 export type DataImportBatchFormFields = {
+  holderMapping: ImportHolderMapping;
   timeZoneOffsetMinutes: number;
   units: ImportExecutionUnit[];
 };
@@ -131,7 +133,13 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
 
 const unitsSchema = z.array(executionUnitSchema).min(1).max(importBatchSize);
 
-function parseUnits(value: FormDataEntryValue | null) {
+/** 姓名 → 账本成员 userId 或 `null`（无持有人）；userId 是否属于当前账本由 Service 校验。 */
+const holderMappingSchema = z.record(nameSchema, z.string().uuid().nullable());
+
+function parseJsonField<T>(
+  value: FormDataEntryValue | null,
+  schema: z.ZodType<T>,
+) {
   if (typeof value !== "string") return null;
 
   let json: unknown;
@@ -141,7 +149,7 @@ function parseUnits(value: FormDataEntryValue | null) {
     return null;
   }
 
-  const result = unitsSchema.safeParse(json);
+  const result = schema.safeParse(json);
   return result.success ? result.data : null;
 }
 
@@ -149,8 +157,18 @@ function parseUnits(value: FormDataEntryValue | null) {
 export function parseExecuteDataImportBatchForm(
   formData: FormData,
 ): ValidationResult<DataImportBatchFormFields, DataImportErrorCode> {
-  const units = parseUnits(formData.get("units"));
+  const units = parseJsonField(formData.get("units"), unitsSchema);
   if (!units) {
+    return invalid(dataImportErrorCodes.executionInvalid);
+  }
+
+  // 没有需要映射的持有人时前端也会发送空对象；缺失视为空映射，格式错误则拒绝。
+  const holderMappingText = formData.get("holderMapping");
+  const holderMapping =
+    holderMappingText === null
+      ? {}
+      : parseJsonField(holderMappingText, holderMappingSchema);
+  if (!holderMapping) {
     return invalid(dataImportErrorCodes.executionInvalid);
   }
 
@@ -165,5 +183,5 @@ export function parseExecuteDataImportBatchForm(
     return invalid(dataImportErrorCodes.executionInvalid);
   }
 
-  return valid({ timeZoneOffsetMinutes, units });
+  return valid({ holderMapping, timeZoneOffsetMinutes, units });
 }

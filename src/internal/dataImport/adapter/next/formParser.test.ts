@@ -62,8 +62,20 @@ const balanceAdjustmentUnit: ImportExecutionUnit = {
   },
 };
 
-function buildFormData(units?: unknown, timeZoneOffsetMinutes?: string) {
+function buildFormData(
+  units?: unknown,
+  timeZoneOffsetMinutes?: string,
+  holderMapping?: unknown,
+) {
   const formData = new FormData();
+  if (holderMapping !== undefined) {
+    formData.set(
+      "holderMapping",
+      typeof holderMapping === "string"
+        ? holderMapping
+        : JSON.stringify(holderMapping),
+    );
+  }
   if (units !== undefined) {
     formData.set(
       "units",
@@ -90,6 +102,7 @@ describe("parseExecuteDataImportBatchForm", () => {
     expect(result).toEqual({
       ok: true,
       value: {
+        holderMapping: {},
         timeZoneOffsetMinutes: -540,
         units: [incomeExpenseUnit, transferUnit],
       },
@@ -103,8 +116,46 @@ describe("parseExecuteDataImportBatchForm", () => {
       ),
     ).toEqual({
       ok: true,
-      value: { timeZoneOffsetMinutes: -540, units: [balanceAdjustmentUnit] },
+      value: {
+        holderMapping: {},
+        timeZoneOffsetMinutes: -540,
+        units: [balanceAdjustmentUnit],
+      },
     });
+  });
+
+  it("解析持有人映射，null 表示无持有人", () => {
+    const holderMapping = {
+      小明: "00000000-0000-4000-8000-000000000031",
+      小红: null,
+    };
+
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData([transferUnit], "-540", holderMapping),
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        holderMapping,
+        timeZoneOffsetMinutes: -540,
+        units: [transferUnit],
+      },
+    });
+  });
+
+  it.each([
+    ["不是合法 JSON", "{not json"],
+    ["不是对象", ["小明"]],
+    ["userId 不是 UUID", { 小明: "user-1" }],
+    ["userId 不是字符串", { 小明: 1 }],
+    ["姓名为空", { "": null }],
+  ])("持有人映射%s时返回 executionInvalid", (_name, holderMapping) => {
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData([transferUnit], "-540", holderMapping),
+      ),
+    ).toEqual(executionInvalid);
   });
 
   it.each([0, 1e12, -1e12, 1.234])("拒绝非法的余额变更金额 %s", (amount) => {
