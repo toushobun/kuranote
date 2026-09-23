@@ -31,33 +31,45 @@
 1. 新增最小表 `ledger_placeholder_member(id, ledger_id, display_name, claimed_by, claimed_at, created_by, created_at)`，不复用或伪造 `app_user`。占位先于邀请存在、被持有关系长期引用；邀请是完成或撤销后终止的一次性动作记录，二者分表。
 2. `ledger_invite.placeholder_id` 可空，管理员生成邀请时可绑定占位；同一占位最多一条未接受、未撤销的有效邀请。接受绑定邀请时自动认领并整体迁移持有关系。
 3. `account_holder.user_id` 改为可空，新增可空 `placeholder_id`，每行必须且只能指定其中一个。无持有人仍表示不存在 `account_holder` 行。
-4. 仅 owner/admin（与 `canManageMembers` 一致）能创建或删除占位。入口为成员管理页「添加待邀请成员」与导入映射下拉「新建待邀请成员」。
+4. 仅 owner/admin（与 `canManageMembers` 一致）能创建、改名或删除占位。入口为成员管理页「添加待邀请成员」与导入映射下拉「新建待邀请成员」。
 5. 被任意 `account_holder` 引用时禁止删除，占位所关联的账户须先改为其他持有人或无持有人；归档账户也算引用。
 6. 占位不算账本成员、不计成员数、不能登录、无查看或记账等权限；在成员列表显示「待邀请」，可作为账户持有人。
 7. 已经是该账本成员的人接受新的绑定邀请直接失败，不自动合并。成功接受同一邀请后的网络重试另按幂等成功处理，不属于再次认领。
-8. 导入中的创建意图只保存在浏览器，点击「继续导入」后随首次执行请求批量提交；此前取消无写入。同账本已有同名未认领占位时复用，不重复创建。全局重名规则仍待产品决定，不能据此擅自增加全局姓名唯一约束。
+8. 导入中的创建意图只保存在浏览器，点击「继续导入」后随首次执行请求批量提交；此前取消无写入。同账本已有同名未认领占位时复用，不重复创建。同账本未认领占位的显示名去除首尾空白后精确唯一，不做大小写折叠；已认领历史行不占用名字。
 
 ## 数据结构与约束
 
 ### `ledger_placeholder_member`
 
-| 字段           | 类型与约束                                                 | 含义                                                                                                                             |
-| -------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `id`           | `uuid primary key default gen_random_uuid()`               | 独立的占位标识，永远不是 userId。                                                                                                |
-| `ledger_id`    | `uuid not null references ledger(id) on delete restrict`   | 所属账本，不允许编辑或跨账本移动。                                                                                               |
-| `display_name` | `text not null`                                            | 保存去除首尾空白后的名字，check 要求非空且等于 `btrim(display_name)`。不自动大小写折叠或别名合并；进一步姓名冲突规则见未决问题。 |
-| `claimed_by`   | `uuid null references app_user(id) on delete restrict`     | 认领的已认证真实用户，只能由接受邀请流程设置。                                                                                   |
-| `claimed_at`   | `timestamptz null`                                         | 与 `claimed_by` 同时为空或同时非空。                                                                                             |
-| `created_by`   | `uuid not null references app_user(id) on delete restrict` | 由 RPC 使用 `auth.uid()` 填写，不接收客户端指定。                                                                                |
-| `created_at`   | `timestamptz not null default now()`                       | 创建时间，由数据库填写。                                                                                                         |
+| 字段           | 类型与约束                                                 | 含义                                                                                                                                                 |
+| -------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `uuid primary key default gen_random_uuid()`               | 独立的占位标识，永远不是 userId。                                                                                                                    |
+| `ledger_id`    | `uuid not null references ledger(id) on delete restrict`   | 所属账本，不允许编辑或跨账本移动。                                                                                                                   |
+| `display_name` | `text not null`                                            | 保存去除首尾空白后的名字，check 要求非空且等于 `btrim(display_name)`。不做大小写折叠或别名合并；同账本未认领行之间精确唯一，仅此字段可在认领前改名。 |
+| `claimed_by`   | `uuid null references app_user(id) on delete restrict`     | 认领的已认证真实用户，只能由接受邀请流程设置。                                                                                                       |
+| `claimed_at`   | `timestamptz null`                                         | 与 `claimed_by` 同时为空或同时非空。                                                                                                                 |
+| `created_by`   | `uuid not null references app_user(id) on delete restrict` | 由 RPC 使用 `auth.uid()` 填写，不接收客户端指定。                                                                                                    |
+| `created_at`   | `timestamptz not null default now()`                       | 创建时间，由数据库填写。                                                                                                                             |
 
 必要约束与索引：
 
 - `unique (id, ledger_id)`，供下游复合外键保证同账本引用。
 - `check ((claimed_by is null) = (claimed_at is null))`。
-- 普通索引 `(ledger_id, display_name, id) where claimed_by is null`，服务成员展示和导入同名查找；此处明确不是唯一索引。
+- 部分唯一索引 `ledger_placeholder_member_unclaimed_name_unique (ledger_id, display_name) where claimed_by is null`，同时服务未认领列表与导入同名查找，替代原普通姓名索引。
 - 普通索引 `(claimed_by) where claimed_by is not null`，支持引用检查与认领审计。
 - 启用 RLS。禁止直接 INSERT / UPDATE / DELETE；未认领列表可由 active 成员按账本读取。审计列不可被管理页编辑，认领状态不可回退。
+
+姓名约束在数据库中具体表达为：
+
+```sql
+check (display_name <> '' and display_name = btrim(display_name))
+
+create unique index ledger_placeholder_member_unclaimed_name_unique
+on public.ledger_placeholder_member (ledger_id, display_name collate "C")
+where claimed_by is null;
+```
+
+RPC 与 Service 都先去除首尾空白；数据库存规范化后的名字，唯一索引使用确定性的 `"C"` 比较，精确区分大小写，不用 `lower()` 或 `citext`。RPC 的同名查询使用相同比较口径。占位没有邮箱等第二身份信息，未认领重名会使候选无法区分，故由数据库兜底禁止。唯一范围只覆盖未认领行：已认领行保留关联历史，但不再出现在候选中，允许与新占位重名；认领事务提交后才释放该名字，回滚则仍占用。不同账本不互相限制。
 
 不增加 role、登录标识、邮箱、auth 身份或 `ledger_member` 行。认领后保留占位行作为关联历史，退出待邀请列表和持有人候选；其删除不作为未认领占位删除功能的一部分。
 
@@ -103,15 +115,15 @@ where placeholder_id is not null
 
 占位能力归属账本管理，不成为新的授权主体。`current_user_has_ledger_role`、`current_user_can_manage_ledger`、`current_user_can_write_ledger` 继续只查询真实 active 成员及有效用户，成员计数继续来自 `ledger_member`。
 
-| 表 / policy                                                                                 | 后续处理                                                                                                                                                                                    |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 新表 `ledger_placeholder_member`                                                            | 新增 `ledger_placeholder_member_select_active_member`：仅同账本 active 成员且 `app_user.status = 'active'` 可读。只授予必要 SELECT；不创建客户端写 policy，撤销写权限，写入必须走受控 RPC。 |
-| `ledger_invite`                                                                             | 保持 RLS 与无直接访问权限，不新增普通 SELECT/写 policy。token 只经现有受控 RPC 按原权限返回。                                                                                               |
-| `account_holder_select_active_ledger_member`                                                | 保留访问者必须为真实 active 成员的条件；占位持有人不能产生访问资格。读取映射增加占位分支，不能把该 policy 改为检查持有人登录。                                                              |
-| `account_holder_insert_admin`、`account_holder_update_admin`、`account_holder_delete_admin` | 保留 owner/admin 门槛，继续对 UPDATE 同时校验旧行与新行账本；数据库 FK、CHECK、校验触发器补足两种持有人有效性。不开放普通成员 UPDATE policy 来完成认领。                                    |
-| `account_insert_admin`、`account_update_admin`                                              | 保持原规则；绑定占位不扩大账户管理权限。                                                                                                                                                    |
-| `ledger_member_insert_admin` 及其他成员策略                                                 | 不增加占位分支，接受邀请仍走现有受控成员创建通道；占位不插入 invited 成员。                                                                                                                 |
-| `account_name_scope`                                                                        | 保持完全内部化，唯一性投影扩展不会扩大读取范围。                                                                                                                                            |
+| 表 / policy                                                                                 | 后续处理                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 新表 `ledger_placeholder_member`                                                            | 新增 `ledger_placeholder_member_select_active_member`：仅同账本 active 成员且 `app_user.status = 'active'` 可读。只授予必要 SELECT；不创建客户端写 policy，撤销写权限，包括改名在内的写入必须走受控 RPC，不能因允许编辑 display_name 而开放直接 UPDATE。 |
+| `ledger_invite`                                                                             | 保持 RLS 与无直接访问权限，不新增普通 SELECT/写 policy。token 只经现有受控 RPC 按原权限返回。                                                                                                                                                            |
+| `account_holder_select_active_ledger_member`                                                | 保留访问者必须为真实 active 成员的条件；占位持有人不能产生访问资格。读取映射增加占位分支，不能把该 policy 改为检查持有人登录。                                                                                                                           |
+| `account_holder_insert_admin`、`account_holder_update_admin`、`account_holder_delete_admin` | 保留 owner/admin 门槛，继续对 UPDATE 同时校验旧行与新行账本；数据库 FK、CHECK、校验触发器补足两种持有人有效性。不开放普通成员 UPDATE policy 来完成认领。                                                                                                 |
+| `account_insert_admin`、`account_update_admin`                                              | 保持原规则；绑定占位不扩大账户管理权限。                                                                                                                                                                                                                 |
+| `ledger_member_insert_admin` 及其他成员策略                                                 | 不增加占位分支，接受邀请仍走现有受控成员创建通道；占位不插入 invited 成员。                                                                                                                                                                              |
+| `account_name_scope`                                                                        | 保持完全内部化，唯一性投影扩展不会扩大读取范围。                                                                                                                                                                                                         |
 
 Service 与数据库均独立检查身份、active 资格、角色及归属。数据库 SECURITY DEFINER 使用固定 `search_path = pg_catalog, pg_temp`、完整 schema 限定名和 `auth.uid()`，不相信客户端传来的操作用户。新增管理 RPC 撤销 PUBLIC/anon EXECUTE，只授予 authenticated；预览 RPC 的既有 anon 权限不扩散到其他操作。
 
@@ -164,19 +176,19 @@ RPC 在锁定账本和占位后检查：操作人 active 且 owner/admin、账�
 
 ### 需要修改的现有函数清单
 
-| 函数                                     | 具体变更                                                                                                                                                                                                                                                         |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `create_ledger_invite_v2`                | 如上，增加可选绑定参数、返回绑定 ID、权限/状态检查及锁。                                                                                                                                                                                                         |
-| `revoke_ledger_invite`                   | 保留原参数；与接受/删除统一锁顺序，撤销写 `revoked_at/by` 并清空 `invite_token`。不清除历史 `placeholder_id`，有效绑定因 revoked 状态立即失效。                                                                                                                  |
-| `accept_ledger_invite`                   | 保留 token 入参，增加绑定分支、已有成员冲突、全量持有人迁移、占位认领标记与重试判断；返回原 ledger 字段及 result，并增加 `placeholder_id` 供调用链明确识别认领结果。                                                                                             |
-| `list_pending_ledger_invites`            | 增加 `placeholder_id` 返回列；继续过滤 accepted/revoked，权限与 token 可见性保持现状。改变 RETURNS TABLE 需删除旧定义并重建授权。                                                                                                                                |
-| `get_ledger_invite_preview`              | 增加是否绑定占位的受控信息；识别绑定占位缺失/已认领等无效状态，保留匿名 token 预览边界。是否返回和展示占位姓名，待文案问题确认；不得返回账户列表、历史金额、claimed_by 或其他个人信息。                                                                          |
-| `create_account_with_holders`            | 在既有参数末尾增加 `p_placeholder_id uuid default null`；用户数组仍最多一个，且不能与占位同时指定。占位归属/状态检查、锁和插入持有行均在同一事务；保留初始余额记录逻辑。                                                                                         |
-| `update_account_with_holders`            | 同样增加可选占位参数；显式处理用户/占位/无持有人三态，删除或替换旧占位引用不能沿用仅判断 user_id 的删除条件，避免 NULL 比较或 active 用户过滤漏删。                                                                                                              |
-| `update_account_with_balance_adjustment` | 这是账户 Repository 当前实际调用的编辑 RPC；在现有 `p_adjustment_note` 后增加 `p_placeholder_id uuid default null`，传递给扩展后的 `update_account_with_holders`，保留资料更新与余额调整的单事务。Repository 输入、schema 与生成类型同步扩展，不能只改底层函数。 |
-| `validate_account_holder_active_member`  | 扩展为两种身份校验及占位锁定；它是触发器函数，不是对外 RPC。                                                                                                                                                                                                     |
-| `enforce_ledger_management_permission`   | 增加上节限定的认领迁移例外，仍不对客户端授予 EXECUTE。                                                                                                                                                                                                           |
-| `sync_account_name_scope`                | 投影新增占位 ID；继续只允许内部调用。                                                                                                                                                                                                                            |
+| 函数                                     | 具体变更                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_ledger_invite_v2`                | 如上，增加可选绑定参数、返回绑定 ID、权限/状态检查及锁。                                                                                                                                                                                                                                                  |
+| `revoke_ledger_invite`                   | 保留原参数；与接受/删除统一锁顺序，撤销写 `revoked_at/by` 并清空 `invite_token`。不清除历史 `placeholder_id`，有效绑定因 revoked 状态立即失效。                                                                                                                                                           |
+| `accept_ledger_invite`                   | 保留 token 入参，增加绑定分支、已有成员冲突、全量持有人迁移、占位认领标记与重试判断；返回原 ledger 字段及 result，并增加 `placeholder_id` 供调用链明确识别认领结果。                                                                                                                                      |
+| `list_pending_ledger_invites`            | 增加 `placeholder_id` 返回列；继续过滤 accepted/revoked，权限与 token 可见性保持现状。改变 RETURNS TABLE 需删除旧定义并重建授权。                                                                                                                                                                         |
+| `get_ledger_invite_preview`              | 保留 `p_token text` 入参及原受控返回字段，新增 `is_placeholder_bound boolean`、`placeholder_display_name text`（可空）。有效绑定邀请实时读取占位当前 display_name；匿名邀请返回 false / null。识别缺失/已认领等无效状态，失效邀请不返回占位姓名；不得返回 claimed_by、账户列表、金额或其他个人/财务信息。 |
+| `create_account_with_holders`            | 在既有参数末尾增加 `p_placeholder_id uuid default null`；用户数组仍最多一个，且不能与占位同时指定。占位归属/状态检查、锁和插入持有行均在同一事务；保留初始余额记录逻辑。                                                                                                                                  |
+| `update_account_with_holders`            | 同样增加可选占位参数；显式处理用户/占位/无持有人三态，删除或替换旧占位引用不能沿用仅判断 user_id 的删除条件，避免 NULL 比较或 active 用户过滤漏删。                                                                                                                                                       |
+| `update_account_with_balance_adjustment` | 这是账户 Repository 当前实际调用的编辑 RPC；在现有 `p_adjustment_note` 后增加 `p_placeholder_id uuid default null`，传递给扩展后的 `update_account_with_holders`，保留资料更新与余额调整的单事务。Repository 输入、schema 与生成类型同步扩展，不能只改底层函数。                                          |
+| `validate_account_holder_active_member`  | 扩展为两种身份校验及占位锁定；它是触发器函数，不是对外 RPC。                                                                                                                                                                                                                                              |
+| `enforce_ledger_management_permission`   | 增加上节限定的认领迁移例外，仍不对客户端授予 EXECUTE。                                                                                                                                                                                                                                                    |
+| `sync_account_name_scope`                | 投影新增占位 ID；继续只允许内部调用。                                                                                                                                                                                                                                                                     |
 
 账户三个 RPC 同样需删除旧签名、同步内部调用并重建授权，不能留下带默认参数的歧义重载。修改 `accept_ledger_invite` 和预览的返回列时也需按删除重建方式更新定义及授权。
 
@@ -188,9 +200,14 @@ RPC 在锁定账本和占位后检查：操作人 active 且 owner/admin、账�
 
 新增函数名称为设计建议，后续实现需在 ledger 模块统一维护业务错误：
 
-- `create_ledger_placeholder_member(p_ledger_id uuid, p_display_name text)`：成员管理页立即创建一个占位；同名许可及冲突处理依未决问题，不能默认复用成另一个人。
-- `ensure_ledger_placeholder_members(p_ledger_id uuid, p_display_names text[])`：导入专用批量创建/复用，返回各输入名对应占位 ID。事务内按账本加锁、校验全部输入与权限，再统一写入；任意名称有歧义或校验失败则整批回滚。重复名称去重，不逐个网络调用。
+- `create_ledger_placeholder_member(p_ledger_id uuid, p_display_name text)`：仅 owner/admin 可在目标账本立即创建占位；规范化后与已有未认领占位重名时返回 `placeholder_name_conflict`，不能在管理页悄悄复用成另一个人。
+- `ensure_ledger_placeholder_members(p_ledger_id uuid, p_display_names text[])`：导入专用批量创建/复用，返回各输入名对应占位 ID。仅 owner/admin 可调用；事务内按账本加锁、校验全部输入与权限，再统一写入。输入姓名规范化后去重，已有同名未认领占位直接复用；没有则创建，不逐个网络调用。若发生不能重新读取并复用的姓名唯一性冲突，返回 `placeholder_name_conflict` 并整批回滚；校验失败也整批回滚，不透出原始唯一约束错误。正常同名复用是成功结果，不作为错误。
+- `rename_ledger_placeholder_member(p_ledger_id uuid, p_placeholder_id uuid, p_display_name text)`：仅同账本 active owner/admin 可调用，按账本 → 占位顺序加锁，仅允许 `claimed_by is null` 时更新 `display_name`。规范化后非空、同账本未认领名字唯一；与其他占位重名返回 `placeholder_name_conflict`，已认领返回 `placeholder_already_claimed`；改为自身现有名字可幂等成功。不允许改 ledger_id、认领状态或审计字段，账户引用与邀请绑定/token 均保持不变。
 - `delete_ledger_placeholder_member(p_ledger_id uuid, p_placeholder_id uuid)`：锁定未认领占位，检查任意持有引用；有引用返回 `placeholder_in_use`。无引用时在同一事务撤销有效绑定邀请并清 token，再将该未认领占位的已撤销邀请 `placeholder_id` 置空，最后删除占位。不删除邀请记录；RESTRICT 外键防止遗漏引用。删除确认须说明其绑定链接也会失效。已认领行不走此入口。
+
+创建、批量 ensure 与改名共用姓名规范化和安全错误契约。RPC 精确捕获姓名唯一索引对应的约束冲突，转换为稳定业务 code；Repository / Service 将 `placeholder_name_conflict`、`placeholder_already_claimed` 转为 `ConflictError` 和可展示文案，不返回原始数据库错误或约束名称。
+
+改名提交后 Action 刷新成员列表、账户持有人候选与导入候选；邀请预览每次通过 `get_ledger_invite_preview(p_token text)` 关联占位表读取当前名字，不把名字快照存进邀请、链接参数或长期缓存。预览的 Repository Row、Service/schema、loader 与前端类型同步扩展上述两个返回字段。已打开的预览/候选在重新获取焦点、重新进入或提交前刷新，不继续展示已知过期名称。
 
 没有单独的客户端「认领占位」RPC，认领只发生在 `accept_ledger_invite` 中，接受者不能提交任意 userId 或自行挑选占位。
 
@@ -230,8 +247,9 @@ sequenceDiagram
 
 ### 并发边界
 
-- 生成、撤销、接受、删除、导入批量 ensure 及绑定占位的账户写 RPC 统一采用账本 → 占位（多个按 ID 排序）→ 邀请 → 成员 → 账户（按 ID 排序）的锁顺序。接受匿名邀请也取得同账本锁，防止同一用户同时通过普通邀请加入又认领占位。
+- 占位创建/改名、邀请生成/撤销/接受、占位删除、导入批量 ensure 及绑定占位的账户写 RPC 统一采用账本 → 占位（多个按 ID 排序）→ 邀请 → 成员 → 账户（按 ID 排序）的锁顺序。接受匿名邀请也取得同账本锁，防止同一用户同时通过普通邀请加入又认领占位。
 - 账户更新涉及旧、新占位时锁定两者后再次确认当前持有行；发现锁前读取的旧引用已变化则回滚并提示重试，不能继续使用旧快照。应用不能把多个 Supabase 调用当成同一数据库事务。
+- 改名与认领在同一账本/占位锁上串行化：认领先提交则改名拒绝，改名先提交则预览读取新名；占位 ID 的认领目标不变。创建、改名、ensure 同时抢占相同名字时由姓名部分唯一索引兜底，按各 RPC 契约返回冲突或复用。
 - 部分唯一索引阻止并发生成第二条绑定邀请；接受与撤销竞争时只有先完成者生效，后者读取锁后的状态给出稳定结果。
 - 占位引用校验必须取锁，FK 单独不能证明「尚未认领」。直接管理 DML 仍受 RLS、触发器和 FK 保护；若与 RPC 锁顺序产生死锁，数据库回滚失败事务并转换为可重试冲突，不能绕过校验继续执行。后续并发测试必须覆盖直接 DML 路径。
 - 不能把「当前没有成员行」的查询当作并发保护。现有非 removed 成员唯一索引仍是最后防线；绑定分支不能沿用会更新现有成员的 UPSERT 来掩盖竞争。并发创建成员命中唯一约束时整次认领回滚为冲突。
@@ -241,17 +259,17 @@ sequenceDiagram
 
 新逻辑落在 `internal/ledger`，不建立新的顶级能力模块、UseCase 层或通用身份系统。占位与邀请、成员管理同属一个账本生命周期。
 
-| 层 / 模块                                     | 职责                                                                                                                                                                                                                                                                                                           |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ledger 的 `schema.ts` / `entity/` / `errors/` | schema 校验账本/占位 UUID、名字及请求大小，推导公共类型；共享占位摘要与邀请绑定类型经 `index.ts` 导出。错误集中定义稳定 code 与安全文案，不泄露原始 SQL。                                                                                                                                                      |
-| ledger 的 Service                             | 增加最小 `ledgerPlaceholderMemberService`，提供 list、create、ensureForImport、delete 窄接口；负责真实成员与角色校验、业务编排。`ledgerInviteService` 扩展绑定、错误映射与接受结果；接受前独立验证登录和 active 用户，通过受控预览/检查契约进行状态预检，但不要求接受者预先属于账本，事务内判断仍由 RPC 重做。 |
-| ledger 的 Repository                          | 是该模块唯一接触 Supabase 的层；执行占位 Query/RPC、邀请 RPC，校验 Row、转换数据库异常。原子认领封装在一个 RPC，不能拆成多次 Repository 写操作。                                                                                                                                                               |
-| `adapter/next/`                               | loader 通过请求 Container 直接读 Service；Action 校验登录、schema，调用 Service、revalidate；失败返回现有状态协议给 `FailureFeedbackDialog`，不用失败 redirect。                                                                                                                                               |
-| Controller / Router                           | 当前页面交互优先沿用 Action，不为占位新增不必要的 HTTP API。若已有 HTTP 调用需要扩展，由 Controller 读取 schema 结果、调用 Service、返回成功状态；Router 只登记路由并挂统一认证、错误处理与同源校验。                                                                                                          |
-| `internal/account`                            | 扩展账户 holder 类型、Repository 读取、表单和创建/编辑输入为真实成员 / 占位 / 无持有人。账户 Service 经 ledger 根入口读取/校验占位，不深度导入 ledger Repository。                                                                                                                                             |
-| `accountImportService`                        | 将 `holderUserId` 改为带判别字段的持有人引用（或等价互斥结构），保留窄 `createAccount / loadContext` 接口；不能把占位的空 user_id 映射为无持有人。候选 active 用户与占位分开表达。                                                                                                                             |
-| `dataImportExecutionService`                  | 依赖 ledger 导出的导入 ensure 窄 Service 与 account 窄 Service；先校验整份映射，再批量解析创建意图，最后逐单元执行。不直接读写 ledger/account 表。                                                                                                                                                             |
-| `container.ts`                                | 作为唯一组合根装配 Repository/Service，复用请求级 ledgerAccessService；依赖保持 dataImport → account/ledger、account → ledger，ledger 不反向调用 account Service。数据库原子迁移跨表不等于 TS 模块互相依赖。                                                                                                   |
+| 层 / 模块                                     | 职责                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ledger 的 `schema.ts` / `entity/` / `errors/` | schema 校验账本/占位 UUID、名字及请求大小，推导公共类型；共享占位摘要与邀请绑定类型经 `index.ts` 导出。错误集中定义稳定 code 与安全文案，不泄露原始 SQL。                                                                                                                                                              |
+| ledger 的 Service                             | 增加最小 `ledgerPlaceholderMemberService`，提供 list、create、rename、ensureForImport、delete 窄接口；负责真实成员与角色校验、业务编排。`ledgerInviteService` 扩展绑定、错误映射与接受结果；接受前独立验证登录和 active 用户，通过受控预览/检查契约进行状态预检，但不要求接受者预先属于账本，事务内判断仍由 RPC 重做。 |
+| ledger 的 Repository                          | 是该模块唯一接触 Supabase 的层；执行占位 Query/RPC、邀请 RPC，校验 Row、转换数据库异常。原子认领封装在一个 RPC，不能拆成多次 Repository 写操作。                                                                                                                                                                       |
+| `adapter/next/`                               | loader 通过请求 Container 直接读 Service；Action 校验登录、schema，调用 Service、revalidate；失败返回现有状态协议给 `FailureFeedbackDialog`，不用失败 redirect。                                                                                                                                                       |
+| Controller / Router                           | 当前页面交互优先沿用 Action，不为占位新增不必要的 HTTP API。若已有 HTTP 调用需要扩展，由 Controller 读取 schema 结果、调用 Service、返回成功状态；Router 只登记路由并挂统一认证、错误处理与同源校验。                                                                                                                  |
+| `internal/account`                            | 扩展账户 holder 类型、Repository 读取、表单和创建/编辑输入为真实成员 / 占位 / 无持有人。账户 Service 经 ledger 根入口读取/校验占位，不深度导入 ledger Repository。                                                                                                                                                     |
+| `accountImportService`                        | 将 `holderUserId` 改为带判别字段的持有人引用（或等价互斥结构），保留窄 `createAccount / loadContext` 接口；不能把占位的空 user_id 映射为无持有人。候选 active 用户与占位分开表达。                                                                                                                                     |
+| `dataImportExecutionService`                  | 依赖 ledger 导出的导入 ensure 窄 Service 与 account 窄 Service；先校验整份映射，再批量解析创建意图，最后逐单元执行。不直接读写 ledger/account 表。                                                                                                                                                                     |
+| `container.ts`                                | 作为唯一组合根装配 Repository/Service，复用请求级 ledgerAccessService；依赖保持 dataImport → account/ledger、account → ledger，ledger 不反向调用 account Service。数据库原子迁移跨表不等于 TS 模块互相依赖。                                                                                                           |
 
 账户持有人读路径还需覆盖筛选、列表显示、导出显示名及依赖 AccountHolder 的其他视图，避免 nullable userId 被误用于用户查询、头像或成员计数。占位没有用户资料，名称取自占位表；已认领账户按真实用户的现有展示逻辑呈现。金额与成员统计不得因占位展示多算成员或重复账户。
 
@@ -271,7 +289,7 @@ type ImportHolderMappingValue =
 type ImportHolderMapping = Record<string, ImportHolderMappingValue>;
 ```
 
-前三种是可执行引用，最后一种只是待创建意图。保留已有占位选项，才能在允许重名或文件名称不同时按 ID 明确指定。新建名字默认采用文件姓名，编辑能力不借此提前开放。
+前三种是可执行引用，最后一种只是待创建意图。保留已有占位选项，以便文件姓名与当前占位名字不同（包括占位已改名）时仍可按 ID 明确指定。新建名字默认采用文件姓名；认领前改名通过成员管理页的专用入口完成，导入中的创建意图不隐式改名。
 
 旧 `string | null` 在输入边界可归一化为 member / none，兼容已打开的页面；模块内部只用一种新契约，不长期维护两套解析规则。无法识别的 kind、额外冲突字段、非法 UUID、过量/空姓名在写入前拒绝。映射缺少某姓名和显式 none 仍有不同含义。
 
@@ -279,19 +297,19 @@ type ImportHolderMapping = Record<string, ImportHolderMappingValue>;
 
 ### 执行流程及事务边界
 
-1. loader 返回 active 成员、未认领占位摘要与 `canManageMembers`。下拉包含现有成员、现有占位、无持有人；仅 owner/admin 看到「新建待邀请成员」。选择新建只改本地状态，不调用创建 RPC。
+1. loader 返回 active 成员、实时读取 display_name 的未认领占位摘要与 `canManageMembers`；候选以 ID 为值，不缓存旧名字，进入映射步骤及提交前刷新名称。下拉包含现有成员、现有占位、无持有人；仅 owner/admin 看到「新建待邀请成员」。选择新建只改本地状态，不调用创建 RPC。
 2. 「取消导入」清空解析和映射状态，不提交请求、不创建占位；关闭映射页也不写入。禁用重复点击，开始后沿用既有不能撤销整个导入的语义。
 3. 点击「继续导入」时，首次 `executeDataImportBatch` 请求携带第一批执行单元和整份映射，包含所有新建意图；不在选择下拉时预创建。服务端先完成格式、当前用户/账本/导入权限、全部 member/placeholder 引用以及新建权限校验，再发起任何写入。
-4. Service 将新建意图的姓名去重，调用一次 `ensure_ledger_placeholder_members`。RPC 在单一事务内校验并批量创建或复用；失败则不写任何占位，也不执行第一批记录。已有同名未认领占位恰好一个时复用；多个时返回歧义冲突，要求按 ID 选现有占位，不能任取第一条。此规则不替产品决定是否允许日常创建重名。
+4. Service 将新建意图的姓名去重，调用一次 `ensure_ledger_placeholder_members`。RPC 在单一事务内校验并批量创建或复用；失败则不写任何占位，也不执行第一批记录。已有同名未认领占位直接复用，数据库部分唯一索引保证至多一个；无法处理的姓名唯一性冲突按 `placeholder_name_conflict` 安全返回，不保留“多个同名占位”正常业务分支。
 5. RPC 提交后获得姓名到 ID 的稳定映射，将 newPlaceholder 转为 placeholder；再执行当前批次，并在 Action 返回值中携带 `resolvedHolderMapping`。后续批次传已解析映射，不反复提交创建意图。Service 每批都重新校验归属、active 成员及占位未认领状态。
 6. `resolveHolderUserId` 应调整为表达两种引用的 `resolveHolder`：显式映射优先；无映射时继续按 active 成员显示名精确匹配。明确选择占位或 none 不产生未匹配警告；遗漏姓名保持 #780 的未匹配警告与歧义失败行为。
 7. 账户复用键包含持有人种类及 ID，如 `member:<id>`、`placeholder:<id>`、none，加上现有名称/币种匹配条件；不会因两个 UUID 恰好相同或 userId 为空而混用账户。数据库仍按含账户类型的完整唯一约束兜底，不顺带改写已有导入账户类型策略。
 
 **事务承诺是「占位批量创建/复用」原子提交，后续账户及交易沿用现有分批、逐单元提交，不是整个导入原子提交。** 点击继续后若网络断开或全部记录失败，已创建但未引用的占位可能保留，可依既定删除规则由管理员处理。不能用前端补偿删除冒充回滚，否则可能删除已被其他账户或邀请使用的占位。若产品未来要求「导入任何失败都不留占位」，须另行设计导入事务能力，不属于本次 8 项决策。
 
-导入重试时同名唯一占位由持锁 ensure 复用，避免重复创建；批量请求本身失败全部回滚。响应丢失后重新提交创建意图时再次查找：同名唯一则复用，同名多个则失败；原占位已认领或删除时不能声称跨生命周期仍有严格幂等性，应刷新候选重新确认。已拿到占位 ID 后遇到被认领/删除，整批预检失败，不能自动换成该真实用户或静默新建。既有交易导入去重机制继续负责记录重复，本方案不宣称新增整文件 exactly-once 保证。
+导入重试时同名唯一占位由持锁 ensure 复用，避免重复创建；批量请求本身失败全部回滚。响应丢失后不盲目自动重试创建意图，先刷新候选重新确认，再按当前姓名查找并复用；原占位已改名、认领或删除时，姓名可能已释放或被另一个占位占用，不能声称跨这些变化仍有严格幂等性。已拿到占位 ID 后遇到被认领/删除，整批预检失败，不能自动换成该真实用户或静默新建。既有交易导入去重机制继续负责记录重复，本方案不宣称新增整文件 exactly-once 保证。
 
-同名复用在账本锁内执行，防止两个导入请求同时各自创建。名字暂按去首尾空白后精确相等处理；若产品选择禁止重名，后续须将其确认的规范化规则同时落实为数据库唯一约束和 Service 校验，不可只靠浏览器判断。
+同名复用在账本锁内执行，防止两个导入请求同时各自创建。已确认的规则为去除首尾空白后精确比较、不做大小写折叠，Service 校验与 `ledger_placeholder_member_unclaimed_name_unique` 同时保证同账本未认领名字唯一。已选 placeholderId 的映射在改名后仍指向同一占位，只刷新显示名；未执行的 newPlaceholder 意图按提交时的名字创建/复用，不擅自猜测改名前后的身份。
 
 ## 成员列表与邀请展示
 
@@ -305,9 +323,9 @@ type ImportHolderMapping = Record<string, ImportHolderMappingValue>;
 
 绑定邀请通过 `placeholder_id` 合并到对应占位行，不再作为一条额外匿名邀请重复展示；撤销后占位行仍保留为待邀请。接受成功后占位退出列表、真实 active 成员出现，成员数只因真实成员加入增加一次。
 
-owner/admin 可见创建、删除、生成/撤销绑定邀请按钮；其他 active 成员只读占位摘要，不获得 token 或管理操作。删除复用现有确认弹框，引用冲突提示先更换相关账户持有人。待邀请条目不提供登录、改成员角色、设记账消费者等真实成员功能。
+owner/admin 可见创建、改名、删除、生成/撤销绑定邀请按钮；其他 active 成员只读占位摘要，不获得 token 或管理操作。删除复用现有确认弹框，引用冲突提示先更换相关账户持有人。待邀请条目不提供登录、改成员角色、设记账消费者等真实成员功能。
 
-`LedgerSettings`、邀请操作组件及其 hook 扩展判别类型；按项目 Atomic Design 与组件目录规则复用 MUI。文案集中维护，补充有/无绑定邀请、无权限、同名、认领后的展示场景。若主区块结构变化，同时检查 loading/skeleton；不新增独立占位管理页面。邀请落地页是否显示「接管 XX 的历史记录」仍在未决问题中，不能把示意文案当成已确认产品文案。
+`LedgerSettings`、邀请操作组件及其 hook 扩展判别类型；按项目 Atomic Design 与组件目录规则复用 MUI。文案集中维护，补充有/无绑定邀请、无权限、创建/改名重名冲突、改名后刷新及认领后的展示场景。若主区块结构变化，同时检查 loading/skeleton；不新增独立占位管理页面。绑定邀请的复制/分享按钮旁及邀请落地预览页明确展示「这是邀请你加入并接管 XX（占位显示名）的历史账户与交易记录」，其中 XX 以实时 display_name 替换；匿名邀请沿用普通加入文案，不能共用绑定邀请的接管说明。改名不改变 URL，后续打开同一链接看到新名字。此说明不改变历史记账人事实，也不扩张接受者角色权限。
 
 ## 与 #780 安全决策的关系
 
@@ -315,25 +333,25 @@ owner/admin 可见创建、删除、生成/撤销绑定邀请按钮；其他 act
 
 真实身份仍由现有认证系统建立，必须经有效 token、已认证用户和 `accept_ledger_invite` 才成为成员；认领人来自 `auth.uid()`，不按 display_name 或邮箱推断。绑定邀请是持有链接者可接受的邀请，不提供「此人确实是名字所指的人」的实名证明。管理员对生成和分享链接负责；绑定不会自动发送消息，链接预览不能泄露账户历史。这与伪造 app_user 的方案有明确的授权边界差异。
 
-## 未决问题
+## 产品补充确认（原未决问题已定）
 
-以下四项保留给产品拍板，本文不默认选择：
+原四项未决问题已由产品确认，相关技术方案已同步到上文：
 
-1. **同账本占位显示名是否允许重名？** 若禁止，需要确定大小写、空白及其他规范化规则、冲突提示和历史冲突处理，再决定唯一索引。若允许，管理页与持有人候选如何区分同名对象需一并确认。导入「已有同名唯一占位直接复用」是既定规则；多同名时显式选 ID，不能自动猜测。
-2. **创建后、认领前是否允许改名或其他编辑？** 若允许，需定义可编辑字段、绑定邀请上的名称显示及导入姓名匹配如何响应变更；本稿不默认开放 PATCH 或改名入口。
-3. **绑定邀请链接文案是否明确说明接管历史归属？** 是否显示「这是邀请你加入并接管 XX 的历史记录」，以及公开预览是否显示姓名，需要产品确认。技术契约预留绑定标识，不提前确定最终文案和姓名披露范围。
-4. **未认领占位是否过期或清理？** 是永久保留、管理员手动删，还是引入过期与清理规则，需要确认。本稿不增加过期字段、定时任务或自动删除行为；任何后续清理都不能绕过持有引用限制。
+1. 同账本未认领占位 display_name 去首尾空白后精确唯一，不做大小写折叠；已认领历史行退出唯一索引，不占用新占位名字。
+2. owner/admin 可在认领前改名，仅开放 display_name；已认领后拒绝修改，邀请预览和候选读取实时名字。
+3. 绑定邀请明确提示「这是邀请你加入并接管 XX（占位显示名）的历史账户与交易记录」，并仅披露受控预览字段。
+4. 未认领占位永久保留。本设计不实现过期机制，管理员按需手动删除，被引用时禁止删除；不新增过期字段、定时任务或自动清理。
 
 ## 后续实现 Issue 拆分建议
 
 设计人工确认后再创建实现 Issue，各 PR 以合并后的 main 为基础并独立验证；本次仅提出范围，不代建或勾选。
 
-| 顺序与建议标题                                    | 范围 / 依赖                                                                                                                                        | 验收要点                                                                                                                                                              |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A：`feat: 新增账本占位模型及账户持有人数据库约束` | 前置为本文人工确认及必要姓名规则确认。新表、FK/CHECK/索引、RLS、管理 RPC、账户 RPC 双身份、名称投影；预留邀请 FK 和唯一索引，schema/RLS 必须先行。 | 历史用户持有数据不变；双空/双有、跨账本、已认领引用被拒；无权限直连不可写；单账户一持有人；不同占位命名空间正确；引用禁止删除；原初始余额行为不退化。                 |
-| B：`feat: 支持占位绑定邀请与原子认领`             | 依赖 A。完整邀请 RPC、Repository/Service 契约与窄权限例外；不恢复 replace。                                                                        | 并发只能一条有效绑定；匿名邀请回归；撤销后重新创建必须重传 ID；已有成员拒绝；member/viewer 可认领但不获得管理权；全量含归档账户迁移；失败全回滚、重放不重复迁移。     |
-| C：`feat: 成员管理及账户表单支持待邀请成员`       | 依赖 A、B。占位 Service/Action/loader、成员列表合并、创建删除、绑定邀请入口、账户持有人读写显示与候选。                                            | 仅管理员可操作；引用删除失败；匿名邀请与命名占位不混淆、不重复计数；刷新保持状态；账户可切换三态；Storybook、移动端和 loading 状态完整。                              |
-| D：`feat: 导入映射支持创建与复用待邀请成员`       | 依赖 A、B、C 的公共窄契约，建立在 #797 已合并实现上。联合映射类型、浏览器意图、批量 ensure、账户复用键、结果反馈。                                 | 选择/取消零写入；继续时批量提交；同名复用与歧义拒绝；非法映射先于写入失败；无权限不可伪造新建；重复提交、部分失败及认领竞争可解释；收支、转账两侧、余额变更全部覆盖。 |
+| 顺序与建议标题                                    | 范围 / 依赖                                                                                                                                                                        | 验收要点                                                                                                                                                                                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A：`feat: 新增账本占位模型及账户持有人数据库约束` | 前置为本文人工确认，姓名规则已确认。新表、FK/CHECK/索引（含未认领姓名唯一）、RLS、创建/改名/删除管理 RPC、账户 RPC 双身份、名称投影；预留邀请 FK 和唯一索引，schema/RLS 必须先行。 | 历史用户持有数据不变；双空/双有、跨账本、已认领引用被拒；无权限直连不可写；单账户一持有人；不同占位命名空间正确；引用禁止删除；原初始余额行为不退化；首尾空白冲突、大小写区分、跨账本同名、已认领名字复用、改名与认领竞争及安全错误通过。 |
+| B：`feat: 支持占位绑定邀请与原子认领`             | 依赖 A。完整邀请 RPC、Repository/Service 契约与窄权限例外；不恢复 replace。                                                                                                        | 并发只能一条有效绑定；匿名邀请回归；撤销后重新创建必须重传 ID；已有成员拒绝；member/viewer 可认领但不获得管理权；全量含归档账户迁移；失败全回滚、重放不重复迁移。                                                                         |
+| C：`feat: 成员管理及账户表单支持待邀请成员`       | 依赖 A、B。占位 Service/Action/loader、成员列表合并、创建/改名/删除、绑定邀请入口、账户持有人读写显示与候选。                                                                      | 仅管理员可操作；引用删除失败；匿名邀请与命名占位不混淆、不重复计数；刷新保持状态；绑定邀请接管提示与实时名字正确；账户可切换三态；Storybook、移动端和 loading 状态完整。                                                                  |
+| D：`feat: 导入映射支持创建与复用待邀请成员`       | 依赖 A、B、C 的公共窄契约，建立在 #797 已合并实现上。联合映射类型、浏览器意图、批量 ensure、账户复用键、结果反馈。                                                                 | 选择/取消零写入；继续时批量提交；同名复用与姓名唯一冲突转换；改名后候选刷新且按 ID 保持映射；非法映射先于写入失败；无权限不可伪造新建；重复提交、部分失败及认领竞争可解释；收支、转账两侧、余额变更全部覆盖。                             |
 
 数据库阶段需要真实 RPC/RLS 测试验证约束、授权、事务回滚与并发；仅用 mock 无法证明这些性质。应用阶段补最接近入口的 Repository / Service / Action / 组件回归，错误断言遵循统一状态码和安全文案规则。已有同名测试文件内补场景，不拆新的后缀测试文件。
 
