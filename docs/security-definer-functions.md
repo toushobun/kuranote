@@ -150,6 +150,27 @@ order by p.oid::regprocedure::text;
 | `validate_transaction_item_category_shape`              | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`transaction_item_validate_category_shape`                                                                                                                                                                                                                               |
 | `void_transaction`                                      | `public`              | 无                                                     | 默认 PUBLIC EXECUTE；authenticated | RPC：`src/internal/transaction/repository/transactionRepository.ts`                                                                                                                                                                                                              |
 
+## Issue #801：占位模型与账户持有人
+
+本次新增和修改的 SECURITY DEFINER 函数均固定 `search_path = pg_catalog, pg_temp`，应用对象使用完整 schema 限定名，操作人取自 `auth.uid()`。
+
+| 函数                                                                                                   | 变更与权限边界                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_ledger_placeholder_member(uuid,text)`                                                          | 创建未认领占位，规范化重名返回 `placeholder_name_conflict`。                                                                            |
+| `rename_ledger_placeholder_member(uuid,uuid,text)`                                                     | 只更新未认领占位的姓名；已认领返回 `placeholder_already_claimed`。                                                                      |
+| `delete_ledger_placeholder_member(uuid,uuid)`                                                          | 拒绝含归档账户在内的持有引用；无引用时撤销邀请、清 token、解除已撤销邀请关联后删除占位，引用冲突返回 `placeholder_in_use`。             |
+| `ensure_ledger_placeholder_members(uuid,text[])`                                                       | 全部姓名先校验，在同一事务内去重、创建或复用，返回规范化姓名与占位 ID。                                                                 |
+| `lock_ledger_placeholder_management(uuid)`                                                             | 仅内部调用，先核验权限，再锁定未归档账本并复核 active owner/admin。                                                                     |
+| `validate_account_holder_active_member()`                                                              | 改为内部 SECURITY DEFINER 触发器，以便在客户端无占位写权限时锁定并校验占位；保留真实 active 用户/成员校验，拒绝变更持有行的账户或账本。 |
+| `sync_account_name_scope(uuid)`                                                                        | 内部投影同时保存真实用户和占位 ID；仍禁止客户端与 service_role 调用或直接访问投影表。                                                   |
+| `create_account_with_holders`、`update_account_with_holders`、`update_account_with_balance_adjustment` | 删除旧签名后增加末尾可选 `p_placeholder_id uuid default null`，重设授权且不保留重载；创建保留初始余额记录，编辑保留单事务余额调整。     |
+
+四个管理 RPC 及三个账户 RPC 仅向 authenticated 授予 EXECUTE，RPC 内独立要求 active owner/admin。内部锁定与触发器函数撤销 PUBLIC、anon、authenticated、service_role 的 EXECUTE。`normalize_ledger_placeholder_name(text)` 和 `lock_account_holder_placeholders(uuid,uuid,uuid)` 为内部 SECURITY INVOKER 辅助函数，同样撤销客户端及 service_role 的 EXECUTE。
+
+锁顺序为账本 → 旧、新占位（按 ID）→ 涉及的成员 → 账户。账户编辑取得账户锁后复核原占位引用，变化时返回 SQLSTATE `40001`、detail `account_holder_changed`，整个编辑回滚。姓名比较与部分唯一索引统一使用 `collate "C"`；预期姓名冲突仅精确匹配 `ledger_placeholder_member_unclaimed_name_unique` 后转换稳定 detail，不暴露约束名称。
+
+`account_name_scope.test.sql` 在真实 Supabase 上覆盖 CHECK/FK、RLS、RPC、邀请字段约束，并以 dblink 双会话验证同名创建、批量复用、改名与模拟认领、直接 DML 引用锁和编辑旧引用复核；`initial_balance_adjustment.test.sql` 覆盖占位账户的初始余额及事务回滚。未增加邀请绑定或接受 RPC，也未增加认领权限例外。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：

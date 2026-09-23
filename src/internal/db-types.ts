@@ -64,3 +64,57 @@ export type AppUserSummaryDbRow = {
   id: string;
   display_name: string;
 };
+
+// 从本地 Supabase 生成的 ledger_placeholder_member 行类型。
+export type LedgerPlaceholderMemberDbRow = {
+  claimed_at: string | null;
+  claimed_by: string | null;
+  created_at: string;
+  created_by: string;
+  display_name: string;
+  id: string;
+  ledger_id: string;
+};
+
+// 从本地 Supabase 生成的 account_holder 行类型。
+export type AccountHolderDbRow = {
+  account_id: string;
+  created_at: string;
+  created_by: string | null;
+  id: string;
+  ledger_id: string;
+  placeholder_id: string | null;
+  role: string;
+  share_ratio: number | null;
+  updated_at: string;
+  updated_by: string | null;
+  user_id: string | null;
+};
+
+// 从本地 Supabase 生成的 account_name_scope 行类型。
+export type AccountNameScopeDbRow = {
+  account_id: string;
+  currency: string;
+  holder_placeholder_id: string | null;
+  holder_user_id: string | null;
+  ledger_id: string;
+  name: string;
+  type: string;
+};
+
+// 从本地 Supabase 生成的 ledger_invite 行类型。
+export type LedgerInviteDbRow = {
+  accepted_at: string | null;
+  accepted_by: string | null;
+  created_at: string;
+  created_by: string;
+  id: string;
+  invite_token: string | null;
+  inviter_user_id: string;
+  ledger_id: string;
+  placeholder_id: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  role: string;
+  token_hash: string;
+};
