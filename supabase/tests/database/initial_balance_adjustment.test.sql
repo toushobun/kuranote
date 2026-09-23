@@ -68,5 +68,32 @@ set local role authenticated;
 select lives_ok($$select public.create_ledger_with_owner_settings('零余额默认账户测试','JPY','测试成员','sky')$$,'创建账本仍可创建零余额默认账户');
 select is((select count(*) from public.transaction_record where ledger_id=(select id from public.ledger where name='零余额默认账户测试')),0::bigint,'默认零余额账户不生成记录');
 reset role;
+select diag('create_account_with_holders：占位账户初始余额');
+drop trigger test_initial_balance_failure on public.transaction_item;
+set local role authenticated;
+select public.create_ledger_placeholder_member('79200000-0000-4000-8000-000000000001','初始余额占位');
+select public.create_account_with_holders('79200000-0000-4000-8000-000000000001', name, 'cash', 'JPY', balance, '{}',
+    (select id from public.ledger_placeholder_member where ledger_id='79200000-0000-4000-8000-000000000001' and display_name='初始余额占位'))
+from (values ('占位正余额', 123.45), ('占位负余额', -67.89), ('占位零余额', 0)) balances(name, balance);
+select is((select count(*) from public.account a join public.account_holder h on h.account_id=a.id
+    where a.ledger_id='79200000-0000-4000-8000-000000000001' and a.name like '占位%'
+      and a.current_balance=a.initial_balance and h.user_id is null and h.placeholder_id is not null),3::bigint,
+    '占位账户正负零初始余额不翻倍且身份正确');
+select is((select count(*) from public.transaction_item ti join public.transaction_record tr on tr.id=ti.transaction_record_id
+    join public.account a on a.id=ti.account_id
+    where a.ledger_id='79200000-0000-4000-8000-000000000001' and a.name like '占位%'
+      and tr.note='初始余额' and tr.created_by=auth.uid() and tr.transaction_at=a.created_at
+      and ti.balance_delta=a.initial_balance and ti.amount=abs(a.initial_balance)),2::bigint,
+    '占位非零余额同样只生成一笔正确的初始余额记录');
+reset role;
+create trigger test_initial_balance_failure before insert on public.transaction_item
+for each row execute function pg_temp.fail_initial_balance_item();
+set local role authenticated;
+select throws_ok($$select public.create_account_with_holders('79200000-0000-4000-8000-000000000001','占位失败账户','cash','JPY',99,'{}',
+    (select id from public.ledger_placeholder_member where ledger_id='79200000-0000-4000-8000-000000000001' and display_name='初始余额占位'))$$,
+    'P0001','test_initial_balance_failure','占位初始余额明细失败同样整体回滚');
+select is((select count(*) from public.account where ledger_id='79200000-0000-4000-8000-000000000001' and name='占位失败账户'),0::bigint,'失败不残留占位账户');
+select is((select count(*) from public.account_holder where placeholder_id=(select id from public.ledger_placeholder_member where ledger_id='79200000-0000-4000-8000-000000000001' and display_name='初始余额占位')),3::bigint,'失败不残留占位持有行');
+reset role;
 select * from finish();
 rollback;

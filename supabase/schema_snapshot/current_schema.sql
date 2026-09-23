@@ -1197,7 +1197,7 @@ $$;
 ALTER FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1209,13 +1209,7 @@ declare
 begin
     v_user_id = auth.uid();
 
-    if v_user_id is null then
-        raise exception 'must be authenticated';
-    end if;
-
-    if not public.current_user_can_write_ledger(p_ledger_id) then
-        raise exception 'current user cannot write this ledger';
-    end if;
+    perform public.lock_account_holder_placeholders(p_ledger_id, null, p_placeholder_id);
 
     select coalesce(array_agg(distinct holder_user_id), '{}'::uuid[])
     into v_holder_user_ids
@@ -1223,6 +1217,10 @@ begin
 
     if cardinality(v_holder_user_ids) > 1 then
         raise exception 'account can have at most one holder';
+    end if;
+
+    if p_placeholder_id is not null and cardinality(v_holder_user_ids) > 0 then
+        raise exception 'account_holder_identity_invalid' using errcode = '22023', detail = 'account_holder_identity_invalid';
     end if;
 
     if cardinality(v_holder_user_ids) > 0 then
@@ -1287,6 +1285,11 @@ begin
         from unnest(v_holder_user_ids) as holder_user_ids(holder_user_id);
     end if;
 
+    if p_placeholder_id is not null then
+        insert into public.account_holder (ledger_id, account_id, placeholder_id, role, created_by, updated_by)
+        values (p_ledger_id, v_account_id, p_placeholder_id, 'owner', v_user_id, v_user_id);
+    end if;
+
     perform public.record_account_initial_balance(v_account_id);
 
     return v_account_id;
@@ -1294,7 +1297,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -1413,6 +1416,33 @@ $$;
 
 
 ALTER FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_id uuid;
+    v_constraint text;
+begin
+    perform public.lock_ledger_placeholder_management(p_ledger_id);
+    insert into public.ledger_placeholder_member(ledger_id, display_name, created_by)
+    values (p_ledger_id, public.normalize_ledger_placeholder_name(p_display_name), auth.uid())
+    returning id into v_id;
+    return v_id;
+exception when unique_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    if v_constraint = 'ledger_placeholder_member_unclaimed_name_unique' then
+        raise exception 'placeholder_name_conflict'
+            using errcode = '23505', detail = 'placeholder_name_conflict';
+    end if;
+    raise;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."ledger" (
@@ -2215,6 +2245,41 @@ $$;
 ALTER FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_placeholder public.ledger_placeholder_member;
+begin
+    perform public.lock_ledger_placeholder_management(p_ledger_id);
+    select * into v_placeholder from public.ledger_placeholder_member
+    where id = p_placeholder_id and ledger_id = p_ledger_id for update;
+    if not found then
+        raise exception 'placeholder_not_found' using errcode = '22023', detail = 'placeholder_not_found';
+    end if;
+    if v_placeholder.claimed_by is not null then
+        raise exception 'placeholder_already_claimed' using errcode = '23514', detail = 'placeholder_already_claimed';
+    end if;
+    if exists (select 1 from public.account_holder where placeholder_id = p_placeholder_id) then
+        raise exception 'placeholder_in_use' using errcode = '23503', detail = 'placeholder_in_use';
+    end if;
+    perform 1 from public.ledger_invite where placeholder_id = p_placeholder_id order by id for update;
+    update public.ledger_invite set revoked_at = now(), revoked_by = auth.uid(), invite_token = null
+    where placeholder_id = p_placeholder_id and accepted_at is null and revoked_at is null;
+    update public.ledger_invite set placeholder_id = null
+    where placeholder_id = p_placeholder_id and revoked_at is not null;
+    -- 异常历史引用也不能被清除或吞掉，整次删除回滚为稳定业务错误。
+    delete from public.ledger_placeholder_member where id = p_placeholder_id;
+exception when foreign_key_violation then
+    raise exception 'placeholder_in_use' using errcode = '23503', detail = 'placeholder_in_use';
+end;
+$$;
+
+
+ALTER FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."enforce_ledger_management_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -2582,6 +2647,55 @@ $$;
 
 
 ALTER FUNCTION "public"."enforce_transaction_record_permission"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) RETURNS TABLE("display_name" "text", "placeholder_id" "uuid")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+#variable_conflict use_column
+declare
+    v_names text[];
+    v_name text;
+    v_id uuid;
+    v_constraint text;
+begin
+    perform public.lock_ledger_placeholder_management(p_ledger_id);
+    if p_display_names is null then
+        raise exception 'placeholder_name_invalid' using errcode = '22023', detail = 'placeholder_name_invalid';
+    end if;
+    -- 全部输入先规范化校验，之后才统一写入；排序与唯一索引采用相同的精确比较。
+    select array_agg(n.name order by n.name collate "C") into v_names
+    from (select distinct public.normalize_ledger_placeholder_name(input.name) collate "C" as name
+          from unnest(p_display_names) as input(name)) n;
+    foreach v_name in array coalesce(v_names, '{}'::text[]) loop
+        insert into public.ledger_placeholder_member(ledger_id, display_name, created_by)
+        values (p_ledger_id, v_name, auth.uid())
+        on conflict (ledger_id, display_name collate "C") where claimed_by is null do nothing
+        returning id into v_id;
+        if v_id is null then
+            select p.id into v_id from public.ledger_placeholder_member p
+            where p.ledger_id = p_ledger_id and p.display_name collate "C" = v_name collate "C"
+              and p.claimed_by is null for update;
+            if not found then
+                raise exception 'placeholder_name_conflict' using errcode = '23505', detail = 'placeholder_name_conflict';
+            end if;
+        end if;
+        display_name := v_name;
+        placeholder_id := v_id;
+        return next;
+    end loop;
+exception when unique_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    if v_constraint = 'ledger_placeholder_member_unclaimed_name_unique' then
+        raise exception 'placeholder_name_conflict' using errcode = '23505', detail = 'placeholder_name_conflict';
+    end if;
+    raise;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") RETURNS TABLE("invite_status" "text", "ledger_name" "text", "inviter_name" "text", "invite_role" "text")
@@ -3826,6 +3940,79 @@ $$;
 ALTER FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_special_statuses" "text"[], "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."lock_account_holder_placeholders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_placeholder_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_old_placeholder_id uuid;
+    v_placeholder public.ledger_placeholder_member;
+begin
+    perform public.lock_ledger_placeholder_management(p_ledger_id);
+    select h.placeholder_id into v_old_placeholder_id from public.account_holder h
+    where h.account_id = p_account_id and h.ledger_id = p_ledger_id;
+    perform 1 from public.ledger_placeholder_member
+    where ledger_id = p_ledger_id and id in (v_old_placeholder_id, p_placeholder_id)
+    order by id for update;
+    if p_placeholder_id is not null then
+        select * into v_placeholder from public.ledger_placeholder_member
+        where id = p_placeholder_id and ledger_id = p_ledger_id;
+        if not found then
+            raise exception 'placeholder_not_found' using errcode = '22023', detail = 'placeholder_not_found';
+        end if;
+        if v_placeholder.claimed_by is not null then
+            raise exception 'placeholder_already_claimed' using errcode = '23514', detail = 'placeholder_already_claimed';
+        end if;
+    end if;
+    return v_old_placeholder_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."lock_account_holder_placeholders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_placeholder_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if auth.uid() is null then
+        raise exception 'auth_required' using errcode = '42501', detail = 'auth_required';
+    end if;
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'permission_denied' using errcode = '42501', detail = 'permission_denied';
+    end if;
+    perform 1 from public.ledger where id = p_ledger_id and not is_archived for update;
+    if not found or not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'permission_denied' using errcode = '42501', detail = 'permission_denied';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."normalize_ledger_placeholder_name"("p_display_name" "text") RETURNS "text"
+    LANGUAGE "plpgsql" IMMUTABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_name text := btrim(p_display_name);
+begin
+    if v_name is null or v_name = '' then
+        raise exception 'placeholder_name_invalid'
+            using errcode = '22023', detail = 'placeholder_name_invalid';
+    end if;
+    return v_name;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."normalize_ledger_placeholder_name"("p_display_name" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."normalize_transaction_record_type_for_compat"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4349,6 +4536,41 @@ $$;
 
 
 ALTER FUNCTION "public"."refresh_account_name_scope"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."rename_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid", "p_display_name" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_placeholder public.ledger_placeholder_member;
+    v_constraint text;
+begin
+    perform public.lock_ledger_placeholder_management(p_ledger_id);
+    select * into v_placeholder from public.ledger_placeholder_member
+    where id = p_placeholder_id and ledger_id = p_ledger_id for update;
+    if not found then
+        raise exception 'placeholder_not_found' using errcode = '22023', detail = 'placeholder_not_found';
+    end if;
+    if v_placeholder.claimed_by is not null then
+        raise exception 'placeholder_already_claimed' using errcode = '23514', detail = 'placeholder_already_claimed';
+    end if;
+    update public.ledger_placeholder_member
+    set display_name = public.normalize_ledger_placeholder_name(p_display_name)
+    where id = p_placeholder_id;
+    return p_placeholder_id;
+exception when unique_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    if v_constraint = 'ledger_placeholder_member_unclaimed_name_unique' then
+        raise exception 'placeholder_name_conflict'
+            using errcode = '23505', detail = 'placeholder_name_conflict';
+    end if;
+    raise;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."rename_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) RETURNS integer
@@ -4895,26 +5117,22 @@ CREATE OR REPLACE FUNCTION "public"."sync_account_name_scope"("p_account_id" "uu
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    -- 与账户编辑串行化，持有人写入不能用旧账户属性覆盖投影。
     perform 1 from public.account where id = p_account_id for update;
-
     delete from public.account_name_scope s
-    where s.account_id = p_account_id
-      and not exists (
-          select 1 from public.account a where a.id = p_account_id and not a.is_archived
-      );
-
-    insert into public.account_name_scope (account_id, ledger_id, name, type, currency, holder_user_id)
-    select a.id, a.ledger_id, lower(a.name), a.type, a.currency, h.user_id
-    from public.account a
-    left join public.account_holder h on h.account_id = a.id
+    where s.account_id = p_account_id and not exists (
+        select 1 from public.account a where a.id = p_account_id and not a.is_archived
+    );
+    insert into public.account_name_scope (
+        account_id, ledger_id, name, type, currency, holder_user_id, holder_placeholder_id
+    )
+    select a.id, a.ledger_id, lower(a.name), a.type, a.currency, h.user_id, h.placeholder_id
+    from public.account a left join public.account_holder h on h.account_id = a.id
     where a.id = p_account_id and not a.is_archived
     on conflict (account_id) do update set
-        ledger_id = excluded.ledger_id,
-        name = excluded.name,
-        type = excluded.type,
-        currency = excluded.currency,
-        holder_user_id = excluded.holder_user_id;
+        ledger_id = excluded.ledger_id, name = excluded.name,
+        type = excluded.type, currency = excluded.currency,
+        holder_user_id = excluded.holder_user_id,
+        holder_placeholder_id = excluded.holder_placeholder_id;
 end;
 $$;
 
@@ -4922,7 +5140,7 @@ $$;
 ALTER FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text", "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4945,7 +5163,7 @@ begin
   raise exception 'account_adjustment_note_invalid' using errcode = '22023', detail = 'account_adjustment_note_invalid';
  end if;
  -- 与既有账户资料 RPC 保持锁定顺序，资料更新取得账户行锁后再读取最新余额。
- perform public.update_account_with_holders(p_ledger_id,p_account_id,p_name,p_type,p_currency,p_holder_user_ids);
+ perform public.update_account_with_holders(p_ledger_id,p_account_id,p_name,p_type,p_currency,p_holder_user_ids,p_placeholder_id);
  select current_balance into strict v_balance from public.account where id=p_account_id and ledger_id=p_ledger_id for update;
  v_delta := p_target_balance - v_balance;
  if v_delta is not null and v_delta <> 0 then
@@ -4964,28 +5182,24 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid;
+    v_old_placeholder_id uuid;
+    v_current_placeholder_id uuid;
     v_updated_account_id uuid;
     v_holder_user_ids uuid[];
     v_active_holder_user_ids uuid[];
 begin
     v_user_id = auth.uid();
 
-    if v_user_id is null then
-        raise exception 'must be authenticated';
-    end if;
-
-    if not public.current_user_can_write_ledger(p_ledger_id) then
-        raise exception 'current user cannot write this ledger';
-    end if;
+    v_old_placeholder_id := public.lock_account_holder_placeholders(p_ledger_id, p_account_id, p_placeholder_id);
 
     select coalesce(array_agg(distinct holder_user_id), '{}'::uuid[])
     into v_holder_user_ids
@@ -4993,6 +5207,10 @@ begin
 
     if cardinality(v_holder_user_ids) > 1 then
         raise exception 'account can have at most one holder';
+    end if;
+
+    if p_placeholder_id is not null and cardinality(v_holder_user_ids) > 0 then
+        raise exception 'account_holder_identity_invalid' using errcode = '22023', detail = 'account_holder_identity_invalid';
     end if;
 
     if cardinality(v_holder_user_ids) > 0 then
@@ -5016,6 +5234,13 @@ begin
         end if;
     end if;
 
+    perform 1 from public.account where id = p_account_id and ledger_id = p_ledger_id for update;
+    select placeholder_id into v_current_placeholder_id from public.account_holder
+    where account_id = p_account_id and ledger_id = p_ledger_id;
+    if v_current_placeholder_id is distinct from v_old_placeholder_id then
+        raise exception 'account_holder_changed' using errcode = '40001', detail = 'account_holder_changed';
+    end if;
+
     update public.account
     set
         name = p_name,
@@ -5031,19 +5256,12 @@ begin
         raise exception 'account not found';
     end if;
 
-    delete from public.account_holder
-    where account_holder.ledger_id = p_ledger_id
-      and account_holder.account_id = p_account_id
-      and not (account_holder.user_id = any(v_holder_user_ids))
-      and exists (
-          select 1
-          from public.ledger_member lm
-          join public.app_user au
-            on au.id = lm.user_id
-          where lm.ledger_id = account_holder.ledger_id
-            and lm.user_id = account_holder.user_id
-            and lm.status = 'active'
-            and au.status = 'active'
+    -- 三态显式比较，空用户列不会使旧占位漏删；相同身份保留原持有行。
+    delete from public.account_holder h
+    where h.ledger_id = p_ledger_id and h.account_id = p_account_id
+      and not (
+          (p_placeholder_id is not null and h.placeholder_id is not distinct from p_placeholder_id)
+          or (p_placeholder_id is null and h.user_id is not null and h.user_id = any(v_holder_user_ids))
       );
 
     if cardinality(v_holder_user_ids) > 0 then
@@ -5069,12 +5287,18 @@ begin
             updated_by = excluded.updated_by;
     end if;
 
+    if p_placeholder_id is not null then
+        insert into public.account_holder (ledger_id, account_id, placeholder_id, role, created_by, updated_by)
+        values (p_ledger_id, p_account_id, p_placeholder_id, 'owner', v_user_id, v_user_id)
+        on conflict (account_id) do update set role = excluded.role, updated_by = excluded.updated_by;
+    end if;
+
     return v_updated_account_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -6391,21 +6615,37 @@ ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_t
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_account_holder_active_member"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    if not exists (
-        select 1
-        from public.ledger_member lm
-        join public.app_user au on au.id = lm.user_id
-        where lm.ledger_id = new.ledger_id
-          and lm.user_id = new.user_id
-          and lm.status = 'active'
-          and au.status = 'active'
-    ) then
-        raise exception 'account holder must be an active ledger member';
+    if tg_op = 'UPDATE' and (new.account_id is distinct from old.account_id
+        or new.ledger_id is distinct from old.ledger_id) then
+        raise exception 'account_holder_identity_immutable'
+            using errcode = '23514', detail = 'account_holder_identity_immutable';
     end if;
-
+    if (new.user_id is null) = (new.placeholder_id is null) then
+        raise exception 'account_holder_identity_invalid'
+            using errcode = '23514', detail = 'account_holder_identity_invalid';
+    end if;
+    if new.placeholder_id is not null then
+        perform 1 from public.ledger_placeholder_member p
+        where p.id = new.placeholder_id and p.ledger_id = new.ledger_id
+          and p.claimed_by is null for update;
+        if not found then
+            raise exception 'placeholder_unavailable'
+                using errcode = '23514', detail = 'placeholder_unavailable';
+        end if;
+    else
+        perform 1 from public.ledger_member lm
+        join public.app_user au on au.id = lm.user_id
+        where lm.ledger_id = new.ledger_id and lm.user_id = new.user_id
+          and lm.status = 'active' and au.status = 'active'
+        for share of lm, au;
+        if not found then
+            raise exception 'account holder must be an active ledger member';
+        end if;
+    end if;
     return new;
 end;
 $$;
@@ -7339,13 +7579,15 @@ CREATE TABLE IF NOT EXISTS "public"."account_holder" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "ledger_id" "uuid" NOT NULL,
     "account_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL,
+    "user_id" "uuid",
     "role" "text" DEFAULT 'owner'::"text" NOT NULL,
     "share_ratio" numeric(5,2),
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "placeholder_id" "uuid",
+    CONSTRAINT "account_holder_identity_check" CHECK ((("user_id" IS NOT NULL) <> ("placeholder_id" IS NOT NULL))),
     CONSTRAINT "account_holder_role_check" CHECK (("role" = ANY (ARRAY['owner'::"text", 'co_owner'::"text"]))),
     CONSTRAINT "account_holder_share_ratio_check" CHECK ((("share_ratio" IS NULL) OR (("share_ratio" > (0)::numeric) AND ("share_ratio" <= (100)::numeric))))
 );
@@ -7360,7 +7602,9 @@ CREATE TABLE IF NOT EXISTS "public"."account_name_scope" (
     "name" "text" NOT NULL,
     "type" "text" NOT NULL,
     "currency" "text" NOT NULL,
-    "holder_user_id" "uuid"
+    "holder_user_id" "uuid",
+    "holder_placeholder_id" "uuid",
+    CONSTRAINT "account_name_scope_identity_check" CHECK ((("holder_user_id" IS NULL) OR ("holder_placeholder_id" IS NULL)))
 );
 
 
@@ -7491,6 +7735,7 @@ CREATE TABLE IF NOT EXISTS "public"."ledger_invite" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid" NOT NULL,
     "invite_token" "text",
+    "placeholder_id" "uuid",
     CONSTRAINT "ledger_invite_acceptance_check" CHECK (((("accepted_at" IS NULL) AND ("accepted_by" IS NULL)) OR (("accepted_at" IS NOT NULL) AND ("accepted_by" IS NOT NULL)))),
     CONSTRAINT "ledger_invite_revocation_check" CHECK (((("revoked_at" IS NULL) AND ("revoked_by" IS NULL)) OR (("revoked_at" IS NOT NULL) AND ("revoked_by" IS NOT NULL)))),
     CONSTRAINT "ledger_invite_role_check" CHECK (("role" = ANY (ARRAY['admin'::"text", 'member'::"text", 'viewer'::"text"]))),
@@ -7522,6 +7767,22 @@ ALTER TABLE "public"."ledger_member_display_setting" OWNER TO "postgres";
 
 COMMENT ON COLUMN "public"."ledger_member_display_setting"."display_name" IS '当前账本内使用的成员昵称。为空时回退到 app_user.display_name。';
 
+
+
+CREATE TABLE IF NOT EXISTS "public"."ledger_placeholder_member" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "ledger_id" "uuid" NOT NULL,
+    "display_name" "text" NOT NULL,
+    "claimed_by" "uuid",
+    "claimed_at" timestamp with time zone,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "ledger_placeholder_member_claim_check" CHECK ((("claimed_by" IS NULL) = ("claimed_at" IS NULL))),
+    CONSTRAINT "ledger_placeholder_member_name_check" CHECK ((("display_name" <> ''::"text") AND ("display_name" = "btrim"("display_name"))))
+);
+
+
+ALTER TABLE "public"."ledger_placeholder_member" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."merchant" (
@@ -7765,7 +8026,7 @@ ALTER TABLE ONLY "public"."auth_otp_attempt" ALTER COLUMN "id" SET DEFAULT "next
 
 
 ALTER TABLE ONLY "public"."account_name_scope"
-    ADD CONSTRAINT "account_active_name_unique" UNIQUE NULLS NOT DISTINCT ("ledger_id", "name", "type", "currency", "holder_user_id") DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT "account_active_name_unique" UNIQUE NULLS NOT DISTINCT ("ledger_id", "name", "type", "currency", "holder_user_id", "holder_placeholder_id") DEFERRABLE INITIALLY DEFERRED;
 
 
 
@@ -7864,6 +8125,16 @@ ALTER TABLE ONLY "public"."ledger"
 
 
 
+ALTER TABLE ONLY "public"."ledger_placeholder_member"
+    ADD CONSTRAINT "ledger_placeholder_member_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."ledger_placeholder_member"
+    ADD CONSTRAINT "ledger_placeholder_member_same_ledger_unique" UNIQUE ("id", "ledger_id");
+
+
+
 ALTER TABLE ONLY "public"."merchant_alias"
     ADD CONSTRAINT "merchant_alias_pkey" PRIMARY KEY ("id");
 
@@ -7933,6 +8204,10 @@ CREATE INDEX "account_holder_account_ledger_idx" ON "public"."account_holder" US
 
 
 CREATE INDEX "account_holder_ledger_id_idx" ON "public"."account_holder" USING "btree" ("ledger_id");
+
+
+
+CREATE INDEX "account_holder_placeholder_id_idx" ON "public"."account_holder" USING "btree" ("placeholder_id") WHERE ("placeholder_id" IS NOT NULL);
 
 
 
@@ -8008,6 +8283,14 @@ CREATE INDEX "ledger_invite_ledger_id_created_at_idx" ON "public"."ledger_invite
 
 
 
+CREATE UNIQUE INDEX "ledger_invite_one_pending_placeholder" ON "public"."ledger_invite" USING "btree" ("placeholder_id") WHERE (("placeholder_id" IS NOT NULL) AND ("accepted_at" IS NULL) AND ("revoked_at" IS NULL));
+
+
+
+CREATE INDEX "ledger_invite_placeholder_id_idx" ON "public"."ledger_invite" USING "btree" ("placeholder_id") WHERE ("placeholder_id" IS NOT NULL);
+
+
+
 CREATE INDEX "ledger_member_active_ledger_user_idx" ON "public"."ledger_member" USING "btree" ("ledger_id", "user_id") WHERE ("status" = 'active'::"text");
 
 
@@ -8037,6 +8320,14 @@ CREATE INDEX "ledger_member_user_id_idx" ON "public"."ledger_member" USING "btre
 
 
 CREATE INDEX "ledger_owner_user_id_idx" ON "public"."ledger" USING "btree" ("owner_user_id");
+
+
+
+CREATE INDEX "ledger_placeholder_member_claimed_by_idx" ON "public"."ledger_placeholder_member" USING "btree" ("claimed_by") WHERE ("claimed_by" IS NOT NULL);
+
+
+
+CREATE UNIQUE INDEX "ledger_placeholder_member_unclaimed_name_unique" ON "public"."ledger_placeholder_member" USING "btree" ("ledger_id", "display_name" COLLATE "C") WHERE ("claimed_by" IS NULL);
 
 
 
@@ -8369,6 +8660,11 @@ ALTER TABLE ONLY "public"."account_holder"
 
 
 ALTER TABLE ONLY "public"."account_holder"
+    ADD CONSTRAINT "account_holder_placeholder_same_ledger_fk" FOREIGN KEY ("placeholder_id", "ledger_id") REFERENCES "public"."ledger_placeholder_member"("id", "ledger_id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."account_holder"
     ADD CONSTRAINT "account_holder_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."app_user"("id");
 
 
@@ -8494,6 +8790,11 @@ ALTER TABLE ONLY "public"."ledger_invite"
 
 
 ALTER TABLE ONLY "public"."ledger_invite"
+    ADD CONSTRAINT "ledger_invite_placeholder_same_ledger_fk" FOREIGN KEY ("placeholder_id", "ledger_id") REFERENCES "public"."ledger_placeholder_member"("id", "ledger_id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."ledger_invite"
     ADD CONSTRAINT "ledger_invite_revoked_by_fkey" FOREIGN KEY ("revoked_by") REFERENCES "public"."app_user"("id");
 
 
@@ -8550,6 +8851,21 @@ ALTER TABLE ONLY "public"."ledger_member"
 
 ALTER TABLE ONLY "public"."ledger"
     ADD CONSTRAINT "ledger_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "public"."app_user"("id");
+
+
+
+ALTER TABLE ONLY "public"."ledger_placeholder_member"
+    ADD CONSTRAINT "ledger_placeholder_member_claimed_by_fkey" FOREIGN KEY ("claimed_by") REFERENCES "public"."app_user"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."ledger_placeholder_member"
+    ADD CONSTRAINT "ledger_placeholder_member_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."ledger_placeholder_member"
+    ADD CONSTRAINT "ledger_placeholder_member_ledger_id_fkey" FOREIGN KEY ("ledger_id") REFERENCES "public"."ledger"("id") ON DELETE RESTRICT;
 
 
 
@@ -8836,6 +9152,13 @@ CREATE POLICY "ledger_member_select_same_ledger_or_self" ON "public"."ledger_mem
 
 
 
+ALTER TABLE "public"."ledger_placeholder_member" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "ledger_placeholder_member_select_active_member" ON "public"."ledger_placeholder_member" FOR SELECT TO "authenticated" USING ("public"."current_user_has_ledger_role"("ledger_id", ARRAY['owner'::"text", 'admin'::"text", 'member'::"text", 'viewer'::"text"]));
+
+
+
 CREATE POLICY "ledger_select_active_member" ON "public"."ledger" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("id"));
 
 
@@ -9044,8 +9367,8 @@ GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") TO "authenticated";
 
 
 
@@ -9056,6 +9379,11 @@ GRANT ALL ON FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger
 
 REVOKE ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_ledger_invite_v2"("p_ledger_id" "uuid", "p_role" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") TO "authenticated";
 
 
 
@@ -9131,6 +9459,11 @@ GRANT ALL ON FUNCTION "public"."current_user_is_active_ledger_member"("p_ledger_
 
 
 
+REVOKE ALL ON FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."enforce_ledger_management_permission"() FROM PUBLIC;
 
 
@@ -9152,6 +9485,11 @@ REVOKE ALL ON FUNCTION "public"."enforce_transaction_child_permission"() FROM PU
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_transaction_record_permission"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) TO "authenticated";
 
 
 
@@ -9206,6 +9544,18 @@ GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries_with_special_st
 
 
 
+REVOKE ALL ON FUNCTION "public"."lock_account_holder_placeholders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_placeholder_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."normalize_ledger_placeholder_name"("p_display_name" "text") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"() FROM PUBLIC;
 
 
@@ -9242,6 +9592,11 @@ REVOKE ALL ON FUNCTION "public"."refresh_account_name_scope"() FROM PUBLIC;
 
 
 
+REVOKE ALL ON FUNCTION "public"."rename_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid", "p_display_name" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."rename_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid", "p_display_name" "text") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reorder_categories"("p_ledger_id" "uuid", "p_type" "text", "p_parent_id" "uuid", "p_category_ids" "uuid"[]) TO "authenticated";
 
@@ -9271,13 +9626,13 @@ REVOKE ALL ON FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid")
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[]) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") TO "authenticated";
 
 
 
@@ -9320,6 +9675,10 @@ REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "
 
 
 GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_account_holder_active_member"() FROM PUBLIC;
 
 
 
@@ -9383,6 +9742,11 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_invite" TO 
 
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger_member_display_setting" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_member_display_setting" TO "service_role";
+
+
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_placeholder_member" TO "service_role";
+GRANT SELECT ON TABLE "public"."ledger_placeholder_member" TO "authenticated";
 
 
 
