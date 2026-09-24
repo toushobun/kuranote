@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  parseCreateLedgerPlaceholderMemberForm,
   parseDeleteLedgerPlaceholderMemberForm,
   parseRenameLedgerPlaceholderMemberForm,
 } from "internal/ledger/schema/ledgerPlaceholderMemberForm";
@@ -15,27 +14,6 @@ function form(values: Record<string, string>) {
   return formData;
 }
 
-describe("parseCreateLedgerPlaceholderMemberForm", () => {
-  it("去除首尾空白后返回名字", () => {
-    expect(
-      parseCreateLedgerPlaceholderMemberForm(
-        form({ displayName: "  奶奶 ", ledgerId }),
-      ),
-    ).toEqual({ ok: true, value: { displayName: "奶奶", ledgerId } });
-  });
-
-  it.each([
-    [{ displayName: "奶奶", ledgerId: "x" }, "ledger_not_found"],
-    [{ displayName: "  ", ledgerId }, "placeholder_name_invalid"],
-    [{ displayName: "a".repeat(101), ledgerId }, "placeholder_name_too_long"],
-  ])("非法输入 %j 返回 %s", (values, error) => {
-    expect(parseCreateLedgerPlaceholderMemberForm(form(values))).toEqual({
-      error,
-      ok: false,
-    });
-  });
-});
-
 describe("parseRenameLedgerPlaceholderMemberForm", () => {
   it("解析账本、占位与新名字", () => {
     expect(
@@ -45,6 +23,34 @@ describe("parseRenameLedgerPlaceholderMemberForm", () => {
     ).toEqual({
       ok: true,
       value: { displayName: "外婆", ledgerId, placeholderId },
+    });
+  });
+
+  it("去除首尾空白后返回名字", () => {
+    expect(
+      parseRenameLedgerPlaceholderMemberForm(
+        form({ displayName: "  奶奶 ", ledgerId, placeholderId }),
+      ),
+    ).toEqual({
+      ok: true,
+      value: { displayName: "奶奶", ledgerId, placeholderId },
+    });
+  });
+
+  it.each([
+    [{ displayName: "奶奶", ledgerId: "x", placeholderId }, "ledger_not_found"],
+    [
+      { displayName: "  ", ledgerId, placeholderId },
+      "placeholder_name_invalid",
+    ],
+    [
+      { displayName: "a".repeat(101), ledgerId, placeholderId },
+      "placeholder_name_too_long",
+    ],
+  ])("非法输入 %j 返回 %s", (values, error) => {
+    expect(parseRenameLedgerPlaceholderMemberForm(form(values))).toEqual({
+      error,
+      ok: false,
     });
   });
 

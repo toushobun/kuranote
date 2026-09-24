@@ -4,6 +4,8 @@ export const ledgerInviteErrorCodes = {
   createFailed: "create_failed",
   inviteAlreadyRevoked: "invite_already_revoked",
   inviteInvalid: "invite_invalid",
+  inviteMemberLinkFailed: "invite_member_link_failed",
+  inviteMemberNameConflict: "invite_member_name_conflict",
   inviteRoleInvalid: "invite_role_invalid",
   inviteUsed: "invite_already_used",
   ledgerNotFound: "ledger_not_found",
@@ -15,6 +17,7 @@ export const ledgerInviteErrorCodes = {
   placeholderClaimExistingMember: "placeholder_claim_existing_member",
   placeholderInvitePending: "placeholder_invite_pending",
   placeholderNotFound: "placeholder_not_found",
+  placeholderRequired: "placeholder_required",
   revokeFailed: "revoke_failed",
   userInactive: "user_inactive",
 } as const;
@@ -28,6 +31,10 @@ const messages: Record<LedgerInviteErrorCode, string> = {
   create_failed: "邀请链接生成失败，请稍后重试。",
   invite_already_revoked: "该邀请已经撤销。",
   invite_invalid: "该邀请链接无效或已失效。",
+  invite_member_link_failed:
+    "已添加待邀请成员，但邀请链接生成失败，请在列表中重新生成。",
+  invite_member_name_conflict:
+    "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
   invite_role_invalid: "请选择有效的邀请权限。",
   invite_already_used: "该邀请链接已经被使用。",
   ledger_not_found: "账本不存在或已归档。",
@@ -41,6 +48,7 @@ const messages: Record<LedgerInviteErrorCode, string> = {
   placeholder_invite_pending:
     "该待邀请成员已有一条有效邀请，请先撤销后再重新生成。",
   placeholder_not_found: "待邀请成员不存在或已删除。",
+  placeholder_required: "邀请必须指定一名待邀请成员。",
   revoke_failed: "邀请撤销失败，请稍后重试。",
   user_inactive: "当前账号已停用，无法加入账本。",
 };
@@ -49,4 +57,12 @@ export function getLedgerInviteErrorMessage(code?: string) {
   return code && code in messages
     ? messages[code as LedgerInviteErrorCode]
     : null;
+}
+
+/**
+ * 「邀请成员」第 2 步（生成链接）失败时的部分成功文案：带上已添加的名字，
+ * 让用户知道这一行已经在列表中，可以直接重新生成链接。
+ */
+export function getInviteMemberLinkFailedMessage(displayName: string): string {
+  return `已添加「${displayName}」，但邀请链接生成失败，请在列表中重新生成。`;
 }

@@ -62,7 +62,10 @@ export type LedgerSettingsMember = {
 export type PendingLedgerInvite = {
   createdAt: string;
   id: string;
-  /** 绑定占位时为占位 ID；匿名邀请为 null。合并展示只以此为准，不看显示名。 */
+  /**
+   * 绑定的待邀请成员 ID，合并展示只以此为准，不看显示名。#809 起新邀请必定绑定；
+   * RPC 返回列仍可空，展示时找不到占位的邀请直接忽略。
+   */
   placeholderId: string | null;
   role: LedgerInviteRole;
   token: string | null;
@@ -96,7 +99,7 @@ export type LedgerCreateStateAction = (
   formData: FormData,
 ) => Promise<LedgerCreateActionState>;
 
-export type LedgerInviteActionOperation = "create" | "revoke";
+export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 
 export type LedgerInviteActionState = BaseActionState & {
   errorKey?: string;
@@ -108,10 +111,7 @@ export type LedgerInviteStateAction = (
   formData: FormData,
 ) => Promise<LedgerInviteActionState>;
 
-export type LedgerPlaceholderMemberActionOperation =
-  | "create"
-  | "delete"
-  | "rename";
+export type LedgerPlaceholderMemberActionOperation = "delete" | "rename";
 
 export type LedgerPlaceholderMemberActionState = BaseActionState & {
   errorKey?: string;

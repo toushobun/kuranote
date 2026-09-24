@@ -12,13 +12,11 @@ import {
 
 type ParseResult<T> = ValidationResult<T, LedgerPlaceholderMemberErrorCode>;
 
-export type CreateLedgerPlaceholderMemberFormValues = {
+export type RenameLedgerPlaceholderMemberFormValues = {
   displayName: string;
   ledgerId: string;
+  placeholderId: string;
 };
-
-export type RenameLedgerPlaceholderMemberFormValues =
-  CreateLedgerPlaceholderMemberFormValues & { placeholderId: string };
 
 export type DeleteLedgerPlaceholderMemberFormValues = {
   ledgerId: string;
@@ -47,17 +45,6 @@ function parseDisplayName(formData: FormData): ParseResult<string> {
     maxLengthError: ledgerPlaceholderMemberErrorCodes.placeholderNameTooLong,
     requiredError: ledgerPlaceholderMemberErrorCodes.placeholderNameInvalid,
   });
-}
-
-export function parseCreateLedgerPlaceholderMemberForm(
-  formData: FormData,
-): ParseResult<CreateLedgerPlaceholderMemberFormValues> {
-  const ledgerId = parseLedgerId(formData);
-  if (!ledgerId.ok) return ledgerId;
-  const displayName = parseDisplayName(formData);
-  if (!displayName.ok) return displayName;
-
-  return valid({ displayName: displayName.value, ledgerId: ledgerId.value });
 }
 
 export function parseRenameLedgerPlaceholderMemberForm(

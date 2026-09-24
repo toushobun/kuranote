@@ -56,7 +56,6 @@ const meta = {
     ],
     pendingInvites: [],
     placeholderMemberActions: {
-      create: async () => ({}),
       delete: async () => ({}),
       rename: async () => ({}),
     },
@@ -79,7 +78,7 @@ const placeholderMembers = [
 ];
 
 export const WithPlaceholderMembers: Story = {
-  name: "含待邀请成员（一位已有绑定邀请）与匿名邀请",
+  name: "含待邀请成员（一位已生成链接、一位未生成）",
   args: {
     pendingInvites: [
       {
@@ -88,13 +87,6 @@ export const WithPlaceholderMembers: Story = {
         placeholderId: placeholderMembers[0].id,
         role: "member",
         token: "a".repeat(64),
-      },
-      {
-        createdAt: "2026-09-02T10:00:00.000Z",
-        id: "invite-anonymous",
-        placeholderId: null,
-        role: "viewer",
-        token: "b".repeat(64),
       },
     ],
     placeholderMembers,

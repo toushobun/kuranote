@@ -5,7 +5,6 @@ import { createRequestContainer } from "internal/container";
 import { canManageMembers } from "internal/ledger";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import {
-  createLedgerPlaceholderMember,
   deleteLedgerPlaceholderMember,
   renameLedgerPlaceholderMember,
 } from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
@@ -91,7 +90,6 @@ export default async function LedgerSettingsRoute({
         placeholderMemberActions={
           canManage
             ? {
-                create: createLedgerPlaceholderMember,
                 delete: deleteLedgerPlaceholderMember,
                 rename: renameLedgerPlaceholderMember,
               }

@@ -236,12 +236,11 @@ describe("LedgerSettingsTemplate", () => {
   describe("待邀请成员", () => {
     const placeholderMembers = [{ displayName: "奶奶", id: "placeholder-1" }];
     const placeholderMemberActions = {
-      create: vi.fn(async () => ({})),
       delete: vi.fn(async () => ({})),
       rename: vi.fn(async () => ({})),
     };
 
-    it("管理者在成员区块看到待邀请成员与添加入口，且占位不打开成员设置", () => {
+    it("管理者在成员区块看到待邀请成员与唯一的邀请成员入口，且占位不打开成员设置", () => {
       renderWithUserTheme(
         <LedgerSettingsTemplate
           {...view}
@@ -253,10 +252,13 @@ describe("LedgerSettingsTemplate", () => {
         />,
       );
 
+      expect(screen.getAllByRole("button", { name: /^邀请成员/ })).toHaveLength(
+        1,
+      );
       expect(
-        screen.getByRole("button", { name: /添加待邀请成员/ }),
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "奶奶，待邀请" }));
+        screen.queryByRole("button", { name: /添加待邀请成员/ }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "奶奶，未生成链接" }));
 
       expect(screen.queryByText("成员设置")).not.toBeInTheDocument();
       expect(screen.getByLabelText(/修改名字/)).toHaveValue("奶奶");
@@ -277,9 +279,7 @@ describe("LedgerSettingsTemplate", () => {
       expect(
         screen.getByRole("button", { name: "奶奶，待邀请" }),
       ).toBeVisible();
-      expect(
-        screen.queryByRole("button", { name: /添加待邀请成员/ }),
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^邀请成员/ })).toBeDisabled();
     });
   });
 });

@@ -17,7 +17,7 @@ const invite = {
 };
 
 describe("LedgerPlaceholderMemberRow", () => {
-  it("无邀请时显示名字与待邀请", () => {
+  it("未生成链接时显示名字与未生成链接状态", () => {
     render(
       <LedgerPlaceholderMemberRow
         canManage
@@ -26,11 +26,13 @@ describe("LedgerPlaceholderMemberRow", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "奶奶，待邀请" })).toBeVisible();
-    expect(screen.getByText("尚未生成邀请链接")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "奶奶，未生成链接" }),
+    ).toBeVisible();
+    expect(screen.getByText("点开可生成专属邀请链接")).toBeInTheDocument();
   });
 
-  it("有绑定邀请时在同一行显示待接受邀请与角色", () => {
+  it("已生成链接时显示等待加入、角色与创建时间", () => {
     render(
       <LedgerPlaceholderMemberRow
         canManage
@@ -40,9 +42,9 @@ describe("LedgerPlaceholderMemberRow", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "奶奶，待接受邀请" }),
+      screen.getByRole("button", { name: "奶奶，等待加入" }),
     ).toBeVisible();
-    expect(screen.getByText(/只读（Viewer）/)).toBeInTheDocument();
+    expect(screen.getByText(/^只读（Viewer） · /)).toBeInTheDocument();
   });
 
   it("非管理者只看到占位摘要，不显示邀请状态", () => {
@@ -54,8 +56,9 @@ describe("LedgerPlaceholderMemberRow", () => {
       />,
     );
 
+    expect(screen.getByRole("button", { name: "奶奶，待邀请" })).toBeVisible();
     expect(screen.getByText("可作为账户持有人，不计入成员数")).toBeVisible();
-    expect(screen.queryByText("尚未生成邀请链接")).toBeNull();
+    expect(screen.queryByText("未生成链接")).toBeNull();
   });
 
   it("点击时触发回调", () => {
@@ -68,7 +71,7 @@ describe("LedgerPlaceholderMemberRow", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "奶奶，待邀请" }));
+    fireEvent.click(screen.getByRole("button", { name: "奶奶，未生成链接" }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

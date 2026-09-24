@@ -5,7 +5,7 @@ import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 
-/** 邀请链接只读输入框，匿名邀请与绑定邀请共用。 */
+/** 邀请链接只读输入框，「邀请成员」弹框与邀请详情共用。 */
 export function LedgerInviteLinkField({
   link,
   onCopy,

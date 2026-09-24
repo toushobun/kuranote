@@ -29,14 +29,13 @@ const readOnlyAction: LedgerPlaceholderMemberStateAction = async (state) =>
   state;
 
 const successTitles: Record<LedgerPlaceholderMemberActionOperation, string> = {
-  create: placeholderMemberText.createdTitle,
   delete: placeholderMemberText.deletedTitle,
   rename: placeholderMemberText.renamedTitle,
 };
 
 /**
- * 待邀请成员弹框的状态：三个 Server Action 的结果转换为一次性反馈，
- * 创建或删除成功后关闭弹框；删除前通过 useConfirmDialog 二次确认。
+ * 待邀请成员弹框的状态：改名、删除两个 Server Action 的结果转换为一次性反馈，
+ * 删除成功后关闭弹框；删除前通过 useConfirmDialog 二次确认。
  */
 export function useLedgerPlaceholderMemberDialog({
   actions,
@@ -47,10 +46,6 @@ export function useLedgerPlaceholderMemberDialog({
   ledgerId: string;
   onClose: () => void;
 }) {
-  const [createState, createAction, creating] = useActionState(
-    actions?.create ?? readOnlyAction,
-    initialState,
-  );
   const [renameState, renameAction, renaming] = useActionState(
     actions?.rename ?? readOnlyAction,
     initialState,
@@ -70,7 +65,7 @@ export function useLedgerPlaceholderMemberDialog({
   }, [onClose]);
 
   useEffect(() => {
-    for (const state of [createState, renameState, deleteState]) {
+    for (const state of [renameState, deleteState]) {
       const operation = state.operation;
       if (!operation) continue;
 
@@ -90,7 +85,7 @@ export function useLedgerPlaceholderMemberDialog({
         if (operation !== "rename") onCloseRef.current();
       }
     }
-  }, [createState, deleteState, renameState]);
+  }, [deleteState, renameState]);
 
   async function requestDelete(placeholder: LedgerPlaceholderMemberSummary) {
     const confirmed = await confirm({
@@ -111,8 +106,6 @@ export function useLedgerPlaceholderMemberDialog({
 
   return {
     closeFeedback: () => setFeedback(null),
-    createAction,
-    creating,
     deleting,
     feedback,
     renameAction,

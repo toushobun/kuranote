@@ -3,7 +3,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createLedgerPlaceholderMember,
   deleteLedgerPlaceholderMember,
   renameLedgerPlaceholderMember,
 } from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
@@ -14,7 +13,6 @@ const ledgerId = "00000000-0000-4000-8000-000000000032";
 const placeholderId = "00000000-0000-4000-8000-000000000051";
 
 const mocks = vi.hoisted(() => ({
-  create: vi.fn(),
   createDependencies: vi.fn(),
   delete: vi.fn(),
   rename: vi.fn(),
@@ -38,7 +36,6 @@ vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
     ledger: {
       placeholderMemberService: {
-        create: mocks.create,
         delete: mocks.delete,
         rename: mocks.rename,
       },
@@ -62,12 +59,6 @@ function form(values: Record<string, string>) {
 }
 
 const cases = [
-  {
-    action: createLedgerPlaceholderMember,
-    operation: "create",
-    service: mocks.create,
-    values: { displayName: "奶奶", ledgerId },
-  },
   {
     action: renameLedgerPlaceholderMember,
     operation: "rename",

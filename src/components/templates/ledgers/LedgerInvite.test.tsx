@@ -214,14 +214,18 @@ describe("LedgerInviteTemplate", () => {
       placeholderDisplayName: "奶奶",
     };
 
-    it("有效的绑定邀请显示接管说明与实时名字", () => {
+    it("有效的绑定邀请显示以某人身份加入的说明与实时名字", () => {
       render(
         <LedgerInviteTemplate preview={boundPreview} token="invite-token" />,
       );
 
       expect(
-        screen.getByText("这是邀请你加入并接管「奶奶」的历史账户与交易记录。"),
+        screen.getByText(
+          "邀请你以「奶奶」的身份加入账本。加入后，记在「奶奶」名下的账户与记录会归到你名下。",
+        ),
       ).toBeInTheDocument();
+      // 措辞不暗示一定存在历史账户。
+      expect(screen.queryByText(/历史账户/)).not.toBeInTheDocument();
     });
 
     it("改名后按新的实时名字显示", () => {
@@ -232,16 +236,16 @@ describe("LedgerInviteTemplate", () => {
         />,
       );
 
-      expect(screen.getByText(/接管「外婆」/)).toBeInTheDocument();
+      expect(screen.getByText(/以「外婆」的身份加入/)).toBeInTheDocument();
       expect(screen.queryByText(/奶奶/)).not.toBeInTheDocument();
     });
 
-    it("匿名邀请不显示接管说明", () => {
+    it("预览未返回绑定名字时不显示身份说明", () => {
       render(
         <LedgerInviteTemplate preview={validPreview} token="invite-token" />,
       );
 
-      expect(screen.queryByText(/接管/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/的身份加入/)).not.toBeInTheDocument();
     });
 
     it.each(["invalid", "revoked", "accepted", "already_member"] as const)(
@@ -255,7 +259,7 @@ describe("LedgerInviteTemplate", () => {
         );
 
         expect(screen.queryByText(/奶奶/)).not.toBeInTheDocument();
-        expect(screen.queryByText(/接管/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/的身份加入/)).not.toBeInTheDocument();
       },
     );
   });
