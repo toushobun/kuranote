@@ -54,6 +54,8 @@ const accountFieldsSchema = z.object({
     .string()
     .trim()
     .regex(/^[A-Z]{3}$/),
+  /** 与 holderUserIds 互斥；两者都为空表示无持有人。 */
+  holderPlaceholderId: z.string().uuid().nullable().optional(),
   holderUserIds: z.array(z.string().uuid()).max(1),
   name: z.string().trim().min(1),
   type: z.enum(accountTypes),
@@ -67,15 +69,29 @@ export const updateAccountRequestSchema = accountFieldsSchema.extend(
   accountBalanceAdjustmentSchema.shape,
 );
 
-const accountHolderSchema = z.object({
-  display_color: z.enum(themeColorKeys),
+const accountHolderBaseSchema = z.object({
   display_name: z.string(),
-  email: z.string().email().nullable(),
   id: z.string().uuid(),
   role: z.enum(accountHolderRoles),
   share_ratio: moneyValueSchema.nullable(),
-  user_id: z.string().uuid(),
 });
+
+const accountHolderSchema = z.discriminatedUnion("kind", [
+  accountHolderBaseSchema.extend({
+    display_color: z.enum(themeColorKeys),
+    email: z.string().email().nullable(),
+    kind: z.literal("member"),
+    placeholder_id: z.null(),
+    user_id: z.string().uuid(),
+  }),
+  accountHolderBaseSchema.extend({
+    display_color: z.null(),
+    email: z.null(),
+    kind: z.literal("placeholder"),
+    placeholder_id: z.string().uuid(),
+    user_id: z.null(),
+  }),
+]);
 
 const accountSchema = z.object({
   created_at: z.string(),
@@ -102,6 +118,12 @@ export const accountsViewResponseSchema = z.object({
   canWriteTransactions: z.boolean(),
   holderOptions: z.array(holderOptionSchema),
   ledgerName: z.string(),
+  placeholderHolderOptions: z.array(
+    z.object({
+      display_name: z.string(),
+      placeholder_id: z.string().uuid(),
+    }),
+  ),
 });
 
 export const createdAccountResponseSchema = z.object({

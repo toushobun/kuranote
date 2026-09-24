@@ -11,7 +11,10 @@ import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 import { designTokens } from "theme/theme";
 
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption } from "types/accounts";
+import type {
+  AccountHolderOption,
+  AccountPlaceholderHolderOption,
+} from "types/accounts";
 import { getCurrencySymbol } from "utils/currency";
 
 type AccountFormProps = {
@@ -20,6 +23,7 @@ type AccountFormProps = {
   holderOptions: AccountHolderOption[];
   illustrationSlot?: ReactNode;
   onCancel?: () => void;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   submitLabel?: string;
   title?: ReactNode;
 };
@@ -30,6 +34,7 @@ export function AccountForm({
   holderOptions,
   illustrationSlot = null,
   onCancel,
+  placeholderHolderOptions = [],
   submitLabel = "新增账户",
   title = "新增账户",
 }: AccountFormProps) {
@@ -54,6 +59,7 @@ export function AccountForm({
           holderOptions={holderOptions}
           nameId="create-account-name"
           namePlaceholder="例如：钱包现金"
+          placeholderHolderOptions={placeholderHolderOptions}
           renderBalanceField={(selectedCurrency) => (
             <TextField
               defaultValue="0"

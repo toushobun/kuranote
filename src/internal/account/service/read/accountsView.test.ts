@@ -78,6 +78,7 @@ describe("accountsView", () => {
           account_id: accountId,
           id: "00000000-0000-4000-8000-000000000051",
           role: "owner",
+          placeholder_id: null,
           share_ratio: null,
           user_id: userId,
         },
@@ -95,6 +96,7 @@ describe("accountsView", () => {
           user_id: userId,
         },
       ],
+      placeholders: [{ displayName: "奶奶", id: "placeholder-1" }],
       role: "member",
       users: [
         {
@@ -130,6 +132,9 @@ describe("accountsView", () => {
         },
       ],
       ledgerName: "家庭账本",
+      placeholderHolderOptions: [
+        { display_name: "奶奶", placeholder_id: "placeholder-1" },
+      ],
     });
   });
 });

@@ -8,6 +8,7 @@ import {
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
+  type LedgerPlaceholderMemberQueryService,
 } from "internal/ledger";
 
 export interface AccountExportQueryService {
@@ -21,6 +22,7 @@ export interface AccountExportQueryService {
 export function createAccountExportQueryService({
   accountRepository,
   ledgerAccessService,
+  ledgerPlaceholderMemberQueryService,
 }: {
   accountRepository: Pick<
     AccountRepository,
@@ -31,6 +33,7 @@ export function createAccountExportQueryService({
     | "listUsers"
   >;
   ledgerAccessService: LedgerAccessService;
+  ledgerPlaceholderMemberQueryService: LedgerPlaceholderMemberQueryService;
 }): AccountExportQueryService {
   return {
     async findExportSummaries({ accountIds, ledgerId, userId }) {
@@ -40,10 +43,14 @@ export function createAccountExportQueryService({
       });
       const uniqueAccountIds = [...new Set(accountIds)];
       if (uniqueAccountIds.length === 0) return [];
-      const [settings, members] = await Promise.all([
+      const [settings, members, placeholders] = await Promise.all([
         accountRepository.listDisplaySettings(ledgerId),
         accountRepository.listActiveMembers(ledgerId),
+        ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
       ]);
+      const placeholderById = new Map(
+        placeholders.map((placeholder) => [placeholder.id, placeholder]),
+      );
       const displayColorByUserId = buildDisplayColorByUserId({
         members,
         settings,
@@ -57,7 +64,12 @@ export function createAccountExportQueryService({
         ]);
         const users = mergeLedgerDisplayNames(
           await accountRepository.listUsers([
-            ...new Set(holders.map((holder) => holder.user_id)),
+            ...new Set(
+              // 占位持有人没有用户资料，只按真实成员 ID 查询 app_user。
+              holders.flatMap((holder) =>
+                holder.user_id === null ? [] : [holder.user_id],
+              ),
+            ),
           ]),
           settings,
         );
@@ -66,6 +78,7 @@ export function createAccountExportQueryService({
           holders,
           appUserById: new Map(users.map((user) => [user.id, user])),
           displayColorByUserId,
+          placeholderById,
         });
         for (const {
           holders: accountHolders,

@@ -16,6 +16,7 @@ export type AccountFormParseResult<T> =
 
 type AccountFormFields = {
   currency: string;
+  holderPlaceholderId: string | null;
   holderUserIds: string[];
   name: string;
   type: AccountType;
@@ -65,9 +66,25 @@ function parseAccountFields(
     return invalid(accountErrorCodes.holderTooMany);
   }
 
+  // 占位持有人与真实成员持有人互斥，两者都为空表示无持有人。
+  const holderPlaceholderId =
+    getFormText(formData, "holderPlaceholderId") || null;
+  if (holderPlaceholderId !== null && !isUuid(holderPlaceholderId)) {
+    return invalid(accountErrorCodes.holderInvalid);
+  }
+  if (holderPlaceholderId !== null && holderUserIds.length > 0) {
+    return invalid(accountErrorCodes.holderIdentityInvalid);
+  }
+
   return {
     ok: true,
-    value: { currency, holderUserIds, name, type: accountType },
+    value: {
+      currency,
+      holderPlaceholderId,
+      holderUserIds,
+      name,
+      type: accountType,
+    },
   };
 }
 

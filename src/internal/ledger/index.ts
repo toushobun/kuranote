@@ -14,6 +14,16 @@ export {
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 export {
+  getLedgerPlaceholderMemberErrorMessage,
+  ledgerPlaceholderMemberErrorCodes,
+  type LedgerPlaceholderMemberErrorCode,
+} from "internal/ledger/errors/ledgerPlaceholderMember";
+export {
+  ledgerPlaceholderMemberNameMaxLength,
+  type LedgerPlaceholderMemberSummary,
+} from "internal/ledger/entity/ledgerPlaceholderMember";
+export type { LedgerPlaceholderMemberQueryService } from "internal/ledger/service/ledgerPlaceholderMemberService";
+export {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";

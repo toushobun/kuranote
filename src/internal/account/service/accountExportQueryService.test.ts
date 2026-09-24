@@ -8,10 +8,12 @@ function setup() {
     findSummariesByIds: vi.fn().mockResolvedValue([
       { id: "account", name: "已归档账户", currency: "JPY" },
       { id: "none", name: "公共账户", currency: "JPY" },
+      { id: "grandma", name: "奶奶的钱包", currency: "JPY" },
     ]),
-    listHolders: vi
-      .fn()
-      .mockResolvedValue([{ account_id: "account", user_id: "holder" }]),
+    listHolders: vi.fn().mockResolvedValue([
+      { account_id: "account", placeholder_id: null, user_id: "holder" },
+      { account_id: "grandma", placeholder_id: "placeholder", user_id: null },
+    ]),
     listDisplaySettings: vi.fn().mockResolvedValue([
       {
         user_id: "holder",
@@ -25,19 +27,25 @@ function setup() {
       .mockResolvedValue([{ id: "holder", display_name: "原名" }]),
   };
   const ledgerAccessService = createLedgerAccessMock();
+  const ledgerPlaceholderMemberQueryService = {
+    listUnclaimed: vi
+      .fn()
+      .mockResolvedValue([{ displayName: "奶奶", id: "placeholder" }]),
+  };
   return {
     accountRepository,
     ledgerAccessService,
     service: createAccountExportQueryService({
       accountRepository,
       ledgerAccessService,
+      ledgerPlaceholderMemberQueryService,
     }),
   };
 }
 const input = {
   ledgerId: "ledger",
   userId: "viewer",
-  accountIds: ["account", "none"],
+  accountIds: ["account", "none", "grandma"],
 };
 
 describe("accountExportQueryService", () => {
@@ -57,6 +65,15 @@ describe("accountExportQueryService", () => {
       ledgerId: "ledger",
       userId: "viewer",
     });
+  });
+  it("占位持有的账户导出占位名字且不着色，不按占位 ID 查询用户", async () => {
+    const { service, accountRepository } = setup();
+    const result = await service.findExportSummaries(input);
+    expect(result[2]).toMatchObject({
+      name: "奶奶的钱包",
+      holder: { name: "奶奶", displayColor: null },
+    });
+    expect(accountRepository.listUsers).toHaveBeenCalledWith(["holder"]);
   });
   it("没有显示设置时复用 App 的持有人名称及颜色兜底", async () => {
     const { service, accountRepository } = setup();

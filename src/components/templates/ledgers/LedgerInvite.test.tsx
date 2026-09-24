@@ -206,4 +206,57 @@ describe("LedgerInviteTemplate", () => {
       "/",
     );
   });
+
+  describe("绑定占位邀请", () => {
+    const boundPreview = {
+      ...validPreview,
+      isPlaceholderBound: true,
+      placeholderDisplayName: "奶奶",
+    };
+
+    it("有效的绑定邀请显示接管说明与实时名字", () => {
+      render(
+        <LedgerInviteTemplate preview={boundPreview} token="invite-token" />,
+      );
+
+      expect(
+        screen.getByText("这是邀请你加入并接管「奶奶」的历史账户与交易记录。"),
+      ).toBeInTheDocument();
+    });
+
+    it("改名后按新的实时名字显示", () => {
+      render(
+        <LedgerInviteTemplate
+          preview={{ ...boundPreview, placeholderDisplayName: "外婆" }}
+          token="invite-token"
+        />,
+      );
+
+      expect(screen.getByText(/接管「外婆」/)).toBeInTheDocument();
+      expect(screen.queryByText(/奶奶/)).not.toBeInTheDocument();
+    });
+
+    it("匿名邀请不显示接管说明", () => {
+      render(
+        <LedgerInviteTemplate preview={validPreview} token="invite-token" />,
+      );
+
+      expect(screen.queryByText(/接管/)).not.toBeInTheDocument();
+    });
+
+    it.each(["invalid", "revoked", "accepted", "already_member"] as const)(
+      "%s 状态的绑定邀请不显示占位名字",
+      (status) => {
+        render(
+          <LedgerInviteTemplate
+            preview={{ ...boundPreview, status }}
+            token="invite-token"
+          />,
+        );
+
+        expect(screen.queryByText(/奶奶/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/接管/)).not.toBeInTheDocument();
+      },
+    );
+  });
 });

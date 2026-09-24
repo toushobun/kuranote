@@ -42,6 +42,7 @@ export function createAccountImportService(
     async createAccount({ currency, holderUserId, ledgerId, name, userId }) {
       return service.create({
         currency,
+        holderPlaceholderId: null,
         holderUserIds: holderUserId ? [holderUserId] : [],
         initialBalance: 0,
         ledgerId,
@@ -60,13 +61,21 @@ export function createAccountImportService(
       });
 
       return {
-        accounts: view.accounts.map((account) => ({
-          isArchived: account.is_archived,
-          currency: account.currency,
-          holderUserId: account.holders[0]?.user_id ?? null,
-          id: account.id,
-          name: account.name,
-        })),
+        // 占位持有的账户不能映射成 holderUserId: null，否则会被当成「无持有人」
+        // 账户误复用；完整的持有人联合映射在导入映射阶段（#804）实现，这里先排除。
+        accounts: view.accounts.flatMap((account) => {
+          const holder = account.holders[0];
+          if (holder?.kind === "placeholder") return [];
+          return [
+            {
+              isArchived: account.is_archived,
+              currency: account.currency,
+              holderUserId: holder?.user_id ?? null,
+              id: account.id,
+              name: account.name,
+            },
+          ];
+        }),
         holders: view.holderOptions.map((holder) => ({
           displayName: holder.display_name,
           email: holder.email,

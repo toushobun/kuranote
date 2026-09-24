@@ -7,7 +7,11 @@ import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
 import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
-import { accountTypeOptions, type AccountHolderOption } from "types/accounts";
+import {
+  accountTypeOptions,
+  type AccountHolderOption,
+  type AccountPlaceholderHolderOption,
+} from "types/accounts";
 import { ledgerCurrencyOptions } from "types/ledgers";
 
 type AccountFieldsProps = {
@@ -18,8 +22,10 @@ type AccountFieldsProps = {
   holderOptions: AccountHolderOption[];
   nameId: string;
   namePlaceholder?: string;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   preservedHolderOptions?: AccountHolderOption[];
   renderBalanceField: (selectedCurrency: string) => ReactNode;
+  selectedHolderPlaceholderId?: string | null;
   selectedHolderUserIds?: string[];
   typePlaceholder?: string;
 };
@@ -32,8 +38,10 @@ export function AccountFields({
   holderOptions,
   nameId,
   namePlaceholder,
+  placeholderHolderOptions = [],
   preservedHolderOptions = [],
   renderBalanceField,
+  selectedHolderPlaceholderId = null,
   selectedHolderUserIds = [],
   typePlaceholder,
 }: AccountFieldsProps) {
@@ -137,7 +145,9 @@ export function AccountFields({
 
       <AccountHolderCheckboxGroup
         holderOptions={holderOptions}
+        placeholderOptions={placeholderHolderOptions}
         preservedHolderOptions={preservedHolderOptions}
+        selectedPlaceholderId={selectedHolderPlaceholderId}
         selectedUserIds={selectedHolderUserIds}
       />
     </>

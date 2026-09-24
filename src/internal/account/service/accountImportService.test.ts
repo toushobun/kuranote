@@ -10,7 +10,7 @@ function createService(overrides: Partial<AccountService> = {}) {
       {
         is_archived: false,
         currency: "JPY",
-        holders: [{ user_id: "user-1" }],
+        holders: [{ kind: "member", user_id: "user-1" }],
         id: "account-1",
         name: "钱包",
       },
@@ -53,6 +53,7 @@ describe("AccountImportService", () => {
 
     expect(create).toHaveBeenCalledWith({
       currency: "JPY",
+      holderPlaceholderId: null,
       holderUserIds: ["user-1"],
       initialBalance: 0,
       ledgerId: "ledger-1",
@@ -108,5 +109,53 @@ describe("AccountImportService", () => {
         { displayName: "淞文", email: "a@example.com", userId: "user-1" },
       ],
     });
+  });
+
+  it("占位持有的账户不会被当成无持有人账户参与导入复用", async () => {
+    const getView = vi.fn(async () => ({
+      accounts: [
+        {
+          is_archived: false,
+          currency: "JPY",
+          holders: [
+            {
+              kind: "placeholder",
+              placeholder_id: "placeholder-1",
+              user_id: null,
+            },
+          ],
+          id: "account-placeholder",
+          name: "钱包",
+        },
+        {
+          is_archived: false,
+          currency: "JPY",
+          holders: [],
+          id: "account-none",
+          name: "钱包",
+        },
+      ],
+      holderOptions: [],
+    })) as unknown as AccountService["getView"];
+    const { importService } = createService({ getView });
+
+    const context = await importService.loadContext({
+      ledgerId: "ledger-1",
+      userId: "user-1",
+    });
+
+    // 同名同币种时，只有真正无持有人的账户可以作为「无持有人」候选。
+    expect(context.accounts).toEqual([
+      {
+        isArchived: false,
+        currency: "JPY",
+        holderUserId: null,
+        id: "account-none",
+        name: "钱包",
+      },
+    ]);
+    expect(
+      context.accounts.some((account) => account.id === "account-placeholder"),
+    ).toBe(false);
   });
 });

@@ -30,6 +30,16 @@ describe("getAccountErrorMessage", () => {
     }
   });
 
+  it.each([
+    accountErrorCodes.holderChanged,
+    accountErrorCodes.holderIdentityInvalid,
+    accountErrorCodes.placeholderAlreadyClaimed,
+    accountErrorCodes.placeholderNotFound,
+    accountErrorCodes.placeholderUnavailable,
+  ])("占位持有人错误码 %s 提供表单场景文案", (code) => {
+    expect(getAccountErrorMessage(code)).toEqual(expect.any(String));
+  });
+
   it("未知错误码不返回文案", () => {
     expect(getAccountErrorMessage()).toBeNull();
     expect(getAccountErrorMessage("unknown")).toBeNull();

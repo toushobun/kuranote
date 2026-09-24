@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { placeholderMemberText } from "config/placeholderMemberText";
 import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
 
@@ -81,25 +82,21 @@ export function AccountCard({
               sx={{ alignItems: "center", flexWrap: "wrap" }}
             >
               {holders.length > 0 ? (
-                holders.map((holder) => {
-                  const colorToken = themeColorTokens[holder.display_color];
-
-                  return (
-                    <Chip
-                      key={holder.id}
-                      label={getAccountHolderLabel(holder)}
-                      size="small"
-                      sx={{
-                        bgcolor: colorToken.chipBackground,
-                        borderColor: colorToken.chipBorder,
-                        color: colorToken.chipText,
-                        fontWeight: 600,
-                        height: 24,
-                      }}
-                      variant="outlined"
-                    />
-                  );
-                })
+                holders.map((holder) => (
+                  <Chip
+                    key={holder.id}
+                    label={
+                      holder.kind === "placeholder"
+                        ? placeholderMemberText.accountHolderOptionLabel(
+                            holder.display_name,
+                          )
+                        : getAccountHolderLabel(holder)
+                    }
+                    size="small"
+                    sx={holderChipSx(holder)}
+                    variant="outlined"
+                  />
+                ))
               ) : (
                 <Typography color="text.secondary" variant="body2">
                   未设置持有人
@@ -192,3 +189,26 @@ const cardButtonSx = {
   textAlign: "left",
   width: "100%",
 };
+
+/** 占位持有人没有成员个性色，使用中性虚线样式与真实成员区分。 */
+function holderChipSx(holder: AccountHolder) {
+  if (holder.kind === "placeholder") {
+    return {
+      bgcolor: "background.paper",
+      borderColor: "divider",
+      borderStyle: "dashed",
+      color: "text.secondary",
+      fontWeight: 600,
+      height: 24,
+    } as const;
+  }
+
+  const colorToken = themeColorTokens[holder.display_color];
+  return {
+    bgcolor: colorToken.chipBackground,
+    borderColor: colorToken.chipBorder,
+    color: colorToken.chipText,
+    fontWeight: 600,
+    height: 24,
+  } as const;
+}

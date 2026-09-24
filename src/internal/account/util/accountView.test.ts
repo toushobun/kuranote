@@ -6,6 +6,8 @@ import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
   buildHolderOptions,
+  buildPlaceholderHolderOptions,
+  unknownPlaceholderHolderName,
 } from "internal/account/util/accountView";
 import type {
   AccountData,
@@ -59,6 +61,7 @@ function createHolder({
     account_id: accountId,
     id: holderId,
     role: "owner",
+    placeholder_id: null,
     share_ratio: null,
     user_id: userId,
   };
@@ -99,6 +102,7 @@ describe("Account view builders", () => {
           userId: "user-missing",
         }),
       ],
+      placeholderById: new Map(),
     });
 
     expect(accounts[0].holders).toEqual([
@@ -107,6 +111,75 @@ describe("Account view builders", () => {
         display_name: "家庭账本淞文",
         user_id: "user-a",
       }),
+    ]);
+  });
+
+  it("占位持有人显示占位名字，不查询用户资料也不计为无持有人", () => {
+    const placeholderId = "placeholder-a";
+    const accounts = buildAccountsWithHolders({
+      accounts: [createAccount("account-a"), createAccount("account-b")],
+      // 即使 appUserById 恰好有同 ID 的用户，也不能拿占位 ID 去匹配。
+      appUserById: new Map([
+        [
+          placeholderId,
+          createAppUser({ displayName: "伪装用户", userId: placeholderId }),
+        ],
+      ]),
+      displayColorByUserId: new Map([[placeholderId, "sky"]]),
+      holders: [
+        {
+          account_id: "account-a",
+          id: "holder-a",
+          placeholder_id: placeholderId,
+          role: "owner",
+          share_ratio: null,
+          user_id: null,
+        },
+        {
+          account_id: "account-b",
+          id: "holder-b",
+          placeholder_id: "placeholder-missing",
+          role: "owner",
+          share_ratio: null,
+          user_id: null,
+        },
+      ],
+      placeholderById: new Map([
+        [placeholderId, { displayName: "奶奶", id: placeholderId }],
+      ]),
+    });
+
+    expect(accounts[0].holders).toEqual([
+      {
+        display_color: null,
+        display_name: "奶奶",
+        email: null,
+        id: "holder-a",
+        kind: "placeholder",
+        placeholder_id: placeholderId,
+        role: "owner",
+        share_ratio: null,
+        user_id: null,
+      },
+    ]);
+    // 读取竞态导致摘要缺失时仍按占位展示，而不是无持有人。
+    expect(accounts[1].holders).toEqual([
+      expect.objectContaining({
+        display_name: unknownPlaceholderHolderName,
+        kind: "placeholder",
+      }),
+    ]);
+  });
+
+  it("占位候选与成员候选分开并按名字排序", () => {
+    expect(
+      buildPlaceholderHolderOptions([
+        { displayName: "爷爷", id: "p-2" },
+        { displayName: "奶奶", id: "p-1" },
+      ]),
+    ).toEqual([
+      { display_name: "奶奶", placeholder_id: "p-1" },
+      { display_name: "爷爷", placeholder_id: "p-2" },
     ]);
   });
 

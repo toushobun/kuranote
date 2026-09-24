@@ -72,6 +72,7 @@ const view: LedgerSettingsView = {
     },
   ],
   pendingInvites: [],
+  placeholderMembers: [],
 };
 
 describe("LedgerSettingsTemplate", () => {
@@ -230,5 +231,55 @@ describe("LedgerSettingsTemplate", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     expect(routerReplaceMock).not.toHaveBeenCalled();
+  });
+
+  describe("待邀请成员", () => {
+    const placeholderMembers = [{ displayName: "奶奶", id: "placeholder-1" }];
+    const placeholderMemberActions = {
+      create: vi.fn(async () => ({})),
+      delete: vi.fn(async () => ({})),
+      rename: vi.fn(async () => ({})),
+    };
+
+    it("管理者在成员区块看到待邀请成员与添加入口，且占位不打开成员设置", () => {
+      renderWithUserTheme(
+        <LedgerSettingsTemplate
+          {...view}
+          errorMessage={null}
+          inviteAction={inviteAction}
+          placeholderMemberActions={placeholderMemberActions}
+          placeholderMembers={placeholderMembers}
+          updateLedgerSettingsAction={vi.fn(async () => {})}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", { name: /添加待邀请成员/ }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "奶奶，待邀请" }));
+
+      expect(screen.queryByText("成员设置")).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/修改名字/)).toHaveValue("奶奶");
+    });
+
+    it("普通成员只读看到占位摘要", () => {
+      renderWithUserTheme(
+        <LedgerSettingsTemplate
+          {...view}
+          canEditLedger={false}
+          errorMessage={null}
+          inviteAction={inviteAction}
+          placeholderMembers={placeholderMembers}
+          updateLedgerSettingsAction={vi.fn(async () => {})}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", { name: "奶奶，待邀请" }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("button", { name: /添加待邀请成员/ }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

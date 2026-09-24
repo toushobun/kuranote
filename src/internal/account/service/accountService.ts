@@ -20,6 +20,7 @@ import { buildTransactionAccountContext } from "internal/account/service/read/tr
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
+  type LedgerPlaceholderMemberQueryService,
 } from "internal/ledger";
 import {
   AuthorizationError,
@@ -88,6 +89,8 @@ export interface AccountService extends AccountQueryService {
 export type AccountServiceDependencies = {
   accountRepository: AccountRepository;
   ledgerAccessService: LedgerAccessService;
+  /** 经 ledger 根入口的窄接口读取未认领占位，不直接访问占位表。 */
+  ledgerPlaceholderMemberQueryService: LedgerPlaceholderMemberQueryService;
   now?: () => Date;
 };
 
@@ -156,6 +159,7 @@ function normalizeInitialBalance(initialBalance: number): number {
 export function createAccountService({
   accountRepository,
   ledgerAccessService,
+  ledgerPlaceholderMemberQueryService,
   now = () => new Date(),
 }: AccountServiceDependencies): AccountService {
   async function requireActiveMemberRole(
@@ -214,6 +218,55 @@ export function createAccountService({
     return normalized;
   }
 
+  /**
+   * 三态持有人预检：真实成员与占位互斥；占位必须属于该账本且未认领。
+   * 预检只改善反馈，RPC 持锁后仍会重新判断。
+   */
+  async function requireValidHolder(
+    input: {
+      holderPlaceholderId: string | null;
+      holderUserIds: string[];
+      ledgerId: string;
+      userId: string;
+    },
+    members: AccountLedgerMember[],
+  ): Promise<{ holderPlaceholderId: string | null; holderUserIds: string[] }> {
+    const holderUserIds = await requireValidHolders(
+      input.holderUserIds,
+      members,
+    );
+    const holderPlaceholderId =
+      input.holderPlaceholderId?.trim().toLowerCase() || null;
+
+    if (!holderPlaceholderId) {
+      return { holderPlaceholderId: null, holderUserIds };
+    }
+    if (holderUserIds.length > 0) {
+      throw new ValidationError(
+        accountErrorCodes.holderIdentityInvalid,
+        accountErrorMessage(accountErrorCodes.holderIdentityInvalid),
+      );
+    }
+
+    const placeholders =
+      await ledgerPlaceholderMemberQueryService.listUnclaimed({
+        ledgerId: input.ledgerId,
+        userId: input.userId,
+      });
+    if (
+      !placeholders.some(
+        (placeholder) => placeholder.id.toLowerCase() === holderPlaceholderId,
+      )
+    ) {
+      throw new ConflictError(
+        accountErrorCodes.placeholderUnavailable,
+        accountErrorMessage(accountErrorCodes.placeholderUnavailable),
+      );
+    }
+
+    return { holderPlaceholderId, holderUserIds: [] };
+  }
+
   return {
     async archive({ accountId, ledgerId, userId }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
@@ -248,7 +301,7 @@ export function createAccountService({
 
       const accountId = await accountRepository.create({
         currency: normalizeCurrency(input.currency),
-        holderUserIds: await requireValidHolders(input.holderUserIds, members),
+        ...(await requireValidHolder(input, members)),
         initialBalance: normalizeInitialBalance(input.initialBalance),
         ledgerId: input.ledgerId,
         name: normalizeName(input.name),
@@ -291,12 +344,17 @@ export function createAccountService({
 
     async getView({ ledgerId, userId, includeArchived }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
-      const [ledger, members, accounts, displaySettings] = await Promise.all([
-        accountRepository.findActiveLedger(ledgerId),
-        accountRepository.listActiveMembers(ledgerId),
-        accountRepository.listAccounts(ledgerId, includeArchived),
-        accountRepository.listDisplaySettings(ledgerId),
-      ]);
+      const [ledger, members, accounts, displaySettings, placeholders] =
+        await Promise.all([
+          accountRepository.findActiveLedger(ledgerId),
+          accountRepository.listActiveMembers(ledgerId),
+          accountRepository.listAccounts(ledgerId, includeArchived),
+          accountRepository.listDisplaySettings(ledgerId),
+          ledgerPlaceholderMemberQueryService.listUnclaimed({
+            ledgerId,
+            userId,
+          }),
+        ]);
 
       if (!ledger) {
         throw new NotFoundError(
@@ -312,7 +370,10 @@ export function createAccountService({
       const userIds = [
         ...new Set([
           ...members.map((member) => member.user_id),
-          ...holders.map((holder) => holder.user_id),
+          // 占位 ID 永远不是 userId，不能拿来查询 app_user。
+          ...holders.flatMap((holder) =>
+            holder.user_id === null ? [] : [holder.user_id],
+          ),
         ]),
       ];
       const users = await accountRepository.listUsers(userIds);
@@ -323,6 +384,7 @@ export function createAccountService({
         holders,
         ledger,
         members,
+        placeholders,
         role,
         users,
       });
@@ -354,7 +416,7 @@ export function createAccountService({
         ...adjustment.data,
         accountId: input.accountId,
         currency: normalizeCurrency(input.currency),
-        holderUserIds: await requireValidHolders(input.holderUserIds, members),
+        ...(await requireValidHolder(input, members)),
         ledgerId: input.ledgerId,
         name: normalizeName(input.name),
         type: normalizeType(input.type),

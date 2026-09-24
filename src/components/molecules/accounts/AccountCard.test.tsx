@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { designTokens, theme } from "theme/theme";
 
+import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
+
 import { AccountCard } from "./AccountCard";
 
 afterEach(() => {
@@ -70,6 +72,8 @@ describe("AccountCard", () => {
           {
             id: "holder-1",
             user_id: "user-1",
+            kind: "member" as const,
+            placeholder_id: null,
             display_name: "张三",
             email: "zhangsan@example.com",
             display_color: "sky",
@@ -81,6 +85,18 @@ describe("AccountCard", () => {
     );
 
     expect(within(container).getByText(/张三/)).toBeInTheDocument();
+  });
+
+  it("占位持有人显示名字与待邀请标记，不显示为未设置持有人", () => {
+    const { container } = render(
+      <AccountCard
+        {...baseProps}
+        holders={[createPlaceholderAccountHolder()]}
+      />,
+    );
+
+    expect(within(container).getByText("奶奶（待邀请）")).toBeInTheDocument();
+    expect(within(container).queryByText("未设置持有人")).toBeNull();
   });
 
   it("渲染自定义 actions 插槽", () => {

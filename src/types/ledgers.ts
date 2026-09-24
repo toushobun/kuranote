@@ -1,4 +1,7 @@
-import type { CurrentLedgerRole } from "internal/ledger";
+import type {
+  CurrentLedgerRole,
+  LedgerPlaceholderMemberSummary,
+} from "internal/ledger";
 import type { LedgerCurrency } from "internal/ledger";
 import {
   isLedgerInviteRole,
@@ -59,9 +62,13 @@ export type LedgerSettingsMember = {
 export type PendingLedgerInvite = {
   createdAt: string;
   id: string;
+  /** 绑定占位时为占位 ID；匿名邀请为 null。合并展示只以此为准，不看显示名。 */
+  placeholderId: string | null;
   role: LedgerInviteRole;
   token: string | null;
 };
+
+export type { LedgerPlaceholderMemberSummary };
 
 export { isLedgerInviteRole, ledgerInviteRoles, type LedgerInviteRole };
 
@@ -101,6 +108,28 @@ export type LedgerInviteStateAction = (
   formData: FormData,
 ) => Promise<LedgerInviteActionState>;
 
+export type LedgerPlaceholderMemberActionOperation =
+  | "create"
+  | "delete"
+  | "rename";
+
+export type LedgerPlaceholderMemberActionState = BaseActionState & {
+  errorKey?: string;
+  operation?: LedgerPlaceholderMemberActionOperation;
+  /** 每次成功生成新值，用于区分连续的成功反馈。 */
+  successKey?: string;
+};
+
+export type LedgerPlaceholderMemberStateAction = (
+  previousState: LedgerPlaceholderMemberActionState,
+  formData: FormData,
+) => Promise<LedgerPlaceholderMemberActionState>;
+
+export type LedgerPlaceholderMemberActions = Record<
+  LedgerPlaceholderMemberActionOperation,
+  LedgerPlaceholderMemberStateAction
+>;
+
 export type LedgerSettingsActionState = BaseActionState & {
   errorKey?: string;
 };
@@ -127,4 +156,5 @@ export type LedgerSettingsView = {
   };
   members: LedgerSettingsMember[];
   pendingInvites: PendingLedgerInvite[];
+  placeholderMembers: LedgerPlaceholderMemberSummary[];
 };

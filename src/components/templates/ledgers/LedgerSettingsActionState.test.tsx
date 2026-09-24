@@ -60,6 +60,7 @@ const view: LedgerSettingsView = {
     },
   ],
   pendingInvites: [],
+  placeholderMembers: [],
 };
 
 function renderWithUserTheme(children: ReactNode) {

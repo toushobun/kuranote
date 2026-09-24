@@ -35,8 +35,10 @@ export const createAccountHandler = async (
 ) => {
   const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
+  const json = c.req.valid("json");
   const result = await c.get("container").account.service.create({
-    ...c.req.valid("json"),
+    ...json,
+    holderPlaceholderId: json.holderPlaceholderId ?? null,
     ledgerId,
     userId,
   });
@@ -52,9 +54,11 @@ export const updateAccountHandler = async (
 ) => {
   const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { accountId, ledgerId } = c.req.valid("param");
+  const json = c.req.valid("json");
   await c.get("container").account.service.update({
-    ...c.req.valid("json"),
+    ...json,
     accountId,
+    holderPlaceholderId: json.holderPlaceholderId ?? null,
     ledgerId,
     userId,
   });

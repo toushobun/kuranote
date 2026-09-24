@@ -102,6 +102,40 @@ describe("createLedgerInvite 占位绑定", () => {
     });
   });
 
+  it("绑定邀请成功后 fragment 带上 placeholderId 供页面反馈", async () => {
+    mocks.createService.mockResolvedValueOnce({
+      inviteId: "invite-id",
+      placeholderId,
+      role: "member",
+      token: validToken,
+    });
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("role", "member");
+    formData.set("placeholderId", placeholderId);
+
+    await expect(runAction(formData)).rejects.toThrow(
+      `NEXT_REDIRECT:/ledgers/ledger-id/settings#inviteId=invite-id&inviteRole=member&inviteToken=${validToken}&placeholderId=${placeholderId}`,
+    );
+  });
+
+  it("匿名邀请的 fragment 不包含 placeholderId", async () => {
+    mocks.createService.mockResolvedValueOnce({
+      inviteId: "invite-id",
+      placeholderId: null,
+      role: "member",
+      token: validToken,
+    });
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+
+    const failure = await runAction(formData).catch(
+      (error: unknown) => error as Error,
+    );
+
+    expect(String((failure as Error).message)).not.toContain("placeholderId");
+  });
+
   it("placeholderId 为空字符串时按匿名邀请处理", async () => {
     mocks.createService.mockResolvedValueOnce({
       inviteId: "invite-id",

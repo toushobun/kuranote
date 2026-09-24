@@ -30,6 +30,7 @@ describe("Account form parser", () => {
       ok: true,
       value: {
         currency: "JPY",
+        holderPlaceholderId: null,
         holderUserIds: [holderUserId],
         initialBalance: 1000.25,
         name: "现金",
@@ -94,6 +95,45 @@ describe("Account form parser", () => {
     expect(parseCreateAccountForm(tooManyHolders)).toEqual({
       error: accountErrorCodes.holderTooMany,
       ok: false,
+    });
+  });
+
+  describe("占位持有人", () => {
+    const placeholderId = "00000000-0000-4000-8000-000000000061";
+
+    it("解析 holderPlaceholderId，且不产生用户持有人", () => {
+      const formData = createFormData();
+      formData.delete("holderUserIds");
+      formData.set("holderPlaceholderId", ` ${placeholderId} `);
+
+      expect(parseUpdateAccountForm(formData)).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          holderPlaceholderId: placeholderId,
+          holderUserIds: [],
+        }),
+      });
+    });
+
+    it("与 holderUserIds 同时提交时拒绝", () => {
+      const formData = createFormData();
+      formData.set("holderPlaceholderId", placeholderId);
+
+      expect(parseCreateAccountForm(formData)).toEqual({
+        error: accountErrorCodes.holderIdentityInvalid,
+        ok: false,
+      });
+    });
+
+    it("非法占位 ID 时拒绝", () => {
+      const formData = createFormData();
+      formData.delete("holderUserIds");
+      formData.set("holderPlaceholderId", "not-a-uuid");
+
+      expect(parseCreateAccountForm(formData)).toEqual({
+        error: accountErrorCodes.holderInvalid,
+        ok: false,
+      });
     });
   });
 

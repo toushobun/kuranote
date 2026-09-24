@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
+
 import { AccountCard } from "./AccountCard";
 
 const meta: Meta<typeof AccountCard> = {
@@ -21,6 +23,8 @@ export const BankAccount: Story = {
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -42,6 +46,8 @@ export const SharedCashAccount: Story = {
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -51,6 +57,8 @@ export const SharedCashAccount: Story = {
       {
         id: "holder-2",
         user_id: "user-2",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户2",
         email: "local2@example.test",
         display_color: "sakura",
@@ -83,6 +91,8 @@ export const CreditCard: Story = {
       {
         id: "holder-3",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -104,6 +114,8 @@ export const EMoney: Story = {
       {
         id: "holder-4",
         user_id: "user-2",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户2",
         email: "local2@example.test",
         display_color: "sakura",
@@ -125,6 +137,8 @@ export const OtherType: Story = {
       {
         id: "holder-5",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -146,6 +160,8 @@ export const ForeignCurrency: Story = {
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -167,6 +183,8 @@ export const NegativeBalance: Story = {
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -188,6 +206,8 @@ export const Clickable: Story = {
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -196,5 +216,16 @@ export const Clickable: Story = {
       },
     ],
     onClick: () => {},
+  },
+};
+
+export const PlaceholderHolderAccount: Story = {
+  name: "待邀请成员持有的账户",
+  args: {
+    name: "奶奶的钱包",
+    type: "cash",
+    currency: "JPY",
+    currentBalance: 12000,
+    holders: [createPlaceholderAccountHolder()],
   },
 };

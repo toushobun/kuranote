@@ -16,6 +16,7 @@ describe("transactionContext", () => {
           account_id: accountId,
           id: "00000000-0000-4000-8000-000000000051",
           role: "owner",
+          placeholder_id: null,
           share_ratio: null,
           user_id: userId,
         },
@@ -53,6 +54,7 @@ describe("transactionContext", () => {
           account_id: accountId,
           id: "00000000-0000-4000-8000-000000000051",
           role: "co_owner",
+          placeholder_id: null,
           share_ratio: null,
           user_id: userId,
         },
@@ -60,6 +62,7 @@ describe("transactionContext", () => {
           account_id: accountId,
           id: "00000000-0000-4000-8000-000000000052",
           role: "co_owner",
+          placeholder_id: null,
           share_ratio: null,
           user_id: secondUserId,
         },
@@ -90,5 +93,33 @@ describe("transactionContext", () => {
 
     expect(context.accountColorById).toEqual(new Map());
     expect(context.showRecorder).toBe(true);
+  });
+
+  it("占位持有的账户不取任何成员颜色", () => {
+    const placeholderId = "00000000-0000-4000-8000-000000000061";
+    const context = buildTransactionAccountContext({
+      accounts: [{ currency: "JPY", id: accountId, name: "奶奶的钱包" }],
+      holders: [
+        {
+          account_id: accountId,
+          id: "00000000-0000-4000-8000-000000000051",
+          placeholder_id: placeholderId,
+          role: "owner",
+          share_ratio: null,
+          user_id: null,
+        },
+      ],
+      members: [
+        {
+          created_at: "2026-07-01T00:00:00.000Z",
+          joined_at: null,
+          role: "owner",
+          user_id: userId,
+        },
+      ],
+      settings: [{ display_color: "sky", display_name: null, user_id: userId }],
+    });
+
+    expect(context.accountColorById).toEqual(new Map());
   });
 });
