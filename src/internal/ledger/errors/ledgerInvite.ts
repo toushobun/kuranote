@@ -25,14 +25,22 @@ export const ledgerInviteErrorCodes = {
 export type LedgerInviteErrorCode =
   (typeof ledgerInviteErrorCodes)[keyof typeof ledgerInviteErrorCodes];
 
+/**
+ * 「邀请成员」第 2 步（生成链接）失败时的部分成功文案，唯一定义。
+ * 带名字时让用户知道这一行已经在列表中，可以直接重新生成链接。
+ */
+export function getInviteMemberLinkFailedMessage(displayName?: string): string {
+  const target = displayName ? `「${displayName}」` : "待邀请成员";
+  return `已添加${target}，但邀请链接生成失败，请在列表中重新生成。`;
+}
+
 const messages: Record<LedgerInviteErrorCode, string> = {
   accept_failed: "加入账本失败，请稍后重试。",
   auth_required: "请先登录后再继续。",
   create_failed: "邀请链接生成失败，请稍后重试。",
   invite_already_revoked: "该邀请已经撤销。",
   invite_invalid: "该邀请链接无效或已失效。",
-  invite_member_link_failed:
-    "已添加待邀请成员，但邀请链接生成失败，请在列表中重新生成。",
+  invite_member_link_failed: getInviteMemberLinkFailedMessage(),
   invite_member_name_conflict:
     "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
   invite_role_invalid: "请选择有效的邀请权限。",
@@ -57,12 +65,4 @@ export function getLedgerInviteErrorMessage(code?: string) {
   return code && code in messages
     ? messages[code as LedgerInviteErrorCode]
     : null;
-}
-
-/**
- * 「邀请成员」第 2 步（生成链接）失败时的部分成功文案：带上已添加的名字，
- * 让用户知道这一行已经在列表中，可以直接重新生成链接。
- */
-export function getInviteMemberLinkFailedMessage(displayName: string): string {
-  return `已添加「${displayName}」，但邀请链接生成失败，请在列表中重新生成。`;
 }

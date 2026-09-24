@@ -6,7 +6,6 @@ export const placeholderMemberText = {
   statusNoLink: "未生成链接",
   nameLabel: "名字",
   namePlaceholder: "例如：奶奶",
-  cancel: "取消",
   close: "关闭",
   detailDialogTitle: "待邀请成员",
   renameLabel: "修改名字",
@@ -23,9 +22,6 @@ export const placeholderMemberText = {
   draftTitle: (name: string) => `邀请「${name}」加入`,
   generateInviteDescription:
     "生成后把链接发给 TA。TA 通过链接加入账本后，记在该名字下的账户与记录会归到 TA 名下。",
-  inviteRoleLabel: "加入后的权限",
-  revokeInvite: "撤销邀请",
-  copyLink: "复制链接",
   deleteAction: "删除待邀请成员",
   deleteConfirmTitle: "删除待邀请成员？",
   deleteConfirmDescription: (name: string) =>
