@@ -2,9 +2,10 @@ begin;
 set local search_path = public, extensions;
 select no_plan();
 
--- Issue #802：绑定占位邀请、原子认领与匿名邀请回归。
+-- Issue #802：绑定占位邀请、原子认领。
+-- Issue #809：不再支持新建匿名邀请，匿名接受分支只剩历史数据能走到。
 -- 用户：01 owner、02 admin、03 member 认领者、04 viewer 认领者、05 active 成员、06 invited 成员、
--- 07 removed 成员、08 已停用用户、09 旁观用户、10 匿名邀请加入者、11 名称冲突的 removed 成员、
+-- 07 removed 成员、08 已停用用户、09 旁观用户、10 普通邀请加入者、11 名称冲突的 removed 成员、
 -- 12 认领后被移除者、13 触发器窄分支测试用户、14 全量迁移认领者。
 create function pg_temp.uid(p_n integer) returns uuid language sql immutable as $$
     select ('80200000-0000-4000-8000-' || lpad(p_n::text, 12, '0'))::uuid;
@@ -125,7 +126,7 @@ select pg_temp.act(1);
 set local role authenticated;
 select public.create_ledger_placeholder_member(pg_temp.lid(1), n)
 from unnest(array['绑定占位', '已有成员占位', 'member 认领', 'viewer 认领', '全量迁移', '移除后重放',
-                  '名称冲突', '停用用户', '窄分支', '预览占位', '他账本']) n;
+                  '名称冲突', '停用用户', '窄分支', '预览占位', '他账本', '普通加入', '普通加入二', '普通撤销']) n;
 select public.create_ledger_placeholder_member(pg_temp.lid(2), '其他账本占位');
 select public.create_ledger_placeholder_member(pg_temp.lid(3), '归档账本占位');
 select public.create_account_with_holders(pg_temp.lid(1), '已有成员账户', 'bank', 'JPY', 0, '{}', pg_temp.placeholder('已有成员占位'));
@@ -140,7 +141,8 @@ select public.create_account_with_holders(pg_temp.lid(1), 'Issue802 冲突', 'ba
 select public.create_account_with_holders(pg_temp.lid(1), 'issue802 冲突', 'bank', 'JPY', 0, array[pg_temp.uid(11)]);
 select public.create_account_with_holders(pg_temp.lid(1), '停用账户', 'bank', 'JPY', 0, '{}', pg_temp.placeholder('停用用户'));
 select public.create_account_with_holders(pg_temp.lid(1), '窄分支账户', 'bank', 'JPY', 0, '{}', pg_temp.placeholder('窄分支'));
-select pg_temp.invite('archived-anon-before', pg_temp.lid(3), 'member');
+select pg_temp.invite('archived-before', pg_temp.lid(3), 'member',
+    (select id from public.ledger_placeholder_member where display_name = '归档账本占位'));
 reset role;
 set constraints public.account_active_name_unique immediate;
 set constraints public.account_active_name_unique deferred;
@@ -149,41 +151,92 @@ update public.ledger_member set status = 'removed', removed_at = now(), joined_a
 where ledger_id = pg_temp.lid(1) and user_id = pg_temp.uid(11);
 update public.ledger set is_archived = true, archived_at = now() where id = pg_temp.lid(3);
 
-select diag('匿名邀请行为不回归');
+select diag('邀请必须绑定待邀请成员（#809）');
 set local role authenticated;
-select is((select placeholder_id::text || invite_role from public.create_ledger_invite_v2(p_ledger_id => pg_temp.lid(1), p_role => 'viewer')), null, '两参数命名调用生成匿名邀请且 placeholder_id 为空');
-select is((select invite_role from public.create_ledger_invite_v2(p_ledger_id => pg_temp.lid(1), p_role => 'viewer')), 'viewer', '两参数命名调用保留角色');
-select is((select count(*) from public.create_ledger_invite_v2(pg_temp.lid(1))), 1::bigint, '省略角色和占位时生成默认匿名邀请');
-select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'owner')$$), '22023:invite_role_invalid', '角色校验不变');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(p_ledger_id => pg_temp.lid(1), p_role => 'viewer')$$), '22023:placeholder_required', '两参数命名调用不再生成匿名邀请');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1))$$), '22023:placeholder_required', '省略角色和占位同样返回 placeholder_required');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'member', null)$$), '22023:placeholder_required', '显式传入 null 占位返回 placeholder_required');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'owner')$$), '22023:invite_role_invalid', '角色校验先于占位必填校验');
 select is(pg_temp.err($$select public.create_ledger_invite_v2(null, 'member')$$), '22023:ledger_required', '缺少账本的错误码不变');
-select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(3), 'member')$$), 'P0002:ledger_not_found', '归档账本生成匿名邀请仍返回 ledger_not_found');
 select is(pg_temp.err(format($$select public.create_ledger_invite_v2(pg_temp.lid(3), 'member', %L)$$,
-    (select id from public.ledger_placeholder_member where display_name = '归档账本占位'))), 'P0002:ledger_not_found', '归档账本生成绑定邀请同样返回 ledger_not_found');
-select pg_temp.invite('anon', pg_temp.lid(1), 'member');
-select pg_temp.invite('anon-used', pg_temp.lid(1), 'member');
-select is((select placeholder_id from public.list_pending_ledger_invites(pg_temp.lid(1)) where invite_id = (select invite_id from issue802_token where label = 'anon')), null, '匿名邀请在列表中的 placeholder_id 为空');
-select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(3), (select invite_id from issue802_token where label = 'archived-anon-before'))$$), 'ok', '归档账本上仍可撤销邀请');
+    (select id from public.ledger_placeholder_member where display_name = '归档账本占位'))), 'P0002:ledger_not_found', '归档账本生成绑定邀请返回 ledger_not_found');
+select pg_temp.invite('anon', pg_temp.lid(1), 'member', pg_temp.placeholder('普通加入'));
+select pg_temp.invite('anon-used', pg_temp.lid(1), 'member', pg_temp.placeholder('普通加入二'));
+select is((select count(*) from public.list_pending_ledger_invites(pg_temp.lid(1)) where placeholder_id is null), 0::bigint, '待接受列表中没有未绑定的邀请');
+select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(3), (select invite_id from issue802_token where label = 'archived-before'))$$), 'ok', '归档账本上仍可撤销邀请');
 select pg_temp.act(5);
-select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'member')$$), '42501:permission_denied', '普通成员生成匿名邀请被拒');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'member')$$), '42501:permission_denied', '普通成员不传占位时先返回 permission_denied');
 select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), (select invite_id from issue802_token where label = 'anon'))$$), '42501:permission_denied', '普通成员撤销邀请被拒');
 select pg_temp.act(10);
-select is(pg_temp.accept('anon'), 'joined:null', '匿名邀请首次接受返回 joined 且无占位');
-select is((select role || ':' || status from public.ledger_member where ledger_id = pg_temp.lid(1) and user_id = pg_temp.uid(10)), 'member:active', '匿名邀请按邀请角色创建 active 成员');
-select is((select current_ledger_id from public.app_user where id = pg_temp.uid(10)), pg_temp.lid(1), '匿名邀请接受后切换当前账本');
-select is(pg_temp.accept('anon-used'), 'already_member:null', 'active 成员接受其他匿名邀请仍返回 already_member');
-select is(pg_temp.accept('anon'), 'already_member:null', 'active 成员重放已接受的匿名邀请返回 already_member');
+select is(pg_temp.accept('anon'), 'claimed:' || (select placeholder_id from issue802_token where label = 'anon'), '无账户的待邀请成员被首次接受时返回 claimed');
+select is((select role || ':' || status from public.ledger_member where ledger_id = pg_temp.lid(1) and user_id = pg_temp.uid(10)), 'member:active', '按邀请角色创建 active 成员');
+select is((select current_ledger_id from public.app_user where id = pg_temp.uid(10)), pg_temp.lid(1), '接受后切换当前账本');
+select is(pg_temp.err($$select pg_temp.accept('anon-used')$$), '23505:placeholder_claim_existing_member', 'active 成员接受其他绑定邀请被拒');
+select is(pg_temp.accept('anon'), 'claimed:' || (select placeholder_id from issue802_token where label = 'anon'), '同一接受者重放已接受的邀请幂等成功');
 select pg_temp.act(9);
-select is(pg_temp.err($$select pg_temp.accept('anon')$$), '23505:invite_already_used', '其他用户使用已接受的匿名邀请被拒');
+select is(pg_temp.err($$select pg_temp.accept('anon')$$), '23505:invite_already_used', '其他用户使用已接受的邀请被拒');
 select is(pg_temp.err($$select public.accept_ledger_invite('not-a-real-token')$$), 'P0002:invite_invalid', '不存在的 token 返回 invite_invalid');
 select is(pg_temp.err($$select public.accept_ledger_invite('  ')$$), '22023:invite_invalid', '空白 token 返回 invite_invalid');
 select pg_temp.act(1);
 select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), (select invite_id from issue802_token where label = 'anon'))$$), '23505:invite_already_used', '撤销已接受邀请的错误码不变');
-select pg_temp.invite('anon-revoked', pg_temp.lid(1), 'member');
-select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), (select invite_id from issue802_token where label = 'anon-revoked'))$$), 'ok', '撤销匿名邀请成功');
+select pg_temp.invite('anon-revoked', pg_temp.lid(1), 'member', pg_temp.placeholder('普通撤销'));
+select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), (select invite_id from issue802_token where label = 'anon-revoked'))$$), 'ok', '撤销绑定邀请成功');
 select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), (select invite_id from issue802_token where label = 'anon-revoked'))$$), '23505:invite_already_revoked', '重复撤销的错误码不变');
 select is(pg_temp.err($$select public.revoke_ledger_invite(pg_temp.lid(1), gen_random_uuid())$$), 'P0002:invite_invalid', '撤销不存在邀请的错误码不变');
 select pg_temp.act(9);
-select is(pg_temp.err($$select pg_temp.accept('anon-revoked')$$), 'P0002:invite_invalid', '已撤销的匿名邀请不能接受');
+select is(pg_temp.err($$select pg_temp.accept('anon-revoked')$$), 'P0002:invite_invalid', '已撤销的邀请不能接受');
+reset role;
+
+select diag('表级 CHECK：待接受邀请必须绑定待邀请成员');
+select pg_temp.act(null);
+select ok((select convalidated from pg_constraint where conname = 'ledger_invite_pending_requires_placeholder' and conrelid = 'public.ledger_invite'::regclass), 'CHECK 已存在且对全部既有行生效');
+select is((select count(*) from public.ledger_invite where placeholder_id is null and accepted_at is null and revoked_at is null), 0::bigint, '库中不存在未绑定的待接受邀请（migration 已撤销残留匿名邀请）');
+create function pg_temp.insert_invite(p_placeholder uuid, p_state text) returns void language sql as $$
+    insert into public.ledger_invite(ledger_id, inviter_user_id, created_by, role, token_hash, invite_token, placeholder_id,
+                                     accepted_at, accepted_by, revoked_at, revoked_by)
+    values (pg_temp.lid(1), pg_temp.uid(1), pg_temp.uid(1), 'member', md5(random()::text),
+            case when p_state = 'pending' then md5(random()::text) || md5(random()::text) end, p_placeholder,
+            case when p_state = 'accepted' then now() end, case when p_state = 'accepted' then pg_temp.uid(10) end,
+            case when p_state = 'revoked' then now() end, case when p_state = 'revoked' then pg_temp.uid(1) end);
+$$;
+-- CHECK 违反的 detail 含整行数据，这里按约束名精确判断。
+create function pg_temp.check_err(p_sql text) returns text language plpgsql as $$
+declare v_constraint text;
+begin
+    execute p_sql;
+    return 'ok';
+exception when check_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    return sqlstate || ':' || coalesce(v_constraint, '');
+end;
+$$;
+select is(pg_temp.check_err($$select pg_temp.insert_invite(null, 'pending')$$), '23514:ledger_invite_pending_requires_placeholder', '直接插入未绑定的待接受邀请被 CHECK 拒绝');
+select is(pg_temp.err($$select pg_temp.insert_invite(null, 'revoked')$$), 'ok', '已撤销邀请允许 placeholder_id 为空');
+select is(pg_temp.err($$select pg_temp.insert_invite(null, 'accepted')$$), 'ok', '已接受的历史匿名邀请允许 placeholder_id 为空');
+select is(pg_temp.check_err(format('update public.ledger_invite set placeholder_id = null where id = %L', (select invite_id from issue802_token where label = 'anon-used'))),
+          '23514:ledger_invite_pending_requires_placeholder', '不能把待接受邀请的占位关联置空');
+select is(pg_temp.err(format('update public.ledger_invite set placeholder_id = null where id = %L', (select invite_id from issue802_token where label = 'anon-revoked'))),
+          'ok', '已撤销邀请的占位关联可以置空');
+select is(pg_temp.err(format('update public.ledger_invite set placeholder_id = %L where id = %L', pg_temp.placeholder('普通撤销'), (select invite_id from issue802_token where label = 'anon-revoked'))),
+          'ok', '恢复已撤销邀请的占位关联，供后续删除流程验证');
+select pg_temp.act(1);
+set local role authenticated;
+select is(pg_temp.err($$select public.delete_ledger_placeholder_member(pg_temp.lid(1), pg_temp.placeholder('普通撤销'))$$), 'ok', '删除占位时把已撤销邀请的 placeholder_id 置空，流程照常可用');
+reset role;
+select is((select coalesce(placeholder_id::text, 'null') || ':' || (revoked_at is not null) from public.ledger_invite where id = (select invite_id from issue802_token where label = 'anon-revoked')),
+          'null:true', '已撤销邀请记录保留且关联已解除');
+
+select diag('历史匿名邀请的接受分支保持不变');
+-- 只能由数据库维护角色构造：历史上已接受的匿名邀请，token 已清空但 hash 仍可定位。
+select pg_temp.act(null);
+insert into public.ledger_invite(ledger_id, inviter_user_id, created_by, role, token_hash, invite_token, placeholder_id, accepted_at, accepted_by)
+values (pg_temp.lid(1), pg_temp.uid(1), pg_temp.uid(1), 'member', encode(extensions.digest('issue809-legacy-anon', 'sha256'), 'hex'), null, null, now(), pg_temp.uid(10));
+insert into issue802_token (label, token) values ('legacy-anon', 'issue809-legacy-anon');
+select pg_temp.act(10);
+set local role authenticated;
+select is(pg_temp.accept('legacy-anon'), 'already_member:null', 'active 成员重放历史匿名邀请仍返回 already_member');
+select pg_temp.act(9);
+select is(pg_temp.err($$select pg_temp.accept('legacy-anon')$$), '23505:invite_already_used', '其他用户使用历史匿名邀请被拒');
 reset role;
 
 select diag('绑定邀请生成与唯一有效绑定');
@@ -217,8 +270,8 @@ select pg_temp.act(9);
 set local role authenticated;
 select is(pg_temp.err($$select pg_temp.accept('bound')$$), 'P0002:invite_invalid', '撤销后旧 token 立即无效');
 select pg_temp.act(1);
-select is((select placeholder_id from public.create_ledger_invite_v2(pg_temp.lid(1), 'member')), null, '不传占位 ID 重新创建得到匿名邀请');
-select is((select count(*) from public.list_pending_ledger_invites(pg_temp.lid(1)) where placeholder_id = pg_temp.placeholder('绑定占位')), 0::bigint, '匿名重建后占位仍没有有效绑定');
+select is(pg_temp.err($$select public.create_ledger_invite_v2(pg_temp.lid(1), 'member')$$), '22023:placeholder_required', '不传占位 ID 重新创建返回 placeholder_required');
+select is((select count(*) from public.list_pending_ledger_invites(pg_temp.lid(1)) where placeholder_id = pg_temp.placeholder('绑定占位')), 0::bigint, '撤销后占位仍没有有效绑定');
 select pg_temp.invite('bound-again', pg_temp.lid(1), 'member', pg_temp.placeholder('绑定占位'));
 select is((select placeholder_id from issue802_token where label = 'bound-again'), pg_temp.placeholder('绑定占位'), '重新传占位 ID 才会再次绑定，唯一索引已释放');
 
@@ -451,8 +504,8 @@ select pg_temp.act(null);
 set local role anon;
 select is((select invite_status || ':' || is_placeholder_bound || ':' || placeholder_display_name from public.get_ledger_invite_preview(pg_temp.token('preview'))),
           'valid:true:预览改名', 'anon 可以预览有效绑定邀请，并读取改名后的实时名字');
-select is((select is_placeholder_bound::text || ':' || coalesce(placeholder_display_name, 'null') from public.get_ledger_invite_preview(pg_temp.token('anon-used'))),
-          'false:null', '匿名邀请返回 false / null');
+select is((select invite_status || ':' || is_placeholder_bound || ':' || coalesce(placeholder_display_name, 'null') from public.get_ledger_invite_preview(pg_temp.token('legacy-anon'))),
+          'accepted:false:null', '历史匿名邀请返回 false / null');
 select is((select invite_status || ':' || is_placeholder_bound || ':' || coalesce(placeholder_display_name, 'null') from public.get_ledger_invite_preview(pg_temp.token('full'))),
           'accepted:false:null', '已接受的绑定邀请不返回占位名字');
 select is((select invite_status || ':' || is_placeholder_bound || ':' || coalesce(placeholder_display_name, 'null') from public.get_ledger_invite_preview('invalid-token')),
@@ -474,7 +527,7 @@ select is((select is_placeholder_bound::text || ':' || coalesce(placeholder_disp
           'false:null', '占位已认领时邀请不再返回占位名字');
 reset role;
 
-select diag('真实双会话并发：绑定邀请唯一、接受与撤销竞争、匿名接受取得账本锁');
+select diag('真实双会话并发：绑定邀请唯一、接受与撤销竞争、接受取得账本锁');
 reset role;
 select pg_temp.act(null);
 create extension if not exists dblink with schema extensions;
@@ -513,6 +566,7 @@ declare
     v_p3 uuid := gen_random_uuid();
     v_p4 uuid := gen_random_uuid();
     v_p5 uuid := gen_random_uuid();
+    v_p6 uuid := gen_random_uuid();
     v_account uuid;
     v_invite uuid;
     v_token text;
@@ -549,8 +603,8 @@ begin
         insert into public.ledger_member(ledger_id, user_id, role, status, joined_at) values (%1$L, %2$L, 'owner', 'active', now());
         insert into public.ledger_placeholder_member(id, ledger_id, display_name, created_by)
         values (%3$L, %1$L, '并发一', %2$L), (%4$L, %1$L, '并发二', %2$L), (%5$L, %1$L, '并发三', %2$L), (%6$L, %1$L, '并发四', %2$L),
-               (%7$L, %1$L, '并发五', %2$L);
-    $q$, v_ledger, v_owner, v_p1, v_p2, v_p3, v_p4, v_p5));
+               (%7$L, %1$L, '并发五', %2$L), (%8$L, %1$L, '并发六', %2$L);
+    $q$, v_ledger, v_owner, v_p1, v_p2, v_p3, v_p4, v_p5, v_p6));
     -- 在远端子事务收集 SQLSTATE/detail，失败写入自动回滚，避免解析英文错误。
     v_setup := format($q$
         create function pg_temp.run_sql(p_sql text) returns text language plpgsql as $remote$
@@ -629,16 +683,19 @@ begin
     select r into v_result from dblink('invite_a', format('select coalesce(claimed_by::text, ''null'') from public.ledger_placeholder_member where id = %L', v_p4)) as t(r text);
     return next is(v_result, 'null', '撤销生效后占位保持未认领');
 
-    -- 5. 匿名邀请的接受同样取得账本锁。
-    select tok into v_token from dblink('invite_a', format('select token from public.create_ledger_invite_v2(%L, ''member'')', v_ledger)) as t(tok text);
+    -- 5. 绑定邀请的接受在任何状态判断之前先等待账本锁。
+    -- 可用的种子用户有限，接受者 34 已在场景 3 成为成员，锁释放后按既有成员规则被拒。
+    select tok into v_token from dblink('invite_a', format('select token from public.create_ledger_invite_v2(%L, ''member'', %L)', v_ledger, v_p6)) as t(tok text);
     perform dblink_exec('invite_a', 'begin');
     perform * from dblink('invite_a', format('select id from public.ledger where id = %L for update', v_ledger)) as t(id uuid);
     perform dblink_send_query('invite_b', format('select pg_temp.run_sql(%L)', format('select public.accept_ledger_invite(%L)', v_token)));
-    return next ok(pg_temp.wait_lock(v_b_pid, v_a_pid), '匿名邀请接受等待账本锁');
+    return next ok(pg_temp.wait_lock(v_b_pid, v_a_pid), '绑定邀请接受等待账本锁');
     perform dblink_exec('invite_a', 'commit');
     select result into v_result from dblink_get_result('invite_b') as t(result text);
     perform * from dblink_get_result('invite_b') as t(result text);
-    return next is(v_result, 'ok', '账本锁释放后匿名接受继续完成');
+    return next is(v_result, '23505:placeholder_claim_existing_member', '账本锁释放后接受继续执行并返回稳定结果');
+    select r into v_result from dblink('invite_a', format('select coalesce(claimed_by::text, ''null'') from public.ledger_placeholder_member where id = %L', v_p6)) as t(r text);
+    return next is(v_result, 'null', '被拒的接受没有认领占位');
 
     -- 6. 认领事务持锁期间，改名与账户编辑都等待账本锁，锁释放后读取已认领状态。
     select id into v_account from dblink('invite_a', format('select public.create_account_with_holders(%L, ''并发账户'', ''bank'', ''JPY'', 0, ''{}'', %L)', v_ledger, v_p5)) as t(id uuid);

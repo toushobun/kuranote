@@ -18,6 +18,8 @@ declare
     v_token text;
     v_preview_status text;
     v_accept_result text;
+    v_placeholder_id uuid;
+    v_error_detail text;
 begin
     -- 按真实认证链路准备用户，让既存 on_auth_user_created trigger 创建 app_user。
     insert into auth.users (
@@ -487,9 +489,28 @@ begin
         raise exception 'update_transfer_transaction balance smoke test failed';
     end if;
 
+    -- Issue #809：不再生成匿名邀请，未绑定待邀请成员时返回 placeholder_required。
+    begin
+        perform public.create_ledger_invite_v2(v_ledger_id, 'member');
+
+        raise exception 'create_ledger_invite_v2 did not require placeholder';
+    exception
+        when sqlstate '22023' then
+            get stacked diagnostics v_error_detail = pg_exception_detail;
+
+            if v_error_detail is distinct from 'placeholder_required' then
+                raise;
+            end if;
+    end;
+
+    v_placeholder_id := public.create_ledger_placeholder_member(
+        v_ledger_id,
+        'SECURITY DEFINER Placeholder'
+    );
+
     select invite.token
       into v_token
-      from public.create_ledger_invite_v2(v_ledger_id, 'member') invite;
+      from public.create_ledger_invite_v2(v_ledger_id, 'member', v_placeholder_id) invite;
 
     if v_token is null or pg_catalog.length(v_token) <> 64 then
         raise exception 'create_ledger_invite_v2 smoke test failed';
@@ -516,7 +537,7 @@ begin
       into v_accept_result
       from public.accept_ledger_invite(v_token) accepted;
 
-    if v_accept_result <> 'joined' then
+    if v_accept_result <> 'claimed' then
         raise exception 'accept_ledger_invite smoke test failed: %',
             v_accept_result;
     end if;
@@ -530,6 +551,15 @@ begin
           and member.role = 'member'
     ) then
         raise exception 'accept_ledger_invite member state smoke test failed';
+    end if;
+
+    if not exists (
+        select 1
+        from public.ledger_placeholder_member placeholder
+        where placeholder.id = v_placeholder_id
+          and placeholder.claimed_by = v_member_id
+    ) then
+        raise exception 'accept_ledger_invite placeholder claim smoke test failed';
     end if;
 
     -- member 可以记账但不能维护基础数据，直接更新商家应被 trigger 拒绝。

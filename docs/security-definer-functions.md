@@ -203,6 +203,19 @@ order by p.oid::regprocedure::text;
 
 `ledger_invite_placeholder_claim.test.sql` 在真实 Supabase 上覆盖签名与授权、匿名邀请回归、绑定邀请唯一、撤销后重建、已有成员拒绝、member / viewer 认领后的权限、含归档账户的全量迁移、失败回滚、幂等重放、窄分支绕过与预览字段，并以 dblink 多会话验证并发生成、索引兜底、接受与撤销竞争、匿名接受的账本锁，以及认领持锁期间的占位改名与账户编辑（均等锁后返回 `placeholder_already_claimed`，数据保持认领结果）。
 
+## Issue #809：邀请必须绑定待邀请成员
+
+项目尚未上线，不再支持新建匿名邀请。本次只修改 `create_ledger_invite_v2` 的函数体并新增一条表级 CHECK，没有新增函数，也没有修改其他 RPC、RLS policy 或权限函数。
+
+| 对象                                      | 变更与权限边界                                                                                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_ledger_invite_v2(uuid,text,uuid)` | 签名、返回列与授权不变（`create or replace`，仍仅授予 authenticated）。在角色与管理权限校验之后，`p_placeholder_id` 为 NULL 时返回 SQLSTATE `22023`、detail `placeholder_required`；原绑定分支的锁顺序、校验与错误码原样保留。        |
+| `ledger_invite`                           | 新增 `ledger_invite_pending_requires_placeholder`：`placeholder_id is not null or accepted_at is not null or revoked_at is not null`。已撤销邀请（`delete_ledger_placeholder_member` 会解除其关联）与已接受的历史匿名邀请仍允许为空。 |
+
+migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placeholder_id`、`accepted_at`、`revoked_at` 均为空）写入 `revoked_at = now()`、`revoked_by = inviter_user_id` 并清空 `invite_token`。`accept_ledger_invite` 的匿名分支不做修改，现在只剩历史数据能走到。
+
+`ledger_invite_placeholder_claim.test.sql` 改为断言匿名生成返回 `placeholder_required`、CHECK 拒绝直接插入或置空未绑定的待接受邀请、删除占位时解除已撤销邀请关联仍可用，并用维护角色构造的历史匿名邀请验证原接受分支；并发场景 5 改为绑定邀请的接受等待账本锁。烟雾测试改为先创建待邀请成员再生成绑定邀请并认领。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：
@@ -226,7 +239,7 @@ order by p.oid::regprocedure::text;
 - `create_ledger_with_owner_settings` 创建账本及默认数据。
 - `create_account_with_holders` 创建账户与持有人，并触发账户初始化和基础数据权限 trigger。
 - `create_transaction` 创建交易，验证交易明细、余额同步及交易表 trigger 路径。
-- `create_ledger_invite_v2`、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 邀请链路。
+- `create_ledger_invite_v2`（未绑定待邀请成员时返回 `placeholder_required`）、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 绑定邀请与认领链路。
 - 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
 - #598 / #606 的 `apply_transaction_item_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items`、`clear_transaction_item_income_links` 由 `scripts/security-definer-smoke-issue-598.sql` 持续验证报销关联、单目标退款关联、冻结、关闭开关防线与受控清理。
 

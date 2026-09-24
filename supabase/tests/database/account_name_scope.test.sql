@@ -210,14 +210,14 @@ select pg_temp.create_placeholder_account('issue801 archived account','Issue801 
 update public.account set is_archived=true,archived_at=now(),archived_by=auth.uid() where name='issue801 archived account';
 select is(pg_temp.error_detail($$select public.delete_ledger_placeholder_member('00000000-0000-4000-8000-000000000032',pg_temp.placeholder_id('Issue801 archived'))$$),'placeholder_in_use','归档账户引用也禁止删除');
 select public.create_ledger_placeholder_member('00000000-0000-4000-8000-000000000032','Issue801 invitation');
--- 邀请仍使用原两参数生成 RPC，只有数据库维护角色可构造绑定测试数据。
-create temporary table issue801_invites as select invite_id, token from public.create_ledger_invite_v2('00000000-0000-4000-8000-000000000032','member');
-insert into issue801_invites select invite_id,token from public.create_ledger_invite_v2('00000000-0000-4000-8000-000000000032','viewer');
+select public.create_ledger_placeholder_member('00000000-0000-4000-8000-000000000032','Issue801 invitation second');
+-- #809 起邀请必须绑定占位：先各自生成绑定邀请，再由数据库维护角色改写关联以验证约束。
+create temporary table issue801_invites as select invite_id, token from public.create_ledger_invite_v2('00000000-0000-4000-8000-000000000032','member',pg_temp.placeholder_id('Issue801 invitation'));
+insert into issue801_invites select invite_id,token from public.create_ledger_invite_v2('00000000-0000-4000-8000-000000000032','viewer',pg_temp.placeholder_id('Issue801 invitation second'));
 reset role;
 select throws_ok($$update public.ledger_invite set placeholder_id=pg_temp.placeholder_id('Issue801 Alice','78100000-0000-4000-8000-000000000001') where id=(select invite_id from issue801_invites limit 1)$$,'23503',null,'邀请复合外键拒绝跨账本占位');
-update public.ledger_invite set placeholder_id=pg_temp.placeholder_id('Issue801 invitation') where id=(select invite_id from issue801_invites order by invite_id limit 1);
-select throws_ok($$update public.ledger_invite set placeholder_id=pg_temp.placeholder_id('Issue801 invitation') where id=(select invite_id from issue801_invites order by invite_id desc limit 1)$$,'23505',null,'同一占位最多一条未接受未撤销邀请');
-update public.ledger_invite set revoked_at=now(),revoked_by=auth.uid(),invite_token=null,placeholder_id=pg_temp.placeholder_id('Issue801 invitation') where id=(select invite_id from issue801_invites order by invite_id desc limit 1);
+select throws_ok($$update public.ledger_invite set placeholder_id=pg_temp.placeholder_id('Issue801 invitation') where placeholder_id=pg_temp.placeholder_id('Issue801 invitation second')$$,'23505',null,'同一占位最多一条未接受未撤销邀请');
+update public.ledger_invite set revoked_at=now(),revoked_by=auth.uid(),invite_token=null,placeholder_id=pg_temp.placeholder_id('Issue801 invitation') where placeholder_id=pg_temp.placeholder_id('Issue801 invitation second');
 set local role authenticated;
 select lives_ok($$select public.delete_ledger_placeholder_member('00000000-0000-4000-8000-000000000032',pg_temp.placeholder_id('Issue801 invitation'))$$,'无账户引用时删除占位并使关联邀请失效');
 reset role;
@@ -238,7 +238,8 @@ $$;
 select lives_ok($$select pg_temp.insert_placeholder_invite(pg_temp.placeholder_id('Issue801 invite constraint'))$$,'占位可以绑定一条有效邀请');
 select throws_ok($$select pg_temp.insert_placeholder_invite(pg_temp.placeholder_id('Issue801 invite constraint'))$$,'23505',null,'第二条指向同一占位的未接受未撤销邀请被唯一索引拒绝');
 select lives_ok($$select pg_temp.insert_placeholder_invite(pg_temp.placeholder_id('Issue801 invite constraint'),true)$$,'已接受邀请不占用有效邀请名额');
-select lives_ok($$select pg_temp.insert_placeholder_invite(null); select pg_temp.insert_placeholder_invite(null)$$,'匿名邀请不受占位唯一索引限制');
+select throws_ok($$select pg_temp.insert_placeholder_invite(null)$$,'23514',null,'#809：未绑定占位的待接受邀请被 CHECK 拒绝');
+select lives_ok($$select pg_temp.insert_placeholder_invite(null,true); select pg_temp.insert_placeholder_invite(null,true)$$,'已接受的历史匿名邀请不受占位唯一索引限制');
 select throws_ok($$select pg_temp.insert_placeholder_invite(gen_random_uuid())$$,'23503',null,'邀请不能引用不存在的占位');
 select throws_ok($$delete from public.ledger_placeholder_member where id=pg_temp.placeholder_id('Issue801 invite constraint')$$,'23503',null,'被邀请引用的占位禁止直接删除');
 
