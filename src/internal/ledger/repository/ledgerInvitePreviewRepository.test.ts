@@ -26,7 +26,9 @@ describe("createSupabaseLedgerInvitePreviewRepository", () => {
       invite_role: "member",
       invite_status: "pending",
       inviter_name: "邀请人",
+      is_placeholder_bound: true,
       ledger_name: "家庭账本",
+      placeholder_display_name: "小明",
     };
     const supabase = createSupabaseStub({ data: [row], error: null });
     const logger = createLoggerStub();
@@ -41,7 +43,36 @@ describe("createSupabaseLedgerInvitePreviewRepository", () => {
     });
   });
 
-  it.each([[], null, { ledger_name: "家庭账本" }])(
+  it("逐列校验类型，类型不符的列按 null 处理", async () => {
+    const repository = createSupabaseLedgerInvitePreviewRepository(
+      createSupabaseStub({
+        data: [
+          {
+            claimed_by: "00000000-0000-4000-8000-000000000031",
+            invite_role: 1,
+            invite_status: "valid",
+            inviter_name: null,
+            is_placeholder_bound: "true",
+            ledger_name: "家庭账本",
+            placeholder_display_name: 42,
+          },
+        ],
+        error: null,
+      }),
+      createLoggerStub(),
+    );
+
+    await expect(repository.findByToken("token-1")).resolves.toEqual({
+      invite_role: null,
+      invite_status: "valid",
+      inviter_name: null,
+      is_placeholder_bound: null,
+      ledger_name: "家庭账本",
+      placeholder_display_name: null,
+    });
+  });
+
+  it.each([[], null, { ledger_name: "家庭账本" }, ["row"]])(
     "查询结果为 %j 时返回 null",
     async (data) => {
       const repository = createSupabaseLedgerInvitePreviewRepository(

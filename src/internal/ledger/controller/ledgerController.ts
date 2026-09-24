@@ -89,9 +89,11 @@ export const createLedgerInviteHandler = async (
 ) => {
   const userId = requireAuthenticatedUserId(c.get("requestDependencies").auth);
   const { ledgerId } = c.req.valid("param");
+  const { placeholderId, role } = c.req.valid("json");
   const result = await c.get("container").ledger.inviteService.create({
     ledgerId,
-    role: c.req.valid("json").role,
+    placeholderId,
+    role,
     userId,
   });
   revalidateLedgerMutation([`/ledgers/${ledgerId}/settings`]);

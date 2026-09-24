@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
-import { ledgerInviteErrorCodes } from "internal/ledger/errors/ledgerInvite";
+import {
+  getLedgerInviteErrorMessage,
+  ledgerInviteErrorCodes,
+} from "internal/ledger/errors/ledgerInvite";
 import {
   AuthorizationError,
   ConflictError,
@@ -75,6 +78,83 @@ function expectErrorState(
   expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
 }
 
+describe("createLedgerInvite 占位绑定", () => {
+  const placeholderId = "00000000-0000-4000-8000-000000000051";
+
+  it("解析可选 placeholderId 并传给 Service", async () => {
+    mocks.createService.mockResolvedValueOnce({
+      inviteId: "invite-id",
+      placeholderId,
+      role: "member",
+      token: validToken,
+    });
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("role", "member");
+    formData.set("placeholderId", ` ${placeholderId} `);
+
+    await expect(runAction(formData)).rejects.toThrow("NEXT_REDIRECT:");
+    expect(mocks.createService).toHaveBeenCalledWith({
+      ledgerId: "ledger-id",
+      placeholderId,
+      role: "member",
+      userId: "user-id",
+    });
+  });
+
+  it("placeholderId 为空字符串时按匿名邀请处理", async () => {
+    mocks.createService.mockResolvedValueOnce({
+      inviteId: "invite-id",
+      placeholderId: null,
+      role: "member",
+      token: validToken,
+    });
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("placeholderId", "");
+
+    await expect(runAction(formData)).rejects.toThrow("NEXT_REDIRECT:");
+    expect(mocks.createService).toHaveBeenCalledWith(
+      expect.objectContaining({ placeholderId: null }),
+    );
+  });
+
+  it("placeholderId 不是合法 UUID 时返回失败状态且不调用 Service", async () => {
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("placeholderId", "not-a-uuid");
+
+    const state = await runAction(formData);
+
+    expectErrorState(state, {
+      message: getLedgerInviteErrorMessage(
+        ledgerInviteErrorCodes.placeholderNotFound,
+      )!,
+      operation: "create",
+    });
+    expect(mocks.createService).not.toHaveBeenCalled();
+  });
+
+  it("Service 返回占位冲突时使用权威安全文案", async () => {
+    const message = getLedgerInviteErrorMessage(
+      ledgerInviteErrorCodes.placeholderInvitePending,
+    )!;
+    mocks.createService.mockRejectedValueOnce(
+      new ConflictError(
+        ledgerInviteErrorCodes.placeholderInvitePending,
+        message,
+      ),
+    );
+    const formData = new FormData();
+    formData.set("ledgerId", "ledger-id");
+    formData.set("placeholderId", placeholderId);
+
+    const state = await runAction(formData);
+
+    expectErrorState(state, { message, operation: "create" });
+  });
+});
+
 describe("createLedgerInvite", () => {
   it("ledgerId 为空时在当前页返回创建失败状态", async () => {
     const state = await runAction(new FormData());
@@ -120,6 +200,7 @@ describe("createLedgerInvite", () => {
     );
     expect(mocks.createService).toHaveBeenCalledWith({
       ledgerId: "ledger-id",
+      placeholderId: null,
       role: "viewer",
       userId: "user-id",
     });

@@ -14,6 +14,7 @@ import {
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { isLedgerInviteRole } from "internal/ledger";
+import { parseLedgerInvitePlaceholderIdForm } from "internal/ledger/schema/ledgerInviteForm";
 import {
   type LedgerInviteActionOperation,
   type LedgerInviteActionState,
@@ -79,12 +80,18 @@ export async function createLedgerInvite(
     );
   }
 
+  const placeholderId = parseLedgerInvitePlaceholderIdForm(formData);
+  if (!placeholderId.ok) {
+    return createErrorState(placeholderId.error, operation);
+  }
+
   let result;
   try {
     const dependencies = await createServerRequestDependencies();
     const container = createRequestContainer(dependencies);
     result = await container.ledger.inviteService.create({
       ledgerId,
+      placeholderId: placeholderId.value,
       role: roleValue,
       userId,
     });

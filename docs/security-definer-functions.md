@@ -127,7 +127,7 @@ order by p.oid::regprocedure::text;
 | `enforce_merchant_alias_management_permission`          | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`merchant_alias_require_management_permission`                                                                                                                                                                                                                           |
 | `enforce_transaction_child_permission`                  | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`transaction_item_require_write_permission`                                                                                                                                                                                                                              |
 | `enforce_transaction_record_permission`                 | `public`              | 无                                                     | PUBLIC 撤销                        | 触发器：`transaction_record_require_write_permission`                                                                                                                                                                                                                            |
-| `get_ledger_invite_preview`                             | `pg_catalog, pg_temp` | `extensions.digest()`                                  | PUBLIC 撤销；anon/authenticated    | RPC：`src/internal/services/ledgerInvite.ts`                                                                                                                                                                                                                                     |
+| `get_ledger_invite_preview`                             | `pg_catalog, pg_temp` | `extensions.digest()`                                  | PUBLIC 撤销；anon/authenticated    | RPC：`src/internal/ledger/repository/ledgerInvitePreviewRepository.ts`                                                                                                                                                                                                           |
 | `get_next_ledger_member_display_color`                  | `public`              | 无                                                     | PUBLIC 撤销                        | 函数：`assign_ledger_member_default_display_color`                                                                                                                                                                                                                               |
 | `handle_new_auth_user`                                  | `public`              | 无                                                     | 默认 PUBLIC EXECUTE                | 触发器：`on_auth_user_created`                                                                                                                                                                                                                                                   |
 | `initialize_ledger_default_data`                        | `public`              | 无                                                     | PUBLIC 撤销                        | 函数：`create_ledger_with_owner`                                                                                                                                                                                                                                                 |
@@ -170,6 +170,38 @@ order by p.oid::regprocedure::text;
 锁顺序为账本 → 旧、新占位（按 ID）→ 涉及的成员 → 账户。账户编辑取得账户锁后复核原占位引用，变化时返回 SQLSTATE `40001`、detail `account_holder_changed`，整个编辑回滚。姓名比较与部分唯一索引统一使用 `collate "C"`；预期姓名冲突仅精确匹配 `ledger_placeholder_member_unclaimed_name_unique` 后转换稳定 detail，不暴露约束名称。
 
 `account_name_scope.test.sql` 在真实 Supabase 上覆盖 CHECK/FK、RLS、RPC、邀请字段约束，并以 dblink 双会话验证同名创建、批量复用、改名与模拟认领、直接 DML 引用锁和编辑旧引用复核；`initial_balance_adjustment.test.sql` 覆盖占位账户的初始余额及事务回滚。未增加邀请绑定或接受 RPC，也未增加认领权限例外。
+
+## Issue #802：占位绑定邀请与原子认领
+
+本次修改的 SECURITY DEFINER 函数继续固定 `search_path = pg_catalog, pg_temp`，应用对象使用完整 schema 限定名，操作人只取 `auth.uid()`。没有新增函数，也没有修改 RLS policy、`current_user_has_ledger_role` / `current_user_can_manage_ledger` / `current_user_can_write_ledger` 或三个账户 RPC。
+
+| 函数                                      | 变更与权限边界                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_ledger_invite_v2(uuid,text,uuid)` | 删除旧 `(uuid,text)` 签名后增加末尾可选 `p_placeholder_id uuid default null`，返回列增加 `placeholder_id`；撤销 PUBLIC、anon、authenticated、service_role 后仅授予 authenticated。匿名分支的校验顺序与错误码不变；绑定分支取得账本锁（归档账本同样返回 `ledger_not_found`）后复核管理权限，再锁定占位并校验归属、未认领与没有有效绑定邀请，部分唯一索引 `ledger_invite_one_pending_placeholder` 冲突精确转换为 `placeholder_invite_pending`。 |
+| `revoke_ledger_invite(uuid,uuid)`         | 签名与授权不变；先锁账本行（不附加归档判断，归档账本上的撤销仍允许），再锁绑定的占位和邀请。撤销清空 token，保留历史 `placeholder_id`。                                                                                                                                                                                                                                                                                                       |
+| `accept_ledger_invite(text)`              | 返回列增加 `placeholder_id`，删除后重建并仅授予 authenticated。匿名与绑定邀请都按账本 → 占位 → 邀请 → 成员 → 账户（按 ID）加锁；绑定分支依次处理幂等重放、已有成员冲突、经 `app.allow_ledger_invite_accept` 通道插入成员（不使用 UPSERT）、写入接受状态、迁移全部持有行、立即检查名称唯一约束并写入认领标记。`result` 取值为 `joined` / `already_member` / `claimed`。                                                                        |
+| `enforce_ledger_management_permission()`  | 在账户余额 GUC 分支之后新增认领窄分支，只放行满足全部条件的 `account_holder` UPDATE（见下文），不依赖任何 GUC；其他表及 INSERT / DELETE 判断不变。继续撤销 PUBLIC、anon、authenticated、service_role 的 EXECUTE。                                                                                                                                                                                                                             |
+| `list_pending_ledger_invites(uuid)`       | 返回列增加 `placeholder_id`，删除后重建并仅授予 authenticated；过滤条件、成员校验与 token 可见性不变。                                                                                                                                                                                                                                                                                                                                        |
+| `get_ledger_invite_preview(text)`         | 返回列增加 `is_placeholder_bound`、`placeholder_display_name`，删除后重建并仅授予 anon / authenticated。只有未撤销、未接受、账本未归档且占位未认领的绑定邀请返回 true 与实时显示名，其他情况返回 false / null；不返回 `claimed_by`、账户或金额。                                                                                                                                                                                              |
+
+认领窄分支只有在以下条件全部满足时才放行，否则继续走 owner/admin 判断：
+
+- 表为 `account_holder`、操作为 UPDATE，旧行 `placeholder_id` 非空，新行 `placeholder_id` 为空且 `user_id = auth.uid()`、`updated_by = auth.uid()`；
+- 除 `user_id`、`placeholder_id`、`updated_by`、`updated_at` 外，新旧行其余列（含 id、ledger_id、account_id、role、share_ratio、created_by、created_at）完全一致；
+- 存在同账本、同占位、`accepted_by = auth.uid()` 且 `accepted_at` 非空的邀请，该占位 `claimed_by` 仍为空；
+- 接受者是该账本 active 成员且 `app_user.status = 'active'`。
+
+该分支不识别调用方是 RPC 还是直接 DML，生效条件完全是数据状态：存在当前用户已接受的该占位绑定邀请，而该占位的 `claimed_by` 仍为空。这种“邀请已接受、占位未认领”的中间状态无法被单独提交：
+
+- `accepted_at / accepted_by` 只由 `accept_ledger_invite` 写入，它在同一事务内先写接受状态，再迁移全部持有行，最后写 `claimed_by / claimed_at`；任一步失败整个事务回滚，因此已提交的数据只会是“未接受且未认领”或“已接受且已认领”。
+- 中间状态只存在于接受事务内部，其他事务按 MVCC 看不到；接受事务持有账本与占位锁，并发的占位管理、账户编辑与直接 DML 引用都要等待它结束。
+- 客户端对 `ledger_invite`、`ledger_placeholder_member` 没有写权限，无法伪造接受状态或清空认领标记；对 `account_holder` 也没有 UPDATE 权限，且 `account_holder_update_admin` 仍要求 owner/admin。
+
+因此客户端无法单独构造触发该分支的数据状态，只有 `accept_ledger_invite` 事务内部会满足条件；接受者也不会因认领获得账户或持有人的管理权限。绕过 RPC、拥有表权限的数据库维护角色可以人为制造该状态（数据库测试即以此单独验证分支条件），这属于运维操作而非客户端路径。
+
+锁顺序统一为账本 → 占位 → 邀请 → 成员 → 账户（按 ID）。接受者可能是 member / viewer，因此接受 RPC 不复用要求 owner/admin 的 `lock_ledger_placeholder_management`，而是在函数内直接 `for update`。`account_active_name_unique` 为延迟约束，接受 RPC 在迁移后立即检查，并只在约束名精确匹配时转换为 `placeholder_claim_account_name_conflict`（SQLSTATE `23505`）；并发插入成员命中 `ledger_member_not_removed_user_unique` 时转换为 `placeholder_claim_existing_member`。任一步失败时整个事务回滚。
+
+`ledger_invite_placeholder_claim.test.sql` 在真实 Supabase 上覆盖签名与授权、匿名邀请回归、绑定邀请唯一、撤销后重建、已有成员拒绝、member / viewer 认领后的权限、含归档账户的全量迁移、失败回滚、幂等重放、窄分支绕过与预览字段，并以 dblink 多会话验证并发生成、索引兜底、接受与撤销竞争、匿名接受的账本锁，以及认领持锁期间的占位改名与账户编辑（均等锁后返回 `placeholder_already_claimed`，数据保持认领结果）。
 
 ## 自动化检查
 

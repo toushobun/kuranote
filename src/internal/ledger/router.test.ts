@@ -11,12 +11,22 @@ import { routePaths } from "config/paths";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import { ledgerRouter } from "internal/ledger/router";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import {
+  createdLedgerInviteResponseSchema,
+  pendingLedgerInvitesResponseSchema,
+} from "internal/ledger/schema";
+import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+} from "internal/shared/errors/appError";
 import { errorHandlingMiddleware } from "internal/shared/http/errorResponse";
 
 const userId = "00000000-0000-4000-8000-000000000031";
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const inviteId = "00000000-0000-4000-8000-000000000033";
+const placeholderId = "00000000-0000-4000-8000-000000000051";
 const headers = {
   "content-type": "application/json",
   origin: "https://kuranote.example",
@@ -274,5 +284,172 @@ describe("ledger router", () => {
     expect(response.status).toBe(200);
     expect(listPending).toHaveBeenCalledWith({ ledgerId, userId });
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  describe("占位绑定邀请", () => {
+    function createAppWithInviteService(
+      inviteService: Partial<RequestContainer["ledger"]["inviteService"]>,
+    ) {
+      return createApp(
+        createContainer({
+          inviteService: {
+            accept: vi.fn(),
+            create: vi.fn(),
+            listPending: vi.fn(),
+            revoke: vi.fn(),
+            ...inviteService,
+          },
+        }),
+      );
+    }
+
+    function postInvite(
+      app: ReturnType<typeof createApp>,
+      body: Record<string, unknown>,
+    ) {
+      return app.request(
+        `https://kuranote.example/ledgers/${ledgerId}/invites`,
+        { body: JSON.stringify(body), headers, method: "POST" },
+      );
+    }
+
+    it("创建绑定邀请时透传 placeholderId，响应符合 OpenAPI", async () => {
+      const create = vi.fn().mockResolvedValue({
+        inviteId,
+        placeholderId,
+        role: "viewer",
+        token: "a".repeat(64),
+      });
+      const app = createAppWithInviteService({ create });
+
+      const response = await postInvite(app, { placeholderId, role: "viewer" });
+
+      expect(response.status).toBe(201);
+      expect(create).toHaveBeenCalledWith({
+        ledgerId,
+        placeholderId,
+        role: "viewer",
+        userId,
+      });
+      const body = await response.json();
+      expect(createdLedgerInviteResponseSchema.parse(body)).toEqual({
+        inviteId,
+        placeholderId,
+        role: "viewer",
+        token: "a".repeat(64),
+      });
+    });
+
+    it("省略 placeholderId 时生成匿名邀请，响应 placeholderId 为 null", async () => {
+      const create = vi.fn().mockResolvedValue({
+        inviteId,
+        placeholderId: null,
+        role: "member",
+        token: "a".repeat(64),
+      });
+      const app = createAppWithInviteService({ create });
+
+      const response = await postInvite(app, { role: "member" });
+
+      expect(response.status).toBe(201);
+      expect(create.mock.calls[0][0].placeholderId).toBeUndefined();
+      expect(
+        createdLedgerInviteResponseSchema.parse(await response.json()),
+      ).toMatchObject({ placeholderId: null });
+    });
+
+    it.each(["not-a-uuid", null, 1])(
+      "placeholderId 为 %j 时返回 400 且不调用 Service",
+      async (value) => {
+        const create = vi.fn();
+        const app = createAppWithInviteService({ create });
+
+        const response = await postInvite(app, {
+          placeholderId: value,
+          role: "member",
+        });
+
+        expect(response.status).toBe(400);
+        expect(create).not.toHaveBeenCalled();
+        expect(revalidatePath).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      ["placeholder_invite_pending", ConflictError, 409],
+      ["placeholder_already_claimed", ConflictError, 409],
+      ["placeholder_not_found", NotFoundError, 404],
+      ["ledger_not_found", NotFoundError, 404],
+    ] as const)(
+      "Service 抛出 %s 时返回真实状态码与安全响应体",
+      async (code, ErrorClass, status) => {
+        const message = getLedgerInviteErrorMessage(code)!;
+        const create = vi.fn().mockRejectedValue(new ErrorClass(code, message));
+        const app = createAppWithInviteService({ create });
+
+        const response = await postInvite(app, {
+          placeholderId,
+          role: "member",
+        });
+
+        expect(response.status).toBe(status);
+        expect(await response.json()).toEqual({
+          error: { code, message, requestId: "request-1", status },
+        });
+        expect(revalidatePath).not.toHaveBeenCalled();
+      },
+    );
+
+    it("未知异常返回 500 且不泄露原始信息", async () => {
+      const create = vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'duplicate key value violates unique constraint "ledger_invite_one_pending_placeholder"',
+          ),
+        );
+      const app = createAppWithInviteService({ create });
+
+      const response = await postInvite(app, { placeholderId, role: "member" });
+      const text = await response.text();
+
+      expect(response.status).toBe(500);
+      expect(JSON.parse(text)).toMatchObject({
+        error: { requestId: "request-1", status: 500 },
+      });
+      expect(text).not.toContain("ledger_invite_one_pending_placeholder");
+    });
+
+    it("待接受邀请列表返回 placeholderId，响应符合 OpenAPI", async () => {
+      const invites = [
+        {
+          createdAt: "2026-09-24T00:00:00.000Z",
+          id: inviteId,
+          placeholderId,
+          role: "member",
+          token: "a".repeat(64),
+        },
+        {
+          createdAt: "2026-09-23T00:00:00.000Z",
+          id: "00000000-0000-4000-8000-000000000034",
+          placeholderId: null,
+          role: "viewer",
+          token: null,
+        },
+      ];
+      const app = createAppWithInviteService({
+        listPending: vi.fn().mockResolvedValue(invites),
+      });
+
+      const response = await app.request(
+        `https://kuranote.example/ledgers/${ledgerId}/invites`,
+        { method: "GET" },
+      );
+
+      expect(response.status).toBe(200);
+      expect(
+        pendingLedgerInvitesResponseSchema.parse(await response.json()),
+      ).toEqual({ invites });
+    });
   });
 });

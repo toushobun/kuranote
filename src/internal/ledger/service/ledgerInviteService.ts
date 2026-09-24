@@ -4,6 +4,7 @@ import {
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 import type {
+  AcceptedLedgerInvite,
   LedgerInviteRepository,
   PendingLedgerInvite,
 } from "internal/ledger/repository/ledgerInviteRepository";
@@ -29,6 +30,7 @@ export type LedgerInviteServiceDependencies = {
 
 export type CreatedLedgerInvite = {
   inviteId: string;
+  placeholderId: string | null;
   role: LedgerInviteRole;
   token: string;
 };
@@ -39,6 +41,8 @@ export type ManageLedgerInviteInput = {
 };
 
 export type CreateLedgerInviteInput = ManageLedgerInviteInput & {
+  /** 省略或为 null 时生成匿名邀请。 */
+  placeholderId?: string | null;
   role: LedgerInviteRole;
 };
 
@@ -47,7 +51,7 @@ export type RevokeLedgerInviteInput = ManageLedgerInviteInput & {
 };
 
 export type LedgerInviteService = {
-  accept(token: string): Promise<void>;
+  accept(token: string): Promise<AcceptedLedgerInvite>;
   create(input: CreateLedgerInviteInput): Promise<CreatedLedgerInvite>;
   revoke(input: RevokeLedgerInviteInput): Promise<void>;
   listPending(input: ManageLedgerInviteInput): Promise<PendingLedgerInvite[]>;
@@ -61,11 +65,18 @@ function toAppError(code: LedgerInviteErrorCode): AppError {
     case ledgerInviteErrorCodes.authRequired:
       return new AuthenticationError(code, message);
     case ledgerInviteErrorCodes.permissionDenied:
+    case ledgerInviteErrorCodes.userInactive:
       return new AuthorizationError(code, message);
     case ledgerInviteErrorCodes.inviteInvalid:
+    case ledgerInviteErrorCodes.ledgerNotFound:
+    case ledgerInviteErrorCodes.placeholderNotFound:
       return new NotFoundError(code, message);
     case ledgerInviteErrorCodes.inviteUsed:
     case ledgerInviteErrorCodes.inviteAlreadyRevoked:
+    case ledgerInviteErrorCodes.placeholderAlreadyClaimed:
+    case ledgerInviteErrorCodes.placeholderClaimAccountNameConflict:
+    case ledgerInviteErrorCodes.placeholderClaimExistingMember:
+    case ledgerInviteErrorCodes.placeholderInvitePending:
       return new ConflictError(code, message);
     case ledgerInviteErrorCodes.inviteRoleInvalid:
       return new ValidationError(code, message);
@@ -98,18 +109,24 @@ export function createLedgerInviteService({
 }: LedgerInviteServiceDependencies): LedgerInviteService {
   return {
     async accept(token) {
+      // 接受者不要求预先属于账本；成员冲突、占位状态等最终判断由 RPC 持锁完成。
       const result = await ledgerInviteRepository.accept(token);
 
       if (!result.ok) {
         throw toAppError(result.code);
       }
+
+      return result.invite;
     },
 
     async create(input) {
       await requireInviteManager(ledgerAccessService, input);
+      // Service 只预检管理权限；占位归属、认领状态与有效绑定由 RPC 持锁后判断。
+      // 数据库返回小写 UUID，这里统一为小写，避免 Repository 的一致性校验误判。
       const result = await ledgerInviteRepository.create(
         input.ledgerId,
         input.role,
+        input.placeholderId?.toLowerCase() ?? null,
       );
 
       if (!result.ok) {
@@ -118,6 +135,7 @@ export function createLedgerInviteService({
 
       return {
         inviteId: result.inviteId,
+        placeholderId: result.placeholderId,
         role: result.role,
         token: result.token,
       };

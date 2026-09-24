@@ -40,7 +40,9 @@ describe("loadLedgerInvitePreview", () => {
     const preview = {
       inviteRole: "member",
       inviterName: "管理员",
+      isPlaceholderBound: false,
       ledgerName: "家庭账本",
+      placeholderDisplayName: null,
       status: "valid",
     } as const;
     mocks.load.mockResolvedValue(preview);
@@ -60,7 +62,9 @@ describe("loadLedgerInvitePreview", () => {
     await expect(loadLedgerInvitePreview("token")).resolves.toEqual({
       inviteRole: null,
       inviterName: null,
+      isPlaceholderBound: false,
       ledgerName: null,
+      placeholderDisplayName: null,
       status: "invalid",
     });
     expect(mocks.loggerError).toHaveBeenCalledWith(
