@@ -2,7 +2,9 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteService";
+import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
 import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import {
@@ -198,6 +200,8 @@ describe("createLedgerInviteService 占位错误映射", () => {
     ["placeholder_claim_existing_member", "accept", ConflictError, 409],
     ["placeholder_claim_account_name_conflict", "accept", ConflictError, 409],
     ["placeholder_already_claimed", "accept", ConflictError, 409],
+    ["ledger_not_found", "create", NotFoundError, 404],
+    ["user_inactive", "accept", AuthorizationError, 403],
   ] as const)(
     "%s（%s）映射为对应子类及 HTTP status",
     async (code, operation, ErrorClass, status) => {
@@ -220,4 +224,42 @@ describe("createLedgerInviteService 占位错误映射", () => {
       expect(appErrorToResponseBody(failure as AppError).status).toBe(status);
     },
   );
+});
+
+describe("createLedgerInviteService.create 大写占位 ID", () => {
+  it("大写 placeholderId 归一化为小写后生成成功，不抛 RepositoryError", async () => {
+    // 使用真实 Repository，数据库按 PostgreSQL 惯例返回小写 UUID。
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          invite_id: "00000000-0000-4000-8000-000000000041",
+          invite_role: "member",
+          placeholder_id: "0000000a-0000-4000-8000-00000000005b",
+          token: "a".repeat(64),
+        },
+      ],
+      error: null,
+    });
+    const service = createLedgerInviteService({
+      ledgerAccessService: {
+        getActiveMemberRole: vi.fn().mockResolvedValue("owner"),
+      },
+      ledgerInviteRepository: createSupabaseLedgerInviteRepository({
+        rpc,
+      } as unknown as AuthenticatedSupabaseClient),
+    });
+
+    const created = await service.create({
+      ...actor,
+      placeholderId: "0000000A-0000-4000-8000-00000000005B",
+      role: "member",
+    });
+
+    expect(created.placeholderId).toBe("0000000a-0000-4000-8000-00000000005b");
+    expect(rpc).toHaveBeenCalledWith("create_ledger_invite_v2", {
+      p_ledger_id: actor.ledgerId,
+      p_placeholder_id: "0000000a-0000-4000-8000-00000000005b",
+      p_role: "member",
+    });
+  });
 });

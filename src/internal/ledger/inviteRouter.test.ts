@@ -14,6 +14,7 @@ import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite
 import { acceptLedgerInviteResponseSchema } from "internal/ledger/schema";
 import {
   AuthenticationError,
+  AuthorizationError,
   ConflictError,
 } from "internal/shared/errors/appError";
 import { errorHandlingMiddleware } from "internal/shared/http/errorResponse";
@@ -206,6 +207,27 @@ describe("ledger invite router", () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: { code, message, requestId: "test-request-id", status: 409 },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("user_inactive 时返回 403 与安全响应体，且不触发缓存失效", async () => {
+    const code = "user_inactive";
+    const message = getLedgerInviteErrorMessage(code)!;
+    const accept = vi
+      .fn()
+      .mockRejectedValue(new AuthorizationError(code, message));
+    const app = createTestApp(containerWithAccept(accept));
+
+    const response = await app.request(acceptUrl, {
+      body: JSON.stringify({ token: validToken }),
+      headers: sameOriginHeaders,
+      method: "POST",
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: { code, message, requestId: "test-request-id", status: 403 },
     });
     expect(revalidatePath).not.toHaveBeenCalled();
   });

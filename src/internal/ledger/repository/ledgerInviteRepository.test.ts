@@ -139,6 +139,7 @@ describe("createSupabaseLedgerInviteRepository", () => {
       ledgerInviteErrorCodes.placeholderAlreadyClaimed,
     ],
     ["invite_already_used", ledgerInviteErrorCodes.inviteUsed],
+    ["user_inactive", ledgerInviteErrorCodes.userInactive],
   ] as const)("接受时 details 为 %s 精确映射", async (details, expected) => {
     const repository = createSupabaseLedgerInviteRepository(
       createSupabaseStub({
@@ -297,6 +298,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
       "placeholder_already_claimed",
       ledgerInviteErrorCodes.placeholderAlreadyClaimed,
     ],
+    ["ledger_not_found", ledgerInviteErrorCodes.ledgerNotFound],
   ] as const)("生成时 details 为 %s 精确映射", async (details, expected) => {
     const repository = createSupabaseLedgerInviteRepository(
       createSupabaseStub({

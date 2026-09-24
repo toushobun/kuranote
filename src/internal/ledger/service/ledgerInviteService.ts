@@ -65,8 +65,10 @@ function toAppError(code: LedgerInviteErrorCode): AppError {
     case ledgerInviteErrorCodes.authRequired:
       return new AuthenticationError(code, message);
     case ledgerInviteErrorCodes.permissionDenied:
+    case ledgerInviteErrorCodes.userInactive:
       return new AuthorizationError(code, message);
     case ledgerInviteErrorCodes.inviteInvalid:
+    case ledgerInviteErrorCodes.ledgerNotFound:
     case ledgerInviteErrorCodes.placeholderNotFound:
       return new NotFoundError(code, message);
     case ledgerInviteErrorCodes.inviteUsed:
@@ -120,10 +122,11 @@ export function createLedgerInviteService({
     async create(input) {
       await requireInviteManager(ledgerAccessService, input);
       // Service 只预检管理权限；占位归属、认领状态与有效绑定由 RPC 持锁后判断。
+      // 数据库返回小写 UUID，这里统一为小写，避免 Repository 的一致性校验误判。
       const result = await ledgerInviteRepository.create(
         input.ledgerId,
         input.role,
-        input.placeholderId ?? null,
+        input.placeholderId?.toLowerCase() ?? null,
       );
 
       if (!result.ok) {

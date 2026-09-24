@@ -191,11 +191,17 @@ order by p.oid::regprocedure::text;
 - 存在同账本、同占位、`accepted_by = auth.uid()` 且 `accepted_at` 非空的邀请，该占位 `claimed_by` 仍为空；
 - 接受者是该账本 active 成员且 `app_user.status = 'active'`。
 
-客户端对 `account_holder`、`ledger_invite`、`ledger_placeholder_member` 仍没有写权限，`account_holder_update_admin` 仍要求 owner/admin，因此该分支只在 `accept_ledger_invite` 以函数 owner 身份执行时生效；接受者不会因认领获得账户或持有人的管理权限。
+该分支不识别调用方是 RPC 还是直接 DML，生效条件完全是数据状态：存在当前用户已接受的该占位绑定邀请，而该占位的 `claimed_by` 仍为空。这种“邀请已接受、占位未认领”的中间状态无法被单独提交：
+
+- `accepted_at / accepted_by` 只由 `accept_ledger_invite` 写入，它在同一事务内先写接受状态，再迁移全部持有行，最后写 `claimed_by / claimed_at`；任一步失败整个事务回滚，因此已提交的数据只会是“未接受且未认领”或“已接受且已认领”。
+- 中间状态只存在于接受事务内部，其他事务按 MVCC 看不到；接受事务持有账本与占位锁，并发的占位管理、账户编辑与直接 DML 引用都要等待它结束。
+- 客户端对 `ledger_invite`、`ledger_placeholder_member` 没有写权限，无法伪造接受状态或清空认领标记；对 `account_holder` 也没有 UPDATE 权限，且 `account_holder_update_admin` 仍要求 owner/admin。
+
+因此客户端无法单独构造触发该分支的数据状态，只有 `accept_ledger_invite` 事务内部会满足条件；接受者也不会因认领获得账户或持有人的管理权限。绕过 RPC、拥有表权限的数据库维护角色可以人为制造该状态（数据库测试即以此单独验证分支条件），这属于运维操作而非客户端路径。
 
 锁顺序统一为账本 → 占位 → 邀请 → 成员 → 账户（按 ID）。接受者可能是 member / viewer，因此接受 RPC 不复用要求 owner/admin 的 `lock_ledger_placeholder_management`，而是在函数内直接 `for update`。`account_active_name_unique` 为延迟约束，接受 RPC 在迁移后立即检查，并只在约束名精确匹配时转换为 `placeholder_claim_account_name_conflict`（SQLSTATE `23505`）；并发插入成员命中 `ledger_member_not_removed_user_unique` 时转换为 `placeholder_claim_existing_member`。任一步失败时整个事务回滚。
 
-`ledger_invite_placeholder_claim.test.sql` 在真实 Supabase 上覆盖签名与授权、匿名邀请回归、绑定邀请唯一、撤销后重建、已有成员拒绝、member / viewer 认领后的权限、含归档账户的全量迁移、失败回滚、幂等重放、窄分支绕过与预览字段，并以 dblink 双会话验证并发生成、索引兜底、接受与撤销竞争及匿名接受的账本锁。
+`ledger_invite_placeholder_claim.test.sql` 在真实 Supabase 上覆盖签名与授权、匿名邀请回归、绑定邀请唯一、撤销后重建、已有成员拒绝、member / viewer 认领后的权限、含归档账户的全量迁移、失败回滚、幂等重放、窄分支绕过与预览字段，并以 dblink 多会话验证并发生成、索引兜底、接受与撤销竞争、匿名接受的账本锁，以及认领持锁期间的占位改名与账户编辑（均等锁后返回 `placeholder_already_claimed`，数据保持认领结果）。
 
 ## 自动化检查
 

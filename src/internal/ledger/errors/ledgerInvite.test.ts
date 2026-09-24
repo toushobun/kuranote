@@ -18,6 +18,8 @@ describe("getLedgerInviteErrorMessage", () => {
       "该待邀请成员已有一条有效邀请，请先撤销后再重新生成。",
     ],
     ["placeholder_not_found", "待邀请成员不存在或已删除。"],
+    ["ledger_not_found", "账本不存在或已归档。"],
+    ["user_inactive", "当前账号已停用，无法加入账本。"],
     ["placeholder_already_claimed", "该待邀请成员已被认领。"],
     [
       "placeholder_claim_existing_member",

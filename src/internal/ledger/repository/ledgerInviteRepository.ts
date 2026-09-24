@@ -73,6 +73,7 @@ const inviteErrorMap = {
   invite_already_used: ledgerInviteErrorCodes.inviteUsed,
   invite_invalid: ledgerInviteErrorCodes.inviteInvalid,
   invite_role_invalid: ledgerInviteErrorCodes.inviteRoleInvalid,
+  ledger_not_found: ledgerInviteErrorCodes.ledgerNotFound,
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
   placeholder_already_claimed: ledgerInviteErrorCodes.placeholderAlreadyClaimed,
   placeholder_claim_account_name_conflict:
@@ -81,6 +82,7 @@ const inviteErrorMap = {
     ledgerInviteErrorCodes.placeholderClaimExistingMember,
   placeholder_invite_pending: ledgerInviteErrorCodes.placeholderInvitePending,
   placeholder_not_found: ledgerInviteErrorCodes.placeholderNotFound,
+  user_inactive: ledgerInviteErrorCodes.userInactive,
 } as const satisfies Readonly<Record<string, LedgerInviteErrorCode>>;
 
 function isNullableString(value: unknown): value is string | null {

@@ -488,46 +488,71 @@ begin
     return false;
 end;
 $$;
--- 并发数据必须真实提交，因此使用种子用户 31（owner）与 34（接受者），结束后清理并恢复 34 的当前账本。
+-- 多个会话排队等待同一行锁时，后到者可能被前一个等待者阻塞，因此只确认其处于锁等待。
+create function pg_temp.wait_blocked(p_pid integer)
+returns boolean language plpgsql as $$
+begin
+    for attempt in 1..200 loop
+        if cardinality(pg_blocking_pids(p_pid)) > 0 then return true; end if;
+        perform pg_sleep(0.025);
+    end loop;
+    return false;
+end;
+$$;
+-- 并发数据必须真实提交，因此使用种子用户 31（owner）、34 与 37（接受者），结束后清理并恢复接受者的当前账本。
 create function pg_temp.invite_concurrency()
 returns setof text language plpgsql as $fn$
 declare
     v_connection text := format('host=%s port=%s dbname=%s user=postgres password=postgres', host(inet_server_addr()), inet_server_port(), current_database());
     v_owner uuid := '00000000-0000-4000-8000-000000000031';
     v_acceptor uuid := '00000000-0000-4000-8000-000000000034';
+    v_claimer uuid := '00000000-0000-4000-8000-000000000037';
     v_ledger uuid := gen_random_uuid();
     v_p1 uuid := gen_random_uuid();
     v_p2 uuid := gen_random_uuid();
     v_p3 uuid := gen_random_uuid();
     v_p4 uuid := gen_random_uuid();
+    v_p5 uuid := gen_random_uuid();
+    v_account uuid;
     v_invite uuid;
     v_token text;
     v_a_pid integer;
     v_b_pid integer;
+    v_c_pid integer;
     v_result text;
     v_count bigint;
     v_cleanup text;
+    v_setup text;
 begin
     perform dblink_connect('invite_a', v_connection);
     perform dblink_connect('invite_b', v_connection);
+    perform dblink_connect('invite_c', v_connection);
     select pid into v_a_pid from dblink('invite_a', 'select pg_backend_pid()') as t(pid integer);
     select pid into v_b_pid from dblink('invite_b', 'select pg_backend_pid()') as t(pid integer);
+    select pid into v_c_pid from dblink('invite_c', 'select pg_backend_pid()') as t(pid integer);
     v_cleanup := format($q$
         update public.app_user set current_ledger_id = %2$L where id = %3$L;
+        update public.app_user set current_ledger_id = %4$L where id = %5$L;
+        delete from public.account_holder where ledger_id = %1$L;
+        delete from public.transaction_item where ledger_id = %1$L;
+        delete from public.transaction_record where ledger_id = %1$L;
+        delete from public.account where ledger_id = %1$L;
         delete from public.ledger_invite where ledger_id = %1$L;
         delete from public.ledger_placeholder_member where ledger_id = %1$L;
         delete from public.ledger_member_display_setting where ledger_id = %1$L;
         delete from public.ledger_member where ledger_id = %1$L;
         delete from public.ledger where id = %1$L;
-    $q$, v_ledger, (select current_ledger_id from public.app_user where id = v_acceptor), v_acceptor);
+    $q$, v_ledger, (select current_ledger_id from public.app_user where id = v_acceptor), v_acceptor,
+        (select current_ledger_id from public.app_user where id = v_claimer), v_claimer);
     perform dblink_exec('invite_a', format($q$
         insert into public.ledger(id, name, base_currency, owner_user_id) values (%1$L, 'Issue802 并发测试', 'JPY', %2$L);
         insert into public.ledger_member(ledger_id, user_id, role, status, joined_at) values (%1$L, %2$L, 'owner', 'active', now());
         insert into public.ledger_placeholder_member(id, ledger_id, display_name, created_by)
-        values (%3$L, %1$L, '并发一', %2$L), (%4$L, %1$L, '并发二', %2$L), (%5$L, %1$L, '并发三', %2$L), (%6$L, %1$L, '并发四', %2$L);
-    $q$, v_ledger, v_owner, v_p1, v_p2, v_p3, v_p4));
+        values (%3$L, %1$L, '并发一', %2$L), (%4$L, %1$L, '并发二', %2$L), (%5$L, %1$L, '并发三', %2$L), (%6$L, %1$L, '并发四', %2$L),
+               (%7$L, %1$L, '并发五', %2$L);
+    $q$, v_ledger, v_owner, v_p1, v_p2, v_p3, v_p4, v_p5));
     -- 在远端子事务收集 SQLSTATE/detail，失败写入自动回滚，避免解析英文错误。
-    perform dblink_exec('invite_b', format($q$
+    v_setup := format($q$
         create function pg_temp.run_sql(p_sql text) returns text language plpgsql as $remote$
         declare v_detail text;
         begin
@@ -541,11 +566,15 @@ begin
         set role authenticated;
         set request.jwt.claim.sub = %L;
         set statement_timeout = '10s';
-    $q$, v_owner));
+    $q$, v_owner);
+    perform dblink_exec('invite_b', v_setup);
+    perform dblink_exec('invite_c', v_setup);
     perform dblink_exec('invite_a', format('set request.jwt.claim.sub = %L', v_owner));
-    -- 确认第二会话确实以客户端角色和 owner 身份执行，而不是沿用维护连接的超级用户权限。
+    -- 确认第二、第三会话确实以客户端角色和 owner 身份执行，而不是沿用维护连接的超级用户权限。
     select r into v_result from dblink('invite_b', 'select current_user || '':'' || auth.uid()') as t(r text);
     return next is(v_result, 'authenticated:' || v_owner, '第二会话以 authenticated 角色和 owner 身份调用 RPC');
+    select r into v_result from dblink('invite_c', 'select current_user || '':'' || auth.uid()') as t(r text);
+    return next is(v_result, 'authenticated:' || v_owner, '第三会话以 authenticated 角色和 owner 身份调用 RPC');
 
     -- 1. 两个会话同时为同一占位生成绑定邀请。
     perform dblink_exec('invite_a', 'begin; set local role authenticated');
@@ -611,13 +640,46 @@ begin
     perform * from dblink_get_result('invite_b') as t(result text);
     return next is(v_result, 'ok', '账本锁释放后匿名接受继续完成');
 
+    -- 6. 认领事务持锁期间，改名与账户编辑都等待账本锁，锁释放后读取已认领状态。
+    select id into v_account from dblink('invite_a', format('select public.create_account_with_holders(%L, ''并发账户'', ''bank'', ''JPY'', 0, ''{}'', %L)', v_ledger, v_p5)) as t(id uuid);
+    select tok into v_token from dblink('invite_a', format('select token from public.create_ledger_invite_v2(%L, ''member'', %L)', v_ledger, v_p5)) as t(tok text);
+    perform dblink_exec('invite_a', format('begin; set local role authenticated; set local request.jwt.claim.sub = %L', v_claimer));
+    select r into v_result from dblink('invite_a', format('select result from public.accept_ledger_invite(%L)', v_token)) as t(r text);
+    return next is(v_result, 'claimed', '认领事务先取得账本与占位锁');
+    perform dblink_exec('invite_b', format('set request.jwt.claim.sub = %L', v_owner));
+    perform dblink_send_query('invite_b', format('select pg_temp.run_sql(%L)', format('select public.rename_ledger_placeholder_member(%L, %L, ''并发改名'')', v_ledger, v_p5)));
+    return next ok(pg_temp.wait_lock(v_b_pid, v_a_pid), '改名等待认领事务持有的账本锁');
+    -- 管理员按旧表单继续把持有人指定为该占位，同时修改账户名称。
+    perform dblink_send_query('invite_c', format('select pg_temp.run_sql(%L)', format('select public.update_account_with_holders(%L, %L, ''并发改名账户'', ''bank'', ''JPY'', ''{}'', %L)', v_ledger, v_account, v_p5)));
+    return next ok(pg_temp.wait_blocked(v_c_pid), '账户编辑同样等待账本锁');
+    perform dblink_exec('invite_a', 'commit');
+    select result into v_result from dblink_get_result('invite_b') as t(result text);
+    perform * from dblink_get_result('invite_b') as t(result text);
+    return next is(v_result, '23514:placeholder_already_claimed', '认领先提交后改名返回 placeholder_already_claimed');
+    select result into v_result from dblink_get_result('invite_c') as t(result text);
+    perform * from dblink_get_result('invite_c') as t(result text);
+    return next is(v_result, '23514:placeholder_already_claimed', '认领先提交后账户编辑按 A 阶段契约返回 placeholder_already_claimed');
+    select r into v_result from dblink('invite_a', format($q$
+        select p.display_name || ':' || (p.claimed_by = %1$L) || ':' || a.name || ':' || (h.user_id = %1$L) || ':' || (h.placeholder_id is null)
+            || ':' || (s.holder_user_id = %1$L) || ':' || (s.holder_placeholder_id is null)
+        from public.ledger_placeholder_member p
+        join public.account a on a.id = %3$L
+        join public.account_holder h on h.account_id = a.id
+        join public.account_name_scope s on s.account_id = a.id
+        where p.id = %2$L
+    $q$, v_claimer, v_p5, v_account)) as t(r text);
+    return next is(v_result, '并发五:true:并发账户:true:true:true:true', '改名与账户编辑均未写入，持有行与名称投影保持认领结果');
+
     perform dblink_exec('invite_a', $q$reset role; set request.jwt.claim.sub = ''$q$);
     perform dblink_exec('invite_a', v_cleanup);
     perform dblink_disconnect('invite_a');
     perform dblink_disconnect('invite_b');
+    perform dblink_disconnect('invite_c');
 exception when others then
     perform dblink_cancel_query('invite_b');
     perform dblink_disconnect('invite_b');
+    perform dblink_cancel_query('invite_c');
+    perform dblink_disconnect('invite_c');
     perform dblink_exec('invite_a', 'rollback');
     perform dblink_exec('invite_a', $q$reset role; set request.jwt.claim.sub = ''$q$);
     perform dblink_exec('invite_a', v_cleanup);

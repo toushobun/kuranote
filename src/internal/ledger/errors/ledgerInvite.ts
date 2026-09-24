@@ -6,6 +6,7 @@ export const ledgerInviteErrorCodes = {
   inviteInvalid: "invite_invalid",
   inviteRoleInvalid: "invite_role_invalid",
   inviteUsed: "invite_already_used",
+  ledgerNotFound: "ledger_not_found",
   loadFailed: "load_failed",
   permissionDenied: "permission_denied",
   placeholderAlreadyClaimed: "placeholder_already_claimed",
@@ -15,6 +16,7 @@ export const ledgerInviteErrorCodes = {
   placeholderInvitePending: "placeholder_invite_pending",
   placeholderNotFound: "placeholder_not_found",
   revokeFailed: "revoke_failed",
+  userInactive: "user_inactive",
 } as const;
 
 export type LedgerInviteErrorCode =
@@ -28,6 +30,7 @@ const messages: Record<LedgerInviteErrorCode, string> = {
   invite_invalid: "该邀请链接无效或已失效。",
   invite_role_invalid: "请选择有效的邀请权限。",
   invite_already_used: "该邀请链接已经被使用。",
+  ledger_not_found: "账本不存在或已归档。",
   load_failed: "待接受邀请加载失败，请稍后重试。",
   permission_denied: "只有账本所有者或管理员可以管理邀请。",
   placeholder_already_claimed: "该待邀请成员已被认领。",
@@ -39,6 +42,7 @@ const messages: Record<LedgerInviteErrorCode, string> = {
     "该待邀请成员已有一条有效邀请，请先撤销后再重新生成。",
   placeholder_not_found: "待邀请成员不存在或已删除。",
   revoke_failed: "邀请撤销失败，请稍后重试。",
+  user_inactive: "当前账号已停用，无法加入账本。",
 };
 
 export function getLedgerInviteErrorMessage(code?: string) {

@@ -379,6 +379,7 @@ describe("ledger router", () => {
       ["placeholder_invite_pending", ConflictError, 409],
       ["placeholder_already_claimed", ConflictError, 409],
       ["placeholder_not_found", NotFoundError, 404],
+      ["ledger_not_found", NotFoundError, 404],
     ] as const)(
       "Service 抛出 %s 时返回真实状态码与安全响应体",
       async (code, ErrorClass, status) => {
