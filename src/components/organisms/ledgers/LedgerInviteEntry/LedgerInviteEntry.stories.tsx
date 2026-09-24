@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps } from "react";
 import { userEvent, within } from "storybook/test";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerInviteStateAction } from "types/ledgers";
 
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
@@ -12,6 +14,7 @@ const pendingInvites = [
   {
     createdAt: "2026-07-13T09:00:00.000Z",
     id: "storybook-invite-id",
+    placeholderId: null,
     role: "member" as const,
     token: "storybook-pending-invite-token",
   },
@@ -122,4 +125,76 @@ export const WithError: Story = {
       name: "生成邀请链接失败",
     });
   },
+};
+
+const placeholderMembers = [
+  { displayName: "奶奶", id: "storybook-placeholder-1" },
+  { displayName: "爷爷", id: "storybook-placeholder-2" },
+];
+const boundInvite = {
+  createdAt: "2026-09-01T09:30:00.000Z",
+  id: "storybook-bound-invite-id",
+  placeholderId: placeholderMembers[0].id,
+  role: "member" as const,
+  token: "storybook-bound-invite-token",
+};
+const placeholderMemberActions = {
+  create: async () => ({}),
+  delete: async () => ({}),
+  rename: async () => ({}),
+};
+
+function renderWithPlaceholders(args: LedgerInviteEntryArgs) {
+  return (
+    <UserThemeProvider storageScope="storybook-ledger-invite-entry">
+      <ConfirmDialogProvider>
+        <LedgerInvitePendingProvider
+          pendingInvites={
+            args.canInvite ? [boundInvite, ...pendingInvites] : []
+          }
+        >
+          <LedgerInviteEntry {...args} />
+        </LedgerInvitePendingProvider>
+      </ConfirmDialogProvider>
+    </UserThemeProvider>
+  );
+}
+
+export const WithPlaceholderMembers: Story = {
+  name: "待邀请成员（含绑定邀请）与匿名邀请",
+  args: { placeholderMemberActions, placeholderMembers },
+  render: renderWithPlaceholders,
+};
+
+export const BoundInviteCopyArea: Story = {
+  name: "绑定邀请的复制区域（接管说明）",
+  args: { placeholderMemberActions, placeholderMembers },
+  render: renderWithPlaceholders,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "奶奶，待接受邀请" }),
+    );
+    await userEvent.click(
+      await within(document.body).findByRole("button", {
+        name: /查看邀请链接/,
+      }),
+    );
+  },
+};
+
+export const BoundInviteCopyAreaMobile: Story = {
+  ...BoundInviteCopyArea,
+  name: "绑定邀请的复制区域（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+};
+
+export const PlaceholderReadOnly: Story = {
+  name: "待邀请成员（非管理者只读）",
+  args: {
+    canInvite: false,
+    placeholderMemberActions: null,
+    placeholderMembers,
+  },
+  render: renderWithPlaceholders,
 };

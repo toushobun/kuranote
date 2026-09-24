@@ -28,6 +28,7 @@ import {
   accountTypeOptions,
   type AccountActionState,
   type AccountHolderOption,
+  type AccountPlaceholderHolderOption,
   type Account,
   type AccountStateAction,
   type AccountType,
@@ -51,6 +52,7 @@ type AccountsTemplateProps = {
   initialErrorMessage?: string | null;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   saveResult?: AccountSaveResult | null;
   updateAccountAction: AccountStateAction;
 };
@@ -69,6 +71,7 @@ export function AccountsTemplate({
   initialErrorKey = null,
   initialErrorMessage = null,
   holderOptions,
+  placeholderHolderOptions = [],
   saveResult = null,
   updateAccountAction,
 }: AccountsTemplateProps) {
@@ -237,6 +240,7 @@ export function AccountsTemplate({
             }
             emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
             holderOptions={holderOptions}
+            placeholderHolderOptions={placeholderHolderOptions}
             saveResult={saveResult}
             updateAccountAction={updateFormAction}
           />
@@ -249,6 +253,7 @@ export function AccountsTemplate({
             defaultCurrency={baseCurrency}
             holderOptions={holderOptions}
             onClose={() => setIsCreateDialogOpen(false)}
+            placeholderHolderOptions={placeholderHolderOptions}
             open={isCreateDialogOpen}
           />
         ) : null}

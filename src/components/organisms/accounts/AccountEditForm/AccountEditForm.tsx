@@ -16,7 +16,11 @@ import { FormActions } from "molecules/ui/FormActions";
 import { AccountFields } from "organisms/accounts/AccountFields/AccountFields";
 import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption, Account } from "types/accounts";
+import type {
+  AccountHolderOption,
+  AccountPlaceholderHolderOption,
+  Account,
+} from "types/accounts";
 
 export function getAccountEditFormId(accountId: string) {
   return `edit-account-form-${accountId}`;
@@ -34,6 +38,7 @@ type AccountEditFormProps = {
   onCancel?: () => void;
   onDirty?: () => void;
   onSubmit?: () => void;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   updateAccountAction: ServerAction;
 };
 
@@ -45,6 +50,7 @@ export function AccountEditForm({
   onCancel,
   onDirty,
   onSubmit,
+  placeholderHolderOptions = [],
   updateAccountAction,
 }: AccountEditFormProps) {
   const [targetBalance, setTargetBalance] = useState(
@@ -71,13 +77,36 @@ export function AccountEditForm({
   const selectableHolderUserIds = new Set(
     holderOptions.map((option) => option.user_id),
   );
-  const preservedHolderOptions = account.holders
-    .filter((holder) => !selectableHolderUserIds.has(holder.user_id))
-    .map((holder) => ({
-      user_id: holder.user_id,
-      display_name: holder.display_name,
-      email: holder.email,
-    }));
+  const preservedHolderOptions = account.holders.flatMap((holder) =>
+    holder.kind === "member" && !selectableHolderUserIds.has(holder.user_id)
+      ? [
+          {
+            user_id: holder.user_id,
+            display_name: holder.display_name,
+            email: holder.email,
+          },
+        ]
+      : [],
+  );
+  const currentPlaceholderHolder = account.holders.find(
+    (holder) => holder.kind === "placeholder",
+  );
+  // 编辑时必须原样带回当前占位持有人：即使它暂时不在候选中也补进选项，
+  // 否则不改持有人直接保存会以「无持有人」提交并删除占位持有行。
+  const editablePlaceholderOptions =
+    currentPlaceholderHolder &&
+    !placeholderHolderOptions.some(
+      (option) =>
+        option.placeholder_id === currentPlaceholderHolder.placeholder_id,
+    )
+      ? [
+          ...placeholderHolderOptions,
+          {
+            display_name: currentPlaceholderHolder.display_name,
+            placeholder_id: currentPlaceholderHolder.placeholder_id,
+          },
+        ]
+      : placeholderHolderOptions;
 
   return (
     <Stack spacing={2.5}>
@@ -115,6 +144,7 @@ export function AccountEditForm({
           defaultType={account.type}
           holderOptions={holderOptions}
           nameId="edit-account-name"
+          placeholderHolderOptions={editablePlaceholderOptions}
           preservedHolderOptions={preservedHolderOptions}
           renderBalanceField={(selectedCurrency) => (
             <Stack spacing={1.5}>
@@ -162,8 +192,11 @@ export function AccountEditForm({
               ) : null}
             </Stack>
           )}
-          selectedHolderUserIds={account.holders.map(
-            (holder) => holder.user_id,
+          selectedHolderPlaceholderId={
+            currentPlaceholderHolder?.placeholder_id ?? null
+          }
+          selectedHolderUserIds={account.holders.flatMap((holder) =>
+            holder.kind === "member" ? [holder.user_id] : [],
           )}
         />
 

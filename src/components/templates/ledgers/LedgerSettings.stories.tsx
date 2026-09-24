@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { LedgerSettingsTemplate } from "./LedgerSettings";
@@ -8,9 +10,13 @@ const meta = {
   title: "Templates/Ledgers/LedgerSettingsTemplate",
   component: LedgerSettingsTemplate,
   decorators: [
-    (Story) => (
+    (Story, { args }) => (
       <UserThemeProvider storageScope="ledger-settings-story">
-        <Story />
+        <ConfirmDialogProvider>
+          <LedgerInvitePendingProvider pendingInvites={args.pendingInvites}>
+            <Story />
+          </LedgerInvitePendingProvider>
+        </ConfirmDialogProvider>
       </UserThemeProvider>
     ),
   ],
@@ -49,6 +55,12 @@ const meta = {
       },
     ],
     pendingInvites: [],
+    placeholderMemberActions: {
+      create: async () => ({}),
+      delete: async () => ({}),
+      rename: async () => ({}),
+    },
+    placeholderMembers: [],
     saveResult: null,
     updateLedgerSettingsAction: async () => {},
   },
@@ -61,10 +73,61 @@ export const Default: Story = {
   name: "账本设置页",
 };
 
+const placeholderMembers = [
+  { displayName: "奶奶", id: "00000000-0000-4000-8000-000000000061" },
+  { displayName: "爷爷", id: "00000000-0000-4000-8000-000000000062" },
+];
+
+export const WithPlaceholderMembers: Story = {
+  name: "含待邀请成员（一位已有绑定邀请）与匿名邀请",
+  args: {
+    pendingInvites: [
+      {
+        createdAt: "2026-09-01T09:30:00.000Z",
+        id: "invite-bound",
+        placeholderId: placeholderMembers[0].id,
+        role: "member",
+        token: "a".repeat(64),
+      },
+      {
+        createdAt: "2026-09-02T10:00:00.000Z",
+        id: "invite-anonymous",
+        placeholderId: null,
+        role: "viewer",
+        token: "b".repeat(64),
+      },
+    ],
+    placeholderMembers,
+  },
+};
+
+export const WithPlaceholderMembersMobile: Story = {
+  ...WithPlaceholderMembers,
+  name: "含待邀请成员（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+};
+
+export const MemberReadonlyWithPlaceholders: Story = {
+  name: "普通成员查看待邀请成员（只读）",
+  args: {
+    canEditLedger: false,
+    ledger: {
+      baseCurrency: "JPY",
+      currentUserRole: "member",
+      id: "00000000-0000-4000-8000-000000000032",
+      isCurrent: true,
+      name: "家庭账本",
+    },
+    placeholderMemberActions: null,
+    placeholderMembers,
+  },
+};
+
 export const MemberReadonly: Story = {
   name: "普通成员查看",
   args: {
     canEditLedger: false,
+    placeholderMemberActions: null,
     ledger: {
       baseCurrency: "JPY",
       currentUserRole: "member",

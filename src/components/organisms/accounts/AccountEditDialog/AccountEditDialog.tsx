@@ -2,7 +2,11 @@ import { useState } from "react";
 
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog";
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption, Account } from "types/accounts";
+import type {
+  AccountHolderOption,
+  AccountPlaceholderHolderOption,
+  Account,
+} from "types/accounts";
 
 import {
   AccountEditForm,
@@ -19,6 +23,7 @@ type AccountEditDialogProps = {
   holderOptions: AccountHolderOption[];
   onClose: () => void;
   open: boolean;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   updateAccountAction: ServerAction;
 };
 
@@ -28,6 +33,7 @@ export function AccountEditDialog({
   holderOptions,
   onClose,
   open,
+  placeholderHolderOptions = [],
   updateAccountAction,
 }: AccountEditDialogProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -73,6 +79,7 @@ export function AccountEditDialog({
             onCancel={requestClose}
             onDirty={() => setHasUnsavedChanges(true)}
             onSubmit={() => setHasUnsavedChanges(false)}
+            placeholderHolderOptions={placeholderHolderOptions}
             updateAccountAction={updateAccountAction}
           />
         ) : null}

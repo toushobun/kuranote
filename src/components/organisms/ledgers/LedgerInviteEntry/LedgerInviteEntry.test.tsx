@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import {
   type LedgerInviteActionState,
   type LedgerInviteStateAction,
@@ -37,6 +38,7 @@ describe("LedgerInviteEntry", () => {
   const pendingInvite: PendingLedgerInvite = {
     createdAt: "2026-07-24T00:00:00.000Z",
     id: "invite-1",
+    placeholderId: null,
     role: "member",
     token: "invite-token",
   };
@@ -259,18 +261,21 @@ describe("LedgerInviteEntry \u5F85\u63A5\u53D7\u9080\u8BF7", () => {
     {
       createdAt: "2026-07-13T10:00:00.000Z",
       id: "invite-admin",
+      placeholderId: null,
       role: "admin" as const,
       token: "admin-token",
     },
     {
       createdAt: "2026-07-13T09:00:00.000Z",
       id: "invite-member",
+      placeholderId: null,
       role: "member" as const,
       token: "member-token",
     },
     {
       createdAt: "2026-07-13T08:00:00.000Z",
       id: "invite-viewer",
+      placeholderId: null,
       role: "viewer" as const,
       token: "viewer-token",
     },
@@ -388,5 +393,211 @@ describe("LedgerInviteEntry \u5F85\u63A5\u53D7\u9080\u8BF7", () => {
     expect(
       screen.queryByRole("button", { name: "撤销邀请" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("LedgerInviteEntry 待邀请成员", () => {
+  const grandma = { displayName: "奶奶", id: "placeholder-1" };
+  const grandpa = { displayName: "爷爷", id: "placeholder-2" };
+  const boundInvite: PendingLedgerInvite = {
+    createdAt: "2026-09-01T00:00:00.000Z",
+    id: "invite-bound",
+    placeholderId: grandma.id,
+    role: "member",
+    token: "bound-token",
+  };
+  const anonymousInvite: PendingLedgerInvite = {
+    createdAt: "2026-09-02T00:00:00.000Z",
+    id: "invite-anonymous",
+    placeholderId: null,
+    role: "viewer",
+    token: "anonymous-token",
+  };
+  const placeholderMemberActions = {
+    create: vi.fn(async () => ({})),
+    delete: vi.fn(async () => ({})),
+    rename: vi.fn(async () => ({})),
+  };
+
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/ledgers/ledger-1/settings");
+  });
+
+  function renderWithPlaceholders({
+    canInvite = true,
+    pendingInvites = [boundInvite, anonymousInvite],
+    placeholderMembers = [grandma, grandpa],
+  }: {
+    canInvite?: boolean;
+    pendingInvites?: PendingLedgerInvite[];
+    placeholderMembers?: { displayName: string; id: string }[];
+  } = {}) {
+    const action = vi.fn(async (state: LedgerInviteActionState) => state);
+    const view = (props: {
+      pendingInvites: PendingLedgerInvite[];
+      placeholderMembers: { displayName: string; id: string }[];
+    }) => (
+      <ConfirmDialogTestProviders>
+        <LedgerInvitePendingProvider pendingInvites={props.pendingInvites}>
+          <LedgerInviteEntry
+            action={action}
+            canInvite={canInvite}
+            ledgerId="ledger-1"
+            placeholderMemberActions={
+              canInvite ? placeholderMemberActions : null
+            }
+            placeholderMembers={props.placeholderMembers}
+          />
+        </LedgerInvitePendingProvider>
+      </ConfirmDialogTestProviders>
+    );
+    const result = render(view({ pendingInvites, placeholderMembers }));
+    return {
+      ...result,
+      rerenderWith: (props: {
+        pendingInvites: PendingLedgerInvite[];
+        placeholderMembers: { displayName: string; id: string }[];
+      }) => result.rerender(view(props)),
+    };
+  }
+
+  it("绑定邀请合并进占位行，不再重复显示为匿名待接受邀请", () => {
+    renderWithPlaceholders();
+
+    expect(
+      screen.getByRole("button", { name: "奶奶，待接受邀请" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "爷爷，待邀请" })).toBeVisible();
+    // 只剩匿名邀请一条「待接受邀请」行。
+    expect(
+      screen.getAllByRole("button", { name: /^待接受邀请，/ }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: /^待接受邀请，只读（Viewer）/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("管理者可以看到添加待邀请成员入口", () => {
+    renderWithPlaceholders();
+
+    expect(
+      screen.getByRole("button", { name: /添加待邀请成员/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("非管理者只能看到占位摘要，没有管理入口也拿不到链接", () => {
+    renderWithPlaceholders({ canInvite: false, pendingInvites: [] });
+
+    expect(
+      screen.queryByRole("button", { name: /添加待邀请成员/ }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "奶奶，待邀请" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText("只有管理员或所有者可以管理待邀请成员。"),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("修改名字")).toBeNull();
+    expect(
+      within(dialog).queryByRole("button", { name: /生成专属邀请链接/ }),
+    ).toBeNull();
+    expect(
+      within(dialog).queryByRole("button", { name: /删除待邀请成员/ }),
+    ).toBeNull();
+    // 不提供改角色、个性色等真实成员功能。
+    expect(within(dialog).queryByText("成员权限")).toBeNull();
+    expect(within(dialog).queryByText("当前账本个性色")).toBeNull();
+  });
+
+  it("有绑定邀请的占位可查看链接，并显示带实时名字的接管说明", () => {
+    renderWithPlaceholders();
+
+    fireEvent.click(screen.getByRole("button", { name: "奶奶，待接受邀请" }));
+    expect(
+      screen.queryByRole("button", { name: /生成专属邀请链接/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /查看邀请链接/ }));
+
+    const details = screen.getByRole("dialog", { name: /邀请详情/ });
+    expect(
+      within(details).getByDisplayValue(/\/invite\/bound-token/),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByText(
+        "这是邀请你加入并接管「奶奶」的历史账户与交易记录。",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByRole("button", { name: "撤销邀请" }),
+    ).toBeInTheDocument();
+  });
+
+  it("匿名邀请详情不显示接管说明", () => {
+    renderWithPlaceholders();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /^待接受邀请，只读（Viewer）/ }),
+    );
+
+    expect(screen.queryByText(/接管/)).not.toBeInTheDocument();
+  });
+
+  it("无邀请的占位生成绑定邀请时提交 placeholderId", () => {
+    renderWithPlaceholders();
+
+    fireEvent.click(screen.getByRole("button", { name: "爷爷，待邀请" }));
+    fireEvent.click(screen.getByRole("button", { name: /生成专属邀请链接/ }));
+
+    const draft = screen.getByRole("dialog", { name: /邀请「爷爷」加入/ });
+    expect(draft.querySelector('input[name="placeholderId"]')).toHaveAttribute(
+      "value",
+      grandpa.id,
+    );
+  });
+
+  it("创建绑定邀请后按 fragment 定位占位并显示接管说明", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/ledgers/ledger-1/settings#inviteId=invite-new&inviteRole=member&inviteToken=new-token&placeholderId=${grandpa.id}`,
+    );
+    renderWithPlaceholders();
+
+    expect(
+      await screen.findByText(
+        "这是邀请你加入并接管「爷爷」的历史账户与交易记录。",
+      ),
+    ).toBeInTheDocument();
+    expect(window.location.hash).toBe("");
+  });
+
+  it("撤销绑定邀请后（刷新列表）占位行保留为待邀请", () => {
+    const { rerenderWith } = renderWithPlaceholders();
+    expect(
+      screen.getByRole("button", { name: "奶奶，待接受邀请" }),
+    ).toBeInTheDocument();
+
+    rerenderWith({
+      pendingInvites: [anonymousInvite],
+      placeholderMembers: [grandma, grandpa],
+    });
+
+    expect(screen.getByRole("button", { name: "奶奶，待邀请" })).toBeVisible();
+    expect(
+      screen.getAllByRole("button", { name: /^待接受邀请，/ }),
+    ).toHaveLength(1);
+  });
+
+  it("改名后刷新列表时行与接管说明使用新名字", () => {
+    const { rerenderWith } = renderWithPlaceholders();
+
+    rerenderWith({
+      pendingInvites: [boundInvite, anonymousInvite],
+      placeholderMembers: [{ ...grandma, displayName: "外婆" }, grandpa],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "外婆，待接受邀请" }));
+    fireEvent.click(screen.getByRole("button", { name: /查看邀请链接/ }));
+
+    expect(screen.getByText(/接管「外婆」/)).toBeInTheDocument();
   });
 });

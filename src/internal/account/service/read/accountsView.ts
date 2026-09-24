@@ -1,4 +1,7 @@
-import type { CurrentLedgerRole } from "internal/ledger";
+import type {
+  CurrentLedgerRole,
+  LedgerPlaceholderMemberSummary,
+} from "internal/ledger";
 import { canManageMasterData, canWriteTransaction } from "internal/ledger";
 import type {
   AccountLedgerMember,
@@ -11,6 +14,7 @@ import {
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
   buildHolderOptions,
+  buildPlaceholderHolderOptions,
 } from "internal/account/util/accountView";
 
 type AccountsViewInput = {
@@ -19,6 +23,7 @@ type AccountsViewInput = {
   holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
   ledger: AccountLedgerSummary;
   members: AccountLedgerMember[];
+  placeholders: LedgerPlaceholderMemberSummary[];
   role: CurrentLedgerRole;
   users: AccountUser[];
 };
@@ -49,6 +54,7 @@ export function buildAccountsView({
   holders,
   ledger,
   members,
+  placeholders,
   role,
   users,
 }: AccountsViewInput) {
@@ -69,11 +75,15 @@ export function buildAccountsView({
         settings: displaySettings,
       }),
       holders,
+      placeholderById: new Map(
+        placeholders.map((placeholder) => [placeholder.id, placeholder]),
+      ),
     }),
     baseCurrency: ledger.baseCurrency,
     canManageAccounts: canManageMasterData(role),
     canWriteTransactions: canWriteTransaction(role),
     holderOptions: buildHolderOptions({ appUserById, members }),
     ledgerName: ledger.name,
+    placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
   };
 }

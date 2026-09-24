@@ -27,6 +27,10 @@ export function useLedgerInviteEntry({
   const [draftOpen, setDraftOpen] = useState(initialToken !== null);
   const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
   const [draftToken, setDraftToken] = useState<string | null>(initialToken);
+  // 绑定占位的草稿目标；匿名邀请为 null。只用于页面展示与提交字段。
+  const [draftPlaceholderId, setDraftPlaceholderId] = useState<string | null>(
+    null,
+  );
   const [managementError, setManagementError] =
     useState<LedgerInviteManagementError | null>(null);
   const [selectedInvite, setSelectedInvite] =
@@ -51,12 +55,15 @@ export function useLedgerInviteEntry({
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       const hashRole = hashParams.get("inviteRole");
       const hashToken = hashParams.get("inviteToken");
+      // fragment 中的 placeholderId 只用于定位反馈，绑定事实以列表为准。
+      const hashPlaceholderId = hashParams.get("placeholderId");
       const url = new URL(window.location.href);
       const inviteResult = url.searchParams.get("inviteResult");
 
       if (hashToken) {
         resetTransientFeedback();
         setDraftToken(hashToken);
+        setDraftPlaceholderId(hashPlaceholderId || null);
         setDraftOpen(true);
         setSelectedInvite(null);
         setRevokeConfirmOpen(false);
@@ -110,9 +117,11 @@ export function useLedgerInviteEntry({
   const selectedToken = selectedInvite?.token ?? null;
   const selectedLink = useInviteLink(selectedToken);
 
-  function openNewDraft() {
+  function openNewDraft(placeholderId: string | null = null) {
     setDraftRole("member");
     setDraftToken(null);
+    setDraftPlaceholderId(placeholderId);
+    setSelectedInvite(null);
     resetTransientFeedback();
     setDraftOpen(true);
   }
@@ -143,6 +152,7 @@ export function useLedgerInviteEntry({
     created,
     draftLink,
     draftOpen,
+    draftPlaceholderId,
     draftRole,
     draftToken,
     managementError,

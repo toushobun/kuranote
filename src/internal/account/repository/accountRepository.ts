@@ -8,6 +8,7 @@ import {
   AuthorizationError,
   ValidationError,
   ConflictError,
+  NotFoundError,
 } from "internal/shared/errors/appError";
 import {
   accountErrorCodes,
@@ -31,9 +32,10 @@ type AccountRow = {
 type AccountHolderRow = {
   account_id: string;
   id: string;
+  placeholder_id: string | null;
   role: AccountHolderRole;
   share_ratio: number | string | null;
-  user_id: string;
+  user_id: string | null;
 };
 
 type AppUserRow = {
@@ -68,12 +70,19 @@ export type AccountData = {
   type: AccountType;
 };
 
-export type AccountHolderData = {
+/**
+ * 持有人身份互斥：真实成员行只有 user_id，占位行只有 placeholder_id。
+ * 无持有人表示不存在 account_holder 行，不会出现双空。
+ */
+export type AccountHolderIdentity =
+  | { placeholder_id: null; user_id: string }
+  | { placeholder_id: string; user_id: null };
+
+export type AccountHolderData = AccountHolderIdentity & {
   account_id: string;
   id: string;
   role: AccountHolderRole;
   share_ratio: number | string | null;
-  user_id: string;
 };
 
 export type AccountUser = {
@@ -104,6 +113,8 @@ export type AccountLedgerMember = {
 
 export type CreateAccountInput = {
   currency: string;
+  /** 与 holderUserIds 互斥；两者都为空表示无持有人。 */
+  holderPlaceholderId: string | null;
   holderUserIds: string[];
   initialBalance: number;
   ledgerId: string;
@@ -116,6 +127,8 @@ export type UpdateAccountInput = {
   balanceAdjustmentNote?: string | null;
   accountId: string;
   currency: string;
+  /** 与 holderUserIds 互斥；两者都为空表示改为无持有人（会删除原占位持有行）。 */
+  holderPlaceholderId: string | null;
   holderUserIds: string[];
   ledgerId: string;
   name: string;
@@ -150,6 +163,35 @@ export interface AccountRepository {
   ): Promise<AccountHolderData[]>;
   listUsers(userIds: string[]): Promise<AccountUser[]>;
   update(input: UpdateAccountInput): Promise<boolean>;
+}
+
+const holderErrorByDetails = {
+  [accountErrorCodes.holderChanged]: ConflictError,
+  [accountErrorCodes.holderIdentityInvalid]: ValidationError,
+  [accountErrorCodes.placeholderAlreadyClaimed]: ConflictError,
+  [accountErrorCodes.placeholderNotFound]: NotFoundError,
+  [accountErrorCodes.placeholderUnavailable]: ConflictError,
+} as const;
+
+/** 只按 RPC / 触发器的 `details` 精确识别持有人相关业务错误。 */
+function findHolderError(error: { details?: string | null }) {
+  const code = error.details?.trim();
+  if (!code || !Object.hasOwn(holderErrorByDetails, code)) return null;
+  const ErrorClass =
+    holderErrorByDetails[code as keyof typeof holderErrorByDetails];
+  return new ErrorClass(code, getAccountErrorMessage(code)!);
+}
+
+function toHolderIdentity(
+  row: Pick<AccountHolderRow, "placeholder_id" | "user_id">,
+): AccountHolderIdentity | null {
+  if (typeof row.user_id === "string" && row.placeholder_id === null) {
+    return { placeholder_id: null, user_id: row.user_id };
+  }
+  if (typeof row.placeholder_id === "string" && row.user_id === null) {
+    return { placeholder_id: row.placeholder_id, user_id: null };
+  }
+  return null;
 }
 
 function toCurrentLedgerRole(value: unknown): CurrentLedgerRole {
@@ -220,6 +262,7 @@ export function createSupabaseAccountRepository(
           p_initial_balance: input.initialBalance,
           p_ledger_id: input.ledgerId,
           p_name: input.name,
+          p_placeholder_id: input.holderPlaceholderId,
           p_type: input.type,
         },
       );
@@ -228,6 +271,8 @@ export function createSupabaseAccountRepository(
         logError("failed to create account", error, {
           ledgerId: input.ledgerId,
         });
+        const holderError = findHolderError(error);
+        if (holderError) throw holderError;
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.nameDuplicate,
@@ -406,7 +451,7 @@ export function createSupabaseAccountRepository(
 
       const { data, error } = await supabase
         .from("account_holder")
-        .select("id, account_id, user_id, role, share_ratio")
+        .select("id, account_id, user_id, placeholder_id, role, share_ratio")
         .eq("ledger_id", ledgerId)
         .in("account_id", accountIds);
 
@@ -418,13 +463,27 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return ((data ?? []) as AccountHolderRow[]).map((holder) => ({
-        account_id: holder.account_id,
-        id: holder.id,
-        role: holder.role,
-        share_ratio: holder.share_ratio,
-        user_id: holder.user_id,
-      }));
+      return ((data ?? []) as AccountHolderRow[]).map((holder) => {
+        const identity = toHolderIdentity(holder);
+        if (!identity) {
+          // 数据库 CHECK 保证身份互斥；读到异常行时整体失败，不把它当成无持有人。
+          logger.error("[account] account holder identity invalid", {
+            holderId: holder.id,
+            ledgerId,
+          });
+          throw toRepositoryError(
+            "account_holder_identity_invalid",
+            "账户持有人加载失败，请稍后重试。",
+          );
+        }
+        return {
+          ...identity,
+          account_id: holder.account_id,
+          id: holder.id,
+          role: holder.role,
+          share_ratio: holder.share_ratio,
+        };
+      });
     },
 
     async listUsers(userIds) {
@@ -462,6 +521,7 @@ export function createSupabaseAccountRepository(
           p_holder_user_ids: input.holderUserIds,
           p_ledger_id: input.ledgerId,
           p_name: input.name,
+          p_placeholder_id: input.holderPlaceholderId,
           p_type: input.type,
         },
       );
@@ -471,6 +531,8 @@ export function createSupabaseAccountRepository(
           accountId: input.accountId,
           ledgerId: input.ledgerId,
         });
+        const holderError = findHolderError(error);
+        if (holderError) throw holderError;
         if (error.code === "28000")
           throw new AuthenticationError("auth_required", "请先登录。");
         if (error.code === "42501")

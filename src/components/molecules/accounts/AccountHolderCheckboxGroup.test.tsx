@@ -113,4 +113,88 @@ describe("AccountHolderCheckboxGroup", () => {
     const formData = new FormData(container.querySelector("form")!);
     expect(formData.getAll("holderUserIds")).toEqual([activeHolder.user_id]);
   });
+
+  describe("三态持有人", () => {
+    const placeholder = {
+      placeholder_id: "placeholder-1",
+      display_name: "奶奶",
+    };
+
+    function renderInForm(
+      props: Partial<Parameters<typeof AccountHolderCheckboxGroup>[0]> = {},
+    ) {
+      const { container } = render(
+        <form>
+          <AccountHolderCheckboxGroup
+            holderOptions={[activeHolder]}
+            placeholderOptions={[placeholder]}
+            {...props}
+          />
+        </form>,
+      );
+      const form = container.querySelector("form")!;
+      return {
+        container,
+        formValues: () => {
+          const formData = new FormData(form);
+          return {
+            placeholderIds: formData.getAll("holderPlaceholderId"),
+            userIds: formData.getAll("holderUserIds"),
+          };
+        },
+      };
+    }
+
+    it("待邀请成员与真实成员分组显示并带有区分标记", () => {
+      const { container } = renderInForm();
+
+      expect(within(container).getByText("待邀请成员")).toBeInTheDocument();
+      expect(
+        within(container).getByLabelText("奶奶（待邀请）"),
+      ).toBeInTheDocument();
+      expect(within(container).getByLabelText("淞文")).toBeInTheDocument();
+    });
+
+    it("可以在成员、待邀请成员和无持有人之间切换，且只提交一个", () => {
+      const { container, formValues } = renderInForm();
+      const member = within(container).getByLabelText("淞文");
+      const pending = within(container).getByLabelText("奶奶（待邀请）");
+
+      fireEvent.click(member);
+      expect(formValues()).toEqual({
+        placeholderIds: [],
+        userIds: [activeHolder.user_id],
+      });
+
+      fireEvent.click(pending);
+      expect(member).not.toBeChecked();
+      expect(formValues()).toEqual({
+        placeholderIds: [placeholder.placeholder_id],
+        userIds: [],
+      });
+
+      fireEvent.click(pending);
+      expect(formValues()).toEqual({ placeholderIds: [], userIds: [] });
+    });
+
+    it("初始选中占位持有人时直接提交该占位 ID", () => {
+      const { container, formValues } = renderInForm({
+        selectedPlaceholderId: placeholder.placeholder_id,
+      });
+
+      expect(within(container).getByLabelText("奶奶（待邀请）")).toBeChecked();
+      expect(formValues()).toEqual({
+        placeholderIds: [placeholder.placeholder_id],
+        userIds: [],
+      });
+    });
+
+    it("没有待邀请成员时不显示分组", () => {
+      const { container } = renderInForm({ placeholderOptions: [] });
+
+      expect(
+        within(container).queryByText("待邀请成员"),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

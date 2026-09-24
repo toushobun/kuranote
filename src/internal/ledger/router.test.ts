@@ -51,6 +51,8 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
         revoke: vi.fn(),
       },
       invitePreviewService: { load: vi.fn() },
+      placeholderMemberService:
+        {} as RequestContainer["ledger"]["placeholderMemberService"],
       service: {
         create: vi.fn(),
         getCreateDefaults: vi.fn(),

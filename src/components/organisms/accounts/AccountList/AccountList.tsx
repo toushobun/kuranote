@@ -6,7 +6,11 @@ import { useMemo, useState } from "react";
 import { AccountCard } from "molecules/accounts/AccountCard";
 import { EmptyState } from "molecules/ui/EmptyState";
 import type { AccountSaveResult } from "templates/accounts/Accounts";
-import type { AccountHolderOption, Account } from "types/accounts";
+import type {
+  AccountHolderOption,
+  AccountPlaceholderHolderOption,
+  Account,
+} from "types/accounts";
 import type { ServerAction } from "types/actions";
 
 import { AccountEditDialog } from "../AccountEditDialog/AccountEditDialog";
@@ -18,6 +22,7 @@ type AccountListProps = {
   emptyDescription?: string;
   emptyTitle?: string;
   holderOptions: AccountHolderOption[];
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   saveResult?: AccountSaveResult | null;
   updateAccountAction: ServerAction;
 };
@@ -29,6 +34,7 @@ export function AccountList({
   emptyDescription = "请先新增一个账户。",
   emptyTitle = "还没有账户",
   holderOptions,
+  placeholderHolderOptions = [],
   saveResult = null,
   updateAccountAction,
 }: AccountListProps) {
@@ -78,6 +84,7 @@ export function AccountList({
           holderOptions={holderOptions}
           onClose={() => setEditingAccountId(null)}
           open={editingAccount !== null}
+          placeholderHolderOptions={placeholderHolderOptions}
           updateAccountAction={updateAccountAction}
         />
       ) : null}

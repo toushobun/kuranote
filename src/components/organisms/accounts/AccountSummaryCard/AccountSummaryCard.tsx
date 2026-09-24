@@ -40,9 +40,14 @@ export function AccountSummaryCard({
 
     return total + currentBalance;
   }, 0);
+  // 按持有人种类区分计数键，占位持有人也是持有人，但不会与成员 ID 混用。
   const holderCount = new Set(
     accounts.flatMap((account) =>
-      account.holders.map((holder) => holder.user_id),
+      account.holders.map((holder) =>
+        holder.kind === "placeholder"
+          ? `placeholder:${holder.placeholder_id}`
+          : `member:${holder.user_id}`,
+      ),
     ),
   ).size;
   const balanceText = isBalanceHidden

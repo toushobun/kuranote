@@ -144,13 +144,22 @@ function createActionErrorState(
 
 function redirectToCreatedInvite(
   ledgerId: string,
-  result: { inviteId: string; role: string; token: string },
+  result: {
+    inviteId: string;
+    placeholderId: string | null;
+    role: string;
+    token: string;
+  },
 ): never {
   const fragment = new URLSearchParams({
     inviteId: result.inviteId,
     inviteRole: result.role,
     inviteToken: result.token,
   });
+  // 仅用于页面反馈（在哪一行展示新链接）；绑定事实以数据库与列表为准。
+  if (result.placeholderId) {
+    fragment.set("placeholderId", result.placeholderId);
+  }
   redirect(
     `/ledgers/${encodeURIComponent(ledgerId)}/settings#${fragment.toString()}`,
   );

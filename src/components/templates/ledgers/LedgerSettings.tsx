@@ -49,6 +49,7 @@ import {
   ledgerRoleLabels,
   ledgerRoleOptions,
   type LedgerInviteStateAction,
+  type LedgerPlaceholderMemberActions,
   type LedgerSettingsMember,
   type LedgerSettingsView,
 } from "types/ledgers";
@@ -65,6 +66,8 @@ type LedgerSettingsTemplateProps = LedgerSettingsView & {
   errorMessage: string | null;
   inviteAction: LedgerInviteStateAction;
   inviteToken?: string | null;
+  /** 只有 owner/admin 会传入；其他成员只读占位摘要。 */
+  placeholderMemberActions?: LedgerPlaceholderMemberActions | null;
   saveResult?: LedgerSettingsSaveResult | null;
   updateLedgerSettingsAction: ServerAction;
 };
@@ -78,6 +81,8 @@ export function LedgerSettingsTemplate({
   inviteToken = null,
   ledger,
   members,
+  placeholderMemberActions = null,
+  placeholderMembers,
   saveResult = null,
   updateLedgerSettingsAction,
 }: LedgerSettingsTemplateProps) {
@@ -265,6 +270,8 @@ export function LedgerSettingsTemplate({
                   canInvite={canEditLedger}
                   ledgerId={ledger.id}
                   ledgerName={ledger.name}
+                  placeholderMemberActions={placeholderMemberActions}
+                  placeholderMembers={placeholderMembers}
                   token={inviteToken}
                 />
               </Stack>

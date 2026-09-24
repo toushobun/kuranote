@@ -2,7 +2,8 @@ import { isThemeColorKey, type ThemeColorKey } from "theme/themeColorTokens";
 
 export type AccountHolderDisplayColor = {
   account_id: string;
-  user_id: string;
+  /** 占位持有人为 null：占位没有成员个性色，账户不取任何成员颜色。 */
+  user_id: string | null;
 };
 
 export type LedgerMemberDisplayColor = {
@@ -29,7 +30,9 @@ export function buildSingleHolderAccountColorById({
   }
 
   for (const holder of holders) {
-    if (!activeMemberUserIds.has(holder.user_id)) continue;
+    if (holder.user_id === null || !activeMemberUserIds.has(holder.user_id)) {
+      continue;
+    }
 
     const holderUserIds =
       holderUserIdsByAccountId.get(holder.account_id) ?? new Set<string>();

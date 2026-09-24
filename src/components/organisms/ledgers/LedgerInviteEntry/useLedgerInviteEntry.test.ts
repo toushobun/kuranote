@@ -8,6 +8,7 @@ import { useLedgerInviteEntry } from "./useLedgerInviteEntry";
 const pendingInvite: PendingLedgerInvite = {
   createdAt: "2026-07-20T01:00:00.000Z",
   id: "invite-1",
+  placeholderId: null,
   role: "viewer",
   token: "selected-token",
 };
@@ -49,6 +50,35 @@ describe("useLedgerInviteEntry", () => {
     expect(result.current.draftRole).toBe("admin");
     expect(result.current.draftToken).toBe("hash-token");
     expect(window.location.hash).toBe("");
+  });
+
+  it("绑定邀请的 fragment 带 placeholderId 时记录草稿目标，仅用于页面反馈", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/settings/ledger#inviteRole=member&inviteToken=hash-token&placeholderId=placeholder-1",
+    );
+
+    const { result } = renderHook(() =>
+      useLedgerInviteEntry({ actionState: {}, initialToken: null }),
+    );
+
+    await waitFor(() => expect(result.current.created).toBe(true));
+    expect(result.current.draftPlaceholderId).toBe("placeholder-1");
+    expect(window.location.hash).toBe("");
+  });
+
+  it("为占位打开草稿时记录目标，重新打开匿名草稿时清除", () => {
+    const { result } = renderHook(() =>
+      useLedgerInviteEntry({ actionState: {}, initialToken: null }),
+    );
+
+    act(() => result.current.openNewDraft("placeholder-1"));
+    expect(result.current.draftOpen).toBe(true);
+    expect(result.current.draftPlaceholderId).toBe("placeholder-1");
+
+    act(() => result.current.openNewDraft());
+    expect(result.current.draftPlaceholderId).toBeNull();
   });
 
   it("只消费一次带 errorKey 的管理错误", () => {

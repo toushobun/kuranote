@@ -1,5 +1,8 @@
 import type { ServerAction } from "types/actions";
-import type { AccountHolderOption } from "types/accounts";
+import type {
+  AccountHolderOption,
+  AccountPlaceholderHolderOption,
+} from "types/accounts";
 
 import { AccountForm } from "../AccountForm/AccountForm";
 import {
@@ -13,6 +16,7 @@ type AccountCreateDialogProps = {
   holderOptions: AccountHolderOption[];
   onClose: () => void;
   open: boolean;
+  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
 };
 
 export function AccountCreateDialog({
@@ -21,6 +25,7 @@ export function AccountCreateDialog({
   holderOptions,
   onClose,
   open,
+  placeholderHolderOptions = [],
 }: AccountCreateDialogProps) {
   return (
     <AccountFormDialogShell
@@ -33,6 +38,7 @@ export function AccountCreateDialog({
         defaultCurrency={defaultCurrency}
         holderOptions={holderOptions}
         onCancel={onClose}
+        placeholderHolderOptions={placeholderHolderOptions}
       />
     </AccountFormDialogShell>
   );

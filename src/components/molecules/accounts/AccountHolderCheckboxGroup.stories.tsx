@@ -82,3 +82,31 @@ export const SelectedWithPreserved: Story = {
     ],
   },
 };
+
+const placeholderOptions = [
+  { placeholder_id: "placeholder-1", display_name: "奶奶" },
+  { placeholder_id: "placeholder-2", display_name: "爷爷" },
+];
+
+export const WithPlaceholderOptions: Story = {
+  name: "三态：成员 + 待邀请成员（无选中即无持有人）",
+  args: { placeholderOptions },
+};
+
+export const PlaceholderSelected: Story = {
+  name: "三态：已选中待邀请成员",
+  args: { placeholderOptions, selectedPlaceholderId: "placeholder-1" },
+};
+
+export const PlaceholderOnly: Story = {
+  name: "三态：只有待邀请成员可选",
+  args: { holderOptions: [], placeholderOptions },
+};
+
+export const PlaceholderMobile: Story = {
+  name: "三态：移动端",
+  args: { placeholderOptions, selectedPlaceholderId: "placeholder-2" },
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
+  },
+};

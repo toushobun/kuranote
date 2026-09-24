@@ -21,15 +21,37 @@ export type AccountStateAction = (
   formData: FormData,
 ) => Promise<AccountActionState>;
 
-export type AccountHolder = {
+type AccountHolderBase = {
   id: string;
-  user_id: string;
   display_name: string;
-  email: string | null;
-  display_color: ThemeColorKey;
   role: AccountHolderRole;
   // Supabase numeric may be returned as string to avoid precision loss.
   share_ratio: number | string | null;
+};
+
+/**
+ * 持有人判别联合：kind 为 "member" 时是真实成员；"placeholder" 时是待邀请成员，
+ * user_id 为 null，不能拿 placeholder_id 当作用户查询头像、邮箱或成员颜色。
+ */
+export type AccountHolder =
+  | (AccountHolderBase & {
+      kind: "member";
+      user_id: string;
+      placeholder_id: null;
+      email: string | null;
+      display_color: ThemeColorKey;
+    })
+  | (AccountHolderBase & {
+      kind: "placeholder";
+      user_id: null;
+      placeholder_id: string;
+      email: null;
+      display_color: null;
+    });
+
+export type AccountPlaceholderHolderOption = {
+  placeholder_id: string;
+  display_name: string;
 };
 
 export type AccountHolderOption = {

@@ -67,7 +67,7 @@ export async function buildDataExportWorkbook(
     row.getCell(accountColumn).value = account.name;
     row.getCell(`${accountColumn}币种`).value = account.currency;
     row.getCell(`${accountColumn}持有人`).value = account.holder?.name ?? "";
-    if (account.holder) {
+    if (account.holder?.displayColor) {
       const argb = `FF${themeColorTokens[account.holder.displayColor].accent.slice(1).toUpperCase()}`;
       for (const name of [accountColumn, `${accountColumn}持有人`]) {
         row.getCell(name).font = { color: { argb } };

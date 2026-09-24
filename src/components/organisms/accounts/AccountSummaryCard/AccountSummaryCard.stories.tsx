@@ -18,6 +18,8 @@ const accounts: Account[] = [
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "本地开发用户",
         email: "local1@example.test",
         display_color: "sky",
@@ -81,6 +83,8 @@ export const NegativeTotal: Story = {
           {
             id: "holder-1",
             user_id: "user-1",
+            kind: "member" as const,
+            placeholder_id: null,
             display_name: "本地开发用户",
             email: "local1@example.test",
             display_color: "sky",
@@ -136,6 +140,8 @@ export const MultipleHolders: Story = {
           {
             id: "holder-1",
             user_id: "user-1",
+            kind: "member" as const,
+            placeholder_id: null,
             display_name: "本地开发用户",
             email: "local1@example.test",
             display_color: "sky",
@@ -145,6 +151,8 @@ export const MultipleHolders: Story = {
           {
             id: "holder-2",
             user_id: "user-2",
+            kind: "member" as const,
+            placeholder_id: null,
             display_name: "本地开发用户2",
             email: "local2@example.test",
             display_color: "sakura",

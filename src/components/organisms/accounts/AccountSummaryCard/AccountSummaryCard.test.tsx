@@ -3,6 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { designTokens, theme } from "theme/theme";
+import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
 import type { Account } from "types/accounts";
 
 import { AccountSummaryCard } from "./AccountSummaryCard";
@@ -25,6 +26,8 @@ const accounts: Account[] = [
       {
         id: "holder-1",
         user_id: "user-1",
+        kind: "member" as const,
+        placeholder_id: null,
         display_name: "张三",
         email: "zhangsan@example.com",
         display_color: "sky",
@@ -101,6 +104,24 @@ describe("AccountSummaryCard", () => {
 
     expect(within(container).getByText("2 个")).toBeInTheDocument();
     expect(within(container).getByText("1 位")).toBeInTheDocument();
+  });
+
+  it("占位持有人计入持有人数量，且不与成员 ID 混淆", () => {
+    const placeholder = createPlaceholderAccountHolder({
+      // 即使占位 ID 与某个成员 ID 字面相同，也按不同持有人计数。
+      placeholder_id: "user-1",
+    });
+    const { container } = render(
+      <AccountSummaryCard
+        accounts={[
+          ...accounts,
+          { ...accounts[1], id: "account-3", holders: [placeholder] },
+        ]}
+        baseCurrency="JPY"
+      />,
+    );
+
+    expect(within(container).getByText("2 位")).toBeInTheDocument();
   });
 
   it("存在外币账户时总余额只统计本位币账户并展示说明", () => {

@@ -51,6 +51,8 @@ function containerWithAccept(
       },
       invitePreviewService:
         {} as RequestContainer["ledger"]["invitePreviewService"],
+      placeholderMemberService:
+        {} as RequestContainer["ledger"]["placeholderMemberService"],
       service: {} as RequestContainer["ledger"]["service"],
       settingsService: {} as RequestContainer["ledger"]["settingsService"],
     },

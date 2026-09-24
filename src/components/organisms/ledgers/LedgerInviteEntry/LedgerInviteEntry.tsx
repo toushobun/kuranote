@@ -1,6 +1,7 @@
 "use client";
 
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
@@ -11,14 +12,14 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
-import { transactionTimeLocale } from "config/dateTime";
+import { placeholderMemberText } from "config/placeholderMemberText";
+import { LedgerInviteLinkField } from "molecules/ledgers/LedgerInviteLinkField";
 import { LedgerInviteQrCode } from "molecules/ledgers/LedgerInviteQrCode";
+import { LedgerInviteTakeoverNotice } from "molecules/ledgers/LedgerInviteTakeoverNotice";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
@@ -26,13 +27,21 @@ import {
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { usePendingLedgerInvites } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
+import { LedgerPlaceholderMemberDialog } from "organisms/ledgers/LedgerPlaceholderMemberDialog/LedgerPlaceholderMemberDialog";
+import { LedgerPlaceholderMemberRow } from "organisms/ledgers/LedgerPlaceholderMemberRow/LedgerPlaceholderMemberRow";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import {
   ledgerInviteRoleLabels,
   type LedgerInviteActionState,
   type LedgerInviteStateAction,
+  type LedgerPlaceholderMemberActions,
+  type LedgerPlaceholderMemberSummary,
   type PendingLedgerInvite,
 } from "types/ledgers";
+import {
+  formatInviteCreatedAt,
+  groupLedgerPendingPeople,
+} from "utils/ledgerMembers";
 
 import { useLedgerInviteEntry } from "./useLedgerInviteEntry";
 
@@ -41,8 +50,15 @@ type LedgerInviteEntryProps = {
   canInvite: boolean;
   ledgerId: string;
   ledgerName?: string;
+  /** 仅管理者传入；为 null 时占位只读，不显示任何管理入口。 */
+  placeholderMemberActions?: LedgerPlaceholderMemberActions | null;
+  placeholderMembers?: LedgerPlaceholderMemberSummary[];
   token?: string | null;
 };
+
+type PlaceholderDialogState =
+  | { mode: "create" }
+  | { mode: "edit"; placeholderId: string };
 
 const initialLedgerInviteActionState: LedgerInviteActionState = {};
 
@@ -51,9 +67,25 @@ export function LedgerInviteEntry({
   canInvite,
   ledgerId,
   ledgerName = "当前账本",
+  placeholderMemberActions = null,
+  placeholderMembers = [],
   token: initialToken = null,
 }: LedgerInviteEntryProps) {
   const pendingInvites = usePendingLedgerInvites();
+  const { anonymousInvites, placeholderRows } = groupLedgerPendingPeople({
+    pendingInvites,
+    placeholders: placeholderMembers,
+  });
+  const canManagePlaceholders = canInvite && placeholderMemberActions !== null;
+  const [placeholderDialog, setPlaceholderDialog] =
+    useState<PlaceholderDialogState>({ mode: "create" });
+  const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
+  const selectedPlaceholderRow =
+    placeholderDialog.mode === "edit"
+      ? (placeholderRows.find(
+          (row) => row.placeholder.id === placeholderDialog.placeholderId,
+        ) ?? null)
+      : null;
   const [actionState, formAction] = useActionState(
     action,
     initialLedgerInviteActionState,
@@ -73,6 +105,7 @@ export function LedgerInviteEntry({
     created,
     draftLink,
     draftOpen,
+    draftPlaceholderId,
     draftRole,
     draftToken,
     managementError,
@@ -90,9 +123,38 @@ export function LedgerInviteEntry({
     initialToken,
   });
 
+  // 接管说明中的名字始终取实时占位列表，不使用 fragment 或邀请中的快照。
+  const draftPlaceholder = findPlaceholder(
+    placeholderMembers,
+    draftPlaceholderId,
+  );
+  const selectedInvitePlaceholder = findPlaceholder(
+    placeholderMembers,
+    selectedInvite?.placeholderId ?? null,
+  );
+
+  function openPlaceholderDialog(state: PlaceholderDialogState) {
+    setPlaceholderDialog(state);
+    setPlaceholderDialogOpen(true);
+  }
+
   return (
     <>
-      {pendingInvites.map((invite) => (
+      {placeholderRows.map((row) => (
+        <LedgerPlaceholderMemberRow
+          canManage={canManagePlaceholders}
+          key={row.placeholder.id}
+          onClick={() =>
+            openPlaceholderDialog({
+              mode: "edit",
+              placeholderId: row.placeholder.id,
+            })
+          }
+          row={row}
+        />
+      ))}
+
+      {anonymousInvites.map((invite) => (
         <PendingInviteRow
           invite={invite}
           key={invite.id}
@@ -104,7 +166,7 @@ export function LedgerInviteEntry({
         avatar={<PeopleAltRoundedIcon />}
         avatarSx={inviteAvatarSx}
         disabled={!canInvite}
-        onClick={openNewDraft}
+        onClick={() => openNewDraft()}
         subtitle={
           <Typography color="text.secondary" noWrap variant="body2">
             {canInvite
@@ -116,10 +178,44 @@ export function LedgerInviteEntry({
         trailing={<ChevronRightRoundedIcon sx={inviteTrailingIconSx} />}
       />
 
+      {canManagePlaceholders ? (
+        <ListRowButton
+          avatar={<PersonAddAlt1RoundedIcon />}
+          avatarSx={inviteAvatarSx}
+          onClick={() => openPlaceholderDialog({ mode: "create" })}
+          subtitle={
+            <Typography color="text.secondary" noWrap variant="body2">
+              {placeholderMemberText.addEntrySubtitle}
+            </Typography>
+          }
+          title={placeholderMemberText.addEntryTitle}
+          trailing={<ChevronRightRoundedIcon sx={inviteTrailingIconSx} />}
+        />
+      ) : null}
+
+      <LedgerPlaceholderMemberDialog
+        actions={canManagePlaceholders ? placeholderMemberActions : null}
+        ledgerId={ledgerId}
+        mode={placeholderDialog.mode}
+        onClose={() => setPlaceholderDialogOpen(false)}
+        onCreateInvite={(placeholderId) => {
+          setPlaceholderDialogOpen(false);
+          openNewDraft(placeholderId);
+        }}
+        onOpenInvite={(invite) => {
+          setPlaceholderDialogOpen(false);
+          selectInvite(invite);
+        }}
+        open={placeholderDialogOpen}
+        row={selectedPlaceholderRow}
+      />
+
       <Dialog fullWidth maxWidth="xs" onClose={closeDraft} open={draftOpen}>
         <form action={formAction}>
           <DialogTitle sx={dialogTitleSx}>
-            邀请成员
+            {draftPlaceholder
+              ? placeholderMemberText.draftTitle(draftPlaceholder.displayName)
+              : "邀请成员"}
             <IconButton
               aria-label="关闭"
               onClick={closeDraft}
@@ -132,7 +228,9 @@ export function LedgerInviteEntry({
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 0.5 }}>
               <Typography color="text.secondary" variant="body2">
-                邀请家人、伴侣或朋友加入当前账本，共同记账。
+                {draftPlaceholderId
+                  ? placeholderMemberText.generateInviteDescription
+                  : "邀请家人、伴侣或朋友加入当前账本，共同记账。"}
               </Typography>
 
               <LedgerInviteRoleRow
@@ -141,8 +239,20 @@ export function LedgerInviteEntry({
               />
               <input name="ledgerId" type="hidden" value={ledgerId} />
               <input name="role" type="hidden" value={draftRole} />
+              {draftPlaceholderId ? (
+                <input
+                  name="placeholderId"
+                  type="hidden"
+                  value={draftPlaceholderId}
+                />
+              ) : null}
 
-              <InviteLinkField link={draftLink} onCopy={copyLink} />
+              <LedgerInviteLinkField link={draftLink} onCopy={copyLink} />
+              {draftToken && draftPlaceholder ? (
+                <LedgerInviteTakeoverNotice
+                  name={draftPlaceholder.displayName}
+                />
+              ) : null}
               <LedgerInviteQrCode ledgerName={ledgerName} link={draftLink} />
             </Stack>
           </DialogContent>
@@ -196,7 +306,15 @@ export function LedgerInviteEntry({
               </Stack>
               {selectedToken ? (
                 <>
-                  <InviteLinkField link={selectedLink} onCopy={copyLink} />
+                  <LedgerInviteLinkField
+                    link={selectedLink}
+                    onCopy={copyLink}
+                  />
+                  {selectedInvitePlaceholder ? (
+                    <LedgerInviteTakeoverNotice
+                      name={selectedInvitePlaceholder.displayName}
+                    />
+                  ) : null}
                   <LedgerInviteQrCode
                     ledgerName={ledgerName}
                     link={selectedLink}
@@ -348,40 +466,6 @@ function PendingInviteRow({
   );
 }
 
-function InviteLinkField({
-  link,
-  onCopy,
-}: {
-  link: string;
-  onCopy: (link: string) => void;
-}) {
-  return (
-    <TextField
-      fullWidth
-      label="邀请链接"
-      slotProps={{
-        htmlInput: { readOnly: true },
-        input: {
-          endAdornment: link ? (
-            <InputAdornment position="end">
-              <IconButton
-                aria-label="复制"
-                edge="end"
-                onClick={() => onCopy(link)}
-                size="small"
-                type="button"
-              >
-                <ContentCopyRoundedIcon fontSize="small" />
-              </IconButton>
-            </InputAdornment>
-          ) : null,
-        },
-      }}
-      value={link || "生成后将在这里显示邀请链接"}
-    />
-  );
-}
-
 function DetailLine({ label, value }: { label: string; value: string }) {
   return (
     <Stack direction="row" sx={{ justifyContent: "space-between" }}>
@@ -395,16 +479,14 @@ function DetailLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatInviteCreatedAt(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "已创建";
-
-  return new Intl.DateTimeFormat(transactionTimeLocale, {
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "numeric",
-  }).format(date);
+function findPlaceholder(
+  placeholders: LedgerPlaceholderMemberSummary[],
+  placeholderId: string | null,
+) {
+  return placeholderId
+    ? (placeholders.find((placeholder) => placeholder.id === placeholderId) ??
+        null)
+    : null;
 }
 
 const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;

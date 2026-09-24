@@ -107,6 +107,7 @@ describe("Account Server Actions", () => {
 
     expect(mocks.create).toHaveBeenCalledWith({
       currency: "JPY",
+      holderPlaceholderId: null,
       holderUserIds: [holderUserId],
       initialBalance: 1000,
       ledgerId,

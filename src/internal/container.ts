@@ -26,12 +26,14 @@ import {
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
+import { createSupabaseLedgerPlaceholderMemberRepository } from "internal/ledger/repository/ledgerPlaceholderMemberRepository";
 import { createSupabaseLedgerRepository } from "internal/ledger/repository/ledgerRepository";
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import { createCurrentLedgerService } from "internal/ledger/service/currentLedgerService";
 import { createLedgerAccessService } from "internal/ledger/service/ledgerAccessService";
 import { createLedgerInvitePreviewService } from "internal/ledger/service/ledgerInvitePreviewService";
 import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteService";
+import { createLedgerPlaceholderMemberService } from "internal/ledger/service/ledgerPlaceholderMemberService";
 import { createLedgerService } from "internal/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
@@ -76,6 +78,9 @@ export type RequestContainer = {
     >;
     readonly settingsService: ReturnType<typeof createLedgerSettingsService>;
     readonly inviteService: ReturnType<typeof createLedgerInviteService>;
+    readonly placeholderMemberService: ReturnType<
+      typeof createLedgerPlaceholderMemberService
+    >;
     readonly invitePreviewService: ReturnType<
       typeof createLedgerInvitePreviewService
     >;
@@ -142,6 +147,9 @@ export function createRequestContainer(
   let ledgerAccessService:
     | ReturnType<typeof createLedgerAccessService>
     | undefined;
+  let ledgerPlaceholderMemberService:
+    | ReturnType<typeof createLedgerPlaceholderMemberService>
+    | undefined;
 
   function getAccountRepository() {
     return (accountRepository ??= createSupabaseAccountRepository(
@@ -154,6 +162,7 @@ export function createRequestContainer(
     return (accountQueryService ??= createAccountService({
       accountRepository: getAccountRepository(),
       ledgerAccessService: getLedgerAccessService(),
+      ledgerPlaceholderMemberQueryService: getLedgerPlaceholderMemberService(),
     }));
   }
 
@@ -202,6 +211,18 @@ export function createRequestContainer(
     ));
   }
 
+  function getLedgerPlaceholderMemberService() {
+    return (ledgerPlaceholderMemberService ??=
+      createLedgerPlaceholderMemberService({
+        ledgerAccessService: getLedgerAccessService(),
+        ledgerPlaceholderMemberRepository:
+          createSupabaseLedgerPlaceholderMemberRepository(
+            dependencies.supabase,
+            dependencies.logger,
+          ),
+      }));
+  }
+
   return {
     get account() {
       if (!accountContainer) {
@@ -209,6 +230,8 @@ export function createRequestContainer(
           service: createAccountService({
             accountRepository: getAccountRepository(),
             ledgerAccessService: getLedgerAccessService(),
+            ledgerPlaceholderMemberQueryService:
+              getLedgerPlaceholderMemberService(),
           }),
         };
       }
@@ -272,6 +295,8 @@ export function createRequestContainer(
             accountQueryService: createAccountExportQueryService({
               accountRepository: getAccountRepository(),
               ledgerAccessService: getLedgerAccessService(),
+              ledgerPlaceholderMemberQueryService:
+                getLedgerPlaceholderMemberService(),
             }),
             categoryQueryService: getCategoryQueryService(),
             merchantQueryService: createMerchantExportQueryService({
@@ -349,6 +374,7 @@ export function createRequestContainer(
           invitePreviewService: createLedgerInvitePreviewService(
             ledgerInvitePreviewRepository,
           ),
+          placeholderMemberService: getLedgerPlaceholderMemberService(),
           service: createLedgerService({ ledgerRepository }),
           settingsService: createLedgerSettingsService({
             ledgerSettingsRepository: getLedgerSettingsRepository(),

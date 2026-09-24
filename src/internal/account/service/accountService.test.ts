@@ -10,12 +10,22 @@ import {
 } from "internal/account/errors";
 import type { AccountRepository } from "internal/account/repository/accountRepository";
 import { createAccountService } from "internal/account/service/accountService";
-import type { LedgerAccessService } from "internal/ledger";
+import type {
+  LedgerAccessService,
+  LedgerPlaceholderMemberQueryService,
+} from "internal/ledger";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const holderUserId = "00000000-0000-4000-8000-000000000041";
 const accountId = "00000000-0000-4000-8000-000000000045";
+const placeholderId = "00000000-0000-4000-8000-000000000061";
+
+function createPlaceholderQueryService(
+  placeholders = [{ displayName: "奶奶", id: placeholderId }],
+): LedgerPlaceholderMemberQueryService {
+  return { listUnclaimed: vi.fn().mockResolvedValue(placeholders) };
+}
 
 function createRepository(): AccountRepository {
   return {
@@ -68,6 +78,7 @@ function createLedgerAccessService(
 function createInput() {
   return {
     currency: " jpy ",
+    holderPlaceholderId: null as string | null,
     holderUserIds: [holderUserId, holderUserId],
     initialBalance: 1000,
     ledgerId,
@@ -80,10 +91,12 @@ function createInput() {
 function createService(
   repository: AccountRepository,
   ledgerAccessService = createLedgerAccessService(),
+  ledgerPlaceholderMemberQueryService = createPlaceholderQueryService(),
 ) {
   return createAccountService({
     accountRepository: repository,
     ledgerAccessService,
+    ledgerPlaceholderMemberQueryService,
   });
 }
 
@@ -111,6 +124,7 @@ describe("AccountService", () => {
         account_id: accountId,
         id: "00000000-0000-4000-8000-000000000051",
         role: "owner",
+        placeholder_id: null,
         share_ratio: null,
         user_id: holderUserId,
       },
@@ -202,6 +216,7 @@ describe("AccountService", () => {
 
     expect(repository.create).toHaveBeenCalledWith({
       currency: "JPY",
+      holderPlaceholderId: null,
       holderUserIds: [holderUserId],
       initialBalance: 1000,
       ledgerId,
@@ -212,10 +227,7 @@ describe("AccountService", () => {
 
   it("保留数据库同维度重名冲突，不增加账本全局预判重", async () => {
     const repository = createRepository();
-    const service = createAccountService({
-      accountRepository: repository,
-      ledgerAccessService: createLedgerAccessService(),
-    });
+    const service = createService(repository);
     const error = new ConflictError(
       accountErrorCodes.nameDuplicate,
       getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
@@ -280,6 +292,7 @@ describe("AccountService", () => {
     const service = createAccountService({
       accountRepository: repository,
       ledgerAccessService: createLedgerAccessService(),
+      ledgerPlaceholderMemberQueryService: createPlaceholderQueryService(),
       now: () => new Date("2026-07-21T00:00:00.000Z"),
     });
 
@@ -358,6 +371,137 @@ describe("余额调整", () => {
         targetBalance: 10,
       }),
     ).rejects.toMatchObject({ name: "AuthorizationError" });
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("AccountService 占位持有人", () => {
+  const placeholderHolder = {
+    account_id: accountId,
+    id: "00000000-0000-4000-8000-000000000052",
+    placeholder_id: placeholderId,
+    role: "owner" as const,
+    share_ratio: null,
+    user_id: null,
+  };
+
+  function mockPlaceholderAccount(repository: AccountRepository) {
+    vi.mocked(repository.listAccounts).mockResolvedValue([
+      {
+        created_at: "2026-07-01T00:00:00.000Z",
+        currency: "JPY",
+        current_balance: "0",
+        id: accountId,
+        initial_balance: "0",
+        is_archived: false,
+        name: "奶奶的钱包",
+        sort_order: 0,
+        type: "cash",
+      },
+    ]);
+    vi.mocked(repository.listHolders).mockResolvedValue([placeholderHolder]);
+  }
+
+  it("读取路径显示占位名字，不用占位 ID 查询用户，也不会变成无持有人", async () => {
+    const repository = createRepository();
+    mockPlaceholderAccount(repository);
+
+    const view = await createService(repository).getView({ ledgerId, userId });
+
+    expect(view.accounts[0].holders).toEqual([
+      expect.objectContaining({
+        display_color: null,
+        display_name: "奶奶",
+        email: null,
+        kind: "placeholder",
+        placeholder_id: placeholderId,
+        user_id: null,
+      }),
+    ]);
+    const queriedUserIds = vi
+      .mocked(repository.listUsers)
+      .mock.calls.flatMap(([ids]) => ids);
+    expect(queriedUserIds).not.toContain(placeholderId);
+    expect(view.placeholderHolderOptions).toEqual([
+      { display_name: "奶奶", placeholder_id: placeholderId },
+    ]);
+    // 占位不是成员候选。
+    expect(view.holderOptions.map((option) => option.user_id)).not.toContain(
+      placeholderId,
+    );
+  });
+
+  it("创建时把占位 ID 透传给 Repository，且不传用户持有人", async () => {
+    const repository = createRepository();
+
+    await createService(repository).create({
+      ...createInput(),
+      holderPlaceholderId: placeholderId.toUpperCase(),
+      holderUserIds: [],
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderPlaceholderId: placeholderId,
+        holderUserIds: [],
+      }),
+    );
+  });
+
+  it("编辑时保持占位持有人", async () => {
+    const repository = createRepository();
+
+    await createService(repository).update({
+      ...createInput(),
+      accountId,
+      holderPlaceholderId: placeholderId,
+      holderUserIds: [],
+    });
+
+    expect(repository.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderPlaceholderId: placeholderId,
+        holderUserIds: [],
+      }),
+    );
+  });
+
+  it("同时指定成员与占位时拒绝", async () => {
+    const repository = createRepository();
+
+    await expect(
+      createService(repository).create({
+        ...createInput(),
+        holderPlaceholderId: placeholderId,
+        holderUserIds: [holderUserId],
+      }),
+    ).rejects.toMatchObject({
+      code: accountErrorCodes.holderIdentityInvalid,
+      name: "ValidationError",
+    });
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("占位不属于该账本或已被认领时预检失败", async () => {
+    const repository = createRepository();
+    const service = createService(
+      repository,
+      createLedgerAccessService(),
+      createPlaceholderQueryService([]),
+    );
+
+    await expect(
+      service.update({
+        ...createInput(),
+        accountId,
+        holderPlaceholderId: placeholderId,
+        holderUserIds: [],
+      }),
+    ).rejects.toMatchObject({
+      code: accountErrorCodes.placeholderUnavailable,
+      message: getAccountErrorMessage(accountErrorCodes.placeholderUnavailable),
+      name: "ConflictError",
+    });
     expect(repository.update).not.toHaveBeenCalled();
   });
 });

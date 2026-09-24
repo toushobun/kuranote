@@ -11,16 +11,37 @@ import type {
   AccountUser,
 } from "internal/account/repository/accountRepository";
 import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
+import type { LedgerPlaceholderMemberSummary } from "internal/ledger";
 
-type AccountHolderView = {
-  display_color: ThemeColorKey;
+type AccountHolderViewBase = {
   display_name: string;
-  email: string | null;
   id: string;
   role: AccountHolderRole;
   share_ratio: number | string | null;
-  user_id: string;
 };
+
+/**
+ * 持有人视图判别联合：kind 区分真实成员与占位。占位没有用户资料，
+ * 不带邮箱与成员个性色（display_color 为 null），也不能用 ID 查询用户。
+ */
+type AccountHolderView =
+  | (AccountHolderViewBase & {
+      display_color: ThemeColorKey;
+      email: string | null;
+      kind: "member";
+      placeholder_id: null;
+      user_id: string;
+    })
+  | (AccountHolderViewBase & {
+      display_color: null;
+      email: null;
+      kind: "placeholder";
+      placeholder_id: string;
+      user_id: null;
+    });
+
+/** 占位摘要暂未读到（例如读取竞态）时的兜底名称，仍按占位展示而不是无持有人。 */
+export const unknownPlaceholderHolderName = "待邀请成员";
 
 type AccountView<T> = T & {
   holders: AccountHolderView[];
@@ -37,15 +58,36 @@ export function buildAccountsWithHolders<T extends { id: string }>({
   appUserById,
   displayColorByUserId,
   holders,
+  placeholderById,
 }: {
   accounts: T[];
   appUserById: Map<string, AccountUser>;
   displayColorByUserId: Map<string, ThemeColorKey>;
   holders: AccountHolderData[];
+  placeholderById: Map<string, LedgerPlaceholderMemberSummary>;
 }): AccountView<T>[] {
   const holdersByAccountId = new Map<string, AccountHolderView[]>();
 
   for (const holder of holders) {
+    if (holder.user_id === null) {
+      const accountHolders = holdersByAccountId.get(holder.account_id) ?? [];
+      accountHolders.push({
+        display_color: null,
+        display_name:
+          placeholderById.get(holder.placeholder_id)?.displayName ??
+          unknownPlaceholderHolderName,
+        email: null,
+        id: holder.id,
+        kind: "placeholder",
+        placeholder_id: holder.placeholder_id,
+        role: holder.role,
+        share_ratio: holder.share_ratio,
+        user_id: null,
+      });
+      holdersByAccountId.set(holder.account_id, accountHolders);
+      continue;
+    }
+
     const appUser = appUserById.get(holder.user_id);
 
     if (!appUser) {
@@ -56,6 +98,8 @@ export function buildAccountsWithHolders<T extends { id: string }>({
 
     accountHolders.push({
       id: holder.id,
+      kind: "member",
+      placeholder_id: null,
       user_id: holder.user_id,
       display_name: appUser.display_name,
       email: appUser.email,
@@ -102,6 +146,18 @@ export function buildHolderOptions({
         b.display_name || b.email || "",
       ),
     );
+}
+
+/** 占位候选：只列未认领占位，与成员候选分开表达。 */
+export function buildPlaceholderHolderOptions(
+  placeholders: LedgerPlaceholderMemberSummary[],
+) {
+  return placeholders
+    .map((placeholder) => ({
+      display_name: placeholder.displayName,
+      placeholder_id: placeholder.id,
+    }))
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
 export function buildDisplayColorByUserId({

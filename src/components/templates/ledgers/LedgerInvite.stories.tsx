@@ -90,3 +90,26 @@ export const Revoked: Story = {
     },
   },
 };
+
+export const PlaceholderBound: Story = {
+  name: "绑定待邀请成员（接管说明）",
+  args: {
+    preview: {
+      inviteRole: "member",
+      inviterName: "淞文",
+      isPlaceholderBound: true,
+      ledgerName: "家庭账本",
+      placeholderDisplayName: "奶奶",
+      status: "valid",
+    },
+  },
+};
+
+export const PlaceholderBoundMobile: Story = {
+  ...PlaceholderBound,
+  name: "绑定待邀请成员（移动端）",
+  parameters: {
+    layout: "fullscreen",
+    viewport: { defaultViewport: "mobile2" },
+  },
+};

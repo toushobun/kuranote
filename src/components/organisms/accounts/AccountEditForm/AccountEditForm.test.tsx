@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
 import type { Account } from "types/accounts";
 
 import { AccountEditForm, getAccountArchiveFormId } from "./AccountEditForm";
@@ -234,5 +235,81 @@ describe("余额调整", () => {
     expect(screen.getByLabelText("当前余额")).toHaveValue("90000");
     expect(screen.queryByLabelText("余额调整备注")).not.toBeInTheDocument();
     expect(new FormData(form).has("targetBalance")).toBe(false);
+  });
+
+  describe("占位持有人", () => {
+    const placeholderHolder = createPlaceholderAccountHolder();
+    const placeholderId = placeholderHolder.placeholder_id;
+    const placeholderAccount: Account = {
+      ...account,
+      holders: [placeholderHolder],
+    };
+
+    function submittedHolders(container: HTMLElement) {
+      const formData = new FormData(
+        container.querySelector<HTMLFormElement>("form")!,
+      );
+      return {
+        placeholderIds: formData.getAll("holderPlaceholderId"),
+        userIds: formData.getAll("holderUserIds"),
+      };
+    }
+
+    it("编辑占位持有的账户、不改持有人直接保存时仍提交该占位 ID", () => {
+      const { container } = renderWithUserTheme(
+        <AccountEditForm
+          {...baseProps}
+          account={placeholderAccount}
+          placeholderHolderOptions={[
+            { display_name: "奶奶", placeholder_id: placeholderId },
+          ]}
+        />,
+      );
+
+      expect(submittedHolders(container)).toEqual({
+        placeholderIds: [placeholderId],
+        userIds: [],
+      });
+    });
+
+    it("当前占位暂不在候选中时仍补入选项并原样提交", () => {
+      const { container } = renderWithUserTheme(
+        <AccountEditForm {...baseProps} account={placeholderAccount} />,
+      );
+
+      expect(screen.getByLabelText("奶奶（待邀请）")).toBeChecked();
+      expect(submittedHolders(container)).toEqual({
+        placeholderIds: [placeholderId],
+        userIds: [],
+      });
+    });
+
+    it("可以从占位切换为真实成员或无持有人", () => {
+      const memberId = "00000000-0000-4000-8000-000000000041";
+      const { container } = renderWithUserTheme(
+        <AccountEditForm
+          {...baseProps}
+          account={placeholderAccount}
+          holderOptions={[
+            { display_name: "淞文", email: null, user_id: memberId },
+          ]}
+          placeholderHolderOptions={[
+            { display_name: "奶奶", placeholder_id: placeholderId },
+          ]}
+        />,
+      );
+
+      fireEvent.click(screen.getByLabelText("淞文"));
+      expect(submittedHolders(container)).toEqual({
+        placeholderIds: [],
+        userIds: [memberId],
+      });
+
+      fireEvent.click(screen.getByLabelText("淞文"));
+      expect(submittedHolders(container)).toEqual({
+        placeholderIds: [],
+        userIds: [],
+      });
+    });
   });
 });

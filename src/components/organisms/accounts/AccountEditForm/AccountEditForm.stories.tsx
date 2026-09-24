@@ -3,6 +3,8 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
+import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
+
 import { AccountEditForm } from "./AccountEditForm";
 
 const holderOptions = [
@@ -55,6 +57,8 @@ export const SingleHolderAccount: Story = {
         {
           id: "holder-1",
           user_id: "user-1",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "本地开发用户",
           email: "local1@example.test",
           display_color: "sky",
@@ -79,6 +83,8 @@ export const SharedHolderAccount: Story = {
         {
           id: "holder-1",
           user_id: "user-1",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "本地开发用户",
           email: "local1@example.test",
           display_color: "sky",
@@ -88,6 +94,8 @@ export const SharedHolderAccount: Story = {
         {
           id: "holder-2",
           user_id: "user-2",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "本地开发用户2",
           email: "local2@example.test",
           display_color: "sakura",
@@ -124,6 +132,8 @@ export const WithArchiveAction: Story = {
         {
           id: "holder-1",
           user_id: "user-1",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "本地开发用户",
           email: "local1@example.test",
           display_color: "sky",
@@ -149,6 +159,8 @@ export const InactiveHolderPreserved: Story = {
         {
           id: "holder-1",
           user_id: "user-1",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "本地开发用户",
           email: "local1@example.test",
           display_color: "sky",
@@ -158,6 +170,8 @@ export const InactiveHolderPreserved: Story = {
         {
           id: "holder-3",
           user_id: "user-3",
+          kind: "member" as const,
+          placeholder_id: null,
           display_name: "停用用户",
           email: "inactive@example.test",
           display_color: "amber",
@@ -169,4 +183,28 @@ export const InactiveHolderPreserved: Story = {
     holderOptions,
     updateAccountAction: async () => {},
   },
+};
+
+const placeholderHolder = createPlaceholderAccountHolder();
+
+export const PlaceholderHolderAccount: Story = {
+  name: "待邀请成员持有的账户（三态持有人）",
+  args: {
+    account: { ...baseAccount, holders: [placeholderHolder] },
+    holderOptions,
+    placeholderHolderOptions: [
+      {
+        display_name: placeholderHolder.display_name,
+        placeholder_id: placeholderHolder.placeholder_id,
+      },
+      { display_name: "爷爷", placeholder_id: "placeholder-2" },
+    ],
+    updateAccountAction: async () => {},
+  },
+};
+
+export const PlaceholderHolderAccountMobile: Story = {
+  ...PlaceholderHolderAccount,
+  name: "待邀请成员持有的账户（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
 };

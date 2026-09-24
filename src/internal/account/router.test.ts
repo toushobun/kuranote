@@ -147,6 +147,7 @@ describe("account router", () => {
     expect(await response.json()).toEqual({ accountId });
     expect(create).toHaveBeenCalledWith({
       ...createBody(),
+      holderPlaceholderId: null,
       ledgerId,
       userId,
     });
@@ -187,10 +188,38 @@ describe("account router", () => {
     expect(response.status).toBe(201);
     expect(create).toHaveBeenCalledWith({
       ...createBody(),
+      holderPlaceholderId: null,
       holderUserIds: [],
       ledgerId,
       userId,
     });
+  });
+
+  it("更新请求可以指定占位持有人", async () => {
+    const placeholderId = "00000000-0000-4000-8000-000000000061";
+    const update = vi.fn().mockResolvedValue(undefined);
+    const app = createApp(createContainer({ update }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/accounts/${accountId}`,
+      {
+        body: JSON.stringify({
+          ...createUpdateBody(),
+          holderPlaceholderId: placeholderId,
+          holderUserIds: [],
+        }),
+        headers: requestHeaders,
+        method: "PATCH",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderPlaceholderId: placeholderId,
+        holderUserIds: [],
+      }),
+    );
   });
 
   it("更新账户成功时传递路径和请求参数并刷新账户页面", async () => {
@@ -212,6 +241,7 @@ describe("account router", () => {
     expect(update).toHaveBeenCalledWith({
       ...updateBody,
       accountId,
+      holderPlaceholderId: null,
       ledgerId,
       userId,
     });
