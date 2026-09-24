@@ -13,11 +13,10 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { placeholderMemberText as text } from "config/placeholderMemberText";
-import { ledgerPlaceholderMemberNameMaxLength } from "internal/ledger";
+import { LedgerPlaceholderNameField } from "molecules/ledgers/LedgerPlaceholderNameField";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
@@ -39,24 +38,22 @@ type LedgerPlaceholderMemberDialogProps = {
   /** 为 null 时只读：不提供改名、删除和邀请入口。 */
   actions: LedgerPlaceholderMemberActions | null;
   ledgerId: string;
-  mode: "create" | "edit";
   onClose: () => void;
   onCreateInvite: (placeholderId: string) => void;
   onOpenInvite: (invite: PendingLedgerInvite) => void;
   open: boolean;
-  /** edit 模式下的占位行；删除成功后为 null。 */
+  /** 当前查看的待邀请成员行；删除成功后为 null。 */
   row: LedgerPlaceholderMemberRowView | null;
 };
 
 /**
- * 待邀请成员的添加 / 详情弹框。只提供占位需要的名字、邀请与删除入口，
- * 不提供改角色、记账人、颜色等真实成员功能。弹框关闭后仍保持挂载，
- * 以便展示 Action 结果反馈。
+ * 待邀请成员的详情弹框。只提供占位需要的改名、专属链接（查看 / 生成）与删除入口，
+ * 不提供改角色、记账人、颜色等真实成员功能。新增待邀请成员统一走「邀请成员」
+ * 入口（#809）。弹框关闭后仍保持挂载，以便展示 Action 结果反馈。
  */
 export function LedgerPlaceholderMemberDialog({
   actions,
   ledgerId,
-  mode,
   onClose,
   onCreateInvite,
   onOpenInvite,
@@ -65,8 +62,6 @@ export function LedgerPlaceholderMemberDialog({
 }: LedgerPlaceholderMemberDialogProps) {
   const {
     closeFeedback,
-    createAction,
-    creating,
     deleting,
     feedback,
     renameAction,
@@ -75,13 +70,13 @@ export function LedgerPlaceholderMemberDialog({
   } = useLedgerPlaceholderMemberDialog({ actions, ledgerId, onClose });
   const canManage = actions !== null;
   const invite = row?.invite ?? null;
-  const isOpen = open && (mode === "create" ? canManage : row !== null);
+  const isOpen = open && row !== null;
 
   return (
     <>
       <Dialog fullWidth maxWidth="xs" onClose={onClose} open={isOpen}>
         <DialogTitle sx={dialogTitleSx}>
-          {mode === "create" ? text.addDialogTitle : text.detailDialogTitle}
+          {text.detailDialogTitle}
           <IconButton
             aria-label={text.close}
             onClick={onClose}
@@ -92,34 +87,20 @@ export function LedgerPlaceholderMemberDialog({
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          {mode === "create" ? (
-            <Stack
-              action={createAction}
-              component="form"
-              spacing={2}
-              sx={{ pt: 0.5 }}
-            >
-              <Typography color="text.secondary" variant="body2">
-                {text.addDialogDescription}
-              </Typography>
-              <input name="ledgerId" type="hidden" value={ledgerId} />
-              <NameField />
-              <NotMemberNote />
-              <Stack direction="row" spacing={1.5}>
-                <Button fullWidth onClick={onClose} type="button">
-                  {text.cancel}
-                </Button>
-                <SubmitButton label={text.create} pending={creating} />
-              </Stack>
-            </Stack>
-          ) : row ? (
+          {row ? (
             <Stack spacing={2} sx={{ pt: 0.5 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 <Typography noWrap sx={nameSx}>
                   {row.placeholder.displayName}
                 </Typography>
                 <Chip
-                  label={invite ? text.inviteMemberBadge : text.pendingLabel}
+                  label={
+                    !canManage
+                      ? text.pendingLabel
+                      : invite
+                        ? text.statusLinkPending
+                        : text.statusNoLink
+                  }
                   size="small"
                 />
               </Stack>
@@ -137,7 +118,7 @@ export function LedgerPlaceholderMemberDialog({
                     type="hidden"
                     value={row.placeholder.id}
                   />
-                  <NameField
+                  <LedgerPlaceholderNameField
                     defaultValue={row.placeholder.displayName}
                     label={text.renameLabel}
                   />
@@ -161,7 +142,7 @@ export function LedgerPlaceholderMemberDialog({
                     {invite ? (
                       <>
                         <Typography color="text.secondary" variant="body2">
-                          {`${text.inviteMemberBadge} · ${ledgerInviteRoleLabels[invite.role]} · ${formatInviteCreatedAt(invite.createdAt)}`}
+                          {`${text.statusLinkPending} · ${ledgerInviteRoleLabels[invite.role]} · ${formatInviteCreatedAt(invite.createdAt)}`}
                         </Typography>
                         <Button
                           fullWidth
@@ -231,29 +212,6 @@ export function LedgerPlaceholderMemberDialog({
         title={feedback?.kind === "failure" ? feedback.title : ""}
       />
     </>
-  );
-}
-
-function NameField({
-  defaultValue,
-  label = text.nameLabel,
-}: {
-  defaultValue?: string;
-  label?: string;
-}) {
-  return (
-    <TextField
-      autoComplete="off"
-      defaultValue={defaultValue}
-      fullWidth
-      label={label}
-      name="displayName"
-      placeholder={text.namePlaceholder}
-      required
-      slotProps={{
-        htmlInput: { maxLength: ledgerPlaceholderMemberNameMaxLength },
-      }}
-    />
   );
 }
 

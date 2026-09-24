@@ -18,11 +18,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const WithoutInvite: Story = {
-  name: "待邀请（无邀请）",
+  name: "未生成链接（含撤销后）",
 };
 
 export const WithBoundInvite: Story = {
-  name: "有绑定邀请",
+  name: "已生成链接（等待加入）",
   args: {
     row: {
       invite: {

@@ -27,10 +27,13 @@ export function useLedgerInviteEntry({
   const [draftOpen, setDraftOpen] = useState(initialToken !== null);
   const [draftRole, setDraftRole] = useState<LedgerInviteRole>("member");
   const [draftToken, setDraftToken] = useState<string | null>(initialToken);
-  // 绑定占位的草稿目标；匿名邀请为 null。只用于页面展示与提交字段。
+  // 草稿目标：为已有待邀请成员生成链接时为其 ID；「邀请成员」新建时为 null，
+  // 成功后由 fragment 回填新成员 ID。只用于页面展示与提交字段。
   const [draftPlaceholderId, setDraftPlaceholderId] = useState<string | null>(
     null,
   );
+  // 受控输入，避免表单 Action 结束后自动重置导致失败时丢失已填写的名字。
+  const [draftName, setDraftName] = useState("");
   const [managementError, setManagementError] =
     useState<LedgerInviteManagementError | null>(null);
   const [selectedInvite, setSelectedInvite] =
@@ -105,7 +108,7 @@ export function useLedgerInviteEntry({
     const operation = actionState.operation ?? "create";
     setManagementError({ message: actionState.error, operation });
 
-    if (operation === "create") {
+    if (operation === "create" || operation === "invite") {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 返回新错误状态时同步关闭旧反馈并展示本次错误。
       setDraftOpen(true);
       setSelectedInvite(null);
@@ -121,6 +124,7 @@ export function useLedgerInviteEntry({
     setDraftRole("member");
     setDraftToken(null);
     setDraftPlaceholderId(placeholderId);
+    setDraftName("");
     setSelectedInvite(null);
     resetTransientFeedback();
     setDraftOpen(true);
@@ -151,6 +155,7 @@ export function useLedgerInviteEntry({
     copyLink,
     created,
     draftLink,
+    draftName,
     draftOpen,
     draftPlaceholderId,
     draftRole,
@@ -164,6 +169,7 @@ export function useLedgerInviteEntry({
     selectedLink,
     selectedToken,
     selectInvite: setSelectedInvite,
+    setDraftName,
     setDraftRole,
   };
 }

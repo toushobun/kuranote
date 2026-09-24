@@ -17,7 +17,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { routePaths } from "config/paths";
 import { executeClientMutation } from "lib/api/clientMutation";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
-import { LedgerInviteTakeoverNotice } from "molecules/ledgers/LedgerInviteTakeoverNotice";
+import { LedgerInviteIdentityNotice } from "molecules/ledgers/LedgerInviteIdentityNotice";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import type { LedgerInvitePreview } from "internal/ledger";
 import { PageShell } from "templates/layout/PageShell";
@@ -49,8 +49,8 @@ export function LedgerInviteTemplate({
     preview.status === "invalid" ||
     preview.status === "revoked" ||
     preview.status === "accepted";
-  // 只有有效的绑定邀请才展示接管说明；名字来自预览 RPC 实时读取的占位名。
-  const takeoverName =
+  // 只有有效的绑定邀请才展示身份说明；名字来自预览 RPC 实时读取的占位名。
+  const identityName =
     !isInvalid && !isAlreadyMember && preview.isPlaceholderBound
       ? preview.placeholderDisplayName
       : null;
@@ -163,8 +163,8 @@ export function LedgerInviteTemplate({
                 <Typography color="text.secondary" variant="body2">
                   {inviteRoleDescriptions[preview.inviteRole ?? "member"]}
                 </Typography>
-                {takeoverName ? (
-                  <LedgerInviteTakeoverNotice name={takeoverName} />
+                {identityName ? (
+                  <LedgerInviteIdentityNotice name={identityName} />
                 ) : null}
               </Stack>
             </SoftCard>

@@ -12,7 +12,6 @@ import {
   ledgerPlaceholderMemberErrorCodes,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 import {
-  parseCreateLedgerPlaceholderMemberForm,
   parseDeleteLedgerPlaceholderMemberForm,
   parseRenameLedgerPlaceholderMemberForm,
 } from "internal/ledger/schema/ledgerPlaceholderMemberForm";
@@ -24,7 +23,6 @@ import type {
 } from "types/ledgers";
 
 const fallbackCodes = {
-  create: ledgerPlaceholderMemberErrorCodes.createFailed,
   delete: ledgerPlaceholderMemberErrorCodes.deleteFailed,
   rename: ledgerPlaceholderMemberErrorCodes.renameFailed,
 } as const satisfies Record<LedgerPlaceholderMemberActionOperation, string>;
@@ -83,19 +81,6 @@ async function run(
 
   revalidatePlaceholderMutation(ledgerId);
   return { operation, successKey: crypto.randomUUID() };
-}
-
-export async function createLedgerPlaceholderMember(
-  _previousState: LedgerPlaceholderMemberActionState,
-  formData: FormData,
-): Promise<LedgerPlaceholderMemberActionState> {
-  const { userId } = await requireCurrentUserAndLedger();
-  const parsed = parseCreateLedgerPlaceholderMemberForm(formData);
-  if (!parsed.ok) return errorState(parsed.error, "create");
-
-  return run("create", parsed.value.ledgerId, (service) =>
-    service.create({ ...parsed.value, userId }),
-  );
 }
 
 export async function renameLedgerPlaceholderMember(

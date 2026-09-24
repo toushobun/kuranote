@@ -15,8 +15,9 @@ import {
 } from "utils/ledgerMembers";
 
 /**
- * 成员列表中的待邀请成员行：名字 +「待邀请」；有有效绑定邀请时在同一行显示
- * 「待接受邀请」与角色。只有管理者会拿到邀请信息，其他成员只看到占位摘要。
+ * 成员列表中的待邀请成员行：名字 + 状态。管理者看到链接状态——已生成时显示
+ * 「等待加入」与角色、创建时间，未生成（含撤销后）时显示「未生成链接」；
+ * 其他成员拿不到邀请信息，只看到「待邀请」与占位摘要。
  */
 export function LedgerPlaceholderMemberRow({
   canManage,
@@ -28,9 +29,11 @@ export function LedgerPlaceholderMemberRow({
   row: LedgerPlaceholderMemberRowView;
 }) {
   const { invite, placeholder } = row;
-  const status = invite
-    ? placeholderMemberText.inviteMemberBadge
-    : placeholderMemberText.pendingLabel;
+  const status = !canManage
+    ? placeholderMemberText.pendingLabel
+    : invite
+      ? placeholderMemberText.statusLinkPending
+      : placeholderMemberText.statusNoLink;
   const subtitle = !canManage
     ? placeholderMemberText.rowSubtitleReadOnly
     : invite

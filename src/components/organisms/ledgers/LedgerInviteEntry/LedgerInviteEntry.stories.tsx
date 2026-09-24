@@ -10,123 +10,6 @@ import { LedgerInviteEntry } from "./LedgerInviteEntry";
 import { LedgerInvitePendingProvider } from "../LedgerInvitePendingContext/LedgerInvitePendingContext";
 
 const action: LedgerInviteStateAction = async () => ({});
-const pendingInvites = [
-  {
-    createdAt: "2026-07-13T09:00:00.000Z",
-    id: "storybook-invite-id",
-    placeholderId: null,
-    role: "member" as const,
-    token: "storybook-pending-invite-token",
-  },
-];
-
-const meta = {
-  title: "Organisms/Ledgers/LedgerInviteEntry",
-  component: LedgerInviteEntry,
-  decorators: [
-    (Story) => (
-      <LedgerInvitePendingProvider pendingInvites={[]}>
-        <Story />
-      </LedgerInvitePendingProvider>
-    ),
-  ],
-  args: {
-    action,
-    canInvite: true,
-    ledgerId: "storybook-ledger",
-    token: null,
-  },
-} satisfies Meta<typeof LedgerInviteEntry>;
-
-export default meta;
-type Story = StoryObj<typeof meta>;
-type LedgerInviteEntryArgs = ComponentProps<typeof LedgerInviteEntry>;
-
-function renderWithPendingInvites(args: LedgerInviteEntryArgs) {
-  const visibleInvites = args.canInvite
-    ? pendingInvites
-    : pendingInvites.map((invite) => ({ ...invite, token: null }));
-
-  return (
-    <LedgerInvitePendingProvider pendingInvites={visibleInvites}>
-      <LedgerInviteEntry {...args} />
-    </LedgerInvitePendingProvider>
-  );
-}
-
-export const NoLink: Story = {
-  name: "无待邀请且尚未生成链接",
-};
-
-export const WithLink: Story = {
-  name: "已生成邀请链接",
-  args: {
-    token: "storybook-invite-token",
-  },
-};
-
-export const PendingInvite: Story = {
-  name: "存在待接受邀请",
-  render: renderWithPendingInvites,
-};
-
-export const RevokeConfirmation: Story = {
-  name: "撤销邀请确认",
-  render: renderWithPendingInvites,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /待接受邀请/ }),
-    );
-    await userEvent.click(
-      await within(document.body).findByRole("button", { name: "撤销邀请" }),
-    );
-    await within(document.body).findByRole("heading", {
-      name: "确认撤销邀请？",
-    });
-  },
-};
-
-export const PendingInviteReadonly: Story = {
-  name: "普通成员查看待接受邀请",
-  args: {
-    canInvite: false,
-  },
-  render: renderWithPendingInvites,
-};
-
-export const ReadOnly: Story = {
-  name: "无邀请权限且无待邀请",
-  args: {
-    canInvite: false,
-  },
-};
-
-export const WithError: Story = {
-  name: "生成邀请链接失败",
-  args: {
-    action: async () => ({
-      error: "邀请链接生成失败，请稍后重试。",
-      errorKey: "storybook-create-failed",
-      operation: "create",
-    }),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(
-      await canvas.findByRole("button", { name: "邀请成员" }),
-    );
-    await userEvent.click(
-      await within(document.body).findByRole("button", {
-        name: "生成邀请链接",
-      }),
-    );
-    await within(document.body).findByRole("heading", {
-      name: "生成邀请链接失败",
-    });
-  },
-};
-
 const placeholderMembers = [
   { displayName: "奶奶", id: "storybook-placeholder-1" },
   { displayName: "爷爷", id: "storybook-placeholder-2" },
@@ -139,19 +22,19 @@ const boundInvite = {
   token: "storybook-bound-invite-token",
 };
 const placeholderMemberActions = {
-  create: async () => ({}),
   delete: async () => ({}),
   rename: async () => ({}),
 };
 
-function renderWithPlaceholders(args: LedgerInviteEntryArgs) {
+type LedgerInviteEntryArgs = ComponentProps<typeof LedgerInviteEntry>;
+
+function renderEntry(args: LedgerInviteEntryArgs) {
   return (
     <UserThemeProvider storageScope="storybook-ledger-invite-entry">
       <ConfirmDialogProvider>
+        {/* 只有管理者能读取待接受邀请；普通成员只看到待邀请成员摘要。 */}
         <LedgerInvitePendingProvider
-          pendingInvites={
-            args.canInvite ? [boundInvite, ...pendingInvites] : []
-          }
+          pendingInvites={args.canInvite ? [boundInvite] : []}
         >
           <LedgerInviteEntry {...args} />
         </LedgerInvitePendingProvider>
@@ -160,20 +43,117 @@ function renderWithPlaceholders(args: LedgerInviteEntryArgs) {
   );
 }
 
-export const WithPlaceholderMembers: Story = {
-  name: "待邀请成员（含绑定邀请）与匿名邀请",
-  args: { placeholderMemberActions, placeholderMembers },
-  render: renderWithPlaceholders,
+const meta = {
+  title: "Organisms/Ledgers/LedgerInviteEntry",
+  component: LedgerInviteEntry,
+  args: {
+    action,
+    canInvite: true,
+    ledgerId: "storybook-ledger",
+    ledgerName: "家庭账本",
+    placeholderMemberActions,
+    placeholderMembers,
+    token: null,
+  },
+  render: renderEntry,
+} satisfies Meta<typeof LedgerInviteEntry>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+async function openInviteDialog(canvasElement: HTMLElement) {
+  await userEvent.click(
+    await within(canvasElement).findByRole("button", { name: /^邀请成员/ }),
+  );
+}
+
+export const MemberList: Story = {
+  name: "待邀请成员（已生成 / 未生成链接）与邀请成员入口",
+};
+
+export const MemberListMobile: Story = {
+  ...MemberList,
+  name: "待邀请成员列表（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+};
+
+export const Empty: Story = {
+  name: "暂无待邀请成员",
+  args: { placeholderMembers: [] },
+};
+
+export const InviteDialog: Story = {
+  name: "邀请成员弹框（填写名字与权限）",
+  play: async ({ canvasElement }) => {
+    await openInviteDialog(canvasElement);
+  },
+};
+
+export const InviteDialogMobile: Story = {
+  ...InviteDialog,
+  name: "邀请成员弹框（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+};
+
+export const InviteFailed: Story = {
+  name: "邀请成员失败（同名）",
+  args: {
+    action: async () => ({
+      error: "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+      errorKey: "storybook-invite-failed",
+      operation: "invite",
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    await openInviteDialog(canvasElement);
+    const body = within(document.body);
+    await userEvent.type(await body.findByLabelText(/名字/), "奶奶");
+    await userEvent.click(
+      await body.findByRole("button", { name: "生成邀请链接" }),
+    );
+    await body.findByRole("heading", { name: "邀请成员失败" });
+  },
+};
+
+export const LinkFailedPartially: Story = {
+  name: "已添加但链接生成失败（部分成功）",
+  args: {
+    action: async () => ({
+      error: "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
+      errorKey: "storybook-link-failed",
+      operation: "invite",
+    }),
+  },
+  play: InviteFailed.play,
+};
+
+export const CreatedLink: Story = {
+  name: "邀请成功后在同一弹框显示链接与身份说明",
+  args: { token: "storybook-invite-token" },
+  play: async () => {
+    // 模拟 Action 成功后的 fragment：新成员 ID 用于定位名字。
+    window.history.replaceState(
+      null,
+      "",
+      `#inviteId=storybook-invite&inviteRole=member&inviteToken=storybook-invite-token&placeholderId=${placeholderMembers[1].id}`,
+    );
+    window.dispatchEvent(new Event("hashchange"));
+  },
+};
+
+export const CreatedLinkMobile: Story = {
+  ...CreatedLink,
+  name: "邀请成功（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
 };
 
 export const BoundInviteCopyArea: Story = {
-  name: "绑定邀请的复制区域（接管说明）",
-  args: { placeholderMemberActions, placeholderMembers },
-  render: renderWithPlaceholders,
+  name: "已生成链接：复制区域（身份说明）",
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "奶奶，待接受邀请" }),
+      await within(canvasElement).findByRole("button", {
+        name: "奶奶，等待加入",
+      }),
     );
     await userEvent.click(
       await within(document.body).findByRole("button", {
@@ -185,16 +165,45 @@ export const BoundInviteCopyArea: Story = {
 
 export const BoundInviteCopyAreaMobile: Story = {
   ...BoundInviteCopyArea,
-  name: "绑定邀请的复制区域（移动端）",
+  name: "已生成链接：复制区域（移动端）",
   parameters: { viewport: { defaultViewport: "mobile2" } },
 };
 
-export const PlaceholderReadOnly: Story = {
-  name: "待邀请成员（非管理者只读）",
-  args: {
-    canInvite: false,
-    placeholderMemberActions: null,
-    placeholderMembers,
+export const RevokeConfirmation: Story = {
+  name: "撤销链接确认",
+  play: async (context) => {
+    await BoundInviteCopyArea.play?.(context);
+    const body = within(document.body);
+    await userEvent.click(
+      await body.findByRole("button", { name: "撤销邀请" }),
+    );
+    await body.findByRole("heading", { name: "确认撤销邀请？" });
   },
-  render: renderWithPlaceholders,
+};
+
+export const RegenerateLink: Story = {
+  name: "未生成链接（含撤销后）：重新生成",
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole("button", {
+        name: "爷爷，未生成链接",
+      }),
+    );
+    await userEvent.click(
+      await within(document.body).findByRole("button", {
+        name: /生成专属邀请链接/,
+      }),
+    );
+  },
+};
+
+export const ReadOnly: Story = {
+  name: "普通成员只读（无邀请权限）",
+  args: { canInvite: false, placeholderMemberActions: null },
+};
+
+export const ReadOnlyMobile: Story = {
+  ...ReadOnly,
+  name: "普通成员只读（移动端）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
 };

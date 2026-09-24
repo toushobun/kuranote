@@ -37,10 +37,10 @@ describe("acceptLedgerInviteRequestSchema", () => {
 describe("createLedgerInviteRequestSchema", () => {
   const placeholderId = "00000000-0000-4000-8000-000000000051";
 
-  it("placeholderId 可以省略", () => {
-    expect(createLedgerInviteRequestSchema.parse({ role: "member" })).toEqual({
-      role: "member",
-    });
+  it("placeholderId 必填，省略时校验失败", () => {
+    expect(
+      createLedgerInviteRequestSchema.safeParse({ role: "member" }).success,
+    ).toBe(false);
   });
 
   it("接受 UUID 格式的 placeholderId", () => {
@@ -63,9 +63,12 @@ describe("ledger invite response schemas", () => {
   const inviteId = "00000000-0000-4000-8000-000000000041";
   const placeholderId = "00000000-0000-4000-8000-000000000051";
 
-  it.each([placeholderId, null])(
-    "生成邀请响应的 placeholderId 可以是 %j",
-    (value) => {
+  it.each([
+    [placeholderId, true],
+    [null, false],
+  ])(
+    "生成邀请响应的 placeholderId 为 %j 时校验结果为 %s",
+    (value, expected) => {
       expect(
         createdLedgerInviteResponseSchema.safeParse({
           inviteId,
@@ -73,7 +76,7 @@ describe("ledger invite response schemas", () => {
           role: "member",
           token: "a".repeat(64),
         }).success,
-      ).toBe(true);
+      ).toBe(expected);
     },
   );
 

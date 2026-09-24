@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getInviteMemberLinkFailedMessage,
   getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
 } from "./ledgerInvite";
@@ -45,4 +46,26 @@ describe("getLedgerInviteErrorMessage", () => {
       expect(getLedgerInviteErrorMessage(code)).toBeNull();
     },
   );
+
+  describe("邀请成员（#809）", () => {
+    it.each([
+      ["placeholder_required", "邀请必须指定一名待邀请成员。"],
+      [
+        "invite_member_name_conflict",
+        "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+      ],
+      [
+        "invite_member_link_failed",
+        "已添加待邀请成员，但邀请链接生成失败，请在列表中重新生成。",
+      ],
+    ])("映射错误 %s", (code, message) => {
+      expect(getLedgerInviteErrorMessage(code)).toBe(message);
+    });
+
+    it("部分成功文案带上已添加的名字", () => {
+      expect(getInviteMemberLinkFailedMessage("小明")).toBe(
+        "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
+      );
+    });
+  });
 });

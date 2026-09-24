@@ -92,7 +92,7 @@ export const Revoked: Story = {
 };
 
 export const PlaceholderBound: Story = {
-  name: "绑定待邀请成员（接管说明）",
+  name: "绑定待邀请成员（以某人身份加入）",
   args: {
     preview: {
       inviteRole: "member",

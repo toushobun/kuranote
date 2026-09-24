@@ -20,8 +20,12 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
+  ValidationError,
 } from "internal/shared/errors/appError";
-import { errorHandlingMiddleware } from "internal/shared/http/errorResponse";
+import {
+  errorHandlingMiddleware,
+  openApiValidationErrorHook,
+} from "internal/shared/http/errorResponse";
 
 const userId = "00000000-0000-4000-8000-000000000031";
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -47,6 +51,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
       inviteService: {
         accept: vi.fn(),
         create: vi.fn(),
+        inviteMember: vi.fn(),
         listPending: vi.fn(),
         revoke: vi.fn(),
       },
@@ -69,7 +74,9 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
 }
 
 function createApp(container: RequestContainer) {
-  const app = new OpenAPIHono<AppEnv>();
+  const app = new OpenAPIHono<AppEnv>({
+    defaultHook: openApiValidationErrorHook,
+  });
   app.use("*", async (c, next) => {
     c.set("container", container);
     c.set("requestId", "request-1");
@@ -205,9 +212,10 @@ describe("ledger router", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("创建邀请时传递账本、角色和用户并刷新对应设置页", async () => {
+  it("创建邀请时传递账本、占位、角色和用户并刷新对应设置页", async () => {
     const create = vi.fn().mockResolvedValue({
       inviteId,
+      placeholderId,
       role: "member",
       token: "a".repeat(64),
     });
@@ -216,6 +224,7 @@ describe("ledger router", () => {
         inviteService: {
           accept: vi.fn(),
           create,
+          inviteMember: vi.fn(),
           listPending: vi.fn(),
           revoke: vi.fn(),
         },
@@ -225,14 +234,19 @@ describe("ledger router", () => {
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/invites`,
       {
-        body: JSON.stringify({ role: "member" }),
+        body: JSON.stringify({ placeholderId, role: "member" }),
         headers,
         method: "POST",
       },
     );
 
     expect(response.status).toBe(201);
-    expect(create).toHaveBeenCalledWith({ ledgerId, role: "member", userId });
+    expect(create).toHaveBeenCalledWith({
+      ledgerId,
+      placeholderId,
+      role: "member",
+      userId,
+    });
     expectCommonLedgerPathsRevalidated();
     expect(revalidatePath).toHaveBeenCalledWith(
       `/ledgers/${ledgerId}/settings`,
@@ -246,6 +260,7 @@ describe("ledger router", () => {
         inviteService: {
           accept: vi.fn(),
           create: vi.fn(),
+          inviteMember: vi.fn(),
           listPending: vi.fn(),
           revoke,
         },
@@ -272,6 +287,7 @@ describe("ledger router", () => {
         inviteService: {
           accept: vi.fn(),
           create: vi.fn(),
+          inviteMember: vi.fn(),
           listPending,
           revoke: vi.fn(),
         },
@@ -297,6 +313,7 @@ describe("ledger router", () => {
           inviteService: {
             accept: vi.fn(),
             create: vi.fn(),
+            inviteMember: vi.fn(),
             listPending: vi.fn(),
             revoke: vi.fn(),
             ...inviteService,
@@ -342,23 +359,30 @@ describe("ledger router", () => {
       });
     });
 
-    it("省略 placeholderId 时生成匿名邀请，响应 placeholderId 为 null", async () => {
-      const create = vi.fn().mockResolvedValue({
-        inviteId,
-        placeholderId: null,
-        role: "member",
-        token: "a".repeat(64),
-      });
-      const app = createAppWithInviteService({ create });
+    it.each([{ role: "member" }, { placeholderId: "", role: "member" }])(
+      "缺少 placeholderId %j 时返回 400 统一错误且不调用 Service",
+      async (body) => {
+        const create = vi.fn();
+        const app = createAppWithInviteService({ create });
 
-      const response = await postInvite(app, { role: "member" });
+        const response = await postInvite(app, body);
+        const text = await response.text();
 
-      expect(response.status).toBe(201);
-      expect(create.mock.calls[0][0].placeholderId).toBeUndefined();
-      expect(
-        createdLedgerInviteResponseSchema.parse(await response.json()),
-      ).toMatchObject({ placeholderId: null });
-    });
+        expect(response.status).toBe(400);
+        expect(JSON.parse(text)).toEqual({
+          error: {
+            code: "validation_error",
+            message: expect.any(String),
+            requestId: "request-1",
+            status: 400,
+          },
+        });
+        expect(text).not.toContain("placeholderId");
+        expect(text).not.toContain("invalid_type");
+        expect(create).not.toHaveBeenCalled();
+        expect(revalidatePath).not.toHaveBeenCalled();
+      },
+    );
 
     it.each(["not-a-uuid", null, 1])(
       "placeholderId 为 %j 时返回 400 且不调用 Service",
@@ -378,6 +402,7 @@ describe("ledger router", () => {
     );
 
     it.each([
+      ["placeholder_required", ValidationError, 400],
       ["placeholder_invite_pending", ConflictError, 409],
       ["placeholder_already_claimed", ConflictError, 409],
       ["placeholder_not_found", NotFoundError, 404],

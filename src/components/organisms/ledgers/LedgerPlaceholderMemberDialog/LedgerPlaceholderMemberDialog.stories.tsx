@@ -21,12 +21,10 @@ const meta = {
   ],
   args: {
     actions: {
-      create: async () => ({}),
       delete: async () => ({}),
       rename: async () => ({}),
     },
     ledgerId: "ledger-1",
-    mode: "edit",
     onClose: () => {},
     onCreateInvite: () => {},
     onOpenInvite: () => {},
@@ -38,17 +36,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Create: Story = {
-  name: "添加待邀请成员",
-  args: { mode: "create", row: null },
-};
-
 export const EditWithoutInvite: Story = {
-  name: "改名 / 删除（无邀请）",
+  name: "改名 / 删除（未生成链接，含撤销后）",
 };
 
 export const EditWithBoundInvite: Story = {
-  name: "改名 / 删除（有绑定邀请）",
+  name: "改名 / 删除（已生成链接）",
   args: {
     row: {
       invite: {

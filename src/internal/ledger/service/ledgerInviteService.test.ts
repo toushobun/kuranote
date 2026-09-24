@@ -13,6 +13,7 @@ import {
   ConflictError,
   NotFoundError,
   RepositoryError,
+  ValidationError,
 } from "internal/shared/errors/appError";
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 
@@ -29,7 +30,7 @@ function createRepository() {
     create: vi.fn().mockResolvedValue({
       inviteId: "00000000-0000-4000-8000-000000000041",
       ok: true,
-      placeholderId: null,
+      placeholderId: "00000000-0000-4000-8000-000000000051",
       role: "member" as const,
       token: "a".repeat(64),
     }),
@@ -38,15 +39,27 @@ function createRepository() {
   };
 }
 
+function createPlaceholderMemberService() {
+  return {
+    create: vi.fn().mockResolvedValue({
+      placeholderId: "00000000-0000-4000-8000-000000000051",
+    }),
+  };
+}
+
 function createService(
   repository = createRepository(),
   role: CurrentLedgerRole | null = "owner",
+  placeholderMemberService = createPlaceholderMemberService(),
+  logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 ) {
   return createLedgerInviteService({
     ledgerAccessService: {
       getActiveMemberRole: vi.fn().mockResolvedValue(role),
     },
     ledgerInviteRepository: repository,
+    ledgerPlaceholderMemberService: placeholderMemberService,
+    logger,
   });
 }
 
@@ -86,31 +99,180 @@ describe("createLedgerInviteService.accept", () => {
 });
 
 describe("createLedgerInviteService.create 占位绑定", () => {
-  it.each([
-    ["省略", undefined, null],
-    ["null", null, null],
-    ["指定", placeholderId, placeholderId],
-  ] as const)(
-    "placeholderId %s 时归一化后传给 Repository",
-    async (_label, input, expected) => {
-      const repository = createRepository();
-      repository.create.mockResolvedValue({
-        inviteId: "00000000-0000-4000-8000-000000000041",
-        ok: true,
-        placeholderId: expected,
-        role: "member",
-        token: "a".repeat(64),
-      });
-      const service = createService(repository);
+  it("placeholderId 必填，原样传给 Repository", async () => {
+    const repository = createRepository();
+    const service = createService(repository);
 
-      await expect(
-        service.create({ ...actor, placeholderId: input, role: "member" }),
-      ).resolves.toMatchObject({ placeholderId: expected });
-      expect(repository.create).toHaveBeenCalledWith(
-        actor.ledgerId,
-        "member",
-        expected,
+    await expect(
+      service.create({ ...actor, placeholderId, role: "member" }),
+    ).resolves.toMatchObject({ placeholderId });
+    expect(repository.create).toHaveBeenCalledWith(
+      actor.ledgerId,
+      "member",
+      placeholderId,
+    );
+  });
+
+  it("RPC 返回 placeholder_required 时映射为 ValidationError(400)", async () => {
+    const repository = createRepository();
+    repository.create.mockResolvedValue({
+      code: "placeholder_required",
+      ok: false,
+    });
+    const service = createService(repository);
+
+    const failure = await service
+      .create({ ...actor, placeholderId, role: "member" })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ValidationError);
+    expect(failure).toMatchObject({
+      code: "placeholder_required",
+      message: getLedgerInviteErrorMessage("placeholder_required"),
+    });
+    expect(appErrorToResponseBody(failure as AppError).status).toBe(400);
+  });
+});
+
+describe("createLedgerInviteService.inviteMember", () => {
+  const input = { ...actor, displayName: "  小明 ", role: "viewer" as const };
+
+  it("先创建待邀请成员，再用新占位 ID 生成绑定邀请", async () => {
+    const repository = createRepository();
+    repository.create.mockResolvedValue({
+      inviteId: "00000000-0000-4000-8000-000000000041",
+      ok: true,
+      placeholderId,
+      role: "viewer",
+      token: "a".repeat(64),
+    });
+    const placeholderMemberService = createPlaceholderMemberService();
+    const service = createService(
+      repository,
+      "admin",
+      placeholderMemberService,
+    );
+
+    await expect(service.inviteMember(input)).resolves.toEqual({
+      inviteId: "00000000-0000-4000-8000-000000000041",
+      placeholderId,
+      role: "viewer",
+      token: "a".repeat(64),
+    });
+    expect(placeholderMemberService.create).toHaveBeenCalledWith({
+      displayName: "  小明 ",
+      ledgerId: actor.ledgerId,
+      userId: actor.userId,
+    });
+    expect(repository.create).toHaveBeenCalledWith(
+      actor.ledgerId,
+      "viewer",
+      placeholderId,
+    );
+  });
+
+  it("第 1 步重名时返回引导文案，不复用同名占位也不生成邀请", async () => {
+    const repository = createRepository();
+    const placeholderMemberService = createPlaceholderMemberService();
+    placeholderMemberService.create.mockRejectedValue(
+      new ConflictError(
+        "placeholder_name_conflict",
+        "当前账本已有同名的待邀请成员，请换一个名字。",
+      ),
+    );
+    const service = createService(
+      repository,
+      "owner",
+      placeholderMemberService,
+    );
+
+    const failure = await service
+      .inviteMember(input)
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ConflictError);
+    expect(failure).toMatchObject({
+      code: "invite_member_name_conflict",
+      message: "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+    });
+    expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("第 1 步的其他错误原样抛出", async () => {
+    const placeholderMemberService = createPlaceholderMemberService();
+    const nameError = new ValidationError(
+      "placeholder_name_invalid",
+      "请输入待邀请成员的名字。",
+    );
+    placeholderMemberService.create.mockRejectedValue(nameError);
+    const repository = createRepository();
+    const service = createService(
+      repository,
+      "owner",
+      placeholderMemberService,
+    );
+
+    await expect(service.inviteMember(input)).rejects.toBe(nameError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["业务错误", () => ({ code: "ledger_not_found", ok: false }) as const],
+    [
+      "数据库异常",
+      () => {
+        throw new RepositoryError(
+          "ledger_invite_create_failed",
+          "邀请链接生成失败，请稍后重试。",
+        );
+      },
+    ],
+  ])(
+    "第 2 步%s时返回部分成功文案，且只创建一次待邀请成员",
+    async (_label, createImpl) => {
+      const repository = createRepository();
+      repository.create.mockImplementation(async () => createImpl());
+      const placeholderMemberService = createPlaceholderMemberService();
+      const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+      const service = createService(
+        repository,
+        "owner",
+        placeholderMemberService,
+        logger,
       );
+
+      const failure = await service
+        .inviteMember(input)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ConflictError);
+      expect(failure).toMatchObject({
+        code: "invite_member_link_failed",
+        message: "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
+      });
+      expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
+      expect(placeholderMemberService.create).toHaveBeenCalledTimes(1);
+      expect(repository.create).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        "[ledger] invite member link creation failed",
+        expect.objectContaining({ errorName: expect.any(String) }),
+      );
+    },
+  );
+
+  it.each(["member", "viewer"] as const)(
+    "%s 无权邀请成员，不创建待邀请成员",
+    async (role) => {
+      const repository = createRepository();
+      const placeholderMemberService = createPlaceholderMemberService();
+      const service = createService(repository, role, placeholderMemberService);
+
+      await expect(service.inviteMember(input)).rejects.toBeInstanceOf(
+        AuthorizationError,
+      );
+      expect(placeholderMemberService.create).not.toHaveBeenCalled();
+      expect(repository.create).not.toHaveBeenCalled();
     },
   );
 });
@@ -124,7 +286,7 @@ describe.each(["create", "revoke", "listPending"] as const)(
 
       if (operation === "create") {
         await expect(
-          service.create({ ...actor, role: "member" }),
+          service.create({ ...actor, placeholderId, role: "member" }),
         ).resolves.toMatchObject({ role: "member" });
       } else if (operation === "revoke") {
         await expect(
@@ -141,7 +303,7 @@ describe.each(["create", "revoke", "listPending"] as const)(
 
       const action =
         operation === "create"
-          ? service.create({ ...actor, role: "member" })
+          ? service.create({ ...actor, placeholderId, role: "member" })
           : operation === "revoke"
             ? service.revoke({ ...actor, inviteId: "invite-1" })
             : service.listPending(actor);
@@ -247,6 +409,7 @@ describe("createLedgerInviteService.create 大写占位 ID", () => {
       ledgerInviteRepository: createSupabaseLedgerInviteRepository({
         rpc,
       } as unknown as AuthenticatedSupabaseClient),
+      ledgerPlaceholderMemberService: createPlaceholderMemberService(),
     });
 
     const created = await service.create({

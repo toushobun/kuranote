@@ -8,7 +8,7 @@ import { useLedgerInviteEntry } from "./useLedgerInviteEntry";
 const pendingInvite: PendingLedgerInvite = {
   createdAt: "2026-07-20T01:00:00.000Z",
   id: "invite-1",
-  placeholderId: null,
+  placeholderId: "placeholder-1",
   role: "viewer",
   token: "selected-token",
 };
@@ -68,7 +68,7 @@ describe("useLedgerInviteEntry", () => {
     expect(window.location.hash).toBe("");
   });
 
-  it("为占位打开草稿时记录目标，重新打开匿名草稿时清除", () => {
+  it("为已有待邀请成员打开草稿时记录目标，重新打开邀请成员时清除目标与名字", () => {
     const { result } = renderHook(() =>
       useLedgerInviteEntry({ actionState: {}, initialToken: null }),
     );
@@ -79,7 +79,34 @@ describe("useLedgerInviteEntry", () => {
 
     act(() => result.current.openNewDraft());
     expect(result.current.draftPlaceholderId).toBeNull();
+    act(() => result.current.setDraftName("小明"));
+    expect(result.current.draftName).toBe("小明");
+
+    act(() => result.current.openNewDraft());
+    expect(result.current.draftName).toBe("");
   });
+
+  it.each(["invite", "create"] as const)(
+    "%s 失败时保持草稿打开，便于修改后重试",
+    (operation) => {
+      const { result } = renderHook(() =>
+        useLedgerInviteEntry({
+          actionState: {
+            error: "邀请成员失败。",
+            errorKey: `error-${operation}`,
+            operation,
+          },
+          initialToken: null,
+        }),
+      );
+
+      expect(result.current.draftOpen).toBe(true);
+      expect(result.current.managementError).toEqual({
+        message: "邀请成员失败。",
+        operation,
+      });
+    },
+  );
 
   it("只消费一次带 errorKey 的管理错误", () => {
     const { result, rerender } = renderHook(

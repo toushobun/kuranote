@@ -35,8 +35,8 @@ export const ledgerInviteParamsSchema = z.object({
 });
 
 export const createLedgerInviteRequestSchema = z.object({
-  // 省略时生成匿名邀请；指定时生成绑定该占位成员的邀请。
-  placeholderId: uuidSchema.optional(),
+  // #809 起邀请必须绑定一名待邀请成员，不再支持匿名邀请。
+  placeholderId: uuidSchema,
   role: inviteRoleSchema,
 });
 
@@ -62,7 +62,7 @@ export const okResponseSchema = z.object({ ok: z.literal(true) });
 export const acceptLedgerInviteResponseSchema = okResponseSchema;
 export const createdLedgerInviteResponseSchema = z.object({
   inviteId: uuidSchema,
-  placeholderId: uuidSchema.nullable(),
+  placeholderId: uuidSchema,
   role: inviteRoleSchema,
   token: z.string().refine(isValidLedgerInviteToken),
 });

@@ -1554,63 +1554,57 @@ begin
             using errcode = '42501', detail = 'permission_denied';
     end if;
 
+    -- 不再生成匿名邀请；放在权限校验之后，避免向无权限者暴露参数要求。
     if p_placeholder_id is null then
-        if not exists (
-            select 1
-            from public.ledger l
-            where l.id = p_ledger_id
-              and l.is_archived = false
-        ) then
-            raise exception 'ledger_not_found'
-                using errcode = 'P0002', detail = 'ledger_not_found';
-        end if;
-    else
-        -- 不复用 lock_ledger_placeholder_management：它对归档账本返回 permission_denied，
-        -- 这里与匿名分支保持一致，归档账本返回 ledger_not_found。
-        perform 1
-        from public.ledger l
-        where l.id = p_ledger_id
-          and l.is_archived = false
-        for update;
+        raise exception 'placeholder_required'
+            using errcode = '22023', detail = 'placeholder_required';
+    end if;
 
-        if not found then
-            raise exception 'ledger_not_found'
-                using errcode = 'P0002', detail = 'ledger_not_found';
-        end if;
+    -- 不复用 lock_ledger_placeholder_management：它对归档账本返回 permission_denied，
+    -- 这里保持归档账本返回 ledger_not_found。
+    perform 1
+    from public.ledger l
+    where l.id = p_ledger_id
+      and l.is_archived = false
+    for update;
 
-        -- 取得账本锁后复核权限，避免使用锁前的角色快照。
-        if not public.current_user_can_manage_ledger(p_ledger_id) then
-            raise exception 'permission_denied'
-                using errcode = '42501', detail = 'permission_denied';
-        end if;
+    if not found then
+        raise exception 'ledger_not_found'
+            using errcode = 'P0002', detail = 'ledger_not_found';
+    end if;
 
-        select *
-          into v_placeholder
-          from public.ledger_placeholder_member p
-         where p.id = p_placeholder_id
-           and p.ledger_id = p_ledger_id
-         for update;
+    -- 取得账本锁后复核权限，避免使用锁前的角色快照。
+    if not public.current_user_can_manage_ledger(p_ledger_id) then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
 
-        if v_placeholder.id is null then
-            raise exception 'placeholder_not_found'
-                using errcode = '22023', detail = 'placeholder_not_found';
-        end if;
+    select *
+      into v_placeholder
+      from public.ledger_placeholder_member p
+     where p.id = p_placeholder_id
+       and p.ledger_id = p_ledger_id
+     for update;
 
-        if v_placeholder.claimed_by is not null then
-            raise exception 'placeholder_already_claimed'
-                using errcode = '23514', detail = 'placeholder_already_claimed';
-        end if;
+    if v_placeholder.id is null then
+        raise exception 'placeholder_not_found'
+            using errcode = '22023', detail = 'placeholder_not_found';
+    end if;
 
-        if exists (
-            select 1
-            from public.ledger_invite li
-            where li.placeholder_id = p_placeholder_id
-              and li.accepted_at is null
-              and li.revoked_at is null
-        ) then
-            raise exception 'placeholder_invite_pending'
-                using errcode = '23505', detail = 'placeholder_invite_pending';
-        end if;
+    if v_placeholder.claimed_by is not null then
+        raise exception 'placeholder_already_claimed'
+            using errcode = '23514', detail = 'placeholder_already_claimed';
+    end if;
+
+    if exists (
+        select 1
+        from public.ledger_invite li
+        where li.placeholder_id = p_placeholder_id
+          and li.accepted_at is null
+          and li.revoked_at is null
+    ) then
+        raise exception 'placeholder_invite_pending'
+            using errcode = '23505', detail = 'placeholder_invite_pending';
     end if;
 
     v_token := encode(extensions.gen_random_bytes(32), 'hex');
@@ -8045,6 +8039,7 @@ CREATE TABLE IF NOT EXISTS "public"."ledger_invite" (
     "invite_token" "text",
     "placeholder_id" "uuid",
     CONSTRAINT "ledger_invite_acceptance_check" CHECK (((("accepted_at" IS NULL) AND ("accepted_by" IS NULL)) OR (("accepted_at" IS NOT NULL) AND ("accepted_by" IS NOT NULL)))),
+    CONSTRAINT "ledger_invite_pending_requires_placeholder" CHECK ((("placeholder_id" IS NOT NULL) OR ("accepted_at" IS NOT NULL) OR ("revoked_at" IS NOT NULL))),
     CONSTRAINT "ledger_invite_revocation_check" CHECK (((("revoked_at" IS NULL) AND ("revoked_by" IS NULL)) OR (("revoked_at" IS NOT NULL) AND ("revoked_by" IS NOT NULL)))),
     CONSTRAINT "ledger_invite_role_check" CHECK (("role" = ANY (ARRAY['admin'::"text", 'member'::"text", 'viewer'::"text"]))),
     CONSTRAINT "ledger_invite_token_length_check" CHECK ((("invite_token" IS NULL) OR ("length"("invite_token") = 64))),

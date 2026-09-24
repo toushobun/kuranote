@@ -19,7 +19,7 @@ export type LedgerInviteWriteResult =
   | { ok: false; code: LedgerInviteErrorCode };
 
 /**
- * 接受邀请的结果：joined / already_member 为匿名邀请，
+ * 接受邀请的结果：joined / already_member 为匿名邀请（#809 起只剩历史数据），
  * claimed 为绑定邀请首次认领或同一用户的幂等重放，此时 placeholderId 非空。
  */
 export type AcceptedLedgerInvite =
@@ -38,7 +38,7 @@ export type CreateLedgerInviteResult =
   | {
       inviteId: string;
       ok: true;
-      placeholderId: string | null;
+      placeholderId: string;
       role: LedgerInviteRole;
       token: string;
     }
@@ -61,7 +61,7 @@ export interface LedgerInviteRepository {
   create(
     ledgerId: string,
     role: LedgerInviteRole,
-    placeholderId: string | null,
+    placeholderId: string,
   ): Promise<CreateLedgerInviteResult>;
   revoke(ledgerId: string, inviteId: string): Promise<LedgerInviteWriteResult>;
   listPending(ledgerId: string): Promise<ListPendingLedgerInvitesResult>;
@@ -82,6 +82,7 @@ const inviteErrorMap = {
     ledgerInviteErrorCodes.placeholderClaimExistingMember,
   placeholder_invite_pending: ledgerInviteErrorCodes.placeholderInvitePending,
   placeholder_not_found: ledgerInviteErrorCodes.placeholderNotFound,
+  placeholder_required: ledgerInviteErrorCodes.placeholderRequired,
   user_inactive: ledgerInviteErrorCodes.userInactive,
 } as const satisfies Readonly<Record<string, LedgerInviteErrorCode>>;
 
@@ -187,7 +188,7 @@ export function createSupabaseLedgerInviteRepository(
         typeof row?.invite_id !== "string" ||
         typeof row?.token !== "string" ||
         !isLedgerInviteRole(row?.invite_role) ||
-        !isNullableString(row?.placeholder_id) ||
+        typeof row?.placeholder_id !== "string" ||
         row.placeholder_id !== placeholderId
       ) {
         logger.error("[ledger] create_ledger_invite_v2 returned invalid data", {

@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { LedgerInviteTakeoverNotice } from "./LedgerInviteTakeoverNotice";
+import { LedgerInviteIdentityNotice } from "./LedgerInviteIdentityNotice";
 
 const meta = {
-  title: "Molecules/Ledgers/LedgerInviteTakeoverNotice",
-  component: LedgerInviteTakeoverNotice,
+  title: "Molecules/Ledgers/LedgerInviteIdentityNotice",
+  component: LedgerInviteIdentityNotice,
   args: { name: "奶奶" },
-} satisfies Meta<typeof LedgerInviteTakeoverNotice>;
+} satisfies Meta<typeof LedgerInviteIdentityNotice>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "接管说明",
+  name: "以某人身份加入说明",
 };
 
 export const LongName: Story = {

@@ -370,6 +370,8 @@ export function createRequestContainer(
           inviteService: createLedgerInviteService({
             ledgerAccessService: getLedgerAccessService(),
             ledgerInviteRepository,
+            ledgerPlaceholderMemberService: getLedgerPlaceholderMemberService(),
+            logger: dependencies.logger,
           }),
           invitePreviewService: createLedgerInvitePreviewService(
             ledgerInvitePreviewRepository,

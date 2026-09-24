@@ -46,6 +46,7 @@ function containerWithAccept(
       inviteService: {
         accept,
         create: vi.fn(),
+        inviteMember: vi.fn(),
         listPending: vi.fn(),
         revoke: vi.fn(),
       },

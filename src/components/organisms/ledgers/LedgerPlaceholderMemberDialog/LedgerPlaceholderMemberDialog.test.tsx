@@ -29,7 +29,7 @@ function createActions(
   const keep = vi.fn(
     async (state: LedgerPlaceholderMemberActionState) => state,
   );
-  return { create: keep, delete: keep, rename: keep, ...overrides };
+  return { delete: keep, rename: keep, ...overrides };
 }
 
 function renderDialog(
@@ -43,7 +43,6 @@ function renderDialog(
       <LedgerPlaceholderMemberDialog
         actions={createActions()}
         ledgerId="ledger-1"
-        mode="edit"
         onClose={onClose}
         onCreateInvite={onCreateInvite}
         onOpenInvite={onOpenInvite}
@@ -60,56 +59,6 @@ function lastFormData(action: ReturnType<typeof vi.fn>) {
   const calls = action.mock.calls;
   return calls[calls.length - 1]?.[1] as FormData;
 }
-
-describe("LedgerPlaceholderMemberDialog 添加", () => {
-  it("提交名字后调用创建 Action，成功后关闭并提示", async () => {
-    const create = vi.fn(async () => ({
-      operation: "create" as const,
-      successKey: "success-1",
-    }));
-    const { onClose } = renderDialog({
-      actions: createActions({ create }),
-      mode: "create",
-      row: null,
-    });
-
-    fireEvent.change(screen.getByLabelText(/名字/), {
-      target: { value: "奶奶" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "添加" }));
-
-    await waitFor(() => expect(create).toHaveBeenCalled());
-    const formData = lastFormData(create);
-    expect(formData.get("ledgerId")).toBe("ledger-1");
-    expect(formData.get("displayName")).toBe("奶奶");
-    expect(await screen.findByText("已添加待邀请成员")).toBeInTheDocument();
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it("重名时显示 placeholder_name_conflict 文案", async () => {
-    const create = vi.fn(async () => ({
-      error: "当前账本已有同名的待邀请成员，请换一个名字。",
-      errorKey: "error-1",
-      operation: "create" as const,
-    }));
-    const { onClose } = renderDialog({
-      actions: createActions({ create }),
-      mode: "create",
-      row: null,
-    });
-
-    fireEvent.change(screen.getByLabelText(/名字/), {
-      target: { value: "奶奶" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "添加" }));
-
-    expect(await screen.findByText("添加待邀请成员失败")).toBeInTheDocument();
-    expect(
-      screen.getByText("当前账本已有同名的待邀请成员，请换一个名字。"),
-    ).toBeInTheDocument();
-    expect(onClose).not.toHaveBeenCalled();
-  });
-});
 
 describe("LedgerPlaceholderMemberDialog 详情", () => {
   it("改名提交占位 ID 与新名字，成功后保持弹框", async () => {
@@ -214,9 +163,33 @@ describe("LedgerPlaceholderMemberDialog 详情", () => {
     expect(screen.queryByRole("button", { name: /邀请/ })).toBeNull();
   });
 
-  it("只读模式下不能打开添加弹框", () => {
-    renderDialog({ actions: null, mode: "create", row: null });
+  it("没有选中的待邀请成员时不打开弹框，也不再提供添加表单", () => {
+    renderDialog({ row: null });
 
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加" })).toBeNull();
+  });
+
+  it("管理者按链接状态显示未生成链接 / 等待加入", () => {
+    renderDialog();
+    expect(screen.getByText("未生成链接")).toBeInTheDocument();
+
+    cleanup();
+    renderDialog({
+      row: {
+        invite: {
+          createdAt: "2026-09-01T00:00:00.000Z",
+          id: "invite-1",
+          placeholderId: placeholder.id,
+          role: "member",
+          token: "token",
+        },
+        placeholder,
+      },
+    });
+    expect(screen.getByText("等待加入")).toBeInTheDocument();
+    expect(
+      screen.getByText(/^等待加入 · 用户（Member） · /),
+    ).toBeInTheDocument();
   });
 });

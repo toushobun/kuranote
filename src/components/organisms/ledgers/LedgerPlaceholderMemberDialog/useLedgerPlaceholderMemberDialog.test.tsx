@@ -24,7 +24,7 @@ describe("useLedgerPlaceholderMemberDialog", () => {
     const { result } = renderHook(
       () =>
         useLedgerPlaceholderMemberDialog({
-          actions: { create: keep, delete: remove, rename: keep },
+          actions: { delete: remove, rename: keep },
           ledgerId: "ledger-1",
           onClose: vi.fn(),
         }),
@@ -48,8 +48,8 @@ describe("useLedgerPlaceholderMemberDialog", () => {
 
   it("同一个成功结果只处理一次，关闭反馈后不会重复出现", async () => {
     const onClose = vi.fn();
-    const create = vi.fn(async () => ({
-      operation: "create" as const,
+    const rename = vi.fn(async () => ({
+      operation: "rename" as const,
       successKey: "success-1",
     }));
     const keep = vi.fn(
@@ -58,7 +58,7 @@ describe("useLedgerPlaceholderMemberDialog", () => {
     const { result, rerender } = renderHook(
       () =>
         useLedgerPlaceholderMemberDialog({
-          actions: { create, delete: keep, rename: keep },
+          actions: { delete: keep, rename },
           ledgerId: "ledger-1",
           onClose,
         }),
@@ -66,20 +66,21 @@ describe("useLedgerPlaceholderMemberDialog", () => {
     );
 
     await act(async () => {
-      result.current.createAction(new FormData());
+      result.current.renameAction(new FormData());
     });
     await waitFor(() =>
       expect(result.current.feedback).toEqual({
         kind: "success",
-        title: "已添加待邀请成员",
+        title: "名字已更新",
       }),
     );
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // 改名成功后保持弹框。
+    expect(onClose).not.toHaveBeenCalled();
 
     act(() => result.current.closeFeedback());
     rerender();
     expect(result.current.feedback).toBeNull();
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("没有写 Action（只读）时仍可安全调用", () => {
@@ -94,6 +95,7 @@ describe("useLedgerPlaceholderMemberDialog", () => {
     );
 
     expect(result.current.feedback).toBeNull();
-    expect(result.current.creating).toBe(false);
+    expect(result.current.renaming).toBe(false);
+    expect(result.current.deleting).toBe(false);
   });
 });

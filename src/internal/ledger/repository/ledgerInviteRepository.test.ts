@@ -203,37 +203,7 @@ describe("createSupabaseLedgerInviteRepository", () => {
 });
 
 describe("createSupabaseLedgerInviteRepository.create", () => {
-  it("RPC 成功时返回邀请信息", async () => {
-    const supabase = createSupabaseStub({
-      data: [
-        {
-          invite_id: "invite-1",
-          invite_role: "member",
-          placeholder_id: null,
-          token: "token-abc",
-        },
-      ],
-      error: null,
-    });
-    const repository = createSupabaseLedgerInviteRepository(supabase);
-
-    const result = await repository.create(ledgerId, "member", null);
-
-    expect(result).toEqual({
-      inviteId: "invite-1",
-      ok: true,
-      placeholderId: null,
-      role: "member",
-      token: "token-abc",
-    });
-    expect(supabase.rpc).toHaveBeenCalledWith("create_ledger_invite_v2", {
-      p_ledger_id: ledgerId,
-      p_placeholder_id: null,
-      p_role: "member",
-    });
-  });
-
-  it("绑定邀请透传 p_placeholder_id 并返回占位绑定标识", async () => {
+  it("placeholderId 必填：透传 p_placeholder_id 并返回完整邀请信息", async () => {
     const supabase = createSupabaseStub({
       data: [
         {
@@ -249,7 +219,13 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
 
     await expect(
       repository.create(ledgerId, "viewer", placeholderId),
-    ).resolves.toMatchObject({ ok: true, placeholderId, role: "viewer" });
+    ).resolves.toEqual({
+      inviteId: "invite-1",
+      ok: true,
+      placeholderId,
+      role: "viewer",
+      token: "token-abc",
+    });
     expect(supabase.rpc).toHaveBeenCalledWith("create_ledger_invite_v2", {
       p_ledger_id: ledgerId,
       p_placeholder_id: placeholderId,
@@ -258,35 +234,32 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
   });
 
   it.each([
-    ["缺少 placeholder_id", undefined, null],
-    ["placeholder_id 类型错误", 1, null],
-    ["返回的占位与请求不一致", placeholderId, null],
-    ["绑定邀请返回 null 占位", null, placeholderId],
-  ])(
-    "返回行%s时抛出安全 RepositoryError",
-    async (_label, rowPlaceholderId, requestedPlaceholderId) => {
-      const repository = createSupabaseLedgerInviteRepository(
-        createSupabaseStub({
-          data: [
-            {
-              invite_id: "invite-1",
-              invite_role: "member",
-              placeholder_id: rowPlaceholderId,
-              token: "token-abc",
-            },
-          ],
-          error: null,
-        }),
-      );
+    ["缺少 placeholder_id", undefined],
+    ["placeholder_id 类型错误", 1],
+    ["返回的占位与请求不一致", "00000000-0000-4000-8000-000000000099"],
+    ["返回 null 占位", null],
+  ])("返回行%s时抛出安全 RepositoryError", async (_label, rowPlaceholderId) => {
+    const repository = createSupabaseLedgerInviteRepository(
+      createSupabaseStub({
+        data: [
+          {
+            invite_id: "invite-1",
+            invite_role: "member",
+            placeholder_id: rowPlaceholderId,
+            token: "token-abc",
+          },
+        ],
+        error: null,
+      }),
+    );
 
-      await expect(
-        repository.create(ledgerId, "member", requestedPlaceholderId),
-      ).rejects.toMatchObject({
-        code: "ledger_invite_create_result_invalid",
-        message: "邀请链接生成失败，请稍后重试。",
-      });
-    },
-  );
+    await expect(
+      repository.create(ledgerId, "member", placeholderId),
+    ).rejects.toMatchObject({
+      code: "ledger_invite_create_result_invalid",
+      message: "邀请链接生成失败，请稍后重试。",
+    });
+  });
 
   it.each([
     [
@@ -299,6 +272,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
       ledgerInviteErrorCodes.placeholderAlreadyClaimed,
     ],
     ["ledger_not_found", ledgerInviteErrorCodes.ledgerNotFound],
+    ["placeholder_required", ledgerInviteErrorCodes.placeholderRequired],
   ] as const)("生成时 details 为 %s 精确映射", async (details, expected) => {
     const repository = createSupabaseLedgerInviteRepository(
       createSupabaseStub({
@@ -352,7 +326,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
     const repository = createSupabaseLedgerInviteRepository(supabase);
 
     await expect(
-      repository.create(ledgerId, "member", null),
+      repository.create(ledgerId, "member", placeholderId),
     ).rejects.toMatchObject({
       code: "ledger_invite_create_result_invalid",
       message: "邀请链接生成失败，请稍后重试。",
@@ -367,7 +341,9 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
     });
     const repository = createSupabaseLedgerInviteRepository(supabase);
 
-    await expect(repository.create(ledgerId, "member", null)).resolves.toEqual({
+    await expect(
+      repository.create(ledgerId, "member", placeholderId),
+    ).resolves.toEqual({
       code: ledgerInviteErrorCodes.permissionDenied,
       ok: false,
     });
