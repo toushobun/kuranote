@@ -9,7 +9,9 @@ const meta = {
     preview: {
       inviteRole: "member",
       inviterName: "淞文",
+      isPlaceholderBound: false,
       ledgerName: "家庭账本",
+      placeholderDisplayName: null,
       status: "valid",
     },
     token: "storybook-invite-token",
@@ -29,7 +31,9 @@ export const Admin: Story = {
     preview: {
       inviteRole: "admin",
       inviterName: "淞文",
+      isPlaceholderBound: false,
       ledgerName: "家庭账本",
+      placeholderDisplayName: null,
       status: "valid",
     },
   },
@@ -40,7 +44,9 @@ export const Viewer: Story = {
     preview: {
       inviteRole: "viewer",
       inviterName: "淞文",
+      isPlaceholderBound: false,
       ledgerName: "家庭账本",
+      placeholderDisplayName: null,
       status: "valid",
     },
   },
@@ -51,7 +57,9 @@ export const AlreadyMember: Story = {
     preview: {
       inviteRole: "member",
       inviterName: "淞文",
+      isPlaceholderBound: false,
       ledgerName: "家庭账本",
+      placeholderDisplayName: null,
       status: "already_member",
     },
   },
@@ -62,7 +70,9 @@ export const Invalid: Story = {
     preview: {
       inviteRole: null,
       inviterName: null,
+      isPlaceholderBound: false,
       ledgerName: null,
+      placeholderDisplayName: null,
       status: "invalid",
     },
   },
@@ -73,7 +83,9 @@ export const Revoked: Story = {
     preview: {
       inviteRole: null,
       inviterName: null,
+      isPlaceholderBound: false,
       ledgerName: null,
+      placeholderDisplayName: null,
       status: "revoked",
     },
   },

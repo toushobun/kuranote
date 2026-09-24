@@ -19,14 +19,23 @@ export function createLedgerInvitePreviewService(
 
       if (!row) return invalidLedgerInvitePreview;
 
+      // 只有数据库判定为有效绑定且带有名字时才展示占位名字。
+      const isPlaceholderBound =
+        row.is_placeholder_bound === true &&
+        row.placeholder_display_name !== null;
+
       return {
         inviteRole: isLedgerInviteRole(row.invite_role)
           ? row.invite_role
           : null,
         inviterName:
           typeof row.inviter_name === "string" ? row.inviter_name : null,
+        isPlaceholderBound,
         ledgerName:
           typeof row.ledger_name === "string" ? row.ledger_name : null,
+        placeholderDisplayName: isPlaceholderBound
+          ? row.placeholder_display_name
+          : null,
         status: isInviteStatus(row.invite_status)
           ? row.invite_status
           : "invalid",

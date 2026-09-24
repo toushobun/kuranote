@@ -26,7 +26,9 @@ const componentSource = readFileSync(
 const validPreview = {
   inviteRole: "member" as const,
   inviterName: "淞文",
+  isPlaceholderBound: false,
   ledgerName: "家庭账本",
+  placeholderDisplayName: null,
   status: "valid" as const,
 };
 
@@ -159,7 +161,9 @@ describe("LedgerInviteTemplate", () => {
           preview={{
             inviteRole: null,
             inviterName: null,
+            isPlaceholderBound: false,
             ledgerName: null,
+            placeholderDisplayName: null,
             status,
           }}
           token="invite-token"
@@ -184,7 +188,9 @@ describe("LedgerInviteTemplate", () => {
         preview={{
           inviteRole: null,
           inviterName: null,
+          isPlaceholderBound: false,
           ledgerName: null,
+          placeholderDisplayName: null,
           status: "invalid",
         }}
         token=""

@@ -12,7 +12,9 @@ import { LedgerInviteTemplate } from "templates/ledgers/LedgerInvite";
 const invalidInvitePreview: LedgerInvitePreview = {
   inviteRole: null,
   inviterName: null,
+  isPlaceholderBound: false,
   ledgerName: null,
+  placeholderDisplayName: null,
   status: "invalid",
 };
 

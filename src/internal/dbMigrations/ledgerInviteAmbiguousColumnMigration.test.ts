@@ -54,8 +54,9 @@ describe("接受账本邀请列名歧义 migration", () => {
     expect(migrationSql).toContain(conflictTarget);
     expect(finalAcceptInviteFunction).toContain(conflictTarget);
     expect(migrationSql).toContain("returns table (\n    ledger_id uuid,");
+    // #802 在既有输出字段之后追加 placeholder_id，原字段及顺序保持不变。
     expect(finalAcceptInviteFunction).toContain(
-      'RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "result" "text")',
+      'RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "result" "text", "placeholder_id" "uuid")',
     );
   });
 

@@ -3,7 +3,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteService";
+import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import {
+  type AppError,
   AuthorizationError,
   ConflictError,
   NotFoundError,
@@ -13,10 +16,18 @@ import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 
 function createRepository() {
   return {
-    accept: vi.fn().mockResolvedValue({ ok: true }),
+    accept: vi.fn().mockResolvedValue({
+      invite: {
+        ledgerId: "00000000-0000-4000-8000-000000000032",
+        placeholderId: null,
+        result: "joined",
+      },
+      ok: true,
+    }),
     create: vi.fn().mockResolvedValue({
       inviteId: "00000000-0000-4000-8000-000000000041",
       ok: true,
+      placeholderId: null,
       role: "member" as const,
       token: "a".repeat(64),
     }),
@@ -41,15 +52,65 @@ const actor = {
   ledgerId: "00000000-0000-4000-8000-000000000032",
   userId: "00000000-0000-4000-8000-000000000031",
 };
+const placeholderId = "00000000-0000-4000-8000-000000000051";
 
 describe("createLedgerInviteService.accept", () => {
-  it("Repository 成功时正常完成", async () => {
+  it("Repository 成功时返回结构化结果", async () => {
     const repository = createRepository();
     const service = createService(repository);
 
-    await expect(service.accept("token")).resolves.toBeUndefined();
+    await expect(service.accept("token")).resolves.toEqual({
+      ledgerId: actor.ledgerId,
+      placeholderId: null,
+      result: "joined",
+    });
     expect(repository.accept).toHaveBeenCalledWith("token");
   });
+
+  it("认领结果透传占位 ID", async () => {
+    const repository = createRepository();
+    repository.accept.mockResolvedValue({
+      invite: { ledgerId: actor.ledgerId, placeholderId, result: "claimed" },
+      ok: true,
+    });
+    const service = createService(repository);
+
+    await expect(service.accept("token")).resolves.toEqual({
+      ledgerId: actor.ledgerId,
+      placeholderId,
+      result: "claimed",
+    });
+  });
+});
+
+describe("createLedgerInviteService.create 占位绑定", () => {
+  it.each([
+    ["省略", undefined, null],
+    ["null", null, null],
+    ["指定", placeholderId, placeholderId],
+  ] as const)(
+    "placeholderId %s 时归一化后传给 Repository",
+    async (_label, input, expected) => {
+      const repository = createRepository();
+      repository.create.mockResolvedValue({
+        inviteId: "00000000-0000-4000-8000-000000000041",
+        ok: true,
+        placeholderId: expected,
+        role: "member",
+        token: "a".repeat(64),
+      });
+      const service = createService(repository);
+
+      await expect(
+        service.create({ ...actor, placeholderId: input, role: "member" }),
+      ).resolves.toMatchObject({ placeholderId: expected });
+      expect(repository.create).toHaveBeenCalledWith(
+        actor.ledgerId,
+        "member",
+        expected,
+      );
+    },
+  );
 });
 
 describe.each(["create", "revoke", "listPending"] as const)(
@@ -127,4 +188,36 @@ describe("createLedgerInviteService 错误映射", () => {
       RepositoryError,
     );
   });
+});
+
+describe("createLedgerInviteService 占位错误映射", () => {
+  it.each([
+    ["placeholder_invite_pending", "create", ConflictError, 409],
+    ["placeholder_already_claimed", "create", ConflictError, 409],
+    ["placeholder_not_found", "create", NotFoundError, 404],
+    ["placeholder_claim_existing_member", "accept", ConflictError, 409],
+    ["placeholder_claim_account_name_conflict", "accept", ConflictError, 409],
+    ["placeholder_already_claimed", "accept", ConflictError, 409],
+  ] as const)(
+    "%s（%s）映射为对应子类及 HTTP status",
+    async (code, operation, ErrorClass, status) => {
+      const repository = createRepository();
+      repository.create.mockResolvedValue({ code, ok: false });
+      repository.accept.mockResolvedValue({ code, ok: false });
+      const service = createService(repository);
+
+      const failure = await (
+        operation === "create"
+          ? service.create({ ...actor, placeholderId, role: "member" })
+          : service.accept("token")
+      ).catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ErrorClass);
+      expect(failure).toMatchObject({
+        code,
+        message: getLedgerInviteErrorMessage(code),
+      });
+      expect(appErrorToResponseBody(failure as AppError).status).toBe(status);
+    },
+  );
 });

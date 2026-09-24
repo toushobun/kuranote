@@ -10,6 +10,8 @@ import { revalidatePath } from "next/cache";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
+import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import { acceptLedgerInviteResponseSchema } from "internal/ledger/schema";
 import {
   AuthenticationError,
   ConflictError,
@@ -72,7 +74,11 @@ describe("ledger invite router", () => {
   });
 
   it("同源、Schema 校验通过且 Service 成功时返回 200，并触发缓存失效", async () => {
-    const accept = vi.fn().mockResolvedValue(undefined);
+    const accept = vi.fn().mockResolvedValue({
+      ledgerId: "00000000-0000-4000-8000-000000000032",
+      placeholderId: null,
+      result: "joined",
+    });
     const app = createTestApp(containerWithAccept(accept));
 
     const response = await app.request(acceptUrl, {
@@ -159,5 +165,72 @@ describe("ledger invite router", () => {
     });
 
     expect(response.status).toBe(409);
+  });
+
+  it("认领成功时仍返回 { ok: true }，响应符合 OpenAPI", async () => {
+    const accept = vi.fn().mockResolvedValue({
+      ledgerId: "00000000-0000-4000-8000-000000000032",
+      placeholderId: "00000000-0000-4000-8000-000000000051",
+      result: "claimed",
+    });
+    const app = createTestApp(containerWithAccept(accept));
+
+    const response = await app.request(acceptUrl, {
+      body: JSON.stringify({ token: validToken }),
+      headers: sameOriginHeaders,
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(
+      acceptLedgerInviteResponseSchema.parse(await response.json()),
+    ).toEqual({ ok: true });
+    expect(revalidatePath).toHaveBeenCalled();
+  });
+
+  it.each([
+    "placeholder_claim_existing_member",
+    "placeholder_claim_account_name_conflict",
+    "placeholder_already_claimed",
+  ] as const)("%s 时返回 409 与安全响应体，且不触发缓存失效", async (code) => {
+    const message = getLedgerInviteErrorMessage(code)!;
+    const accept = vi.fn().mockRejectedValue(new ConflictError(code, message));
+    const app = createTestApp(containerWithAccept(accept));
+
+    const response = await app.request(acceptUrl, {
+      body: JSON.stringify({ token: validToken }),
+      headers: sameOriginHeaders,
+      method: "POST",
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: { code, message, requestId: "test-request-id", status: 409 },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("未知异常返回 500 且不泄露约束名称", async () => {
+    const accept = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          'duplicate key value violates unique constraint "account_active_name_unique"',
+        ),
+      );
+    const app = createTestApp(containerWithAccept(accept));
+
+    const response = await app.request(acceptUrl, {
+      body: JSON.stringify({ token: validToken }),
+      headers: sameOriginHeaders,
+      method: "POST",
+    });
+    const text = await response.text();
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(text)).toMatchObject({
+      error: { requestId: "test-request-id", status: 500 },
+    });
+    expect(text).not.toContain("account_active_name_unique");
   });
 });
