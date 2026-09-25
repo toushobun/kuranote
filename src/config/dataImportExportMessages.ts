@@ -86,6 +86,7 @@ export const dataImportExecutionMessages = {
   failureCount: (count: number) => `失败 ${count} 条`,
   duplicateCount: (count: number) => `疑似重复 ${count} 条`,
   holderMissingCount: (count: number) => `未匹配持有人 ${count} 条`,
+  createdPlaceholderCount: (count: number) => `新建了 ${count} 位待邀请成员`,
   failedDetailTitle: "失败的记录",
   duplicateDetailTitle: "疑似重复的记录",
   holderMissingDetailTitle: "未匹配持有人的记录",
@@ -108,12 +109,17 @@ export const dataImportExecutionMessages = {
 export const dataImportHolderMappingMessages = {
   title: (count: number) =>
     `文件里有 ${count} 位持有人在账本中找不到唯一对应的成员`,
-  description: "请选择每位持有人对应的账本成员，或选择「无持有人」。",
+  description:
+    "请选择每位持有人对应的账本成员、待邀请成员，或选择「无持有人」。",
+  newPlaceholderDescription:
+    "选择「新建待邀请成员」不会马上创建，点击「继续导入」时才会创建；取消导入不会创建。",
   cardTitle: (name: string) => `「${name}」`,
   recordCount: (count: number) => `涉及 ${count} 条记录`,
   ambiguousHint: "账本中有多位同名成员，请选择对应的一位",
   selectLabel: "对应到",
   noHolderOption: "无持有人",
+  memberGroupLabel: "成员",
+  newPlaceholderOption: (name: string) => `新建待邀请成员「${name}」`,
   cancelButton: "取消导入",
   confirmButton: "继续导入",
 } as const;

@@ -47,7 +47,21 @@ export interface LedgerPlaceholderMemberQueryService {
   ): Promise<LedgerPlaceholderMemberSummary[]>;
 }
 
-export interface LedgerPlaceholderMemberService extends LedgerPlaceholderMemberQueryService {
+export type EnsureLedgerPlaceholderMembersForImportInput =
+  LedgerPlaceholderMemberActor & { displayNames: string[] };
+
+/**
+ * 供数据导入使用的窄接口：读取未认领占位，并按名字批量创建或复用占位。
+ * 批量确保在单一事务内完成，失败时不留下任何占位。
+ */
+export interface LedgerPlaceholderImportService extends LedgerPlaceholderMemberQueryService {
+  /** 返回「规范化后的名字 → 占位 ID」；空列表直接返回空映射，不调用数据库。 */
+  ensureForImport(
+    input: EnsureLedgerPlaceholderMembersForImportInput,
+  ): Promise<ReadonlyMap<string, string>>;
+}
+
+export interface LedgerPlaceholderMemberService extends LedgerPlaceholderImportService {
   create(
     input: CreateLedgerPlaceholderMemberInput,
   ): Promise<{ placeholderId: string }>;
@@ -144,6 +158,37 @@ export function createLedgerPlaceholderMemberService({
           input.placeholderId.toLowerCase(),
         ),
       );
+    },
+
+    async ensureForImport(input) {
+      await requireManager(input);
+      const displayNames = [
+        ...new Set(input.displayNames.map(normalizeDisplayName)),
+      ];
+      if (displayNames.length === 0) return new Map();
+
+      const result = await ledgerPlaceholderMemberRepository.ensure(
+        input.ledgerId,
+        displayNames,
+      );
+      if (!result.ok) throw toAppError(result.code);
+
+      const placeholderIdByName = new Map(
+        result.placeholders.map(({ displayName, placeholderId }) => [
+          displayName,
+          placeholderId,
+        ]),
+      );
+      // 每个请求的名字都必须拿到占位 ID，否则不能继续导入（缺失会被误当成无持有人）。
+      if (displayNames.some((name) => !placeholderIdByName.has(name))) {
+        throw new RepositoryError(
+          "ledger_placeholder_ensure_result_invalid",
+          getLedgerPlaceholderMemberErrorMessage(
+            ledgerPlaceholderMemberErrorCodes.createFailed,
+          )!,
+        );
+      }
+      return placeholderIdByName;
     },
 
     async listUnclaimed(input) {

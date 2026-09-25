@@ -1,9 +1,17 @@
 import type { AccountService } from "internal/account/service/accountService";
 
+/**
+ * 导入用的账户持有人引用：真实成员与待邀请成员（占位）互斥，`null` 为无持有人。
+ * 占位 ID 永远不是 userId，不能混用。
+ */
+export type AccountImportHolderRef =
+  | { kind: "member"; userId: string }
+  | { kind: "placeholder"; placeholderId: string };
+
 export type AccountImportEntry = {
   isArchived: boolean;
   currency: string;
-  holderUserId: string | null;
+  holder: AccountImportHolderRef | null;
   id: string;
   name: string;
 };
@@ -23,7 +31,7 @@ export type AccountImportContext = {
 export interface AccountImportService {
   createAccount(input: {
     currency: string;
-    holderUserId: string | null;
+    holder: AccountImportHolderRef | null;
     ledgerId: string;
     name: string;
     userId: string;
@@ -39,11 +47,12 @@ export function createAccountImportService(
   service: AccountService,
 ): AccountImportService {
   return {
-    async createAccount({ currency, holderUserId, ledgerId, name, userId }) {
+    async createAccount({ currency, holder, ledgerId, name, userId }) {
       return service.create({
         currency,
-        holderPlaceholderId: null,
-        holderUserIds: holderUserId ? [holderUserId] : [],
+        holderPlaceholderId:
+          holder?.kind === "placeholder" ? holder.placeholderId : null,
+        holderUserIds: holder?.kind === "member" ? [holder.userId] : [],
         initialBalance: 0,
         ledgerId,
         name,
@@ -61,20 +70,20 @@ export function createAccountImportService(
       });
 
       return {
-        // 占位持有的账户不能映射成 holderUserId: null，否则会被当成「无持有人」
-        // 账户误复用；完整的持有人联合映射在导入映射阶段（#804）实现，这里先排除。
-        accounts: view.accounts.flatMap((account) => {
+        // 占位持有的账户必须带上占位引用，不能映射成无持有人，否则会被误复用。
+        accounts: view.accounts.map((account) => {
           const holder = account.holders[0];
-          if (holder?.kind === "placeholder") return [];
-          return [
-            {
-              isArchived: account.is_archived,
-              currency: account.currency,
-              holderUserId: holder?.user_id ?? null,
-              id: account.id,
-              name: account.name,
-            },
-          ];
+          return {
+            isArchived: account.is_archived,
+            currency: account.currency,
+            holder: !holder
+              ? null
+              : holder.kind === "placeholder"
+                ? { kind: "placeholder", placeholderId: holder.placeholder_id }
+                : { kind: "member", userId: holder.user_id },
+            id: account.id,
+            name: account.name,
+          };
         }),
         holders: view.holderOptions.map((holder) => ({
           displayName: holder.display_name,

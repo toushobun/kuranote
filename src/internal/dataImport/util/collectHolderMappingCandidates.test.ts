@@ -78,4 +78,18 @@ describe("collectHolderMappingCandidates", () => {
       collectHolderMappingCandidates(units, members).map(({ name }) => name),
     ).toEqual(["小红", "小明"]);
   });
+
+  describe("与待邀请成员同名", () => {
+    it("姓名只与待邀请成员同名时仍作为未匹配候选，由用户在映射步骤确认", () => {
+      // 候选只按账本成员判断，待邀请成员不参与匹配，不会被自动选中。
+      const units = [
+        makeIncomeExpenseUnit({ accountHolder: "奶奶" }),
+        makeIncomeExpenseUnit({ accountHolder: "张三" }),
+      ];
+
+      expect(collectHolderMappingCandidates(units, members)).toEqual([
+        { name: "奶奶", recordCount: 1, reason: "unmatched" },
+      ]);
+    });
+  });
 });

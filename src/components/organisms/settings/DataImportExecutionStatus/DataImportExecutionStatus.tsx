@@ -93,6 +93,13 @@ export function DataImportExecutionStatus({
                 {messages.holderMissingCount(result.holderMissingCount)}
               </Alert>
             ) : null}
+            {result.createdPlaceholderCount > 0 ? (
+              <Alert severity="info">
+                {messages.createdPlaceholderCount(
+                  result.createdPlaceholderCount,
+                )}
+              </Alert>
+            ) : null}
           </Stack>
         ) : null}
 

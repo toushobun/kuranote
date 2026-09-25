@@ -24,6 +24,8 @@ export type ImportExecutionDetail = {
 };
 
 export type ImportBatchResult = {
+  /** 本批为新建意图实际新建的待邀请成员数（复用同名待邀请成员不计入）。 */
+  createdPlaceholderCount: number;
   details: ImportExecutionDetail[];
   duplicateCount: number;
   failureCount: number;
@@ -34,6 +36,7 @@ export type ImportBatchResult = {
 };
 
 export type ImportExecutionResult = {
+  createdPlaceholderCount: number;
   details: ImportExecutionDetail[];
   duplicateCount: number;
   failureCount: number;

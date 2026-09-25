@@ -1,13 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AccountImportHolder } from "internal/account";
 import type { ImportValidationResult } from "internal/dataImport";
 import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
-import type {
-  DataImportBatchActionState,
-  DataImportBatchStateAction,
-} from "types/dataImport";
+import type { DataImportBatchActionState } from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
 
 const analyzeImportFileMock = vi.hoisted(() => vi.fn());
@@ -36,14 +32,13 @@ function renderTemplate({
     async (): Promise<DataImportBatchActionState> => ({}),
   ),
   holderMembers = [],
-}: {
-  executeBatchAction?: DataImportBatchStateAction;
-  holderMembers?: AccountImportHolder[];
-} = {}) {
+  ...props
+}: Partial<Parameters<typeof DataImportTemplate>[0]> = {}) {
   return render(
     <DataImportTemplate
       executeBatchAction={executeBatchAction}
       holderMembers={holderMembers}
+      {...props}
     />,
   );
 }
@@ -130,6 +125,7 @@ describe("DataImportTemplate", () => {
     const executeAction = vi.fn(
       async (): Promise<DataImportBatchActionState> => ({
         batch: {
+          createdPlaceholderCount: 0,
           details: [],
           duplicateCount: 0,
           failureCount: 0,
@@ -211,6 +207,19 @@ describe("DataImportTemplate", () => {
   });
 
   describe("持有人映射步骤", () => {
+    function makeSingleBatch() {
+      return {
+        createdPlaceholderCount: 0,
+        details: [],
+        duplicateCount: 0,
+        failureCount: 0,
+        holderMissingCount: 0,
+        processedCount: 1,
+        rowResults: [],
+        successCount: 1,
+      };
+    }
+
     const holderMembers = [{ displayName: "张三", userId: "user-1" }];
 
     async function checkFormatWithHolder(
@@ -218,10 +227,11 @@ describe("DataImportTemplate", () => {
       executeBatchAction = vi.fn(
         async (): Promise<DataImportBatchActionState> => ({}),
       ),
+      props: Partial<Parameters<typeof DataImportTemplate>[0]> = {},
     ) {
       const analyzed = makeAnalyzeImportFileResult(1, fromAccountHolder);
       analyzeImportFileMock.mockResolvedValue(analyzed);
-      renderTemplate({ executeBatchAction, holderMembers });
+      renderTemplate({ executeBatchAction, holderMembers, ...props });
       selectFile();
       fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
       await screen.findByText("格式检查通过");
@@ -252,15 +262,7 @@ describe("DataImportTemplate", () => {
     it("继续导入时带着映射调用批处理 Action", async () => {
       const executeAction = vi.fn(
         async (): Promise<DataImportBatchActionState> => ({
-          batch: {
-            details: [],
-            duplicateCount: 0,
-            failureCount: 0,
-            holderMissingCount: 0,
-            processedCount: 1,
-            rowResults: [],
-            successCount: 1,
-          },
+          batch: makeSingleBatch(),
         }),
       );
       await checkFormatWithHolder("小明", executeAction);
@@ -272,7 +274,47 @@ describe("DataImportTemplate", () => {
         executeAction.mock.calls[0] as unknown as [unknown, FormData]
       )[1];
       expect(formData.get("holderMapping")).toBe(
-        JSON.stringify({ 小明: null }),
+        JSON.stringify({ 小明: { kind: "none" } }),
+      );
+      expect(screen.queryByText(/新建了/)).not.toBeInTheDocument();
+    });
+
+    it("管理员选择新建待邀请成员后继续导入，完成后提示新建人数", async () => {
+      const executeAction = vi.fn(
+        async (): Promise<DataImportBatchActionState> => ({
+          batch: { ...makeSingleBatch(), createdPlaceholderCount: 1 },
+          resolvedHolderMapping: {
+            小明: {
+              kind: "placeholder",
+              placeholderId: "00000000-0000-4000-8000-000000000051",
+            },
+          },
+        }),
+      );
+      await checkFormatWithHolder("小明", executeAction, {
+        canCreatePlaceholders: true,
+        holderPlaceholders: [
+          { displayName: "奶奶", id: "00000000-0000-4000-8000-000000000052" },
+        ],
+      });
+
+      fireEvent.mouseDown(screen.getByRole("combobox"));
+      fireEvent.click(
+        screen.getByRole("option", { name: "新建待邀请成员「小明」" }),
+      );
+      expect(executeAction).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
+
+      expect(
+        await screen.findByText("新建了 1 位待邀请成员"),
+      ).toBeInTheDocument();
+      const formData = (
+        executeAction.mock.calls[0] as unknown as [unknown, FormData]
+      )[1];
+      expect(formData.get("holderMapping")).toBe(
+        JSON.stringify({
+          小明: { displayName: "小明", kind: "newPlaceholder" },
+        }),
       );
     });
 

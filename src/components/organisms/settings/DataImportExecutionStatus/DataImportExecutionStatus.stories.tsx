@@ -20,6 +20,7 @@ export const Importing: Story = {
       details: [],
       duplicateCount: 0,
       failureCount: 0,
+      createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 36,
       rowResults: [],
@@ -38,6 +39,7 @@ export const ImportingWithSimulatedProgress: Story = {
       details: [],
       duplicateCount: 0,
       failureCount: 0,
+      createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 36,
       rowResults: [],
@@ -55,6 +57,7 @@ export const AllSucceeded: Story = {
       details: [],
       duplicateCount: 0,
       failureCount: 0,
+      createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 80,
       rowResults: [],
@@ -62,6 +65,32 @@ export const AllSucceeded: Story = {
       totalCount: 80,
     },
     status: "completed",
+  },
+};
+
+export const CreatedPlaceholders: Story = {
+  name: "全部成功并新建了待邀请成员",
+  args: {
+    result: {
+      details: [],
+      duplicateCount: 0,
+      failureCount: 0,
+      createdPlaceholderCount: 2,
+      holderMissingCount: 0,
+      processedCount: 80,
+      rowResults: [],
+      successCount: 80,
+      totalCount: 80,
+    },
+    status: "completed",
+  },
+};
+
+export const CreatedPlaceholdersMobile: Story = {
+  ...CreatedPlaceholders,
+  name: "全部成功并新建了待邀请成员（移动端）",
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
   },
 };
 
@@ -96,6 +125,7 @@ export const MixedResult: Story = {
       ],
       duplicateCount: 1,
       failureCount: 1,
+      createdPlaceholderCount: 0,
       holderMissingCount: 1,
       processedCount: 80,
       rowResults: [],
@@ -114,6 +144,7 @@ export const BalanceAdjustmentResult: Story = {
       successCount: 2,
       failureCount: 1,
       duplicateCount: 1,
+      createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 3,
       totalCount: 3,

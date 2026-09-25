@@ -14,7 +14,7 @@ function unitHolderNames(unit: ImportExecutionUnit): Set<string> {
 
 /**
  * 汇总文件里无法唯一匹配账本成员的持有人姓名及涉及记录数，按姓名首次出现的
- * 顺序返回。匹配口径与服务端 `resolveHolderUserId` 保持一致：显示名精确相等，
+ * 顺序返回。匹配口径与服务端 `resolveHolder` 保持一致：显示名精确相等，
  * 0 个成员为 `unmatched`，多个成员为 `ambiguous`，恰好 1 个成员不需要映射。
  */
 export function collectHolderMappingCandidates(

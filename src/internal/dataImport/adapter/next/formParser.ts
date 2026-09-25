@@ -1,6 +1,5 @@
 import { z } from "@hono/zod-openapi";
 
-import type { ImportHolderMapping } from "internal/dataImport/entity/importHolderMapping";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import {
   dataImportErrorCodes,
@@ -9,7 +8,10 @@ import {
 import {
   importBatchSize,
   importCurrencyPattern,
+  importHolderMappingSchema,
+  importNameMaxLength,
   importNoteMaxLength,
+  type ImportHolderMapping,
 } from "internal/dataImport/schema";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
@@ -25,8 +27,8 @@ export type DataImportBatchFormFields = {
   units: ImportExecutionUnit[];
 };
 
-const nameSchema = z.string().min(1).max(200);
-const holderSchema = z.string().min(1).max(200).nullable();
+const nameSchema = z.string().min(1).max(importNameMaxLength);
+const holderSchema = z.string().min(1).max(importNameMaxLength).nullable();
 const currencySchema = z.string().regex(importCurrencyPattern);
 const noteSchema = z.string().max(importNoteMaxLength).nullable();
 const amountSchema = z.number().finite().nonnegative();
@@ -133,9 +135,6 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
 
 const unitsSchema = z.array(executionUnitSchema).min(1).max(importBatchSize);
 
-/** 姓名 → 账本成员 userId 或 `null`（无持有人）；userId 是否属于当前账本由 Service 校验。 */
-const holderMappingSchema = z.record(nameSchema, z.string().uuid().nullable());
-
 function parseJsonField<T>(
   value: FormDataEntryValue | null,
   schema: z.ZodType<T>,
@@ -163,11 +162,12 @@ export function parseExecuteDataImportBatchForm(
   }
 
   // 没有需要映射的持有人时前端也会发送空对象；缺失视为空映射，格式错误则拒绝。
+  // 成员与待邀请成员是否属于当前账本、能否新建待邀请成员由 Service 校验。
   const holderMappingText = formData.get("holderMapping");
   const holderMapping =
     holderMappingText === null
       ? {}
-      : parseJsonField(holderMappingText, holderMappingSchema);
+      : parseJsonField(holderMappingText, importHolderMappingSchema);
   if (!holderMapping) {
     return invalid(dataImportErrorCodes.executionInvalid);
   }

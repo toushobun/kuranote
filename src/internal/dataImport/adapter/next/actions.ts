@@ -1,5 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
+import { ledgerSettingsHref, routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
@@ -37,14 +40,22 @@ export async function executeDataImportBatch(
     dependencies = await createServerRequestDependencies();
     const container = createRequestContainer(dependencies);
     const service = container.dataImport.createExecutionService(currentLedger);
-    const batch = await service.executeBatch({
+    const { resolvedHolderMapping, ...batch } = await service.executeBatch({
       holderMapping: parsed.value.holderMapping,
       ledgerId: currentLedger.id,
       timeZoneOffsetMinutes: parsed.value.timeZoneOffsetMinutes,
       units: parsed.value.units,
       userId,
     });
-    return { batch };
+    if (batch.createdPlaceholderCount > 0) {
+      // 新建的待邀请成员要出现在成员管理、账户持有人候选与下一次导入的候选里。
+      [
+        ledgerSettingsHref(currentLedger.id),
+        routePaths.accounts,
+        routePaths.settingsDataImport,
+      ].forEach((path) => revalidatePath(path));
+    }
+    return { batch, resolvedHolderMapping };
   } catch (error) {
     if (error instanceof AppError) {
       return createErrorState(error.message);
