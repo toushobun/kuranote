@@ -320,6 +320,10 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
     ["display_color_invalid", ledgerSettingsErrorCodes.displayColorInvalid],
     ["display_name_required", ledgerSettingsErrorCodes.displayNameRequired],
     ["display_name_too_long", ledgerSettingsErrorCodes.displayNameTooLong],
+    [
+      "display_name_placeholder_conflict",
+      ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
+    ],
   ] as const)("RPC details 返回 %s 时映射为 %s", async (details, expected) => {
     const supabase = createSupabaseMock({
       rpcResponse: { error: { details, message: "数据库业务校验失败" } },

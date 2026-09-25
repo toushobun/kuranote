@@ -2,6 +2,8 @@
 
 > **#809 变更（匿名邀请已废弃）**：[#809](https://github.com/toushobun/kuranote/issues/809) 起不再支持新建匿名邀请，统一为「邀请成员 = 待邀请成员 + 专属链接」。设置页只保留一个「邀请成员」入口：填写名字（必填）与角色，先创建待邀请成员，再生成绑定该成员的专属链接；「添加待邀请成员」入口与匿名「待接受邀请」展示均已移除，成员区块只剩「成员」与「待邀请成员」两类。数据库层由表级 CHECK `ledger_invite_pending_requires_placeholder`（待接受邀请必须有 `placeholder_id`）与 `create_ledger_invite_v2` 的 `placeholder_required` 兜底；项目未上线，migration 直接撤销了残留的匿名待接受邀请。`accept_ledger_invite` 的匿名分支保留不动，只剩历史数据能走到。下文中关于匿名邀请的描述保留为历史设计记录，以本段为准；成员列表的现行展示见「成员列表与邀请展示」。
 
+> **#811 注（认领沿用名字与成员重名）**：[#811](https://github.com/toushobun/kuranote/issues/811) 起增加两条规则。1）认领绑定邀请后，`accept_ledger_invite` 在同一事务内、写入认领标记之后，把接受者在该账本的显示名（`ledger_member_display_setting.display_name`）设为待邀请成员的名字；之后成员仍可按现有功能修改，幂等重放不覆盖；账号全局昵称 `app_user.display_name` 不变。2）同一账本内，未认领待邀请成员的名字与 active 成员的有效显示名（账本内显示名，为空时回退账号昵称）不能相同，比较口径与占位名字相同（去除首尾空白后精确比较，不做大小写折叠）：新建、改名、导入 ensure 与成员重名返回 `placeholder_name_member_conflict`；成员把显示名改成未认领待邀请成员的名字返回 `display_name_placeholder_conflict`。因此下文「已认领行不占用名字、允许与新占位重名」在认领后通常不再成立：认领后该名字成为成员的显示名，新占位按成员重名被拒，直到成员改名。修改账号全局昵称造成的重名不做检查，属于已知边界。
+
 ## 背景与范围
 
 本文为待人工确认的设计稿，关联 [#798](https://github.com/toushobun/kuranote/issues/798)、[#780](https://github.com/toushobun/kuranote/issues/780)、[#797](https://github.com/toushobun/kuranote/issues/797) 与 [#431](https://github.com/toushobun/kuranote/issues/431)。本次只新增本文档，不实现功能、不创建 migration、不修改业务文件、不勾选 #798 的 TODO，也不创建后续实现 Issue。文档提交或 PR 合并不代表设计已经通过人工确认。

@@ -174,7 +174,8 @@ export function createLedgerInviteService({
     async inviteMember(input) {
       await requireInviteManager(ledgerAccessService, input);
 
-      // 第 1 步：创建待邀请成员。重名时不自动复用同名占位，引导用户在列表中操作。
+      // 第 1 步：创建待邀请成员。与待邀请成员重名时不自动复用同名占位，引导用户在列表中操作；
+      // 与现有成员重名（placeholder_name_member_conflict）时原样抛出，提示换一个名字。
       let placeholderId: string;
       try {
         ({ placeholderId } = await ledgerPlaceholderMemberService.create({

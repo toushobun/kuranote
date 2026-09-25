@@ -380,6 +380,29 @@ begin
                    claimed_at = now()
              where id = v_placeholder_id;
 
+            -- 第 8 步（#811）：认领之后把账本内显示名设为待邀请成员的名字。
+            -- 放在认领之后，占位已退出未认领名字范围，不与成员名唯一规则自相矛盾。
+            -- 显示设置行由成员插入触发器建立，只补写名字、保留颜色；
+            -- 行不存在时按同一颜色规则补建。只改账本内显示名，不改 app_user.display_name。
+            insert into public.ledger_member_display_setting (
+                ledger_id,
+                user_id,
+                display_name,
+                display_color,
+                created_by,
+                updated_by
+            ) values (
+                v_ledger_id,
+                v_user_id,
+                v_placeholder.display_name,
+                public.get_next_ledger_member_display_color(v_ledger_id),
+                v_user_id,
+                v_user_id
+            )
+            on conflict (ledger_id, user_id) do update set
+                display_name = excluded.display_name,
+                updated_by = v_user_id;
+
             v_result := 'claimed';
         end if;
     end if;
@@ -1655,11 +1678,17 @@ CREATE OR REPLACE FUNCTION "public"."create_ledger_placeholder_member"("p_ledger
     AS $$
 declare
     v_id uuid;
+    v_name text;
     v_constraint text;
 begin
     perform public.lock_ledger_placeholder_management(p_ledger_id);
+    v_name := public.normalize_ledger_placeholder_name(p_display_name);
+    if public.ledger_active_member_display_name_exists(p_ledger_id, v_name) then
+        raise exception 'placeholder_name_member_conflict'
+            using errcode = '23505', detail = 'placeholder_name_member_conflict';
+    end if;
     insert into public.ledger_placeholder_member(ledger_id, display_name, created_by)
-    values (p_ledger_id, public.normalize_ledger_placeholder_name(p_display_name), auth.uid())
+    values (p_ledger_id, v_name, auth.uid())
     returning id into v_id;
     return v_id;
 exception when unique_violation then
@@ -2937,6 +2966,14 @@ begin
     select array_agg(n.name order by n.name collate "C") into v_names
     from (select distinct public.normalize_ledger_placeholder_name(input.name) collate "C" as name
           from unnest(p_display_names) as input(name)) n;
+    if exists (
+        select 1
+        from unnest(coalesce(v_names, '{}'::text[])) as n(name)
+        where public.ledger_active_member_display_name_exists(p_ledger_id, n.name)
+    ) then
+        raise exception 'placeholder_name_member_conflict'
+            using errcode = '23505', detail = 'placeholder_name_member_conflict';
+    end if;
     foreach v_name in array coalesce(v_names, '{}'::text[]) loop
         insert into public.ledger_placeholder_member(ledger_id, display_name, created_by)
         values (p_ledger_id, v_name, auth.uid())
@@ -3658,6 +3695,30 @@ ALTER FUNCTION "public"."is_email_registered"("p_email" "text") OWNER TO "postgr
 
 COMMENT ON FUNCTION "public"."is_email_registered"("p_email" "text") IS '供服务端注册流程精确判断邮箱是否已存在，仅允许 service_role 执行。';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select exists (
+        select 1
+        from public.ledger_member lm
+        join public.app_user au
+          on au.id = lm.user_id
+        left join public.ledger_member_display_setting lds
+          on lds.ledger_id = lm.ledger_id
+         and lds.user_id = lm.user_id
+        where lm.ledger_id = p_ledger_id
+          and lm.status = 'active'
+          and au.status = 'active'
+          and coalesce(nullif(btrim(lds.display_name), ''), btrim(au.display_name)) collate "C"
+              = btrim(p_display_name) collate "C"
+    );
+$$;
+
+
+ALTER FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") RETURNS TABLE("invite_id" "uuid", "invite_role" "text", "created_at" timestamp with time zone, "invite_token" "text", "placeholder_id" "uuid")
@@ -4828,6 +4889,7 @@ CREATE OR REPLACE FUNCTION "public"."rename_ledger_placeholder_member"("p_ledger
     AS $$
 declare
     v_placeholder public.ledger_placeholder_member;
+    v_name text;
     v_constraint text;
 begin
     perform public.lock_ledger_placeholder_management(p_ledger_id);
@@ -4839,8 +4901,14 @@ begin
     if v_placeholder.claimed_by is not null then
         raise exception 'placeholder_already_claimed' using errcode = '23514', detail = 'placeholder_already_claimed';
     end if;
+    v_name := public.normalize_ledger_placeholder_name(p_display_name);
+    if v_name collate "C" <> v_placeholder.display_name collate "C"
+       and public.ledger_active_member_display_name_exists(p_ledger_id, v_name) then
+        raise exception 'placeholder_name_member_conflict'
+            using errcode = '23505', detail = 'placeholder_name_member_conflict';
+    end if;
     update public.ledger_placeholder_member
-    set display_name = public.normalize_ledger_placeholder_name(p_display_name)
+    set display_name = v_name
     where id = p_placeholder_id;
     return p_placeholder_id;
 exception when unique_violation then
@@ -5643,6 +5711,8 @@ declare
     v_actor_role text;
     v_current_role text;
     v_can_manage_member boolean;
+    v_display_name text;
+    v_current_display_name text;
 begin
     v_actor_id = auth.uid();
 
@@ -5704,6 +5774,15 @@ begin
             using errcode = '22023', detail = 'role_invalid';
     end if;
 
+    v_display_name = btrim(p_display_name);
+
+    -- #811：锁顺序为账本 → 成员，与待邀请成员管理 RPC 一致，
+    -- 使「新建待邀请成员」与「成员改名」的同名检查串行化。
+    perform 1
+      from public.ledger l
+     where l.id = p_ledger_id
+     for update;
+
     select lm.role
       into v_current_role
       from public.ledger_member lm
@@ -5732,6 +5811,28 @@ begin
             using errcode = '22023', detail = 'role_invalid';
     end if;
 
+    -- #811：名字有变化时，不能改成同账本未认领待邀请成员的名字。
+    -- 名字不变（只改颜色或角色）时不检查，已有的重名数据不影响保存。
+    select coalesce(nullif(btrim(lds.display_name), ''), btrim(au.display_name))
+      into v_current_display_name
+      from public.app_user au
+      left join public.ledger_member_display_setting lds
+        on lds.ledger_id = p_ledger_id
+       and lds.user_id = au.id
+     where au.id = p_member_user_id;
+
+    if v_display_name collate "C" is distinct from v_current_display_name collate "C"
+       and exists (
+           select 1
+           from public.ledger_placeholder_member p
+           where p.ledger_id = p_ledger_id
+             and p.claimed_by is null
+             and p.display_name collate "C" = v_display_name collate "C"
+       ) then
+        raise exception 'display_name_placeholder_conflict'
+            using errcode = '23505', detail = 'display_name_placeholder_conflict';
+    end if;
+
     insert into public.ledger_member_display_setting (
         ledger_id,
         user_id,
@@ -5742,7 +5843,7 @@ begin
     ) values (
         p_ledger_id,
         p_member_user_id,
-        btrim(p_display_name),
+        v_display_name,
         p_display_color,
         v_actor_id,
         v_actor_id
@@ -9824,6 +9925,10 @@ REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data_without_merchant
 
 REVOKE ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") FROM PUBLIC;
 
 
 

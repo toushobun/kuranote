@@ -2,6 +2,7 @@ export const ledgerSettingsErrorCodes = {
   authRequired: "auth_required",
   currencyInvalid: "currency_invalid",
   displayColorInvalid: "display_color_invalid",
+  displayNamePlaceholderConflict: "display_name_placeholder_conflict",
   displayNameRequired: "display_name_required",
   displayNameTooLong: "display_name_too_long",
   ledgerInvalid: "ledger_invalid",
@@ -22,6 +23,8 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
   [ledgerSettingsErrorCodes.currencyInvalid]:
     "默认货币必须是 3 位大写字母，例如 JPY。",
   [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
+  [ledgerSettingsErrorCodes.displayNamePlaceholderConflict]:
+    "当前账本已有同名的待邀请成员，请换一个名字。",
   [ledgerSettingsErrorCodes.displayNameRequired]: "请输入当前账本昵称。",
   [ledgerSettingsErrorCodes.displayNameTooLong]:
     "当前账本昵称不能超过 100 个字符。",

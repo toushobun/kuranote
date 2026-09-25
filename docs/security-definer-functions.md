@@ -216,6 +216,23 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 `ledger_invite_placeholder_claim.test.sql` 改为断言匿名生成返回 `placeholder_required`、CHECK 拒绝直接插入或置空未绑定的待接受邀请、删除占位时解除已撤销邀请关联仍可用，并用维护角色构造的历史匿名邀请验证原接受分支；并发场景 5 改为绑定邀请的接受等待账本锁。烟雾测试改为先创建待邀请成员再生成绑定邀请并认领。
 
+## Issue #811：认领沿用待邀请名字与成员重名检查
+
+同一账本内「未认领待邀请成员名字」与「active 成员有效显示名」不能相同。有效显示名为 `coalesce(nullif(btrim(ledger_member_display_setting.display_name), ''), btrim(app_user.display_name))`；比较口径与占位名字一致，去除首尾空白后按 `collate "C"` 精确比较，不做大小写折叠。只统计 `ledger_member.status = 'active'` 且 `app_user.status = 'active'` 的成员。本次没有修改表结构、RLS policy 或授权。
+
+| 对象                                                      | 变更与权限边界                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ledger_active_member_display_name_exists(uuid,text)`     | 新增内部 SECURITY INVOKER SQL 函数，固定 `search_path = pg_catalog, pg_temp`，撤销 PUBLIC、anon、authenticated、service_role 的 EXECUTE，只由下列 SECURITY DEFINER RPC 调用。                                                                                                                                                                         |
+| `create_ledger_placeholder_member(uuid,text)`             | 签名与授权不变。`lock_ledger_placeholder_management` 取得账本锁后，名字与成员重名时返回 SQLSTATE `23505`、detail `placeholder_name_member_conflict`；与其他待邀请成员重名仍为 `placeholder_name_conflict`。                                                                                                                                           |
+| `rename_ledger_placeholder_member(uuid,uuid,text)`        | 签名与授权不变。按账本 → 占位加锁后，名字有变化且与成员重名时返回 `placeholder_name_member_conflict`；改为自身现有名字仍幂等成功。                                                                                                                                                                                                                    |
+| `ensure_ledger_placeholder_members(uuid,text[])`          | 签名与授权不变。全部输入规范化后，任一名字与成员重名即返回 `placeholder_name_member_conflict` 并整批回滚，不写入任何占位。                                                                                                                                                                                                                            |
+| `update_ledger_member_settings(uuid,uuid,text,text,text)` | 签名与授权不变。输入校验之后、锁成员行之前先 `for update` 锁账本行，锁顺序为账本 → 成员，与占位管理 RPC 一致。新名字（btrim 后）与该成员当前有效显示名不同，且等于同账本某个未认领占位名字时，返回 SQLSTATE `23505`、detail `display_name_placeholder_conflict`；名字不变（只改颜色或角色）时不检查。                                                 |
+| `accept_ledger_invite(text)`                              | 签名、返回列与授权不变。绑定分支在写入 `claimed_by / claimed_at` 之后，把接受者在该账本的 `ledger_member_display_setting.display_name` 设为占位名字（只改显示名、保留成员加入时分配的颜色；行不存在时以 `get_next_ledger_member_display_color` 补建）。与认领同一事务，任一步失败整体回滚。匿名分支与幂等重放分支不变，不改 `app_user.display_name`。 |
+
+显示名写入放在认领之后：此时占位已退出未认领名字范围，不会与「成员名不能与未认领占位重名」规则自相矛盾。已知边界：修改账号全局昵称（`app_user.display_name`）会改变没有账本内显示名的成员的有效显示名，本次不做跨账本检查。
+
+`ledger_placeholder_member_name_conflict.test.sql` 在真实 Supabase 上覆盖签名与授权、三个占位 RPC 与成员重名（昵称回退、账本内显示名覆盖、首尾空白、大小写、removed 成员与停用用户、跨账本）、成员改名被拒与名字不变时只改颜色可保存、认领后显示名与幂等重放、认领失败回滚，并以 dblink 双会话验证新建占位与成员改名在账本锁上串行化、后到一方返回稳定错误码。烟雾测试增加认领后显示名断言。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：

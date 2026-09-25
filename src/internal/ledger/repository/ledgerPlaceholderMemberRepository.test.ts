@@ -140,6 +140,8 @@ describe("createSupabaseLedgerPlaceholderMemberRepository 写操作", () => {
 
   it.each([
     ["placeholder_name_conflict", "create"],
+    ["placeholder_name_member_conflict", "create"],
+    ["placeholder_name_member_conflict", "rename"],
     ["placeholder_name_invalid", "rename"],
     ["placeholder_already_claimed", "rename"],
     ["placeholder_in_use", "delete"],

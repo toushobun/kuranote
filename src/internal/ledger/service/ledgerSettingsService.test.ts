@@ -5,12 +5,17 @@ import { describe, expect, it, vi } from "vitest";
 import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
 import type { LedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
-import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
 import {
+  getLedgerSettingsErrorMessage,
+  ledgerSettingsErrorCodes,
+} from "internal/ledger/errors/ledgerSettings";
+import {
+  type AppError,
   AuthorizationError,
   ConflictError,
   NotFoundError,
 } from "internal/shared/errors/appError";
+import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 
 const userId = "00000000-0000-4000-8000-000000000031";
 const otherUserId = "00000000-0000-4000-8000-000000000034";
@@ -280,6 +285,28 @@ describe("createLedgerSettingsService.update — member 意图", () => {
     expect(
       ledgerSettingsRepository.updateMemberSettings,
     ).not.toHaveBeenCalled();
+  });
+
+  it("显示名与待邀请成员重名时抛出 409 ConflictError", async () => {
+    const { service } = createService({
+      updateMemberSettings: vi.fn().mockResolvedValue({
+        code: ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
+        ok: false,
+      }),
+    });
+
+    const failure = await service
+      .update(memberSettingsInput)
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ConflictError);
+    expect(failure).toMatchObject({
+      code: ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
+      message: getLedgerSettingsErrorMessage(
+        ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
+      ),
+    });
+    expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
   });
 
   it("普通成员修改他人设置时抛出 AuthorizationError", async () => {
