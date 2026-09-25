@@ -13,6 +13,7 @@ import {
   type ImportColumnDef,
 } from "internal/dataImport";
 import { themeColorTokens } from "theme/themeColorTokens";
+import { getAccountTypeLabel } from "utils/accounts";
 import { getCategoryDisplayName } from "utils/categoryNames";
 import { formatDateTimeLocalInputValue } from "utils/transactions";
 
@@ -67,6 +68,9 @@ export async function buildDataExportWorkbook(
     row.getCell(accountColumn).value = account.name;
     row.getCell(`${accountColumn}币种`).value = account.currency;
     row.getCell(`${accountColumn}持有人`).value = account.holder?.name ?? "";
+    row.getCell(`${accountColumn}类型`).value = getAccountTypeLabel(
+      account.type,
+    );
     if (account.holder?.displayColor) {
       const argb = `FF${themeColorTokens[account.holder.displayColor].accent.slice(1).toUpperCase()}`;
       for (const name of [accountColumn, `${accountColumn}持有人`]) {

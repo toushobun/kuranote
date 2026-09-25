@@ -47,11 +47,13 @@ const transferUnit = {
     fromAccountCurrency: "JPY",
     fromAccountHolder: null,
     fromAccountName: "钱包",
+    fromAccountType: "cash",
     note: null,
     rowNumber: 2,
     toAccountCurrency: "JPY",
     toAccountHolder: null,
     toAccountName: "银行卡",
+    toAccountType: "bank",
     transactionAt: "2026-09-17 10:00:00",
   },
 };

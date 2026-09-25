@@ -12,6 +12,7 @@ import {
   buildColumnIndex,
   findColumnStructuralIssues,
 } from "internal/dataImport/util/columnIndex";
+import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
@@ -56,6 +57,10 @@ const sharedColumnValidators: Partial<
     importCurrencyPattern.test(text)
       ? null
       : "账户币种必须是 3 位字母代码，例如 CNY。",
+  账户类型: (text) => {
+    const result = parseAccountType(text, "账户类型");
+    return result.ok ? null : result.message;
+  },
   备注: (text) =>
     text.length > importNoteMaxLength
       ? `备注不能超过 ${importNoteMaxLength} 个字符。`

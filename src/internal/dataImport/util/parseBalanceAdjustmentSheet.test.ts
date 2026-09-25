@@ -46,6 +46,27 @@ describe("parseBalanceAdjustmentSheet", () => {
       ),
     ).toMatchObject({ rows: [], issues: [{ column }] });
   });
+  it("解析账户类型，空值或无法识别时报告「账户类型」列的行错误", () => {
+    const result = parseBalanceAdjustmentSheet(
+      makeBalanceAdjustmentTable([
+        { 账户类型: " 银行卡 " },
+        { 账户类型: "" },
+        { 账户类型: "储蓄" },
+      ]),
+    );
+    expect(result.rows).toMatchObject([{ accountType: "bank", rowNumber: 2 }]);
+    expect(
+      result.issues.map((issue) =>
+        issue.kind === "row"
+          ? [issue.sheet, issue.rowNumber, issue.column]
+          : null,
+      ),
+    ).toEqual([
+      ["balanceAdjustment", 3, "账户类型"],
+      ["balanceAdjustment", 4, "账户类型"],
+    ]);
+  });
+
   it("缺少必填列时不解析行", () => {
     const table = makeBalanceAdjustmentTable();
     table.headerRow = ["账户"];

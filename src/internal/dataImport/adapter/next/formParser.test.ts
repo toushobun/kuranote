@@ -19,6 +19,7 @@ const incomeExpenseUnit: ImportExecutionUnit = {
         accountCurrency: "JPY",
         accountHolder: null,
         accountName: "钱包",
+        accountType: "cash",
         amount: 1200,
         billRef: null,
         childCategoryName: "食材",
@@ -43,11 +44,13 @@ const transferUnit: ImportExecutionUnit = {
     fromAccountCurrency: "JPY",
     fromAccountHolder: "淞文",
     fromAccountName: "钱包",
+    fromAccountType: "cash",
     note: "备注",
     rowNumber: 3,
     toAccountCurrency: "JPY",
     toAccountHolder: null,
     toAccountName: "银行卡",
+    toAccountType: "bank",
     transactionAt: "2026-09-17 10:00:00",
   },
 };
@@ -58,6 +61,7 @@ const balanceAdjustmentUnit: ImportExecutionUnit = {
     accountCurrency: "JPY",
     accountHolder: "淞文",
     accountName: "现金",
+    accountType: "cash",
     amount: -20.5,
     note: null,
     rowNumber: 4,
@@ -372,6 +376,7 @@ describe("parseExecuteDataImportBatchForm", () => {
         "账户币种",
         "金额",
         "备注",
+        "账户类型",
       ],
       [
         "A",
@@ -387,6 +392,7 @@ describe("parseExecuteDataImportBatchForm", () => {
         "jpy",
         "100",
         "备注",
+        "现金",
       ],
       [
         "A",
@@ -401,6 +407,7 @@ describe("parseExecuteDataImportBatchForm", () => {
         "-",
         "-",
         "50",
+        "-",
         "-",
       ],
       [
@@ -417,6 +424,7 @@ describe("parseExecuteDataImportBatchForm", () => {
         "-",
         "20",
         "-",
+        "-",
       ],
     ]);
     const buffer = await workbook.xlsx.writeBuffer();
@@ -428,5 +436,60 @@ describe("parseExecuteDataImportBatchForm", () => {
 
     expect(units).toHaveLength(2);
     expect(result.ok).toBe(true);
+    // 「账户类型」填「-」时继承首行的值，服务端复核也要求同组类型一致。
+    expect(
+      units.flatMap((unit) =>
+        unit.kind === "incomeExpense"
+          ? unit.group.items.map((item) => item.accountType)
+          : [],
+      ),
+    ).toEqual(["cash", "cash", "cash"]);
+  });
+
+  it("同一交易组内的账户类型不一致时拒绝", () => {
+    const item = (
+      incomeExpenseUnit as Extract<
+        ImportExecutionUnit,
+        { kind: "incomeExpense" }
+      >
+    ).group.items[0];
+    const unit: ImportExecutionUnit = {
+      group: {
+        items: [
+          { ...item, billRef: "A" },
+          { ...item, accountType: "bank", billRef: "A", rowNumber: 3 },
+        ],
+        rowNumbers: [2, 3],
+      },
+      kind: "incomeExpense",
+    };
+
+    expect(
+      parseExecuteDataImportBatchForm(buildFormData([unit], "-540")),
+    ).toEqual(executionInvalid);
+  });
+
+  it("账户类型不是合法值时拒绝", () => {
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData(
+          [
+            {
+              ...balanceAdjustmentUnit,
+              row: {
+                ...(
+                  balanceAdjustmentUnit as Extract<
+                    ImportExecutionUnit,
+                    { kind: "balanceAdjustment" }
+                  >
+                ).row,
+                accountType: "savings",
+              },
+            },
+          ],
+          "-540",
+        ),
+      ),
+    ).toEqual(executionInvalid);
   });
 });

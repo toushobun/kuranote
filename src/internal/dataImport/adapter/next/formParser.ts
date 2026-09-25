@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
+import { accountTypes } from "internal/account";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import {
   dataImportErrorCodes,
@@ -30,6 +31,7 @@ export type DataImportBatchFormFields = {
 const nameSchema = z.string().min(1).max(importNameMaxLength);
 const holderSchema = z.string().min(1).max(importNameMaxLength).nullable();
 const currencySchema = z.string().regex(importCurrencyPattern);
+const accountTypeSchema = z.enum(accountTypes);
 const noteSchema = z.string().max(importNoteMaxLength).nullable();
 const amountSchema = z.number().finite().nonnegative();
 const rowNumberSchema = z.number().int().positive();
@@ -41,6 +43,7 @@ const incomeExpenseRowSchema = z.object({
   accountCurrency: currencySchema,
   accountHolder: holderSchema,
   accountName: nameSchema,
+  accountType: accountTypeSchema,
   amount: amountSchema,
   billRef: z.string().max(200).nullable(),
   childCategoryName: nameSchema.nullable(),
@@ -58,11 +61,13 @@ const transferRowSchema = z.object({
   fromAccountCurrency: currencySchema,
   fromAccountHolder: holderSchema,
   fromAccountName: nameSchema,
+  fromAccountType: accountTypeSchema,
   note: noteSchema,
   rowNumber: rowNumberSchema,
   toAccountCurrency: currencySchema,
   toAccountHolder: holderSchema,
   toAccountName: nameSchema,
+  toAccountType: accountTypeSchema,
   transactionAt: transactionAtSchema,
 });
 
@@ -75,6 +80,7 @@ const sharedGroupKeys = [
   "accountCurrency",
   "accountHolder",
   "accountName",
+  "accountType",
   "billRef",
   "merchantName",
   "merchantTag",
@@ -115,6 +121,7 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
       accountCurrency: currencySchema,
       accountHolder: holderSchema,
       accountName: nameSchema,
+      accountType: accountTypeSchema,
       amount: z
         .number()
         .finite()

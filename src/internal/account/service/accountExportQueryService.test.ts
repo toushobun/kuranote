@@ -6,9 +6,9 @@ import { createAccountExportQueryService } from "./accountExportQueryService";
 function setup() {
   const accountRepository = {
     findSummariesByIds: vi.fn().mockResolvedValue([
-      { id: "account", name: "已归档账户", currency: "JPY" },
-      { id: "none", name: "公共账户", currency: "JPY" },
-      { id: "grandma", name: "奶奶的钱包", currency: "JPY" },
+      { id: "account", name: "已归档账户", currency: "JPY", type: "bank" },
+      { id: "none", name: "公共账户", currency: "JPY", type: "other" },
+      { id: "grandma", name: "奶奶的钱包", currency: "JPY", type: "cash" },
     ]),
     listHolders: vi.fn().mockResolvedValue([
       { account_id: "account", placeholder_id: null, user_id: "holder" },
@@ -49,9 +49,14 @@ const input = {
 };
 
 describe("accountExportQueryService", () => {
-  it("允许只读成员导出，并保留历史账户、持有人账本显示名和设置颜色", async () => {
+  it("允许只读成员导出，并保留历史账户、账户类型、持有人账本显示名和设置颜色", async () => {
     const { service, accountRepository, ledgerAccessService } = setup();
     const result = await service.findExportSummaries(input);
+    expect(result.map((account) => account.type)).toEqual([
+      "bank",
+      "other",
+      "cash",
+    ]);
     expect(result[0]).toMatchObject({
       name: "已归档账户",
       holder: { name: "账本显示名", displayColor: "rose" },
