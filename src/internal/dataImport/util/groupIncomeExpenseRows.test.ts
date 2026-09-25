@@ -25,6 +25,7 @@ function row(
       账户: "现金",
       账户币种: "CNY",
       账户持有人: "",
+      账户类型: "现金",
       备注: "",
       ...sharedTexts,
     },
@@ -40,6 +41,7 @@ function continuationSharedTexts(): Record<IncomeExpenseSharedColumn, string> {
     账户: "-",
     账户币种: "-",
     账户持有人: "-",
+    账户类型: "-",
     备注: "-",
   };
 }
@@ -72,6 +74,36 @@ describe("groupIncomeExpenseRows", () => {
     expect(result.groups[0].rowNumbers).toEqual([2, 3]);
     expect(result.groups[0].items[1].accountName).toBe("现金");
     expect(result.groups[0].items[1].merchantName).toBe("便利店");
+  });
+
+  it("后续行的「账户类型」填「-」时继承首行的账户类型，填其他值时报告不一致", () => {
+    const result = groupIncomeExpenseRows([
+      row({
+        billRef: "BILL-1",
+        rowNumber: 2,
+        sharedTexts: { 账户类型: "银行卡" },
+      }),
+      row({
+        billRef: "BILL-1",
+        rowNumber: 3,
+        sharedTexts: continuationSharedTexts(),
+      }),
+      row({
+        billRef: "BILL-1",
+        rowNumber: 4,
+        sharedTexts: { ...continuationSharedTexts(), 账户类型: "现金" },
+      }),
+    ]);
+    expect(result.groups[0].items.map((item) => item.accountType)).toEqual([
+      "bank",
+      "bank",
+    ]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        message: expect.stringContaining("账户类型 不一致"),
+        rowNumber: 4,
+      }),
+    ]);
   });
 
   it("后续行原样复述首行内容（而非「-」）也允许合并", () => {

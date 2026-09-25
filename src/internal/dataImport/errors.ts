@@ -35,7 +35,7 @@ export const balanceAdjustmentImportErrorMessages = {
 
 export const dataImportExecutionErrorMessages = {
   accountAmbiguous: (name: string) =>
-    `账本内存在多个名称、持有人和币种都相同的账户「${name}」，无法确定应使用哪一个。`,
+    `账本内存在多个名称、持有人、币种和账户类型都相同的账户「${name}」，无法确定应使用哪一个。`,
   childCategoryRequired: (parentName: string) =>
     `一级分类「${parentName}」没有填写二级分类；当前交易记录必须使用二级分类。`,
   duplicateWarning: "疑似与现有记录重复，但已继续导入。",

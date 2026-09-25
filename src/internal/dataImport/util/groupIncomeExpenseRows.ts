@@ -8,6 +8,7 @@ import {
   type IncomeExpenseSharedColumn,
 } from "internal/dataImport/schema";
 import type { IncomeExpenseSheetRow } from "internal/dataImport/util/parseIncomeExpenseSheet";
+import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
@@ -32,11 +33,17 @@ function resolveSharedFields(row: IncomeExpenseSheetRow) {
   // 走到这里的行已经在 parseIncomeExpenseSheet 里通过了账户持有人格式校验，
   // 因此这里必定是 ok:true，取值时兜底 null 只是满足类型、不会实际触发。
   const holderResult = parseHolderName(row.sharedTexts["账户持有人"]);
+  // 账户类型同样已在 parseIncomeExpenseSheet 里通过校验，兜底值不会实际触发。
+  const accountTypeResult = parseAccountType(
+    row.sharedTexts["账户类型"],
+    "账户类型",
+  );
 
   return {
     accountCurrency: row.sharedTexts["账户币种"].toUpperCase(),
     accountHolder: holderResult.ok ? holderResult.value : null,
     accountName: row.sharedTexts["账户"],
+    accountType: accountTypeResult.ok ? accountTypeResult.value : "other",
     merchantName: row.sharedTexts["商家"],
     merchantTag: row.sharedTexts["商家分类"] || null,
     note: row.sharedTexts["备注"] || null,

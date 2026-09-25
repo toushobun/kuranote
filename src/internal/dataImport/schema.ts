@@ -21,6 +21,7 @@ export const incomeExpenseColumns: ImportColumnDef[] = [
   { name: "账户", required: true },
   { name: "账户持有人", required: false },
   { name: "账户币种", required: true },
+  { name: "账户类型", required: true },
   { name: "金额", required: true },
   { name: "备注", required: false },
 ];
@@ -33,9 +34,11 @@ export const transferColumns: ImportColumnDef[] = [
   { name: "转出账户", required: true },
   { name: "转出账户币种", required: true },
   { name: "转出账户持有人", required: false },
+  { name: "转出账户类型", required: true },
   { name: "转入账户", required: true },
   { name: "转入账户币种", required: true },
   { name: "转入账户持有人", required: false },
+  { name: "转入账户类型", required: true },
   { name: "金额", required: true },
   { name: "备注", required: false },
 ];
@@ -48,6 +51,7 @@ export const balanceAdjustmentColumns: ImportColumnDef[] = [
   { name: "账户", required: true },
   { name: "账户币种", required: true },
   { name: "账户持有人", required: false },
+  { name: "账户类型", required: true },
   { name: "金额", required: true },
   { name: "备注", required: false },
 ];
@@ -72,6 +76,7 @@ export const incomeExpenseSharedColumns = [
   "账户",
   "账户持有人",
   "账户币种",
+  "账户类型",
   "商家",
   "商家分类",
   "备注",

@@ -149,7 +149,7 @@ export interface AccountRepository {
   findSummariesByIds(
     ledgerId: string,
     accountIds: string[],
-  ): Promise<AccountSummary[]>;
+  ): Promise<(AccountSummary & { type: AccountType })[]>;
   findActiveLedger(ledgerId: string): Promise<AccountLedgerSummary | null>;
   isActiveAccount(ledgerId: string, accountId: string): Promise<boolean>;
   listAccounts(
@@ -310,7 +310,7 @@ export function createSupabaseAccountRepository(
       if (uniqueAccountIds.length === 0) return [];
       const { data, error } = await supabase
         .from("account")
-        .select("id, name, currency")
+        .select("id, name, currency, type")
         .eq("ledger_id", ledgerId)
         .in("id", uniqueAccountIds);
       if (error) {
@@ -320,10 +320,13 @@ export function createSupabaseAccountRepository(
           "账户信息加载失败，请稍后重试。",
         );
       }
-      return (data ?? []).map((row) => ({
+      return (
+        (data ?? []) as Pick<AccountRow, "currency" | "id" | "name" | "type">[]
+      ).map((row) => ({
         currency: row.currency,
         id: row.id,
         name: row.name,
+        type: row.type,
       }));
     },
 

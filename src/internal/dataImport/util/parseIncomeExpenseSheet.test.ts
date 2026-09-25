@@ -27,6 +27,7 @@ function validRowCells(overrides: Partial<Record<string, string>> = {}) {
     账户: "现金",
     账户币种: "CNY",
     账户持有人: "",
+    账户类型: "现金",
     金额: "35.5",
     记账人: "忽略此列",
   };
@@ -108,10 +109,71 @@ describe("parseIncomeExpenseSheet", () => {
           账户: "现金",
           账户币种: "CNY",
           账户持有人: "",
+          账户类型: "现金",
           备注: "",
         },
         transactionType: "expense",
       },
+    ]);
+  });
+
+  it.each(["现金", "银行卡", "信用卡", "电子钱包", "其他", "  信用卡  "])(
+    "账户类型「%s」是合法值，不报错",
+    (accountType) => {
+      const result = parseIncomeExpenseSheet(
+        buildTable([validRowCells({ 账户类型: accountType })]),
+      );
+      expect(result.issues).toEqual([]);
+      expect(result.rows).toHaveLength(1);
+    },
+  );
+
+  it("账户类型为空或无法识别时报告带工作表、行号和列名的行错误", () => {
+    const result = parseIncomeExpenseSheet(
+      buildTable([
+        validRowCells({ 账户类型: "" }),
+        validRowCells({ 账户类型: "  储蓄卡 " }),
+      ]),
+    );
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      {
+        column: "账户类型",
+        kind: "row",
+        message:
+          "账户类型不能为空，请填写：现金、银行卡、信用卡、电子钱包、其他。",
+        rowNumber: 2,
+        sheet: "incomeExpense",
+      },
+      {
+        column: "账户类型",
+        kind: "row",
+        message:
+          "账户类型「储蓄卡」无法识别，请填写：现金、银行卡、信用卡、电子钱包、其他。",
+        rowNumber: 3,
+        sheet: "incomeExpense",
+      },
+    ]);
+  });
+
+  it("缺少「账户类型」列时返回结构性错误，不解析任何行", () => {
+    const position = header.indexOf("账户类型");
+    const table = buildTable([validRowCells()]);
+    table.headerRow = header.filter((_, index) => index !== position);
+    table.rows = table.rows.map((row) => ({
+      ...row,
+      cells: row.cells.filter((_, index) => index !== position),
+    }));
+
+    const result = parseIncomeExpenseSheet(table);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: "「收支」表缺少必填列：账户类型。",
+        sheet: "incomeExpense",
+      }),
     ]);
   });
 

@@ -2,6 +2,7 @@ import type {
   AccountImportHolder,
   AccountImportHolderRef,
   AccountImportService,
+  AccountType,
 } from "internal/account";
 import type {
   CategoryImportEntry,
@@ -163,12 +164,14 @@ function holderKey(holder: AccountImportHolderRef | null) {
     : `placeholder:${holder.placeholderId.toLowerCase()}`;
 }
 
+/** 与账户唯一约束对齐：名称、持有人、币种、账户类型都相同才视为同一个账户。 */
 function accountKey(
   name: string,
   holder: AccountImportHolderRef | null,
   currency: string,
+  type: AccountType,
 ) {
-  return `${name}\u0000${holderKey(holder)}\u0000${currency}`;
+  return `${name}\u0000${holderKey(holder)}\u0000${currency}\u0000${type}`;
 }
 
 function hasPlaceholderReference(mapping: ImportHolderMapping) {
@@ -348,7 +351,12 @@ export function createDataImportExecutionService({
       );
       const accountByKey = new Map<string, typeof accounts>();
       for (const account of accounts) {
-        const key = accountKey(account.name, account.holder, account.currency);
+        const key = accountKey(
+          account.name,
+          account.holder,
+          account.currency,
+          account.type,
+        );
         accountByKey.set(key, [...(accountByKey.get(key) ?? []), account]);
       }
 
@@ -399,11 +407,12 @@ export function createDataImportExecutionService({
         currency: string;
         holderName: string | null;
         name: string;
+        type: AccountType;
       }) {
         const { holder, missingName: holderMissingName } = resolveHolder(
           input.holderName,
         );
-        const key = accountKey(input.name, holder, input.currency);
+        const key = accountKey(input.name, holder, input.currency, input.type);
         const candidates = accountByKey.get(key) ?? [];
         const matches = candidates.filter((account) => !account.isArchived);
         if (
@@ -431,6 +440,7 @@ export function createDataImportExecutionService({
           holder,
           ledgerId,
           name: input.name,
+          type: input.type,
           userId,
         });
         const account = {
@@ -439,6 +449,7 @@ export function createDataImportExecutionService({
           holder,
           id: created.accountId,
           name: input.name,
+          type: input.type,
         };
         accounts.push(account);
         accountByKey.set(key, [account]);
@@ -562,6 +573,7 @@ export function createDataImportExecutionService({
           currency: first.accountCurrency,
           holderName: first.accountHolder,
           name: first.accountName,
+          type: first.accountType,
         });
         const merchant = await resolveMerchant(
           first.merchantName,
@@ -608,6 +620,7 @@ export function createDataImportExecutionService({
           currency: row.accountCurrency,
           holderName: row.accountHolder,
           name: row.accountName,
+          type: row.accountType,
         });
         const input = {
           accountId: account.id,
@@ -634,12 +647,14 @@ export function createDataImportExecutionService({
             currency: row.fromAccountCurrency,
             holderName: row.fromAccountHolder,
             name: row.fromAccountName,
+            type: row.fromAccountType,
           });
         const { account: toAccount, holderMissingName: toHolderMissing } =
           await resolveAccount({
             currency: row.toAccountCurrency,
             holderName: row.toAccountHolder,
             name: row.toAccountName,
+            type: row.toAccountType,
           });
         const input = {
           accountId: fromAccount.id,

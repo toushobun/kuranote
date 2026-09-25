@@ -4,6 +4,7 @@ export {
   type AccountErrorCode,
 } from "internal/account/errors";
 export {
+  accountTypeOptions,
   accountTypes,
   type AccountType,
 } from "internal/account/entity/accountType";
