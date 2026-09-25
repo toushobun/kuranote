@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e={}){return{display_color:null,display_name:`奶奶`,email:null,id:`00000000-0000-4000-8000-000000000071`,kind:`placeholder`,placeholder_id:`00000000-0000-4000-8000-000000000061`,role:`owner`,share_ratio:null,user_id:null,...e}}var n=e((()=>{}));export{n,t};
