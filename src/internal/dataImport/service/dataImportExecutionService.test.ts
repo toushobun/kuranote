@@ -4,14 +4,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountImportService } from "internal/account";
 import type { CategoryImportService } from "internal/category";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { dataImportExecutionErrorMessages } from "internal/dataImport/errors";
 import {
   incomeExpenseColumns,
   transferColumns,
+  type ImportHolderMapping,
 } from "internal/dataImport/schema";
 import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
 import { analyzeImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
+import {
+  getLedgerPlaceholderMemberErrorMessage,
+  type LedgerPlaceholderImportService,
+} from "internal/ledger";
 import type { MerchantImportService } from "internal/merchant";
-import { RepositoryError } from "internal/shared/errors/appError";
+import {
+  AuthorizationError,
+  ConflictError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
 
@@ -65,6 +75,14 @@ function incomeRow(overrides: Record<string, string> = {}) {
   };
 }
 
+const placeholderId = "00000000-0000-4000-8000-000000000051";
+
+function member(userId: string) {
+  return { kind: "member", userId } as const;
+}
+
+const none = { kind: "none" } as const;
+
 function createDependencies() {
   const accountImportService: AccountImportService = {
     createAccount: vi.fn(async ({ name }) => ({
@@ -97,6 +115,15 @@ function createDependencies() {
     hasPossibleNormalDuplicate: vi.fn(async () => false),
     hasPossibleTransferDuplicate: vi.fn(async () => false),
   };
+  const ledgerPlaceholderImportService: LedgerPlaceholderImportService = {
+    ensureForImport: vi.fn(
+      async ({ displayNames }: { displayNames: string[] }) =>
+        new Map(displayNames.map((name) => [name, `new-${name}`])),
+    ),
+    listUnclaimed: vi.fn(async () => [
+      { displayName: "奶奶", id: placeholderId },
+    ]),
+  };
   const logger: Logger = {
     error: vi.fn(),
     info: vi.fn(),
@@ -106,10 +133,27 @@ function createDependencies() {
   return {
     accountImportService,
     categoryImportService,
+    ledgerPlaceholderImportService,
     logger,
     merchantImportService,
     transactionImportService,
   };
+}
+
+/** 整批被拒绝时不得发生任何写入（包括待邀请成员的批量确保）。 */
+function expectNoWrites(dependencies: ReturnType<typeof createDependencies>) {
+  for (const write of [
+    dependencies.ledgerPlaceholderImportService.ensureForImport,
+    dependencies.accountImportService.createAccount,
+    dependencies.categoryImportService.createCategory,
+    dependencies.merchantImportService.createTag,
+    dependencies.merchantImportService.createMerchant,
+    dependencies.transactionImportService.createNormal,
+    dependencies.transactionImportService.createTransfer,
+    dependencies.transactionImportService.createBalanceAdjustment,
+  ]) {
+    expect(write).not.toHaveBeenCalled();
+  }
 }
 
 beforeEach(() => {
@@ -145,7 +189,9 @@ describe("DataImportExecutionService", () => {
           ["USD", "JPY"].map((currency) => ({
             currency,
             isArchived: false,
-            holderUserId,
+            holder: holderUserId
+              ? { kind: "member" as const, userId: holderUserId }
+              : null,
             id: `${name}-${currency}`,
             name,
           })),
@@ -193,7 +239,7 @@ describe("DataImportExecutionService", () => {
         accounts: ["account-1", "account-2"].map((id) => ({
           currency: ambiguous ? "JPY" : "USD",
           isArchived: false,
-          holderUserId: "user-1",
+          holder: { kind: "member", userId: "user-1" },
           id,
           name: "钱包",
         })),
@@ -220,7 +266,7 @@ describe("DataImportExecutionService", () => {
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             currency: "JPY",
-            holderUserId: "user-1",
+            holder: { kind: "member", userId: "user-1" },
             name: "钱包",
           }),
         );
@@ -244,7 +290,7 @@ describe("DataImportExecutionService", () => {
       dependencies.accountImportService.createAccount,
     ).toHaveBeenCalledWith({
       currency: "JPY",
-      holderUserId: "user-1",
+      holder: { kind: "member", userId: "user-1" },
       ledgerId: "ledger-1",
       name: "钱包",
       userId: "user-1",
@@ -330,7 +376,7 @@ describe("DataImportExecutionService", () => {
 
     expect(
       dependencies.accountImportService.createAccount,
-    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: null }));
+    ).toHaveBeenCalledWith(expect.objectContaining({ holder: null }));
     expect(
       dependencies.transactionImportService.createNormal,
     ).toHaveBeenCalledOnce();
@@ -640,7 +686,7 @@ describe("余额变更导入", () => {
       userId: "user-1",
       currency: "JPY",
       name: "现金",
-      holderUserId: null,
+      holder: null,
     });
   });
   it.each([false, true])(
@@ -652,7 +698,7 @@ describe("余额变更导入", () => {
         isArchived: true,
         currency: "JPY",
         name: "现金",
-        holderUserId: null,
+        holder: null,
       };
       vi.mocked(d.accountImportService.loadContext).mockResolvedValue({
         accounts: [
@@ -701,7 +747,7 @@ describe("余额变更导入", () => {
       holderMissingCount: 1,
     });
     expect(d.accountImportService.createAccount).toHaveBeenCalledWith(
-      expect.objectContaining({ holderUserId: null }),
+      expect.objectContaining({ holder: null }),
     );
   });
 });
@@ -710,7 +756,7 @@ describe("持有人映射", () => {
   function executeWithMapping(
     dependencies: ReturnType<typeof createDependencies>,
     units: ReturnType<typeof unitsOf>,
-    holderMapping: Record<string, string | null>,
+    holderMapping: ImportHolderMapping,
   ) {
     return createDataImportExecutionService(dependencies).executeBatch({
       holderMapping,
@@ -727,12 +773,16 @@ describe("持有人映射", () => {
     const result = await executeWithMapping(
       dependencies,
       unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
-      { 小明: "user-1" },
+      { 小明: member("user-1") },
     );
 
     expect(
       dependencies.accountImportService.createAccount,
-    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-1" }));
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holder: { kind: "member", userId: "user-1" },
+      }),
+    );
     expect(result).toMatchObject({
       failureCount: 0,
       holderMissingCount: 0,
@@ -747,12 +797,12 @@ describe("持有人映射", () => {
     const result = await executeWithMapping(
       dependencies,
       unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
-      { 小明: null },
+      { 小明: none },
     );
 
     expect(
       dependencies.accountImportService.createAccount,
-    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: null }));
+    ).toHaveBeenCalledWith(expect.objectContaining({ holder: null }));
     expect(result).toMatchObject({ holderMissingCount: 0, successCount: 1 });
     expect(result.details).toEqual([]);
   });
@@ -770,12 +820,16 @@ describe("持有人映射", () => {
     await executeWithMapping(
       dependencies,
       unitsOf([incomeTable([incomeRow()])]),
-      { 淞文: "user-2" },
+      { 淞文: member("user-2") },
     );
 
     expect(
       dependencies.accountImportService.createAccount,
-    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-2" }));
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holder: { kind: "member", userId: "user-2" },
+      }),
+    );
   });
 
   it("同显示名成员的歧义姓名有映射时不再失败", async () => {
@@ -791,13 +845,17 @@ describe("持有人映射", () => {
     const result = await executeWithMapping(
       dependencies,
       unitsOf([incomeTable([incomeRow()])]),
-      { 淞文: "user-2" },
+      { 淞文: member("user-2") },
     );
 
     expect(result).toMatchObject({ failureCount: 0, successCount: 1 });
     expect(
       dependencies.accountImportService.createAccount,
-    ).toHaveBeenCalledWith(expect.objectContaining({ holderUserId: "user-2" }));
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holder: { kind: "member", userId: "user-2" },
+      }),
+    );
   });
 
   it("映射后命中已有账户时复用而不重复创建", async () => {
@@ -806,7 +864,7 @@ describe("持有人映射", () => {
       accounts: [
         {
           currency: "JPY",
-          holderUserId: "user-1",
+          holder: { kind: "member", userId: "user-1" },
           id: "account-existing",
           isArchived: false,
           name: "钱包",
@@ -823,7 +881,7 @@ describe("持有人映射", () => {
           incomeRow({ 账户持有人: "小红", 日期: "2026-09-18 10:00:00" }),
         ]),
       ]),
-      { 小明: "user-1", 小红: "user-1" },
+      { 小明: member("user-1"), 小红: member("user-1") },
     );
 
     expect(
@@ -851,7 +909,7 @@ describe("持有人映射", () => {
           incomeRow({ 账户持有人: "小红", 日期: "2026-09-18 10:00:00" }),
         ]),
       ]),
-      { 小明: "user-1", 小红: "user-1" },
+      { 小明: member("user-1"), 小红: member("user-1") },
     );
 
     expect(
@@ -879,15 +937,15 @@ describe("持有人映射", () => {
           },
         ]),
       ]),
-      { 小明: "user-1", 小红: null },
+      { 小明: member("user-1"), 小红: none },
     );
 
     expect(
       vi
         .mocked(dependencies.accountImportService.createAccount)
-        .mock.calls.map(([input]) => [input.name, input.holderUserId]),
+        .mock.calls.map(([input]) => [input.name, input.holder]),
     ).toEqual([
-      ["钱包", "user-1"],
+      ["钱包", { kind: "member", userId: "user-1" }],
       ["银行卡", null],
     ]);
     expect(result).toMatchObject({ holderMissingCount: 0, successCount: 1 });
@@ -899,7 +957,7 @@ describe("持有人映射", () => {
     const result = await executeWithMapping(
       dependencies,
       unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
-      { 小红: "user-1" },
+      { 小红: member("user-1") },
     );
 
     expect(result.holderMissingCount).toBe(1);
@@ -912,25 +970,14 @@ describe("持有人映射", () => {
       executeWithMapping(
         dependencies,
         unitsOf([incomeTable([incomeRow({ 账户持有人: "小明" })])]),
-        { 小明: "user-outsider" },
+        { 小明: member("user-outsider") },
       ),
     ).rejects.toMatchObject({
       code: "reference_invalid",
-      message: "持有人映射里包含不属于当前账本的成员，请重新检查格式后再导入。",
+      message: dataImportExecutionErrorMessages.holderMappingInvalid,
     });
 
-    expect(
-      dependencies.accountImportService.createAccount,
-    ).not.toHaveBeenCalled();
-    expect(
-      dependencies.categoryImportService.createCategory,
-    ).not.toHaveBeenCalled();
-    expect(
-      dependencies.merchantImportService.createMerchant,
-    ).not.toHaveBeenCalled();
-    expect(
-      dependencies.transactionImportService.createNormal,
-    ).not.toHaveBeenCalled();
+    expectNoWrites(dependencies);
   });
 
   it("文件姓名与对象原型属性同名时不会被当作映射命中", async () => {
@@ -945,14 +992,364 @@ describe("持有人映射", () => {
     expect(result.holderMissingCount).toBe(1);
   });
 
-  it("listHolderMembers 返回与校验映射一致的账本成员", async () => {
+  it("loadHolderMappingOptions 返回与校验映射一致的成员与待邀请成员", async () => {
     const dependencies = createDependencies();
 
     await expect(
-      createDataImportExecutionService(dependencies).listHolderMembers({
+      createDataImportExecutionService(dependencies).loadHolderMappingOptions({
         ledgerId: "ledger-1",
         userId: "user-1",
       }),
-    ).resolves.toEqual([{ displayName: "淞文", userId: "user-1" }]);
+    ).resolves.toEqual({
+      members: [{ displayName: "淞文", userId: "user-1" }],
+      placeholders: [{ displayName: "奶奶", id: placeholderId }],
+    });
+    expect(
+      dependencies.ledgerPlaceholderImportService.listUnclaimed,
+    ).toHaveBeenCalledWith({ ledgerId: "ledger-1", userId: "user-1" });
+  });
+});
+
+describe("待邀请成员映射", () => {
+  const transferRow = {
+    交易类型: "转账",
+    日期: "2026-09-17 10:00:00",
+    转出账户: "钱包",
+    转出账户币种: "JPY",
+    转出账户持有人: "外婆",
+    转入账户: "银行卡",
+    转入账户币种: "JPY",
+    转入账户持有人: "奶奶",
+    金额: "100",
+  };
+
+  function newPlaceholder(displayName: string) {
+    return { displayName, kind: "newPlaceholder" } as const;
+  }
+
+  function placeholder(id: string) {
+    return { kind: "placeholder", placeholderId: id } as const;
+  }
+
+  function execute(
+    dependencies: ReturnType<typeof createDependencies>,
+    units: ReturnType<typeof unitsOf>,
+    holderMapping: ImportHolderMapping,
+  ) {
+    return createDataImportExecutionService(dependencies).executeBatch({
+      holderMapping,
+      ledgerId: "ledger-1",
+      timeZoneOffsetMinutes: 0,
+      units,
+      userId: "user-1",
+    });
+  }
+
+  it("本批的新建意图去重后只调用一次批量确保，并返回已解析的映射", async () => {
+    const dependencies = createDependencies();
+
+    const result = await execute(
+      dependencies,
+      unitsOf([
+        incomeTable([
+          incomeRow({ 账户持有人: "外婆" }),
+          incomeRow({ 账户持有人: "外公", 日期: "2026-09-18 10:00:00" }),
+          incomeRow({ 账户持有人: "外婆", 日期: "2026-09-19 10:00:00" }),
+        ]),
+      ]),
+      {
+        外公: newPlaceholder("外公"),
+        外婆: newPlaceholder("外婆"),
+        小明: member("user-1"),
+        小红: none,
+      },
+    );
+
+    expect(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).toHaveBeenCalledWith({
+      displayNames: ["外公", "外婆"],
+      ledgerId: "ledger-1",
+      userId: "user-1",
+    });
+    expect(result.resolvedHolderMapping).toEqual({
+      外公: placeholder("new-外公"),
+      外婆: placeholder("new-外婆"),
+      小明: member("user-1"),
+      小红: none,
+    });
+    expect(result).toMatchObject({
+      createdPlaceholderCount: 2,
+      holderMissingCount: 0,
+      successCount: 3,
+    });
+    expect(
+      vi
+        .mocked(dependencies.accountImportService.createAccount)
+        .mock.calls.map(([input]) => input.holder),
+    ).toEqual([placeholder("new-外婆"), placeholder("new-外公")]);
+  });
+
+  it("批量确保复用了现有同名待邀请成员时不计入新建数", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).mockResolvedValue(new Map([["奶奶", placeholderId.toUpperCase()]]));
+
+    const result = await execute(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "奶奶" })])]),
+      { 奶奶: newPlaceholder("奶奶") },
+    );
+
+    expect(result.createdPlaceholderCount).toBe(0);
+    expect(result.resolvedHolderMapping).toEqual({
+      奶奶: placeholder(placeholderId.toUpperCase()),
+    });
+  });
+
+  it("后续批次提交已解析的映射时不再调用批量确保，只校验待邀请成员仍可用", async () => {
+    const dependencies = createDependencies();
+
+    const result = await execute(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "奶奶" })])]),
+      { 奶奶: placeholder(placeholderId) },
+    );
+
+    expect(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.ledgerPlaceholderImportService.listUnclaimed,
+    ).toHaveBeenCalledWith({ ledgerId: "ledger-1", userId: "user-1" });
+    expect(result).toMatchObject({
+      createdPlaceholderCount: 0,
+      holderMissingCount: 0,
+      resolvedHolderMapping: { 奶奶: placeholder(placeholderId) },
+      successCount: 1,
+    });
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ holder: placeholder(placeholderId) }),
+    );
+  });
+
+  it("映射里没有待邀请成员时不读取待邀请成员，也不调用批量确保", async () => {
+    const dependencies = createDependencies();
+
+    await execute(dependencies, unitsOf([incomeTable([incomeRow()])]), {
+      小明: none,
+    });
+
+    expect(
+      dependencies.ledgerPlaceholderImportService.listUnclaimed,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "不属于当前账本或已认领的待邀请成员",
+      { 奶奶: placeholder("placeholder-x") },
+    ],
+    [
+      "非账本成员（同批还有新建意图）",
+      { 奶奶: newPlaceholder("奶奶"), 小明: member("user-outsider") },
+    ],
+    [
+      "已失效的待邀请成员（同批还有新建意图）",
+      { 奶奶: placeholder("placeholder-x"), 外婆: newPlaceholder("外婆") },
+    ],
+  ] as const)("映射包含%s时整批拒绝且不写入", async (_name, holderMapping) => {
+    const dependencies = createDependencies();
+
+    await expect(
+      execute(
+        dependencies,
+        unitsOf([incomeTable([incomeRow({ 账户持有人: "奶奶" })])]),
+        holderMapping,
+      ),
+    ).rejects.toMatchObject({
+      code: "reference_invalid",
+      message: dataImportExecutionErrorMessages.holderMappingInvalid,
+    });
+    expectNoWrites(dependencies);
+  });
+
+  it("非管理员提交新建意图时整批拒绝，不执行本批", async () => {
+    const dependencies = createDependencies();
+    const denied = new AuthorizationError(
+      "permission_denied",
+      getLedgerPlaceholderMemberErrorMessage("permission_denied")!,
+    );
+    vi.mocked(
+      dependencies.ledgerPlaceholderImportService.ensureForImport,
+    ).mockRejectedValue(denied);
+
+    await expect(
+      execute(
+        dependencies,
+        unitsOf([incomeTable([incomeRow({ 账户持有人: "奶奶" })])]),
+        { 奶奶: newPlaceholder("奶奶") },
+      ),
+    ).rejects.toBe(denied);
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "placeholder_name_member_conflict",
+      dataImportExecutionErrorMessages.newPlaceholderMemberConflict(["淞文"]),
+    ],
+    [
+      "placeholder_name_conflict",
+      dataImportExecutionErrorMessages.newPlaceholderNameConflict,
+    ],
+  ] as const)(
+    "批量确保返回 %s 时转换为导入的安全文案，不执行本批",
+    async (code, message) => {
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.ledgerPlaceholderImportService.ensureForImport,
+      ).mockRejectedValue(
+        new ConflictError(code, getLedgerPlaceholderMemberErrorMessage(code)!),
+      );
+
+      const failure = await execute(
+        dependencies,
+        unitsOf([
+          incomeTable([
+            incomeRow({ 账户持有人: "淞文" }),
+            incomeRow({ 账户持有人: "外婆", 日期: "2026-09-18 10:00:00" }),
+          ]),
+        ]),
+        { 外婆: newPlaceholder("外婆"), 淞文: newPlaceholder("淞文") },
+      ).catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ConflictError);
+      expect(failure).toMatchObject({
+        code: "holder_mapping_conflict",
+        message,
+      });
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).not.toHaveBeenCalled();
+      expect(
+        dependencies.categoryImportService.createCategory,
+      ).not.toHaveBeenCalled();
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it("同名同币种的成员、待邀请成员与无持有人账户各自独立复用", async () => {
+    const dependencies = createDependencies();
+    const account = { currency: "JPY", isArchived: false, name: "钱包" };
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [
+        { ...account, holder: null, id: "account-none" },
+        { ...account, holder: placeholder(placeholderId), id: "account-p" },
+        { ...account, holder: member("user-1"), id: "account-m" },
+      ],
+      holders: [{ displayName: "淞文", userId: "user-1" }],
+    });
+
+    const result = await execute(
+      dependencies,
+      unitsOf([
+        incomeTable([
+          incomeRow({ 账户持有人: "奶奶" }),
+          incomeRow({ 账户持有人: "淞文", 日期: "2026-09-18 10:00:00" }),
+          incomeRow({ 账户持有人: "", 日期: "2026-09-19 10:00:00" }),
+          incomeRow({ 账户持有人: "小红", 日期: "2026-09-20 10:00:00" }),
+        ]),
+      ]),
+      { 奶奶: placeholder(placeholderId.toUpperCase()), 小红: none },
+    );
+
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    expect(
+      vi
+        .mocked(dependencies.transactionImportService.createNormal)
+        .mock.calls.map(([input]) => input.accountId),
+    ).toEqual(["account-p", "account-m", "account-none", "account-none"]);
+    expect(result).toMatchObject({ holderMissingCount: 0, successCount: 4 });
+  });
+
+  it("待邀请成员账户不会被未映射、按无持有人继续的姓名误复用", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: [
+        {
+          currency: "JPY",
+          holder: placeholder(placeholderId),
+          id: "account-p",
+          isArchived: false,
+          name: "钱包",
+        },
+      ],
+      holders: [],
+    });
+
+    const result = await execute(
+      dependencies,
+      unitsOf([incomeTable([incomeRow({ 账户持有人: "奶奶" })])]),
+      {},
+    );
+
+    // 未映射的姓名保持 #780：警告并按无持有人继续，不按名字自动匹配待邀请成员。
+    expect(result.holderMissingCount).toBe(1);
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledWith(expect.objectContaining({ holder: null }));
+  });
+
+  it("转账两侧与余额变更都应用待邀请成员映射", async () => {
+    const dependencies = createDependencies();
+
+    const result = await execute(
+      dependencies,
+      unitsOf([
+        transferTable([transferRow]),
+        makeBalanceAdjustmentTable([{ 账户持有人: "奶奶" }]),
+      ]),
+      { 外婆: newPlaceholder("外婆"), 奶奶: placeholder(placeholderId) },
+    );
+
+    expect(
+      vi
+        .mocked(dependencies.accountImportService.createAccount)
+        .mock.calls.map(([input]) => [input.name, input.holder]),
+    ).toEqual([
+      ["钱包", placeholder("new-外婆")],
+      ["银行卡", placeholder(placeholderId)],
+      ["现金", placeholder(placeholderId)],
+    ]);
+    expect(result).toMatchObject({
+      createdPlaceholderCount: 1,
+      failureCount: 0,
+      holderMissingCount: 0,
+      successCount: 2,
+    });
+    expect(
+      dependencies.transactionImportService.createBalanceAdjustment,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "account-现金" }),
+    );
   });
 });

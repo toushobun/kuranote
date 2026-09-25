@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { placeholderMemberText } from "config/placeholderMemberText";
 import type { ImportHolderMappingCandidate } from "internal/dataImport";
 import { DataImportHolderMapping } from "./DataImportHolderMapping";
 
@@ -35,10 +36,20 @@ function cardOf(name: string) {
   return within(screen.getByRole("group", { name: `「${name}」` }));
 }
 
-function selectMember(name: string, optionName: string) {
+function openOptions(name: string) {
   fireEvent.mouseDown(cardOf(name).getByRole("combobox"));
+  return screen.getAllByRole("option").map((option) => option.textContent);
+}
+
+function selectMember(name: string, optionName: string) {
+  openOptions(name);
   fireEvent.click(screen.getByRole("option", { name: optionName }));
 }
+
+const placeholders = [
+  { displayName: "外婆", id: "00000000-0000-4000-8000-000000000051" },
+  { displayName: "奶奶", id: "00000000-0000-4000-8000-000000000052" },
+];
 
 describe("DataImportHolderMapping", () => {
   it("每个姓名一张卡片并显示涉及记录数", () => {
@@ -74,7 +85,10 @@ describe("DataImportHolderMapping", () => {
 
     expect(
       screen.getAllByRole("option").map((option) => option.textContent),
-    ).toEqual(["无持有人", "张三", "李四"]);
+    ).toEqual(["无持有人", "成员", "张三", "李四"]);
+    expect(
+      screen.queryByText(placeholderMemberText.accountHolderGroupLabel),
+    ).not.toBeInTheDocument();
   });
 
   it("同名成员的选项用邮箱区分", () => {
@@ -93,6 +107,7 @@ describe("DataImportHolderMapping", () => {
       screen.getAllByRole("option").map((option) => option.textContent),
     ).toEqual([
       "无持有人",
+      "成员",
       "重名（a@example.com）",
       "重名（b@example.com）",
       "李四",
@@ -105,7 +120,10 @@ describe("DataImportHolderMapping", () => {
     selectMember("小明", "张三");
     fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
 
-    expect(onConfirm).toHaveBeenCalledWith({ 小明: "user-1", 小红: null });
+    expect(onConfirm).toHaveBeenCalledWith({
+      小明: { kind: "member", userId: "user-1" },
+      小红: { kind: "none" },
+    });
   });
 
   it("允许多个姓名映射到同一个成员", () => {
@@ -116,8 +134,8 @@ describe("DataImportHolderMapping", () => {
     fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
 
     expect(onConfirm).toHaveBeenCalledWith({
-      小明: "user-2",
-      小红: "user-2",
+      小明: { kind: "member", userId: "user-2" },
+      小红: { kind: "member", userId: "user-2" },
     });
   });
 
@@ -135,5 +153,146 @@ describe("DataImportHolderMapping", () => {
 
     expect(screen.getByRole("button", { name: "取消导入" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "继续导入" })).toBeDisabled();
+  });
+
+  describe("待邀请成员选项", () => {
+    it("现有待邀请成员分组显示，文案与账户表单的「（待邀请）」一致", () => {
+      renderMapping({ placeholders });
+
+      expect(openOptions("小明")).toEqual([
+        "无持有人",
+        "成员",
+        "张三",
+        "李四",
+        placeholderMemberText.accountHolderGroupLabel,
+        "外婆（待邀请）",
+        "奶奶（待邀请）",
+      ]);
+    });
+
+    it("与文件姓名同名的待邀请成员排在最前，但默认仍是「无持有人」", () => {
+      renderMapping({
+        candidates: [{ name: "奶奶", recordCount: 1, reason: "unmatched" }],
+        placeholders,
+      });
+
+      expect(cardOf("奶奶").getByRole("combobox")).toHaveTextContent(
+        "无持有人",
+      );
+      expect(openOptions("奶奶").slice(5)).toEqual([
+        "奶奶（待邀请）",
+        "外婆（待邀请）",
+      ]);
+    });
+
+    it("选择现有待邀请成员时按 ID 提交", () => {
+      const { onConfirm } = renderMapping({ placeholders });
+
+      selectMember("小明", "奶奶（待邀请）");
+      fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
+
+      expect(onConfirm).toHaveBeenCalledWith({
+        小明: { kind: "placeholder", placeholderId: placeholders[1].id },
+        小红: { kind: "none" },
+      });
+    });
+  });
+
+  describe("新建待邀请成员", () => {
+    it("管理员可以看到新建选项，选择后只在本地提交新建意图", () => {
+      const { onCancel, onConfirm } = renderMapping({
+        canCreatePlaceholders: true,
+      });
+
+      expect(
+        screen.getByText(/点击「继续导入」时才会创建/),
+      ).toBeInTheDocument();
+      expect(openOptions("小明")).toEqual([
+        "无持有人",
+        "成员",
+        "张三",
+        "李四",
+        placeholderMemberText.accountHolderGroupLabel,
+        "新建待邀请成员「小明」",
+      ]);
+      fireEvent.click(
+        screen.getByRole("option", { name: "新建待邀请成员「小明」" }),
+      );
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(onCancel).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
+
+      expect(onConfirm).toHaveBeenCalledWith({
+        小明: { displayName: "小明", kind: "newPlaceholder" },
+        小红: { kind: "none" },
+      });
+    });
+
+    it("选择新建后取消导入只触发取消，不提交新建意图", () => {
+      const { onCancel, onConfirm } = renderMapping({
+        canCreatePlaceholders: true,
+      });
+
+      selectMember("小明", "新建待邀请成员「小明」");
+      fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
+
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(onConfirm).not.toHaveBeenCalled();
+    });
+
+    it("非管理员看不到新建选项", () => {
+      renderMapping({ canCreatePlaceholders: false });
+
+      expect(openOptions("小明")).not.toContain("新建待邀请成员「小明」");
+      expect(
+        screen.queryByText(/点击「继续导入」时才会创建/),
+      ).not.toBeInTheDocument();
+    });
+
+    it("同名成员不止一个的姓名不提供新建", () => {
+      renderMapping({
+        canCreatePlaceholders: true,
+        candidates: [{ name: "重名", recordCount: 1, reason: "ambiguous" }],
+      });
+
+      expect(openOptions("重名")).not.toContain("新建待邀请成员「重名」");
+    });
+
+    it("超过 100 个字符的姓名不提供新建，恰好 100 个字符时提供", () => {
+      const longName = "あ".repeat(101);
+      const maxName = "い".repeat(100);
+      renderMapping({
+        canCreatePlaceholders: true,
+        candidates: [
+          { name: longName, recordCount: 1, reason: "unmatched" },
+          { name: maxName, recordCount: 1, reason: "unmatched" },
+        ],
+      });
+
+      expect(openOptions(longName)).not.toContain(
+        `新建待邀请成员「${longName}」`,
+      );
+      fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+      expect(openOptions(maxName)).toContain(`新建待邀请成员「${maxName}」`);
+    });
+
+    it("已有同名待邀请成员时不再提供新建，改为把它排在最前", () => {
+      renderMapping({
+        canCreatePlaceholders: true,
+        candidates: [{ name: "奶奶", recordCount: 1, reason: "unmatched" }],
+        placeholders,
+      });
+
+      expect(openOptions("奶奶")).toEqual([
+        "无持有人",
+        "成员",
+        "张三",
+        "李四",
+        placeholderMemberText.accountHolderGroupLabel,
+        "奶奶（待邀请）",
+        "外婆（待邀请）",
+      ]);
+    });
   });
 });

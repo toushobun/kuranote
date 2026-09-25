@@ -20,6 +20,16 @@ export type CreateLedgerPlaceholderMemberResult =
   | { ok: true; placeholderId: string }
   | { code: LedgerPlaceholderMemberErrorCode; ok: false };
 
+/** 批量确保的一行结果：规范化后的名字与被创建或复用的占位 ID。 */
+export type EnsuredLedgerPlaceholderMember = {
+  displayName: string;
+  placeholderId: string;
+};
+
+export type EnsureLedgerPlaceholderMembersResult =
+  | { ok: true; placeholders: EnsuredLedgerPlaceholderMember[] }
+  | { code: LedgerPlaceholderMemberErrorCode; ok: false };
+
 export interface LedgerPlaceholderMemberRepository {
   create(
     ledgerId: string,
@@ -29,6 +39,14 @@ export interface LedgerPlaceholderMemberRepository {
     ledgerId: string,
     placeholderId: string,
   ): Promise<LedgerPlaceholderMemberWriteResult>;
+  /**
+   * 在单一事务内按名字批量创建或复用未认领占位（导入映射用）；任一名字失败时
+   * 整批回滚，返回业务错误码。
+   */
+  ensure(
+    ledgerId: string,
+    displayNames: string[],
+  ): Promise<EnsureLedgerPlaceholderMembersResult>;
   /** 只读取未认领占位；权限由 RLS（同账本 active 成员）兜底。 */
   listUnclaimed(ledgerId: string): Promise<LedgerPlaceholderMemberSummary[]>;
   rename(
@@ -57,6 +75,7 @@ const placeholderErrorMap = {
 const failureCodes = {
   create: ledgerPlaceholderMemberErrorCodes.createFailed,
   delete: ledgerPlaceholderMemberErrorCodes.deleteFailed,
+  ensure: ledgerPlaceholderMemberErrorCodes.createFailed,
   list: ledgerPlaceholderMemberErrorCodes.loadFailed,
   rename: ledgerPlaceholderMemberErrorCodes.renameFailed,
 } as const;
@@ -75,6 +94,18 @@ function toSummary(row: unknown): LedgerPlaceholderMemberSummary | null {
   if (typeof id !== "string" || typeof display_name !== "string") return null;
   if (display_name.trim() === "") return null;
   return { displayName: display_name, id };
+}
+
+function toEnsuredPlaceholder(
+  row: unknown,
+): EnsuredLedgerPlaceholderMember | null {
+  if (typeof row !== "object" || row === null) return null;
+  const { display_name, placeholder_id } = row as Record<string, unknown>;
+  if (typeof display_name !== "string" || typeof placeholder_id !== "string") {
+    return null;
+  }
+  if (display_name.trim() === "" || placeholder_id === "") return null;
+  return { displayName: display_name, placeholderId: placeholder_id };
 }
 
 export function createSupabaseLedgerPlaceholderMemberRepository(
@@ -134,6 +165,36 @@ export function createSupabaseLedgerPlaceholderMemberRepository(
         p_ledger_id: ledgerId,
         p_placeholder_id: placeholderId,
       });
+    },
+
+    async ensure(ledgerId, displayNames) {
+      const { data, error } = await supabase.rpc(
+        "ensure_ledger_placeholder_members",
+        { p_display_names: displayNames, p_ledger_id: ledgerId },
+      );
+
+      if (error) {
+        const code = findRpcBusinessError(error, placeholderErrorMap);
+        if (code) return { code, ok: false };
+        logUnexpected("ensure_ledger_placeholder_members", error);
+        throw failure("ensure");
+      }
+
+      const rows: unknown[] = Array.isArray(data) ? data : [];
+      const placeholders = rows.flatMap((row) => {
+        const placeholder = toEnsuredPlaceholder(row);
+        return placeholder ? [placeholder] : [];
+      });
+      if (!Array.isArray(data) || placeholders.length !== rows.length) {
+        // 行格式异常时整体失败，避免把缺失的映射静默当成「无持有人」继续导入。
+        logger.error(
+          "[ledger] ensure_ledger_placeholder_members returned invalid data",
+          { rowCount: rows.length },
+        );
+        throw failure("ensure", "ledger_placeholder_ensure_result_invalid");
+      }
+
+      return { ok: true, placeholders };
     },
 
     async listUnclaimed(ledgerId) {

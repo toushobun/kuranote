@@ -1,4 +1,7 @@
+import { z } from "@hono/zod-openapi";
+
 import type { ImportSheetKind } from "internal/dataImport/entity/importSheetKind";
+import { ledgerPlaceholderMemberNameMaxLength } from "internal/ledger";
 
 export type ImportColumnDef = {
   name: string;
@@ -97,3 +100,61 @@ export const importBatchSize = 100;
 /** 浏览器端解析文件前的大小上限；文件不会上传到服务器，只受浏览器内存约束。 */
 export const maxImportFileSizeBytes = 50 * 1024 * 1024;
 export const importCurrencyPattern = /^[A-Za-z]{3}$/;
+
+/** 账户、商家、分类、持有人等名称单元格的最大长度，客户端提交的行数据与映射共用。 */
+export const importNameMaxLength = 200;
+
+/** 持有人映射最多携带的姓名数；只有无法唯一匹配成员的姓名需要映射。 */
+export const importHolderMappingMaxEntries = 500;
+
+/**
+ * 持有人映射的一个取值，四种意图互斥：真实成员、无持有人、现有待邀请成员（按 ID），
+ * 以及待创建的待邀请成员（只是意图，执行时才批量创建或复用）。
+ * 多余或冲突的字段一律拒绝。
+ */
+const importHolderMappingValueSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("member"), userId: z.string().uuid() }),
+  z.strictObject({ kind: z.literal("none") }),
+  z.strictObject({
+    kind: z.literal("placeholder"),
+    placeholderId: z.string().uuid(),
+  }),
+  z.strictObject({
+    displayName: z
+      .string()
+      .max(ledgerPlaceholderMemberNameMaxLength)
+      .refine((value) => value.trim().length > 0),
+    kind: z.literal("newPlaceholder"),
+  }),
+]);
+
+/**
+ * 文件里的持有人姓名 → 映射取值。映射里没有的姓名仍按显示名精确匹配账本成员，
+ * 与显式选择「无持有人」含义不同。新建待邀请成员只能沿用文件里的姓名，不能改名。
+ */
+export const importHolderMappingSchema = z
+  .record(
+    z.string().min(1).max(importNameMaxLength),
+    importHolderMappingValueSchema,
+  )
+  .refine(
+    (mapping) => Object.keys(mapping).length <= importHolderMappingMaxEntries,
+  )
+  .refine((mapping) =>
+    Object.entries(mapping).every(
+      ([name, value]) =>
+        value.kind !== "newPlaceholder" || value.displayName === name,
+    ),
+  );
+
+export type ImportHolderMappingValue = z.infer<
+  typeof importHolderMappingValueSchema
+>;
+
+export type ImportHolderMapping = z.infer<typeof importHolderMappingSchema>;
+
+/** 已解析的映射取值：新建意图已经换成现有待邀请成员的 ID。 */
+export type ResolvedImportHolderMappingValue = Exclude<
+  ImportHolderMappingValue,
+  { kind: "newPlaceholder" }
+>;

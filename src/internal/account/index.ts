@@ -17,6 +17,7 @@ export type {
   AccountImportContext,
   AccountImportEntry,
   AccountImportHolder,
+  AccountImportHolderRef,
   AccountImportService,
 } from "internal/account/service/accountImportService";
 export {

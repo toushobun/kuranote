@@ -22,7 +22,10 @@ export {
   ledgerPlaceholderMemberNameMaxLength,
   type LedgerPlaceholderMemberSummary,
 } from "internal/ledger/entity/ledgerPlaceholderMember";
-export type { LedgerPlaceholderMemberQueryService } from "internal/ledger/service/ledgerPlaceholderMemberService";
+export type {
+  LedgerPlaceholderImportService,
+  LedgerPlaceholderMemberQueryService,
+} from "internal/ledger/service/ledgerPlaceholderMemberService";
 export {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,

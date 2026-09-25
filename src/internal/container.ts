@@ -327,6 +327,8 @@ export function createRequestContainer(
               categoryImportService: createCategoryImportService(
                 this.category.service,
               ),
+              ledgerPlaceholderImportService:
+                getLedgerPlaceholderMemberService(),
               logger: dependencies.logger,
               merchantImportService: createMerchantImportService(
                 this.merchant.service,

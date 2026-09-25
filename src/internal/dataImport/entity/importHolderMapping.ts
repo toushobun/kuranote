@@ -1,9 +1,3 @@
-/**
- * 文件里的持有人姓名 → 账本成员 userId；`null` 表示用户明确选择「无持有人」。
- * 未出现在映射里的姓名仍按显示名精确匹配账本成员。
- */
-export type ImportHolderMapping = Record<string, string | null>;
-
 /** 需要用户在映射步骤里处理的持有人姓名：账本里找不到成员，或有多个同名成员。 */
 export type ImportHolderMappingCandidate = {
   name: string;

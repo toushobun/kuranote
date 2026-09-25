@@ -26,6 +26,10 @@ function createRepository() {
   return {
     create: vi.fn().mockResolvedValue({ ok: true, placeholderId }),
     delete: vi.fn().mockResolvedValue({ ok: true }),
+    ensure: vi.fn().mockResolvedValue({
+      ok: true,
+      placeholders: [{ displayName: "奶奶", placeholderId }],
+    }),
     listUnclaimed: vi
       .fn()
       .mockResolvedValue([{ displayName: "奶奶", id: placeholderId }]),
@@ -201,6 +205,110 @@ describe("createLedgerPlaceholderMemberService 错误映射", () => {
       code: "placeholder_name_conflict",
       message: getLedgerPlaceholderMemberErrorMessage(
         "placeholder_name_conflict",
+      ),
+    });
+  });
+});
+
+describe("createLedgerPlaceholderMemberService.ensureForImport", () => {
+  it.each(["owner", "admin"] as const)(
+    "%s 可以批量确保：名字去除首尾空白并去重后只调用一次 Repository",
+    async (role) => {
+      const repository = createRepository();
+      const result = await createService(repository, role).ensureForImport({
+        ...actor,
+        displayNames: [" 奶奶", "奶奶 ", "奶奶"],
+      });
+
+      expect(repository.ensure).toHaveBeenCalledTimes(1);
+      expect(repository.ensure).toHaveBeenCalledWith(actor.ledgerId, ["奶奶"]);
+      expect([...result]).toEqual([["奶奶", placeholderId]]);
+    },
+  );
+
+  it.each(["member", "viewer"] as const)(
+    "%s 无权批量确保且不调用 Repository",
+    async (role) => {
+      const repository = createRepository();
+      const failure = await createService(repository, role)
+        .ensureForImport({ ...actor, displayNames: ["奶奶"] })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(AuthorizationError);
+      expect(repository.ensure).not.toHaveBeenCalled();
+    },
+  );
+
+  it("非 active 成员被拒绝且不调用 Repository", async () => {
+    const repository = createRepository();
+    await expect(
+      createService(repository, null).ensureForImport({
+        ...actor,
+        displayNames: ["奶奶"],
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.ensure).not.toHaveBeenCalled();
+  });
+
+  it("空列表直接返回空映射，不调用 Repository", async () => {
+    const repository = createRepository();
+    const result = await createService(repository).ensureForImport({
+      ...actor,
+      displayNames: [],
+    });
+
+    expect(result.size).toBe(0);
+    expect(repository.ensure).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["   ", "placeholder_name_invalid"],
+    ["あ".repeat(101), "placeholder_name_too_long"],
+  ])(
+    "名字 %j 返回 ValidationError(%s)，整批不调用 Repository",
+    async (name, code) => {
+      const repository = createRepository();
+      const failure = await createService(repository)
+        .ensureForImport({ ...actor, displayNames: ["奶奶", name] })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ValidationError);
+      expect(failure).toMatchObject({ code });
+      expect(repository.ensure).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["placeholder_name_conflict", ConflictError],
+    ["placeholder_name_member_conflict", ConflictError],
+    ["placeholder_name_invalid", ValidationError],
+    ["permission_denied", AuthorizationError],
+  ] as const)("Repository 返回 %s 时抛出对应错误", async (code, ErrorClass) => {
+    const repository = createRepository();
+    repository.ensure.mockResolvedValue({ code, ok: false });
+
+    const failure = await createService(repository)
+      .ensureForImport({ ...actor, displayNames: ["奶奶"] })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ErrorClass);
+    expect(failure).toMatchObject({
+      code,
+      message: getLedgerPlaceholderMemberErrorMessage(code),
+    });
+  });
+
+  it("返回结果缺少请求的名字时抛出安全 RepositoryError", async () => {
+    const repository = createRepository();
+    const failure = await createService(repository)
+      .ensureForImport({ ...actor, displayNames: ["奶奶", "外婆"] })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(RepositoryError);
+    expect(failure).toMatchObject({
+      code: "ledger_placeholder_ensure_result_invalid",
+      message: getLedgerPlaceholderMemberErrorMessage(
+        "placeholder_create_failed",
       ),
     });
   });

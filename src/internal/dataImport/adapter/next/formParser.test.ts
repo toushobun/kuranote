@@ -6,7 +6,10 @@ import { describe, expect, it } from "vitest";
 import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import { dataImportErrorCodes } from "internal/dataImport/errors";
-import { importBatchSize } from "internal/dataImport/schema";
+import {
+  importBatchSize,
+  importHolderMappingMaxEntries,
+} from "internal/dataImport/schema";
 import { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 
 const incomeExpenseUnit: ImportExecutionUnit = {
@@ -124,38 +127,121 @@ describe("parseExecuteDataImportBatchForm", () => {
     });
   });
 
-  it("解析持有人映射，null 表示无持有人", () => {
-    const holderMapping = {
-      小明: "00000000-0000-4000-8000-000000000031",
-      小红: null,
-    };
+  describe("持有人映射", () => {
+    const userId = "00000000-0000-4000-8000-000000000031";
+    const placeholderId = "00000000-0000-4000-8000-000000000051";
 
-    expect(
-      parseExecuteDataImportBatchForm(
-        buildFormData([transferUnit], "-540", holderMapping),
-      ),
-    ).toEqual({
-      ok: true,
-      value: {
-        holderMapping,
-        timeZoneOffsetMinutes: -540,
-        units: [transferUnit],
-      },
+    it("解析四种互斥的映射取值", () => {
+      const holderMapping = {
+        小明: { kind: "member", userId },
+        小红: { kind: "none" },
+        奶奶: { kind: "placeholder", placeholderId },
+        外婆: { displayName: "外婆", kind: "newPlaceholder" },
+      };
+
+      expect(
+        parseExecuteDataImportBatchForm(
+          buildFormData([transferUnit], "-540", holderMapping),
+        ),
+      ).toEqual({
+        ok: true,
+        value: {
+          holderMapping,
+          timeZoneOffsetMinutes: -540,
+          units: [transferUnit],
+        },
+      });
     });
-  });
 
-  it.each([
-    ["不是合法 JSON", "{not json"],
-    ["不是对象", ["小明"]],
-    ["userId 不是 UUID", { 小明: "user-1" }],
-    ["userId 不是字符串", { 小明: 1 }],
-    ["姓名为空", { "": null }],
-  ])("持有人映射%s时返回 executionInvalid", (_name, holderMapping) => {
-    expect(
-      parseExecuteDataImportBatchForm(
-        buildFormData([transferUnit], "-540", holderMapping),
-      ),
-    ).toEqual(executionInvalid);
+    it("映射条目数量不超过上限时可以通过", () => {
+      const holderMapping = Object.fromEntries(
+        Array.from({ length: importHolderMappingMaxEntries }, (_, index) => [
+          `姓名${index}`,
+          { kind: "none" },
+        ]),
+      );
+
+      expect(
+        parseExecuteDataImportBatchForm(
+          buildFormData([transferUnit], "-540", holderMapping),
+        ).ok,
+      ).toBe(true);
+    });
+
+    it("新建待邀请成员的名字恰好 100 个字符时可以通过", () => {
+      const name = "あ".repeat(100);
+      expect(
+        parseExecuteDataImportBatchForm(
+          buildFormData([transferUnit], "-540", {
+            [name]: { displayName: name, kind: "newPlaceholder" },
+          }),
+        ).ok,
+      ).toBe(true);
+    });
+
+    it.each([
+      ["不是合法 JSON", "{not json"],
+      ["不是对象", ["小明"]],
+      ["是旧格式的 userId 字符串", { 小明: userId }],
+      ["是旧格式的 null", { 小明: null }],
+      ["未知的 kind", { 小明: { kind: "guest" } }],
+      ["缺少 kind", { 小明: { userId } }],
+      ["member 的 userId 不是 UUID", { 小明: { kind: "member", userId: "u" } }],
+      ["member 缺少 userId", { 小明: { kind: "member" } }],
+      [
+        "member 同时带有占位 ID",
+        { 小明: { kind: "member", placeholderId, userId } },
+      ],
+      ["none 带有多余字段", { 小明: { kind: "none", userId } }],
+      [
+        "placeholder 的 ID 不是 UUID",
+        { 奶奶: { kind: "placeholder", placeholderId: "p-1" } },
+      ],
+      [
+        "placeholder 同时带有 userId",
+        { 奶奶: { kind: "placeholder", placeholderId, userId } },
+      ],
+      [
+        "newPlaceholder 名字为空",
+        { " ": { displayName: " ", kind: "newPlaceholder" } },
+      ],
+      [
+        "newPlaceholder 名字超过 100 个字符",
+        {
+          ["あ".repeat(101)]: {
+            displayName: "あ".repeat(101),
+            kind: "newPlaceholder",
+          },
+        },
+      ],
+      [
+        "newPlaceholder 名字与文件里的姓名不同",
+        { 奶奶: { displayName: "外婆", kind: "newPlaceholder" } },
+      ],
+      [
+        "newPlaceholder 同时带有占位 ID",
+        {
+          奶奶: { displayName: "奶奶", kind: "newPlaceholder", placeholderId },
+        },
+      ],
+      ["姓名为空", { "": { kind: "none" } }],
+      ["姓名超过 200 个字符", { ["名".repeat(201)]: { kind: "none" } }],
+      [
+        "条目数量超过上限",
+        Object.fromEntries(
+          Array.from({ length: importHolderMappingMaxEntries + 1 }, (_, i) => [
+            `姓名${i}`,
+            { kind: "none" },
+          ]),
+        ),
+      ],
+    ])("%s时返回 executionInvalid", (_name, holderMapping) => {
+      expect(
+        parseExecuteDataImportBatchForm(
+          buildFormData([transferUnit], "-540", holderMapping),
+        ),
+      ).toEqual(executionInvalid);
+    });
   });
 
   it.each([0, 1e12, -1e12, 1.234])("拒绝非法的余额变更金额 %s", (amount) => {

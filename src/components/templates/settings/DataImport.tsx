@@ -22,6 +22,7 @@ import {
 } from "config/dataImportExportMessages";
 import { routePaths } from "config/paths";
 import type { AccountImportHolder } from "internal/account";
+import type { LedgerPlaceholderMemberSummary } from "internal/ledger";
 import {
   importColumnsBySheetKind,
   importSheetKindLabels,
@@ -38,14 +39,20 @@ import { useDataImportForm } from "templates/settings/useDataImportForm";
 import type { DataImportBatchStateAction } from "types/dataImport";
 
 type DataImportTemplateProps = {
+  /** 当前用户是否为 owner/admin；只有这时映射步骤才提供「新建待邀请成员」。 */
+  canCreatePlaceholders?: boolean;
   executeBatchAction: DataImportBatchStateAction;
   /** 当前账本的 active 成员，用于持有人映射步骤的下拉候选。 */
   holderMembers: AccountImportHolder[];
+  /** 当前账本未认领的待邀请成员，用于持有人映射步骤的下拉候选。 */
+  holderPlaceholders?: LedgerPlaceholderMemberSummary[];
 };
 
 export function DataImportTemplate({
+  canCreatePlaceholders = false,
   executeBatchAction,
   holderMembers,
+  holderPlaceholders = [],
 }: DataImportTemplateProps) {
   const {
     displayProgress,
@@ -145,10 +152,12 @@ export function DataImportTemplate({
         executionStatus === null &&
         holderMappingCandidates.length > 0 ? (
           <DataImportHolderMapping
+            canCreatePlaceholders={canCreatePlaceholders}
             candidates={holderMappingCandidates}
             members={holderMembers}
             onCancel={handleCancelHolderMapping}
             onConfirm={handleConfirmHolderMapping}
+            placeholders={holderPlaceholders}
           />
         ) : null}
 

@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
   executeBatch: vi.fn(),
   loggerError: vi.fn(),
   requireCurrentUserAndLedger: vi.fn(),
+  revalidatePath: vi.fn(),
 }));
+
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
@@ -22,7 +25,11 @@ vi.mock("internal/container", () => ({
 }));
 
 import { executeDataImportBatch } from "internal/dataImport/adapter/next/actions";
-import { ValidationError } from "internal/shared/errors/appError";
+import { dataImportExecutionErrorMessages } from "internal/dataImport/errors";
+import {
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -30,7 +37,7 @@ const currentLedger = {
   baseCurrency: "JPY",
   id: ledgerId,
   name: "家庭账本",
-  role: "owner" as const,
+  currentUserRole: "owner" as const,
 };
 
 const transferUnit = {
@@ -50,16 +57,31 @@ const transferUnit = {
 };
 
 const mappedUserId = "00000000-0000-4000-8000-000000000033";
+const placeholderId = "00000000-0000-4000-8000-000000000051";
 
 function createFormData(
   units: unknown = [transferUnit],
-  holderMapping: unknown = { 小明: mappedUserId },
+  holderMapping: unknown = { 小明: { kind: "member", userId: mappedUserId } },
 ) {
   const formData = new FormData();
   formData.set("units", JSON.stringify(units));
   formData.set("holderMapping", JSON.stringify(holderMapping));
   formData.set("timeZoneOffsetMinutes", "-540");
   return formData;
+}
+
+function createBatchOutput() {
+  return {
+    createdPlaceholderCount: 0,
+    details: [],
+    duplicateCount: 0,
+    failureCount: 0,
+    holderMissingCount: 0,
+    processedCount: 1,
+    resolvedHolderMapping: {},
+    rowResults: [],
+    successCount: 1,
+  };
 }
 
 beforeEach(() => {
@@ -84,13 +106,8 @@ beforeEach(() => {
 describe("executeDataImportBatch", () => {
   it("每批重新确认当前账本，并将当前用户与这一批行数据交给执行 Service", async () => {
     mocks.executeBatch.mockResolvedValue({
-      details: [],
-      duplicateCount: 0,
-      failureCount: 0,
-      holderMissingCount: 0,
-      processedCount: 1,
-      rowResults: [],
-      successCount: 1,
+      ...createBatchOutput(),
+      resolvedHolderMapping: { 小明: { kind: "member", userId: mappedUserId } },
     });
 
     const state = await executeDataImportBatch({}, createFormData());
@@ -98,13 +115,88 @@ describe("executeDataImportBatch", () => {
     expect(mocks.requireCurrentUserAndLedger).toHaveBeenCalledOnce();
     expect(mocks.createExecutionService).toHaveBeenCalledWith(currentLedger);
     expect(mocks.executeBatch).toHaveBeenCalledWith({
-      holderMapping: { 小明: mappedUserId },
+      holderMapping: { 小明: { kind: "member", userId: mappedUserId } },
       ledgerId,
       timeZoneOffsetMinutes: -540,
       units: [transferUnit],
       userId,
     });
     expect(state.batch).toMatchObject({ successCount: 1 });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("返回已解析的持有人映射，并在新建待邀请成员后失效相关页面", async () => {
+    const resolvedHolderMapping = {
+      奶奶: { kind: "placeholder", placeholderId },
+    };
+    mocks.executeBatch.mockResolvedValue({
+      ...createBatchOutput(),
+      createdPlaceholderCount: 1,
+      resolvedHolderMapping,
+    });
+
+    const state = await executeDataImportBatch(
+      {},
+      createFormData(undefined, {
+        奶奶: { displayName: "奶奶", kind: "newPlaceholder" },
+      }),
+    );
+
+    expect(mocks.executeBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderMapping: {
+          奶奶: { displayName: "奶奶", kind: "newPlaceholder" },
+        },
+      }),
+    );
+    expect(state.resolvedHolderMapping).toEqual(resolvedHolderMapping);
+    expect(state.batch).toEqual(
+      expect.objectContaining({ createdPlaceholderCount: 1 }),
+    );
+    expect(state.batch).not.toHaveProperty("resolvedHolderMapping");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      `/ledgers/${ledgerId}/settings`,
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/settings/data/import");
+  });
+
+  it("非法持有人映射在调用执行 Service 前返回安全错误", async () => {
+    const state = await executeDataImportBatch(
+      {},
+      createFormData(undefined, { 小明: mappedUserId }),
+    );
+
+    expect(state).toEqual({
+      error: "导入文件或进度信息已变化，请重新检查格式后再导入。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.executeBatch).not.toHaveBeenCalled();
+  });
+
+  it("新建待邀请成员失败时返回执行 Service 的安全文案，不失效页面", async () => {
+    mocks.executeBatch.mockRejectedValue(
+      new ConflictError(
+        "holder_mapping_conflict",
+        dataImportExecutionErrorMessages.newPlaceholderMemberConflict(["奶奶"]),
+      ),
+    );
+
+    const state = await executeDataImportBatch(
+      {},
+      createFormData(undefined, {
+        奶奶: { displayName: "奶奶", kind: "newPlaceholder" },
+      }),
+    );
+
+    expect(state).toEqual({
+      error: dataImportExecutionErrorMessages.newPlaceholderMemberConflict([
+        "奶奶",
+      ]),
+      errorKey: expect.any(String),
+    });
+    expect(state.resolvedHolderMapping).toBeUndefined();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("先校验登录状态与账本成员身份，再解析表单", async () => {

@@ -49,6 +49,7 @@ function makeDoneBatch(
   totalCount: number,
 ): DataImportBatchActionState["batch"] {
   return {
+    createdPlaceholderCount: 0,
     details: [],
     duplicateCount: 0,
     failureCount: 0,
@@ -408,14 +409,16 @@ describe("useDataImportForm 持有人映射", () => {
     await selectFileAndCheckFormat(result);
 
     await act(async () => {
-      await result.current.handleConfirmHolderMapping({ 小明: "user-1" });
+      await result.current.handleConfirmHolderMapping({
+        小明: { kind: "member", userId: "user-1" },
+      });
     });
 
     expect(
       executeBatchAction.mock.calls.map(([, formData]) =>
         formData.get("holderMapping"),
       ),
-    ).toEqual([JSON.stringify({ 小明: "user-1" })]);
+    ).toEqual([JSON.stringify({ 小明: { kind: "member", userId: "user-1" } })]);
     expect(result.current.executionStatus).toBe("completed");
   });
 
@@ -443,5 +446,79 @@ describe("useDataImportForm 持有人映射", () => {
     expect(result.current.validationState).toEqual({});
     expect(result.current.executionStatus).toBeNull();
     expect(result.current.selectedFileName).toBe("data.xlsx");
+  });
+
+  describe("新建待邀请成员", () => {
+    const placeholderId = "00000000-0000-4000-8000-000000000051";
+    const newPlaceholderMapping = {
+      小明: { displayName: "小明", kind: "newPlaceholder" },
+    } as const;
+    const resolvedHolderMapping = {
+      小明: { kind: "placeholder", placeholderId },
+    } as const;
+
+    function setupMultiBatch(
+      firstBatch: Awaited<ReturnType<DataImportBatchStateAction>>,
+    ) {
+      const totalCount = importBatchSize + 1;
+      analyzeImportFileMock.mockResolvedValue(
+        makeAnalyzeImportFileResult(totalCount, "小明"),
+      );
+      const executeBatchAction = vi
+        .fn<DataImportBatchStateAction>()
+        .mockResolvedValueOnce(firstBatch)
+        .mockResolvedValueOnce({ batch: makeDoneBatch(1) });
+      const { result } = renderHook(() =>
+        useDataImportForm(executeBatchAction, holderMembers),
+      );
+      return { executeBatchAction, result };
+    }
+
+    function submittedMappings(
+      executeBatchAction: ReturnType<typeof vi.fn<DataImportBatchStateAction>>,
+    ) {
+      return executeBatchAction.mock.calls.map(([, formData]) =>
+        JSON.parse(String(formData.get("holderMapping"))),
+      );
+    }
+
+    it("首批提交新建意图，之后改用服务端返回的已解析映射，并汇总新建人数", async () => {
+      const { executeBatchAction, result } = setupMultiBatch({
+        batch: {
+          ...makeDoneBatch(importBatchSize)!,
+          createdPlaceholderCount: 1,
+        },
+        resolvedHolderMapping,
+      });
+      await selectFileAndCheckFormat(result);
+
+      await act(async () => {
+        await result.current.handleConfirmHolderMapping(newPlaceholderMapping);
+      });
+
+      expect(submittedMappings(executeBatchAction)).toEqual([
+        newPlaceholderMapping,
+        resolvedHolderMapping,
+      ]);
+      expect(result.current.executionStatus).toBe("completed");
+      expect(result.current.executionResult?.createdPlaceholderCount).toBe(1);
+    });
+
+    it("首批失败时停止导入，不自动重试新建", async () => {
+      const { executeBatchAction, result } = setupMultiBatch({
+        error: "账本里已有同名的待邀请成员。",
+      });
+      await selectFileAndCheckFormat(result);
+
+      await act(async () => {
+        await result.current.handleConfirmHolderMapping(newPlaceholderMapping);
+      });
+
+      expect(executeBatchAction).toHaveBeenCalledTimes(1);
+      expect(result.current.executionError).toBe(
+        "账本里已有同名的待邀请成员。",
+      );
+      expect(result.current.executionStatus).toBeNull();
+    });
   });
 });

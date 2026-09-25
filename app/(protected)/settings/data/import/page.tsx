@@ -1,5 +1,5 @@
 import { executeDataImportBatch } from "internal/dataImport/adapter/next/actions";
-import { loadDataImportHolderMembers } from "internal/dataImport/adapter/next/loadDataImportHolderMembers";
+import { loadDataImportHolderMappingOptions } from "internal/dataImport/adapter/next/loadDataImportHolderMappingOptions";
 import { DataImportTemplate } from "templates/settings/DataImport";
 
 // 「开始导入」的 Server Action 挂在本页面路由上，每批最多 importBatchSize 个单元，
@@ -7,12 +7,15 @@ import { DataImportTemplate } from "templates/settings/DataImport";
 export const maxDuration = 60;
 
 export default async function SettingsDataImportRoute() {
-  const holderMembers = await loadDataImportHolderMembers();
+  const { canManageMembers, members, placeholders } =
+    await loadDataImportHolderMappingOptions();
 
   return (
     <DataImportTemplate
+      canCreatePlaceholders={canManageMembers}
       executeBatchAction={executeDataImportBatch}
-      holderMembers={holderMembers}
+      holderMembers={members}
+      holderPlaceholders={placeholders}
     />
   );
 }

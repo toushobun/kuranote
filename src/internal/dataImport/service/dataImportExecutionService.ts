@@ -1,5 +1,6 @@
 import type {
   AccountImportHolder,
+  AccountImportHolderRef,
   AccountImportService,
 } from "internal/account";
 import type {
@@ -13,7 +14,6 @@ import type {
   ImportExecutionRowResult,
   ImportExecutionSheetKind,
 } from "internal/dataImport/entity/importExecution";
-import type { ImportHolderMapping } from "internal/dataImport/entity/importHolderMapping";
 import type {
   ImportExecutionUnit,
   ImportTransactionGroup,
@@ -24,8 +24,21 @@ import {
   dataImportErrorCodes,
   dataImportExecutionErrorMessages,
 } from "internal/dataImport/errors";
+import type {
+  ImportHolderMapping,
+  ResolvedImportHolderMappingValue,
+} from "internal/dataImport/schema";
+import {
+  ledgerPlaceholderMemberErrorCodes,
+  type LedgerPlaceholderImportService,
+  type LedgerPlaceholderMemberSummary,
+} from "internal/ledger";
 import type { MerchantImportService } from "internal/merchant";
-import { AppError, ValidationError } from "internal/shared/errors/appError";
+import {
+  AppError,
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   balanceAdjustmentErrorMessages,
@@ -37,13 +50,14 @@ import type { TransactionImportService } from "internal/transaction";
 type DataImportExecutionDependencies = {
   accountImportService: AccountImportService;
   categoryImportService: CategoryImportService;
+  ledgerPlaceholderImportService: LedgerPlaceholderImportService;
   logger: Logger;
   merchantImportService: MerchantImportService;
   transactionImportService: TransactionImportService;
 };
 
 export type ExecuteImportBatchInput = {
-  /** 用户在持有人映射步骤里选择的「姓名 → 成员」；优先于按显示名匹配。 */
+  /** 用户在持有人映射步骤里选择的「姓名 → 持有人」；优先于按显示名匹配。 */
   holderMapping?: ImportHolderMapping;
   ledgerId: string;
   timeZoneOffsetMinutes: number;
@@ -52,13 +66,31 @@ export type ExecuteImportBatchInput = {
   userId: string;
 };
 
+/** 新建意图都已换成待邀请成员 ID 的映射，后续批次只提交这一份。 */
+export type ResolvedImportHolderMapping = Record<
+  string,
+  ResolvedImportHolderMappingValue
+>;
+
+export type ExecuteImportBatchOutput = ImportBatchResult & {
+  resolvedHolderMapping: ResolvedImportHolderMapping;
+};
+
+export type ImportHolderMappingOptions = {
+  members: AccountImportHolder[];
+  /** 未认领的待邀请成员，名字为实时读取的当前名字。 */
+  placeholders: LedgerPlaceholderMemberSummary[];
+};
+
 export interface DataImportExecutionService {
-  executeBatch(input: ExecuteImportBatchInput): Promise<ImportBatchResult>;
-  /** 持有人映射步骤的下拉候选；与 `executeBatch` 校验映射用的是同一份成员数据。 */
-  listHolderMembers(input: {
+  executeBatch(
+    input: ExecuteImportBatchInput,
+  ): Promise<ExecuteImportBatchOutput>;
+  /** 持有人映射步骤的下拉候选；与 `executeBatch` 校验映射用的是同一份数据来源。 */
+  loadHolderMappingOptions(input: {
     ledgerId: string;
     userId: string;
-  }): Promise<AccountImportHolder[]>;
+  }): Promise<ImportHolderMappingOptions>;
 }
 
 function resolveUniqueByName<T>(
@@ -123,12 +155,26 @@ function categoryKey(
   return `${type}\u0000${parentId ?? "root"}\u0000${name}`;
 }
 
+/** 持有人种类与 ID 一起进入复用键，成员、待邀请成员与无持有人的账户互不混用。 */
+function holderKey(holder: AccountImportHolderRef | null) {
+  if (!holder) return "none";
+  return holder.kind === "member"
+    ? `member:${holder.userId.toLowerCase()}`
+    : `placeholder:${holder.placeholderId.toLowerCase()}`;
+}
+
 function accountKey(
   name: string,
-  holderUserId: string | null,
+  holder: AccountImportHolderRef | null,
   currency: string,
 ) {
-  return `${name}\u0000${holderUserId ?? ""}\u0000${currency}`;
+  return `${name}\u0000${holderKey(holder)}\u0000${currency}`;
+}
+
+function hasPlaceholderReference(mapping: ImportHolderMapping) {
+  return Object.values(mapping).some(
+    (value) => value.kind === "placeholder" || value.kind === "newPlaceholder",
+  );
 }
 
 /**
@@ -139,14 +185,105 @@ function accountKey(
 export function createDataImportExecutionService({
   accountImportService,
   categoryImportService,
+  ledgerPlaceholderImportService,
   logger,
   merchantImportService,
   transactionImportService,
 }: DataImportExecutionDependencies): DataImportExecutionService {
+  /**
+   * 把本批映射里的新建意图换成待邀请成员 ID：名字去重后只调用一次批量确保，
+   * 该调用在单一事务内创建或复用，失败时不留下任何待邀请成员。
+   */
+  async function resolveNewPlaceholders({
+    holderMapping,
+    holders,
+    ledgerId,
+    placeholders,
+    userId,
+  }: {
+    holderMapping: ImportHolderMapping;
+    holders: AccountImportHolder[];
+    ledgerId: string;
+    placeholders: LedgerPlaceholderMemberSummary[];
+    userId: string;
+  }) {
+    const displayNames = [
+      ...new Set(
+        Object.values(holderMapping).flatMap((value) =>
+          value.kind === "newPlaceholder" ? [value.displayName.trim()] : [],
+        ),
+      ),
+    ];
+    let placeholderIdByName: ReadonlyMap<string, string> = new Map();
+    if (displayNames.length > 0) {
+      try {
+        placeholderIdByName =
+          await ledgerPlaceholderImportService.ensureForImport({
+            displayNames,
+            ledgerId,
+            userId,
+          });
+      } catch (error) {
+        if (
+          error instanceof AppError &&
+          error.code ===
+            ledgerPlaceholderMemberErrorCodes.placeholderNameMemberConflict
+        ) {
+          throw new ConflictError(
+            dataImportErrorCodes.holderMappingConflict,
+            dataImportExecutionErrorMessages.newPlaceholderMemberConflict(
+              displayNames.filter((name) =>
+                holders.some((holder) => holder.displayName === name),
+              ),
+            ),
+          );
+        }
+        if (
+          error instanceof AppError &&
+          error.code ===
+            ledgerPlaceholderMemberErrorCodes.placeholderNameConflict
+        ) {
+          throw new ConflictError(
+            dataImportErrorCodes.holderMappingConflict,
+            dataImportExecutionErrorMessages.newPlaceholderNameConflict,
+          );
+        }
+        throw error;
+      }
+    }
+
+    const existingPlaceholderIds = new Set(
+      placeholders.map(({ id }) => id.toLowerCase()),
+    );
+    const resolvedHolderMapping: ResolvedImportHolderMapping = {};
+    for (const [name, value] of Object.entries(holderMapping)) {
+      if (value.kind !== "newPlaceholder") {
+        resolvedHolderMapping[name] = value;
+        continue;
+      }
+      const placeholderId = placeholderIdByName.get(value.displayName.trim());
+      if (!placeholderId) {
+        throw new ValidationError(
+          dataImportErrorCodes.referenceInvalid,
+          dataImportExecutionErrorMessages.holderMappingInvalid,
+        );
+      }
+      resolvedHolderMapping[name] = { kind: "placeholder", placeholderId };
+    }
+    const createdPlaceholderCount = [...placeholderIdByName.values()].filter(
+      (id) => !existingPlaceholderIds.has(id.toLowerCase()),
+    ).length;
+
+    return { createdPlaceholderCount, resolvedHolderMapping };
+  }
+
   return {
-    async listHolderMembers({ ledgerId, userId }) {
-      return (await accountImportService.loadContext({ ledgerId, userId }))
-        .holders;
+    async loadHolderMappingOptions({ ledgerId, userId }) {
+      const [accountContext, placeholders] = await Promise.all([
+        accountImportService.loadContext({ ledgerId, userId }),
+        ledgerPlaceholderImportService.listUnclaimed({ ledgerId, userId }),
+      ]);
+      return { members: accountContext.holders, placeholders };
     },
 
     async executeBatch({
@@ -156,11 +293,14 @@ export function createDataImportExecutionService({
       units,
       userId,
     }) {
-      const [categoryEntries, merchantContext, accountContext] =
+      const [categoryEntries, merchantContext, accountContext, placeholders] =
         await Promise.all([
           categoryImportService.listCategories({ ledgerId, userId }),
           merchantImportService.loadContext({ ledgerId }),
           accountImportService.loadContext({ ledgerId, userId }),
+          hasPlaceholderReference(holderMapping)
+            ? ledgerPlaceholderImportService.listUnclaimed({ ledgerId, userId })
+            : Promise.resolve([]),
         ]);
 
       const categories = [...categoryEntries];
@@ -168,12 +308,22 @@ export function createDataImportExecutionService({
       const merchantTags = [...merchantContext.tags];
       const accounts = [...accountContext.accounts];
       const holders = [...accountContext.holders];
-      // 映射来自客户端，不能信任：只接受当前账本的有效成员，否则整批拒绝，不写入任何数据。
+      // 映射来自客户端，不能信任：写入任何数据之前，成员必须是当前账本的有效成员，
+      // 待邀请成员必须属于当前账本且未认领，否则整批拒绝。
       if (
-        Object.values(holderMapping).some(
-          (mappedUserId) =>
-            mappedUserId !== null &&
-            !holders.some((holder) => holder.userId === mappedUserId),
+        Object.values(holderMapping).some((value) =>
+          value.kind === "member"
+            ? !holders.some(
+                (holder) =>
+                  holder.userId.toLowerCase() === value.userId.toLowerCase(),
+              )
+            : value.kind === "placeholder"
+              ? !placeholders.some(
+                  (placeholder) =>
+                    placeholder.id.toLowerCase() ===
+                    value.placeholderId.toLowerCase(),
+                )
+              : false,
         )
       ) {
         throw new ValidationError(
@@ -181,6 +331,15 @@ export function createDataImportExecutionService({
           dataImportExecutionErrorMessages.holderMappingInvalid,
         );
       }
+      // 新建意图最先写入：批量确保内部独立校验 owner/admin，失败时本批不执行。
+      const { createdPlaceholderCount, resolvedHolderMapping } =
+        await resolveNewPlaceholders({
+          holderMapping,
+          holders,
+          ledgerId,
+          placeholders,
+          userId,
+        });
       const categoryByKey = new Map(
         categories.map((category) => [
           categoryKey(category.type, category.parentId, category.name),
@@ -189,32 +348,39 @@ export function createDataImportExecutionService({
       );
       const accountByKey = new Map<string, typeof accounts>();
       for (const account of accounts) {
-        const key = accountKey(
-          account.name,
-          account.holderUserId,
-          account.currency,
-        );
+        const key = accountKey(account.name, account.holder, account.currency);
         accountByKey.set(key, [...(accountByKey.get(key) ?? []), account]);
       }
 
       /**
-       * 持有人姓名在账本成员里找不到匹配时不阻断导入：账户持有人必须绑定真实
-       * 账本成员身份，无法像分类/商家/账户那样凭空新建一行数据，因此按「无
-       * 持有人」继续导入并单独提示，而不是直接判定整条记录失败（Refs #780）。
+       * 持有人姓名在账本成员里找不到匹配、也没有在映射里明确选择时不阻断导入：
+       * 按「无持有人」继续导入并单独提示，而不是直接判定整条记录失败（Refs #780）。
        */
-      async function resolveHolderUserId(holderName: string | null) {
+      function resolveHolder(holderName: string | null): {
+        holder: AccountImportHolderRef | null;
+        missingName: string | null;
+      } {
         if (!holderName) {
-          return { missingName: null, userId: null };
+          return { holder: null, missingName: null };
         }
-        // 用户在映射步骤里明确选择过的姓名（含「无持有人」）优先，且不再算未匹配。
-        if (Object.hasOwn(holderMapping, holderName)) {
-          return { missingName: null, userId: holderMapping[holderName] };
+        // 用户在映射步骤里明确选择过的姓名（含「无持有人」、待邀请成员）优先，且不再算未匹配。
+        if (Object.hasOwn(resolvedHolderMapping, holderName)) {
+          const value = resolvedHolderMapping[holderName];
+          return {
+            holder:
+              value.kind === "member"
+                ? { kind: "member", userId: value.userId }
+                : value.kind === "placeholder"
+                  ? { kind: "placeholder", placeholderId: value.placeholderId }
+                  : null,
+            missingName: null,
+          };
         }
         const matches = holders.filter(
           (holder) => holder.displayName === holderName,
         );
         if (matches.length === 0) {
-          return { missingName: holderName, userId: null };
+          return { holder: null, missingName: holderName };
         }
         if (matches.length > 1) {
           throw new ValidationError(
@@ -222,7 +388,10 @@ export function createDataImportExecutionService({
             dataImportExecutionErrorMessages.holderAmbiguous(holderName),
           );
         }
-        return { missingName: null, userId: matches[0].userId };
+        return {
+          holder: { kind: "member", userId: matches[0].userId },
+          missingName: null,
+        };
       }
 
       async function resolveAccount(input: {
@@ -231,9 +400,10 @@ export function createDataImportExecutionService({
         holderName: string | null;
         name: string;
       }) {
-        const { missingName: holderMissingName, userId: holderUserId } =
-          await resolveHolderUserId(input.holderName);
-        const key = accountKey(input.name, holderUserId, input.currency);
+        const { holder, missingName: holderMissingName } = resolveHolder(
+          input.holderName,
+        );
+        const key = accountKey(input.name, holder, input.currency);
         const candidates = accountByKey.get(key) ?? [];
         const matches = candidates.filter((account) => !account.isArchived);
         if (
@@ -258,7 +428,7 @@ export function createDataImportExecutionService({
 
         const created = await accountImportService.createAccount({
           currency: input.currency,
-          holderUserId,
+          holder,
           ledgerId,
           name: input.name,
           userId,
@@ -266,7 +436,7 @@ export function createDataImportExecutionService({
         const account = {
           isArchived: false,
           currency: input.currency,
-          holderUserId,
+          holder,
           id: created.accountId,
           name: input.name,
         };
@@ -560,11 +730,13 @@ export function createDataImportExecutionService({
       }
 
       return {
+        createdPlaceholderCount,
         details,
         duplicateCount,
         failureCount,
         holderMissingCount,
         processedCount: units.length,
+        resolvedHolderMapping,
         rowResults,
         successCount,
       };

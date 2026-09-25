@@ -199,3 +199,92 @@ describe("createSupabaseLedgerPlaceholderMemberRepository 写操作", () => {
     expect((failure as RepositoryError).message).not.toContain("relation");
   });
 });
+
+describe("createSupabaseLedgerPlaceholderMemberRepository.ensure", () => {
+  it("透传账本与名字数组，并把返回行转换为名字与占位 ID", async () => {
+    const { repository, supabase } = createRepository({
+      rpcResponse: {
+        data: [{ display_name: "奶奶", placeholder_id: placeholderId }],
+        error: null,
+      },
+    });
+
+    await expect(repository.ensure(ledgerId, ["奶奶"])).resolves.toEqual({
+      ok: true,
+      placeholders: [{ displayName: "奶奶", placeholderId }],
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      "ensure_ledger_placeholder_members",
+      { p_display_names: ["奶奶"], p_ledger_id: ledgerId },
+    );
+  });
+
+  it.each([
+    [null],
+    [{ display_name: "奶奶" }],
+    [[{ display_name: "奶奶", placeholder_id: 1 }]],
+    [[{ display_name: " ", placeholder_id: placeholderId }]],
+    [[null]],
+  ])("返回值格式异常 %j 时记录日志并抛出安全 RepositoryError", async (data) => {
+    const { logger, repository } = createRepository({
+      rpcResponse: { data, error: null },
+    });
+
+    const failure = await repository
+      .ensure(ledgerId, ["奶奶"])
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(RepositoryError);
+    expect(failure).toMatchObject({
+      code: "ledger_placeholder_ensure_result_invalid",
+      message: getLedgerPlaceholderMemberErrorMessage(
+        "placeholder_create_failed",
+      ),
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it.each([
+    "placeholder_name_conflict",
+    "placeholder_name_member_conflict",
+    "placeholder_name_invalid",
+    "permission_denied",
+    "auth_required",
+  ] as const)("details=%s 精确映射为业务错误码", async (code) => {
+    const { repository } = createRepository({
+      rpcResponse: { data: null, error: { code: "23505", details: code } },
+    });
+
+    await expect(repository.ensure(ledgerId, ["奶奶"])).resolves.toEqual({
+      code,
+      ok: false,
+    });
+  });
+
+  it("message 中出现业务码但 details 不匹配时不做模糊匹配，也不泄露原始信息", async () => {
+    const { logger, repository } = createRepository({
+      rpcResponse: {
+        data: null,
+        error: {
+          ...rawError,
+          details: null,
+          message: "placeholder_name_member_conflict",
+        },
+      },
+    });
+
+    const failure = await repository
+      .ensure(ledgerId, ["奶奶"])
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(RepositoryError);
+    expect(failure).toMatchObject({
+      code: "placeholder_create_failed",
+      message: getLedgerPlaceholderMemberErrorMessage(
+        "placeholder_create_failed",
+      ),
+    });
+    expect((failure as RepositoryError).message).not.toContain("placeholder_");
+    expect(logger.error).toHaveBeenCalled();
+  });
+});

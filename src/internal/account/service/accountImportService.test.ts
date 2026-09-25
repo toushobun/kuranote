@@ -45,7 +45,7 @@ describe("AccountImportService", () => {
 
     const result = await importService.createAccount({
       currency: "JPY",
-      holderUserId: "user-1",
+      holder: { kind: "member", userId: "user-1" },
       ledgerId: "ledger-1",
       name: "钱包",
       userId: "user-1",
@@ -69,14 +69,33 @@ describe("AccountImportService", () => {
 
     await importService.createAccount({
       currency: "JPY",
-      holderUserId: null,
+      holder: null,
       ledgerId: "ledger-1",
       name: "钱包",
       userId: "user-1",
     });
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ holderUserIds: [] }),
+      expect.objectContaining({ holderPlaceholderId: null, holderUserIds: [] }),
+    );
+  });
+
+  it("createAccount 在持有人是待邀请成员时透传占位 ID，不传成员", async () => {
+    const { create, importService } = createService();
+
+    await importService.createAccount({
+      currency: "JPY",
+      holder: { kind: "placeholder", placeholderId: "placeholder-1" },
+      ledgerId: "ledger-1",
+      name: "钱包",
+      userId: "user-1",
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderPlaceholderId: "placeholder-1",
+        holderUserIds: [],
+      }),
     );
   });
 
@@ -93,14 +112,14 @@ describe("AccountImportService", () => {
         {
           isArchived: false,
           currency: "JPY",
-          holderUserId: "user-1",
+          holder: { kind: "member", userId: "user-1" },
           id: "account-1",
           name: "钱包",
         },
         {
           isArchived: false,
           currency: "JPY",
-          holderUserId: null,
+          holder: null,
           id: "account-2",
           name: "银行卡",
         },
@@ -111,7 +130,7 @@ describe("AccountImportService", () => {
     });
   });
 
-  it("占位持有的账户不会被当成无持有人账户参与导入复用", async () => {
+  it("占位持有的账户返回占位引用，不会被当成无持有人账户", async () => {
     const getView = vi.fn(async () => ({
       accounts: [
         {
@@ -144,18 +163,21 @@ describe("AccountImportService", () => {
       userId: "user-1",
     });
 
-    // 同名同币种时，只有真正无持有人的账户可以作为「无持有人」候选。
     expect(context.accounts).toEqual([
       {
         isArchived: false,
         currency: "JPY",
-        holderUserId: null,
+        holder: { kind: "placeholder", placeholderId: "placeholder-1" },
+        id: "account-placeholder",
+        name: "钱包",
+      },
+      {
+        isArchived: false,
+        currency: "JPY",
+        holder: null,
         id: "account-none",
         name: "钱包",
       },
     ]);
-    expect(
-      context.accounts.some((account) => account.id === "account-placeholder"),
-    ).toBe(false);
   });
 });

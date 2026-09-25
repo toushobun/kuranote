@@ -7,6 +7,7 @@ const baseResult = {
   details: [],
   duplicateCount: 0,
   failureCount: 0,
+  createdPlaceholderCount: 0,
   holderMissingCount: 0,
   processedCount: 3,
   rowResults: [],
@@ -88,8 +89,25 @@ describe("DataImportExecutionStatus", () => {
 
     expect(screen.getByText("导入完成")).toBeInTheDocument();
     expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
+    expect(screen.queryByText(/待邀请成员/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "下载导入结果文件" }));
     expect(onDownload).toHaveBeenCalledOnce();
+  });
+
+  it("导入时新建了待邀请成员时展示新建人数", () => {
+    render(
+      <DataImportExecutionStatus
+        result={{
+          ...baseResult,
+          createdPlaceholderCount: 2,
+          processedCount: 10,
+          successCount: 10,
+        }}
+        status="completed"
+      />,
+    );
+
+    expect(screen.getByText("新建了 2 位待邀请成员")).toBeInTheDocument();
   });
 
   it("完成后一次性展示失败与疑似重复明细", () => {
@@ -146,6 +164,7 @@ describe("DataImportExecutionStatus", () => {
               status: "holderMissing",
             },
           ],
+          createdPlaceholderCount: 0,
           holderMissingCount: 1,
           processedCount: 3,
           successCount: 3,

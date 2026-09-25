@@ -39,6 +39,7 @@ const executionFailedMessage = getDataImportErrorMessage(
 
 function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
   return {
+    createdPlaceholderCount: 0,
     details: [],
     duplicateCount: 0,
     failureCount: 0,
@@ -148,6 +149,9 @@ export function useDataImportForm(
 
     const units = unitsRef.current;
     const totalCount = units.length;
+    // 首批可能携带「新建待邀请成员」意图；服务端创建后返回已解析的映射，后续批次
+    // 只提交解析结果，不再重复提交新建意图。请求失败时不自动重试。
+    let currentHolderMapping = holderMapping;
     let aggregate = createEmptyExecutionResult(totalCount);
     let offset = 0;
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
@@ -194,7 +198,7 @@ export function useDataImportForm(
 
           const formData = new FormData();
           formData.set("units", JSON.stringify(batchUnits));
-          formData.set("holderMapping", JSON.stringify(holderMapping));
+          formData.set("holderMapping", JSON.stringify(currentHolderMapping));
           formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
           state = await executeBatchAction({}, formData);
 
@@ -213,7 +217,13 @@ export function useDataImportForm(
           return;
         }
 
+        if (state.resolvedHolderMapping) {
+          currentHolderMapping = state.resolvedHolderMapping;
+        }
         aggregate = {
+          createdPlaceholderCount:
+            aggregate.createdPlaceholderCount +
+            state.batch.createdPlaceholderCount,
           details: [...aggregate.details, ...state.batch.details],
           duplicateCount: aggregate.duplicateCount + state.batch.duplicateCount,
           failureCount: aggregate.failureCount + state.batch.failureCount,
