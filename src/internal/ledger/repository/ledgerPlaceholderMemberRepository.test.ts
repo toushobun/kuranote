@@ -2,6 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  expectConcurrentModificationConflict,
+  retryableConcurrencyRpcErrors,
+} from "test/concurrencyConflict";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
@@ -286,5 +290,60 @@ describe("createSupabaseLedgerPlaceholderMemberRepository.ensure", () => {
     });
     expect((failure as RepositoryError).message).not.toContain("placeholder_");
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+describe("createSupabaseLedgerPlaceholderMemberRepository 并发冲突（#816）", () => {
+  type Repository = ReturnType<
+    typeof createSupabaseLedgerPlaceholderMemberRepository
+  >;
+  const operations = [
+    [
+      "create_ledger_placeholder_member",
+      (repository: Repository) => repository.create(ledgerId, "奶奶"),
+    ],
+    [
+      "rename_ledger_placeholder_member",
+      (repository: Repository) =>
+        repository.rename(ledgerId, placeholderId, "奶奶"),
+    ],
+    [
+      "delete_ledger_placeholder_member",
+      (repository: Repository) => repository.delete(ledgerId, placeholderId),
+    ],
+    [
+      "ensure_ledger_placeholder_members",
+      (repository: Repository) => repository.ensure(ledgerId, ["奶奶"]),
+    ],
+  ] as const;
+
+  describe.each(operations)("%s", (operation, run) => {
+    it.each(retryableConcurrencyRpcErrors)(
+      "%s 转换为可重试的 ConflictError",
+      async (_label, error) => {
+        const { logger, repository } = createRepository({
+          rpcResponse: { data: null, error },
+        });
+
+        const failure = await run(repository).catch((e: unknown) => e);
+
+        expectConcurrentModificationConflict(failure, logger.warn, operation);
+        expect(logger.error).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  it("已有业务 detail 映射优先于 SQLSTATE", async () => {
+    const { repository } = createRepository({
+      rpcResponse: {
+        data: null,
+        error: { code: "40001", details: "placeholder_in_use" },
+      },
+    });
+
+    await expect(repository.delete(ledgerId, placeholderId)).resolves.toEqual({
+      code: "placeholder_in_use",
+      ok: false,
+    });
   });
 });

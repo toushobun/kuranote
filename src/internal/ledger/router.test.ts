@@ -23,6 +23,11 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
+  concurrentModificationErrorCode,
+  concurrentModificationErrorMessage,
+  createConcurrentModificationError,
+} from "internal/shared/errors/concurrentModification";
+import {
   errorHandlingMiddleware,
   openApiValidationErrorHook,
 } from "internal/shared/http/errorResponse";
@@ -407,6 +412,7 @@ describe("ledger router", () => {
       ["placeholder_already_claimed", ConflictError, 409],
       ["placeholder_not_found", NotFoundError, 404],
       ["ledger_not_found", NotFoundError, 404],
+      ["ledger_required", ValidationError, 400],
     ] as const)(
       "Service 抛出 %s 时返回真实状态码与安全响应体",
       async (code, ErrorClass, status) => {
@@ -426,6 +432,26 @@ describe("ledger router", () => {
         expect(revalidatePath).not.toHaveBeenCalled();
       },
     );
+
+    it("并发冲突返回可重试的 409 与安全响应体（#816）", async () => {
+      const create = vi
+        .fn()
+        .mockRejectedValue(createConcurrentModificationError());
+      const app = createAppWithInviteService({ create });
+
+      const response = await postInvite(app, { placeholderId, role: "member" });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({
+        error: {
+          code: concurrentModificationErrorCode,
+          message: concurrentModificationErrorMessage,
+          requestId: "request-1",
+          status: 409,
+        },
+      });
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
 
     it("未知异常返回 500 且不泄露原始信息", async () => {
       const create = vi

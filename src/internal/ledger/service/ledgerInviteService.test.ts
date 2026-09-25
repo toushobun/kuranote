@@ -15,6 +15,10 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
+import {
+  concurrentModificationErrorCode,
+  concurrentModificationErrorMessage,
+} from "internal/shared/errors/concurrentModification";
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
 
 function createRepository() {
@@ -392,6 +396,7 @@ describe("createLedgerInviteService 占位错误映射", () => {
     ["placeholder_already_claimed", "accept", ConflictError, 409],
     ["ledger_not_found", "create", NotFoundError, 404],
     ["user_inactive", "accept", AuthorizationError, 403],
+    ["ledger_required", "create", ValidationError, 400],
   ] as const)(
     "%s（%s）映射为对应子类及 HTTP status",
     async (code, operation, ErrorClass, status) => {
@@ -414,6 +419,31 @@ describe("createLedgerInviteService 占位错误映射", () => {
       expect(appErrorToResponseBody(failure as AppError).status).toBe(status);
     },
   );
+});
+
+describe("createLedgerInviteService 并发冲突（#816）", () => {
+  it("接受邀请时的死锁经真实 Repository 转换后以可重试 409 透传", async () => {
+    const repository = createSupabaseLedgerInviteRepository({
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: "40P01", details: null, message: "deadlock detected" },
+      }),
+    } as unknown as AuthenticatedSupabaseClient);
+    const service = createLedgerInviteService({
+      ledgerAccessService: { getActiveMemberRole: vi.fn() },
+      ledgerInviteRepository: repository,
+      ledgerPlaceholderMemberService: createPlaceholderMemberService(),
+    });
+
+    const failure = await service.accept("token").catch((e: unknown) => e);
+
+    expect(failure).toBeInstanceOf(ConflictError);
+    expect(failure).toMatchObject({
+      code: concurrentModificationErrorCode,
+      message: concurrentModificationErrorMessage,
+    });
+    expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
+  });
 });
 
 describe("createLedgerInviteService.create 大写占位 ID", () => {

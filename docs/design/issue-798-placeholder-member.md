@@ -194,6 +194,8 @@ RPC 在锁定账本和占位后检查：操作人 active 且 owner/admin、账�
 | `enforce_ledger_management_permission`   | 增加上节限定的认领迁移例外，仍不对客户端授予 EXECUTE。                                                                                                                                                                                                                                                    |
 | `sync_account_name_scope`                | 投影新增占位 ID；继续只允许内部调用。                                                                                                                                                                                                                                                                     |
 
+> **#808 注（非活跃持有人保留）**：A 阶段实现 `update_account_with_holders` 的三态删除时去掉了「只删除 active 成员持有行」的限制，导致编辑账户时非活跃成员持有人被误删。[#808](https://github.com/toushobun/kuranote/issues/808) 修复后：提交「无持有人」时保留非活跃成员（成员非 active 或账号非 active）的持有行，与表单「非活跃，保存时保留」一致；提交新的成员或占位时仍替换原持有人。
+
 账户三个 RPC 同样需删除旧签名、同步内部调用并重建授权，不能留下带默认参数的歧义重载。修改 `accept_ledger_invite` 和预览的返回列时也需按删除重建方式更新定义及授权。
 
 `refresh_account_name_scope` 无须改变函数体，保留现有触发调用；`record_account_initial_balance`、三个角色判断函数及成员权限触发器不增加占位身份逻辑。上述函数与授予权限均需在实现阶段按最终定义回归，不能复制早期 migration 覆盖后续修复。
@@ -258,6 +260,8 @@ sequenceDiagram
 - 占位引用校验必须取锁，FK 单独不能证明「尚未认领」。直接管理 DML 仍受 RLS、触发器和 FK 保护；若与 RPC 锁顺序产生死锁，数据库回滚失败事务并转换为可重试冲突，不能绕过校验继续执行。后续并发测试必须覆盖直接 DML 路径。
 - 不能把「当前没有成员行」的查询当作并发保护。现有非 removed 成员唯一索引仍是最后防线；绑定分支不能沿用会更新现有成员的 UPSERT 来掩盖竞争。并发创建成员命中唯一约束时整次认领回滚为冲突。
 - 成员状态、权限、占位状态的 Service 预检只改善反馈；数据库在持锁后重新判断。不得以提高认领成功率为由绕过已有成员冲突规则。
+
+> **#816 注（并发冲突与预览）**：[#816](https://github.com/toushobun/kuranote/issues/816) 起，上述「转换为可重试冲突」由应用层统一落地：邀请生成 / 撤销 / 接受、待邀请成员管理与 ensure、账户新建 / 编辑、成员设置的 Repository 在 RPC 失败且未匹配业务 detail 时，按 SQLSTATE `40P01`（死锁）/ `40001`（序列化失败，包括接受邀请时的 `account_holder_changed`）抛出 `ConflictError`（409，code `concurrent_modification`，文案「数据正在被其他操作修改，请稍后重试。」），日志只记录 code 与 operation；已有更具体 detail 映射的（账户编辑的 `account_holder_changed`）优先沿用原映射。锁顺序本身不变（账本行锁仍为 `FOR UPDATE`，经评估不改）。同时，`get_ledger_invite_preview` 对绑定邀请把 active 或 invited 的未移除成员行都显示为 `already_member`，与上文第 4 步的接受结果一致；匿名历史邀请不变。
 
 ## 服务端分层落点
 

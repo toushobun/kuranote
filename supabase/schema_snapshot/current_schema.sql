@@ -3026,7 +3026,12 @@ begin
                 from public.ledger_member lm
                 where lm.ledger_id = li.ledger_id
                   and lm.user_id = auth.uid()
-                  and lm.status = 'active'
+                  -- #816：绑定邀请与接受时一致，未移除成员行（active / invited）都视为已是成员；
+                  -- 匿名邀请（历史数据）保持只看 active。
+                  and (
+                      lm.status = 'active'
+                      or (li.placeholder_id is not null and lm.status <> 'removed')
+                  )
             ) then 'already_member'
             when li.revoked_at is not null then 'revoked'
             when li.accepted_at is not null then 'accepted'
@@ -5627,11 +5632,28 @@ begin
     end if;
 
     -- 三态显式比较，空用户列不会使旧占位漏删；相同身份保留原持有行。
+    -- #808：提交「无持有人」时保留非活跃成员（成员非 active 或账号非 active）的持有行，
+    -- 表单不能取消这类持有人；提交新的成员或占位时照常替换，保持单持有人。
     delete from public.account_holder h
     where h.ledger_id = p_ledger_id and h.account_id = p_account_id
       and not (
           (p_placeholder_id is not null and h.placeholder_id is not distinct from p_placeholder_id)
           or (p_placeholder_id is null and h.user_id is not null and h.user_id = any(v_holder_user_ids))
+      )
+      and not (
+          p_placeholder_id is null
+          and cardinality(v_holder_user_ids) = 0
+          and h.user_id is not null
+          and not exists (
+              select 1
+              from public.ledger_member lm
+              join public.app_user au
+                on au.id = lm.user_id
+              where lm.ledger_id = p_ledger_id
+                and lm.user_id = h.user_id
+                and lm.status = 'active'
+                and au.status = 'active'
+          )
       );
 
     if cardinality(v_holder_user_ids) > 0 then

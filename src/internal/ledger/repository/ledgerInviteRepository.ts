@@ -4,6 +4,7 @@ import {
 } from "internal/ledger/errors/ledgerInvite";
 import {
   findRpcBusinessError,
+  toConcurrentModificationError,
   type RpcErrorLike,
 } from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -74,6 +75,7 @@ const inviteErrorMap = {
   invite_invalid: ledgerInviteErrorCodes.inviteInvalid,
   invite_role_invalid: ledgerInviteErrorCodes.inviteRoleInvalid,
   ledger_not_found: ledgerInviteErrorCodes.ledgerNotFound,
+  ledger_required: ledgerInviteErrorCodes.ledgerRequired,
   permission_denied: ledgerInviteErrorCodes.permissionDenied,
   placeholder_already_claimed: ledgerInviteErrorCodes.placeholderAlreadyClaimed,
   placeholder_claim_account_name_conflict:
@@ -137,6 +139,13 @@ export function createSupabaseLedgerInviteRepository(
       if (error) {
         const code = findRpcBusinessError(error, inviteErrorMap);
         if (!code) {
+          // 死锁或序列化失败（含认领时的 account_holder_changed）按可重试冲突返回。
+          const conflict = toConcurrentModificationError(
+            error,
+            logger,
+            "accept_ledger_invite",
+          );
+          if (conflict) throw conflict;
           logUnexpectedRpcError(logger, "accept_ledger_invite", error);
           throw toRepositoryError(
             "ledger_invite_accept_failed",
@@ -173,6 +182,13 @@ export function createSupabaseLedgerInviteRepository(
       if (error) {
         const code = findRpcBusinessError(error, inviteErrorMap);
         if (!code) {
+          // 死锁或序列化失败按可重试冲突返回。
+          const conflict = toConcurrentModificationError(
+            error,
+            logger,
+            "create_ledger_invite_v2",
+          );
+          if (conflict) throw conflict;
           logUnexpectedRpcError(logger, "create_ledger_invite_v2", error);
           throw toRepositoryError(
             "ledger_invite_create_failed",
@@ -219,6 +235,13 @@ export function createSupabaseLedgerInviteRepository(
       if (error) {
         const code = findRpcBusinessError(error, inviteErrorMap);
         if (!code) {
+          // 死锁或序列化失败按可重试冲突返回。
+          const conflict = toConcurrentModificationError(
+            error,
+            logger,
+            "revoke_ledger_invite",
+          );
+          if (conflict) throw conflict;
           logUnexpectedRpcError(logger, "revoke_ledger_invite", error);
           throw toRepositoryError(
             "ledger_invite_revoke_failed",

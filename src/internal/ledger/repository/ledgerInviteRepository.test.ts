@@ -6,6 +6,10 @@ import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository
 import { ledgerInviteErrorCodes } from "internal/ledger/errors/ledgerInvite";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
+import {
+  expectConcurrentModificationConflict,
+  retryableConcurrencyRpcErrors,
+} from "test/concurrencyConflict";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const placeholderId = "00000000-0000-4000-8000-000000000051";
@@ -468,6 +472,105 @@ describe("createSupabaseLedgerInviteRepository.listPending", () => {
 
     await expect(repository.listPending(ledgerId)).resolves.toEqual({
       code: ledgerInviteErrorCodes.permissionDenied,
+      ok: false,
+    });
+  });
+});
+
+describe("createSupabaseLedgerInviteRepository 错误码补全（#816）", () => {
+  it.each(["create", "listPending"] as const)(
+    "%s 时 details 为 ledger_required 精确映射",
+    async (method) => {
+      const repository = createSupabaseLedgerInviteRepository(
+        createSupabaseStub({
+          data: null,
+          error: { code: "22023", details: "ledger_required", message: "x" },
+        }),
+      );
+
+      const result =
+        method === "create"
+          ? await repository.create(ledgerId, "member", placeholderId)
+          : await repository.listPending(ledgerId);
+
+      expect(result).toEqual({
+        code: ledgerInviteErrorCodes.ledgerRequired,
+        ok: false,
+      });
+    },
+  );
+});
+
+describe("createSupabaseLedgerInviteRepository 并发冲突（#816）", () => {
+  const operations = [
+    [
+      "accept_ledger_invite",
+      (repository: ReturnType<typeof createSupabaseLedgerInviteRepository>) =>
+        repository.accept("token-1"),
+    ],
+    [
+      "create_ledger_invite_v2",
+      (repository: ReturnType<typeof createSupabaseLedgerInviteRepository>) =>
+        repository.create(ledgerId, "member", placeholderId),
+    ],
+    [
+      "revoke_ledger_invite",
+      (repository: ReturnType<typeof createSupabaseLedgerInviteRepository>) =>
+        repository.revoke(ledgerId, "invite-1"),
+    ],
+  ] as const;
+
+  describe.each(operations)("%s", (operation, run) => {
+    it.each(retryableConcurrencyRpcErrors)(
+      "%s 转换为可重试的 ConflictError",
+      async (_label, error) => {
+        const logger = createLoggerStub();
+        const repository = createSupabaseLedgerInviteRepository(
+          createSupabaseStub({ data: null, error }),
+          logger,
+        );
+
+        const failure = await run(repository).catch((e: unknown) => e);
+
+        expectConcurrentModificationConflict(failure, logger.warn, operation);
+        expect(logger.error).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  it("接受时的 account_holder_changed（40001）按可重试冲突处理", async () => {
+    const logger = createLoggerStub();
+    const repository = createSupabaseLedgerInviteRepository(
+      createSupabaseStub({
+        data: null,
+        error: {
+          code: "40001",
+          details: "account_holder_changed",
+          message: "account_holder_changed",
+        },
+      }),
+      logger,
+    );
+
+    const failure = await repository.accept("token-1").catch((e) => e);
+
+    expectConcurrentModificationConflict(
+      failure,
+      logger.warn,
+      "accept_ledger_invite",
+    );
+  });
+
+  it("已有业务 detail 映射优先于 SQLSTATE", async () => {
+    const repository = createSupabaseLedgerInviteRepository(
+      createSupabaseStub({
+        data: null,
+        error: { code: "40001", details: "invite_invalid", message: "x" },
+      }),
+    );
+
+    await expect(repository.accept("token-1")).resolves.toEqual({
+      code: ledgerInviteErrorCodes.inviteInvalid,
       ok: false,
     });
   });

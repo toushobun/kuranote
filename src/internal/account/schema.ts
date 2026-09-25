@@ -54,7 +54,10 @@ const accountFieldsSchema = z.object({
     .string()
     .trim()
     .regex(/^[A-Z]{3}$/),
-  /** 与 holderUserIds 互斥；两者都为空表示无持有人。 */
+  /**
+   * 与 holderUserIds 互斥；两者都为空表示无持有人。省略本字段等同于 null，
+   * 编辑时会移除原占位持有人（#816 确认保持此语义）；非活跃成员持有人由数据库保留（#808）。
+   */
   holderPlaceholderId: z.string().uuid().nullable().optional(),
   holderUserIds: z.array(z.string().uuid()).max(1),
   name: z.string().trim().min(1),

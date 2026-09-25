@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { findRpcBusinessError, mapRpcBusinessError } from "./rpcError";
+import { ConflictError } from "internal/shared/errors/appError";
+import {
+  concurrentModificationErrorCode,
+  concurrentModificationErrorMessage,
+} from "internal/shared/errors/concurrentModification";
+import type { Logger } from "internal/shared/logging/logger";
+
+import {
+  findRpcBusinessError,
+  isRetryableConcurrencyError,
+  mapRpcBusinessError,
+  toConcurrentModificationError,
+} from "./rpcError";
 
 const errorMap = {
   permission_denied: "permission_denied",
@@ -86,5 +98,73 @@ describe("findRpcBusinessError", () => {
     expect(
       findRpcBusinessError({ details: "  permission_denied\n" }, errorMap),
     ).toBe("permission_denied");
+  });
+});
+
+describe("isRetryableConcurrencyError", () => {
+  it.each(["40P01", "40001"])("SQLSTATE %s 视为可重试并发冲突", (code) => {
+    expect(isRetryableConcurrencyError({ code })).toBe(true);
+  });
+
+  it.each(["23505", "42501", "P0001", "40002", "40p01", "", null, undefined])(
+    "SQLSTATE %s 不视为可重试并发冲突",
+    (code) => {
+      expect(isRetryableConcurrencyError({ code })).toBe(false);
+    },
+  );
+
+  it("只看 code，不解析 message 或 details", () => {
+    expect(
+      isRetryableConcurrencyError({
+        code: "23505",
+        details: "account_holder_changed",
+        message: "deadlock detected (40P01)",
+      }),
+    ).toBe(false);
+  });
+
+  it("error 为空时返回 false", () => {
+    expect(isRetryableConcurrencyError(null)).toBe(false);
+    expect(isRetryableConcurrencyError(undefined)).toBe(false);
+  });
+});
+
+describe("toConcurrentModificationError", () => {
+  function createLogger() {
+    return { error: vi.fn(), info: vi.fn(), warn: vi.fn() } satisfies Logger;
+  }
+
+  it("可重试冲突转换为统一 ConflictError，日志只记录 code 与 operation", () => {
+    const logger = createLogger();
+
+    const error = toConcurrentModificationError(
+      { code: "40P01", message: "deadlock detected on relation account" },
+      logger,
+      "accept_ledger_invite",
+    );
+
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toMatchObject({
+      code: concurrentModificationErrorCode,
+      message: concurrentModificationErrorMessage,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(expect.any(String), {
+      code: "40P01",
+      operation: "accept_ledger_invite",
+    });
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain("deadlock");
+  });
+
+  it("不是并发冲突时返回 null 且不记录日志", () => {
+    const logger = createLogger();
+
+    expect(
+      toConcurrentModificationError(
+        { code: "23505" },
+        logger,
+        "accept_ledger_invite",
+      ),
+    ).toBeNull();
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

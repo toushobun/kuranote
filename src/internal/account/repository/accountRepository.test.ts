@@ -7,6 +7,10 @@ import {
   getAccountErrorMessage,
 } from "internal/account/errors";
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
+import {
+  expectConcurrentModificationConflict,
+  retryableConcurrencyRpcErrors,
+} from "test/concurrencyConflict";
 import { createSupabaseMock } from "test/supabaseMock";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -281,10 +285,16 @@ describe("AccountRepository 占位持有人", () => {
     );
   });
 
+  type RpcDetailErrorName =
+    | "AuthenticationError"
+    | "AuthorizationError"
+    | "ConflictError"
+    | "NotFoundError"
+    | "ValidationError";
   const holderErrorCases: [
     "create" | "update",
     string,
-    "ConflictError" | "NotFoundError" | "ValidationError",
+    RpcDetailErrorName,
     string,
   ][] = (["create", "update"] as const).flatMap((operation) =>
     (
@@ -294,13 +304,16 @@ describe("AccountRepository 占位持有人", () => {
         ["placeholder_unavailable", "ConflictError", "23514"],
         ["account_holder_changed", "ConflictError", "40001"],
         ["account_holder_identity_invalid", "ValidationError", "22023"],
+        // #816：占位锁函数抛出的权限类 detail 也精确映射。
+        ["auth_required", "AuthenticationError", "42501"],
+        ["permission_denied", "AuthorizationError", "42501"],
       ] as const
     ).map(
       ([details, name, code]) =>
         [operation, details, name, code] as [
           "create" | "update",
           string,
-          "ConflictError" | "NotFoundError" | "ValidationError",
+          RpcDetailErrorName,
           string,
         ],
     ),
@@ -326,6 +339,55 @@ describe("AccountRepository 占位持有人", () => {
       });
     },
   );
+
+  describe.each([
+    ["create", "create_account_with_holders"],
+    ["update", "update_account_with_balance_adjustment"],
+  ] as const)("%s 并发冲突（#816）", (operation, rpcName) => {
+    it.each(retryableConcurrencyRpcErrors)(
+      "%s 转换为可重试的 ConflictError",
+      async (_label, error) => {
+        const conflictLogger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+        const supabase = createSupabaseMock({ rpcResponse: { error } });
+        const repository = createSupabaseAccountRepository(
+          supabase.client as never,
+          conflictLogger,
+        );
+
+        const failure = await repository[operation](baseInput).catch(
+          (e: unknown) => e,
+        );
+
+        expectConcurrentModificationConflict(
+          failure,
+          conflictLogger.warn,
+          rpcName,
+        );
+      },
+    );
+
+    it("account_holder_changed（40001）优先使用原有持有人映射", async () => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: {
+            code: "40001",
+            details: accountErrorCodes.holderChanged,
+            message: "private raw message",
+          },
+        },
+      });
+      const repository = createSupabaseAccountRepository(
+        supabase.client as never,
+        logger,
+      );
+
+      await expect(repository[operation](baseInput)).rejects.toMatchObject({
+        code: accountErrorCodes.holderChanged,
+        message: getAccountErrorMessage(accountErrorCodes.holderChanged),
+        name: "ConflictError",
+      });
+    });
+  });
 
   it("listHolders 读取占位列并保持身份互斥", async () => {
     const supabase = createSupabaseMock({
