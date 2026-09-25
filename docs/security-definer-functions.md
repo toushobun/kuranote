@@ -233,6 +233,19 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 `ledger_placeholder_member_name_conflict.test.sql` 在真实 Supabase 上覆盖签名与授权、三个占位 RPC 与成员重名（昵称回退、账本内显示名覆盖、首尾空白、大小写、removed 成员与停用用户、跨账本）、成员改名被拒与名字不变时只改颜色可保存、认领后显示名与幂等重放、认领失败回滚，并以 dblink 双会话验证新建占位与成员改名在账本锁上串行化、后到一方返回稳定错误码。烟雾测试增加认领后显示名断言。
 
+## Issue #808 / #816：占位成员功能遗留问题收尾
+
+本次用 `create or replace` 修改两个函数，签名、返回列与授权不变，没有新增函数，也没有修改表结构、RLS policy 或权限函数。两个函数继续固定 `search_path = pg_catalog, pg_temp`，操作人只取 `auth.uid()`。
+
+| 函数                                                                | 变更与权限边界                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `update_account_with_holders(uuid,uuid,text,text,text,uuid[],uuid)` | 只调整删除旧持有行的条件（#808）：提交「无持有人」（`p_placeholder_id` 为 NULL 且用户数组为空）时，保留「用户持有、且该用户不是同账本 active 成员或不是 active 用户」的行；active 成员与占位的持有行照常删除。提交新的成员或占位时，原持有人（含非活跃成员）照常被替换，单持有人约束不变。三态判断、`account_holder_changed` 复核、锁顺序与名称投影原样保留；`update_account_with_balance_adjustment` 经内部调用获得同样行为。 |
+| `get_ledger_invite_preview(text)`                                   | 仅绑定邀请（`placeholder_id` 非空）把「已是成员」判断扩大为该用户在该账本有非 removed 成员行（active 或 invited），与 `accept_ledger_invite` 的 `placeholder_claim_existing_member` 一致；历史匿名邀请仍只看 active。其余字段与判断顺序不变，仍不返回 `claimed_by`、账户或金额，仍授予 anon / authenticated。                                                                                                                  |
+
+并发冲突（SQLSTATE `40P01` 死锁、`40001` 序列化失败，包括接受邀请时的 `account_holder_changed`）没有修改 RPC，由应用层 Repository 在未匹配业务 detail 时按 SQLSTATE 统一转换为可重试的 409。
+
+`placeholder_member_followups.test.sql` 在真实 Supabase 上覆盖签名与授权不变、removed 成员 / 停用用户持有 + 提交无持有人保留、非活跃持有 + 提交成员或占位替换、active 成员与占位持有照常删除、经余额调整 RPC 调用行为一致、名称投影与持有行一致，以及绑定邀请预览对 invited / active / removed / 非成员和历史匿名邀请的结果。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：

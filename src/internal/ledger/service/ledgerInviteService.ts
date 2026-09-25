@@ -98,6 +98,7 @@ function toAppError(code: LedgerInviteErrorCode): AppError {
     case ledgerInviteErrorCodes.placeholderInvitePending:
       return new ConflictError(code, message);
     case ledgerInviteErrorCodes.inviteRoleInvalid:
+    case ledgerInviteErrorCodes.ledgerRequired:
     case ledgerInviteErrorCodes.placeholderRequired:
       return new ValidationError(code, message);
     default:

@@ -5,7 +5,10 @@ import {
   ledgerSettingsErrorCodes,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
-import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
+import {
+  findRpcBusinessError,
+  toConcurrentModificationError,
+} from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -298,6 +301,12 @@ export function createSupabaseLedgerSettingsRepository(
       if (error) {
         const code = findRpcBusinessError(error, memberSettingsRpcErrorMap);
         if (!code) {
+          const conflict = toConcurrentModificationError(
+            error,
+            logger,
+            "update_ledger_member_settings",
+          );
+          if (conflict) throw conflict;
           logger.error("[ledger] failed to update ledger member settings", {
             databaseCode: error.code,
             ledgerId: input.ledgerId,

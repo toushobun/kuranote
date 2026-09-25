@@ -1,7 +1,11 @@
 // @vitest-environment node
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import {
+  expectConcurrentModificationConflict,
+  retryableConcurrencyRpcErrors,
+} from "test/concurrencyConflict";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
@@ -334,6 +338,43 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
 
     await expect(repository.updateMemberSettings(input)).resolves.toEqual({
       code: expected,
+      ok: false,
+    });
+  });
+
+  it.each(retryableConcurrencyRpcErrors)(
+    "%s 转换为可重试的 ConflictError（#816）",
+    async (_label, error) => {
+      const supabase = createSupabaseMock({ rpcResponse: { error } });
+      const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+      const repository = createSupabaseLedgerSettingsRepository(
+        supabase.client as never,
+        logger,
+      );
+
+      const failure = await repository
+        .updateMemberSettings(input)
+        .catch((e: unknown) => e);
+
+      expectConcurrentModificationConflict(
+        failure,
+        logger.warn,
+        "update_ledger_member_settings",
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it("已有业务 detail 映射优先于 SQLSTATE（#816）", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: { error: { code: "40001", details: "role_invalid" } },
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await expect(repository.updateMemberSettings(input)).resolves.toEqual({
+      code: ledgerSettingsErrorCodes.roleInvalid,
       ok: false,
     });
   });

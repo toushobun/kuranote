@@ -18,6 +18,11 @@ import {
   RepositoryError,
 } from "internal/shared/errors/appError";
 import {
+  concurrentModificationErrorCode,
+  concurrentModificationErrorMessage,
+  createConcurrentModificationError,
+} from "internal/shared/errors/concurrentModification";
+import {
   errorHandlingMiddleware,
   openApiValidationErrorHook,
 } from "internal/shared/http/errorResponse";
@@ -286,6 +291,41 @@ describe("account router", () => {
     expect(response.status).toBe(403);
     expect(revalidatePath).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["POST", "create", `/ledgers/${ledgerId}/accounts`, createBody()],
+    [
+      "PATCH",
+      "update",
+      `/ledgers/${ledgerId}/accounts/${accountId}`,
+      createUpdateBody(),
+    ],
+  ] as const)(
+    "%s 并发冲突时返回可重试的 409 且不触发缓存失效（#816）",
+    async (method, operation, path, body) => {
+      const handler = vi
+        .fn()
+        .mockRejectedValue(createConcurrentModificationError());
+      const app = createApp(createContainer({ [operation]: handler }));
+
+      const response = await app.request(`https://kuranote.example${path}`, {
+        body: JSON.stringify(body),
+        headers: requestHeaders,
+        method,
+      });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({
+        error: {
+          code: concurrentModificationErrorCode,
+          message: concurrentModificationErrorMessage,
+          requestId: "request-1",
+          status: 409,
+        },
+      });
+      expect(revalidatePath).not.toHaveBeenCalled();
+    },
+  );
 
   it("资源不存在时真实入口返回统一 404", async () => {
     const getView = vi

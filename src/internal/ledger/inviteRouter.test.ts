@@ -17,6 +17,11 @@ import {
   AuthorizationError,
   ConflictError,
 } from "internal/shared/errors/appError";
+import {
+  concurrentModificationErrorCode,
+  concurrentModificationErrorMessage,
+  createConcurrentModificationError,
+} from "internal/shared/errors/concurrentModification";
 import { errorHandlingMiddleware } from "internal/shared/http/errorResponse";
 
 function createTestApp(container: RequestContainer) {
@@ -211,6 +216,32 @@ describe("ledger invite router", () => {
     expect(await response.json()).toEqual({
       error: { code, message, requestId: "test-request-id", status: 409 },
     });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("并发冲突时返回可重试的 409 与安全响应体，且不触发缓存失效（#816）", async () => {
+    const accept = vi
+      .fn()
+      .mockRejectedValue(createConcurrentModificationError());
+    const app = createTestApp(containerWithAccept(accept));
+
+    const response = await app.request(acceptUrl, {
+      body: JSON.stringify({ token: validToken }),
+      headers: sameOriginHeaders,
+      method: "POST",
+    });
+    const text = await response.text();
+
+    expect(response.status).toBe(409);
+    expect(JSON.parse(text)).toEqual({
+      error: {
+        code: concurrentModificationErrorCode,
+        message: concurrentModificationErrorMessage,
+        requestId: "test-request-id",
+        status: 409,
+      },
+    });
+    expect(text).not.toContain("deadlock");
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 

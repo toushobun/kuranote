@@ -9,6 +9,7 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import {
   findRpcBusinessError,
+  toConcurrentModificationError,
   type RpcErrorLike,
 } from "internal/shared/supabase/rpcError";
 
@@ -120,6 +121,15 @@ export function createSupabaseLedgerPlaceholderMemberRepository(
     });
   }
 
+  /** 未匹配业务 detail 时，死锁或序列化失败按可重试冲突（409）抛出。 */
+  function throwIfConcurrentModification(
+    operation: string,
+    error: RpcErrorLike,
+  ) {
+    const conflict = toConcurrentModificationError(error, logger, operation);
+    if (conflict) throw conflict;
+  }
+
   async function write(
     operation: "delete" | "rename",
     rpcName: string,
@@ -131,6 +141,7 @@ export function createSupabaseLedgerPlaceholderMemberRepository(
     const code = findRpcBusinessError(error, placeholderErrorMap);
     if (code) return { code, ok: false };
 
+    throwIfConcurrentModification(rpcName, error);
     logUnexpected(rpcName, error);
     throw failure(operation);
   }
@@ -145,6 +156,10 @@ export function createSupabaseLedgerPlaceholderMemberRepository(
       if (error) {
         const code = findRpcBusinessError(error, placeholderErrorMap);
         if (code) return { code, ok: false };
+        throwIfConcurrentModification(
+          "create_ledger_placeholder_member",
+          error,
+        );
         logUnexpected("create_ledger_placeholder_member", error);
         throw failure("create");
       }
@@ -176,6 +191,10 @@ export function createSupabaseLedgerPlaceholderMemberRepository(
       if (error) {
         const code = findRpcBusinessError(error, placeholderErrorMap);
         if (code) return { code, ok: false };
+        throwIfConcurrentModification(
+          "ensure_ledger_placeholder_members",
+          error,
+        );
         logUnexpected("ensure_ledger_placeholder_members", error);
         throw failure("ensure");
       }

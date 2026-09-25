@@ -16,6 +16,7 @@ import {
 } from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import { toConcurrentModificationError } from "internal/shared/supabase/rpcError";
 
 type AccountRow = {
   created_at: string;
@@ -165,20 +166,24 @@ export interface AccountRepository {
   update(input: UpdateAccountInput): Promise<boolean>;
 }
 
-const holderErrorByDetails = {
+const rpcErrorByDetails = {
+  [accountErrorCodes.authRequired]: AuthenticationError,
   [accountErrorCodes.holderChanged]: ConflictError,
   [accountErrorCodes.holderIdentityInvalid]: ValidationError,
+  [accountErrorCodes.permissionDenied]: AuthorizationError,
   [accountErrorCodes.placeholderAlreadyClaimed]: ConflictError,
   [accountErrorCodes.placeholderNotFound]: NotFoundError,
   [accountErrorCodes.placeholderUnavailable]: ConflictError,
 } as const;
 
-/** 只按 RPC / 触发器的 `details` 精确识别持有人相关业务错误。 */
-function findHolderError(error: { details?: string | null }) {
+/**
+ * 只按 RPC / 触发器的 `details` 精确识别业务错误：持有人相关错误，以及
+ * 占位锁函数抛出的 auth_required / permission_denied。
+ */
+function findRpcDetailError(error: { details?: string | null }) {
   const code = error.details?.trim();
-  if (!code || !Object.hasOwn(holderErrorByDetails, code)) return null;
-  const ErrorClass =
-    holderErrorByDetails[code as keyof typeof holderErrorByDetails];
+  if (!code || !Object.hasOwn(rpcErrorByDetails, code)) return null;
+  const ErrorClass = rpcErrorByDetails[code as keyof typeof rpcErrorByDetails];
   return new ErrorClass(code, getAccountErrorMessage(code)!);
 }
 
@@ -271,8 +276,14 @@ export function createSupabaseAccountRepository(
         logError("failed to create account", error, {
           ledgerId: input.ledgerId,
         });
-        const holderError = findHolderError(error);
-        if (holderError) throw holderError;
+        const detailError = findRpcDetailError(error);
+        if (detailError) throw detailError;
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "create_account_with_holders",
+        );
+        if (conflict) throw conflict;
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.nameDuplicate,
@@ -531,10 +542,20 @@ export function createSupabaseAccountRepository(
           accountId: input.accountId,
           ledgerId: input.ledgerId,
         });
-        const holderError = findHolderError(error);
-        if (holderError) throw holderError;
+        const detailError = findRpcDetailError(error);
+        if (detailError) throw detailError;
+        // account_holder_changed 已由上面的 detail 映射优先处理。
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "update_account_with_balance_adjustment",
+        );
+        if (conflict) throw conflict;
         if (error.code === "28000")
-          throw new AuthenticationError("auth_required", "请先登录。");
+          throw new AuthenticationError(
+            accountErrorCodes.authRequired,
+            getAccountErrorMessage(accountErrorCodes.authRequired)!,
+          );
         if (error.code === "42501")
           throw new AuthorizationError(
             accountErrorCodes.permissionDenied,

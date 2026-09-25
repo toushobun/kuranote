@@ -11,6 +11,11 @@ import {
 import { accountErrorCodes, getAccountErrorMessage } from "internal/account";
 import type { AppEnv } from "internal/appEnv";
 import {
+  getLedgerInviteErrorMessage,
+  ledgerInviteErrorCodes,
+} from "internal/ledger";
+import { createConcurrentModificationError } from "internal/shared/errors/concurrentModification";
+import {
   AuthenticationError,
   AuthorizationError,
   ConflictError,
@@ -125,6 +130,21 @@ describe("errorHandlingMiddleware", () => {
         "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
       ),
       409,
+    ],
+    [createConcurrentModificationError(), 409],
+    [
+      new ValidationError(
+        ledgerInviteErrorCodes.ledgerRequired,
+        getLedgerInviteErrorMessage(ledgerInviteErrorCodes.ledgerRequired)!,
+      ),
+      400,
+    ],
+    [
+      new AuthenticationError(
+        accountErrorCodes.authRequired,
+        getAccountErrorMessage(accountErrorCodes.authRequired)!,
+      ),
+      401,
     ],
     [new AuthenticationError("auth_required", "请先登录后再继续。"), 401],
     [new AuthorizationError("permission_denied", "没有操作权限。"), 403],

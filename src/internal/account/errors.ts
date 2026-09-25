@@ -4,6 +4,7 @@ export const accountErrorCodes = {
   accountInvalid: "account_invalid",
   accountNotFound: "account_not_found",
   archiveFailed: "archive_failed",
+  authRequired: "auth_required",
   createFailed: "create_failed",
   currencyInvalid: "currency_invalid",
   holderChanged: "account_holder_changed",
@@ -33,6 +34,7 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
   [accountErrorCodes.accountNotFound]: "账户不存在或已删除。",
   [accountErrorCodes.archiveFailed]: "账户删除失败，请稍后重试。",
+  [accountErrorCodes.authRequired]: "请先登录。",
   [accountErrorCodes.createFailed]: "账户新增失败，请稍后重试。",
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
   [accountErrorCodes.holderChanged]:
