@@ -47,6 +47,8 @@ const placeholderErrorMap = {
   placeholder_in_use: ledgerPlaceholderMemberErrorCodes.placeholderInUse,
   placeholder_name_conflict:
     ledgerPlaceholderMemberErrorCodes.placeholderNameConflict,
+  placeholder_name_member_conflict:
+    ledgerPlaceholderMemberErrorCodes.placeholderNameMemberConflict,
   placeholder_name_invalid:
     ledgerPlaceholderMemberErrorCodes.placeholderNameInvalid,
   placeholder_not_found: ledgerPlaceholderMemberErrorCodes.placeholderNotFound,

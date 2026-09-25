@@ -42,6 +42,8 @@ export type LedgerSettingsWriteResult =
 const memberSettingsRpcErrorMap = {
   auth_required: ledgerSettingsErrorCodes.authRequired,
   display_color_invalid: ledgerSettingsErrorCodes.displayColorInvalid,
+  display_name_placeholder_conflict:
+    ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
   display_name_required: ledgerSettingsErrorCodes.displayNameRequired,
   display_name_too_long: ledgerSettingsErrorCodes.displayNameTooLong,
   member_not_found: ledgerSettingsErrorCodes.memberInvalid,

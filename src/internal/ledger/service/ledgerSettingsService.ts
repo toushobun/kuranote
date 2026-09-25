@@ -75,6 +75,7 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
     case ledgerSettingsErrorCodes.nameTooLong:
     case ledgerSettingsErrorCodes.roleInvalid:
       return new ValidationError(code, message);
+    case ledgerSettingsErrorCodes.displayNamePlaceholderConflict:
     case ledgerSettingsErrorCodes.specialStatusHasActiveItems:
     case ledgerSettingsErrorCodes.updateFailed:
       return new ConflictError(code, message);

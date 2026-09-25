@@ -381,7 +381,8 @@ select is((select accepted_by::text || ':' || coalesce(invite_token, 'null') fro
 select is((select current_ledger_id from public.app_user where id = pg_temp.uid(14)), pg_temp.lid(1), '认领后切换当前账本');
 select pg_temp.act(1);
 set local role authenticated;
-select is(pg_temp.err($$select public.create_ledger_placeholder_member(pg_temp.lid(1), '全量迁移')$$), 'ok', '认领后占位名字释放，可被新占位复用');
+-- #811：认领后占位退出未认领名字范围，但名字已成为成员的账本内显示名，新建同名占位按成员重名拒绝。
+select is(pg_temp.err($$select public.create_ledger_placeholder_member(pg_temp.lid(1), '全量迁移')$$), '23505:placeholder_name_member_conflict', '认领后名字转为成员显示名，新建同名占位按成员重名拒绝');
 
 select diag('重放已接受 token 幂等且不重复迁移');
 reset role;

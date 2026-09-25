@@ -199,6 +199,34 @@ describe("createLedgerInviteService.inviteMember", () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
 
+  it("第 1 步与现有成员重名时提示换一个名字，不引导生成邀请链接", async () => {
+    const repository = createRepository();
+    const placeholderMemberService = createPlaceholderMemberService();
+    placeholderMemberService.create.mockRejectedValue(
+      new ConflictError(
+        "placeholder_name_member_conflict",
+        "当前账本已有同名成员，请换一个名字。",
+      ),
+    );
+    const service = createService(
+      repository,
+      "owner",
+      placeholderMemberService,
+    );
+
+    const failure = await service
+      .inviteMember(input)
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ConflictError);
+    expect(failure).toMatchObject({
+      code: "placeholder_name_member_conflict",
+      message: "当前账本已有同名成员，请换一个名字。",
+    });
+    expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it("第 1 步的其他错误原样抛出", async () => {
     const placeholderMemberService = createPlaceholderMemberService();
     const nameError = new ValidationError(

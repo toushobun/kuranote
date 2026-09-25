@@ -76,6 +76,7 @@ function toAppError(code: LedgerPlaceholderMemberErrorCode): AppError {
     case ledgerPlaceholderMemberErrorCodes.placeholderAlreadyClaimed:
     case ledgerPlaceholderMemberErrorCodes.placeholderInUse:
     case ledgerPlaceholderMemberErrorCodes.placeholderNameConflict:
+    case ledgerPlaceholderMemberErrorCodes.placeholderNameMemberConflict:
       return new ConflictError(code, message);
     case ledgerPlaceholderMemberErrorCodes.placeholderNameInvalid:
     case ledgerPlaceholderMemberErrorCodes.placeholderNameTooLong:

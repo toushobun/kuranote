@@ -157,6 +157,7 @@ describe("createLedgerPlaceholderMemberService 名字校验", () => {
 describe("createLedgerPlaceholderMemberService 错误映射", () => {
   it.each([
     ["placeholder_name_conflict", ConflictError, 409],
+    ["placeholder_name_member_conflict", ConflictError, 409],
     ["placeholder_in_use", ConflictError, 409],
     ["placeholder_already_claimed", ConflictError, 409],
     ["placeholder_name_invalid", ValidationError, 400],

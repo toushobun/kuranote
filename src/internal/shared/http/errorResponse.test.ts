@@ -107,6 +107,20 @@ describe("errorHandlingMiddleware", () => {
     ],
     [
       new ConflictError(
+        "placeholder_name_member_conflict",
+        "当前账本已有同名成员，请换一个名字。",
+      ),
+      409,
+    ],
+    [
+      new ConflictError(
+        "display_name_placeholder_conflict",
+        "当前账本已有同名的待邀请成员，请换一个名字。",
+      ),
+      409,
+    ],
+    [
+      new ConflictError(
         "invite_member_link_failed",
         "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
       ),

@@ -562,6 +562,17 @@ begin
         raise exception 'accept_ledger_invite placeholder claim smoke test failed';
     end if;
 
+    -- Issue #811：认领后账本内显示名沿用待邀请成员的名字。
+    if not exists (
+        select 1
+        from public.ledger_member_display_setting setting
+        where setting.ledger_id = v_ledger_id
+          and setting.user_id = v_member_id
+          and setting.display_name = 'SECURITY DEFINER Placeholder'
+    ) then
+        raise exception 'accept_ledger_invite display name smoke test failed';
+    end if;
+
     -- member 可以记账但不能维护基础数据，直接更新商家应被 trigger 拒绝。
     begin
         update public.merchant
