@@ -286,6 +286,102 @@ describe("DataImportExecutionService", () => {
     },
   );
 
+  describe("账户名称不区分大小写", () => {
+    const cashAccount = {
+      currency: "JPY",
+      holder: null,
+      id: "cash-1",
+      isArchived: false,
+      name: "Cash",
+      type: "cash" as const,
+    };
+
+    function executeRows(
+      rows: Array<Record<string, string>>,
+      accounts: Array<typeof cashAccount>,
+    ) {
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.accountImportService.loadContext,
+      ).mockResolvedValue({
+        accounts,
+        holders: [{ displayName: "淞文", userId: "user-1" }],
+      });
+      const result = createDataImportExecutionService(
+        dependencies,
+      ).executeBatch({
+        ledgerId: "ledger-1",
+        units: unitsOf([
+          incomeTable(rows.map((row) => incomeRow({ 账户持有人: "", ...row }))),
+        ]),
+        timeZoneOffsetMinutes: 0,
+        userId: "user-1",
+      });
+      return { dependencies, result };
+    }
+
+    it("名称只差大小写时复用已有账户，不新建账户", async () => {
+      const { dependencies, result } = executeRows(
+        [{ 账户: "cash" }],
+        [cashAccount],
+      );
+
+      expect((await result).successCount).toBe(1);
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).not.toHaveBeenCalled();
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledWith(expect.objectContaining({ accountId: "cash-1" }));
+    });
+
+    it("同一批次内只差大小写的新账户只创建一次，并使用首次出现的写法", async () => {
+      const { dependencies, result } = executeRows(
+        [{ 账户: "Wallet" }, { 账户: "wallet", 商家: "另一个商家" }],
+        [],
+      );
+
+      expect((await result).successCount).toBe(2);
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).toHaveBeenCalledOnce();
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).toHaveBeenCalledWith(expect.objectContaining({ name: "Wallet" }));
+      const createNormal = vi.mocked(
+        dependencies.transactionImportService.createNormal,
+      );
+      expect(createNormal).toHaveBeenCalledTimes(2);
+      for (const [input] of createNormal.mock.calls) {
+        expect(input).toMatchObject({ accountId: "account-Wallet" });
+      }
+    });
+
+    it.each([
+      ["账户类型", { 账户类型: "银行卡" }],
+      ["币种", { 账户币种: "USD" }],
+      ["持有人", { 账户持有人: "淞文" }],
+    ])(
+      "名称只差大小写但%s不同时视为不同账户",
+      async (_label, overrides: Record<string, string>) => {
+        const { dependencies, result } = executeRows(
+          [{ 账户: "cash", ...overrides }],
+          [cashAccount],
+        );
+
+        expect((await result).successCount).toBe(1);
+        expect(
+          dependencies.accountImportService.createAccount,
+        ).toHaveBeenCalledWith(expect.objectContaining({ name: "cash" }));
+        expect(
+          dependencies.transactionImportService.createNormal,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({ accountId: "account-cash" }),
+        );
+      },
+    );
+  });
+
   it("缺失的分类、商家标签、商家和账户会自动创建后写入交易", async () => {
     const units = unitsOf([incomeTable([incomeRow()])]);
     const dependencies = createDependencies();

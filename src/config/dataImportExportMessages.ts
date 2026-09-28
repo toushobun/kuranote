@@ -59,7 +59,7 @@ export const dataImportFormatDescriptionMessages = {
     "「记账人」列不会被读取，导入的记账人统一为当前登录账号。",
   billRefHint:
     "「账单关联」列相同的多行中，除第一次出现的行外，日期、账户、账户持有人、账户币种、账户类型、商家、商家分类、备注需填写「-」以继承首次出现那行的值（也可以原样复述该行内容）；「交易类型」不同则各自独立成交易。",
-  accountTypeColumnHint: `「账户类型」列（转账表为「转出账户类型」「转入账户类型」）必填，每一行都要填写，可填写：${accountTypeLabelsText}。导入时按账户名称、持有人、币种和账户类型匹配已有账户，匹配不到时按填写的类型新建账户。`,
+  accountTypeColumnHint: `「账户类型」列（转账表为「转出账户类型」「转入账户类型」）必填，每一行都要填写，可填写：${accountTypeLabelsText}。导入时按账户名称、持有人、币种和账户类型匹配已有账户（账户名称不区分大小写），匹配不到时按填写的类型新建账户。`,
   balanceAdjustmentHint:
     "「余额变更」的金额为带符号差值：正数增加余额，负数减少余额，不能为 0。按收支、转账、余额变更的顺序导入。",
   incomeExpenseColumnsTitle: "「收支」表列名（*为必填）",
