@@ -33,17 +33,21 @@ function resolveSharedFields(row: IncomeExpenseSheetRow) {
   // 走到这里的行已经在 parseIncomeExpenseSheet 里通过了账户持有人格式校验，
   // 因此这里必定是 ok:true，取值时兜底 null 只是满足类型、不会实际触发。
   const holderResult = parseHolderName(row.sharedTexts["账户持有人"]);
-  // 账户类型同样已在 parseIncomeExpenseSheet 里通过校验，兜底值不会实际触发。
+  // 账户类型已在 parseIncomeExpenseSheet 里通过校验；账户类型参与账户匹配，
+  // 不能兜底为「其他」，前置校验失效时直接报错，避免误建同名账户。
   const accountTypeResult = parseAccountType(
     row.sharedTexts["账户类型"],
     "账户类型",
   );
+  if (!accountTypeResult.ok) {
+    throw new Error(accountTypeResult.message);
+  }
 
   return {
     accountCurrency: row.sharedTexts["账户币种"].toUpperCase(),
     accountHolder: holderResult.ok ? holderResult.value : null,
     accountName: row.sharedTexts["账户"],
-    accountType: accountTypeResult.ok ? accountTypeResult.value : "other",
+    accountType: accountTypeResult.value,
     merchantName: row.sharedTexts["商家"],
     merchantTag: row.sharedTexts["商家分类"] || null,
     note: row.sharedTexts["备注"] || null,

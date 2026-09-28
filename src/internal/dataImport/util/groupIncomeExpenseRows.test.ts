@@ -106,6 +106,12 @@ describe("groupIncomeExpenseRows", () => {
     ]);
   });
 
+  it("未经前置校验的非法账户类型直接报错，不兜底为「其他」", () => {
+    expect(() =>
+      groupIncomeExpenseRows([row({ sharedTexts: { 账户类型: "储蓄卡" } })]),
+    ).toThrow("账户类型「储蓄卡」无法识别");
+  });
+
   it("后续行原样复述首行内容（而非「-」）也允许合并", () => {
     const result = groupIncomeExpenseRows([
       row({ billRef: "BILL-1", rowNumber: 2 }),
