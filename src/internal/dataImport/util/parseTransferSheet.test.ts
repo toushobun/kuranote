@@ -202,6 +202,20 @@ describe("parseTransferSheet", () => {
     ]);
   });
 
+  it("转出/转入账户名称只差大小写时，同样报告同一个账户错误", () => {
+    const result = parseTransferSheet(
+      buildTable([validRowCells({ 转出账户: "Cash", 转入账户: "cash" })]),
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        column: "转入账户",
+        kind: "row",
+        message: "转出账户与转入账户不能是同一个账户。",
+      }),
+    ]);
+    expect(result.rows).toEqual([]);
+  });
+
   it("账户名、持有人、币种相同但账户类型不同时视为不同账户，允许转账", () => {
     const result = parseTransferSheet(
       buildTable([
