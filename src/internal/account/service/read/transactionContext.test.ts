@@ -10,7 +10,9 @@ const userId = "00000000-0000-4000-8000-000000000031";
 describe("transactionContext", () => {
   it("单成员账本为单持有人账户分配颜色且不显示记录人", () => {
     const context = buildTransactionAccountContext({
-      accounts: [{ currency: "JPY", id: accountId, name: "现金" }],
+      accounts: [
+        { currency: "JPY", id: accountId, name: "现金", type: "cash" },
+      ],
       holders: [
         {
           account_id: accountId,
@@ -48,7 +50,9 @@ describe("transactionContext", () => {
   it("多成员账本显示记录人且多持有人账户不分配单一颜色", () => {
     const secondUserId = "00000000-0000-4000-8000-000000000041";
     const context = buildTransactionAccountContext({
-      accounts: [{ currency: "JPY", id: accountId, name: "共同账户" }],
+      accounts: [
+        { currency: "JPY", id: accountId, name: "共同账户", type: "cash" },
+      ],
       holders: [
         {
           account_id: accountId,
@@ -98,7 +102,9 @@ describe("transactionContext", () => {
   it("占位持有的账户不取任何成员颜色", () => {
     const placeholderId = "00000000-0000-4000-8000-000000000061";
     const context = buildTransactionAccountContext({
-      accounts: [{ currency: "JPY", id: accountId, name: "奶奶的钱包" }],
+      accounts: [
+        { currency: "JPY", id: accountId, name: "奶奶的钱包", type: "cash" },
+      ],
       holders: [
         {
           account_id: accountId,

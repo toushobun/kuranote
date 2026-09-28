@@ -12,6 +12,7 @@ import {
   buildColumnIndex,
   findColumnStructuralIssues,
 } from "internal/dataImport/util/columnIndex";
+import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
@@ -45,6 +46,7 @@ export function parseBalanceAdjustmentSheet(table: ParsedTable) {
     const holder = parseHolderName(get("账户持有人"));
     const accountName = get("账户");
     const accountCurrency = get("账户币种").toUpperCase();
+    const accountType = parseAccountType(get("账户类型"), "账户类型");
     const note = get("备注");
     if (get("交易类型") !== balanceAdjustmentTypeValue)
       fail("交易类型", messages.typeInvalid);
@@ -55,14 +57,22 @@ export function parseBalanceAdjustmentSheet(table: ParsedTable) {
     if (!accountName) fail("账户", messages.accountRequired);
     if (!importCurrencyPattern.test(accountCurrency))
       fail("账户币种", messages.currencyInvalid);
+    if (!accountType.ok) fail("账户类型", accountType.message);
     if (note.length > importNoteMaxLength)
       fail("备注", balanceAdjustmentErrorMessages.noteTooLong);
-    if (issues.length !== before || !date.ok || !amount.ok || !holder.ok)
+    if (
+      issues.length !== before ||
+      !date.ok ||
+      !amount.ok ||
+      !holder.ok ||
+      !accountType.ok
+    )
       continue;
     rows.push({
       accountName,
       accountCurrency,
       accountHolder: holder.value,
+      accountType: accountType.value,
       amount: amount.value,
       note: note || null,
       rowNumber,

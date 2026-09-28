@@ -2,13 +2,7 @@ import type { AccountHolderRole, AccountType } from "internal/account";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { BaseActionState } from "types/auth";
 
-export const accountTypeOptions = [
-  { label: "现金", value: "cash" },
-  { label: "银行卡", value: "bank" },
-  { label: "信用卡", value: "credit_card" },
-  { label: "电子钱包", value: "e_money" },
-  { label: "其他", value: "other" },
-] as const;
+export { accountTypeOptions } from "internal/account";
 
 export type { AccountHolderRole, AccountType };
 

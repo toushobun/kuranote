@@ -11,6 +11,7 @@ import {
   buildColumnIndex,
   findColumnStructuralIssues,
 } from "internal/dataImport/util/columnIndex";
+import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
@@ -121,6 +122,22 @@ export function parseTransferSheet(
       );
     }
 
+    const fromAccountTypeResult = parseAccountType(
+      get("转出账户类型"),
+      "转出账户类型",
+    );
+    if (!fromAccountTypeResult.ok) {
+      addIssue("转出账户类型", fromAccountTypeResult.message);
+    }
+
+    const toAccountTypeResult = parseAccountType(
+      get("转入账户类型"),
+      "转入账户类型",
+    );
+    if (!toAccountTypeResult.ok) {
+      addIssue("转入账户类型", toAccountTypeResult.message);
+    }
+
     // 「转出/转入账户是否相同」只依赖这几个字段自身是否合法，与「交易类型」
     // 「日期」「金额」「备注」等无关字段是否报错无关，避免这些字段的错误
     // 掩盖同账户错误，导致用户要多次上传才能看到完整的错误列表。
@@ -131,15 +148,24 @@ export function parseTransferSheet(
       toAccountCurrencyValid &&
       fromAccountHolderResult.ok &&
       toAccountHolderResult.ok &&
+      fromAccountTypeResult.ok &&
+      toAccountTypeResult.ok &&
       fromAccountName === toAccountName &&
       fromAccountCurrencyText.toUpperCase() ===
         toAccountCurrencyText.toUpperCase() &&
-      fromAccountHolderResult.value === toAccountHolderResult.value
+      fromAccountHolderResult.value === toAccountHolderResult.value &&
+      fromAccountTypeResult.value === toAccountTypeResult.value
     ) {
       addIssue("转入账户", "转出账户与转入账户不能是同一个账户。");
     }
 
-    if (hasError || !fromAccountHolderResult.ok || !toAccountHolderResult.ok) {
+    if (
+      hasError ||
+      !fromAccountHolderResult.ok ||
+      !toAccountHolderResult.ok ||
+      !fromAccountTypeResult.ok ||
+      !toAccountTypeResult.ok
+    ) {
       continue;
     }
 
@@ -148,11 +174,13 @@ export function parseTransferSheet(
       fromAccountCurrency: fromAccountCurrencyText.toUpperCase(),
       fromAccountHolder: fromAccountHolderResult.value,
       fromAccountName,
+      fromAccountType: fromAccountTypeResult.value,
       note: note || null,
       rowNumber,
       toAccountCurrency: toAccountCurrencyText.toUpperCase(),
       toAccountHolder: toAccountHolderResult.value,
       toAccountName,
+      toAccountType: toAccountTypeResult.value,
       transactionAt: dateResult.ok ? dateResult.value : "",
     });
   }

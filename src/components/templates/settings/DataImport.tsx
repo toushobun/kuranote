@@ -230,6 +230,7 @@ function FormatDescriptionCard() {
             messages.fileTypeHint,
             messages.unknownColumnHint,
             messages.holderColumnHint,
+            messages.accountTypeColumnHint,
             messages.recorderColumnHint,
             messages.billRefHint,
             messages.balanceAdjustmentHint,

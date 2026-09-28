@@ -1,7 +1,10 @@
+import type { AccountType } from "internal/account";
+
 export type IncomeExpenseImportRow = {
   accountCurrency: string;
   accountHolder: string | null;
   accountName: string;
+  accountType: AccountType;
   amount: number;
   billRef: string | null;
   childCategoryName: string | null;
@@ -19,11 +22,13 @@ export type TransferImportRow = {
   fromAccountCurrency: string;
   fromAccountHolder: string | null;
   fromAccountName: string;
+  fromAccountType: AccountType;
   note: string | null;
   rowNumber: number;
   toAccountCurrency: string;
   toAccountHolder: string | null;
   toAccountName: string;
+  toAccountType: AccountType;
   transactionAt: string;
 };
 
@@ -31,6 +36,7 @@ export type BalanceAdjustmentImportRow = {
   accountCurrency: string;
   accountHolder: string | null;
   accountName: string;
+  accountType: AccountType;
   amount: number;
   note: string | null;
   rowNumber: number;

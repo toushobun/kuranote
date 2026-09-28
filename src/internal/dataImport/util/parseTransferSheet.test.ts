@@ -22,9 +22,11 @@ function validRowCells(overrides: Partial<Record<string, string>> = {}) {
     转出账户: "现金",
     转出账户币种: "CNY",
     转出账户持有人: "鄧",
+    转出账户类型: "现金",
     转入账户: "招行储蓄卡",
     转入账户币种: "CNY",
     转入账户持有人: "鄧",
+    转入账户类型: "现金",
     金额: "500",
     记账人: "忽略此列",
   };
@@ -136,11 +138,13 @@ describe("parseTransferSheet", () => {
         fromAccountCurrency: "CNY",
         fromAccountHolder: "鄧",
         fromAccountName: "现金",
+        fromAccountType: "cash",
         note: null,
         rowNumber: 2,
         toAccountCurrency: "CNY",
         toAccountHolder: "鄧",
         toAccountName: "招行储蓄卡",
+        toAccountType: "cash",
         transactionAt: "2026-01-05 12:00:00",
       },
     ]);
@@ -182,7 +186,7 @@ describe("parseTransferSheet", () => {
     ]);
   });
 
-  it("转出账户与转入账户完全相同（含币种、持有人）时报告错误", () => {
+  it("转出账户与转入账户完全相同（含币种、持有人、账户类型）时报告错误", () => {
     const result = parseTransferSheet(
       buildTable([
         validRowCells({
@@ -195,6 +199,79 @@ describe("parseTransferSheet", () => {
     );
     expect(result.issues).toEqual([
       expect.objectContaining({ column: "转入账户", kind: "row" }),
+    ]);
+  });
+
+  it("账户名、持有人、币种相同但账户类型不同时视为不同账户，允许转账", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          转出账户: "现金",
+          转出账户类型: "现金",
+          转入账户: "现金",
+          转入账户类型: "电子钱包",
+        }),
+      ]),
+    );
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0]).toMatchObject({
+      fromAccountType: "cash",
+      toAccountType: "e_money",
+    });
+  });
+
+  it("转出/转入账户类型分别映射为 AccountType，并各自报告缺失或无法识别", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({ 转出账户类型: "信用卡", 转入账户类型: " 其他 " }),
+        validRowCells({ 转出账户类型: "", 转入账户类型: "储蓄卡" }),
+      ]),
+    );
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toMatchObject({
+      fromAccountType: "credit_card",
+      toAccountType: "other",
+    });
+    expect(result.issues).toEqual([
+      {
+        column: "转出账户类型",
+        kind: "row",
+        message:
+          "转出账户类型不能为空，请填写：现金、银行卡、信用卡、电子钱包、其他。",
+        rowNumber: 3,
+        sheet: "transfer",
+      },
+      {
+        column: "转入账户类型",
+        kind: "row",
+        message:
+          "转入账户类型「储蓄卡」无法识别，请填写：现金、银行卡、信用卡、电子钱包、其他。",
+        rowNumber: 3,
+        sheet: "transfer",
+      },
+    ]);
+  });
+
+  it("缺少「转出账户类型」「转入账户类型」列时返回结构性错误", () => {
+    const table = buildTable([validRowCells()]);
+    const keep = header
+      .map((name, index) => ({ index, name }))
+      .filter(({ name }) => !name.endsWith("账户类型"));
+    table.headerRow = keep.map(({ name }) => name);
+    table.rows = table.rows.map((row) => ({
+      ...row,
+      cells: keep.map(({ index }) => row.cells[index]),
+    }));
+
+    const result = parseTransferSheet(table);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        kind: "structural",
+        message: "「转账」表缺少必填列：转出账户类型、转入账户类型。",
+        sheet: "transfer",
+      }),
     ]);
   });
 

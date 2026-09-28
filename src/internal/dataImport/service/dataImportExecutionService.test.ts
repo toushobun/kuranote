@@ -1,3 +1,4 @@
+import { createDataExportFixture } from "test/mocks/dataExport";
 import { makeBalanceAdjustmentTable } from "test/mocks/dataImport";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +12,7 @@ import {
   type ImportHolderMapping,
 } from "internal/dataImport/schema";
 import { createDataImportExecutionService } from "internal/dataImport/service/dataImportExecutionService";
+import { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 import { analyzeImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
 import {
   getLedgerPlaceholderMemberErrorMessage,
@@ -24,6 +26,7 @@ import {
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
+import { buildDataExportWorkbook } from "utils/dataExportWorkbook";
 
 function unitsOf(tables: ParsedTable[]) {
   return analyzeImportWorkbook(tables).units;
@@ -53,7 +56,13 @@ function transferTable(rows: Array<Record<string, string>>): ParsedTable {
   const headers = transferColumns.map((column) => column.name);
   return {
     headerRow: headers,
-    rows: rows.map((row, index) => tableRow(headers, index + 2, row)),
+    rows: rows.map((row, index) =>
+      tableRow(headers, index + 2, {
+        转出账户类型: "现金",
+        转入账户类型: "现金",
+        ...row,
+      }),
+    ),
     sourceName: "转账",
   };
 }
@@ -69,6 +78,7 @@ function incomeRow(overrides: Record<string, string> = {}) {
     账户: "钱包",
     账户持有人: "淞文",
     账户币种: "JPY",
+    账户类型: "现金",
     金额: "1200",
     备注: "测试",
     ...overrides,
@@ -194,6 +204,7 @@ describe("DataImportExecutionService", () => {
               : null,
             id: `${name}-${currency}`,
             name,
+            type: "cash" as const,
           })),
         ),
         holders: [{ displayName: "淞文", userId: "user-1" }],
@@ -242,6 +253,7 @@ describe("DataImportExecutionService", () => {
           holder: { kind: "member", userId: "user-1" },
           id,
           name: "钱包",
+          type: "cash",
         })),
         holders: [{ displayName: "淞文", userId: "user-1" }],
       });
@@ -293,6 +305,7 @@ describe("DataImportExecutionService", () => {
       holder: { kind: "member", userId: "user-1" },
       ledgerId: "ledger-1",
       name: "钱包",
+      type: "cash",
       userId: "user-1",
     });
     expect(
@@ -687,6 +700,7 @@ describe("余额变更导入", () => {
       currency: "JPY",
       name: "现金",
       holder: null,
+      type: "cash",
     });
   });
   it.each([false, true])(
@@ -699,6 +713,7 @@ describe("余额变更导入", () => {
         currency: "JPY",
         name: "现金",
         holder: null,
+        type: "cash" as const,
       };
       vi.mocked(d.accountImportService.loadContext).mockResolvedValue({
         accounts: [
@@ -868,6 +883,7 @@ describe("持有人映射", () => {
           id: "account-existing",
           isArchived: false,
           name: "钱包",
+          type: "cash",
         },
       ],
       holders: [{ displayName: "淞文", userId: "user-1" }],
@@ -1257,7 +1273,12 @@ describe("待邀请成员映射", () => {
 
   it("同名同币种的成员、待邀请成员与无持有人账户各自独立复用", async () => {
     const dependencies = createDependencies();
-    const account = { currency: "JPY", isArchived: false, name: "钱包" };
+    const account = {
+      currency: "JPY",
+      isArchived: false,
+      name: "钱包",
+      type: "cash" as const,
+    };
     vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
       accounts: [
         { ...account, holder: null, id: "account-none" },
@@ -1301,6 +1322,7 @@ describe("待邀请成员映射", () => {
           id: "account-p",
           isArchived: false,
           name: "钱包",
+          type: "cash",
         },
       ],
       holders: [],
@@ -1351,5 +1373,225 @@ describe("待邀请成员映射", () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: "account-现金" }),
     );
+  });
+});
+
+describe("账户类型参与账户匹配", () => {
+  function accountEntry(
+    id: string,
+    type: "bank" | "cash" | "other",
+    overrides: { isArchived?: boolean } = {},
+  ) {
+    return {
+      currency: "JPY",
+      holder: null,
+      id,
+      isArchived: false,
+      name: "账户1",
+      type,
+      ...overrides,
+    };
+  }
+
+  function dependenciesWith(accounts: ReturnType<typeof accountEntry>[]) {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts,
+      holders: [],
+    });
+    vi.mocked(
+      dependencies.accountImportService.createAccount,
+    ).mockImplementation(async ({ name, type }) => ({
+      accountId: `account-${name}-${type}`,
+    }));
+    return dependencies;
+  }
+
+  function execute(
+    dependencies: ReturnType<typeof createDependencies>,
+    tables: ParsedTable[],
+  ) {
+    return createDataImportExecutionService(dependencies).executeBatch({
+      ledgerId: "ledger-1",
+      timeZoneOffsetMinutes: 0,
+      units: unitsOf(tables),
+      userId: "user-1",
+    });
+  }
+
+  function accountRow(accountType: string, 日期 = "2026-09-17 10:00:00") {
+    return incomeRow({
+      日期,
+      账户: "账户1",
+      账户持有人: "",
+      账户类型: accountType,
+    });
+  }
+
+  function normalAccountIds(
+    dependencies: ReturnType<typeof createDependencies>,
+  ) {
+    return vi
+      .mocked(dependencies.transactionImportService.createNormal)
+      .mock.calls.map(([input]) => input.accountId);
+  }
+
+  it("名称、持有人、币种、类型都相同时复用已有账户，类型不同时按行里的类型新建", async () => {
+    const dependencies = dependenciesWith([
+      accountEntry("existing-cash", "cash"),
+    ]);
+
+    const result = await execute(dependencies, [
+      incomeTable([
+        accountRow("现金"),
+        accountRow("银行卡", "2026-09-18 10:00:00"),
+      ]),
+    ]);
+
+    expect(result).toMatchObject({ failureCount: 0, successCount: 2 });
+    expect(normalAccountIds(dependencies)).toEqual([
+      "existing-cash",
+      "account-账户1-bank",
+    ]);
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: "账户1", type: "bank" }),
+    );
+  });
+
+  it("已有「其他」类型的账户可以用「其他」匹配到", async () => {
+    const dependencies = dependenciesWith([
+      accountEntry("existing-other", "other"),
+    ]);
+
+    await execute(dependencies, [incomeTable([accountRow("其他")])]);
+
+    expect(normalAccountIds(dependencies)).toEqual(["existing-other"]);
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("同一批次中同名、同持有人、同币种、同类型的新账户只创建一次，类型不同则分别创建", async () => {
+    const dependencies = dependenciesWith([]);
+
+    const result = await execute(dependencies, [
+      incomeTable([
+        accountRow("现金"),
+        accountRow("现金", "2026-09-18 10:00:00"),
+        accountRow("银行卡", "2026-09-19 10:00:00"),
+      ]),
+      transferTable([
+        {
+          交易类型: "转账",
+          日期: "2026-09-20 10:00:00",
+          转出账户: "账户1",
+          转出账户币种: "JPY",
+          转出账户类型: "银行卡",
+          转入账户: "账户1",
+          转入账户币种: "JPY",
+          转入账户类型: "现金",
+          金额: "100",
+        },
+      ]),
+    ]);
+
+    expect(result).toMatchObject({ failureCount: 0, successCount: 4 });
+    expect(
+      vi
+        .mocked(dependencies.accountImportService.createAccount)
+        .mock.calls.map(([input]) => input.type),
+    ).toEqual(["cash", "bank"]);
+    expect(normalAccountIds(dependencies)).toEqual([
+      "account-账户1-cash",
+      "account-账户1-cash",
+      "account-账户1-bank",
+    ]);
+    expect(
+      dependencies.transactionImportService.createTransfer,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "account-账户1-bank",
+        transferTargetAccountId: "account-账户1-cash",
+      }),
+    );
+  });
+
+  it("只有其他类型的同名账户已归档时，余额变更按行里的类型新建账户而不是拒绝", async () => {
+    const dependencies = dependenciesWith([
+      accountEntry("archived-cash", "cash", { isArchived: true }),
+    ]);
+
+    const result = await execute(dependencies, [
+      makeBalanceAdjustmentTable([{ 账户: "账户1", 账户类型: "银行卡" }]),
+    ]);
+
+    expect(result).toMatchObject({ failureCount: 0, successCount: 1 });
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: "账户1", type: "bank" }),
+    );
+  });
+
+  it("导出文件原样再导入时，所有账户都按名称、持有人、币种、类型匹配回原账户，不新建账户", async () => {
+    const data = createDataExportFixture();
+    // 导入要求必须有二级分类，只保留有二级分类的明细，让每条记录都能成功导入。
+    data.records[0].items = data.records[0].items.filter(
+      (item) => item.categoryId === "lunch",
+    );
+    const file = new File([await buildDataExportWorkbook(data)], "export.xlsx");
+    const { result: validation, units } = await analyzeImportFile(file);
+    expect(validation.ok).toBe(true);
+
+    const dependencies = createDependencies();
+    const userIdByName: Record<string, string> = {
+      小明: "user-ming",
+      小红: "user-hong",
+    };
+    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
+      accounts: data.accounts.map((account) => ({
+        currency: account.currency,
+        holder: account.holder
+          ? { kind: "member", userId: userIdByName[account.holder.name] }
+          : null,
+        id: account.id,
+        isArchived: false,
+        name: account.name,
+        type: account.type,
+      })),
+      holders: Object.entries(userIdByName).map(([displayName, userId]) => ({
+        displayName,
+        userId,
+      })),
+    });
+
+    const result = await createDataImportExecutionService(
+      dependencies,
+    ).executeBatch({
+      ledgerId: "ledger-1",
+      timeZoneOffsetMinutes: 0,
+      units,
+      userId: "user-1",
+    });
+
+    expect(result).toMatchObject({ failureCount: 0, successCount: 3 });
+    expect(
+      dependencies.accountImportService.createAccount,
+    ).not.toHaveBeenCalled();
+    const { createBalanceAdjustment, createNormal, createTransfer } = vi.mocked(
+      dependencies.transactionImportService,
+    );
+    expect(
+      [
+        ...createNormal.mock.calls.map(([input]) => input.accountId),
+        ...createTransfer.mock.calls.flatMap(([input]) => [
+          input.accountId,
+          input.transferTargetAccountId,
+        ]),
+        ...createBalanceAdjustment.mock.calls.map(([input]) => input.accountId),
+      ].sort(),
+    ).toEqual(["bank", "cash", "cash", "none"]);
   });
 });

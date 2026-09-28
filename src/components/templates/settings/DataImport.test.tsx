@@ -61,6 +61,19 @@ describe("DataImportTemplate", () => {
     ).toBeInTheDocument();
   });
 
+  it("说明「账户类型」列必填、可填写的值，并在各表列名中标为必填", () => {
+    renderTemplate();
+
+    expect(
+      screen.getByText(
+        /「账户类型」列.*必填.*现金、银行卡、信用卡、电子钱包、其他/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("账户类型*")).toHaveLength(2);
+    expect(screen.getByText("转出账户类型*")).toBeInTheDocument();
+    expect(screen.getByText("转入账户类型*")).toBeInTheDocument();
+  });
+
   it("未选择文件时提交按钮禁用", () => {
     renderTemplate();
     expect(screen.getByRole("button", { name: "检查格式" })).toBeDisabled();

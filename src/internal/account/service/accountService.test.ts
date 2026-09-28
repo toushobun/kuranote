@@ -311,7 +311,7 @@ describe("AccountService", () => {
   it("交易上下文保留已归档账户的历史显示信息", async () => {
     const repository = createRepository();
     vi.mocked(repository.findSummariesByIds).mockResolvedValue([
-      { currency: "JPY", id: accountId, name: "已归档现金" },
+      { currency: "JPY", id: accountId, name: "已归档现金", type: "cash" },
     ]);
     const service = createService(repository);
 

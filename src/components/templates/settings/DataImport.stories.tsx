@@ -18,6 +18,7 @@ const incomeExpenseHeader = [
   "账户",
   "账户持有人",
   "账户币种",
+  "账户类型",
   "金额",
   "备注",
 ];
@@ -35,6 +36,7 @@ function incomeExpenseRow(amount: string) {
     "现金",
     "",
     "JPY",
+    "现金",
     amount,
     "",
   ];

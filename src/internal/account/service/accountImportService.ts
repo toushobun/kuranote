@@ -1,3 +1,4 @@
+import type { AccountType } from "internal/account/entity/accountType";
 import type { AccountService } from "internal/account/service/accountService";
 
 /**
@@ -14,6 +15,7 @@ export type AccountImportEntry = {
   holder: AccountImportHolderRef | null;
   id: string;
   name: string;
+  type: AccountType;
 };
 
 export type AccountImportHolder = {
@@ -34,6 +36,7 @@ export interface AccountImportService {
     holder: AccountImportHolderRef | null;
     ledgerId: string;
     name: string;
+    type: AccountType;
     userId: string;
   }): Promise<{ accountId: string }>;
   loadContext(input: {
@@ -47,7 +50,7 @@ export function createAccountImportService(
   service: AccountService,
 ): AccountImportService {
   return {
-    async createAccount({ currency, holder, ledgerId, name, userId }) {
+    async createAccount({ currency, holder, ledgerId, name, type, userId }) {
       return service.create({
         currency,
         holderPlaceholderId:
@@ -56,8 +59,7 @@ export function createAccountImportService(
         initialBalance: 0,
         ledgerId,
         name,
-        // 导入模板没有账户类型列，无法推断时统一归为“其他”。
-        type: "other",
+        type,
         userId,
       });
     },
@@ -83,6 +85,7 @@ export function createAccountImportService(
                 : { kind: "member", userId: holder.user_id },
             id: account.id,
             name: account.name,
+            type: account.type,
           };
         }),
         holders: view.holderOptions.map((holder) => ({

@@ -33,6 +33,7 @@ const incomeExpenseHeader = [
   "账户币种",
   "金额",
   "备注",
+  "账户类型",
 ];
 
 describe("analyzeImportFile", () => {
@@ -56,6 +57,7 @@ describe("analyzeImportFile", () => {
             "CNY",
             "35.5",
             "",
+            "现金",
           ],
         ],
       },
@@ -93,6 +95,8 @@ describe("analyzeImportFile", () => {
             "转入账户持有人",
             "金额",
             "备注",
+            "转出账户类型",
+            "转入账户类型",
           ],
           [
             "转账",
@@ -106,6 +110,8 @@ describe("analyzeImportFile", () => {
             "",
             "100",
             "",
+            "现金",
+            "银行卡",
           ],
         ],
       },
@@ -127,6 +133,7 @@ describe("analyzeImportFile", () => {
             "CNY",
             "35.5",
             "",
+            "现金",
           ],
         ],
       },

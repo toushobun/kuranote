@@ -13,6 +13,7 @@ function createService(overrides: Partial<AccountService> = {}) {
         holders: [{ kind: "member", user_id: "user-1" }],
         id: "account-1",
         name: "钱包",
+        type: "cash",
       },
       {
         is_archived: false,
@@ -20,6 +21,7 @@ function createService(overrides: Partial<AccountService> = {}) {
         holders: [],
         id: "account-2",
         name: "银行卡",
+        type: "other",
       },
     ],
     holderOptions: [
@@ -40,7 +42,7 @@ function createService(overrides: Partial<AccountService> = {}) {
 }
 
 describe("AccountImportService", () => {
-  it("createAccount 使用其他类型和 0 初始余额，并透传 Service 返回的 accountId", async () => {
+  it("createAccount 使用传入的账户类型和 0 初始余额，并透传 Service 返回的 accountId", async () => {
     const { create, importService } = createService();
 
     const result = await importService.createAccount({
@@ -48,6 +50,7 @@ describe("AccountImportService", () => {
       holder: { kind: "member", userId: "user-1" },
       ledgerId: "ledger-1",
       name: "钱包",
+      type: "credit_card",
       userId: "user-1",
     });
 
@@ -58,7 +61,7 @@ describe("AccountImportService", () => {
       initialBalance: 0,
       ledgerId: "ledger-1",
       name: "钱包",
-      type: "other",
+      type: "credit_card",
       userId: "user-1",
     });
     expect(result).toEqual({ accountId: "account-1" });
@@ -72,6 +75,7 @@ describe("AccountImportService", () => {
       holder: null,
       ledgerId: "ledger-1",
       name: "钱包",
+      type: "cash",
       userId: "user-1",
     });
 
@@ -88,6 +92,7 @@ describe("AccountImportService", () => {
       holder: { kind: "placeholder", placeholderId: "placeholder-1" },
       ledgerId: "ledger-1",
       name: "钱包",
+      type: "cash",
       userId: "user-1",
     });
 
@@ -99,7 +104,7 @@ describe("AccountImportService", () => {
     );
   });
 
-  it("loadContext 取每个账户的首个持有人并映射账本成员为持有人选项", async () => {
+  it("loadContext 取每个账户的首个持有人和账户类型，并映射账本成员为持有人选项", async () => {
     const { importService } = createService();
 
     const context = await importService.loadContext({
@@ -115,6 +120,7 @@ describe("AccountImportService", () => {
           holder: { kind: "member", userId: "user-1" },
           id: "account-1",
           name: "钱包",
+          type: "cash",
         },
         {
           isArchived: false,
@@ -122,6 +128,7 @@ describe("AccountImportService", () => {
           holder: null,
           id: "account-2",
           name: "银行卡",
+          type: "other",
         },
       ],
       holders: [
@@ -145,6 +152,7 @@ describe("AccountImportService", () => {
           ],
           id: "account-placeholder",
           name: "钱包",
+          type: "cash",
         },
         {
           is_archived: false,
@@ -152,6 +160,7 @@ describe("AccountImportService", () => {
           holders: [],
           id: "account-none",
           name: "钱包",
+          type: "cash",
         },
       ],
       holderOptions: [],
@@ -170,6 +179,7 @@ describe("AccountImportService", () => {
         holder: { kind: "placeholder", placeholderId: "placeholder-1" },
         id: "account-placeholder",
         name: "钱包",
+        type: "cash",
       },
       {
         isArchived: false,
@@ -177,6 +187,7 @@ describe("AccountImportService", () => {
         holder: null,
         id: "account-none",
         name: "钱包",
+        type: "cash",
       },
     ]);
   });
