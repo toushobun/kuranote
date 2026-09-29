@@ -3,7 +3,10 @@ import { makeBalanceAdjustmentTable } from "test/mocks/dataImport";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AccountImportService } from "internal/account";
-import type { CategoryImportService } from "internal/category";
+import type {
+  CategoryImportEntry,
+  CategoryImportService,
+} from "internal/category";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import { dataImportExecutionErrorMessages } from "internal/dataImport/errors";
 import {
@@ -18,7 +21,11 @@ import {
   getLedgerPlaceholderMemberErrorMessage,
   type LedgerPlaceholderImportService,
 } from "internal/ledger";
-import type { MerchantImportService } from "internal/merchant";
+import type {
+  MerchantImportEntry,
+  MerchantImportService,
+  MerchantImportTag,
+} from "internal/merchant";
 import {
   AuthorizationError,
   ConflictError,
@@ -380,6 +387,219 @@ describe("DataImportExecutionService", () => {
         );
       },
     );
+  });
+
+  describe("分类、商家、商家分类名称不区分大小写", () => {
+    function executeRows(
+      rows: Array<Record<string, string>>,
+      context: {
+        categories?: CategoryImportEntry[];
+        merchants?: MerchantImportEntry[];
+        tags?: MerchantImportTag[];
+      } = {},
+    ) {
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.categoryImportService.listCategories,
+      ).mockResolvedValue(context.categories ?? []);
+      vi.mocked(
+        dependencies.merchantImportService.loadContext,
+      ).mockResolvedValue({
+        merchants: context.merchants ?? [],
+        tags: context.tags ?? [],
+      });
+      const result = createDataImportExecutionService(
+        dependencies,
+      ).executeBatch({
+        ledgerId: "ledger-1",
+        units: unitsOf([
+          incomeTable(
+            rows.map((row, index) =>
+              incomeRow({
+                日期: `2026-09-17 1${index}:00:00`,
+                ...row,
+              }),
+            ),
+          ),
+        ]),
+        timeZoneOffsetMinutes: 0,
+        userId: "user-1",
+      });
+      return { dependencies, result };
+    }
+
+    function createNormalInputs(
+      dependencies: ReturnType<typeof createDependencies>,
+    ) {
+      return vi
+        .mocked(dependencies.transactionImportService.createNormal)
+        .mock.calls.map(([input]) => input);
+    }
+
+    const foodRoot: CategoryImportEntry = {
+      id: "food-root",
+      name: "Food",
+      parentId: null,
+      type: "expense",
+    };
+
+    it("一级、二级分类名称只差大小写时复用已有分类，不新建分类", async () => {
+      const { dependencies, result } = executeRows(
+        [{ 一级分类: "food", 二级分类: "grocery" }],
+        {
+          categories: [
+            foodRoot,
+            {
+              id: "grocery-child",
+              name: "Grocery",
+              parentId: "food-root",
+              type: "expense",
+            },
+          ],
+        },
+      );
+
+      expect((await result).successCount).toBe(1);
+      expect(
+        dependencies.categoryImportService.createCategory,
+      ).not.toHaveBeenCalled();
+      expect(createNormalInputs(dependencies)[0]).toMatchObject({
+        items: [expect.objectContaining({ categoryId: "grocery-child" })],
+      });
+    });
+
+    it("同一批次内只差大小写的新分类只创建一次，并使用首次出现的写法", async () => {
+      const { dependencies, result } = executeRows([
+        { 一级分类: "Travel", 二级分类: "Hotel" },
+        { 一级分类: "travel", 二级分类: "hotel" },
+      ]);
+
+      expect((await result).successCount).toBe(2);
+      const createCategory = vi.mocked(
+        dependencies.categoryImportService.createCategory,
+      );
+      expect(createCategory).toHaveBeenCalledTimes(2);
+      expect(createCategory).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Travel", parentId: null }),
+      );
+      expect(createCategory).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Hotel", parentId: "root-Travel" }),
+      );
+      for (const input of createNormalInputs(dependencies)) {
+        expect(input).toMatchObject({
+          items: [expect.objectContaining({ categoryId: "root-Travel-Hotel" })],
+        });
+      }
+    });
+
+    it("商家分类名称只差大小写时复用已有商家分类，不新建", async () => {
+      const { dependencies, result } = executeRows([{ 商家分类: "online" }], {
+        tags: [{ id: "tag-online", name: "Online" }],
+      });
+
+      expect((await result).successCount).toBe(1);
+      expect(
+        dependencies.merchantImportService.createTag,
+      ).not.toHaveBeenCalled();
+      expect(
+        dependencies.merchantImportService.createMerchant,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ tagIds: ["tag-online"] }),
+      );
+    });
+
+    it("同一批次内只差大小写的新商家分类只创建一次，并使用首次出现的写法", async () => {
+      const { dependencies, result } = executeRows([
+        { 商家分类: "Online", 商家: "商家A" },
+        { 商家分类: "online", 商家: "商家B" },
+      ]);
+
+      expect((await result).successCount).toBe(2);
+      const createTag = vi.mocked(dependencies.merchantImportService.createTag);
+      expect(createTag).toHaveBeenCalledOnce();
+      expect(createTag).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Online" }),
+      );
+      expect(
+        dependencies.merchantImportService.createMerchant,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "商家B", tagIds: ["tag-Online"] }),
+      );
+    });
+
+    it.each([
+      ["名称", ["Amazon"]],
+      ["别名", ["亚马逊", "AMZN"]],
+    ])(
+      "商家%s只差大小写时复用已有商家，不新建商家",
+      async (_label, matchNames: string[]) => {
+        const input = matchNames[matchNames.length - 1].toLowerCase();
+        const { dependencies, result } = executeRows([{ 商家: input }], {
+          merchants: [{ id: "merchant-amazon", matchNames, tagIds: [] }],
+        });
+
+        expect((await result).successCount).toBe(1);
+        expect(
+          dependencies.merchantImportService.createMerchant,
+        ).not.toHaveBeenCalled();
+        expect(createNormalInputs(dependencies)[0]).toMatchObject({
+          merchantId: "merchant-amazon",
+        });
+      },
+    );
+
+    it("同一批次内只差大小写的新商家只创建一次，并使用首次出现的写法", async () => {
+      const { dependencies, result } = executeRows([
+        { 商家: "Costco" },
+        { 商家: "costco" },
+      ]);
+
+      expect((await result).successCount).toBe(2);
+      const createMerchant = vi.mocked(
+        dependencies.merchantImportService.createMerchant,
+      );
+      expect(createMerchant).toHaveBeenCalledOnce();
+      expect(createMerchant).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Costco" }),
+      );
+      for (const input of createNormalInputs(dependencies)) {
+        expect(input).toMatchObject({ merchantId: "merchant-Costco" });
+      }
+    });
+
+    describe("不同商家之间存在只差大小写的名称或别名", () => {
+      const merchants: MerchantImportEntry[] = [
+        { id: "merchant-a", matchNames: ["商家A", "abc"], tagIds: [] },
+        { id: "merchant-b", matchNames: ["ABC"], tagIds: [] },
+      ];
+
+      it("存在原文完全一致的匹配时优先使用，不报歧义", async () => {
+        const { dependencies, result } = executeRows([{ 商家: "ABC" }], {
+          merchants,
+        });
+
+        expect((await result).successCount).toBe(1);
+        expect(createNormalInputs(dependencies)[0]).toMatchObject({
+          merchantId: "merchant-b",
+        });
+      });
+
+      it("没有原文匹配且不区分大小写匹配到多个商家时报商家歧义", async () => {
+        const { dependencies, result } = executeRows([{ 商家: "Abc" }], {
+          merchants,
+        });
+
+        const awaited = await result;
+        expect(awaited.failureCount).toBe(1);
+        expect(awaited.details[0]).toMatchObject({
+          reason: dataImportExecutionErrorMessages.merchantAmbiguous("Abc"),
+          status: "failed",
+        });
+        expect(
+          dependencies.merchantImportService.createMerchant,
+        ).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it("缺失的分类、商家标签、商家和账户会自动创建后写入交易", async () => {
