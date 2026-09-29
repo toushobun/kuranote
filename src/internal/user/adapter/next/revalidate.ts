@@ -19,7 +19,7 @@ export function revalidateUserProfileMutation(): void {
   revalidatePath("/ledgers/[ledgerId]/settings", "page");
 }
 
-/** 收支配色写入成功后只失效当前设置页。 */
+/** 收支配色写入成功后只失效 App 偏好设置页。 */
 export function revalidateTransactionColorSchemeMutation(): void {
-  revalidatePath(routePaths.settings);
+  revalidatePath(routePaths.settingsPreferences);
 }

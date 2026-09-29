@@ -12,10 +12,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 describe("revalidateTransactionColorSchemeMutation", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("只失效设置页", () => {
+  it("只失效 App 偏好设置页", () => {
     revalidateTransactionColorSchemeMutation();
 
     expect(mocks.revalidatePath).toHaveBeenCalledOnce();
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.settings);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      routePaths.settingsPreferences,
+    );
   });
 });

@@ -1,13 +1,11 @@
 import Box from "@mui/material/Box";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
-import { SectionCard } from "molecules/ui/SectionCard";
+import { SettingsEntryGroupSkeleton } from "organisms/settings/SettingsEntryList/SettingsEntryGroupSkeleton";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
-import { userThemeCardBorder } from "theme/userThemeCardSx";
 
-const settingsLoadingGroupSizes = [1, 5, 3, 3] as const;
+const settingsLoadingGroupSizes = [2, 4, 4] as const;
 
 export default function SettingsLoadingPage() {
   return (
@@ -17,39 +15,10 @@ export default function SettingsLoadingPage() {
 
         <Stack spacing={1.25}>
           {settingsLoadingGroupSizes.map((count, groupIndex) => (
-            <SectionCard key={groupIndex} sx={settingsLoadingCardSx}>
-              {Array.from({ length: count }, (_, index) => (
-                <Stack
-                  direction="row"
-                  key={index}
-                  spacing={1.5}
-                  sx={settingsLoadingRowSx(index === count - 1)}
-                >
-                  <Skeleton variant="circular" width={30} height={30} />
-                  <Skeleton width="38%" sx={{ fontSize: 16 }} />
-                  <Box sx={{ flex: 1 }} />
-                  <Skeleton width={20} sx={{ fontSize: 16 }} />
-                </Stack>
-              ))}
-            </SectionCard>
+            <SettingsEntryGroupSkeleton count={count} key={groupIndex} />
           ))}
         </Stack>
       </PageShell>
     </Box>
   );
-}
-
-const settingsLoadingCardSx = {
-  overflow: "hidden",
-  p: 0,
-};
-
-function settingsLoadingRowSx(isLast: boolean) {
-  return {
-    alignItems: "center",
-    borderBottom: isLast ? 0 : userThemeCardBorder,
-    minHeight: 52,
-    px: 2,
-    py: 1.25,
-  } as const;
 }
