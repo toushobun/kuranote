@@ -9,23 +9,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsTemplate } from "./Settings";
 
-vi.mock("molecules/theme/UserThemePicker", () => ({
-  UserThemePicker: () => <div>主题选择器</div>,
-}));
-vi.mock(
-  "molecules/theme/TransactionColorSchemePicker/TransactionColorSchemePicker",
-  () => ({
-    TransactionColorSchemePicker: () => <div>收支颜色选择器</div>,
-  }),
-);
-
 const logoutAction = vi.fn();
-const updateTransactionColorSchemeAction = vi.fn();
 
 afterEach(() => {
   cleanup();
   logoutAction.mockClear();
-  updateTransactionColorSchemeAction.mockClear();
 });
 
 function renderSettingsTemplate() {
@@ -33,13 +21,19 @@ function renderSettingsTemplate() {
     <SettingsTemplate
       currentLedgerName="家庭账本"
       logoutAction={logoutAction}
-      updateTransactionColorSchemeAction={updateTransactionColorSchemeAction}
     />,
   );
 }
 
+function getEntryLabels(section: HTMLElement) {
+  return Array.from(
+    section.querySelectorAll("a, button"),
+    (entry) => entry.textContent,
+  );
+}
+
 describe("SettingsTemplate", () => {
-  it("显示我的页面标题、说明和设置入口", () => {
+  it("显示我的页面标题和说明", () => {
     const { container } = renderSettingsTemplate();
 
     expect(
@@ -48,37 +42,47 @@ describe("SettingsTemplate", () => {
     expect(
       within(container).getByText("管理个人信息、主题与应用设置"),
     ).toBeInTheDocument();
+  });
 
-    for (const label of [
-      "个人主页",
-      "主题换装",
-      "收支颜色",
-      "语言设置",
-      "App 偏好设置",
-      "帮助与反馈",
-      "关于 KuraNote",
-      "退出登录",
-    ]) {
+  it("按个人、管理、应用 / 支持分组显示入口", () => {
+    const { container } = renderSettingsTemplate();
+
+    expect(
+      getEntryLabels(within(container).getByRole("region", { name: "个人" })),
+    ).toEqual(["个人主页", "账本管理家庭账本"]);
+    expect(
+      getEntryLabels(within(container).getByRole("region", { name: "管理" })),
+    ).toEqual(["账户管理", "分类管理", "商家管理", "数据导入导出"]);
+    expect(
+      getEntryLabels(
+        within(container).getByRole("region", { name: "应用 / 支持" }),
+      ),
+    ).toEqual(["App 偏好设置", "帮助与反馈", "关于 KuraNote", "退出登录"]);
+  });
+
+  it("管理类入口与 App 偏好设置跳转到对应页面", () => {
+    const { container } = renderSettingsTemplate();
+
+    for (const [label, href] of [
+      ["账本管理", "/ledgers"],
+      ["账户管理", "/accounts"],
+      ["分类管理", "/categories"],
+      ["商家管理", "/merchants"],
+      ["数据导入导出", "/settings/data"],
+      ["App 偏好设置", "/settings/preferences"],
+    ] as const) {
       expect(
-        within(container).getByRole("button", { name: new RegExp(label) }),
-      ).toBeInTheDocument();
+        within(container).getByRole("link", { name: new RegExp(label) }),
+      ).toHaveAttribute("href", href);
     }
+  });
 
-    expect(
-      within(container).getByRole("link", { name: /账本管理/ }),
-    ).toHaveAttribute("href", "/ledgers");
-    expect(
-      within(container).getByRole("link", { name: /账户管理/ }),
-    ).toHaveAttribute("href", "/accounts");
-    expect(
-      within(container).getByRole("link", { name: /分类管理/ }),
-    ).toHaveAttribute("href", "/categories");
-    expect(
-      within(container).getByRole("link", { name: /商家管理/ }),
-    ).toHaveAttribute("href", "/merchants");
-    expect(
-      within(container).getByRole("link", { name: /数据导入导出/ }),
-    ).toHaveAttribute("href", "/settings/data");
+  it("不再显示主题换装、收支颜色和语言设置入口", () => {
+    const { container } = renderSettingsTemplate();
+
+    for (const label of ["主题换装", "收支颜色", "语言设置"]) {
+      expect(within(container).queryByText(label)).not.toBeInTheDocument();
+    }
   });
 
   it("账本管理入口显示当前账本名称", () => {
@@ -87,73 +91,24 @@ describe("SettingsTemplate", () => {
     expect(within(container).getByText("家庭账本")).toBeInTheDocument();
   });
 
-  it("语言设置入口显示当前语言", () => {
-    const { container } = renderSettingsTemplate();
-
-    expect(within(container).getByText("简体中文")).toBeInTheDocument();
-  });
-
   it("点击未实现入口时显示准备中提示", () => {
     const { container } = renderSettingsTemplate();
 
     fireEvent.click(
-      within(container).getByRole("button", { name: /语言设置/ }),
+      within(container).getByRole("button", { name: /个人主页/ }),
     );
 
     expect(screen.getByText("正在准备中")).toBeInTheDocument();
   });
 
-  it("点击主题换装时显示主题选择器", () => {
+  it("退出登录入口作为表单提交按钮保留在我的页面", () => {
     const { container } = renderSettingsTemplate();
 
-    fireEvent.click(
-      within(container).getByRole("button", { name: /主题换装/ }),
-    );
-
-    expect(screen.getByText("主题选择器")).toBeInTheDocument();
-    expect(screen.queryByText("正在准备中")).not.toBeInTheDocument();
-  });
-
-  it("收支颜色入口位于主题换装与账本管理之间并可展开", () => {
-    const { container } = renderSettingsTemplate();
-    const themeEntry = within(container).getByRole("button", {
-      name: /主题换装/,
-    });
-    const colorEntry = within(container).getByRole("button", {
-      name: /收支颜色/,
-    });
-    const ledgerEntry = within(container).getByRole("link", {
-      name: /账本管理/,
+    const logoutButton = within(container).getByRole("button", {
+      name: /退出登录/,
     });
 
-    expect(
-      themeEntry.compareDocumentPosition(colorEntry) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      colorEntry.compareDocumentPosition(ledgerEntry) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    fireEvent.click(colorEntry);
-
-    expect(screen.getByText("收支颜色选择器")).toBeInTheDocument();
-  });
-
-  it("展开一个选择器时收起另一个选择器", () => {
-    const { container } = renderSettingsTemplate();
-    const themeEntry = within(container).getByRole("button", {
-      name: /主题换装/,
-    });
-    const colorEntry = within(container).getByRole("button", {
-      name: /收支颜色/,
-    });
-
-    fireEvent.click(themeEntry);
-    expect(themeEntry).toHaveAttribute("aria-expanded", "true");
-
-    fireEvent.click(colorEntry);
-    expect(themeEntry).toHaveAttribute("aria-expanded", "false");
-    expect(colorEntry).toHaveAttribute("aria-expanded", "true");
+    expect(logoutButton).toHaveAttribute("type", "submit");
+    expect(logoutButton.closest("form")).not.toBeNull();
   });
 });
