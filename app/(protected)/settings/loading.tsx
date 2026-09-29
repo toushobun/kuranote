@@ -5,7 +5,7 @@ import { SettingsEntryGroupSkeleton } from "organisms/settings/SettingsEntryList
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
-const settingsLoadingGroupSizes = [2, 4, 4] as const;
+const settingsLoadingGroupSizes = [2, 4, 3] as const;
 
 export default function SettingsLoadingPage() {
   return (

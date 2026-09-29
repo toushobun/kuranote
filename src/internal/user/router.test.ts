@@ -50,7 +50,9 @@ function createContainer(
     user: {
       service: {
         getCurrentProfile: vi.fn(),
+        listCurrentLedgerDisplayNames: vi.fn(),
         syncDisplayName: vi.fn(),
+        updateCurrentDisplayName: vi.fn(),
         updateCurrentProfile: vi.fn(),
         ...overrides,
       },

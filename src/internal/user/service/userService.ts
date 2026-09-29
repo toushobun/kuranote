@@ -1,21 +1,35 @@
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
+import type { UserLedgerDisplayName } from "internal/user/entity/userLedgerDisplayName";
 import type {
   TransactionColorScheme,
   UserProfile,
 } from "internal/user/entity/userProfile";
-import type { UserRepository } from "internal/user/repository/userRepository";
-
-const displayNameMaxLength = 100;
+import {
+  displayNameMaxLength,
+  formatLedgerDisplayNameConflictMessage,
+  userErrorMessages,
+} from "internal/user/errors";
+import type {
+  UpdateDisplayNameErrorCode,
+  UserRepository,
+} from "internal/user/repository/userRepository";
 
 export type UpdateCurrentUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
   transactionColorScheme?: TransactionColorScheme;
+};
+
+export type UpdateCurrentDisplayNameInput = {
+  displayName: string;
+  /** 需要同步修改账本内昵称的账本 ID，来自客户端，Service 会重新校验。 */
+  syncLedgerIds: readonly string[];
 };
 
 export type SyncUserDisplayNameInput = {
@@ -30,6 +44,8 @@ export interface UserDisplayNameSyncService {
 
 export interface UserService extends UserDisplayNameSyncService {
   getCurrentProfile(): Promise<UserProfile>;
+  listCurrentLedgerDisplayNames(): Promise<UserLedgerDisplayName[]>;
+  updateCurrentDisplayName(input: UpdateCurrentDisplayNameInput): Promise<void>;
   updateCurrentProfile(
     input: UpdateCurrentUserProfileInput,
   ): Promise<UserProfile>;
@@ -44,12 +60,15 @@ function normalizeDisplayName(displayName: string): string {
   const normalized = displayName.trim();
 
   if (!normalized) {
-    throw new ValidationError("display_name_required", "请输入昵称。");
+    throw new ValidationError(
+      "display_name_required",
+      userErrorMessages.displayNameRequired,
+    );
   }
   if (normalized.length > displayNameMaxLength) {
     throw new ValidationError(
       "display_name_too_long",
-      `昵称最多 ${displayNameMaxLength} 个字符。`,
+      userErrorMessages.displayNameTooLong,
     );
   }
 
@@ -78,6 +97,24 @@ function normalizeAvatarUrl(avatarUrl: string | null): string | null {
   return normalized;
 }
 
+function toUpdateDisplayNameError(code: UpdateDisplayNameErrorCode) {
+  switch (code) {
+    case "auth_required":
+      return new AuthenticationError(code, "请先登录。");
+    case "display_name_required":
+      return new ValidationError(code, userErrorMessages.displayNameRequired);
+    case "display_name_too_long":
+      return new ValidationError(code, userErrorMessages.displayNameTooLong);
+    case "ledger_permission_denied":
+      return new AuthorizationError(
+        code,
+        userErrorMessages.displayNameLedgerPermissionDenied,
+      );
+    case "user_inactive":
+      return new AuthorizationError(code, userErrorMessages.userInactive);
+  }
+}
+
 export function createUserService({
   currentUserId,
   userRepository,
@@ -97,7 +134,10 @@ export function createUserService({
       throw new NotFoundError("user_not_found", "用户资料不存在。");
     }
     if (profile.status !== "active") {
-      throw new AuthorizationError("user_inactive", "当前用户已停用。");
+      throw new AuthorizationError(
+        "user_inactive",
+        userErrorMessages.userInactive,
+      );
     }
 
     return profile;
@@ -159,6 +199,48 @@ export function createUserService({
       }
 
       await updateProfile(userId, { displayName });
+    },
+
+    async listCurrentLedgerDisplayNames() {
+      requireCurrentUserId();
+      return userRepository.listCurrentLedgerDisplayNames();
+    },
+
+    async updateCurrentDisplayName({ displayName, syncLedgerIds }) {
+      const userId = requireCurrentUserId();
+      const normalizedDisplayName = normalizeDisplayName(displayName);
+
+      await requireActiveProfile(userId);
+
+      // 客户端提交的账本必须是当前用户所属的 active 账本；RPC 内会再次校验。
+      if (syncLedgerIds.length > 0) {
+        const ledgers = await userRepository.listCurrentLedgerDisplayNames();
+        const accessibleLedgerIds = new Set(
+          ledgers.map((ledger) => ledger.ledgerId),
+        );
+
+        if (syncLedgerIds.some((id) => !accessibleLedgerIds.has(id))) {
+          throw new AuthorizationError(
+            "ledger_permission_denied",
+            userErrorMessages.displayNameLedgerPermissionDenied,
+          );
+        }
+      }
+
+      const result = await userRepository.updateCurrentDisplayName({
+        displayName: normalizedDisplayName,
+        syncLedgerIds: [...new Set(syncLedgerIds)],
+      });
+
+      if (result.ok) return;
+      if ("conflicts" in result) {
+        throw new ConflictError(
+          "display_name_ledger_conflict",
+          formatLedgerDisplayNameConflictMessage(result.conflicts),
+        );
+      }
+
+      throw toUpdateDisplayNameError(result.code);
     },
 
     async updateCurrentProfile(input) {

@@ -15,6 +15,7 @@ export const routePaths = {
   settingsDataExport: "/settings/data/export",
   settingsDataImport: "/settings/data/import",
   settingsPreferences: "/settings/preferences",
+  settingsProfile: "/settings/profile",
   statistics: "/statistics",
   transactions: "/transactions",
   transactionsNew: "/transactions/new",

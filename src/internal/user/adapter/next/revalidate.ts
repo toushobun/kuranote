@@ -10,6 +10,7 @@ export const userProfileRevalidatePaths = [
   routePaths.accounts,
   routePaths.statistics,
   routePaths.settings,
+  routePaths.settingsProfile,
   routePaths.ledgers,
 ] as const;
 

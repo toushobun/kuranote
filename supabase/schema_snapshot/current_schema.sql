@@ -3726,6 +3726,33 @@ $$;
 ALTER FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."list_current_user_ledger_display_names"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "display_name" "text")
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select
+        l.id,
+        l.name,
+        coalesce(nullif(btrim(lds.display_name), ''), btrim(au.display_name))
+    from public.ledger_member lm
+    join public.ledger l
+      on l.id = lm.ledger_id
+    join public.app_user au
+      on au.id = lm.user_id
+    left join public.ledger_member_display_setting lds
+      on lds.ledger_id = lm.ledger_id
+     and lds.user_id = lm.user_id
+    where lm.user_id = auth.uid()
+      and lm.status = 'active'
+      and au.status = 'active'
+      and l.is_archived = false
+    order by lm.joined_at asc nulls last, lm.created_at asc, lm.ledger_id asc;
+$$;
+
+
+ALTER FUNCTION "public"."list_current_user_ledger_display_names"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") RETURNS TABLE("invite_id" "uuid", "invite_role" "text", "created_at" timestamp with time zone, "invite_token" "text", "placeholder_id" "uuid")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5722,6 +5749,168 @@ $$;
 
 
 ALTER FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_current_user_display_name"("p_display_name" "text", "p_sync_ledger_ids" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "error_code" "text")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+#variable_conflict use_column
+declare
+    v_user_id uuid := auth.uid();
+    v_display_name text;
+    v_previous_display_name text;
+    v_sync_ledger_ids uuid[];
+    v_active_ledger_ids uuid[];
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    if p_display_name is null or btrim(p_display_name) = '' then
+        raise exception 'display_name_required'
+            using errcode = '22023', detail = 'display_name_required';
+    end if;
+
+    if length(btrim(p_display_name)) > 100 then
+        raise exception 'display_name_too_long'
+            using errcode = '22023', detail = 'display_name_too_long';
+    end if;
+
+    v_display_name := btrim(p_display_name);
+
+    select coalesce(array_agg(distinct input.id), '{}'::uuid[])
+      into v_sync_ledger_ids
+      from unnest(coalesce(p_sync_ledger_ids, '{}'::uuid[])) as input(id)
+     where input.id is not null;
+
+    -- 锁顺序与 update_ledger_member_settings 一致：账本 → 成员；多个账本按 ID 排序加锁。
+    select coalesce(array_agg(locked.id order by locked.id), '{}'::uuid[])
+      into v_active_ledger_ids
+      from (
+          select l.id
+            from public.ledger l
+           where l.is_archived = false
+             and exists (
+                 select 1
+                   from public.ledger_member lm
+                  where lm.ledger_id = l.id
+                    and lm.user_id = v_user_id
+                    and lm.status = 'active'
+             )
+           order by l.id
+           for update of l
+      ) locked;
+
+    perform 1
+      from public.ledger_member lm
+     where lm.ledger_id = any(v_active_ledger_ids)
+       and lm.user_id = v_user_id
+       and lm.status = 'active'
+     order by lm.ledger_id
+     for update of lm;
+
+    select au.display_name
+      into v_previous_display_name
+      from public.app_user au
+     where au.id = v_user_id
+       and au.status = 'active'
+     for update;
+
+    if not found then
+        raise exception 'user_inactive'
+            using errcode = '42501', detail = 'user_inactive';
+    end if;
+
+    -- 客户端提交的账本必须全部在当前用户的 active 账本范围内。
+    if exists (
+        select 1
+          from unnest(v_sync_ledger_ids) as sync(id)
+         where not (sync.id = any(v_active_ledger_ids))
+    ) then
+        raise exception 'ledger_permission_denied'
+            using errcode = '42501', detail = 'ledger_permission_denied';
+    end if;
+
+    -- 冲突检查：只要有一个勾选账本冲突就不写入，返回全部冲突账本。
+    return query
+    select l.id, l.name, 'display_name_placeholder_conflict'::text
+      from public.ledger l
+      left join public.ledger_member_display_setting lds
+        on lds.ledger_id = l.id
+       and lds.user_id = v_user_id
+     where l.id = any(v_sync_ledger_ids)
+       and v_display_name collate "C" is distinct from
+           coalesce(nullif(btrim(lds.display_name), ''), btrim(v_previous_display_name)) collate "C"
+       and exists (
+           select 1
+             from public.ledger_placeholder_member p
+            where p.ledger_id = l.id
+              and p.claimed_by is null
+              and p.display_name collate "C" = v_display_name collate "C"
+       )
+     order by l.id;
+
+    if found then
+        return;
+    end if;
+
+    -- 未勾选账本：账本内昵称为空时固定为修改前的账号昵称。
+    insert into public.ledger_member_display_setting (
+        ledger_id,
+        user_id,
+        display_name,
+        display_color,
+        created_by,
+        updated_by
+    )
+    select
+        unsynced.id,
+        v_user_id,
+        btrim(v_previous_display_name),
+        public.get_next_ledger_member_display_color(unsynced.id),
+        v_user_id,
+        v_user_id
+      from unnest(v_active_ledger_ids) as unsynced(id)
+     where not (unsynced.id = any(v_sync_ledger_ids))
+     order by unsynced.id
+    on conflict on constraint ledger_member_display_setting_unique do update set
+        display_name = excluded.display_name,
+        updated_by = v_user_id
+    where nullif(btrim(ledger_member_display_setting.display_name), '') is null;
+
+    -- 勾选账本：账本内昵称更新为新昵称，保留个性色。
+    insert into public.ledger_member_display_setting (
+        ledger_id,
+        user_id,
+        display_name,
+        display_color,
+        created_by,
+        updated_by
+    )
+    select
+        synced.id,
+        v_user_id,
+        v_display_name,
+        public.get_next_ledger_member_display_color(synced.id),
+        v_user_id,
+        v_user_id
+      from unnest(v_sync_ledger_ids) as synced(id)
+     order by synced.id
+    on conflict on constraint ledger_member_display_setting_unique do update set
+        display_name = excluded.display_name,
+        updated_by = v_user_id;
+
+    update public.app_user
+       set display_name = v_display_name,
+           updated_by = v_user_id
+     where id = v_user_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_current_user_display_name"("p_display_name" "text", "p_sync_ledger_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") RETURNS "void"
@@ -9954,6 +10143,11 @@ REVOKE ALL ON FUNCTION "public"."ledger_active_member_display_name_exists"("p_le
 
 
 
+REVOKE ALL ON FUNCTION "public"."list_current_user_ledger_display_names"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_current_user_ledger_display_names"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") TO "authenticated";
 
@@ -10068,6 +10262,11 @@ GRANT ALL ON FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid
 
 REVOKE ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_note" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_current_user_display_name"("p_display_name" "text", "p_sync_ledger_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_current_user_display_name"("p_display_name" "text", "p_sync_ledger_ids" "uuid"[]) TO "authenticated";
 
 
 
