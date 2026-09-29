@@ -784,6 +784,7 @@ CREATE OR REPLACE FUNCTION "public"."assign_ledger_member_default_display_color"
     AS $$
 declare
     v_actor_id uuid;
+    v_display_name text;
 begin
     if new.status <> 'active' then
         return new;
@@ -801,15 +802,22 @@ begin
 
     v_actor_id = coalesce(auth.uid(), new.created_by, new.user_id);
 
+    select btrim(au.display_name)
+      into v_display_name
+      from public.app_user au
+     where au.id = new.user_id;
+
     insert into public.ledger_member_display_setting (
         ledger_id,
         user_id,
+        display_name,
         display_color,
         created_by,
         updated_by
     ) values (
         new.ledger_id,
         new.user_id,
+        v_display_name,
         public.get_next_ledger_member_display_color(new.ledger_id),
         v_actor_id,
         v_actor_id
@@ -824,8 +832,35 @@ $$;
 ALTER FUNCTION "public"."assign_ledger_member_default_display_color"() OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '成员首次成为 active 时自动建立账本内显示色设置。';
+COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '成员首次成为 active 时自动建立账本内显示设置（显示色与当时的账号昵称）。';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."backfill_ledger_member_display_names"() RETURNS integer
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_count integer;
+begin
+    update public.ledger_member_display_setting lds
+       set display_name = btrim(au.display_name)
+      from public.ledger_member lm,
+           public.app_user au
+     where lm.ledger_id = lds.ledger_id
+       and lm.user_id = lds.user_id
+       and lm.status = 'active'
+       and au.id = lds.user_id
+       and au.status = 'active'
+       and nullif(btrim(lds.display_name), '') is null;
+
+    get diagnostics v_count = row_count;
+    return v_count;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."backfill_ledger_member_display_names"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS numeric
@@ -5856,31 +5891,8 @@ begin
         return;
     end if;
 
-    -- 未勾选账本：账本内昵称为空时固定为修改前的账号昵称。
-    insert into public.ledger_member_display_setting (
-        ledger_id,
-        user_id,
-        display_name,
-        display_color,
-        created_by,
-        updated_by
-    )
-    select
-        unsynced.id,
-        v_user_id,
-        btrim(v_previous_display_name),
-        public.get_next_ledger_member_display_color(unsynced.id),
-        v_user_id,
-        v_user_id
-      from unnest(v_active_ledger_ids) as unsynced(id)
-     where not (unsynced.id = any(v_sync_ledger_ids))
-     order by unsynced.id
-    on conflict on constraint ledger_member_display_setting_unique do update set
-        display_name = excluded.display_name,
-        updated_by = v_user_id
-    where nullif(btrim(ledger_member_display_setting.display_name), '') is null;
-
     -- 勾选账本：账本内昵称更新为新昵称，保留个性色。
+    -- 显示设置行正常情况下已由成员加入 trigger 建立，这里的 insert 只是兜底。
     insert into public.ledger_member_display_setting (
         ledger_id,
         user_id,
@@ -9957,6 +9969,10 @@ GRANT ALL ON FUNCTION "public"."archive_merchant_tag"("p_ledger_id" "uuid", "p_t
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."backfill_ledger_member_display_names"() FROM PUBLIC;
 
 
 
