@@ -94,12 +94,22 @@ export interface DataImportExecutionService {
   }): Promise<ImportHolderMappingOptions>;
 }
 
+/**
+ * 名称匹配与数据库 `lower(name)` 唯一约束对齐，不区分大小写。
+ * 不同对象之间可能存在只差大小写的名称（如商家 A 的别名与商家 B 的名称），
+ * 因此原文完全一致的匹配优先；没有原文匹配时才退回不区分大小写的匹配。
+ */
 function resolveUniqueByName<T>(
   values: T[],
   getNames: (value: T) => string[],
   name: string,
 ): T[] {
-  return values.filter((value) => getNames(value).includes(name));
+  const exactMatches = values.filter((value) => getNames(value).includes(name));
+  if (exactMatches.length > 0) return exactMatches;
+  const lowerName = name.toLowerCase();
+  return values.filter((value) =>
+    getNames(value).some((candidate) => candidate.toLowerCase() === lowerName),
+  );
 }
 
 function unitRowNumbers(unit: ImportExecutionUnit): number[] {
@@ -148,12 +158,13 @@ function detailForUnit(
   };
 }
 
+/** 约束按 `lower(name)` 判重，名称在匹配键里同样不区分大小写；新建分类仍保存原文。 */
 function categoryKey(
   type: CategoryType,
   parentId: string | null,
   name: string,
 ) {
-  return `${type}\u0000${parentId ?? "root"}\u0000${name}`;
+  return `${type}\u0000${parentId ?? "root"}\u0000${name.toLowerCase()}`;
 }
 
 /** 持有人种类与 ID 一起进入复用键，成员、待邀请成员与无持有人的账户互不混用。 */
@@ -517,7 +528,11 @@ export function createDataImportExecutionService({
 
       async function resolveMerchantTag(name: string | null) {
         if (!name) return null;
-        let tag = merchantTags.find((candidate) => candidate.name === name);
+        // 商家分类约束按 `lower(name)` 判重，匹配同样不区分大小写；新建时保存原文。
+        const lowerName = name.toLowerCase();
+        let tag = merchantTags.find(
+          (candidate) => candidate.name.toLowerCase() === lowerName,
+        );
         if (!tag) {
           const created = await merchantImportService.createTag({
             ledgerId,
