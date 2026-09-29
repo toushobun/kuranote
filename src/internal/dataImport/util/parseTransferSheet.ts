@@ -141,6 +141,7 @@ export function parseTransferSheet(
     // 「转出/转入账户是否相同」只依赖这几个字段自身是否合法，与「交易类型」
     // 「日期」「金额」「备注」等无关字段是否报错无关，避免这些字段的错误
     // 掩盖同账户错误，导致用户要多次上传才能看到完整的错误列表。
+    // 账户名称与导入执行时的账户匹配规则一致，不区分大小写。
     if (
       fromAccountName &&
       toAccountName &&
@@ -150,7 +151,7 @@ export function parseTransferSheet(
       toAccountHolderResult.ok &&
       fromAccountTypeResult.ok &&
       toAccountTypeResult.ok &&
-      fromAccountName === toAccountName &&
+      fromAccountName.toLowerCase() === toAccountName.toLowerCase() &&
       fromAccountCurrencyText.toUpperCase() ===
         toAccountCurrencyText.toUpperCase() &&
       fromAccountHolderResult.value === toAccountHolderResult.value &&

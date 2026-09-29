@@ -164,14 +164,17 @@ function holderKey(holder: AccountImportHolderRef | null) {
     : `placeholder:${holder.placeholderId.toLowerCase()}`;
 }
 
-/** 与账户唯一约束对齐：名称、持有人、币种、账户类型都相同才视为同一个账户。 */
+/**
+ * 与账户唯一约束对齐：名称、持有人、币种、账户类型都相同才视为同一个账户。
+ * 约束按 `lower(name)` 判重，名称在匹配键里同样不区分大小写；新建账户仍保存原文。
+ */
 function accountKey(
   name: string,
   holder: AccountImportHolderRef | null,
   currency: string,
   type: AccountType,
 ) {
-  return `${name}\u0000${holderKey(holder)}\u0000${currency}\u0000${type}`;
+  return `${name.toLowerCase()}\u0000${holderKey(holder)}\u0000${currency}\u0000${type}`;
 }
 
 function hasPlaceholderReference(mapping: ImportHolderMapping) {
