@@ -1,5 +1,5 @@
 import type { UserLedgerDisplayName } from "internal/user";
-import type { DisplayNameAction } from "types/user";
+import type { AvatarAction, DisplayNameAction } from "types/user";
 
 /** 个人主页相关组件的测试与 Storybook 共用数据。 */
 export const familyLedgerId = "00000000-0000-4000-8000-000000000101";
@@ -28,5 +28,15 @@ export const succeededDisplayNameAction: DisplayNameAction = async () => ({
 
 export const failedDisplayNameAction: DisplayNameAction = async () => ({
   error: displayNameConflictMessage,
+  errorKey: crypto.randomUUID(),
+});
+
+export const succeededAvatarAction: AvatarAction = async () => ({
+  success: "头像已更换。",
+  successKey: crypto.randomUUID(),
+});
+
+export const failedAvatarAction: AvatarAction = async () => ({
+  error: "头像上传失败，请稍后重试。",
   errorKey: crypto.randomUUID(),
 });

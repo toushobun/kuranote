@@ -14,7 +14,9 @@ import {
   displayNameMaxLength,
   formatLedgerDisplayNameConflictMessage,
   userErrorMessages,
+  type AvatarMimeType,
 } from "internal/user/errors";
+import type { AvatarStorageRepository } from "internal/user/repository/avatarStorageRepository";
 import type {
   UpdateDisplayNameErrorCode,
   UserRepository,
@@ -32,6 +34,12 @@ export type UpdateCurrentDisplayNameInput = {
   syncLedgerIds: readonly string[];
 };
 
+/** 文件格式与大小已由 schema 校验。 */
+export type UpdateCurrentAvatarInput = {
+  contentType: AvatarMimeType;
+  file: Blob;
+};
+
 export type SyncUserDisplayNameInput = {
   displayName: string;
   userId: string;
@@ -45,6 +53,7 @@ export interface UserDisplayNameSyncService {
 export interface UserService extends UserDisplayNameSyncService {
   getCurrentProfile(): Promise<UserProfile>;
   listCurrentLedgerDisplayNames(): Promise<UserLedgerDisplayName[]>;
+  updateCurrentAvatar(input: UpdateCurrentAvatarInput): Promise<UserProfile>;
   updateCurrentDisplayName(input: UpdateCurrentDisplayNameInput): Promise<void>;
   updateCurrentProfile(
     input: UpdateCurrentUserProfileInput,
@@ -52,6 +61,7 @@ export interface UserService extends UserDisplayNameSyncService {
 }
 
 type UserServiceDependencies = {
+  avatarStorageRepository: AvatarStorageRepository;
   currentUserId: string | null;
   userRepository: UserRepository;
 };
@@ -97,6 +107,12 @@ function normalizeAvatarUrl(avatarUrl: string | null): string | null {
   return normalized;
 }
 
+const avatarFileExtensions = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const satisfies Record<AvatarMimeType, string>;
+
 function toUpdateDisplayNameError(code: UpdateDisplayNameErrorCode) {
   switch (code) {
     case "auth_required":
@@ -116,6 +132,7 @@ function toUpdateDisplayNameError(code: UpdateDisplayNameErrorCode) {
 }
 
 export function createUserService({
+  avatarStorageRepository,
   currentUserId,
   userRepository,
 }: UserServiceDependencies): UserService {
@@ -204,6 +221,31 @@ export function createUserService({
     async listCurrentLedgerDisplayNames() {
       requireCurrentUserId();
       return userRepository.listCurrentLedgerDisplayNames();
+    },
+
+    async updateCurrentAvatar({ contentType, file }) {
+      const userId = requireCurrentUserId();
+      await requireActiveProfile(userId);
+
+      // 每次使用新文件名，避免浏览器与 CDN 缓存旧头像。
+      const path = `${userId}/${crypto.randomUUID()}.${avatarFileExtensions[contentType]}`;
+      const avatarUrl = avatarStorageRepository.getPublicUrl(path);
+      // 先校验 URL，避免上传后才因 avatar_url 约束失败而留下孤立文件。
+      normalizeAvatarUrl(avatarUrl);
+
+      await avatarStorageRepository.uploadAvatar({ contentType, file, path });
+      const profile = await updateProfile(userId, { avatarUrl });
+
+      try {
+        const paths = await avatarStorageRepository.listUserAvatarPaths(userId);
+        await avatarStorageRepository.removeAvatars(
+          paths.filter((oldPath) => oldPath !== path),
+        );
+      } catch {
+        // 旧头像清理失败不影响本次结果；Repository 已记录日志，下次更换时会再次清理。
+      }
+
+      return profile;
     },
 
     async updateCurrentDisplayName({ displayName, syncLedgerIds }) {

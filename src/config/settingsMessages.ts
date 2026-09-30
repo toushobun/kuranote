@@ -33,6 +33,13 @@ export const settingsProfileEntryMessages = {
   logout: "退出登录",
 } as const;
 
+export const profileAvatarUploaderMessages = {
+  changeAvatar: "更换头像",
+  uploading: "头像上传中",
+  successTitle: "头像已更换",
+  failureTitle: "头像更换失败",
+} as const;
+
 export const profileNicknameDialogMessages = {
   title: "修改昵称",
   label: "昵称",

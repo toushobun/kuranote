@@ -20,3 +20,13 @@ export type DisplayNameAction = (
   previousState: DisplayNameActionState,
   formData: FormData,
 ) => Promise<DisplayNameActionState>;
+
+export type AvatarActionState = BaseActionState & {
+  errorKey?: string;
+  successKey?: string;
+};
+
+export type AvatarAction = (
+  previousState: AvatarActionState,
+  formData: FormData,
+) => Promise<AvatarActionState>;

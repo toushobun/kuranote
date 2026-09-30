@@ -25,7 +25,7 @@ import {
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
 import type { ServerAction } from "types/actions";
-import type { DisplayNameAction } from "types/user";
+import type { AvatarAction, DisplayNameAction } from "types/user";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
@@ -38,6 +38,7 @@ type SettingsProfileTemplateProps = {
     displayName: string;
     email: string | null;
   };
+  updateAvatarAction: AvatarAction;
   updateDisplayNameAction: DisplayNameAction;
 };
 
@@ -46,6 +47,7 @@ export function SettingsProfileTemplate({
   ledgers,
   logoutAction,
   profile,
+  updateAvatarAction,
   updateDisplayNameAction,
 }: SettingsProfileTemplateProps) {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
@@ -74,6 +76,7 @@ export function SettingsProfileTemplate({
           avatarUrl={profile.avatarUrl}
           displayName={profile.displayName}
           email={profile.email}
+          updateAvatarAction={updateAvatarAction}
         />
 
         <SettingsEntryGroupCard label={pageText.profileGroupLabel}>

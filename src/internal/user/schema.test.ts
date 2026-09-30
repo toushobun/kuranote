@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseTransactionColorSchemeForm,
+  parseUpdateAvatarForm,
   parseUpdateDisplayNameForm,
   updateUserProfileRequestSchema,
 } from "internal/user/schema";
@@ -93,5 +94,60 @@ describe("parseUpdateDisplayNameForm", () => {
         createDisplayNameFormData("新昵称", ["not-a-uuid"]),
       ),
     ).toEqual({ error: "账本指定不正确，请刷新页面后重试。", ok: false });
+  });
+});
+
+describe("parseUpdateAvatarForm", () => {
+  function createAvatarForm(file?: FormDataEntryValue) {
+    const formData = new FormData();
+    if (file !== undefined) formData.set("avatar", file);
+    return formData;
+  }
+
+  it.each(["image/jpeg", "image/png", "image/webp"])(
+    "接受 %s 格式的头像",
+    (type) => {
+      const file = new File(["x"], "avatar", { type });
+
+      expect(parseUpdateAvatarForm(createAvatarForm(file))).toEqual({
+        ok: true,
+        value: { contentType: type, file: expect.any(Blob) },
+      });
+    },
+  );
+
+  it.each([
+    ["没有文件", undefined],
+    ["字段不是文件", "avatar.webp"],
+    ["文件为空", new File([], "avatar.webp", { type: "image/webp" })],
+  ])("%s时要求选择图片", (_label, value) => {
+    expect(parseUpdateAvatarForm(createAvatarForm(value))).toEqual({
+      error: "请选择头像图片。",
+      ok: false,
+    });
+  });
+
+  it("拒绝不支持的文件类型", () => {
+    const file = new File(["x"], "avatar.gif", { type: "image/gif" });
+
+    expect(parseUpdateAvatarForm(createAvatarForm(file))).toEqual({
+      error: "仅支持 JPEG、PNG 或 WebP 格式的图片。",
+      ok: false,
+    });
+  });
+
+  it("1MB 以内可以通过，超过 1MB 时拒绝", () => {
+    const limit = new File([new Uint8Array(1024 * 1024)], "a.webp", {
+      type: "image/webp",
+    });
+    const tooLarge = new File([new Uint8Array(1024 * 1024 + 1)], "b.webp", {
+      type: "image/webp",
+    });
+
+    expect(parseUpdateAvatarForm(createAvatarForm(limit)).ok).toBe(true);
+    expect(parseUpdateAvatarForm(createAvatarForm(tooLarge))).toEqual({
+      error: "头像图片不能超过 1MB，请换一张图片后重试。",
+      ok: false,
+    });
   });
 });

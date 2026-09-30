@@ -52,6 +52,7 @@ function createContainer(
         getCurrentProfile: vi.fn(),
         listCurrentLedgerDisplayNames: vi.fn(),
         syncDisplayName: vi.fn(),
+        updateCurrentAvatar: vi.fn(),
         updateCurrentDisplayName: vi.fn(),
         updateCurrentProfile: vi.fn(),
         ...overrides,

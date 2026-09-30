@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentLedgerContext: vi.fn(),
   loadSettingsProfileView: vi.fn(),
   logout: vi.fn(),
+  updateAvatar: vi.fn(),
   updateDisplayName: vi.fn(),
 }));
 
@@ -20,6 +21,7 @@ vi.mock("internal/auth/adapter/next/actions", () => ({
   logout: mocks.logout,
 }));
 vi.mock("internal/user/adapter/next/actions", () => ({
+  updateAvatar: mocks.updateAvatar,
   updateDisplayName: mocks.updateDisplayName,
 }));
 
@@ -58,6 +60,7 @@ describe("SettingsProfileRoute", () => {
       ledgers: ledgerDisplayNames,
       logoutAction: mocks.logout,
       profile,
+      updateAvatarAction: mocks.updateAvatar,
       updateDisplayNameAction: mocks.updateDisplayName,
     });
   });
