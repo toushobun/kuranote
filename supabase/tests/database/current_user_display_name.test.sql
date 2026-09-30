@@ -32,14 +32,6 @@ create function pg_temp.update_sql(p_name text, p_ledgers integer[]) returns tex
                   p_name,
                   (select coalesce(array_agg(pg_temp.lid(n)), '{}'::uuid[]) from unnest(p_ledgers) n));
 $$;
-create function pg_temp.effective_names() returns table (ledger_id uuid, user_id uuid, name text)
-language sql stable security definer as $$
-    -- 与读取处口径一致的有效昵称。
-    select lds.ledger_id, lds.user_id,
-           coalesce(nullif(btrim(lds.display_name), ''), btrim(au.display_name))
-    from public.ledger_member_display_setting lds
-    join public.app_user au on au.id = lds.user_id;
-$$;
 -- 以 security definer 读取，authenticated 会话中也能观察结果。
 create function pg_temp.global_name(p_n integer) returns text language sql stable security definer as $$
     select display_name from public.app_user where id = pg_temp.uid(p_n);
@@ -128,29 +120,11 @@ insert into public.ledger_member (ledger_id, user_id, role, status, joined_at)
 values (pg_temp.lid(1), pg_temp.uid(8), 'member', 'active', now());
 select is(pg_temp.ledger_name_setting(1, 8), 'Issue826 用户8', '清理后重新加入写入当时的账号昵称');
 
-select diag('补填历史数据：active 成员账本内昵称为空时写入账号昵称');
-select ok(not has_function_privilege('authenticated', 'public.backfill_ledger_member_display_names()', 'execute'), 'authenticated 不能执行补填函数');
-select ok(not has_function_privilege('service_role', 'public.backfill_ledger_member_display_names()', 'execute'), 'service_role 不能执行补填函数');
--- 构造 trigger 引入前的历史数据：账本内昵称为空，页面回退显示账号昵称。
-update public.ledger_member_display_setting set display_name = null
-where user_id in (pg_temp.uid(1), pg_temp.uid(5), pg_temp.uid(6));
-update public.app_user set status = 'disabled' where id = pg_temp.uid(5);
-create temporary table issue826_before as select * from pg_temp.effective_names();
-select ok(public.backfill_ledger_member_display_names() >= 4, '补填本人 3 个账本与 06 号成员');
-select is((select count(*) from public.ledger_member_display_setting lds
-           join public.ledger_member lm on lm.ledger_id = lds.ledger_id and lm.user_id = lds.user_id and lm.status = 'active'
-           join public.app_user au on au.id = lds.user_id and au.status = 'active'
-           where lds.display_name is null), 0::bigint, 'active 成员中已没有空的账本内昵称');
-select is(pg_temp.ledger_name_setting(1), 'Issue826 用户1', '本人家庭账本已补填');
-select is(pg_temp.ledger_name_setting(1, 6), '带空白的昵称', '补填去除首尾空白后的账号昵称');
-select ok(pg_temp.ledger_name_setting(1, 5) is null, '已停用用户保持为空，由读取处回退');
-select set_eq('select * from pg_temp.effective_names()', 'select * from issue826_before', '补填前后显示的昵称完全一致');
-select is(public.backfill_ledger_member_display_names(), 0, '再次执行不再修改');
-
 -- 其余用例：本人在公司账本改过账本内昵称；准备与新昵称同名的待邀请成员。
 update public.ledger_member_display_setting set display_name = '公司里的我'
 where ledger_id = pg_temp.lid(2) and user_id = pg_temp.uid(1);
 update public.ledger set is_archived = true, archived_at = now() where id = pg_temp.lid(5);
+update public.app_user set status = 'disabled' where id = pg_temp.uid(5);
 update public.ledger_member set status = 'removed', removed_at = now(), joined_at = null
 where ledger_id = pg_temp.lid(6) and user_id = pg_temp.uid(1);
 insert into public.ledger_placeholder_member (ledger_id, display_name, created_by)

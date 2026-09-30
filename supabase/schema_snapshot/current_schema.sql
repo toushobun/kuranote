@@ -836,33 +836,6 @@ COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '
 
 
 
-CREATE OR REPLACE FUNCTION "public"."backfill_ledger_member_display_names"() RETURNS integer
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_count integer;
-begin
-    update public.ledger_member_display_setting lds
-       set display_name = btrim(au.display_name)
-      from public.ledger_member lm,
-           public.app_user au
-     where lm.ledger_id = lds.ledger_id
-       and lm.user_id = lds.user_id
-       and lm.status = 'active'
-       and au.id = lds.user_id
-       and au.status = 'active'
-       and nullif(btrim(lds.display_name), '') is null;
-
-    get diagnostics v_count = row_count;
-    return v_count;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."backfill_ledger_member_display_names"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS numeric
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -9969,10 +9942,6 @@ GRANT ALL ON FUNCTION "public"."archive_merchant_tag"("p_ledger_id" "uuid", "p_t
 
 
 REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() FROM PUBLIC;
-
-
-
-REVOKE ALL ON FUNCTION "public"."backfill_ledger_member_display_names"() FROM PUBLIC;
 
 
 

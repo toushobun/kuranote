@@ -66,34 +66,16 @@ comment on function public.assign_ledger_member_default_display_color() is
 -- 补填：active 成员（账号 active）中账本内昵称为空的记录，写入当前账号昵称（btrim 后）。
 -- 读取处的有效昵称为 coalesce(nullif(btrim(display_name), ''), btrim(app_user.display_name))，
 -- 补填值与原回退值相同，页面显示不变。账号已停用的成员不在显示设置校验范围内，保持回退。
--- 保留为内部函数（不授予任何角色），便于数据库测试验证补填结果。
-create function public.backfill_ledger_member_display_names()
-returns integer
-language plpgsql
-set search_path = pg_catalog, pg_temp
-as $$
-declare
-    v_count integer;
-begin
-    update public.ledger_member_display_setting lds
-       set display_name = btrim(au.display_name)
-      from public.ledger_member lm,
-           public.app_user au
-     where lm.ledger_id = lds.ledger_id
-       and lm.user_id = lds.user_id
-       and lm.status = 'active'
-       and au.id = lds.user_id
-       and au.status = 'active'
-       and nullif(btrim(lds.display_name), '') is null;
-
-    get diagnostics v_count = row_count;
-    return v_count;
-end;
-$$;
-
-revoke all on function public.backfill_ledger_member_display_names() from public, anon, authenticated, service_role;
-
-select public.backfill_ledger_member_display_names();
+update public.ledger_member_display_setting lds
+   set display_name = btrim(au.display_name)
+  from public.ledger_member lm,
+       public.app_user au
+ where lm.ledger_id = lds.ledger_id
+   and lm.user_id = lds.user_id
+   and lm.status = 'active'
+   and au.id = lds.user_id
+   and au.status = 'active'
+   and nullif(btrim(lds.display_name), '') is null;
 
 -- 读取当前用户所属 active 账本及每个账本内的有效昵称（账本内昵称为空时回退到账号昵称）。
 -- security invoker：只依赖 RLS 返回当前用户可见的数据。
