@@ -6,6 +6,7 @@ import {
   familyLedgerId,
   profileFixture,
   profileLedgerDisplayNames,
+  succeededAvatarAction,
   succeededDisplayNameAction,
 } from "test/userProfileFixtures";
 
@@ -26,6 +27,7 @@ const meta = {
     ledgers: profileLedgerDisplayNames,
     logoutAction: () => undefined,
     profile: profileFixture,
+    updateAvatarAction: succeededAvatarAction,
     updateDisplayNameAction: succeededDisplayNameAction,
   },
 } satisfies Meta<typeof SettingsProfileTemplate>;

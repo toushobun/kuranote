@@ -1,27 +1,25 @@
-import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { settingsProfilePageMessages } from "config/settingsMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
+import { ProfileAvatarUploader } from "organisms/settings/ProfileAvatarUploader/ProfileAvatarUploader";
 import { typographyStyles } from "theme/typographyTokens";
+import type { AvatarAction } from "types/user";
 
 type ProfileSummaryCardProps = {
   avatarUrl: string | null;
   displayName: string;
   email: string | null;
+  updateAvatarAction: AvatarAction;
 };
 
-/** 取昵称首字作为无头像时的占位，兼容 emoji 等代理对字符。 */
-export function getDisplayNameInitial(displayName: string): string {
-  return (Array.from(displayName.trim())[0] ?? "").toUpperCase();
-}
-
-/** 个人主页顶部的头像、昵称与登录邮箱，只展示不提供更换入口。 */
+/** 个人主页顶部的头像、昵称与登录邮箱，点击头像可更换。 */
 export function ProfileSummaryCard({
   avatarUrl,
   displayName,
   email,
+  updateAvatarAction,
 }: ProfileSummaryCardProps) {
   return (
     <SectionCard
@@ -29,9 +27,11 @@ export function ProfileSummaryCard({
       aria-label={settingsProfilePageMessages.summaryLabel}
     >
       <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-        <Avatar alt={displayName} src={avatarUrl ?? undefined} sx={avatarSx}>
-          {getDisplayNameInitial(displayName)}
-        </Avatar>
+        <ProfileAvatarUploader
+          action={updateAvatarAction}
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+        />
         <Stack spacing={0.4} sx={{ minWidth: 0 }}>
           <Typography component="h2" noWrap sx={nameSx}>
             {displayName}
@@ -46,16 +46,6 @@ export function ProfileSummaryCard({
     </SectionCard>
   );
 }
-
-const avatarSx = {
-  bgcolor: "var(--user-theme-icon-badge-bg)",
-  color: "var(--user-theme-icon-badge-color)",
-  flexShrink: 0,
-  fontSize: 24,
-  fontWeight: 700,
-  height: 64,
-  width: 64,
-};
 
 const nameSx = {
   ...typographyStyles.cardTitle,

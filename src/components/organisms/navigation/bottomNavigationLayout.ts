@@ -8,6 +8,8 @@ export const bottomNavigationLayout = {
     xs: "calc(96px + env(safe-area-inset-bottom))",
     sm: "calc(104px + env(safe-area-inset-bottom))",
   },
+  // 操作反馈提示条距底部的位置，避开底部导航栏。
+  feedbackBottomOffset: `calc(${bottomNavigationReservePx}px + env(safe-area-inset-bottom) + 8px)`,
   // 高于 MUI Menu / Popover 默认层级，低于 Dialog / Modal。
   navigationZIndex: appZIndex.bottomNavigation,
   safeAreaPaddingBottom: "env(safe-area-inset-bottom)",

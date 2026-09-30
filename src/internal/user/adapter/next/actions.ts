@@ -10,9 +10,11 @@ import {
 import { userErrorMessages } from "internal/user/errors";
 import {
   parseTransactionColorSchemeForm,
+  parseUpdateAvatarForm,
   parseUpdateDisplayNameForm,
 } from "internal/user/schema";
 import type {
+  AvatarActionState,
   DisplayNameActionState,
   TransactionColorSchemeActionState,
 } from "types/user";
@@ -88,5 +90,36 @@ export async function updateDisplayName(
       errorName: error instanceof Error ? error.name : "unknown",
     });
     return createErrorState(userErrorMessages.displayNameUpdateFailed);
+  }
+}
+
+export async function updateAvatar(
+  _previousState: AvatarActionState,
+  formData: FormData,
+): Promise<AvatarActionState> {
+  const parsed = parseUpdateAvatarForm(formData);
+
+  if (!parsed.ok) {
+    return createErrorState(parsed.error);
+  }
+
+  try {
+    const dependencies = await createServerRequestDependencies();
+    await createRequestContainer(dependencies).user.service.updateCurrentAvatar(
+      parsed.value,
+    );
+
+    revalidateUserProfileMutation();
+
+    return { success: "头像已更换。", successKey: crypto.randomUUID() };
+  } catch (error) {
+    if (error instanceof AppError) {
+      return createErrorState(error.message);
+    }
+
+    console.error("[user] avatar action failed unexpectedly", {
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+    return createErrorState(userErrorMessages.avatarUpdateFailed);
   }
 }

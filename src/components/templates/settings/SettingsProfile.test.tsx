@@ -17,6 +17,7 @@ import {
 import { SettingsProfileTemplate } from "./SettingsProfile";
 
 const logoutAction = vi.fn();
+const updateAvatarAction = vi.fn(async () => ({}));
 const updateDisplayNameAction = vi.fn(async () => ({}));
 
 afterEach(() => {
@@ -32,6 +33,7 @@ function renderSettingsProfileTemplate() {
         ledgers={profileLedgerDisplayNames}
         logoutAction={logoutAction}
         profile={profileFixture}
+        updateAvatarAction={updateAvatarAction}
         updateDisplayNameAction={updateDisplayNameAction}
       />
     </UserThemeProvider>,
@@ -62,6 +64,9 @@ describe("SettingsProfileTemplate", () => {
     ).toBeInTheDocument();
     expect(within(summary).getByText("user@example.com")).toBeInTheDocument();
     expect(within(summary).getByText("淞")).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("button", { name: "更换头像" }),
+    ).toBeInTheDocument();
   });
 
   it("按个人资料、账号安全、账号操作分组显示入口", () => {

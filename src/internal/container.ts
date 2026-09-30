@@ -51,6 +51,7 @@ import { createLinkedTransactionItemService } from "internal/transaction/service
 import { createLinkedTransactionEditService } from "internal/transaction/service/linkedTransactionEditService";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 import { createTransactionService } from "internal/transaction/service/transactionService";
+import { createSupabaseAvatarStorageRepository } from "internal/user/repository/avatarStorageRepository";
 import { createSupabaseUserRepository } from "internal/user/repository/userRepository";
 import { createUserService } from "internal/user/service/userService";
 
@@ -261,6 +262,10 @@ export function createRequestContainer(
                 dependencies.logger,
               );
               return createUserService({
+                avatarStorageRepository: createSupabaseAvatarStorageRepository(
+                  dependencies.supabase,
+                  dependencies.logger,
+                ),
                 currentUserId: userId,
                 userRepository,
               });
@@ -504,6 +509,10 @@ export function createRequestContainer(
 
         userContainer = {
           service: createUserService({
+            avatarStorageRepository: createSupabaseAvatarStorageRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
             currentUserId: dependencies.auth.isAuthenticated
               ? dependencies.auth.userId
               : null,

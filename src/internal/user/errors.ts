@@ -1,6 +1,24 @@
 export const displayNameMaxLength = 100;
 
+/** 头像文件上限，与 avatars bucket 的 file_size_limit 一致。 */
+export const avatarMaxFileSize = 1024 * 1024;
+
+/** 头像允许的 MIME 类型，与 avatars bucket 的 allowed_mime_types 一致。 */
+export const avatarMimeTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export type AvatarMimeType = (typeof avatarMimeTypes)[number];
+
 export const userErrorMessages = {
+  avatarFileRequired: "请选择头像图片。",
+  avatarFileTooLarge: `头像图片不能超过 ${avatarMaxFileSize / 1024 / 1024}MB，请换一张图片后重试。`,
+  avatarFileTypeUnsupported: "仅支持 JPEG、PNG 或 WebP 格式的图片。",
+  avatarImageUnreadable: "无法读取该图片，请换一张图片后重试。",
+  avatarUpdateFailed: "头像更换失败，请稍后重试。",
+  avatarUploadFailed: "头像上传失败，请稍后重试。",
   displayNameLedgerInvalid: "账本指定不正确，请刷新页面后重试。",
   displayNameLedgerPermissionDenied:
     "部分账本已无法同步昵称，请刷新页面后重试。",

@@ -1,13 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { profileFixture } from "test/userProfileFixtures";
+import {
+  profileFixture,
+  succeededAvatarAction,
+} from "test/userProfileFixtures";
 
 import { ProfileSummaryCard } from "./ProfileSummaryCard";
 
 const meta = {
   title: "Organisms/Settings/ProfileSummaryCard",
   component: ProfileSummaryCard,
-  args: profileFixture,
+  args: { ...profileFixture, updateAvatarAction: succeededAvatarAction },
 } satisfies Meta<typeof ProfileSummaryCard>;
 
 export default meta;

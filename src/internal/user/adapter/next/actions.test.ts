@@ -2,14 +2,23 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppError, ConflictError } from "internal/shared/errors/appError";
+import {
+  AppError,
+  ConflictError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
 
-import { updateDisplayName, updateTransactionColorScheme } from "./actions";
+import {
+  updateAvatar,
+  updateDisplayName,
+  updateTransactionColorScheme,
+} from "./actions";
 
 const mocks = vi.hoisted(() => ({
   createDependencies: vi.fn(),
   revalidate: vi.fn(),
   revalidateUserProfile: vi.fn(),
+  updateCurrentAvatar: vi.fn(),
   updateCurrentDisplayName: vi.fn(),
   updateCurrentProfile: vi.fn(),
 }));
@@ -22,6 +31,7 @@ vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
     user: {
       service: {
+        updateCurrentAvatar: mocks.updateCurrentAvatar,
         updateCurrentDisplayName: mocks.updateCurrentDisplayName,
         updateCurrentProfile: mocks.updateCurrentProfile,
       },
@@ -181,6 +191,87 @@ describe("updateDisplayName", () => {
     });
     expect(consoleError).toHaveBeenCalledWith(
       "[user] display name action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+});
+
+function createAvatarFormData(
+  file: FormDataEntryValue = new File(["webp"], "avatar.webp", {
+    type: "image/webp",
+  }),
+) {
+  const formData = new FormData();
+  formData.set("avatar", file);
+  return formData;
+}
+
+describe("updateAvatar", () => {
+  beforeEach(() => {
+    mocks.updateCurrentAvatar.mockResolvedValue({});
+  });
+
+  it("上传成功后失效用户资料相关页面", async () => {
+    await expect(updateAvatar({}, createAvatarFormData())).resolves.toEqual({
+      success: "头像已更换。",
+      successKey: expect.any(String),
+    });
+    expect(mocks.updateCurrentAvatar).toHaveBeenCalledWith({
+      contentType: "image/webp",
+      file: expect.any(Blob),
+    });
+    expect(mocks.revalidateUserProfile).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["不支持的文件类型", new File(["x"], "a.gif", { type: "image/gif" })],
+    [
+      "超过 1MB 的文件",
+      new File([new Uint8Array(1024 * 1024 + 1)], "a.webp", {
+        type: "image/webp",
+      }),
+    ],
+    ["不是文件的字段", "avatar"],
+  ])("%s返回源头校验文案且不调用 Service", async (_label, file) => {
+    const result = await updateAvatar({}, createAvatarFormData(file));
+
+    expect(result).toEqual({
+      error: expect.any(String),
+      errorKey: expect.any(String),
+    });
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.updateCurrentAvatar).not.toHaveBeenCalled();
+    expect(mocks.revalidateUserProfile).not.toHaveBeenCalled();
+  });
+
+  it("上传失败时返回 Service 的安全文案且不失效页面", async () => {
+    mocks.updateCurrentAvatar.mockRejectedValue(
+      new RepositoryError(
+        "user_avatar_upload_failed",
+        "头像上传失败，请稍后重试。",
+      ),
+    );
+
+    await expect(updateAvatar({}, createAvatarFormData())).resolves.toEqual({
+      error: "头像上传失败，请稍后重试。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.revalidateUserProfile).not.toHaveBeenCalled();
+  });
+
+  it("未知异常记录安全字段并返回通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.updateCurrentAvatar.mockRejectedValue(new Error("storage failed"));
+
+    await expect(updateAvatar({}, createAvatarFormData())).resolves.toEqual({
+      error: "头像更换失败，请稍后重试。",
+      errorKey: expect.any(String),
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[user] avatar action failed unexpectedly",
       { errorName: "Error" },
     );
     consoleError.mockRestore();
