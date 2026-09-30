@@ -5,24 +5,24 @@ import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ImportExportOutlinedIcon from "@mui/icons-material/ImportExportOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import { useMemo, useState, type ElementType } from "react";
 
 import { routePaths, type AppRoutePath } from "config/paths";
-import { settingsPreferencesPageMessages } from "config/settingsMessages";
+import {
+  settingsPreferencesPageMessages,
+  settingsProfilePageMessages,
+} from "config/settingsMessages";
 import {
   SettingsComingSoonToast,
   SettingsEntryButton,
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
-import type { ServerAction } from "types/actions";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
@@ -33,11 +33,7 @@ type SettingsEntryBase = {
 };
 
 type SettingsEntry = SettingsEntryBase &
-  (
-    | { kind: "comingSoon" }
-    | { href: AppRoutePath; kind: "link" }
-    | { kind: "logout" }
-  );
+  ({ kind: "comingSoon" } | { href: AppRoutePath; kind: "link" });
 
 type SettingsEntryGroup = {
   entries: readonly SettingsEntry[];
@@ -52,9 +48,10 @@ function createSettingsEntryGroups(
       label: "个人",
       entries: [
         {
+          href: routePaths.settingsProfile,
           icon: PersonOutlineOutlinedIcon,
-          kind: "comingSoon",
-          label: "个人主页",
+          kind: "link",
+          label: settingsProfilePageMessages.title,
         },
         {
           href: routePaths.ledgers,
@@ -109,7 +106,6 @@ function createSettingsEntryGroups(
           label: "帮助与反馈",
         },
         { icon: InfoOutlinedIcon, kind: "comingSoon", label: "关于 KuraNote" },
-        { icon: LogoutRoundedIcon, kind: "logout", label: "退出登录" },
       ],
     },
   ];
@@ -117,13 +113,9 @@ function createSettingsEntryGroups(
 
 type SettingsTemplateProps = {
   currentLedgerName: string;
-  logoutAction: ServerAction;
 };
 
-export function SettingsTemplate({
-  currentLedgerName,
-  logoutAction,
-}: SettingsTemplateProps) {
+export function SettingsTemplate({ currentLedgerName }: SettingsTemplateProps) {
   const [isToastOpen, setIsToastOpen] = useState(false);
   const settingsEntryGroups = useMemo(
     () => createSettingsEntryGroups(currentLedgerName),
@@ -150,7 +142,6 @@ export function SettingsTemplate({
                 entry={entry}
                 isLast={index === group.entries.length - 1}
                 key={entry.label}
-                logoutAction={logoutAction}
                 onComingSoonClick={showComingSoonToast}
               />
             ))}
@@ -169,14 +160,12 @@ export function SettingsTemplate({
 type SettingsEntryItemProps = {
   entry: SettingsEntry;
   isLast: boolean;
-  logoutAction: ServerAction;
   onComingSoonClick: () => void;
 };
 
 function SettingsEntryItem({
   entry,
   isLast,
-  logoutAction,
   onComingSoonClick,
 }: SettingsEntryItemProps) {
   const { icon, label, trailing } = entry;
@@ -190,20 +179,6 @@ function SettingsEntryItem({
         label={label}
         trailing={trailing}
       />
-    );
-  }
-
-  if (entry.kind === "logout") {
-    return (
-      <Box component="form" action={logoutAction} sx={{ m: 0 }}>
-        <SettingsEntryButton
-          icon={icon}
-          isLast={isLast}
-          label={label}
-          tone="danger"
-          type="submit"
-        />
-      </Box>
     );
   }
 

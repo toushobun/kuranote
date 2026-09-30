@@ -5,24 +5,16 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { SettingsTemplate } from "./Settings";
 
-const logoutAction = vi.fn();
-
 afterEach(() => {
   cleanup();
-  logoutAction.mockClear();
 });
 
 function renderSettingsTemplate() {
-  return render(
-    <SettingsTemplate
-      currentLedgerName="家庭账本"
-      logoutAction={logoutAction}
-    />,
-  );
+  return render(<SettingsTemplate currentLedgerName="家庭账本" />);
 }
 
 function getEntryLabels(section: HTMLElement) {
@@ -57,13 +49,14 @@ describe("SettingsTemplate", () => {
       getEntryLabels(
         within(container).getByRole("region", { name: "应用 / 支持" }),
       ),
-    ).toEqual(["App 偏好设置", "帮助与反馈", "关于 KuraNote", "退出登录"]);
+    ).toEqual(["App 偏好设置", "帮助与反馈", "关于 KuraNote"]);
   });
 
-  it("管理类入口与 App 偏好设置跳转到对应页面", () => {
+  it("个人主页、管理类入口与 App 偏好设置跳转到对应页面", () => {
     const { container } = renderSettingsTemplate();
 
     for (const [label, href] of [
+      ["个人主页", "/settings/profile"],
       ["账本管理", "/ledgers"],
       ["账户管理", "/accounts"],
       ["分类管理", "/categories"],
@@ -95,20 +88,16 @@ describe("SettingsTemplate", () => {
     const { container } = renderSettingsTemplate();
 
     fireEvent.click(
-      within(container).getByRole("button", { name: /个人主页/ }),
+      within(container).getByRole("button", { name: /帮助与反馈/ }),
     );
 
     expect(screen.getByText("正在准备中")).toBeInTheDocument();
   });
 
-  it("退出登录入口作为表单提交按钮保留在我的页面", () => {
+  it("我的页面不再显示退出登录入口", () => {
     const { container } = renderSettingsTemplate();
 
-    const logoutButton = within(container).getByRole("button", {
-      name: /退出登录/,
-    });
-
-    expect(logoutButton).toHaveAttribute("type", "submit");
-    expect(logoutButton.closest("form")).not.toBeNull();
+    expect(within(container).queryByText("退出登录")).not.toBeInTheDocument();
+    expect(container.querySelector("form")).toBeNull();
   });
 });

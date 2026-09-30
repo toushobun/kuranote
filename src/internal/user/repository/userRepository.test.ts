@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createSupabaseMock } from "test/supabaseMock";
 
-import { RepositoryError } from "internal/shared/errors/appError";
+import {
+  ConflictError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import { createSupabaseUserRepository } from "internal/user/repository/userRepository";
 
@@ -244,5 +247,224 @@ describe("createSupabaseUserRepository.updateProfile", () => {
       "[user] failed to update user profile",
       { code: "42501", message: "RLS denied", userId },
     );
+  });
+});
+
+const ledgerId = "00000000-0000-4000-8000-000000000101";
+const otherLedgerId = "00000000-0000-4000-8000-000000000102";
+
+describe("createSupabaseUserRepository.listCurrentLedgerDisplayNames", () => {
+  it("把 RPC 结果转换为账本昵称列表", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        data: [
+          { display_name: "爸爸", ledger_id: ledgerId, ledger_name: "家庭" },
+        ],
+      },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.listCurrentLedgerDisplayNames()).resolves.toEqual([
+      { displayName: "爸爸", ledgerId, ledgerName: "家庭" },
+    ]);
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      "list_current_user_ledger_display_names",
+    );
+  });
+
+  it("没有账本时返回空数组", async () => {
+    const supabase = createSupabaseMock({ rpcResponse: { data: null } });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.listCurrentLedgerDisplayNames()).resolves.toEqual(
+      [],
+    );
+  });
+
+  it("查询失败时记录错误并抛出 RepositoryError", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      rpcResponse: { error: { code: "XX000", message: "boom" } },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(repository.listCurrentLedgerDisplayNames()).rejects.toThrow(
+      new RepositoryError(
+        "user_ledger_display_names_load_failed",
+        "账本昵称加载失败，请稍后重试。",
+      ),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      "[user] failed to load ledger display names",
+      { code: "XX000", message: "boom" },
+    );
+  });
+
+  it("返回行格式异常时抛出 RepositoryError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: { data: [{ ledger_id: ledgerId }] },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.listCurrentLedgerDisplayNames(),
+    ).rejects.toBeInstanceOf(RepositoryError);
+  });
+});
+
+describe("createSupabaseUserRepository.updateCurrentDisplayName", () => {
+  it("以新昵称与勾选账本调用 RPC，无冲突时返回成功", async () => {
+    const supabase = createSupabaseMock({ rpcResponse: { data: [] } });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [ledgerId],
+      }),
+    ).resolves.toEqual({ ok: true });
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      "update_current_user_display_name",
+      { p_display_name: "新昵称", p_sync_ledger_ids: [ledgerId] },
+    );
+  });
+
+  it("返回冲突账本列表", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        data: [
+          {
+            error_code: "display_name_placeholder_conflict",
+            ledger_id: otherLedgerId,
+            ledger_name: "旅行",
+          },
+        ],
+      },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [otherLedgerId],
+      }),
+    ).resolves.toEqual({
+      conflicts: [
+        {
+          code: "display_name_placeholder_conflict",
+          ledgerId: otherLedgerId,
+          ledgerName: "旅行",
+        },
+      ],
+      ok: false,
+    });
+  });
+
+  it.each([
+    "auth_required",
+    "display_name_required",
+    "display_name_too_long",
+    "ledger_permission_denied",
+    "user_inactive",
+  ] as const)("RPC detail %s 转换为业务错误码", async (code) => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: { code: "42501", details: code, message: "denied" },
+      },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [],
+      }),
+    ).resolves.toEqual({ code, ok: false });
+  });
+
+  it("死锁时抛出可重试的并发冲突", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: { error: { code: "40P01", message: "deadlock" } },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [],
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("未知错误时记录错误并抛出 RepositoryError", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      rpcResponse: { error: { code: "XX000", message: "boom" } },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [],
+      }),
+    ).rejects.toThrow(
+      new RepositoryError(
+        "user_display_name_update_failed",
+        "昵称保存失败，请稍后重试。",
+      ),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      "[user] failed to update display name",
+      { code: "XX000", message: "boom" },
+    );
+  });
+
+  it("返回未知冲突码时抛出 RepositoryError", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        data: [
+          { error_code: "unknown", ledger_id: ledgerId, ledger_name: "家庭" },
+        ],
+      },
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [ledgerId],
+      }),
+    ).rejects.toBeInstanceOf(RepositoryError);
   });
 });

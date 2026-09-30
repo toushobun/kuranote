@@ -10,3 +10,13 @@ export type TransactionColorSchemeAction = (
   previousState: TransactionColorSchemeActionState,
   formData: FormData,
 ) => Promise<TransactionColorSchemeActionState>;
+
+export type DisplayNameActionState = BaseActionState & {
+  errorKey?: string;
+  successKey?: string;
+};
+
+export type DisplayNameAction = (
+  previousState: DisplayNameActionState,
+  formData: FormData,
+) => Promise<DisplayNameActionState>;

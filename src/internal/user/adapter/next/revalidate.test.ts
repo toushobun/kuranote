@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
-import { revalidateTransactionColorSchemeMutation } from "internal/user/adapter/next/revalidate";
+import {
+  revalidateTransactionColorSchemeMutation,
+  revalidateUserProfileMutation,
+} from "internal/user/adapter/next/revalidate";
 
 const mocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 
@@ -18,6 +21,23 @@ describe("revalidateTransactionColorSchemeMutation", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledOnce();
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       routePaths.settingsPreferences,
+    );
+  });
+});
+
+describe("revalidateUserProfileMutation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("失效显示昵称或头像的页面，包括个人主页", () => {
+    revalidateUserProfileMutation();
+
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      routePaths.settingsProfile,
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(routePaths.settings);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/ledgers/[ledgerId]/settings",
+      "page",
     );
   });
 });

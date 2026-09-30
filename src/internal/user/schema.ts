@@ -4,7 +4,7 @@ import {
   transactionColorSchemes,
   userStatuses,
 } from "internal/user/entity/userProfile";
-import { userErrorMessages } from "internal/user/errors";
+import { displayNameMaxLength, userErrorMessages } from "internal/user/errors";
 
 function isHttpsUrl(value: string): boolean {
   try {
@@ -60,6 +60,37 @@ export function parseTransactionColorSchemeForm(formData: FormData) {
       error:
         result.error.issues[0]?.message ??
         userErrorMessages.transactionColorSchemeInvalid,
+      ok: false as const,
+    };
+  }
+
+  return { ok: true as const, value: result.data };
+}
+
+const updateDisplayNameFormSchema = z.object({
+  displayName: z
+    .string({ error: userErrorMessages.displayNameRequired })
+    .trim()
+    .min(1, { error: userErrorMessages.displayNameRequired })
+    .max(displayNameMaxLength, { error: userErrorMessages.displayNameTooLong }),
+  syncLedgerIds: z
+    .array(
+      z.string().uuid({ error: userErrorMessages.displayNameLedgerInvalid }),
+    )
+    .max(100, { error: userErrorMessages.displayNameLedgerInvalid }),
+});
+
+export function parseUpdateDisplayNameForm(formData: FormData) {
+  const result = updateDisplayNameFormSchema.safeParse({
+    displayName: formData.get("displayName") ?? undefined,
+    syncLedgerIds: formData.getAll("syncLedgerIds"),
+  });
+
+  if (!result.success) {
+    return {
+      error:
+        result.error.issues[0]?.message ??
+        userErrorMessages.displayNameUpdateFailed,
       ok: false as const,
     };
   }

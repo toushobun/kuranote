@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -28,6 +29,8 @@ function createRepository(
 ): UserRepository {
   return {
     findById: vi.fn(),
+    listCurrentLedgerDisplayNames: vi.fn(),
+    updateCurrentDisplayName: vi.fn(),
     updateProfile: vi.fn(),
     ...overrides,
   };
@@ -207,4 +210,213 @@ describe("createUserService", () => {
       userId,
     });
   });
+});
+
+describe("createUserService.listCurrentLedgerDisplayNames", () => {
+  it("未登录时拒绝读取", async () => {
+    const repository = createRepository();
+    const service = createUserService({
+      currentUserId: null,
+      userRepository: repository,
+    });
+
+    await expect(
+      service.listCurrentLedgerDisplayNames(),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    expect(repository.listCurrentLedgerDisplayNames).not.toHaveBeenCalled();
+  });
+
+  it("返回当前用户所属账本的昵称", async () => {
+    const service = createUserService({
+      currentUserId: userId,
+      userRepository: createRepository({
+        listCurrentLedgerDisplayNames: vi
+          .fn()
+          .mockResolvedValue(ledgerDisplayNames),
+      }),
+    });
+
+    await expect(service.listCurrentLedgerDisplayNames()).resolves.toEqual(
+      ledgerDisplayNames,
+    );
+  });
+});
+
+const familyLedgerId = "00000000-0000-4000-8000-000000000101";
+const tripLedgerId = "00000000-0000-4000-8000-000000000102";
+const ledgerDisplayNames = [
+  { displayName: "爸爸", ledgerId: familyLedgerId, ledgerName: "家庭" },
+  { displayName: "淞文", ledgerId: tripLedgerId, ledgerName: "旅行" },
+];
+
+function createDisplayNameService(overrides: Partial<UserRepository> = {}) {
+  const repository = createRepository({
+    findById: vi.fn().mockResolvedValue(activeProfile),
+    listCurrentLedgerDisplayNames: vi
+      .fn()
+      .mockResolvedValue(ledgerDisplayNames),
+    updateCurrentDisplayName: vi.fn().mockResolvedValue({ ok: true }),
+    ...overrides,
+  });
+
+  return {
+    repository,
+    service: createUserService({
+      currentUserId: userId,
+      userRepository: repository,
+    }),
+  };
+}
+
+describe("createUserService.updateCurrentDisplayName", () => {
+  it("未登录时拒绝修改", async () => {
+    const repository = createRepository();
+    const service = createUserService({
+      currentUserId: null,
+      userRepository: repository,
+    });
+
+    await expect(
+      service.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [],
+      }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    expect(repository.updateCurrentDisplayName).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["空白", "   ", "display_name_required", "请输入昵称。"],
+    [
+      "超过 100 字",
+      "名".repeat(101),
+      "display_name_too_long",
+      "昵称最多 100 个字符。",
+    ],
+  ])("昵称%s时拒绝写入", async (_label, displayName, code, message) => {
+    const { repository, service } = createDisplayNameService();
+
+    await expect(
+      service.updateCurrentDisplayName({ displayName, syncLedgerIds: [] }),
+    ).rejects.toThrow(new ValidationError(code, message));
+    expect(repository.updateCurrentDisplayName).not.toHaveBeenCalled();
+  });
+
+  it("去除首尾空白并去重后写入勾选账本", async () => {
+    const { repository, service } = createDisplayNameService();
+
+    await expect(
+      service.updateCurrentDisplayName({
+        displayName: " 新昵称 ",
+        syncLedgerIds: [familyLedgerId, familyLedgerId],
+      }),
+    ).resolves.toBeUndefined();
+    expect(repository.updateCurrentDisplayName).toHaveBeenCalledWith({
+      displayName: "新昵称",
+      syncLedgerIds: [familyLedgerId],
+    });
+  });
+
+  it("不同步账本时不读取账本列表", async () => {
+    const { repository, service } = createDisplayNameService();
+
+    await service.updateCurrentDisplayName({
+      displayName: "新昵称",
+      syncLedgerIds: [],
+    });
+
+    expect(repository.listCurrentLedgerDisplayNames).not.toHaveBeenCalled();
+    expect(repository.updateCurrentDisplayName).toHaveBeenCalledWith({
+      displayName: "新昵称",
+      syncLedgerIds: [],
+    });
+  });
+
+  it("勾选的账本不属于当前用户时拒绝写入", async () => {
+    const { repository, service } = createDisplayNameService();
+
+    await expect(
+      service.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [familyLedgerId, "00000000-0000-4000-8000-000000000999"],
+      }),
+    ).rejects.toThrow(
+      new AuthorizationError(
+        "ledger_permission_denied",
+        "部分账本已无法同步昵称，请刷新页面后重试。",
+      ),
+    );
+    expect(repository.updateCurrentDisplayName).not.toHaveBeenCalled();
+  });
+
+  it("用户已停用时拒绝写入", async () => {
+    const { repository, service } = createDisplayNameService({
+      findById: vi
+        .fn()
+        .mockResolvedValue({ ...activeProfile, status: "disabled" }),
+    });
+
+    await expect(
+      service.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [],
+      }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.updateCurrentDisplayName).not.toHaveBeenCalled();
+  });
+
+  it("账本内昵称冲突时抛出 ConflictError 并列出账本与原因", async () => {
+    const { service } = createDisplayNameService({
+      updateCurrentDisplayName: vi.fn().mockResolvedValue({
+        conflicts: [
+          {
+            code: "display_name_placeholder_conflict",
+            ledgerId: tripLedgerId,
+            ledgerName: "旅行",
+          },
+        ],
+        ok: false,
+      }),
+    });
+
+    await expect(
+      service.updateCurrentDisplayName({
+        displayName: "新昵称",
+        syncLedgerIds: [tripLedgerId],
+      }),
+    ).rejects.toThrow(
+      new ConflictError(
+        "display_name_ledger_conflict",
+        "以下账本无法使用该昵称，昵称未修改。「旅行」：账本中已有同名的待邀请成员。请更换昵称，或取消勾选这些账本。",
+      ),
+    );
+  });
+
+  it.each([
+    ["auth_required", AuthenticationError, "请先登录。"],
+    ["display_name_required", ValidationError, "请输入昵称。"],
+    ["display_name_too_long", ValidationError, "昵称最多 100 个字符。"],
+    [
+      "ledger_permission_denied",
+      AuthorizationError,
+      "部分账本已无法同步昵称，请刷新页面后重试。",
+    ],
+    ["user_inactive", AuthorizationError, "当前用户已停用。"],
+  ] as const)(
+    "RPC 业务错误 %s 转换为对应的应用错误",
+    async (code, ErrorClass, message) => {
+      const { service } = createDisplayNameService({
+        updateCurrentDisplayName: vi
+          .fn()
+          .mockResolvedValue({ code, ok: false }),
+      });
+
+      const error = await service
+        .updateCurrentDisplayName({ displayName: "新昵称", syncLedgerIds: [] })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ErrorClass);
+      expect(error).toMatchObject({ code, message });
+    },
+  );
 });
