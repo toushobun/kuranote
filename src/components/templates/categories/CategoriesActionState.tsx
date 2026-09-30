@@ -15,7 +15,6 @@ import type {
 import { CategoriesTemplate } from "./Categories";
 
 const initialCategoryActionState: CategoryActionState = {};
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 function CategorySuccessFeedback({ state }: { state: CategoryActionState }) {
   const [closedState, setClosedState] = useState<CategoryActionState | null>(
@@ -25,7 +24,7 @@ function CategorySuccessFeedback({ state }: { state: CategoryActionState }) {
   return (
     <SuccessFeedbackDialog
       aboveModal
-      bottomOffset={feedbackBottomOffset}
+      bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
       onClose={() => setClosedState(state)}
       open={!!state.success && state !== closedState}
       title={state.success}

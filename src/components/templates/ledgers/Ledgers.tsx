@@ -200,7 +200,7 @@ export function LedgersTemplate({
           />
         ))}
         <SuccessFeedbackDialog
-          bottomOffset={feedbackBottomOffset}
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
           description={
             currentLedger
               ? `已切换至「${currentLedger.name}」。`
@@ -669,8 +669,6 @@ const emptyTitleSx = {
   fontWeight: 700,
 };
 
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
-
 function errorFeedbackBottomOffset(index: number) {
-  return `calc(${feedbackBottomOffset} + ${index * 88}px)`;
+  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
 }

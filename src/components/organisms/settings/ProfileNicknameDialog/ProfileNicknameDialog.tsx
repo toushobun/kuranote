@@ -127,14 +127,14 @@ export function ProfileNicknameDialog({
 
       <SuccessFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={dialog.closeFeedback}
         open={dialog.feedback?.kind === "success"}
         title={text.successTitle}
       />
       <FailureFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={
           dialog.feedback?.kind === "failure" ? dialog.feedback.message : ""
         }
@@ -145,8 +145,6 @@ export function ProfileNicknameDialog({
     </>
   );
 }
-
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const actionsSx = {
   px: 3,

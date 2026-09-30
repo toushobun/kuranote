@@ -269,7 +269,7 @@ export function AccountsTemplate({
           />
         ))}
         <SuccessFeedbackDialog
-          bottomOffset={saveFeedbackBottomOffset}
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
           description={saveSuccessDialogText.description}
           onClose={closeSaveSuccessDialog}
           open={isSaveSuccessOpen}
@@ -352,10 +352,8 @@ const createButtonSx = {
   whiteSpace: "nowrap",
 };
 
-const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
-
 function errorFeedbackBottomOffset(index: number) {
-  return `calc(${saveFeedbackBottomOffset} + ${index * 88}px)`;
+  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
 }
 
 const accountSaveSuccessDialogTextByResult: Record<

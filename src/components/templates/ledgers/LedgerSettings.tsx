@@ -319,7 +319,7 @@ export function LedgerSettingsTemplate({
           />
         ))}
         <SuccessFeedbackDialog
-          bottomOffset={feedbackBottomOffset}
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
           description="账本设置已保存。"
           onClose={closeSaveSuccessDialog}
           open={isSaveSuccessOpen}
@@ -930,8 +930,6 @@ const cancelButtonSx = {
   minHeight: 48,
 };
 
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
-
 function errorFeedbackBottomOffset(index: number) {
-  return `calc(${feedbackBottomOffset} + ${index * 88}px)`;
+  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
 }

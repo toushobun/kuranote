@@ -436,8 +436,6 @@ function TransactionPageTopBar({
   );
 }
 
-const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
-
 const newTransactionTopBarSx = {
   alignItems: "center",
   display: "grid",
@@ -638,7 +636,7 @@ function EditTransactionShell({
         open={isSaveConfirmationOpen}
       />
       <FailureFeedbackDialog
-        bottomOffset={saveFeedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={saveErrorMessage}
         onClose={() => {
           setHasUnsavedChanges(true);
@@ -648,7 +646,7 @@ function EditTransactionShell({
         title="保存失败"
       />
       <FailureFeedbackDialog
-        bottomOffset={saveFeedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={deleteState.error}
         onClose={() => setDismissedDeleteState(deleteState)}
         open={Boolean(

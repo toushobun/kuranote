@@ -120,9 +120,8 @@ describe("MerchantsTemplate", () => {
     expect(componentSource).toContain(
       'import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";',
     );
-    expect(componentSource).toContain("bottomOffset={feedbackBottomOffset}");
     expect(componentSource).toContain(
-      "const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;",
+      "bottomOffset={bottomNavigationLayout.feedbackBottomOffset}",
     );
   });
 

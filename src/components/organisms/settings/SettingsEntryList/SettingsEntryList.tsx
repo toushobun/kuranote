@@ -245,8 +245,9 @@ const settingsChevronSx = {
 };
 
 const settingsToastSx = {
+  // MUI Snackbar 在 sm 以上自带 bottom: 24px 的媒体查询，需同样用断点值覆盖。
   bottom: {
-    xs: `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`,
-    sm: `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`,
+    xs: bottomNavigationLayout.feedbackBottomOffset,
+    sm: bottomNavigationLayout.feedbackBottomOffset,
   },
 };
