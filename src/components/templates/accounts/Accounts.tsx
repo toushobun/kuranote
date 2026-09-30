@@ -18,7 +18,10 @@ import {
 import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog/AccountCreateDialog";
 import { AccountList } from "organisms/accounts/AccountList/AccountList";
 import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/AccountSummaryCard";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import {
+  bottomNavigationLayout,
+  stackedFeedbackBottomOffset,
+} from "organisms/navigation/bottomNavigationLayout";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
@@ -261,7 +264,7 @@ export function AccountsTemplate({
           <FailureFeedbackDialog
             aboveModal
             key={feedback.id}
-            bottomOffset={errorFeedbackBottomOffset(index)}
+            bottomOffset={stackedFeedbackBottomOffset(index)}
             description={feedback.message}
             onClose={() => closeErrorFeedback(feedback.id)}
             open
@@ -351,10 +354,6 @@ const createButtonSx = {
   px: 2,
   whiteSpace: "nowrap",
 };
-
-function errorFeedbackBottomOffset(index: number) {
-  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
-}
 
 const accountSaveSuccessDialogTextByResult: Record<
   AccountSaveResult,

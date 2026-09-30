@@ -38,7 +38,10 @@ import {
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import {
+  bottomNavigationLayout,
+  stackedFeedbackBottomOffset,
+} from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { useClearQueryParam } from "templates/useClearQueryParam";
@@ -191,7 +194,7 @@ export function LedgersTemplate({
 
         {errorFeedbacks.map((feedback, index) => (
           <FailureFeedbackDialog
-            bottomOffset={errorFeedbackBottomOffset(index)}
+            bottomOffset={stackedFeedbackBottomOffset(index)}
             description={feedback.message}
             key={feedback.id}
             onClose={() => closeErrorFeedback(feedback.id)}
@@ -668,7 +671,3 @@ const emptyTitleSx = {
   fontSize: { xs: 16, sm: 17 },
   fontWeight: 700,
 };
-
-function errorFeedbackBottomOffset(index: number) {
-  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
-}

@@ -1,10 +1,7 @@
 "use client";
 
-import { useTheme } from "@mui/material/styles";
-
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
-
-import { getMerchantFeedbackBottomOffset } from "../merchantFeedbackBottomOffset";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { MerchantActionState } from "types/merchants";
 
 export function MerchantFailureFeedback({
@@ -14,12 +11,10 @@ export function MerchantFailureFeedback({
   state: MerchantActionState;
   title: string;
 }) {
-  const theme = useTheme();
-
   return (
     <ActionFailureFeedback
       aboveModal
-      bottomOffset={getMerchantFeedbackBottomOffset(theme)}
+      bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
       state={state}
       title={title}
     />

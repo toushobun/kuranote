@@ -35,7 +35,10 @@ import {
 } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import {
+  bottomNavigationLayout,
+  stackedFeedbackBottomOffset,
+} from "organisms/navigation/bottomNavigationLayout";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import { useClearQueryParam } from "templates/useClearQueryParam";
@@ -310,7 +313,7 @@ export function LedgerSettingsTemplate({
         {errorFeedbacks.map((feedback, index) => (
           <FailureFeedbackDialog
             aboveModal
-            bottomOffset={errorFeedbackBottomOffset(index)}
+            bottomOffset={stackedFeedbackBottomOffset(index)}
             description={feedback.message}
             key={feedback.id}
             onClose={() => closeErrorFeedback(feedback.id)}
@@ -929,7 +932,3 @@ const cancelButtonSx = {
   fontWeight: 900,
   minHeight: 48,
 };
-
-function errorFeedbackBottomOffset(index: number) {
-  return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * 88}px)`;
-}
