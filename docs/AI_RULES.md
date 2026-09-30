@@ -323,6 +323,7 @@ Component 优先直接调用 `loadXxxView()`，不向自身发送 HTTP 请求；
   - `fix/192_account_error`
   - `refactor/158_fab_text_color`
 - 通过 Claude Code on the web 开发时，执行环境会预分配形如 `claude/xxx` 的分支名，但此命名不符合规范。必须无视预分配名称，按上述规则另建正确命名的分支后再开发。
+- 例外：仅修改 AI Agent 规则文件（`docs/AI_RULES.md`、`AGENTS.md`、`CLAUDE.md` 等）的变更，不需要先创建 Issue，也不受上述分支命名约束（可直接使用预分配的 `claude/xxx` 分支），直接创建 PR 即可；PR 正文「对应 Issue」一栏写明“规则修改，无对应 Issue”。
 - 保持最小差分，不混入无关重构。
 - 同一个 Issue 下，如果多个模块采用完全相同且已经定型的机械模式、模块之间没有耦合，并且拆分后子 PR 因 base 不是 `main` 而无法独立触发 CI，必须合并为一个以 `main` 为 base 的 PR，不得按模块堆叠。
 - 只有当后一个改动确实依赖前一个先合并才能验证或避免冲突，并且每个子 PR 都能以 `main` 为 base 独立运行 CI 时，才允许使用堆叠 PR。
