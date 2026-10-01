@@ -250,7 +250,7 @@ otp_expiry = 600
 # content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.confirmation]
-subject = "Your KuraNote verification code"
+subject = "KuraNote 注册验证码"
 content_path = "./supabase/templates/confirmation.html"
 
 # 个人主页修改密码时，signInWithOtp 向当前登录邮箱发送的验证码邮件。
