@@ -35,7 +35,7 @@ supabase/templates/confirmation.html
 
 ```toml
 [auth.email.template.confirmation]
-subject = "Your KuraNote verification code"
+subject = "KuraNote 注册验证码"
 content_path = "./supabase/templates/confirmation.html"
 ```
 
@@ -80,7 +80,7 @@ Authentication > Email Templates > Confirm signup
 Subject 建议：
 
 ```text
-Your KuraNote verification code
+KuraNote 注册验证码
 ```
 
 Body 使用 `supabase/templates/confirmation.html` 的内容。
