@@ -9,12 +9,12 @@ import {
   useTransition,
 } from "react";
 
+import { profileNicknameDialogMessages as text } from "config/settingsMessages";
 import type { UserLedgerDisplayName } from "internal/user";
+import type { OperationFeedbackState } from "molecules/ui/OperationFeedbackDialogs";
 import type { DisplayNameAction, DisplayNameActionState } from "types/user";
 
 type Step = "edit" | "sync";
-
-type Feedback = { kind: "failure" | "success"; message: string };
 
 const initialState: DisplayNameActionState = {};
 
@@ -54,7 +54,7 @@ export function useProfileNicknameDialog({
   const [selectedLedgerIds, setSelectedLedgerIds] = useState(() =>
     getDefaultSelection(ledgers, currentLedgerId),
   );
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<OperationFeedbackState | null>(null);
   const [wasOpen, setWasOpen] = useState(open);
   const [, startTransition] = useTransition();
   const onCloseRef = useRef(onClose);
@@ -78,9 +78,13 @@ export function useProfileNicknameDialog({
       const nextState = await action(previousState, formData);
 
       if (nextState.error) {
-        setFeedback({ kind: "failure", message: nextState.error });
+        setFeedback({
+          kind: "failure",
+          message: nextState.error,
+          title: text.failureTitle,
+        });
       } else if (nextState.success) {
-        setFeedback({ kind: "success", message: nextState.success });
+        setFeedback({ kind: "success", title: text.successTitle });
         onCloseRef.current();
       }
 

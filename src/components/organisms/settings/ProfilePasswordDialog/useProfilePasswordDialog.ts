@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { profilePasswordDialogMessages as text } from "config/settingsMessages";
+import type { OperationFeedbackState } from "molecules/ui/OperationFeedbackDialogs";
 import { useOtpCooldown } from "organisms/auth/useOtpCooldown";
 import type {
   ChangePasswordAction,
@@ -17,10 +18,6 @@ import type {
   PasswordChangeOtpAction,
   PasswordChangeOtpActionState,
 } from "types/auth";
-
-type Feedback =
-  | { kind: "success" }
-  | { kind: "failure"; message: string; title: string };
 
 const initialOtpState: PasswordChangeOtpActionState = {};
 const initialChangeState: ChangePasswordActionState = {};
@@ -44,7 +41,7 @@ export function useProfilePasswordDialog({
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [sentMessage, setSentMessage] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<OperationFeedbackState | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useOtpCooldown();
   const [wasOpen, setWasOpen] = useState(open);
   const [, startTransition] = useTransition();
@@ -103,7 +100,7 @@ export function useProfilePasswordDialog({
           title: text.failureTitle,
         });
       } else if (nextState.success) {
-        setFeedback({ kind: "success" });
+        setFeedback({ kind: "success", title: text.successTitle });
         setSentMessage(null);
         onCloseRef.current();
       }

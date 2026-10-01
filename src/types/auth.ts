@@ -56,3 +56,12 @@ export type ChangePasswordAction = (
   previousState: ChangePasswordActionState,
   formData: FormData,
 ) => Promise<ChangePasswordActionState>;
+
+export type GoogleIdentityLinkActionState = BaseActionState & {
+  errorKey?: string;
+  successKey?: string;
+};
+
+export type GoogleIdentityLinkAction = (
+  previousState: GoogleIdentityLinkActionState,
+) => Promise<GoogleIdentityLinkActionState>;

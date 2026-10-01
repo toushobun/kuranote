@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -8,11 +9,12 @@ import {
   getSafeGoogleAuthNextPath,
   googleAuthErrorCodes,
   googleAuthFailureHref,
-  type GoogleAuthSource,
+  type GoogleSignInSource,
 } from "lib/auth/googleOAuth";
 import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
 import {
+  googleIdentityLinkMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -22,6 +24,7 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type {
   ChangePasswordActionState,
+  GoogleIdentityLinkActionState,
   LoginActionState,
   PasswordChangeOtpActionState,
   RegisterEmailAvailabilityState,
@@ -325,7 +328,7 @@ export async function loginWithRedirect(
 }
 
 export async function startGoogleAuth(
-  source: GoogleAuthSource,
+  source: GoogleSignInSource,
   nextPath: string,
 ): Promise<void> {
   const safeNextPath = getSafeGoogleAuthNextPath(nextPath);
@@ -420,4 +423,46 @@ export async function changePassword(
     );
     return createErrorState(passwordChangeMessages.passwordUpdateFailed);
   }
+}
+
+export async function startGoogleIdentityLink(): Promise<GoogleIdentityLinkActionState> {
+  let providerUrl: string;
+
+  try {
+    const result = await (
+      await getAuthService()
+    ).startGoogleIdentityLink({
+      requestOrigin: (await headers()).get("origin"),
+    });
+    providerUrl = result.providerUrl;
+  } catch (error) {
+    if (error instanceof AppError) return createErrorState(error.message);
+
+    logUnexpectedAdapterError(
+      "[auth] Google identity link action failed unexpectedly",
+      error,
+    );
+    return createErrorState(googleIdentityLinkMessages.startFailed);
+  }
+
+  // 成功后跳转到 Google 授权页，授权完成后经 OAuth 回调回到个人主页。
+  redirect(providerUrl);
+}
+
+export async function unlinkGoogleIdentity(): Promise<GoogleIdentityLinkActionState> {
+  try {
+    await (await getAuthService()).unlinkGoogleIdentity();
+  } catch (error) {
+    if (error instanceof AppError) return createErrorState(error.message);
+
+    logUnexpectedAdapterError(
+      "[auth] Google identity unlink action failed unexpectedly",
+      error,
+    );
+    return createErrorState(googleIdentityLinkMessages.unlinkFailed);
+  }
+
+  // 解除绑定不影响当前会话，只刷新个人主页的绑定状态。
+  revalidatePath(routePaths.settingsProfile);
+  return { success: "已解除 Google 绑定。", successKey: crypto.randomUUID() };
 }

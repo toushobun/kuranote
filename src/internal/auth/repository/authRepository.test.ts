@@ -9,12 +9,15 @@ import type { Logger } from "internal/shared/logging/logger";
 const auth = {
   exchangeCodeForSession: vi.fn(),
   getUser: vi.fn(),
+  getUserIdentities: vi.fn(),
+  linkIdentity: vi.fn(),
   resend: vi.fn(),
   signInWithOAuth: vi.fn(),
   signInWithOtp: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
+  unlinkIdentity: vi.fn(),
   updateUser: vi.fn(),
   verifyOtp: vi.fn(),
 };
@@ -34,6 +37,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   auth.exchangeCodeForSession.mockResolvedValue({ error: null });
   auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  auth.getUserIdentities.mockResolvedValue({
+    data: { identities: [] },
+    error: null,
+  });
+  auth.linkIdentity.mockResolvedValue({
+    data: { provider: "google", url: "https://accounts.google.test/link" },
+    error: null,
+  });
   auth.resend.mockResolvedValue({ error: null });
   auth.signInWithOAuth.mockResolvedValue({
     data: { url: "https://accounts.google.test/oauth" },
@@ -43,6 +54,7 @@ beforeEach(() => {
   auth.signInWithPassword.mockResolvedValue({ error: null });
   auth.signOut.mockResolvedValue({ error: null });
   auth.signUp.mockResolvedValue({ error: null });
+  auth.unlinkIdentity.mockResolvedValue({ data: {}, error: null });
   auth.updateUser.mockResolvedValue({ error: null });
   auth.verifyOtp.mockResolvedValue({ error: null });
 });
@@ -394,5 +406,167 @@ describe("createSupabaseAuthRepository", () => {
       "[auth] sign-out returned an error",
       { code: "signout_failed" },
     );
+  });
+
+  describe("账号绑定", () => {
+    const googleIdentityRow = {
+      id: "google-sub-123",
+      identity_data: {
+        email: " user.google@gmail.test ",
+        sub: "google-sub-123",
+      },
+      identity_id: "00000000-0000-4000-8000-000000000042",
+      provider: "google",
+      user_id: "00000000-0000-4000-8000-000000000031",
+    };
+    const googleIdentity = {
+      email: "user.google@gmail.test",
+      id: "google-sub-123",
+      identityId: "00000000-0000-4000-8000-000000000042",
+      provider: "google",
+      userId: "00000000-0000-4000-8000-000000000031",
+    };
+
+    it("读取当前用户的登录身份并只保留安全字段", async () => {
+      const { repository } = createRepository();
+      auth.getUserIdentities.mockResolvedValue({
+        data: {
+          identities: [
+            googleIdentityRow,
+            {
+              id: "email-row",
+              identity_data: {},
+              identity_id: "00000000-0000-4000-8000-000000000041",
+              provider: "email",
+              user_id: "00000000-0000-4000-8000-000000000031",
+            },
+          ],
+        },
+        error: null,
+      });
+
+      await expect(repository.listCurrentUserIdentities()).resolves.toEqual([
+        googleIdentity,
+        {
+          email: null,
+          id: "email-row",
+          identityId: "00000000-0000-4000-8000-000000000041",
+          provider: "email",
+          userId: "00000000-0000-4000-8000-000000000031",
+        },
+      ]);
+    });
+
+    it("会话失效时返回 null，其他错误转换为 RepositoryError", async () => {
+      const { logger, repository } = createRepository();
+      auth.getUserIdentities.mockResolvedValueOnce({
+        data: null,
+        error: { name: "AuthSessionMissingError", message: "missing" },
+      });
+
+      await expect(repository.listCurrentUserIdentities()).resolves.toBeNull();
+
+      auth.getUserIdentities.mockResolvedValueOnce({
+        data: null,
+        error: { code: "unexpected_failure", message: "private details" },
+      });
+      await expect(
+        repository.listCurrentUserIdentities(),
+      ).rejects.toMatchObject({
+        code: "identity_load_failed",
+        message: "账号绑定状态读取失败，请稍后重试。",
+      });
+      expect(
+        JSON.stringify((logger.error as ReturnType<typeof vi.fn>).mock.calls),
+      ).not.toContain("private details");
+    });
+
+    it("以 linkIdentity 开始绑定 Google 并返回授权地址", async () => {
+      const { repository } = createRepository();
+
+      await expect(
+        repository.startGoogleIdentityLink(
+          "https://kuranote.test/auth/callback?source=link",
+        ),
+      ).resolves.toBe("https://accounts.google.test/link");
+      expect(auth.linkIdentity).toHaveBeenCalledWith({
+        options: {
+          redirectTo: "https://kuranote.test/auth/callback?source=link",
+        },
+        provider: "google",
+      });
+    });
+
+    it("开始绑定失败时只记录错误码并转换为 RepositoryError", async () => {
+      const { logger, repository } = createRepository();
+      auth.linkIdentity.mockResolvedValueOnce({
+        data: { provider: "google", url: null },
+        error: { code: "manual_linking_disabled", message: "private details" },
+      });
+
+      await expect(
+        repository.startGoogleIdentityLink("https://kuranote.test/cb"),
+      ).rejects.toMatchObject({
+        code: "google_identity_link_start_failed",
+        message: "暂时无法连接 Google，请稍后再试。",
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        "[auth] Google identity link start failed",
+        { code: "manual_linking_disabled" },
+      );
+
+      auth.linkIdentity.mockRejectedValueOnce(new Error("network failed"));
+      await expect(
+        repository.startGoogleIdentityLink("https://kuranote.test/cb"),
+      ).rejects.toBeInstanceOf(RepositoryError);
+    });
+
+    it("以 identity_id 解除绑定并映射 Supabase 稳定错误码", async () => {
+      const { repository } = createRepository();
+
+      await expect(repository.unlinkIdentity(googleIdentity)).resolves.toBe(
+        "unlinked",
+      );
+      expect(auth.unlinkIdentity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identity_id: "00000000-0000-4000-8000-000000000042",
+          provider: "google",
+        }),
+      );
+
+      for (const [code, result] of [
+        ["single_identity_not_deletable", "single_identity"],
+        ["identity_not_found", "identity_not_found"],
+        ["email_conflict_identity_not_deletable", "email_conflict"],
+      ] as const) {
+        auth.unlinkIdentity.mockResolvedValueOnce({
+          data: null,
+          error: { code, message: "private" },
+        });
+        await expect(repository.unlinkIdentity(googleIdentity)).resolves.toBe(
+          result,
+        );
+      }
+    });
+
+    it("解除绑定的未知错误或异常转换为 RepositoryError", async () => {
+      const { repository } = createRepository();
+      auth.unlinkIdentity.mockResolvedValueOnce({
+        data: null,
+        error: { code: "unexpected_failure", message: "private" },
+      });
+
+      await expect(
+        repository.unlinkIdentity(googleIdentity),
+      ).rejects.toMatchObject({
+        code: "identity_unlink_failed",
+        message: "解除绑定失败，请稍后再试。",
+      });
+
+      auth.unlinkIdentity.mockRejectedValueOnce(new Error("network failed"));
+      await expect(
+        repository.unlinkIdentity(googleIdentity),
+      ).rejects.toBeInstanceOf(RepositoryError);
+    });
   });
 });

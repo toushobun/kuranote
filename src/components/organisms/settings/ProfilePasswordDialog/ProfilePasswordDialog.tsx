@@ -14,10 +14,7 @@ import { useId, type FormEvent } from "react";
 
 import { profilePasswordDialogMessages as text } from "config/settingsMessages";
 import { passwordMaxLength } from "lib/validators/auth";
-import {
-  FailureFeedbackDialog,
-  SuccessFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
+import { OperationFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { ChangePasswordAction, PasswordChangeOtpAction } from "types/auth";
 
@@ -160,22 +157,11 @@ export function ProfilePasswordDialog({
         </Box>
       </Dialog>
 
-      <SuccessFeedbackDialog
+      <OperationFeedback
         aboveModal
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        feedback={dialog.feedback}
         onClose={dialog.closeFeedback}
-        open={dialog.feedback?.kind === "success"}
-        title={text.successTitle}
-      />
-      <FailureFeedbackDialog
-        aboveModal
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={
-          dialog.feedback?.kind === "failure" ? dialog.feedback.message : ""
-        }
-        onClose={dialog.closeFeedback}
-        open={dialog.feedback?.kind === "failure"}
-        title={dialog.feedback?.kind === "failure" ? dialog.feedback.title : ""}
       />
     </>
   );

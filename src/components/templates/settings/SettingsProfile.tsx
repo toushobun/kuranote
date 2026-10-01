@@ -2,7 +2,6 @@
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
-import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import Box from "@mui/material/Box";
@@ -16,17 +15,25 @@ import {
   settingsProfileEntryMessages as entryText,
   settingsProfilePageMessages as pageText,
 } from "config/settingsMessages";
+import type {
+  GoogleIdentityLinkFeedback,
+  GoogleIdentityStatus,
+} from "internal/auth";
 import type { UserLedgerDisplayName } from "internal/user";
+import { ProfileAccountLinking } from "organisms/settings/ProfileAccountLinking/ProfileAccountLinking";
 import { ProfileNicknameDialog } from "organisms/settings/ProfileNicknameDialog/ProfileNicknameDialog";
 import { ProfilePasswordDialog } from "organisms/settings/ProfilePasswordDialog/ProfilePasswordDialog";
 import { ProfileSummaryCard } from "organisms/settings/ProfileSummaryCard/ProfileSummaryCard";
 import {
-  SettingsComingSoonToast,
   SettingsEntryButton,
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
 import type { ServerAction } from "types/actions";
-import type { ChangePasswordAction, PasswordChangeOtpAction } from "types/auth";
+import type {
+  ChangePasswordAction,
+  GoogleIdentityLinkAction,
+  PasswordChangeOtpAction,
+} from "types/auth";
 import type { AvatarAction, DisplayNameAction } from "types/user";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
@@ -34,7 +41,10 @@ import { PageShell } from "templates/layout/PageShell";
 type SettingsProfileTemplateProps = {
   changePasswordAction: ChangePasswordAction;
   currentLedgerId: string | null;
+  googleIdentity: GoogleIdentityStatus;
+  googleIdentityLinkFeedback: GoogleIdentityLinkFeedback | null;
   ledgers: readonly UserLedgerDisplayName[];
+  linkGoogleIdentityAction: GoogleIdentityLinkAction;
   logoutAction: ServerAction;
   profile: {
     avatarUrl: string | null;
@@ -42,6 +52,7 @@ type SettingsProfileTemplateProps = {
     email: string | null;
   };
   requestPasswordChangeOtpAction: PasswordChangeOtpAction;
+  unlinkGoogleIdentityAction: GoogleIdentityLinkAction;
   updateAvatarAction: AvatarAction;
   updateDisplayNameAction: DisplayNameAction;
 };
@@ -49,17 +60,19 @@ type SettingsProfileTemplateProps = {
 export function SettingsProfileTemplate({
   changePasswordAction,
   currentLedgerId,
+  googleIdentity,
+  googleIdentityLinkFeedback,
   ledgers,
+  linkGoogleIdentityAction,
   logoutAction,
   profile,
   requestPasswordChangeOtpAction,
+  unlinkGoogleIdentityAction,
   updateAvatarAction,
   updateDisplayNameAction,
 }: SettingsProfileTemplateProps) {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isToastOpen, setIsToastOpen] = useState(false);
-  const showComingSoonToast = () => setIsToastOpen(true);
 
   return (
     <PageShell maxWidth="sm">
@@ -103,11 +116,12 @@ export function SettingsProfileTemplate({
             label={entryText.password}
             onClick={() => setIsPasswordDialogOpen(true)}
           />
-          <SettingsEntryButton
-            icon={LinkRoundedIcon}
+          <ProfileAccountLinking
+            googleIdentity={googleIdentity}
             isLast
-            label={entryText.accountBinding}
-            onClick={showComingSoonToast}
+            linkAction={linkGoogleIdentityAction}
+            linkFeedback={googleIdentityLinkFeedback}
+            unlinkAction={unlinkGoogleIdentityAction}
           />
         </SettingsEntryGroupCard>
 
@@ -138,10 +152,6 @@ export function SettingsProfileTemplate({
         onClose={() => setIsPasswordDialogOpen(false)}
         open={isPasswordDialogOpen}
         requestOtpAction={requestPasswordChangeOtpAction}
-      />
-      <SettingsComingSoonToast
-        onClose={() => setIsToastOpen(false)}
-        open={isToastOpen}
       />
     </PageShell>
   );

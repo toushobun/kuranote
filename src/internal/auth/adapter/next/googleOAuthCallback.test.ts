@@ -40,6 +40,7 @@ describe("handleGoogleOAuthCallback", () => {
       code: "code-123",
       nextPath: "/invite/token-123",
       providerError: null,
+      providerErrorCode: null,
       source: "register",
     });
     expect(response.status).toBe(307);
@@ -112,5 +113,44 @@ describe("handleGoogleOAuthCallback", () => {
       "private dependency details",
     );
     consoleError.mockRestore();
+  });
+
+  it("绑定回调把 source=link 与 Supabase error_code 交给 Service", async () => {
+    mocks.completeGoogleAuth.mockResolvedValue(
+      "/settings/profile?linkResult=identity_already_exists",
+    );
+
+    const response = await handleGoogleOAuthCallback(
+      new Request(
+        "https://kuranote.test/auth/callback?source=link&next=%2Fsettings%2Fprofile&error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user",
+      ),
+    );
+
+    expect(mocks.completeGoogleAuth).toHaveBeenCalledWith({
+      code: null,
+      nextPath: "/settings/profile",
+      providerError: "server_error",
+      providerErrorCode: "identity_already_exists",
+      source: "link",
+    });
+    expect(response.headers.get("location")).toBe(
+      "https://kuranote.test/settings/profile?linkResult=identity_already_exists",
+    );
+  });
+
+  it("绑定回调异常时回到个人主页的失败结果，而不是登录页", async () => {
+    mocks.completeGoogleAuth.mockRejectedValue(
+      new RepositoryError("oauth_exchange_failed", "private provider details"),
+    );
+
+    const response = await handleGoogleOAuthCallback(
+      new Request(
+        "https://kuranote.test/auth/callback?code=sensitive-code&source=link&next=%2Fsettings%2Fprofile",
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://kuranote.test/settings/profile?linkResult=failed",
+    );
   });
 });

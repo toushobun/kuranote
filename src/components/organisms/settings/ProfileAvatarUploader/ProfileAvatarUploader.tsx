@@ -10,10 +10,7 @@ import { alpha, type Theme } from "@mui/material/styles";
 import { useRef } from "react";
 
 import { profileAvatarUploaderMessages as text } from "config/settingsMessages";
-import {
-  FailureFeedbackDialog,
-  SuccessFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
+import { OperationFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import type { AvatarAction } from "types/user";
 
@@ -73,20 +70,10 @@ export function ProfileAvatarUploader({
         type="file"
       />
 
-      <SuccessFeedbackDialog
+      <OperationFeedback
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        feedback={uploader.feedback}
         onClose={uploader.closeFeedback}
-        open={uploader.feedback?.kind === "success"}
-        title={text.successTitle}
-      />
-      <FailureFeedbackDialog
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={
-          uploader.feedback?.kind === "failure" ? uploader.feedback.message : ""
-        }
-        onClose={uploader.closeFeedback}
-        open={uploader.feedback?.kind === "failure"}
-        title={text.failureTitle}
       />
     </>
   );

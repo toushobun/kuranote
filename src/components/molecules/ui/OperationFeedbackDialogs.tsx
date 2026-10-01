@@ -113,6 +113,45 @@ export function FailureFeedbackDialog({
   return <FeedbackDialog {...props} aboveModal={aboveModal} tone="error" />;
 }
 
+/** 一次操作的结果反馈，成功与失败同一时间只显示其中一个。 */
+export type OperationFeedbackState =
+  | { kind: "success"; title: string }
+  | { kind: "failure"; message: string; title: string };
+
+type OperationFeedbackProps = Pick<
+  FeedbackDialogProps,
+  "aboveModal" | "bottomOffset" | "onClose"
+> & {
+  feedback: OperationFeedbackState | null;
+};
+
+export function OperationFeedback({
+  aboveModal,
+  bottomOffset,
+  feedback,
+  onClose,
+}: OperationFeedbackProps) {
+  return (
+    <>
+      <SuccessFeedbackDialog
+        aboveModal={aboveModal}
+        bottomOffset={bottomOffset}
+        onClose={onClose}
+        open={feedback?.kind === "success"}
+        title={feedback?.kind === "success" ? feedback.title : ""}
+      />
+      <FailureFeedbackDialog
+        aboveModal={aboveModal}
+        bottomOffset={bottomOffset}
+        description={feedback?.kind === "failure" ? feedback.message : ""}
+        onClose={onClose}
+        open={feedback?.kind === "failure"}
+        title={feedback?.kind === "failure" ? feedback.title : ""}
+      />
+    </>
+  );
+}
+
 type ActionFailureFeedbackProps = Omit<
   FeedbackDialogProps,
   "description" | "onClose" | "open"

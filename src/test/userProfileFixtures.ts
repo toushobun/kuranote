@@ -1,5 +1,10 @@
+import type { GoogleIdentityStatus } from "internal/auth";
 import type { UserLedgerDisplayName } from "internal/user";
-import type { ChangePasswordAction, PasswordChangeOtpAction } from "types/auth";
+import type {
+  ChangePasswordAction,
+  GoogleIdentityLinkAction,
+  PasswordChangeOtpAction,
+} from "types/auth";
 import type { AvatarAction, DisplayNameAction } from "types/user";
 
 /** 个人主页相关组件的测试与 Storybook 共用数据。 */
@@ -72,3 +77,48 @@ export const failedChangePasswordAction: ChangePasswordAction = async () => ({
   error: changePasswordFailureMessage,
   errorKey: crypto.randomUUID(),
 });
+
+export const googleIdentityEmail = "user.google@gmail.com";
+export const googleOnlyLoginIdentityMessage =
+  "Google 是当前账号唯一的登录身份，无法解除绑定。通过 Google 注册的账号即使已设置密码，也需要保留 Google 绑定。";
+export const googleIdentityAlreadyExistsMessage =
+  "该 Google 账号已被其他 KuraNote 账号使用，无法绑定到当前账号。请换一个 Google 账号再试。";
+export const googleIdentityStartFailedMessage =
+  "暂时无法连接 Google，请稍后再试。";
+export const googleIdentityUnlinkFailedMessage = "解除绑定失败，请稍后再试。";
+
+export const unlinkedGoogleIdentity: GoogleIdentityStatus = { linked: false };
+
+export const unlinkableGoogleIdentity: GoogleIdentityStatus = {
+  email: googleIdentityEmail,
+  linked: true,
+  unlinkDisabledReason: null,
+};
+
+export const googleOnlyIdentity: GoogleIdentityStatus = {
+  email: googleIdentityEmail,
+  linked: true,
+  unlinkDisabledReason: googleOnlyLoginIdentityMessage,
+};
+
+/** Storybook 中模拟跳转前的等待：成功时实际会跳转到 Google 授权页。 */
+export const pendingLinkGoogleIdentityAction: GoogleIdentityLinkAction = () =>
+  new Promise(() => undefined);
+
+export const failedLinkGoogleIdentityAction: GoogleIdentityLinkAction =
+  async () => ({
+    error: googleIdentityStartFailedMessage,
+    errorKey: crypto.randomUUID(),
+  });
+
+export const succeededUnlinkGoogleIdentityAction: GoogleIdentityLinkAction =
+  async () => ({
+    success: "已解除 Google 绑定。",
+    successKey: crypto.randomUUID(),
+  });
+
+export const failedUnlinkGoogleIdentityAction: GoogleIdentityLinkAction =
+  async () => ({
+    error: googleIdentityUnlinkFailedMessage,
+    errorKey: crypto.randomUUID(),
+  });

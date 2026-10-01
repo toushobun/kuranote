@@ -34,3 +34,16 @@ export type AuthOtpAttempt = {
 export type AuthSession =
   | { authenticated: false; user: null }
   | { authenticated: true; user: AuthUser };
+
+/**
+ * 个人主页的 Google 绑定状态。unlinkDisabledReason 为 null 时允许解除绑定，
+ * 否则是可直接展示的禁用原因。
+ */
+export type GoogleIdentityStatus =
+  | { linked: false }
+  | { email: string | null; linked: true; unlinkDisabledReason: string | null };
+
+/** Google 绑定 OAuth 回跳到个人主页后需要展示的结果反馈。 */
+export type GoogleIdentityLinkFeedback =
+  | { kind: "success" }
+  | { kind: "failure"; message: string };

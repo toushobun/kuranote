@@ -37,3 +37,21 @@ export const passwordChangeMessages = {
   sessionInvalid: "登录状态已失效，请重新登录。",
   weakPassword: registerErrorMessages.weakPassword,
 } as const;
+
+/** 个人主页 Google 账号绑定 / 解除绑定流程的安全文案。 */
+export const googleIdentityLinkMessages = {
+  alreadyLinked: "当前账号已绑定 Google，请刷新页面后查看。",
+  callbackFailed: "Google 账号绑定未完成，请稍后重试。",
+  cancelled: "已取消 Google 授权，账号未绑定。",
+  emailConflict: "解除绑定后账号邮箱会与其他账号冲突，暂时无法解除绑定。",
+  identityAlreadyExists:
+    "该 Google 账号已被其他 KuraNote 账号使用，无法绑定到当前账号。请换一个 Google 账号再试。",
+  notLinked: "当前账号未绑定 Google，请刷新页面后查看。",
+  onlyLoginIdentity:
+    "Google 是当前账号唯一的登录身份，无法解除绑定。通过 Google 注册的账号即使已设置密码，也需要保留 Google 绑定。",
+  sessionInvalid: passwordChangeMessages.sessionInvalid,
+  startFailed: "暂时无法连接 Google，请稍后再试。",
+  statusLoadFailed: "账号绑定状态读取失败，请稍后重试。",
+  unavailable: "Google 账号绑定暂未开放。",
+  unlinkFailed: "解除绑定失败，请稍后再试。",
+} as const;

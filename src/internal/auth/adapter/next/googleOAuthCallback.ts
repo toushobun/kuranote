@@ -31,6 +31,7 @@ export async function handleGoogleOAuthCallback(
       code: requestUrl.searchParams.get("code"),
       nextPath,
       providerError: requestUrl.searchParams.get("error"),
+      providerErrorCode: requestUrl.searchParams.get("error_code"),
       source,
     });
 

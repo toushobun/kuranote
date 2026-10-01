@@ -75,7 +75,7 @@ describe("ProfileNicknameDialog", () => {
   });
 
   it("没有账本时直接保存，不弹出同步确认", async () => {
-    const { action, onClose } = renderDialog({ ledgers: [] });
+    const { action, onClose, view } = renderDialog({ ledgers: [] });
 
     saveNickname(" 新昵称 ");
 
@@ -87,7 +87,11 @@ describe("ProfileNicknameDialog", () => {
       screen.queryByText("是否同步修改以下账本中的昵称？"),
     ).not.toBeInTheDocument();
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-    expect(await screen.findByText("昵称已保存")).toBeInTheDocument();
+    // 成功提示只显示标题，不显示 Action 文案，并挂载到弹窗上层。
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("昵称已保存");
+    expect(status).not.toHaveTextContent("昵称已保存。");
+    expect(view.container).not.toContainElement(status);
   });
 
   it("有账本时弹出同步确认，默认只勾选当前账本", async () => {
@@ -171,15 +175,15 @@ describe("ProfileNicknameDialog", () => {
       error: "以下账本无法使用该昵称，昵称未修改。",
       errorKey: "error-1",
     }));
-    const { onClose } = renderDialog({ action });
+    const { onClose, view } = renderDialog({ action });
 
     saveNickname("新昵称");
     fireEvent.click(await screen.findByRole("button", { name: "确定" }));
 
-    expect(
-      await screen.findByText("以下账本无法使用该昵称，昵称未修改。"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("昵称保存失败")).toBeInTheDocument();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("昵称保存失败");
+    expect(alert).toHaveTextContent("以下账本无法使用该昵称，昵称未修改。");
+    expect(view.container).not.toContainElement(alert);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole("checkbox", { name: /家庭账本/ })).toBeChecked();
   });

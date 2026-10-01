@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { placeholderMemberText } from "config/placeholderMemberText";
+import type { OperationFeedbackState } from "molecules/ui/OperationFeedbackDialogs";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   LedgerPlaceholderMemberActionOperation,
@@ -17,10 +18,6 @@ import type {
   LedgerPlaceholderMemberStateAction,
   LedgerPlaceholderMemberSummary,
 } from "types/ledgers";
-
-type Feedback =
-  | { kind: "failure"; message: string; title: string }
-  | { kind: "success"; title: string };
 
 const initialState: LedgerPlaceholderMemberActionState = {};
 
@@ -54,7 +51,7 @@ export function useLedgerPlaceholderMemberDialog({
     actions?.delete ?? readOnlyAction,
     initialState,
   );
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<OperationFeedbackState | null>(null);
   const [, startTransition] = useTransition();
   const handledKeysRef = useRef(new Set<string>());
   const onCloseRef = useRef(onClose);

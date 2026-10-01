@@ -70,6 +70,22 @@ export const profilePasswordDialogMessages = {
   sendFailureTitle: "验证码发送失败",
 } as const;
 
+export const profileAccountLinkingMessages = {
+  google: "Google",
+  linkedStatus: (email: string | null) =>
+    email ? `已绑定（${email}）` : "已绑定",
+  unlinkedStatus: "未绑定",
+  link: "绑定",
+  unlink: "解除绑定",
+  unlinkConfirmTitle: "解除 Google 绑定？",
+  unlinkConfirmDescription: (email: string | null) =>
+    `解除后将无法再使用 Google 账号${email ? `「${email}」` : ""}登录当前账号，当前登录状态不受影响。`,
+  linkSuccessTitle: "Google 账号已绑定",
+  linkFailureTitle: "Google 账号绑定失败",
+  unlinkSuccessTitle: "已解除 Google 绑定",
+  unlinkFailureTitle: "解除绑定失败",
+} as const;
+
 export const ledgerNicknameSyncDialogMessages = {
   title: "是否同步修改以下账本中的昵称？",
   description: (displayName: string) =>
