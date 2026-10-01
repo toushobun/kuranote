@@ -257,7 +257,7 @@ export function TransactionsTemplate({
           open={isFilterOpen}
         />
         <SuccessFeedbackDialog
-          bottomOffset={saveFeedbackBottomOffset}
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
           description={saveSuccessDialogText.description}
           onClose={closeSaveSuccessDialog}
           open={isSaveSuccessOpen}
@@ -292,8 +292,6 @@ const saveSuccessDialogTextByResult: Record<
     title: "保存成功",
   },
 };
-
-const saveFeedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const headerActionSx = {
   "@media (hover: hover)": {

@@ -348,7 +348,7 @@ export function MerchantsTemplate({
       </PageShell>
       <MerchantDisplayNameFeedback state={setPreferred.state} />
       <SuccessFeedbackDialog
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeSaveSuccessDialog}
         open={isSaveSuccessOpen}
         title={
@@ -360,5 +360,3 @@ export function MerchantsTemplate({
     </>
   );
 }
-
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;

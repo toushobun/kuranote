@@ -17,6 +17,7 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 
 import { MerchantsTemplate } from "./Merchants";
@@ -25,6 +26,8 @@ const componentSource = readFileSync(
   join(process.cwd(), "src/components/templates/merchants/Merchants.tsx"),
   "utf8",
 );
+
+vi.mock("molecules/ui/OperationFeedbackDialogs", { spy: true });
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -117,12 +120,16 @@ describe("MerchantsTemplate", () => {
   });
 
   it("保存成功提示向上偏移避开底部导航栏", () => {
-    expect(componentSource).toContain(
-      'import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";',
-    );
-    expect(componentSource).toContain("bottomOffset={feedbackBottomOffset}");
-    expect(componentSource).toContain(
-      "const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;",
+    render(<MerchantsTemplate {...baseProps} saveResult="created" />);
+
+    expect(querySuccessFeedback()).toHaveTextContent("保存成功");
+    expect(SuccessFeedbackDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bottomOffset: "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+        open: true,
+        title: "保存成功",
+      }),
+      undefined,
     );
   });
 

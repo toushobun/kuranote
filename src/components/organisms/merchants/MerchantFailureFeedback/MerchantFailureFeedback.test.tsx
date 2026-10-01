@@ -1,4 +1,3 @@
-import { createTheme } from "@mui/material/styles";
 import {
   cleanup,
   fireEvent,
@@ -6,10 +5,13 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getMerchantFeedbackBottomOffset } from "../merchantFeedbackBottomOffset";
+import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
+
 import { MerchantFailureFeedback } from "./MerchantFailureFeedback";
+
+vi.mock("molecules/ui/OperationFeedbackDialogs", { spy: true });
 
 afterEach(cleanup);
 
@@ -50,11 +52,19 @@ describe("MerchantFailureFeedback", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("保存失败。");
   });
 
-  it("失败提示使用共享底部偏移计算", () => {
-    const theme = createTheme();
+  it("失败提示使用共享底部偏移", () => {
+    render(
+      <MerchantFailureFeedback
+        state={{ error: "保存失败。", errorKey: "error-1" }}
+        title="商家更新失败"
+      />,
+    );
 
-    expect(getMerchantFeedbackBottomOffset(theme)).toBe(
-      "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+    expect(ActionFailureFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bottomOffset: "calc(calc(80px + env(safe-area-inset-bottom)) + 8px)",
+      }),
+      undefined,
     );
   });
 });

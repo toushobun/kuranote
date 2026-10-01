@@ -297,7 +297,7 @@ export function LedgerCreateTemplate({
         </Stack>
 
         <ActionFailureFeedback
-          bottomOffset={feedbackBottomOffset}
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
           state={actionState}
           title={ledgerCreateText.errorTitle}
         />
@@ -573,5 +573,3 @@ const backButtonSx = {
   fontWeight: 900,
   minHeight: 48,
 };
-
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;

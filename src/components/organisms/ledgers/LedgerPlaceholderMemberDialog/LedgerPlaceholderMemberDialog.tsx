@@ -198,14 +198,14 @@ export function LedgerPlaceholderMemberDialog({
 
       <SuccessFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeFeedback}
         open={feedback?.kind === "success"}
         title={feedback?.kind === "success" ? feedback.title : ""}
       />
       <FailureFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={feedback?.kind === "failure" ? feedback.message : ""}
         onClose={closeFeedback}
         open={feedback?.kind === "failure"}
@@ -241,8 +241,6 @@ function NotMemberNote() {
     </Stack>
   );
 }
-
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const dialogTitleSx = {
   pr: 6,

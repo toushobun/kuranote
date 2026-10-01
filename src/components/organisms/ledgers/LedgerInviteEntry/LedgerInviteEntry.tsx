@@ -377,20 +377,20 @@ export function LedgerInviteEntry({
 
       <SuccessFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeCopyFeedback}
         open={copied}
         title="复制成功"
       />
       <SuccessFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeCreatedFeedback}
         open={created}
         title="创建链接成功，快去复制给你的亲友吧"
       />
       <SuccessFeedbackDialog
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description="该邀请链接已失效。"
         onClose={closeRevokedFeedback}
         open={revoked}
@@ -398,14 +398,14 @@ export function LedgerInviteEntry({
       />
       <FailureFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeCopyFailedFeedback}
         open={copyFailed}
         title="复制失败，请手动复制邀请链接"
       />
       <FailureFeedbackDialog
         aboveModal
-        bottomOffset={feedbackBottomOffset}
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={managementError?.message}
         onClose={closeManagementError}
         open={managementError !== null}
@@ -443,8 +443,6 @@ function findPlaceholder(
         null)
     : null;
 }
-
-const feedbackBottomOffset = `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`;
 
 const inviteAvatarSx = {
   bgcolor: "var(--user-theme-icon-badge-bg)",
