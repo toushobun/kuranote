@@ -16,6 +16,7 @@ import {
 } from "internal/account/errors";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { AccountActionState } from "types/accounts";
@@ -23,10 +24,6 @@ import type { AccountActionState } from "types/accounts";
 async function getAccountService() {
   const dependencies = await createServerRequestDependencies();
   return createRequestContainer(dependencies).account.service;
-}
-
-function createErrorState(message: string): AccountActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
 }
 
 function getValidationErrorState(

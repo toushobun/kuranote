@@ -61,7 +61,7 @@
 ## TypeScript 类型安全
 
 - 禁止使用 `any`。需要表达未知类型时使用 `unknown` 并做类型 narrow。
-- 表单状态类型以 `BaseActionState = { error?: string; success?: string }` 为基础扩展，定义在 `src/types/auth.ts`。
+- 表单状态类型以 `BaseActionState = { error?: string; success?: string }` 为基础扩展，定义在 `src/types/actions.ts`。带 `errorKey` / `successKey` 的状态直接使用或扩展同文件的共享 `ActionState`，失败 / 成功状态由 `internal/shared/adapter/next/actionState` 的 `createErrorState` / `createSuccessState` 生成，不得在各模块重复定义。
 
 ## 统一错误处理
 

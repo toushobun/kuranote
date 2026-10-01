@@ -9,6 +9,7 @@ import {
 } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import {
@@ -275,11 +276,7 @@ export async function updateBalanceAdjustmentTransaction(
 ): Promise<TransactionActionState> {
   const { currentLedger } = await requireCurrentUserAndLedger();
   const parsed = parseUpdateBalanceAdjustmentForm(formData);
-  if (!parsed.success)
-    return {
-      error: parsed.error.issues[0].message,
-      errorKey: crypto.randomUUID(),
-    };
+  if (!parsed.success) return createErrorState(parsed.error.issues[0].message);
   try {
     await (
       await getTransactionService()

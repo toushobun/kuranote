@@ -7,13 +7,10 @@ import { createRequestContainer } from "internal/container";
 import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
 import { getDataImportErrorMessage } from "internal/dataImport/errors";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { DataImportBatchActionState } from "types/dataImport";
-
-function createErrorState(message: string): DataImportBatchActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
-}
 
 /**
  * 「开始导入」的单批 Server Action。文件由浏览器端解析，这里每次只接收这一批

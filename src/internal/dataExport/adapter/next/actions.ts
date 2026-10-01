@@ -3,6 +3,7 @@
 import { createRequestContainer } from "internal/container";
 import { dataExportErrorMessages } from "internal/dataExport/errors";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { DataExportActionState } from "types/dataExport";
@@ -20,8 +21,7 @@ export async function exportCurrentLedgerData(): Promise<DataExportActionState> 
     ).dataExport.service.getData({ ledgerId: currentLedger.id, userId });
     return { data };
   } catch (error) {
-    if (error instanceof AppError)
-      return { error: error.message, errorKey: crypto.randomUUID() };
+    if (error instanceof AppError) return createErrorState(error.message);
     const context = {
       errorName: error instanceof Error ? error.name : "unknown",
       ledgerId: currentLedger.id,
@@ -33,9 +33,6 @@ export async function exportCurrentLedgerData(): Promise<DataExportActionState> 
       );
     else
       console.error("[dataExport] export action failed unexpectedly", context);
-    return {
-      error: dataExportErrorMessages.exportFailed,
-      errorKey: crypto.randomUUID(),
-    };
+    return createErrorState(dataExportErrorMessages.exportFailed);
   }
 }

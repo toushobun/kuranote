@@ -1,8 +1,6 @@
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
-export type MerchantActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type MerchantActionState = ActionState;
 
 export type MerchantStateAction = (
   previousState: MerchantActionState,
@@ -48,9 +46,7 @@ export type Merchant = {
   tags: MerchantTag[];
 };
 
-export type MerchantTagActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type MerchantTagActionState = ActionState;
 
 export type MerchantTagStateAction = (
   previousState: MerchantTagActionState,

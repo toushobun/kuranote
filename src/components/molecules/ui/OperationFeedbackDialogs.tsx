@@ -19,7 +19,7 @@ import { useId, useState, type ReactNode } from "react";
 import { useUserTheme } from "theme/UserThemeProvider";
 import { designTokens } from "theme/theme";
 import type { UserThemeKey } from "theme/userThemeTokens";
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
 const dialogText = {
   cancel: "取消",
@@ -156,7 +156,7 @@ type ActionFailureFeedbackProps = Omit<
   FeedbackDialogProps,
   "description" | "onClose" | "open"
 > & {
-  state: Pick<BaseActionState, "error"> & { errorKey?: string };
+  state: Pick<ActionState, "error" | "errorKey">;
 };
 
 export function ActionFailureFeedback({

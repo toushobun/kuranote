@@ -10,14 +10,11 @@ import {
   currentLedgerErrorCodes,
   getCurrentLedgerErrorMessage,
 } from "internal/ledger/errors/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { CurrentLedgerActionState } from "types/ledgers";
 import { getFormText, isUuid } from "utils/formData";
-
-function createErrorState(message: string): CurrentLedgerActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
-}
 
 function validationErrorState(): CurrentLedgerActionState {
   return createErrorState(

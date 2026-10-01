@@ -1,6 +1,10 @@
 "use server";
 
 import { createRequestContainer } from "internal/container";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import {
@@ -18,10 +22,6 @@ import type {
   DisplayNameActionState,
   TransactionColorSchemeActionState,
 } from "types/user";
-
-function createErrorState(message: string) {
-  return { error: message, errorKey: crypto.randomUUID() };
-}
 
 export async function updateTransactionColorScheme(
   _previousState: TransactionColorSchemeActionState,
@@ -80,7 +80,7 @@ export async function updateDisplayName(
 
     revalidateUserProfileMutation();
 
-    return { success: "昵称已保存。", successKey: crypto.randomUUID() };
+    return createSuccessState("昵称已保存。");
   } catch (error) {
     if (error instanceof AppError) {
       return createErrorState(error.message);
@@ -111,7 +111,7 @@ export async function updateAvatar(
 
     revalidateUserProfileMutation();
 
-    return { success: "头像已更换。", successKey: crypto.randomUUID() };
+    return createSuccessState("头像已更换。");
   } catch (error) {
     if (error instanceof AppError) {
       return createErrorState(error.message);
