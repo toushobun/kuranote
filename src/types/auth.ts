@@ -36,3 +36,23 @@ export type SubmitRegisterOtpActionState = BaseActionState & {
     | "app_user_sync_failed"
     | "unknown_error";
 };
+
+export type PasswordChangeOtpActionState = BaseActionState & {
+  errorKey?: string;
+  retryAfterSeconds?: number;
+  successKey?: string;
+};
+
+export type PasswordChangeOtpAction = (
+  previousState: PasswordChangeOtpActionState,
+) => Promise<PasswordChangeOtpActionState>;
+
+export type ChangePasswordActionState = BaseActionState & {
+  errorKey?: string;
+  successKey?: string;
+};
+
+export type ChangePasswordAction = (
+  previousState: ChangePasswordActionState,
+  formData: FormData,
+) => Promise<ChangePasswordActionState>;

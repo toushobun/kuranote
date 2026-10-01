@@ -17,6 +17,7 @@ import {
   passwordMaxLength,
   passwordRuleMessage,
 } from "lib/validators/auth";
+import { useOtpCooldown } from "organisms/auth/useOtpCooldown";
 import type {
   RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
@@ -177,7 +178,7 @@ export function useRegisterForm({
   const [otpCode, setOtpCode] = useState("");
   const [isOtpCodeTouched, setIsOtpCodeTouched] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [cooldownSeconds, setCooldownSeconds] = useOtpCooldown();
   const [lockedSnapshot, setLockedSnapshot] = useState<RegisterSnapshot | null>(
     null,
   );
@@ -243,7 +244,7 @@ export function useRegisterForm({
         setPhase("otp_input");
       }
     },
-    [resetTurnstile],
+    [resetTurnstile, setCooldownSeconds],
   );
 
   const wrappedRequestOtpAction = useCallback(
@@ -392,18 +393,6 @@ export function useRegisterForm({
   }, [router, submitOtpState.redirectTo]);
 
   useEffect(() => {
-    if (cooldownSeconds <= 0) {
-      return;
-    }
-
-    const timerId = window.setInterval(() => {
-      setCooldownSeconds((current) => Math.max(0, current - 1));
-    }, 1000);
-
-    return () => window.clearInterval(timerId);
-  }, [cooldownSeconds]);
-
-  useEffect(() => {
     if (!shouldShowTurnstile || !turnstileSiteKey) {
       return;
     }
@@ -524,7 +513,7 @@ export function useRegisterForm({
     setLocalInfoMessage(registerFormMessages.messages.modifyRequired);
     setPhase("initial");
     resetTurnstile();
-  }, [isDonePhase, resetTurnstile]);
+  }, [isDonePhase, resetTurnstile, setCooldownSeconds]);
 
   const handlePrepareResend = useCallback(() => {
     if (isDonePhase) {

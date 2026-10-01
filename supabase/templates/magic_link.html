@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KuraNote 账号安全验证码</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f8fafc;
+      color: #0f172a;
+      font-family:
+        -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      style="background: #f8fafc"
+    >
+      <tr>
+        <td align="center" style="padding: 24px 0">
+          <table
+            role="presentation"
+            width="520"
+            cellspacing="0"
+            cellpadding="0"
+            style="
+              width: 100%;
+              max-width: 520px;
+              background: #ffffff;
+              border-radius: 16px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <tr>
+              <td style="padding: 32px">
+                <h1
+                  style="
+                    margin: 0 0 16px;
+                    font-size: 22px;
+                    line-height: 1.4;
+                    color: #0f172a;
+                  "
+                >
+                  KuraNote 账号安全验证码
+                </h1>
+                <p
+                  style="
+                    margin: 0 0 20px;
+                    font-size: 15px;
+                    line-height: 1.8;
+                    color: #334155;
+                  "
+                >
+                  你正在修改 KuraNote 账号的登录密码。请在 KuraNote
+                  中输入以下验证码完成验证。
+                </p>
+                <p
+                  style="
+                    margin: 0 0 24px;
+                    padding: 18px 24px;
+                    background: #f1f5f9;
+                    border-radius: 12px;
+                    text-align: center;
+                    font-size: 32px;
+                    line-height: 1.2;
+                    letter-spacing: 0.18em;
+                    font-weight: 700;
+                    color: #0f172a;
+                  "
+                >
+                  {{ .Token }}
+                </p>
+                <p
+                  style="
+                    margin: 0 0 12px;
+                    font-size: 14px;
+                    line-height: 1.8;
+                    color: #475569;
+                  "
+                >
+                  验证码 10 分钟内有效。过期后请回到 KuraNote
+                  重新获取。请勿将验证码告诉任何人。
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.7;
+                    color: #64748b;
+                  "
+                >
+                  如果这不是你本人的操作，请忽略此邮件，你的密码不会被修改。
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

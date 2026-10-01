@@ -4,6 +4,7 @@ import type {
   AuthUser,
   RegisterFailureReason,
 } from "internal/auth/entity/auth";
+import { passwordChangeMessages } from "internal/auth/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
@@ -19,10 +20,23 @@ export type SignUpResult =
   | { ok: true }
   | { ok: false; reason: RegisterFailureReason };
 
+export type SendPasswordChangeOtpResult = "sent" | "rate_limited";
+
+export type VerifyPasswordChangeOtpResult =
+  | { status: "verified"; userId: string | null }
+  | { status: "invalid" }
+  | { status: "rate_limited" };
+
+export type UpdatePasswordResult =
+  | "updated"
+  | "weak_password"
+  | "same_password";
+
 export interface AuthRepository {
   exchangeOAuthCode(code: string): Promise<boolean>;
   getCurrentUser(): Promise<AuthUser | null>;
   resendSignUpOtp(email: string): Promise<SignUpResult>;
+  sendPasswordChangeOtp(email: string): Promise<SendPasswordChangeOtpResult>;
   signInWithPassword(input: {
     email: string;
     password: string;
@@ -30,6 +44,11 @@ export interface AuthRepository {
   signOut(): Promise<void>;
   signUp(input: SignUpInput): Promise<SignUpResult>;
   startGoogleOAuth(redirectTo: string): Promise<string | null>;
+  updatePassword(password: string): Promise<UpdatePasswordResult>;
+  verifyPasswordChangeOtp(input: {
+    email: string;
+    token: string;
+  }): Promise<VerifyPasswordChangeOtpResult>;
   verifySignUpOtp(input: { email: string; token: string }): Promise<boolean>;
 }
 
@@ -178,6 +197,35 @@ export function createSupabaseAuthRepository(
       }
     },
 
+    async sendPasswordChangeOtp(email) {
+      try {
+        // 只向已存在的账号发送邮箱验证码，不创建新用户。
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: false },
+        });
+
+        if (!error) return "sent";
+
+        const code = getErrorCode(error);
+        if (code === "over_email_send_rate_limit") return "rate_limited";
+
+        logger.error("[auth] password change OTP send failed", {
+          code: code || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] password change OTP send crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "password_change_otp_send_failed",
+        passwordChangeMessages.otpSendFailed,
+      );
+    },
+
     async signInWithPassword(input) {
       try {
         const { error } = await supabase.auth.signInWithPassword(input);
@@ -259,6 +307,67 @@ export function createSupabaseAuthRepository(
           "Google 登录暂时不可用，请稍后重试。",
         );
       }
+    },
+
+    async updatePassword(password) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password });
+
+        if (!error) return "updated";
+
+        const code = getErrorCode(error);
+        if (code === "weak_password") return "weak_password";
+        if (code === "same_password") return "same_password";
+
+        logger.error("[auth] password update failed", {
+          code: code || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] password update crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "password_update_failed",
+        passwordChangeMessages.passwordUpdateFailed,
+      );
+    },
+
+    async verifyPasswordChangeOtp(input) {
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: input.email,
+          token: input.token,
+          type: "email",
+        });
+
+        if (!error) {
+          return { status: "verified", userId: data.user?.id ?? null };
+        }
+
+        // Supabase 对错误和过期的验证码都返回 otp_expired，无法区分。
+        const code = getErrorCode(error);
+        if (code === "otp_expired") return { status: "invalid" };
+        if (code === "over_request_rate_limit") {
+          return { status: "rate_limited" };
+        }
+
+        logger.error("[auth] password change OTP verification failed", {
+          code: code || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] password change OTP verification crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "password_change_otp_verify_failed",
+        passwordChangeMessages.passwordUpdateFailed,
+      );
     },
 
     async verifySignUpOtp(input) {

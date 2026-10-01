@@ -3,8 +3,11 @@
 import { describe, expect, it } from "vitest";
 
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
+import { passwordMaxLength } from "lib/validators/auth";
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
+import { passwordChangeMessages } from "internal/auth/errors";
 import {
+  changePasswordRequestSchema,
   loginRequestSchema,
   registerRouteRequestSchema,
   requestRegisterOtpRequestSchema,
@@ -107,5 +110,61 @@ describe("auth schema", () => {
         source: "login",
       }).success,
     ).toBe(false);
+  });
+
+  describe("changePasswordRequestSchema", () => {
+    const validInput = {
+      password: "newpass123",
+      passwordConfirm: "newpass123",
+      token: " 123456 ",
+    };
+
+    function firstIssueMessage(input: Record<string, string>) {
+      const result = changePasswordRequestSchema.safeParse({
+        ...validInput,
+        ...input,
+      });
+      return result.success ? null : result.error.issues[0]?.message;
+    }
+
+    it("验证码 trim 后通过，密码保持原值", () => {
+      expect(changePasswordRequestSchema.parse(validInput)).toEqual({
+        password: "newpass123",
+        passwordConfirm: "newpass123",
+        token: "123456",
+      });
+    });
+
+    it("验证码不是 6 位数字时返回中文提示", () => {
+      expect(firstIssueMessage({ token: "12345a" })).toBe(
+        passwordChangeMessages.otpFormatInvalid,
+      );
+    });
+
+    it("新密码沿用注册时的密码规则", () => {
+      expect(
+        firstIssueMessage({
+          password: "abcdefgh",
+          passwordConfirm: "abcdefgh",
+        }),
+      ).toBe(passwordChangeMessages.weakPassword);
+      expect(
+        firstIssueMessage({ password: "abc1234", passwordConfirm: "abc1234" }),
+      ).toBe(passwordChangeMessages.weakPassword);
+    });
+
+    it("新密码超过上限时提示长度", () => {
+      const tooLong = `a1${"x".repeat(passwordMaxLength - 1)}`;
+
+      expect(
+        firstIssueMessage({ password: tooLong, passwordConfirm: tooLong }),
+      ).toBe(passwordChangeMessages.passwordTooLong);
+    });
+
+    it("两次输入的新密码不一致时提示", () => {
+      expect(firstIssueMessage({ passwordConfirm: "newpass124" })).toBe(
+        passwordChangeMessages.passwordMismatch,
+      );
+    });
   });
 });

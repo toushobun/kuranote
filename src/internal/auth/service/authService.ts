@@ -14,6 +14,7 @@ import {
   passwordMaxLength,
 } from "lib/validators/auth";
 import {
+  passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
 } from "internal/auth/errors";
@@ -26,6 +27,7 @@ import { hashAuthOtpEmail } from "internal/auth/otpHash";
 import type { AuthRepository } from "internal/auth/repository/authRepository";
 import type { AuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import type { TurnstileRepository } from "internal/auth/repository/turnstileRepository";
+import { changePasswordRequestSchema } from "internal/auth/schema";
 import {
   AuthenticationError,
   AuthorizationError,
@@ -42,7 +44,8 @@ function toSafeUnexpectedErrorContext(error: unknown): { errorName: string } {
 }
 
 const maxRegisterOtpVerifyFailures = 5;
-export const registerOtpCooldownSeconds = 60;
+/** 与 supabase/config.toml 的 [auth.email] max_frequency 保持一致。 */
+export const emailOtpCooldownSeconds = 60;
 const hourWindowSeconds = 60 * 60;
 const dayWindowSeconds = 24 * hourWindowSeconds;
 const emailHourLimit = 5;
@@ -75,6 +78,12 @@ export type SubmitRegisterOtpInput = {
   token: string;
 };
 
+export type ChangePasswordInput = {
+  password: string;
+  passwordConfirm: string;
+  token: string;
+};
+
 export type GoogleAuthStartResult =
   | { failureHref: string; ok: false }
   | { ok: true; providerUrl: string };
@@ -87,6 +96,7 @@ export type GoogleAuthCallbackInput = {
 };
 
 export interface AuthService {
+  changePassword(input: ChangePasswordInput): Promise<void>;
   checkRegisterEmailAvailability(input: {
     email: string;
     ipHash: string | null;
@@ -95,6 +105,7 @@ export interface AuthService {
   getSession(): Promise<AuthSession>;
   login(input: { email: string; password: string }): Promise<void>;
   logout(): Promise<void>;
+  requestPasswordChangeOtp(): Promise<{ retryAfterSeconds: number }>;
   requestRegisterOtp(
     input: RequestRegisterOtpInput,
   ): Promise<{ retryAfterSeconds: number }>;
@@ -372,7 +383,7 @@ export function createAuthService({
       emailTimes.length > 0
         ? secondsUntil(
             emailTimes[emailTimes.length - 1],
-            registerOtpCooldownSeconds,
+            emailOtpCooldownSeconds,
             now,
           )
         : 0,
@@ -401,7 +412,7 @@ export function createAuthService({
   async function checkAvailabilityRateLimit(ipHash: string): Promise<number> {
     const now = getNow();
     const hourStartIso = toIsoBefore(now, hourWindowSeconds);
-    const minuteStartIso = toIsoBefore(now, registerOtpCooldownSeconds);
+    const minuteStartIso = toIsoBefore(now, emailOtpCooldownSeconds);
     const times = sortTimesAscending(
       await authSecurityRepository.listAvailabilityCheckTimes({
         ipHash,
@@ -415,7 +426,7 @@ export function createAuthService({
       getLimitRetryAfterSeconds(
         times.filter((time) => time >= minuteStartIso),
         availabilityCheckMinuteLimit,
-        registerOtpCooldownSeconds,
+        emailOtpCooldownSeconds,
         now,
       ),
       getLimitRetryAfterSeconds(
@@ -427,7 +438,86 @@ export function createAuthService({
     );
   }
 
+  async function requireCurrentUserWithEmail(): Promise<{
+    email: string;
+    id: string;
+  }> {
+    const user = await authRepository.getCurrentUser();
+
+    if (!user) {
+      throw new AuthenticationError(
+        "session_invalid",
+        passwordChangeMessages.sessionInvalid,
+      );
+    }
+    if (!user.email) {
+      throw new ValidationError(
+        "password_change_email_unavailable",
+        passwordChangeMessages.emailUnavailable,
+      );
+    }
+
+    return { email: user.email, id: user.id };
+  }
+
   return {
+    async changePassword(input) {
+      const parsed = changePasswordRequestSchema.safeParse(input);
+
+      if (!parsed.success) {
+        throw new ValidationError(
+          "password_change_invalid",
+          parsed.error.issues[0]?.message ??
+            passwordChangeMessages.passwordUpdateFailed,
+        );
+      }
+
+      // 验证码只发送到当前登录邮箱，校验时也只使用服务端读取的邮箱。
+      const user = await requireCurrentUserWithEmail();
+      const verified = await authRepository.verifyPasswordChangeOtp({
+        email: user.email,
+        token: parsed.data.token,
+      });
+
+      if (verified.status === "rate_limited") {
+        throw new RateLimitError(
+          "password_change_otp_verify_rate_limited",
+          passwordChangeMessages.otpVerifyRateLimited,
+        );
+      }
+      if (verified.status === "invalid") {
+        throw new ValidationError(
+          "password_change_otp_invalid",
+          passwordChangeMessages.invalidOtp,
+        );
+      }
+      // 验证码换取的会话必须属于当前登录用户，否则不修改密码。
+      if (verified.userId !== user.id) {
+        logger.warn("[auth] password change OTP user mismatch");
+        // 校验时会话可能已被替换，登出以免停留在非预期账号。
+        await authRepository.signOut();
+        throw new AuthorizationError(
+          "password_change_user_mismatch",
+          passwordChangeMessages.userMismatch,
+        );
+      }
+
+      const updated = await authRepository.updatePassword(parsed.data.password);
+
+      if (updated === "weak_password") {
+        throw new ValidationError(
+          "weak_password",
+          passwordChangeMessages.weakPassword,
+        );
+      }
+      if (updated === "same_password") {
+        throw new ValidationError(
+          "same_password",
+          passwordChangeMessages.samePassword,
+        );
+      }
+    },
+
     async checkRegisterEmailAvailability(input) {
       const email = validateResendEmail(input.email);
       const ipHash = requireTrustedIpHash(input.ipHash, logger);
@@ -524,6 +614,21 @@ export function createAuthService({
       await authRepository.signOut();
     },
 
+    async requestPasswordChangeOtp() {
+      const { email } = await requireCurrentUserWithEmail();
+      const result = await authRepository.sendPasswordChangeOtp(email);
+
+      if (result === "rate_limited") {
+        throw new RateLimitError(
+          "password_change_otp_send_rate_limited",
+          passwordChangeMessages.otpSendRateLimited,
+          { details: { retryAfterSeconds: emailOtpCooldownSeconds } },
+        );
+      }
+
+      return { retryAfterSeconds: emailOtpCooldownSeconds };
+    },
+
     async requestRegisterOtp(input) {
       const normalized = input.isResend
         ? {
@@ -593,7 +698,7 @@ export function createAuthService({
           throw new RateLimitError(
             "supabase_otp_send_rate_limited",
             registerOtpMessages.rateLimited,
-            { details: { retryAfterSeconds: registerOtpCooldownSeconds } },
+            { details: { retryAfterSeconds: emailOtpCooldownSeconds } },
           );
         }
         throwForRegisterFailure(result.reason);
@@ -607,7 +712,7 @@ export function createAuthService({
         result: "success",
       });
 
-      return { retryAfterSeconds: registerOtpCooldownSeconds };
+      return { retryAfterSeconds: emailOtpCooldownSeconds };
     },
 
     async startGoogleAuth(input) {

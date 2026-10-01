@@ -11,9 +11,11 @@ const auth = {
   getUser: vi.fn(),
   resend: vi.fn(),
   signInWithOAuth: vi.fn(),
+  signInWithOtp: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
+  updateUser: vi.fn(),
   verifyOtp: vi.fn(),
 };
 
@@ -37,9 +39,11 @@ beforeEach(() => {
     data: { url: "https://accounts.google.test/oauth" },
     error: null,
   });
+  auth.signInWithOtp.mockResolvedValue({ error: null });
   auth.signInWithPassword.mockResolvedValue({ error: null });
   auth.signOut.mockResolvedValue({ error: null });
   auth.signUp.mockResolvedValue({ error: null });
+  auth.updateUser.mockResolvedValue({ error: null });
   auth.verifyOtp.mockResolvedValue({ error: null });
 });
 
@@ -216,6 +220,118 @@ describe("createSupabaseAuthRepository", () => {
       email: "user@example.test",
       token: "012345",
       type: "signup",
+    });
+  });
+
+  describe("修改密码", () => {
+    it("只向已存在账号发送邮箱验证码，并映射发送限流", async () => {
+      const { repository } = createRepository();
+
+      await expect(
+        repository.sendPasswordChangeOtp("user@example.test"),
+      ).resolves.toBe("sent");
+      expect(auth.signInWithOtp).toHaveBeenCalledWith({
+        email: "user@example.test",
+        options: { shouldCreateUser: false },
+      });
+
+      auth.signInWithOtp.mockResolvedValueOnce({
+        error: { code: "over_email_send_rate_limit", message: "raw" },
+      });
+      await expect(
+        repository.sendPasswordChangeOtp("user@example.test"),
+      ).resolves.toBe("rate_limited");
+    });
+
+    it("以 email 类型校验验证码，并映射错误或过期与校验限流", async () => {
+      const { repository } = createRepository();
+      const input = { email: "user@example.test", token: "123456" };
+
+      auth.verifyOtp.mockResolvedValueOnce({
+        data: { user: { id: "user-1" } },
+        error: null,
+      });
+      await expect(repository.verifyPasswordChangeOtp(input)).resolves.toEqual({
+        status: "verified",
+        userId: "user-1",
+      });
+      expect(auth.verifyOtp).toHaveBeenCalledWith({ ...input, type: "email" });
+
+      auth.verifyOtp.mockResolvedValueOnce({
+        error: { code: "otp_expired", message: "raw" },
+      });
+      await expect(repository.verifyPasswordChangeOtp(input)).resolves.toEqual({
+        status: "invalid",
+      });
+
+      auth.verifyOtp.mockResolvedValueOnce({
+        error: { code: "over_request_rate_limit", message: "raw" },
+      });
+      await expect(repository.verifyPasswordChangeOtp(input)).resolves.toEqual({
+        status: "rate_limited",
+      });
+    });
+
+    it("更新密码并映射弱密码与新旧密码相同", async () => {
+      const { repository } = createRepository();
+
+      await expect(repository.updatePassword("newpass123")).resolves.toBe(
+        "updated",
+      );
+      expect(auth.updateUser).toHaveBeenCalledWith({ password: "newpass123" });
+
+      auth.updateUser.mockResolvedValueOnce({
+        error: { code: "weak_password", message: "raw" },
+      });
+      await expect(repository.updatePassword("newpass123")).resolves.toBe(
+        "weak_password",
+      );
+
+      auth.updateUser.mockResolvedValueOnce({
+        error: { code: "same_password", message: "raw" },
+      });
+      await expect(repository.updatePassword("newpass123")).resolves.toBe(
+        "same_password",
+      );
+    });
+
+    it("未知错误或异常记录错误码后转换为 RepositoryError，不泄露原始消息", async () => {
+      const { logger, repository } = createRepository();
+      auth.signInWithOtp.mockResolvedValueOnce({
+        error: { code: "unexpected_failure", message: "raw send" },
+      });
+      auth.verifyOtp.mockRejectedValueOnce(new Error("raw verify"));
+      auth.updateUser.mockResolvedValueOnce({
+        error: { code: "unexpected_failure", message: "raw update" },
+      });
+
+      await expect(
+        repository.sendPasswordChangeOtp("user@example.test"),
+      ).rejects.toMatchObject({
+        code: "password_change_otp_send_failed",
+        message: "验证码发送失败，请稍后再试。",
+      });
+      await expect(
+        repository.verifyPasswordChangeOtp({
+          email: "user@example.test",
+          token: "123456",
+        }),
+      ).rejects.toBeInstanceOf(RepositoryError);
+      await expect(
+        repository.updatePassword("newpass123"),
+      ).rejects.toMatchObject({ code: "password_update_failed" });
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "[auth] password change OTP send failed",
+        { code: "unexpected_failure" },
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "[auth] password change OTP verification crashed",
+        { errorName: "Error" },
+      );
+      expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toMatch(
+        /raw/,
+      );
     });
   });
 

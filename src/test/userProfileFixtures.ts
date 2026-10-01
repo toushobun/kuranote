@@ -1,4 +1,5 @@
 import type { UserLedgerDisplayName } from "internal/user";
+import type { ChangePasswordAction, PasswordChangeOtpAction } from "types/auth";
 import type { AvatarAction, DisplayNameAction } from "types/user";
 
 /** 个人主页相关组件的测试与 Storybook 共用数据。 */
@@ -38,5 +39,36 @@ export const succeededAvatarAction: AvatarAction = async () => ({
 
 export const failedAvatarAction: AvatarAction = async () => ({
   error: "头像上传失败，请稍后重试。",
+  errorKey: crypto.randomUUID(),
+});
+
+export const passwordChangeOtpSentMessage = "验证码已发送，请查收邮件。";
+export const passwordChangeOtpRateLimitedMessage =
+  "验证码发送过于频繁，请稍后再试。";
+export const changePasswordFailureMessage =
+  "验证码错误或已过期（有效期 10 分钟），请检查后重新输入，或重新获取验证码。";
+
+export const succeededPasswordChangeOtpAction: PasswordChangeOtpAction =
+  async () => ({
+    retryAfterSeconds: 60,
+    success: passwordChangeOtpSentMessage,
+    successKey: crypto.randomUUID(),
+  });
+
+export const rateLimitedPasswordChangeOtpAction: PasswordChangeOtpAction =
+  async () => ({
+    error: passwordChangeOtpRateLimitedMessage,
+    errorKey: crypto.randomUUID(),
+    retryAfterSeconds: 60,
+  });
+
+export const succeededChangePasswordAction: ChangePasswordAction =
+  async () => ({
+    success: "密码已修改。",
+    successKey: crypto.randomUUID(),
+  });
+
+export const failedChangePasswordAction: ChangePasswordAction = async () => ({
+  error: changePasswordFailureMessage,
   errorKey: crypto.randomUUID(),
 });

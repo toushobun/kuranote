@@ -93,6 +93,22 @@ Body 使用 `supabase/templates/confirmation.html` 的内容。
 
 不应只提供确认链接。
 
+### 2.1 修改 Magic Link 模板（个人主页修改密码，#827）
+
+个人主页「修改密码」通过 `signInWithOtp({ shouldCreateUser: false })` 向当前登录邮箱发送验证码，再用 `verifyOtp({ type: "email" })` 校验。该邮件使用 Magic Link 模板：
+
+```text
+Authentication > Email Templates > Magic Link
+```
+
+Subject：
+
+```text
+KuraNote 账号安全验证码
+```
+
+Body 使用 `supabase/templates/magic_link.html` 的内容。模板只显示 `{{ .Token }}`，不放登录链接（不得出现 `{{ .ConfirmationURL }}`）。
+
 ### 3. OTP 参数
 
 实测记录：

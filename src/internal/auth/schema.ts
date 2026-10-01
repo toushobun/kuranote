@@ -4,9 +4,11 @@ import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import {
   displayNameMaxLength,
   emailMaxLength,
+  isValidRegisterPassword,
   passwordMaxLength,
 } from "lib/validators/auth";
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
+import { passwordChangeMessages } from "internal/auth/errors";
 
 const emailSchema = z.string().trim().min(1).max(emailMaxLength).email();
 const passwordSchema = z.string().min(1).max(passwordMaxLength);
@@ -41,6 +43,26 @@ export const submitRegisterOtpRequestSchema = z.object({
   email: emailSchema,
   token: z.string().regex(/^\d{6}$/),
 });
+
+/** 修改密码：新密码沿用注册时的密码规则。 */
+export const changePasswordRequestSchema = z
+  .object({
+    token: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, { error: passwordChangeMessages.otpFormatInvalid }),
+    password: z
+      .string()
+      .max(passwordMaxLength, { error: passwordChangeMessages.passwordTooLong })
+      .refine(isValidRegisterPassword, {
+        error: passwordChangeMessages.weakPassword,
+      }),
+    passwordConfirm: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirm, {
+    error: passwordChangeMessages.passwordMismatch,
+    path: ["passwordConfirm"],
+  });
 
 export const startGoogleAuthRequestSchema = z.object({
   nextPath: z.string().max(googleAuthNextPathMaxLength),

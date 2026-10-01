@@ -1,4 +1,4 @@
-import { passwordRuleMessage } from "lib/validators/auth";
+import { passwordMaxLength, passwordRuleMessage } from "lib/validators/auth";
 
 export const registerErrorMessages = {
   duplicateEmail: "这个邮箱已经注册过了，请直接登录或换一个邮箱。",
@@ -18,4 +18,22 @@ export const registerOtpMessages = {
   success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
   tooManyAttempts: "验证码错误次数过多，请重新获取",
   turnstileFailed: "人机验证失败，请稍后重试",
+} as const;
+
+/** 个人主页修改密码（邮箱验证码 + 新密码）流程的安全文案。 */
+export const passwordChangeMessages = {
+  emailUnavailable: "当前账号没有登录邮箱，无法发送验证码。",
+  invalidOtp:
+    "验证码错误或已过期（有效期 10 分钟），请检查后重新输入，或重新获取验证码。",
+  otpFormatInvalid: "请输入 6 位数字验证码。",
+  otpSendFailed: "验证码发送失败，请稍后再试。",
+  otpSendRateLimited: "验证码发送过于频繁，请稍后再试。",
+  otpVerifyRateLimited: "验证码尝试次数过多，请稍后再试。",
+  passwordMismatch: "两次输入的新密码不一致。",
+  passwordTooLong: `密码最多 ${passwordMaxLength} 个字符。`,
+  passwordUpdateFailed: "密码修改失败，请稍后再试。",
+  userMismatch: "验证码与当前登录账号不一致，密码未修改。请重新登录后再试。",
+  samePassword: "新密码不能与当前密码相同，请重新获取验证码后再试。",
+  sessionInvalid: "登录状态已失效，请重新登录。",
+  weakPassword: registerErrorMessages.weakPassword,
 } as const;
