@@ -9,11 +9,11 @@ import {
   type RefObject,
 } from "react";
 
+import { profileAvatarUploaderMessages as text } from "config/settingsMessages";
 import { userErrorMessages } from "internal/user";
+import type { OperationFeedbackState } from "molecules/ui/OperationFeedbackDialogs";
 import type { AvatarAction, AvatarActionState } from "types/user";
 import { compressAvatarImage } from "utils/avatarImage";
-
-type Feedback = { kind: "failure" | "success"; message: string };
 
 const initialState: AvatarActionState = {};
 
@@ -25,7 +25,7 @@ export function useProfileAvatarUploader(
   action: AvatarAction,
   inputRef: RefObject<HTMLInputElement | null>,
 ) {
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<OperationFeedbackState | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -34,9 +34,13 @@ export function useProfileAvatarUploader(
       const nextState = await action(previousState, formData);
 
       if (nextState.error) {
-        setFeedback({ kind: "failure", message: nextState.error });
+        setFeedback({
+          kind: "failure",
+          message: nextState.error,
+          title: text.failureTitle,
+        });
       } else if (nextState.success) {
-        setFeedback({ kind: "success", message: nextState.success });
+        setFeedback({ kind: "success", title: text.successTitle });
       }
 
       return nextState;
@@ -68,6 +72,7 @@ export function useProfileAvatarUploader(
       setFeedback({
         kind: "failure",
         message: userErrorMessages.avatarImageUnreadable,
+        title: text.failureTitle,
       });
       return;
     } finally {

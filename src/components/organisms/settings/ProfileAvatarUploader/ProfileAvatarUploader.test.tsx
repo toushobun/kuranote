@@ -38,14 +38,14 @@ function renderUploader({
   })),
   avatarUrl = null,
 }: { action?: AvatarAction; avatarUrl?: string | null } = {}) {
-  render(
+  const { container } = render(
     <ProfileAvatarUploader
       action={action}
       avatarUrl={avatarUrl}
       displayName="淞文"
     />,
   );
-  return { action };
+  return { action, container };
 }
 
 function selectFile(file = new File(["png"], "a.png", { type: "image/png" })) {
@@ -84,7 +84,7 @@ describe("ProfileAvatarUploader", () => {
   });
 
   it("选择图片后提交压缩后的文件并显示成功提示", async () => {
-    const { action } = renderUploader();
+    const { action, container } = renderUploader();
 
     const file = selectFile();
 
@@ -94,7 +94,11 @@ describe("ProfileAvatarUploader", () => {
     const submitted = formData.get("avatar");
     expect(submitted).toBeInstanceOf(Blob);
     expect((submitted as Blob).type).toBe("image/webp");
-    expect(await screen.findByText("头像已更换")).toBeInTheDocument();
+    // 成功提示只显示标题，不显示 Action 文案，且不挂载到弹窗上层。
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("头像已更换");
+    expect(status).not.toHaveTextContent("头像已更换。");
+    expect(container).toContainElement(status);
   });
 
   it("上传中显示进度并禁止重复点击", async () => {
@@ -121,7 +125,7 @@ describe("ProfileAvatarUploader", () => {
   });
 
   it("上传失败时显示 Action 返回的错误文案", async () => {
-    renderUploader({
+    const { container } = renderUploader({
       action: vi.fn<AvatarAction>(async () => ({
         error: "头像上传失败，请稍后重试。",
         errorKey: "error-1",
@@ -130,8 +134,11 @@ describe("ProfileAvatarUploader", () => {
 
     selectFile();
 
-    expect(await screen.findByText("头像更换失败")).toBeInTheDocument();
-    expect(screen.getByText("头像上传失败，请稍后重试。")).toBeInTheDocument();
+    // 失败提示挂载到页面根节点（FailureFeedbackDialog 默认显示在弹窗上层）。
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("头像更换失败");
+    expect(alert).toHaveTextContent("头像上传失败，请稍后重试。");
+    expect(container).not.toContainElement(alert);
   });
 
   it("图片无法读取时提示换一张图片且不提交", async () => {
@@ -140,9 +147,9 @@ describe("ProfileAvatarUploader", () => {
 
     selectFile();
 
-    expect(
-      await screen.findByText("无法读取该图片，请换一张图片后重试。"),
-    ).toBeInTheDocument();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("头像更换失败");
+    expect(alert).toHaveTextContent("无法读取该图片，请换一张图片后重试。");
     expect(action).not.toHaveBeenCalled();
   });
 });

@@ -15,10 +15,7 @@ import {
   displayNameMaxLength,
   type UserLedgerDisplayName,
 } from "internal/user";
-import {
-  FailureFeedbackDialog,
-  SuccessFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
+import { OperationFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { LedgerNicknameSyncDialog } from "organisms/settings/LedgerNicknameSyncDialog/LedgerNicknameSyncDialog";
 import type { DisplayNameAction } from "types/user";
@@ -125,22 +122,11 @@ export function ProfileNicknameDialog({
         selectedLedgerIds={dialog.selectedLedgerIds}
       />
 
-      <SuccessFeedbackDialog
+      <OperationFeedback
         aboveModal
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        feedback={dialog.feedback}
         onClose={dialog.closeFeedback}
-        open={dialog.feedback?.kind === "success"}
-        title={text.successTitle}
-      />
-      <FailureFeedbackDialog
-        aboveModal
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={
-          dialog.feedback?.kind === "failure" ? dialog.feedback.message : ""
-        }
-        onClose={dialog.closeFeedback}
-        open={dialog.feedback?.kind === "failure"}
-        title={text.failureTitle}
       />
     </>
   );
