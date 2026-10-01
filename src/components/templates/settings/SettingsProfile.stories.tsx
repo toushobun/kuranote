@@ -7,7 +7,9 @@ import {
   profileFixture,
   profileLedgerDisplayNames,
   succeededAvatarAction,
+  succeededChangePasswordAction,
   succeededDisplayNameAction,
+  succeededPasswordChangeOtpAction,
 } from "test/userProfileFixtures";
 
 import { SettingsProfileTemplate } from "./SettingsProfile";
@@ -23,10 +25,12 @@ const meta = {
     ),
   ],
   args: {
+    changePasswordAction: succeededChangePasswordAction,
     currentLedgerId: familyLedgerId,
     ledgers: profileLedgerDisplayNames,
     logoutAction: () => undefined,
     profile: profileFixture,
+    requestPasswordChangeOtpAction: succeededPasswordChangeOtpAction,
     updateAvatarAction: succeededAvatarAction,
     updateDisplayNameAction: succeededDisplayNameAction,
   },

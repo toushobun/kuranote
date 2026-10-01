@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
-import { registerOtpMessages } from "internal/auth/errors";
+import {
+  passwordChangeMessages,
+  registerOtpMessages,
+} from "internal/auth/errors";
 import type { AuthRepository } from "internal/auth/repository/authRepository";
 import type { AuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import type { TurnstileRepository } from "internal/auth/repository/turnstileRepository";
@@ -35,12 +38,17 @@ function createFixture() {
     exchangeOAuthCode: vi.fn().mockResolvedValue(true),
     getCurrentUser: vi.fn().mockResolvedValue(authUser),
     resendSignUpOtp: vi.fn().mockResolvedValue({ ok: true }),
+    sendPasswordChangeOtp: vi.fn().mockResolvedValue("sent"),
     signInWithPassword: vi.fn().mockResolvedValue(true),
     signOut: vi.fn().mockResolvedValue(undefined),
     signUp: vi.fn().mockResolvedValue({ ok: true }),
     startGoogleOAuth: vi
       .fn()
       .mockResolvedValue("https://accounts.google.test/oauth"),
+    updatePassword: vi.fn().mockResolvedValue("updated"),
+    verifyPasswordChangeOtp: vi
+      .fn()
+      .mockResolvedValue({ status: "verified", userId }),
     verifySignUpOtp: vi.fn().mockResolvedValue(true),
   };
   const authSecurityRepository = {
@@ -120,6 +128,168 @@ describe("AuthService login / session", () => {
     await expect(fixture.service.logout()).resolves.toBeUndefined();
     expect(fixture.authRepository.signOut).toHaveBeenCalledOnce();
   });
+});
+
+describe("AuthService password change", () => {
+  const validInput = {
+    password: "newpass123",
+    passwordConfirm: "newpass123",
+    token: "123456",
+  };
+
+  it("向服务端读取的当前登录邮箱发送验证码并返回冷却秒数", async () => {
+    const fixture = createFixture();
+
+    await expect(fixture.service.requestPasswordChangeOtp()).resolves.toEqual({
+      retryAfterSeconds: 60,
+    });
+    expect(fixture.authRepository.sendPasswordChangeOtp).toHaveBeenCalledWith(
+      authUser.email,
+    );
+  });
+
+  it("未登录时拒绝发送和修改，不调用 Supabase Auth", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.getCurrentUser.mockResolvedValue(null);
+
+    await expect(
+      fixture.service.requestPasswordChangeOtp(),
+    ).rejects.toMatchObject({
+      code: "session_invalid",
+      message: passwordChangeMessages.sessionInvalid,
+    });
+    await expect(
+      fixture.service.changePassword(validInput),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    expect(fixture.authRepository.sendPasswordChangeOtp).not.toHaveBeenCalled();
+    expect(
+      fixture.authRepository.verifyPasswordChangeOtp,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("账号没有邮箱时无法发送验证码", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.getCurrentUser.mockResolvedValue({
+      ...authUser,
+      email: null,
+    });
+
+    await expect(
+      fixture.service.requestPasswordChangeOtp(),
+    ).rejects.toMatchObject({
+      message: passwordChangeMessages.emailUnavailable,
+    });
+  });
+
+  it("发送过于频繁时抛出带 retryAfterSeconds 的 RateLimitError", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.sendPasswordChangeOtp.mockResolvedValue(
+      "rate_limited",
+    );
+
+    const error = await fixture.service
+      .requestPasswordChangeOtp()
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(RateLimitError);
+    expect(error).toMatchObject({
+      details: { retryAfterSeconds: 60 },
+      message: passwordChangeMessages.otpSendRateLimited,
+    });
+  });
+
+  it("输入不符合规则时在 Service 校验并返回第一条中文提示", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.changePassword({
+        ...validInput,
+        passwordConfirm: "different123",
+      }),
+    ).rejects.toMatchObject({
+      code: "password_change_invalid",
+      message: passwordChangeMessages.passwordMismatch,
+    });
+    await expect(
+      fixture.service.changePassword({
+        ...validInput,
+        password: "short1",
+        passwordConfirm: "short1",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fixture.authRepository.getCurrentUser).not.toHaveBeenCalled();
+  });
+
+  it("用当前登录邮箱校验验证码后更新密码", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.changePassword({ ...validInput, token: " 123456 " }),
+    ).resolves.toBeUndefined();
+    expect(fixture.authRepository.verifyPasswordChangeOtp).toHaveBeenCalledWith(
+      { email: authUser.email, token: "123456" },
+    );
+    expect(fixture.authRepository.updatePassword).toHaveBeenCalledWith(
+      "newpass123",
+    );
+  });
+
+  it.each([
+    ["invalid", ValidationError, passwordChangeMessages.invalidOtp],
+    [
+      "rate_limited",
+      RateLimitError,
+      passwordChangeMessages.otpVerifyRateLimited,
+    ],
+  ] as const)(
+    "验证码校验结果为 %s 时不更新密码",
+    async (result, ErrorClass, message) => {
+      const fixture = createFixture();
+      fixture.authRepository.verifyPasswordChangeOtp.mockResolvedValue({
+        status: result,
+      });
+
+      const error = await fixture.service
+        .changePassword(validInput)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ErrorClass);
+      expect(error).toMatchObject({ message });
+      expect(fixture.authRepository.updatePassword).not.toHaveBeenCalled();
+    },
+  );
+
+  it("验证码换取的会话不属于当前用户时拒绝修改并登出", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.verifyPasswordChangeOtp.mockResolvedValue({
+      status: "verified",
+      userId: "00000000-0000-4000-8000-000000000099",
+    });
+
+    await expect(
+      fixture.service.changePassword(validInput),
+    ).rejects.toMatchObject({
+      code: "password_change_user_mismatch",
+      message: passwordChangeMessages.userMismatch,
+    });
+    expect(fixture.authRepository.updatePassword).not.toHaveBeenCalled();
+    expect(fixture.authRepository.signOut).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["weak_password", passwordChangeMessages.weakPassword],
+    ["same_password", passwordChangeMessages.samePassword],
+  ] as const)(
+    "Supabase 拒绝新密码（%s）时返回中文提示",
+    async (result, message) => {
+      const fixture = createFixture();
+      fixture.authRepository.updatePassword.mockResolvedValue(result);
+
+      await expect(
+        fixture.service.changePassword(validInput),
+      ).rejects.toMatchObject({ code: result, message });
+    },
+  );
 });
 
 describe("AuthService register email availability", () => {

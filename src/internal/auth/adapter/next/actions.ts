@@ -13,6 +13,7 @@ import {
 import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
 import {
+  passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
 } from "internal/auth/errors";
@@ -20,7 +21,9 @@ import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type {
+  ChangePasswordActionState,
   LoginActionState,
+  PasswordChangeOtpActionState,
   RegisterEmailAvailabilityState,
   RequestRegisterOtpActionState,
   SubmitRegisterOtpActionState,
@@ -62,6 +65,10 @@ function getBooleanDetail(error: AppError, key: string): boolean | undefined {
 
   const value = (error.details as Record<string, unknown>)[key];
   return typeof value === "boolean" ? value : undefined;
+}
+
+function createErrorState(message: string) {
+  return { error: message, errorKey: crypto.randomUUID() };
 }
 
 async function getAuthService() {
@@ -363,4 +370,54 @@ export async function logout(): Promise<void> {
   }
 
   redirect(routePaths.login);
+}
+
+export async function requestPasswordChangeOtp(): Promise<PasswordChangeOtpActionState> {
+  try {
+    const result = await (await getAuthService()).requestPasswordChangeOtp();
+
+    return {
+      retryAfterSeconds: result.retryAfterSeconds,
+      success: "验证码已发送，请查收邮件。",
+      successKey: crypto.randomUUID(),
+    };
+  } catch (error) {
+    if (error instanceof AppError) {
+      return {
+        ...createErrorState(error.message),
+        retryAfterSeconds: getNumberDetail(error, "retryAfterSeconds"),
+      };
+    }
+
+    logUnexpectedAdapterError(
+      "[auth] password change OTP action failed unexpectedly",
+      error,
+    );
+    return createErrorState(passwordChangeMessages.otpSendFailed);
+  }
+}
+
+export async function changePassword(
+  _previousState: ChangePasswordActionState,
+  formData: FormData,
+): Promise<ChangePasswordActionState> {
+  try {
+    await (
+      await getAuthService()
+    ).changePassword({
+      password: String(formData.get("password") ?? ""),
+      passwordConfirm: String(formData.get("passwordConfirm") ?? ""),
+      token: String(formData.get("token") ?? ""),
+    });
+
+    return { success: "密码已修改。", successKey: crypto.randomUUID() };
+  } catch (error) {
+    if (error instanceof AppError) return createErrorState(error.message);
+
+    logUnexpectedAdapterError(
+      "[auth] change password action failed unexpectedly",
+      error,
+    );
+    return createErrorState(passwordChangeMessages.passwordUpdateFailed);
+  }
 }

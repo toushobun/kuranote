@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  changePassword,
   checkRegisterEmailAvailability,
   loginWithRedirect,
   logout,
+  requestPasswordChangeOtp,
   requestRegisterOtp,
   startGoogleAuth,
   submitRegisterOtpWithRedirect,
@@ -18,11 +20,13 @@ import {
 } from "internal/shared/errors/appError";
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import {
+  passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
 } from "internal/auth/errors";
 import { TurnstileConfigurationError } from "internal/auth/turnstileKeys";
 const mocks = vi.hoisted(() => ({
+  changePassword: vi.fn(),
   checkRegisterEmailAvailability: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
@@ -33,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
+  requestPasswordChangeOtp: vi.fn(),
   requestRegisterOtp: vi.fn(),
   startGoogleAuth: vi.fn(),
   submitRegisterOtp: vi.fn(),
@@ -83,17 +88,21 @@ describe("auth Next actions", () => {
     mocks.createRequestContainer.mockReturnValue({
       auth: {
         service: {
+          changePassword: mocks.changePassword,
           checkRegisterEmailAvailability: mocks.checkRegisterEmailAvailability,
           getSession: mocks.getSession,
           login: mocks.login,
           logout: mocks.logout,
+          requestPasswordChangeOtp: mocks.requestPasswordChangeOtp,
           requestRegisterOtp: mocks.requestRegisterOtp,
           startGoogleAuth: mocks.startGoogleAuth,
           submitRegisterOtp: mocks.submitRegisterOtp,
         },
       },
     });
+    mocks.changePassword.mockResolvedValue(undefined);
     mocks.checkRegisterEmailAvailability.mockResolvedValue({ available: true });
+    mocks.requestPasswordChangeOtp.mockResolvedValue({ retryAfterSeconds: 60 });
     mocks.login.mockResolvedValue(undefined);
     mocks.logout.mockResolvedValue(undefined);
     mocks.requestRegisterOtp.mockResolvedValue({ retryAfterSeconds: 60 });
@@ -362,7 +371,107 @@ describe("auth Next actions", () => {
     );
     consoleError.mockRestore();
   });
+  describe("修改密码 Server Action", () => {
+    function createChangePasswordFormData() {
+      const formData = new FormData();
+      formData.set("token", "123456");
+      formData.set("password", "newpass123");
+      formData.set("passwordConfirm", "newpass123");
+      return formData;
+    }
+
+    it("发送验证码成功时返回冷却秒数和成功文案", async () => {
+      await expect(requestPasswordChangeOtp()).resolves.toEqual({
+        retryAfterSeconds: 60,
+        success: "验证码已发送，请查收邮件。",
+        successKey: expect.any(String),
+      });
+    });
+
+    it("发送限流时返回 Service 文案和 retryAfterSeconds", async () => {
+      mocks.requestPasswordChangeOtp.mockRejectedValue(
+        new RateLimitError(
+          "password_change_otp_send_rate_limited",
+          passwordChangeMessages.otpSendRateLimited,
+          { details: { retryAfterSeconds: 60 } },
+        ),
+      );
+
+      await expect(requestPasswordChangeOtp()).resolves.toEqual({
+        error: passwordChangeMessages.otpSendRateLimited,
+        errorKey: expect.any(String),
+        retryAfterSeconds: 60,
+      });
+    });
+
+    it("发送时普通异常只返回安全文案且日志不泄露原始消息", async () => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      mocks.requestPasswordChangeOtp.mockRejectedValue(
+        new Error("raw failure"),
+      );
+
+      await expect(requestPasswordChangeOtp()).resolves.toEqual({
+        error: passwordChangeMessages.otpSendFailed,
+        errorKey: expect.any(String),
+      });
+      expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+        "raw failure",
+      );
+      consoleError.mockRestore();
+    });
+
+    it("把表单值原样交给 Service，成功时返回成功文案", async () => {
+      await expect(
+        changePassword({}, createChangePasswordFormData()),
+      ).resolves.toEqual({
+        success: "密码已修改。",
+        successKey: expect.any(String),
+      });
+      expect(mocks.changePassword).toHaveBeenCalledWith({
+        password: "newpass123",
+        passwordConfirm: "newpass123",
+        token: "123456",
+      });
+    });
+
+    it("应用错误返回 Service 的中文文案", async () => {
+      mocks.changePassword.mockRejectedValue(
+        new ValidationError(
+          "password_change_otp_invalid",
+          passwordChangeMessages.invalidOtp,
+        ),
+      );
+
+      await expect(
+        changePassword({}, createChangePasswordFormData()),
+      ).resolves.toEqual({
+        error: passwordChangeMessages.invalidOtp,
+        errorKey: expect.any(String),
+      });
+    });
+
+    it("修改时普通异常只返回安全文案", async () => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      mocks.changePassword.mockRejectedValue(new Error("raw failure"));
+
+      await expect(
+        changePassword({}, createChangePasswordFormData()),
+      ).resolves.toEqual({
+        error: passwordChangeMessages.passwordUpdateFailed,
+        errorKey: expect.any(String),
+      });
+      expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+        "raw failure",
+      );
+      consoleError.mockRestore();
+    });
+  });
 });
+
 describe("startGoogleAuth nextPath \u8FB9\u754C", () => {
   beforeEach(() => {
     vi.clearAllMocks();

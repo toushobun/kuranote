@@ -18,6 +18,7 @@ import {
 } from "config/settingsMessages";
 import type { UserLedgerDisplayName } from "internal/user";
 import { ProfileNicknameDialog } from "organisms/settings/ProfileNicknameDialog/ProfileNicknameDialog";
+import { ProfilePasswordDialog } from "organisms/settings/ProfilePasswordDialog/ProfilePasswordDialog";
 import { ProfileSummaryCard } from "organisms/settings/ProfileSummaryCard/ProfileSummaryCard";
 import {
   SettingsComingSoonToast,
@@ -25,11 +26,13 @@ import {
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
 import type { ServerAction } from "types/actions";
+import type { ChangePasswordAction, PasswordChangeOtpAction } from "types/auth";
 import type { AvatarAction, DisplayNameAction } from "types/user";
 import { PageHeader } from "templates/layout/PageHeader";
 import { PageShell } from "templates/layout/PageShell";
 
 type SettingsProfileTemplateProps = {
+  changePasswordAction: ChangePasswordAction;
   currentLedgerId: string | null;
   ledgers: readonly UserLedgerDisplayName[];
   logoutAction: ServerAction;
@@ -38,19 +41,23 @@ type SettingsProfileTemplateProps = {
     displayName: string;
     email: string | null;
   };
+  requestPasswordChangeOtpAction: PasswordChangeOtpAction;
   updateAvatarAction: AvatarAction;
   updateDisplayNameAction: DisplayNameAction;
 };
 
 export function SettingsProfileTemplate({
+  changePasswordAction,
   currentLedgerId,
   ledgers,
   logoutAction,
   profile,
+  requestPasswordChangeOtpAction,
   updateAvatarAction,
   updateDisplayNameAction,
 }: SettingsProfileTemplateProps) {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isToastOpen, setIsToastOpen] = useState(false);
   const showComingSoonToast = () => setIsToastOpen(true);
 
@@ -94,7 +101,7 @@ export function SettingsProfileTemplate({
             icon={LockOutlinedIcon}
             isLast={false}
             label={entryText.password}
-            onClick={showComingSoonToast}
+            onClick={() => setIsPasswordDialogOpen(true)}
           />
           <SettingsEntryButton
             icon={LinkRoundedIcon}
@@ -124,6 +131,13 @@ export function SettingsProfileTemplate({
         ledgers={ledgers}
         onClose={() => setIsNicknameDialogOpen(false)}
         open={isNicknameDialogOpen}
+      />
+      <ProfilePasswordDialog
+        changePasswordAction={changePasswordAction}
+        email={profile.email}
+        onClose={() => setIsPasswordDialogOpen(false)}
+        open={isPasswordDialogOpen}
+        requestOtpAction={requestPasswordChangeOtpAction}
       />
       <SettingsComingSoonToast
         onClose={() => setIsToastOpen(false)}

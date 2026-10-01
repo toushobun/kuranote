@@ -253,6 +253,11 @@ otp_expiry = 600
 subject = "Your KuraNote verification code"
 content_path = "./supabase/templates/confirmation.html"
 
+# 个人主页修改密码时，signInWithOtp 向当前登录邮箱发送的验证码邮件。
+[auth.email.template.magic_link]
+subject = "KuraNote 账号安全验证码"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

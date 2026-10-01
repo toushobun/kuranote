@@ -16,7 +16,9 @@ import {
 
 import { SettingsProfileTemplate } from "./SettingsProfile";
 
+const changePasswordAction = vi.fn(async () => ({}));
 const logoutAction = vi.fn();
+const requestPasswordChangeOtpAction = vi.fn(async () => ({}));
 const updateAvatarAction = vi.fn(async () => ({}));
 const updateDisplayNameAction = vi.fn(async () => ({}));
 
@@ -29,10 +31,12 @@ function renderSettingsProfileTemplate() {
   return render(
     <UserThemeProvider storageScope="settings-profile-test">
       <SettingsProfileTemplate
+        changePasswordAction={changePasswordAction}
         currentLedgerId={familyLedgerId}
         ledgers={profileLedgerDisplayNames}
         logoutAction={logoutAction}
         profile={profileFixture}
+        requestPasswordChangeOtpAction={requestPasswordChangeOtpAction}
         updateAvatarAction={updateAvatarAction}
         updateDisplayNameAction={updateDisplayNameAction}
       />
@@ -89,14 +93,28 @@ describe("SettingsProfileTemplate", () => {
     ).toEqual(["退出登录"]);
   });
 
-  it("修改密码与账号绑定显示准备中提示", () => {
+  it("账号绑定显示准备中提示", () => {
+    const { container } = renderSettingsProfileTemplate();
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: /账号绑定/ }),
+    );
+
+    expect(screen.getByText("正在准备中")).toBeInTheDocument();
+  });
+
+  it("点击修改密码打开修改密码弹框并显示登录邮箱", () => {
     const { container } = renderSettingsProfileTemplate();
 
     fireEvent.click(
       within(container).getByRole("button", { name: /修改密码/ }),
     );
 
-    expect(screen.getByText("正在准备中")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "修改密码" });
+    expect(
+      within(dialog).getByText(/「user@example\.com」/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("正在准备中")).not.toBeInTheDocument();
   });
 
   it("点击修改昵称打开修改昵称弹框", () => {

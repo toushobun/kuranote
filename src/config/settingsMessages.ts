@@ -1,3 +1,5 @@
+import { passwordRuleText } from "lib/validators/auth";
+
 export const settingsComingSoonMessage = "正在准备中";
 
 export const settingsPreferencesPageMessages = {
@@ -48,6 +50,24 @@ export const profileNicknameDialogMessages = {
   save: "保存",
   successTitle: "昵称已保存",
   failureTitle: "昵称保存失败",
+} as const;
+
+export const profilePasswordDialogMessages = {
+  title: "修改密码",
+  description: (email: string | null) =>
+    `为了确认是你本人操作，我们会向登录邮箱${email ? `「${email}」` : ""}发送 6 位验证码。`,
+  sendOtp: "发送验证码",
+  resendOtp: "重新发送验证码",
+  resendCooldown: (seconds: number) => `${seconds} 秒后可重新发送`,
+  tokenLabel: "验证码",
+  passwordLabel: "新密码",
+  passwordHelperText: passwordRuleText,
+  passwordConfirmLabel: "确认新密码",
+  cancel: "取消",
+  save: "保存",
+  successTitle: "密码已修改",
+  failureTitle: "密码修改失败",
+  sendFailureTitle: "验证码发送失败",
 } as const;
 
 export const ledgerNicknameSyncDialogMessages = {

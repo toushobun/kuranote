@@ -4,9 +4,11 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  changePassword: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   loadSettingsProfileView: vi.fn(),
   logout: vi.fn(),
+  requestPasswordChangeOtp: vi.fn(),
   updateAvatar: vi.fn(),
   updateDisplayName: vi.fn(),
 }));
@@ -18,7 +20,9 @@ vi.mock("internal/user/adapter/next/loadSettingsProfileView", () => ({
   loadSettingsProfileView: mocks.loadSettingsProfileView,
 }));
 vi.mock("internal/auth/adapter/next/actions", () => ({
+  changePassword: mocks.changePassword,
   logout: mocks.logout,
+  requestPasswordChangeOtp: mocks.requestPasswordChangeOtp,
 }));
 vi.mock("internal/user/adapter/next/actions", () => ({
   updateAvatar: mocks.updateAvatar,
@@ -56,10 +60,12 @@ describe("SettingsProfileRoute", () => {
     const result = (await SettingsProfileRoute()) as ReactElement;
 
     expect(result.props).toMatchObject({
+      changePasswordAction: mocks.changePassword,
       currentLedgerId: ledgerId,
       ledgers: ledgerDisplayNames,
       logoutAction: mocks.logout,
       profile,
+      requestPasswordChangeOtpAction: mocks.requestPasswordChangeOtp,
       updateAvatarAction: mocks.updateAvatar,
       updateDisplayNameAction: mocks.updateDisplayName,
     });
