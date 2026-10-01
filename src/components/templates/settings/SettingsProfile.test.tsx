@@ -12,13 +12,20 @@ import {
   familyLedgerId,
   profileFixture,
   profileLedgerDisplayNames,
+  unlinkedGoogleIdentity,
 } from "test/userProfileFixtures";
 
 import { SettingsProfileTemplate } from "./SettingsProfile";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
 const changePasswordAction = vi.fn(async () => ({}));
+const linkGoogleIdentityAction = vi.fn(async () => ({}));
 const logoutAction = vi.fn();
 const requestPasswordChangeOtpAction = vi.fn(async () => ({}));
+const unlinkGoogleIdentityAction = vi.fn(async () => ({}));
 const updateAvatarAction = vi.fn(async () => ({}));
 const updateDisplayNameAction = vi.fn(async () => ({}));
 
@@ -33,10 +40,14 @@ function renderSettingsProfileTemplate() {
       <SettingsProfileTemplate
         changePasswordAction={changePasswordAction}
         currentLedgerId={familyLedgerId}
+        googleIdentity={unlinkedGoogleIdentity}
+        googleIdentityLinkFeedback={null}
         ledgers={profileLedgerDisplayNames}
+        linkGoogleIdentityAction={linkGoogleIdentityAction}
         logoutAction={logoutAction}
         profile={profileFixture}
         requestPasswordChangeOtpAction={requestPasswordChangeOtpAction}
+        unlinkGoogleIdentityAction={unlinkGoogleIdentityAction}
         updateAvatarAction={updateAvatarAction}
         updateDisplayNameAction={updateDisplayNameAction}
       />
@@ -93,14 +104,21 @@ describe("SettingsProfileTemplate", () => {
     ).toEqual(["退出登录"]);
   });
 
-  it("账号绑定显示准备中提示", () => {
+  it("点击账号绑定展开 Google 绑定状态", () => {
     const { container } = renderSettingsProfileTemplate();
 
     fireEvent.click(
       within(container).getByRole("button", { name: /账号绑定/ }),
     );
 
-    expect(screen.getByText("正在准备中")).toBeInTheDocument();
+    const security = within(container).getByRole("region", {
+      name: "账号安全",
+    });
+    expect(within(security).getByText("Google")).toBeInTheDocument();
+    expect(within(security).getByText("未绑定")).toBeInTheDocument();
+    expect(
+      within(security).getByRole("button", { name: "绑定" }),
+    ).toBeInTheDocument();
   });
 
   it("点击修改密码打开修改密码弹框并显示登录邮箱", () => {
@@ -114,7 +132,6 @@ describe("SettingsProfileTemplate", () => {
     expect(
       within(dialog).getByText(/「user@example\.com」/),
     ).toBeInTheDocument();
-    expect(screen.queryByText("正在准备中")).not.toBeInTheDocument();
   });
 
   it("点击修改昵称打开修改昵称弹框", () => {

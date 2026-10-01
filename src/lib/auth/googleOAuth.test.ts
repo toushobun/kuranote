@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   getGoogleAuthErrorMessage,
   getGoogleAuthSource,
+  getGoogleIdentityLinkResult,
   getSafeGoogleAuthNextPath,
   googleAuthErrorCodes,
   googleAuthFailureHref,
   googleAuthNextPathMaxLength,
   googleAuthSources,
+  googleIdentityLinkResultHref,
+  googleIdentityLinkResults,
 } from "lib/auth/googleOAuth";
 
 const maxLengthNextPath = `/${"x".repeat(googleAuthNextPathMaxLength - 1)}`;
@@ -16,6 +19,10 @@ const oversizedNextPath = `/${"x".repeat(googleAuthNextPathMaxLength)}`;
 describe("googleOAuth", () => {
   it("注册来源会保持为注册页", () => {
     expect(getGoogleAuthSource("register")).toBe(googleAuthSources.register);
+  });
+
+  it("绑定来源会保持为绑定", () => {
+    expect(getGoogleAuthSource("link")).toBe(googleAuthSources.link);
   });
 
   it("未知来源会回退到登录页", () => {
@@ -64,5 +71,36 @@ describe("googleOAuth", () => {
         "/invite/token-123",
       ),
     ).toBe("/register?authError=callback_failed&next=%2Finvite%2Ftoken-123");
+  });
+
+  it("绑定来源的失败地址回到个人主页，取消授权与其他失败分别区分", () => {
+    expect(
+      googleAuthFailureHref(
+        googleAuthSources.link,
+        googleAuthErrorCodes.cancelled,
+        "/dashboard",
+      ),
+    ).toBe("/settings/profile?linkResult=cancelled");
+    expect(
+      googleAuthFailureHref(
+        googleAuthSources.link,
+        googleAuthErrorCodes.startFailed,
+        "/dashboard",
+      ),
+    ).toBe("/settings/profile?linkResult=failed");
+  });
+
+  it("绑定结果地址固定指向个人主页", () => {
+    expect(googleIdentityLinkResultHref(googleIdentityLinkResults.linked)).toBe(
+      "/settings/profile?linkResult=linked",
+    );
+  });
+
+  it("只接受已知的绑定结果", () => {
+    expect(getGoogleIdentityLinkResult("identity_already_exists")).toBe(
+      googleIdentityLinkResults.identityAlreadyExists,
+    );
+    expect(getGoogleIdentityLinkResult("raw-provider-error")).toBeNull();
+    expect(getGoogleIdentityLinkResult(undefined)).toBeNull();
   });
 });

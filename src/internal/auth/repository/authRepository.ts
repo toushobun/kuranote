@@ -1,10 +1,13 @@
-import type { User } from "@supabase/supabase-js";
+import type { User, UserIdentity } from "@supabase/supabase-js";
 
 import type {
   AuthUser,
   RegisterFailureReason,
 } from "internal/auth/entity/auth";
-import { passwordChangeMessages } from "internal/auth/errors";
+import {
+  googleIdentityLinkMessages,
+  passwordChangeMessages,
+} from "internal/auth/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
@@ -32,9 +35,26 @@ export type UpdatePasswordResult =
   | "weak_password"
   | "same_password";
 
+/** 当前用户已绑定的登录身份（Supabase auth.identities）。 */
+export type AuthIdentity = {
+  email: string | null;
+  id: string;
+  identityId: string;
+  provider: string;
+  userId: string;
+};
+
+export type UnlinkIdentityResult =
+  | "unlinked"
+  | "email_conflict"
+  | "identity_not_found"
+  | "single_identity";
+
 export interface AuthRepository {
   exchangeOAuthCode(code: string): Promise<boolean>;
   getCurrentUser(): Promise<AuthUser | null>;
+  /** 未登录或会话失效时返回 null。 */
+  listCurrentUserIdentities(): Promise<AuthIdentity[] | null>;
   resendSignUpOtp(email: string): Promise<SignUpResult>;
   sendPasswordChangeOtp(email: string): Promise<SendPasswordChangeOtpResult>;
   signInWithPassword(input: {
@@ -43,7 +63,9 @@ export interface AuthRepository {
   }): Promise<boolean>;
   signOut(): Promise<void>;
   signUp(input: SignUpInput): Promise<SignUpResult>;
+  startGoogleIdentityLink(redirectTo: string): Promise<string>;
   startGoogleOAuth(redirectTo: string): Promise<string | null>;
+  unlinkIdentity(identity: AuthIdentity): Promise<UnlinkIdentityResult>;
   updatePassword(password: string): Promise<UpdatePasswordResult>;
   verifyPasswordChangeOtp(input: {
     email: string;
@@ -108,6 +130,18 @@ function toAuthUser(user: User): AuthUser {
     displayName,
     email: user.email?.trim() || null,
     id: user.id,
+  };
+}
+
+function toAuthIdentity(identity: UserIdentity): AuthIdentity {
+  const email = identity.identity_data?.email;
+
+  return {
+    email: typeof email === "string" ? email.trim() || null : null,
+    id: identity.id,
+    identityId: identity.identity_id,
+    provider: identity.provider,
+    userId: identity.user_id,
   };
 }
 
@@ -176,6 +210,37 @@ export function createSupabaseAuthRepository(
           "登录状态读取失败，请稍后重试。",
         );
       }
+    },
+
+    async listCurrentUserIdentities() {
+      try {
+        // getUserIdentities 内部调用 getUser()，由 Supabase Auth 服务端校验会话。
+        const { data, error } = await supabase.auth.getUserIdentities();
+
+        if (!error) return data.identities.map(toAuthIdentity);
+        if (isUnauthenticatedUserError(error)) {
+          logger.warn("[auth] session is unavailable for identity lookup", {
+            code: getErrorCode(error) || undefined,
+            errorName: getErrorName(error) || undefined,
+          });
+          return null;
+        }
+
+        logger.error("[auth] identity lookup failed", {
+          code: getErrorCode(error) || undefined,
+          errorName: getErrorName(error) || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] identity lookup crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "identity_load_failed",
+        googleIdentityLinkMessages.statusLoadFailed,
+      );
     },
 
     async resendSignUpOtp(email) {
@@ -282,6 +347,32 @@ export function createSupabaseAuthRepository(
       }
     },
 
+    async startGoogleIdentityLink(redirectTo) {
+      try {
+        const { data, error } = await supabase.auth.linkIdentity({
+          provider: "google",
+          options: { redirectTo },
+        });
+
+        if (!error && data.url) return data.url;
+
+        // 例如 manual_linking_disabled：只记录稳定 code，不向客户端透出。
+        logger.error("[auth] Google identity link start failed", {
+          code: getErrorCode(error) || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] Google identity link start crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "google_identity_link_start_failed",
+        googleIdentityLinkMessages.startFailed,
+      );
+    },
+
     async startGoogleOAuth(redirectTo) {
       try {
         const { data, error } = await supabase.auth.signInWithOAuth({
@@ -307,6 +398,41 @@ export function createSupabaseAuthRepository(
           "Google 登录暂时不可用，请稍后重试。",
         );
       }
+    },
+
+    async unlinkIdentity(identity) {
+      try {
+        // unlinkIdentity 只使用 identity_id，其余字段按 UserIdentity 类型补齐。
+        const { error } = await supabase.auth.unlinkIdentity({
+          id: identity.id,
+          identity_id: identity.identityId,
+          provider: identity.provider,
+          user_id: identity.userId,
+        });
+
+        if (!error) return "unlinked";
+
+        const code = getErrorCode(error);
+        if (code === "single_identity_not_deletable") return "single_identity";
+        if (code === "identity_not_found") return "identity_not_found";
+        if (code === "email_conflict_identity_not_deletable") {
+          return "email_conflict";
+        }
+
+        logger.error("[auth] identity unlink failed", {
+          code: code || undefined,
+        });
+      } catch (error) {
+        logger.error(
+          "[auth] identity unlink crashed",
+          toSafeUnexpectedErrorContext(error),
+        );
+      }
+
+      throw toRepositoryError(
+        "identity_unlink_failed",
+        googleIdentityLinkMessages.unlinkFailed,
+      );
     },
 
     async updatePassword(password) {

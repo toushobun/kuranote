@@ -6,9 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   changePassword: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
+  loadGoogleIdentityLinkView: vi.fn(),
   loadSettingsProfileView: vi.fn(),
   logout: vi.fn(),
   requestPasswordChangeOtp: vi.fn(),
+  startGoogleIdentityLink: vi.fn(),
+  unlinkGoogleIdentity: vi.fn(),
   updateAvatar: vi.fn(),
   updateDisplayName: vi.fn(),
 }));
@@ -23,6 +26,11 @@ vi.mock("internal/auth/adapter/next/actions", () => ({
   changePassword: mocks.changePassword,
   logout: mocks.logout,
   requestPasswordChangeOtp: mocks.requestPasswordChangeOtp,
+  startGoogleIdentityLink: mocks.startGoogleIdentityLink,
+  unlinkGoogleIdentity: mocks.unlinkGoogleIdentity,
+}));
+vi.mock("internal/auth/adapter/next/loadGoogleIdentityLinkView", () => ({
+  loadGoogleIdentityLinkView: mocks.loadGoogleIdentityLinkView,
 }));
 vi.mock("internal/user/adapter/next/actions", () => ({
   updateAvatar: mocks.updateAvatar,
@@ -43,6 +51,13 @@ const profile = {
 const ledgerDisplayNames = [
   { displayName: "爸爸", ledgerId, ledgerName: "家庭账本" },
 ];
+const googleIdentity = { linked: false };
+
+function renderRoute(searchParams: { linkResult?: string | string[] } = {}) {
+  return SettingsProfileRoute({
+    searchParams: Promise.resolve(searchParams),
+  }) as Promise<ReactElement>;
+}
 
 describe("SettingsProfileRoute", () => {
   beforeEach(() => {
@@ -54,27 +69,45 @@ describe("SettingsProfileRoute", () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({
       currentLedger: { id: ledgerId },
     });
+    mocks.loadGoogleIdentityLinkView.mockResolvedValue({
+      googleIdentity,
+      linkFeedback: null,
+    });
   });
 
-  it("把用户资料、账本昵称、当前账本与 Action 传给模板", async () => {
-    const result = (await SettingsProfileRoute()) as ReactElement;
+  it("把用户资料、账本昵称、当前账本、绑定状态与 Action 传给模板", async () => {
+    const result = await renderRoute();
 
     expect(result.props).toMatchObject({
       changePasswordAction: mocks.changePassword,
       currentLedgerId: ledgerId,
+      googleIdentity,
+      googleIdentityLinkFeedback: null,
       ledgers: ledgerDisplayNames,
+      linkGoogleIdentityAction: mocks.startGoogleIdentityLink,
       logoutAction: mocks.logout,
       profile,
       requestPasswordChangeOtpAction: mocks.requestPasswordChangeOtp,
+      unlinkGoogleIdentityAction: mocks.unlinkGoogleIdentity,
       updateAvatarAction: mocks.updateAvatar,
       updateDisplayNameAction: mocks.updateDisplayName,
     });
   });
 
+  it("只把字符串形式的 linkResult 交给绑定状态 loader", async () => {
+    await renderRoute({ linkResult: "linked" });
+    expect(mocks.loadGoogleIdentityLinkView).toHaveBeenLastCalledWith("linked");
+
+    await renderRoute({ linkResult: ["linked", "failed"] });
+    expect(mocks.loadGoogleIdentityLinkView).toHaveBeenLastCalledWith(
+      undefined,
+    );
+  });
+
   it("没有当前账本时不默认勾选任何账本", async () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({ currentLedger: null });
 
-    const result = (await SettingsProfileRoute()) as ReactElement;
+    const result = await renderRoute();
 
     expect(result.props).toMatchObject({ currentLedgerId: null });
   });

@@ -11,6 +11,7 @@ import {
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
+  OperationFeedback,
   SuccessFeedbackDialog,
 } from "./OperationFeedbackDialogs";
 
@@ -161,6 +162,50 @@ describe("FailureFeedbackDialog", () => {
     expect(cssText).toContain("var(--user-theme-feedback-success-text)");
     expect(cssText).toContain("var(--user-theme-feedback-error-bg)");
     expect(cssText).toContain("var(--user-theme-feedback-error-text)");
+  });
+});
+
+describe("OperationFeedback", () => {
+  it("没有反馈时不显示任何提示", () => {
+    render(<OperationFeedback feedback={null} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("成功反馈只显示成功提示", () => {
+    render(
+      <OperationFeedback
+        feedback={{ kind: "success", title: "保存成功" }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("保存成功");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("失败反馈只显示失败标题与说明，并触发关闭回调", () => {
+    const onClose = vi.fn();
+
+    render(
+      <OperationFeedback
+        feedback={{
+          kind: "failure",
+          message: "请稍后再试。",
+          title: "保存失败",
+        }}
+        onClose={onClose}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("保存失败");
+    expect(alert).toHaveTextContent("请稍后再试。");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

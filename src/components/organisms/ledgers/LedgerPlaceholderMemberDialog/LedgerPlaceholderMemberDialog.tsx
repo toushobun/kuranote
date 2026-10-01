@@ -17,10 +17,7 @@ import Typography from "@mui/material/Typography";
 
 import { placeholderMemberText as text } from "config/placeholderMemberText";
 import { LedgerPlaceholderNameField } from "molecules/ledgers/LedgerPlaceholderNameField";
-import {
-  FailureFeedbackDialog,
-  SuccessFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
+import { OperationFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import {
   ledgerInviteRoleLabels,
@@ -196,20 +193,11 @@ export function LedgerPlaceholderMemberDialog({
         </DialogContent>
       </Dialog>
 
-      <SuccessFeedbackDialog
+      <OperationFeedback
         aboveModal
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        feedback={feedback}
         onClose={closeFeedback}
-        open={feedback?.kind === "success"}
-        title={feedback?.kind === "success" ? feedback.title : ""}
-      />
-      <FailureFeedbackDialog
-        aboveModal
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={feedback?.kind === "failure" ? feedback.message : ""}
-        onClose={closeFeedback}
-        open={feedback?.kind === "failure"}
-        title={feedback?.kind === "failure" ? feedback.title : ""}
       />
     </>
   );

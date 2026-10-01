@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
 import {
+  googleIdentityLinkMessages,
   passwordChangeMessages,
   registerOtpMessages,
 } from "internal/auth/errors";
@@ -13,6 +14,7 @@ import type { TurnstileRepository } from "internal/auth/repository/turnstileRepo
 import { createAuthService } from "internal/auth/service/authService";
 import {
   AuthenticationError,
+  AuthorizationError,
   ConflictError,
   RateLimitError,
   RepositoryError,
@@ -29,6 +31,21 @@ const authUser = {
   id: userId,
 };
 
+const emailIdentity = {
+  email: "user@example.test",
+  id: "email-identity-row",
+  identityId: "00000000-0000-4000-8000-000000000041",
+  provider: "email",
+  userId,
+};
+const googleIdentity = {
+  email: "user.google@gmail.test",
+  id: "google-sub-123",
+  identityId: "00000000-0000-4000-8000-000000000042",
+  provider: "google",
+  userId,
+};
+
 function minutesBefore(minutes: number): string {
   return new Date(now.getTime() - minutes * 60 * 1000).toISOString();
 }
@@ -37,14 +54,21 @@ function createFixture() {
   const authRepository = {
     exchangeOAuthCode: vi.fn().mockResolvedValue(true),
     getCurrentUser: vi.fn().mockResolvedValue(authUser),
+    listCurrentUserIdentities: vi
+      .fn()
+      .mockResolvedValue([emailIdentity, googleIdentity]),
     resendSignUpOtp: vi.fn().mockResolvedValue({ ok: true }),
     sendPasswordChangeOtp: vi.fn().mockResolvedValue("sent"),
     signInWithPassword: vi.fn().mockResolvedValue(true),
     signOut: vi.fn().mockResolvedValue(undefined),
     signUp: vi.fn().mockResolvedValue({ ok: true }),
+    startGoogleIdentityLink: vi
+      .fn()
+      .mockResolvedValue("https://accounts.google.test/link"),
     startGoogleOAuth: vi
       .fn()
       .mockResolvedValue("https://accounts.google.test/oauth"),
+    unlinkIdentity: vi.fn().mockResolvedValue("unlinked"),
     updatePassword: vi.fn().mockResolvedValue("updated"),
     verifyPasswordChangeOtp: vi
       .fn()
@@ -681,6 +705,7 @@ describe("AuthService Google OAuth", () => {
         code: null,
         nextPath: "/invite/token-123",
         providerError: "access_denied",
+        providerErrorCode: null,
         source: "login",
       }),
     ).resolves.toBe("/login?authError=cancelled&next=%2Finvite%2Ftoken-123");
@@ -695,6 +720,7 @@ describe("AuthService Google OAuth", () => {
         code: "oauth-code",
         nextPath: "https://evil.example",
         providerError: null,
+        providerErrorCode: null,
         source: "login",
       }),
     ).resolves.toBe("/dashboard");
@@ -712,10 +738,275 @@ describe("AuthService Google OAuth", () => {
         code: "oauth-code",
         nextPath: "/dashboard",
         providerError: null,
+        providerErrorCode: null,
         source: "register",
       }),
     ).resolves.toBe("/register?authError=callback_failed&next=%2Fdashboard");
   });
+});
+
+describe("AuthService Google 账号绑定", () => {
+  const linkCallbackInput = {
+    code: "oauth-code",
+    nextPath: "/settings/profile",
+    providerError: null,
+    providerErrorCode: null,
+    source: "link" as const,
+  };
+
+  it("未绑定 Google 时返回未绑定状态", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      emailIdentity,
+    ]);
+
+    await expect(fixture.service.getGoogleIdentityStatus()).resolves.toEqual({
+      linked: false,
+    });
+  });
+
+  it("还有其他登录身份时返回绑定邮箱并允许解除绑定", async () => {
+    const fixture = createFixture();
+
+    await expect(fixture.service.getGoogleIdentityStatus()).resolves.toEqual({
+      email: "user.google@gmail.test",
+      linked: true,
+      unlinkDisabledReason: null,
+    });
+  });
+
+  it("Google 是唯一登录身份时返回禁用原因", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      googleIdentity,
+    ]);
+
+    await expect(fixture.service.getGoogleIdentityStatus()).resolves.toEqual({
+      email: "user.google@gmail.test",
+      linked: true,
+      unlinkDisabledReason: googleIdentityLinkMessages.onlyLoginIdentity,
+    });
+  });
+
+  it("未登录时读取绑定状态抛出 AuthenticationError", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue(null);
+
+    await expect(
+      fixture.service.getGoogleIdentityStatus(),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+  });
+
+  it("开始绑定时生成固定回到个人主页的 link 回调地址", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      emailIdentity,
+    ]);
+
+    await expect(
+      fixture.service.startGoogleIdentityLink({
+        requestOrigin: "https://kuranote.test",
+      }),
+    ).resolves.toEqual({ providerUrl: "https://accounts.google.test/link" });
+    expect(fixture.authRepository.startGoogleIdentityLink).toHaveBeenCalledWith(
+      "https://kuranote.test/auth/callback?source=link&next=%2Fsettings%2Fprofile",
+    );
+  });
+
+  it("Google 登录未启用时不开始绑定", async () => {
+    const fixture = createFixture();
+    fixture.isGoogleAuthEnabled.mockReturnValue(false);
+
+    await expect(
+      fixture.service.startGoogleIdentityLink({
+        requestOrigin: "https://kuranote.test",
+      }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(
+      fixture.authRepository.startGoogleIdentityLink,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("未登录时不开始绑定", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue(null);
+
+    await expect(
+      fixture.service.startGoogleIdentityLink({
+        requestOrigin: "https://kuranote.test",
+      }),
+    ).rejects.toMatchObject({
+      code: "session_invalid",
+      message: googleIdentityLinkMessages.sessionInvalid,
+    });
+    expect(
+      fixture.authRepository.startGoogleIdentityLink,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("已绑定 Google 时不重复开始绑定", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.startGoogleIdentityLink({
+        requestOrigin: "https://kuranote.test",
+      }),
+    ).rejects.toMatchObject({
+      code: "google_identity_already_linked",
+      message: googleIdentityLinkMessages.alreadyLinked,
+    });
+    expect(
+      fixture.authRepository.startGoogleIdentityLink,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("Origin 不可信时不开始绑定", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      emailIdentity,
+    ]);
+
+    await expect(
+      fixture.service.startGoogleIdentityLink({
+        requestOrigin: "https://kuranote.test/evil",
+      }),
+    ).rejects.toMatchObject({
+      code: "google_identity_link_origin_invalid",
+      message: googleIdentityLinkMessages.startFailed,
+    });
+    expect(
+      fixture.authRepository.startGoogleIdentityLink,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("绑定回调成功后回到个人主页并带上 linked 结果", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.completeGoogleAuth(linkCallbackInput),
+    ).resolves.toBe("/settings/profile?linkResult=linked");
+    expect(fixture.authRepository.exchangeOAuthCode).toHaveBeenCalledWith(
+      "oauth-code",
+    );
+  });
+
+  it("Google 账号已被其他用户使用时回到个人主页并且不兑换 code", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.completeGoogleAuth({
+        ...linkCallbackInput,
+        code: null,
+        providerError: "server_error",
+        providerErrorCode: "identity_already_exists",
+      }),
+    ).resolves.toBe("/settings/profile?linkResult=identity_already_exists");
+    expect(fixture.authRepository.exchangeOAuthCode).not.toHaveBeenCalled();
+  });
+
+  it("绑定时取消授权或兑换失败分别回到个人主页的对应结果", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.completeGoogleAuth({
+        ...linkCallbackInput,
+        code: null,
+        providerError: "access_denied",
+      }),
+    ).resolves.toBe("/settings/profile?linkResult=cancelled");
+
+    fixture.authRepository.exchangeOAuthCode.mockResolvedValue(false);
+    await expect(
+      fixture.service.completeGoogleAuth(linkCallbackInput),
+    ).resolves.toBe("/settings/profile?linkResult=failed");
+  });
+
+  it("登录回调不会把 identity_already_exists 当作绑定结果", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.completeGoogleAuth({
+        code: null,
+        nextPath: "/dashboard",
+        providerError: "server_error",
+        providerErrorCode: "identity_already_exists",
+        source: "login",
+      }),
+    ).resolves.toBe("/login?authError=callback_failed&next=%2Fdashboard");
+  });
+
+  it("还有其他登录身份时解除 Google 绑定", async () => {
+    const fixture = createFixture();
+
+    await expect(
+      fixture.service.unlinkGoogleIdentity(),
+    ).resolves.toBeUndefined();
+    expect(fixture.authRepository.unlinkIdentity).toHaveBeenCalledWith(
+      googleIdentity,
+    );
+  });
+
+  it("Google 是唯一登录身份时不调用解除绑定", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      googleIdentity,
+    ]);
+
+    await expect(fixture.service.unlinkGoogleIdentity()).rejects.toMatchObject({
+      code: "google_identity_only_login_identity",
+      message: googleIdentityLinkMessages.onlyLoginIdentity,
+    });
+    expect(fixture.authRepository.unlinkIdentity).not.toHaveBeenCalled();
+  });
+
+  it("未绑定 Google 时解除绑定抛出 ConflictError", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue([
+      emailIdentity,
+    ]);
+
+    await expect(fixture.service.unlinkGoogleIdentity()).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+    expect(fixture.authRepository.unlinkIdentity).not.toHaveBeenCalled();
+  });
+
+  it("未登录时解除绑定抛出 AuthenticationError", async () => {
+    const fixture = createFixture();
+    fixture.authRepository.listCurrentUserIdentities.mockResolvedValue(null);
+
+    await expect(fixture.service.unlinkGoogleIdentity()).rejects.toBeInstanceOf(
+      AuthenticationError,
+    );
+  });
+
+  it.each([
+    [
+      "single_identity",
+      "google_identity_only_login_identity",
+      googleIdentityLinkMessages.onlyLoginIdentity,
+    ],
+    [
+      "identity_not_found",
+      "google_identity_not_linked",
+      googleIdentityLinkMessages.notLinked,
+    ],
+    [
+      "email_conflict",
+      "google_identity_unlink_email_conflict",
+      googleIdentityLinkMessages.emailConflict,
+    ],
+  ] as const)(
+    "Supabase 拒绝解除绑定（%s）时抛出对应安全错误",
+    async (result, code, message) => {
+      const fixture = createFixture();
+      fixture.authRepository.unlinkIdentity.mockResolvedValue(result);
+
+      await expect(
+        fixture.service.unlinkGoogleIdentity(),
+      ).rejects.toMatchObject({ code, message });
+    },
+  );
 });
 
 it("使用具体错误类型区分认证、冲突、限流和仓储失败", () => {

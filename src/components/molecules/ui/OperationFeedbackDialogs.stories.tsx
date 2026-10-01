@@ -6,6 +6,7 @@ import {
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
+  OperationFeedback,
   SuccessFeedbackDialog,
 } from "./OperationFeedbackDialogs";
 
@@ -43,6 +44,20 @@ export const Failure: Story = {
       onClose={() => undefined}
       open
       title="保存失败"
+    />
+  ),
+};
+
+export const OperationFailure: Story = {
+  name: "操作反馈（按结果切换成功 / 失败）",
+  render: () => (
+    <OperationFeedback
+      feedback={{
+        kind: "failure",
+        message: "请稍后再试，或检查网络连接。",
+        title: "保存失败",
+      }}
+      onClose={() => undefined}
     />
   ),
 };

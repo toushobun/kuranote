@@ -3,8 +3,12 @@ import {
   getSafeGoogleAuthNextPath,
   googleAuthErrorCodes,
   googleAuthFailureHref,
+  googleAuthSources,
+  googleIdentityLinkResultHref,
+  googleIdentityLinkResults,
   type GoogleAuthErrorCode,
   type GoogleAuthSource,
+  type GoogleSignInSource,
 } from "lib/auth/googleOAuth";
 import {
   displayNameMaxLength,
@@ -14,6 +18,7 @@ import {
   passwordMaxLength,
 } from "lib/validators/auth";
 import {
+  googleIdentityLinkMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -22,9 +27,13 @@ import {
   turnstileTokenMaxLength,
   type AuthSession,
   type AuthUser,
+  type GoogleIdentityStatus,
 } from "internal/auth/entity/auth";
 import { hashAuthOtpEmail } from "internal/auth/otpHash";
-import type { AuthRepository } from "internal/auth/repository/authRepository";
+import type {
+  AuthIdentity,
+  AuthRepository,
+} from "internal/auth/repository/authRepository";
 import type { AuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import type { TurnstileRepository } from "internal/auth/repository/turnstileRepository";
 import { changePasswordRequestSchema } from "internal/auth/schema";
@@ -92,6 +101,8 @@ export type GoogleAuthCallbackInput = {
   code: string | null;
   nextPath: string;
   providerError: string | null;
+  /** Supabase Auth 回跳时附带的 error_code，例如 identity_already_exists。 */
+  providerErrorCode: string | null;
   source: GoogleAuthSource;
 };
 
@@ -102,6 +113,7 @@ export interface AuthService {
     ipHash: string | null;
   }): Promise<{ available: boolean }>;
   completeGoogleAuth(input: GoogleAuthCallbackInput): Promise<string>;
+  getGoogleIdentityStatus(): Promise<GoogleIdentityStatus>;
   getSession(): Promise<AuthSession>;
   login(input: { email: string; password: string }): Promise<void>;
   logout(): Promise<void>;
@@ -112,9 +124,13 @@ export interface AuthService {
   startGoogleAuth(input: {
     nextPath: string;
     requestOrigin: string | null;
-    source: GoogleAuthSource;
+    source: GoogleSignInSource;
   }): Promise<GoogleAuthStartResult>;
+  startGoogleIdentityLink(input: {
+    requestOrigin: string | null;
+  }): Promise<{ providerUrl: string }>;
   submitRegisterOtp(input: SubmitRegisterOtpInput): Promise<AuthUser>;
+  unlinkGoogleIdentity(): Promise<void>;
 }
 
 type AuthServiceDependencies = {
@@ -340,6 +356,37 @@ function getRequestOrigin(value: string | null): string | null {
   }
 }
 
+/** OAuth 回调地址：登录、注册与绑定共用同一个回调路由，用 source 区分场景。 */
+function googleAuthCallbackUrl(
+  requestOrigin: string,
+  source: GoogleAuthSource,
+  nextPath: string,
+): string {
+  const callbackUrl = new URL(routePaths.authCallback, requestOrigin);
+  callbackUrl.searchParams.set("source", source);
+  callbackUrl.searchParams.set("next", nextPath);
+  return callbackUrl.toString();
+}
+
+const googleProvider = "google";
+/** Supabase Auth 在该 Google 账号已属于其他用户时回跳的 error_code。 */
+const identityAlreadyExistsErrorCode = "identity_already_exists";
+
+function findGoogleIdentity(identities: AuthIdentity[]): AuthIdentity | null {
+  return (
+    identities.find((identity) => identity.provider === googleProvider) ?? null
+  );
+}
+
+/**
+ * Supabase 只允许在解绑后仍至少保留 1 个身份时解除绑定。
+ * 只用 Google 注册的用户设置密码后不会新增 email 身份（GoTrue 默认关闭
+ * CreateEmailIdentityOnPasswordSet），因此以身份数量而不是「是否设置过密码」判断。
+ */
+function hasOtherIdentity(identities: AuthIdentity[]): boolean {
+  return identities.length > 1;
+}
+
 export function createAuthService({
   authRepository,
   authSecurityRepository,
@@ -460,6 +507,19 @@ export function createAuthService({
     return { email: user.email, id: user.id };
   }
 
+  async function requireCurrentUserIdentities(): Promise<AuthIdentity[]> {
+    const identities = await authRepository.listCurrentUserIdentities();
+
+    if (!identities) {
+      throw new AuthenticationError(
+        "session_invalid",
+        googleIdentityLinkMessages.sessionInvalid,
+      );
+    }
+
+    return identities;
+  }
+
   return {
     async changePassword(input) {
       const parsed = changePasswordRequestSchema.safeParse(input);
@@ -562,8 +622,18 @@ export function createAuthService({
       const failure = (code: GoogleAuthErrorCode) =>
         googleAuthFailureHref(input.source, code, safeNextPath);
 
+      const isLink = input.source === googleAuthSources.link;
+
       if (!isGoogleAuthEnabled()) {
         return failure(googleAuthErrorCodes.startFailed);
+      }
+      if (
+        isLink &&
+        input.providerErrorCode === identityAlreadyExistsErrorCode
+      ) {
+        return googleIdentityLinkResultHref(
+          googleIdentityLinkResults.identityAlreadyExists,
+        );
       }
       if (input.providerError) {
         return failure(
@@ -575,9 +645,26 @@ export function createAuthService({
       if (!input.code) return failure(googleAuthErrorCodes.callbackFailed);
 
       const exchanged = await authRepository.exchangeOAuthCode(input.code);
-      return exchanged
-        ? safeNextPath
-        : failure(googleAuthErrorCodes.callbackFailed);
+      if (!exchanged) return failure(googleAuthErrorCodes.callbackFailed);
+
+      return isLink
+        ? googleIdentityLinkResultHref(googleIdentityLinkResults.linked)
+        : safeNextPath;
+    },
+
+    async getGoogleIdentityStatus() {
+      const identities = await requireCurrentUserIdentities();
+      const googleIdentity = findGoogleIdentity(identities);
+
+      if (!googleIdentity) return { linked: false };
+
+      return {
+        email: googleIdentity.email,
+        linked: true,
+        unlinkDisabledReason: hasOtherIdentity(identities)
+          ? null
+          : googleIdentityLinkMessages.onlyLoginIdentity,
+      };
     },
 
     async getSession() {
@@ -728,17 +815,49 @@ export function createAuthService({
       const requestOrigin = getRequestOrigin(input.requestOrigin);
       if (!requestOrigin) return { failureHref, ok: false };
 
-      const callbackUrl = new URL(routePaths.authCallback, requestOrigin);
-      callbackUrl.searchParams.set("source", input.source);
-      callbackUrl.searchParams.set("next", safeNextPath);
-
       const providerUrl = await authRepository.startGoogleOAuth(
-        callbackUrl.toString(),
+        googleAuthCallbackUrl(requestOrigin, input.source, safeNextPath),
       );
 
       return providerUrl
         ? { ok: true, providerUrl }
         : { failureHref, ok: false };
+    },
+
+    async startGoogleIdentityLink(input) {
+      if (!isGoogleAuthEnabled()) {
+        throw new AuthorizationError(
+          "google_identity_link_unavailable",
+          googleIdentityLinkMessages.unavailable,
+        );
+      }
+
+      const identities = await requireCurrentUserIdentities();
+      if (findGoogleIdentity(identities)) {
+        throw new ConflictError(
+          "google_identity_already_linked",
+          googleIdentityLinkMessages.alreadyLinked,
+        );
+      }
+
+      const requestOrigin = getRequestOrigin(input.requestOrigin);
+      if (!requestOrigin) {
+        throw new ValidationError(
+          "google_identity_link_origin_invalid",
+          googleIdentityLinkMessages.startFailed,
+        );
+      }
+
+      // 绑定完成后固定回到个人主页，不接受客户端传入的跳转路径。
+      const providerUrl = await authRepository.startGoogleIdentityLink(
+        googleAuthCallbackUrl(
+          requestOrigin,
+          googleAuthSources.link,
+          routePaths.settingsProfile,
+        ),
+      );
+
+      return { providerUrl };
     },
 
     async submitRegisterOtp(input) {
@@ -829,6 +948,37 @@ export function createAuthService({
       }
 
       return user;
+    },
+
+    async unlinkGoogleIdentity() {
+      const identities = await requireCurrentUserIdentities();
+      const googleIdentity = findGoogleIdentity(identities);
+
+      const notLinkedError = () =>
+        new ConflictError(
+          "google_identity_not_linked",
+          googleIdentityLinkMessages.notLinked,
+        );
+      const onlyLoginIdentityError = () =>
+        new ValidationError(
+          "google_identity_only_login_identity",
+          googleIdentityLinkMessages.onlyLoginIdentity,
+        );
+
+      if (!googleIdentity) throw notLinkedError();
+      if (!hasOtherIdentity(identities)) throw onlyLoginIdentityError();
+
+      const result = await authRepository.unlinkIdentity(googleIdentity);
+
+      // 读取身份后状态可能已变化，以 Supabase 的判定结果为准。
+      if (result === "single_identity") throw onlyLoginIdentityError();
+      if (result === "identity_not_found") throw notLinkedError();
+      if (result === "email_conflict") {
+        throw new ConflictError(
+          "google_identity_unlink_email_conflict",
+          googleIdentityLinkMessages.emailConflict,
+        );
+      }
     },
   };
 }

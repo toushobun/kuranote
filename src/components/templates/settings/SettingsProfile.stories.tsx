@@ -4,12 +4,16 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   failedDisplayNameAction,
   familyLedgerId,
+  pendingLinkGoogleIdentityAction,
   profileFixture,
   profileLedgerDisplayNames,
   succeededAvatarAction,
   succeededChangePasswordAction,
   succeededDisplayNameAction,
   succeededPasswordChangeOtpAction,
+  succeededUnlinkGoogleIdentityAction,
+  unlinkableGoogleIdentity,
+  unlinkedGoogleIdentity,
 } from "test/userProfileFixtures";
 
 import { SettingsProfileTemplate } from "./SettingsProfile";
@@ -27,10 +31,14 @@ const meta = {
   args: {
     changePasswordAction: succeededChangePasswordAction,
     currentLedgerId: familyLedgerId,
+    googleIdentity: unlinkedGoogleIdentity,
+    googleIdentityLinkFeedback: null,
     ledgers: profileLedgerDisplayNames,
+    linkGoogleIdentityAction: pendingLinkGoogleIdentityAction,
     logoutAction: () => undefined,
     profile: profileFixture,
     requestPasswordChangeOtpAction: succeededPasswordChangeOtpAction,
+    unlinkGoogleIdentityAction: succeededUnlinkGoogleIdentityAction,
     updateAvatarAction: succeededAvatarAction,
     updateDisplayNameAction: succeededDisplayNameAction,
   },
@@ -62,5 +70,13 @@ export const SaveFailed: Story = {
   name: "昵称保存失败",
   args: {
     updateDisplayNameAction: failedDisplayNameAction,
+  },
+};
+
+export const GoogleLinked: Story = {
+  name: "Google 绑定成功后回到个人主页",
+  args: {
+    googleIdentity: unlinkableGoogleIdentity,
+    googleIdentityLinkFeedback: { kind: "success" },
   },
 };

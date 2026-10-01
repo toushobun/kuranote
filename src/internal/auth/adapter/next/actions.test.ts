@@ -8,7 +8,9 @@ import {
   requestPasswordChangeOtp,
   requestRegisterOtp,
   startGoogleAuth,
+  startGoogleIdentityLink,
   submitRegisterOtpWithRedirect,
+  unlinkGoogleIdentity,
 } from "internal/auth/adapter/next/actions";
 import {
   AuthenticationError,
@@ -20,6 +22,7 @@ import {
 } from "internal/shared/errors/appError";
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import {
+  googleIdentityLinkMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -39,9 +42,13 @@ const mocks = vi.hoisted(() => ({
   }),
   requestPasswordChangeOtp: vi.fn(),
   requestRegisterOtp: vi.fn(),
+  revalidatePath: vi.fn(),
   startGoogleAuth: vi.fn(),
+  startGoogleIdentityLink: vi.fn(),
   submitRegisterOtp: vi.fn(),
+  unlinkGoogleIdentity: vi.fn(),
 }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
@@ -579,6 +586,108 @@ describe("requestRegisterOtp \u6CE8\u518C\u5931\u8D25\u6587\u6848", () => {
     );
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
       "TURNSTILE_SECRET_KEY",
+    );
+    consoleError.mockRestore();
+  });
+});
+describe("Google 账号绑定 Server Action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.headers.mockResolvedValue(
+      new Headers({ origin: "https://kuranote.test" }),
+    );
+    mocks.createServerRequestDependencies.mockResolvedValue({});
+    mocks.createRequestContainer.mockReturnValue({
+      auth: {
+        service: {
+          startGoogleIdentityLink: mocks.startGoogleIdentityLink,
+          unlinkGoogleIdentity: mocks.unlinkGoogleIdentity,
+        },
+      },
+    });
+    mocks.startGoogleIdentityLink.mockResolvedValue({
+      providerUrl: "https://accounts.google.test/link",
+    });
+    mocks.unlinkGoogleIdentity.mockResolvedValue(undefined);
+  });
+
+  it("开始绑定时把请求 Origin 交给 Service 并跳转到 Google 授权页", async () => {
+    await expect(startGoogleIdentityLink()).rejects.toThrow(
+      "NEXT_REDIRECT:https://accounts.google.test/link",
+    );
+    expect(mocks.startGoogleIdentityLink).toHaveBeenCalledWith({
+      requestOrigin: "https://kuranote.test",
+    });
+  });
+
+  it("开始绑定的应用错误返回 Service 文案且不跳转", async () => {
+    mocks.startGoogleIdentityLink.mockRejectedValue(
+      new ConflictError(
+        "google_identity_already_linked",
+        googleIdentityLinkMessages.alreadyLinked,
+      ),
+    );
+
+    await expect(startGoogleIdentityLink()).resolves.toEqual({
+      error: googleIdentityLinkMessages.alreadyLinked,
+      errorKey: expect.any(String),
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("开始绑定的普通异常只返回安全文案且日志不泄露原始消息", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.startGoogleIdentityLink.mockRejectedValue(
+      new Error("private provider details"),
+    );
+
+    await expect(startGoogleIdentityLink()).resolves.toEqual({
+      error: googleIdentityLinkMessages.startFailed,
+      errorKey: expect.any(String),
+    });
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "private provider details",
+    );
+    consoleError.mockRestore();
+  });
+
+  it("解除绑定成功后刷新个人主页并返回成功状态", async () => {
+    await expect(unlinkGoogleIdentity()).resolves.toEqual({
+      success: "已解除 Google 绑定。",
+      successKey: expect.any(String),
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/settings/profile");
+  });
+
+  it("解除绑定的应用错误返回 Service 文案且不刷新页面", async () => {
+    mocks.unlinkGoogleIdentity.mockRejectedValue(
+      new ValidationError(
+        "google_identity_only_login_identity",
+        googleIdentityLinkMessages.onlyLoginIdentity,
+      ),
+    );
+
+    await expect(unlinkGoogleIdentity()).resolves.toEqual({
+      error: googleIdentityLinkMessages.onlyLoginIdentity,
+      errorKey: expect.any(String),
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("解除绑定的普通异常只返回安全文案", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.unlinkGoogleIdentity.mockRejectedValue(new Error("private details"));
+
+    await expect(unlinkGoogleIdentity()).resolves.toEqual({
+      error: googleIdentityLinkMessages.unlinkFailed,
+      errorKey: expect.any(String),
+    });
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "private details",
     );
     consoleError.mockRestore();
   });
