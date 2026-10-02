@@ -85,6 +85,20 @@ export const transactionLinkedEditErrorMessages = {
   versionInvalid: "关联明细版本信息缺失或已过期，请刷新页面后重试。",
 } as const;
 
+/** 交易 Server Action 的表单校验兜底与未知异常兜底文案。 */
+export const transactionActionErrorMessages = {
+  convertFailed: "交易类型转换失败，请稍后重试。",
+  convertInputInvalid: "交易类型转换内容不正确，请确认后重试。",
+  createFailed: "交易新增失败，请稍后重试。",
+  inputInvalid: "交易内容不正确，请确认后重试。",
+  transferInputInvalid: "转账内容不正确，请确认后重试。",
+  transferUpdateFailed: "转账更新失败，请稍后重试。",
+  typeInvalid: "交易类型指定不正确，请刷新页面后重试。",
+  updateFailed: "交易更新失败，请稍后重试。",
+  voidFailed: "交易删除失败，请稍后重试。",
+  voidInputInvalid: "交易指定不正确，请刷新页面后重试。",
+} as const;
+
 /**
  * Server Action 失败态中前端需要按错误码分支的稳定业务码（通过 errorCode 字段返回）。
  * 其余错误只返回 error 文案，不对前端暴露错误码。

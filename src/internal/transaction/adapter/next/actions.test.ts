@@ -14,6 +14,7 @@ import {
 } from "internal/shared/errors/appError";
 import {
   balanceAdjustmentErrorMessages,
+  transactionActionErrorMessages,
   transactionErrorCodes,
   transactionLinkedEditErrorMessages,
 } from "internal/transaction/errors";
@@ -366,7 +367,7 @@ describe("Transaction Action 写入流程", () => {
       type: "expense",
     });
     await expect(saveEditTransaction({}, formData)).resolves.toEqual({
-      error: "交易类型指定不正确，请刷新页面后重试。",
+      error: transactionActionErrorMessages.typeInvalid,
       errorKey: expect.any(String),
     });
     expect(

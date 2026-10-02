@@ -15,6 +15,7 @@ import {
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
 import {
+  transactionActionErrorMessages,
   transactionErrorCodes,
   transactionLinkedEditErrorTitles,
 } from "internal/transaction";
@@ -770,7 +771,7 @@ describe("EditTransactionTemplate", () => {
   });
   it("删除失败但没有 errorCode 时显示通用删除失败标题", async () => {
     const deleteAction = vi.fn(async () => ({
-      error: "交易删除失败，请稍后重试。",
+      error: transactionActionErrorMessages.voidFailed,
       errorKey: transactionErrorCodes.linkedDeleteForbidden,
     }));
     const { container } = renderWithTheme(
