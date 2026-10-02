@@ -4,6 +4,7 @@ import { getTransactionActionModuleMocks } from "internal/transaction/adapter/ne
 import {
   createTransaction,
   saveEditTransaction,
+  updateBalanceAdjustmentTransaction,
   updateTransaction,
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
@@ -11,7 +12,11 @@ import {
   ConflictError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  balanceAdjustmentErrorMessages,
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+} from "internal/transaction/errors";
 
 const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
@@ -157,6 +162,7 @@ describe("Transaction Action 写入流程", () => {
           createNormal: mocks.createNormal,
           createTransfer: mocks.createTransfer,
           getEditView: mocks.getEditView,
+          updateBalanceAdjustment: mocks.updateBalanceAdjustment,
           updateNormal: mocks.updateNormal,
           updateTransfer: mocks.updateTransfer,
           void: mocks.void,
@@ -208,38 +214,111 @@ describe("Transaction Action 写入流程", () => {
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).toHaveBeenCalledOnce();
   });
-  it("Service 返回应用错误时留在当前页面且不刷新缓存", async () => {
+  function createBalanceAdjustmentFormData() {
+    const formData = new FormData();
+    formData.set("transactionRecordId", transactionRecordId);
+    formData.set("transactionAt", "2026-06-04T10:30:05");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    return formData;
+  }
+  // errorKey 是每次失败生成的随机值，不得等于任何业务错误码。
+  function expectRandomErrorKey(errorKey: string | undefined) {
+    expect(errorKey).toEqual(expect.any(String));
+    expect(Object.values(transactionErrorCodes)).not.toContain(errorKey);
+  }
+  it("Service 返回无需前端分支的应用错误时只返回文案与随机 errorKey", async () => {
     mocks.updateNormal.mockRejectedValueOnce(
       new ValidationError("account_invalid", "账户信息不正确。"),
     );
-    await expect(
-      updateTransaction({}, createNormalFormData()),
-    ).resolves.toEqual({
+    const state = await updateTransaction({}, createNormalFormData());
+
+    expect(state).toEqual({
       error: "账户信息不正确。",
-      errorKey: "account_invalid",
+      errorKey: expect.any(String),
     });
+    expect(state).not.toHaveProperty("errorCode");
+    expectRandomErrorKey(state.errorKey);
     expect(
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).not.toHaveBeenCalled();
     expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
   });
-  it("同步确认冲突通过稳定 errorKey 返回给后续确认弹层", async () => {
-    mocks.updateNormal.mockRejectedValueOnce(
-      new ConflictError(
-        transactionErrorCodes.linkedSyncConfirmationRequired,
-        "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
-      ),
+  it("同步确认冲突通过 errorCode 返回，且连续两次失败的 errorKey 不同", async () => {
+    const conflict = new ConflictError(
+      transactionErrorCodes.linkedSyncConfirmationRequired,
+      transactionLinkedEditErrorMessages.confirmationRequired,
     );
+    mocks.updateNormal
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(conflict);
 
-    await expect(
-      updateTransaction({}, createNormalFormData()),
-    ).resolves.toEqual({
-      error: "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
-      errorKey: transactionErrorCodes.linkedSyncConfirmationRequired,
-    });
+    const first = await updateTransaction({}, createNormalFormData());
+    const second = await updateTransaction(first, createNormalFormData());
+
+    for (const state of [first, second]) {
+      expect(state).toEqual({
+        error: transactionLinkedEditErrorMessages.confirmationRequired,
+        errorCode: transactionErrorCodes.linkedSyncConfirmationRequired,
+        errorKey: expect.any(String),
+      });
+      expectRandomErrorKey(state.errorKey);
+    }
+    expect(second.errorKey).not.toBe(first.errorKey);
     expect(
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).not.toHaveBeenCalled();
+  });
+  it("删除仍被关联的交易时通过 errorCode 返回禁止删除", async () => {
+    mocks.void.mockRejectedValueOnce(
+      new ValidationError(
+        transactionErrorCodes.linkedDeleteForbidden,
+        transactionLinkedEditErrorMessages.deleteForbidden,
+      ),
+    );
+    const state = await voidTransaction({}, createVoidFormData());
+
+    expect(state).toEqual({
+      error: transactionLinkedEditErrorMessages.deleteForbidden,
+      errorCode: transactionErrorCodes.linkedDeleteForbidden,
+      errorKey: expect.any(String),
+    });
+    expectRandomErrorKey(state.errorKey);
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
+  });
+  it("余额调整更新失败时返回业务文案与随机 errorKey，不暴露 errorCode", async () => {
+    mocks.updateBalanceAdjustment.mockRejectedValueOnce(
+      new ValidationError(
+        transactionErrorCodes.balanceAdjustmentAccountArchived,
+        balanceAdjustmentErrorMessages.archivedAccount,
+      ),
+    );
+    const state = await updateBalanceAdjustmentTransaction(
+      {},
+      createBalanceAdjustmentFormData(),
+    );
+
+    expect(state).toEqual({
+      error: balanceAdjustmentErrorMessages.archivedAccount,
+      errorKey: expect.any(String),
+    });
+    expectRandomErrorKey(state.errorKey);
+  });
+  it("余额调整更新出现未知异常时返回兜底文案与随机 errorKey", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.updateBalanceAdjustment.mockRejectedValueOnce(new Error("boom"));
+    const state = await updateBalanceAdjustmentTransaction(
+      {},
+      createBalanceAdjustmentFormData(),
+    );
+
+    expect(state).toEqual({
+      error: balanceAdjustmentErrorMessages.updateFailed,
+      errorKey: expect.any(String),
+    });
+    expectRandomErrorKey(state.errorKey);
+    consoleError.mockRestore();
   });
   it("普通交易转换为转账时由 saveEditTransaction 调用 convert", async () => {
     await expect(
@@ -288,6 +367,7 @@ describe("Transaction Action 写入流程", () => {
     });
     await expect(saveEditTransaction({}, formData)).resolves.toEqual({
       error: "交易类型指定不正确，请刷新页面后重试。",
+      errorKey: expect.any(String),
     });
     expect(
       transactionActionModuleMocks.requireCurrentUserAndLedger,

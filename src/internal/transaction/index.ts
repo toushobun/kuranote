@@ -1,6 +1,8 @@
 export {
   transactionErrorCodes,
   balanceAdjustmentErrorMessages,
+  transactionLinkedEditErrorTitles,
+  type TransactionActionErrorCode,
   type TransactionServiceErrorCode,
   type TransactionValidationErrorCode,
   type UpdateTransactionValidationErrorCode,

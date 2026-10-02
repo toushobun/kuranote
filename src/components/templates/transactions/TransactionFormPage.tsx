@@ -33,7 +33,10 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { ErrorState } from "molecules/ui/ErrorState";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { transactionErrorCodes } from "internal/transaction";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorTitles,
+} from "internal/transaction";
 import {
   TransactionTypeNavigation,
   type TransactionTypeNavigationValue,
@@ -653,8 +656,8 @@ function EditTransactionShell({
           deleteState.error && deleteState !== dismissedDeleteState,
         )}
         title={
-          deleteState.errorKey === transactionErrorCodes.linkedDeleteForbidden
-            ? "无法删除已关联明细"
+          deleteState.errorCode === transactionErrorCodes.linkedDeleteForbidden
+            ? transactionLinkedEditErrorTitles.deleteForbidden
             : "删除失败"
         }
       />

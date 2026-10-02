@@ -14,6 +14,10 @@ import {
   EditTransferTransactionTemplate,
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorTitles,
+} from "internal/transaction";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
@@ -607,21 +611,50 @@ describe("EditTransactionTemplate", () => {
       ),
     ).toBeInTheDocument();
   });
-  it("后端要求确认时弹层，确认后携带 confirmSync 重新提交", async () => {
+  const syncConfirmationMessage = "请确认同步修改关联数据。";
+  const linkedDeleteForbiddenMessage =
+    "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。";
+  // errorKey 每次失败都是新的随机值，分支只看 errorCode。
+  function linkedSyncConfirmationState() {
+    return {
+      error: syncConfirmationMessage,
+      errorCode: transactionErrorCodes.linkedSyncConfirmationRequired,
+      errorKey: crypto.randomUUID(),
+    };
+  }
+  function linkedDeleteForbiddenState() {
+    return {
+      error: linkedDeleteForbiddenMessage,
+      errorCode: transactionErrorCodes.linkedDeleteForbidden,
+      errorKey: crypto.randomUUID(),
+    };
+  }
+  // 弹框关闭动画结束前背景会被 aria-hidden，按钮需等待重新可访问后再点击。
+  async function clickSave(container: HTMLElement) {
+    fireEvent.click(
+      await within(container).findByRole("button", { name: "保存修改" }),
+    );
+  }
+  async function clickDelete(container: HTMLElement) {
+    fireEvent.click(
+      await within(container).findByRole("button", { name: "删除" }),
+    );
+    fireEvent.click(
+      within(
+        await screen.findByRole("dialog", { name: "删除记账？" }),
+      ).getByRole("button", { name: "删除" }),
+    );
+  }
+  it("后端返回同步确认 errorCode 时弹层，确认后携带 confirmSync 重新提交", async () => {
     const action = vi
       .fn()
-      .mockResolvedValueOnce({
-        error: "请确认同步修改关联数据。",
-        errorKey: "linked_sync_confirmation_required",
-      })
+      .mockResolvedValueOnce(linkedSyncConfirmationState())
       .mockResolvedValueOnce({});
     const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} action={action} />,
     );
 
-    fireEvent.click(
-      within(container).getByRole("button", { name: "保存修改" }),
-    );
+    await clickSave(container);
     const dialog = await screen.findByRole("dialog", {
       name: "同步修改关联数据？",
     });
@@ -633,17 +666,12 @@ describe("EditTransactionTemplate", () => {
     expect(confirmedFormData.get("confirmSync")).toBe("true");
   });
   it("取消关联同步确认时不再次提交", async () => {
-    const action = vi.fn(async () => ({
-      error: "请确认同步修改关联数据。",
-      errorKey: "linked_sync_confirmation_required",
-    }));
+    const action = vi.fn(async () => linkedSyncConfirmationState());
     const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} action={action} />,
     );
 
-    fireEvent.click(
-      within(container).getByRole("button", { name: "保存修改" }),
-    );
+    await clickSave(container);
     const dialog = await screen.findByRole("dialog", {
       name: "同步修改关联数据？",
     });
@@ -652,10 +680,98 @@ describe("EditTransactionTemplate", () => {
     expect(action).toHaveBeenCalledTimes(1);
     expect(dialog).not.toBeVisible();
   });
+  it("取消同步确认后再次保存仍返回同一错误码时确认框再次弹出", async () => {
+    const action = vi.fn(async () => linkedSyncConfirmationState());
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} action={action} />,
+    );
+
+    await clickSave(container);
+    const firstDialog = await screen.findByRole("dialog", {
+      name: "同步修改关联数据？",
+    });
+    fireEvent.click(within(firstDialog).getByRole("button", { name: "取消" }));
+    await vi.waitFor(() => expect(firstDialog).not.toBeVisible());
+
+    await clickSave(container);
+    await vi.waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() =>
+      expect(
+        screen.getByRole("dialog", { name: "同步修改关联数据？" }),
+      ).toBeVisible(),
+    );
+    expect(screen.queryByText("保存失败")).not.toBeInTheDocument();
+  });
+  it("errorKey 与业务码同值但没有 errorCode 时按普通保存失败处理", async () => {
+    const action = vi.fn(async () => ({
+      error: syncConfirmationMessage,
+      errorKey: transactionErrorCodes.linkedSyncConfirmationRequired,
+    }));
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} action={action} />,
+    );
+
+    await clickSave(container);
+
+    expect(await screen.findByText("保存失败")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "同步修改关联数据？" }),
+    ).not.toBeInTheDocument();
+  });
   it("删除已关联明细被拒绝时提示先解除关联", async () => {
+    const deleteAction = vi.fn(async () => linkedDeleteForbiddenState());
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate
+        {...createProps()}
+        deleteAction={deleteAction}
+      />,
+    );
+
+    await clickDelete(container);
+
+    expect(
+      await screen.findByText(transactionLinkedEditErrorTitles.deleteForbidden),
+    ).toBeInTheDocument();
+    expect(screen.getByText(linkedDeleteForbiddenMessage)).toBeInTheDocument();
+  });
+  it("关闭失败弹框后再次删除被拒绝时失败弹框再次弹出", async () => {
+    const deleteAction = vi.fn(async () => linkedDeleteForbiddenState());
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate
+        {...createProps()}
+        deleteAction={deleteAction}
+      />,
+    );
+
+    await clickDelete(container);
+    const firstTitle = await screen.findByText(
+      transactionLinkedEditErrorTitles.deleteForbidden,
+    );
+    fireEvent.click(
+      within(firstTitle.closest('[role="alert"]') as HTMLElement).getByRole(
+        "button",
+        { name: "关闭" },
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByText(transactionLinkedEditErrorTitles.deleteForbidden),
+      ).not.toBeVisible(),
+    );
+
+    await clickDelete(container);
+    await vi.waitFor(() => expect(deleteAction).toHaveBeenCalledTimes(2));
+    // 第一次的弹框可能仍在退出动画中，等待再次进入可见状态。
+    await vi.waitFor(() =>
+      expect(
+        screen.getByText(transactionLinkedEditErrorTitles.deleteForbidden),
+      ).toBeVisible(),
+    );
+  });
+  it("删除失败但没有 errorCode 时显示通用删除失败标题", async () => {
     const deleteAction = vi.fn(async () => ({
-      error: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
-      errorKey: "linked_delete_forbidden",
+      error: "交易删除失败，请稍后重试。",
+      errorKey: transactionErrorCodes.linkedDeleteForbidden,
     }));
     const { container } = renderWithTheme(
       <EditTransactionTemplate
@@ -664,20 +780,12 @@ describe("EditTransactionTemplate", () => {
       />,
     );
 
-    fireEvent.click(within(container).getByRole("button", { name: "删除" }));
-    fireEvent.click(
-      within(screen.getByRole("dialog", { name: "删除记账？" })).getByRole(
-        "button",
-        { name: "删除" },
-      ),
-    );
+    await clickDelete(container);
 
-    expect(await screen.findByText("无法删除已关联明细")).toBeInTheDocument();
+    expect(await screen.findByText("删除失败")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText(transactionLinkedEditErrorTitles.deleteForbidden),
+    ).not.toBeInTheDocument();
   });
   it("内容修改后退出时提示保存、放弃或继续编辑", () => {
     const { container } = renderWithTheme(

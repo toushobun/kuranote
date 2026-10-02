@@ -85,6 +85,28 @@ export const transactionLinkedEditErrorMessages = {
   versionInvalid: "关联明细版本信息缺失或已过期，请刷新页面后重试。",
 } as const;
 
+/**
+ * Server Action 失败态中前端需要按错误码分支的稳定业务码（通过 errorCode 字段返回）。
+ * 其余错误只返回 error 文案，不对前端暴露错误码。
+ */
+export const transactionActionErrorCodes = [
+  transactionErrorCodes.linkedSyncConfirmationRequired,
+  transactionErrorCodes.linkedDeleteForbidden,
+] as const;
+
+export type TransactionActionErrorCode =
+  (typeof transactionActionErrorCodes)[number];
+
+export function toTransactionActionErrorCode(
+  code: string,
+): TransactionActionErrorCode | undefined {
+  return transactionActionErrorCodes.find((actionCode) => actionCode === code);
+}
+
+export const transactionLinkedEditErrorTitles = {
+  deleteForbidden: "无法删除已关联明细",
+} as const;
+
 export function getTransactionValidationErrorMessage(error?: string) {
   return error && error in transactionValidationErrorMessages
     ? transactionValidationErrorMessages[

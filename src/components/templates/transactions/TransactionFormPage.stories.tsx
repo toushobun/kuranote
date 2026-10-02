@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
+import { transactionErrorCodes } from "internal/transaction";
 
 import {
   EditTransactionTemplate,
@@ -225,7 +226,8 @@ export const LinkedDeleteForbidden: Story = {
       {...baseArgs}
       deleteAction={async () => ({
         error: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
-        errorKey: "linked_delete_forbidden",
+        errorCode: transactionErrorCodes.linkedDeleteForbidden,
+        errorKey: "storybook-linked-delete-forbidden",
       })}
       initialValues={{
         accountId: "00000000-0000-4000-8000-000000000045",
