@@ -1,8 +1,7 @@
 import type { DataExport } from "internal/dataExport";
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
-export type DataExportActionState = BaseActionState & {
-  errorKey?: string;
+export type DataExportActionState = ActionState & {
   data?: DataExport;
 };
 export type DataExportAction = () => Promise<DataExportActionState>;

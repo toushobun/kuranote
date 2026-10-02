@@ -1,7 +1,4 @@
-export type BaseActionState = {
-  error?: string;
-  success?: string;
-};
+import type { ActionState, BaseActionState } from "types/actions";
 
 export type LoginActionState = Pick<BaseActionState, "error">;
 
@@ -37,30 +34,22 @@ export type SubmitRegisterOtpActionState = BaseActionState & {
     | "unknown_error";
 };
 
-export type PasswordChangeOtpActionState = BaseActionState & {
-  errorKey?: string;
+export type PasswordChangeOtpActionState = ActionState & {
   retryAfterSeconds?: number;
-  successKey?: string;
 };
 
 export type PasswordChangeOtpAction = (
   previousState: PasswordChangeOtpActionState,
 ) => Promise<PasswordChangeOtpActionState>;
 
-export type ChangePasswordActionState = BaseActionState & {
-  errorKey?: string;
-  successKey?: string;
-};
+export type ChangePasswordActionState = ActionState;
 
 export type ChangePasswordAction = (
   previousState: ChangePasswordActionState,
   formData: FormData,
 ) => Promise<ChangePasswordActionState>;
 
-export type GoogleIdentityLinkActionState = BaseActionState & {
-  errorKey?: string;
-  successKey?: string;
-};
+export type GoogleIdentityLinkActionState = ActionState;
 
 export type GoogleIdentityLinkAction = (
   previousState: GoogleIdentityLinkActionState,

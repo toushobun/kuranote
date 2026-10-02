@@ -15,6 +15,7 @@ import {
   parseDeleteLedgerPlaceholderMemberForm,
   parseRenameLedgerPlaceholderMemberForm,
 } from "internal/ledger/schema/ledgerPlaceholderMemberForm";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type {
@@ -32,10 +33,10 @@ function errorState(
   operation: LedgerPlaceholderMemberActionOperation,
 ): LedgerPlaceholderMemberActionState {
   return {
-    error:
+    ...createErrorState(
       getLedgerPlaceholderMemberErrorMessage(code) ??
-      getLedgerPlaceholderMemberErrorMessage(fallbackCodes[operation])!,
-    errorKey: crypto.randomUUID(),
+        getLedgerPlaceholderMemberErrorMessage(fallbackCodes[operation])!,
+    ),
     operation,
   };
 }
@@ -45,7 +46,7 @@ function actionErrorState(
   operation: LedgerPlaceholderMemberActionOperation,
 ): LedgerPlaceholderMemberActionState {
   if (error instanceof AppError) {
-    return { error: error.message, errorKey: crypto.randomUUID(), operation };
+    return { ...createErrorState(error.message), operation };
   }
 
   console.error("[ledger] placeholder member action failed unexpectedly", {

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import type { BaseActionState } from "types/auth";
-
-type ReorderState = BaseActionState & { errorKey?: string };
+import type { ActionState } from "types/actions";
 
 export function orderItemsByIds<T extends { id: string }>(
   items: T[],
@@ -23,8 +21,8 @@ export function useOptimisticReorder<T>({
   fallbackMessage,
 }: {
   items: T;
-  action: (formData: FormData) => Promise<ReorderState>;
-  onError: (state: ReorderState) => void;
+  action: (formData: FormData) => Promise<ActionState>;
+  onError: (state: ActionState) => void;
   fallbackMessage: string;
 }) {
   const [order, setOrder] = useState<{

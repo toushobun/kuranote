@@ -1,8 +1,7 @@
 import type { TransactionColorScheme } from "internal/user";
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
-export type TransactionColorSchemeActionState = BaseActionState & {
-  errorKey?: string;
+export type TransactionColorSchemeActionState = ActionState & {
   transactionColorScheme?: TransactionColorScheme;
 };
 
@@ -11,20 +10,14 @@ export type TransactionColorSchemeAction = (
   formData: FormData,
 ) => Promise<TransactionColorSchemeActionState>;
 
-export type DisplayNameActionState = BaseActionState & {
-  errorKey?: string;
-  successKey?: string;
-};
+export type DisplayNameActionState = ActionState;
 
 export type DisplayNameAction = (
   previousState: DisplayNameActionState,
   formData: FormData,
 ) => Promise<DisplayNameActionState>;
 
-export type AvatarActionState = BaseActionState & {
-  errorKey?: string;
-  successKey?: string;
-};
+export type AvatarActionState = ActionState;
 
 export type AvatarAction = (
   previousState: AvatarActionState,

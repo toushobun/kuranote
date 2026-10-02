@@ -27,6 +27,7 @@ import {
   validateUpdateMerchantForm,
   validateUpdateMerchantTagForm,
 } from "internal/merchant/schema";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type {
@@ -41,10 +42,6 @@ import type {
 async function getMerchantService() {
   const dependencies = await createServerRequestDependencies();
   return createRequestContainer(dependencies).merchant.service;
-}
-
-function createErrorState(message: string): MerchantActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
 }
 
 function validationErrorState(error: MerchantErrorCode): MerchantActionState {

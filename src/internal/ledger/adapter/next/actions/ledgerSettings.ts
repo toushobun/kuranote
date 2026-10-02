@@ -15,13 +15,10 @@ import {
   ledgerSettingsErrorCodes,
 } from "internal/ledger/errors/ledgerSettings";
 import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerSettingsActionState } from "types/ledgers";
-
-function createErrorState(message: string): LedgerSettingsActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
-}
 
 function validationErrorState(code: string): LedgerSettingsActionState {
   return createErrorState(

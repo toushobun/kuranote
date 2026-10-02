@@ -20,6 +20,10 @@ import {
   registerOtpMessages,
 } from "internal/auth/errors";
 import { createRequestContainer } from "internal/container";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type {
@@ -68,10 +72,6 @@ function getBooleanDetail(error: AppError, key: string): boolean | undefined {
 
   const value = (error.details as Record<string, unknown>)[key];
   return typeof value === "boolean" ? value : undefined;
-}
-
-function createErrorState(message: string) {
-  return { error: message, errorKey: crypto.randomUUID() };
 }
 
 async function getAuthService() {
@@ -380,9 +380,8 @@ export async function requestPasswordChangeOtp(): Promise<PasswordChangeOtpActio
     const result = await (await getAuthService()).requestPasswordChangeOtp();
 
     return {
+      ...createSuccessState("验证码已发送，请查收邮件。"),
       retryAfterSeconds: result.retryAfterSeconds,
-      success: "验证码已发送，请查收邮件。",
-      successKey: crypto.randomUUID(),
     };
   } catch (error) {
     if (error instanceof AppError) {
@@ -413,7 +412,7 @@ export async function changePassword(
       token: String(formData.get("token") ?? ""),
     });
 
-    return { success: "密码已修改。", successKey: crypto.randomUUID() };
+    return createSuccessState("密码已修改。");
   } catch (error) {
     if (error instanceof AppError) return createErrorState(error.message);
 
@@ -464,5 +463,5 @@ export async function unlinkGoogleIdentity(): Promise<GoogleIdentityLinkActionSt
 
   // 解除绑定不影响当前会话，只刷新个人主页的绑定状态。
   revalidatePath(routePaths.settingsProfile);
-  return { success: "已解除 Google 绑定。", successKey: crypto.randomUUID() };
+  return createSuccessState("已解除 Google 绑定。");
 }

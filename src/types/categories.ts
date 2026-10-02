@@ -1,6 +1,5 @@
 import type { CategoryType } from "internal/category";
-import type { BaseActionState } from "types/auth";
-import type { ServerAction } from "types/actions";
+import type { ActionState, ServerAction } from "types/actions";
 
 export const categoryTypeOptions = [
   { label: "支出", value: "expense" },
@@ -12,9 +11,7 @@ export const categoryTypeOptions = [
 
 export type CategoryAction = ServerAction;
 
-export type CategoryActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type CategoryActionState = ActionState;
 
 export type CategoryStateAction = (
   previousState: CategoryActionState,

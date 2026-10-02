@@ -1,14 +1,12 @@
 import type { AccountHolderRole, AccountType } from "internal/account";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
 export { accountTypeOptions } from "internal/account";
 
 export type { AccountHolderRole, AccountType };
 
-export type AccountActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type AccountActionState = ActionState;
 
 export type AccountStateAction = (
   previousState: AccountActionState,

@@ -9,7 +9,7 @@ import {
   type LedgerInviteRole,
 } from "internal/ledger";
 import type { ThemeColorKey } from "theme/themeColorTokens";
-import type { BaseActionState } from "types/auth";
+import type { ActionState } from "types/actions";
 
 export const ledgerCurrencyOptions = [
   { label: "CNY 人民币", value: "CNY" },
@@ -81,18 +81,14 @@ export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
   viewer: "只读（Viewer）",
 };
 
-export type CurrentLedgerActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type CurrentLedgerActionState = ActionState;
 
 export type CurrentLedgerStateAction = (
   previousState: CurrentLedgerActionState,
   formData: FormData,
 ) => Promise<CurrentLedgerActionState>;
 
-export type LedgerCreateActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type LedgerCreateActionState = ActionState;
 
 export type LedgerCreateStateAction = (
   previousState: LedgerCreateActionState,
@@ -101,8 +97,7 @@ export type LedgerCreateStateAction = (
 
 export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 
-export type LedgerInviteActionState = BaseActionState & {
-  errorKey?: string;
+export type LedgerInviteActionState = ActionState & {
   operation?: LedgerInviteActionOperation;
 };
 
@@ -113,11 +108,8 @@ export type LedgerInviteStateAction = (
 
 export type LedgerPlaceholderMemberActionOperation = "delete" | "rename";
 
-export type LedgerPlaceholderMemberActionState = BaseActionState & {
-  errorKey?: string;
+export type LedgerPlaceholderMemberActionState = ActionState & {
   operation?: LedgerPlaceholderMemberActionOperation;
-  /** 每次成功生成新值，用于区分连续的成功反馈。 */
-  successKey?: string;
 };
 
 export type LedgerPlaceholderMemberStateAction = (
@@ -130,9 +122,7 @@ export type LedgerPlaceholderMemberActions = Record<
   LedgerPlaceholderMemberStateAction
 >;
 
-export type LedgerSettingsActionState = BaseActionState & {
-  errorKey?: string;
-};
+export type LedgerSettingsActionState = ActionState;
 
 export type LedgerSettingsStateAction = (
   previousState: LedgerSettingsActionState,

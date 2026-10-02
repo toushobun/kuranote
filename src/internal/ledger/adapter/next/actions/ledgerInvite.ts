@@ -12,6 +12,7 @@ import {
   ledgerInviteErrorCodes,
 } from "internal/ledger/errors/ledgerInvite";
 import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import {
@@ -40,14 +41,14 @@ export async function createLedgerInvite(
   const ledgerId = String(formData.get("ledgerId") ?? "").trim();
 
   if (!ledgerId) {
-    return createErrorState(fallbackCodes[operation], operation);
+    return errorState(fallbackCodes[operation], operation);
   }
 
   if (operation === "revoke") {
     const inviteId = String(formData.get("inviteId") ?? "").trim();
 
     if (!inviteId) {
-      return createErrorState(ledgerInviteErrorCodes.revokeFailed, operation);
+      return errorState(ledgerInviteErrorCodes.revokeFailed, operation);
     }
 
     try {
@@ -71,7 +72,7 @@ export async function createLedgerInvite(
   if (operation === "invite") {
     const form = parseInviteMemberForm(formData);
     if (!form.ok) {
-      return createErrorState(form.error, operation);
+      return errorState(form.error, operation);
     }
 
     let result;
@@ -99,12 +100,12 @@ export async function createLedgerInvite(
   }
 
   if (intent !== "create") {
-    return createErrorState(ledgerInviteErrorCodes.createFailed, operation);
+    return errorState(ledgerInviteErrorCodes.createFailed, operation);
   }
 
   const form = parseRegenerateLedgerInviteForm(formData);
   if (!form.ok) {
-    return createErrorState(form.error, operation);
+    return errorState(form.error, operation);
   }
 
   let result;
@@ -138,17 +139,17 @@ function revalidatePlaceholderMutation(ledgerId: string) {
   ]);
 }
 
-function createErrorState(
+function errorState(
   code: string,
   operation: LedgerInviteActionOperation,
 ): LedgerInviteActionState {
   return {
-    // 名字校验错误的权威文案在待邀请成员错误定义中，这里只按码查找，不复制文案。
-    error:
+    ...createErrorState(
+      // 名字校验错误的权威文案在待邀请成员错误定义中，这里只按码查找，不复制文案。
       getLedgerInviteErrorMessage(code) ??
-      getLedgerPlaceholderMemberErrorMessage(code) ??
-      getLedgerInviteErrorMessage(fallbackCodes[operation])!,
-    errorKey: crypto.randomUUID(),
+        getLedgerPlaceholderMemberErrorMessage(code) ??
+        getLedgerInviteErrorMessage(fallbackCodes[operation])!,
+    ),
     operation,
   };
 }
@@ -158,18 +159,14 @@ function createActionErrorState(
   operation: LedgerInviteActionOperation,
 ): LedgerInviteActionState {
   if (error instanceof AppError) {
-    return {
-      error: error.message,
-      errorKey: crypto.randomUUID(),
-      operation,
-    };
+    return { ...createErrorState(error.message), operation };
   }
 
   console.error("[ledger] ledger invite action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
     operation,
   });
-  return createErrorState(fallbackCodes[operation], operation);
+  return errorState(fallbackCodes[operation], operation);
 }
 
 function finishCreatedInvite(
@@ -190,7 +187,7 @@ function finishCreatedInvite(
   }
 
   if (!isValidLedgerInviteToken(result.token)) {
-    return createErrorState(ledgerInviteErrorCodes.createFailed, operation);
+    return errorState(ledgerInviteErrorCodes.createFailed, operation);
   }
 
   // fragment 仅用于页面反馈（在哪一行展示新链接）；绑定事实以数据库与列表为准。

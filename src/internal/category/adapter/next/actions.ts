@@ -14,13 +14,10 @@ import {
 } from "internal/category/schema";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { CategoryActionState } from "types/categories";
-
-function createErrorState(message: string): CategoryActionState {
-  return { error: message, errorKey: crypto.randomUUID() };
-}
 
 function validationErrorState(code: string): CategoryActionState {
   return createErrorState(
