@@ -1,4 +1,8 @@
 import type { GoogleIdentityStatus } from "internal/auth";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import type { UserLedgerDisplayName } from "internal/user";
 import type {
   ChangePasswordAction,
@@ -27,25 +31,17 @@ export const profileFixture = {
 export const displayNameConflictMessage =
   "以下账本无法使用该昵称，昵称未修改。「北海道旅行」：账本中已有同名的待邀请成员。请更换昵称，或取消勾选这些账本。";
 
-export const succeededDisplayNameAction: DisplayNameAction = async () => ({
-  success: "昵称已保存。",
-  successKey: crypto.randomUUID(),
-});
+export const succeededDisplayNameAction: DisplayNameAction = async () =>
+  createSuccessState("昵称已保存。");
 
-export const failedDisplayNameAction: DisplayNameAction = async () => ({
-  error: displayNameConflictMessage,
-  errorKey: crypto.randomUUID(),
-});
+export const failedDisplayNameAction: DisplayNameAction = async () =>
+  createErrorState(displayNameConflictMessage);
 
-export const succeededAvatarAction: AvatarAction = async () => ({
-  success: "头像已更换。",
-  successKey: crypto.randomUUID(),
-});
+export const succeededAvatarAction: AvatarAction = async () =>
+  createSuccessState("头像已更换。");
 
-export const failedAvatarAction: AvatarAction = async () => ({
-  error: "头像上传失败，请稍后重试。",
-  errorKey: crypto.randomUUID(),
-});
+export const failedAvatarAction: AvatarAction = async () =>
+  createErrorState("头像上传失败，请稍后重试。");
 
 export const passwordChangeOtpSentMessage = "验证码已发送，请查收邮件。";
 export const passwordChangeOtpRateLimitedMessage =
@@ -55,28 +51,21 @@ export const changePasswordFailureMessage =
 
 export const succeededPasswordChangeOtpAction: PasswordChangeOtpAction =
   async () => ({
+    ...createSuccessState(passwordChangeOtpSentMessage),
     retryAfterSeconds: 60,
-    success: passwordChangeOtpSentMessage,
-    successKey: crypto.randomUUID(),
   });
 
 export const rateLimitedPasswordChangeOtpAction: PasswordChangeOtpAction =
   async () => ({
-    error: passwordChangeOtpRateLimitedMessage,
-    errorKey: crypto.randomUUID(),
+    ...createErrorState(passwordChangeOtpRateLimitedMessage),
     retryAfterSeconds: 60,
   });
 
-export const succeededChangePasswordAction: ChangePasswordAction =
-  async () => ({
-    success: "密码已修改。",
-    successKey: crypto.randomUUID(),
-  });
+export const succeededChangePasswordAction: ChangePasswordAction = async () =>
+  createSuccessState("密码已修改。");
 
-export const failedChangePasswordAction: ChangePasswordAction = async () => ({
-  error: changePasswordFailureMessage,
-  errorKey: crypto.randomUUID(),
-});
+export const failedChangePasswordAction: ChangePasswordAction = async () =>
+  createErrorState(changePasswordFailureMessage);
 
 export const googleIdentityEmail = "user.google@gmail.com";
 export const googleOnlyLoginIdentityMessage =
@@ -106,19 +95,10 @@ export const pendingLinkGoogleIdentityAction: GoogleIdentityLinkAction = () =>
   new Promise(() => undefined);
 
 export const failedLinkGoogleIdentityAction: GoogleIdentityLinkAction =
-  async () => ({
-    error: googleIdentityStartFailedMessage,
-    errorKey: crypto.randomUUID(),
-  });
+  async () => createErrorState(googleIdentityStartFailedMessage);
 
 export const succeededUnlinkGoogleIdentityAction: GoogleIdentityLinkAction =
-  async () => ({
-    success: "已解除 Google 绑定。",
-    successKey: crypto.randomUUID(),
-  });
+  async () => createSuccessState("已解除 Google 绑定。");
 
 export const failedUnlinkGoogleIdentityAction: GoogleIdentityLinkAction =
-  async () => ({
-    error: googleIdentityUnlinkFailedMessage,
-    errorKey: crypto.randomUUID(),
-  });
+  async () => createErrorState(googleIdentityUnlinkFailedMessage);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import type { ActionState } from "types/actions";
 
 export function orderItemsByIds<T extends { id: string }>(
@@ -59,7 +60,7 @@ export function useOptimisticReorder<T>({
         }
       } catch {
         setOrder(latestItems.current === source ? previous : null);
-        onError({ error: fallbackMessage, errorKey: crypto.randomUUID() });
+        onError(createErrorState(fallbackMessage));
       } finally {
         submitting.current = false;
       }

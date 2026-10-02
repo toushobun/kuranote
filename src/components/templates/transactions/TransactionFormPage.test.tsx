@@ -14,6 +14,7 @@ import {
   EditTransferTransactionTemplate,
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import {
   transactionActionErrorMessages,
   transactionErrorCodes,
@@ -618,16 +619,14 @@ describe("EditTransactionTemplate", () => {
   // errorKey 每次失败都是新的随机值，分支只看 errorCode。
   function linkedSyncConfirmationState() {
     return {
-      error: syncConfirmationMessage,
+      ...createErrorState(syncConfirmationMessage),
       errorCode: transactionErrorCodes.linkedSyncConfirmationRequired,
-      errorKey: crypto.randomUUID(),
     };
   }
   function linkedDeleteForbiddenState() {
     return {
-      error: linkedDeleteForbiddenMessage,
+      ...createErrorState(linkedDeleteForbiddenMessage),
       errorCode: transactionErrorCodes.linkedDeleteForbidden,
-      errorKey: crypto.randomUUID(),
     };
   }
   // 弹框关闭动画结束前背景会被 aria-hidden，按钮需等待重新可访问后再点击。
