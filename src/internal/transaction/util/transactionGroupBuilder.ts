@@ -7,6 +7,12 @@ import type {
 } from "internal/db-types";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionGroupPage } from "internal/transaction/entity/transactionReadModels";
+import {
+  fromTransactionSpecialStatusStorageValue,
+  transactionSpecialStatusLabels,
+  transactionSpecialStatusStorageValues,
+  type TransactionSpecialStatusStorageValue,
+} from "internal/transaction/entity/transactionSpecialStatus";
 import type { TransactionAmountSummary } from "internal/transaction/service/read/transactionReadModels";
 import { paginateItems } from "utils/collections";
 
@@ -17,6 +23,7 @@ import {
   getSignedTransactionItemAmount,
   normalizeSummary,
 } from "./transactionAmountHelpers";
+import { transactionFallbackLabels } from "./transactionFallbackLabels";
 import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,
@@ -43,21 +50,6 @@ type MutableGroup = {
   recordIds: Set<string>;
   summary: TransactionAmountSummary;
   itemCount: number;
-};
-
-const specialStatusGroupOrder = [
-  "pending_reimbursement",
-  "reimbursed",
-  "reimbursement_surplus",
-] as const;
-
-const specialStatusGroupLabels: Record<
-  (typeof specialStatusGroupOrder)[number],
-  string
-> = {
-  pending_reimbursement: "待报销",
-  reimbursed: "已结清",
-  reimbursement_surplus: "核销结余",
 };
 
 export function buildTransactionGroupSummaryPage({
@@ -143,11 +135,11 @@ export function buildTransactionGroupSummaryPage({
   const sortedGroups = [...groups.values()].sort((a, b) => {
     if (groupBy === "specialStatus") {
       return (
-        specialStatusGroupOrder.indexOf(
-          a.key as (typeof specialStatusGroupOrder)[number],
+        transactionSpecialStatusStorageValues.indexOf(
+          a.key as TransactionSpecialStatusStorageValue,
         ) -
-        specialStatusGroupOrder.indexOf(
-          b.key as (typeof specialStatusGroupOrder)[number],
+        transactionSpecialStatusStorageValues.indexOf(
+          b.key as TransactionSpecialStatusStorageValue,
         )
       );
     }
@@ -192,8 +184,9 @@ function getMerchantGroup({
     groups,
     key: record.merchant_id ?? "unknown",
     label: record.merchant_id
-      ? (merchantById.get(record.merchant_id)?.name ?? "未知商家")
-      : "未知商家",
+      ? (merchantById.get(record.merchant_id)?.name ??
+        transactionFallbackLabels.merchant)
+      : transactionFallbackLabels.merchant,
     transactionAt: record.transaction_at,
   });
 }
@@ -217,8 +210,9 @@ function getMemberGroup({
     groups,
     key: record.created_by ?? "unknown",
     label: record.created_by
-      ? (recorderById.get(record.created_by)?.display_name ?? "未知成员")
-      : "未知成员",
+      ? (recorderById.get(record.created_by)?.display_name ??
+        transactionFallbackLabels.member)
+      : transactionFallbackLabels.member,
     transactionAt: record.transaction_at,
   });
 }
@@ -247,7 +241,9 @@ function addItemGroups({
         groupBy,
         groups,
         key: item.account_id,
-        label: accountById.get(item.account_id)?.name ?? "未知账户",
+        label:
+          accountById.get(item.account_id)?.name ??
+          transactionFallbackLabels.account,
         transactionAt: record.transaction_at,
       });
       addItemToGroup(group, record, item, categoryById);
@@ -266,7 +262,7 @@ function addItemGroups({
         groupBy,
         groups,
         key: parent?.id ?? "unknown",
-        label: parent?.name ?? "未知大分类",
+        label: parent?.name ?? transactionFallbackLabels.parentCategory,
         transactionAt: record.transaction_at,
       });
       addItemToGroup(group, record, item, categoryById);
@@ -282,7 +278,7 @@ function addItemGroups({
         groupBy,
         groups,
         key: category?.id ?? "unknown",
-        label: category?.name ?? "未知小分类",
+        label: category?.name ?? transactionFallbackLabels.subcategory,
         transactionAt: record.transaction_at,
       });
       addItemToGroup(group, record, item, categoryById);
@@ -297,7 +293,10 @@ function addItemGroups({
         groupBy,
         groups,
         key,
-        label: specialStatusGroupLabels[key],
+        label:
+          transactionSpecialStatusLabels[
+            fromTransactionSpecialStatusStorageValue(key)
+          ],
         transactionAt: record.transaction_at,
       });
       addItemToGroup(group, record, item, categoryById);

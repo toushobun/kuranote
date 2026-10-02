@@ -75,6 +75,12 @@ export function toTransactionSpecialStatusStorageValue(
 }
 
 export function fromTransactionSpecialStatusStorageValue(
+  value: TransactionSpecialStatusStorageValue,
+): TransactionSpecialStatus;
+export function fromTransactionSpecialStatusStorageValue(
+  value: TransactionSpecialStatusStorageValue | null,
+): TransactionSpecialStatus | null;
+export function fromTransactionSpecialStatusStorageValue(
   value: TransactionSpecialStatusStorageValue | null,
 ): TransactionSpecialStatus | null {
   return value === null ? null : statusByStorageValue[value];

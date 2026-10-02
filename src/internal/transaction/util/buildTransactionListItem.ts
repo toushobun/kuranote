@@ -17,6 +17,7 @@ import {
   calculateRemainingOffsetMinorUnits,
   formatRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
+import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 
@@ -56,7 +57,7 @@ export function buildTransactionListItem({
         ? (accountColorById?.get(item.account_id) ?? null)
         : null,
       account_currency: account?.currency ?? fallbackCurrency,
-      account_name: account?.name ?? "未知账户",
+      account_name: account?.name ?? transactionFallbackLabels.account,
       amount: item?.balance_delta ?? "0",
       canEdit,
       categoryItems: [],
@@ -151,7 +152,7 @@ export function buildTransactionListItem({
       ? (accountColorById?.get(firstItem.account_id) ?? null)
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
-    account_name: account?.name ?? "未知账户",
+    account_name: account?.name ?? transactionFallbackLabels.account,
     amount: String(Math.abs(displayAmount)),
     ...(hasBusinessNetOffset
       ? {
@@ -223,10 +224,12 @@ function buildTransferListItem({
     ? accountById.get(fallbackItem.account_id)
     : undefined;
 
-  const fromName = fromAccount?.name ?? "未知账户";
-  const toName = toAccount?.name ?? "未知账户";
+  const fromName = fromAccount?.name ?? transactionFallbackLabels.account;
+  const toName = toAccount?.name ?? transactionFallbackLabels.account;
   const accountName =
-    fromAccount || toAccount ? `${fromName} → ${toName}` : "未知账户";
+    fromAccount || toAccount
+      ? `${fromName} → ${toName}`
+      : transactionFallbackLabels.account;
   const accountColor = getTransferAccountColor({
     accountColorById,
     fallbackItem,

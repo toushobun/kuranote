@@ -25,6 +25,7 @@ import {
   formatRefundMinorUnits,
   toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
+import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 
@@ -117,7 +118,7 @@ export async function getEditTransactionView(
       initialValues: {
         type: "balance_adjustment",
         accountId: item.account_id,
-        accountName: account?.name ?? "未知账户",
+        accountName: account?.name ?? transactionFallbackLabels.account,
         currency: account?.currency ?? currentLedger.baseCurrency,
         signedDelta: item.balance_delta!,
         transactionAt: record.transaction_at,
@@ -319,7 +320,7 @@ function buildIncomeLinkCandidate(
     accountCurrency: account?.currency ?? fallbackCurrency,
     accountId: linkedItem.accountId,
     amount: linkedItem.amount,
-    categoryName: category?.name ?? "未知分类",
+    categoryName: category?.name ?? transactionFallbackLabels.category,
     id: linkedItem.id,
     parentCategoryName: category?.parentName ?? null,
     refundedAmount: linkedItem.refundedAmount,

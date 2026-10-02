@@ -400,7 +400,7 @@ export const Loading: Story = {
 export const WithError: Story = {
   name: "首屏加载失败",
   args: {
-    errorMessage: transactionListPageErrorMessages.voidFailed,
+    errorMessage: transactionListPageErrorMessages.initialLoadFailed,
   },
 };
 

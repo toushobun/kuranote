@@ -16,6 +16,7 @@ import type {
   TransactionFilterOptions,
   TransactionTimeGroupViewData,
 } from "types/transactions";
+import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
 function getTransactionSaveResult(
   result: string | undefined,
@@ -45,7 +46,7 @@ export default async function TransactionsPage({
     ]);
   } catch (error) {
     unstable_rethrow(error);
-    loadErrorMessage = "明细读取失败，请稍后重新读取。";
+    loadErrorMessage = transactionListPageErrorMessages.initialLoadFailed;
   }
 
   return (

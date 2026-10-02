@@ -208,6 +208,12 @@ describe("buildTransactionGroupSummaryPage", () => {
       "reimbursed",
       "reimbursement_surplus",
     ]);
+    // 分组名称直接锁定显示文字，确认改为引用特殊状态名称定义后显示不变。
+    expect(page.groups.map((group) => group.label)).toEqual([
+      "待报销",
+      "已结清",
+      "核销结余",
+    ]);
     expect(page.groups.map((group) => group.transactionCount)).toEqual([
       1, 1, 1,
     ]);

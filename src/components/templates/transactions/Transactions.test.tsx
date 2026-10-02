@@ -296,12 +296,14 @@ describe("TransactionsTemplate", () => {
 
   it("传入错误信息时显示整页错误状态", () => {
     const { container } = renderPage({
-      errorMessage: transactionListPageErrorMessages.voidFailed,
+      errorMessage: transactionListPageErrorMessages.initialLoadFailed,
     });
 
     expect(within(container).getByText("明细读取失败")).toBeInTheDocument();
     expect(
-      within(container).getByText(transactionListPageErrorMessages.voidFailed),
+      within(container).getByText(
+        transactionListPageErrorMessages.initialLoadFailed,
+      ),
     ).toBeInTheDocument();
     expect(within(container).getByText("重新读取")).toBeInTheDocument();
     expect(

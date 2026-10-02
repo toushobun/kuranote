@@ -16,9 +16,7 @@ export const transactionAmountMessages = {
 } as const;
 
 export const transactionListPageErrorMessages = {
-  permissionDenied: "当前角色没有删除这条记账的权限。",
-  voidFailed: "记录删除失败。请稍后重试。",
-  voidInvalid: "删除对象不正确。",
+  initialLoadFailed: "明细读取失败，请稍后重新读取。",
 } as const;
 
 export const transactionSearchPageErrorMessages = {
