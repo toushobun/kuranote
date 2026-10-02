@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r=e((()=>{t=`ja-JP`,n=`Asia/Tokyo`}));export{n,t as r,r as t};
