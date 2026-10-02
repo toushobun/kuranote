@@ -8,7 +8,10 @@ import {
   AuthorizationError,
   NotFoundError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionAccessErrorMessages,
+  transactionErrorCodes,
+} from "internal/transaction/errors";
 import type { TransactionCommandRepository } from "internal/transaction/repository/transactionRepository";
 import type {
   LinkedTransactionItemEditSnapshot,
@@ -37,7 +40,7 @@ export interface LinkedTransactionItemService {
 function permissionError() {
   return new AuthorizationError(
     transactionErrorCodes.permissionDenied,
-    "没有权限执行此交易操作。",
+    transactionAccessErrorMessages.permissionDenied,
   );
 }
 
@@ -52,7 +55,10 @@ export function createLinkedTransactionItemService({
     transactionRecordId: string,
   ) {
     if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        transactionAccessErrorMessages.authRequired,
+      );
     }
     const role = await requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
@@ -67,7 +73,7 @@ export function createLinkedTransactionItemService({
     if (!record) {
       throw new NotFoundError(
         transactionErrorCodes.updateInvalid,
-        "交易记录不存在或已删除。",
+        transactionAccessErrorMessages.recordNotFound,
       );
     }
     if (
@@ -97,7 +103,7 @@ export function createLinkedTransactionItemService({
       ) {
         throw new NotFoundError(
           transactionErrorCodes.updateInvalid,
-          "交易明细不存在或已删除。",
+          transactionAccessErrorMessages.itemNotFound,
         );
       }
       return snapshot;

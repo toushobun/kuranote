@@ -4,6 +4,7 @@ import {
   type LedgerAccessService,
 } from "internal/ledger";
 import { AuthenticationError } from "internal/shared/errors/appError";
+import { transactionAccessErrorMessages } from "internal/transaction/errors";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 
 export type TransactionReadAccessDependencies<TRepository> = Omit<
@@ -16,7 +17,10 @@ export type TransactionReadAccessDependencies<TRepository> = Omit<
 
 export function requireTransactionUserId(currentUserId: string | null): string {
   if (!currentUserId) {
-    throw new AuthenticationError("auth_required", "请先登录。");
+    throw new AuthenticationError(
+      "auth_required",
+      transactionAccessErrorMessages.authRequired,
+    );
   }
 
   return currentUserId;

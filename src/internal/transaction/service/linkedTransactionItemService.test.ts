@@ -7,6 +7,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "internal/shared/errors/appError";
+import { transactionLinkedEditErrorMessages } from "internal/transaction/errors";
 import type { LinkedTransactionItemRepository } from "internal/transaction/repository/linkedTransactionItemRepository";
 import { createLinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 
@@ -197,7 +198,7 @@ describe("LinkedTransactionItemService", () => {
   it("Repository 的并发 ConflictError 原样透出", async () => {
     const conflict = new ConflictError(
       "update_invalid",
-      "交易明细已被其他操作更新，请刷新后重试。",
+      transactionLinkedEditErrorMessages.itemVersionConflict,
     );
     const linkedRepository = createLinkedRepository({
       update: vi.fn().mockRejectedValue(conflict),
