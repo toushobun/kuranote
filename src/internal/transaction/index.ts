@@ -58,6 +58,7 @@ export {
   summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
+export { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
 export {
   buildTransactionSearchPage,
   emptyTransactionSearchPage,

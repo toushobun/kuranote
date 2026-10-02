@@ -11,7 +11,10 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
 import { serverFallbackTimeZone } from "config/dateTime";
-import type { TransactionBusinessStatus } from "internal/transaction";
+import {
+  transactionFallbackLabels,
+  type TransactionBusinessStatus,
+} from "internal/transaction";
 import { designTokens } from "theme/theme";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
@@ -65,7 +68,7 @@ export function TransactionRow({
     ? balanceAdjustmentText.title
     : isTransfer
       ? "账户周转"
-      : (item.merchant_name ?? "未知商家");
+      : (item.merchant_name ?? transactionFallbackLabels.merchant);
   const statisticsAdjustment = getStatisticsAdjustment(item);
   const shouldDisplayOriginalAmount =
     statisticsAdjustment?.kind === "partiallyOffset" &&

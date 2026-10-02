@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { transactionFallbackLabels } from "internal/transaction";
 import { type TransactionRowItem } from "types/transactions";
 import { TransactionRow } from "./TransactionRow";
 import { themeColorTokens } from "theme/themeColorTokens";
@@ -63,7 +64,9 @@ describe("TransactionRow", () => {
     expect(screen.getByText(expected)).toBeInTheDocument();
     expect(screen.getByText("日元现金")).toBeInTheDocument();
     expect(screen.getByText("盘点")).toBeInTheDocument();
-    expect(screen.queryByText("未知商家")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(transactionFallbackLabels.merchant),
+    ).not.toBeInTheDocument();
   });
   it("显示商家名称", () => {
     render(<TransactionRow item={createItem()} />);
@@ -111,7 +114,7 @@ describe("TransactionRow", () => {
       />,
     );
     expect(screen.getByText("账户周转")).toBeInTheDocument();
-    expect(screen.queryByText("未知商家")).toBeNull();
+    expect(screen.queryByText(transactionFallbackLabels.merchant)).toBeNull();
     expect(screen.queryByText("转账")).toBeNull();
     expect(screen.getByTestId("SyncAltIcon")).toBeInTheDocument();
   });
@@ -166,7 +169,9 @@ describe("TransactionRow", () => {
   });
   it("merchant_name 为 null 时显示未知商家和问号头像", () => {
     render(<TransactionRow item={createItem({ merchant_name: null })} />);
-    expect(screen.getByText("未知商家")).toBeInTheDocument();
+    expect(
+      screen.getByText(transactionFallbackLabels.merchant),
+    ).toBeInTheDocument();
     expect(screen.getByText("?")).toBeInTheDocument();
   });
   it("两项小分类摘要显示全部小分类名", () => {
