@@ -6,6 +6,8 @@ import {
 import {
   transactionErrorCodes,
   transactionLinkedEditErrorMessages,
+  transactionTargetErrorMessages,
+  transactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import type { UpdateNormalTransactionInput } from "internal/transaction/repository/transactionRepository";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
@@ -92,7 +94,7 @@ function getNormalInitialValues(
   if (!("items" in view.initialValues)) {
     throw new ValidationError(
       transactionErrorCodes.updateInvalid,
-      "编辑对象不正确。",
+      transactionTargetErrorMessages.updateInvalid,
     );
   }
   return view.initialValues;
@@ -126,7 +128,7 @@ function throwSpecialStatusLocked(): never {
 function throwCategoryInvalid(): never {
   throw new ValidationError(
     transactionErrorCodes.categoryInvalid,
-    "分类指定不正确。",
+    transactionValidationErrorMessages[transactionErrorCodes.categoryInvalid],
   );
 }
 
@@ -275,7 +277,7 @@ export function createLinkedTransactionEditService({
       if (hasDuplicatePersistedItemIds(input.items)) {
         throw new ValidationError(
           transactionErrorCodes.updateInvalid,
-          "交易明细不正确，请刷新页面后重试。",
+          transactionLinkedEditErrorMessages.itemsInvalid,
         );
       }
       const submittedById = buildSubmittedItemMap(input.items);
@@ -332,7 +334,9 @@ export function createLinkedTransactionEditService({
       if (accountChanged && !newAccount) {
         throw new ValidationError(
           transactionErrorCodes.accountInvalid,
-          "账户指定不正确。",
+          transactionValidationErrorMessages[
+            transactionErrorCodes.accountInvalid
+          ],
         );
       }
       if (accountChanged && linkedItems.some(hasRefundLink)) {
@@ -428,7 +432,9 @@ export function createLinkedTransactionEditService({
       ) {
         throw new ValidationError(
           transactionErrorCodes.merchantInvalid,
-          "商家指定不正确。",
+          transactionValidationErrorMessages[
+            transactionErrorCodes.merchantInvalid
+          ],
         );
       }
 

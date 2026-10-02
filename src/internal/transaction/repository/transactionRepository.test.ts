@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionAccessErrorMessages,
+  transactionErrorCodes,
+  transactionLoadErrorMessages,
+  transactionWriteErrorMessages,
+} from "internal/transaction/errors";
 import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -566,7 +571,7 @@ describe("TransactionRepository", () => {
       repository.listItems(ledgerId, [transactionRecordId]),
     ).rejects.toMatchObject({
       code: "transaction_items_load_failed",
-      message: "交易明细加载失败，请稍后重试。",
+      message: transactionLoadErrorMessages.itemsLoadFailed,
       name: RepositoryError.name,
     });
     expect(logger.error).toHaveBeenCalledWith(
@@ -652,7 +657,7 @@ describe("TransactionRepository", () => {
       repository.void(ledgerId, transactionRecordId),
     ).rejects.toMatchObject({
       code: "permission_denied",
-      message: "没有权限执行此交易操作。",
+      message: transactionAccessErrorMessages.permissionDenied,
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
@@ -711,7 +716,7 @@ describe("TransactionRepository", () => {
       repository.listRecords({ ledgerId, recordType: "all" }),
     ).rejects.toMatchObject({
       code: "transaction_records_load_failed",
-      message: "交易记录加载失败，请稍后重试。",
+      message: transactionLoadErrorMessages.recordsLoadFailed,
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
@@ -935,7 +940,7 @@ describe("TransactionDashboardRepository", () => {
         repository.loadDashboardMonthSource(dashboardMonthInput),
       ).rejects.toMatchObject({
         code: "transaction_dashboard_summary_load_failed",
-        message: "本月收支汇总加载失败，请稍后重试。",
+        message: transactionLoadErrorMessages.dashboardSummaryLoadFailed,
       });
       expect(logger.error).toHaveBeenCalledOnce();
       expect(logger.error).toHaveBeenCalledWith(
@@ -1108,56 +1113,60 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
   });
   describe("Transaction Repository RPC 错误边界", () => {
     it.each([
-      ["account_invalid", "account_invalid", "账户信息不正确，请确认后重试。"],
+      [
+        "account_invalid",
+        "account_invalid",
+        transactionWriteErrorMessages.accountInvalid,
+      ],
       [
         "from_account_invalid",
         "account_invalid",
-        "账户信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.accountInvalid,
       ],
       [
         "to_account_invalid",
         "account_invalid",
-        "账户信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.accountInvalid,
       ],
       [
         "transfer_currency_invalid",
         "account_invalid",
-        "转账账户币种必须一致。",
+        transactionWriteErrorMessages.transferCurrencyMismatch,
       ],
       [
         "refund_currency_mismatch",
         transactionErrorCodes.refundLinkInvalid,
-        "退款收入与支出明细的账户币种必须一致。",
+        transactionWriteErrorMessages.refundCurrencyMismatch,
       ],
       [
         "reimbursement_currency_mismatch",
         transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入与待报销明细的账户币种必须一致。",
+        transactionWriteErrorMessages.reimbursementCurrencyMismatch,
       ],
       [
         "income_link_category_invalid",
         "income_link_category_invalid",
-        "只有收入明细才能关联报销或退款。",
+        transactionWriteErrorMessages.incomeLinkCategoryInvalid,
       ],
       [
         "income_link_conflict",
         "income_link_conflict",
-        "同一个收入明细不能同时作为退款来源和报销来源。",
+        transactionWriteErrorMessages.incomeLinkConflict,
       ],
       [
         "income_links_create_only",
         transactionErrorCodes.updateInvalid,
-        "报销关联只能在新建收入交易时设置。",
+        transactionWriteErrorMessages.incomeLinksCreateOnly,
       ],
       [
         "merchant_invalid",
         "merchant_invalid",
-        "商家信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.merchantInvalid,
       ],
       [
         "category_invalid",
         "category_invalid",
-        "分类信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.categoryInvalid,
       ],
     ])(
       "数据库参数错误 %s 转换为安全的 ValidationError",
@@ -1202,7 +1211,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       });
       await expect(repository.createNormal(normalInput)).rejects.toMatchObject({
         code: "transaction_invalid",
-        message: "交易内容不正确，请确认后重试。",
+        message: transactionWriteErrorMessages.inputInvalid,
       });
     });
     it("存在报销关联时退出报销流程转换为安全的 ConflictError", async () => {
@@ -1216,7 +1225,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ConflictError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.reimbursementLinkInvalid,
-        message: "该支出仍有关联的报销收入，请先解除关联。",
+        message: transactionWriteErrorMessages.reimbursementLinkExists,
       });
       if (!(error instanceof ConflictError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({
@@ -1236,7 +1245,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ConflictError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.refundLinkInvalid,
-        message: "同一退款收入最多只能关联一条支出明细，请刷新后重试。",
+        message: transactionWriteErrorMessages.refundLinkDuplicate,
       });
       if (!(error instanceof ConflictError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({
@@ -1257,7 +1266,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(ValidationError);
       expect(error).toMatchObject({
         code: transactionErrorCodes.refundLinkInvalid,
-        message: "退款关联的金额或明细不正确，请确认后重试。",
+        message: transactionWriteErrorMessages.refundLinkConstraintInvalid,
       });
       if (!(error instanceof ValidationError)) throw error;
       expect(appErrorToResponseBody(error)).toMatchObject({
@@ -1302,7 +1311,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       expect(error).toBeInstanceOf(RepositoryError);
       expect(error).toMatchObject({
         code: "create_failed",
-        message: "交易操作失败，请稍后重试。",
+        message: transactionAccessErrorMessages.operationFailed,
       });
       expect(String(error)).not.toContain("unexpected_database_failure");
     });

@@ -1,6 +1,7 @@
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
+import { transactionLoadErrorMessages } from "internal/transaction/errors";
 
 export type TransactionIncomeLinkedItem = {
   accountId: string;
@@ -73,7 +74,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
     logger.error(`[transaction] ${operation}`, { databaseCode, ledgerId });
     throw toRepositoryError(
       "transaction_income_links_load_failed",
-      "收入关联信息加载失败，请稍后重试。",
+      transactionLoadErrorMessages.incomeLinksLoadFailed,
     );
   }
 

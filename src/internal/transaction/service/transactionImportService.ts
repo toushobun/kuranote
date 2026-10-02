@@ -2,8 +2,8 @@ import { serverFallbackTimeZone } from "config/dateTime";
 import type { CurrentLedger } from "internal/ledger";
 import { ValidationError } from "internal/shared/errors/appError";
 import {
-  getTransactionValidationErrorMessage,
   transactionErrorCodes,
+  transactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 import { toTransactionTimestamp } from "internal/transaction/util/transactionTimestamp";
@@ -58,8 +58,7 @@ export interface TransactionImportService {
 function dateInvalid(): ValidationError {
   return new ValidationError(
     transactionErrorCodes.dateInvalid,
-    getTransactionValidationErrorMessage(transactionErrorCodes.dateInvalid) ??
-      "记账时间不正确。",
+    transactionValidationErrorMessages[transactionErrorCodes.dateInvalid],
   );
 }
 

@@ -26,7 +26,9 @@ import {
 } from "internal/shared/errors/appError";
 import {
   getTransactionValidationErrorMessage,
+  transactionAccessErrorMessages,
   transactionErrorCodes,
+  transactionSpecialStatusErrorMessages,
 } from "internal/transaction/errors";
 import type {
   TransactionFilters,
@@ -150,13 +152,16 @@ export interface TransactionService {
 function permissionError(): AuthorizationError {
   return new AuthorizationError(
     transactionErrorCodes.permissionDenied,
-    "没有权限执行此交易操作。",
+    transactionAccessErrorMessages.permissionDenied,
   );
 }
 
 function operationError(error: unknown, fallbackCode: string): never {
   if (error instanceof RepositoryError) {
-    throw new RepositoryError(fallbackCode, "交易操作失败，请稍后重试。");
+    throw new RepositoryError(
+      fallbackCode,
+      transactionAccessErrorMessages.operationFailed,
+    );
   }
   throw error;
 }
@@ -218,7 +223,7 @@ export function createTransactionService({
     if (!record) {
       throw new NotFoundError(
         transactionErrorCodes.updateInvalid,
-        "交易记录不存在或已删除。",
+        transactionAccessErrorMessages.recordNotFound,
       );
     }
     if (
@@ -249,7 +254,7 @@ export function createTransactionService({
     ) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
-        "当前账本未启用特殊状态功能。",
+        transactionSpecialStatusErrorMessages.disabled,
       );
     }
 
@@ -262,7 +267,7 @@ export function createTransactionService({
     ) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
-        "结算派生状态只能由有效退款或报销核销自动判定。",
+        transactionSpecialStatusErrorMessages.derivedStatusForbidden,
       );
     }
     const categoryIds = [
@@ -286,7 +291,7 @@ export function createTransactionService({
       ) {
         throw new ValidationError(
           transactionErrorCodes.specialStatusInvalid,
-          "待报销只能用于支出明细。",
+          transactionSpecialStatusErrorMessages.pendingReimbursementExpenseOnly,
         );
       }
       const hasReimbursementLink = Boolean(item.reimbursementItemId);
@@ -297,19 +302,19 @@ export function createTransactionService({
       ) {
         throw new ValidationError(
           transactionErrorCodes.specialStatusInvalid,
-          "报销或退款关联只能设置在收入明细上。",
+          transactionSpecialStatusErrorMessages.incomeLinkIncomeOnly,
         );
       }
       if (hasReimbursementLink && hasRefundLink) {
         throw new ValidationError(
           transactionErrorCodes.specialStatusInvalid,
-          "同一条收入明细不能同时作为报销和退款。",
+          transactionSpecialStatusErrorMessages.incomeLinkConflict,
         );
       }
       if (hasRefundLink && item.amount <= 0) {
         throw new ValidationError(
           transactionErrorCodes.refundLinkInvalid,
-          "退款收入金额必须大于 0。",
+          transactionSpecialStatusErrorMessages.refundAmountInvalid,
         );
       }
     }

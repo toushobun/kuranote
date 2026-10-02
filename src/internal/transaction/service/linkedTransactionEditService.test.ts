@@ -6,7 +6,10 @@ import {
   ConflictError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+} from "internal/transaction/errors";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import {
   createLinkedTransactionEditService,
@@ -689,7 +692,7 @@ describe("LinkedTransactionEditService", () => {
       createService(createIncomeView());
     const conflict = new ConflictError(
       transactionErrorCodes.updateInvalid,
-      "交易明细已被其他操作更新，请刷新后重试。",
+      transactionLinkedEditErrorMessages.itemVersionConflict,
     );
     vi.mocked(linkedTransactionItemService.updateEdit).mockRejectedValueOnce(
       conflict,

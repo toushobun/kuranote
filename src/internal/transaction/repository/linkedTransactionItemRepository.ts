@@ -8,7 +8,14 @@ import {
 } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionAccessErrorMessages,
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+  transactionLoadErrorMessages,
+  transactionValidationErrorMessages,
+  transactionWriteErrorMessages,
+} from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 
 export type LinkedTransactionItemEditSnapshot = {
@@ -113,7 +120,10 @@ export function createSupabaseLinkedTransactionItemRepository(
     });
 
     if (rpcErrorCode === "not_authenticated" || error.code === "28000") {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        transactionAccessErrorMessages.authRequired,
+      );
     }
     if (
       rpcErrorCode === "ledger_forbidden" ||
@@ -122,49 +132,49 @@ export function createSupabaseLinkedTransactionItemRepository(
     ) {
       throw new AuthorizationError(
         transactionErrorCodes.permissionDenied,
-        "没有权限执行此交易操作。",
+        transactionAccessErrorMessages.permissionDenied,
       );
     }
     if (rpcErrorCode === "transaction_not_found") {
       throw new NotFoundError(
         transactionErrorCodes.updateInvalid,
-        "交易明细不存在或已删除。",
+        transactionAccessErrorMessages.itemNotFound,
       );
     }
     if (rpcErrorCode === "transaction_item_version_conflict") {
       throw new ConflictError(
         transactionErrorCodes.updateInvalid,
-        "交易明细已被其他操作更新，请刷新后重试。",
+        transactionLinkedEditErrorMessages.itemVersionConflict,
       );
     }
     if (rpcErrorCode === transactionErrorCodes.accountInvalid) {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
-        "账户信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.accountInvalid,
       );
     }
     if (rpcErrorCode === transactionErrorCodes.amountInvalid) {
       throw new ValidationError(
         transactionErrorCodes.amountInvalid,
-        "金额格式不正确，请确认后重试。",
+        transactionWriteErrorMessages.amountInvalid,
       );
     }
     if (rpcErrorCode === transactionErrorCodes.categoryInvalid) {
       throw new ValidationError(
         transactionErrorCodes.categoryInvalid,
-        "分类信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.categoryInvalid,
       );
     }
     if (rpcErrorCode === transactionErrorCodes.merchantInvalid) {
       throw new ValidationError(
         transactionErrorCodes.merchantInvalid,
-        "商家信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.merchantInvalid,
       );
     }
     if (rpcErrorCode === transactionErrorCodes.noteTooLong) {
       throw new ValidationError(
         transactionErrorCodes.noteTooLong,
-        "备注不能超过 2000 个字符。",
+        transactionValidationErrorMessages[transactionErrorCodes.noteTooLong],
       );
     }
     if (
@@ -173,25 +183,25 @@ export function createSupabaseLinkedTransactionItemRepository(
     ) {
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
-        "分类或收支类型会破坏现有退款 / 报销关联。",
+        transactionLinkedEditErrorMessages.linkBroken,
       );
     }
     if (rpcErrorCode === "refund_account_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款关联要求收入与目标支出使用同一账户和币种。",
+        transactionLinkedEditErrorMessages.refundAccountOrCurrencyMismatch,
       );
     }
     if (rpcErrorCode === "reimbursement_currency_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入与目标支出的账户币种必须一致。",
+        transactionLinkedEditErrorMessages.reimbursementTargetCurrencyMismatch,
       );
     }
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {
       throw new ConflictError(
         transactionErrorCodes.updateInvalid,
-        "该明细当前不属于可受控编辑的退款 / 报销关联。",
+        transactionLinkedEditErrorMessages.itemNotEditable,
       );
     }
     if (
@@ -201,12 +211,12 @@ export function createSupabaseLinkedTransactionItemRepository(
     ) {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        "交易内容不正确，请确认后重试。",
+        transactionWriteErrorMessages.inputInvalid,
       );
     }
     throw toRepositoryError(
       transactionErrorCodes.updateFailed,
-      "交易操作失败，请稍后重试。",
+      transactionAccessErrorMessages.operationFailed,
     );
   }
 
@@ -228,7 +238,7 @@ export function createSupabaseLinkedTransactionItemRepository(
         });
         throw toRepositoryError(
           "linked_transaction_item_load_failed",
-          "交易明细读取失败，请稍后重试。",
+          transactionLoadErrorMessages.linkedItemLoadFailed,
         );
       }
       if (!data) return null;
