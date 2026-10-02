@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { CSSProperties } from "react";
 
-import { transactionActionErrorMessages } from "internal/transaction";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
@@ -12,6 +11,7 @@ import type {
   TransactionMonthPage,
   TransactionTimeGroupViewData,
 } from "types/transactions";
+import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
 import { TransactionsTemplate } from "./Transactions";
 
@@ -400,7 +400,7 @@ export const Loading: Story = {
 export const WithError: Story = {
   name: "首屏加载失败",
   args: {
-    errorMessage: transactionActionErrorMessages.voidFailed,
+    errorMessage: transactionListPageErrorMessages.initialLoadFailed,
   },
 };
 

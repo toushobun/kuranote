@@ -15,6 +15,10 @@ export const transactionAmountMessages = {
   partiallyOffset: "部分已核销",
 } as const;
 
+export const transactionListPageErrorMessages = {
+  initialLoadFailed: "明细读取失败，请稍后重新读取。",
+} as const;
+
 export const transactionSearchPageErrorMessages = {
   initialLoadFailed: "搜索结果读取失败，请稍后重新读取。",
   loadMoreFailed: "更多搜索结果读取失败。",
