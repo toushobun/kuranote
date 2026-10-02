@@ -16,7 +16,10 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import {
+  transactionAccessErrorMessages,
   transactionErrorCodes,
+  transactionLoadErrorMessages,
+  transactionWriteErrorMessages,
   type TransactionServiceErrorCode,
 } from "internal/transaction/errors";
 import type {
@@ -318,7 +321,10 @@ export function createSupabaseTransactionRepository(
     });
 
     if (rpcErrorCode === "not_authenticated" || error.code === "28000") {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        transactionAccessErrorMessages.authRequired,
+      );
     }
 
     if (
@@ -328,7 +334,7 @@ export function createSupabaseTransactionRepository(
     ) {
       throw new AuthorizationError(
         transactionErrorCodes.permissionDenied,
-        "没有权限执行此交易操作。",
+        transactionAccessErrorMessages.permissionDenied,
       );
     }
 
@@ -349,7 +355,7 @@ export function createSupabaseTransactionRepository(
     if (rpcErrorCode === "transaction_not_found") {
       throw new NotFoundError(
         "transaction_not_found",
-        "交易记录不存在或已删除。",
+        transactionAccessErrorMessages.recordNotFound,
       );
     }
 
@@ -361,63 +367,63 @@ export function createSupabaseTransactionRepository(
     ) {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
-        "账户信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.accountInvalid,
       );
     }
 
     if (rpcErrorCode === "transfer_currency_invalid") {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
-        "转账账户币种必须一致。",
+        transactionWriteErrorMessages.transferCurrencyMismatch,
       );
     }
 
     if (rpcErrorCode === transactionErrorCodes.merchantInvalid) {
       throw new ValidationError(
         transactionErrorCodes.merchantInvalid,
-        "商家信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.merchantInvalid,
       );
     }
 
     if (rpcErrorCode === transactionErrorCodes.categoryInvalid) {
       throw new ValidationError(
         transactionErrorCodes.categoryInvalid,
-        "分类信息不正确，请确认后重试。",
+        transactionWriteErrorMessages.categoryInvalid,
       );
     }
 
     if (rpcErrorCode === transactionErrorCodes.amountInvalid) {
       throw new ValidationError(
         transactionErrorCodes.amountInvalid,
-        "金额格式不正确，请确认后重试。",
+        transactionWriteErrorMessages.amountInvalid,
       );
     }
 
     if (rpcErrorCode === "transaction_type_invalid") {
       throw new ValidationError(
         transactionErrorCodes.typeInvalid,
-        "交易类型不正确，请确认后重试。",
+        transactionWriteErrorMessages.typeInvalid,
       );
     }
 
     if (rpcErrorCode === "transaction_at_invalid") {
       throw new ValidationError(
         transactionErrorCodes.dateInvalid,
-        "交易时间不正确，请确认后重试。",
+        transactionWriteErrorMessages.dateInvalid,
       );
     }
 
     if (rpcErrorCode === "items_invalid") {
       throw new ValidationError(
         "items_invalid",
-        "交易明细不正确，请确认后重试。",
+        transactionWriteErrorMessages.itemsInvalid,
       );
     }
 
     if (rpcErrorCode === "transaction_type_not_changed") {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        "交易类型没有发生变化，请刷新页面后重试。",
+        transactionWriteErrorMessages.typeNotChanged,
       );
     }
 
@@ -427,102 +433,105 @@ export function createSupabaseTransactionRepository(
     ) {
       throw new ConflictError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        "待报销明细已被处理或不属于当前账本，请刷新后重试。",
+        transactionWriteErrorMessages.reimbursementItemUnavailable,
       );
     }
 
     if (rpcErrorCode === "refund_allocation_invalid") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款金额不正确，请重新选择退款明细。",
+        transactionWriteErrorMessages.refundAllocationInvalid,
       );
     }
 
     if (rpcErrorCode === "refunded_item_invalid") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款关联的支出明细无效，请重新选择。",
+        transactionWriteErrorMessages.refundedItemInvalid,
       );
     }
 
     if (rpcErrorCode === "refund_currency_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款收入与支出明细的账户币种必须一致。",
+        transactionWriteErrorMessages.refundCurrencyMismatch,
       );
     }
 
     if (rpcErrorCode === "refund_account_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款收入与支出明细必须使用同一账户。",
+        transactionWriteErrorMessages.refundAccountMismatch,
       );
     }
 
     if (rpcErrorCode === "reimbursement_currency_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        "报销收入与待报销明细的账户币种必须一致。",
+        transactionWriteErrorMessages.reimbursementCurrencyMismatch,
       );
     }
 
     if (rpcErrorCode === "income_link_category_invalid") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkCategoryInvalid,
-        "只有收入明细才能关联报销或退款。",
+        transactionWriteErrorMessages.incomeLinkCategoryInvalid,
       );
     }
 
     if (rpcErrorCode === "income_link_conflict") {
       throw new ValidationError(
         transactionErrorCodes.incomeLinkConflict,
-        "同一个收入明细不能同时作为退款来源和报销来源。",
+        transactionWriteErrorMessages.incomeLinkConflict,
       );
     }
 
     if (rpcErrorCode === "income_links_create_only") {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        "报销关联只能在新建收入交易时设置。",
+        transactionWriteErrorMessages.incomeLinksCreateOnly,
       );
     }
 
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {
       throw new ConflictError(
         transactionErrorCodes.updateInvalid,
-        "已有关联报销或退款的交易暂不能修改或作废。",
+        transactionWriteErrorMessages.linkedEditForbidden,
       );
     }
 
     if (rpcErrorCode === "reimbursement_link_exists") {
       throw new ConflictError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        "该支出仍有关联的报销收入，请先解除关联。",
+        transactionWriteErrorMessages.reimbursementLinkExists,
       );
     }
 
     if (error.code === "22023") {
       throw new ValidationError(
         rpcErrorCode ?? "transaction_invalid",
-        "交易内容不正确，请确认后重试。",
+        transactionWriteErrorMessages.inputInvalid,
       );
     }
 
     if (error.code === "23505") {
       throw new ConflictError(
         transactionErrorCodes.refundLinkInvalid,
-        "同一退款收入最多只能关联一条支出明细，请刷新后重试。",
+        transactionWriteErrorMessages.refundLinkDuplicate,
       );
     }
 
     if (error.code === "23514") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        "退款关联的金额或明细不正确，请确认后重试。",
+        transactionWriteErrorMessages.refundLinkConstraintInvalid,
       );
     }
 
-    throw toRepositoryError(fallbackCode, "交易操作失败，请稍后重试。");
+    throw toRepositoryError(
+      fallbackCode,
+      transactionAccessErrorMessages.operationFailed,
+    );
   }
 
   return {
@@ -661,7 +670,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_special_status_setting_load_failed",
-          "账本特殊状态设置读取失败，请稍后重试。",
+          transactionLoadErrorMessages.specialStatusSettingLoadFailed,
         );
       }
       return Boolean(data?.transaction_item_special_status_enabled);
@@ -689,7 +698,7 @@ export function createSupabaseTransactionRepository(
         );
         throw toRepositoryError(
           transactionErrorCodes.updateFailed,
-          "交易记录读取失败，请稍后重试。",
+          transactionLoadErrorMessages.recordLoadFailed,
         );
       }
       return data as TransactionRecordDbRow | null;
@@ -717,7 +726,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_recorders_load_failed",
-          "交易记录人信息加载失败，请稍后重试。",
+          transactionLoadErrorMessages.recordersLoadFailed,
         );
       }
       const settingByUserId = new Map(
@@ -753,7 +762,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_members_load_failed",
-          "账本成员加载失败，请稍后重试。",
+          transactionLoadErrorMessages.membersLoadFailed,
         );
       }
       return (data ?? []).map((row) => row.user_id);
@@ -791,7 +800,7 @@ export function createSupabaseTransactionRepository(
             });
             throw toRepositoryError(
               "transaction_items_load_failed",
-              "交易明细加载失败，请稍后重试。",
+              transactionLoadErrorMessages.itemsLoadFailed,
             );
           }
           return data ?? [];
@@ -830,7 +839,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_frequent_categories_load_failed",
-          "常用分类加载失败，请稍后重试。",
+          transactionLoadErrorMessages.frequentCategoriesLoadFailed,
         );
       }
 
@@ -862,7 +871,7 @@ export function createSupabaseTransactionRepository(
         );
         throw toRepositoryError(
           "transaction_dashboard_recent_accounts_load_failed",
-          "最近使用账户加载失败，请稍后重试。",
+          transactionLoadErrorMessages.dashboardRecentAccountsLoadFailed,
         );
       }
 
@@ -887,7 +896,7 @@ export function createSupabaseTransactionRepository(
         );
         throw toRepositoryError(
           "transaction_dashboard_recent_accounts_load_failed",
-          "最近使用账户加载失败，请稍后重试。",
+          transactionLoadErrorMessages.dashboardRecentAccountsLoadFailed,
         );
       }
 
@@ -926,7 +935,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_dashboard_summary_load_failed",
-          "本月收支汇总加载失败，请稍后重试。",
+          transactionLoadErrorMessages.dashboardSummaryLoadFailed,
         );
       }
 
@@ -948,7 +957,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_dashboard_summary_load_failed",
-          "本月收支汇总加载失败，请稍后重试。",
+          transactionLoadErrorMessages.dashboardSummaryLoadFailed,
         );
       }
 
@@ -982,7 +991,7 @@ export function createSupabaseTransactionRepository(
         );
         throw toRepositoryError(
           "transaction_dashboard_summary_load_failed",
-          "本月收支汇总加载失败，请稍后重试。",
+          transactionLoadErrorMessages.dashboardSummaryLoadFailed,
         );
       }
 
@@ -1044,7 +1053,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_records_load_failed",
-          "交易记录加载失败，请稍后重试。",
+          transactionLoadErrorMessages.recordsLoadFailed,
         );
       }
       return (data ?? []) as TransactionRecordDbRow[];
@@ -1079,7 +1088,7 @@ export function createSupabaseTransactionRepository(
         });
         throw toRepositoryError(
           "transaction_group_summaries_load_failed",
-          "交易分组加载失败，请稍后重试。",
+          transactionLoadErrorMessages.groupSummariesLoadFailed,
         );
       }
       return (data ?? []) as TransactionGroupSummaryRow[];
