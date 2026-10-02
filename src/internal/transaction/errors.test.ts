@@ -4,6 +4,7 @@ import {
   getTransactionValidationErrorMessage,
   getUpdateTransactionValidationErrorMessage,
   getVoidTransactionValidationErrorMessage,
+  toTransactionActionErrorCode,
   transactionErrorCodes,
 } from "internal/transaction/errors";
 
@@ -44,5 +45,19 @@ describe("transaction errors", () => {
     expect(getTransactionValidationErrorMessage("unknown")).toBeNull();
     expect(getUpdateTransactionValidationErrorMessage("unknown")).toBeNull();
     expect(getVoidTransactionValidationErrorMessage("unknown")).toBeNull();
+  });
+  it("只把前端需要分支的错误码转换为 Action errorCode", () => {
+    expect(
+      toTransactionActionErrorCode(
+        transactionErrorCodes.linkedSyncConfirmationRequired,
+      ),
+    ).toBe(transactionErrorCodes.linkedSyncConfirmationRequired);
+    expect(
+      toTransactionActionErrorCode(transactionErrorCodes.linkedDeleteForbidden),
+    ).toBe(transactionErrorCodes.linkedDeleteForbidden);
+    expect(
+      toTransactionActionErrorCode(transactionErrorCodes.accountInvalid),
+    ).toBeUndefined();
+    expect(toTransactionActionErrorCode("unknown")).toBeUndefined();
   });
 });

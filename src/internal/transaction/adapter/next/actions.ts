@@ -22,6 +22,8 @@ import {
   balanceAdjustmentErrorMessages,
   getUpdateTransactionValidationErrorMessage,
   getVoidTransactionValidationErrorMessage,
+  toTransactionActionErrorCode,
+  transactionActionErrorMessages,
   transactionLinkedEditErrorMessages,
 } from "internal/transaction/errors";
 import {
@@ -46,21 +48,20 @@ async function getLinkedTransactionEditService() {
   return (await getTransactionContainer()).linkedTransactionEditService;
 }
 
-function errorState(message: string): TransactionActionState {
-  return { error: message };
-}
-
 function appErrorState(
   error: unknown,
   fallback: string,
 ): TransactionActionState {
   if (error instanceof AppError) {
-    return { error: error.message, errorKey: error.code };
+    const errorCode = toTransactionActionErrorCode(error.code);
+    return errorCode
+      ? { ...createErrorState(error.message), errorCode }
+      : createErrorState(error.message);
   }
   console.error("[transaction] transaction action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return errorState(fallback);
+  return createErrorState(fallback);
 }
 
 function createdHref(transactionAt: string) {
@@ -84,9 +85,9 @@ export async function createTransaction(
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateTransactionForm(formData);
   if (!validation.ok) {
-    return errorState(
+    return createErrorState(
       getTransactionValidationErrorMessage(validation.error) ??
-        "交易内容不正确，请确认后重试。",
+        transactionActionErrorMessages.inputInvalid,
     );
   }
 
@@ -106,7 +107,7 @@ export async function createTransaction(
       await service.createNormal({ ledgerId: currentLedger.id, ...values });
     }
   } catch (error) {
-    return appErrorState(error, "交易新增失败，请稍后重试。");
+    return appErrorState(error, transactionActionErrorMessages.createFailed);
   }
 
   revalidateTransactionMutation();
@@ -120,9 +121,9 @@ export async function updateTransaction(
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateLinkedEditTransactionForm(formData);
   if (!validation.ok) {
-    return errorState(
+    return createErrorState(
       getUpdateTransactionValidationErrorMessage(validation.error) ??
-        "交易内容不正确，请确认后重试。",
+        transactionActionErrorMessages.inputInvalid,
     );
   }
   const linkedEditInput = parseLinkedEditActionInput(
@@ -130,7 +131,7 @@ export async function updateTransaction(
     validation.value.items.map((item) => item.id),
   );
   if (!linkedEditInput) {
-    return errorState(transactionLinkedEditErrorMessages.inputInvalid);
+    return createErrorState(transactionLinkedEditErrorMessages.inputInvalid);
   }
   try {
     await (
@@ -141,7 +142,7 @@ export async function updateTransaction(
       ...linkedEditInput,
     });
   } catch (error) {
-    return appErrorState(error, "交易更新失败，请稍后重试。");
+    return appErrorState(error, transactionActionErrorMessages.updateFailed);
   }
   revalidateTransactionMutation();
   redirect(updatedHref(validation.value.transactionAt));
@@ -154,9 +155,9 @@ export async function updateTransferTransaction(
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateUpdateTransferTransactionForm(formData);
   if (!validation.ok) {
-    return errorState(
+    return createErrorState(
       getUpdateTransactionValidationErrorMessage(validation.error) ??
-        "转账内容不正确，请确认后重试。",
+        transactionActionErrorMessages.transferInputInvalid,
     );
   }
   try {
@@ -173,7 +174,10 @@ export async function updateTransferTransaction(
       transferTargetAccountId: values.transferTargetAccountId,
     });
   } catch (error) {
-    return appErrorState(error, "转账更新失败，请稍后重试。");
+    return appErrorState(
+      error,
+      transactionActionErrorMessages.transferUpdateFailed,
+    );
   }
   revalidateTransactionMutation();
   redirect(updatedHref(validation.value.transactionAt));
@@ -186,9 +190,9 @@ export async function convertTransactionType(
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateConvertTransactionTypeForm(formData);
   if (!validation.ok) {
-    return errorState(
+    return createErrorState(
       getUpdateTransactionValidationErrorMessage(validation.error) ??
-        "交易类型转换内容不正确，请确认后重试。",
+        transactionActionErrorMessages.convertInputInvalid,
     );
   }
   try {
@@ -218,7 +222,7 @@ export async function convertTransactionType(
       });
     }
   } catch (error) {
-    return appErrorState(error, "交易类型转换失败，请稍后重试。");
+    return appErrorState(error, transactionActionErrorMessages.convertFailed);
   }
   revalidateTransactionMutation();
   redirect(updatedHref(validation.value.transactionAt));
@@ -234,7 +238,7 @@ export async function saveEditTransaction(
   ).trim();
   const validTypes = new Set(["expense", "income", "transfer"]);
   if (!validTypes.has(sourceType) || !validTypes.has(targetType)) {
-    return errorState("交易类型指定不正确，请刷新页面后重试。");
+    return createErrorState(transactionActionErrorMessages.typeInvalid);
   }
   if (
     sourceType === targetType ||
@@ -254,9 +258,9 @@ export async function voidTransaction(
   const { currentLedger } = await requireCurrentUserAndLedger();
   const validation = validateVoidTransactionForm(formData);
   if (!validation.ok) {
-    return errorState(
+    return createErrorState(
       getVoidTransactionValidationErrorMessage(validation.error) ??
-        "交易指定不正确，请刷新页面后重试。",
+        transactionActionErrorMessages.voidInputInvalid,
     );
   }
   try {
@@ -264,7 +268,7 @@ export async function voidTransaction(
       await getLinkedTransactionEditService()
     ).void(currentLedger, { ledgerId: currentLedger.id, ...validation.value });
   } catch (error) {
-    return appErrorState(error, "交易删除失败，请稍后重试。");
+    return appErrorState(error, transactionActionErrorMessages.voidFailed);
   }
   revalidateTransactionMutation();
   redirect(transactionsResultHref(transactionResultValues.deleted));
@@ -282,11 +286,7 @@ export async function updateBalanceAdjustmentTransaction(
       await getTransactionService()
     ).updateBalanceAdjustment({ ledgerId: currentLedger.id, ...parsed.data });
   } catch (error) {
-    const state = appErrorState(
-      error,
-      balanceAdjustmentErrorMessages.updateFailed,
-    );
-    return { ...state, errorKey: crypto.randomUUID() };
+    return appErrorState(error, balanceAdjustmentErrorMessages.updateFailed);
   }
   revalidateTransactionMutation();
   redirect(updatedHref(parsed.data.transactionAt));

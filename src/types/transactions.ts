@@ -1,5 +1,6 @@
 import type { CategoryType } from "internal/category";
 import type {
+  TransactionActionErrorCode,
   TransactionBusinessStatus,
   TransactionRecordStorageType,
   TransactionSpecialStatusFilterValue,
@@ -8,7 +9,10 @@ import type {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import type { ActionState } from "types/actions";
 
-export type TransactionActionState = ActionState;
+/** errorCode 仅承载前端需要分支的稳定业务码；errorKey 仍是每次失败生成的随机值。 */
+export type TransactionActionState = ActionState & {
+  errorCode?: TransactionActionErrorCode;
+};
 
 export type TransactionStateAction = (
   previousState: TransactionActionState,

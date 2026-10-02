@@ -27,7 +27,7 @@ export function useLinkedTransactionEditAction(action: TransactionStateAction) {
     async (previousState: TransactionActionState, formData: FormData) => {
       const nextState = await action(previousState, formData);
       if (
-        nextState.errorKey ===
+        nextState.errorCode ===
         transactionErrorCodes.linkedSyncConfirmationRequired
       ) {
         pendingConfirmationRef.current = copyFormData(formData);
@@ -44,12 +44,12 @@ export function useLinkedTransactionEditAction(action: TransactionStateAction) {
   const isConfirmationOpen = Boolean(
     state !== dismissedState &&
     state.error &&
-    state.errorKey === transactionErrorCodes.linkedSyncConfirmationRequired,
+    state.errorCode === transactionErrorCodes.linkedSyncConfirmationRequired,
   );
   const isFailureOpen = Boolean(
     state !== dismissedState &&
     state.error &&
-    state.errorKey !== transactionErrorCodes.linkedSyncConfirmationRequired,
+    state.errorCode !== transactionErrorCodes.linkedSyncConfirmationRequired,
   );
 
   function cancelConfirmation() {
