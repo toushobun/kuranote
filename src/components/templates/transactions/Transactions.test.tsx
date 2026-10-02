@@ -9,6 +9,7 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { transactionActionErrorMessages } from "internal/transaction";
 import type {
   TransactionFilterOptions,
   TransactionFilters,
@@ -18,7 +19,6 @@ import type {
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { defaultTransactionFilters } from "types/transactions";
-import { transactionListPageErrorMessages } from "utils/transactionMessages";
 
 import {
   TransactionsTemplate,
@@ -296,12 +296,12 @@ describe("TransactionsTemplate", () => {
 
   it("传入错误信息时显示整页错误状态", () => {
     const { container } = renderPage({
-      errorMessage: transactionListPageErrorMessages.voidFailed,
+      errorMessage: transactionActionErrorMessages.voidFailed,
     });
 
     expect(within(container).getByText("明细读取失败")).toBeInTheDocument();
     expect(
-      within(container).getByText(transactionListPageErrorMessages.voidFailed),
+      within(container).getByText(transactionActionErrorMessages.voidFailed),
     ).toBeInTheDocument();
     expect(within(container).getByText("重新读取")).toBeInTheDocument();
     expect(

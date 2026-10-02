@@ -15,12 +15,6 @@ export const transactionAmountMessages = {
   partiallyOffset: "部分已核销",
 } as const;
 
-export const transactionListPageErrorMessages = {
-  permissionDenied: "当前角色没有删除这条记账的权限。",
-  voidFailed: "记录删除失败。请稍后重试。",
-  voidInvalid: "删除对象不正确。",
-} as const;
-
 export const transactionSearchPageErrorMessages = {
   initialLoadFailed: "搜索结果读取失败，请稍后重新读取。",
   loadMoreFailed: "更多搜索结果读取失败。",
