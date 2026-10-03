@@ -10,7 +10,7 @@ import {
 } from "internal/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
 import {
-  accountActionErrorMessages,
+  accountFallbackErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
   type AccountErrorCode,
@@ -47,7 +47,7 @@ function getActionErrorState(
   });
   return createErrorState(
     getAccountErrorMessage(fallbackCode) ??
-      accountActionErrorMessages.operationFailed,
+      accountFallbackErrorMessages.operationFailed,
   );
 }
 
@@ -60,7 +60,7 @@ export async function createAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      accountActionErrorMessages.inputInvalid,
+      accountFallbackErrorMessages.inputInvalid,
     );
   }
 
@@ -89,7 +89,7 @@ export async function updateAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      accountActionErrorMessages.inputInvalid,
+      accountFallbackErrorMessages.inputInvalid,
     );
   }
 
@@ -118,7 +118,7 @@ export async function archiveAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      accountActionErrorMessages.archiveInvalid,
+      accountFallbackErrorMessages.archiveInvalid,
     );
   }
 

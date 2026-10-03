@@ -5,7 +5,7 @@ import {
 } from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
 import {
-  accountActionErrorMessages,
+  accountFallbackErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
 } from "internal/account/errors";
@@ -99,7 +99,7 @@ const accountTypeValues = new Set<AccountType>(accountTypes);
 
 function accountErrorMessage(code: string): string {
   return (
-    getAccountErrorMessage(code) ?? accountActionErrorMessages.operationFailed
+    getAccountErrorMessage(code) ?? accountFallbackErrorMessages.operationFailed
   );
 }
 

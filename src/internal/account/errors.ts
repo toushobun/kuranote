@@ -69,19 +69,20 @@ export function getAccountErrorMessage(code?: string) {
 }
 
 export const accountLoadErrorMessages = {
-  memberRoleInvalid: "账户成员资料格式异常，请稍后重试。",
-  summariesLoadFailed: "账户信息加载失败，请稍后重试。",
-  ledgerLoadFailed: "账本信息加载失败，请稍后重试。",
-  lookupFailed: "账户信息确认失败，请稍后重试。",
-  listLoadFailed: "账户列表加载失败，请稍后重试。",
-  membersLoadFailed: "账本成员加载失败，请稍后重试。",
-  memberDisplaySettingsLoadFailed: "账本成员显示设置加载失败，请稍后重试。",
-  holdersLoadFailed: "账户持有人加载失败，请稍后重试。",
   holderUsersLoadFailed: "账户持有人资料加载失败，请稍后重试。",
+  holdersLoadFailed: "账户持有人加载失败，请稍后重试。",
+  ledgerLoadFailed: "账本信息加载失败，请稍后重试。",
+  listLoadFailed: "账户列表加载失败，请稍后重试。",
+  lookupFailed: "账户信息确认失败，请稍后重试。",
+  memberDisplaySettingsLoadFailed: "账本成员显示设置加载失败，请稍后重试。",
+  memberRoleInvalid: "账户成员资料格式异常，请稍后重试。",
+  membersLoadFailed: "账本成员加载失败，请稍后重试。",
+  summariesLoadFailed: "账户信息加载失败，请稍后重试。",
 } as const;
 
-export const accountActionErrorMessages = {
-  operationFailed: "账户操作失败，请稍后重试。",
-  inputInvalid: "账户信息不正确，请确认后重试。",
+/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+export const accountFallbackErrorMessages = {
   archiveInvalid: "账户指定不正确，请刷新页面后重试。",
+  inputInvalid: "账户信息不正确，请确认后重试。",
+  operationFailed: "账户操作失败，请稍后重试。",
 } as const;
