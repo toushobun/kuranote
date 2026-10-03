@@ -1,5 +1,10 @@
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
-import { categoryErrorCodes } from "internal/category/errors";
+import {
+  categoryErrorCodes,
+  categoryErrorMessages,
+  categoryLoadErrorMessages,
+  categoryWriteErrorMessages,
+} from "internal/category/errors";
 import type { CategoryType } from "internal/category/entity/categoryType";
 import type { Logger } from "internal/shared/logging/logger";
 import {
@@ -214,7 +219,7 @@ export function createSupabaseCategoryRepository(
     if (rpcErrorCode === "permission_denied" || error.code === "42501") {
       throw new AuthorizationError(
         categoryErrorCodes.permissionDenied,
-        "只有账本所有者或管理员可以维护分类。",
+        categoryErrorMessages[categoryErrorCodes.permissionDenied],
       );
     }
 
@@ -224,41 +229,41 @@ export function createSupabaseCategoryRepository(
     ) {
       throw new NotFoundError(
         categoryErrorCodes.ledgerInvalid,
-        "账本不存在或已归档。",
+        categoryErrorMessages[categoryErrorCodes.ledgerInvalid],
       );
     }
 
     if (rpcErrorCode === "category_type_invalid") {
       throw new ValidationError(
         categoryErrorCodes.typeInvalid,
-        "分类类型不正确。",
+        categoryErrorMessages[categoryErrorCodes.typeInvalid],
       );
     }
 
     if (rpcErrorCode === "category_order_invalid") {
       throw new ValidationError(
         categoryErrorCodes.orderInvalid,
-        "分类排序内容不正确。",
+        categoryErrorMessages[categoryErrorCodes.orderInvalid],
       );
     }
 
     if (rpcErrorCode === "category_parent_invalid") {
       throw new ValidationError(
         categoryErrorCodes.parentInvalid,
-        "大分类指定不正确。",
+        categoryErrorMessages[categoryErrorCodes.parentInvalid],
       );
     }
 
     if (rpcErrorCode === "category_set_invalid") {
       throw new ConflictError(
         categoryErrorCodes.reorderConflict,
-        "分类列表已发生变化，请刷新页面后重试。",
+        categoryErrorMessages[categoryErrorCodes.reorderConflict],
       );
     }
 
     throw toRepositoryError(
       categoryErrorCodes.reorderFailed,
-      "分类排序保存失败，请稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.reorderFailed],
     );
   }
 
@@ -286,7 +291,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_archive_failed",
-          "分类归档失败，请稍后重试。",
+          categoryWriteErrorMessages.archiveFailed,
           "[category] failed to archive category",
           error,
           {
@@ -311,7 +316,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_load_failed",
-          "分类加载失败，请稍后重试。",
+          categoryLoadErrorMessages.categoriesLoadFailed,
           "[category] failed to load category",
           error,
           { categoryId, ledgerId },
@@ -334,7 +339,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_load_failed",
-          "分类加载失败，请稍后重试。",
+          categoryLoadErrorMessages.categoriesLoadFailed,
           "[category] failed to load categories",
           error,
           { ledgerId },
@@ -356,7 +361,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_summary_load_failed",
-          "分类信息加载失败，请稍后重试。",
+          categoryLoadErrorMessages.summariesLoadFailed,
           "[category] failed to load category summaries",
           error,
           { ledgerId },
@@ -380,7 +385,7 @@ export function createSupabaseCategoryRepository(
       if (parentError) {
         throwRepositoryError(
           "category_summary_load_failed",
-          "分类信息加载失败，请稍后重试。",
+          categoryLoadErrorMessages.summariesLoadFailed,
           "[category] failed to load parent category summaries",
           parentError,
           { ledgerId },
@@ -406,7 +411,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_parent_load_failed",
-          "大分类加载失败，请稍后重试。",
+          categoryLoadErrorMessages.parentLoadFailed,
           "[category] failed to load parent category",
           error,
           { categoryId, ledgerId, type },
@@ -435,7 +440,7 @@ export function createSupabaseCategoryRepository(
       if (error || !data) {
         throwRepositoryError(
           "category_create_failed",
-          "分类创建失败，请稍后重试。",
+          categoryWriteErrorMessages.createFailed,
           "[category] failed to create category",
           error ?? { message: "insert returned no row" },
           {
@@ -466,7 +471,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_siblings_load_failed",
-          "同级分类加载失败，请稍后重试。",
+          categoryLoadErrorMessages.siblingsLoadFailed,
           "[category] failed to load sibling categories",
           error,
           {
@@ -500,7 +505,7 @@ export function createSupabaseCategoryRepository(
       if (Number(data) !== input.categoryIds.length) {
         throwRepositoryError(
           "category_reorder_failed",
-          "分类排序保存失败，请稍后重试。",
+          categoryErrorMessages[categoryErrorCodes.reorderFailed],
           "[category] category reorder RPC returned an unexpected count",
           { message: "unexpected updated category count" },
           {
@@ -532,7 +537,7 @@ export function createSupabaseCategoryRepository(
       if (error) {
         throwRepositoryError(
           "category_update_failed",
-          "分类更新失败，请稍后重试。",
+          categoryWriteErrorMessages.updateFailed,
           "[category] failed to update category",
           error,
           { categoryId: input.categoryId, ledgerId: input.ledgerId },

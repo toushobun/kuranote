@@ -14,6 +14,7 @@ import {
   getMerchantActionErrorMessage,
   getMerchantErrorMessage,
   merchantErrorCodes,
+  merchantFallbackErrorMessages,
 } from "internal/merchant/errors";
 import type {
   CreateMerchantInput,
@@ -122,7 +123,7 @@ function permissionError(): AuthorizationError {
   return new AuthorizationError(
     merchantErrorCodes.permissionDenied,
     getMerchantActionErrorMessage(merchantErrorCodes.permissionDenied) ??
-      "没有权限维护商家。",
+      merchantFallbackErrorMessages.permissionDenied,
   );
 }
 
@@ -137,7 +138,8 @@ function conflictError(
 ): ConflictError {
   return new ConflictError(
     code,
-    getMerchantActionErrorMessage(code) ?? "商家操作失败，请稍后重试。",
+    getMerchantActionErrorMessage(code) ??
+      merchantFallbackErrorMessages.operationFailed,
   );
 }
 

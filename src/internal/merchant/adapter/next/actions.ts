@@ -11,6 +11,7 @@ import {
   getMerchantActionErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
+  merchantFallbackErrorMessages,
   type MerchantErrorCode,
 } from "internal/merchant/errors";
 import {
@@ -47,7 +48,7 @@ async function getMerchantService() {
 function validationErrorState(error: MerchantErrorCode): MerchantActionState {
   return createErrorState(
     getMerchantActionErrorMessage(error) ??
-      "商家操作内容不正确，请确认后重试。",
+      merchantFallbackErrorMessages.inputInvalid,
   );
 }
 
@@ -64,7 +65,8 @@ function actionErrorState(
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(
-    getMerchantActionErrorMessage(fallback) ?? "商家操作失败，请稍后重试。",
+    getMerchantActionErrorMessage(fallback) ??
+      merchantFallbackErrorMessages.operationFailed,
   );
 }
 

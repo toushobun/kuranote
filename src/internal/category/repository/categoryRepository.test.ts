@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { categoryErrorCodes } from "internal/category/errors";
+import {
+  categoryErrorCodes,
+  categoryErrorMessages,
+} from "internal/category/errors";
 import { createSupabaseCategoryRepository } from "internal/category/repository/categoryRepository";
 import {
   AuthorizationError,
@@ -360,7 +363,7 @@ describe("\u5206\u7C7B\u6392\u5E8F\u8D26\u672C\u5931\u6548\u9519\u8BEF", () => {
       }),
     ).rejects.toMatchObject({
       code: categoryErrorCodes.ledgerInvalid,
-      message: "账本不存在或已归档。",
+      message: categoryErrorMessages[categoryErrorCodes.ledgerInvalid],
       name: NotFoundError.name,
     });
   });
@@ -387,7 +390,7 @@ describe("\u5206\u7C7B\u6392\u5E8F\u8D26\u672C\u5931\u6548\u9519\u8BEF", () => {
       }),
     ).rejects.toMatchObject({
       code: categoryErrorCodes.ledgerInvalid,
-      message: "账本不存在或已归档。",
+      message: categoryErrorMessages[categoryErrorCodes.ledgerInvalid],
       name: NotFoundError.name,
     });
   });

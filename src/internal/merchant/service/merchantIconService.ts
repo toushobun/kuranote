@@ -4,6 +4,7 @@ import { lookup as nodeLookup } from "node:dns/promises";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
+  merchantWebsiteUrlErrorMessages,
 } from "internal/merchant/errors";
 import {
   RepositoryError,
@@ -153,7 +154,7 @@ export function createMerchantIconService({
     if (isBlockedHostname(normalizedHostname)) {
       throw new ValidationError(
         merchantErrorCodes.websiteUrlInvalid,
-        "商家网址不能指向本机或内部网络。",
+        merchantWebsiteUrlErrorMessages.internalNetwork,
       );
     }
 
@@ -167,7 +168,7 @@ export function createMerchantIconService({
     ) {
       throw new ValidationError(
         merchantErrorCodes.websiteUrlInvalid,
-        "商家网址必须指向可公开访问的网站。",
+        merchantWebsiteUrlErrorMessages.notPublic,
       );
     }
   }
@@ -177,7 +178,7 @@ export function createMerchantIconService({
     if (!parsedWebsiteUrl) {
       throw new ValidationError(
         merchantErrorCodes.websiteUrlInvalid,
-        "商家网址必须以 http:// 或 https:// 开头。",
+        getMerchantErrorMessage(merchantErrorCodes.websiteUrlInvalid),
       );
     }
 
@@ -185,7 +186,7 @@ export function createMerchantIconService({
     if (website.username || website.password) {
       throw new ValidationError(
         merchantErrorCodes.websiteUrlInvalid,
-        "商家网址不能包含登录凭据。",
+        merchantWebsiteUrlErrorMessages.credentialsNotAllowed,
       );
     }
     await requirePublicHostname(website.hostname);

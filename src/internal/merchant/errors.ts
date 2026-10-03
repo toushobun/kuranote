@@ -115,7 +115,7 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.websiteUrlInvalid,
 ]);
 
-const merchantErrorMessages: Record<MerchantErrorCode, string> = {
+export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",
   [merchantErrorCodes.aliasCreateFailed]:
     "商家别名新增失败。请确认别名是否重复，或稍后重试。",
@@ -182,3 +182,30 @@ export function getMerchantActionErrorMessage(error: MerchantErrorCode) {
 export function getMerchantErrorMessage(error: MerchantErrorCode) {
   return merchantErrorMessages[error];
 }
+
+/** 商家读取查询失败时的文案。 */
+export const merchantLoadErrorMessages = {
+  listLoadFailed: "商家列表读取失败，请稍后重试。",
+  loadFailed: "商家读取失败，请稍后重试。",
+} as const;
+
+/** 商家写入查询失败时的文案。 */
+export const merchantWriteErrorMessages = {
+  createFailed: "商家新增失败，请稍后重试。",
+  updateFailed: "商家更新失败，请稍后重试。",
+} as const;
+
+/** 商家网址校验不通过时的文案。 */
+export const merchantWebsiteUrlErrorMessages = {
+  credentialsNotAllowed: "商家网址不能包含登录凭据。",
+  internalNetwork: "商家网址不能指向本机或内部网络。",
+  notPublic: "商家网址必须指向可公开访问的网站。",
+  protocolInvalid: "商家网址必须使用 HTTP 或 HTTPS。",
+} as const;
+
+/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+export const merchantFallbackErrorMessages = {
+  inputInvalid: "商家操作内容不正确，请确认后重试。",
+  operationFailed: "商家操作失败，请稍后重试。",
+  permissionDenied: "没有权限维护商家。",
+} as const;

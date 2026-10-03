@@ -8,6 +8,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  categoryErrorCodes,
+  categoryErrorMessages,
+  categoryWriteErrorMessages,
+} from "internal/category";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
@@ -187,7 +192,7 @@ describe("CategoriesActionStateTemplate", () => {
   it("归档失败时显示归档失败标题并保留编辑弹窗和输入", async () => {
     renderTemplate({
       archiveCategoryAction: async () => ({
-        error: "分类归档失败，请稍后重试。",
+        error: categoryWriteErrorMessages.archiveFailed,
         errorKey: "archive-error-1",
       }),
     });
@@ -200,7 +205,7 @@ describe("CategoriesActionStateTemplate", () => {
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("分类归档失败")).toBeInTheDocument();
-    expect(alert).toHaveTextContent("分类归档失败，请稍后重试。");
+    expect(alert).toHaveTextContent(categoryWriteErrorMessages.archiveFailed);
     expect(screen.queryByText("分类隐藏失败")).not.toBeInTheDocument();
     expect(dialog).toBeInTheDocument();
     expect(nameInput).toHaveValue("外食");
@@ -220,7 +225,7 @@ describe("CategoriesActionStateTemplate", () => {
         void _previousState;
         void _formData;
         return {
-          error: "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+          error: categoryErrorMessages[categoryErrorCodes.createFailed],
           errorKey: "create-error-1",
         };
       },
@@ -236,7 +241,7 @@ describe("CategoriesActionStateTemplate", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("分类新增失败");
     expect(alert).toHaveTextContent(
-      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.createFailed],
     );
     expect(nameInput).toHaveValue("晚餐");
     expect(window.location.pathname).toBe("/categories");
@@ -252,7 +257,7 @@ describe("CategoriesActionStateTemplate", () => {
         void _previousState;
         void _formData;
         return {
-          error: "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+          error: categoryErrorMessages[categoryErrorCodes.updateFailed],
           errorKey: "update-error-1",
         };
       },
@@ -266,7 +271,7 @@ describe("CategoriesActionStateTemplate", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "保存" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.updateFailed],
     );
     expect(
       screen.getByRole("dialog", { name: "编辑分类" }),
@@ -276,7 +281,7 @@ describe("CategoriesActionStateTemplate", () => {
 
   it("排序失败时回滚并通过统一弹框反馈", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: "分类列表已发生变化，请刷新页面后重试。",
+      error: categoryErrorMessages[categoryErrorCodes.reorderConflict],
       errorKey: "reorder-error-1",
     }));
     renderTemplate({ reorderCategoryAction });
@@ -288,7 +293,9 @@ describe("CategoriesActionStateTemplate", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("分类排序保存失败");
-    expect(alert).toHaveTextContent("分类列表已发生变化，请刷新页面后重试。");
+    expect(alert).toHaveTextContent(
+      categoryErrorMessages[categoryErrorCodes.reorderConflict],
+    );
     await waitFor(() => expect(reorderCategoryAction).toHaveBeenCalledOnce());
     expect(screen.getByText("餐饮")).toBeInTheDocument();
   });

@@ -3,6 +3,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  merchantErrorCodes,
+  merchantErrorMessages,
+} from "internal/merchant/errors";
+import {
   createMerchantIconService,
   getReusableMerchantIconUrl,
 } from "internal/merchant/service/merchantIconService";
@@ -257,7 +261,8 @@ describe("createMerchantIconService", () => {
       service.fetchIcon("https://example.com"),
     ).rejects.toMatchObject({
       code: "merchant_icon_fetch_failed",
-      message: "未能获取网站图标，请确认网址后重试。",
+      message:
+        merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

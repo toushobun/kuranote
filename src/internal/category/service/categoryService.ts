@@ -1,6 +1,9 @@
 import { canManageMasterData } from "internal/ledger";
 import {
   categoryErrorCodes,
+  categoryErrorMessages,
+  categoryFallbackErrorMessages,
+  categoryWriteErrorMessages,
   getCategoryErrorMessage,
 } from "internal/category/errors";
 import type {
@@ -92,7 +95,8 @@ function repositoryError(
 ) {
   return new RepositoryError(
     code,
-    getCategoryErrorMessage(code) ?? "分类操作失败，请稍后重试。",
+    getCategoryErrorMessage(code) ??
+      categoryFallbackErrorMessages.operationFailed,
   );
 }
 
@@ -103,7 +107,7 @@ function conflictError(
 ) {
   return new ConflictError(
     code,
-    getCategoryErrorMessage(code) ?? "分类状态已变化，请刷新后重试。",
+    getCategoryErrorMessage(code) ?? categoryFallbackErrorMessages.stateChanged,
   );
 }
 
@@ -147,7 +151,7 @@ export function createCategoryService({
       throw new AuthorizationError(
         categoryErrorCodes.permissionDenied,
         getCategoryErrorMessage(categoryErrorCodes.permissionDenied) ??
-          "没有权限维护分类。",
+          categoryFallbackErrorMessages.permissionDenied,
       );
     }
   }
@@ -180,8 +184,7 @@ export function createCategoryService({
       if (!category) {
         throw new NotFoundError(
           categoryErrorCodes.categoryInvalid,
-          getCategoryErrorMessage(categoryErrorCodes.categoryInvalid) ??
-            "分类指定不正确。",
+          categoryErrorMessages[categoryErrorCodes.categoryInvalid],
         );
       }
 
@@ -219,8 +222,7 @@ export function createCategoryService({
         if (!parent) {
           throw new ValidationError(
             categoryErrorCodes.parentInvalid,
-            getCategoryErrorMessage(categoryErrorCodes.parentInvalid) ??
-              "大分类指定不正确。",
+            categoryErrorMessages[categoryErrorCodes.parentInvalid],
           );
         }
       }
@@ -233,7 +235,7 @@ export function createCategoryService({
         throw new ConflictError(
           categoryErrorCodes.createFailed,
           getCategoryErrorMessage(categoryErrorCodes.createFailed) ??
-            "分类新增失败，请稍后重试。",
+            categoryFallbackErrorMessages.createFailed,
         );
       }
 
@@ -292,8 +294,7 @@ export function createCategoryService({
       if (!category) {
         throw new NotFoundError(
           categoryErrorCodes.categoryInvalid,
-          getCategoryErrorMessage(categoryErrorCodes.categoryInvalid) ??
-            "分类指定不正确。",
+          categoryErrorMessages[categoryErrorCodes.categoryInvalid],
         );
       }
 
@@ -309,7 +310,7 @@ export function createCategoryService({
         throw new ConflictError(
           categoryErrorCodes.updateFailed,
           getCategoryErrorMessage(categoryErrorCodes.updateFailed) ??
-            "分类更新失败，请稍后重试。",
+            categoryWriteErrorMessages.updateFailed,
         );
       }
 

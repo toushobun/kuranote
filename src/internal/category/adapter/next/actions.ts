@@ -4,6 +4,7 @@ import { categorySuccessMessages } from "config/categoryMessages";
 import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   categoryErrorCodes,
+  categoryFallbackErrorMessages,
   getCategoryErrorMessage,
 } from "internal/category/errors";
 import {
@@ -21,7 +22,7 @@ import type { CategoryActionState } from "types/categories";
 
 function validationErrorState(code: string): CategoryActionState {
   return createErrorState(
-    getCategoryErrorMessage(code) ?? "分类信息不正确，请确认后重试。",
+    getCategoryErrorMessage(code) ?? categoryFallbackErrorMessages.inputInvalid,
   );
 }
 
@@ -38,7 +39,8 @@ function actionErrorState(
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(
-    getCategoryErrorMessage(fallbackCode) ?? "分类操作失败，请稍后重试。",
+    getCategoryErrorMessage(fallbackCode) ??
+      categoryFallbackErrorMessages.operationFailed,
   );
 }
 

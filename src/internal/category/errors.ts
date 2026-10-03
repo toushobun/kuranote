@@ -27,7 +27,7 @@ export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.parentInvalid
   | typeof categoryErrorCodes.typeInvalid;
 
-const categoryErrorMessages: Record<CategoryErrorCode, string> = {
+export const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.archiveFailed]: "分类归档失败。",
   [categoryErrorCodes.categoryInvalid]: "分类指定不正确。",
   [categoryErrorCodes.createFailed]:
@@ -52,3 +52,27 @@ export function getCategoryErrorMessage(error?: string) {
     ? (categoryErrorMessages[error as CategoryErrorCode] ?? null)
     : null;
 }
+
+/** 分类读取查询失败时的文案。 */
+export const categoryLoadErrorMessages = {
+  categoriesLoadFailed: "分类加载失败，请稍后重试。",
+  parentLoadFailed: "大分类加载失败，请稍后重试。",
+  siblingsLoadFailed: "同级分类加载失败，请稍后重试。",
+  summariesLoadFailed: "分类信息加载失败，请稍后重试。",
+} as const;
+
+/** 分类写入查询失败时的文案。 */
+export const categoryWriteErrorMessages = {
+  archiveFailed: "分类归档失败，请稍后重试。",
+  createFailed: "分类创建失败，请稍后重试。",
+  updateFailed: "分类更新失败，请稍后重试。",
+} as const;
+
+/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+export const categoryFallbackErrorMessages = {
+  createFailed: "分类新增失败，请稍后重试。",
+  inputInvalid: "分类信息不正确，请确认后重试。",
+  operationFailed: "分类操作失败，请稍后重试。",
+  permissionDenied: "没有权限维护分类。",
+  stateChanged: "分类状态已变化，请刷新后重试。",
+} as const;

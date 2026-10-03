@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { categoryErrorCodes, categoryErrorMessages } from "internal/category";
 import type { CategoryReorderAction, CategoryTreeItem } from "types/categories";
 
 import { useCategoryList } from "./useCategoryList";
@@ -219,7 +220,7 @@ describe("useCategoryList", () => {
 
   it("排序保存失败时恢复原顺序并上抛 Service message", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: "分类排序保存失败，请稍后重试。",
+      error: categoryErrorMessages[categoryErrorCodes.reorderFailed],
       errorKey: "reorder-error-1",
     }));
     const { onReorderError, result } = renderCategoryListHook(
@@ -236,7 +237,7 @@ describe("useCategoryList", () => {
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
-        error: "分类排序保存失败，请稍后重试。",
+        error: categoryErrorMessages[categoryErrorCodes.reorderFailed],
         errorKey: "reorder-error-1",
       }),
     );
@@ -247,7 +248,7 @@ describe("useCategoryList", () => {
 
   it("排序集合过期时恢复原顺序并上抛刷新提示", async () => {
     const reorderCategoryAction = vi.fn(async () => ({
-      error: "分类列表已发生变化，请刷新页面后重试。",
+      error: categoryErrorMessages[categoryErrorCodes.reorderConflict],
       errorKey: "reorder-error-2",
     }));
     const { onReorderError, result } = renderCategoryListHook(
@@ -264,7 +265,7 @@ describe("useCategoryList", () => {
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
-        error: "分类列表已发生变化，请刷新页面后重试。",
+        error: categoryErrorMessages[categoryErrorCodes.reorderConflict],
         errorKey: "reorder-error-2",
       }),
     );
@@ -291,7 +292,7 @@ describe("useCategoryList", () => {
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
-        error: "分类排序保存失败，请稍后重试。",
+        error: categoryErrorMessages[categoryErrorCodes.reorderFailed],
         errorKey: expect.any(String),
       }),
     );

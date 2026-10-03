@@ -3,7 +3,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { LedgerAccessService } from "internal/ledger";
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  merchantErrorCodes,
+  merchantErrorMessages,
+} from "internal/merchant/errors";
 import type { MerchantRepository } from "internal/merchant/repository/merchantRepository";
 import { createMerchantIconService } from "internal/merchant/service/merchantIconService";
 import { createMerchantService } from "internal/merchant/service/merchantService";
@@ -589,7 +592,8 @@ describe("createMerchantService", () => {
     ).resolves.toMatchObject({
       merchants: [],
       selectedTag: null,
-      tagFilterError: "该商家分类不存在或已不可用。",
+      tagFilterError:
+        merchantErrorMessages[merchantErrorCodes.merchantTagInvalid],
       tags: [],
     });
   });
