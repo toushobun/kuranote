@@ -1,6 +1,5 @@
 // @vitest-environment node
 
-import { accountLoadErrorMessages } from "internal/account/errors";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +8,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { revalidatePath } from "next/cache";
 
 import { routePaths } from "config/paths";
+import { accountLoadErrorMessages } from "internal/account/errors";
 import { accountRouter } from "internal/account/router";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";

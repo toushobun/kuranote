@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { sharedErrorMessages } from "internal/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   AuthenticationError,
   AuthorizationError,

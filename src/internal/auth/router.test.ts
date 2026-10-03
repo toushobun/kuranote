@@ -1,8 +1,9 @@
 // @vitest-environment node
-import { sharedErrorMessages } from "internal/shared";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { type AppEnv } from "internal/appEnv";
 import { authRouter } from "internal/auth/router";
 import { type RequestContainer } from "internal/container";

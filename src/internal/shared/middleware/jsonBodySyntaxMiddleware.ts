@@ -1,6 +1,6 @@
-import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { MiddlewareHandler } from "hono";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { AppEnv } from "internal/appEnv";
 import { ValidationError } from "internal/shared/errors/appError";
 

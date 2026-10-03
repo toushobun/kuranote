@@ -1,4 +1,5 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 export const merchantErrorCodes = {
   aliasArchiveFailed: "alias_archive_failed",
   aliasCreateFailed: "alias_create_failed",

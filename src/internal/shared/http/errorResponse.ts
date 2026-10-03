@@ -1,7 +1,7 @@
-import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { OpenAPIHonoOptions } from "@hono/zod-openapi";
 import type { Context } from "hono";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { AppEnv } from "internal/appEnv";
 import {
   AppError,

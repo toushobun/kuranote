@@ -1,4 +1,4 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { statisticsErrorMessages } from "internal/statistics/errors";
 import type { CurrentLedger } from "internal/ledger";
 import {

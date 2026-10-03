@@ -1,4 +1,5 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 export const accountErrorCodes = {
   balanceInvalid: "account_balance_invalid",
   adjustmentNoteInvalid: "account_adjustment_note_invalid",

@@ -1,10 +1,10 @@
 // @vitest-environment node
 
-import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   getMerchantActionErrorMessage,
   merchantErrorCodes,

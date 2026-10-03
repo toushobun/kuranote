@@ -1,4 +1,4 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { canManageMasterData } from "internal/ledger";
 import {
   requireActiveLedgerMemberRole,

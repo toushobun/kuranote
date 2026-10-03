@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { statisticsErrorMessages } from "internal/statistics/errors";
 import { describe, expect, it, vi } from "vitest";
 
+import { statisticsErrorMessages } from "internal/statistics/errors";
 import type { CurrentLedgerRole } from "internal/ledger";
 import {
   AuthenticationError,

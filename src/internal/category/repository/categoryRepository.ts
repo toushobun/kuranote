@@ -1,4 +1,4 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { categoryErrorCodes } from "internal/category/errors";
 import type { CategoryType } from "internal/category/entity/categoryType";
 import type { Logger } from "internal/shared/logging/logger";

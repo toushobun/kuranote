@@ -1,4 +1,5 @@
-import { sharedErrorMessages } from "internal/shared";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 export const transactionErrorCodes = {
   balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
   accountInvalid: "account_invalid",

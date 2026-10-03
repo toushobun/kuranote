@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { sharedErrorMessages } from "internal/shared";
 import { describe, expect, it, vi } from "vitest";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
