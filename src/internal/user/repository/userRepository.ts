@@ -83,7 +83,7 @@ function toUserStatus(status: string): UserStatus {
 
   throw toRepositoryError(
     "user_profile_invalid",
-    "用户资料格式异常，请稍后重试。",
+    userErrorMessages.profileInvalid,
   );
 }
 
@@ -186,7 +186,7 @@ export function createSupabaseUserRepository(
         });
         throw toRepositoryError(
           "user_profile_load_failed",
-          "用户资料加载失败，请稍后重试。",
+          userErrorMessages.profileLoadFailed,
         );
       }
 
@@ -301,7 +301,7 @@ export function createSupabaseUserRepository(
         });
         throw toRepositoryError(
           "user_profile_update_failed",
-          "用户资料更新失败，请稍后重试。",
+          userErrorMessages.profileUpdateFailed,
         );
       }
 

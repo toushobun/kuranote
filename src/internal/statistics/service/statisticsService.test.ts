@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { statisticsErrorMessages } from "internal/statistics/errors";
 import type { CurrentLedgerRole } from "internal/ledger";
 import {
   AuthenticationError,
@@ -92,7 +93,7 @@ describe("StatisticsService", () => {
 
     await expect(service.getDashboard({ ledgerId })).rejects.toMatchObject({
       code: "ledger_invalid",
-      message: "账本不存在、已归档或您无法访问。",
+      message: statisticsErrorMessages.ledgerInvalid,
       name: NotFoundError.name,
     });
     expect(repository.listDashboardAccounts).not.toHaveBeenCalled();
@@ -108,7 +109,7 @@ describe("StatisticsService", () => {
 
     await expect(service.getDashboard({ ledgerId })).rejects.toMatchObject({
       code: "ledger_invalid",
-      message: "账本不存在、已归档或您无法访问。",
+      message: statisticsErrorMessages.ledgerInvalid,
       name: NotFoundError.name,
     });
     expect(repository.listDashboardAccounts).not.toHaveBeenCalled();

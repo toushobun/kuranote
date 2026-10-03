@@ -1,3 +1,5 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 export const merchantErrorCodes = {
   aliasArchiveFailed: "alias_archive_failed",
   aliasCreateFailed: "alias_create_failed",
@@ -123,7 +125,7 @@ const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.aliasRequired]: "请输入商家别名。",
   [merchantErrorCodes.aliasTooLong]: "商家别名不能超过 100 个字符。",
   [merchantErrorCodes.archiveFailed]: "商家归档失败，请稍后重试。",
-  [merchantErrorCodes.authRequired]: "请先登录。",
+  [merchantErrorCodes.authRequired]: sharedErrorMessages.authRequired,
   [merchantErrorCodes.createFailed]:
     "商家新增失败。请确认商家名称是否重复，或稍后重试。",
   [merchantErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",

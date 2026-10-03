@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { userErrorMessages } from "internal/user/errors";
 import {
   parseTransactionColorSchemeForm,
   parseUpdateAvatarForm,
@@ -23,7 +24,7 @@ describe("user schema", () => {
     formData.set("transactionColorScheme", "invalid");
 
     expect(parseTransactionColorSchemeForm(formData)).toEqual({
-      error: "请选择有效的收支配色方案。",
+      error: userErrorMessages.transactionColorSchemeInvalid,
       ok: false,
     });
   });
@@ -73,9 +74,9 @@ describe("parseUpdateDisplayNameForm", () => {
   });
 
   it.each([
-    ["缺少昵称", null, "请输入昵称。"],
-    ["昵称为空白", "   ", "请输入昵称。"],
-    ["昵称超过 100 字", "名".repeat(101), "昵称最多 100 个字符。"],
+    ["缺少昵称", null, userErrorMessages.displayNameRequired],
+    ["昵称为空白", "   ", userErrorMessages.displayNameRequired],
+    ["昵称超过 100 字", "名".repeat(101), userErrorMessages.displayNameTooLong],
   ])("%s时返回源头校验文案", (_label, displayName, error) => {
     expect(
       parseUpdateDisplayNameForm(createDisplayNameFormData(displayName)),
@@ -93,7 +94,7 @@ describe("parseUpdateDisplayNameForm", () => {
       parseUpdateDisplayNameForm(
         createDisplayNameFormData("新昵称", ["not-a-uuid"]),
       ),
-    ).toEqual({ error: "账本指定不正确，请刷新页面后重试。", ok: false });
+    ).toEqual({ error: userErrorMessages.displayNameLedgerInvalid, ok: false });
   });
 });
 
@@ -122,7 +123,7 @@ describe("parseUpdateAvatarForm", () => {
     ["文件为空", new File([], "avatar.webp", { type: "image/webp" })],
   ])("%s时要求选择图片", (_label, value) => {
     expect(parseUpdateAvatarForm(createAvatarForm(value))).toEqual({
-      error: "请选择头像图片。",
+      error: userErrorMessages.avatarFileRequired,
       ok: false,
     });
   });
@@ -131,7 +132,7 @@ describe("parseUpdateAvatarForm", () => {
     const file = new File(["x"], "avatar.gif", { type: "image/gif" });
 
     expect(parseUpdateAvatarForm(createAvatarForm(file))).toEqual({
-      error: "仅支持 JPEG、PNG 或 WebP 格式的图片。",
+      error: userErrorMessages.avatarFileTypeUnsupported,
       ok: false,
     });
   });
@@ -146,7 +147,7 @@ describe("parseUpdateAvatarForm", () => {
 
     expect(parseUpdateAvatarForm(createAvatarForm(limit)).ok).toBe(true);
     expect(parseUpdateAvatarForm(createAvatarForm(tooLarge))).toEqual({
-      error: "头像图片不能超过 1MB，请换一张图片后重试。",
+      error: userErrorMessages.avatarFileTooLarge,
       ok: false,
     });
   });

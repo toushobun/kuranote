@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { isSameOriginRequest } from "internal/shared/middleware/sameOriginRequest";
 import { AuthorizationError } from "internal/shared/errors/appError";
 
@@ -12,7 +13,10 @@ const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
  */
 export const sameOriginMiddleware: MiddlewareHandler = async (c, next) => {
   if (!safeMethods.has(c.req.method) && !isSameOriginRequest(c.req.raw)) {
-    throw new AuthorizationError("forbidden", "请求来源无效。");
+    throw new AuthorizationError(
+      "forbidden",
+      sharedErrorMessages.originInvalid,
+    );
   }
 
   await next();

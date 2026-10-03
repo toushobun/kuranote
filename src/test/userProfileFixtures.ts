@@ -1,3 +1,7 @@
+import {
+  formatLedgerDisplayNameConflictMessage,
+  userErrorMessages,
+} from "internal/user";
 import type { GoogleIdentityStatus } from "internal/auth";
 import {
   createErrorState,
@@ -29,7 +33,9 @@ export const profileFixture = {
 };
 
 export const displayNameConflictMessage =
-  "以下账本无法使用该昵称，昵称未修改。「北海道旅行」：账本中已有同名的待邀请成员。请更换昵称，或取消勾选这些账本。";
+  formatLedgerDisplayNameConflictMessage([
+    { code: "display_name_placeholder_conflict", ledgerName: "北海道旅行" },
+  ]);
 
 export const succeededDisplayNameAction: DisplayNameAction = async () =>
   createSuccessState("昵称已保存。");
@@ -41,7 +47,7 @@ export const succeededAvatarAction: AvatarAction = async () =>
   createSuccessState("头像已更换。");
 
 export const failedAvatarAction: AvatarAction = async () =>
-  createErrorState("头像上传失败，请稍后重试。");
+  createErrorState(userErrorMessages.avatarUploadFailed);
 
 export const passwordChangeOtpSentMessage = "验证码已发送，请查收邮件。";
 export const passwordChangeOtpRateLimitedMessage =

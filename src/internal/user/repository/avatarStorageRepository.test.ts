@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { userErrorMessages } from "internal/user/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import { createSupabaseAvatarStorageRepository } from "internal/user/repository/avatarStorageRepository";
@@ -83,7 +84,7 @@ describe("createSupabaseAvatarStorageRepository", () => {
     await expect(result).rejects.toBeInstanceOf(RepositoryError);
     await expect(result).rejects.toMatchObject({
       code: "user_avatar_upload_failed",
-      message: "头像上传失败，请稍后重试。",
+      message: userErrorMessages.avatarUploadFailed,
     });
     expect(logger.error).toHaveBeenCalledWith(
       "[user] failed to upload avatar",

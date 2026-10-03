@@ -10,6 +10,7 @@ import {
 } from "internal/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
 import {
+  accountFallbackErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
   type AccountErrorCode,
@@ -45,7 +46,8 @@ function getActionErrorState(
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(
-    getAccountErrorMessage(fallbackCode) ?? "账户操作失败，请稍后重试。",
+    getAccountErrorMessage(fallbackCode) ??
+      accountFallbackErrorMessages.operationFailed,
   );
 }
 
@@ -58,7 +60,7 @@ export async function createAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      "账户信息不正确，请确认后重试。",
+      accountFallbackErrorMessages.inputInvalid,
     );
   }
 
@@ -87,7 +89,7 @@ export async function updateAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      "账户信息不正确，请确认后重试。",
+      accountFallbackErrorMessages.inputInvalid,
     );
   }
 
@@ -116,7 +118,7 @@ export async function archiveAccount(
   if (!parsed.ok) {
     return getValidationErrorState(
       parsed.error,
-      "账户指定不正确，请刷新页面后重试。",
+      accountFallbackErrorMessages.archiveInvalid,
     );
   }
 

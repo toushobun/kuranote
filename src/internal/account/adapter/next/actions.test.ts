@@ -14,6 +14,7 @@ import {
 } from "internal/shared/errors/appError";
 
 import {
+  accountErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
 } from "internal/account/errors";
@@ -153,7 +154,7 @@ describe("Account Server Actions", () => {
     formData.set("name", "");
 
     await expect(createAccount({}, formData)).resolves.toEqual({
-      error: "请输入账户名称。",
+      error: accountErrorMessages[accountErrorCodes.nameRequired],
       errorKey: expect.any(String),
     });
 

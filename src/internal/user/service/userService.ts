@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   AuthenticationError,
   AuthorizationError,
@@ -100,7 +101,7 @@ function normalizeAvatarUrl(avatarUrl: string | null): string | null {
   if (!isValidHttpsUrl) {
     throw new ValidationError(
       "avatar_url_invalid",
-      "头像地址必须是有效的 HTTPS URL。",
+      userErrorMessages.avatarUrlInvalid,
     );
   }
 
@@ -116,7 +117,7 @@ const avatarFileExtensions = {
 function toUpdateDisplayNameError(code: UpdateDisplayNameErrorCode) {
   switch (code) {
     case "auth_required":
-      return new AuthenticationError(code, "请先登录。");
+      return new AuthenticationError(code, sharedErrorMessages.authRequired);
     case "display_name_required":
       return new ValidationError(code, userErrorMessages.displayNameRequired);
     case "display_name_too_long":
@@ -138,7 +139,10 @@ export function createUserService({
 }: UserServiceDependencies): UserService {
   function requireCurrentUserId(): string {
     if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        sharedErrorMessages.authRequired,
+      );
     }
 
     return currentUserId;
@@ -148,7 +152,10 @@ export function createUserService({
     const profile = await userRepository.findById(userId);
 
     if (!profile) {
-      throw new NotFoundError("user_not_found", "用户资料不存在。");
+      throw new NotFoundError(
+        "user_not_found",
+        userErrorMessages.profileNotFound,
+      );
     }
     if (profile.status !== "active") {
       throw new AuthorizationError(
@@ -182,7 +189,7 @@ export function createUserService({
     ) {
       throw new ValidationError(
         "profile_update_required",
-        "请至少提供一项需要更新的用户资料。",
+        userErrorMessages.profileUpdateRequired,
       );
     }
 
@@ -194,7 +201,10 @@ export function createUserService({
     });
 
     if (!updatedProfile) {
-      throw new NotFoundError("user_not_found", "用户资料不存在。");
+      throw new NotFoundError(
+        "user_not_found",
+        userErrorMessages.profileNotFound,
+      );
     }
 
     return updatedProfile;
@@ -211,7 +221,7 @@ export function createUserService({
       if (userId !== authenticatedUserId) {
         throw new AuthorizationError(
           "user_scope_mismatch",
-          "不能修改其他用户的资料。",
+          userErrorMessages.scopeMismatch,
         );
       }
 

@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { type AppEnv } from "internal/appEnv";
 import { authRouter } from "internal/auth/router";
 import { type RequestContainer } from "internal/container";
@@ -94,7 +96,7 @@ describe("auth router", () => {
     expect(body).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "request-1",
         status: 400,
       },
@@ -117,7 +119,7 @@ describe("auth router", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "request-1",
         status: 400,
       },
@@ -209,7 +211,7 @@ describe("auth router", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "request-1",
         status: 400,
       },
@@ -257,7 +259,7 @@ describe("auth router middleware order", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "request-order",
         status: 400,
       },

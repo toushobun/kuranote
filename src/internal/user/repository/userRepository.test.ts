@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { userErrorMessages } from "internal/user/errors";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import {
@@ -300,7 +301,7 @@ describe("createSupabaseUserRepository.listCurrentLedgerDisplayNames", () => {
     await expect(repository.listCurrentLedgerDisplayNames()).rejects.toThrow(
       new RepositoryError(
         "user_ledger_display_names_load_failed",
-        "账本昵称加载失败，请稍后重试。",
+        userErrorMessages.ledgerDisplayNamesLoadFailed,
       ),
     );
     expect(logger.error).toHaveBeenCalledWith(
@@ -438,7 +439,7 @@ describe("createSupabaseUserRepository.updateCurrentDisplayName", () => {
     ).rejects.toThrow(
       new RepositoryError(
         "user_display_name_update_failed",
-        "昵称保存失败，请稍后重试。",
+        userErrorMessages.displayNameUpdateFailed,
       ),
     );
     expect(logger.error).toHaveBeenCalledWith(

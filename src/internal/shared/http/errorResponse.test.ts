@@ -4,6 +4,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   getMerchantActionErrorMessage,
   merchantErrorCodes,
@@ -216,7 +217,7 @@ describe("errorHandlingMiddleware", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "req-validation",
         status: 400,
       },
@@ -246,7 +247,7 @@ describe("errorHandlingMiddleware", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "validation_error",
-        message: "请求参数无效。",
+        message: sharedErrorMessages.validationInvalid,
         requestId: "req-json",
         status: 400,
       },
@@ -275,7 +276,7 @@ describe("errorHandlingMiddleware", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "internal_error",
-        message: "服务器发生未知错误，请稍后重试。",
+        message: sharedErrorMessages.internalError,
         requestId: "req-syntax",
         status: 500,
       },

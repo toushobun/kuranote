@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
@@ -412,7 +413,7 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.authRequired,
       details: "auth_required",
       errorType: AuthenticationError,
-      message: "请先登录。",
+      message: sharedErrorMessages.authRequired,
     },
     {
       code: merchantErrorCodes.permissionDenied,

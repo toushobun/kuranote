@@ -1,3 +1,5 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+import { statisticsErrorMessages } from "internal/statistics/errors";
 import type { CurrentLedger } from "internal/ledger";
 import {
   requireActiveLedgerMemberRole,
@@ -48,7 +50,10 @@ export function createStatisticsService({
 }: StatisticsServiceDependencies): StatisticsService {
   function requireUserId(): string {
     if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        sharedErrorMessages.authRequired,
+      );
     }
     return currentUserId;
   }
@@ -63,7 +68,7 @@ export function createStatisticsService({
     if (!ledger) {
       throw new NotFoundError(
         "ledger_invalid",
-        "账本不存在、已归档或您无法访问。",
+        statisticsErrorMessages.ledgerInvalid,
       );
     }
 

@@ -1,3 +1,5 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 export const accountErrorCodes = {
   balanceInvalid: "account_balance_invalid",
   adjustmentNoteInvalid: "account_adjustment_note_invalid",
@@ -26,7 +28,7 @@ export const accountErrorCodes = {
 export type AccountErrorCode =
   (typeof accountErrorCodes)[keyof typeof accountErrorCodes];
 
-const accountErrorMessages: Record<AccountErrorCode, string> = {
+export const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.balanceInvalid]:
     "当前余额必须是绝对值小于一万亿、最多两位小数的数字。",
   [accountErrorCodes.adjustmentNoteInvalid]:
@@ -34,7 +36,7 @@ const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.accountInvalid]: "账户指定不正确。",
   [accountErrorCodes.accountNotFound]: "账户不存在或已删除。",
   [accountErrorCodes.archiveFailed]: "账户删除失败，请稍后重试。",
-  [accountErrorCodes.authRequired]: "请先登录。",
+  [accountErrorCodes.authRequired]: sharedErrorMessages.authRequired,
   [accountErrorCodes.createFailed]: "账户新增失败，请稍后重试。",
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
   [accountErrorCodes.holderChanged]:
@@ -65,3 +67,22 @@ export function getAccountErrorMessage(code?: string) {
     ? accountErrorMessages[code as AccountErrorCode]
     : null;
 }
+
+export const accountLoadErrorMessages = {
+  holderUsersLoadFailed: "账户持有人资料加载失败，请稍后重试。",
+  holdersLoadFailed: "账户持有人加载失败，请稍后重试。",
+  ledgerLoadFailed: "账本信息加载失败，请稍后重试。",
+  listLoadFailed: "账户列表加载失败，请稍后重试。",
+  lookupFailed: "账户信息确认失败，请稍后重试。",
+  memberDisplaySettingsLoadFailed: "账本成员显示设置加载失败，请稍后重试。",
+  memberRoleInvalid: "账户成员资料格式异常，请稍后重试。",
+  membersLoadFailed: "账本成员加载失败，请稍后重试。",
+  summariesLoadFailed: "账户信息加载失败，请稍后重试。",
+} as const;
+
+/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+export const accountFallbackErrorMessages = {
+  archiveInvalid: "账户指定不正确，请刷新页面后重试。",
+  inputInvalid: "账户信息不正确，请确认后重试。",
+  operationFailed: "账户操作失败，请稍后重试。",
+} as const;

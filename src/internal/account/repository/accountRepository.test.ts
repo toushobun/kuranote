@@ -3,6 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  accountErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
 } from "internal/account/errors";
@@ -77,7 +78,7 @@ describe("AccountRepository", () => {
       }),
     ).rejects.toMatchObject({
       code: "account_create_failed",
-      message: "账户新增失败，请稍后重试。",
+      message: accountErrorMessages[accountErrorCodes.createFailed],
     });
   });
 
@@ -202,7 +203,7 @@ describe("AccountRepository", () => {
       }),
     ).rejects.toMatchObject({
       code: "account_archive_failed",
-      message: "账户删除失败，请稍后重试。",
+      message: accountErrorMessages[accountErrorCodes.archiveFailed],
     });
   });
 

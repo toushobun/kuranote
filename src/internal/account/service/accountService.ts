@@ -5,6 +5,7 @@ import {
 } from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
 import {
+  accountFallbackErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
 } from "internal/account/errors";
@@ -97,7 +98,9 @@ export type AccountServiceDependencies = {
 const accountTypeValues = new Set<AccountType>(accountTypes);
 
 function accountErrorMessage(code: string): string {
-  return getAccountErrorMessage(code) ?? "账户操作失败，请稍后重试。";
+  return (
+    getAccountErrorMessage(code) ?? accountFallbackErrorMessages.operationFailed
+  );
 }
 
 function normalizeName(name: string): string {

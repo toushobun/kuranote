@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { categoryErrorCodes } from "internal/category/errors";
 import type { CategoryType } from "internal/category/entity/categoryType";
 import type { Logger } from "internal/shared/logging/logger";
@@ -204,7 +205,10 @@ export function createSupabaseCategoryRepository(
     });
 
     if (rpcErrorCode === "auth_required") {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        sharedErrorMessages.authRequired,
+      );
     }
 
     if (rpcErrorCode === "permission_denied" || error.code === "42501") {
