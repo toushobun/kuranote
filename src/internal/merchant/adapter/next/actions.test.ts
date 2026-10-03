@@ -2,10 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  getMerchantErrorMessage,
-  merchantErrorCodes,
-} from "internal/merchant/errors";
+import { merchantErrorCodes } from "internal/merchant/errors";
 import {
   ConflictError,
   RepositoryError,
@@ -225,7 +222,7 @@ describe("Merchant Server Actions", () => {
     mocks.reorderTags.mockRejectedValue(
       new ConflictError(
         merchantErrorCodes.ledgerInvalid,
-        getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid)!,
+        "账本不存在、已停用或您无法访问。",
       ),
     );
     const formData = merchantForm();
@@ -233,10 +230,7 @@ describe("Merchant Server Actions", () => {
 
     const state = await reorderMerchantTags(formData);
 
-    expectErrorState(
-      state,
-      getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid)!,
-    );
+    expectErrorState(state, "账本不存在、已停用或您无法访问。");
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
