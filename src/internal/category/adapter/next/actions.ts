@@ -4,8 +4,10 @@ import { categorySuccessMessages } from "config/categoryMessages";
 import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   categoryErrorCodes,
+  categoryErrorMessages,
   categoryFallbackErrorMessages,
   getCategoryErrorMessage,
+  type CategoryErrorCode,
 } from "internal/category/errors";
 import {
   parseArchiveCategoryForm,
@@ -28,7 +30,7 @@ function validationErrorState(code: string): CategoryActionState {
 
 function actionErrorState(
   error: unknown,
-  fallbackCode: string,
+  fallbackCode: CategoryErrorCode,
   operation: string,
 ): CategoryActionState {
   if (error instanceof AppError) {
@@ -38,10 +40,7 @@ function actionErrorState(
   console.error(`[category] ${operation} failed unexpectedly`, {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(
-    getCategoryErrorMessage(fallbackCode) ??
-      categoryFallbackErrorMessages.operationFailed,
-  );
+  return createErrorState(categoryErrorMessages[fallbackCode]);
 }
 
 async function getCategoryService() {

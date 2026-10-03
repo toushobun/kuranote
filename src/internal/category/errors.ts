@@ -68,11 +68,7 @@ export const categoryWriteErrorMessages = {
   updateFailed: "分类更新失败，请稍后重试。",
 } as const;
 
-/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+/** Action 表单解析错误码查不到文案时的兜底文案 */
 export const categoryFallbackErrorMessages = {
-  createFailed: "分类新增失败，请稍后重试。",
   inputInvalid: "分类信息不正确，请确认后重试。",
-  operationFailed: "分类操作失败，请稍后重试。",
-  permissionDenied: "没有权限维护分类。",
-  stateChanged: "分类状态已变化，请刷新后重试。",
 } as const;

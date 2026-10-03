@@ -11,10 +11,8 @@ import {
   type MerchantIcon,
 } from "internal/merchant/service/merchantIconService";
 import {
-  getMerchantActionErrorMessage,
   getMerchantErrorMessage,
   merchantErrorCodes,
-  merchantFallbackErrorMessages,
 } from "internal/merchant/errors";
 import type {
   CreateMerchantInput,
@@ -122,8 +120,7 @@ type MerchantServiceDependencies = {
 function permissionError(): AuthorizationError {
   return new AuthorizationError(
     merchantErrorCodes.permissionDenied,
-    getMerchantActionErrorMessage(merchantErrorCodes.permissionDenied) ??
-      merchantFallbackErrorMessages.permissionDenied,
+    getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
   );
 }
 
@@ -136,11 +133,7 @@ function conflictError(
     | typeof merchantErrorCodes.merchantTagUpdateFailed
     | typeof merchantErrorCodes.updateFailed,
 ): ConflictError {
-  return new ConflictError(
-    code,
-    getMerchantActionErrorMessage(code) ??
-      merchantFallbackErrorMessages.operationFailed,
-  );
+  return new ConflictError(code, getMerchantErrorMessage(code));
 }
 
 /**

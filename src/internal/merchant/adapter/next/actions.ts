@@ -9,9 +9,11 @@ import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/curren
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
   getMerchantActionErrorMessage,
+  getMerchantErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
   merchantFallbackErrorMessages,
+  type MerchantActionErrorCode,
   type MerchantErrorCode,
 } from "internal/merchant/errors";
 import {
@@ -54,7 +56,7 @@ function validationErrorState(error: MerchantErrorCode): MerchantActionState {
 
 function actionErrorState(
   error: unknown,
-  fallback: MerchantErrorCode,
+  fallback: MerchantActionErrorCode,
   action: string,
 ): MerchantActionState {
   if (error instanceof AppError && isMerchantActionErrorCode(error.code)) {
@@ -64,10 +66,7 @@ function actionErrorState(
   console.error(`[merchant] ${action} action failed unexpectedly`, {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(
-    getMerchantActionErrorMessage(fallback) ??
-      merchantFallbackErrorMessages.operationFailed,
-  );
+  return createErrorState(getMerchantErrorMessage(fallback));
 }
 
 export const createMerchant: MerchantStateAction =

@@ -203,9 +203,7 @@ export const merchantWebsiteUrlErrorMessages = {
   protocolInvalid: "商家网址必须使用 HTTP 或 HTTPS。",
 } as const;
 
-/** Action 与 Service 共用的兜底文案（没有更具体的错误时使用） */
+/** Action 表单校验错误码查不到文案时的兜底文案 */
 export const merchantFallbackErrorMessages = {
   inputInvalid: "商家操作内容不正确，请确认后重试。",
-  operationFailed: "商家操作失败，请稍后重试。",
-  permissionDenied: "没有权限维护商家。",
 } as const;

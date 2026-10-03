@@ -2,9 +2,6 @@ import { canManageMasterData } from "internal/ledger";
 import {
   categoryErrorCodes,
   categoryErrorMessages,
-  categoryFallbackErrorMessages,
-  categoryWriteErrorMessages,
-  getCategoryErrorMessage,
 } from "internal/category/errors";
 import type {
   CategoryRepository,
@@ -93,11 +90,7 @@ function repositoryError(
     | typeof categoryErrorCodes.reorderFailed
     | typeof categoryErrorCodes.updateFailed,
 ) {
-  return new RepositoryError(
-    code,
-    getCategoryErrorMessage(code) ??
-      categoryFallbackErrorMessages.operationFailed,
-  );
+  return new RepositoryError(code, categoryErrorMessages[code]);
 }
 
 function conflictError(
@@ -105,10 +98,7 @@ function conflictError(
     | typeof categoryErrorCodes.archiveFailed
     | typeof categoryErrorCodes.updateFailed,
 ) {
-  return new ConflictError(
-    code,
-    getCategoryErrorMessage(code) ?? categoryFallbackErrorMessages.stateChanged,
-  );
+  return new ConflictError(code, categoryErrorMessages[code]);
 }
 
 async function withOperationError<T>(
@@ -150,8 +140,7 @@ export function createCategoryService({
     if (!canManageMasterData(role)) {
       throw new AuthorizationError(
         categoryErrorCodes.permissionDenied,
-        getCategoryErrorMessage(categoryErrorCodes.permissionDenied) ??
-          categoryFallbackErrorMessages.permissionDenied,
+        categoryErrorMessages[categoryErrorCodes.permissionDenied],
       );
     }
   }
@@ -234,8 +223,7 @@ export function createCategoryService({
       if (hasDuplicateCategoryName(siblings, input.name)) {
         throw new ConflictError(
           categoryErrorCodes.createFailed,
-          getCategoryErrorMessage(categoryErrorCodes.createFailed) ??
-            categoryFallbackErrorMessages.createFailed,
+          categoryErrorMessages[categoryErrorCodes.createFailed],
         );
       }
 
@@ -309,8 +297,7 @@ export function createCategoryService({
       if (hasDuplicateCategoryName(siblings, name, categoryId)) {
         throw new ConflictError(
           categoryErrorCodes.updateFailed,
-          getCategoryErrorMessage(categoryErrorCodes.updateFailed) ??
-            categoryWriteErrorMessages.updateFailed,
+          categoryErrorMessages[categoryErrorCodes.updateFailed],
         );
       }
 
