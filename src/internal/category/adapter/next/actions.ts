@@ -5,9 +5,8 @@ import { revalidateCategoryMutation } from "internal/category/adapter/next/reval
 import {
   categoryErrorCodes,
   categoryErrorMessages,
-  categoryFallbackErrorMessages,
-  getCategoryErrorMessage,
   type CategoryErrorCode,
+  type CategoryValidationErrorCode,
 } from "internal/category/errors";
 import {
   parseArchiveCategoryForm,
@@ -22,10 +21,10 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type { CategoryActionState } from "types/categories";
 
-function validationErrorState(code: string): CategoryActionState {
-  return createErrorState(
-    getCategoryErrorMessage(code) ?? categoryFallbackErrorMessages.inputInvalid,
-  );
+function validationErrorState(
+  code: CategoryValidationErrorCode,
+): CategoryActionState {
+  return createErrorState(categoryErrorMessages[code]);
 }
 
 function actionErrorState(

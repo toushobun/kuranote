@@ -47,12 +47,6 @@ export const categoryErrorMessages: Record<CategoryErrorCode, string> = {
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
 };
 
-export function getCategoryErrorMessage(error?: string) {
-  return error
-    ? (categoryErrorMessages[error as CategoryErrorCode] ?? null)
-    : null;
-}
-
 /** 分类读取查询失败时的文案。 */
 export const categoryLoadErrorMessages = {
   categoriesLoadFailed: "分类加载失败，请稍后重试。",
@@ -66,9 +60,4 @@ export const categoryWriteErrorMessages = {
   archiveFailed: "分类归档失败，请稍后重试。",
   createFailed: "分类创建失败，请稍后重试。",
   updateFailed: "分类更新失败，请稍后重试。",
-} as const;
-
-/** Action 表单解析错误码查不到文案时的兜底文案 */
-export const categoryFallbackErrorMessages = {
-  inputInvalid: "分类信息不正确，请确认后重试。",
 } as const;

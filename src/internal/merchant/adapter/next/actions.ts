@@ -8,13 +8,11 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
-  getMerchantActionErrorMessage,
   getMerchantErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
-  merchantFallbackErrorMessages,
   type MerchantActionErrorCode,
-  type MerchantErrorCode,
+  type MerchantValidationErrorCode,
 } from "internal/merchant/errors";
 import {
   validateArchiveMerchantAliasForm,
@@ -47,11 +45,10 @@ async function getMerchantService() {
   return createRequestContainer(dependencies).merchant.service;
 }
 
-function validationErrorState(error: MerchantErrorCode): MerchantActionState {
-  return createErrorState(
-    getMerchantActionErrorMessage(error) ??
-      merchantFallbackErrorMessages.inputInvalid,
-  );
+function validationErrorState(
+  error: MerchantValidationErrorCode,
+): MerchantActionState {
+  return createErrorState(getMerchantErrorMessage(error));
 }
 
 function actionErrorState(

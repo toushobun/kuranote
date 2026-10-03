@@ -202,8 +202,3 @@ export const merchantWebsiteUrlErrorMessages = {
   notPublic: "商家网址必须指向可公开访问的网站。",
   protocolInvalid: "商家网址必须使用 HTTP 或 HTTPS。",
 } as const;
-
-/** Action 表单校验错误码查不到文案时的兜底文案 */
-export const merchantFallbackErrorMessages = {
-  inputInvalid: "商家操作内容不正确，请确认后重试。",
-} as const;
