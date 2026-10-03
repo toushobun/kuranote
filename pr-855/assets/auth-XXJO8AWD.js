@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e){return e.length>=8&&e.length<=72&&/[A-Za-z]/.test(e)&&/[0-9]/.test(e)}function n(e){let t=e.indexOf(`@`),n=e.lastIndexOf(`.`);return t>0&&n>t+1&&n<e.length-1}var r,i,a=e((()=>{r=`密码至少 8 位，并且需要同时包含字母和数字。`,i=`8-72 位，且包含字母和数字`}));export{i as a,r as i,n,t as r,a as t};
