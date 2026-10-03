@@ -13,6 +13,15 @@ export const avatarMimeTypes = [
 export type AvatarMimeType = (typeof avatarMimeTypes)[number];
 
 export const userErrorMessages = {
+  avatarUrlInvalid: "头像地址必须是有效的 HTTPS URL。",
+  avatarUrlHttpsRequired: "头像地址必须使用 HTTPS。",
+  profileNotFound: "用户资料不存在。",
+  profileUpdateRequired: "请至少提供一项需要更新的用户资料。",
+  scopeMismatch: "不能修改其他用户的资料。",
+  profileInvalid: "用户资料格式异常，请稍后重试。",
+  profileLoadFailed: "用户资料加载失败，请稍后重试。",
+  profileUpdateFailed: "用户资料更新失败，请稍后重试。",
+
   avatarFileRequired: "请选择头像图片。",
   avatarFileTooLarge: `头像图片不能超过 ${avatarMaxFileSize / 1024 / 1024}MB，请换一张图片后重试。`,
   avatarFileTypeUnsupported: "仅支持 JPEG、PNG 或 WebP 格式的图片。",

@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { MiddlewareHandler } from "hono";
 
 import type { AppEnv } from "internal/appEnv";
@@ -36,7 +37,10 @@ export const jsonBodySyntaxMiddleware: MiddlewareHandler<AppEnv> = async (
   try {
     await c.req.json();
   } catch {
-    throw new ValidationError("validation_error", "请求参数无效。");
+    throw new ValidationError(
+      "validation_error",
+      sharedErrorMessages.validationInvalid,
+    );
   }
 
   await next();

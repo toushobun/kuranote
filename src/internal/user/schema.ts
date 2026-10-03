@@ -24,7 +24,7 @@ const httpsUrlSchema = z
   .string()
   .trim()
   .url()
-  .refine(isHttpsUrl, { message: "头像地址必须使用 HTTPS。" });
+  .refine(isHttpsUrl, { message: userErrorMessages.avatarUrlHttpsRequired });
 const transactionColorSchemeSchema = z.enum(transactionColorSchemes, {
   error: userErrorMessages.transactionColorSchemeInvalid,
 });
@@ -40,7 +40,7 @@ export const updateUserProfileRequestSchema = z
       input.avatarUrl !== undefined ||
       input.displayName !== undefined ||
       input.transactionColorScheme !== undefined,
-    { message: "请至少提供一项需要更新的用户资料。" },
+    { message: userErrorMessages.profileUpdateRequired },
   );
 
 export const userProfileResponseSchema = z.object({

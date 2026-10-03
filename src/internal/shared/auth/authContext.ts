@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { AuthenticationError } from "internal/shared/errors/appError";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 
@@ -29,7 +30,10 @@ export async function getAuthContext(
  */
 export function requireAuthenticatedUserId(auth: AuthContext): string {
   if (!auth.isAuthenticated) {
-    throw new AuthenticationError("auth_required", "请先登录。");
+    throw new AuthenticationError(
+      "auth_required",
+      sharedErrorMessages.authRequired,
+    );
   }
 
   return auth.userId;

@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { sharedErrorMessages } from "internal/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -412,7 +413,7 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.authRequired,
       details: "auth_required",
       errorType: AuthenticationError,
-      message: "请先登录。",
+      message: sharedErrorMessages.authRequired,
     },
     {
       code: merchantErrorCodes.permissionDenied,

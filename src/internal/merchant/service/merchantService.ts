@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared";
 import { canManageMasterData } from "internal/ledger";
 import {
   requireActiveLedgerMemberRole,
@@ -153,7 +154,10 @@ export function createMerchantService({
 }: MerchantServiceDependencies): MerchantService {
   function requireUserId(): string {
     if (!currentUserId) {
-      throw new AuthenticationError("auth_required", "请先登录。");
+      throw new AuthenticationError(
+        "auth_required",
+        sharedErrorMessages.authRequired,
+      );
     }
     return currentUserId;
   }

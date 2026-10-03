@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared";
 export const transactionErrorCodes = {
   balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
   accountInvalid: "account_invalid",
@@ -76,7 +77,7 @@ export const transactionTargetErrorMessages = {
 
 /** 交易模块各层共用的登录、权限、对象存在性与未知失败兜底文案。 */
 export const transactionAccessErrorMessages = {
-  authRequired: "请先登录。",
+  authRequired: sharedErrorMessages.authRequired,
   itemNotFound: "交易明细不存在或已删除。",
   operationFailed: "交易操作失败，请稍后重试。",
   permissionDenied: "没有权限执行此交易操作。",

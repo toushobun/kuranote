@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { sharedErrorMessages } from "internal/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -424,7 +425,7 @@ describe("createUserService.updateCurrentDisplayName", () => {
   });
 
   it.each([
-    ["auth_required", AuthenticationError, "请先登录。"],
+    ["auth_required", AuthenticationError, sharedErrorMessages.authRequired],
     ["display_name_required", ValidationError, "请输入昵称。"],
     ["display_name_too_long", ValidationError, "昵称最多 100 个字符。"],
     [

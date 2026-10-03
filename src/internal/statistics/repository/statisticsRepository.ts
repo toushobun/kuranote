@@ -6,7 +6,10 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
-import { statisticsErrorCodes } from "internal/statistics/errors";
+import {
+  statisticsErrorMessages,
+  statisticsErrorCodes,
+} from "internal/statistics/errors";
 
 export type StatisticsLedgerSummary = {
   baseCurrency: string;
@@ -73,7 +76,7 @@ export function createSupabaseStatisticsRepository(
         fail(
           "failed to load ledger",
           statisticsErrorCodes.ledgerInvalid,
-          "账本信息加载失败，请稍后重试。",
+          statisticsErrorMessages.ledgerLoadFailed,
           { ledgerId },
           error,
         );
@@ -103,7 +106,7 @@ export function createSupabaseStatisticsRepository(
         fail(
           "failed to load dashboard accounts",
           statisticsErrorCodes.dashboardLoadFailed,
-          "Dashboard 账户摘要加载失败，请稍后重试。",
+          statisticsErrorMessages.dashboardAccountsLoadFailed,
           { ledgerId },
           error,
         );
@@ -136,7 +139,7 @@ export function createSupabaseStatisticsRepository(
         fail(
           "failed to load monthly records",
           statisticsErrorCodes.monthlyLoadFailed,
-          "统计数据加载失败，请稍后重试。",
+          statisticsErrorMessages.monthlyLoadFailed,
           { ledgerId },
           recordError,
         );
@@ -161,7 +164,7 @@ export function createSupabaseStatisticsRepository(
         fail(
           "failed to load monthly items",
           statisticsErrorCodes.monthlyLoadFailed,
-          "统计数据加载失败，请稍后重试。",
+          statisticsErrorMessages.monthlyLoadFailed,
           { ledgerId },
           itemError,
         );
@@ -188,7 +191,7 @@ export function createSupabaseStatisticsRepository(
         fail(
           "failed to load monthly categories",
           statisticsErrorCodes.monthlyLoadFailed,
-          "统计关联数据加载失败，请稍后重试。",
+          statisticsErrorMessages.relatedDataLoadFailed,
           { ledgerId },
           categoryResult.error,
         );
@@ -214,7 +217,7 @@ export function createSupabaseStatisticsRepository(
           fail(
             "failed to load monthly parent categories",
             statisticsErrorCodes.monthlyLoadFailed,
-            "统计分类数据加载失败，请稍后重试。",
+            statisticsErrorMessages.categoriesLoadFailed,
             { ledgerId },
             error,
           );

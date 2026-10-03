@@ -11,6 +11,8 @@ import {
   NotFoundError,
 } from "internal/shared/errors/appError";
 import {
+  accountErrorMessages,
+  accountLoadErrorMessages,
   accountErrorCodes,
   getAccountErrorMessage,
 } from "internal/account/errors";
@@ -211,7 +213,7 @@ function toCurrentLedgerRole(value: unknown): CurrentLedgerRole {
 
   throw toRepositoryError(
     "account_member_role_invalid",
-    "账户成员资料格式异常，请稍后重试。",
+    accountLoadErrorMessages.memberRoleInvalid,
   );
 }
 
@@ -251,7 +253,7 @@ export function createSupabaseAccountRepository(
         logError("failed to archive account", error, { accountId, ledgerId });
         throw toRepositoryError(
           "account_archive_failed",
-          "账户删除失败，请稍后重试。",
+          accountErrorMessages[accountErrorCodes.archiveFailed],
         );
       }
 
@@ -292,14 +294,14 @@ export function createSupabaseAccountRepository(
         }
         throw toRepositoryError(
           "account_create_failed",
-          "账户新增失败，请稍后重试。",
+          accountErrorMessages[accountErrorCodes.createFailed],
         );
       }
 
       if (typeof data !== "string") {
         throw toRepositoryError(
           "account_create_result_invalid",
-          "账户新增失败，请稍后重试。",
+          accountErrorMessages[accountErrorCodes.createFailed],
         );
       }
       return data;
@@ -317,7 +319,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load account summaries", error, { ledgerId });
         throw toRepositoryError(
           "account_summaries_load_failed",
-          "账户信息加载失败，请稍后重试。",
+          accountLoadErrorMessages.summariesLoadFailed,
         );
       }
       return (
@@ -342,7 +344,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load ledger", error, { ledgerId });
         throw toRepositoryError(
           "account_ledger_load_failed",
-          "账本信息加载失败，请稍后重试。",
+          accountLoadErrorMessages.ledgerLoadFailed,
         );
       }
 
@@ -368,7 +370,7 @@ export function createSupabaseAccountRepository(
         logError("failed to check account", error, { accountId, ledgerId });
         throw toRepositoryError(
           "account_lookup_failed",
-          "账户信息确认失败，请稍后重试。",
+          accountLoadErrorMessages.lookupFailed,
         );
       }
 
@@ -392,7 +394,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load accounts", error, { ledgerId });
         throw toRepositoryError(
           "accounts_load_failed",
-          "账户列表加载失败，请稍后重试。",
+          accountLoadErrorMessages.listLoadFailed,
         );
       }
 
@@ -423,7 +425,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load active ledger members", error, { ledgerId });
         throw toRepositoryError(
           "account_members_load_failed",
-          "账本成员加载失败，请稍后重试。",
+          accountLoadErrorMessages.membersLoadFailed,
         );
       }
 
@@ -447,7 +449,7 @@ export function createSupabaseAccountRepository(
         });
         throw toRepositoryError(
           "account_member_display_settings_load_failed",
-          "账本成员显示设置加载失败，请稍后重试。",
+          accountLoadErrorMessages.memberDisplaySettingsLoadFailed,
         );
       }
 
@@ -473,7 +475,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load account holders", error, { ledgerId });
         throw toRepositoryError(
           "account_holders_load_failed",
-          "账户持有人加载失败，请稍后重试。",
+          accountLoadErrorMessages.holdersLoadFailed,
         );
       }
 
@@ -487,7 +489,7 @@ export function createSupabaseAccountRepository(
           });
           throw toRepositoryError(
             "account_holder_identity_invalid",
-            "账户持有人加载失败，请稍后重试。",
+            accountLoadErrorMessages.holdersLoadFailed,
           );
         }
         return {
@@ -512,7 +514,7 @@ export function createSupabaseAccountRepository(
         logError("failed to load account holder users", error, {});
         throw toRepositoryError(
           "account_holder_users_load_failed",
-          "账户持有人资料加载失败，请稍后重试。",
+          accountLoadErrorMessages.holderUsersLoadFailed,
         );
       }
 
@@ -581,7 +583,7 @@ export function createSupabaseAccountRepository(
         }
         throw toRepositoryError(
           "account_update_failed",
-          "账户更新失败，请稍后重试。",
+          accountErrorMessages[accountErrorCodes.updateFailed],
         );
       }
 

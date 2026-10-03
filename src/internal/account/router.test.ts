@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { accountLoadErrorMessages } from "internal/account/errors";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -357,7 +358,7 @@ describe("account router", () => {
       .mockRejectedValue(
         new RepositoryError(
           "accounts_load_failed",
-          "账户列表加载失败，请稍后重试。",
+          accountLoadErrorMessages.listLoadFailed,
         ),
       );
     const app = createApp(createContainer({ getView }));
@@ -371,7 +372,7 @@ describe("account router", () => {
     expect(body).toEqual({
       error: {
         code: "accounts_load_failed",
-        message: "账户列表加载失败，请稍后重试。",
+        message: accountLoadErrorMessages.listLoadFailed,
         requestId: "request-1",
         status: 500,
       },

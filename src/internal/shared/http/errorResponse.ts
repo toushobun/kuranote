@@ -1,3 +1,4 @@
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { OpenAPIHonoOptions } from "@hono/zod-openapi";
 import type { Context } from "hono";
 
@@ -23,7 +24,7 @@ export type ErrorResponseBody = {
   };
 };
 
-const validationErrorMessage = "请求参数无效。";
+const validationErrorMessage = sharedErrorMessages.validationInvalid;
 
 function validationErrorResponseBody(requestId?: string): ErrorResponseBody {
   return {
@@ -125,7 +126,7 @@ export function errorHandlingMiddleware(
   const body: ErrorResponseBody = {
     error: {
       code: "internal_error",
-      message: "服务器发生未知错误，请稍后重试。",
+      message: sharedErrorMessages.internalError,
       status: 500,
       ...(requestId ? { requestId } : {}),
     },
