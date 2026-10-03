@@ -41,7 +41,7 @@ const sharedInviteErrorCodes = new Set<string>([
   ledgerInviteErrorCodes.placeholderNotFound,
 ]);
 
-const messages: Record<
+export const ledgerPlaceholderMemberErrorMessages: Record<
   Exclude<LedgerPlaceholderMemberErrorCode, SharedInviteErrorCode>,
   string
 > = {
@@ -58,6 +58,10 @@ const messages: Record<
   placeholder_rename_failed: "待邀请成员改名失败，请稍后重试。",
 };
 
+export const ledgerPlaceholderMemberFallbackErrorMessages = {
+  operationFailed: "待邀请成员操作失败，请稍后重试。",
+} as const;
+
 export function getLedgerPlaceholderMemberErrorMessage(
   code?: string,
 ): string | null {
@@ -65,5 +69,9 @@ export function getLedgerPlaceholderMemberErrorMessage(
   if (sharedInviteErrorCodes.has(code)) {
     return getLedgerInviteErrorMessage(code);
   }
-  return code in messages ? messages[code as keyof typeof messages] : null;
+  return code in ledgerPlaceholderMemberErrorMessages
+    ? ledgerPlaceholderMemberErrorMessages[
+        code as keyof typeof ledgerPlaceholderMemberErrorMessages
+      ]
+    : null;
 }

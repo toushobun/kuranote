@@ -1,3 +1,5 @@
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
+
 export const ledgerCreateErrorCodes = {
   authRequired: "auth_required",
   createFailed: "create_failed",
@@ -13,8 +15,8 @@ export const ledgerCreateErrorCodes = {
 export type LedgerCreateErrorCode =
   (typeof ledgerCreateErrorCodes)[keyof typeof ledgerCreateErrorCodes];
 
-const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
-  [ledgerCreateErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
+export const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
+  [ledgerCreateErrorCodes.authRequired]: ledgerAccessErrorMessages.authRequired,
   [ledgerCreateErrorCodes.createFailed]: "账本创建失败。请确认内容后稍后重试。",
   [ledgerCreateErrorCodes.currencyInvalid]: "默认货币指定不正确。",
   [ledgerCreateErrorCodes.displayColorInvalid]: "个性色指定不正确。",
@@ -25,6 +27,15 @@ const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
   [ledgerCreateErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
   [ledgerCreateErrorCodes.userInactive]: "当前账号不可用，请联系管理员。",
 };
+
+export const ledgerCreateFallbackErrorMessages = {
+  inputInvalid: "账本信息不正确，请确认后重试。",
+  operationFailed: "账本创建失败，请稍后重试。",
+} as const;
+
+export const ledgerCreateLoadErrorMessages = {
+  userProfileLoadFailed: "用户资料加载失败，请稍后重试。",
+} as const;
 
 export function getLedgerCreateErrorMessage(error?: string) {
   return error

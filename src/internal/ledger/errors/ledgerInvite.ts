@@ -35,17 +35,17 @@ export function getInviteMemberLinkFailedMessage(displayName?: string): string {
   return `已添加${target}，但邀请链接生成失败，请在列表中重新生成。`;
 }
 
-const messages: Record<LedgerInviteErrorCode, string> = {
+export const ledgerInviteErrorMessages: Record<LedgerInviteErrorCode, string> = {
   accept_failed: "加入账本失败，请稍后重试。",
   auth_required: "请先登录后再继续。",
   create_failed: "邀请链接生成失败，请稍后重试。",
   invite_already_revoked: "该邀请已经撤销。",
+  invite_already_used: "该邀请链接已经被使用。",
   invite_invalid: "该邀请链接无效或已失效。",
   invite_member_link_failed: getInviteMemberLinkFailedMessage(),
   invite_member_name_conflict:
     "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
   invite_role_invalid: "请选择有效的邀请权限。",
-  invite_already_used: "该邀请链接已经被使用。",
   ledger_not_found: "账本不存在或已归档。",
   ledger_required: "未指定账本，请刷新页面后重试。",
   load_failed: "待接受邀请加载失败，请稍后重试。",
@@ -63,8 +63,20 @@ const messages: Record<LedgerInviteErrorCode, string> = {
   user_inactive: "当前账号已停用，无法加入账本。",
 };
 
+export const ledgerInviteFallbackErrorMessages = {
+  operationFailed: "邀请操作失败，请稍后重试。",
+} as const;
+
+export const ledgerInviteLoadErrorMessages = {
+  previewLoadFailed: "邀请信息加载失败，请稍后重试。",
+} as const;
+
+export const ledgerInviteValidationErrorMessages = {
+  tokenInvalid: "邀请 token 格式无效。",
+} as const;
+
 export function getLedgerInviteErrorMessage(code?: string) {
-  return code && code in messages
-    ? messages[code as LedgerInviteErrorCode]
+  return code && code in ledgerInviteErrorMessages
+    ? ledgerInviteErrorMessages[code as LedgerInviteErrorCode]
     : null;
 }

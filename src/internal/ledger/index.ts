@@ -1,21 +1,26 @@
 export {
   currentLedgerErrorCodes,
+  currentLedgerErrorMessages,
+  getCurrentLedgerErrorMessage,
   type CurrentLedgerErrorCode,
   type CurrentLedgerValidationErrorCode,
 } from "internal/ledger/errors/currentLedger";
 export {
-  ledgerCreateErrorCodes,
   getLedgerCreateErrorMessage,
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
   type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
 export {
   getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 export {
   getLedgerPlaceholderMemberErrorMessage,
   ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
   type LedgerPlaceholderMemberErrorCode,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 export {
@@ -27,7 +32,9 @@ export type {
   LedgerPlaceholderMemberQueryService,
 } from "internal/ledger/service/ledgerPlaceholderMemberService";
 export {
+  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 export type { LedgerCreateDefaults } from "internal/ledger/entity/ledgerCreateDefaults";
