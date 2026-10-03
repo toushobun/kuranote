@@ -1,8 +1,11 @@
 import type { QueryData } from "@supabase/supabase-js";
 
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
 import {
   ledgerSettingsErrorCodes,
+  ledgerSettingsLoadErrorMessages,
+  ledgerSettingsSaveErrorMessages,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 import {
@@ -97,7 +100,7 @@ function toCurrentLedgerRole(role: unknown): CurrentLedgerRole {
 
   throw toRepositoryError(
     "ledger_member_role_invalid",
-    "账本成员资料格式异常，请稍后重试。",
+    ledgerSettingsLoadErrorMessages.memberDataInvalid,
   );
 }
 
@@ -127,7 +130,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_member_role_load_failed",
-          "账本成员权限读取失败，请稍后重试。",
+          ledgerSettingsLoadErrorMessages.memberPermissionsLoadFailed,
         );
       }
       if (!data) return null;
@@ -150,7 +153,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_status_load_failed",
-          "账本信息读取失败，请稍后重试。",
+          ledgerAccessErrorMessages.loadFailed,
         );
       }
       return Boolean(data);
@@ -176,7 +179,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_members_load_failed",
-          "账本成员加载失败，请稍后重试。",
+          ledgerSettingsLoadErrorMessages.membersLoadFailed,
         );
       }
 
@@ -205,7 +208,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_member_profiles_load_failed",
-          "账本成员资料加载失败，请稍后重试。",
+          ledgerSettingsLoadErrorMessages.memberProfilesLoadFailed,
         );
       }
 
@@ -216,7 +219,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_member_display_settings_load_failed",
-          "账本成员显示设置加载失败，请稍后重试。",
+          ledgerSettingsLoadErrorMessages.memberDisplaySettingsLoadFailed,
         );
       }
 
@@ -279,7 +282,7 @@ export function createSupabaseLedgerSettingsRepository(
         });
         throw toRepositoryError(
           "ledger_base_settings_update_failed",
-          "账本设置保存失败，请稍后重试。",
+          ledgerSettingsSaveErrorMessages.settingsSaveFailed,
         );
       }
       if (count !== 1) {
@@ -314,7 +317,7 @@ export function createSupabaseLedgerSettingsRepository(
           });
           throw toRepositoryError(
             "ledger_member_settings_update_failed",
-            "账本成员设置保存失败，请稍后重试。",
+            ledgerSettingsSaveErrorMessages.memberSettingsSaveFailed,
           );
         }
         return {

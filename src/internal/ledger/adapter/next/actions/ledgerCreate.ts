@@ -9,6 +9,7 @@ import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidat
 import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
+  ledgerCreateFallbackErrorMessages,
 } from "internal/ledger/errors/ledgerCreate";
 import { validateCreateLedgerForm } from "internal/ledger/schema/ledgerCreateForm";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
@@ -18,7 +19,8 @@ import type { LedgerCreateActionState } from "types/ledgers";
 
 function createValidationErrorState(code: string): LedgerCreateActionState {
   return createErrorState(
-    getLedgerCreateErrorMessage(code) ?? "账本信息不正确，请确认后重试。",
+    getLedgerCreateErrorMessage(code) ??
+      ledgerCreateFallbackErrorMessages.inputInvalid,
   );
 }
 
@@ -32,7 +34,7 @@ function createActionErrorState(error: unknown): LedgerCreateActionState {
   });
   return createErrorState(
     getLedgerCreateErrorMessage(ledgerCreateErrorCodes.createFailed) ??
-      "账本创建失败，请稍后重试。",
+      ledgerCreateFallbackErrorMessages.operationFailed,
   );
 }
 

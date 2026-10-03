@@ -5,6 +5,7 @@ import {
 import {
   getLedgerPlaceholderMemberErrorMessage,
   ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberFallbackErrorMessages,
   type LedgerPlaceholderMemberErrorCode,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 import type { LedgerPlaceholderMemberRepository } from "internal/ledger/repository/ledgerPlaceholderMemberRepository";
@@ -77,7 +78,7 @@ type LedgerPlaceholderMemberServiceDependencies = {
 function toAppError(code: LedgerPlaceholderMemberErrorCode): AppError {
   const message =
     getLedgerPlaceholderMemberErrorMessage(code) ??
-    "待邀请成员操作失败，请稍后重试。";
+    ledgerPlaceholderMemberFallbackErrorMessages.operationFailed;
 
   switch (code) {
     case ledgerPlaceholderMemberErrorCodes.authRequired:

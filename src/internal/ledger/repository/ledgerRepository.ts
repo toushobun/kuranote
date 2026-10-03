@@ -1,7 +1,10 @@
 import {
   ledgerCreateErrorCodes,
+  ledgerCreateFallbackErrorMessages,
+  ledgerCreateLoadErrorMessages,
   type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
+import { ledgerListErrorMessages } from "internal/ledger/errors/ledgerList";
 import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
@@ -64,7 +67,7 @@ export function createSupabaseLedgerRepository(
           });
           throw toRepositoryError(
             "ledger_create_failed",
-            "账本创建失败，请稍后重试。",
+            ledgerCreateFallbackErrorMessages.operationFailed,
           );
         }
         return {
@@ -94,7 +97,7 @@ export function createSupabaseLedgerRepository(
             });
             throw toRepositoryError(
               "ledger_member_count_failed",
-              "账本成员数量加载失败，请稍后重试。",
+              ledgerListErrorMessages.memberCountsLoadFailed,
             );
           }
 
@@ -119,7 +122,7 @@ export function createSupabaseLedgerRepository(
         });
         throw toRepositoryError(
           "ledger_user_profile_load_failed",
-          "用户资料加载失败，请稍后重试。",
+          ledgerCreateLoadErrorMessages.userProfileLoadFailed,
         );
       }
 

@@ -1,4 +1,5 @@
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
 import type { LedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import { NotFoundError } from "internal/shared/errors/appError";
 
@@ -23,7 +24,7 @@ export async function requireActiveLedgerMemberRole(
   if (!role) {
     throw new NotFoundError(
       "ledger_invalid",
-      "账本不存在、已归档或您无法访问。",
+      ledgerAccessErrorMessages.notFound,
     );
   }
 

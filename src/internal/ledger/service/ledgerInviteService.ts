@@ -2,6 +2,7 @@ import {
   getInviteMemberLinkFailedMessage,
   getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
+  ledgerInviteFallbackErrorMessages,
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 import { ledgerPlaceholderMemberErrorCodes } from "internal/ledger/errors/ledgerPlaceholderMember";
@@ -76,7 +77,8 @@ export type LedgerInviteService = {
 
 function toAppError(code: LedgerInviteErrorCode): AppError {
   const message =
-    getLedgerInviteErrorMessage(code) ?? "邀请操作失败，请稍后重试。";
+    getLedgerInviteErrorMessage(code) ??
+    ledgerInviteFallbackErrorMessages.operationFailed;
 
   switch (code) {
     case ledgerInviteErrorCodes.authRequired:

@@ -6,6 +6,7 @@ import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import {
   getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
+  ledgerCreateFallbackErrorMessages,
   type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
 import type {
@@ -43,7 +44,8 @@ const validationErrorCodes = new Set<LedgerCreateErrorCode>([
 
 function toAppError(code: LedgerCreateErrorCode): AppError {
   const message =
-    getLedgerCreateErrorMessage(code) ?? "账本创建失败，请稍后重试。";
+    getLedgerCreateErrorMessage(code) ??
+    ledgerCreateFallbackErrorMessages.operationFailed;
 
   if (code === ledgerCreateErrorCodes.authRequired) {
     return new AuthenticationError(code, message);

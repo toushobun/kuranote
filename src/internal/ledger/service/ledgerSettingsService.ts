@@ -2,6 +2,7 @@ import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
 import {
   getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 import type {
@@ -57,7 +58,7 @@ export type LedgerSettingsService = {
 function toAppError(code: LedgerSettingsErrorCode): AppError {
   const message =
     getLedgerSettingsErrorMessage(code) ??
-    "账本设置保存失败。请确认内容后稍后重试。";
+    ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed];
 
   switch (code) {
     case ledgerSettingsErrorCodes.authRequired:

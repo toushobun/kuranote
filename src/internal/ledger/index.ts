@@ -13,6 +13,7 @@ export {
 } from "internal/ledger/errors/ledgerCreate";
 export {
   getLedgerInviteErrorMessage,
+  ledgerInviteClientErrorMessages,
   ledgerInviteErrorCodes,
   ledgerInviteErrorMessages,
   type LedgerInviteErrorCode,

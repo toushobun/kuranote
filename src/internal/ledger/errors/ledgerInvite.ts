@@ -63,6 +63,10 @@ export const ledgerInviteErrorMessages: Record<LedgerInviteErrorCode, string> = 
   user_inactive: "当前账号已停用，无法加入账本。",
 };
 
+export const ledgerInviteClientErrorMessages = {
+  acceptNetworkFailed: "加入账本失败，请检查网络后重试。",
+} as const;
+
 export const ledgerInviteFallbackErrorMessages = {
   operationFailed: "邀请操作失败，请稍后重试。",
 } as const;

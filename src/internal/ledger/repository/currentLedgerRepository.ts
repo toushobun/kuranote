@@ -7,8 +7,10 @@ import type {
 } from "internal/ledger/entity/currentLedger";
 import {
   currentLedgerErrorCodes,
+  currentLedgerRepositoryErrorMessages,
   type CurrentLedgerErrorCode,
 } from "internal/ledger/errors/currentLedger";
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -207,7 +209,7 @@ export function createSupabaseCurrentLedgerRepository(
         });
         throw toRepositoryError(
           "current_ledger_member_lookup_failed",
-          "账本成员信息读取失败，请稍后重试。",
+          currentLedgerRepositoryErrorMessages.memberLoadFailed,
         );
       }
       if (!member) return null;
@@ -229,7 +231,7 @@ export function createSupabaseCurrentLedgerRepository(
         });
         throw toRepositoryError(
           "current_ledger_lookup_failed",
-          "账本信息读取失败，请稍后重试。",
+          ledgerAccessErrorMessages.loadFailed,
         );
       }
       if (!ledger) return null;
@@ -262,7 +264,7 @@ export function createSupabaseCurrentLedgerRepository(
         });
         throw toRepositoryError(
           "current_ledger_member_lookup_failed",
-          "账本成员信息读取失败，请稍后重试。",
+          currentLedgerRepositoryErrorMessages.memberLoadFailed,
         );
       }
 
@@ -284,7 +286,7 @@ export function createSupabaseCurrentLedgerRepository(
         });
         throw toRepositoryError(
           "current_ledger_lookup_failed",
-          "账本信息读取失败，请稍后重试。",
+          ledgerAccessErrorMessages.loadFailed,
         );
       }
 
@@ -309,7 +311,7 @@ export function createSupabaseCurrentLedgerRepository(
         });
         throw toRepositoryError(
           "current_ledger_update_failed",
-          "当前账本切换失败，请稍后重试。",
+          currentLedgerRepositoryErrorMessages.updateFailed,
         );
       }
 

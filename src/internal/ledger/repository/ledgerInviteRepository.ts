@@ -1,5 +1,6 @@
 import {
   ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
   type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
 import {
@@ -149,7 +150,7 @@ export function createSupabaseLedgerInviteRepository(
           logUnexpectedRpcError(logger, "accept_ledger_invite", error);
           throw toRepositoryError(
             "ledger_invite_accept_failed",
-            "加入账本失败，请稍后重试。",
+            ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
           );
         }
         return { code, ok: false };
@@ -165,7 +166,7 @@ export function createSupabaseLedgerInviteRepository(
         });
         throw toRepositoryError(
           "ledger_invite_accept_result_invalid",
-          "加入账本失败，请稍后重试。",
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
         );
       }
 
@@ -192,7 +193,7 @@ export function createSupabaseLedgerInviteRepository(
           logUnexpectedRpcError(logger, "create_ledger_invite_v2", error);
           throw toRepositoryError(
             "ledger_invite_create_failed",
-            "邀请链接生成失败，请稍后重试。",
+            ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
           );
         }
         return { code, ok: false };
@@ -213,7 +214,7 @@ export function createSupabaseLedgerInviteRepository(
         });
         throw toRepositoryError(
           "ledger_invite_create_result_invalid",
-          "邀请链接生成失败，请稍后重试。",
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
         );
       }
 
@@ -245,7 +246,7 @@ export function createSupabaseLedgerInviteRepository(
           logUnexpectedRpcError(logger, "revoke_ledger_invite", error);
           throw toRepositoryError(
             "ledger_invite_revoke_failed",
-            "邀请撤销失败，请稍后重试。",
+            ledgerInviteErrorMessages[ledgerInviteErrorCodes.revokeFailed],
           );
         }
         return { code, ok: false };
@@ -266,13 +267,13 @@ export function createSupabaseLedgerInviteRepository(
         logUnexpectedRpcError(logger, "list_pending_ledger_invites", error);
         throw toRepositoryError(
           "ledger_invite_list_failed",
-          "待接受邀请加载失败，请稍后重试。",
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.loadFailed],
         );
       }
       if (!Array.isArray(data)) {
         throw toRepositoryError(
           "ledger_invite_list_result_invalid",
-          "待接受邀请加载失败，请稍后重试。",
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.loadFailed],
         );
       }
 

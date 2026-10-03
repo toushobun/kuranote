@@ -1,3 +1,4 @@
+import { ledgerInviteLoadErrorMessages } from "internal/ledger/errors/ledgerInvite";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -54,7 +55,7 @@ export function createSupabaseLedgerInvitePreviewRepository(
         });
         throw toRepositoryError(
           "ledger_invite_preview_load_failed",
-          "邀请信息加载失败，请稍后重试。",
+          ledgerInviteLoadErrorMessages.previewLoadFailed,
         );
       }
 

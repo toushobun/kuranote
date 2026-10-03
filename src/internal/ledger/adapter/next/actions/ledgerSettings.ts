@@ -12,7 +12,9 @@ import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/curren
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import {
   getLedgerSettingsErrorMessage,
+  ledgerSettingsActionErrorMessages,
   ledgerSettingsErrorCodes,
+  ledgerSettingsSaveErrorMessages,
 } from "internal/ledger/errors/ledgerSettings";
 import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
@@ -22,7 +24,8 @@ import type { LedgerSettingsActionState } from "types/ledgers";
 
 function validationErrorState(code: string): LedgerSettingsActionState {
   return createErrorState(
-    getLedgerSettingsErrorMessage(code) ?? "账本设置内容不正确，请确认后重试。",
+    getLedgerSettingsErrorMessage(code) ??
+      ledgerSettingsActionErrorMessages.inputInvalid,
   );
 }
 
@@ -36,7 +39,7 @@ function actionErrorState(error: unknown): LedgerSettingsActionState {
   });
   return createErrorState(
     getLedgerSettingsErrorMessage(ledgerSettingsErrorCodes.updateFailed) ??
-      "账本设置保存失败，请稍后重试。",
+      ledgerSettingsSaveErrorMessages.settingsSaveFailed,
   );
 }
 
