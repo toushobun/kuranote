@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { userErrorMessages } from "internal/user";
 import type { AvatarAction, AvatarActionState } from "types/user";
 
 import {
@@ -127,7 +128,7 @@ describe("ProfileAvatarUploader", () => {
   it("上传失败时显示 Action 返回的错误文案", async () => {
     const { container } = renderUploader({
       action: vi.fn<AvatarAction>(async () => ({
-        error: "头像上传失败，请稍后重试。",
+        error: userErrorMessages.avatarUploadFailed,
         errorKey: "error-1",
       })),
     });
@@ -137,7 +138,7 @@ describe("ProfileAvatarUploader", () => {
     // 失败提示挂载到页面根节点（FailureFeedbackDialog 默认显示在弹窗上层）。
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("头像更换失败");
-    expect(alert).toHaveTextContent("头像上传失败，请稍后重试。");
+    expect(alert).toHaveTextContent(userErrorMessages.avatarUploadFailed);
     expect(container).not.toContainElement(alert);
   });
 
@@ -149,7 +150,7 @@ describe("ProfileAvatarUploader", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("头像更换失败");
-    expect(alert).toHaveTextContent("无法读取该图片，请换一张图片后重试。");
+    expect(alert).toHaveTextContent(userErrorMessages.avatarImageUnreadable);
     expect(action).not.toHaveBeenCalled();
   });
 });

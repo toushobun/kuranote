@@ -2,6 +2,10 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  formatLedgerDisplayNameConflictMessage,
+  userErrorMessages,
+} from "internal/user/errors";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import {
   AuthenticationError,
@@ -318,12 +322,17 @@ describe("createUserService.updateCurrentDisplayName", () => {
   });
 
   it.each([
-    ["空白", "   ", "display_name_required", "请输入昵称。"],
+    [
+      "空白",
+      "   ",
+      "display_name_required",
+      userErrorMessages.displayNameRequired,
+    ],
     [
       "超过 100 字",
       "名".repeat(101),
       "display_name_too_long",
-      "昵称最多 100 个字符。",
+      userErrorMessages.displayNameTooLong,
     ],
   ])("昵称%s时拒绝写入", async (_label, displayName, code, message) => {
     const { repository, service } = createDisplayNameService();
@@ -375,7 +384,7 @@ describe("createUserService.updateCurrentDisplayName", () => {
     ).rejects.toThrow(
       new AuthorizationError(
         "ledger_permission_denied",
-        "部分账本已无法同步昵称，请刷新页面后重试。",
+        userErrorMessages.displayNameLedgerPermissionDenied,
       ),
     );
     expect(repository.updateCurrentDisplayName).not.toHaveBeenCalled();
@@ -419,21 +428,31 @@ describe("createUserService.updateCurrentDisplayName", () => {
     ).rejects.toThrow(
       new ConflictError(
         "display_name_ledger_conflict",
-        "以下账本无法使用该昵称，昵称未修改。「旅行」：账本中已有同名的待邀请成员。请更换昵称，或取消勾选这些账本。",
+        formatLedgerDisplayNameConflictMessage([
+          { code: "display_name_placeholder_conflict", ledgerName: "旅行" },
+        ]),
       ),
     );
   });
 
   it.each([
     ["auth_required", AuthenticationError, sharedErrorMessages.authRequired],
-    ["display_name_required", ValidationError, "请输入昵称。"],
-    ["display_name_too_long", ValidationError, "昵称最多 100 个字符。"],
+    [
+      "display_name_required",
+      ValidationError,
+      userErrorMessages.displayNameRequired,
+    ],
+    [
+      "display_name_too_long",
+      ValidationError,
+      userErrorMessages.displayNameTooLong,
+    ],
     [
       "ledger_permission_denied",
       AuthorizationError,
-      "部分账本已无法同步昵称，请刷新页面后重试。",
+      userErrorMessages.displayNameLedgerPermissionDenied,
     ],
-    ["user_inactive", AuthorizationError, "当前用户已停用。"],
+    ["user_inactive", AuthorizationError, userErrorMessages.userInactive],
   ] as const)(
     "RPC 业务错误 %s 转换为对应的应用错误",
     async (code, ErrorClass, message) => {
@@ -590,7 +609,7 @@ describe("updateCurrentAvatar", () => {
   it("上传失败时不更新头像地址", async () => {
     const uploadError = new RepositoryError(
       "user_avatar_upload_failed",
-      "头像上传失败，请稍后重试。",
+      userErrorMessages.avatarUploadFailed,
     );
     const { service, userRepository } = createAvatarService({
       avatarStorage: { uploadAvatar: vi.fn().mockRejectedValue(uploadError) },

@@ -660,7 +660,7 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.ledgerInvalid,
       details: "ledger_not_found",
       errorType: NotFoundError,
-      message: "账本不存在、已停用或您无法访问。",
+      message: getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid)!,
     },
     {
       databaseCode: "P0001",

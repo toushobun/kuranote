@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { userErrorMessages } from "internal/user/errors";
 import {
   AppError,
   ConflictError,
@@ -76,7 +77,7 @@ describe("updateTransactionColorScheme", () => {
     await expect(
       updateTransactionColorScheme({}, createFormData("invalid")),
     ).resolves.toEqual({
-      error: "请选择有效的收支配色方案。",
+      error: userErrorMessages.transactionColorSchemeInvalid,
       errorKey: expect.any(String),
     });
     expect(mocks.createDependencies).not.toHaveBeenCalled();
@@ -86,13 +87,13 @@ describe("updateTransactionColorScheme", () => {
 
   it("Service 应用错误直接返回安全文案", async () => {
     mocks.updateCurrentProfile.mockRejectedValue(
-      new AppError("user_inactive", "当前用户已停用。"),
+      new AppError("user_inactive", userErrorMessages.userInactive),
     );
 
     await expect(
       updateTransactionColorScheme({}, createFormData()),
     ).resolves.toEqual({
-      error: "当前用户已停用。",
+      error: userErrorMessages.userInactive,
       errorKey: expect.any(String),
     });
   });
@@ -106,7 +107,7 @@ describe("updateTransactionColorScheme", () => {
     await expect(
       updateTransactionColorScheme({}, createFormData()),
     ).resolves.toEqual({
-      error: "收支配色方案保存失败，请稍后重试。",
+      error: userErrorMessages.transactionColorSchemeUpdateFailed,
       errorKey: expect.any(String),
     });
     expect(consoleError).toHaveBeenCalledWith(
@@ -152,7 +153,7 @@ describe("updateDisplayName", () => {
     await expect(
       updateDisplayName({}, createDisplayNameFormData("   ")),
     ).resolves.toEqual({
-      error: "请输入昵称。",
+      error: userErrorMessages.displayNameRequired,
       errorKey: expect.any(String),
     });
     expect(mocks.createDependencies).not.toHaveBeenCalled();
@@ -186,7 +187,7 @@ describe("updateDisplayName", () => {
     await expect(
       updateDisplayName({}, createDisplayNameFormData()),
     ).resolves.toEqual({
-      error: "昵称保存失败，请稍后重试。",
+      error: userErrorMessages.displayNameUpdateFailed,
       errorKey: expect.any(String),
     });
     expect(consoleError).toHaveBeenCalledWith(
@@ -249,12 +250,12 @@ describe("updateAvatar", () => {
     mocks.updateCurrentAvatar.mockRejectedValue(
       new RepositoryError(
         "user_avatar_upload_failed",
-        "头像上传失败，请稍后重试。",
+        userErrorMessages.avatarUploadFailed,
       ),
     );
 
     await expect(updateAvatar({}, createAvatarFormData())).resolves.toEqual({
-      error: "头像上传失败，请稍后重试。",
+      error: userErrorMessages.avatarUploadFailed,
       errorKey: expect.any(String),
     });
     expect(mocks.revalidateUserProfile).not.toHaveBeenCalled();
@@ -267,7 +268,7 @@ describe("updateAvatar", () => {
     mocks.updateCurrentAvatar.mockRejectedValue(new Error("storage failed"));
 
     await expect(updateAvatar({}, createAvatarFormData())).resolves.toEqual({
-      error: "头像更换失败，请稍后重试。",
+      error: userErrorMessages.avatarUpdateFailed,
       errorKey: expect.any(String),
     });
     expect(consoleError).toHaveBeenCalledWith(

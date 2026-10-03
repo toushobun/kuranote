@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { userErrorMessages } from "internal/user";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { TransactionColorSchemeAction } from "types/user";
 
@@ -104,7 +105,7 @@ describe("TransactionColorSchemePicker", () => {
 
   it("保存失败时保持原选择并显示安全错误", async () => {
     const action = vi.fn<TransactionColorSchemeAction>(async () => ({
-      error: "收支配色方案保存失败，请稍后重试。",
+      error: userErrorMessages.transactionColorSchemeUpdateFailed,
       errorKey: "error-1",
     }));
     renderPicker(action);
@@ -113,7 +114,7 @@ describe("TransactionColorSchemePicker", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "收支配色方案保存失败，请稍后重试。",
+        userErrorMessages.transactionColorSchemeUpdateFailed,
       );
     });
     expect(
