@@ -27,7 +27,7 @@ export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.parentInvalid
   | typeof categoryErrorCodes.typeInvalid;
 
-const categoryErrorMessages: Record<CategoryErrorCode, string> = {
+export const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.archiveFailed]: "分类归档失败。",
   [categoryErrorCodes.categoryInvalid]: "分类指定不正确。",
   [categoryErrorCodes.createFailed]:
@@ -47,8 +47,17 @@ const categoryErrorMessages: Record<CategoryErrorCode, string> = {
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
 };
 
-export function getCategoryErrorMessage(error?: string) {
-  return error
-    ? (categoryErrorMessages[error as CategoryErrorCode] ?? null)
-    : null;
-}
+/** 分类读取查询失败时的文案。 */
+export const categoryLoadErrorMessages = {
+  categoriesLoadFailed: "分类加载失败，请稍后重试。",
+  parentLoadFailed: "大分类加载失败，请稍后重试。",
+  siblingsLoadFailed: "同级分类加载失败，请稍后重试。",
+  summariesLoadFailed: "分类信息加载失败，请稍后重试。",
+} as const;
+
+/** 分类写入查询失败时的文案。 */
+export const categoryWriteErrorMessages = {
+  archiveFailed: "分类归档失败，请稍后重试。",
+  createFailed: "分类创建失败，请稍后重试。",
+  updateFailed: "分类更新失败，请稍后重试。",
+} as const;

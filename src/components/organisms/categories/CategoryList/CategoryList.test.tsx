@@ -9,6 +9,7 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { categoryErrorCodes, categoryErrorMessages } from "internal/category";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import {
   cancelSortable,
@@ -591,7 +592,7 @@ describe("CategoryList", () => {
   it("排序失败时恢复页面状态并上抛统一错误状态", async () => {
     const onReorderError = vi.fn();
     const reorderCategoryAction = vi.fn(async () => ({
-      error: "分类排序保存失败，请稍后重试。",
+      error: categoryErrorMessages[categoryErrorCodes.reorderFailed],
       errorKey: "reorder-error-1",
     }));
     renderList({ onReorderError, reorderCategoryAction });
@@ -604,7 +605,7 @@ describe("CategoryList", () => {
 
     await waitFor(() =>
       expect(onReorderError).toHaveBeenCalledWith({
-        error: "分类排序保存失败，请稍后重试。",
+        error: categoryErrorMessages[categoryErrorCodes.reorderFailed],
         errorKey: "reorder-error-1",
       }),
     );

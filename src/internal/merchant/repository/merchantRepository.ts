@@ -3,6 +3,8 @@ import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
+  merchantLoadErrorMessages,
+  merchantWriteErrorMessages,
   type MerchantErrorCode,
 } from "internal/merchant/errors";
 import {
@@ -446,7 +448,7 @@ export function createSupabaseMerchantRepository(
       fail(
         "[merchant] failed to load preferred merchant aliases",
         merchantErrorCodes.merchantAliasListFailed,
-        "商家别名读取失败，请稍后重试。",
+        getMerchantErrorMessage(merchantErrorCodes.merchantAliasReadFailed),
         { merchantCount: merchantIds.length },
         error,
       );
@@ -565,7 +567,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to archive merchant alias",
           merchantErrorCodes.aliasArchiveFailed,
-          "商家别名归档失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.aliasArchiveFailed),
           { aliasId: input.aliasId },
           error,
         );
@@ -593,7 +595,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to archive merchant",
           merchantErrorCodes.archiveFailed,
-          "商家归档失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.archiveFailed),
           { ledgerId: input.ledgerId, merchantId: input.merchantId },
           error,
         );
@@ -653,7 +655,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to create merchant",
           merchantErrorCodes.createFailed,
-          "商家新增失败，请稍后重试。",
+          merchantWriteErrorMessages.createFailed,
           { ledgerId: input.ledgerId },
           error,
           merchantErrorCodes.createFailed,
@@ -664,7 +666,7 @@ export function createSupabaseMerchantRepository(
       if (typeof data !== "string") {
         throw toRepositoryError(
           merchantErrorCodes.createFailed,
-          "商家新增失败，请稍后重试。",
+          merchantWriteErrorMessages.createFailed,
         );
       }
       return data;
@@ -708,7 +710,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant alias",
           merchantErrorCodes.merchantAliasReadFailed,
-          "商家别名读取失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantAliasReadFailed),
           { aliasId },
           error,
         );
@@ -729,7 +731,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant",
           merchantErrorCodes.merchantReadFailed,
-          "商家读取失败，请稍后重试。",
+          merchantLoadErrorMessages.loadFailed,
           { ledgerId, merchantId },
           error,
         );
@@ -750,7 +752,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant details",
           merchantErrorCodes.merchantReadFailed,
-          "商家信息读取失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantReadFailed),
           { ledgerId, merchantId },
           merchantError,
         );
@@ -776,7 +778,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant detail aliases",
           merchantErrorCodes.merchantAliasListFailed,
-          "商家别名读取失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantAliasReadFailed),
           { ledgerId, merchantId },
           aliasError,
         );
@@ -845,7 +847,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant summaries",
           merchantErrorCodes.merchantListFailed,
-          "商家列表读取失败，请稍后重试。",
+          merchantLoadErrorMessages.listLoadFailed,
           { ledgerId, merchantCount: merchantIds.length },
           error,
         );
@@ -872,7 +874,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchants",
           merchantErrorCodes.merchantListFailed,
-          "商家列表读取失败，请稍后重试。",
+          merchantLoadErrorMessages.listLoadFailed,
           { ledgerId },
           merchantError,
         );
@@ -905,7 +907,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load merchant aliases",
           merchantErrorCodes.merchantAliasListFailed,
-          "商家别名读取失败，请稍后重试。",
+          getMerchantErrorMessage(merchantErrorCodes.merchantAliasReadFailed),
           { ledgerId, merchantCount: merchantIds.length },
           aliasError,
         );
@@ -935,7 +937,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to load active merchant summaries",
           merchantErrorCodes.merchantListFailed,
-          "商家列表读取失败，请稍后重试。",
+          merchantLoadErrorMessages.listLoadFailed,
           { ledgerId },
           error,
         );
@@ -1026,7 +1028,9 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to update preferred alias",
           merchantErrorCodes.aliasPreferredUpdateFailed,
-          "展示名更新失败，请稍后重试。",
+          getMerchantErrorMessage(
+            merchantErrorCodes.aliasPreferredUpdateFailed,
+          ),
           {
             aliasId: input.aliasId,
             ledgerId: input.ledgerId,
@@ -1054,7 +1058,7 @@ export function createSupabaseMerchantRepository(
         fail(
           "[merchant] failed to update merchant",
           merchantErrorCodes.updateFailed,
-          "商家更新失败，请稍后重试。",
+          merchantWriteErrorMessages.updateFailed,
           { ledgerId: input.ledgerId, merchantId: input.merchantId },
           error,
           merchantErrorCodes.updateFailed,

@@ -3,6 +3,7 @@ export {
   getMerchantActionErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
+  merchantErrorMessages,
   type MerchantActionErrorCode,
   type MerchantErrorCode,
   type MerchantValidationErrorCode,

@@ -2,7 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { categoryErrorCodes } from "internal/category/errors";
+import {
+  categoryErrorCodes,
+  categoryErrorMessages,
+} from "internal/category/errors";
 import {
   ConflictError,
   NotFoundError,
@@ -134,7 +137,10 @@ describe("Category Server Actions", () => {
   it("创建表单无效时返回安全错误状态", async () => {
     const state = await createCategory({}, createCreateFormData({ name: "" }));
 
-    expectErrorState(state, "请输入分类名称。");
+    expectErrorState(
+      state,
+      categoryErrorMessages[categoryErrorCodes.nameRequired],
+    );
     expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -144,7 +150,7 @@ describe("Category Server Actions", () => {
     mocks.create.mockRejectedValue(
       new ConflictError(
         categoryErrorCodes.createFailed,
-        "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+        categoryErrorMessages[categoryErrorCodes.createFailed],
       ),
     );
 
@@ -152,7 +158,7 @@ describe("Category Server Actions", () => {
 
     expectErrorState(
       state,
-      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.createFailed],
     );
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
   });
@@ -164,7 +170,7 @@ describe("Category Server Actions", () => {
       createCreateFormData,
       mocks.create,
       "create",
-      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.createFailed],
     ],
     [
       "编辑",
@@ -172,7 +178,7 @@ describe("Category Server Actions", () => {
       createUpdateFormData,
       mocks.update,
       "update",
-      "分类更新失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.updateFailed],
     ],
     [
       "归档",
@@ -180,7 +186,7 @@ describe("Category Server Actions", () => {
       createArchiveFormData,
       mocks.archive,
       "archive",
-      "分类归档失败。",
+      categoryErrorMessages[categoryErrorCodes.archiveFailed],
     ],
   ] as const)(
     "%s 未知异常时返回对应兜底提示且不跳转或失效缓存",
@@ -217,7 +223,7 @@ describe("Category Server Actions", () => {
 
     expectErrorState(
       state,
-      "分类新增失败。请确认分类名称是否重复，或稍后重试。",
+      categoryErrorMessages[categoryErrorCodes.createFailed],
     );
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.revalidateCategoryMutation).not.toHaveBeenCalled();
@@ -260,16 +266,16 @@ describe("Category Server Actions", () => {
     [
       new ConflictError(
         categoryErrorCodes.reorderConflict,
-        "分类列表已发生变化，请刷新页面后重试。",
+        categoryErrorMessages[categoryErrorCodes.reorderConflict],
       ),
-      "分类列表已发生变化，请刷新页面后重试。",
+      categoryErrorMessages[categoryErrorCodes.reorderConflict],
     ],
     [
       new NotFoundError(
         categoryErrorCodes.ledgerInvalid,
-        "账本不存在或已归档。",
+        categoryErrorMessages[categoryErrorCodes.ledgerInvalid],
       ),
-      "账本不存在或已归档。",
+      categoryErrorMessages[categoryErrorCodes.ledgerInvalid],
     ],
   ])("排序失败时返回 Service message 且不失效缓存", async (error, message) => {
     mocks.reorder.mockRejectedValue(error);

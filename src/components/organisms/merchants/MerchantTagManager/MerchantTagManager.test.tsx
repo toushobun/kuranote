@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { designTokens } from "theme/theme";
 
@@ -315,7 +316,11 @@ describe("MerchantTagManager", () => {
     ).toBeInTheDocument();
 
     await act(async () => {
-      resolveArchive?.({ error: "分类归档失败。", errorKey: "failure-3" });
+      resolveArchive?.({
+        error:
+          merchantErrorMessages[merchantErrorCodes.merchantTagArchiveFailed],
+        errorKey: "failure-3",
+      });
     });
 
     expect(

@@ -11,7 +11,6 @@ import {
   type MerchantIcon,
 } from "internal/merchant/service/merchantIconService";
 import {
-  getMerchantActionErrorMessage,
   getMerchantErrorMessage,
   merchantErrorCodes,
 } from "internal/merchant/errors";
@@ -121,8 +120,7 @@ type MerchantServiceDependencies = {
 function permissionError(): AuthorizationError {
   return new AuthorizationError(
     merchantErrorCodes.permissionDenied,
-    getMerchantActionErrorMessage(merchantErrorCodes.permissionDenied) ??
-      "没有权限维护商家。",
+    getMerchantErrorMessage(merchantErrorCodes.permissionDenied),
   );
 }
 
@@ -135,10 +133,7 @@ function conflictError(
     | typeof merchantErrorCodes.merchantTagUpdateFailed
     | typeof merchantErrorCodes.updateFailed,
 ): ConflictError {
-  return new ConflictError(
-    code,
-    getMerchantActionErrorMessage(code) ?? "商家操作失败，请稍后重试。",
-  );
+  return new ConflictError(code, getMerchantErrorMessage(code));
 }
 
 /**

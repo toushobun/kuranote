@@ -10,6 +10,10 @@ import { revalidatePath } from "next/cache";
 import { routePaths } from "config/paths";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
+import {
+  merchantErrorCodes,
+  merchantErrorMessages,
+} from "internal/merchant/errors";
 import { merchantRouter } from "internal/merchant/router";
 import type { MerchantService } from "internal/merchant/service/merchantService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
@@ -300,7 +304,10 @@ describe("merchant router", () => {
     const updateMerchant = vi
       .fn()
       .mockRejectedValue(
-        new NotFoundError("merchant_invalid", "商家指定不正确。"),
+        new NotFoundError(
+          "merchant_invalid",
+          merchantErrorMessages[merchantErrorCodes.merchantInvalid],
+        ),
       );
     const app = createApp(createService({ updateMerchant }));
 
@@ -317,7 +324,7 @@ describe("merchant router", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "merchant_invalid",
-        message: "商家指定不正确。",
+        message: merchantErrorMessages[merchantErrorCodes.merchantInvalid],
         requestId: "request-1",
         status: 404,
       },
