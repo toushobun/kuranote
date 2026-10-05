@@ -10,9 +10,8 @@ import {
 } from "internal/account/adapter/next/formParser";
 import { revalidateAccountMutation } from "internal/account/adapter/next/revalidate";
 import {
-  accountFallbackErrorMessages,
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
   type AccountErrorCode,
 } from "internal/account/errors";
 import { createRequestContainer } from "internal/container";
@@ -27,11 +26,8 @@ async function getAccountService() {
   return createRequestContainer(dependencies).account.service;
 }
 
-function getValidationErrorState(
-  code: string,
-  fallback: string,
-): AccountActionState {
-  return createErrorState(getAccountErrorMessage(code) ?? fallback);
+function getValidationErrorState(code: AccountErrorCode): AccountActionState {
+  return createErrorState(accountErrorMessages[code]);
 }
 
 function getActionErrorState(
@@ -45,10 +41,7 @@ function getActionErrorState(
   console.error("[account] account action failed unexpectedly", {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(
-    getAccountErrorMessage(fallbackCode) ??
-      accountFallbackErrorMessages.operationFailed,
-  );
+  return createErrorState(accountErrorMessages[fallbackCode]);
 }
 
 export async function createAccount(
@@ -58,10 +51,7 @@ export async function createAccount(
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseCreateAccountForm(formData);
   if (!parsed.ok) {
-    return getValidationErrorState(
-      parsed.error,
-      accountFallbackErrorMessages.inputInvalid,
-    );
+    return getValidationErrorState(parsed.error);
   }
 
   try {
@@ -87,10 +77,7 @@ export async function updateAccount(
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseUpdateAccountForm(formData);
   if (!parsed.ok) {
-    return getValidationErrorState(
-      parsed.error,
-      accountFallbackErrorMessages.inputInvalid,
-    );
+    return getValidationErrorState(parsed.error);
   }
 
   try {
@@ -116,10 +103,7 @@ export async function archiveAccount(
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseArchiveAccountForm(formData);
   if (!parsed.ok) {
-    return getValidationErrorState(
-      parsed.error,
-      accountFallbackErrorMessages.archiveInvalid,
-    );
+    return getValidationErrorState(parsed.error);
   }
 
   try {

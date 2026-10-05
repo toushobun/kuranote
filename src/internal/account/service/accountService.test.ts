@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError } from "internal/shared/errors/appError";
 import {
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
 } from "internal/account/errors";
 import type { AccountRepository } from "internal/account/repository/accountRepository";
 import { createAccountService } from "internal/account/service/accountService";
@@ -230,7 +230,7 @@ describe("AccountService", () => {
     const service = createService(repository);
     const error = new ConflictError(
       accountErrorCodes.nameDuplicate,
-      getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+      accountErrorMessages[accountErrorCodes.nameDuplicate],
     );
     vi.mocked(repository.create).mockRejectedValue(error);
     await expect(service.create(createInput())).rejects.toBe(error);
@@ -499,7 +499,7 @@ describe("AccountService 占位持有人", () => {
       }),
     ).rejects.toMatchObject({
       code: accountErrorCodes.placeholderUnavailable,
-      message: getAccountErrorMessage(accountErrorCodes.placeholderUnavailable),
+      message: accountErrorMessages[accountErrorCodes.placeholderUnavailable],
       name: "ConflictError",
     });
     expect(repository.update).not.toHaveBeenCalled();
