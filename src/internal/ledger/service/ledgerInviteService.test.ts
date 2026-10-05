@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteService";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
-import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import {
+  getInviteMemberLinkFailedMessage,
+  ledgerInviteErrorMessages,
+} from "internal/ledger/errors/ledgerInvite";
+import { ledgerPlaceholderMemberErrorMessages } from "internal/ledger/errors/ledgerPlaceholderMember";
 import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import {
   type AppError,
@@ -132,7 +136,7 @@ describe("createLedgerInviteService.create 占位绑定", () => {
     expect(failure).toBeInstanceOf(ValidationError);
     expect(failure).toMatchObject({
       code: "placeholder_required",
-      message: getLedgerInviteErrorMessage("placeholder_required"),
+      message: ledgerInviteErrorMessages.placeholder_required,
     });
     expect(appErrorToResponseBody(failure as AppError).status).toBe(400);
   });
@@ -181,7 +185,7 @@ describe("createLedgerInviteService.inviteMember", () => {
     placeholderMemberService.create.mockRejectedValue(
       new ConflictError(
         "placeholder_name_conflict",
-        "当前账本已有同名的待邀请成员，请换一个名字。",
+        ledgerPlaceholderMemberErrorMessages.placeholder_name_conflict,
       ),
     );
     const service = createService(
@@ -197,7 +201,7 @@ describe("createLedgerInviteService.inviteMember", () => {
     expect(failure).toBeInstanceOf(ConflictError);
     expect(failure).toMatchObject({
       code: "invite_member_name_conflict",
-      message: "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+      message: ledgerInviteErrorMessages.invite_member_name_conflict,
     });
     expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
     expect(repository.create).not.toHaveBeenCalled();
@@ -209,7 +213,7 @@ describe("createLedgerInviteService.inviteMember", () => {
     placeholderMemberService.create.mockRejectedValue(
       new ConflictError(
         "placeholder_name_member_conflict",
-        "当前账本已有同名成员，请换一个名字。",
+        ledgerPlaceholderMemberErrorMessages.placeholder_name_member_conflict,
       ),
     );
     const service = createService(
@@ -225,7 +229,8 @@ describe("createLedgerInviteService.inviteMember", () => {
     expect(failure).toBeInstanceOf(ConflictError);
     expect(failure).toMatchObject({
       code: "placeholder_name_member_conflict",
-      message: "当前账本已有同名成员，请换一个名字。",
+      message:
+        ledgerPlaceholderMemberErrorMessages.placeholder_name_member_conflict,
     });
     expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
     expect(repository.create).not.toHaveBeenCalled();
@@ -235,7 +240,7 @@ describe("createLedgerInviteService.inviteMember", () => {
     const placeholderMemberService = createPlaceholderMemberService();
     const nameError = new ValidationError(
       "placeholder_name_invalid",
-      "请输入待邀请成员的名字。",
+      ledgerPlaceholderMemberErrorMessages.placeholder_name_invalid,
     );
     placeholderMemberService.create.mockRejectedValue(nameError);
     const repository = createRepository();
@@ -256,7 +261,7 @@ describe("createLedgerInviteService.inviteMember", () => {
       () => {
         throw new RepositoryError(
           "ledger_invite_create_failed",
-          "邀请链接生成失败，请稍后重试。",
+          ledgerInviteErrorMessages.create_failed,
         );
       },
     ],
@@ -281,7 +286,7 @@ describe("createLedgerInviteService.inviteMember", () => {
       expect(failure).toBeInstanceOf(ConflictError);
       expect(failure).toMatchObject({
         code: "invite_member_link_failed",
-        message: "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
+        message: getInviteMemberLinkFailedMessage("小明"),
       });
       expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
       expect(placeholderMemberService.create).toHaveBeenCalledTimes(1);
@@ -414,7 +419,7 @@ describe("createLedgerInviteService 占位错误映射", () => {
       expect(failure).toBeInstanceOf(ErrorClass);
       expect(failure).toMatchObject({
         code,
-        message: getLedgerInviteErrorMessage(code),
+        message: ledgerInviteErrorMessages[code],
       });
       expect(appErrorToResponseBody(failure as AppError).status).toBe(status);
     },

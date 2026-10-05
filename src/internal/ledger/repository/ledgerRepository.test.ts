@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { createSupabaseLedgerRepository } from "internal/ledger/repository/ledgerRepository";
-import { ledgerCreateErrorCodes } from "internal/ledger/errors/ledgerCreate";
+import {
+  ledgerCreateErrorCodes,
+  ledgerCreateWriteErrorMessages,
+} from "internal/ledger/errors/ledgerCreate";
 import { RepositoryError } from "internal/shared/errors/appError";
 
 const ledgerIdA = "00000000-0000-4000-8000-000000000001";
@@ -65,7 +68,7 @@ describe("createSupabaseLedgerRepository.create", () => {
 
     await expect(repository.create(createInput)).rejects.toMatchObject({
       code: "ledger_create_failed",
-      message: "账本创建失败，请稍后重试。",
+      message: ledgerCreateWriteErrorMessages.createFailed,
     });
   });
 });

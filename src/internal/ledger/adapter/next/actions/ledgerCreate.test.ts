@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
-import { ledgerCreateErrorCodes } from "internal/ledger/errors/ledgerCreate";
+import {
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+} from "internal/ledger/errors/ledgerCreate";
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerCreateActionState } from "types/ledgers";
 
@@ -96,7 +99,10 @@ describe("createLedger", () => {
   it("表单校验失败时返回可直接展示的错误状态", async () => {
     const state = await runAction(createFormData({ ledgerName: "" }));
 
-    expectErrorState(state, "请输入账本名称。");
+    expectErrorState(
+      state,
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
+    );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.createDependencies).not.toHaveBeenCalled();
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -106,13 +112,16 @@ describe("createLedger", () => {
     mocks.createService.mockRejectedValue(
       new AppError(
         ledgerCreateErrorCodes.createFailed,
-        "账本创建失败。请确认内容后稍后重试。",
+        ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
       ),
     );
 
     const state = await runAction(createFormData());
 
-    expectErrorState(state, "账本创建失败。请确认内容后稍后重试。");
+    expectErrorState(
+      state,
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
+    );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
@@ -125,7 +134,10 @@ describe("createLedger", () => {
 
     const state = await runAction(createFormData());
 
-    expectErrorState(state, "账本创建失败。请确认内容后稍后重试。");
+    expectErrorState(
+      state,
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
+    );
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] ledger create action failed unexpectedly",
       { errorName: "Error" },
@@ -142,7 +154,10 @@ describe("createLedger", () => {
 
     const state = await runAction(createFormData());
 
-    expectErrorState(state, "账本创建失败。请确认内容后稍后重试。");
+    expectErrorState(
+      state,
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
+    );
     expect(mocks.createService).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] ledger create action failed unexpectedly",

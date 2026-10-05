@@ -8,10 +8,13 @@ import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { createRequestContainer } from "internal/container";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import {
-  getLedgerInviteErrorMessage,
   ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
 } from "internal/ledger/errors/ledgerInvite";
-import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import {
+  ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
+} from "internal/ledger/errors/ledgerPlaceholderMember";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
@@ -131,6 +134,24 @@ const fallbackCodes = {
   revoke: ledgerInviteErrorCodes.revokeFailed,
 } as const satisfies Record<LedgerInviteActionOperation, string>;
 
+/**
+ * 邀请 Action 可能返回的错误码与文案。名字校验错误的权威文案在待邀请成员
+ * 错误定义中，这里只按码引用，不复制文案。
+ */
+const inviteActionErrorMessages = {
+  ...ledgerInviteErrorMessages,
+  [ledgerPlaceholderMemberErrorCodes.placeholderNameInvalid]:
+    ledgerPlaceholderMemberErrorMessages[
+      ledgerPlaceholderMemberErrorCodes.placeholderNameInvalid
+    ],
+  [ledgerPlaceholderMemberErrorCodes.placeholderNameTooLong]:
+    ledgerPlaceholderMemberErrorMessages[
+      ledgerPlaceholderMemberErrorCodes.placeholderNameTooLong
+    ],
+};
+
+type InviteActionErrorCode = keyof typeof inviteActionErrorMessages;
+
 /** 邀请成员会新增待邀请成员，账户持有人与导入候选一并失效。 */
 function revalidatePlaceholderMutation(ledgerId: string) {
   revalidateLedgerMutation([
@@ -140,16 +161,11 @@ function revalidatePlaceholderMutation(ledgerId: string) {
 }
 
 function errorState(
-  code: string,
+  code: InviteActionErrorCode,
   operation: LedgerInviteActionOperation,
 ): LedgerInviteActionState {
   return {
-    ...createErrorState(
-      // 名字校验错误的权威文案在待邀请成员错误定义中，这里只按码查找，不复制文案。
-      getLedgerInviteErrorMessage(code) ??
-        getLedgerPlaceholderMemberErrorMessage(code) ??
-        getLedgerInviteErrorMessage(fallbackCodes[operation])!,
-    ),
+    ...createErrorState(inviteActionErrorMessages[code]),
     operation,
   };
 }

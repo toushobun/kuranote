@@ -4,10 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import {
-  getLedgerInviteErrorMessage,
+  getInviteMemberLinkFailedMessage,
   ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+  type LedgerInviteErrorCode,
 } from "internal/ledger/errors/ledgerInvite";
-import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import {
+  ledgerPlaceholderMemberErrorMessages,
+  type LedgerPlaceholderMemberErrorCode,
+} from "internal/ledger/errors/ledgerPlaceholderMember";
 import {
   AuthorizationError,
   ConflictError,
@@ -133,14 +138,14 @@ describe("createLedgerInvite 邀请成员（intent=invite）", () => {
     ]);
   });
 
-  it.each([
+  it.each<[string, Record<string, string>, LedgerPlaceholderMemberErrorCode]>([
     ["名字为空", { displayName: "   " }, "placeholder_name_invalid"],
     ["名字过长", { displayName: "a".repeat(101) }, "placeholder_name_too_long"],
   ])("%s时返回权威文案且不调用 Service", async (_label, values, code) => {
     const state = await runAction(inviteForm(values));
 
     expectErrorState(state, {
-      message: getLedgerPlaceholderMemberErrorMessage(code)!,
+      message: ledgerPlaceholderMemberErrorMessages[code],
       operation: "invite",
     });
     expect(mocks.inviteMemberService).not.toHaveBeenCalled();
@@ -152,7 +157,8 @@ describe("createLedgerInvite 邀请成员（intent=invite）", () => {
       const state = await runAction(inviteForm({ role }));
 
       expectErrorState(state, {
-        message: "请选择有效的邀请权限。",
+        message:
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.inviteRoleInvalid],
         operation: "invite",
       });
       expect(mocks.inviteMemberService).not.toHaveBeenCalled();
@@ -160,9 +166,10 @@ describe("createLedgerInvite 邀请成员（intent=invite）", () => {
   );
 
   it("重名时返回引导文案，不刷新列表", async () => {
-    const message = getLedgerInviteErrorMessage(
-      ledgerInviteErrorCodes.inviteMemberNameConflict,
-    )!;
+    const message =
+      ledgerInviteErrorMessages[
+        ledgerInviteErrorCodes.inviteMemberNameConflict
+      ];
     mocks.inviteMemberService.mockRejectedValueOnce(
       new ConflictError(
         ledgerInviteErrorCodes.inviteMemberNameConflict,
@@ -177,7 +184,7 @@ describe("createLedgerInvite 邀请成员（intent=invite）", () => {
   });
 
   it("第 2 步失败时返回部分成功文案，并刷新成员列表让新行出现", async () => {
-    const message = "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。";
+    const message = getInviteMemberLinkFailedMessage("小明");
     mocks.inviteMemberService.mockRejectedValueOnce(
       new ConflictError(ledgerInviteErrorCodes.inviteMemberLinkFailed, message),
     );
@@ -200,7 +207,7 @@ describe("createLedgerInvite 邀请成员（intent=invite）", () => {
     mocks.inviteMemberService.mockRejectedValueOnce(new Error("boom"));
 
     expectErrorState(await runAction(inviteForm()), {
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       operation: "invite",
     });
     expect(consoleError).toHaveBeenCalledWith(
@@ -249,7 +256,7 @@ describe("createLedgerInvite 重新生成链接（intent=create）", () => {
     await expect(runAction(formData)).rejects.toThrow(createdFragment);
   });
 
-  it.each([
+  it.each<[string, Record<string, string>, LedgerInviteErrorCode]>([
     ["缺少 placeholderId", { placeholderId: "" }, "placeholder_required"],
     [
       "placeholderId 非法",
@@ -261,7 +268,7 @@ describe("createLedgerInvite 重新生成链接（intent=create）", () => {
     const state = await runAction(regenerateForm(values));
 
     expectErrorState(state, {
-      message: getLedgerInviteErrorMessage(code)!,
+      message: ledgerInviteErrorMessages[code],
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -271,15 +278,15 @@ describe("createLedgerInvite 重新生成链接（intent=create）", () => {
     [
       new ConflictError(
         ledgerInviteErrorCodes.placeholderInvitePending,
-        getLedgerInviteErrorMessage(
-          ledgerInviteErrorCodes.placeholderInvitePending,
-        )!,
+        ledgerInviteErrorMessages[
+          ledgerInviteErrorCodes.placeholderInvitePending
+        ],
       ),
     ],
     [
       new AuthorizationError(
         ledgerInviteErrorCodes.permissionDenied,
-        "只有账本所有者或管理员可以管理邀请。",
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.permissionDenied],
       ),
     ],
   ])("Service 抛出 %s 时直接使用安全消息", async (error) => {
@@ -298,7 +305,7 @@ describe("createLedgerInvite 重新生成链接（intent=create）", () => {
     });
 
     expectErrorState(await runAction(regenerateForm()), {
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       operation: "create",
       revalidated: true,
     });
@@ -311,7 +318,7 @@ describe("createLedgerInvite 重新生成链接（intent=create）", () => {
     mocks.createDependencies.mockRejectedValueOnce(new Error("unavailable"));
 
     expectErrorState(await runAction(regenerateForm()), {
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -328,7 +335,7 @@ describe("createLedgerInvite", () => {
     const state = await runAction(new FormData());
 
     expectErrorState(state, {
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -344,7 +351,7 @@ describe("createLedgerInvite", () => {
     const state = await runAction(formData);
 
     expectErrorState(state, {
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       operation: "create",
     });
     expect(mocks.createService).not.toHaveBeenCalled();
@@ -360,7 +367,7 @@ describe("createLedgerInvite", () => {
     const state = await runAction(formData);
 
     expectErrorState(state, {
-      message: "邀请撤销失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.revokeFailed],
       operation: "revoke",
     });
     expect(mocks.revokeService).not.toHaveBeenCalled();

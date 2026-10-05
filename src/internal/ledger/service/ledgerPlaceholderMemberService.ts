@@ -3,8 +3,8 @@ import {
   type LedgerPlaceholderMemberSummary,
 } from "internal/ledger/entity/ledgerPlaceholderMember";
 import {
-  getLedgerPlaceholderMemberErrorMessage,
   ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
   type LedgerPlaceholderMemberErrorCode,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 import type { LedgerPlaceholderMemberRepository } from "internal/ledger/repository/ledgerPlaceholderMemberRepository";
@@ -75,9 +75,7 @@ type LedgerPlaceholderMemberServiceDependencies = {
 };
 
 function toAppError(code: LedgerPlaceholderMemberErrorCode): AppError {
-  const message =
-    getLedgerPlaceholderMemberErrorMessage(code) ??
-    "待邀请成员操作失败，请稍后重试。";
+  const message = ledgerPlaceholderMemberErrorMessages[code];
 
   switch (code) {
     case ledgerPlaceholderMemberErrorCodes.authRequired:
@@ -183,9 +181,9 @@ export function createLedgerPlaceholderMemberService({
       if (displayNames.some((name) => !placeholderIdByName.has(name))) {
         throw new RepositoryError(
           "ledger_placeholder_ensure_result_invalid",
-          getLedgerPlaceholderMemberErrorMessage(
-            ledgerPlaceholderMemberErrorCodes.createFailed,
-          )!,
+          ledgerPlaceholderMemberErrorMessages[
+            ledgerPlaceholderMemberErrorCodes.createFailed
+          ],
         );
       }
       return placeholderIdByName;

@@ -8,7 +8,7 @@ import {
 } from "test/concurrencyConflict";
 import { createSupabaseMock } from "test/supabaseMock";
 
-import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import { ledgerPlaceholderMemberErrorMessages } from "internal/ledger/errors/ledgerPlaceholderMember";
 import { createSupabaseLedgerPlaceholderMemberRepository } from "internal/ledger/repository/ledgerPlaceholderMemberRepository";
 import { RepositoryError } from "internal/shared/errors/appError";
 
@@ -70,9 +70,7 @@ describe("createSupabaseLedgerPlaceholderMemberRepository.listUnclaimed", () => 
 
     await expect(repository.listUnclaimed(ledgerId)).rejects.toMatchObject({
       code: "ledger_placeholder_list_result_invalid",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_load_failed",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_load_failed,
     });
   });
 
@@ -182,9 +180,7 @@ describe("createSupabaseLedgerPlaceholderMemberRepository 写操作", () => {
     expect(failure).toBeInstanceOf(RepositoryError);
     expect(failure).toMatchObject({
       code: "placeholder_delete_failed",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_delete_failed",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_delete_failed,
     });
     expect(logger.error).toHaveBeenCalled();
   });
@@ -241,9 +237,7 @@ describe("createSupabaseLedgerPlaceholderMemberRepository.ensure", () => {
     expect(failure).toBeInstanceOf(RepositoryError);
     expect(failure).toMatchObject({
       code: "ledger_placeholder_ensure_result_invalid",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_create_failed",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_create_failed,
     });
     expect(logger.error).toHaveBeenCalled();
   });
@@ -284,9 +278,7 @@ describe("createSupabaseLedgerPlaceholderMemberRepository.ensure", () => {
     expect(failure).toBeInstanceOf(RepositoryError);
     expect(failure).toMatchObject({
       code: "placeholder_create_failed",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_create_failed",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_create_failed,
     });
     expect((failure as RepositoryError).message).not.toContain("placeholder_");
     expect(logger.error).toHaveBeenCalled();

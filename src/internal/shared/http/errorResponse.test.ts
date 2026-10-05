@@ -9,8 +9,13 @@ import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { accountErrorCodes, accountErrorMessages } from "internal/account";
 import type { AppEnv } from "internal/appEnv";
 import {
-  getLedgerInviteErrorMessage,
+  getInviteMemberLinkFailedMessage,
   ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+  ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
+  ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
 } from "internal/ledger";
 import { createConcurrentModificationError } from "internal/shared/errors/concurrentModification";
 import {
@@ -93,35 +98,41 @@ describe("errorHandlingMiddleware", () => {
     [
       new ValidationError(
         "placeholder_required",
-        "邀请必须指定一名待邀请成员。",
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.placeholderRequired],
       ),
       400,
     ],
     [
       new ConflictError(
         "invite_member_name_conflict",
-        "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+        ledgerInviteErrorMessages[
+          ledgerInviteErrorCodes.inviteMemberNameConflict
+        ],
       ),
       409,
     ],
     [
       new ConflictError(
         "placeholder_name_member_conflict",
-        "当前账本已有同名成员，请换一个名字。",
+        ledgerPlaceholderMemberErrorMessages[
+          ledgerPlaceholderMemberErrorCodes.placeholderNameMemberConflict
+        ],
       ),
       409,
     ],
     [
       new ConflictError(
         "display_name_placeholder_conflict",
-        "当前账本已有同名的待邀请成员，请换一个名字。",
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.displayNamePlaceholderConflict
+        ],
       ),
       409,
     ],
     [
       new ConflictError(
         "invite_member_link_failed",
-        "已添加「小明」，但邀请链接生成失败，请在列表中重新生成。",
+        getInviteMemberLinkFailedMessage("小明"),
       ),
       409,
     ],
@@ -129,7 +140,7 @@ describe("errorHandlingMiddleware", () => {
     [
       new ValidationError(
         ledgerInviteErrorCodes.ledgerRequired,
-        getLedgerInviteErrorMessage(ledgerInviteErrorCodes.ledgerRequired)!,
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.ledgerRequired],
       ),
       400,
     ],
@@ -140,10 +151,28 @@ describe("errorHandlingMiddleware", () => {
       ),
       401,
     ],
-    [new AuthenticationError("auth_required", "请先登录后再继续。"), 401],
+    [
+      new AuthenticationError(
+        "auth_required",
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.authRequired],
+      ),
+      401,
+    ],
     [new AuthorizationError("permission_denied", "没有操作权限。"), 403],
-    [new NotFoundError("invite_invalid", "该邀请链接无效或已失效。"), 404],
-    [new ConflictError("invite_already_used", "该邀请链接已经被使用。"), 409],
+    [
+      new NotFoundError(
+        "invite_invalid",
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.inviteInvalid],
+      ),
+      404,
+    ],
+    [
+      new ConflictError(
+        "invite_already_used",
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.inviteUsed],
+      ),
+      409,
+    ],
     [
       new RepositoryError("repository_failed", "数据读取失败，请稍后重试。"),
       500,

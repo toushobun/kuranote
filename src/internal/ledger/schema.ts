@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { isValidLedgerInviteToken } from "lib/ledger/inviteToken";
 import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import { ledgerInviteRoles } from "internal/ledger/entity/ledgerInviteRole";
+import { ledgerInviteSchemaErrorMessages } from "internal/ledger/errors/ledgerInvite";
 import { themeColorKeys } from "theme/themeColorTokens";
 
 const uuidSchema = z.string().uuid();
@@ -13,7 +14,7 @@ const inviteRoleSchema = z.enum(ledgerInviteRoles);
 
 export const acceptLedgerInviteRequestSchema = z.object({
   token: z.string().refine(isValidLedgerInviteToken, {
-    message: "邀请 token 格式无效。",
+    message: ledgerInviteSchemaErrorMessages.tokenInvalid,
   }),
 });
 

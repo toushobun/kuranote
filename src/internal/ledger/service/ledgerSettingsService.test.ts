@@ -6,8 +6,8 @@ import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
 import type { LedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
 import {
-  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
 } from "internal/ledger/errors/ledgerSettings";
 import {
   type AppError,
@@ -302,9 +302,10 @@ describe("createLedgerSettingsService.update — member 意图", () => {
     expect(failure).toBeInstanceOf(ConflictError);
     expect(failure).toMatchObject({
       code: ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
-      message: getLedgerSettingsErrorMessage(
-        ledgerSettingsErrorCodes.displayNamePlaceholderConflict,
-      ),
+      message:
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.displayNamePlaceholderConflict
+        ],
     });
     expect(appErrorToResponseBody(failure as AppError).status).toBe(409);
   });

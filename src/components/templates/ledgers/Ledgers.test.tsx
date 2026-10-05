@@ -9,7 +9,11 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { LedgerWithMemberCount } from "internal/ledger";
+import {
+  currentLedgerErrorCodes,
+  currentLedgerErrorMessages,
+  type LedgerWithMemberCount,
+} from "internal/ledger";
 import { designTokens, theme } from "theme/theme";
 
 import { LedgersTemplate } from "./Ledgers";
@@ -177,11 +181,16 @@ describe("LedgersTemplate", () => {
   it("切换失败后显示错误反馈", async () => {
     renderTemplate({
       errorKey: "switch-error-1",
-      errorMessage: "账本切换失败，请稍后重试。",
+      errorMessage:
+        currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
     });
 
     expect(await screen.findByText("账本切换失败")).toBeInTheDocument();
-    expect(screen.getByText("账本切换失败，请稍后重试。")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
+      ),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     expect(routerReplaceMock).not.toHaveBeenCalled();

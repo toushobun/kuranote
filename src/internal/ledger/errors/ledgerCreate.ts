@@ -13,21 +13,27 @@ export const ledgerCreateErrorCodes = {
 export type LedgerCreateErrorCode =
   (typeof ledgerCreateErrorCodes)[keyof typeof ledgerCreateErrorCodes];
 
-const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> = {
-  [ledgerCreateErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
-  [ledgerCreateErrorCodes.createFailed]: "账本创建失败。请确认内容后稍后重试。",
-  [ledgerCreateErrorCodes.currencyInvalid]: "默认货币指定不正确。",
-  [ledgerCreateErrorCodes.displayColorInvalid]: "个性色指定不正确。",
-  [ledgerCreateErrorCodes.displayNameRequired]: "请输入我的显示名。",
-  [ledgerCreateErrorCodes.displayNameTooLong]:
-    "我的显示名不能超过 100 个字符。",
-  [ledgerCreateErrorCodes.nameRequired]: "请输入账本名称。",
-  [ledgerCreateErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
-  [ledgerCreateErrorCodes.userInactive]: "当前账号不可用，请联系管理员。",
-};
+export const ledgerCreateErrorMessages: Record<LedgerCreateErrorCode, string> =
+  {
+    [ledgerCreateErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
+    [ledgerCreateErrorCodes.createFailed]:
+      "账本创建失败。请确认内容后稍后重试。",
+    [ledgerCreateErrorCodes.currencyInvalid]: "默认货币指定不正确。",
+    [ledgerCreateErrorCodes.displayColorInvalid]: "个性色指定不正确。",
+    [ledgerCreateErrorCodes.displayNameRequired]: "请输入我的显示名。",
+    [ledgerCreateErrorCodes.displayNameTooLong]:
+      "我的显示名不能超过 100 个字符。",
+    [ledgerCreateErrorCodes.nameRequired]: "请输入账本名称。",
+    [ledgerCreateErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
+    [ledgerCreateErrorCodes.userInactive]: "当前账号不可用，请联系管理员。",
+  };
 
-export function getLedgerCreateErrorMessage(error?: string) {
-  return error
-    ? (ledgerCreateErrorMessages[error as LedgerCreateErrorCode] ?? null)
-    : null;
-}
+/** 账本创建默认值读取查询失败时的文案。 */
+export const ledgerCreateLoadErrorMessages = {
+  userProfileLoadFailed: "用户资料加载失败，请稍后重试。",
+} as const;
+
+/** 账本创建写入查询失败时的文案。 */
+export const ledgerCreateWriteErrorMessages = {
+  createFailed: "账本创建失败，请稍后重试。",
+} as const;

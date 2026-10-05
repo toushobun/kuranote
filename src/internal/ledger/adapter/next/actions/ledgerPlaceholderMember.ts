@@ -8,8 +8,9 @@ import {
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import {
-  getLedgerPlaceholderMemberErrorMessage,
   ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
+  type LedgerPlaceholderMemberErrorCode,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 import {
   parseDeleteLedgerPlaceholderMemberForm,
@@ -29,14 +30,11 @@ const fallbackCodes = {
 } as const satisfies Record<LedgerPlaceholderMemberActionOperation, string>;
 
 function errorState(
-  code: string,
+  code: LedgerPlaceholderMemberErrorCode,
   operation: LedgerPlaceholderMemberActionOperation,
 ): LedgerPlaceholderMemberActionState {
   return {
-    ...createErrorState(
-      getLedgerPlaceholderMemberErrorMessage(code) ??
-        getLedgerPlaceholderMemberErrorMessage(fallbackCodes[operation])!,
-    ),
+    ...createErrorState(ledgerPlaceholderMemberErrorMessages[code]),
     operation,
   };
 }

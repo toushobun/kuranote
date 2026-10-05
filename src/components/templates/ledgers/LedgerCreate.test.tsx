@@ -9,6 +9,10 @@ import {
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+} from "internal/ledger";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type {
   LedgerCreateActionState,
@@ -117,7 +121,7 @@ describe("LedgerCreateTemplate", () => {
   it("创建失败时显示反馈、保留输入且 URL 保持干净", async () => {
     const action = vi.fn(
       async (): Promise<LedgerCreateActionState> => ({
-        error: "账本创建失败。请确认内容后稍后重试。",
+        error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
         errorKey: "create-error-1",
       }),
     );
@@ -139,7 +143,9 @@ describe("LedgerCreateTemplate", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("账本创建失败");
-    expect(alert).toHaveTextContent("账本创建失败。请确认内容后稍后重试。");
+    expect(alert).toHaveTextContent(
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
+    );
     expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
     expect(currencySelect).toHaveTextContent("USD 美元");
     expect(screen.getByLabelText("我的显示名")).toHaveValue("旅人");
@@ -153,7 +159,7 @@ describe("LedgerCreateTemplate", () => {
     const action = vi.fn(async (): Promise<LedgerCreateActionState> => {
       errorCount += 1;
       return {
-        error: "账本创建失败。请确认内容后稍后重试。",
+        error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
         errorKey: `create-error-${errorCount}`,
       };
     });
@@ -169,7 +175,7 @@ describe("LedgerCreateTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建账本" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "账本创建失败。请确认内容后稍后重试。",
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
     );
     expect(action).toHaveBeenCalledTimes(2);
   });

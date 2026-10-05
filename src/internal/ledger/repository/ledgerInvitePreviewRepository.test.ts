@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { ledgerInvitePreviewErrorMessages } from "internal/ledger/errors/ledgerInvite";
 import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/repository/ledgerInvitePreviewRepository";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
@@ -98,7 +99,7 @@ describe("createSupabaseLedgerInvitePreviewRepository", () => {
 
     await expect(repository.findByToken("token-1")).rejects.toMatchObject({
       code: "ledger_invite_preview_load_failed",
-      message: "邀请信息加载失败，请稍后重试。",
+      message: ledgerInvitePreviewErrorMessages.loadFailed,
     });
     expect(logger.error).toHaveBeenCalledWith(
       "[ledgerInvite] failed to load invite preview",

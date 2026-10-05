@@ -11,8 +11,9 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import {
-  getLedgerSettingsErrorMessage,
   ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
+  type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
@@ -20,10 +21,10 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerSettingsActionState } from "types/ledgers";
 
-function validationErrorState(code: string): LedgerSettingsActionState {
-  return createErrorState(
-    getLedgerSettingsErrorMessage(code) ?? "账本设置内容不正确，请确认后重试。",
-  );
+function validationErrorState(
+  code: LedgerSettingsErrorCode,
+): LedgerSettingsActionState {
+  return createErrorState(ledgerSettingsErrorMessages[code]);
 }
 
 function actionErrorState(error: unknown): LedgerSettingsActionState {
@@ -35,8 +36,7 @@ function actionErrorState(error: unknown): LedgerSettingsActionState {
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(
-    getLedgerSettingsErrorMessage(ledgerSettingsErrorCodes.updateFailed) ??
-      "账本设置保存失败，请稍后重试。",
+    ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed],
   );
 }
 
