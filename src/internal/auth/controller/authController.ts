@@ -1,5 +1,6 @@
 import type { z } from "@hono/zod-openapi";
 
+import { googleOAuthErrorMessages } from "internal/auth/errors";
 import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
 import {
   loginRequestSchema,
@@ -103,7 +104,7 @@ export const startGoogleAuthHandler = async (
   if (!result.ok) {
     throw new RepositoryError(
       "google_auth_start_failed",
-      "Google 登录暂时不可用，请稍后重试。",
+      googleOAuthErrorMessages.startUnavailable,
       { details: { redirectTo: result.failureHref } },
     );
   }

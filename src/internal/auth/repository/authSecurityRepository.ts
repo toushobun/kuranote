@@ -1,4 +1,5 @@
 import type { AuthOtpAttempt, AuthOtpPurpose } from "internal/auth/entity/auth";
+import { authSecurityErrorMessages } from "internal/auth/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import { createServiceRoleSupabaseClient } from "internal/shared/supabase/serviceRoleClient";
@@ -51,7 +52,7 @@ function toCreatedAtRows(data: unknown): CreatedAtRow[] {
   if (!Array.isArray(data) || !data.every(isCreatedAtRow)) {
     throw toRepositoryError(
       "auth_attempt_rows_invalid",
-      "认证安全记录格式异常，请稍后重试。",
+      authSecurityErrorMessages.attemptRowsInvalid,
     );
   }
 
@@ -102,7 +103,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] OTP verification failure query crashed",
         "auth_attempt_count_failed",
-        "验证码校验记录读取失败，请稍后重试。",
+        authSecurityErrorMessages.verifyFailureCountFailed,
         async () => {
           const supabase = createClient();
           const { count, error } = await supabase
@@ -119,7 +120,7 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to count OTP verification failures",
               error,
               "auth_attempt_count_failed",
-              "验证码校验记录读取失败，请稍后重试。",
+              authSecurityErrorMessages.verifyFailureCountFailed,
             );
           }
 
@@ -133,7 +134,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] latest OTP send query crashed",
         "auth_latest_send_load_failed",
-        "验证码发送记录读取失败，请稍后重试。",
+        authSecurityErrorMessages.sendRecordLoadFailed,
         async () => {
           const supabase = createClient();
           const { data, error } = await supabase
@@ -154,7 +155,7 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to load latest OTP send",
               error,
               "auth_latest_send_load_failed",
-              "验证码发送记录读取失败，请稍后重试。",
+              authSecurityErrorMessages.sendRecordLoadFailed,
             );
           }
 
@@ -162,7 +163,7 @@ export function createSupabaseAuthSecurityRepository(
           if (!isCreatedAtRow(data)) {
             throw toRepositoryError(
               "auth_latest_send_row_invalid",
-              "验证码发送记录格式异常，请稍后重试。",
+              authSecurityErrorMessages.sendRecordInvalid,
             );
           }
 
@@ -176,7 +177,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] register email availability query crashed",
         "register_email_check_failed",
-        "邮箱可用性检查失败，请稍后重试。",
+        authSecurityErrorMessages.emailCheckFailed,
         async () => {
           const normalizedEmail = email.trim().toLowerCase();
           const supabase = createClient();
@@ -190,14 +191,14 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to check register email availability",
               error,
               "register_email_check_failed",
-              "邮箱可用性检查失败，请稍后重试。",
+              authSecurityErrorMessages.emailCheckFailed,
             );
           }
 
           if (typeof data !== "boolean") {
             throw toRepositoryError(
               "register_email_check_failed",
-              "邮箱可用性检查失败，请稍后重试。",
+              authSecurityErrorMessages.emailCheckFailed,
             );
           }
 
@@ -211,7 +212,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] email availability attempt query crashed",
         "auth_availability_attempt_load_failed",
-        "邮箱检查记录读取失败，请稍后重试。",
+        authSecurityErrorMessages.availabilityCheckLoadFailed,
         async () => {
           const supabase = createClient();
           const { data, error } = await supabase
@@ -230,7 +231,7 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to load email availability attempts",
               error,
               "auth_availability_attempt_load_failed",
-              "邮箱检查记录读取失败，请稍后重试。",
+              authSecurityErrorMessages.availabilityCheckLoadFailed,
             );
           }
 
@@ -244,7 +245,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] OTP send attempt query crashed",
         "auth_send_attempt_load_failed",
-        "验证码发送记录读取失败，请稍后重试。",
+        authSecurityErrorMessages.sendRecordLoadFailed,
         async () => {
           const supabase = createClient();
           const { data, error } = await supabase
@@ -264,7 +265,7 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to load OTP send attempts",
               error,
               "auth_send_attempt_load_failed",
-              "验证码发送记录读取失败，请稍后重试。",
+              authSecurityErrorMessages.sendRecordLoadFailed,
             );
           }
 
@@ -278,7 +279,7 @@ export function createSupabaseAuthSecurityRepository(
         logger,
         "[auth] OTP attempt insert crashed",
         "auth_attempt_record_failed",
-        "认证安全记录写入失败，请稍后重试。",
+        authSecurityErrorMessages.attemptRecordFailed,
         async () => {
           const supabase = createClient();
           const { error } = await supabase.from(attemptTable).insert({
@@ -295,7 +296,7 @@ export function createSupabaseAuthSecurityRepository(
               "[auth] failed to record OTP attempt",
               error,
               "auth_attempt_record_failed",
-              "认证安全记录写入失败，请稍后重试。",
+              authSecurityErrorMessages.attemptRecordFailed,
             );
           }
         },

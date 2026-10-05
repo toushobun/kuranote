@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, waitFor, within } from "storybook/test";
 
 import { turnstileTestSiteKey } from "config/turnstile";
+import { registerOtpMessages } from "internal/auth";
 
 import { RegisterForm } from "./RegisterForm";
 import { installTurnstileTestDouble } from "test/turnstile/turnstileTestDouble";
@@ -137,7 +138,7 @@ export const SubmitError: Story = {
   args: {
     requestOtpAction: async () => ({ status: "success" }),
     submitOtpAction: async () => ({
-      error: "验证码不正确或已过期，请重新获取",
+      error: registerOtpMessages.invalidOtp,
       remainingAttempts: 4,
       status: "otp_invalid",
     }),

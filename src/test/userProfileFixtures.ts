@@ -2,6 +2,10 @@ import {
   formatLedgerDisplayNameConflictMessage,
   userErrorMessages,
 } from "internal/user";
+import {
+  googleIdentityLinkMessages,
+  passwordChangeMessages,
+} from "internal/auth";
 import type { GoogleIdentityStatus } from "internal/auth";
 import {
   createErrorState,
@@ -51,9 +55,8 @@ export const failedAvatarAction: AvatarAction = async () =>
 
 export const passwordChangeOtpSentMessage = "验证码已发送，请查收邮件。";
 export const passwordChangeOtpRateLimitedMessage =
-  "验证码发送过于频繁，请稍后再试。";
-export const changePasswordFailureMessage =
-  "验证码错误或已过期（有效期 10 分钟），请检查后重新输入，或重新获取验证码。";
+  passwordChangeMessages.otpSendRateLimited;
+export const changePasswordFailureMessage = passwordChangeMessages.invalidOtp;
 
 export const succeededPasswordChangeOtpAction: PasswordChangeOtpAction =
   async () => ({
@@ -75,12 +78,13 @@ export const failedChangePasswordAction: ChangePasswordAction = async () =>
 
 export const googleIdentityEmail = "user.google@gmail.com";
 export const googleOnlyLoginIdentityMessage =
-  "Google 是当前账号唯一的登录身份，无法解除绑定。通过 Google 注册的账号即使已设置密码，也需要保留 Google 绑定。";
+  googleIdentityLinkMessages.onlyLoginIdentity;
 export const googleIdentityAlreadyExistsMessage =
-  "该 Google 账号已被其他 KuraNote 账号使用，无法绑定到当前账号。请换一个 Google 账号再试。";
+  googleIdentityLinkMessages.identityAlreadyExists;
 export const googleIdentityStartFailedMessage =
-  "暂时无法连接 Google，请稍后再试。";
-export const googleIdentityUnlinkFailedMessage = "解除绑定失败，请稍后再试。";
+  googleIdentityLinkMessages.startFailed;
+export const googleIdentityUnlinkFailedMessage =
+  googleIdentityLinkMessages.unlinkFailed;
 
 export const unlinkedGoogleIdentity: GoogleIdentityStatus = { linked: false };
 

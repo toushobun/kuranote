@@ -15,6 +15,7 @@ import { isSafeNextPath } from "lib/navigation/safeNextPath";
 import { hashAuthOtpIp, normalizeAuthOtpIp } from "internal/auth/otpHash";
 import {
   googleIdentityLinkMessages,
+  loginErrorMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -39,8 +40,6 @@ import type {
 function getSafeNextPath(nextPath: string): string {
   return isSafeNextPath(nextPath) ? nextPath : routePaths.dashboard;
 }
-
-const loginServiceErrorMessage = "登录服务暂时不可用，请稍后重试。";
 
 function logUnexpectedAdapterError(tag: string, error: unknown): void {
   console.error(tag, {
@@ -321,7 +320,7 @@ export async function loginWithRedirect(
     if (error instanceof AppError) return { error: error.message };
 
     logUnexpectedAdapterError("[auth] login action failed unexpectedly", error);
-    return { error: loginServiceErrorMessage };
+    return { error: loginErrorMessages.serviceUnavailable };
   }
 
   redirect(getSafeNextPath(nextPath));

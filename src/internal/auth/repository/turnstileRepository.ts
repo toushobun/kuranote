@@ -1,3 +1,4 @@
+import { turnstileErrorMessages } from "internal/auth/errors";
 import { getTurnstileSecretKey } from "internal/auth/turnstileKeys";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -42,7 +43,7 @@ export function createCloudflareTurnstileRepository(
         if (!response.ok) {
           throw new RepositoryError(
             "turnstile_service_unavailable",
-            "安全验证服务暂时不可用，请稍后重试。",
+            turnstileErrorMessages.serviceUnavailable,
           );
         }
 
@@ -50,7 +51,7 @@ export function createCloudflareTurnstileRepository(
         if (!isTurnstileResponse(data)) {
           throw new RepositoryError(
             "turnstile_response_invalid",
-            "安全验证服务暂时不可用，请稍后重试。",
+            turnstileErrorMessages.serviceUnavailable,
           );
         }
         return data.success === true;
@@ -62,7 +63,7 @@ export function createCloudflareTurnstileRepository(
         if (error instanceof RepositoryError) throw error;
         throw new RepositoryError(
           "turnstile_service_unavailable",
-          "安全验证服务暂时不可用，请稍后重试。",
+          turnstileErrorMessages.serviceUnavailable,
         );
       }
     },

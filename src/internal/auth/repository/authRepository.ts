@@ -5,8 +5,13 @@ import type {
   RegisterFailureReason,
 } from "internal/auth/entity/auth";
 import {
+  authSessionErrorMessages,
   googleIdentityLinkMessages,
+  googleOAuthErrorMessages,
+  loginErrorMessages,
   passwordChangeMessages,
+  registerErrorMessages,
+  registerOtpMessages,
 } from "internal/auth/errors";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -169,7 +174,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "oauth_exchange_failed",
-          "Google 登录回调处理失败，请稍后重试。",
+          googleOAuthErrorMessages.callbackFailed,
         );
       }
     },
@@ -193,7 +198,7 @@ export function createSupabaseAuthRepository(
           });
           throw toRepositoryError(
             "auth_session_load_failed",
-            "登录状态读取失败，请稍后重试。",
+            authSessionErrorMessages.loadFailed,
           );
         }
 
@@ -207,7 +212,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "auth_session_load_failed",
-          "登录状态读取失败，请稍后重试。",
+          authSessionErrorMessages.loadFailed,
         );
       }
     },
@@ -257,7 +262,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "signup_otp_resend_failed",
-          "验证码发送失败，请稍后重试。",
+          registerOtpMessages.resendFailed,
         );
       }
     },
@@ -302,7 +307,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "login_service_unavailable",
-          "登录服务暂时不可用，请稍后重试。",
+          loginErrorMessages.serviceUnavailable,
         );
       }
     },
@@ -342,7 +347,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "register_service_unavailable",
-          "注册服务暂时不可用，请稍后重试。",
+          registerErrorMessages.serviceUnavailable,
         );
       }
     },
@@ -395,7 +400,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "google_auth_start_failed",
-          "Google 登录暂时不可用，请稍后重试。",
+          googleOAuthErrorMessages.startUnavailable,
         );
       }
     },
@@ -512,7 +517,7 @@ export function createSupabaseAuthRepository(
         );
         throw toRepositoryError(
           "signup_otp_verify_failed",
-          "验证码校验服务暂时不可用，请稍后重试。",
+          registerOtpMessages.verifyServiceUnavailable,
         );
       }
     },

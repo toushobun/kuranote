@@ -19,6 +19,7 @@ import {
 } from "lib/validators/auth";
 import {
   googleIdentityLinkMessages,
+  loginErrorMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -183,41 +184,44 @@ function validateRegisterInput(input: RegisterInput): RegisterInput {
   if (!displayName || !email || !input.password || !input.passwordConfirm) {
     throw new ValidationError(
       "register_fields_required",
-      "请输入昵称、邮箱和密码。",
+      registerErrorMessages.fieldsRequired,
     );
   }
   if (email.length > emailMaxLength) {
     throw new ValidationError(
       "email_too_long",
-      `邮箱最多 ${emailMaxLength} 个字符。`,
+      registerErrorMessages.emailTooLong,
     );
   }
   if (!isValidEmailFormat(email)) {
-    throw new ValidationError("email_invalid", "邮箱格式有误");
+    throw new ValidationError(
+      "email_invalid",
+      registerErrorMessages.emailFormatInvalid,
+    );
   }
   if (displayName.length > displayNameMaxLength) {
     throw new ValidationError(
       "display_name_too_long",
-      `昵称最多 ${displayNameMaxLength} 个字符。`,
+      registerErrorMessages.displayNameTooLong,
     );
   }
   if (input.password.length > passwordMaxLength) {
     throw new ValidationError(
       "password_too_long",
-      `密码最多 ${passwordMaxLength} 个字符。`,
+      registerErrorMessages.passwordTooLong,
       { details: { resetPassword: true } },
     );
   }
   if (input.passwordConfirm.length > passwordMaxLength) {
     throw new ValidationError(
       "password_confirm_too_long",
-      `确认密码最多 ${passwordMaxLength} 个字符。`,
+      registerErrorMessages.passwordConfirmTooLong,
     );
   }
   if (input.password !== input.passwordConfirm) {
     throw new ValidationError(
       "password_confirmation_mismatch",
-      "两次输入的密码不一致。",
+      registerErrorMessages.passwordConfirmationMismatch,
     );
   }
   if (!isValidRegisterPassword(input.password)) {
@@ -237,16 +241,22 @@ function validateResendEmail(emailValue: string): string {
   const email = emailValue.trim();
 
   if (!email) {
-    throw new ValidationError("email_required", "请输入邮箱。");
+    throw new ValidationError(
+      "email_required",
+      registerErrorMessages.emailRequired,
+    );
   }
   if (email.length > emailMaxLength) {
     throw new ValidationError(
       "email_too_long",
-      `邮箱最多 ${emailMaxLength} 个字符。`,
+      registerErrorMessages.emailTooLong,
     );
   }
   if (!isValidEmailFormat(email)) {
-    throw new ValidationError("email_invalid", "邮箱格式有误");
+    throw new ValidationError(
+      "email_invalid",
+      registerErrorMessages.emailFormatInvalid,
+    );
   }
 
   return email;
@@ -260,19 +270,28 @@ function validateOtpInput(input: SubmitRegisterOtpInput): {
   const token = input.token.trim();
 
   if (!email || !token) {
-    throw new ValidationError("otp_fields_required", "请输入邮箱和验证码。");
+    throw new ValidationError(
+      "otp_fields_required",
+      registerOtpMessages.fieldsRequired,
+    );
   }
   if (email.length > emailMaxLength) {
     throw new ValidationError(
       "email_too_long",
-      `邮箱最多 ${emailMaxLength} 个字符。`,
+      registerErrorMessages.emailTooLong,
     );
   }
   if (!isValidEmailFormat(email)) {
-    throw new ValidationError("email_invalid", "邮箱格式有误");
+    throw new ValidationError(
+      "email_invalid",
+      registerErrorMessages.emailFormatInvalid,
+    );
   }
   if (!/^\d{6}$/.test(token)) {
-    throw new ValidationError("otp_format_invalid", "请输入 6 位数字验证码");
+    throw new ValidationError(
+      "otp_format_invalid",
+      registerOtpMessages.otpFormatInvalid,
+    );
   }
 
   return { email, token };
@@ -680,7 +699,7 @@ export function createAuthService({
       if (!email || !input.password) {
         throw new ValidationError(
           "login_fields_required",
-          "请输入邮箱和密码。",
+          loginErrorMessages.fieldsRequired,
         );
       }
 
@@ -692,7 +711,7 @@ export function createAuthService({
       if (!signedIn) {
         throw new AuthenticationError(
           "invalid_credentials",
-          "邮箱或密码不正确。",
+          loginErrorMessages.invalidCredentials,
         );
       }
     },
@@ -921,7 +940,7 @@ export function createAuthService({
       if (!user) {
         throw new AuthenticationError(
           "session_invalid",
-          "登录状态无效，请重新登录。",
+          registerOtpMessages.sessionInvalid,
         );
       }
       if (!user.displayName || user.displayName.length > displayNameMaxLength) {

@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { loginErrorMessages } from "internal/auth";
+
 import { LoginForm } from "./LoginForm";
 
 const meta = {
@@ -20,6 +22,6 @@ export const Default: Story = {
 export const WithError: Story = {
   name: "含登录失败提示",
   args: {
-    action: async () => ({ error: "邮箱或密码不正确。" }),
+    action: async () => ({ error: loginErrorMessages.invalidCredentials }),
   },
 };
