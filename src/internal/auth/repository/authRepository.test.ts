@@ -2,6 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  googleIdentityLinkMessages,
+  passwordChangeMessages,
+} from "internal/auth/errors";
 import { createSupabaseAuthRepository } from "internal/auth/repository/authRepository";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -321,7 +325,7 @@ describe("createSupabaseAuthRepository", () => {
         repository.sendPasswordChangeOtp("user@example.test"),
       ).rejects.toMatchObject({
         code: "password_change_otp_send_failed",
-        message: "验证码发送失败，请稍后再试。",
+        message: passwordChangeMessages.otpSendFailed,
       });
       await expect(
         repository.verifyPasswordChangeOtp({
@@ -474,7 +478,7 @@ describe("createSupabaseAuthRepository", () => {
         repository.listCurrentUserIdentities(),
       ).rejects.toMatchObject({
         code: "identity_load_failed",
-        message: "账号绑定状态读取失败，请稍后重试。",
+        message: googleIdentityLinkMessages.statusLoadFailed,
       });
       expect(
         JSON.stringify((logger.error as ReturnType<typeof vi.fn>).mock.calls),
@@ -508,7 +512,7 @@ describe("createSupabaseAuthRepository", () => {
         repository.startGoogleIdentityLink("https://kuranote.test/cb"),
       ).rejects.toMatchObject({
         code: "google_identity_link_start_failed",
-        message: "暂时无法连接 Google，请稍后再试。",
+        message: googleIdentityLinkMessages.startFailed,
       });
       expect(logger.error).toHaveBeenCalledWith(
         "[auth] Google identity link start failed",
@@ -560,7 +564,7 @@ describe("createSupabaseAuthRepository", () => {
         repository.unlinkIdentity(googleIdentity),
       ).rejects.toMatchObject({
         code: "identity_unlink_failed",
-        message: "解除绑定失败，请稍后再试。",
+        message: googleIdentityLinkMessages.unlinkFailed,
       });
 
       auth.unlinkIdentity.mockRejectedValueOnce(new Error("network failed"));

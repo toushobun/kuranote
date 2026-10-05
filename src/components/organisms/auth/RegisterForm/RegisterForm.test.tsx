@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { turnstileTestSiteKey } from "config/turnstile";
+import { registerErrorMessages, registerOtpMessages } from "internal/auth";
 import { type RegisterEmailAvailabilityState } from "types/auth";
 import { installMockTurnstile } from "test/turnstile/mockTurnstile";
 import { RegisterForm } from "./RegisterForm";
@@ -77,13 +78,17 @@ describe("RegisterForm", () => {
     fireEvent.change(screen.getByLabelText(/^密码/), {
       target: { value: "password" },
     });
-    expect(screen.queryByText("邮箱格式有误")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerErrorMessages.emailFormatInvalid),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText("密码至少 8 位，并且需要同时包含字母和数字。"),
     ).not.toBeInTheDocument();
     fireEvent.blur(screen.getByLabelText(/邮箱/));
     fireEvent.blur(screen.getByLabelText(/^密码/));
-    expect(screen.getByText("邮箱格式有误")).toBeInTheDocument();
+    expect(
+      screen.getByText(registerErrorMessages.emailFormatInvalid),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("密码至少 8 位，并且需要同时包含字母和数字。"),
     ).toBeInTheDocument();
@@ -185,7 +190,7 @@ describe("RegisterForm", () => {
     const removeSpy = vi.spyOn(mockTurnstile, "remove");
     const props = createDefaultProps();
     props.requestOtpAction.mockResolvedValue({
-      error: "验证码发送过于频繁，请稍后再试",
+      error: registerOtpMessages.rateLimited,
       retryAfterSeconds: 42,
       status: "rate_limited",
     });
@@ -194,7 +199,7 @@ describe("RegisterForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
     expect(
       await screen.findByText(
-        "验证码发送过于频繁，请稍后再试 42 秒后可重新获取验证码。",
+        `${registerOtpMessages.rateLimited} 42 秒后可重新获取验证码。`,
       ),
     ).toBeInTheDocument();
     await waitFor(() => {
@@ -236,15 +241,19 @@ describe("RegisterForm", () => {
     });
     const otpField = await screen.findByLabelText(/验证码/);
     fireEvent.change(otpField, { target: { value: "123" } });
-    expect(screen.queryByText("请输入 6 位数字验证码")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerOtpMessages.otpFormatInvalid),
+    ).not.toBeInTheDocument();
     fireEvent.blur(otpField);
-    expect(screen.getByText("请输入 6 位数字验证码")).toBeInTheDocument();
+    expect(
+      screen.getByText(registerOtpMessages.otpFormatInvalid),
+    ).toBeInTheDocument();
   });
   it("提交验证码时调用提交 action 并显示剩余次数", async () => {
     const props = createDefaultProps();
     props.requestOtpAction.mockResolvedValue({ status: "success" });
     props.submitOtpAction.mockResolvedValue({
-      error: "验证码不正确或已过期，请重新获取",
+      error: registerOtpMessages.invalidOtp,
       remainingAttempts: 4,
       status: "otp_invalid",
     });
@@ -293,8 +302,12 @@ describe("RegisterForm", () => {
     fireEvent.change(screen.getByLabelText(/昵称/), {
       target: { value: "a".repeat(51) },
     });
-    expect(screen.queryByText("邮箱格式有误")).not.toBeInTheDocument();
-    expect(screen.queryByText("昵称最多 50 个字符。")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerErrorMessages.emailFormatInvalid),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerErrorMessages.displayNameTooLong),
+    ).not.toBeInTheDocument();
   });
   it("冷却结束后可以使用锁定信息重新发送验证码", async () => {
     const props = createDefaultProps();
@@ -359,8 +372,12 @@ describe("RegisterForm", () => {
     fireEvent.change(screen.getByLabelText(/昵称/), {
       target: { value: "a".repeat(51) },
     });
-    expect(screen.queryByText("邮箱格式有误")).not.toBeInTheDocument();
-    expect(screen.queryByText("昵称最多 50 个字符。")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerErrorMessages.emailFormatInvalid),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(registerErrorMessages.displayNameTooLong),
+    ).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/邮箱/), {
       target: { value: "yamada@example.test" },
     });
@@ -470,7 +487,7 @@ describe("RegisterForm", () => {
     props.requestOtpAction
       .mockResolvedValueOnce({ retryAfterSeconds: 0, status: "success" })
       .mockResolvedValueOnce({
-        error: "验证码发送过于频繁，请稍后再试",
+        error: registerOtpMessages.rateLimited,
         retryAfterSeconds: 0,
         status: "rate_limited",
       })
@@ -501,7 +518,7 @@ describe("RegisterForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "重新发送验证码" }));
     expect(
-      await screen.findByText("验证码发送过于频繁，请稍后再试"),
+      await screen.findByText(registerOtpMessages.rateLimited),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "完成注册" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "重新发送验证码" }));
@@ -699,7 +716,7 @@ describe("RegisterForm Turnstile", () => {
     const props = createDefaultProps();
     props.requestOtpAction
       .mockResolvedValueOnce({
-        error: "人机验证失败，请稍后重试",
+        error: registerOtpMessages.turnstileFailed,
         resetTurnstile: true,
         status: "turnstile_failed",
       })
@@ -714,7 +731,7 @@ describe("RegisterForm Turnstile", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "获取验证码" }));
     expect(
-      await screen.findByText("人机验证失败，请稍后重试"),
+      await screen.findByText(registerOtpMessages.turnstileFailed),
     ).toBeInTheDocument();
     expectRegisterFieldsPreserved();
     await waitFor(() => {

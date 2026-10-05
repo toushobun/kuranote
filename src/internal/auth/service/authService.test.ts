@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { turnstileTokenMaxLength } from "internal/auth/entity/auth";
 import {
   googleIdentityLinkMessages,
+  loginErrorMessages,
   passwordChangeMessages,
   registerOtpMessages,
 } from "internal/auth/errors";
@@ -125,7 +126,7 @@ describe("AuthService login / session", () => {
       fixture.service.login({ email: "", password: "" }),
     ).rejects.toMatchObject({
       code: "login_fields_required",
-      message: "请输入邮箱和密码。",
+      message: loginErrorMessages.fieldsRequired,
     });
     expect(fixture.authRepository.signInWithPassword).not.toHaveBeenCalled();
   });

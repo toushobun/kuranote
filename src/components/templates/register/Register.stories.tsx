@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { turnstileTestSiteKey } from "config/turnstile";
+import { registerOtpMessages } from "internal/auth";
 import { installTurnstileTestDouble } from "test/turnstile/turnstileTestDouble";
 import type {
   RegisterEmailAvailabilityState,
@@ -61,7 +62,7 @@ export const WithError: Story = {
   name: "含验证码错误提示",
   args: {
     initialRequestOtpState: {
-      error: "验证码发送失败，请稍后再试。",
+      error: registerOtpMessages.resendFailed,
     },
   },
 };

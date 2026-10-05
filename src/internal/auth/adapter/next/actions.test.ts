@@ -23,6 +23,7 @@ import {
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import {
   googleIdentityLinkMessages,
+  loginErrorMessages,
   passwordChangeMessages,
   registerErrorMessages,
   registerOtpMessages,
@@ -137,11 +138,14 @@ describe("auth Next actions", () => {
   });
   it("登录应用错误返回现有表单错误结构", async () => {
     mocks.login.mockRejectedValue(
-      new AuthenticationError("invalid_credentials", "邮箱或密码不正确。"),
+      new AuthenticationError(
+        "invalid_credentials",
+        loginErrorMessages.invalidCredentials,
+      ),
     );
     await expect(
       loginWithRedirect("/dashboard", {}, createLoginFormData()),
-    ).resolves.toEqual({ error: "邮箱或密码不正确。" });
+    ).resolves.toEqual({ error: loginErrorMessages.invalidCredentials });
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
   it("登录普通异常返回安全服务文案且不记录原始消息", async () => {
@@ -151,7 +155,7 @@ describe("auth Next actions", () => {
     mocks.login.mockRejectedValue(new Error("private login details"));
     await expect(
       loginWithRedirect("/dashboard", {}, createLoginFormData()),
-    ).resolves.toEqual({ error: "登录服务暂时不可用，请稍后重试。" });
+    ).resolves.toEqual({ error: loginErrorMessages.serviceUnavailable });
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
       "private login details",
     );
@@ -165,11 +169,14 @@ describe("auth Next actions", () => {
       checkRegisterEmailAvailability("user@example.test"),
     ).resolves.toEqual({
       available: false,
-      error: "这个邮箱已经注册过了，请直接登录或换一个邮箱。",
+      error: registerErrorMessages.duplicateEmail,
       reason: "email_exists",
     });
     mocks.checkRegisterEmailAvailability.mockRejectedValue(
-      new ValidationError("email_invalid", "邮箱格式有误"),
+      new ValidationError(
+        "email_invalid",
+        registerErrorMessages.emailFormatInvalid,
+      ),
     );
     await expect(checkRegisterEmailAvailability("not-email")).resolves.toEqual({
       available: false,
@@ -190,11 +197,14 @@ describe("auth Next actions", () => {
     );
     await expect(
       checkRegisterEmailAvailability("user@example.test"),
-    ).resolves.toEqual({ available: false, error: "服务异常，请稍后再试" });
+    ).resolves.toEqual({
+      available: false,
+      error: registerOtpMessages.serviceError,
+    });
     await expect(
       requestRegisterOtp({}, createRequestOtpFormData()),
     ).resolves.toEqual({
-      error: "服务异常，请稍后再试",
+      error: registerOtpMessages.serviceError,
       resetTurnstile: true,
       status: "unknown_error",
     });
@@ -205,7 +215,7 @@ describe("auth Next actions", () => {
         createSubmitOtpFormData(),
       ),
     ).resolves.toEqual({
-      error: "服务异常，请稍后再试",
+      error: registerOtpMessages.serviceError,
       status: "unknown_error",
     });
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("private");
@@ -218,7 +228,7 @@ describe("auth Next actions", () => {
       resetTurnstile: true,
       retryAfterSeconds: 60,
       status: "success",
-      success: "如果该邮箱可以注册，我们已发送验证码。请查收邮件。",
+      success: registerOtpMessages.success,
     });
     expect(mocks.requestRegisterOtp).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -233,14 +243,14 @@ describe("auth Next actions", () => {
     mocks.requestRegisterOtp.mockRejectedValue(
       new RateLimitError(
         "otp_send_rate_limited",
-        "验证码发送过于频繁，请稍后再试",
+        registerOtpMessages.rateLimited,
         { details: { retryAfterSeconds: 42 } },
       ),
     );
     await expect(
       requestRegisterOtp({}, createRequestOtpFormData()),
     ).resolves.toEqual({
-      error: "验证码发送过于频繁，请稍后再试",
+      error: registerOtpMessages.rateLimited,
       resetTurnstile: true,
       retryAfterSeconds: 42,
       status: "rate_limited",

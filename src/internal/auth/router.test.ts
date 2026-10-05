@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { googleAuthNextPathMaxLength } from "lib/auth/googleOAuth";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { type AppEnv } from "internal/appEnv";
+import { registerOtpMessages } from "internal/auth/errors";
 import { authRouter } from "internal/auth/router";
 import { type RequestContainer } from "internal/container";
 import { RateLimitError } from "internal/shared/errors/appError";
@@ -154,7 +155,7 @@ describe("auth router", () => {
       .mockRejectedValue(
         new RateLimitError(
           "otp_send_rate_limited",
-          "验证码发送过于频繁，请稍后再试",
+          registerOtpMessages.rateLimited,
           { details: { retryAfterSeconds: 42 } },
         ),
       );

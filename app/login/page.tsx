@@ -34,12 +34,6 @@ function getNextPath(next: string | string[] | undefined) {
   return isSafeNextPath(next) ? next : routePaths.dashboard;
 }
 
-function getAuthErrorMessage(authError: string | string[] | undefined) {
-  return typeof authError === "string"
-    ? getGoogleAuthErrorMessage(authError)
-    : undefined;
-}
-
 export default async function LoginRoute({ searchParams }: LoginRouteProps) {
   const params = await searchParams;
   const nextPath = getNextPath(params?.next);
@@ -55,7 +49,7 @@ export default async function LoginRoute({ searchParams }: LoginRouteProps) {
           ? startGoogleAuth.bind(null, "login", nextPath)
           : undefined
       }
-      googleErrorMessage={getAuthErrorMessage(params?.authError)}
+      googleErrorMessage={getGoogleAuthErrorMessage(params?.authError)}
       registerHref={routeWithQuery(routePaths.register, { next: nextPath })}
     />
   );

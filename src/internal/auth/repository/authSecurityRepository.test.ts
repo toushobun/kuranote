@@ -7,6 +7,7 @@ import {
   type SupabaseMockResponse,
 } from "test/supabaseMock";
 
+import { authSecurityErrorMessages } from "internal/auth/errors";
 import { createSupabaseAuthSecurityRepository } from "internal/auth/repository/authSecurityRepository";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
@@ -77,7 +78,7 @@ describe("createSupabaseAuthSecurityRepository", () => {
       repository.isRegisterEmailAvailable("user@example.test"),
     ).rejects.toMatchObject({
       code: "register_email_check_failed",
-      message: "邮箱可用性检查失败，请稍后重试。",
+      message: authSecurityErrorMessages.emailCheckFailed,
       name: RepositoryError.name,
     });
     expect(logger.error).toHaveBeenCalledWith(
@@ -94,7 +95,7 @@ describe("createSupabaseAuthSecurityRepository", () => {
       repository.isRegisterEmailAvailable("user@example.test"),
     ).rejects.toMatchObject({
       code: "register_email_check_failed",
-      message: "邮箱可用性检查失败，请稍后重试。",
+      message: authSecurityErrorMessages.emailCheckFailed,
       name: RepositoryError.name,
     });
     expect(logger.error).toHaveBeenCalledWith(
@@ -115,7 +116,7 @@ describe("createSupabaseAuthSecurityRepository", () => {
       repository.isRegisterEmailAvailable("user@example.test"),
     ).rejects.toMatchObject({
       code: "register_email_check_failed",
-      message: "邮箱可用性检查失败，请稍后重试。",
+      message: authSecurityErrorMessages.emailCheckFailed,
       name: RepositoryError.name,
     });
   });

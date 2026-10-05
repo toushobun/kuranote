@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { registerErrorMessages, registerOtpMessages } from "internal/auth";
 
 import { useRegisterForm } from "./useRegisterForm";
 
@@ -39,7 +40,9 @@ describe("useRegisterForm", () => {
     act(() => result.current.handleEmailChange("invalid-email"));
     await act(async () => result.current.handleEmailBlur());
 
-    expect(result.current.emailError).toBe("邮箱格式有误");
+    expect(result.current.emailError).toBe(
+      registerErrorMessages.emailFormatInvalid,
+    );
     expect(checkEmailAvailabilityAction).not.toHaveBeenCalled();
     expect(result.current.emailAvailabilityChecked).toBe(false);
   });
@@ -93,7 +96,9 @@ describe("useRegisterForm", () => {
       result.current.handleOtpCodeChange("123");
       result.current.handleOtpCodeBlur();
     });
-    expect(result.current.otpCodeError).toBe("请输入 6 位数字验证码");
+    expect(result.current.otpCodeError).toBe(
+      registerOtpMessages.otpFormatInvalid,
+    );
     expect(result.current.canSubmitOtp).toBe(false);
   });
 });

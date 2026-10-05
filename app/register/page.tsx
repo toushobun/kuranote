@@ -17,12 +17,6 @@ function getNextPath(next: string | string[] | undefined) {
   return isSafeNextPath(next) ? next : routePaths.dashboard;
 }
 
-function getAuthErrorMessage(authError: string | string[] | undefined) {
-  return typeof authError === "string"
-    ? getGoogleAuthErrorMessage(authError)
-    : undefined;
-}
-
 export default async function RegisterRoute({
   searchParams,
 }: {
@@ -45,7 +39,7 @@ export default async function RegisterRoute({
           ? startGoogleAuth.bind(null, "register", nextPath)
           : undefined
       }
-      googleErrorMessage={getAuthErrorMessage(params?.authError)}
+      googleErrorMessage={getGoogleAuthErrorMessage(params?.authError)}
       loginHref={routeWithQuery(routePaths.login, { next: nextPath })}
       requestOtpAction={requestRegisterOtp}
       submitOtpAction={submitRegisterOtpWithRedirect.bind(null, nextPath)}

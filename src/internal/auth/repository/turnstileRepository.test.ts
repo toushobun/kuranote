@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { turnstileErrorMessages } from "internal/auth/errors";
 import { createCloudflareTurnstileRepository } from "internal/auth/repository/turnstileRepository";
 import type { Logger } from "internal/shared/logging/logger";
 
@@ -105,7 +106,7 @@ describe("createCloudflareTurnstileRepository", () => {
       repository.verify({ remoteIp: null, token: "token-value" }),
     ).rejects.toMatchObject({
       code: "turnstile_service_unavailable",
-      message: "安全验证服务暂时不可用，请稍后重试。",
+      message: turnstileErrorMessages.serviceUnavailable,
     });
     expect(logger.warn).toHaveBeenCalledWith(
       "[auth] Turnstile verification request failed",
@@ -129,7 +130,7 @@ describe("createCloudflareTurnstileRepository", () => {
       repository.verify({ remoteIp: null, token: "token-value" }),
     ).rejects.toMatchObject({
       code: "turnstile_service_unavailable",
-      message: "安全验证服务暂时不可用，请稍后重试。",
+      message: turnstileErrorMessages.serviceUnavailable,
     });
   });
 });
