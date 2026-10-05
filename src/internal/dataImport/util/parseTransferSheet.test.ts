@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import {
+  importStructuralErrorMessages,
+  transferImportErrorMessages,
+} from "internal/dataImport/errors";
 import { transferColumns } from "internal/dataImport/schema";
 import { parseTransferSheet } from "internal/dataImport/util/parseTransferSheet";
 
@@ -210,7 +214,7 @@ describe("parseTransferSheet", () => {
       expect.objectContaining({
         column: "转入账户",
         kind: "row",
-        message: "转出账户与转入账户不能是同一个账户。",
+        message: transferImportErrorMessages.sameAccount,
       }),
     ]);
     expect(result.rows).toEqual([]);
@@ -283,7 +287,10 @@ describe("parseTransferSheet", () => {
     expect(result.issues).toEqual([
       expect.objectContaining({
         kind: "structural",
-        message: "「转账」表缺少必填列：转出账户类型、转入账户类型。",
+        message: importStructuralErrorMessages.missingRequiredColumns("转账", [
+          "转出账户类型",
+          "转入账户类型",
+        ]),
         sheet: "transfer",
       }),
     ]);

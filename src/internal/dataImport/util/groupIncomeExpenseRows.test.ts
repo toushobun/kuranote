@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { incomeExpenseImportErrorMessages } from "internal/dataImport/errors";
 import type { IncomeExpenseSharedColumn } from "internal/dataImport/schema";
 import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
 import type { IncomeExpenseSheetRow } from "internal/dataImport/util/parseIncomeExpenseSheet";
@@ -203,8 +204,11 @@ describe("groupIncomeExpenseRows", () => {
       expect.objectContaining({
         column: "账单关联",
         kind: "row",
-        message: expect.stringContaining(
-          "账单关联「7」下第 2 行与第 3 行的 日期 不一致",
+        message: incomeExpenseImportErrorMessages.billRefSharedMismatch(
+          "7",
+          2,
+          3,
+          ["日期"],
         ),
         rowNumber: 3,
         sheet: "incomeExpense",

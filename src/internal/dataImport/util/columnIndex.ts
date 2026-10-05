@@ -4,6 +4,7 @@ import {
 } from "internal/dataImport/entity/importSheetKind";
 import type { ImportStructuralIssue } from "internal/dataImport/entity/importValidationIssue";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { importStructuralErrorMessages } from "internal/dataImport/errors";
 import type { ImportColumnDef } from "internal/dataImport/schema";
 
 /** 按列名建立「列名 → 列下标」映射；同名列取第一次出现的位置。 */
@@ -74,7 +75,10 @@ export function findColumnStructuralIssues(
   if (missingColumns.length > 0) {
     issues.push({
       kind: "structural",
-      message: `「${sheetLabel}」表缺少必填列：${missingColumns.join("、")}。`,
+      message: importStructuralErrorMessages.missingRequiredColumns(
+        sheetLabel,
+        missingColumns,
+      ),
       sheet: sheetKind,
     });
   }
@@ -82,7 +86,10 @@ export function findColumnStructuralIssues(
   if (unknownColumns.length > 0) {
     issues.push({
       kind: "structural",
-      message: `「${sheetLabel}」表存在无法识别的列：${unknownColumns.join("、")}，请确认列名是否正确。`,
+      message: importStructuralErrorMessages.unknownColumns(
+        sheetLabel,
+        unknownColumns,
+      ),
       sheet: sheetKind,
     });
   }

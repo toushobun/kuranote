@@ -25,7 +25,11 @@ vi.mock("internal/container", () => ({
 }));
 
 import { executeDataImportBatch } from "internal/dataImport/adapter/next/actions";
-import { dataImportExecutionErrorMessages } from "internal/dataImport/errors";
+import {
+  dataImportErrorCodes,
+  dataImportErrorMessages,
+  dataImportExecutionErrorMessages,
+} from "internal/dataImport/errors";
 import {
   ConflictError,
   ValidationError,
@@ -170,7 +174,7 @@ describe("executeDataImportBatch", () => {
     );
 
     expect(state).toEqual({
-      error: "导入文件或进度信息已变化，请重新检查格式后再导入。",
+      error: dataImportErrorMessages[dataImportErrorCodes.executionInvalid],
       errorKey: expect.any(String),
     });
     expect(mocks.executeBatch).not.toHaveBeenCalled();
@@ -216,7 +220,7 @@ describe("executeDataImportBatch", () => {
     const state = await executeDataImportBatch({}, createFormData([]));
 
     expect(state).toEqual({
-      error: "导入文件或进度信息已变化，请重新检查格式后再导入。",
+      error: dataImportErrorMessages[dataImportErrorCodes.executionInvalid],
       errorKey: expect.any(String),
     });
     expect(mocks.executeBatch).not.toHaveBeenCalled();
@@ -241,7 +245,7 @@ describe("executeDataImportBatch", () => {
     const state = await executeDataImportBatch({}, createFormData());
 
     expect(state).toEqual({
-      error: "数据导入失败，请稍后重试。",
+      error: dataImportErrorMessages[dataImportErrorCodes.executionFailed],
       errorKey: expect.any(String),
     });
     expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -258,7 +262,7 @@ describe("executeDataImportBatch", () => {
     const state = await executeDataImportBatch({}, createFormData());
 
     expect(state).toEqual({
-      error: "数据导入失败，请稍后重试。",
+      error: dataImportErrorMessages[dataImportErrorCodes.executionFailed],
       errorKey: expect.any(String),
     });
     expect(mocks.executeBatch).not.toHaveBeenCalled();

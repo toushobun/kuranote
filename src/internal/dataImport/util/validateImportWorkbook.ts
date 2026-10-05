@@ -7,6 +7,7 @@ import type {
   ImportValidationIssue,
   ImportValidationResult,
 } from "internal/dataImport/entity/importValidationIssue";
+import { importStructuralErrorMessages } from "internal/dataImport/errors";
 import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
 import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
 import {
@@ -46,7 +47,10 @@ export function analyzeImportWorkbook(
     return {
       result: {
         issues: [
-          { kind: "structural", message: "文件为空或没有可识别的数据表。" },
+          {
+            kind: "structural",
+            message: importStructuralErrorMessages.workbookEmpty,
+          },
         ],
         ok: false,
       },
@@ -78,7 +82,7 @@ export function analyzeImportWorkbook(
   ) {
     issues.push({
       kind: "structural",
-      message: "未找到「收支」「转账」或「余额变更」表，无法导入。",
+      message: importStructuralErrorMessages.sheetNotFound,
     });
   }
 

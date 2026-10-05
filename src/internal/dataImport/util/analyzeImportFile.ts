@@ -2,7 +2,7 @@ import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import type { ImportValidationResult } from "internal/dataImport/entity/importValidationIssue";
 import {
   dataImportErrorCodes,
-  getDataImportErrorMessage,
+  dataImportErrorMessages,
 } from "internal/dataImport/errors";
 import { maxImportFileSizeBytes } from "internal/dataImport/schema";
 import { parseImportFile } from "internal/dataImport/util/parseImportFile";
@@ -27,9 +27,7 @@ export async function analyzeImportFile(
         issues: [
           {
             kind: "structural",
-            message: getDataImportErrorMessage(
-              dataImportErrorCodes.fileTooLarge,
-            )!,
+            message: dataImportErrorMessages[dataImportErrorCodes.fileTooLarge],
           },
         ],
         ok: false,

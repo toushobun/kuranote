@@ -1,3 +1,8 @@
+import {
+  importNoteMaxLength,
+  transferTypeValue,
+} from "internal/dataImport/schema";
+
 export const dataImportErrorCodes = {
   executionFailed: "execution_failed",
   executionInvalid: "execution_invalid",
@@ -11,7 +16,7 @@ export const dataImportErrorCodes = {
 export type DataImportErrorCode =
   (typeof dataImportErrorCodes)[keyof typeof dataImportErrorCodes];
 
-const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
+export const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.executionFailed]: "数据导入失败，请稍后重试。",
   [dataImportErrorCodes.executionInvalid]:
     "导入文件或进度信息已变化，请重新检查格式后再导入。",
@@ -23,14 +28,61 @@ const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.validationFailed]: "文件检查失败，请稍后重试。",
 };
 
-export const balanceAdjustmentImportErrorMessages = {
-  typeInvalid: "交易类型必须是「余额变更」。",
-  dateInvalid: "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
+/** 导入文件本身或表结构不正确时的结构性错误。 */
+export const importStructuralErrorMessages = {
+  fileTypeUnsupported: "仅支持 xlsx 文件。",
+  fileUnreadable: "文件无法解析，请确认文件未损坏且是有效的 xlsx 文件。",
+  missingRequiredColumns: (sheetLabel: string, columns: string[]) =>
+    `「${sheetLabel}」表缺少必填列：${columns.join("、")}。`,
+  sheetNotFound: "未找到「收支」「转账」或「余额变更」表，无法导入。",
+  unknownColumns: (sheetLabel: string, columns: string[]) =>
+    `「${sheetLabel}」表存在无法识别的列：${columns.join("、")}，请确认列名是否正确。`,
+  workbookEmpty: "文件为空或没有可识别的数据表。",
+} as const;
+
+/** 「收支」「转账」「余额变更」表中两种以上共用的行校验错误。 */
+export const importRowErrorMessages = {
   accountRequired: "账户不能为空。",
   currencyInvalid: "账户币种必须是 3 位字母代码，例如 CNY。",
-  amountInvalid: "金额必须是非零、绝对值小于 1 万亿且不超过两位小数的数字。",
+  dateInvalid: "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
   holderInvalid:
     "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
+  noteTooLong: `备注不能超过 ${importNoteMaxLength} 个字符。`,
+} as const;
+
+export const balanceAdjustmentImportErrorMessages = {
+  amountInvalid: "金额必须是非零、绝对值小于 1 万亿且不超过两位小数的数字。",
+  typeInvalid: "交易类型必须是「余额变更」。",
+} as const;
+
+export const incomeExpenseImportErrorMessages = {
+  amountInvalid: "金额必须是不超过两位小数的非负数字。",
+  billRefFirstRowPlaceholder: (
+    billRef: string,
+    rowNumber: number,
+    columns: string[],
+  ) =>
+    `账单关联「${billRef}」下第 ${rowNumber} 行是该账单关联首次出现的行，${columns.join("、")} 不能填写「-」，需提供实际值。`,
+  billRefSharedMismatch: (
+    billRef: string,
+    firstRowNumber: number,
+    rowNumber: number,
+    columns: string[],
+  ) =>
+    `账单关联「${billRef}」下第 ${firstRowNumber} 行与第 ${rowNumber} 行的 ${columns.join("、")} 不一致，无法合并为同一笔交易。`,
+  merchantRequired: "商家不能为空。",
+  parentCategoryRequired: "一级分类不能为空。",
+  typeInvalid: "交易类型必须是「支出」或「收入」。",
+} as const;
+
+export const transferImportErrorMessages = {
+  amountInvalid: "金额必须是大于 0、不超过两位小数的数字。",
+  fromAccountCurrencyInvalid: "转出账户币种必须是 3 位字母代码，例如 CNY。",
+  fromAccountRequired: "转出账户不能为空。",
+  sameAccount: "转出账户与转入账户不能是同一个账户。",
+  toAccountCurrencyInvalid: "转入账户币种必须是 3 位字母代码，例如 CNY。",
+  toAccountRequired: "转入账户不能为空。",
+  typeInvalid: `交易类型必须是「${transferTypeValue}」。`,
 } as const;
 
 export const dataImportExecutionErrorMessages = {
@@ -43,21 +95,15 @@ export const dataImportExecutionErrorMessages = {
     `账本内存在多个显示名为「${name}」的成员，无法确定账户持有人。`,
   holderMappingInvalid:
     "持有人映射里包含不属于当前账本的成员或待邀请成员（可能已加入账本或已被删除），请重新检查格式后再导入。",
+  holderMissingWarning: (name: string) =>
+    `账本内找不到显示名为「${name}」的有效成员，已按无持有人继续导入该笔记录。`,
+  merchantAmbiguous: (name: string) =>
+    `账本内存在多个可匹配「${name}」的商家，无法确定应使用哪一个。`,
   newPlaceholderMemberConflict: (names: string[]) =>
     names.length > 0
       ? `「${names.join("」「")}」与账本成员同名，不能新建为待邀请成员，请在持有人映射里改为选择该成员。`
       : "要新建的待邀请成员与账本成员同名，请在持有人映射里改为选择该成员。",
   newPlaceholderNameConflict:
     "账本里已有同名的待邀请成员，请在持有人映射里直接选择那位待邀请成员。",
-  holderMissingWarning: (name: string) =>
-    `账本内找不到显示名为「${name}」的有效成员，已按无持有人继续导入该笔记录。`,
-  merchantAmbiguous: (name: string) =>
-    `账本内存在多个可匹配「${name}」的商家，无法确定应使用哪一个。`,
   rowFailed: "该条记录导入失败，请稍后重试。",
 } as const;
-
-export function getDataImportErrorMessage(code?: string) {
-  return code && code in dataImportErrorMessages
-    ? dataImportErrorMessages[code as DataImportErrorCode]
-    : null;
-}

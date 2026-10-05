@@ -3,6 +3,7 @@ import type {
   IncomeExpenseImportRow,
 } from "internal/dataImport/entity/importRow";
 import type { ImportRowIssue } from "internal/dataImport/entity/importValidationIssue";
+import { incomeExpenseImportErrorMessages } from "internal/dataImport/errors";
 import {
   incomeExpenseSharedColumns,
   type IncomeExpenseSharedColumn,
@@ -108,7 +109,11 @@ export function groupIncomeExpenseRows(
         issues.push({
           column: "账单关联",
           kind: "row",
-          message: `账单关联「${billRef}」下第 ${row.rowNumber} 行是该账单关联首次出现的行，${placeholderColumns.join("、")} 不能填写「-」，需提供实际值。`,
+          message: incomeExpenseImportErrorMessages.billRefFirstRowPlaceholder(
+            billRef,
+            row.rowNumber,
+            placeholderColumns,
+          ),
           rowNumber: row.rowNumber,
           sheet: "incomeExpense",
         });
@@ -131,7 +136,12 @@ export function groupIncomeExpenseRows(
         issues.push({
           column: "账单关联",
           kind: "row",
-          message: `账单关联「${billRef}」下第 ${firstRow.rowNumber} 行与第 ${row.rowNumber} 行的 ${mismatchedColumns.join("、")} 不一致，无法合并为同一笔交易。`,
+          message: incomeExpenseImportErrorMessages.billRefSharedMismatch(
+            billRef,
+            firstRow.rowNumber,
+            row.rowNumber,
+            mismatchedColumns,
+          ),
           rowNumber: row.rowNumber,
           sheet: "incomeExpense",
         });

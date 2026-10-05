@@ -1,6 +1,10 @@
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import type { ImportValidationIssue } from "internal/dataImport/entity/importValidationIssue";
 import {
+  importRowErrorMessages,
+  incomeExpenseImportErrorMessages,
+} from "internal/dataImport/errors";
+import {
   importCurrencyPattern,
   importNoteMaxLength,
   incomeExpenseColumns,
@@ -43,27 +47,24 @@ const billRefPlaceholder = "-";
 const sharedColumnValidators: Partial<
   Record<IncomeExpenseSharedColumn, (text: string) => string | null>
 > = {
-  商家: (text) => (text ? null : "商家不能为空。"),
+  商家: (text) =>
+    text ? null : incomeExpenseImportErrorMessages.merchantRequired,
   日期: (text) =>
-    parseImportDate(text).ok
-      ? null
-      : "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。",
-  账户: (text) => (text ? null : "账户不能为空。"),
+    parseImportDate(text).ok ? null : importRowErrorMessages.dateInvalid,
+  账户: (text) => (text ? null : importRowErrorMessages.accountRequired),
   账户持有人: (text) =>
-    parseHolderName(text).ok
-      ? null
-      : "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
+    parseHolderName(text).ok ? null : importRowErrorMessages.holderInvalid,
   账户币种: (text) =>
     importCurrencyPattern.test(text)
       ? null
-      : "账户币种必须是 3 位字母代码，例如 CNY。",
+      : importRowErrorMessages.currencyInvalid,
   账户类型: (text) => {
     const result = parseAccountType(text, "账户类型");
     return result.ok ? null : result.message;
   },
   备注: (text) =>
     text.length > importNoteMaxLength
-      ? `备注不能超过 ${importNoteMaxLength} 个字符。`
+      ? importRowErrorMessages.noteTooLong
       : null,
 };
 
@@ -126,17 +127,20 @@ export function parseIncomeExpenseSheet(
 
     const typeText = get("交易类型");
     if (!(incomeExpenseTypeValues as readonly string[]).includes(typeText)) {
-      addIssue("交易类型", "交易类型必须是「支出」或「收入」。");
+      addIssue("交易类型", incomeExpenseImportErrorMessages.typeInvalid);
     }
 
     const parentCategoryName = get("一级分类");
     if (!parentCategoryName) {
-      addIssue("一级分类", "一级分类不能为空。");
+      addIssue(
+        "一级分类",
+        incomeExpenseImportErrorMessages.parentCategoryRequired,
+      );
     }
 
     const amountResult = parseImportAmount(get("金额"), { allowZero: true });
     if (!amountResult.ok) {
-      addIssue("金额", "金额必须是不超过两位小数的非负数字。");
+      addIssue("金额", incomeExpenseImportErrorMessages.amountInvalid);
     }
 
     if (hasError) {

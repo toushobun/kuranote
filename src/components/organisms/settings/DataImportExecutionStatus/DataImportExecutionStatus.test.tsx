@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { dataImportExecutionErrorMessages } from "internal/dataImport";
+
 import { DataImportExecutionStatus } from "./DataImportExecutionStatus";
 
 const baseResult = {
@@ -125,7 +127,7 @@ describe("DataImportExecutionStatus", () => {
             },
             {
               content: "2026-09-17 钱包 → 银行卡 5000",
-              reason: "疑似与现有记录重复，但已继续导入。",
+              reason: dataImportExecutionErrorMessages.duplicateWarning,
               rowNumbers: [4],
               sheet: "transfer",
               status: "duplicate",
@@ -158,7 +160,7 @@ describe("DataImportExecutionStatus", () => {
             {
               content: "2026-09-17 全家便利店 600",
               reason:
-                "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+                dataImportExecutionErrorMessages.holderMissingWarning("小明"),
               rowNumbers: [6],
               sheet: "incomeExpense",
               status: "holderMissing",

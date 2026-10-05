@@ -1,4 +1,5 @@
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { importStructuralErrorMessages } from "internal/dataImport/errors";
 import { parseXlsxWorkbook } from "internal/dataImport/util/xlsxParser";
 
 export type ParseImportFileResult =
@@ -13,14 +14,17 @@ export async function parseImportFile(
   const lowerName = fileName.toLowerCase();
 
   if (!lowerName.endsWith(".xlsx")) {
-    return { message: "仅支持 xlsx 文件。", ok: false };
+    return {
+      message: importStructuralErrorMessages.fileTypeUnsupported,
+      ok: false,
+    };
   }
 
   try {
     return { ok: true, tables: await parseXlsxWorkbook(buffer) };
   } catch {
     return {
-      message: "文件无法解析，请确认文件未损坏且是有效的 xlsx 文件。",
+      message: importStructuralErrorMessages.fileUnreadable,
       ok: false,
     };
   }

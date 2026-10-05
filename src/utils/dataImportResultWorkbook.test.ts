@@ -1,7 +1,10 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 
-import type { ImportExecutionRowResult } from "internal/dataImport";
+import {
+  dataImportExecutionErrorMessages,
+  type ImportExecutionRowResult,
+} from "internal/dataImport";
 import {
   buildDataImportResultFileName,
   buildDataImportResultWorkbook,
@@ -36,14 +39,13 @@ describe("dataImportResultWorkbook", () => {
         status: "success",
       },
       {
-        reason: "疑似与现有记录重复，但已继续导入。",
+        reason: dataImportExecutionErrorMessages.duplicateWarning,
         rowNumber: 3,
         sheet: "incomeExpense",
         status: "duplicate",
       },
       {
-        reason:
-          "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+        reason: dataImportExecutionErrorMessages.holderMissingWarning("小明"),
         rowNumber: 2,
         sheet: "transfer",
         status: "holderMissing",
@@ -67,13 +69,13 @@ describe("dataImportResultWorkbook", () => {
     expect(incomeExpense.getRow(2).getCell(4).value).toBe("");
     expect(incomeExpense.getRow(3).getCell(3).value).toBe("成功（疑似重复）");
     expect(incomeExpense.getRow(3).getCell(4).value).toBe(
-      "疑似与现有记录重复，但已继续导入。",
+      dataImportExecutionErrorMessages.duplicateWarning,
     );
 
     const transfer = workbook.getWorksheet("转账")!;
     expect(transfer.getRow(2).getCell(3).value).toBe("成功（未匹配持有人）");
     expect(transfer.getRow(2).getCell(4).value).toBe(
-      "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+      dataImportExecutionErrorMessages.holderMissingWarning("小明"),
     );
 
     const balanceAdjustment = workbook.getWorksheet("余额变更")!;
