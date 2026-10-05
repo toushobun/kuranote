@@ -76,6 +76,25 @@ export const transactionTargetErrorMessages = {
   voidInvalid: "删除对象不正确。",
 } as const;
 
+/** 编辑交易表单解析可能返回的错误码与文案。只按码组合引用，不复制文案。 */
+export const updateTransactionValidationErrorMessages: Record<
+  UpdateTransactionValidationErrorCode,
+  string
+> = {
+  ...transactionValidationErrorMessages,
+  [transactionErrorCodes.updateInvalid]:
+    transactionTargetErrorMessages.updateInvalid,
+};
+
+/** 删除交易表单解析可能返回的错误码与文案。只按码引用，不复制文案。 */
+export const voidTransactionValidationErrorMessages: Record<
+  VoidTransactionValidationErrorCode,
+  string
+> = {
+  [transactionErrorCodes.voidInvalid]:
+    transactionTargetErrorMessages.voidInvalid,
+};
+
 /** 交易模块各层共用的登录、权限、对象存在性与未知失败兜底文案。 */
 export const transactionAccessErrorMessages = {
   authRequired: sharedErrorMessages.authRequired,
@@ -163,18 +182,14 @@ export const transactionLinkedEditErrorMessages = {
   versionInvalid: "关联明细版本信息缺失或已过期，请刷新页面后重试。",
 } as const;
 
-/** 交易 Server Action 的表单校验兜底与未知异常兜底文案。 */
+/** 交易 Server Action 的未知异常兜底与类型指定错误文案。 */
 export const transactionActionErrorMessages = {
   convertFailed: "交易类型转换失败，请稍后重试。",
-  convertInputInvalid: "交易类型转换内容不正确，请确认后重试。",
   createFailed: "交易新增失败，请稍后重试。",
-  inputInvalid: transactionWriteErrorMessages.inputInvalid,
-  transferInputInvalid: "转账内容不正确，请确认后重试。",
   transferUpdateFailed: "转账更新失败，请稍后重试。",
   typeInvalid: "交易类型指定不正确，请刷新页面后重试。",
   updateFailed: "交易更新失败，请稍后重试。",
   voidFailed: "交易删除失败，请稍后重试。",
-  voidInputInvalid: "交易指定不正确，请刷新页面后重试。",
 } as const;
 
 /**
@@ -198,28 +213,6 @@ export function toTransactionActionErrorCode(
 export const transactionLinkedEditErrorTitles = {
   deleteForbidden: "无法删除已关联明细",
 } as const;
-
-export function getTransactionValidationErrorMessage(error?: string) {
-  return error && error in transactionValidationErrorMessages
-    ? transactionValidationErrorMessages[
-        error as TransactionValidationErrorCode
-      ]
-    : null;
-}
-
-export function getUpdateTransactionValidationErrorMessage(error?: string) {
-  if (error === transactionErrorCodes.updateInvalid) {
-    return transactionTargetErrorMessages.updateInvalid;
-  }
-
-  return getTransactionValidationErrorMessage(error);
-}
-
-export function getVoidTransactionValidationErrorMessage(error?: string) {
-  return error === transactionErrorCodes.voidInvalid
-    ? transactionTargetErrorMessages.voidInvalid
-    : null;
-}
 
 export const balanceAdjustmentErrorMessages = {
   archivedAccount: "该账户已归档，无法撤销余额调整",

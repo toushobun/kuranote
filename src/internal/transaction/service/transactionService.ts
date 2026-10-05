@@ -25,10 +25,10 @@ import {
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
-  getTransactionValidationErrorMessage,
   transactionAccessErrorMessages,
   transactionErrorCodes,
   transactionSpecialStatusErrorMessages,
+  transactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import type {
   TransactionFilters,
@@ -343,9 +343,9 @@ export function createTransactionService({
     if (!areAccountIdsAvailable(accountIds, accountOptions)) {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
-        getTransactionValidationErrorMessage(
-          transactionErrorCodes.accountInvalid,
-        )!,
+        transactionValidationErrorMessages[
+          transactionErrorCodes.accountInvalid
+        ],
       );
     }
   }
