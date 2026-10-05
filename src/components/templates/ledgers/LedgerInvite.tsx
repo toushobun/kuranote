@@ -19,7 +19,11 @@ import { executeClientMutation } from "lib/api/clientMutation";
 import { LedgerInviteRoleRow } from "molecules/ledgers/LedgerInviteRoleRow";
 import { LedgerInviteIdentityNotice } from "molecules/ledgers/LedgerInviteIdentityNotice";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import type { LedgerInvitePreview } from "internal/ledger";
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+  type LedgerInvitePreview,
+} from "internal/ledger";
 import { PageShell } from "templates/layout/PageShell";
 import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
 import type { LedgerInviteRole } from "types/ledgers";
@@ -78,7 +82,8 @@ export function LedgerInviteTemplate({
 
     try {
       const result = await executeClientMutation({
-        fallbackErrorMessage: "加入账本失败，请稍后重试。",
+        fallbackErrorMessage:
+          ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
         init: {
           body: JSON.stringify({ token }),
           headers: { "Content-Type": "application/json" },

@@ -11,7 +11,7 @@ import { routePaths } from "config/paths";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import { ledgerRouter } from "internal/ledger/router";
-import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import { ledgerInviteErrorMessages } from "internal/ledger/errors/ledgerInvite";
 import {
   createdLedgerInviteResponseSchema,
   pendingLedgerInvitesResponseSchema,
@@ -416,7 +416,7 @@ describe("ledger router", () => {
     ] as const)(
       "Service 抛出 %s 时返回真实状态码与安全响应体",
       async (code, ErrorClass, status) => {
-        const message = getLedgerInviteErrorMessage(code)!;
+        const message = ledgerInviteErrorMessages[code];
         const create = vi.fn().mockRejectedValue(new ErrorClass(code, message));
         const app = createAppWithInviteService({ create });
 

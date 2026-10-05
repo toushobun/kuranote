@@ -1,7 +1,7 @@
 import type { LedgerPlaceholderMemberSummary } from "internal/ledger/entity/ledgerPlaceholderMember";
 import {
-  getLedgerPlaceholderMemberErrorMessage,
   ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
   type LedgerPlaceholderMemberErrorCode,
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 import type { Logger } from "internal/shared/logging/logger";
@@ -85,7 +85,7 @@ function failure(operation: keyof typeof failureCodes, code?: string) {
   const errorCode = failureCodes[operation];
   return toRepositoryError(
     code ?? errorCode,
-    getLedgerPlaceholderMemberErrorMessage(errorCode)!,
+    ledgerPlaceholderMemberErrorMessages[errorCode],
   );
 }
 

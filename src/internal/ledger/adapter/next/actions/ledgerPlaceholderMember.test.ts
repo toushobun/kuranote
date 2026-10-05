@@ -6,7 +6,7 @@ import {
   deleteLedgerPlaceholderMember,
   renameLedgerPlaceholderMember,
 } from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
-import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import { ledgerPlaceholderMemberErrorMessages } from "internal/ledger/errors/ledgerPlaceholderMember";
 import { ConflictError } from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -97,7 +97,7 @@ describe.each(cases)("ledgerPlaceholderMember $operation", (testCase) => {
     const state = await testCase.action({}, form({ ledgerId: "bad" }));
 
     expect(state).toEqual({
-      error: getLedgerPlaceholderMemberErrorMessage("ledger_not_found"),
+      error: ledgerPlaceholderMemberErrorMessages.ledger_not_found,
       errorKey: expect.any(String),
       operation: testCase.operation,
     });
@@ -106,9 +106,8 @@ describe.each(cases)("ledgerPlaceholderMember $operation", (testCase) => {
   });
 
   it("Service 抛出 AppError 时透传安全文案", async () => {
-    const message = getLedgerPlaceholderMemberErrorMessage(
-      "placeholder_name_conflict",
-    )!;
+    const message =
+      ledgerPlaceholderMemberErrorMessages.placeholder_name_conflict;
     testCase.service.mockRejectedValueOnce(
       new ConflictError("placeholder_name_conflict", message),
     );
@@ -132,9 +131,9 @@ describe.each(cases)("ledgerPlaceholderMember $operation", (testCase) => {
     const state = await testCase.action({}, form(testCase.values));
 
     expect(state.error).toBe(
-      getLedgerPlaceholderMemberErrorMessage(
-        `placeholder_${testCase.operation}_failed`,
-      ),
+      ledgerPlaceholderMemberErrorMessages[
+        `placeholder_${testCase.operation}_failed`
+      ],
     );
     expect(state.error).not.toContain("raw");
     consoleError.mockRestore();
@@ -142,7 +141,7 @@ describe.each(cases)("ledgerPlaceholderMember $operation", (testCase) => {
 });
 
 it("删除被账户引用的占位时提示先更换持有人", async () => {
-  const message = getLedgerPlaceholderMemberErrorMessage("placeholder_in_use")!;
+  const message = ledgerPlaceholderMemberErrorMessages.placeholder_in_use;
   mocks.delete.mockRejectedValueOnce(
     new ConflictError("placeholder_in_use", message),
   );

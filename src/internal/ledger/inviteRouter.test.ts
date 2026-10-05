@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
-import { getLedgerInviteErrorMessage } from "internal/ledger/errors/ledgerInvite";
+import { ledgerInviteErrorMessages } from "internal/ledger/errors/ledgerInvite";
 import { acceptLedgerInviteResponseSchema } from "internal/ledger/schema";
 import {
   AuthenticationError,
@@ -202,7 +202,7 @@ describe("ledger invite router", () => {
     "placeholder_claim_account_name_conflict",
     "placeholder_already_claimed",
   ] as const)("%s 时返回 409 与安全响应体，且不触发缓存失效", async (code) => {
-    const message = getLedgerInviteErrorMessage(code)!;
+    const message = ledgerInviteErrorMessages[code];
     const accept = vi.fn().mockRejectedValue(new ConflictError(code, message));
     const app = createTestApp(containerWithAccept(accept));
 
@@ -247,7 +247,7 @@ describe("ledger invite router", () => {
 
   it("user_inactive 时返回 403 与安全响应体，且不触发缓存失效", async () => {
     const code = "user_inactive";
-    const message = getLedgerInviteErrorMessage(code)!;
+    const message = ledgerInviteErrorMessages[code];
     const accept = vi
       .fn()
       .mockRejectedValue(new AuthorizationError(code, message));

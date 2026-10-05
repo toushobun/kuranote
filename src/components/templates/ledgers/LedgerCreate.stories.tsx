@@ -1,5 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import {
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+} from "internal/ledger";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { LedgerCreateTemplate } from "./LedgerCreate";
@@ -37,7 +41,7 @@ export const CreateFailed: Story = {
   name: "提交后创建失败",
   args: {
     createLedgerAction: async () => ({
-      error: "账本创建失败。请确认内容后稍后重试。",
+      error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
       errorKey: "storybook-error",
     }),
   },

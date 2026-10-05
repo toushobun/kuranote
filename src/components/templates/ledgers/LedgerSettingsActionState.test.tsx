@@ -8,6 +8,10 @@ import {
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
+} from "internal/ledger";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type {
   LedgerSettingsActionState,
@@ -104,7 +108,8 @@ describe("LedgerSettingsActionStateTemplate", () => {
         void _previousState;
         void _formData;
         return {
-          error: "账本设置保存失败。请确认内容后稍后重试。",
+          error:
+            ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed],
           errorKey: "settings-error-1",
         };
       },
@@ -118,7 +123,9 @@ describe("LedgerSettingsActionStateTemplate", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("账本设置保存失败");
-    expect(alert).toHaveTextContent("账本设置保存失败。请确认内容后稍后重试。");
+    expect(alert).toHaveTextContent(
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed],
+    );
     expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
     expect(window.location.search).toBe("");
     expect(action).toHaveBeenCalledTimes(1);
@@ -136,7 +143,8 @@ describe("LedgerSettingsActionStateTemplate", () => {
         void _previousState;
         void _formData;
         return {
-          error: "成员权限指定不正确。",
+          error:
+            ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.roleInvalid],
           errorKey: "member-error-1",
         };
       },
@@ -151,7 +159,7 @@ describe("LedgerSettingsActionStateTemplate", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "保存修改" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "成员权限指定不正确。",
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.roleInvalid],
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(

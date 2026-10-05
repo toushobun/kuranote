@@ -2,6 +2,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps } from "react";
 import { userEvent, within } from "storybook/test";
 
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+} from "internal/ledger";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerInviteStateAction } from "types/ledgers";
@@ -99,7 +103,10 @@ export const InviteFailed: Story = {
   name: "邀请成员失败（同名）",
   args: {
     action: async () => ({
-      error: "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+      error:
+        ledgerInviteErrorMessages[
+          ledgerInviteErrorCodes.inviteMemberNameConflict
+        ],
       errorKey: "storybook-invite-failed",
       operation: "invite",
     }),

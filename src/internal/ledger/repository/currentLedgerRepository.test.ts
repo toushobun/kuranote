@@ -2,7 +2,11 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
+import {
+  currentLedgerErrorCodes,
+  currentLedgerLoadErrorMessages,
+  currentLedgerWriteErrorMessages,
+} from "internal/ledger/errors/currentLedger";
 import { createSupabaseCurrentLedgerRepository } from "internal/ledger/repository/currentLedgerRepository";
 import type { Logger } from "internal/shared/logging/logger";
 import { createSupabaseMock } from "test/supabaseMock";
@@ -109,7 +113,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
       repository.findAccessibleLedger(ledgerId, userId),
     ).rejects.toMatchObject({
       code: "current_ledger_member_lookup_failed",
-      message: "账本成员信息读取失败，请稍后重试。",
+      message: currentLedgerLoadErrorMessages.memberLoadFailed,
     });
   });
 
@@ -146,7 +150,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
       repository.isActiveMember(ledgerId, userId),
     ).rejects.toMatchObject({
       code: "current_ledger_member_lookup_failed",
-      message: "账本成员信息读取失败，请稍后重试。",
+      message: currentLedgerLoadErrorMessages.memberLoadFailed,
     });
   });
 
@@ -190,7 +194,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
       repository.updateCurrentLedger({ ledgerId, userId }),
     ).rejects.toMatchObject({
       code: "current_ledger_update_failed",
-      message: "当前账本切换失败，请稍后重试。",
+      message: currentLedgerWriteErrorMessages.updateFailed,
     });
   });
 });

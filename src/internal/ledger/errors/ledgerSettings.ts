@@ -1,3 +1,12 @@
+import {
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+} from "internal/ledger/errors/ledgerCreate";
+import {
+  ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
+} from "internal/ledger/errors/ledgerPlaceholderMember";
+
 export const ledgerSettingsErrorCodes = {
   authRequired: "auth_required",
   currencyInvalid: "currency_invalid",
@@ -18,20 +27,29 @@ export const ledgerSettingsErrorCodes = {
 export type LedgerSettingsErrorCode =
   (typeof ledgerSettingsErrorCodes)[keyof typeof ledgerSettingsErrorCodes];
 
-const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
-  [ledgerSettingsErrorCodes.authRequired]: "登录状态已失效，请重新登录。",
+export const ledgerSettingsErrorMessages: Record<
+  LedgerSettingsErrorCode,
+  string
+> = {
+  [ledgerSettingsErrorCodes.authRequired]:
+    ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
   [ledgerSettingsErrorCodes.currencyInvalid]:
     "默认货币必须是 3 位大写字母，例如 JPY。",
-  [ledgerSettingsErrorCodes.displayColorInvalid]: "个性色指定不正确。",
+  [ledgerSettingsErrorCodes.displayColorInvalid]:
+    ledgerCreateErrorMessages[ledgerCreateErrorCodes.displayColorInvalid],
   [ledgerSettingsErrorCodes.displayNamePlaceholderConflict]:
-    "当前账本已有同名的待邀请成员，请换一个名字。",
+    ledgerPlaceholderMemberErrorMessages[
+      ledgerPlaceholderMemberErrorCodes.placeholderNameConflict
+    ],
   [ledgerSettingsErrorCodes.displayNameRequired]: "请输入当前账本昵称。",
   [ledgerSettingsErrorCodes.displayNameTooLong]:
     "当前账本昵称不能超过 100 个字符。",
   [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
   [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
-  [ledgerSettingsErrorCodes.nameRequired]: "请输入账本名称。",
-  [ledgerSettingsErrorCodes.nameTooLong]: "账本名称不能超过 100 个字符。",
+  [ledgerSettingsErrorCodes.nameRequired]:
+    ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
+  [ledgerSettingsErrorCodes.nameTooLong]:
+    ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameTooLong],
   [ledgerSettingsErrorCodes.permissionDenied]:
     "你没有权限修改该账本或成员设置。",
   [ledgerSettingsErrorCodes.roleInvalid]: "成员权限指定不正确。",
@@ -41,8 +59,18 @@ const ledgerSettingsErrorMessages: Record<LedgerSettingsErrorCode, string> = {
     "账本设置保存失败。请确认内容后稍后重试。",
 };
 
-export function getLedgerSettingsErrorMessage(error?: string) {
-  return error
-    ? (ledgerSettingsErrorMessages[error as LedgerSettingsErrorCode] ?? null)
-    : null;
-}
+/** 账本设置与成员读取查询失败时的文案。 */
+export const ledgerSettingsLoadErrorMessages = {
+  ledgerLoadFailed: "账本信息读取失败，请稍后重试。",
+  memberDisplaySettingsLoadFailed: "账本成员显示设置加载失败，请稍后重试。",
+  memberProfilesLoadFailed: "账本成员资料加载失败，请稍后重试。",
+  memberRoleInvalid: "账本成员资料格式异常，请稍后重试。",
+  memberRoleLoadFailed: "账本成员权限读取失败，请稍后重试。",
+  membersLoadFailed: "账本成员加载失败，请稍后重试。",
+} as const;
+
+/** 账本设置写入查询失败时的文案。 */
+export const ledgerSettingsWriteErrorMessages = {
+  baseSettingsUpdateFailed: "账本设置保存失败，请稍后重试。",
+  memberSettingsUpdateFailed: "账本成员设置保存失败，请稍后重试。",
+} as const;

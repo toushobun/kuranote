@@ -7,8 +7,9 @@ import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLed
 import { createRequestContainer } from "internal/container";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import {
-  getLedgerCreateErrorMessage,
   ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+  type LedgerCreateErrorCode,
 } from "internal/ledger/errors/ledgerCreate";
 import { validateCreateLedgerForm } from "internal/ledger/schema/ledgerCreateForm";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
@@ -16,10 +17,10 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerCreateActionState } from "types/ledgers";
 
-function createValidationErrorState(code: string): LedgerCreateActionState {
-  return createErrorState(
-    getLedgerCreateErrorMessage(code) ?? "账本信息不正确，请确认后重试。",
-  );
+function createValidationErrorState(
+  code: LedgerCreateErrorCode,
+): LedgerCreateActionState {
+  return createErrorState(ledgerCreateErrorMessages[code]);
 }
 
 function createActionErrorState(error: unknown): LedgerCreateActionState {
@@ -31,8 +32,7 @@ function createActionErrorState(error: unknown): LedgerCreateActionState {
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(
-    getLedgerCreateErrorMessage(ledgerCreateErrorCodes.createFailed) ??
-      "账本创建失败，请稍后重试。",
+    ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
   );
 }
 

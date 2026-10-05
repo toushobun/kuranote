@@ -3,7 +3,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
-import { getLedgerPlaceholderMemberErrorMessage } from "internal/ledger/errors/ledgerPlaceholderMember";
+import {
+  ledgerPlaceholderMemberErrorMessages,
+  type LedgerPlaceholderMemberErrorCode,
+} from "internal/ledger/errors/ledgerPlaceholderMember";
 import { createLedgerPlaceholderMemberService } from "internal/ledger/service/ledgerPlaceholderMemberService";
 import { appErrorToResponseBody } from "internal/shared/http/errorResponse";
 import {
@@ -131,7 +134,7 @@ describe("createLedgerPlaceholderMemberService 管理权限", () => {
 });
 
 describe("createLedgerPlaceholderMemberService 名字校验", () => {
-  it.each([
+  it.each<[string, LedgerPlaceholderMemberErrorCode]>([
     ["   ", "placeholder_name_invalid"],
     ["あ".repeat(101), "placeholder_name_too_long"],
   ])("名字 %j 返回 ValidationError(%s)", async (displayName, code) => {
@@ -143,7 +146,7 @@ describe("createLedgerPlaceholderMemberService 名字校验", () => {
     expect(failure).toBeInstanceOf(ValidationError);
     expect(failure).toMatchObject({
       code,
-      message: getLedgerPlaceholderMemberErrorMessage(code),
+      message: ledgerPlaceholderMemberErrorMessages[code],
     });
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -185,7 +188,7 @@ describe("createLedgerPlaceholderMemberService 错误映射", () => {
         expect(failure).toBeInstanceOf(ErrorClass);
         expect(failure).toMatchObject({
           code,
-          message: getLedgerPlaceholderMemberErrorMessage(code),
+          message: ledgerPlaceholderMemberErrorMessages[code],
         });
         expect(appErrorToResponseBody(failure as AppError).status).toBe(status);
       }
@@ -203,9 +206,7 @@ describe("createLedgerPlaceholderMemberService 错误映射", () => {
       createService(repository).create({ ...actor, displayName: "奶奶" }),
     ).rejects.toMatchObject({
       code: "placeholder_name_conflict",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_name_conflict",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_name_conflict,
     });
   });
 });
@@ -261,7 +262,7 @@ describe("createLedgerPlaceholderMemberService.ensureForImport", () => {
     expect(repository.ensure).not.toHaveBeenCalled();
   });
 
-  it.each([
+  it.each<[string, LedgerPlaceholderMemberErrorCode]>([
     ["   ", "placeholder_name_invalid"],
     ["あ".repeat(101), "placeholder_name_too_long"],
   ])(
@@ -294,7 +295,7 @@ describe("createLedgerPlaceholderMemberService.ensureForImport", () => {
     expect(failure).toBeInstanceOf(ErrorClass);
     expect(failure).toMatchObject({
       code,
-      message: getLedgerPlaceholderMemberErrorMessage(code),
+      message: ledgerPlaceholderMemberErrorMessages[code],
     });
   });
 
@@ -307,9 +308,7 @@ describe("createLedgerPlaceholderMemberService.ensureForImport", () => {
     expect(failure).toBeInstanceOf(RepositoryError);
     expect(failure).toMatchObject({
       code: "ledger_placeholder_ensure_result_invalid",
-      message: getLedgerPlaceholderMemberErrorMessage(
-        "placeholder_create_failed",
-      ),
+      message: ledgerPlaceholderMemberErrorMessages.placeholder_create_failed,
     });
   });
 });

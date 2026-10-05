@@ -9,7 +9,11 @@ import {
 import { createSupabaseMock } from "test/supabaseMock";
 
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
-import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
+import {
+  ledgerSettingsErrorCodes,
+  ledgerSettingsLoadErrorMessages,
+  ledgerSettingsWriteErrorMessages,
+} from "internal/ledger/errors/ledgerSettings";
 import { RepositoryError } from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -42,7 +46,7 @@ describe("createSupabaseLedgerSettingsRepository.getMemberRole", () => {
       repository.getMemberRole(ledgerId, userId),
     ).rejects.toMatchObject({
       code: "ledger_member_role_invalid",
-      message: "账本成员资料格式异常，请稍后重试。",
+      message: ledgerSettingsLoadErrorMessages.memberRoleInvalid,
     });
   });
 
@@ -394,7 +398,7 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
 
     await expect(repository.updateMemberSettings(input)).rejects.toMatchObject({
       code: "ledger_member_settings_update_failed",
-      message: "账本成员设置保存失败，请稍后重试。",
+      message: ledgerSettingsWriteErrorMessages.memberSettingsUpdateFailed,
     });
   });
 });

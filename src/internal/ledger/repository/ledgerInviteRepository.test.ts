@@ -3,7 +3,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createSupabaseLedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
-import { ledgerInviteErrorCodes } from "internal/ledger/errors/ledgerInvite";
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+} from "internal/ledger/errors/ledgerInvite";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import {
@@ -109,7 +112,7 @@ describe("createSupabaseLedgerInviteRepository", () => {
 
     await expect(repository.accept("token-1")).rejects.toMatchObject({
       code: "ledger_invite_accept_result_invalid",
-      message: "加入账本失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
     });
     expect(logger.error).toHaveBeenCalledWith(
       "[ledger] accept_ledger_invite returned invalid data",
@@ -186,7 +189,7 @@ describe("createSupabaseLedgerInviteRepository", () => {
 
     expect(failure).toMatchObject({
       code: "ledger_invite_accept_failed",
-      message: "加入账本失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
     });
     expect(JSON.stringify(failure)).not.toContain("account_active_name_unique");
     expect(failure.message).not.toContain("placeholder_claim");
@@ -201,7 +204,7 @@ describe("createSupabaseLedgerInviteRepository", () => {
 
     await expect(repository.accept("token-1")).rejects.toMatchObject({
       code: "ledger_invite_accept_failed",
-      message: "加入账本失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.acceptFailed],
     });
   });
 });
@@ -261,7 +264,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
       repository.create(ledgerId, "member", placeholderId),
     ).rejects.toMatchObject({
       code: "ledger_invite_create_result_invalid",
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
     });
   });
 
@@ -310,7 +313,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
 
     expect(failure).toMatchObject({
       code: "ledger_invite_create_failed",
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
     });
     expect(JSON.stringify(failure)).not.toContain(
       "ledger_invite_one_pending_placeholder",
@@ -333,7 +336,7 @@ describe("createSupabaseLedgerInviteRepository.create", () => {
       repository.create(ledgerId, "member", placeholderId),
     ).rejects.toMatchObject({
       code: "ledger_invite_create_result_invalid",
-      message: "邀请链接生成失败，请稍后重试。",
+      message: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
     });
     vi.restoreAllMocks();
   });

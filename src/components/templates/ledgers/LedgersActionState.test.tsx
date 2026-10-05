@@ -7,7 +7,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LedgerWithMemberCount } from "internal/ledger";
+import {
+  currentLedgerErrorCodes,
+  currentLedgerErrorMessages,
+  type LedgerWithMemberCount,
+} from "internal/ledger";
 import type {
   CurrentLedgerActionState,
   CurrentLedgerStateAction,
@@ -68,7 +72,8 @@ describe("LedgersActionStateTemplate", () => {
         void _previousState;
         void _formData;
         return {
-          error: "账本切换失败，请稍后重试。",
+          error:
+            currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
           errorKey: "switch-error-1",
         };
       },
@@ -79,7 +84,9 @@ describe("LedgersActionStateTemplate", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("账本切换失败");
-    expect(alert).toHaveTextContent("账本切换失败，请稍后重试。");
+    expect(alert).toHaveTextContent(
+      currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
+    );
     expect(window.location.pathname).toBe("/ledgers");
     expect(window.location.search).toBe("");
     expect(action).toHaveBeenCalledTimes(1);
@@ -101,7 +108,8 @@ describe("LedgersActionStateTemplate", () => {
         void _formData;
         errorCount += 1;
         return {
-          error: "账本切换失败，请稍后重试。",
+          error:
+            currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
           errorKey: `switch-error-${errorCount}`,
         };
       },
@@ -115,7 +123,7 @@ describe("LedgersActionStateTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "切换到旅行账本" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "账本切换失败，请稍后重试。",
+      currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
     );
     expect(action).toHaveBeenCalledTimes(2);
   });

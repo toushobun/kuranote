@@ -18,7 +18,7 @@ import { createDataImportExecutionService } from "internal/dataImport/service/da
 import { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 import { analyzeImportWorkbook } from "internal/dataImport/util/validateImportWorkbook";
 import {
-  getLedgerPlaceholderMemberErrorMessage,
+  ledgerPlaceholderMemberErrorMessages,
   type LedgerPlaceholderImportService,
 } from "internal/ledger";
 import type {
@@ -1519,7 +1519,7 @@ describe("待邀请成员映射", () => {
     const dependencies = createDependencies();
     const denied = new AuthorizationError(
       "permission_denied",
-      getLedgerPlaceholderMemberErrorMessage("permission_denied")!,
+      ledgerPlaceholderMemberErrorMessages.permission_denied,
     );
     vi.mocked(
       dependencies.ledgerPlaceholderImportService.ensureForImport,
@@ -1556,7 +1556,7 @@ describe("待邀请成员映射", () => {
       vi.mocked(
         dependencies.ledgerPlaceholderImportService.ensureForImport,
       ).mockRejectedValue(
-        new ConflictError(code, getLedgerPlaceholderMemberErrorMessage(code)!),
+        new ConflictError(code, ledgerPlaceholderMemberErrorMessages[code]),
       );
 
       const failure = await execute(

@@ -4,6 +4,11 @@ import { join } from "node:path";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+} from "internal/ledger";
+
 import { LedgerInviteTemplate } from "./LedgerInvite";
 
 const mocks = vi.hoisted(() => ({
@@ -94,7 +99,10 @@ describe("LedgerInviteTemplate", () => {
       json: vi.fn().mockResolvedValue({
         error: {
           code: "invite_already_revoked",
-          message: "该邀请已经撤销。",
+          message:
+            ledgerInviteErrorMessages[
+              ledgerInviteErrorCodes.inviteAlreadyRevoked
+            ],
           status: 409,
         },
       }),
@@ -107,7 +115,11 @@ describe("LedgerInviteTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入账本" }));
 
     expect(await screen.findByText("加入账本失败")).toBeInTheDocument();
-    expect(screen.getByText("该邀请已经撤销。")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.inviteAlreadyRevoked],
+      ),
+    ).toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
   });
 

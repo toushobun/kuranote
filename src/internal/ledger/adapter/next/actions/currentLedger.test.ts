@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerSwitchResultValues, routePaths } from "config/paths";
-import { currentLedgerErrorCodes } from "internal/ledger/errors/currentLedger";
+import {
+  currentLedgerErrorCodes,
+  currentLedgerErrorMessages,
+} from "internal/ledger/errors/currentLedger";
 import { NotFoundError } from "internal/shared/errors/appError";
 import type { CurrentLedgerActionState } from "types/ledgers";
 
@@ -72,7 +75,10 @@ describe("updateCurrentLedger", () => {
   it("账本 ID 非法时返回当前页错误状态", async () => {
     const state = await runAction("bad-id");
 
-    expectErrorState(state, "无法切换到该账本。请确认你仍是该账本成员。");
+    expectErrorState(
+      state,
+      currentLedgerErrorMessages[currentLedgerErrorCodes.ledgerInvalid],
+    );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.createDependencies).not.toHaveBeenCalled();
     expect(mocks.switchService).not.toHaveBeenCalled();
@@ -82,13 +88,16 @@ describe("updateCurrentLedger", () => {
     mocks.switchService.mockRejectedValue(
       new NotFoundError(
         currentLedgerErrorCodes.ledgerInvalid,
-        "无法切换到该账本。请确认你仍是该账本成员。",
+        currentLedgerErrorMessages[currentLedgerErrorCodes.ledgerInvalid],
       ),
     );
 
     const state = await runAction(ledgerId);
 
-    expectErrorState(state, "无法切换到该账本。请确认你仍是该账本成员。");
+    expectErrorState(
+      state,
+      currentLedgerErrorMessages[currentLedgerErrorCodes.ledgerInvalid],
+    );
     expect(mocks.switchService).toHaveBeenCalledWith({ ledgerId, userId });
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
@@ -102,7 +111,10 @@ describe("updateCurrentLedger", () => {
 
     const state = await runAction(ledgerId);
 
-    expectErrorState(state, "账本切换失败，请稍后重试。");
+    expectErrorState(
+      state,
+      currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
+    );
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] current ledger switch failed unexpectedly",
       { errorName: "Error" },
@@ -119,7 +131,10 @@ describe("updateCurrentLedger", () => {
 
     const state = await runAction(ledgerId);
 
-    expectErrorState(state, "账本切换失败，请稍后重试。");
+    expectErrorState(
+      state,
+      currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
+    );
     expect(mocks.switchService).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] current ledger switch failed unexpectedly",

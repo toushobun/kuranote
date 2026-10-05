@@ -3,7 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
-import { ledgerSettingsErrorCodes } from "internal/ledger/errors/ledgerSettings";
+import {
+  ledgerSettingsErrorCodes,
+  ledgerSettingsErrorMessages,
+} from "internal/ledger/errors/ledgerSettings";
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerSettingsActionState } from "types/ledgers";
 
@@ -99,7 +102,10 @@ describe("updateLedgerSettings", () => {
   it("表单校验失败时返回可直接展示的错误状态", async () => {
     const state = await runAction(createLedgerFormData({ ledgerName: "" }));
 
-    expectErrorState(state, "请输入账本名称。");
+    expectErrorState(
+      state,
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.nameRequired],
+    );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.createDependencies).not.toHaveBeenCalled();
     expect(mocks.updateService).not.toHaveBeenCalled();
@@ -110,7 +116,10 @@ describe("updateLedgerSettings", () => {
       createLedgerFormData({ ledgerId: "invalid" }),
     );
 
-    expectErrorState(state, "账本指定不正确。");
+    expectErrorState(
+      state,
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.ledgerInvalid],
+    );
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.updateService).not.toHaveBeenCalled();
   });
@@ -135,7 +144,10 @@ describe("updateLedgerSettings", () => {
 
     const state = await runAction(createLedgerFormData());
 
-    expectErrorState(state, "账本设置保存失败。请确认内容后稍后重试。");
+    expectErrorState(
+      state,
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed],
+    );
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] ledger settings action failed unexpectedly",
       { errorName: "Error" },
@@ -152,7 +164,10 @@ describe("updateLedgerSettings", () => {
 
     const state = await runAction(createLedgerFormData());
 
-    expectErrorState(state, "账本设置保存失败。请确认内容后稍后重试。");
+    expectErrorState(
+      state,
+      ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.updateFailed],
+    );
     expect(mocks.updateService).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
       "[ledger] ledger settings action failed unexpectedly",

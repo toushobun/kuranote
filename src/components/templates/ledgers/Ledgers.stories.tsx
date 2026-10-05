@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { LedgerWithMemberCount } from "internal/ledger";
+import {
+  currentLedgerErrorCodes,
+  currentLedgerErrorMessages,
+  type LedgerWithMemberCount,
+} from "internal/ledger";
 
 import { LedgersTemplate } from "./Ledgers";
 
@@ -59,7 +63,8 @@ export const SwitchFailed: Story = {
   name: "切换账本失败",
   args: {
     errorKey: "storybook-switch-error",
-    errorMessage: "账本切换失败，请稍后重试。",
+    errorMessage:
+      currentLedgerErrorMessages[currentLedgerErrorCodes.updateFailed],
   },
 };
 

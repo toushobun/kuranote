@@ -8,6 +8,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  ledgerPlaceholderMemberErrorCodes,
+  ledgerPlaceholderMemberErrorMessages,
+} from "internal/ledger";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import type {
   LedgerPlaceholderMemberActionState,
@@ -113,7 +117,9 @@ describe("LedgerPlaceholderMemberDialog 详情", () => {
   it("被账户引用时显示先更换持有人的提示", async () => {
     const remove = vi.fn(async () => ({
       error:
-        "该待邀请成员仍是账户持有人，请先把相关账户的持有人改为其他人或无持有人后再删除。",
+        ledgerPlaceholderMemberErrorMessages[
+          ledgerPlaceholderMemberErrorCodes.placeholderInUse
+        ],
       errorKey: "error-in-use",
       operation: "delete" as const,
     }));

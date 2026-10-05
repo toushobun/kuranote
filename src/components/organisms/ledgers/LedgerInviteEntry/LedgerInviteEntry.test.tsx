@@ -6,6 +6,10 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+} from "internal/ledger";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import type {
@@ -162,7 +166,10 @@ describe("LedgerInviteEntry 邀请成员入口", () => {
 
   it("失败时保留名字与权限，标题为邀请成员失败且 URL 不携带错误参数", async () => {
     const action = vi.fn(async () => ({
-      error: "已有同名待邀请成员，请在列表中为 TA 生成邀请链接。",
+      error:
+        ledgerInviteErrorMessages[
+          ledgerInviteErrorCodes.inviteMemberNameConflict
+        ],
       errorKey: "invite-error-1",
       operation: "invite" as const,
     }));
@@ -177,7 +184,11 @@ describe("LedgerInviteEntry 邀请成员入口", () => {
 
     expect(await screen.findByText("邀请成员失败")).toBeInTheDocument();
     expect(
-      screen.getByText("已有同名待邀请成员，请在列表中为 TA 生成邀请链接。"),
+      screen.getByText(
+        ledgerInviteErrorMessages[
+          ledgerInviteErrorCodes.inviteMemberNameConflict
+        ],
+      ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/名字/)).toHaveValue("奶奶");
     expect(screen.getByDisplayValue("admin")).toHaveAttribute("name", "role");
@@ -190,7 +201,7 @@ describe("LedgerInviteEntry 邀请成员入口", () => {
     const action = vi.fn(async () => {
       errorCount += 1;
       return {
-        error: "邀请链接生成失败，请稍后重试。",
+        error: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
         errorKey: `invite-error-${errorCount}`,
         operation: "invite" as const,
       };
@@ -212,7 +223,7 @@ describe("LedgerInviteEntry 邀请成员入口", () => {
 
   it("页面刷新后不会重复展示已处理的 Action 错误", async () => {
     const action = vi.fn(async () => ({
-      error: "邀请链接生成失败，请稍后重试。",
+      error: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       errorKey: "invite-error-1",
       operation: "invite" as const,
     }));
@@ -528,7 +539,7 @@ describe("LedgerInviteEntry 待邀请成员", () => {
 
   it("重新生成失败时标题为生成邀请链接失败并保持弹框", async () => {
     const action = vi.fn(async () => ({
-      error: "邀请链接生成失败，请稍后重试。",
+      error: ledgerInviteErrorMessages[ledgerInviteErrorCodes.createFailed],
       errorKey: "create-error-1",
       operation: "create" as const,
     }));
