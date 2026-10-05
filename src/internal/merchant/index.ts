@@ -1,6 +1,5 @@
 export type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
 export {
-  getMerchantActionErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
   merchantErrorMessages,

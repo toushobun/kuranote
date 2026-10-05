@@ -185,8 +185,9 @@ const rpcErrorByDetails = {
 function findRpcDetailError(error: { details?: string | null }) {
   const code = error.details?.trim();
   if (!code || !Object.hasOwn(rpcErrorByDetails, code)) return null;
-  const ErrorClass = rpcErrorByDetails[code as keyof typeof rpcErrorByDetails];
-  return new ErrorClass(code, getAccountErrorMessage(code)!);
+  const detailCode = code as keyof typeof rpcErrorByDetails;
+  const ErrorClass = rpcErrorByDetails[detailCode];
+  return new ErrorClass(detailCode, accountErrorMessages[detailCode]);
 }
 
 function toHolderIdentity(
@@ -289,7 +290,7 @@ export function createSupabaseAccountRepository(
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.nameDuplicate,
-            getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+            accountErrorMessages[accountErrorCodes.nameDuplicate],
           );
         }
         throw toRepositoryError(

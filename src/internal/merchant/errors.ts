@@ -175,10 +175,6 @@ export function isMerchantActionErrorCode(
   return merchantActionErrorCodeSet.has(value);
 }
 
-export function getMerchantActionErrorMessage(error: MerchantErrorCode) {
-  return isMerchantActionErrorCode(error) ? merchantErrorMessages[error] : null;
-}
-
 export function getMerchantErrorMessage(error: MerchantErrorCode) {
   return merchantErrorMessages[error];
 }

@@ -5,11 +5,8 @@ import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
-import {
-  getMerchantActionErrorMessage,
-  merchantErrorCodes,
-} from "internal/merchant";
-import { accountErrorCodes, getAccountErrorMessage } from "internal/account";
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
+import { accountErrorCodes, accountErrorMessages } from "internal/account";
 import type { AppEnv } from "internal/appEnv";
 import {
   getLedgerInviteErrorMessage,
@@ -45,39 +42,35 @@ describe("errorHandlingMiddleware", () => {
     [
       new ConflictError(
         accountErrorCodes.nameDuplicate,
-        getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+        accountErrorMessages[accountErrorCodes.nameDuplicate],
       ),
       409,
     ],
     [
       new ValidationError(
         merchantErrorCodes.merchantOrderInvalid,
-        getMerchantActionErrorMessage(merchantErrorCodes.merchantOrderInvalid)!,
+        merchantErrorMessages[merchantErrorCodes.merchantOrderInvalid],
       ),
       400,
     ],
     [
       new ConflictError(
         merchantErrorCodes.merchantSetInvalid,
-        getMerchantActionErrorMessage(merchantErrorCodes.merchantSetInvalid)!,
+        merchantErrorMessages[merchantErrorCodes.merchantSetInvalid],
       ),
       409,
     ],
     [
       new ConflictError(
         merchantErrorCodes.merchantReorderFailed,
-        getMerchantActionErrorMessage(
-          merchantErrorCodes.merchantReorderFailed,
-        )!,
+        merchantErrorMessages[merchantErrorCodes.merchantReorderFailed],
       ),
       409,
     ],
     [
       new RepositoryError(
         merchantErrorCodes.merchantReorderFailed,
-        getMerchantActionErrorMessage(
-          merchantErrorCodes.merchantReorderFailed,
-        )!,
+        merchantErrorMessages[merchantErrorCodes.merchantReorderFailed],
       ),
       500,
     ],
@@ -143,7 +136,7 @@ describe("errorHandlingMiddleware", () => {
     [
       new AuthenticationError(
         accountErrorCodes.authRequired,
-        getAccountErrorMessage(accountErrorCodes.authRequired)!,
+        accountErrorMessages[accountErrorCodes.authRequired],
       ),
       401,
     ],
