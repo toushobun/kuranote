@@ -2,6 +2,10 @@ import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import type { TransferImportRow } from "internal/dataImport/entity/importRow";
 import type { ImportValidationIssue } from "internal/dataImport/entity/importValidationIssue";
 import {
+  importRowErrorMessages,
+  transferImportErrorMessages,
+} from "internal/dataImport/errors";
+import {
   importCurrencyPattern,
   importNoteMaxLength,
   transferColumns,
@@ -62,17 +66,17 @@ export function parseTransferSheet(
 
     const typeText = get("交易类型");
     if (typeText !== transferTypeValue) {
-      addIssue("交易类型", `交易类型必须是「${transferTypeValue}」。`);
+      addIssue("交易类型", transferImportErrorMessages.typeInvalid);
     }
 
     const dateResult = parseImportDate(get("日期"));
     if (!dateResult.ok) {
-      addIssue("日期", "日期格式不正确，应为 YYYY-MM-DD HH:MM:SS。");
+      addIssue("日期", importRowErrorMessages.dateInvalid);
     }
 
     const fromAccountName = get("转出账户");
     if (!fromAccountName) {
-      addIssue("转出账户", "转出账户不能为空。");
+      addIssue("转出账户", transferImportErrorMessages.fromAccountRequired);
     }
 
     const fromAccountCurrencyText = get("转出账户币种");
@@ -80,12 +84,15 @@ export function parseTransferSheet(
       fromAccountCurrencyText,
     );
     if (!fromAccountCurrencyValid) {
-      addIssue("转出账户币种", "转出账户币种必须是 3 位字母代码，例如 CNY。");
+      addIssue(
+        "转出账户币种",
+        transferImportErrorMessages.fromAccountCurrencyInvalid,
+      );
     }
 
     const toAccountName = get("转入账户");
     if (!toAccountName) {
-      addIssue("转入账户", "转入账户不能为空。");
+      addIssue("转入账户", transferImportErrorMessages.toAccountRequired);
     }
 
     const toAccountCurrencyText = get("转入账户币种");
@@ -93,33 +100,30 @@ export function parseTransferSheet(
       toAccountCurrencyText,
     );
     if (!toAccountCurrencyValid) {
-      addIssue("转入账户币种", "转入账户币种必须是 3 位字母代码，例如 CNY。");
+      addIssue(
+        "转入账户币种",
+        transferImportErrorMessages.toAccountCurrencyInvalid,
+      );
     }
 
     const amountResult = parseImportAmount(get("金额"), { allowZero: false });
     if (!amountResult.ok) {
-      addIssue("金额", "金额必须是大于 0、不超过两位小数的数字。");
+      addIssue("金额", transferImportErrorMessages.amountInvalid);
     }
 
     const note = get("备注");
     if (note.length > importNoteMaxLength) {
-      addIssue("备注", `备注不能超过 ${importNoteMaxLength} 个字符。`);
+      addIssue("备注", importRowErrorMessages.noteTooLong);
     }
 
     const fromAccountHolderResult = parseHolderName(get("转出账户持有人"));
     if (!fromAccountHolderResult.ok) {
-      addIssue(
-        "转出账户持有人",
-        "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
-      );
+      addIssue("转出账户持有人", importRowErrorMessages.holderInvalid);
     }
 
     const toAccountHolderResult = parseHolderName(get("转入账户持有人"));
     if (!toAccountHolderResult.ok) {
-      addIssue(
-        "转入账户持有人",
-        "账户持有人只能填写 0 个或 1 个持有人姓名，不支持填写多个持有人。",
-      );
+      addIssue("转入账户持有人", importRowErrorMessages.holderInvalid);
     }
 
     const fromAccountTypeResult = parseAccountType(
@@ -157,7 +161,7 @@ export function parseTransferSheet(
       fromAccountHolderResult.value === toAccountHolderResult.value &&
       fromAccountTypeResult.value === toAccountTypeResult.value
     ) {
-      addIssue("转入账户", "转出账户与转入账户不能是同一个账户。");
+      addIssue("转入账户", transferImportErrorMessages.sameAccount);
     }
 
     if (

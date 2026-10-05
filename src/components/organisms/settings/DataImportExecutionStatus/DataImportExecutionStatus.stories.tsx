@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { dataImportExecutionErrorMessages } from "internal/dataImport";
+
 import { DataImportExecutionStatus } from "./DataImportExecutionStatus";
 
 const meta = {
@@ -102,22 +104,21 @@ export const MixedResult: Story = {
         {
           content: "2026-09-17 业务超市 1200",
           reason:
-            "一级分类「餐饮」没有填写二级分类；当前交易记录必须使用二级分类。",
+            dataImportExecutionErrorMessages.childCategoryRequired("餐饮"),
           rowNumbers: [12],
           sheet: "incomeExpense",
           status: "failed",
         },
         {
           content: "2026-09-17 钱包 → 银行卡 5000",
-          reason: "疑似与现有记录重复，但已继续导入。",
+          reason: dataImportExecutionErrorMessages.duplicateWarning,
           rowNumbers: [18],
           sheet: "transfer",
           status: "duplicate",
         },
         {
           content: "2026-09-17 全家便利店 600",
-          reason:
-            "账本内找不到显示名为「小明」的有效成员，已按无持有人继续导入该笔记录。",
+          reason: dataImportExecutionErrorMessages.holderMissingWarning("小明"),
           rowNumbers: [22],
           sheet: "incomeExpense",
           status: "holderMissing",
@@ -154,7 +155,7 @@ export const BalanceAdjustmentResult: Story = {
           rowNumbers: [3],
           content: "2026-01-05 现金 -20",
           status: "duplicate",
-          reason: "疑似与现有记录重复，但已继续导入。",
+          reason: dataImportExecutionErrorMessages.duplicateWarning,
         },
         {
           sheet: "balanceAdjustment",

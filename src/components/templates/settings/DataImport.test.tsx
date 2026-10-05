@@ -1,7 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ImportValidationResult } from "internal/dataImport";
+import {
+  dataImportErrorCodes,
+  dataImportErrorMessages,
+  importStructuralErrorMessages,
+  incomeExpenseImportErrorMessages,
+  type ImportValidationResult,
+} from "internal/dataImport";
 import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
 import type { DataImportBatchActionState } from "types/dataImport";
 import { DataImportTemplate } from "./DataImport";
@@ -96,7 +102,9 @@ describe("DataImportTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
     expect(
-      await screen.findByText("文件检查失败，请稍后重试。"),
+      await screen.findByText(
+        dataImportErrorMessages[dataImportErrorCodes.validationFailed],
+      ),
     ).toBeInTheDocument();
     expect(analyzeImportFileMock).toHaveBeenCalledWith(file);
     expect(executeAction).not.toHaveBeenCalled();
@@ -195,11 +203,14 @@ describe("DataImportTemplate", () => {
   it("校验未通过时展示每一条错误", async () => {
     mockValidationResult({
       issues: [
-        { kind: "structural", message: "文件为空或没有可识别的数据表。" },
+        {
+          kind: "structural",
+          message: importStructuralErrorMessages.workbookEmpty,
+        },
         {
           column: "金额",
           kind: "row",
-          message: "金额必须是不超过两位小数的非负数字。",
+          message: incomeExpenseImportErrorMessages.amountInvalid,
           rowNumber: 3,
           sheet: "incomeExpense",
         },
@@ -212,10 +223,14 @@ describe("DataImportTemplate", () => {
 
     expect(await screen.findByText("格式检查未通过")).toBeInTheDocument();
     expect(
-      screen.getByText("文件为空或没有可识别的数据表。"),
+      screen.getByText(importStructuralErrorMessages.workbookEmpty),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/第 3 行.*金额.*金额必须是不超过两位小数的非负数字。/),
+      screen.getByText(
+        new RegExp(
+          `第 3 行.*金额.*${incomeExpenseImportErrorMessages.amountInvalid}`,
+        ),
+      ),
     ).toBeInTheDocument();
   });
 

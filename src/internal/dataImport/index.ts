@@ -1,7 +1,10 @@
 export type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 export {
   dataImportErrorCodes,
-  getDataImportErrorMessage,
+  dataImportErrorMessages,
+  dataImportExecutionErrorMessages,
+  importStructuralErrorMessages,
+  incomeExpenseImportErrorMessages,
 } from "internal/dataImport/errors";
 export type {
   ImportBatchResult,

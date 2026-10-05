@@ -3,6 +3,10 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  dataImportErrorCodes,
+  dataImportErrorMessages,
+} from "internal/dataImport/errors";
 import { maxImportFileSizeBytes } from "internal/dataImport/schema";
 import { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 
@@ -158,7 +162,12 @@ describe("analyzeImportFile", () => {
     const { result, units } = await analyzeImportFile(file);
 
     expect(result).toEqual({
-      issues: [{ kind: "structural", message: "文件大小不能超过 50MB。" }],
+      issues: [
+        {
+          kind: "structural",
+          message: dataImportErrorMessages[dataImportErrorCodes.fileTooLarge],
+        },
+      ],
       ok: false,
     });
     expect(units).toEqual([]);

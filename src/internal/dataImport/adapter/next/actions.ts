@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
-import { getDataImportErrorMessage } from "internal/dataImport/errors";
+import {
+  dataImportErrorCodes,
+  dataImportErrorMessages,
+} from "internal/dataImport/errors";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
@@ -23,10 +26,7 @@ export async function executeDataImportBatch(
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   const parsed = parseExecuteDataImportBatchForm(formData);
   if (!parsed.ok) {
-    return createErrorState(
-      getDataImportErrorMessage(parsed.error) ??
-        "导入文件或进度信息不正确，请重新检查格式后再试。",
-    );
+    return createErrorState(dataImportErrorMessages[parsed.error]);
   }
 
   let dependencies:
@@ -74,8 +74,7 @@ export async function executeDataImportBatch(
       );
     }
     return createErrorState(
-      getDataImportErrorMessage("execution_failed") ??
-        "数据导入失败，请稍后重试。",
+      dataImportErrorMessages[dataImportErrorCodes.executionFailed],
     );
   }
 }

@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChangeEvent } from "react";
 
-import { importBatchSize } from "internal/dataImport";
+import {
+  dataImportErrorCodes,
+  dataImportErrorMessages,
+  importBatchSize,
+} from "internal/dataImport";
 import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
 import {
   computeDisplayProcessed,
@@ -284,7 +288,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     await selectFileAndCheckFormat(result);
 
     expect(result.current.validationState.error).toBe(
-      "文件检查失败，请稍后重试。",
+      dataImportErrorMessages[dataImportErrorCodes.validationFailed],
     );
     expect(result.current.isChecking).toBe(false);
   });
@@ -343,7 +347,9 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     });
 
     expect(result.current.executionStatus).toBeNull();
-    expect(result.current.executionError).toBe("数据导入失败，请稍后重试。");
+    expect(result.current.executionError).toBe(
+      dataImportErrorMessages[dataImportErrorCodes.executionFailed],
+    );
     expect(result.current.isImporting).toBe(false);
     expect(executeBatchAction).toHaveBeenCalledTimes(failingBatchIndex + 1);
   });

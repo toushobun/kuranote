@@ -967,7 +967,10 @@ describe("余额变更导入", () => {
     vi.mocked(
       d.transactionImportService.createBalanceAdjustment,
     ).mockRejectedValueOnce(
-      new RepositoryError("create_failed", "该条记录导入失败，请稍后重试。"),
+      new RepositoryError(
+        "create_failed",
+        dataImportExecutionErrorMessages.rowFailed,
+      ),
     );
     vi.mocked(d.transactionImportService.hasPossibleBalanceAdjustmentDuplicate)
       .mockResolvedValueOnce(false)

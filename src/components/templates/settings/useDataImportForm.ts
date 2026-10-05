@@ -8,7 +8,7 @@ import {
   analyzeImportFile,
   collectHolderMappingCandidates,
   dataImportErrorCodes,
-  getDataImportErrorMessage,
+  dataImportErrorMessages,
   importBatchSize,
   type ImportExecutionResult,
   type ImportExecutionUnit,
@@ -33,9 +33,8 @@ import {
 
 const initialValidationState: DataImportActionState = {};
 
-const executionFailedMessage = getDataImportErrorMessage(
-  dataImportErrorCodes.executionFailed,
-)!;
+const executionFailedMessage =
+  dataImportErrorMessages[dataImportErrorCodes.executionFailed];
 
 function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
   return {
@@ -127,9 +126,7 @@ export function useDataImportForm(
     } catch {
       if (mountedRef.current) {
         setValidationState({
-          error:
-            getDataImportErrorMessage(dataImportErrorCodes.validationFailed) ??
-            undefined,
+          error: dataImportErrorMessages[dataImportErrorCodes.validationFailed],
         });
       }
     } finally {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { importStructuralErrorMessages } from "internal/dataImport/errors";
 import {
   findColumnStructuralIssues,
   findUnknownColumns,
@@ -61,7 +62,9 @@ describe("findColumnStructuralIssues", () => {
     expect(issues).toEqual([
       expect.objectContaining({
         kind: "structural",
-        message: "「收支」表缺少必填列：账户币种。",
+        message: importStructuralErrorMessages.missingRequiredColumns("收支", [
+          "账户币种",
+        ]),
         sheet: "incomeExpense",
       }),
     ]);
@@ -76,7 +79,9 @@ describe("findColumnStructuralIssues", () => {
     expect(issues).toEqual([
       expect.objectContaining({
         kind: "structural",
-        message: "「转账」表存在无法识别的列：多余列，请确认列名是否正确。",
+        message: importStructuralErrorMessages.unknownColumns("转账", [
+          "多余列",
+        ]),
         sheet: "transfer",
       }),
     ]);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import { importStructuralErrorMessages } from "internal/dataImport/errors";
 import { incomeExpenseColumns } from "internal/dataImport/schema";
 import { parseIncomeExpenseSheet } from "internal/dataImport/util/parseIncomeExpenseSheet";
 
@@ -171,7 +172,9 @@ describe("parseIncomeExpenseSheet", () => {
     expect(result.issues).toEqual([
       expect.objectContaining({
         kind: "structural",
-        message: "「收支」表缺少必填列：账户类型。",
+        message: importStructuralErrorMessages.missingRequiredColumns("收支", [
+          "账户类型",
+        ]),
         sheet: "incomeExpense",
       }),
     ]);
