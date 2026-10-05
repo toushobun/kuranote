@@ -34,6 +34,13 @@ describe("googleOAuth", () => {
     expect(getGoogleAuthErrorMessage("raw-provider-error")).toBeUndefined();
   });
 
+  it("查询参数缺失或重复传入时不返回错误文案", () => {
+    expect(getGoogleAuthErrorMessage(undefined)).toBeUndefined();
+    expect(
+      getGoogleAuthErrorMessage(["cancelled", "start_failed"]),
+    ).toBeUndefined();
+  });
+
   it.each(["toString", "constructor", "__proto__"])(
     "原型链属性 %s 不会被当作错误码",
     (errorCode) => {

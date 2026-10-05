@@ -16,6 +16,7 @@ import {
   isValidRegisterPassword,
   passwordMaxLength,
   passwordRuleMessage,
+  registerValidationMessages,
 } from "lib/validators/auth";
 import { useOtpCooldown } from "organisms/auth/useOtpCooldown";
 import type {
@@ -70,16 +71,18 @@ const turnstileLoadTimeoutMs = 10000;
 function getEmailError(value: string) {
   if (!value) return "";
   if (value.length > emailMaxLength) {
-    return `邮箱最多 ${emailMaxLength} 个字符。`;
+    return registerValidationMessages.emailTooLong;
   }
-  if (!isValidEmailFormat(value)) return "邮箱格式有误";
+  if (!isValidEmailFormat(value)) {
+    return registerValidationMessages.emailFormatInvalid;
+  }
   return "";
 }
 
 function getDisplayNameError(value: string) {
   if (!value) return "";
   if (value.length > displayNameMaxLength) {
-    return `昵称最多 ${displayNameMaxLength} 个字符。`;
+    return registerValidationMessages.displayNameTooLong;
   }
   return "";
 }
@@ -87,7 +90,7 @@ function getDisplayNameError(value: string) {
 function getPasswordError(value: string) {
   if (!value) return "";
   if (value.length > passwordMaxLength) {
-    return `密码最多 ${passwordMaxLength} 个字符。`;
+    return registerValidationMessages.passwordTooLong;
   }
   if (!isValidRegisterPassword(value)) return passwordRuleMessage;
   return "";
@@ -96,15 +99,18 @@ function getPasswordError(value: string) {
 function getPasswordConfirmError(password: string, value: string) {
   if (!value) return "";
   if (value.length > passwordMaxLength) {
-    return `确认密码最多 ${passwordMaxLength} 个字符。`;
+    return registerValidationMessages.passwordConfirmTooLong;
   }
-  if (password !== value) return "两次输入的密码不一致。";
+  if (password !== value) {
+    return registerValidationMessages.passwordConfirmationMismatch;
+  }
   return "";
 }
 
 function getOtpCodeError(value: string) {
   if (!value) return "";
-  if (!/^\d{6}$/.test(value)) return "请输入 6 位数字验证码";
+  if (!/^\d{6}$/.test(value))
+    return registerValidationMessages.otpFormatInvalid;
   return "";
 }
 

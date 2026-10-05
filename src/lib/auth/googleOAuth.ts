@@ -54,9 +54,12 @@ export function getGoogleAuthSource(
   return googleAuthSources.login;
 }
 
-export function getGoogleAuthErrorMessage(value: string | null | undefined) {
+/** 直接接收登录 / 注册页的 authError 查询参数，非字符串或未知错误码返回 undefined。 */
+export function getGoogleAuthErrorMessage(
+  value: string | string[] | undefined,
+) {
   if (
-    !value ||
+    typeof value !== "string" ||
     !Object.prototype.hasOwnProperty.call(googleAuthErrorMessages, value)
   ) {
     return undefined;
