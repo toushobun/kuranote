@@ -14,7 +14,6 @@ import {
   accountErrorMessages,
   accountLoadErrorMessages,
   accountErrorCodes,
-  getAccountErrorMessage,
 } from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -185,8 +184,9 @@ const rpcErrorByDetails = {
 function findRpcDetailError(error: { details?: string | null }) {
   const code = error.details?.trim();
   if (!code || !Object.hasOwn(rpcErrorByDetails, code)) return null;
-  const ErrorClass = rpcErrorByDetails[code as keyof typeof rpcErrorByDetails];
-  return new ErrorClass(code, getAccountErrorMessage(code)!);
+  const detailCode = code as keyof typeof rpcErrorByDetails;
+  const ErrorClass = rpcErrorByDetails[detailCode];
+  return new ErrorClass(detailCode, accountErrorMessages[detailCode]);
 }
 
 function toHolderIdentity(
@@ -289,7 +289,7 @@ export function createSupabaseAccountRepository(
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.nameDuplicate,
-            getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+            accountErrorMessages[accountErrorCodes.nameDuplicate],
           );
         }
         throw toRepositoryError(
@@ -559,12 +559,12 @@ export function createSupabaseAccountRepository(
         if (error.code === "28000")
           throw new AuthenticationError(
             accountErrorCodes.authRequired,
-            getAccountErrorMessage(accountErrorCodes.authRequired)!,
+            accountErrorMessages[accountErrorCodes.authRequired],
           );
         if (error.code === "42501")
           throw new AuthorizationError(
             accountErrorCodes.permissionDenied,
-            getAccountErrorMessage(accountErrorCodes.permissionDenied)!,
+            accountErrorMessages[accountErrorCodes.permissionDenied],
           );
         if (
           error.details === accountErrorCodes.balanceInvalid ||
@@ -572,13 +572,13 @@ export function createSupabaseAccountRepository(
         ) {
           throw new ValidationError(
             error.details,
-            getAccountErrorMessage(error.details)!,
+            accountErrorMessages[error.details],
           );
         }
         if (error.code === "23505") {
           throw new ConflictError(
             accountErrorCodes.nameDuplicate,
-            getAccountErrorMessage(accountErrorCodes.nameDuplicate)!,
+            accountErrorMessages[accountErrorCodes.nameDuplicate],
           );
         }
         throw toRepositoryError(

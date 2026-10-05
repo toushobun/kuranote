@@ -4,7 +4,9 @@ import { categorySuccessMessages } from "config/categoryMessages";
 import { revalidateCategoryMutation } from "internal/category/adapter/next/revalidate";
 import {
   categoryErrorCodes,
-  getCategoryErrorMessage,
+  categoryErrorMessages,
+  type CategoryErrorCode,
+  type CategoryValidationErrorCode,
 } from "internal/category/errors";
 import {
   parseArchiveCategoryForm,
@@ -19,15 +21,15 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type { CategoryActionState } from "types/categories";
 
-function validationErrorState(code: string): CategoryActionState {
-  return createErrorState(
-    getCategoryErrorMessage(code) ?? "分类信息不正确，请确认后重试。",
-  );
+function validationErrorState(
+  code: CategoryValidationErrorCode,
+): CategoryActionState {
+  return createErrorState(categoryErrorMessages[code]);
 }
 
 function actionErrorState(
   error: unknown,
-  fallbackCode: string,
+  fallbackCode: CategoryErrorCode,
   operation: string,
 ): CategoryActionState {
   if (error instanceof AppError) {
@@ -37,9 +39,7 @@ function actionErrorState(
   console.error(`[category] ${operation} failed unexpectedly`, {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(
-    getCategoryErrorMessage(fallbackCode) ?? "分类操作失败，请稍后重试。",
-  );
+  return createErrorState(categoryErrorMessages[fallbackCode]);
 }
 
 async function getCategoryService() {

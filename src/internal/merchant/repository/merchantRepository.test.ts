@@ -6,6 +6,7 @@ import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages"
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
+  merchantErrorMessages,
 } from "internal/merchant/errors";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
@@ -342,7 +343,7 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(operation).rejects.toMatchObject({
       code: merchantErrorCodes.aliasCreateFailed,
-      message: "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+      message: merchantErrorMessages[merchantErrorCodes.aliasCreateFailed],
     });
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
@@ -402,7 +403,7 @@ describe("createSupabaseMerchantRepository", () => {
 
       await expect(operation).rejects.toMatchObject({
         code: merchantErrorCodes.merchantTagInvalid,
-        message: "该商家分类不存在或已不可用。",
+        message: merchantErrorMessages[merchantErrorCodes.merchantTagInvalid],
       });
       await expect(operation).rejects.toBeInstanceOf(ValidationError);
     },
@@ -419,7 +420,7 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.permissionDenied,
       details: "permission_denied",
       errorType: AuthorizationError,
-      message: "只有账本所有者或管理员可以维护商家。",
+      message: merchantErrorMessages[merchantErrorCodes.permissionDenied],
     },
   ])(
     "RPC 的 $details 会转换为对应访问错误",
@@ -465,7 +466,7 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(operation).rejects.toMatchObject({
       code: merchantErrorCodes.permissionDenied,
-      message: "只有账本所有者或管理员可以维护商家。",
+      message: merchantErrorMessages[merchantErrorCodes.permissionDenied],
     });
     await expect(operation).rejects.toBeInstanceOf(AuthorizationError);
   });
@@ -646,28 +647,30 @@ describe("createSupabaseMerchantRepository", () => {
       code: merchantErrorCodes.merchantTagOrderInvalid,
       details: "merchant_tag_order_invalid",
       errorType: ValidationError,
-      message: "分类排序内容不正确。",
+      message:
+        merchantErrorMessages[merchantErrorCodes.merchantTagOrderInvalid],
     },
     {
       databaseCode: "22023",
       code: merchantErrorCodes.merchantTagSetInvalid,
       details: "merchant_tag_set_invalid",
       errorType: ConflictError,
-      message: "分类列表已发生变化，请刷新页面后重试。",
+      message: merchantErrorMessages[merchantErrorCodes.merchantTagSetInvalid],
     },
     {
       databaseCode: "P0002",
       code: merchantErrorCodes.ledgerInvalid,
       details: "ledger_not_found",
       errorType: NotFoundError,
-      message: "账本不存在、已停用或您无法访问。",
+      message: merchantErrorMessages[merchantErrorCodes.ledgerInvalid],
     },
     {
       databaseCode: "P0001",
       code: merchantErrorCodes.merchantTagReorderFailed,
       details: "merchant_tag_write_failed",
       errorType: ConflictError,
-      message: "分类排序保存失败，请稍后重试。",
+      message:
+        merchantErrorMessages[merchantErrorCodes.merchantTagReorderFailed],
     },
   ])(
     "标签排序 RPC 的 $details 会转换为对应业务错误",

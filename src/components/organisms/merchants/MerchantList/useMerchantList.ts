@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  getMerchantActionErrorMessage,
-  merchantErrorCodes,
-} from "internal/merchant";
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import {
   orderItemsByIds,
   useOptimisticReorder,
@@ -29,9 +26,8 @@ export function useMerchantList({
     items: merchants,
     action: async (formData) => (reorderAction ? reorderAction(formData) : {}),
     onError: setErrorState,
-    fallbackMessage: getMerchantActionErrorMessage(
-      merchantErrorCodes.merchantReorderFailed,
-    )!,
+    fallbackMessage:
+      merchantErrorMessages[merchantErrorCodes.merchantReorderFailed],
   });
   const sortingDisabled = disabled || reorder.isPending || !reorderAction;
 

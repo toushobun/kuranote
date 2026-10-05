@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { merchantTagEmojiValues } from "config/merchantTagEmojis";
 import {
   merchantErrorCodes,
+  merchantWebsiteUrlErrorMessages,
   type MerchantValidationErrorCode,
 } from "internal/merchant/errors";
 import {
@@ -375,7 +376,9 @@ function isHttpUrl(value: string): boolean {
 const optionalWebsiteUrlSchema = z
   .string()
   .trim()
-  .refine(isHttpUrl, { message: "商家网址必须使用 HTTP 或 HTTPS。" })
+  .refine(isHttpUrl, {
+    message: merchantWebsiteUrlErrorMessages.protocolInvalid,
+  })
   .nullable();
 
 export const merchantLedgerParamsSchema = z.object({

@@ -5,6 +5,7 @@ import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 
 import { MerchantsTemplate } from "./Merchants";
 
@@ -126,7 +127,8 @@ export const UnavailableTagFilter: Story = {
   args: {
     ledgerId: "ledger-1",
     merchants: [],
-    tagFilterError: "该商家分类不存在或已不可用。",
+    tagFilterError:
+      merchantErrorMessages[merchantErrorCodes.merchantTagInvalid],
   },
 };
 

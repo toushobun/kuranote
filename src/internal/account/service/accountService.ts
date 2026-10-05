@@ -5,9 +5,8 @@ import {
 } from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
 import {
-  accountFallbackErrorMessages,
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
 } from "internal/account/errors";
 import type {
   AccountLedgerMember,
@@ -97,18 +96,12 @@ export type AccountServiceDependencies = {
 
 const accountTypeValues = new Set<AccountType>(accountTypes);
 
-function accountErrorMessage(code: string): string {
-  return (
-    getAccountErrorMessage(code) ?? accountFallbackErrorMessages.operationFailed
-  );
-}
-
 function normalizeName(name: string): string {
   const normalized = name.trim();
   if (!normalized) {
     throw new ValidationError(
       accountErrorCodes.nameRequired,
-      accountErrorMessage(accountErrorCodes.nameRequired),
+      accountErrorMessages[accountErrorCodes.nameRequired],
     );
   }
   return normalized;
@@ -118,7 +111,7 @@ function normalizeType(type: AccountType): AccountType {
   if (!accountTypeValues.has(type)) {
     throw new ValidationError(
       accountErrorCodes.typeInvalid,
-      accountErrorMessage(accountErrorCodes.typeInvalid),
+      accountErrorMessages[accountErrorCodes.typeInvalid],
     );
   }
   return type;
@@ -129,7 +122,7 @@ function normalizeCurrency(currency: string): string {
   if (!/^[A-Z]{3}$/.test(normalized)) {
     throw new ValidationError(
       accountErrorCodes.currencyInvalid,
-      accountErrorMessage(accountErrorCodes.currencyInvalid),
+      accountErrorMessages[accountErrorCodes.currencyInvalid],
     );
   }
   return normalized;
@@ -149,7 +142,7 @@ function normalizeInitialBalance(initialBalance: number): number {
   ) {
     throw new ValidationError(
       accountErrorCodes.initialBalanceInvalid,
-      accountErrorMessage(accountErrorCodes.initialBalanceInvalid),
+      accountErrorMessages[accountErrorCodes.initialBalanceInvalid],
     );
   }
   return initialBalance;
@@ -179,7 +172,7 @@ export function createAccountService({
     if (!canManageMasterData(role)) {
       throw new AuthorizationError(
         accountErrorCodes.permissionDenied,
-        accountErrorMessage(accountErrorCodes.permissionDenied),
+        accountErrorMessages[accountErrorCodes.permissionDenied],
       );
     }
   }
@@ -193,7 +186,7 @@ export function createAccountService({
     if (normalized.length > 1) {
       throw new ValidationError(
         accountErrorCodes.holderTooMany,
-        accountErrorMessage(accountErrorCodes.holderTooMany),
+        accountErrorMessages[accountErrorCodes.holderTooMany],
       );
     }
 
@@ -202,7 +195,7 @@ export function createAccountService({
     if (normalized.some((userId) => !activeMemberIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
-        accountErrorMessage(accountErrorCodes.holderInvalid),
+        accountErrorMessages[accountErrorCodes.holderInvalid],
       );
     }
 
@@ -214,7 +207,7 @@ export function createAccountService({
     if (normalized.some((userId) => !activeUserIds.has(userId))) {
       throw new ValidationError(
         accountErrorCodes.holderInvalid,
-        accountErrorMessage(accountErrorCodes.holderInvalid),
+        accountErrorMessages[accountErrorCodes.holderInvalid],
       );
     }
 
@@ -247,7 +240,7 @@ export function createAccountService({
     if (holderUserIds.length > 0) {
       throw new ValidationError(
         accountErrorCodes.holderIdentityInvalid,
-        accountErrorMessage(accountErrorCodes.holderIdentityInvalid),
+        accountErrorMessages[accountErrorCodes.holderIdentityInvalid],
       );
     }
 
@@ -263,7 +256,7 @@ export function createAccountService({
     ) {
       throw new ConflictError(
         accountErrorCodes.placeholderUnavailable,
-        accountErrorMessage(accountErrorCodes.placeholderUnavailable),
+        accountErrorMessages[accountErrorCodes.placeholderUnavailable],
       );
     }
 
@@ -278,7 +271,7 @@ export function createAccountService({
       if (!(await accountRepository.isActiveAccount(ledgerId, accountId))) {
         throw new NotFoundError(
           accountErrorCodes.accountNotFound,
-          accountErrorMessage(accountErrorCodes.accountNotFound),
+          accountErrorMessages[accountErrorCodes.accountNotFound],
         );
       }
 
@@ -292,7 +285,7 @@ export function createAccountService({
       if (!archived) {
         throw new ConflictError(
           accountErrorCodes.archiveFailed,
-          accountErrorMessage(accountErrorCodes.archiveFailed),
+          accountErrorMessages[accountErrorCodes.archiveFailed],
         );
       }
     },
@@ -314,7 +307,7 @@ export function createAccountService({
       if (!accountId) {
         throw new ConflictError(
           accountErrorCodes.createFailed,
-          accountErrorMessage(accountErrorCodes.createFailed),
+          accountErrorMessages[accountErrorCodes.createFailed],
         );
       }
 
@@ -362,7 +355,7 @@ export function createAccountService({
       if (!ledger) {
         throw new NotFoundError(
           accountErrorCodes.ledgerInvalid,
-          accountErrorMessage(accountErrorCodes.ledgerInvalid),
+          accountErrorMessages[accountErrorCodes.ledgerInvalid],
         );
       }
 
@@ -399,7 +392,7 @@ export function createAccountService({
       const adjustment = accountBalanceAdjustmentSchema.safeParse(input);
       if (!adjustment.success) {
         const code = getAccountBalanceAdjustmentErrorCode(adjustment.error);
-        throw new ValidationError(code, accountErrorMessage(code));
+        throw new ValidationError(code, accountErrorMessages[code]);
       }
 
       if (
@@ -410,7 +403,7 @@ export function createAccountService({
       ) {
         throw new NotFoundError(
           accountErrorCodes.accountNotFound,
-          accountErrorMessage(accountErrorCodes.accountNotFound),
+          accountErrorMessages[accountErrorCodes.accountNotFound],
         );
       }
 
@@ -428,7 +421,7 @@ export function createAccountService({
       if (!updated) {
         throw new ConflictError(
           accountErrorCodes.updateFailed,
-          accountErrorMessage(accountErrorCodes.updateFailed),
+          accountErrorMessages[accountErrorCodes.updateFailed],
         );
       }
     },

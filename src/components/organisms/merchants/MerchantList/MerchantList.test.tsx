@@ -14,6 +14,7 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import type { MerchantActionState } from "types/merchants";
 import { MerchantList } from "./MerchantList";
@@ -222,7 +223,9 @@ describe("商家排序", () => {
       );
       expect(
         await screen.findByText(
-          networkError ? "商家排序保存失败，请稍后重试。" : "排序冲突，请刷新",
+          networkError
+            ? merchantErrorMessages[merchantErrorCodes.merchantReorderFailed]
+            : "排序冲突，请刷新",
         ),
       ).toBeInTheDocument();
     },

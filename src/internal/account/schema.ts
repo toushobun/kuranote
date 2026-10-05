@@ -6,7 +6,7 @@ import { accountTypes } from "internal/account/entity/accountType";
 import { themeColorKeys } from "theme/themeColorTokens";
 import {
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
   type AccountErrorCode,
 } from "./errors";
 
@@ -15,13 +15,13 @@ export const accountBalanceAdjustmentSchema = z.object({
     .number()
     .finite()
     .refine(isValidTargetBalance, {
-      message: getAccountErrorMessage(accountErrorCodes.balanceInvalid)!,
+      message: accountErrorMessages[accountErrorCodes.balanceInvalid],
     })
     .optional(),
   balanceAdjustmentNote: z
     .string()
     .trim()
-    .max(2000, getAccountErrorMessage(accountErrorCodes.adjustmentNoteInvalid)!)
+    .max(2000, accountErrorMessages[accountErrorCodes.adjustmentNoteInvalid])
     .nullable()
     .optional(),
 });

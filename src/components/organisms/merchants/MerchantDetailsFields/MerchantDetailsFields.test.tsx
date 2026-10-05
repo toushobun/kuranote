@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
+
 import { MerchantDetailsFields } from "./MerchantDetailsFields";
 
 afterEach(cleanup);
@@ -118,7 +120,8 @@ describe("MerchantDetailsFields", () => {
   it("获取失败时显示 Action 返回的安全文案", async () => {
     const fetchIconAction = vi.fn(
       async (_previous: unknown, _formData: FormData) => ({
-        error: "未能获取网站图标，请确认网址后重试。",
+        error:
+          merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
       }),
     );
     render(
@@ -131,7 +134,9 @@ describe("MerchantDetailsFields", () => {
     fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
 
     expect(
-      await screen.findByText("未能获取网站图标，请确认网址后重试。"),
+      await screen.findByText(
+        merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
+      ),
     ).toBeInTheDocument();
   });
 

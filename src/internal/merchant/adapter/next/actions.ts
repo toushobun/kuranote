@@ -8,10 +8,11 @@ import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
-  getMerchantActionErrorMessage,
+  getMerchantErrorMessage,
   isMerchantActionErrorCode,
   merchantErrorCodes,
-  type MerchantErrorCode,
+  type MerchantActionErrorCode,
+  type MerchantValidationErrorCode,
 } from "internal/merchant/errors";
 import {
   validateArchiveMerchantAliasForm,
@@ -44,16 +45,15 @@ async function getMerchantService() {
   return createRequestContainer(dependencies).merchant.service;
 }
 
-function validationErrorState(error: MerchantErrorCode): MerchantActionState {
-  return createErrorState(
-    getMerchantActionErrorMessage(error) ??
-      "商家操作内容不正确，请确认后重试。",
-  );
+function validationErrorState(
+  error: MerchantValidationErrorCode,
+): MerchantActionState {
+  return createErrorState(getMerchantErrorMessage(error));
 }
 
 function actionErrorState(
   error: unknown,
-  fallback: MerchantErrorCode,
+  fallback: MerchantActionErrorCode,
   action: string,
 ): MerchantActionState {
   if (error instanceof AppError && isMerchantActionErrorCode(error.code)) {
@@ -63,9 +63,7 @@ function actionErrorState(
   console.error(`[merchant] ${action} action failed unexpectedly`, {
     errorName: error instanceof Error ? error.name : "unknown",
   });
-  return createErrorState(
-    getMerchantActionErrorMessage(fallback) ?? "商家操作失败，请稍后重试。",
-  );
+  return createErrorState(getMerchantErrorMessage(fallback));
 }
 
 export const createMerchant: MerchantStateAction =

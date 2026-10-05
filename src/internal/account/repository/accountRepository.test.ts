@@ -3,9 +3,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  accountErrorMessages,
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
+  type AccountErrorCode,
 } from "internal/account/errors";
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
 import {
@@ -112,7 +112,7 @@ describe("AccountRepository", () => {
         }),
       ).rejects.toMatchObject({
         code: accountErrorCodes.nameDuplicate,
-        message: getAccountErrorMessage(accountErrorCodes.nameDuplicate),
+        message: accountErrorMessages[accountErrorCodes.nameDuplicate],
         details: undefined,
         name: "ConflictError",
       });
@@ -294,7 +294,7 @@ describe("AccountRepository 占位持有人", () => {
     | "ValidationError";
   const holderErrorCases: [
     "create" | "update",
-    string,
+    AccountErrorCode,
     RpcDetailErrorName,
     string,
   ][] = (["create", "update"] as const).flatMap((operation) =>
@@ -313,7 +313,7 @@ describe("AccountRepository 占位持有人", () => {
       ([details, name, code]) =>
         [operation, details, name, code] as [
           "create" | "update",
-          string,
+          AccountErrorCode,
           RpcDetailErrorName,
           string,
         ],
@@ -335,7 +335,7 @@ describe("AccountRepository 占位持有人", () => {
 
       await expect(repository[operation](baseInput)).rejects.toMatchObject({
         code: details,
-        message: getAccountErrorMessage(details),
+        message: accountErrorMessages[details],
         name,
       });
     },
@@ -384,7 +384,7 @@ describe("AccountRepository 占位持有人", () => {
 
       await expect(repository[operation](baseInput)).rejects.toMatchObject({
         code: accountErrorCodes.holderChanged,
-        message: getAccountErrorMessage(accountErrorCodes.holderChanged),
+        message: accountErrorMessages[accountErrorCodes.holderChanged],
         name: "ConflictError",
       });
     });

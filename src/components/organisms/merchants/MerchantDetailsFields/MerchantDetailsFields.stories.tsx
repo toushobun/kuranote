@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
+
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import type { MerchantIconStateAction } from "types/merchants";
 
 import { MerchantDetailsFields } from "./MerchantDetailsFields";
@@ -113,7 +115,7 @@ export const Success: Story = {
 export const Error: Story = {
   args: {
     fetchIconAction: async () => ({
-      error: "未能获取网站图标，请确认网址后重试。",
+      error: merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
     }),
   },
   name: "获取失败",
@@ -123,7 +125,7 @@ export const Error: Story = {
     );
     await expect(
       await within(canvasElement).findByText(
-        "未能获取网站图标，请确认网址后重试。",
+        merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
       ),
     ).toBeInTheDocument();
   },

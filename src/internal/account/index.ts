@@ -1,6 +1,6 @@
 export {
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
   type AccountErrorCode,
 } from "internal/account/errors";
 export {

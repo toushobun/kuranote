@@ -14,9 +14,8 @@ import {
 } from "internal/shared/errors/appError";
 
 import {
-  accountErrorMessages,
   accountErrorCodes,
-  getAccountErrorMessage,
+  accountErrorMessages,
 } from "internal/account/errors";
 
 const mocks = vi.hoisted(() => ({
@@ -88,7 +87,7 @@ beforeEach(() => {
 
 describe("Account Server Actions", () => {
   it("同维度重名返回权威文案与新错误标识且不跳转", async () => {
-    const message = getAccountErrorMessage(accountErrorCodes.nameDuplicate)!;
+    const message = accountErrorMessages[accountErrorCodes.nameDuplicate];
     mocks.create.mockRejectedValue(
       new ConflictError(accountErrorCodes.nameDuplicate, message),
     );

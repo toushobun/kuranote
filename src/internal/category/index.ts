@@ -1,5 +1,7 @@
 export {
   categoryErrorCodes,
+  categoryErrorMessages,
+  categoryWriteErrorMessages,
   type CategoryErrorCode,
   type CategoryValidationErrorCode,
 } from "internal/category/errors";

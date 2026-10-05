@@ -17,6 +17,7 @@ import {
   createMerchantRow,
 } from "@/test/mocks/merchants";
 
+import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 
@@ -590,12 +591,16 @@ describe("MerchantsTemplate", () => {
         {...baseProps}
         keyword="  LIFE 超市  "
         merchants={[]}
-        tagFilterError="该商家分类不存在或已不可用。"
+        tagFilterError={
+          merchantErrorMessages[merchantErrorCodes.merchantTagInvalid]
+        }
       />,
     );
 
     expect(
-      screen.getByText("该商家分类不存在或已不可用。"),
+      screen.getByText(
+        merchantErrorMessages[merchantErrorCodes.merchantTagInvalid],
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toHaveAttribute(
       "href",
@@ -606,7 +611,9 @@ describe("MerchantsTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "管理分类" }));
 
     expect(
-      screen.getByText("该商家分类不存在或已不可用。"),
+      screen.getByText(
+        merchantErrorMessages[merchantErrorCodes.merchantTagInvalid],
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "清除筛选" })).toBeInTheDocument();
   });

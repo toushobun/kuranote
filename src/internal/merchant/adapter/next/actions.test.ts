@@ -2,7 +2,11 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { merchantErrorCodes } from "internal/merchant/errors";
+import {
+  merchantErrorCodes,
+  merchantErrorMessages,
+  merchantWriteErrorMessages,
+} from "internal/merchant/errors";
 import {
   ConflictError,
   RepositoryError,
@@ -163,31 +167,31 @@ describe("Merchant Server Actions", () => {
   it.each([
     {
       action: createMerchant,
-      expected: "请输入商家名称。",
+      expected: merchantErrorMessages[merchantErrorCodes.nameRequired],
       formData: merchantForm({ name: "" }),
       name: "新增商家",
     },
     {
       action: updateMerchant,
-      expected: "商家指定不正确。",
+      expected: merchantErrorMessages[merchantErrorCodes.merchantInvalid],
       formData: merchantForm({ merchantId: "invalid" }),
       name: "更新商家",
     },
     {
       action: archiveMerchant,
-      expected: "商家指定不正确。",
+      expected: merchantErrorMessages[merchantErrorCodes.merchantInvalid],
       formData: merchantForm({ merchantId: "invalid" }),
       name: "归档商家",
     },
     {
       action: createMerchantAlias,
-      expected: "请输入商家别名。",
+      expected: merchantErrorMessages[merchantErrorCodes.aliasRequired],
       formData: merchantForm({ alias: "" }),
       name: "新增别名",
     },
     {
       action: archiveMerchantAlias,
-      expected: "商家别名指定不正确。",
+      expected: merchantErrorMessages[merchantErrorCodes.aliasInvalid],
       formData: merchantForm({ aliasId: "invalid" }),
       name: "归档别名",
     },
@@ -207,13 +211,13 @@ describe("Merchant Server Actions", () => {
     mocks.updateMerchant.mockRejectedValue(
       new RepositoryError(
         merchantErrorCodes.updateFailed,
-        "商家更新失败，请稍后重试。",
+        merchantWriteErrorMessages.updateFailed,
       ),
     );
 
     const state = await runAction(updateMerchant);
 
-    expectErrorState(state, "商家更新失败，请稍后重试。");
+    expectErrorState(state, merchantWriteErrorMessages.updateFailed);
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
@@ -222,7 +226,7 @@ describe("Merchant Server Actions", () => {
     mocks.reorderTags.mockRejectedValue(
       new ConflictError(
         merchantErrorCodes.ledgerInvalid,
-        "账本不存在、已停用或您无法访问。",
+        merchantErrorMessages[merchantErrorCodes.ledgerInvalid],
       ),
     );
     const formData = merchantForm();
@@ -230,7 +234,10 @@ describe("Merchant Server Actions", () => {
 
     const state = await reorderMerchantTags(formData);
 
-    expectErrorState(state, "账本不存在、已停用或您无法访问。");
+    expectErrorState(
+      state,
+      merchantErrorMessages[merchantErrorCodes.ledgerInvalid],
+    );
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
@@ -247,7 +254,7 @@ describe("Merchant Server Actions", () => {
 
     expectErrorState(
       state,
-      "商家新增失败。请确认商家名称是否重复，或稍后重试。",
+      merchantErrorMessages[merchantErrorCodes.createFailed],
     );
     expect(JSON.stringify(state)).not.toContain("password");
     expect(JSON.stringify(state)).not.toContain("database");
@@ -275,7 +282,7 @@ describe("Merchant Server Actions", () => {
 
     expectErrorState(
       state,
-      "商家更新失败。请确认商家名称是否重复，或稍后重试。",
+      merchantErrorMessages[merchantErrorCodes.updateFailed],
     );
     expect(JSON.stringify(state)).not.toContain("secret");
     expect(JSON.stringify(state)).not.toContain("database");
@@ -300,7 +307,10 @@ describe("Merchant Server Actions", () => {
 
     const state = await runAction(archiveMerchant);
 
-    expectErrorState(state, "商家归档失败，请稍后重试。");
+    expectErrorState(
+      state,
+      merchantErrorMessages[merchantErrorCodes.archiveFailed],
+    );
     expect(mocks.createRequestContainer).not.toHaveBeenCalled();
     expect(mocks.archiveMerchant).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
@@ -322,7 +332,7 @@ describe("Merchant Server Actions", () => {
 
     expectErrorState(
       state,
-      "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+      merchantErrorMessages[merchantErrorCodes.aliasCreateFailed],
     );
     expect(mocks.createAlias).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
@@ -507,7 +517,7 @@ describe("reorderMerchants", () => {
   ])("非法排序内容返回当前请求错误：%s", async (merchantIds) => {
     expectErrorState(
       await reorderMerchants(merchantForm({ merchantIds })),
-      "商家排序内容不正确。",
+      merchantErrorMessages[merchantErrorCodes.merchantOrderInvalid],
     );
     expect(mocks.reorder).not.toHaveBeenCalled();
   });
@@ -515,13 +525,16 @@ describe("reorderMerchants", () => {
     mocks.reorder.mockRejectedValue(
       new ConflictError(
         merchantErrorCodes.merchantSetInvalid,
-        "商家列表已发生变化，请刷新页面后重试。",
+        merchantErrorMessages[merchantErrorCodes.merchantSetInvalid],
       ),
     );
     const form = merchantForm({ merchantIds: JSON.stringify([merchantId]) });
     const first = await reorderMerchants(form);
     const second = await reorderMerchants(form);
-    expectErrorState(first, "商家列表已发生变化，请刷新页面后重试。");
+    expectErrorState(
+      first,
+      merchantErrorMessages[merchantErrorCodes.merchantSetInvalid],
+    );
     expect(first.errorKey).not.toBe(second.errorKey);
     expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();

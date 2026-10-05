@@ -1,5 +1,8 @@
 import { isAccountBalanceText } from "internal/account/util/accountBalance";
-import { accountErrorCodes } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  type AccountErrorCode,
+} from "internal/account/errors";
 import {
   accountBalanceAdjustmentSchema,
   getAccountBalanceAdjustmentErrorCode,
@@ -12,7 +15,7 @@ import { getFormText, isUuid } from "utils/formData";
 
 export type AccountFormParseResult<T> =
   | { ok: true; value: T }
-  | { error: string; ok: false };
+  | { error: AccountErrorCode; ok: false };
 
 type AccountFormFields = {
   currency: string;
@@ -32,7 +35,7 @@ export type UpdateAccountFormValues = AccountFormFields & {
   balanceAdjustmentNote?: string | null;
 };
 
-function invalid(error: string): AccountFormParseResult<never> {
+function invalid(error: AccountErrorCode): AccountFormParseResult<never> {
   return { error, ok: false };
 }
 
