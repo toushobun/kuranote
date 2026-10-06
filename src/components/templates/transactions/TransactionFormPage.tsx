@@ -48,7 +48,10 @@ import {
   TransactionForm,
   type TransactionFormInitialValues,
 } from "organisms/transactions/TransactionForm/TransactionForm";
-import { transactionSubmitButtonSx } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import {
+  transactionFormStackSx,
+  transactionSubmitButtonSx,
+} from "organisms/transactions/TransactionForm/TransactionForm.styles";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
 import { designTokens } from "theme/theme";
 import type { TransferEditInitialValues } from "types/transactions";
@@ -583,7 +586,7 @@ function EditTransactionShell({
             form={editTransactionFormId(activeType)}
             size="large"
             type="submit"
-            sx={transactionSubmitButtonSx}
+            sx={editTransactionSaveButtonSx}
           >
             保存修改
           </PrimaryActionButton>
@@ -669,7 +672,14 @@ const editTransactionActionBarSx = {
   display: "grid",
   gap: 1.25,
   gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2fr)",
-  mt: 0.25,
+  // 与表单内各区块（如时间与保存前汇总）保持相同间距
+  mt: transactionFormStackSx.gap,
+};
+
+// 操作栏已统一控制上边距，去掉保存按钮自带的上边距以与删除按钮对齐
+const editTransactionSaveButtonSx = {
+  ...transactionSubmitButtonSx,
+  mt: 0,
 };
 
 const editTransactionDeleteButtonSx = {
