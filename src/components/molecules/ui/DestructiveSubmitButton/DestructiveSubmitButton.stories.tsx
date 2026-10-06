@@ -10,7 +10,7 @@ const meta = {
   component: DestructiveSubmitButton,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-destructive-submit-button">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <form onSubmit={(event) => event.preventDefault()}>
             <Story />

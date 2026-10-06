@@ -18,13 +18,12 @@ import { AccountEditForm, getAccountArchiveFormId } from "./AccountEditForm";
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
 function renderWithUserTheme(children: ReactNode) {
   return render(
-    <UserThemeProvider storageScope="account-edit-form-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );
@@ -211,7 +210,7 @@ describe("余额调整", () => {
   });
   it("弹窗未关闭时账户余额被外部改变，重新校准基准而不是沿用旧快照", () => {
     const { container, rerender } = render(
-      <UserThemeProvider storageScope="account-edit-form-test">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <AccountEditForm {...baseProps} />
         </ConfirmDialogProvider>
@@ -222,7 +221,7 @@ describe("余额调整", () => {
     expect(new FormData(form).has("targetBalance")).toBe(false);
 
     rerender(
-      <UserThemeProvider storageScope="account-edit-form-test">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <AccountEditForm
             {...baseProps}

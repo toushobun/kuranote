@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { userErrorMessages } from "internal/user/errors";
 import {
+  parseThemeKeyForm,
   parseTransactionColorSchemeForm,
   parseUpdateAvatarForm,
   parseUpdateDisplayNameForm,
@@ -36,6 +37,40 @@ describe("user schema", () => {
     expect(parseTransactionColorSchemeForm(formData)).toEqual({
       ok: true,
       value: { transactionColorScheme: "expense_red_income_green" },
+    });
+  });
+
+  it("接受主题 key 作为单一资料更新字段", () => {
+    expect(
+      updateUserProfileRequestSchema.safeParse({ themeKey: "sakuraStory" })
+        .success,
+    ).toBe(true);
+  });
+
+  it("拒绝非法主题 key", () => {
+    const formData = new FormData();
+    formData.set("themeKey", "sakura_story");
+
+    expect(parseThemeKeyForm(formData)).toEqual({
+      error: userErrorMessages.themeKeyInvalid,
+      ok: false,
+    });
+  });
+
+  it("缺少主题 key 时返回主题校验错误", () => {
+    expect(parseThemeKeyForm(new FormData())).toEqual({
+      error: userErrorMessages.themeKeyInvalid,
+      ok: false,
+    });
+  });
+
+  it("解析有效主题 key 表单", () => {
+    const formData = new FormData();
+    formData.set("themeKey", "lavenderDream");
+
+    expect(parseThemeKeyForm(formData)).toEqual({
+      ok: true,
+      value: { themeKey: "lavenderDream" },
     });
   });
 });

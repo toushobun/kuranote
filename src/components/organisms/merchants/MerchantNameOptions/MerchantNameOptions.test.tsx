@@ -138,7 +138,7 @@ describe("MerchantNameOptions", () => {
     });
 
     render(
-      <UserThemeProvider storageScope="merchant-name-options-test">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <MerchantNameOptions
             archiveAliasAction={archiveAlias}

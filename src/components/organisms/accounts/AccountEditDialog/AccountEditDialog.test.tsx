@@ -10,16 +10,11 @@ import { AccountEditDialog } from "./AccountEditDialog";
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="account-edit-dialog-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 const account: Account = {

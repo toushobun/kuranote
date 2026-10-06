@@ -11,16 +11,11 @@ import {
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="account-form-dialog-shell-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 describe("AccountFormDialogShell", () => {

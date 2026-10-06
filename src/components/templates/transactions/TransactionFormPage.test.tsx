@@ -385,11 +385,8 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
   });
 });
 describe("EditTransactionTemplate", () => {
-  const storageScope = "edit-transaction-template-test";
   function renderWithTheme(ui: ReactNode) {
-    return render(
-      <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
-    );
+    return render(<UserThemeProvider>{ui}</UserThemeProvider>);
   }
   afterEach(() => {
     cleanup();
@@ -823,11 +820,8 @@ describe("EditTransactionTemplate", () => {
   });
 });
 describe("EditTransferTransactionTemplate", () => {
-  const storageScope = "edit-transfer-template-test";
   function renderWithTheme(ui: ReactNode) {
-    return render(
-      <UserThemeProvider storageScope={storageScope}>{ui}</UserThemeProvider>,
-    );
+    return render(<UserThemeProvider>{ui}</UserThemeProvider>);
   }
   afterEach(() => {
     cleanup();

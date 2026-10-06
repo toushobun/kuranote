@@ -207,6 +207,7 @@ describe("getCurrentLedgerContext", () => {
           data: [
             {
               current_ledger_id: null,
+              theme_key: "lavenderDream",
               transaction_color_scheme: "expense_red_income_green",
             },
           ],
@@ -220,6 +221,7 @@ describe("getCurrentLedgerContext", () => {
       currentLedger: null,
       email: "test@example.com",
       ledgers: [],
+      themeKey: "lavenderDream",
       transactionColorScheme: "expense_red_income_green",
       userId: "user-1",
     });
@@ -228,7 +230,7 @@ describe("getCurrentLedgerContext", () => {
       {
         calls: [
           {
-            args: ["current_ledger_id, transaction_color_scheme"],
+            args: ["current_ledger_id, transaction_color_scheme, theme_key"],
             method: "select",
           },
           { args: ["id", "user-1"], method: "eq" },

@@ -26,17 +26,12 @@ const idleAction: LedgerCreateStateAction = async (state) => state;
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
   window.history.replaceState(null, "", "/ledgers/new");
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="ledger-create-template-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 const view = {

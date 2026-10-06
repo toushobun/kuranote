@@ -148,7 +148,7 @@ it("点击名称文字切换，删除需确认且不触发切换，等待时禁�
     createAliasAction: async () => {},
   };
   const renderEditor = (pending = false) => (
-    <UserThemeProvider storageScope="merchant-display-name-editor-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>
         <MerchantDisplayNameEditor {...props} pending={pending} />
       </ConfirmDialogProvider>

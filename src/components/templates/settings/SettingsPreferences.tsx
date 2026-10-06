@@ -18,16 +18,18 @@ import {
   SettingsEntryGroupCard,
   SettingsExpandableEntry,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
-import type { TransactionColorSchemeAction } from "types/user";
+import type { ThemeKeyAction, TransactionColorSchemeAction } from "types/user";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 type ExpandablePreferenceEntry = "theme" | "transactionColors";
 
 type SettingsPreferencesTemplateProps = {
+  updateThemeKeyAction: ThemeKeyAction;
   updateTransactionColorSchemeAction: TransactionColorSchemeAction;
 };
 
 export function SettingsPreferencesTemplate({
+  updateThemeKeyAction,
   updateTransactionColorSchemeAction,
 }: SettingsPreferencesTemplateProps) {
   const [expandedEntry, setExpandedEntry] =
@@ -57,7 +59,7 @@ export function SettingsPreferencesTemplate({
           label={settingsPreferencesEntryMessages.theme}
           onToggle={() => toggleExpandedEntry("theme")}
         >
-          <UserThemePicker />
+          <UserThemePicker action={updateThemeKeyAction} />
         </SettingsExpandableEntry>
         <SettingsExpandableEntry
           expanded={expandedEntry === "transactionColors"}

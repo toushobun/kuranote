@@ -36,6 +36,8 @@ export const userErrorMessages = {
   scopeMismatch: "不能修改其他用户的资料。",
   transactionColorSchemeInvalid: "请选择有效的收支配色方案。",
   transactionColorSchemeUpdateFailed: "收支配色方案保存失败，请稍后重试。",
+  themeKeyInvalid: "请选择有效的主题。",
+  themeKeyUpdateFailed: "主题保存失败，请稍后重试。",
   userInactive: "当前用户已停用。",
 } as const;
 

@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { userErrorMessages, type UserThemeKey } from "internal/user";
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import type { ThemeKeyActionState } from "types/user";
 
 import { SettingsPreferencesTemplate } from "./SettingsPreferences";
 
@@ -9,12 +11,18 @@ const meta = {
   component: SettingsPreferencesTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-settings-preferences">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <Story />
       </UserThemeProvider>
     ),
   ],
   args: {
+    updateThemeKeyAction: async (
+      _state: ThemeKeyActionState,
+      formData: FormData,
+    ): Promise<ThemeKeyActionState> => ({
+      themeKey: formData.get("themeKey") as UserThemeKey,
+    }),
     updateTransactionColorSchemeAction: async (_state, formData) => ({
       success: "收支配色方案已保存。",
       transactionColorScheme: formData.get("transactionColorScheme") as
@@ -29,4 +37,14 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   name: "App 偏好设置 / 设置项",
+};
+
+export const ThemeSaveFailed: Story = {
+  name: "App 偏好设置 / 主题保存失败时回滚",
+  args: {
+    updateThemeKeyAction: async () => ({
+      error: userErrorMessages.themeKeyUpdateFailed,
+      errorKey: crypto.randomUUID(),
+    }),
+  },
 };

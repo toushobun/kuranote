@@ -7,16 +7,16 @@ import { ProtectedLayoutShell } from "./ProtectedLayoutShell";
 vi.mock("templates/protected/AppShell", () => ({
   AppShell: ({
     children,
-    email,
+    themeKey,
     transactionColorScheme,
   }: {
     children: ReactNode;
-    email: string;
+    themeKey: string;
     transactionColorScheme: string;
   }): ReactNode => (
     <div
       data-testid="app-shell"
-      data-email={email}
+      data-theme-key={themeKey}
       data-transaction-color-scheme={transactionColorScheme}
     >
       {children}
@@ -29,18 +29,18 @@ afterEach(() => {
 });
 
 describe("ProtectedLayoutShell", () => {
-  it("将用户邮箱继续传给 AppShell", () => {
+  it("将用户主题与收支配色继续传给 AppShell", () => {
     render(
       <ProtectedLayoutShell
-        email="test@example.com"
+        themeKey="sakuraStory"
         transactionColorScheme="expense_green_income_red"
       >
         <div>受保护内容</div>
       </ProtectedLayoutShell>,
     );
 
-    expect(screen.getByTestId("app-shell").getAttribute("data-email")).toBe(
-      "test@example.com",
+    expect(screen.getByTestId("app-shell").getAttribute("data-theme-key")).toBe(
+      "sakuraStory",
     );
     expect(screen.getByText("受保护内容")).toBeInTheDocument();
     expect(

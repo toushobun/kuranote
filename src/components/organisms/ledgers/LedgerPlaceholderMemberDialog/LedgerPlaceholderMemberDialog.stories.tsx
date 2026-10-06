@@ -12,7 +12,7 @@ const meta = {
   component: LedgerPlaceholderMemberDialog,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-placeholder-member-dialog">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <Story />
         </ConfirmDialogProvider>

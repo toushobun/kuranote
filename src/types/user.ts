@@ -1,4 +1,4 @@
-import type { TransactionColorScheme } from "internal/user";
+import type { TransactionColorScheme, UserThemeKey } from "internal/user";
 import type { ActionState } from "types/actions";
 
 export type TransactionColorSchemeActionState = ActionState & {
@@ -9,6 +9,15 @@ export type TransactionColorSchemeAction = (
   previousState: TransactionColorSchemeActionState,
   formData: FormData,
 ) => Promise<TransactionColorSchemeActionState>;
+
+export type ThemeKeyActionState = ActionState & {
+  themeKey?: UserThemeKey;
+};
+
+export type ThemeKeyAction = (
+  previousState: ThemeKeyActionState,
+  formData: FormData,
+) => Promise<ThemeKeyActionState>;
 
 export type DisplayNameActionState = ActionState;
 

@@ -15,7 +15,7 @@ const meta = {
   component: ProfileNicknameDialog,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-profile-nickname-dialog">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

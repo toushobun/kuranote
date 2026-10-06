@@ -81,7 +81,7 @@ function renderList(
   expandFirst = true,
 ) {
   const result = render(
-    <UserThemeProvider storageScope="category-list-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>
         <CategoryList
           archiveCategoryAction={vi.fn(async () => {})}
@@ -105,7 +105,7 @@ function renderListWithTheme(
   expandFirst = true,
 ) {
   const result = render(
-    <UserThemeProvider storageScope="category-list-theme-test">
+    <UserThemeProvider>
       <ThemeProvider theme={theme}>
         <ConfirmDialogProvider>
           <CategoryList
@@ -142,7 +142,6 @@ async function openArchiveConfirm(archive: HTMLElement) {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 

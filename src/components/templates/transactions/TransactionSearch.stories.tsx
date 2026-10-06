@@ -35,7 +35,7 @@ const meta = {
   component: TransactionSearchTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-transaction-search">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

@@ -13,7 +13,7 @@ const meta = {
   component: LedgerCreateTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="ledger-create-story">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

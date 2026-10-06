@@ -14,7 +14,7 @@ const meta = {
     },
   },
   args: {
-    email: "user@example.com",
+    themeKey: "amberWarmth",
     transactionColorScheme: "expense_green_income_red",
     children: <div style={{ padding: 16 }}>页面内容区域</div>,
   },
@@ -46,5 +46,12 @@ export const SettingsPage: Story = {
         pathname: "/settings",
       },
     },
+  },
+};
+
+export const UserTheme: Story = {
+  name: "应用外壳（用户已设置主题）",
+  args: {
+    themeKey: "lavenderDream",
   },
 };

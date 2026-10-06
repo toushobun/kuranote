@@ -23,7 +23,7 @@ const meta = {
   component: SettingsProfileTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-settings-profile">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

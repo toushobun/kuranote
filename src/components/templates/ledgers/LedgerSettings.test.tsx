@@ -23,17 +23,12 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
   window.history.replaceState(null, "", "/");
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="ledger-settings-template-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 const ownerUserId = "00000000-0000-4000-8000-000000000031";

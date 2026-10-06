@@ -23,11 +23,12 @@ describe("ProtectedLayout", () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({
       currentLedger: { currentUserRole: "owner" },
       email: "user@example.com",
+      themeKey: "emeraldMorning",
       transactionColorScheme: "expense_red_income_green",
     });
   });
 
-  it("复用当前账本上下文中的配色偏好并注入应用外壳", async () => {
+  it("复用当前账本上下文中的主题与配色偏好并注入应用外壳", async () => {
     const result = (await ProtectedLayout({
       children: <div>内容</div>,
     })) as ReactElement<Record<string, unknown>>;
@@ -36,12 +37,12 @@ describe("ProtectedLayout", () => {
     expect(result.type).toBe(mocks.ProtectedLayoutShell);
     expect(result.props).toMatchObject({
       canWriteTransactions: true,
-      email: "user@example.com",
+      themeKey: "emeraldMorning",
       transactionColorScheme: "expense_red_income_green",
     });
   });
 
-  it("上下文没有配色值时回退到新默认方案", async () => {
+  it("上下文没有主题与配色值时回退到默认值", async () => {
     mocks.getCurrentLedgerContext.mockResolvedValue({
       currentLedger: null,
       email: "user@example.com",
@@ -51,6 +52,7 @@ describe("ProtectedLayout", () => {
       children: <div>内容</div>,
     })) as ReactElement<Record<string, unknown>>;
 
+    expect(result.props.themeKey).toBe("amberWarmth");
     expect(result.props.transactionColorScheme).toBe(
       "expense_green_income_red",
     );

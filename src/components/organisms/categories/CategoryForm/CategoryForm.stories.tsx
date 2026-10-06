@@ -9,7 +9,7 @@ const meta = {
   component: CategoryForm,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-category-dialog">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

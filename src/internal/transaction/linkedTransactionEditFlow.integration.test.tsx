@@ -195,7 +195,7 @@ function renderScenario(side: "parent" | "child") {
   const scenario = createScenario(side);
   const { initialValues, ...viewProps } = scenario.view;
   render(
-    <UserThemeProvider storageScope={`issue-574-pr4-${side}`}>
+    <UserThemeProvider>
       <EditTransactionTemplate
         {...viewProps}
         action={scenario.action}

@@ -19,6 +19,7 @@ const profileRow = {
   email: "user@example.com",
   id: userId,
   status: "active",
+  theme_key: "amberWarmth",
   transaction_color_scheme: "expense_green_income_red",
 };
 
@@ -42,6 +43,7 @@ describe("createSupabaseUserRepository.findById", () => {
       email: "user@example.com",
       id: userId,
       status: "active",
+      themeKey: "amberWarmth",
       transactionColorScheme: "expense_green_income_red",
     });
     expect(supabase.queries[0].table).toBe("app_user");
@@ -116,6 +118,25 @@ describe("createSupabaseUserRepository.findById", () => {
       { userId },
     );
   });
+
+  it("数据库主题 key 异常时记录警告并回退默认主题", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: { ...profileRow, theme_key: "unexpected" } }],
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(repository.findById(userId)).resolves.toMatchObject({
+      themeKey: "amberWarmth",
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[user] invalid theme key in user profile",
+      { userId },
+    );
+  });
 });
 
 describe("createSupabaseUserRepository.updateProfile", () => {
@@ -141,6 +162,7 @@ describe("createSupabaseUserRepository.updateProfile", () => {
       email: "user@example.com",
       id: userId,
       status: "active",
+      themeKey: "amberWarmth",
       transactionColorScheme: "expense_green_income_red",
     });
     expect(supabase.queries[0].calls).toContainEqual({
@@ -183,6 +205,32 @@ describe("createSupabaseUserRepository.updateProfile", () => {
         },
       ],
       method: "update",
+    });
+  });
+
+  it("更新主题 key 字段", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: { ...profileRow, theme_key: "sakuraStory" } }],
+    });
+    const repository = createSupabaseUserRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.updateProfile({
+        themeKey: "sakuraStory",
+        updatedBy: userId,
+        userId,
+      }),
+    ).resolves.toMatchObject({ themeKey: "sakuraStory" });
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: [{ theme_key: "sakuraStory", updated_by: userId }],
+      method: "update",
+    });
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: ["status", "active"],
+      method: "eq",
     });
   });
 

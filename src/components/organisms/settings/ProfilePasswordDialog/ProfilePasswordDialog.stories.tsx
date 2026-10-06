@@ -15,7 +15,7 @@ const meta = {
   component: ProfilePasswordDialog,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-profile-password-dialog">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

@@ -10,7 +10,7 @@ export function ConfirmDialogTestProviders({
   children: ReactNode;
 }) {
   return (
-    <UserThemeProvider storageScope="confirm-dialog-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>
   );

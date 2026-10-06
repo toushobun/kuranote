@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { designTokens, theme } from "theme/theme";
-import { getUserThemeStorageKey } from "theme/userThemeStorage";
 
 import {
   ConfirmationDialog,
@@ -18,18 +17,11 @@ import {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
-const storageScope = "operation-feedback-dialog-test";
-
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope={storageScope}>
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 function getDocumentCssText() {
@@ -304,19 +296,15 @@ describe("DeleteConfirmationDialog", () => {
   });
 
   it("按用户主题显示删除确认插图", () => {
-    window.localStorage.setItem(
-      getUserThemeStorageKey(storageScope),
-      "deepSeaStarlight",
-    );
-    document.documentElement.dataset.userTheme = "deepSeaStarlight";
-
-    renderWithUserTheme(
-      <DeleteConfirmationDialog
-        onCancel={vi.fn()}
-        onConfirm={vi.fn()}
-        open
-        title="确认删除？"
-      />,
+    render(
+      <UserThemeProvider initialThemeKey="deepSeaStarlight">
+        <DeleteConfirmationDialog
+          onCancel={vi.fn()}
+          onConfirm={vi.fn()}
+          open
+          title="确认删除？"
+        />
+      </UserThemeProvider>,
     );
 
     expect(document.querySelector("img")).toHaveAttribute(

@@ -9,7 +9,7 @@ const meta = {
   component: TransactionColorSchemePicker,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-transaction-colors">
+      <UserThemeProvider>
         <div style={{ maxWidth: 360, padding: 16 }}>
           <Story />
         </div>
@@ -37,10 +37,7 @@ export const ExpenseRed: Story = {
   name: "支出红 / 收入绿",
   decorators: [
     (Story) => (
-      <UserThemeProvider
-        initialTransactionColorScheme="expense_red_income_green"
-        storageScope="storybook-transaction-colors-expense-red"
-      >
+      <UserThemeProvider initialTransactionColorScheme="expense_red_income_green">
         <Story />
       </UserThemeProvider>
     ),

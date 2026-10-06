@@ -35,7 +35,7 @@ const meta: Meta<typeof AccountEditForm> = {
   component: AccountEditForm,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-account-edit-form">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <Story />
         </ConfirmDialogProvider>

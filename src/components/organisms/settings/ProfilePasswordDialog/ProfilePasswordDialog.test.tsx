@@ -33,7 +33,7 @@ function renderDialog(
   const changePasswordAction = vi.fn(succeededChangePasswordAction);
   const onClose = vi.fn();
   const view = render(
-    <UserThemeProvider storageScope="profile-password-dialog-test">
+    <UserThemeProvider>
       <ProfilePasswordDialog
         changePasswordAction={changePasswordAction}
         email="user@example.com"
@@ -149,7 +149,7 @@ describe("ProfilePasswordDialog", () => {
     const rerender = (open: boolean) =>
       act(() =>
         view.rerender(
-          <UserThemeProvider storageScope="profile-password-dialog-test">
+          <UserThemeProvider>
             <ProfilePasswordDialog
               changePasswordAction={succeededChangePasswordAction}
               email="user@example.com"

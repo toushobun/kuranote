@@ -12,6 +12,7 @@ import {
 import {
   updateAvatar,
   updateDisplayName,
+  updateThemeKey,
   updateTransactionColorScheme,
 } from "./actions";
 
@@ -112,6 +113,88 @@ describe("updateTransactionColorScheme", () => {
     });
     expect(consoleError).toHaveBeenCalledWith(
       "[user] transaction color scheme action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+});
+
+function createThemeKeyFormData(value = "sakuraStory") {
+  const formData = new FormData();
+  formData.set("themeKey", value);
+  return formData;
+}
+
+describe("updateThemeKey", () => {
+  beforeEach(() => {
+    mocks.updateCurrentProfile.mockResolvedValue({ themeKey: "sakuraStory" });
+  });
+
+  it("保存成功后返回写库后的主题，且不失效页面", async () => {
+    await expect(updateThemeKey({}, createThemeKeyFormData())).resolves.toEqual(
+      { themeKey: "sakuraStory" },
+    );
+    expect(mocks.updateCurrentProfile).toHaveBeenCalledWith({
+      themeKey: "sakuraStory",
+    });
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.revalidateUserProfile).not.toHaveBeenCalled();
+  });
+
+  it("非法主题返回源头校验文案且不初始化依赖", async () => {
+    await expect(
+      updateThemeKey({}, createThemeKeyFormData("sakura_story")),
+    ).resolves.toEqual({
+      error: userErrorMessages.themeKeyInvalid,
+      errorKey: expect.any(String),
+    });
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.updateCurrentProfile).not.toHaveBeenCalled();
+  });
+
+  it("Service 应用错误直接返回安全文案", async () => {
+    mocks.updateCurrentProfile.mockRejectedValue(
+      new AppError("user_inactive", userErrorMessages.userInactive),
+    );
+
+    await expect(updateThemeKey({}, createThemeKeyFormData())).resolves.toEqual(
+      {
+        error: userErrorMessages.userInactive,
+        errorKey: expect.any(String),
+      },
+    );
+  });
+
+  it("Repository 失败时返回安全文案，不泄露数据库异常", async () => {
+    mocks.updateCurrentProfile.mockRejectedValue(
+      new RepositoryError(
+        "user_profile_update_failed",
+        userErrorMessages.profileUpdateFailed,
+      ),
+    );
+
+    const state = await updateThemeKey({}, createThemeKeyFormData());
+
+    expect(state).toEqual({
+      error: userErrorMessages.profileUpdateFailed,
+      errorKey: expect.any(String),
+    });
+  });
+
+  it("未知异常记录安全字段并返回通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.updateCurrentProfile.mockRejectedValue(new Error("database failed"));
+
+    await expect(updateThemeKey({}, createThemeKeyFormData())).resolves.toEqual(
+      {
+        error: userErrorMessages.themeKeyUpdateFailed,
+        errorKey: expect.any(String),
+      },
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "[user] theme key action failed unexpectedly",
       { errorName: "Error" },
     );
     consoleError.mockRestore();

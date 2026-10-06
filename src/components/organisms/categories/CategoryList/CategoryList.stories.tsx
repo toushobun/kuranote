@@ -72,7 +72,7 @@ const meta = {
   component: CategoryList,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-category-dialog">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <Story />
         </ConfirmDialogProvider>

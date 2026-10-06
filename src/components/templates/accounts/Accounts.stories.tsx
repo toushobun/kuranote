@@ -55,7 +55,7 @@ const meta = {
   component: AccountsTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-accounts-template">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

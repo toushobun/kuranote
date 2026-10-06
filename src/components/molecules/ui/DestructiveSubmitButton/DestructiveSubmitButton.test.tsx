@@ -23,13 +23,12 @@ const buttonProps = {
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
 function renderWithUserTheme(children: ReactNode) {
   return render(
-    <UserThemeProvider storageScope="destructive-submit-button-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );

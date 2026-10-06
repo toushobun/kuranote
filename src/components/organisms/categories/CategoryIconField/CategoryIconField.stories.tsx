@@ -10,7 +10,7 @@ const meta = {
   component: CategoryIconField,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-category-icon">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),
