@@ -33,6 +33,7 @@ import {
   SortableItem,
   type SortableHandleProps,
 } from "molecules/ui/SortableList/SortableItem";
+import { actionHoverInteractionSx } from "theme/actionHoverSx";
 import { designTokens } from "theme/theme";
 import type {
   CategoryAction,
@@ -98,7 +99,7 @@ function CategoryRowItem({
           aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
           disabled={isPending || isExpansionForced}
           onClick={onToggle}
-          sx={categoryRowToggleSx}
+          sx={[categoryRowToggleSx, actionHoverInteractionSx]}
           type="button"
         >
           <KeyboardArrowRightRoundedIcon
