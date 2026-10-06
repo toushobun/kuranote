@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ElementType, ReactNode } from "react";
 
+import { designTokens } from "theme/theme";
 import type { AppRoutePath } from "config/paths";
 import { settingsComingSoonMessage } from "config/settingsMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
@@ -143,7 +144,11 @@ export function SettingsExpandableEntry({
         label={label}
         onClick={onToggle}
       />
-      <Collapse in={expanded} timeout="auto" unmountOnExit>
+      <Collapse
+        in={expanded}
+        timeout={designTokens.motion.collapse}
+        unmountOnExit
+      >
         <Box sx={expandablePanelSx(isLast)}>{children}</Box>
       </Collapse>
     </Box>

@@ -36,6 +36,10 @@ export const designTokens = {
   opacity: {
     disabled: 0.56,
   },
+  motion: {
+    // 折叠 / 展开动画统一时长（毫秒），所有 Collapse 共用。
+    collapse: 280,
+  },
   typography: {
     fontFamily: typographyFontFamilies,
     serifFontFamily: typographyFontFamilies.brand,
@@ -141,6 +145,16 @@ export const theme = createTheme({
     tooltip: appZIndex.tooltip,
   },
   components: {
+    MuiCollapse: {
+      styleOverrides: {
+        root: {
+          // 系统开启「减少动态效果」时不播放折叠动画；Collapse 以内联样式写入时长，需要 !important 覆盖。
+          "@media (prefers-reduced-motion: reduce)": {
+            transitionDuration: "0ms !important",
+          },
+        },
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: {

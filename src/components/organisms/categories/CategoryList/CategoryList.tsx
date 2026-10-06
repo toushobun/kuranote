@@ -3,13 +3,13 @@
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
+import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
@@ -33,6 +33,7 @@ import {
   SortableItem,
   type SortableHandleProps,
 } from "molecules/ui/SortableList/SortableItem";
+import { actionHoverInteractionSx } from "theme/actionHoverSx";
 import { designTokens } from "theme/theme";
 import type {
   CategoryAction,
@@ -73,7 +74,7 @@ type CategoryRowItemProps = {
   isExpansionForced: boolean;
   handleProps: SortableHandleProps;
   onEdit: (category: Category) => void;
-  onToggle?: () => void;
+  onToggle: () => void;
 };
 
 function CategoryRowItem({
@@ -92,79 +93,60 @@ function CategoryRowItem({
 
   return (
     <Box data-category-row-id={category.id}>
-      <Stack
-        direction="row"
-        spacing={{ xs: 0.5, sm: 1 }}
-        sx={{ alignItems: "center", minHeight: 60, py: 0.75 }}
-      >
-        {onToggle ? (
-          <IconButton
-            aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
-            disabled={isPending || isExpansionForced}
-            onClick={onToggle}
-            size="small"
-            type="button"
-          >
-            {expanded ? (
-              <KeyboardArrowDownRoundedIcon />
-            ) : (
-              <KeyboardArrowRightRoundedIcon />
-            )}
-          </IconButton>
-        ) : (
+      <Stack direction="row" sx={{ alignItems: "center" }}>
+        <ButtonBase
+          aria-expanded={expanded}
+          aria-label={`${expanded ? "收起" : "展开"}${displayName}`}
+          disabled={isPending || isExpansionForced}
+          onClick={onToggle}
+          sx={[categoryRowToggleSx, actionHoverInteractionSx]}
+          type="button"
+        >
+          <KeyboardArrowRightRoundedIcon
+            aria-hidden="true"
+            sx={categoryRowArrowSx(expanded)}
+          />
+
           <Box
             aria-hidden="true"
+            data-testid="category-list-icon"
             sx={{
               alignItems: "center",
-              color: "text.disabled",
+              bgcolor: "var(--user-theme-icon-badge-bg)",
+              borderRadius: `${designTokens.radius.sm}px`,
               display: "flex",
+              flexShrink: 0,
+              fontSize: "1.35rem",
+              height: 38,
               justifyContent: "center",
-              width: 34,
+              width: 38,
             }}
           >
-            <KeyboardArrowRightRoundedIcon fontSize="small" />
+            {iconName}
           </Box>
-        )}
 
-        <Box
-          aria-hidden="true"
-          data-testid="category-list-icon"
-          sx={{
-            alignItems: "center",
-            bgcolor: "var(--user-theme-icon-badge-bg)",
-            borderRadius: `${designTokens.radius.sm}px`,
-            display: "flex",
-            flexShrink: 0,
-            fontSize: "1.35rem",
-            height: 38,
-            justifyContent: "center",
-            width: 38,
-          }}
-        >
-          {iconName}
-        </Box>
-
-        <Box sx={{ flex: 1, minWidth: 0, pl: { xs: 0.75, sm: 0.25 } }}>
-          <Typography
-            noWrap
-            sx={{
-              fontSize: { xs: 16, sm: 17 },
-              fontWeight: 800,
-              lineHeight: 1.4,
-            }}
-          >
-            {displayName}
-          </Typography>
-          {childCount !== undefined ? (
+          <Box sx={{ flex: 1, minWidth: 0, pl: { xs: 0.75, sm: 0.25 } }}>
             <Typography
-              color="text.secondary"
-              sx={{ lineHeight: 1.4 }}
-              variant="body2"
+              noWrap
+              sx={{
+                fontSize: { xs: 16, sm: 17 },
+                fontWeight: 800,
+                lineHeight: 1.4,
+              }}
             >
-              {childCount} 个小分类
+              {displayName}
             </Typography>
-          ) : null}
-        </Box>
+            {childCount !== undefined ? (
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.4 }}
+                variant="body2"
+              >
+                {childCount} 个小分类
+              </Typography>
+            ) : null}
+          </Box>
+        </ButtonBase>
 
         <CategoryItemActions
           canManageCategories={canManageCategories}
@@ -175,6 +157,33 @@ function CategoryRowItem({
       </Stack>
     </Box>
   );
+}
+
+const categoryRowToggleSx = {
+  alignItems: "center",
+  borderRadius: `${designTokens.radius.sm}px`,
+  color: "text.primary",
+  display: "flex",
+  flex: 1,
+  gap: { xs: 0.5, sm: 1 },
+  justifyContent: "flex-start",
+  minHeight: 60,
+  minWidth: 0,
+  py: 0.75,
+  textAlign: "left",
+} as const;
+
+// 箭头随展开状态旋转，时长与折叠动画一致。
+function categoryRowArrowSx(expanded: boolean) {
+  return {
+    color: "text.secondary",
+    flexShrink: 0,
+    mx: 0.5,
+    transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+    transition: `transform ${designTokens.motion.collapse}ms ease`,
+    ".Mui-disabled &": { color: "text.disabled" },
+    "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+  } as const;
 }
 
 function CategorySection({ children }: { children: ReactNode }) {
@@ -341,8 +350,15 @@ export function CategoryList({
                           onEdit={openEditor}
                           onToggle={() => toggleCategory(category.id)}
                         />
-                        {expanded ? (
-                          category.children.length > 0 ? (
+                        <Collapse
+                          in={expanded}
+                          // 拖动大分类排序时立即收起，避免动画影响拖动位置计算
+                          timeout={
+                            draggingRoots ? 0 : designTokens.motion.collapse
+                          }
+                          unmountOnExit
+                        >
+                          {category.children.length > 0 ? (
                             <SortableList
                               disabled={
                                 isPending || isSearching || !canManageCategories
@@ -404,8 +420,8 @@ export function CategoryList({
                             >
                               还没有小分类。记账时只能选择小分类。
                             </Typography>
-                          )
-                        ) : null}
+                          )}
+                        </Collapse>
                       </CategorySection>
                     )}
                   </SortableItem>
@@ -415,28 +431,6 @@ export function CategoryList({
           )}
         </SortableList>
       )}
-
-      <SoftCard
-        sx={{
-          alignItems: "center",
-          display: "flex",
-          justifyContent: "space-between",
-          opacity: 0.78,
-          p: 2.5,
-        }}
-      >
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-          <ArchiveRoundedIcon color="disabled" />
-          <Box>
-            <Typography sx={{ fontWeight: 700 }}>
-              {categoryArchiveMessages.title}
-            </Typography>
-            <Typography color="text.secondary" variant="body2">
-              {categoryArchiveMessages.description}
-            </Typography>
-          </Box>
-        </Stack>
-      </SoftCard>
 
       <Dialog
         fullWidth

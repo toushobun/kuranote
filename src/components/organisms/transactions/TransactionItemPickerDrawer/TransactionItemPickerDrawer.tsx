@@ -8,6 +8,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Collapse from "@mui/material/Collapse";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -323,8 +324,12 @@ export function TransactionItemPickerDrawer({
               {isCategoryListExpanded ? "收起分类列表" : "选择更多分类"}
             </Button>
 
-            {isCategoryListExpanded ? (
-              displayedGroups.length === 0 ? (
+            <Collapse
+              in={isCategoryListExpanded}
+              timeout={designTokens.motion.collapse}
+              unmountOnExit
+            >
+              {displayedGroups.length === 0 ? (
                 <Box sx={emptySearchSx}>
                   <Typography color="text.secondary" variant="body2">
                     没有匹配的小分类
@@ -395,8 +400,8 @@ export function TransactionItemPickerDrawer({
                     </Box>
                   </Stack>
                 </Stack>
-              )
-            ) : null}
+              )}
+            </Collapse>
 
             {pickerErrors.category ? (
               <Typography color="error" variant="caption">

@@ -249,7 +249,7 @@ describe("CategoryList", () => {
     expect(screen.getByText("外食")).toBeInTheDocument();
   });
 
-  it("搜索小分类自动展开且过滤其他小分类，清空后恢复原有手动展开状态", () => {
+  it("搜索小分类自动展开且过滤其他小分类，清空后恢复原有手动展开状态", async () => {
     renderList({
       categories: [
         {
@@ -281,7 +281,8 @@ describe("CategoryList", () => {
     expect(
       screen.getByRole("button", { name: "收起日常购物" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("外食")).toBeNull();
+    // 收起有折叠动画，内容在动画结束后卸载
+    await waitFor(() => expect(screen.queryByText("外食")).toBeNull());
     fireEvent.change(search, { target: { value: "餐饮" } });
     expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "展开餐饮" }));
@@ -364,6 +365,47 @@ describe("CategoryList", () => {
     expect(getComputedStyle(sortableItem!).width).toBe("auto");
   });
 
+  it("点击大分类名称（整行）即可展开，编辑按钮不会触发展开", async () => {
+    renderList({}, false);
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    // 编辑弹窗打开时页面其余部分对辅助技术隐藏，需包含隐藏元素查询
+    expect(
+      screen.getByRole("button", { hidden: true, name: "展开餐饮" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "编辑分类" })).toBeNull(),
+    );
+
+    fireEvent.click(screen.getByText("餐饮"));
+    expect(screen.getByRole("button", { name: "收起餐饮" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByText("外食")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("餐饮"));
+    expect(screen.getByRole("button", { name: "展开餐饮" })).toBeEnabled();
+    await waitFor(() => expect(screen.queryByText("外食")).toBeNull());
+  });
+
+  it("不再显示无效的「已归档分类」说明卡片", () => {
+    renderList();
+
+    expect(screen.queryByText("已归档分类")).toBeNull();
+  });
+
+  it("小分类胶囊高度为 32px", () => {
+    const { container } = renderListWithTheme();
+
+    const chip = container.querySelector(
+      `[data-category-chip-id="${expenseChildId}"]`,
+    );
+    expect(chip).not.toBeNull();
+    expect(getComputedStyle(chip!).minHeight).toBe("32px");
+  });
+
   it("展开空的大分类时保留没有小分类提示", () => {
     renderList();
 
@@ -425,10 +467,6 @@ describe("CategoryList", () => {
       void data;
     });
     renderListWithTheme({ archiveCategoryAction });
-    expect(screen.getByText("已归档分类")).toBeInTheDocument();
-    expect(
-      screen.getByText("归档的分类不会在记账选择中显示。"),
-    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
     const dialog = within(screen.getByRole("dialog", { name: "编辑分类" }));
     const archive = dialog.getByRole("button", { name: "归档该分类" });

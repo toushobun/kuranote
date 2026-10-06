@@ -3,7 +3,6 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
-import { SoftCard } from "atoms/ui/SoftCard";
 import { categoryPageMessages } from "config/categoryMessages";
 import { routePaths } from "config/paths";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
@@ -67,16 +66,6 @@ export default function CategoriesLoadingPage() {
               </DataItemCard>
             ))}
           </Stack>
-
-          <SoftCard sx={{ p: 2.5 }}>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-              <Skeleton height={28} variant="circular" width={28} />
-              <Stack spacing={0.75} sx={{ flex: 1 }}>
-                <Skeleton width={110} />
-                <Skeleton width={230} />
-              </Stack>
-            </Stack>
-          </SoftCard>
         </Stack>
       </SettingsPageLayout>
     </Box>
