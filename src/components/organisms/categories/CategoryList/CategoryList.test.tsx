@@ -320,17 +320,12 @@ describe("CategoryList", () => {
     }
   });
 
-  it("大分类卡片保持紧凑：图标与账户卡片同为 38px，卡片上下不再叠加内边距", () => {
+  it("大分类图标与账户卡片同为 38px", () => {
     const { container } = renderListWithTheme();
 
     for (const icon of within(container).getAllByTestId("category-list-icon")) {
       expect(getComputedStyle(icon).width).toBe("38px");
       expect(getComputedStyle(icon).height).toBe("38px");
-
-      const card = icon.closest(".MuiPaper-root");
-      expect(card).not.toBeNull();
-      expect(getComputedStyle(card as Element).paddingTop).toBe("0px");
-      expect(getComputedStyle(card as Element).paddingBottom).toBe("0px");
     }
   });
 

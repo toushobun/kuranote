@@ -11,6 +11,8 @@ type DataItemCardProps = PaperProps & {
   disablePadding?: boolean;
 };
 
+// 内边距是响应式写法，在 sx 中写 p / py 等普通值会被它的 media query 覆盖而不生效；
+// 需要调整内边距时先传 disablePadding，再在 sx 或内部元素上自行设置。
 export function DataItemCard({
   disablePadding = false,
   sx,
