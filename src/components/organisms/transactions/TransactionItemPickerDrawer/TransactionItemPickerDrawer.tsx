@@ -16,10 +16,8 @@ import TextField from "@mui/material/TextField";
 import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
-import {
-  PrimaryActionButton,
-  primaryActionButtonNoHoverBrightenSx,
-} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";

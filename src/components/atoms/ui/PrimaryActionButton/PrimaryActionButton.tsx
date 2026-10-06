@@ -1,13 +1,9 @@
+"use client";
+
 import Button, { type ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
 import { designTokens } from "theme/theme";
-
-export const primaryActionButtonNoHoverBrightenSx = {
-  "@media (hover: hover)": {
-    "&:not(.Mui-disabled):hover": { filter: "none" },
-  },
-} as const;
 
 type PrimaryActionButtonCommonProps = "href" | "variant";
 

@@ -1,14 +1,12 @@
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { designTokens } from "theme/theme";
 
 import { PageHeader } from "./PageHeader";
 import { PageShell } from "./PageShell";
+import { SettingsPageBackButton } from "./SettingsPageBackButton";
 import { fullViewportPageBackgroundSx } from "./fullViewportPageBackgroundSx";
 
 type SettingsPageBack = {
@@ -45,13 +43,7 @@ export function SettingsPageLayout({
             action={action}
             leading={
               back ? (
-                <IconButton
-                  aria-label={back.label}
-                  component={Link}
-                  href={back.href}
-                >
-                  <ArrowBackRoundedIcon />
-                </IconButton>
+                <SettingsPageBackButton href={back.href} label={back.label} />
               ) : null
             }
             subtitle={subtitle}
