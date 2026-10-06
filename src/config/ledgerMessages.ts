@@ -17,4 +17,5 @@ export const ledgerSettingsPageMessages = {
   title: "账本设置",
   subtitle: "管理账本信息与成员设置",
   backToLedgers: "返回账本管理",
+  loading: "账本设置加载中",
 } as const;
