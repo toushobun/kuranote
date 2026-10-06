@@ -1,7 +1,6 @@
 "use client";
 
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -29,18 +28,14 @@ import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
-import {
-  AccountDialogIllustrationSlot,
-  AccountFormDialogShell,
-} from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
+import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import {
   bottomNavigationLayout,
   stackedFeedbackBottomOffset,
 } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
@@ -141,12 +136,11 @@ export function LedgerSettingsTemplate({
 
   return (
     <>
-      <Box
-        aria-hidden="true"
-        data-testid="ledger-settings-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={pageShellSx}>
+      <SettingsPageLayout
+        back={{ href: routePaths.ledgers, label: "返回账本管理" }}
+        subtitle="管理账本信息与成员设置"
+        title="账本设置"
+      >
         <Stack
           component="form"
           action={updateLedgerSettingsAction}
@@ -156,38 +150,14 @@ export function LedgerSettingsTemplate({
           <input name="intent" type="hidden" value="ledger" />
           <input name="ledgerId" type="hidden" value={ledger.id} />
 
-          <Stack spacing={1.2} sx={headerSx}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label="返回"
-                component={Link}
-                href={routePaths.ledgers}
-                sx={headerIconButtonSx}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography component="h1" sx={pageTitleSx}>
-                  账本设置
-                </Typography>
-                <Typography color="text.secondary" variant="body2">
-                  管理账本信息与成员设置
-                </Typography>
-              </Box>
-              <Box sx={illustrationSx}>
-                <AccountDialogIllustrationSlot />
-              </Box>
-            </Stack>
-
-            {ledger.isCurrent ? (
-              <Chip
-                color="success"
-                icon={<CheckRoundedIcon />}
-                label="当前使用中"
-                sx={statusChipSx}
-              />
-            ) : null}
-          </Stack>
+          {ledger.isCurrent ? (
+            <Chip
+              color="success"
+              icon={<CheckRoundedIcon />}
+              label="当前使用中"
+              sx={statusChipSx}
+            />
+          ) : null}
 
           <SettingsSection title="基础信息">
             <SoftCard sx={sectionCardSx}>
@@ -328,7 +298,7 @@ export function LedgerSettingsTemplate({
           open={isSaveSuccessOpen}
           title="保存成功"
         />
-      </PageShell>
+      </SettingsPageLayout>
     </>
   );
 }
@@ -686,39 +656,8 @@ function getVisibleColorOptions(currentColor: ThemeColorKey) {
     : ([currentColor, ...ledgerMemberColorOptions] as const);
 }
 
-const pageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const formSx = {
   pb: `calc(${bottomNavigationLayout.shellPaddingBottom} + 24px)`,
-};
-
-const headerSx = {
-  minHeight: { xs: 112, sm: 124 },
-  overflow: "hidden",
-  position: "relative",
-};
-
-const headerIconButtonSx = {
-  color: "text.primary",
-  mt: 0.2,
-  zIndex: 1,
-};
-
-const illustrationSx = {
-  pointerEvents: "none",
-  position: "absolute",
-  right: { xs: -4, sm: 8 },
-  top: { xs: -12, sm: -8 },
-};
-
-const pageTitleSx = {
-  ...typographyStyles.pageTitle,
-  fontSize: { xs: 28, sm: 30 },
-  fontWeight: 900,
-  pr: 14,
 };
 
 const statusChipSx = {

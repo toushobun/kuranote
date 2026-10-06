@@ -1,25 +1,28 @@
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import { dataImportPageMessages as messages } from "config/dataImportExportMessages";
+import { routePaths } from "config/paths";
+import {
+  dataTransferBackMessages,
+  dataImportPageMessages as messages,
+} from "config/dataImportExportMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 export default function DataImportLoading() {
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        title={messages.title}
-        subtitle={messages.subtitle}
-        variant="compact"
-        leading={<Skeleton variant="circular" width={40} height={40} />}
-      />
+    <SettingsPageLayout
+      back={{
+        href: routePaths.settingsData,
+        label: dataTransferBackMessages.backToEntry,
+      }}
+      subtitle={messages.subtitle}
+      title={messages.title}
+    >
       <Stack
         role="status"
         aria-label={messages.loading}
         aria-busy="true"
         spacing={2.5}
-        sx={{ mt: 3 }}
       >
         <SectionCard>
           <Stack spacing={1.5}>
@@ -38,6 +41,6 @@ export default function DataImportLoading() {
           </Stack>
         </SectionCard>
       </Stack>
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

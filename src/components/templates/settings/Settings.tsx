@@ -15,6 +15,7 @@ import { useMemo, useState, type ElementType } from "react";
 
 import { routePaths, type AppRoutePath } from "config/paths";
 import {
+  settingsPageMessages,
   settingsPreferencesPageMessages,
   settingsProfilePageMessages,
 } from "config/settingsMessages";
@@ -23,8 +24,7 @@ import {
   SettingsEntryButton,
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 type SettingsEntryBase = {
   icon: ElementType<SvgIconProps>;
@@ -131,9 +131,10 @@ export function SettingsTemplate({ currentLedgerName }: SettingsTemplateProps) {
   };
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader subtitle="管理个人信息、主题与应用设置" title="我的" />
-
+    <SettingsPageLayout
+      subtitle={settingsPageMessages.subtitle}
+      title={settingsPageMessages.title}
+    >
       <Stack spacing={1.25}>
         {settingsEntryGroups.map((group) => (
           <SettingsEntryGroupCard key={group.label} label={group.label}>
@@ -153,7 +154,7 @@ export function SettingsTemplate({ currentLedgerName }: SettingsTemplateProps) {
         onClose={closeComingSoonToast}
         open={isToastOpen}
       />
-    </PageShell>
+    </SettingsPageLayout>
   );
 }
 

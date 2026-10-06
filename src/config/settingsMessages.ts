@@ -2,6 +2,11 @@ import { passwordRuleText } from "lib/validators/auth";
 
 export const settingsComingSoonMessage = "正在准备中";
 
+export const settingsPageMessages = {
+  title: "我的",
+  subtitle: "管理个人信息、主题与应用设置",
+} as const;
+
 export const settingsPreferencesPageMessages = {
   title: "App 偏好设置",
   backToSettings: "返回设置",

@@ -1,0 +1,7 @@
+export const accountPageMessages = {
+  title: "账户管理",
+  subtitle: "整理家里的现金、银行卡、电子钱包和信用卡",
+  backToSettings: "返回设置",
+  create: "新增账户",
+  loading: "账户数据加载中",
+} as const;

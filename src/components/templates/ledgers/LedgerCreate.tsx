@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
@@ -25,8 +24,7 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
@@ -89,32 +87,12 @@ export function LedgerCreateTemplate({
 
   return (
     <>
-      <Box
-        aria-hidden="true"
-        data-testid="ledger-create-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={pageShellSx}>
+      <SettingsPageLayout
+        back={{ href: backHref, label: ledgerCreateText.back }}
+        subtitle={ledgerCreateText.subtitle}
+        title={ledgerCreateText.title}
+      >
         <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
-          <Stack spacing={1.2} sx={headerSx}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label={ledgerCreateText.back}
-                component={Link}
-                href={backHref}
-                sx={headerIconButtonSx}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Typography component="h1" sx={pageTitleSx}>
-                {ledgerCreateText.title}
-              </Typography>
-            </Stack>
-            <Typography color="text.secondary" sx={pageSubtitleSx}>
-              {ledgerCreateText.subtitle}
-            </Typography>
-          </Stack>
-
           <SoftCard sx={formCardSx}>
             <Stack spacing={2.1}>
               <CreateField
@@ -301,7 +279,7 @@ export function LedgerCreateTemplate({
           state={actionState}
           title={ledgerCreateText.errorTitle}
         />
-      </PageShell>
+      </SettingsPageLayout>
     </>
   );
 }
@@ -397,34 +375,8 @@ function CreateSubmitButton() {
   );
 }
 
-const pageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const formSx = {
   pb: `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`,
-};
-
-const headerSx = {
-  px: { xs: 0.25, sm: 0.5 },
-};
-
-const headerIconButtonSx = {
-  color: "text.primary",
-  ml: -0.5,
-};
-
-const pageTitleSx = {
-  ...typographyStyles.pageTitle,
-  fontSize: { xs: 28, sm: 30 },
-  fontWeight: 900,
-};
-
-const pageSubtitleSx = {
-  fontSize: { xs: 15, sm: 16 },
-  lineHeight: 1.7,
-  px: 0.4,
 };
 
 const formCardSx = {
