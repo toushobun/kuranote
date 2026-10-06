@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import type { CSSProperties, ReactNode } from "react";
 
-import type { TransactionColorScheme } from "internal/user";
+import type { TransactionColorScheme, UserThemeKey } from "internal/user";
 import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar/BottomNavigationBar";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -15,20 +15,20 @@ import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 type AppShellProps = {
   canWriteTransactions?: boolean;
   children: ReactNode;
-  email: string;
+  themeKey: UserThemeKey;
   transactionColorScheme: TransactionColorScheme;
 };
 
 export function AppShell({
   canWriteTransactions = true,
   children,
-  email,
+  themeKey,
   transactionColorScheme,
 }: AppShellProps) {
   return (
     <UserThemeProvider
+      initialThemeKey={themeKey}
       initialTransactionColorScheme={transactionColorScheme}
-      storageScope={email}
     >
       <DynamicMuiThemeProvider>
         <ConfirmDialogProvider>
@@ -55,6 +55,9 @@ function AppShellContent({
     <Box
       style={cssVariables as CSSProperties}
       sx={{
+        // <html> 上的主题 cookie 缓存可能缺失或过期（例如刚登录、换设备），
+        // 外壳自身铺上用户主题背景，保证 SSR 首帧不露出默认主题。
+        background: "var(--user-theme-page-bg)",
         minHeight: "100dvh",
         overflowX: "hidden",
         pb: bottomNavigationLayout.shellPaddingBottom,

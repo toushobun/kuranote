@@ -23,17 +23,12 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
   window.history.replaceState(null, "", "/");
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="accounts-template-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 const baseProps = {
@@ -177,7 +172,7 @@ describe("AccountsTemplate", () => {
     expect(routerReplaceMock).not.toHaveBeenCalled();
 
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           initialErrorKey={null}
@@ -188,7 +183,7 @@ describe("AccountsTemplate", () => {
 
     window.history.replaceState(null, "", "/accounts?tab=all");
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           initialErrorKey="error-key-2"
@@ -211,7 +206,7 @@ describe("AccountsTemplate", () => {
     );
 
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           initialErrorKey="error-key-2"
@@ -227,7 +222,7 @@ describe("AccountsTemplate", () => {
   it("StrictMode 下同一个 errorKey 的 effect 重复执行也只入队一次", () => {
     render(
       <StrictMode>
-        <UserThemeProvider storageScope="accounts-template-test">
+        <UserThemeProvider>
           <AccountsTemplate
             {...baseProps}
             initialErrorKey="error-key-1"
@@ -250,7 +245,7 @@ describe("AccountsTemplate", () => {
     );
 
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           initialErrorKey="error-key-2"
@@ -276,7 +271,7 @@ describe("AccountsTemplate", () => {
     );
 
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           initialErrorKey="error-key-2"
@@ -340,7 +335,7 @@ describe("AccountsTemplate", () => {
 
     window.history.replaceState(null, "", "/accounts?result=archived");
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate {...baseProps} saveResult="archived" />
       </UserThemeProvider>,
     );
@@ -398,7 +393,7 @@ describe("AccountsTemplate", () => {
 
     window.history.replaceState(null, "", "/accounts?result=created");
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate {...baseProps} saveResult="created" />
       </UserThemeProvider>,
     );
@@ -434,7 +429,7 @@ describe("AccountsTemplate", () => {
 
     window.history.replaceState(null, "", "/accounts?result=updated");
     rerender(
-      <UserThemeProvider storageScope="accounts-template-test">
+      <UserThemeProvider>
         <AccountsTemplate
           {...baseProps}
           accounts={[account]}

@@ -29,7 +29,7 @@ function renderTemplate({
   });
 
   render(
-    <UserThemeProvider storageScope="merchant-edit-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>
         <MerchantEditTemplate
           archiveMerchantAction={action}

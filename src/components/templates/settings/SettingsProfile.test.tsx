@@ -36,7 +36,7 @@ afterEach(() => {
 
 function renderSettingsProfileTemplate() {
   return render(
-    <UserThemeProvider storageScope="settings-profile-test">
+    <UserThemeProvider>
       <SettingsProfileTemplate
         changePasswordAction={changePasswordAction}
         currentLedgerId={familyLedgerId}

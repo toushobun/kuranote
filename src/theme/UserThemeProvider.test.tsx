@@ -1,15 +1,18 @@
 import { act, cleanup, render } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UserThemeProvider } from "./UserThemeProvider";
-import {
-  getUserThemeStorageKey,
-  userThemeCookieName,
-} from "./userThemeStorage";
+import { UserThemeProvider, useUserTheme } from "./UserThemeProvider";
+import { userThemeCookieName } from "./userThemeStorage";
+
+function ThemeKeyProbe() {
+  const { themeKey } = useUserTheme();
+
+  return <span data-testid="theme-key">{themeKey}</span>;
+}
 
 describe("UserThemeProvider", () => {
   beforeEach(() => {
-    window.localStorage.clear();
     window.history.pushState(null, "", "/");
     document.cookie = `${userThemeCookieName}=; path=/; max-age=0; samesite=lax`;
     document.documentElement.removeAttribute("data-user-theme");
@@ -21,17 +24,73 @@ describe("UserThemeProvider", () => {
     vi.useRealTimers();
   });
 
-  it("退出登录卸载 protected provider 时会恢复默认主题背景", () => {
-    vi.useFakeTimers();
-    window.localStorage.setItem(
-      getUserThemeStorageKey("a@example.com"),
-      "emeraldMorning",
+  it("服务端渲染首帧即为 initialThemeKey，不经过默认主题", () => {
+    const markup = renderToString(
+      <UserThemeProvider initialThemeKey="emeraldMorning">
+        <ThemeKeyProbe />
+      </UserThemeProvider>,
     );
 
-    document.documentElement.dataset.userTheme = "emeraldMorning";
+    expect(markup).toContain(">emeraldMorning<");
+    expect(markup).not.toContain("amberWarmth");
+  });
+
+  it("客户端首次渲染即为 initialThemeKey，并同步 <html> 与 cookie 缓存", () => {
+    const renderedThemeKeys: string[] = [];
+
+    function RecordingProbe() {
+      const { themeKey } = useUserTheme();
+      renderedThemeKeys.push(themeKey);
+      return null;
+    }
+
+    render(
+      <UserThemeProvider initialThemeKey="lavenderDream">
+        <RecordingProbe />
+      </UserThemeProvider>,
+    );
+
+    expect(renderedThemeKeys[0]).toBe("lavenderDream");
+    expect(renderedThemeKeys).not.toContain("amberWarmth");
+    expect(document.documentElement.dataset.userTheme).toBe("lavenderDream");
+    expect(document.cookie).toContain(`${userThemeCookieName}=lavenderDream`);
+  });
+
+  it("cookie 中残留其他主题时以数据库下发的主题覆盖", () => {
+    document.cookie = `${userThemeCookieName}=flameRed; path=/`;
+
+    render(
+      <UserThemeProvider initialThemeKey="sakuraStory">
+        <div />
+      </UserThemeProvider>,
+    );
+
+    expect(document.cookie).toContain(`${userThemeCookieName}=sakuraStory`);
+    expect(document.cookie).not.toContain(`${userThemeCookieName}=flameRed`);
+  });
+
+  it("服务端重新下发主题时以数据库值为准", () => {
+    const { getByTestId, rerender } = render(
+      <UserThemeProvider initialThemeKey="sakuraStory">
+        <ThemeKeyProbe />
+      </UserThemeProvider>,
+    );
+
+    rerender(
+      <UserThemeProvider initialThemeKey="deepSeaStarlight">
+        <ThemeKeyProbe />
+      </UserThemeProvider>,
+    );
+
+    expect(getByTestId("theme-key")).toHaveTextContent("deepSeaStarlight");
+    expect(document.documentElement.dataset.userTheme).toBe("deepSeaStarlight");
+  });
+
+  it("退出登录卸载 protected provider 时会恢复默认主题背景", () => {
+    vi.useFakeTimers();
 
     const { unmount } = render(
-      <UserThemeProvider storageScope="a@example.com">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <div />
       </UserThemeProvider>,
     );
@@ -54,15 +113,9 @@ describe("UserThemeProvider", () => {
 
   it("protected provider 重新挂载时不会短暂恢复默认主题", () => {
     vi.useFakeTimers();
-    window.localStorage.setItem(
-      getUserThemeStorageKey("a@example.com"),
-      "emeraldMorning",
-    );
-
-    document.documentElement.dataset.userTheme = "emeraldMorning";
 
     const firstRender = render(
-      <UserThemeProvider storageScope="a@example.com">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <div />
       </UserThemeProvider>,
     );
@@ -70,7 +123,7 @@ describe("UserThemeProvider", () => {
     firstRender.unmount();
 
     const secondRender = render(
-      <UserThemeProvider storageScope="a@example.com">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <div />
       </UserThemeProvider>,
     );
@@ -94,15 +147,9 @@ describe("UserThemeProvider", () => {
   it("Suspense 延迟重挂载到下一轮任务时不会恢复默认主题", () => {
     vi.useFakeTimers();
     window.history.pushState(null, "", "/statistics?month=2026-06");
-    window.localStorage.setItem(
-      getUserThemeStorageKey("a@example.com"),
-      "emeraldMorning",
-    );
-
-    document.documentElement.dataset.userTheme = "emeraldMorning";
 
     const firstRender = render(
-      <UserThemeProvider storageScope="a@example.com">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <div />
       </UserThemeProvider>,
     );
@@ -117,7 +164,7 @@ describe("UserThemeProvider", () => {
     expect(document.cookie).toContain(`${userThemeCookieName}=emeraldMorning`);
 
     const secondRender = render(
-      <UserThemeProvider storageScope="a@example.com">
+      <UserThemeProvider initialThemeKey="emeraldMorning">
         <div />
       </UserThemeProvider>,
     );
@@ -135,28 +182,9 @@ describe("UserThemeProvider", () => {
     expect(document.cookie).not.toContain(userThemeCookieName);
   });
 
-  it("旧主题 key 不再迁移，统一回退到默认主题", () => {
-    window.localStorage.setItem(
-      getUserThemeStorageKey("a@example.com"),
-      "jade_morning_dew",
-    );
-
-    render(
-      <UserThemeProvider storageScope="a@example.com">
-        <div />
-      </UserThemeProvider>,
-    );
-
-    expect(document.documentElement.dataset.userTheme).toBe("amberWarmth");
-    expect(document.cookie).toContain(`${userThemeCookieName}=amberWarmth`);
-  });
-
   it("使用服务端注入的收支配色方案应用 CSS 变量", () => {
     render(
-      <UserThemeProvider
-        initialTransactionColorScheme="expense_red_income_green"
-        storageScope="a@example.com"
-      >
+      <UserThemeProvider initialTransactionColorScheme="expense_red_income_green">
         <div />
       </UserThemeProvider>,
     );

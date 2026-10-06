@@ -19,16 +19,19 @@ vi.mock(
   }),
 );
 
+const updateThemeKeyAction = vi.fn();
 const updateTransactionColorSchemeAction = vi.fn();
 
 afterEach(() => {
   cleanup();
+  updateThemeKeyAction.mockClear();
   updateTransactionColorSchemeAction.mockClear();
 });
 
 function renderSettingsPreferencesTemplate() {
   return render(
     <SettingsPreferencesTemplate
+      updateThemeKeyAction={updateThemeKeyAction}
       updateTransactionColorSchemeAction={updateTransactionColorSchemeAction}
     />,
   );

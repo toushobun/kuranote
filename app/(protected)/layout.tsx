@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { canWriteTransaction } from "internal/ledger";
-import { defaultTransactionColorScheme } from "internal/user";
+import {
+  defaultTransactionColorScheme,
+  defaultUserThemeKey,
+} from "internal/user";
 import { ProtectedLayoutShell } from "templates/protected/ProtectedLayoutShell";
 
 export default async function ProtectedLayout({
@@ -10,7 +13,7 @@ export default async function ProtectedLayout({
 }: {
   children: ReactNode;
 }) {
-  const { currentLedger, email, transactionColorScheme } =
+  const { currentLedger, themeKey, transactionColorScheme } =
     await getCurrentLedgerContext();
 
   return (
@@ -20,7 +23,7 @@ export default async function ProtectedLayout({
           ? canWriteTransaction(currentLedger.currentUserRole)
           : false
       }
-      email={email}
+      themeKey={themeKey ?? defaultUserThemeKey}
       transactionColorScheme={
         transactionColorScheme ?? defaultTransactionColorScheme
       }

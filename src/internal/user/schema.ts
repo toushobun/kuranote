@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import {
   transactionColorSchemes,
   userStatuses,
+  userThemeKeys,
 } from "internal/user/entity/userProfile";
 import {
   avatarMaxFileSize,
@@ -28,17 +29,22 @@ const httpsUrlSchema = z
 const transactionColorSchemeSchema = z.enum(transactionColorSchemes, {
   error: userErrorMessages.transactionColorSchemeInvalid,
 });
+const themeKeySchema = z.enum(userThemeKeys, {
+  error: userErrorMessages.themeKeyInvalid,
+});
 
 export const updateUserProfileRequestSchema = z
   .object({
     avatarUrl: httpsUrlSchema.nullable().optional(),
     displayName: z.string().trim().min(1).max(100).optional(),
+    themeKey: themeKeySchema.optional(),
     transactionColorScheme: transactionColorSchemeSchema.optional(),
   })
   .refine(
     (input) =>
       input.avatarUrl !== undefined ||
       input.displayName !== undefined ||
+      input.themeKey !== undefined ||
       input.transactionColorScheme !== undefined,
     { message: userErrorMessages.profileUpdateRequired },
   );
@@ -49,6 +55,7 @@ export const userProfileResponseSchema = z.object({
   email: z.string().email().nullable(),
   id: z.string().uuid(),
   status: z.enum(userStatuses),
+  themeKey: themeKeySchema,
   transactionColorScheme: transactionColorSchemeSchema,
 });
 
@@ -66,6 +73,22 @@ export function parseTransactionColorSchemeForm(formData: FormData) {
       error:
         result.error.issues[0]?.message ??
         userErrorMessages.transactionColorSchemeInvalid,
+      ok: false as const,
+    };
+  }
+
+  return { ok: true as const, value: result.data };
+}
+
+export function parseThemeKeyForm(formData: FormData) {
+  const result = z
+    .object({ themeKey: themeKeySchema })
+    .safeParse({ themeKey: formData.get("themeKey") });
+
+  if (!result.success) {
+    return {
+      error:
+        result.error.issues[0]?.message ?? userErrorMessages.themeKeyInvalid,
       ok: false as const,
     };
   }

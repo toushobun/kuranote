@@ -1,11 +1,9 @@
-import { useEffect, type ReactNode } from "react";
-
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { useUserTheme, UserThemeProvider } from "theme/UserThemeProvider";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   type UserThemeKey,
   userThemeKeys,
@@ -25,7 +23,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-search-illustration-default">
+      <UserThemeProvider>
         <Box sx={storyContainerSx}>
           <Story />
         </Box>
@@ -60,38 +58,18 @@ export const AllThemes: Story = {
 
 function ThemePreview({ themeKey }: { themeKey: UserThemeKey }) {
   return (
-    <UserThemeProvider
-      storageScope={`storybook-search-illustration-${themeKey}`}
-    >
-      <ThemeSetter themeKey={themeKey}>
-        <Box sx={themePreviewSx}>
-          <Typography sx={themeNameSx}>
-            {userThemeTokens[themeKey].name}
-          </Typography>
-          <Stack direction="row" spacing={2} sx={variantRowSx}>
-            <VariantPreview label="输入关键词" variant="guide" />
-            <VariantPreview label="无搜索结果" variant="empty" />
-          </Stack>
-        </Box>
-      </ThemeSetter>
+    <UserThemeProvider initialThemeKey={themeKey}>
+      <Box sx={themePreviewSx}>
+        <Typography sx={themeNameSx}>
+          {userThemeTokens[themeKey].name}
+        </Typography>
+        <Stack direction="row" spacing={2} sx={variantRowSx}>
+          <VariantPreview label="输入关键词" variant="guide" />
+          <VariantPreview label="无搜索结果" variant="empty" />
+        </Stack>
+      </Box>
     </UserThemeProvider>
   );
-}
-
-function ThemeSetter({
-  children,
-  themeKey,
-}: {
-  children: ReactNode;
-  themeKey: UserThemeKey;
-}) {
-  const { setThemeKey } = useUserTheme();
-
-  useEffect(() => {
-    setThemeKey(themeKey);
-  }, [setThemeKey, themeKey]);
-
-  return children;
 }
 
 function VariantPreview({

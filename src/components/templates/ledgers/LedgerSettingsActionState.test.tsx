@@ -68,11 +68,7 @@ const view: LedgerSettingsView = {
 };
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(
-    <UserThemeProvider storageScope="ledger-settings-action-state-test">
-      {children}
-    </UserThemeProvider>,
-  );
+  return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
 function renderTemplate(action: LedgerSettingsStateAction) {
@@ -89,7 +85,6 @@ function renderTemplate(action: LedgerSettingsStateAction) {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
   window.history.replaceState(
     null,

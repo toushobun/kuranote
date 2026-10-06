@@ -67,7 +67,7 @@ function renderTemplate({
   updateCategoryAction?: CategoryStateAction;
 } = {}) {
   return render(
-    <UserThemeProvider storageScope="categories-action-state-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>
         <CategoriesActionStateTemplate
           archiveCategoryAction={archiveCategoryAction}
@@ -106,7 +106,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 

@@ -22,6 +22,7 @@ const profile = {
   email: "user@example.com",
   id: userId,
   status: "active" as const,
+  themeKey: "amberWarmth" as const,
   transactionColorScheme: "expense_green_income_red" as const,
 };
 const authenticated: RequestDependencies["auth"] = {
@@ -181,6 +182,36 @@ describe("user router", () => {
 
     const response = await app.request("https://kuranote.example/users/me", {
       body: JSON.stringify({ transactionColorScheme: "invalid" }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(400);
+    expect(updateCurrentProfile).not.toHaveBeenCalled();
+  });
+
+  it("更新主题时返回新用户资料", async () => {
+    const updatedProfile = { ...profile, themeKey: "flameRed" as const };
+    const updateCurrentProfile = vi.fn().mockResolvedValue(updatedProfile);
+    const app = createApp(createContainer({ updateCurrentProfile }));
+
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({ themeKey: "flameRed" }),
+      headers: sameOriginHeaders,
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(updatedProfile);
+    expect(updateCurrentProfile).toHaveBeenCalledWith({ themeKey: "flameRed" });
+  });
+
+  it("非法主题返回 400 且不调用 Service", async () => {
+    const updateCurrentProfile = vi.fn();
+    const app = createApp(createContainer({ updateCurrentProfile }));
+
+    const response = await app.request("https://kuranote.example/users/me", {
+      body: JSON.stringify({ themeKey: "flame_red" }),
       headers: sameOriginHeaders,
       method: "PATCH",
     });

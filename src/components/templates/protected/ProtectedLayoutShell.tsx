@@ -1,25 +1,25 @@
 import type { ReactNode } from "react";
 
-import type { TransactionColorScheme } from "internal/user";
+import type { TransactionColorScheme, UserThemeKey } from "internal/user";
 import { AppShell } from "templates/protected/AppShell";
 
 type ProtectedLayoutShellProps = {
   canWriteTransactions?: boolean;
   children: ReactNode;
-  email: string;
+  themeKey: UserThemeKey;
   transactionColorScheme: TransactionColorScheme;
 };
 
 export function ProtectedLayoutShell({
   canWriteTransactions = true,
   children,
-  email,
+  themeKey,
   transactionColorScheme,
 }: ProtectedLayoutShellProps) {
   return (
     <AppShell
       canWriteTransactions={canWriteTransactions}
-      email={email}
+      themeKey={themeKey}
       transactionColorScheme={transactionColorScheme}
     >
       {children}

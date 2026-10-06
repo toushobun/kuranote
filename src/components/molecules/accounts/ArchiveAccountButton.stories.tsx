@@ -10,7 +10,7 @@ const meta = {
   component: ArchiveAccountButton,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-archive-account-button">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <Story />
         </ConfirmDialogProvider>

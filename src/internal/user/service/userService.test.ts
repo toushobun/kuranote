@@ -28,6 +28,7 @@ const activeProfile: UserProfile = {
   email: "user@example.com",
   id: userId,
   status: "active",
+  themeKey: "amberWarmth",
   transactionColorScheme: "expense_green_income_red",
 };
 
@@ -188,6 +189,62 @@ describe("createUserService", () => {
       updatedBy: userId,
       userId,
     });
+  });
+
+  it("更新当前用户的主题并返回写库后的资料", async () => {
+    const updatedProfile = { ...activeProfile, themeKey: "sakuraStory" };
+    const updateProfile = vi.fn().mockResolvedValue(updatedProfile);
+    const repository = createRepository({
+      findById: vi.fn().mockResolvedValue(activeProfile),
+      updateProfile,
+    });
+    const service = createUserService({
+      avatarStorageRepository: createAvatarStorageRepository(),
+      currentUserId: userId,
+      userRepository: repository,
+    });
+
+    await expect(
+      service.updateCurrentProfile({ themeKey: "sakuraStory" }),
+    ).resolves.toEqual(updatedProfile);
+    expect(updateProfile).toHaveBeenCalledWith({
+      themeKey: "sakuraStory",
+      updatedBy: userId,
+      userId,
+    });
+  });
+
+  it("未登录时拒绝更新主题", async () => {
+    const repository = createRepository();
+    const service = createUserService({
+      avatarStorageRepository: createAvatarStorageRepository(),
+      currentUserId: null,
+      userRepository: repository,
+    });
+
+    await expect(
+      service.updateCurrentProfile({ themeKey: "sakuraStory" }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    expect(repository.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("用户已停用时拒绝更新主题", async () => {
+    const repository = createRepository({
+      findById: vi.fn().mockResolvedValue({
+        ...activeProfile,
+        status: "disabled",
+      }),
+    });
+    const service = createUserService({
+      avatarStorageRepository: createAvatarStorageRepository(),
+      currentUserId: userId,
+      userRepository: repository,
+    });
+
+    await expect(
+      service.updateCurrentProfile({ themeKey: "sakuraStory" }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(repository.updateProfile).not.toHaveBeenCalled();
   });
 
   it("头像地址不是 HTTPS URL 时拒绝写入", async () => {

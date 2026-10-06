@@ -11,7 +11,7 @@ const meta = {
   component: LedgerSettingsTemplate,
   decorators: [
     (Story, { args }) => (
-      <UserThemeProvider storageScope="ledger-settings-story">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <LedgerInvitePendingProvider pendingInvites={args.pendingInvites}>
             <Story />

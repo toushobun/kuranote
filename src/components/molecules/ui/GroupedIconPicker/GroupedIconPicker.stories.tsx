@@ -13,7 +13,7 @@ const meta = {
   component: GroupedIconPicker,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-grouped-icon-picker">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

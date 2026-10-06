@@ -10,6 +10,7 @@ import type { UserLedgerDisplayName } from "internal/user/entity/userLedgerDispl
 import type {
   TransactionColorScheme,
   UserProfile,
+  UserThemeKey,
 } from "internal/user/entity/userProfile";
 import {
   displayNameMaxLength,
@@ -26,6 +27,7 @@ import type {
 export type UpdateCurrentUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
+  themeKey?: UserThemeKey;
   transactionColorScheme?: TransactionColorScheme;
 };
 
@@ -179,12 +181,16 @@ export function createUserService({
     if (input.avatarUrl !== undefined) {
       normalizedInput.avatarUrl = normalizeAvatarUrl(input.avatarUrl);
     }
+    if (input.themeKey !== undefined) {
+      normalizedInput.themeKey = input.themeKey;
+    }
     if (input.transactionColorScheme !== undefined) {
       normalizedInput.transactionColorScheme = input.transactionColorScheme;
     }
     if (
       normalizedInput.displayName === undefined &&
       normalizedInput.avatarUrl === undefined &&
+      normalizedInput.themeKey === undefined &&
       normalizedInput.transactionColorScheme === undefined
     ) {
       throw new ValidationError(

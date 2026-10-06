@@ -14,7 +14,7 @@ const meta = {
   title: "Molecules/UI/OperationFeedbackDialogs",
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-operation-feedback-dialog">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

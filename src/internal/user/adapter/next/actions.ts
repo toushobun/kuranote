@@ -13,6 +13,7 @@ import {
 } from "internal/user/adapter/next/revalidate";
 import { userErrorMessages } from "internal/user/errors";
 import {
+  parseThemeKeyForm,
   parseTransactionColorSchemeForm,
   parseUpdateAvatarForm,
   parseUpdateDisplayNameForm,
@@ -20,8 +21,42 @@ import {
 import type {
   AvatarActionState,
   DisplayNameActionState,
+  ThemeKeyActionState,
   TransactionColorSchemeActionState,
 } from "types/user";
+
+/**
+ * 主题由客户端乐观更新，界面状态已在 UserThemeProvider 中保持一致，
+ * 这里不 revalidate，避免重新渲染 protected layout 时把旧值回灌到正在切换的主题。
+ */
+export async function updateThemeKey(
+  _previousState: ThemeKeyActionState,
+  formData: FormData,
+): Promise<ThemeKeyActionState> {
+  const parsed = parseThemeKeyForm(formData);
+
+  if (!parsed.ok) {
+    return createErrorState(parsed.error);
+  }
+
+  try {
+    const dependencies = await createServerRequestDependencies();
+    const profile = await createRequestContainer(
+      dependencies,
+    ).user.service.updateCurrentProfile(parsed.value);
+
+    return { themeKey: profile.themeKey };
+  } catch (error) {
+    if (error instanceof AppError) {
+      return createErrorState(error.message);
+    }
+
+    console.error("[user] theme key action failed unexpectedly", {
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+    return createErrorState(userErrorMessages.themeKeyUpdateFailed);
+  }
+}
 
 export async function updateTransactionColorScheme(
   _previousState: TransactionColorSchemeActionState,

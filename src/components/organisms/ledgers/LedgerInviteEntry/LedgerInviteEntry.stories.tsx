@@ -34,7 +34,7 @@ type LedgerInviteEntryArgs = ComponentProps<typeof LedgerInviteEntry>;
 
 function renderEntry(args: LedgerInviteEntryArgs) {
   return (
-    <UserThemeProvider storageScope="storybook-ledger-invite-entry">
+    <UserThemeProvider>
       <ConfirmDialogProvider>
         {/* 只有管理者能读取待接受邀请；普通成员只看到待邀请成员摘要。 */}
         <LedgerInvitePendingProvider

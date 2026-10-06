@@ -16,7 +16,6 @@ import { TransactionColorSchemePicker } from "./TransactionColorSchemePicker";
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("style");
 });
 
@@ -29,7 +28,6 @@ function renderPicker(
   return render(
     <UserThemeProvider
       initialTransactionColorScheme={initialTransactionColorScheme}
-      storageScope="picker-test"
     >
       <TransactionColorSchemePicker action={action} />
     </UserThemeProvider>,

@@ -1,13 +1,12 @@
-export const userThemeKeys = [
-  "amberWarmth",
-  "lavenderDream",
-  "emeraldMorning",
-  "sakuraStory",
-  "deepSeaStarlight",
-  "flameRed",
-] as const;
+import { userThemeKeys, type UserThemeKey } from "internal/user";
 
-export type UserThemeKey = (typeof userThemeKeys)[number];
+// 主题 key 列表由 internal/user 统一定义（与数据库 check 约束一致），这里只转出供前端主题层使用。
+export {
+  defaultUserThemeKey,
+  isUserThemeKey,
+  userThemeKeys,
+  type UserThemeKey,
+} from "internal/user";
 export type UserThemeMode = "light" | "dark" | "system";
 
 type LightUserThemeMode = Extract<UserThemeMode, "light">;
@@ -90,8 +89,6 @@ type BaseKuraThemeToken = {
     "card" | "cardElevated" | "divider" | "accentSoft" | "shadow"
   >;
 };
-
-export const defaultUserThemeKey = "amberWarmth" satisfies UserThemeKey;
 
 const semanticTokens = {
   income: "#42A87A",
@@ -307,8 +304,4 @@ export function createAlphaColor(hexColor: string, opacity: number) {
   const blue = parseInt(fullHex.slice(4, 6), 16);
 
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
-}
-
-export function isUserThemeKey(value: string): value is UserThemeKey {
-  return userThemeKeys.includes(value as UserThemeKey);
 }

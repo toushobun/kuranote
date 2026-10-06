@@ -16,7 +16,9 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import {
   resolveTransactionColorScheme,
+  resolveUserThemeKey,
   type TransactionColorScheme,
+  type UserThemeKey,
 } from "internal/user";
 
 export type UpdateCurrentLedgerInput = {
@@ -52,7 +54,7 @@ export function createSupabaseCurrentLedgerRepository(
     async getContext(userId, email) {
       const appUserQuery = supabase
         .from("app_user")
-        .select("current_ledger_id, transaction_color_scheme")
+        .select("current_ledger_id, transaction_color_scheme, theme_key")
         .eq("id", userId);
       type AppUserRows = QueryData<typeof appUserQuery>;
 
@@ -86,6 +88,23 @@ export function createSupabaseCurrentLedgerRepository(
             "[ledger] invalid transaction color scheme in current user context",
             { userId },
           );
+        }
+      }
+
+      const storedThemeKey = appUserRows.find(
+        (row) => typeof row.theme_key === "string",
+      )?.theme_key;
+      let themeKey: UserThemeKey | undefined;
+
+      if (storedThemeKey !== undefined) {
+        const resolved = resolveUserThemeKey(storedThemeKey);
+        themeKey = resolved.value;
+
+        if (resolved.isFallback) {
+          // 主题只是附带偏好，脏值不应阻断账本核心上下文。
+          logger.warn("[ledger] invalid theme key in current user context", {
+            userId,
+          });
         }
       }
 
@@ -123,6 +142,7 @@ export function createSupabaseCurrentLedgerRepository(
           ledgers: [],
           currentLedger: null,
           ...(transactionColorScheme ? { transactionColorScheme } : {}),
+          ...(themeKey ? { themeKey } : {}),
         };
       }
 
@@ -189,6 +209,7 @@ export function createSupabaseCurrentLedgerRepository(
         ledgers,
         currentLedger: currentLedger ?? ledgers[0] ?? null,
         ...(transactionColorScheme ? { transactionColorScheme } : {}),
+        ...(themeKey ? { themeKey } : {}),
       };
     },
 

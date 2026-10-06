@@ -54,6 +54,65 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     );
   });
 
+  it("getContext 遇到非法主题 key 时记录警告并回退默认主题", async () => {
+    const logger = createLogger();
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              theme_key: "unexpected",
+              transaction_color_scheme: "expense_green_income_red",
+            },
+          ],
+        },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      logger,
+    );
+
+    await expect(
+      repository.getContext(userId, "user@example.com"),
+    ).resolves.toMatchObject({ themeKey: "amberWarmth" });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[ledger] invalid theme key in current user context",
+      { userId },
+    );
+  });
+
+  it("getContext 返回 app_user 中保存的主题 key", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            {
+              current_ledger_id: null,
+              theme_key: "deepSeaStarlight",
+              transaction_color_scheme: "expense_green_income_red",
+            },
+          ],
+        },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.getContext(userId, "user@example.com"),
+    ).resolves.toMatchObject({ themeKey: "deepSeaStarlight" });
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: ["current_ledger_id, transaction_color_scheme, theme_key"],
+      method: "select",
+    });
+  });
+
   it("只读取目标成员与目标账本并返回访问上下文", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [

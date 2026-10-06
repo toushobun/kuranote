@@ -34,7 +34,7 @@ function renderDialog(
   const action = vi.fn(async () => successState);
   const onClose = vi.fn();
   const view = render(
-    <UserThemeProvider storageScope="profile-nickname-dialog-test">
+    <UserThemeProvider>
       <ProfileNicknameDialog
         action={action}
         currentDisplayName="淞文"
@@ -194,7 +194,7 @@ describe("ProfileNicknameDialog", () => {
 
     const rerenderDialog = (open: boolean) =>
       view.rerender(
-        <UserThemeProvider storageScope="profile-nickname-dialog-test">
+        <UserThemeProvider>
           <ProfileNicknameDialog
             action={vi.fn()}
             currentDisplayName="淞文"

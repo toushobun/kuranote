@@ -1,6 +1,9 @@
 import { cleanup, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 
 import { AppShell } from "./AppShell";
 
@@ -29,15 +32,19 @@ afterEach(() => {
   cleanup();
 });
 
-function renderAppShell() {
-  return render(
+function createAppShell(themeKey: "amberWarmth" | "lavenderDream") {
+  return (
     <AppShell
-      email="test@example.com"
+      themeKey={themeKey}
       transactionColorScheme="expense_green_income_red"
     >
       <div>内容</div>
-    </AppShell>,
+    </AppShell>
   );
+}
+
+function renderAppShell() {
+  return render(createAppShell("amberWarmth"));
 }
 
 describe("AppShell", () => {
@@ -65,6 +72,26 @@ describe("AppShell", () => {
         .getByRole("link", { name: "明细" })
         .getAttribute("aria-current"),
     ).toBeNull();
+  });
+
+  it("服务端渲染首帧即输出用户主题的 CSS 变量，而不是默认主题", () => {
+    const markup = renderToString(createAppShell("lavenderDream"));
+    const lavenderAccent = getUserThemeCssVariables(
+      "lavenderDream",
+      "expense_green_income_red",
+    )["--user-theme-bottom-nav-active"];
+    const amberAccent = getUserThemeCssVariables(
+      "amberWarmth",
+      "expense_green_income_red",
+    )["--user-theme-bottom-nav-active"];
+
+    expect(lavenderAccent).not.toBe(amberAccent);
+    expect(markup).toContain(
+      `--user-theme-bottom-nav-active:${lavenderAccent}`,
+    );
+    expect(markup).not.toContain(
+      `--user-theme-bottom-nav-active:${amberAccent}`,
+    );
   });
 
   it("新增记录按钮链接到新增记账页面", () => {

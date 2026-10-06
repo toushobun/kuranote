@@ -7,7 +7,6 @@ import {
   userThemeKeys,
   userThemeTokens,
 } from "./userThemeTokens";
-import { getUserThemeStorageKey } from "./userThemeStorage";
 import { themeColorKeys } from "./themeColorTokens";
 
 const criticalSemanticKeys = [
@@ -56,21 +55,9 @@ describe("userThemeTokens", () => {
     );
   });
 
-  it("可以校验 localStorage 里保存的主题 key", () => {
+  it("可以校验主题 key", () => {
     expect(isUserThemeKey("sakuraStory")).toBe(true);
     expect(isUserThemeKey("sakura_story")).toBe(false);
-  });
-
-  it("按登录用户生成不同 localStorage key，避免用户主题互相影响", () => {
-    expect(getUserThemeStorageKey("a@example.com")).toBe(
-      "kuranote-user-theme:user:a%40example.com",
-    );
-    expect(getUserThemeStorageKey("B@example.com")).toBe(
-      "kuranote-user-theme:user:b%40example.com",
-    );
-    expect(getUserThemeStorageKey("a@example.com")).not.toBe(
-      getUserThemeStorageKey("b@example.com"),
-    );
   });
 
   it("根据 base palette 派生缺省字段", () => {

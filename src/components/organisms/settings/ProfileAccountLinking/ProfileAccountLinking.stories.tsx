@@ -21,7 +21,7 @@ const meta = {
   component: ProfileAccountLinking,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-profile-account-linking">
+      <UserThemeProvider>
         <ConfirmDialogProvider>
           <SettingsEntryGroupCard label="账号安全">
             <Story />

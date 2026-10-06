@@ -8,9 +8,11 @@ import {
 import type { UserLedgerDisplayName } from "internal/user/entity/userLedgerDisplayName";
 import {
   resolveTransactionColorScheme,
+  resolveUserThemeKey,
   type TransactionColorScheme,
   type UserProfile,
   type UserStatus,
+  type UserThemeKey,
 } from "internal/user/entity/userProfile";
 import {
   isLedgerDisplayNameConflictCode,
@@ -21,6 +23,7 @@ import {
 export type UpdateUserProfileInput = {
   avatarUrl?: string | null;
   displayName?: string;
+  themeKey?: UserThemeKey;
   transactionColorScheme?: TransactionColorScheme;
   updatedBy: string;
   userId: string;
@@ -75,6 +78,7 @@ type AppUserRow = {
   email: string | null;
   id: string;
   status: string;
+  theme_key: string;
   transaction_color_scheme: string;
 };
 
@@ -104,6 +108,21 @@ function toTransactionColorScheme(
   return resolved.value;
 }
 
+function toUserThemeKey(
+  value: string,
+  logger: Logger,
+  userId: string,
+): UserThemeKey {
+  const resolved = resolveUserThemeKey(value);
+
+  if (!resolved.isFallback) return resolved.value;
+
+  // 主题只是展示偏好，脏值不应阻断登录或后续资料更新自愈。
+  logger.warn("[user] invalid theme key in user profile", { userId });
+
+  return resolved.value;
+}
+
 function toUserProfile(row: AppUserRow, logger: Logger): UserProfile {
   return {
     avatarUrl: row.avatar_url,
@@ -111,6 +130,7 @@ function toUserProfile(row: AppUserRow, logger: Logger): UserProfile {
     email: row.email,
     id: row.id,
     status: toUserStatus(row.status),
+    themeKey: toUserThemeKey(row.theme_key, logger, row.id),
     transactionColorScheme: toTransactionColorScheme(
       row.transaction_color_scheme,
       logger,
@@ -164,7 +184,7 @@ function toRows<T>(data: unknown, toRow: (row: unknown) => T | null) {
 }
 
 const userProfileColumns =
-  "id, display_name, email, avatar_url, status, transaction_color_scheme";
+  "id, display_name, email, avatar_url, status, theme_key, transaction_color_scheme";
 
 export function createSupabaseUserRepository(
   supabase: AuthenticatedSupabaseClient,
@@ -271,6 +291,7 @@ export function createSupabaseUserRepository(
       const updates: {
         avatar_url?: string | null;
         display_name?: string;
+        theme_key?: UserThemeKey;
         transaction_color_scheme?: TransactionColorScheme;
         updated_by: string;
       } = { updated_by: input.updatedBy };
@@ -280,6 +301,9 @@ export function createSupabaseUserRepository(
       }
       if (input.displayName !== undefined) {
         updates.display_name = input.displayName;
+      }
+      if (input.themeKey !== undefined) {
+        updates.theme_key = input.themeKey;
       }
       if (input.transactionColorScheme !== undefined) {
         updates.transaction_color_scheme = input.transactionColorScheme;

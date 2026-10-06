@@ -363,7 +363,7 @@ const meta = {
   component: TransactionsTemplate,
   decorators: [
     (Story) => (
-      <UserThemeProvider storageScope="storybook-transactions">
+      <UserThemeProvider>
         <Story />
       </UserThemeProvider>
     ),

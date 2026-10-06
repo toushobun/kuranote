@@ -8,7 +8,6 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -20,20 +19,13 @@ import {
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import {
   defaultUserThemeKey,
-  isUserThemeKey,
   type UserThemeKey,
   userThemeKeys,
   userThemeTokens,
 } from "theme/userThemeTokens";
-import {
-  getUserThemeStorageKey,
-  lastUserThemeStorageKey,
-  userThemeChangeEventName,
-  userThemeCookieName,
-} from "theme/userThemeStorage";
+import { userThemeCookieName } from "theme/userThemeStorage";
 
 type UserThemeContextValue = {
-  isThemeReady: boolean;
   themeKey: UserThemeKey;
   setThemeKey: (themeKey: UserThemeKey) => void;
   setTransactionColorScheme: (scheme: TransactionColorScheme) => void;
@@ -62,32 +54,28 @@ let pendingDefaultThemeResetId: number | null = null;
 
 type UserThemeProviderProps = {
   children: ReactNode;
+  /** 服务端从 app_user.theme_key 读取的主题，SSR 与 hydration 首帧直接使用。 */
+  initialThemeKey?: UserThemeKey;
   initialTransactionColorScheme?: TransactionColorScheme;
-  storageScope?: string;
 };
 
 export function UserThemeProvider({
   children,
+  initialThemeKey = defaultUserThemeKey,
   initialTransactionColorScheme = defaultTransactionColorScheme,
-  storageScope = "anonymous",
 }: UserThemeProviderProps) {
+  const [themeKey, setThemeKeyState] = useState(initialThemeKey);
   const [transactionColorScheme, setTransactionColorSchemeState] = useState(
     initialTransactionColorScheme,
   );
-  const storageKey = getUserThemeStorageKey(storageScope);
-  const themeKey = useSyncExternalStore(
-    subscribeToUserTheme,
-    () => getStoredUserThemeKey(storageKey),
-    getDefaultUserThemeKey,
-  );
-  const isThemeReady = useSyncExternalStore(
-    subscribeToUserTheme,
-    () => getIsThemeReady(storageKey),
-    () => false,
-  );
-  const appliedThemeKey = getAppliedUserThemeKey();
-  const visibleThemeKey =
-    isThemeReady && appliedThemeKey ? appliedThemeKey : themeKey;
+  const [syncedInitialThemeKey, setSyncedInitialThemeKey] =
+    useState(initialThemeKey);
+
+  // 服务端重新下发主题（例如刷新后读到其他设备的修改）时，以数据库值为准。
+  if (syncedInitialThemeKey !== initialThemeKey) {
+    setSyncedInitialThemeKey(initialThemeKey);
+    setThemeKeyState(initialThemeKey);
+  }
 
   useEffect(() => {
     cancelDefaultUserThemeReset();
@@ -98,49 +86,32 @@ export function UserThemeProvider({
   }, []);
 
   useLayoutEffect(() => {
-    const storedThemeKey = getStoredUserThemeKey(storageKey);
+    // <html> 上的 CSS 变量与 cookie 只是缓存，始终跟随当前主题（数据库值或乐观更新值）。
+    applyUserTheme(themeKey, transactionColorScheme);
+    syncThemeCookie(themeKey);
+  }, [themeKey, transactionColorScheme]);
 
-    applyUserTheme(storedThemeKey, transactionColorScheme);
-    syncThemeCookie(storedThemeKey);
-    window.dispatchEvent(new Event(userThemeChangeEventName));
-  }, [storageKey, themeKey, transactionColorScheme]);
-
-  const setThemeKey = useCallback(
-    (nextThemeKey: UserThemeKey) => {
-      window.localStorage.setItem(storageKey, nextThemeKey);
-      window.localStorage.setItem(lastUserThemeStorageKey, nextThemeKey);
-      applyUserTheme(nextThemeKey, transactionColorScheme);
-      syncThemeCookie(nextThemeKey);
-      window.dispatchEvent(new Event(userThemeChangeEventName));
-    },
-    [storageKey, transactionColorScheme],
-  );
+  const setThemeKey = useCallback((nextThemeKey: UserThemeKey) => {
+    setThemeKeyState(nextThemeKey);
+  }, []);
 
   const setTransactionColorScheme = useCallback(
     (nextScheme: TransactionColorScheme) => {
       setTransactionColorSchemeState(nextScheme);
-      applyUserTheme(visibleThemeKey, nextScheme);
     },
-    [visibleThemeKey],
+    [],
   );
 
   const value = useMemo(
     () => ({
-      isThemeReady,
-      themeKey: visibleThemeKey,
+      themeKey,
       setThemeKey,
       setTransactionColorScheme,
       themeKeys: userThemeKeys,
       tokens: userThemeTokens,
       transactionColorScheme,
     }),
-    [
-      isThemeReady,
-      setThemeKey,
-      setTransactionColorScheme,
-      transactionColorScheme,
-      visibleThemeKey,
-    ],
+    [setThemeKey, setTransactionColorScheme, themeKey, transactionColorScheme],
   );
 
   return (
@@ -218,60 +189,4 @@ function isCurrentPathProtectedRoute() {
   return protectedRoutePrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-}
-
-function subscribeToUserTheme(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-  window.addEventListener(userThemeChangeEventName, onStoreChange);
-
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener(userThemeChangeEventName, onStoreChange);
-  };
-}
-
-function getStoredUserThemeKey(storageKey: string): UserThemeKey {
-  const savedThemeKey = normalizeUserThemeKey(
-    window.localStorage.getItem(storageKey),
-  );
-
-  if (savedThemeKey) {
-    return savedThemeKey;
-  }
-
-  const lastThemeKey = normalizeUserThemeKey(
-    window.localStorage.getItem(lastUserThemeStorageKey),
-  );
-
-  return lastThemeKey ?? defaultUserThemeKey;
-}
-
-function normalizeUserThemeKey(value: string | null): UserThemeKey | null {
-  if (!value) {
-    return null;
-  }
-
-  if (isUserThemeKey(value)) {
-    return value;
-  }
-
-  return null;
-}
-
-function getDefaultUserThemeKey(): UserThemeKey {
-  return defaultUserThemeKey;
-}
-
-function getAppliedUserThemeKey(): UserThemeKey | null {
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  const themeKey = document.documentElement.dataset.userTheme;
-
-  return themeKey ? normalizeUserThemeKey(themeKey) : null;
-}
-
-function getIsThemeReady(storageKey: string) {
-  return getAppliedUserThemeKey() === getStoredUserThemeKey(storageKey);
 }

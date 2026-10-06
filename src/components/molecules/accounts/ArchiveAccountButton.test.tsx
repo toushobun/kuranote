@@ -15,13 +15,12 @@ import { ArchiveAccountButton } from "./ArchiveAccountButton";
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   document.documentElement.removeAttribute("data-user-theme");
 });
 
 function renderWithUserTheme(children: ReactNode) {
   return render(
-    <UserThemeProvider storageScope="archive-account-button-test">
+    <UserThemeProvider>
       <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
     </UserThemeProvider>,
   );
