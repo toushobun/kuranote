@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
@@ -22,11 +21,11 @@ import { useFormStatus } from "react-dom";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
+import { ledgerCreatePageMessages } from "config/ledgerMessages";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
@@ -45,7 +44,6 @@ const ledgerCreateText = {
     "创建后会自动切换到这个账本",
   ],
   automaticTitle: "系统会自动为你准备",
-  back: "返回",
   colorHelper: "将用于成员标识与记录展示",
   colorLabel: "我的个性色",
   create: "创建账本",
@@ -54,8 +52,6 @@ const ledgerCreateText = {
   displayNameLabel: "我的显示名",
   errorTitle: "账本创建失败",
   ledgerNameLabel: "账本名称",
-  subtitle: "创建后将自动准备默认账户和分类，你可以马上开始记账。",
-  title: "创建新账本",
 } as const;
 
 const initialLedgerCreateActionState: LedgerCreateActionState = {};
@@ -88,221 +84,199 @@ export function LedgerCreateTemplate({
   }
 
   return (
-    <>
-      <Box
-        aria-hidden="true"
-        data-testid="ledger-create-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={pageShellSx}>
-        <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
-          <Stack spacing={1.2} sx={headerSx}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label={ledgerCreateText.back}
-                component={Link}
-                href={backHref}
-                sx={headerIconButtonSx}
+    <SettingsPageLayout
+      back={{ href: backHref, label: ledgerCreatePageMessages.back }}
+      subtitle={ledgerCreatePageMessages.subtitle}
+      title={ledgerCreatePageMessages.title}
+    >
+      <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
+        <SoftCard sx={formCardSx}>
+          <Stack spacing={2.1}>
+            <CreateField
+              htmlFor="create-ledger-name"
+              label={ledgerCreateText.ledgerNameLabel}
+            >
+              <TextField
+                autoComplete="off"
+                fullWidth
+                id="create-ledger-name"
+                inputRef={ledgerNameInputRef}
+                name="ledgerName"
+                onChange={(event) => setLedgerName(event.target.value)}
+                required
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 100,
+                  },
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="清空账本名称"
+                          edge="end"
+                          onClick={clearLedgerName}
+                          size="small"
+                          type="button"
+                        >
+                          <ClearRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    startAdornment: (
+                      <FieldIconAdornment>
+                        <HomeRoundedIcon />
+                      </FieldIconAdornment>
+                    ),
+                  },
+                }}
+                value={ledgerName}
+              />
+            </CreateField>
+
+            <CreateField
+              label={ledgerCreateText.currencyLabel}
+              labelId="create-ledger-currency-label"
+            >
+              <TextField
+                fullWidth
+                id="create-ledger-currency"
+                name="baseCurrency"
+                onChange={(event) => setBaseCurrency(event.target.value)}
+                required
+                select
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <FieldIconAdornment>
+                        <CurrencyExchangeRoundedIcon />
+                      </FieldIconAdornment>
+                    ),
+                  },
+                  select: {
+                    labelId: "create-ledger-currency-label",
+                  },
+                }}
+                value={baseCurrency}
               >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Typography component="h1" sx={pageTitleSx}>
-                {ledgerCreateText.title}
+                {ledgerCurrencyOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </CreateField>
+
+            <CreateField
+              helperText={ledgerCreateText.displayNameHelper}
+              htmlFor="create-ledger-display-name"
+              label={ledgerCreateText.displayNameLabel}
+            >
+              <TextField
+                autoComplete="name"
+                fullWidth
+                id="create-ledger-display-name"
+                name="memberDisplayName"
+                onChange={(event) => setDisplayName(event.target.value)}
+                required
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 100,
+                  },
+                  input: {
+                    startAdornment: (
+                      <FieldIconAdornment>
+                        <PersonRoundedIcon />
+                      </FieldIconAdornment>
+                    ),
+                  },
+                }}
+                value={displayName}
+              />
+            </CreateField>
+
+            <Stack spacing={1.1}>
+              <Typography component="p" sx={fieldLabelSx}>
+                {ledgerCreateText.colorLabel}
+              </Typography>
+              <input
+                name="memberDisplayColor"
+                type="hidden"
+                value={displayColor}
+              />
+              <Stack
+                aria-label={ledgerCreateText.colorLabel}
+                direction="row"
+                role="radiogroup"
+                sx={colorPickerSx}
+              >
+                {ledgerMemberColorOptions.map((colorKey) => (
+                  <ColorRadio
+                    checked={colorKey === displayColor}
+                    colorKey={colorKey}
+                    key={colorKey}
+                    onChange={setDisplayColor}
+                  />
+                ))}
+              </Stack>
+              <Typography color="text.secondary" variant="body2">
+                {ledgerCreateText.colorHelper}
               </Typography>
             </Stack>
-            <Typography color="text.secondary" sx={pageSubtitleSx}>
-              {ledgerCreateText.subtitle}
-            </Typography>
           </Stack>
+        </SoftCard>
 
-          <SoftCard sx={formCardSx}>
-            <Stack spacing={2.1}>
-              <CreateField
-                htmlFor="create-ledger-name"
-                label={ledgerCreateText.ledgerNameLabel}
-              >
-                <TextField
-                  autoComplete="off"
-                  fullWidth
-                  id="create-ledger-name"
-                  inputRef={ledgerNameInputRef}
-                  name="ledgerName"
-                  onChange={(event) => setLedgerName(event.target.value)}
-                  required
-                  slotProps={{
-                    htmlInput: {
-                      maxLength: 100,
-                    },
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="清空账本名称"
-                            edge="end"
-                            onClick={clearLedgerName}
-                            size="small"
-                            type="button"
-                          >
-                            <ClearRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                      startAdornment: (
-                        <FieldIconAdornment>
-                          <HomeRoundedIcon />
-                        </FieldIconAdornment>
-                      ),
-                    },
-                  }}
-                  value={ledgerName}
-                />
-              </CreateField>
-
-              <CreateField
-                label={ledgerCreateText.currencyLabel}
-                labelId="create-ledger-currency-label"
-              >
-                <TextField
-                  fullWidth
-                  id="create-ledger-currency"
-                  name="baseCurrency"
-                  onChange={(event) => setBaseCurrency(event.target.value)}
-                  required
-                  select
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <FieldIconAdornment>
-                          <CurrencyExchangeRoundedIcon />
-                        </FieldIconAdornment>
-                      ),
-                    },
-                    select: {
-                      labelId: "create-ledger-currency-label",
-                    },
-                  }}
-                  value={baseCurrency}
-                >
-                  {ledgerCurrencyOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </CreateField>
-
-              <CreateField
-                helperText={ledgerCreateText.displayNameHelper}
-                htmlFor="create-ledger-display-name"
-                label={ledgerCreateText.displayNameLabel}
-              >
-                <TextField
-                  autoComplete="name"
-                  fullWidth
-                  id="create-ledger-display-name"
-                  name="memberDisplayName"
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  required
-                  slotProps={{
-                    htmlInput: {
-                      maxLength: 100,
-                    },
-                    input: {
-                      startAdornment: (
-                        <FieldIconAdornment>
-                          <PersonRoundedIcon />
-                        </FieldIconAdornment>
-                      ),
-                    },
-                  }}
-                  value={displayName}
-                />
-              </CreateField>
-
-              <Stack spacing={1.1}>
-                <Typography component="p" sx={fieldLabelSx}>
-                  {ledgerCreateText.colorLabel}
-                </Typography>
-                <input
-                  name="memberDisplayColor"
-                  type="hidden"
-                  value={displayColor}
-                />
-                <Stack
-                  aria-label={ledgerCreateText.colorLabel}
-                  direction="row"
-                  role="radiogroup"
-                  sx={colorPickerSx}
-                >
-                  {ledgerMemberColorOptions.map((colorKey) => (
-                    <ColorRadio
-                      checked={colorKey === displayColor}
-                      colorKey={colorKey}
-                      key={colorKey}
-                      onChange={setDisplayColor}
-                    />
-                  ))}
-                </Stack>
-                <Typography color="text.secondary" variant="body2">
-                  {ledgerCreateText.colorHelper}
-                </Typography>
+        <SoftCard sx={automaticCardSx}>
+          <Stack
+            direction="row"
+            spacing={1.45}
+            sx={{ alignItems: "flex-start" }}
+          >
+            <Box sx={automaticIconSx}>
+              <ChecklistRoundedIcon />
+            </Box>
+            <Stack spacing={1.15} sx={{ flex: 1, minWidth: 0 }}>
+              <Typography component="h2" sx={automaticTitleSx}>
+                {ledgerCreateText.automaticTitle}
+              </Typography>
+              <Stack spacing={0.9}>
+                {ledgerCreateText.automaticItems.map((item) => (
+                  <Stack
+                    direction="row"
+                    key={item}
+                    spacing={0.8}
+                    sx={{ alignItems: "flex-start" }}
+                  >
+                    <Box sx={automaticCheckSx}>
+                      <CheckRoundedIcon />
+                    </Box>
+                    <Typography sx={automaticItemSx}>{item}</Typography>
+                  </Stack>
+                ))}
               </Stack>
             </Stack>
-          </SoftCard>
-
-          <SoftCard sx={automaticCardSx}>
-            <Stack
-              direction="row"
-              spacing={1.45}
-              sx={{ alignItems: "flex-start" }}
-            >
-              <Box sx={automaticIconSx}>
-                <ChecklistRoundedIcon />
-              </Box>
-              <Stack spacing={1.15} sx={{ flex: 1, minWidth: 0 }}>
-                <Typography component="h2" sx={automaticTitleSx}>
-                  {ledgerCreateText.automaticTitle}
-                </Typography>
-                <Stack spacing={0.9}>
-                  {ledgerCreateText.automaticItems.map((item) => (
-                    <Stack
-                      direction="row"
-                      key={item}
-                      spacing={0.8}
-                      sx={{ alignItems: "flex-start" }}
-                    >
-                      <Box sx={automaticCheckSx}>
-                        <CheckRoundedIcon />
-                      </Box>
-                      <Typography sx={automaticItemSx}>{item}</Typography>
-                    </Stack>
-                  ))}
-                </Stack>
-              </Stack>
-            </Stack>
-          </SoftCard>
-
-          <Stack direction="row" spacing={1.5} sx={actionBarSx}>
-            <Button
-              component={Link}
-              fullWidth
-              href={backHref}
-              sx={backButtonSx}
-              variant="outlined"
-            >
-              {ledgerCreateText.back}
-            </Button>
-            <CreateSubmitButton />
           </Stack>
+        </SoftCard>
+
+        <Stack direction="row" spacing={1.5} sx={actionBarSx}>
+          <Button
+            component={Link}
+            fullWidth
+            href={backHref}
+            sx={backButtonSx}
+            variant="outlined"
+          >
+            {ledgerCreatePageMessages.back}
+          </Button>
+          <CreateSubmitButton />
         </Stack>
+      </Stack>
 
-        <ActionFailureFeedback
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          state={actionState}
-          title={ledgerCreateText.errorTitle}
-        />
-      </PageShell>
-    </>
+      <ActionFailureFeedback
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        state={actionState}
+        title={ledgerCreateText.errorTitle}
+      />
+    </SettingsPageLayout>
   );
 }
 
@@ -397,34 +371,8 @@ function CreateSubmitButton() {
   );
 }
 
-const pageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const formSx = {
   pb: `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`,
-};
-
-const headerSx = {
-  px: { xs: 0.25, sm: 0.5 },
-};
-
-const headerIconButtonSx = {
-  color: "text.primary",
-  ml: -0.5,
-};
-
-const pageTitleSx = {
-  ...typographyStyles.pageTitle,
-  fontSize: { xs: 28, sm: 30 },
-  fontWeight: 900,
-};
-
-const pageSubtitleSx = {
-  fontSize: { xs: 15, sm: 16 },
-  lineHeight: 1.7,
-  px: 0.4,
 };
 
 const formCardSx = {

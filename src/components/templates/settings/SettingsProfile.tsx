@@ -1,13 +1,10 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Link from "next/link";
 import { useState } from "react";
 
 import { routePaths } from "config/paths";
@@ -35,8 +32,7 @@ import type {
   PasswordChangeOtpAction,
 } from "types/auth";
 import type { AvatarAction, DisplayNameAction } from "types/user";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 type SettingsProfileTemplateProps = {
   changePasswordAction: ChangePasswordAction;
@@ -75,23 +71,12 @@ export function SettingsProfileTemplate({
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        leading={
-          <IconButton
-            aria-label={pageText.backToSettings}
-            component={Link}
-            href={routePaths.settings}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        subtitle={pageText.subtitle}
-        title={pageText.title}
-        variant="compact"
-      />
-
-      <Stack spacing={1.25} sx={{ mt: 3 }}>
+    <SettingsPageLayout
+      back={{ href: routePaths.settings, label: pageText.backToSettings }}
+      subtitle={pageText.subtitle}
+      title={pageText.title}
+    >
+      <Stack spacing={1.25}>
         <ProfileSummaryCard
           avatarUrl={profile.avatarUrl}
           displayName={profile.displayName}
@@ -153,6 +138,6 @@ export function SettingsProfileTemplate({
         open={isPasswordDialogOpen}
         requestOtpAction={requestPasswordChangeOtpAction}
       />
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

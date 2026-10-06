@@ -2,27 +2,39 @@ import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { categoryPageMessages } from "config/categoryMessages";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { routePaths } from "config/paths";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
 
 const categoryLoadingRows = [0, 1, 2] as const;
 
 export default function CategoriesLoadingPage() {
   return (
-    <Box aria-busy="true" aria-label="分类数据加载中" role="status">
-      <PageShell>
-        <PageHeader
-          action={<Skeleton height={38} variant="rounded" width={118} />}
-          leading={<Skeleton height={40} variant="circular" width={40} />}
-          subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={230} />}
-          title={categoryPageMessages.title}
-          variant="compact"
-        />
-
-        <Stack spacing={2.5} sx={{ mt: 3 }}>
+    <Box
+      aria-busy="true"
+      aria-label={categoryPageMessages.loading}
+      role="status"
+    >
+      <SettingsPageLayout
+        action={
+          <Skeleton
+            height={30}
+            sx={{ borderRadius: `${designTokens.radius.full}px` }}
+            variant="rounded"
+            width={104}
+          />
+        }
+        back={{
+          href: routePaths.settings,
+          label: categoryPageMessages.backToSettings,
+        }}
+        subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={230} />}
+        title={categoryPageMessages.title}
+      >
+        <Stack spacing={2.5}>
           <Skeleton
             height={40}
             variant="rounded"
@@ -33,7 +45,7 @@ export default function CategoriesLoadingPage() {
 
           <Stack spacing={1.5}>
             {categoryLoadingRows.map((row) => (
-              <SoftCard key={row} sx={{ px: { xs: 1.25, sm: 2 }, py: 0 }}>
+              <DataItemCard key={row} sx={{ py: 0 }}>
                 <Stack
                   direction="row"
                   spacing={1}
@@ -48,7 +60,7 @@ export default function CategoriesLoadingPage() {
                   <Skeleton height={32} variant="circular" width={32} />
                   <Skeleton height={32} variant="circular" width={32} />
                 </Stack>
-              </SoftCard>
+              </DataItemCard>
             ))}
           </Stack>
 
@@ -62,7 +74,7 @@ export default function CategoriesLoadingPage() {
             </Stack>
           </SoftCard>
         </Stack>
-      </PageShell>
+      </SettingsPageLayout>
     </Box>
   );
 }

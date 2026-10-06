@@ -18,6 +18,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
 import {
   categoryArchiveConfirmMessages,
@@ -166,10 +167,9 @@ function CategoryRowItem({
 }
 
 function CategorySection({ children }: { children: ReactNode }) {
+  // 行本身带有最小高度与上下内边距，卡片只统一圆角与左右内边距。
   return (
-    <SoftCard sx={{ overflow: "hidden", px: { xs: 1.25, sm: 2 }, py: 0 }}>
-      {children}
-    </SoftCard>
+    <DataItemCard sx={{ overflow: "hidden", py: 0 }}>{children}</DataItemCard>
   );
 }
 
@@ -228,7 +228,7 @@ export function CategoryList({
   }
 
   return (
-    <Stack spacing={2.5} sx={{ mt: 3 }}>
+    <Stack spacing={2.5}>
       <SoftCard sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0 }}>
         <TextField
           fullWidth
@@ -310,7 +310,7 @@ export function CategoryList({
                   <SortableItem
                     key={category.id}
                     id={category.id}
-                    sx={{ borderRadius: `${designTokens.radius.lg}px` }}
+                    sx={{ borderRadius: `${designTokens.radius.md}px` }}
                   >
                     {(handleProps) => (
                       <CategorySection>

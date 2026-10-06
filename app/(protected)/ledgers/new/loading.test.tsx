@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { ledgerCreatePageMessages } from "config/ledgerMessages";
+import { routePaths } from "config/paths";
+
 import LedgerCreateLoadingPage from "./loading";
 
 describe("LedgerCreateLoadingPage", () => {
@@ -17,5 +20,16 @@ describe("LedgerCreateLoadingPage", () => {
       6,
     );
     expect(screen.queryByText("我的账本列表")).not.toBeInTheDocument();
+  });
+
+  it("返回按钮与标题直接显示真实内容", () => {
+    render(<LedgerCreateLoadingPage />);
+
+    expect(
+      screen.getByRole("link", { name: ledgerCreatePageMessages.back }),
+    ).toHaveAttribute("href", routePaths.ledgers);
+    expect(
+      screen.getByRole("heading", { name: ledgerCreatePageMessages.title }),
+    ).toBeInTheDocument();
   });
 });

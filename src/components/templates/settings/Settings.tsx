@@ -13,8 +13,14 @@ import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import { useMemo, useState, type ElementType } from "react";
 
+import { accountPageMessages } from "config/accountMessages";
+import { categoryPageMessages } from "config/categoryMessages";
+import { dataImportExportPageMessages } from "config/dataImportExportMessages";
+import { ledgerPageMessages } from "config/ledgerMessages";
+import { merchantPageMessages } from "config/merchantText";
 import { routePaths, type AppRoutePath } from "config/paths";
 import {
+  settingsPageMessages,
   settingsPreferencesPageMessages,
   settingsProfilePageMessages,
 } from "config/settingsMessages";
@@ -23,8 +29,7 @@ import {
   SettingsEntryButton,
   SettingsEntryGroupCard,
 } from "organisms/settings/SettingsEntryList/SettingsEntryList";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 type SettingsEntryBase = {
   icon: ElementType<SvgIconProps>;
@@ -57,7 +62,7 @@ function createSettingsEntryGroups(
           href: routePaths.ledgers,
           icon: MenuBookOutlinedIcon,
           kind: "link",
-          label: "账本管理",
+          label: ledgerPageMessages.title,
           trailing: currentLedgerName,
         },
       ],
@@ -69,25 +74,25 @@ function createSettingsEntryGroups(
           href: routePaths.accounts,
           icon: AccountBalanceWalletOutlinedIcon,
           kind: "link",
-          label: "账户管理",
+          label: accountPageMessages.title,
         },
         {
           href: routePaths.categories,
           icon: CategoryOutlinedIcon,
           kind: "link",
-          label: "分类管理",
+          label: categoryPageMessages.title,
         },
         {
           href: routePaths.merchants,
           icon: StorefrontOutlinedIcon,
           kind: "link",
-          label: "商家管理",
+          label: merchantPageMessages.title,
         },
         {
           href: routePaths.settingsData,
           icon: ImportExportOutlinedIcon,
           kind: "link",
-          label: "数据导入导出",
+          label: dataImportExportPageMessages.title,
         },
       ],
     },
@@ -131,9 +136,10 @@ export function SettingsTemplate({ currentLedgerName }: SettingsTemplateProps) {
   };
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader subtitle="管理个人信息、主题与应用设置" title="我的" />
-
+    <SettingsPageLayout
+      subtitle={settingsPageMessages.subtitle}
+      title={settingsPageMessages.title}
+    >
       <Stack spacing={1.25}>
         {settingsEntryGroups.map((group) => (
           <SettingsEntryGroupCard key={group.label} label={group.label}>
@@ -153,7 +159,7 @@ export function SettingsTemplate({ currentLedgerName }: SettingsTemplateProps) {
         onClose={closeComingSoonToast}
         open={isToastOpen}
       />
-    </PageShell>
+    </SettingsPageLayout>
   );
 }
 

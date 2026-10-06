@@ -7,6 +7,8 @@ import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { CSSProperties, ReactNode } from "react";
 
+import { CreateButton } from "atoms/ui/CreateButton";
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { IconBadge } from "atoms/ui/IconBadge";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
@@ -14,6 +16,10 @@ import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { PageFrame } from "./PageFrame";
 import { PageHeader } from "./PageHeader";
 import { PageShell } from "./PageShell";
+import {
+  SettingsPageLayout,
+  settingsPageActionButtonSx,
+} from "./SettingsPageLayout";
 
 const meta = {
   title: "Templates/Layout/CommonLayout",
@@ -116,6 +122,44 @@ export const HeaderWithRichSubtitle: Story = {
           </Stack>
         }
       />
+    </ThemeStory>
+  ),
+};
+
+export const SettingsPageWithBack: Story = {
+  name: "SettingsPageLayout（二级页面）",
+  render: () => (
+    <ThemeStory>
+      <SettingsPageLayout
+        action={
+          <CreateButton size="small" sx={settingsPageActionButtonSx}>
+            新增账户
+          </CreateButton>
+        }
+        back={{ href: "/settings", label: "返回设置" }}
+        subtitle="整理家里的现金、银行卡、电子钱包和信用卡"
+        title="账户管理"
+      >
+        <Stack spacing={0.9}>
+          <DataItemCard>
+            <Typography>现金</Typography>
+          </DataItemCard>
+          <DataItemCard>
+            <Typography>银行卡</Typography>
+          </DataItemCard>
+        </Stack>
+      </SettingsPageLayout>
+    </ThemeStory>
+  ),
+};
+
+export const SettingsPageTopLevel: Story = {
+  name: "SettingsPageLayout（一级页面，无返回）",
+  render: () => (
+    <ThemeStory>
+      <SettingsPageLayout subtitle="管理个人信息、主题与应用设置" title="我的">
+        <SectionCard>菜单分组区域</SectionCard>
+      </SettingsPageLayout>
     </ThemeStory>
   ),
 };

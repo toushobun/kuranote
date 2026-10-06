@@ -1,13 +1,13 @@
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { SoftCard } from "atoms/ui/SoftCard";
+import { ledgerCreatePageMessages } from "config/ledgerMessages";
+import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
 
 const colorOptionCount = 6;
@@ -15,20 +15,21 @@ const automaticItemCount = 4;
 
 export default function LedgerCreateLoadingPage() {
   return (
-    <Box aria-busy="true" aria-label="账本创建页面加载中" role="status">
-      <Box aria-hidden="true" sx={fullViewportPageBackgroundSx} />
-      <PageShell maxWidth="xs" sx={pageShellSx}>
+    <Box
+      aria-busy="true"
+      aria-label={ledgerCreatePageMessages.loading}
+      role="status"
+    >
+      <SettingsPageLayout
+        back={{
+          // 返回地址取决于是否已有当前账本，加载中以账本管理为准
+          href: routePaths.ledgers,
+          label: ledgerCreatePageMessages.back,
+        }}
+        subtitle={ledgerCreatePageMessages.subtitle}
+        title={ledgerCreatePageMessages.title}
+      >
         <Stack spacing={1.6} sx={formSx}>
-          <Stack spacing={1.2} sx={headerSx}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <Skeleton height={40} variant="circular" width={40}>
-                <ArrowBackRoundedIcon />
-              </Skeleton>
-              <Skeleton sx={{ fontSize: 30 }} width="52%" />
-            </Stack>
-            <Skeleton sx={{ fontSize: 16 }} width="88%" />
-          </Stack>
-
           <SoftCard sx={formCardSx}>
             <Stack spacing={2.1}>
               <LoadingField />
@@ -85,7 +86,7 @@ export default function LedgerCreateLoadingPage() {
             <Skeleton height={48} sx={{ flex: 1 }} variant="rounded" />
           </Stack>
         </Stack>
-      </PageShell>
+      </SettingsPageLayout>
     </Box>
   );
 }
@@ -100,17 +101,8 @@ function LoadingField({ showHelper = false }: { showHelper?: boolean }) {
   );
 }
 
-const pageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const formSx = {
   pb: `calc(${bottomNavigationLayout.shellPaddingBottom} + 8px)`,
-};
-
-const headerSx = {
-  px: { xs: 0.25, sm: 0.5 },
 };
 
 const formCardSx = {

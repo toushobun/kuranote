@@ -1,15 +1,11 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
+import { accountPageMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
 import {
   FailureFeedbackDialog,
@@ -23,10 +19,11 @@ import {
   stackedFeedbackBottomOffset,
 } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import {
+  SettingsPageLayout,
+  settingsPageActionButtonSx,
+} from "templates/layout/SettingsPageLayout";
 import { useClearQueryParam } from "templates/useClearQueryParam";
-import { designTokens } from "theme/theme";
 import {
   accountTypeOptions,
   type AccountActionState,
@@ -168,118 +165,95 @@ export function AccountsTemplate({
   }
 
   return (
-    <>
-      <Box
-        aria-hidden="true"
-        data-testid="accounts-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={accountsPageShellSx}>
-        <Stack spacing={1.35}>
-          <Stack spacing={0.4}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label="返回"
-                component={Link}
-                href={routePaths.settings}
-                sx={headerIconButtonSx}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Typography
-                component="h1"
-                sx={{ flex: 1, fontSize: { xs: 24, sm: 26 }, fontWeight: 900 }}
-              >
-                账户管理
-              </Typography>
-              {canManageAccounts ? (
-                <CreateButton
-                  onClick={() => setIsCreateDialogOpen(true)}
-                  sx={createButtonSx}
-                >
-                  新增账户
-                </CreateButton>
-              ) : null}
-            </Stack>
-            <Typography
-              color="text.secondary"
-              variant="body2"
-              sx={{ pl: 5.75 }}
-            >
-              整理家里的现金、银行卡、电子钱包和信用卡
-            </Typography>
-          </Stack>
+    <SettingsPageLayout
+      action={
+        canManageAccounts ? (
+          <CreateButton
+            onClick={() => setIsCreateDialogOpen(true)}
+            size="small"
+            sx={settingsPageActionButtonSx}
+          >
+            {accountPageMessages.create}
+          </CreateButton>
+        ) : null
+      }
+      back={{
+        href: routePaths.settings,
+        label: accountPageMessages.backToSettings,
+      }}
+      subtitle={accountPageMessages.subtitle}
+      title={accountPageMessages.title}
+    >
+      <Stack spacing={1.35}>
+        <AccountSummaryCard accounts={accounts} baseCurrency={baseCurrency} />
 
-          <AccountSummaryCard accounts={accounts} baseCurrency={baseCurrency} />
-
-          <Stack direction="row" spacing={0.7} sx={filterRowSx}>
-            <AccountTypeFilterChip
-              label="全部"
-              selected={selectedType === "all"}
-              onClick={() => setSelectedType("all")}
-            />
-            {accountTypeOptions
-              .filter((option) => option.value !== "other")
-              .map((option) => (
-                <AccountTypeFilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={selectedType === option.value}
-                  onClick={() => setSelectedType(option.value)}
-                />
-              ))}
-          </Stack>
-
-          <AccountList
-            accounts={filteredAccounts}
-            archiveAccountAction={archiveFormAction}
-            canManageAccounts={canManageAccounts}
-            emptyDescription={
-              isFilteredEmpty
-                ? "请切换其他账户类型。"
-                : canManageAccounts
-                  ? undefined
-                  : "当前账本还没有可查看的账户。"
-            }
-            emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
-            holderOptions={holderOptions}
-            placeholderHolderOptions={placeholderHolderOptions}
-            saveResult={saveResult}
-            updateAccountAction={updateFormAction}
+        <Stack direction="row" spacing={0.7} sx={filterRowSx}>
+          <AccountTypeFilterChip
+            label="全部"
+            selected={selectedType === "all"}
+            onClick={() => setSelectedType("all")}
           />
+          {accountTypeOptions
+            .filter((option) => option.value !== "other")
+            .map((option) => (
+              <AccountTypeFilterChip
+                key={option.value}
+                label={option.label}
+                selected={selectedType === option.value}
+                onClick={() => setSelectedType(option.value)}
+              />
+            ))}
         </Stack>
 
-        {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
-        {canManageAccounts ? (
-          <AccountCreateDialog
-            createAccountAction={createFormAction}
-            defaultCurrency={baseCurrency}
-            holderOptions={holderOptions}
-            onClose={() => setIsCreateDialogOpen(false)}
-            placeholderHolderOptions={placeholderHolderOptions}
-            open={isCreateDialogOpen}
-          />
-        ) : null}
-        {errorFeedbacks.map((feedback, index) => (
-          <FailureFeedbackDialog
-            aboveModal
-            key={feedback.id}
-            bottomOffset={stackedFeedbackBottomOffset(index)}
-            description={feedback.message}
-            onClose={() => closeErrorFeedback(feedback.id)}
-            open
-            title="账户操作失败"
-          />
-        ))}
-        <SuccessFeedbackDialog
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          description={saveSuccessDialogText.description}
-          onClose={closeSaveSuccessDialog}
-          open={isSaveSuccessOpen}
-          title={saveSuccessDialogText.title}
+        <AccountList
+          accounts={filteredAccounts}
+          archiveAccountAction={archiveFormAction}
+          canManageAccounts={canManageAccounts}
+          emptyDescription={
+            isFilteredEmpty
+              ? "请切换其他账户类型。"
+              : canManageAccounts
+                ? undefined
+                : "当前账本还没有可查看的账户。"
+          }
+          emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
+          holderOptions={holderOptions}
+          placeholderHolderOptions={placeholderHolderOptions}
+          saveResult={saveResult}
+          updateAccountAction={updateFormAction}
         />
-      </PageShell>
-    </>
+      </Stack>
+
+      {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
+      {canManageAccounts ? (
+        <AccountCreateDialog
+          createAccountAction={createFormAction}
+          defaultCurrency={baseCurrency}
+          holderOptions={holderOptions}
+          onClose={() => setIsCreateDialogOpen(false)}
+          placeholderHolderOptions={placeholderHolderOptions}
+          open={isCreateDialogOpen}
+        />
+      ) : null}
+      {errorFeedbacks.map((feedback, index) => (
+        <FailureFeedbackDialog
+          aboveModal
+          key={feedback.id}
+          bottomOffset={stackedFeedbackBottomOffset(index)}
+          description={feedback.message}
+          onClose={() => closeErrorFeedback(feedback.id)}
+          open
+          title="账户操作失败"
+        />
+      ))}
+      <SuccessFeedbackDialog
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        description={saveSuccessDialogText.description}
+        onClose={closeSaveSuccessDialog}
+        open={isSaveSuccessOpen}
+        title={saveSuccessDialogText.title}
+      />
+    </SettingsPageLayout>
   );
 }
 
@@ -325,16 +299,6 @@ const selectedAccountTypeChipSx = {
   },
 };
 
-const headerIconButtonSx = {
-  color: "text.primary",
-  mt: 0.2,
-};
-
-const accountsPageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const filterRowSx = {
   flexWrap: "nowrap",
   mx: -0.5,
@@ -344,15 +308,6 @@ const filterRowSx = {
   "&::-webkit-scrollbar": {
     display: "none",
   },
-};
-
-const createButtonSx = {
-  borderRadius: `${designTokens.radius.full}px`,
-  flexShrink: 0,
-  fontWeight: 800,
-  minHeight: 40,
-  px: 2,
-  whiteSpace: "nowrap",
 };
 
 const accountSaveSuccessDialogTextByResult: Record<

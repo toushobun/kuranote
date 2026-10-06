@@ -1,21 +1,17 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { routePaths } from "config/paths";
-import { merchantText } from "config/merchantText";
+import { merchantPageMessages, merchantText } from "config/merchantText";
 import { DeleteConfirmationDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantDisplayNameFeedback } from "organisms/merchants/MerchantDisplayNameFeedback/MerchantDisplayNameFeedback";
 import { MerchantDisplayNameEditor } from "organisms/merchants/MerchantDisplayNameEditor/MerchantDisplayNameEditor";
 import { MerchantEditForm } from "organisms/merchants/MerchantEditForm/MerchantEditForm";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
 import type {
   Merchant,
@@ -119,41 +115,30 @@ export function MerchantEditTemplate({
           : null;
 
   return (
-    <PageShell
-      maxWidth="sm"
-      sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
-    >
-      <PageHeader
-        action={
-          <form action={archive.action} ref={archiveFormRef}>
-            <input name="merchantId" type="hidden" value={merchant.id} />
-            <Button
-              color="error"
-              disabled={archive.pending}
-              onClick={() => setIsArchiveConfirmOpen(true)}
-              size="small"
-              sx={{ borderRadius: `${designTokens.radius.full}px` }}
-              type="button"
-              variant="outlined"
-            >
-              {merchantText.archive}
-            </Button>
-          </form>
-        }
-        leading={
-          <IconButton
-            aria-label="返回商家管理"
-            component={Link}
-            href={routePaths.merchants}
+    <SettingsPageLayout
+      action={
+        <form action={archive.action} ref={archiveFormRef}>
+          <input name="merchantId" type="hidden" value={merchant.id} />
+          <Button
+            color="error"
+            disabled={archive.pending}
+            onClick={() => setIsArchiveConfirmOpen(true)}
+            size="small"
+            sx={{ borderRadius: `${designTokens.radius.full}px` }}
+            type="button"
+            variant="outlined"
           >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        subtitle={`商家管理 〉 编辑商家 · ${ledgerName}`}
-        title={merchantText.edit}
-        variant="compact"
-      />
-
+            {merchantText.archive}
+          </Button>
+        </form>
+      }
+      back={{
+        href: routePaths.merchants,
+        label: merchantPageMessages.backToMerchants,
+      }}
+      subtitle={merchantPageMessages.editSubtitle(ledgerName)}
+      title={merchantText.edit}
+    >
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm
           action={update.action}
@@ -202,6 +187,6 @@ export function MerchantEditTemplate({
           title={merchantText.archiveConfirmTitle}
         />
       ) : null}
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

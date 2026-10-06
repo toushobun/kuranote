@@ -1,16 +1,13 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
 import {
   dataImportExecutionMessages,
@@ -33,8 +30,7 @@ import {
 import { SectionCard } from "molecules/ui/SectionCard";
 import { DataImportHolderMapping } from "organisms/settings/DataImportHolderMapping/DataImportHolderMapping";
 import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { useDataImportForm } from "templates/settings/useDataImportForm";
 import type { DataImportBatchStateAction } from "types/dataImport";
 
@@ -75,23 +71,15 @@ export function DataImportTemplate({
   } = useDataImportForm(executeBatchAction, holderMembers);
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        leading={
-          <IconButton
-            aria-label={dataTransferBackMessages.backToEntry}
-            component={Link}
-            href={routePaths.settingsData}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        title={dataImportPageMessages.title}
-        subtitle={dataImportPageMessages.subtitle}
-        variant="compact"
-      />
-
-      <Stack spacing={2.5} sx={{ mt: 3 }}>
+    <SettingsPageLayout
+      back={{
+        href: routePaths.settingsData,
+        label: dataTransferBackMessages.backToEntry,
+      }}
+      title={dataImportPageMessages.title}
+      subtitle={dataImportPageMessages.subtitle}
+    >
+      <Stack spacing={2.5}>
         <FormatDescriptionCard />
 
         <SectionCard>
@@ -196,7 +184,7 @@ export function DataImportTemplate({
 
         {downloadError ? <Alert severity="error">{downloadError}</Alert> : null}
       </Stack>
-    </PageShell>
+    </SettingsPageLayout>
   );
 }
 

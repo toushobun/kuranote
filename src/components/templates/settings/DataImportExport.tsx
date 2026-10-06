@@ -1,11 +1,9 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ButtonBase from "@mui/material/ButtonBase";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
@@ -17,30 +15,21 @@ import {
   dataImportExportPageMessages,
 } from "config/dataImportExportMessages";
 import { routePaths, type AppRoutePath } from "config/paths";
-import { SectionCard } from "molecules/ui/SectionCard";
+import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { actionHoverInteractionSx } from "theme/actionHoverSx";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 export function DataImportExportTemplate() {
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        leading={
-          <IconButton
-            aria-label={dataImportExportPageMessages.backToSettings}
-            component={Link}
-            href={routePaths.settings}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        title={dataImportExportPageMessages.title}
-        subtitle={dataImportExportPageMessages.subtitle}
-        variant="compact"
-      />
-
-      <Stack spacing={1.5} sx={{ mt: 3 }}>
+    <SettingsPageLayout
+      back={{
+        href: routePaths.settings,
+        label: dataImportExportPageMessages.backToSettings,
+      }}
+      title={dataImportExportPageMessages.title}
+      subtitle={dataImportExportPageMessages.subtitle}
+    >
+      <Stack spacing={1.5}>
         <DataTransferEntryCard
           description={dataImportExportEntryMessages.import.description}
           href={routePaths.settingsDataImport}
@@ -54,7 +43,7 @@ export function DataImportExportTemplate() {
           title={dataImportExportEntryMessages.export.title}
         />
       </Stack>
-    </PageShell>
+    </SettingsPageLayout>
   );
 }
 
@@ -72,7 +61,7 @@ function DataTransferEntryCard({
   title,
 }: DataTransferEntryCardProps) {
   return (
-    <SectionCard sx={{ overflow: "hidden", p: 0 }}>
+    <DataItemCard disablePadding sx={{ overflow: "hidden" }}>
       <ButtonBase
         component={Link}
         href={href}
@@ -99,7 +88,7 @@ function DataTransferEntryCard({
           sx={{ color: "text.secondary", flexShrink: 0, fontSize: 22 }}
         />
       </ButtonBase>
-    </SectionCard>
+    </DataItemCard>
   );
 }
 
@@ -110,8 +99,7 @@ const dataTransferEntryButtonSx = {
   color: "text.primary",
   display: "flex",
   gap: 1.5,
-  px: 2,
-  py: 2,
+  p: dataItemCardPadding,
   textAlign: "left",
   textDecoration: "none",
   width: "100%",

@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
-import { SoftCard } from "atoms/ui/SoftCard";
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { placeholderMemberText } from "config/placeholderMemberText";
 import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
@@ -45,12 +45,7 @@ export function AccountCard({
   onClick,
 }: AccountCardProps) {
   const card = (
-    <SoftCard
-      sx={{
-        borderRadius: `${designTokens.radius.md}px`,
-        p: { xs: 1.5, sm: 1.75 },
-      }}
-    >
+    <DataItemCard>
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
           <Box data-testid="account-card-icon" sx={accountIconSx}>
@@ -127,7 +122,7 @@ export function AccountCard({
           {footer}
         </>
       ) : null}
-    </SoftCard>
+    </DataItemCard>
   );
 
   if (!onClick) {

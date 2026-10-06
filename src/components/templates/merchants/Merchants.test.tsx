@@ -154,7 +154,7 @@ describe("MerchantsTemplate", () => {
       Number.parseFloat(getComputedStyle(createLink).borderRadius),
     ).toBeGreaterThan(100);
     expect(
-      within(container).getByTestId("merchants-page-background"),
+      within(container).getByTestId("settings-page-background"),
     ).toBeInTheDocument();
   });
 
