@@ -18,13 +18,13 @@ import {
 } from "internal/transaction/adapter/next/linkedEditInput";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
-  getTransactionValidationErrorMessage,
   balanceAdjustmentErrorMessages,
-  getUpdateTransactionValidationErrorMessage,
-  getVoidTransactionValidationErrorMessage,
   toTransactionActionErrorCode,
   transactionActionErrorMessages,
   transactionLinkedEditErrorMessages,
+  transactionValidationErrorMessages,
+  updateTransactionValidationErrorMessages,
+  voidTransactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import {
   validateConvertTransactionTypeForm,
@@ -86,8 +86,7 @@ export async function createTransaction(
   const validation = validateTransactionForm(formData);
   if (!validation.ok) {
     return createErrorState(
-      getTransactionValidationErrorMessage(validation.error) ??
-        transactionActionErrorMessages.inputInvalid,
+      transactionValidationErrorMessages[validation.error],
     );
   }
 
@@ -122,8 +121,7 @@ export async function updateTransaction(
   const validation = validateLinkedEditTransactionForm(formData);
   if (!validation.ok) {
     return createErrorState(
-      getUpdateTransactionValidationErrorMessage(validation.error) ??
-        transactionActionErrorMessages.inputInvalid,
+      updateTransactionValidationErrorMessages[validation.error],
     );
   }
   const linkedEditInput = parseLinkedEditActionInput(
@@ -156,8 +154,7 @@ export async function updateTransferTransaction(
   const validation = validateUpdateTransferTransactionForm(formData);
   if (!validation.ok) {
     return createErrorState(
-      getUpdateTransactionValidationErrorMessage(validation.error) ??
-        transactionActionErrorMessages.transferInputInvalid,
+      updateTransactionValidationErrorMessages[validation.error],
     );
   }
   try {
@@ -191,8 +188,7 @@ export async function convertTransactionType(
   const validation = validateConvertTransactionTypeForm(formData);
   if (!validation.ok) {
     return createErrorState(
-      getUpdateTransactionValidationErrorMessage(validation.error) ??
-        transactionActionErrorMessages.convertInputInvalid,
+      updateTransactionValidationErrorMessages[validation.error],
     );
   }
   try {
@@ -259,8 +255,7 @@ export async function voidTransaction(
   const validation = validateVoidTransactionForm(formData);
   if (!validation.ok) {
     return createErrorState(
-      getVoidTransactionValidationErrorMessage(validation.error) ??
-        transactionActionErrorMessages.voidInputInvalid,
+      voidTransactionValidationErrorMessages[validation.error],
     );
   }
   try {
