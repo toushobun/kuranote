@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +5,7 @@ import {
   ledgerInviteErrorCodes,
   ledgerInviteErrorMessages,
 } from "internal/ledger";
+import { hasUseClientDirective } from "test/clientBoundary";
 
 import { LedgerInviteTemplate } from "./LedgerInvite";
 
@@ -22,11 +20,6 @@ vi.mock("next/navigation", () => ({
     refresh: mocks.refresh,
   }),
 }));
-
-const componentSource = readFileSync(
-  join(process.cwd(), "src/components/templates/ledgers/LedgerInvite.tsx"),
-  "utf8",
-);
 
 const validPreview = {
   inviteRole: "member" as const,
@@ -50,7 +43,11 @@ beforeEach(() => {
 
 describe("LedgerInviteTemplate", () => {
   it("声明客户端边界以支持 MUI Link 组件", () => {
-    expect(componentSource.startsWith('"use client";')).toBe(true);
+    expect(
+      hasUseClientDirective(
+        "src/components/templates/ledgers/LedgerInvite.tsx",
+      ),
+    ).toBe(true);
   });
 
   it("有效邀请显示加入按钮和邀请插图", () => {

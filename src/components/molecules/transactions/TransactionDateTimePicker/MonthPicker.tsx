@@ -5,10 +5,8 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 
 import { transactionDateTimePickerMessages as messages } from "@/constants/transactions";
-import {
-  PrimaryActionButton,
-  primaryActionButtonNoHoverBrightenSx,
-} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
 import { designTokens } from "theme/theme";
 
 import {

@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import {
   act,
   cleanup,
@@ -20,13 +17,9 @@ import {
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import { hasUseClientDirective } from "test/clientBoundary";
 
 import { MerchantsTemplate } from "./Merchants";
-
-const componentSource = readFileSync(
-  join(process.cwd(), "src/components/templates/merchants/Merchants.tsx"),
-  "utf8",
-);
 
 vi.mock("molecules/ui/OperationFeedbackDialogs", { spy: true });
 
@@ -117,7 +110,9 @@ describe("MerchantsTemplate", () => {
   });
 
   it("声明客户端边界以支持 MUI Link 组件", () => {
-    expect(componentSource.startsWith('"use client";')).toBe(true);
+    expect(
+      hasUseClientDirective("src/components/templates/merchants/Merchants.tsx"),
+    ).toBe(true);
   });
 
   it("保存成功提示向上偏移避开底部导航栏", () => {

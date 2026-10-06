@@ -9,10 +9,8 @@ import { createDynamicMuiTheme } from "providers/DynamicMuiThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { type UserThemeKey, userThemeTokens } from "theme/userThemeTokens";
 
-import {
-  PrimaryActionButton,
-  primaryActionButtonNoHoverBrightenSx,
-} from "./PrimaryActionButton";
+import { PrimaryActionButton } from "./PrimaryActionButton";
+import { primaryActionButtonNoHoverBrightenSx } from "./primaryActionButtonSx";
 
 const previewThemeKeys = [
   "amberWarmth",

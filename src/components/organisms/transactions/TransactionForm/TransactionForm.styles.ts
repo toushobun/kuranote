@@ -1,4 +1,4 @@
-import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
 import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 

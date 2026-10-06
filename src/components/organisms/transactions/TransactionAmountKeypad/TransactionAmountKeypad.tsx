@@ -8,10 +8,8 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import {
-  PrimaryActionButton,
-  primaryActionButtonNoHoverBrightenSx,
-} from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
 import { designTokens } from "theme/theme";
 import {
   applyAmountKeypadKey,
