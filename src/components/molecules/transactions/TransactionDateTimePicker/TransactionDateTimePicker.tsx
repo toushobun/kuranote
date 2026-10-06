@@ -71,8 +71,6 @@ const slideMonthFromRight = keyframes`
   }
 `;
 
-const COLLAPSE_TIMEOUT = 280;
-
 export function TransactionDateTimePicker({
   date,
   fieldLabel = messages.fieldLabel,
@@ -339,7 +337,10 @@ export function TransactionDateTimePicker({
               </Box>
 
               {/* 日历展开区 */}
-              <Collapse in={calendarExpanded} timeout={COLLAPSE_TIMEOUT}>
+              <Collapse
+                in={calendarExpanded}
+                timeout={designTokens.motion.collapse}
+              >
                 <Box
                   sx={{
                     height: 230,
@@ -383,7 +384,7 @@ export function TransactionDateTimePicker({
                   {/* 时间列展开区 */}
                   <Collapse
                     in={timePickerOpen}
-                    timeout={COLLAPSE_TIMEOUT}
+                    timeout={designTokens.motion.collapse}
                     onEntered={handleTimeCollapseEntered}
                   >
                     <TimePickerColumns

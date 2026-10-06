@@ -70,10 +70,10 @@ export function CategoryChip({
         display: "inline-flex",
         gap: 0.5,
         maxWidth: "100%",
-        minHeight: (theme) => theme.spacing(5),
+        minHeight: (theme) => theme.spacing(4),
         pl: 1.25,
-        pr: 0.5,
-        py: 0.5,
+        pr: 0.25,
+        py: 0,
       }}
     >
       <Typography aria-hidden="true" component="span" sx={{ lineHeight: 1 }}>

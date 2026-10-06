@@ -213,7 +213,10 @@ export function MerchantsTemplate({
             ) : null}
           </Stack>
 
-          <Collapse in={!isTagManagementExpanded} timeout="auto">
+          <Collapse
+            in={!isTagManagementExpanded}
+            timeout={designTokens.motion.collapse}
+          >
             <Box
               aria-hidden={isTagManagementExpanded}
               inert={isTagManagementExpanded}
@@ -279,7 +282,7 @@ export function MerchantsTemplate({
               in={isTagManagementExpanded}
               onExit={() => setTagManagementView("closing")}
               onExited={() => setTagManagementView("filter")}
-              timeout="auto"
+              timeout={designTokens.motion.collapse}
             >
               <Box
                 aria-hidden={!isTagManagementExpanded}

@@ -42,7 +42,7 @@ type TransactionMonthListProps = {
   timeGroupView: TransactionTimeGroupViewData;
 };
 
-export const transactionGroupCollapseDuration = 280;
+export const transactionGroupCollapseDuration = designTokens.motion.collapse;
 
 export function TransactionMonthList(props: TransactionMonthListProps) {
   return (
