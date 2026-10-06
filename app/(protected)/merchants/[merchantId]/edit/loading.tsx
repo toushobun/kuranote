@@ -1,25 +1,22 @@
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
+import { merchantPageMessages, merchantText } from "config/merchantText";
+import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 export default function MerchantEditLoading() {
   return (
-    <PageShell
-      maxWidth="sm"
-      sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
+    <SettingsPageLayout
+      action={<Skeleton aria-hidden height={30} width={88} />}
+      back={{
+        href: routePaths.merchants,
+        label: merchantPageMessages.backToMerchants,
+      }}
+      subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={200} />}
+      title={merchantText.edit}
     >
-      <PageHeader
-        action={<Skeleton aria-hidden height={30} width={88} />}
-        leading={
-          <Skeleton aria-hidden height={40} variant="circular" width={40} />
-        }
-        subtitle="商家管理 〉 编辑商家"
-        title="编辑商家"
-        variant="compact"
-      />
       <SectionCard role="status" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
@@ -47,6 +44,6 @@ export default function MerchantEditLoading() {
           <Skeleton height={40} variant="rounded" />
         </Stack>
       </SectionCard>
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

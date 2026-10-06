@@ -72,7 +72,7 @@ describe("AccountsTemplate", () => {
     );
 
     expect(
-      within(container).getByRole("link", { name: "返回" }),
+      within(container).getByRole("link", { name: "返回设置" }),
     ).toHaveAttribute("href", routePaths.settings);
   });
 
@@ -86,13 +86,13 @@ describe("AccountsTemplate", () => {
     ).toBeNull();
   });
 
-  it("显示账户页面专用背景", () => {
+  it("显示设置类页面共用背景", () => {
     const { container } = renderWithUserTheme(
       <AccountsTemplate {...baseProps} />,
     );
 
     expect(
-      within(container).getByTestId("accounts-page-background"),
+      within(container).getByTestId("settings-page-background"),
     ).toHaveStyle({
       background: "var(--user-theme-page-bg)",
       inset: "0",

@@ -1,13 +1,11 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -16,7 +14,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
-import { merchantText } from "config/merchantText";
+import { merchantPageMessages, merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
@@ -25,9 +23,10 @@ import { MerchantDisplayNameFeedback } from "organisms/merchants/MerchantDisplay
 import { MerchantList } from "organisms/merchants/MerchantList/MerchantList";
 import { MerchantTagManager } from "organisms/merchants/MerchantTagManager/MerchantTagManager";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import {
+  SettingsPageLayout,
+  settingsPageActionButtonSx,
+} from "templates/layout/SettingsPageLayout";
 import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import type {
@@ -121,231 +120,207 @@ export function MerchantsTemplate({
 
   return (
     <>
-      <Box
-        aria-hidden
-        data-testid="merchants-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell
-        maxWidth="sm"
-        sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
+      <SettingsPageLayout
+        action={
+          canManageMerchants ? (
+            <CreateButton
+              href={routePaths.merchantsNew}
+              size="small"
+              sx={settingsPageActionButtonSx}
+            >
+              {merchantText.create}
+            </CreateButton>
+          ) : null
+        }
+        back={{
+          href: routePaths.settings,
+          label: merchantPageMessages.backToSettings,
+        }}
+        subtitle={merchantPageMessages.subtitle}
+        title={merchantPageMessages.title}
       >
-        <Stack spacing={{ xs: 2, sm: 2.5 }}>
-          <PageHeader
-            action={
-              canManageMerchants ? (
-                <CreateButton
-                  href={routePaths.merchantsNew}
-                  size="small"
-                  sx={{
-                    borderRadius: `${designTokens.radius.full}px`,
-                    px: { xs: 1.5, sm: 2.5 },
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  新增商家
-                </CreateButton>
-              ) : null
-            }
-            leading={
-              <IconButton
-                aria-label="返回设置"
-                component={Link}
-                href={routePaths.settings}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-            }
-            subtitle="管理常用商家和头像信息"
-            title="商家管理"
-            variant="compact"
-          />
-
-          {hasMerchants || hasKeyword || selectedTag || tagFilterError ? (
-            <SectionCard
-              component="form"
-              sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0 }}
-            >
-              {selectedTag ? (
-                <input name="tagId" type="hidden" value={selectedTag.id} />
-              ) : null}
-              <TextField
-                defaultValue={keyword}
-                fullWidth
-                name="q"
-                placeholder="搜索商家名称"
-                size="small"
-                slotProps={{
-                  htmlInput: { "aria-label": "搜索商家" },
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchRoundedIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-notchedOutline": { border: 0 },
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: `${designTokens.radius.full}px`,
-                    px: 0.75,
-                  },
-                }}
-              />
-            </SectionCard>
-          ) : null}
-
-          <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
-            <Stack
-              direction="row"
-              sx={{
-                alignItems: "center",
-                justifyContent: "space-between",
-                mb: 1.5,
+        {hasMerchants || hasKeyword || selectedTag || tagFilterError ? (
+          <SectionCard
+            component="form"
+            sx={{ borderRadius: `${designTokens.radius.full}px`, p: 0 }}
+          >
+            {selectedTag ? (
+              <input name="tagId" type="hidden" value={selectedTag.id} />
+            ) : null}
+            <TextField
+              defaultValue={keyword}
+              fullWidth
+              name="q"
+              placeholder="搜索商家名称"
+              size="small"
+              slotProps={{
+                htmlInput: { "aria-label": "搜索商家" },
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
               }}
-            >
-              <Typography component="h2" sx={{ fontWeight: 800 }} variant="h6">
-                {merchantText.categoryManagement}
-              </Typography>
-              {canManageMerchants ? (
-                <Button
-                  aria-expanded={isTagManagementExpanded}
-                  disabled={
-                    isTagManagementPending || tagManagementView === "closing"
-                  }
-                  onClick={toggleTagManagement}
-                  size="small"
-                  startIcon={
-                    isTagManagementExpanded ? undefined : (
-                      <TuneRoundedIcon fontSize="small" />
-                    )
-                  }
-                  sx={{
-                    borderRadius: `${designTokens.radius.full}px`,
-                    minHeight: (theme) => theme.spacing(4.5),
-                    py: 0.5,
-                  }}
-                  variant="outlined"
-                >
-                  {isTagManagementExpanded
-                    ? merchantText.managementDone
-                    : merchantText.manageTags}
-                </Button>
-              ) : null}
-            </Stack>
+              sx={{
+                "& .MuiOutlinedInput-notchedOutline": { border: 0 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: `${designTokens.radius.full}px`,
+                  px: 0.75,
+                },
+              }}
+            />
+          </SectionCard>
+        ) : null}
 
-            <Collapse in={!isTagManagementExpanded} timeout="auto">
-              <Box
-                aria-hidden={isTagManagementExpanded}
-                inert={isTagManagementExpanded}
+        <SectionCard sx={{ p: { xs: 1.5, sm: 2 } }}>
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 1.5,
+            }}
+          >
+            <Typography component="h2" sx={{ fontWeight: 800 }} variant="h6">
+              {merchantText.categoryManagement}
+            </Typography>
+            {canManageMerchants ? (
+              <Button
+                aria-expanded={isTagManagementExpanded}
+                disabled={
+                  isTagManagementPending || tagManagementView === "closing"
+                }
+                onClick={toggleTagManagement}
+                size="small"
+                startIcon={
+                  isTagManagementExpanded ? undefined : (
+                    <TuneRoundedIcon fontSize="small" />
+                  )
+                }
+                sx={{
+                  borderRadius: `${designTokens.radius.full}px`,
+                  minHeight: (theme) => theme.spacing(4.5),
+                  py: 0.5,
+                }}
+                variant="outlined"
               >
-                <MerchantTagManager
-                  keyword={keyword}
-                  selectedTagId={selectedTag?.id}
-                  tags={tags}
-                />
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{
-                    alignItems: "center",
-                    justifyContent: selectedTag
-                      ? "space-between"
-                      : "flex-start",
-                    minHeight: 22,
-                    mt: 1.5,
-                  }}
-                >
-                  {selectedTag ? (
-                    <Typography variant="body2">
-                      当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
-                      {merchants.length} 个商家
-                    </Typography>
-                  ) : tags.length > 0 ? (
-                    <InlineHint variant="plain">
-                      {merchantText.categoryFilterHint}
-                    </InlineHint>
-                  ) : null}
-                  {selectedTag ? (
-                    <Button
-                      component={Link}
-                      href={clearTagFilterHref}
-                      size="small"
-                      sx={{ minHeight: 0, py: 0 }}
-                    >
-                      清除筛选
-                    </Button>
-                  ) : null}
-                </Stack>
-              </Box>
-            </Collapse>
-            {tagFilterError ? (
-              <Alert
-                action={
+                {isTagManagementExpanded
+                  ? merchantText.managementDone
+                  : merchantText.manageTags}
+              </Button>
+            ) : null}
+          </Stack>
+
+          <Collapse in={!isTagManagementExpanded} timeout="auto">
+            <Box
+              aria-hidden={isTagManagementExpanded}
+              inert={isTagManagementExpanded}
+            >
+              <MerchantTagManager
+                keyword={keyword}
+                selectedTagId={selectedTag?.id}
+                tags={tags}
+              />
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  justifyContent: selectedTag ? "space-between" : "flex-start",
+                  minHeight: 22,
+                  mt: 1.5,
+                }}
+              >
+                {selectedTag ? (
+                  <Typography variant="body2">
+                    当前筛选：{selectedTag.icon} {selectedTag.name} ·{" "}
+                    {merchants.length} 个商家
+                  </Typography>
+                ) : tags.length > 0 ? (
+                  <InlineHint variant="plain">
+                    {merchantText.categoryFilterHint}
+                  </InlineHint>
+                ) : null}
+                {selectedTag ? (
                   <Button
-                    color="inherit"
                     component={Link}
                     href={clearTagFilterHref}
                     size="small"
+                    sx={{ minHeight: 0, py: 0 }}
                   >
                     清除筛选
                   </Button>
-                }
-                severity="warning"
-                sx={{ mt: 1.5 }}
-              >
-                {tagFilterError}
-              </Alert>
-            ) : null}
-            {canManageMerchants || hasOpenedTagManagement ? (
-              <Collapse
-                in={isTagManagementExpanded}
-                onExit={() => setTagManagementView("closing")}
-                onExited={() => setTagManagementView("filter")}
-                timeout="auto"
-              >
-                <Box
-                  aria-hidden={!isTagManagementExpanded}
-                  data-testid="merchant-tag-management-panel"
-                  inert={!isTagManagementExpanded}
+                ) : null}
+              </Stack>
+            </Box>
+          </Collapse>
+          {tagFilterError ? (
+            <Alert
+              action={
+                <Button
+                  color="inherit"
+                  component={Link}
+                  href={clearTagFilterHref}
+                  size="small"
                 >
-                  <MerchantTagManager
-                    active={isTagManagementExpanded}
-                    archiveAction={archiveAction}
-                    createAction={createAction}
-                    mode="management"
-                    onPendingChange={setIsTagManagementPending}
-                    reorderAction={reorderAction}
-                    tags={tags}
-                    updateAction={updateAction}
-                  />
-                </Box>
-              </Collapse>
-            ) : null}
-          </SectionCard>
+                  清除筛选
+                </Button>
+              }
+              severity="warning"
+              sx={{ mt: 1.5 }}
+            >
+              {tagFilterError}
+            </Alert>
+          ) : null}
+          {canManageMerchants || hasOpenedTagManagement ? (
+            <Collapse
+              in={isTagManagementExpanded}
+              onExit={() => setTagManagementView("closing")}
+              onExited={() => setTagManagementView("filter")}
+              timeout="auto"
+            >
+              <Box
+                aria-hidden={!isTagManagementExpanded}
+                data-testid="merchant-tag-management-panel"
+                inert={!isTagManagementExpanded}
+              >
+                <MerchantTagManager
+                  active={isTagManagementExpanded}
+                  archiveAction={archiveAction}
+                  createAction={createAction}
+                  mode="management"
+                  onPendingChange={setIsTagManagementPending}
+                  reorderAction={reorderAction}
+                  tags={tags}
+                  updateAction={updateAction}
+                />
+              </Box>
+            </Collapse>
+          ) : null}
+        </SectionCard>
 
-          <Box
-            sx={(theme) => ({
-              mt: {
-                xs: `${theme.spacing(1.5)} !important`,
-                sm: `${theme.spacing(2)} !important`,
-              },
-            })}
-          >
-            <MerchantList
-              canManageMerchants={canManageMerchants}
-              createHref={routePaths.merchantsNew}
-              keyword={keyword}
-              ledgerId={ledgerId}
-              merchants={merchants}
-              reorderAction={reorderMerchantsAction}
-              setPreferredAliasAction={submitPreferredAlias}
-              tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
-            />
-          </Box>
-        </Stack>
-      </PageShell>
+        <Box
+          sx={(theme) => ({
+            mt: {
+              xs: `${theme.spacing(1.5)} !important`,
+              sm: `${theme.spacing(2)} !important`,
+            },
+          })}
+        >
+          <MerchantList
+            canManageMerchants={canManageMerchants}
+            createHref={routePaths.merchantsNew}
+            keyword={keyword}
+            ledgerId={ledgerId}
+            merchants={merchants}
+            reorderAction={reorderMerchantsAction}
+            setPreferredAliasAction={submitPreferredAlias}
+            tagFiltered={Boolean(selectedTag) || Boolean(tagFilterError)}
+          />
+        </Box>
+      </SettingsPageLayout>
       <MerchantDisplayNameFeedback state={setPreferred.state} />
       <SuccessFeedbackDialog
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}

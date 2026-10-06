@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ChildCareRoundedIcon from "@mui/icons-material/ChildCareRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
@@ -14,7 +13,6 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
@@ -30,7 +28,8 @@ import { useFormStatus } from "react-dom";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
-import { SoftCard } from "atoms/ui/SoftCard";
+import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
+import { ledgerPageMessages } from "config/ledgerMessages";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
 import {
@@ -42,8 +41,10 @@ import {
   bottomNavigationLayout,
   stackedFeedbackBottomOffset,
 } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import {
+  SettingsPageLayout,
+  settingsPageActionButtonSx,
+} from "templates/layout/SettingsPageLayout";
 import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
@@ -131,90 +132,73 @@ export function LedgersTemplate({
   }
 
   return (
-    <>
-      <Box
-        aria-hidden="true"
-        data-testid="ledgers-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={ledgersPageShellSx}>
-        <Stack spacing={2.1}>
-          <Stack spacing={0.45}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label="返回"
-                component={Link}
-                href={routePaths.settings}
-                sx={headerIconButtonSx}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Typography component="h1" sx={pageTitleSx}>
-                账本管理
-              </Typography>
-              <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
-                新增账本
-              </CreateButton>
-            </Stack>
-            <Typography
-              color="text.secondary"
-              variant="body2"
-              sx={{ pl: 5.75 }}
-            >
-              查看和管理你加入的账本
-            </Typography>
+    <SettingsPageLayout
+      action={
+        <CreateButton
+          href={routePaths.ledgersNew}
+          size="small"
+          sx={settingsPageActionButtonSx}
+        >
+          {ledgerPageMessages.create}
+        </CreateButton>
+      }
+      back={{
+        href: routePaths.settings,
+        label: ledgerPageMessages.backToSettings,
+      }}
+      subtitle={ledgerPageMessages.subtitle}
+      title={ledgerPageMessages.title}
+    >
+      <Stack spacing={2.1}>
+        {currentLedger ? (
+          <CurrentLedgerCard ledger={currentLedger} />
+        ) : (
+          <LedgersEmptyCard />
+        )}
+
+        <Stack spacing={1}>
+          <Typography component="h2" sx={sectionTitleSx}>
+            我的账本列表
+          </Typography>
+
+          <Stack spacing={0.85}>
+            {ledgers.map((ledger, index) => (
+              <LedgerListItem
+                index={index}
+                isCurrent={ledger.id === currentLedgerId}
+                key={ledger.id}
+                ledger={ledger}
+                updateCurrentLedgerAction={updateCurrentLedgerAction}
+              />
+            ))}
           </Stack>
 
-          {currentLedger ? (
-            <CurrentLedgerCard ledger={currentLedger} />
-          ) : (
-            <LedgersEmptyCard />
-          )}
-
-          <Stack spacing={1}>
-            <Typography component="h2" sx={sectionTitleSx}>
-              我的账本列表
-            </Typography>
-
-            <Stack spacing={0.85}>
-              {ledgers.map((ledger, index) => (
-                <LedgerListItem
-                  index={index}
-                  isCurrent={ledger.id === currentLedgerId}
-                  key={ledger.id}
-                  ledger={ledger}
-                  updateCurrentLedgerAction={updateCurrentLedgerAction}
-                />
-              ))}
-            </Stack>
-
-            {ledgers.length > 1 ? <LedgerSwitchHint /> : null}
-          </Stack>
+          {ledgers.length > 1 ? <LedgerSwitchHint /> : null}
         </Stack>
+      </Stack>
 
-        {errorFeedbacks.map((feedback, index) => (
-          <FailureFeedbackDialog
-            bottomOffset={stackedFeedbackBottomOffset(index)}
-            description={feedback.message}
-            key={feedback.id}
-            onClose={() => closeErrorFeedback(feedback.id)}
-            open
-            title="账本切换失败"
-          />
-        ))}
-        <SuccessFeedbackDialog
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          description={
-            currentLedger
-              ? `已切换至「${currentLedger.name}」。`
-              : "当前账本已切换。"
-          }
-          onClose={closeSwitchSuccessDialog}
-          open={isSwitchSuccessOpen}
-          title="切换成功"
+      {errorFeedbacks.map((feedback, index) => (
+        <FailureFeedbackDialog
+          bottomOffset={stackedFeedbackBottomOffset(index)}
+          description={feedback.message}
+          key={feedback.id}
+          onClose={() => closeErrorFeedback(feedback.id)}
+          open
+          title="账本切换失败"
         />
-      </PageShell>
-    </>
+      ))}
+      <SuccessFeedbackDialog
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        description={
+          currentLedger
+            ? `已切换至「${currentLedger.name}」。`
+            : "当前账本已切换。"
+        }
+        onClose={closeSwitchSuccessDialog}
+        open={isSwitchSuccessOpen}
+        title="切换成功"
+      />
+    </SettingsPageLayout>
   );
 }
 
@@ -222,7 +206,7 @@ function CurrentLedgerCard({ ledger }: { ledger: LedgerWithMemberCount }) {
   const Icon = getLedgerIcon(ledger.name, 0);
 
   return (
-    <SoftCard component="section" aria-label="当前账本" sx={currentCardSx}>
+    <DataItemCard component="section" aria-label="当前账本">
       <Stack spacing={1.5}>
         <Typography component="p" sx={currentCardLabelSx}>
           当前账本
@@ -257,7 +241,7 @@ function CurrentLedgerCard({ ledger }: { ledger: LedgerWithMemberCount }) {
           />
         </Stack>
       </Stack>
-    </SoftCard>
+    </DataItemCard>
   );
 }
 
@@ -276,7 +260,7 @@ function LedgerListItem({
   const href = ledgerSettingsHref(ledger.id);
 
   return (
-    <SoftCard sx={ledgerItemCardSx(isCurrent)}>
+    <DataItemCard disablePadding sx={ledgerItemCardSx(isCurrent)}>
       <ButtonBase
         aria-label={`进入${ledger.name}设置`}
         component={Link}
@@ -316,7 +300,7 @@ function LedgerListItem({
           </Box>
         )}
       </Box>
-    </SoftCard>
+    </DataItemCard>
   );
 }
 
@@ -356,7 +340,7 @@ function LedgerSwitchHint() {
 
 function LedgersEmptyCard() {
   return (
-    <SoftCard sx={emptyCardSx}>
+    <DataItemCard>
       <Stack spacing={1.25} sx={{ alignItems: "center", textAlign: "center" }}>
         <Box sx={featuredIconBoxSx}>
           <MenuBookRoundedIcon fontSize="medium" />
@@ -370,10 +354,10 @@ function LedgersEmptyCard() {
           </Typography>
         </Stack>
         <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
-          新增账本
+          {ledgerPageMessages.create}
         </CreateButton>
       </Stack>
-    </SoftCard>
+    </DataItemCard>
   );
 }
 
@@ -429,26 +413,6 @@ const roleLabelMap: Record<CurrentLedgerRole, string> = {
   viewer: "只读",
 };
 
-const headerIconButtonSx = {
-  color: "text.primary",
-  mt: 0.2,
-  "& .MuiSvgIcon-root": {
-    fontSize: 26,
-  },
-};
-
-const ledgersPageShellSx = {
-  px: { xs: 2 },
-  py: { xs: 2.25 },
-};
-
-const pageTitleSx = {
-  ...typographyStyles.pageTitle,
-  flex: 1,
-  fontSize: { xs: 24, sm: 26 },
-  fontWeight: 800,
-};
-
 const createButtonSx = {
   ...typographyStyles.button,
   borderRadius: `${designTokens.radius.full}px`,
@@ -464,12 +428,6 @@ const createButtonSx = {
   "& .MuiSvgIcon-root": {
     fontSize: 20,
   },
-};
-
-const currentCardSx = {
-  borderRadius: `${designTokens.radius.md}px`,
-  px: { xs: 1.5, sm: 1.8 },
-  py: { xs: 1.5, sm: 1.8 },
 };
 
 const featuredIconBoxSx = {
@@ -511,7 +469,6 @@ function ledgerItemCardSx(isCurrent: boolean) {
     borderColor: isCurrent
       ? "var(--user-theme-action-text)"
       : "var(--user-theme-card-border)",
-    borderRadius: `${designTokens.radius.md}px`,
     overflow: "hidden",
     position: "relative",
   } as const;
@@ -524,8 +481,7 @@ const ledgerItemButtonSx = {
   gap: 1.25,
   justifyContent: "flex-start",
   minHeight: 76,
-  px: 1.5,
-  py: 1.25,
+  p: dataItemCardPadding,
   textAlign: "left",
   textDecoration: "none",
   width: "100%",
@@ -659,11 +615,6 @@ const metaLabelSx = {
 const metaValueSx = {
   color: "text.primary",
   fontWeight: 700,
-};
-
-const emptyCardSx = {
-  borderRadius: `${designTokens.radius.md}px`,
-  p: { xs: 1.5, sm: 1.75 },
 };
 
 const emptyTitleSx = {

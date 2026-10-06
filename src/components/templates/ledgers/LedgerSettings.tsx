@@ -1,7 +1,6 @@
 "use client";
 
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -23,24 +22,21 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
+import { ledgerSettingsPageMessages } from "config/ledgerMessages";
 import { routePaths } from "config/paths";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
-import {
-  AccountDialogIllustrationSlot,
-  AccountFormDialogShell,
-} from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
+import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import {
   bottomNavigationLayout,
   stackedFeedbackBottomOffset,
 } from "organisms/navigation/bottomNavigationLayout";
-import { PageShell } from "templates/layout/PageShell";
-import { fullViewportPageBackgroundSx } from "templates/layout/fullViewportPageBackgroundSx";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
@@ -140,196 +136,169 @@ export function LedgerSettingsTemplate({
   }
 
   return (
-    <>
-      <Box
-        aria-hidden="true"
-        data-testid="ledger-settings-page-background"
-        sx={fullViewportPageBackgroundSx}
-      />
-      <PageShell maxWidth="xs" sx={pageShellSx}>
-        <Stack
-          component="form"
-          action={updateLedgerSettingsAction}
-          spacing={1.45}
-          sx={formSx}
-        >
-          <input name="intent" type="hidden" value="ledger" />
-          <input name="ledgerId" type="hidden" value={ledger.id} />
+    <SettingsPageLayout
+      back={{
+        href: routePaths.ledgers,
+        label: ledgerSettingsPageMessages.backToLedgers,
+      }}
+      subtitle={ledgerSettingsPageMessages.subtitle}
+      title={ledgerSettingsPageMessages.title}
+    >
+      <Stack
+        component="form"
+        action={updateLedgerSettingsAction}
+        spacing={1.45}
+        sx={formSx}
+      >
+        <input name="intent" type="hidden" value="ledger" />
+        <input name="ledgerId" type="hidden" value={ledger.id} />
 
-          <Stack spacing={1.2} sx={headerSx}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-              <IconButton
-                aria-label="返回"
-                component={Link}
-                href={routePaths.ledgers}
-                sx={headerIconButtonSx}
-              >
-                <ArrowBackRoundedIcon />
-              </IconButton>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography component="h1" sx={pageTitleSx}>
-                  账本设置
-                </Typography>
-                <Typography color="text.secondary" variant="body2">
-                  管理账本信息与成员设置
-                </Typography>
-              </Box>
-              <Box sx={illustrationSx}>
-                <AccountDialogIllustrationSlot />
-              </Box>
-            </Stack>
-
-            {ledger.isCurrent ? (
-              <Chip
-                color="success"
-                icon={<CheckRoundedIcon />}
-                label="当前使用中"
-                sx={statusChipSx}
-              />
-            ) : null}
-          </Stack>
-
-          <SettingsSection title="基础信息">
-            <SoftCard sx={sectionCardSx}>
-              <Stack spacing={1.5}>
-                <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
-                  <TextField
-                    autoComplete="off"
-                    disabled={!canEditLedger}
-                    fullWidth
-                    name="ledgerName"
-                    onChange={(event) => setLedgerName(event.target.value)}
-                    required
-                    slotProps={{ htmlInput: { "aria-label": "账本名称" } }}
-                    value={ledgerName}
-                  />
-                </SettingsField>
-
-                <SettingsDivider />
-
-                <SettingsField
-                  icon={<CurrencyYenRoundedIcon />}
-                  label="默认货币"
-                >
-                  <TextField
-                    disabled={!canEditLedger}
-                    fullWidth
-                    name="baseCurrency"
-                    onChange={(event) => setBaseCurrency(event.target.value)}
-                    required
-                    select
-                    slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
-                    value={baseCurrency}
-                  >
-                    {ledgerCurrencyOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                    {!ledgerCurrencyOptions.some(
-                      (option) => option.value === ledger.baseCurrency,
-                    ) ? (
-                      <MenuItem value={ledger.baseCurrency}>
-                        {ledger.baseCurrency}
-                      </MenuItem>
-                    ) : null}
-                  </TextField>
-                </SettingsField>
-
-                {!canEditLedger ? (
-                  <HelperText>
-                    只有管理员或所有者可以修改账本名称与默认货币。
-                  </HelperText>
-                ) : null}
-              </Stack>
-            </SoftCard>
-          </SettingsSection>
-
-          <input
-            name="transactionItemSpecialStatusEnabled"
-            type="hidden"
-            value={String(specialStatusEnabled)}
+        {ledger.isCurrent ? (
+          <Chip
+            color="success"
+            icon={<CheckRoundedIcon />}
+            label="当前使用中"
+            sx={statusChipSx}
           />
-          <LedgerSpecialStatusSetting
-            canEdit={canEditLedger}
-            enabled={specialStatusEnabled}
-            onChange={setSpecialStatusEnabled}
-          />
+        ) : null}
 
-          <SettingsSection title="成员">
-            <SoftCard sx={sectionCardSx}>
-              <Stack spacing={1.25}>
-                {members.map((member, index) => (
-                  <MemberRow
-                    isLast={index === members.length - 1}
-                    key={member.userId}
-                    member={member}
-                    onClick={() => setSelectedMember(member)}
-                  />
-                ))}
-                <Box aria-hidden="true" sx={memberNoteDividerSx} />
-                <LedgerInviteEntry
-                  action={inviteAction}
-                  canInvite={canEditLedger}
-                  ledgerId={ledger.id}
-                  ledgerName={ledger.name}
-                  placeholderMemberActions={placeholderMemberActions}
-                  placeholderMembers={placeholderMembers}
-                  token={inviteToken}
+        <SettingsSection title="基础信息">
+          <SoftCard sx={sectionCardSx}>
+            <Stack spacing={1.5}>
+              <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
+                <TextField
+                  autoComplete="off"
+                  disabled={!canEditLedger}
+                  fullWidth
+                  name="ledgerName"
+                  onChange={(event) => setLedgerName(event.target.value)}
+                  required
+                  slotProps={{ htmlInput: { "aria-label": "账本名称" } }}
+                  value={ledgerName}
                 />
-              </Stack>
-            </SoftCard>
-          </SettingsSection>
+              </SettingsField>
 
-          <Stack direction="row" spacing={1.5} sx={actionBarSx}>
-            <Button
-              component={Link}
-              fullWidth
-              href={routePaths.ledgers}
-              sx={cancelButtonSx}
-              variant="outlined"
-            >
-              取消
-            </Button>
-            <PrimaryActionButton
-              disabled={!canEditLedger}
-              fullWidth
-              type="submit"
-            >
-              保存修改
-            </PrimaryActionButton>
-          </Stack>
+              <SettingsDivider />
+
+              <SettingsField icon={<CurrencyYenRoundedIcon />} label="默认货币">
+                <TextField
+                  disabled={!canEditLedger}
+                  fullWidth
+                  name="baseCurrency"
+                  onChange={(event) => setBaseCurrency(event.target.value)}
+                  required
+                  select
+                  slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
+                  value={baseCurrency}
+                >
+                  {ledgerCurrencyOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                  {!ledgerCurrencyOptions.some(
+                    (option) => option.value === ledger.baseCurrency,
+                  ) ? (
+                    <MenuItem value={ledger.baseCurrency}>
+                      {ledger.baseCurrency}
+                    </MenuItem>
+                  ) : null}
+                </TextField>
+              </SettingsField>
+
+              {!canEditLedger ? (
+                <HelperText>
+                  只有管理员或所有者可以修改账本名称与默认货币。
+                </HelperText>
+              ) : null}
+            </Stack>
+          </SoftCard>
+        </SettingsSection>
+
+        <input
+          name="transactionItemSpecialStatusEnabled"
+          type="hidden"
+          value={String(specialStatusEnabled)}
+        />
+        <LedgerSpecialStatusSetting
+          canEdit={canEditLedger}
+          enabled={specialStatusEnabled}
+          onChange={setSpecialStatusEnabled}
+        />
+
+        <SettingsSection title="成员">
+          <SoftCard sx={sectionCardSx}>
+            <Stack spacing={1.25}>
+              {members.map((member, index) => (
+                <MemberRow
+                  isLast={index === members.length - 1}
+                  key={member.userId}
+                  member={member}
+                  onClick={() => setSelectedMember(member)}
+                />
+              ))}
+              <Box aria-hidden="true" sx={memberNoteDividerSx} />
+              <LedgerInviteEntry
+                action={inviteAction}
+                canInvite={canEditLedger}
+                ledgerId={ledger.id}
+                ledgerName={ledger.name}
+                placeholderMemberActions={placeholderMemberActions}
+                placeholderMembers={placeholderMembers}
+                token={inviteToken}
+              />
+            </Stack>
+          </SoftCard>
+        </SettingsSection>
+
+        <Stack direction="row" spacing={1.5} sx={actionBarSx}>
+          <Button
+            component={Link}
+            fullWidth
+            href={routePaths.ledgers}
+            sx={cancelButtonSx}
+            variant="outlined"
+          >
+            取消
+          </Button>
+          <PrimaryActionButton
+            disabled={!canEditLedger}
+            fullWidth
+            type="submit"
+          >
+            保存修改
+          </PrimaryActionButton>
         </Stack>
+      </Stack>
 
-        <MemberSettingsDialog
-          canManageMembers={canEditLedger}
-          currentUserId={currentUser.userId}
-          ledger={ledger}
-          member={selectedMember}
-          onClose={() => setSelectedMember(null)}
-          updateLedgerSettingsAction={updateLedgerSettingsAction}
-        />
+      <MemberSettingsDialog
+        canManageMembers={canEditLedger}
+        currentUserId={currentUser.userId}
+        ledger={ledger}
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
+        updateLedgerSettingsAction={updateLedgerSettingsAction}
+      />
 
-        {errorFeedbacks.map((feedback, index) => (
-          <FailureFeedbackDialog
-            aboveModal
-            bottomOffset={stackedFeedbackBottomOffset(index)}
-            description={feedback.message}
-            key={feedback.id}
-            onClose={() => closeErrorFeedback(feedback.id)}
-            open
-            title="账本设置保存失败"
-          />
-        ))}
-        <SuccessFeedbackDialog
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          description="账本设置已保存。"
-          onClose={closeSaveSuccessDialog}
-          open={isSaveSuccessOpen}
-          title="保存成功"
+      {errorFeedbacks.map((feedback, index) => (
+        <FailureFeedbackDialog
+          aboveModal
+          bottomOffset={stackedFeedbackBottomOffset(index)}
+          description={feedback.message}
+          key={feedback.id}
+          onClose={() => closeErrorFeedback(feedback.id)}
+          open
+          title="账本设置保存失败"
         />
-      </PageShell>
-    </>
+      ))}
+      <SuccessFeedbackDialog
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        description="账本设置已保存。"
+        onClose={closeSaveSuccessDialog}
+        open={isSaveSuccessOpen}
+        title="保存成功"
+      />
+    </SettingsPageLayout>
   );
 }
 
@@ -686,39 +655,8 @@ function getVisibleColorOptions(currentColor: ThemeColorKey) {
     : ([currentColor, ...ledgerMemberColorOptions] as const);
 }
 
-const pageShellSx = {
-  px: { xs: 0.75 },
-  py: { xs: 0.75 },
-};
-
 const formSx = {
   pb: `calc(${bottomNavigationLayout.shellPaddingBottom} + 24px)`,
-};
-
-const headerSx = {
-  minHeight: { xs: 112, sm: 124 },
-  overflow: "hidden",
-  position: "relative",
-};
-
-const headerIconButtonSx = {
-  color: "text.primary",
-  mt: 0.2,
-  zIndex: 1,
-};
-
-const illustrationSx = {
-  pointerEvents: "none",
-  position: "absolute",
-  right: { xs: -4, sm: 8 },
-  top: { xs: -12, sm: -8 },
-};
-
-const pageTitleSx = {
-  ...typographyStyles.pageTitle,
-  fontSize: { xs: 28, sm: 30 },
-  fontWeight: 900,
-  pr: 14,
 };
 
 const statusChipSx = {

@@ -1,14 +1,9 @@
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import IconButton from "@mui/material/IconButton";
-import Link from "next/link";
-
 import { categoryPageMessages } from "config/categoryMessages";
 import { routePaths } from "config/paths";
 
 import { CategoryForm } from "organisms/categories/CategoryForm/CategoryForm";
 import { CategoryList } from "organisms/categories/CategoryList/CategoryList";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type {
   CategoryAction,
   CategoryActionState,
@@ -47,31 +42,23 @@ export function CategoriesTemplate({
   updateState,
 }: CategoriesTemplateProps) {
   return (
-    <PageShell>
-      <PageHeader
-        action={
-          canManageCategories ? (
-            <CategoryForm
-              createCategoryAction={createCategoryAction}
-              createState={createState}
-              parentOptions={parentOptions}
-            />
-          ) : null
-        }
-        leading={
-          <IconButton
-            aria-label={categoryPageMessages.backToSettings}
-            component={Link}
-            href={routePaths.settings}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        title={categoryPageMessages.title}
-        subtitle={categoryPageMessages.subtitle(ledgerName)}
-        variant="compact"
-      />
-
+    <SettingsPageLayout
+      action={
+        canManageCategories ? (
+          <CategoryForm
+            createCategoryAction={createCategoryAction}
+            createState={createState}
+            parentOptions={parentOptions}
+          />
+        ) : null
+      }
+      back={{
+        href: routePaths.settings,
+        label: categoryPageMessages.backToSettings,
+      }}
+      subtitle={categoryPageMessages.subtitle(ledgerName)}
+      title={categoryPageMessages.title}
+    >
       <CategoryList
         archiveCategoryAction={archiveCategoryAction}
         archiveState={archiveState}
@@ -82,6 +69,6 @@ export function CategoriesTemplate({
         updateCategoryAction={updateCategoryAction}
         updateState={updateState}
       />
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

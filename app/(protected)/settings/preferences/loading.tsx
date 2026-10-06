@@ -1,28 +1,20 @@
 import Box from "@mui/material/Box";
-import Skeleton from "@mui/material/Skeleton";
 
+import { routePaths } from "config/paths";
 import { settingsPreferencesPageMessages as messages } from "config/settingsMessages";
 import { SettingsEntryGroupSkeleton } from "organisms/settings/SettingsEntryList/SettingsEntryGroupSkeleton";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 
 export default function SettingsPreferencesLoading() {
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader
-        title={messages.title}
-        subtitle={messages.subtitle}
-        variant="compact"
-        leading={<Skeleton variant="circular" width={40} height={40} />}
-      />
-      <Box
-        role="status"
-        aria-label={messages.loading}
-        aria-busy="true"
-        sx={{ mt: 3 }}
-      >
+    <SettingsPageLayout
+      back={{ href: routePaths.settings, label: messages.backToSettings }}
+      subtitle={messages.subtitle}
+      title={messages.title}
+    >
+      <Box role="status" aria-label={messages.loading} aria-busy="true">
         <SettingsEntryGroupSkeleton count={3} />
       </Box>
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

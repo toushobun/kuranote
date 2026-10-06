@@ -16,4 +16,10 @@ describe("SettingsLoadingPage", () => {
       within(container).getByRole("heading", { name: "我的" }),
     ).toBeInTheDocument();
   });
+
+  it("一级页面不显示返回按钮", () => {
+    const { container } = render(<SettingsLoadingPage />);
+
+    expect(within(container).queryByRole("link")).not.toBeInTheDocument();
+  });
 });

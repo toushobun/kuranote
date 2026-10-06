@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
-import { SoftCard } from "atoms/ui/SoftCard";
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { designTokens } from "theme/theme";
 import type { Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";
@@ -56,12 +56,7 @@ export function AccountSummaryCard({
   const balanceParts = isBalanceHidden ? null : splitAmountPrefix(balanceText);
 
   return (
-    <SoftCard
-      sx={{
-        borderRadius: `${designTokens.radius.md}px`,
-        p: { xs: 1.8, sm: 2 },
-      }}
-    >
+    <DataItemCard>
       <Stack spacing={1.5}>
         <Stack spacing={0.6}>
           <Typography color="text.secondary" variant="body2">
@@ -132,7 +127,7 @@ export function AccountSummaryCard({
           />
         </Stack>
       </Stack>
-    </SoftCard>
+    </DataItemCard>
   );
 }
 

@@ -10,6 +10,7 @@ import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { settingsPageActionButtonSx } from "templates/layout/SettingsPageLayout";
 import {
   type CategoryAction,
   type CategoryActionState,
@@ -58,7 +59,12 @@ export function CategoryForm({
 
   return (
     <>
-      <CreateButton onClick={() => setOpen(true)} size="small" type="button">
+      <CreateButton
+        onClick={() => setOpen(true)}
+        size="small"
+        sx={settingsPageActionButtonSx}
+        type="button"
+      >
         新增分类
       </CreateButton>
 

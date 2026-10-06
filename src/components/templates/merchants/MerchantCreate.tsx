@@ -1,16 +1,11 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import IconButton from "@mui/material/IconButton";
-import Link from "next/link";
-
 import { routePaths } from "config/paths";
-import { merchantText } from "config/merchantText";
+import { merchantPageMessages, merchantText } from "config/merchantText";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { MerchantFailureFeedback } from "organisms/merchants/MerchantFailureFeedback/MerchantFailureFeedback";
 import { MerchantForm } from "organisms/merchants/MerchantForm/MerchantForm";
-import { PageHeader } from "templates/layout/PageHeader";
-import { PageShell } from "templates/layout/PageShell";
+import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type {
   MerchantIconStateAction,
   MerchantStateAction,
@@ -39,24 +34,14 @@ export function MerchantCreateTemplate({
   });
 
   return (
-    <PageShell
-      maxWidth="sm"
-      sx={{ pb: { xs: 3, sm: 5 }, pt: { xs: 2, sm: 4 } }}
+    <SettingsPageLayout
+      back={{
+        href: routePaths.merchants,
+        label: merchantPageMessages.backToMerchants,
+      }}
+      subtitle={merchantPageMessages.createSubtitle(ledgerName)}
+      title={merchantText.create}
     >
-      <PageHeader
-        leading={
-          <IconButton
-            aria-label="返回商家管理"
-            component={Link}
-            href={routePaths.merchants}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        }
-        subtitle={`商家管理 〉 ${merchantText.create} · ${ledgerName}`}
-        title={merchantText.create}
-        variant="compact"
-      />
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantForm
           action={create.action}
@@ -70,6 +55,6 @@ export function MerchantCreateTemplate({
         state={create.state}
         title={merchantText.createErrorTitle}
       />
-    </PageShell>
+    </SettingsPageLayout>
   );
 }

@@ -11,9 +11,9 @@ import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 
+import { DataItemCard } from "atoms/ui/DataItemCard";
 import { SortableDragHandle } from "molecules/ui/SortableList/SortableDragHandle/SortableDragHandle";
 import type { SortableHandleProps } from "molecules/ui/SortableList/SortableItem";
-import { SoftCard } from "atoms/ui/SoftCard";
 import { designTokens } from "theme/theme";
 import {
   getStableFallbackThemeColorKey,
@@ -105,12 +105,7 @@ export function MerchantCard({
   setPreferredAliasAction,
 }: MerchantCardProps) {
   return (
-    <SoftCard
-      sx={{
-        borderColor: "var(--user-theme-card-border)",
-        p: 2,
-      }}
-    >
+    <DataItemCard>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
         <MerchantAvatar
           padding={0.75}
@@ -208,6 +203,6 @@ export function MerchantCard({
           </Stack>
         </>
       ) : null}
-    </SoftCard>
+    </DataItemCard>
   );
 }
