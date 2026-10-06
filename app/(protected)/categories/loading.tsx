@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
-import { DataItemCard } from "atoms/ui/DataItemCard";
+import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { categoryPageMessages } from "config/categoryMessages";
 import { routePaths } from "config/paths";
@@ -43,16 +43,20 @@ export default function CategoriesLoadingPage() {
           <Skeleton height={48} variant="rounded" />
           <Skeleton width={160} />
 
-          <Stack spacing={1.5}>
+          <Stack spacing={0.9}>
             {categoryLoadingRows.map((row) => (
-              <DataItemCard key={row} sx={{ py: 0 }}>
+              <DataItemCard
+                disablePadding
+                key={row}
+                sx={{ px: dataItemCardPadding }}
+              >
                 <Stack
                   direction="row"
                   spacing={1}
-                  sx={{ alignItems: "center", minHeight: 78, py: 1 }}
+                  sx={{ alignItems: "center", minHeight: 60, py: 0.75 }}
                 >
                   <Skeleton height={34} variant="circular" width={34} />
-                  <Skeleton height={52} variant="rounded" width={52} />
+                  <Skeleton height={38} variant="rounded" width={38} />
                   <Stack spacing={0.75} sx={{ flex: 1 }}>
                     <Skeleton width="42%" />
                     <Skeleton width="28%" />
