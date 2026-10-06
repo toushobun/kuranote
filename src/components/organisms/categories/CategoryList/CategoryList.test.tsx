@@ -320,6 +320,15 @@ describe("CategoryList", () => {
     }
   });
 
+  it("大分类图标与账户卡片同为 38px", () => {
+    const { container } = renderListWithTheme();
+
+    for (const icon of within(container).getAllByTestId("category-list-icon")) {
+      expect(getComputedStyle(icon).width).toBe("38px");
+      expect(getComputedStyle(icon).height).toBe("38px");
+    }
+  });
+
   it("默认显示支出分类并折叠所有大分类", () => {
     renderList({}, false);
 

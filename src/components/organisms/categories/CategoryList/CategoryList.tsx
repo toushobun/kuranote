@@ -18,7 +18,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
-import { DataItemCard } from "atoms/ui/DataItemCard";
+import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
 import {
   categoryArchiveConfirmMessages,
@@ -95,7 +95,7 @@ function CategoryRowItem({
       <Stack
         direction="row"
         spacing={{ xs: 0.5, sm: 1 }}
-        sx={{ alignItems: "center", minHeight: 78, py: 1 }}
+        sx={{ alignItems: "center", minHeight: 60, py: 0.75 }}
       >
         {onToggle ? (
           <IconButton
@@ -135,21 +135,32 @@ function CategoryRowItem({
             borderRadius: `${designTokens.radius.sm}px`,
             display: "flex",
             flexShrink: 0,
-            fontSize: "1.75rem",
-            height: 52,
+            fontSize: "1.35rem",
+            height: 38,
             justifyContent: "center",
-            width: 52,
+            width: 38,
           }}
         >
           {iconName}
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontWeight: 800 }} variant="subtitle1">
+        <Box sx={{ flex: 1, minWidth: 0, pl: { xs: 0.75, sm: 0.25 } }}>
+          <Typography
+            noWrap
+            sx={{
+              fontSize: { xs: 16, sm: 17 },
+              fontWeight: 800,
+              lineHeight: 1.4,
+            }}
+          >
             {displayName}
           </Typography>
           {childCount !== undefined ? (
-            <Typography color="text.secondary" variant="body2">
+            <Typography
+              color="text.secondary"
+              sx={{ lineHeight: 1.4 }}
+              variant="body2"
+            >
               {childCount} 个小分类
             </Typography>
           ) : null}
@@ -167,9 +178,14 @@ function CategoryRowItem({
 }
 
 function CategorySection({ children }: { children: ReactNode }) {
-  // 行本身带有最小高度与上下内边距，卡片只统一圆角与左右内边距。
+  // 行本身带有最小高度与上下内边距，卡片只保留左右内边距。
   return (
-    <DataItemCard sx={{ overflow: "hidden", py: 0 }}>{children}</DataItemCard>
+    <DataItemCard
+      disablePadding
+      sx={{ overflow: "hidden", px: dataItemCardPadding }}
+    >
+      {children}
+    </DataItemCard>
   );
 }
 
@@ -302,7 +318,7 @@ export function CategoryList({
           onReorder={(ids) => submitCategoryOrder(ids, null, selectedType)}
         >
           {(draggingRoots) => (
-            <Stack spacing={1.5}>
+            <Stack spacing={0.9}>
               {visibleCategories.map((category) => {
                 const expanded =
                   !draggingRoots && renderedExpandedIds.has(category.id);
