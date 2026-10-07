@@ -133,7 +133,10 @@ export function resolveLedgerSetupDraft(
   };
 }
 
-function accountNameScopeKey({ name, type }: LedgerSetupDraftAccount) {
+function accountNameScopeKey({
+  name,
+  type,
+}: Pick<LedgerSetupDraftAccount, "name" | "type">) {
   return `${type}\u0000${name.trim().toLowerCase()}`;
 }
 
@@ -146,4 +149,13 @@ export function hasDuplicateLedgerSetupAccountName(
 ): boolean {
   const keys = accounts.map(accountNameScopeKey);
   return new Set(keys).size !== keys.length;
+}
+
+/** 同一类型下是否已有与 account 同名的账户。判断规则与 hasDuplicateLedgerSetupAccountName 相同。 */
+export function isLedgerSetupAccountNameTaken(
+  accounts: readonly Pick<LedgerSetupDraftAccount, "name" | "type">[],
+  account: Pick<LedgerSetupDraftAccount, "name" | "type">,
+): boolean {
+  const key = accountNameScopeKey(account);
+  return accounts.some((item) => accountNameScopeKey(item) === key);
 }

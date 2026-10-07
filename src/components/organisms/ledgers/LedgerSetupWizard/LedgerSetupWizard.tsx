@@ -12,10 +12,6 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useId } from "react";
 
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
-import {
-  ledgerSetupErrorCodes,
-  ledgerSetupErrorMessages,
-} from "internal/ledger";
 import { ActionPromptDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
@@ -70,6 +66,7 @@ export function LedgerSetupWizard({
           <Box sx={titleRowSx}>
             <IconButton
               aria-label={ledgerSetupWizardMessages.close}
+              disabled={wizard.busy}
               onClick={wizard.requestClose}
             >
               <CloseRoundedIcon />
@@ -83,15 +80,15 @@ export function LedgerSetupWizard({
             label={ledgerSetupWizardMessages.progressLabel}
             steps={stepLabels}
           />
-          {wizard.restoredNoticeOpen ? (
+          {wizard.notice ? (
             <Alert
               closeText={ledgerSetupWizardMessages.dismissNotice}
-              onClose={wizard.dismissRestoredNotice}
+              onClose={wizard.dismissNotice}
               role="status"
               severity="info"
-              sx={restoredNoticeSx}
+              sx={noticeSx}
             >
-              {ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists]}
+              {wizard.notice}
             </Alert>
           ) : null}
         </Box>
@@ -99,12 +96,15 @@ export function LedgerSetupWizard({
           actions={actions}
           defaults={defaults}
           isLastStep={wizard.isLastStep}
-          key={`${key}:${wizard.progress?.setup.id ?? "new"}`}
+          key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
+          onBusyChange={wizard.setBusy}
           onNext={wizard.goNext}
           onPrevious={wizard.goPrevious}
           onProgressChange={wizard.updateProgress}
+          onProgressRefresh={wizard.refreshProgress}
           onRestore={wizard.restoreProgress}
           progress={wizard.progress}
+          step={wizard.step}
           stepLabel={label}
         />
       </Dialog>
@@ -152,7 +152,7 @@ const titleRowSx = {
   mb: 1.5,
 };
 
-const restoredNoticeSx = {
+const noticeSx = {
   borderRadius: `${designTokens.radius.item}px`,
   mt: 1.5,
   mx: 1,

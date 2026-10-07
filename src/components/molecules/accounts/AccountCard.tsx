@@ -1,8 +1,3 @@
-import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
-import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
-import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
@@ -11,6 +6,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
 import { DataItemCard } from "atoms/ui/DataItemCard";
 import { placeholderMemberText } from "config/placeholderMemberText";
 import { designTokens } from "theme/theme";
@@ -134,23 +130,6 @@ export function AccountCard({
       {card}
     </ButtonBase>
   );
-}
-
-function AccountTypeIcon({ type }: { type: AccountType }) {
-  const iconProps = { fontSize: "small" as const };
-
-  switch (type) {
-    case "cash":
-      return <PaymentsOutlinedIcon {...iconProps} />;
-    case "bank":
-      return <AccountBalanceOutlinedIcon {...iconProps} />;
-    case "credit_card":
-      return <CreditCardOutlinedIcon {...iconProps} />;
-    case "e_money":
-      return <AccountBalanceWalletOutlinedIcon {...iconProps} />;
-    default:
-      return <MoreHorizRoundedIcon {...iconProps} />;
-  }
 }
 
 const accountIconSx = {

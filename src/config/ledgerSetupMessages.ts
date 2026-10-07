@@ -26,7 +26,10 @@ export const ledgerSetupWizardMessages = {
     invite: "邀请",
     merchants: "商家",
   },
+  saveErrorTitle: "创建进度保存失败",
   submitting: "保存中",
+  /** 保存草稿时预设模板已更新或默认货币已变更，向导已按最新进度刷新。 */
+  templateUpdatedNotice: "预设内容已更新，请重新确认",
   title: "创建账本",
 } as const;
 
@@ -39,6 +42,29 @@ export const ledgerSetupBasicInfoMessages = {
   description: "这些信息之后都可以在账本设置中修改",
   errorTitle: "账本保存失败",
   title: "先给账本起个名字吧",
+} as const;
+
+/** 第 2 步「账户」与添加账户底部弹层。账户类型名取自 accountTypeOptions，不在此重复。 */
+export const ledgerSetupAccountsMessages = {
+  add: "添加",
+  addSheet: {
+    added: "已添加",
+    candidatesTitle: (typeLabel: string) => `常用${typeLabel}`,
+    close: "关闭",
+    nameDuplicate: "已有同名账户，请修改名称",
+    nameLabel: "账户名称",
+    namePlaceholder: "输入名称或从下方选择",
+    nameRequired: "请输入名称",
+    nameTooLong: (maxLength: number) => `名称不能超过 ${maxLength} 个字`,
+    submit: "添加",
+    title: (typeLabel: string) => `添加${typeLabel}`,
+  },
+  addTypeLabel: (typeLabel: string) => `添加${typeLabel}`,
+  description: "勾选或添加你的账户，之后也可以在账户管理中修改",
+  limitReached: (maxAccounts: number) =>
+    `账户最多 ${maxAccounts} 个，已达到上限`,
+  nextWithCount: (count: number) => `下一步 · 已选 ${count} 个`,
+  title: "你平时用哪些方式付钱？",
 } as const;
 
 /** 仅非生产环境可访问的向导预览页（#395 实施拆分第 8 项移除）。 */

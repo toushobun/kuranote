@@ -16,6 +16,7 @@ vi.mock("internal/ledger/adapter/next/loadLedgerSetupWizard", () => ({
 }));
 
 vi.mock("internal/ledger/adapter/next/actions/ledgerSetup", () => ({
+  saveLedgerSetupDraft: vi.fn(),
   submitLedgerSetupBasicInfo: vi.fn(),
 }));
 

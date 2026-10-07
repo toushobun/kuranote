@@ -7,9 +7,10 @@ import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import {
   clickCloseWizard,
   clickNext,
-  clickPrevious,
+  createSaveDraftMock,
   getCurrentStepItem,
   getLedgerSetupWizardDialog,
+  goPreviousTo,
   renderLedgerSetupWizard,
 } from "./ledgerSetupWizardTestUtils";
 
@@ -70,17 +71,16 @@ describe("LedgerSetupWizard", () => {
       expect(screen.getByText("该步骤将在后续版本实现")).toBeInTheDocument();
     });
 
-    it("可以通过上一步 / 下一步在步骤之间切换", () => {
+    it("可以通过上一步 / 下一步在步骤之间切换", async () => {
       renderLedgerSetupWizard({
         progress: createLedgerSetupProgressFixture({ step: 2 }),
       });
 
       expectCurrentStep("账户");
       clickNext();
-      expectCurrentStep("商家");
-      clickPrevious();
-      clickPrevious();
-      expectCurrentStep("基本信息");
+      await waitFor(() => expectCurrentStep("商家"));
+      await goPreviousTo("账户");
+      await goPreviousTo("基本信息");
       expect(screen.getByLabelText("账本名称")).toHaveValue("家庭账本");
     });
 
@@ -89,6 +89,7 @@ describe("LedgerSetupWizard", () => {
         name: "旅行账本",
       });
       renderLedgerSetupWizard({
+        saveDraft: createSaveDraftMock(progress),
         submitBasicInfo: vi.fn(async () => ({ progress })),
       });
 
@@ -98,8 +99,7 @@ describe("LedgerSetupWizard", () => {
       clickNext();
 
       await waitFor(() => expectCurrentStep("账户"));
-      clickPrevious();
-      expectCurrentStep("基本信息");
+      await goPreviousTo("基本信息");
       expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
     });
 
@@ -141,12 +141,12 @@ describe("LedgerSetupWizard", () => {
       expect(onClose).not.toHaveBeenCalled();
     });
 
-    it("返回第 1 步时也需要确认，因为账本已创建", () => {
+    it("返回第 1 步时也需要确认，因为账本已创建", async () => {
       renderLedgerSetupWizard({
         progress: createLedgerSetupProgressFixture({ step: 2 }),
       });
 
-      clickPrevious();
+      await goPreviousTo("基本信息");
       clickCloseWizard();
 
       expect(

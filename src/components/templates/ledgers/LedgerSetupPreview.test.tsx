@@ -22,6 +22,7 @@ function renderTemplate() {
           ledgerName: "家庭账本",
         }}
         progress={null}
+        saveDraftAction={async () => ({})}
         submitBasicInfoAction={async (state) => state}
       />
     </ConfirmDialogTestProviders>,

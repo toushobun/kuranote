@@ -24,7 +24,10 @@ const meta = {
     ),
   ],
   args: {
-    actions: { submitBasicInfo: async () => ({ progress: setupProgress }) },
+    actions: {
+      saveDraft: async () => ({ progress: setupProgress }),
+      submitBasicInfo: async () => ({ progress: setupProgress }),
+    },
     defaults: {
       baseCurrency: "JPY",
       displayColor: "amber",
@@ -49,8 +52,8 @@ export const Desktop: Story = {
   name: "桌面端（居中弹框）",
 };
 
-export const PlaceholderStep: Story = {
-  name: "恢复到第 2 步（占位步骤）",
+export const ResumeAccountsStep: Story = {
+  name: "恢复到第 2 步（账户）",
   args: { progress: setupProgress },
   parameters: { viewport: { defaultViewport: "mobile2" } },
 };
