@@ -2,6 +2,7 @@
 
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
@@ -11,6 +12,10 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useId } from "react";
 
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
+import {
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+} from "internal/ledger";
 import { ActionPromptDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
@@ -78,6 +83,17 @@ export function LedgerSetupWizard({
             label={ledgerSetupWizardMessages.progressLabel}
             steps={stepLabels}
           />
+          {wizard.restoredNoticeOpen ? (
+            <Alert
+              closeText={ledgerSetupWizardMessages.dismissNotice}
+              onClose={wizard.dismissRestoredNotice}
+              role="status"
+              severity="info"
+              sx={restoredNoticeSx}
+            >
+              {ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists]}
+            </Alert>
+          ) : null}
         </Box>
         <StepComponent
           actions={actions}
@@ -134,6 +150,12 @@ const titleRowSx = {
   display: "grid",
   gridTemplateColumns: "40px 1fr 40px",
   mb: 1.5,
+};
+
+const restoredNoticeSx = {
+  borderRadius: `${designTokens.radius.item}px`,
+  mt: 1.5,
+  mx: 1,
 };
 
 const titleSx = {

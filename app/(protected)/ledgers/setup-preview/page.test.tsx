@@ -48,6 +48,7 @@ describe("LedgerSetupPreviewRoute", () => {
   it.each([
     ["Vercel Production", { NODE_ENV: "production", VERCEL_ENV: "production" }],
     ["本地生产构建", { NODE_ENV: "production", VERCEL_ENV: "" }],
+    ["Vercel Preview", { NODE_ENV: "production", VERCEL_ENV: "preview" }],
   ])("%s 中返回 notFound() 且不读取数据", async (_label, env) => {
     vi.stubEnv("NODE_ENV", env.NODE_ENV);
     vi.stubEnv("VERCEL_ENV", env.VERCEL_ENV);
@@ -58,12 +59,8 @@ describe("LedgerSetupPreviewRoute", () => {
     expect(mocks.loadLedgerSetupWizard).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["Vercel Preview", { NODE_ENV: "production", VERCEL_ENV: "preview" }],
-    ["本地开发", { NODE_ENV: "development", VERCEL_ENV: "" }],
-  ])("%s 中读取向导数据并显示预览页", async (_label, env) => {
-    vi.stubEnv("NODE_ENV", env.NODE_ENV);
-    vi.stubEnv("VERCEL_ENV", env.VERCEL_ENV);
+  it("本地开发中读取向导数据并显示预览页", async () => {
+    vi.stubEnv("NODE_ENV", "development");
 
     const element = await LedgerSetupPreviewRoute();
 

@@ -8,6 +8,7 @@ export const ledgerSetupWizardMessages = {
     later: "稍后再说",
     title: "稍后再继续？",
   },
+  dismissNotice: "关闭提示",
   next: "下一步",
   placeholder: "该步骤将在后续版本实现",
   previous: "上一步",

@@ -166,7 +166,7 @@ describe("LedgerSetupBasicInfoStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("已存在创建中账本时恢复到该账本，不显示失败反馈", async () => {
+  it("已存在创建中账本时恢复到该账本，提示还没创建完而不是显示失败", async () => {
     const restored = createLedgerSetupProgressFixture({
       name: "之前的账本",
       step: 3,
@@ -179,6 +179,25 @@ describe("LedgerSetupBasicInfoStep", () => {
 
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent(
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+    );
+
+    fireEvent.click(within(notice).getByRole("button", { name: "关闭提示" }));
+    expect(
+      screen.queryByText(
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("正常提交成功时不显示还没创建完的提示", async () => {
+    renderLedgerSetupWizard({ submitBasicInfo: createSubmitMock() });
+
+    clickNext();
+
+    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("账户"));
     expect(
       screen.queryByText(
         ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
