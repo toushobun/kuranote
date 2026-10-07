@@ -9,13 +9,18 @@ import { expect, vi, type Mock } from "vitest";
 
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import {
+  createLedgerSetupConfirmProgressFixture,
   createLedgerSetupProgressFixture,
   ledgerSetupDefaultRootCategoryNamesFixture,
 } from "test/mocks/ledgerSetup";
 import type {
+  LedgerInviteStateAction,
+  LedgerPlaceholderMemberStateAction,
   LedgerSetupBasicInfoStateAction,
   LedgerSetupCompleteAction,
   LedgerSetupDraftSaveAction,
+  LedgerSetupInviteMembers,
+  LedgerSetupInviteMembersLoadAction,
   LedgerSetupProgress,
 } from "types/ledgers";
 
@@ -28,13 +33,6 @@ export const ledgerSetupWizardTestDefaults = {
   ledgerName: "家庭账本",
 };
 
-type RenderLedgerSetupWizardOptions = {
-  completeSetup?: Mock<LedgerSetupCompleteAction>;
-  progress?: LedgerSetupProgress | null;
-  saveDraft?: Mock<LedgerSetupDraftSaveAction>;
-  submitBasicInfo?: LedgerSetupBasicInfoStateAction;
-};
-
 /** 模拟保存草稿成功：返回保存了该草稿与步骤后的进度。 */
 export function createSaveDraftMock(
   progress: LedgerSetupProgress = createLedgerSetupProgressFixture(),
@@ -44,36 +42,83 @@ export function createSaveDraftMock(
   }));
 }
 
+/** 模拟读取第 6 步数据成功：返回指定的待邀请成员与待接受邀请（默认都为空）。 */
+export function createLoadInviteMembersMock(
+  members: LedgerSetupInviteMembers = {
+    pendingInvites: [],
+    placeholderMembers: [],
+  },
+) {
+  return vi.fn<LedgerSetupInviteMembersLoadAction>(async () => ({ members }));
+}
+
+/** 向导全部 Server Action 的 mock：默认全部立即成功，可按需覆盖。 */
+export function createLedgerSetupWizardActionMocks({
+  progress = null,
+  ...overrides
+}: Partial<ReturnType<typeof createDefaultActionMocks>> & {
+  progress?: LedgerSetupProgress | null;
+} = {}) {
+  const defaults = createDefaultActionMocks(progress);
+  // 显式传入 undefined 时沿用默认 mock。
+  return {
+    completeSetup: overrides.completeSetup ?? defaults.completeSetup,
+    createInvite: overrides.createInvite ?? defaults.createInvite,
+    loadInviteMembers:
+      overrides.loadInviteMembers ?? defaults.loadInviteMembers,
+    placeholderMemberActions:
+      overrides.placeholderMemberActions ?? defaults.placeholderMemberActions,
+    saveDraft: overrides.saveDraft ?? defaults.saveDraft,
+    submitBasicInfo: overrides.submitBasicInfo ?? defaults.submitBasicInfo,
+  };
+}
+
+function createDefaultActionMocks(progress: LedgerSetupProgress | null) {
+  return {
+    completeSetup: vi.fn<LedgerSetupCompleteAction>(async () => ({
+      completed: true,
+    })),
+    createInvite: vi.fn<LedgerInviteStateAction>(async () => ({})),
+    loadInviteMembers: createLoadInviteMembersMock(),
+    placeholderMemberActions: {
+      delete: vi.fn<LedgerPlaceholderMemberStateAction>(async () => ({})),
+      rename: vi.fn<LedgerPlaceholderMemberStateAction>(async () => ({})),
+    },
+    saveDraft: createSaveDraftMock(progress ?? undefined),
+    submitBasicInfo: vi.fn<LedgerSetupBasicInfoStateAction>(async () => ({})),
+  };
+}
+
+type RenderLedgerSetupWizardOptions = Parameters<
+  typeof createLedgerSetupWizardActionMocks
+>[0];
+
 /** 第一次保存草稿时的参数。 */
 export function getSavedInput(saveDraft: Mock<LedgerSetupDraftSaveAction>) {
   return saveDraft.mock.calls[0][0];
 }
 
 /** 创建账本向导测试共用的渲染：提供 ConfirmDialog / 用户主题 Provider，并返回回调 mock。 */
-export function renderLedgerSetupWizard({
-  completeSetup = vi.fn<LedgerSetupCompleteAction>(async () => ({
-    completed: true,
-  })),
-  progress = null,
-  saveDraft = createSaveDraftMock(progress ?? undefined),
-  submitBasicInfo = vi.fn(async () => ({})),
-}: RenderLedgerSetupWizardOptions = {}) {
+export function renderLedgerSetupWizard(
+  options: RenderLedgerSetupWizardOptions = {},
+) {
   const onClose = vi.fn();
+  const actions = createLedgerSetupWizardActionMocks(options);
 
   render(
     <ConfirmDialogTestProviders>
       <LedgerSetupWizard
-        actions={{ completeSetup, saveDraft, submitBasicInfo }}
+        actions={actions}
         defaultRootCategoryNames={ledgerSetupDefaultRootCategoryNamesFixture}
         defaults={ledgerSetupWizardTestDefaults}
         onClose={onClose}
         open
-        progress={progress}
+        progress={options.progress ?? null}
       />
     </ConfirmDialogTestProviders>,
   );
 
-  return { completeSetup, onClose, saveDraft, submitBasicInfo };
+  return { ...actions, onClose };
 }
 
 export function getLedgerSetupWizardDialog() {
@@ -116,4 +161,31 @@ export function clickCompleteSetup() {
 export async function completeSetupAndWait() {
   clickCompleteSetup();
   await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("邀请"));
+}
+
+/**
+ * 渲染停在确认一览的向导并完成创建，等待进入第 6 步「邀请成员」且列表读取完成。
+ * 默认使用确认一览 fixture（账户 2 个、去重商家 5 家）。
+ */
+export async function renderLedgerSetupWizardAtInviteStep(
+  options: RenderLedgerSetupWizardOptions = {},
+) {
+  const result = renderLedgerSetupWizard({
+    progress: createLedgerSetupConfirmProgressFixture(),
+    ...options,
+  });
+
+  await completeSetupAndWait();
+  return result;
+}
+
+/** 等待第 6 步的邀请成员列表读取完成（显示「邀请成员」入口）。 */
+export async function waitForInviteEntry() {
+  return screen.findByRole("button", { name: /^邀请成员/ });
+}
+
+/** 在第 6 步点击「完成」并等待进入完成页。 */
+export async function finishInviteAndWait() {
+  fireEvent.click(screen.getByRole("button", { name: "完成" }));
+  await screen.findByRole("heading", { name: "一切就绪！" });
 }

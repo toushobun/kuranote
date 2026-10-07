@@ -34,6 +34,8 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
 /** 创建中账本与向导数据读取查询失败时的文案。 */
 export const ledgerSetupLoadErrorMessages = {
   defaultCategoriesLoadFailed: "默认分类加载失败，请稍后重试。",
+  /** 第 6 步「邀请成员」读取待邀请成员与待接受邀请失败。 */
+  inviteMembersLoadFailed: "邀请成员加载失败，请稍后重试。",
   loadFailed: "创建中的账本加载失败，请稍后重试。",
 } as const;
 

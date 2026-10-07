@@ -15,6 +15,7 @@ import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
 import { ActionPromptDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
+import { LedgerSetupCompleteScreen } from "organisms/ledgers/LedgerSetupCompleteScreen/LedgerSetupCompleteScreen";
 import { designTokens } from "theme/theme";
 import type { LedgerSetupProgress } from "types/ledgers";
 
@@ -39,6 +40,7 @@ type LedgerSetupWizardProps = {
 /**
  * 创建账本向导骨架：移动端（xs）全屏、桌面端（sm 以上）居中弹框。
  * 负责顶部标题与步骤进度、当前步骤状态与切换、关闭确认；步骤内容见 ledgerSetupWizardSteps。
+ * 第 6 步「完成」后显示完成页（不属于步骤注册表，不显示标题与进度条）。
  */
 export function LedgerSetupWizard({
   actions,
@@ -65,54 +67,76 @@ export function LedgerSetupWizard({
         open={open}
         slotProps={{ paper: { sx: fullScreen ? fullScreenPaperSx : paperSx } }}
       >
-        <Box sx={headerSx}>
-          <Box sx={titleRowSx}>
-            <IconButton
-              aria-label={ledgerSetupWizardMessages.close}
-              disabled={wizard.busy}
-              onClick={wizard.requestClose}
-            >
-              <CloseRoundedIcon />
-            </IconButton>
-            <Typography component="h2" id={titleId} sx={titleSx}>
-              {ledgerSetupWizardMessages.title}
-            </Typography>
-          </Box>
-          <StepProgress
-            currentStep={wizard.step}
-            label={ledgerSetupWizardMessages.progressLabel}
-            steps={stepLabels}
-          />
-          {wizard.notice ? (
-            <Alert
-              closeText={ledgerSetupWizardMessages.dismissNotice}
-              onClose={wizard.dismissNotice}
-              role="status"
-              severity="info"
-              sx={noticeSx}
-            >
-              {wizard.notice}
-            </Alert>
-          ) : null}
-        </Box>
-        <StepComponent
-          actions={actions}
-          defaultRootCategoryNames={defaultRootCategoryNames}
-          defaults={defaults}
-          isLastStep={wizard.isLastStep}
-          key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
-          onBusyChange={wizard.setBusy}
-          onGoToStep={wizard.goToStep}
-          onNext={wizard.goNext}
-          onPrevious={wizard.goPrevious}
-          onProgressChange={wizard.updateProgress}
-          onProgressRefresh={wizard.refreshProgress}
-          onRestore={wizard.restoreProgress}
-          onSetupUnavailable={wizard.markSetupUnavailable}
-          progress={wizard.progress}
-          step={wizard.step}
-          stepLabel={label}
-        />
+        {wizard.completeScreen ? (
+          <>
+            {/* 完成页：不显示标题与进度条，只保留右上角「×」。 */}
+            <Box sx={completeHeaderSx}>
+              <IconButton
+                aria-label={ledgerSetupWizardMessages.close}
+                onClick={wizard.requestClose}
+              >
+                <CloseRoundedIcon />
+              </IconButton>
+            </Box>
+            <LedgerSetupCompleteScreen
+              completion={wizard.completeScreen}
+              onClose={wizard.requestClose}
+              titleId={titleId}
+            />
+          </>
+        ) : (
+          <>
+            <Box sx={headerSx}>
+              <Box sx={titleRowSx}>
+                <IconButton
+                  aria-label={ledgerSetupWizardMessages.close}
+                  disabled={wizard.busy}
+                  onClick={wizard.requestClose}
+                >
+                  <CloseRoundedIcon />
+                </IconButton>
+                <Typography component="h2" id={titleId} sx={titleSx}>
+                  {ledgerSetupWizardMessages.title}
+                </Typography>
+              </Box>
+              <StepProgress
+                currentStep={wizard.step}
+                label={ledgerSetupWizardMessages.progressLabel}
+                steps={stepLabels}
+              />
+              {wizard.notice ? (
+                <Alert
+                  closeText={ledgerSetupWizardMessages.dismissNotice}
+                  onClose={wizard.dismissNotice}
+                  role="status"
+                  severity="info"
+                  sx={noticeSx}
+                >
+                  {wizard.notice}
+                </Alert>
+              ) : null}
+            </Box>
+            <StepComponent
+              actions={actions}
+              defaultRootCategoryNames={defaultRootCategoryNames}
+              defaults={defaults}
+              key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
+              onBusyChange={wizard.setBusy}
+              onFinish={wizard.finish}
+              onGoToStep={wizard.goToStep}
+              onNext={wizard.goNext}
+              onPrevious={wizard.goPrevious}
+              onProgressChange={wizard.updateProgress}
+              onProgressRefresh={wizard.refreshProgress}
+              onRestore={wizard.restoreProgress}
+              onSetupCompleted={wizard.markSetupCompleted}
+              onSetupUnavailable={wizard.markSetupUnavailable}
+              progress={wizard.progress}
+              step={wizard.step}
+              stepLabel={label}
+            />
+          </>
+        )}
       </Dialog>
 
       <ActionPromptDialog
@@ -156,6 +180,14 @@ const titleRowSx = {
   display: "grid",
   gridTemplateColumns: "40px 1fr 40px",
   mb: 1.5,
+};
+
+const completeHeaderSx = {
+  display: "flex",
+  flexShrink: 0,
+  justifyContent: "flex-end",
+  pt: "calc(8px + env(safe-area-inset-top))",
+  px: { xs: 1, sm: 2 },
 };
 
 const noticeSx = {

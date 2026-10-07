@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 
+import { createLedgerSetupInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
+import {
+  deleteLedgerPlaceholderMember,
+  renameLedgerPlaceholderMember,
+} from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
 import {
   completeLedgerSetup,
+  loadLedgerSetupInviteMembers,
   saveLedgerSetupDraft,
   submitLedgerSetupBasicInfo,
 } from "internal/ledger/adapter/next/actions/ledgerSetup";
@@ -26,6 +32,12 @@ export default async function LedgerSetupPreviewRoute() {
     <LedgerSetupPreviewTemplate
       {...view}
       completeSetupAction={completeLedgerSetup}
+      createInviteAction={createLedgerSetupInvite}
+      loadInviteMembersAction={loadLedgerSetupInviteMembers}
+      placeholderMemberActions={{
+        delete: deleteLedgerPlaceholderMember,
+        rename: renameLedgerPlaceholderMember,
+      }}
       saveDraftAction={saveLedgerSetupDraft}
       submitBasicInfoAction={submitLedgerSetupBasicInfo}
     />

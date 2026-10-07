@@ -23,19 +23,84 @@ import {
   parseRegenerateLedgerInviteForm,
 } from "internal/ledger/schema/ledgerInviteForm";
 import {
+  type CreatedLedgerInvite,
   type LedgerInviteActionOperation,
   type LedgerInviteActionState,
 } from "types/ledgers";
 
+/** 邀请写入成功后的收尾：跳转页面，或把结果写入状态由页面就地反馈。 */
+type InviteActionCompletion = {
+  created: (
+    ledgerId: string,
+    invite: CreatedLedgerInvite & { inviteId: string },
+    operation: LedgerInviteActionOperation,
+  ) => LedgerInviteActionState;
+  revoked: (ledgerId: string) => LedgerInviteActionState;
+};
+
+/** 账本设置页：成功后跳回设置页，由 query / fragment 传递页面反馈。 */
+const redirectToSettingsCompletion: InviteActionCompletion = {
+  created(ledgerId, { inviteId, placeholderId, role, token }) {
+    // fragment 仅用于页面反馈（在哪一行展示新链接）；绑定事实以数据库与列表为准。
+    const fragment = new URLSearchParams({
+      inviteId,
+      inviteRole: role,
+      inviteToken: token,
+      placeholderId,
+    });
+    redirect(
+      `/ledgers/${encodeURIComponent(ledgerId)}/settings#${fragment.toString()}`,
+    );
+  },
+  revoked(ledgerId) {
+    redirect(
+      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteResult=revoked`,
+    );
+  },
+};
+
+/** 创建账本向导：不跳转页面（向导是弹框），把结果写入状态，由邀请入口就地反馈。 */
+const inPlaceCompletion: InviteActionCompletion = {
+  created(_ledgerId, { placeholderId, role, token }, operation) {
+    return {
+      createdInvite: { placeholderId, role, token },
+      operation,
+      successKey: crypto.randomUUID(),
+    };
+  },
+  revoked() {
+    return { operation: "revoke", successKey: crypto.randomUUID() };
+  },
+};
+
 /**
- * 邀请相关的 Server Action，按表单字段 intent 区分：
+ * 邀请相关的 Server Action（账本设置页），按表单字段 intent 区分：
  * - invite：邀请成员（名字 + 角色），先创建待邀请成员，再生成专属链接；
  * - create：为已有待邀请成员重新生成链接，必须带 placeholderId；
  * - revoke：撤销链接。
+ * 成功后跳回账本设置页。
  */
 export async function createLedgerInvite(
   _previousState: LedgerInviteActionState,
   formData: FormData,
+): Promise<LedgerInviteActionState> {
+  return runLedgerInviteAction(formData, redirectToSettingsCompletion);
+}
+
+/**
+ * 创建账本向导第 6 步使用的邀请 Action。校验、权限与写入与 createLedgerInvite 完全相同，
+ * 只是成功后不跳转页面，而是返回 createdInvite / successKey，由邀请入口就地显示链接或撤销结果。
+ */
+export async function createLedgerSetupInvite(
+  _previousState: LedgerInviteActionState,
+  formData: FormData,
+): Promise<LedgerInviteActionState> {
+  return runLedgerInviteAction(formData, inPlaceCompletion);
+}
+
+async function runLedgerInviteAction(
+  formData: FormData,
+  completion: InviteActionCompletion,
 ): Promise<LedgerInviteActionState> {
   const intent = String(formData.get("intent") ?? "create").trim();
   const operation: LedgerInviteActionOperation =
@@ -67,9 +132,7 @@ export async function createLedgerInvite(
     }
 
     revalidateLedgerMutation([ledgerSettingsHref(ledgerId)]);
-    redirect(
-      `/ledgers/${encodeURIComponent(ledgerId)}/settings?inviteResult=revoked`,
-    );
+    return completion.revoked(ledgerId);
   }
 
   if (operation === "invite") {
@@ -99,7 +162,7 @@ export async function createLedgerInvite(
       return createActionErrorState(error, operation);
     }
 
-    return finishCreatedInvite(ledgerId, result, operation, true);
+    return finishCreatedInvite(ledgerId, result, operation, true, completion);
   }
 
   if (intent !== "create") {
@@ -125,7 +188,7 @@ export async function createLedgerInvite(
     return createActionErrorState(error, operation);
   }
 
-  return finishCreatedInvite(ledgerId, result, operation, false);
+  return finishCreatedInvite(ledgerId, result, operation, false, completion);
 }
 
 const fallbackCodes = {
@@ -195,6 +258,7 @@ function finishCreatedInvite(
   },
   operation: LedgerInviteActionOperation,
   createdPlaceholder: boolean,
+  completion: InviteActionCompletion,
 ): LedgerInviteActionState {
   if (createdPlaceholder) {
     revalidatePlaceholderMutation(ledgerId);
@@ -206,14 +270,5 @@ function finishCreatedInvite(
     return errorState(ledgerInviteErrorCodes.createFailed, operation);
   }
 
-  // fragment 仅用于页面反馈（在哪一行展示新链接）；绑定事实以数据库与列表为准。
-  const fragment = new URLSearchParams({
-    inviteId: result.inviteId,
-    inviteRole: result.role,
-    inviteToken: result.token,
-    placeholderId: result.placeholderId,
-  });
-  redirect(
-    `/ledgers/${encodeURIComponent(ledgerId)}/settings#${fragment.toString()}`,
-  );
+  return completion.created(ledgerId, result, operation);
 }

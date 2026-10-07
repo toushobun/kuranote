@@ -8,11 +8,13 @@ import {
   ledgerSetupErrorMessages,
 } from "internal/ledger";
 import type { LedgerSetupProgress } from "types/ledgers";
+import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 import {
   ledgerSetupLastDraftStep,
   ledgerSetupWizardSteps,
 } from "./ledgerSetupWizardSteps";
+import type { LedgerSetupCompletion } from "./ledgerSetupWizardStepTypes";
 
 const stepCount = ledgerSetupWizardSteps.length;
 
@@ -46,6 +48,14 @@ export function useLedgerSetupWizard({
   const [notice, setNotice] = useState<string | null>(null);
   // 创建中账本已在其他页面完成或不存在：没有可稍后继续的进度。
   const [setupUnavailable, setSetupUnavailable] = useState(false);
+  // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
+  const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
+    null,
+  );
+  // 第 6 步「完成」后显示完成页（不属于步骤注册表，不计入进度条）。
+  const [completeScreen, setCompleteScreen] = useState<
+    (LedgerSetupCompletion & { placeholderMemberCount: number }) | null
+  >(null);
 
   // 账本已创建（创建中）且尚未完成写入时，进度已保存在服务端，关闭前提示可稍后继续。
   const needsCloseConfirm =
@@ -54,8 +64,8 @@ export function useLedgerSetupWizard({
   return {
     busy,
     closeConfirmOpen,
+    completeScreen,
     currentStep: ledgerSetupWizardSteps[step - 1],
-    isLastStep: step === stepCount,
     notice,
     progress,
     progressRevision,
@@ -70,6 +80,11 @@ export function useLedgerSetupWizard({
     dismissNotice() {
       setNotice(null);
     },
+    finish(placeholderMemberCount: number) {
+      // 第 6 步只会在完成写入成功（已保存统计）后进入。
+      if (!completion) return;
+      setCompleteScreen({ ...completion, placeholderMemberCount });
+    },
     goNext() {
       setStep((current) => clampStep(current + 1));
     },
@@ -83,6 +98,17 @@ export function useLedgerSetupWizard({
         return;
       }
       setStep(target);
+    },
+    markSetupCompleted() {
+      if (!progress) return;
+      // 账户数、商家数与确认一览使用同一份汇总，保证两处数字一致。
+      const summary = buildLedgerSetupConfirmSummary(progress);
+      setCompletion({
+        accountCount: summary.accounts.names.length,
+        ledgerName: summary.basicInfo.ledgerName,
+        merchantCount: summary.merchants.count,
+      });
+      setStep(ledgerSetupLastDraftStep + 1);
     },
     markSetupUnavailable() {
       setSetupUnavailable(true);

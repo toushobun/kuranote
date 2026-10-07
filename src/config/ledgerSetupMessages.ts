@@ -10,7 +10,6 @@ export const ledgerSetupWizardMessages = {
   },
   dismissNotice: "关闭提示",
   next: "下一步",
-  placeholder: "该步骤将在后续版本实现",
   previous: "上一步",
   progressLabel: "创建进度",
   skip: "跳过此步",
@@ -130,6 +129,36 @@ export const ledgerSetupConfirmMessages = {
   },
   skipped: "已跳过",
   title: "确认一下，马上就好",
+} as const;
+
+/**
+ * 第 6 步「邀请成员」。邀请入口、待邀请成员与邀请弹框的文案由 placeholderMemberText 提供，
+ * 读取失败的文案以 internal/ledger 的错误定义为准，不在此重复。
+ */
+export const ledgerSetupInviteMessages = {
+  createdNotice: "账本已创建，可以开始记账了",
+  description: "为家人生成专属邀请链接，TA 加入后记录会实时同步",
+  finish: "完成",
+  loadErrorTitle: "邀请成员读取失败",
+  loading: "正在读取邀请成员",
+  retry: "重试",
+  title: "邀请家人一起记账",
+} as const;
+
+/** 完成页（第 6 步之后，不计入进度条）。 */
+export const ledgerSetupCompleteMessages = {
+  description: (ledgerName: string) => `「${ledgerName}」已经准备好了`,
+  goDashboard: "去首页看看",
+  hint: "现在就开始记录第一笔吧",
+  illustrationLabel: "账本已准备好的插画",
+  startRecording: "开始记账",
+  stats: {
+    accounts: "账户",
+    merchants: "商家",
+    placeholderMembers: "待邀请成员",
+  },
+  summaryLabel: "已添加的内容",
+  title: "一切就绪！",
 } as const;
 
 /** 仅非生产环境可访问的向导预览页（#395 实施拆分第 8 项移除）。 */

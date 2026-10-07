@@ -3,16 +3,17 @@ import { LedgerSetupAccountsStep } from "organisms/ledgers/LedgerSetupAccountsSt
 import { LedgerSetupBasicInfoStep } from "organisms/ledgers/LedgerSetupBasicInfoStep/LedgerSetupBasicInfoStep";
 import { LedgerSetupConfirmStep } from "organisms/ledgers/LedgerSetupConfirmStep/LedgerSetupConfirmStep";
 import { LedgerSetupFeaturesStep } from "organisms/ledgers/LedgerSetupFeaturesStep/LedgerSetupFeaturesStep";
+import { LedgerSetupInviteStep } from "organisms/ledgers/LedgerSetupInviteStep/LedgerSetupInviteStep";
 import { LedgerSetupMerchantsStep } from "organisms/ledgers/LedgerSetupMerchantsStep/LedgerSetupMerchantsStep";
 
-import { LedgerSetupPlaceholderStep } from "./LedgerSetupPlaceholderStep";
 import type { LedgerSetupWizardStepDefinition } from "./ledgerSetupWizardStepTypes";
 
 const stepLabels = ledgerSetupWizardMessages.steps;
 
 /**
- * 向导步骤注册表，顺序即步骤顺序。实现新的步骤时只替换对应的 Component。
- * 第 1～5 步与 ledger.setup_step（1～5）一一对应。
+ * 向导步骤注册表，顺序即步骤顺序，与进度条一一对应。
+ * 第 1～5 步与 ledger.setup_step（1～5）一一对应；第 6 步在完成写入后进入。
+ * 第 6 步之后的完成页不计入进度条，不在此注册，由骨架单独显示。
  */
 export const ledgerSetupWizardSteps: readonly LedgerSetupWizardStepDefinition[] =
   [
@@ -42,7 +43,7 @@ export const ledgerSetupWizardSteps: readonly LedgerSetupWizardStepDefinition[] 
       label: stepLabels.confirm,
     },
     {
-      Component: LedgerSetupPlaceholderStep,
+      Component: LedgerSetupInviteStep,
       key: "invite",
       label: stepLabels.invite,
     },

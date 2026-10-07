@@ -2,7 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
+import {
+  createLedgerInvite,
+  createLedgerSetupInvite,
+} from "internal/ledger/adapter/next/actions/ledgerInvite";
 import {
   getInviteMemberLinkFailedMessage,
   ledgerInviteErrorCodes,
@@ -419,5 +422,96 @@ describe("createLedgerInvite", () => {
     const redirectTarget = String(mocks.redirect.mock.calls.at(-1)?.[0]);
     expect(redirectTarget).not.toContain("inviteError");
     expect(redirectTarget).not.toContain("errorKey");
+  });
+});
+
+describe("createLedgerSetupInvite（创建账本向导，不跳转页面）", () => {
+  it("邀请成员成功时返回新链接与 successKey，不跳转页面", async () => {
+    mocks.inviteMemberService.mockResolvedValueOnce(createdInvite);
+
+    const state = await createLedgerSetupInvite(
+      {},
+      formDataWith({
+        displayName: "小明",
+        intent: "invite",
+        ledgerId: "ledger-id",
+        role: "viewer",
+      }),
+    );
+
+    expect(state).toEqual({
+      createdInvite: { placeholderId, role: "viewer", token: validToken },
+      operation: "invite",
+      successKey: expect.any(String),
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith([
+      "/ledgers/ledger-id/settings",
+      "/settings/data/import",
+    ]);
+  });
+
+  it("重新生成链接成功时返回新链接，不跳转页面", async () => {
+    mocks.createService.mockResolvedValueOnce(createdInvite);
+
+    const state = await createLedgerSetupInvite(
+      {},
+      formDataWith({
+        intent: "create",
+        ledgerId: "ledger-id",
+        placeholderId,
+        role: "viewer",
+      }),
+    );
+
+    expect(state).toMatchObject({
+      createdInvite: { placeholderId, token: validToken },
+      operation: "create",
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("撤销成功时返回 successKey，不跳转页面", async () => {
+    mocks.revokeService.mockResolvedValueOnce(undefined);
+
+    const state = await createLedgerSetupInvite(
+      {},
+      formDataWith({
+        intent: "revoke",
+        inviteId: "invite-1",
+        ledgerId: "ledger-id",
+      }),
+    );
+
+    expect(state).toEqual({
+      operation: "revoke",
+      successKey: expect.any(String),
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("失败时与账本设置页返回相同的错误状态", async () => {
+    mocks.inviteMemberService.mockRejectedValueOnce(
+      new AuthorizationError(
+        ledgerInviteErrorCodes.permissionDenied,
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.permissionDenied],
+      ),
+    );
+
+    const state = await createLedgerSetupInvite(
+      {},
+      formDataWith({
+        displayName: "小明",
+        intent: "invite",
+        ledgerId: "ledger-id",
+        role: "viewer",
+      }),
+    );
+
+    expectErrorState(state, {
+      message:
+        ledgerInviteErrorMessages[ledgerInviteErrorCodes.permissionDenied],
+      operation: "invite",
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mockMatchMedia } from "test/matchMedia";
@@ -9,10 +9,13 @@ import {
   clickNext,
   completeSetupAndWait,
   createSaveDraftMock,
+  finishInviteAndWait,
   getCurrentStepItem,
   getLedgerSetupWizardDialog,
   goPreviousTo,
   renderLedgerSetupWizard,
+  renderLedgerSetupWizardAtInviteStep,
+  waitForInviteEntry,
 } from "./ledgerSetupWizardTestUtils";
 
 let restoreMatchMedia: (() => void) | null = null;
@@ -106,16 +109,37 @@ describe("LedgerSetupWizard", () => {
       expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
     });
 
-    it("完成创建后的占位步骤不能返回上一步，也不能继续前进", async () => {
-      renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({ step: 5 }),
-      });
+    it("完成创建后进入第 6 步：第 1～5 步为已完成，第 6 步为当前", async () => {
+      await renderLedgerSetupWizardAtInviteStep();
 
-      await completeSetupAndWait();
+      const items = within(
+        screen.getByRole("list", { name: "创建进度" }),
+      ).getAllByRole("listitem");
+      expect(items.map((item) => item.dataset.status)).toEqual([
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+        "current",
+      ]);
+      expectCurrentStep("邀请");
+    });
 
-      expect(screen.getByRole("button", { name: "下一步" })).toBeDisabled();
+    it("第 6 步点击完成后显示完成页：不显示标题与进度条", async () => {
+      await renderLedgerSetupWizardAtInviteStep();
+      await waitForInviteEntry();
+
+      await finishInviteAndWait();
+
       expect(
-        screen.queryByRole("button", { name: "上一步" }),
+        screen.getByRole("dialog", { name: "一切就绪！" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "创建账本" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("list", { name: "创建进度" }),
       ).not.toBeInTheDocument();
     });
   });
