@@ -33,10 +33,17 @@ export {
   ledgerSetupErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
+export type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
 export type {
-  LedgerSetup,
   LedgerSetupDraft,
-} from "internal/ledger/entity/ledgerSetup";
+  LedgerSetupDraftAccount,
+} from "internal/ledger/schema/ledgerSetupDraft";
+export type {
+  LedgerSetupAccountType,
+  LedgerSetupMerchantTagTemplate,
+  LedgerSetupMerchantTemplate,
+  LedgerSetupTemplate,
+} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 export {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,

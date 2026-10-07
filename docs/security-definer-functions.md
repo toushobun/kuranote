@@ -264,7 +264,24 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 `setup_status` / `setup_step` / `setup_draft` 由 SECURITY INVOKER trigger `guard_ledger_setup_state` 保护：completed 账本不可回到创建中；其他修改只有在事务内打开 `app.allow_ledger_setup_update` 时才允许。该 GUC 只由上述 SECURITY DEFINER RPC 在完成 owner 与状态校验后设置，并在更新后立即关闭。
 
-后续完成写入 RPC 需要在同一事务内写入默认分类、账户、商家等业务数据，再将账本标记为 completed。由于写入时账本仍为 in_progress，权限函数会拒绝，完成写入 RPC 必须以 SECURITY DEFINER 身份自行校验 owner 与创建中状态，并以事务内 GUC 放行对应 trigger，不得放宽 `current_user_can_manage_ledger` / `current_user_can_write_ledger` 本身。
+### 完成写入与共用内部函数（实施拆分第 2 项）
+
+| 函数                                                        | 变更与权限边界                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `complete_ledger_setup(uuid,jsonb)`                         | 新增 RPC，仅授予 authenticated。经 `lock_current_user_setup_ledger` 校验后，同一事务内写入默认分类、账户（币种为账本默认货币、初始余额 0、持有人为当前用户）、商家标签、商家、别名、标签关联与特殊状态开关，再标记 completed 并切换当前账本。  |
+| `validate_ledger_setup_completion_payload(jsonb)`           | 新增内部函数：只做通用校验（结构、条数上限、字段长度、账户类型枚举、标签引用存在、名称在 payload 内不重复），失败统一为 `ledger_setup_payload_invalid`。撤销全部客户端及 service_role 的 EXECUTE。                                             |
+| `ledger_setup_completion_allows_insert(uuid)`               | 新增内部函数：仅当事务内 `app.ledger_setup_completion_ledger_id` 等于该账本、且账本是当前用户作为 owner 的未归档创建中账本时返回 true。撤销全部客户端及 service_role 的 EXECUTE。                                                              |
+| `enforce_ledger_management_permission()`                    | 新增 INSERT 窄分支：`account`、`account_holder`、`category`、`merchant`、`merchant_tags` 的 INSERT 在 `ledger_setup_completion_allows_insert` 为 true 时放行；UPDATE / DELETE 与其他表不变。                                                   |
+| `enforce_merchant_alias_management_permission()`            | 同上，新增商家别名 INSERT 窄分支。                                                                                                                                                                                                             |
+| `enforce_merchant_tag_link_management_permission()`         | 同上，新增商家标签关联 INSERT 窄分支。                                                                                                                                                                                                         |
+| `validate_ledger_basic_info(text,text,text,text)`           | 由 `validate_ledger_setup_basic_info` 改名。币种 / 个性色等基本信息合法值在数据库内只保留这一份，`create_ledger_with_owner_settings`、`create_ledger_setup`、`update_ledger_setup_basic_info` 共用。撤销全部客户端及 service_role 的 EXECUTE。 |
+| `bootstrap_ledger_owner_member(uuid,uuid)`                  | 新增内部函数：事务内短暂打开 `app.allow_ledger_owner_bootstrap` 写入首个 owner 成员后立即关闭。`create_ledger_with_owner` 与 `create_ledger_setup` 共用。撤销全部客户端及 service_role 的 EXECUTE。                                            |
+| `upsert_ledger_member_display_setting(uuid,uuid,text,text)` | 新增内部函数：写入成员显示名与个性色。`create_ledger_with_owner_settings`、`create_ledger_setup`、`update_ledger_setup_basic_info` 共用。撤销全部客户端及 service_role 的 EXECUTE。                                                            |
+| `initialize_ledger_default_categories(uuid,uuid)`           | 新增内部函数：默认大分类 / 小分类初始化，从 `initialize_ledger_default_data_without_merchant_tags` 中抽出，既有初始化与 `complete_ledger_setup` 共用。撤销全部客户端及 service_role 的 EXECUTE。                                               |
+| `update_ledger_setup_basic_info(uuid,text,text,text,text)`  | 默认货币变化时，在同一事务内从草稿移除 `templateCurrency`、`templateVersion`、`accounts`、`merchants`，保留其他内容；货币未变时草稿不动。                                                                                                      |
+| `save_ledger_setup_draft(uuid,integer,jsonb)`               | 持有账本行锁时校验草稿的 `templateCurrency` 与账本当前默认货币一致（`ledger_setup_draft_currency_mismatch`）；草稿结构、模板 key 与版本由 Service 校验。                                                                                       |
+
+完成写入的放行方式：写入业务数据时账本仍为 in_progress，`current_user_can_manage_ledger` / `current_user_can_write_ledger` 不放宽。`complete_ledger_setup` 校验 owner 与创建中状态后，把事务内 GUC `app.ledger_setup_completion_ledger_id` 设为该账本 ID，权限 trigger 只对「INSERT + 同一账本 + 当前用户自己的创建中账本」放行；业务数据写完立即清空，再以 `app.allow_ledger_setup_update` 标记 completed。payload 由 Service 根据数据库中的草稿与代码模板生成；owner 直接调用 RPC 时最多向自己的账本写入普通数据，与完成后手动添加等价。
 
 ## 自动化检查
 
@@ -292,7 +309,7 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 - `create_ledger_invite_v2`（未绑定待邀请成员时返回 `placeholder_required`）、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 绑定邀请与认领链路。
 - 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
 - #598 / #606 的 `apply_transaction_item_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items`、`clear_transaction_item_income_links` 由 `scripts/security-definer-smoke-issue-598.sql` 持续验证报销关联、单目标退款关联、冻结、关闭开关防线与受控清理。
-- #395 的向导 RPC 与创建中账本边界（不可设为当前账本、拒绝业务写入与邀请、列表排除、状态列保护）由 `scripts/security-definer-smoke-issue-395.sql` 持续验证。
+- #395 的向导 RPC 与创建中账本边界（不可设为当前账本、拒绝业务写入与邀请、列表排除、状态列保护），以及完成写入（成功写入、跳过、非法 payload 不留数据、非 owner / completed / 未登录被拒、完成后权限恢复、GUC 关闭、修改货币清空模板相关草稿、既有建账本流程不变）由 `scripts/security-definer-smoke-issue-395.sql` 持续验证。
 
 基础 smoke 数据在同一事务中创建并 `ROLLBACK`；#598 / #606 smoke 同样使用独立事务回滚。基础路径已在 PR #494 的数据库验证中实际执行通过，关联路径由当前 schema snapshot check 持续验证。
 

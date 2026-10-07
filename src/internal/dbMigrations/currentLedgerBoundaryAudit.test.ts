@@ -284,9 +284,9 @@ describe("创建中账本数据边界", () => {
     const functionSql = getFunctionSql("create_ledger_setup");
 
     expect(functionSql).toContain("'in_progress'");
-    expect(functionSql).toContain("insert into public.ledger_member");
+    expect(functionSql).toContain("public.bootstrap_ledger_owner_member(");
     expect(functionSql).toContain(
-      "insert into public.ledger_member_display_setting",
+      "public.upsert_ledger_member_display_setting(",
     );
     expect(functionSql).toContain("ledger_setup_in_progress_exists");
     expect(functionSql).not.toContain("initialize_ledger_default_data");
@@ -331,6 +331,7 @@ describe("创建中账本数据边界", () => {
       `"create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text")`,
       `"save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb")`,
       `"get_current_user_setup_ledger"()`,
+      `"complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb")`,
     ]) {
       expect(schemaSql).toContain(
         `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
@@ -343,10 +344,68 @@ describe("创建中账本数据边界", () => {
     for (const signature of [
       `"ledger_setup_is_completed"("p_ledger_id" "uuid")`,
       `"lock_current_user_setup_ledger"("p_ledger_id" "uuid")`,
+      `"ledger_setup_completion_allows_insert"("p_ledger_id" "uuid")`,
+      `"validate_ledger_setup_completion_payload"("p_payload" "jsonb")`,
+      `"validate_ledger_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text")`,
+      `"bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid")`,
+      `"upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text")`,
+      `"initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid")`,
     ]) {
       expect(schemaSql).not.toContain(
         `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
       );
+    }
+  });
+
+  it("完成写入 RPC 校验 owner 与创建中状态，事务内放行写入后立即关闭", () => {
+    const functionSql = getFunctionSql("complete_ledger_setup");
+    const lockIndex = functionSql.indexOf(
+      "public.lock_current_user_setup_ledger(p_ledger_id)",
+    );
+    const validateIndex = functionSql.indexOf(
+      "public.validate_ledger_setup_completion_payload(p_payload)",
+    );
+    const openIndex = functionSql.indexOf(
+      "set_config('app.ledger_setup_completion_ledger_id', p_ledger_id::text, true)",
+    );
+    const categoriesIndex = functionSql.indexOf(
+      "public.initialize_ledger_default_categories(p_ledger_id, v_user_id)",
+    );
+    const closeIndex = functionSql.indexOf(
+      "set_config('app.ledger_setup_completion_ledger_id', '', true)",
+    );
+    const completedIndex = functionSql.indexOf("setup_status = 'completed'");
+
+    expect(lockIndex).toBeGreaterThan(-1);
+    expect(validateIndex).toBeGreaterThan(lockIndex);
+    expect(openIndex).toBeGreaterThan(validateIndex);
+    expect(categoriesIndex).toBeGreaterThan(openIndex);
+    expect(closeIndex).toBeGreaterThan(categoriesIndex);
+    expect(completedIndex).toBeGreaterThan(closeIndex);
+    expect(functionSql).toContain("current_ledger_id = p_ledger_id");
+  });
+
+  it("完成写入放行只适用于 INSERT 与当前用户自己的创建中账本", () => {
+    const allowSql = getFunctionSql("ledger_setup_completion_allows_insert");
+
+    expect(allowSql).toContain(
+      "current_setting('app.ledger_setup_completion_ledger_id', true)",
+    );
+    expect(allowSql).toContain("l.owner_user_id = auth.uid()");
+    expect(allowSql).toContain("l.setup_status = 'in_progress'");
+
+    for (const name of [
+      "enforce_ledger_management_permission",
+      "enforce_merchant_alias_management_permission",
+      "enforce_merchant_tag_link_management_permission",
+    ]) {
+      const functionSql = getFunctionSql(name);
+
+      expect(functionSql).toContain("tg_op = 'INSERT'");
+      expect(functionSql).toContain(
+        "public.ledger_setup_completion_allows_insert(v_ledger_id)",
+      );
+      expect(functionSql).toContain("current_user_can_manage_ledger(");
     }
   });
 
