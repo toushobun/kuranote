@@ -995,38 +995,6 @@ begin
         '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
     );
 
-    -- TEMP-DIAG 开始：CI 排查用的诊断输出，确认后删除。
-    raise notice 'TEMP-DIAG collation %', (
-        select to_jsonb(d) - 'datacl'
-        from pg_database d
-        where d.datname = current_database()
-    );
-    raise notice 'TEMP-DIAG legacy total=% roots=% fingerprint_c=% fingerprint_default_collation=%',
-        (select count(*) from public.category where ledger_id = v_legacy_ledger_id),
-        (select count(*) from public.category where ledger_id = v_legacy_ledger_id and parent_id is null),
-        pg_temp.default_category_fingerprint(v_legacy_ledger_id),
-        (
-            select md5(string_agg(
-                format('%s|%s|%s|%s|%s|%s', c.type, coalesce(parent.name, ''), c.name, c.icon_name, c.color, c.sort_order),
-                E'\n'
-                order by c.type, coalesce(parent.name, ''), c.sort_order, c.name
-            ))
-            from public.category c
-            left join public.category parent on parent.id = c.parent_id
-            where c.ledger_id = v_legacy_ledger_id
-        );
-    raise notice 'TEMP-DIAG rows%', (
-        select string_agg(
-            E'\nTEMP-DIAG-ROW ' || format('%s|%s|%s|%s|%s|%s', c.type, coalesce(parent.name, ''), c.name, c.icon_name, c.color, c.sort_order),
-            ''
-            order by format('%s|%s|%s|%s|%s|%s', c.type, coalesce(parent.name, ''), c.name, c.icon_name, c.color, c.sort_order) collate "C"
-        )
-        from public.category c
-        left join public.category parent on parent.id = c.parent_id
-        where c.ledger_id = v_legacy_ledger_id
-    );
-    -- TEMP-DIAG 结束
-
     perform pg_temp.assert_default_categories('/ledgers/new', v_legacy_ledger_id);
     perform pg_temp.assert_default_categories('complete_ledger_setup', v_setup_ledger_id);
 
