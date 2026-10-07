@@ -5,7 +5,10 @@ import {
   type RequestContainer,
 } from "internal/container";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
-import { readLedgerSetupProgress } from "internal/ledger/adapter/next/loadLedgerSetupWizard";
+import {
+  loadLedgerSetupWizard,
+  readLedgerSetupProgress,
+} from "internal/ledger/adapter/next/loadLedgerSetupWizard";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
 import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
 import { ledgerCreateErrorMessages } from "internal/ledger/errors/ledgerCreate";
@@ -26,6 +29,7 @@ import type {
   LedgerSetupCompleteActionState,
   LedgerSetupDraftActionState,
   LedgerSetupInviteMembersActionState,
+  LedgerSetupWizardViewActionState,
   LoadLedgerSetupInviteMembersInput,
   SaveLedgerSetupDraftInput,
 } from "types/ledgers";
@@ -299,6 +303,25 @@ export async function loadLedgerSetupInviteMembers(
       error,
       ledgerSetupLoadErrorMessages.inviteMembersLoadFailed,
       "[ledger] ledger setup invite members action failed unexpectedly",
+    );
+  }
+}
+
+/**
+ * 首页 / 账本管理页打开向导时读取向导数据（第 1 步默认值、创建中账本进度、默认大分类）。
+ * 只在打开时读取，避免入口页每次渲染都读取完整的向导数据。
+ */
+export async function loadLedgerSetupWizardView(): Promise<LedgerSetupWizardViewActionState> {
+  // 未登录时的登录跳转在 try 外触发，保持原控制流。
+  await getCurrentLedgerContext();
+
+  try {
+    return { view: await loadLedgerSetupWizard() };
+  } catch (error) {
+    return createActionErrorState(
+      error,
+      ledgerSetupLoadErrorMessages.loadFailed,
+      "[ledger] ledger setup wizard load action failed unexpectedly",
     );
   }
 }

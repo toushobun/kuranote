@@ -4,7 +4,11 @@ import {
 } from "internal/container";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
-import type { LedgerSetupProgress, LedgerSetupWizardView } from "types/ledgers";
+import type {
+  LedgerSetupInProgressSummary,
+  LedgerSetupProgress,
+  LedgerSetupWizardView,
+} from "types/ledgers";
 
 /** 读取当前用户的创建中账本（草稿已补全）及其默认货币对应的预设模板。 */
 export async function readLedgerSetupProgress(
@@ -41,4 +45,20 @@ export async function loadLedgerSetupWizard(): Promise<LedgerSetupWizardView> {
   ]);
 
   return { defaultRootCategoryNames, defaults, progress };
+}
+
+/**
+ * 首页「继续创建」与账本管理页「创建中」条目只需要账本名与步骤，
+ * 不读取模板与默认分类；完整的向导数据在打开向导时再读取。
+ */
+export async function loadLedgerSetupInProgressSummary(): Promise<LedgerSetupInProgressSummary | null> {
+  // redirect() 属于页面边界，未登录时由 currentLedger 解析跳转登录页。
+  await getCurrentLedgerContext();
+  const dependencies = await createServerRequestDependencies();
+  const setup =
+    await createRequestContainer(
+      dependencies,
+    ).ledger.setupService.getCurrentUserSetup();
+
+  return setup ? { name: setup.name, step: setup.step } : null;
 }

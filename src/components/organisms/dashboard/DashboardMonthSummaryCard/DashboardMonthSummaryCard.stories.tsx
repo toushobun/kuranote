@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { fn } from "storybook/test";
 
 import { createDashboardAccountSummary } from "@/test/mocks/dashboard";
 
@@ -11,6 +12,7 @@ const meta = {
     accounts: [createDashboardAccountSummary()],
     hasLedger: true,
     monthLabel: "2026年5月",
+    onCreateLedger: fn(),
   },
 } satisfies Meta<typeof DashboardMonthSummaryCard>;
 

@@ -92,13 +92,6 @@ export type CurrentLedgerStateAction = (
   formData: FormData,
 ) => Promise<CurrentLedgerActionState>;
 
-export type LedgerCreateActionState = ActionState;
-
-export type LedgerCreateStateAction = (
-  previousState: LedgerCreateActionState,
-  formData: FormData,
-) => Promise<LedgerCreateActionState>;
-
 /** 创建账本向导的进度：创建中账本与其默认货币对应的预设模板（无模板时为 null）。 */
 export type LedgerSetupProgress = {
   setup: LedgerSetup;
@@ -111,6 +104,38 @@ export type LedgerSetupWizardView = LedgerCreateDefaults & {
   defaultRootCategoryNames: string[];
   progress: LedgerSetupProgress | null;
 };
+
+/** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
+export type LedgerSetupWizardActions = {
+  /** 第 5 步完成创建：写入默认数据并切换为当前账本。 */
+  completeSetup: LedgerSetupCompleteAction;
+  /** 第 6 步邀请成员（与账本设置页相同的邀请写入，成功后不跳转页面）。 */
+  createInvite: LedgerInviteStateAction;
+  /** 第 6 步读取新账本的待邀请成员与待接受邀请。 */
+  loadInviteMembers: LedgerSetupInviteMembersLoadAction;
+  /** 第 6 步待邀请成员的改名 / 删除（与账本设置页相同）。 */
+  placeholderMemberActions: LedgerPlaceholderMemberActions;
+  /** 第 2 步以后保存草稿与 setup_step。 */
+  saveDraft: LedgerSetupDraftSaveAction;
+  submitBasicInfo: LedgerSetupBasicInfoStateAction;
+};
+
+/** 打开向导时读取向导数据的结果。 */
+export type LedgerSetupWizardViewActionState = ActionState & {
+  view?: LedgerSetupWizardView;
+};
+
+export type LedgerSetupWizardViewLoadAction =
+  () => Promise<LedgerSetupWizardViewActionState>;
+
+/** 打开向导的入口（首页 / 账本管理页）使用的 Server Action：打开时读取向导数据，再交给向导各步骤。 */
+export type LedgerSetupWizardLauncherActions = {
+  loadWizard: LedgerSetupWizardViewLoadAction;
+  wizard: LedgerSetupWizardActions;
+};
+
+/** 首页「继续创建」卡片与账本管理页「创建中」条目显示的创建中账本摘要。 */
+export type LedgerSetupInProgressSummary = Pick<LedgerSetup, "name" | "step">;
 
 export type LedgerSetupBasicInfoActionState = ActionState & {
   /** 提交成功，或已存在创建中账本时，重新读取的最新进度。 */

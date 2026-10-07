@@ -29,7 +29,7 @@ type LedgerBasicInfoFieldsProps = {
 /**
  * 账本名称、默认货币、我的显示名、我的个性色四个字段。
  * 字段 name 与 Server Action 的表单解析（validateCreateLedgerForm）一致，
- * 创建账本页与创建账本向导第 1 步共用。
+ * 创建账本向导第 1 步使用。
  */
 export function LedgerBasicInfoFields({
   onChange,

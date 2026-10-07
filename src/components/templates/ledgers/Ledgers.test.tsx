@@ -14,6 +14,9 @@ import {
   currentLedgerErrorMessages,
   type LedgerWithMemberCount,
 } from "internal/ledger";
+import { createLedgerSetupWizardLauncherActionMocks } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import { designTokens, theme } from "theme/theme";
 
 import { LedgersTemplate } from "./Ledgers";
@@ -21,7 +24,7 @@ import { LedgersTemplate } from "./Ledgers";
 const routerReplaceMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: routerReplaceMock }),
+  useRouter: () => ({ refresh: vi.fn(), replace: routerReplaceMock }),
 }));
 
 const updateCurrentLedgerAction = vi.fn(async () => {});
@@ -47,6 +50,7 @@ const defaultProps: ComponentProps<typeof LedgersTemplate> = {
   currentLedgerId: "00000000-0000-4000-8000-000000000001",
   errorMessage: null,
   ledgers,
+  setupWizardActions: createLedgerSetupWizardLauncherActionMocks(),
   switchResult: null,
   updateCurrentLedgerAction,
 };
@@ -56,9 +60,26 @@ function renderTemplate(
 ) {
   return render(
     <ThemeProvider theme={theme}>
-      <LedgersTemplate {...defaultProps} {...overrides} />
+      <ConfirmDialogTestProviders>
+        <LedgersTemplate {...defaultProps} {...overrides} />
+      </ConfirmDialogTestProviders>
     </ThemeProvider>,
   );
+}
+
+/** 有创建中账本时的渲染：「新增账本」「继续创建」都打开该账本的向导。 */
+function renderWithSetupInProgress() {
+  const progress = createLedgerSetupProgressFixture({
+    name: "爸妈账本",
+    step: 2,
+  });
+  const setupWizardActions =
+    createLedgerSetupWizardLauncherActionMocks(progress);
+  renderTemplate({
+    setupInProgress: { name: progress.setup.name, step: progress.setup.step },
+    setupWizardActions,
+  });
+  return setupWizardActions;
 }
 
 afterEach(() => {
@@ -74,16 +95,64 @@ describe("LedgersTemplate", () => {
     expect(
       within(container).getByRole("heading", { name: "账本管理" }),
     ).toBeInTheDocument();
-    const createLink = within(container).getByRole("link", {
+    const createButton = within(container).getByRole("button", {
       name: /新增账本/,
     });
 
-    expect(createLink).toHaveAttribute("href", "/ledgers/new");
-    expect(getComputedStyle(createLink).borderRadius).toBe(
+    expect(getComputedStyle(createButton).borderRadius).toBe(
       `${designTokens.radius.full}px`,
     );
-    expect(getComputedStyle(createLink).fontWeight).toBe("700");
-    expect(getComputedStyle(createLink).minHeight).toBe("40px");
+    expect(getComputedStyle(createButton).fontWeight).toBe("700");
+    expect(getComputedStyle(createButton).minHeight).toBe("40px");
+  });
+
+  it("点击「新增账本」打开创建账本向导", async () => {
+    renderTemplate();
+
+    fireEvent.click(screen.getByRole("button", { name: /新增账本/ }));
+
+    const dialog = await screen.findByRole("dialog", { name: "创建账本" });
+    expect(defaultProps.setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
+    expect(
+      within(dialog).getByRole("heading", { name: "先给账本起个名字吧" }),
+    ).toBeInTheDocument();
+  });
+
+  it("有创建中账本时显示「创建中」条目，不提供切换使用与账本设置入口", () => {
+    renderWithSetupInProgress();
+
+    const item = screen.getByRole("region", { name: "爸妈账本（创建中）" });
+    expect(within(item).getByText("爸妈账本")).toBeInTheDocument();
+    expect(within(item).getByText("创建中")).toBeInTheDocument();
+    expect(within(item).getByText("进行到第 2 步 · 账户")).toBeInTheDocument();
+    expect(within(item).queryByText("切换使用")).not.toBeInTheDocument();
+    expect(within(item).queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "切换到爸妈账本" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("点击「继续创建」打开该账本的向导并提示", async () => {
+    const setupWizardActions = renderWithSetupInProgress();
+
+    fireEvent.click(screen.getByRole("button", { name: "继续创建爸妈账本" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "创建账本" });
+    expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
+    expect(
+      within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
+    ).toBeInTheDocument();
+  });
+
+  it("有创建中账本时「新增账本」同样打开该账本的向导并提示", async () => {
+    renderWithSetupInProgress();
+
+    fireEvent.click(screen.getByRole("button", { name: /新增账本/ }));
+
+    const dialog = await screen.findByRole("dialog", { name: "创建账本" });
+    expect(
+      within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
+    ).toBeInTheDocument();
   });
 
   it("显示当前账本摘要", () => {
@@ -203,5 +272,10 @@ describe("LedgersTemplate", () => {
     });
 
     expect(within(container).getByText("你还没有任何账本")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(container).getAllByRole("button", { name: /新增账本/ })[1],
+    );
+    expect(defaultProps.setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
   });
 });

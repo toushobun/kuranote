@@ -18,12 +18,8 @@ export default function LedgersLoadingPage() {
     <Box aria-busy="true" aria-label={ledgerPageMessages.loading} role="status">
       <SettingsPageLayout
         action={
-          // 新增账本不依赖权限或数据，加载中也直接显示真实按钮
-          <CreateButton
-            href={routePaths.ledgersNew}
-            size="small"
-            sx={settingsPageActionButtonSx}
-          >
+          // 新增账本打开向导需要页面就绪，加载中显示禁用状态的同一按钮
+          <CreateButton disabled size="small" sx={settingsPageActionButtonSx}>
             {ledgerPageMessages.create}
           </CreateButton>
         }

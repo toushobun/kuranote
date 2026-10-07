@@ -9,7 +9,6 @@ import Typography from "@mui/material/Typography";
 import { IconBadge } from "atoms/ui/IconBadge";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
-import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
@@ -27,12 +26,15 @@ type DashboardMonthSummaryCardProps = {
   accounts: DashboardAccountSummary[];
   hasLedger?: boolean;
   monthLabel: string;
+  /** 无账本时「创建第一个账本」：打开创建账本向导。 */
+  onCreateLedger?: () => void;
 };
 
 export function DashboardMonthSummaryCard({
   accounts,
   hasLedger = true,
   monthLabel,
+  onCreateLedger,
 }: DashboardMonthSummaryCardProps) {
   return (
     <SectionCard
@@ -58,7 +60,7 @@ export function DashboardMonthSummaryCard({
         </Stack>
 
         {!hasLedger ? (
-          <DashboardNoLedgerAccountState />
+          <DashboardNoLedgerAccountState onCreateLedger={onCreateLedger} />
         ) : accounts.length > 0 ? (
           <Stack spacing={0}>
             {accounts.map((account) => (
@@ -111,7 +113,11 @@ export function DashboardMonthSummaryCard({
   );
 }
 
-function DashboardNoLedgerAccountState() {
+function DashboardNoLedgerAccountState({
+  onCreateLedger,
+}: {
+  onCreateLedger?: () => void;
+}) {
   return (
     <Stack
       direction={{ xs: "row", sm: "row" }}
@@ -144,7 +150,7 @@ function DashboardNoLedgerAccountState() {
           还没有账本，暂时无法显示账户余额
         </Typography>
         <PrimaryActionButton
-          href={routePaths.ledgersNew}
+          onClick={onCreateLedger}
           size="small"
           sx={{
             borderRadius: `${designTokens.radius.lg}px`,

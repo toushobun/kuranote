@@ -10,6 +10,7 @@ import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -30,6 +31,7 @@ import { CreateButton } from "atoms/ui/CreateButton";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { ledgerPageMessages } from "config/ledgerMessages";
+import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { ledgerSettingsHref, routePaths } from "config/paths";
 import type { CurrentLedgerRole, LedgerWithMemberCount } from "internal/ledger";
 import {
@@ -37,6 +39,9 @@ import {
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
+import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
+import { LedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher";
+import { useLedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/useLedgerSetupWizardLauncher";
 import {
   bottomNavigationLayout,
   stackedFeedbackBottomOffset,
@@ -49,6 +54,10 @@ import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
+import type {
+  LedgerSetupInProgressSummary,
+  LedgerSetupWizardLauncherActions,
+} from "types/ledgers";
 
 export type LedgerSwitchResult = "switched";
 
@@ -62,6 +71,9 @@ type LedgersTemplateProps = {
   errorKey?: string | null;
   errorMessage: string | null;
   ledgers: LedgerWithMemberCount[];
+  /** 当前用户的创建中账本（每个用户最多一个）。 */
+  setupInProgress?: LedgerSetupInProgressSummary | null;
+  setupWizardActions: LedgerSetupWizardLauncherActions;
   switchResult?: LedgerSwitchResult | null;
   updateCurrentLedgerAction: ServerAction;
 };
@@ -82,6 +94,8 @@ export function LedgersTemplate({
   errorKey = null,
   errorMessage,
   ledgers,
+  setupInProgress = null,
+  setupWizardActions,
   switchResult = null,
   updateCurrentLedgerAction,
 }: LedgersTemplateProps) {
@@ -96,6 +110,8 @@ export function LedgersTemplate({
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const clearResultParam = useClearQueryParam("result");
+  // 「新增账本」「继续创建」共用：已有创建中账本时向导恢复到该账本并提示。
+  const setupWizard = useLedgerSetupWizardLauncher(setupWizardActions);
 
   useEffect(() => {
     if (errorMessage === null || errorKey === null) return;
@@ -135,7 +151,7 @@ export function LedgersTemplate({
     <SettingsPageLayout
       action={
         <CreateButton
-          href={routePaths.ledgersNew}
+          onClick={setupWizard.openWizard}
           size="small"
           sx={settingsPageActionButtonSx}
         >
@@ -153,7 +169,7 @@ export function LedgersTemplate({
         {currentLedger ? (
           <CurrentLedgerCard ledger={currentLedger} />
         ) : (
-          <LedgersEmptyCard />
+          <LedgersEmptyCard onCreate={setupWizard.openWizard} />
         )}
 
         <Stack spacing={1}>
@@ -171,6 +187,12 @@ export function LedgersTemplate({
                 updateCurrentLedgerAction={updateCurrentLedgerAction}
               />
             ))}
+            {setupInProgress ? (
+              <LedgerSetupInProgressItem
+                onContinue={setupWizard.openWizard}
+                setup={setupInProgress}
+              />
+            ) : null}
           </Stack>
 
           {ledgers.length > 1 ? <LedgerSwitchHint /> : null}
@@ -198,6 +220,7 @@ export function LedgersTemplate({
         open={isSwitchSuccessOpen}
         title="切换成功"
       />
+      <LedgerSetupWizardLauncher launcher={setupWizard} />
     </SettingsPageLayout>
   );
 }
@@ -304,6 +327,61 @@ function LedgerListItem({
   );
 }
 
+/**
+ * 创建中账本：不能切换使用，也不进入账本设置，只提供「继续创建」打开向导。
+ */
+function LedgerSetupInProgressItem({
+  onContinue,
+  setup,
+}: {
+  onContinue: () => void;
+  setup: LedgerSetupInProgressSummary;
+}) {
+  const progress = getLedgerSetupProgressSummary(setup.step);
+
+  return (
+    <DataItemCard
+      aria-label={`${setup.name}（${ledgerSetupEntryMessages.inProgressLabel}）`}
+      component="section"
+      disablePadding
+      sx={inProgressItemCardSx}
+    >
+      <Stack direction="row" spacing={1.25} sx={inProgressItemContentSx}>
+        <Box sx={inProgressItemIconBoxSx}>
+          <MenuBookRoundedIcon fontSize="small" />
+        </Box>
+
+        <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+            <Typography component="p" noWrap sx={ledgerItemNameSx}>
+              {setup.name}
+            </Typography>
+            <Chip
+              label={ledgerSetupEntryMessages.inProgressLabel}
+              size="small"
+              sx={inProgressChipSx}
+            />
+          </Stack>
+
+          <Typography color="text.secondary" variant="body2">
+            {progress.description}
+          </Typography>
+        </Stack>
+
+        <Button
+          aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
+          endIcon={<ChevronRightRoundedIcon />}
+          onClick={onContinue}
+          size="small"
+          sx={continueButtonSx}
+        >
+          {ledgerSetupEntryMessages.continue}
+        </Button>
+      </Stack>
+    </DataItemCard>
+  );
+}
+
 function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
   const { pending } = useFormStatus();
 
@@ -338,7 +416,7 @@ function LedgerSwitchHint() {
   );
 }
 
-function LedgersEmptyCard() {
+function LedgersEmptyCard({ onCreate }: { onCreate: () => void }) {
   return (
     <DataItemCard>
       <Stack spacing={1.25} sx={{ alignItems: "center", textAlign: "center" }}>
@@ -353,7 +431,7 @@ function LedgersEmptyCard() {
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <CreateButton href={routePaths.ledgersNew} sx={createButtonSx}>
+        <CreateButton onClick={onCreate} sx={createButtonSx}>
           {ledgerPageMessages.create}
         </CreateButton>
       </Stack>
@@ -568,6 +646,55 @@ const statusChipSx = {
   px: 0.2,
   "& .MuiChip-label": {
     px: 0.9,
+  },
+};
+
+// 创建中账本：浅米色底、橙色虚线描边，整体略淡（「继续创建」按钮保持原色）。
+const inProgressItemCardSx = {
+  backgroundColor: "var(--user-theme-business-pending-bg)",
+  border: "1px dashed var(--user-theme-field-card-selected-border)",
+};
+
+const inProgressItemContentSx = {
+  alignItems: "center",
+  minHeight: 76,
+  p: dataItemCardPadding,
+  "& > :not(:last-child)": {
+    opacity: 0.8,
+  },
+};
+
+const inProgressItemIconBoxSx = {
+  ...ledgerItemIconBoxSx,
+  bgcolor: "var(--user-theme-segment-bg)",
+  color: "var(--user-theme-field-card-selected-border)",
+};
+
+const inProgressChipSx = {
+  ...typographyStyles.chipBadge,
+  bgcolor: "var(--user-theme-card-bg)",
+  border: "1px solid var(--user-theme-field-card-selected-border)",
+  borderRadius: `${designTokens.radius.full}px`,
+  color: "var(--user-theme-field-card-selected-border)",
+  flexShrink: 0,
+  fontSize: 11,
+  fontWeight: 700,
+  height: 20,
+  "& .MuiChip-label": {
+    px: 0.75,
+  },
+};
+
+const continueButtonSx = {
+  ...typographyStyles.button,
+  color: "var(--user-theme-action-text)",
+  flexShrink: 0,
+  fontSize: 13,
+  fontWeight: 700,
+  minHeight: 40,
+  whiteSpace: "nowrap",
+  "& .MuiButton-endIcon": {
+    ml: 0,
   },
 };
 

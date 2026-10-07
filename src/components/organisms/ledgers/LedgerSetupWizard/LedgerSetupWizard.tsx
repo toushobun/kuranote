@@ -31,6 +31,8 @@ type LedgerSetupWizardProps = {
   /** 确认一览展示的默认大分类名称（按排序）。 */
   defaultRootCategoryNames: readonly string[];
   defaults: LedgerBasicInfoValues;
+  /** 打开时显示在顶部提示条的内容（例如已有创建中账本时的提示）。 */
+  initialNotice?: string | null;
   onClose: () => void;
   open: boolean;
   /** 打开时的创建中账本进度；有进度时恢复到上次的步骤。 */
@@ -46,6 +48,7 @@ export function LedgerSetupWizard({
   actions,
   defaultRootCategoryNames,
   defaults,
+  initialNotice = null,
   onClose,
   open,
   progress: initialProgress,
@@ -53,7 +56,11 @@ export function LedgerSetupWizard({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const titleId = useId();
-  const wizard = useLedgerSetupWizard({ initialProgress, onClose });
+  const wizard = useLedgerSetupWizard({
+    initialNotice,
+    initialProgress,
+    onClose,
+  });
   const { Component: StepComponent, key, label } = wizard.currentStep;
 
   return (
@@ -65,7 +72,7 @@ export function LedgerSetupWizard({
         maxWidth={false}
         onClose={wizard.requestClose}
         open={open}
-        slotProps={{ paper: { sx: fullScreen ? fullScreenPaperSx : paperSx } }}
+        slotProps={{ paper: { sx: getLedgerSetupWizardPaperSx(fullScreen) } }}
       >
         {wizard.completeScreen ? (
           <>
@@ -152,6 +159,11 @@ export function LedgerSetupWizard({
       />
     </>
   );
+}
+
+/** 向导弹框的 Paper 样式。入口在读取向导数据期间显示的弹框共用，避免打开后尺寸跳动。 */
+export function getLedgerSetupWizardPaperSx(fullScreen: boolean) {
+  return fullScreen ? fullScreenPaperSx : paperSx;
 }
 
 const paperSx = {

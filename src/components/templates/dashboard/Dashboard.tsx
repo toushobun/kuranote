@@ -11,13 +11,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { IconBadge } from "atoms/ui/IconBadge";
+import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
+import { LedgerSetupContinueCard } from "organisms/ledgers/LedgerSetupContinueCard/LedgerSetupContinueCard";
+import { LedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher";
+import { useLedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/useLedgerSetupWizardLauncher";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { DashboardViewData } from "types/dashboard";
+import type {
+  LedgerSetupInProgressSummary,
+  LedgerSetupWizardLauncherActions,
+} from "types/ledgers";
 import { formatNumber } from "utils/transactions";
 
 import { dashboardHeroLayout as heroLayout } from "./dashboardLayout";
@@ -42,26 +50,39 @@ type QuickAction = {
 
 type DashboardTemplateProps = {
   data: DashboardViewData;
+  /** 没有已完成账本时的创建中账本；有已完成账本时不读取，为 null。 */
+  setupInProgress?: LedgerSetupInProgressSummary | null;
+  setupWizardActions: LedgerSetupWizardLauncherActions;
 };
 
-export function DashboardTemplate({ data }: DashboardTemplateProps) {
+export function DashboardTemplate({
+  data,
+  setupInProgress = null,
+  setupWizardActions,
+}: DashboardTemplateProps) {
   const { accountSummaries, monthLabel, monthSummary, recentTransactions } =
     data;
   const hasLedger = data.hasLedger ?? true;
+  // 只有在没有已完成账本时才提示继续创建。
+  const continueSetup = hasLedger ? null : setupInProgress;
+  const setupWizard = useLedgerSetupWizardLauncher(setupWizardActions);
 
   return (
     <DashboardContentFrame>
       <DashboardHeroPanel
         balance={monthSummary.balance}
+        continueSetup={continueSetup}
         expense={monthSummary.expense}
         hasLedger={hasLedger}
         income={monthSummary.income}
+        onOpenSetupWizard={setupWizard.openWizard}
       />
 
       <DashboardMonthSummaryCard
         accounts={accountSummaries}
         hasLedger={hasLedger}
         monthLabel={monthLabel}
+        onCreateLedger={setupWizard.openWizard}
       />
 
       <DashboardQuickActions hasLedger={hasLedger} />
@@ -70,6 +91,8 @@ export function DashboardTemplate({ data }: DashboardTemplateProps) {
         hasLedger={hasLedger}
         transactions={recentTransactions}
       />
+
+      <LedgerSetupWizardLauncher launcher={setupWizard} />
     </DashboardContentFrame>
   );
 }
@@ -107,18 +130,32 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
 
 function DashboardHeroPanel({
   balance,
+  continueSetup,
   expense,
   hasLedger,
   income,
+  onOpenSetupWizard,
 }: {
   balance: string;
+  continueSetup: LedgerSetupInProgressSummary | null;
   expense: string;
   hasLedger: boolean;
   income: string;
+  onOpenSetupWizard: () => void;
 }) {
   return (
     <Stack spacing={0}>
-      <DashboardWelcomeHero hasLedger={hasLedger} />
+      <DashboardWelcomeHero
+        hasLedger={hasLedger}
+        hasSetupInProgress={continueSetup !== null}
+      />
+
+      {continueSetup ? (
+        <LedgerSetupContinueCard
+          onContinue={onOpenSetupWizard}
+          setup={continueSetup}
+        />
+      ) : null}
 
       <DashboardIncomeExpenseSummary
         balance={balance}
@@ -180,11 +217,14 @@ function DashboardHeroBackground() {
   );
 }
 
-function DashboardWelcomeHero({ hasLedger }: { hasLedger: boolean }) {
-  const greeting = hasLedger ? "早呀，今天也好好记录" : "先创建你的第一个账本";
-  const subtitle = hasLedger
-    ? "每一张小票，都是生活的线索"
-    : "创建账本后，就可以开始记录家庭收支了";
+function DashboardWelcomeHero({
+  hasLedger,
+  hasSetupInProgress,
+}: {
+  hasLedger: boolean;
+  hasSetupInProgress: boolean;
+}) {
+  const { greeting, subtitle } = getWelcomeText(hasLedger, hasSetupInProgress);
 
   return (
     <Stack
@@ -249,6 +289,27 @@ function DashboardWelcomeHero({ hasLedger }: { hasLedger: boolean }) {
       </Stack>
     </Stack>
   );
+}
+
+function getWelcomeText(hasLedger: boolean, hasSetupInProgress: boolean) {
+  if (hasLedger) {
+    return {
+      greeting: "早呀，今天也好好记录",
+      subtitle: "每一张小票，都是生活的线索",
+    };
+  }
+
+  if (hasSetupInProgress) {
+    return {
+      greeting: ledgerSetupEntryMessages.dashboardTitle,
+      subtitle: ledgerSetupEntryMessages.dashboardSubtitle,
+    };
+  }
+
+  return {
+    greeting: "先创建你的第一个账本",
+    subtitle: "创建账本后，就可以开始记录家庭收支了",
+  };
 }
 
 function DashboardIncomeExpenseSummary({

@@ -5,7 +5,6 @@ export const routePaths = {
   dashboard: "/dashboard",
   home: "/",
   ledgers: "/ledgers",
-  ledgersNew: "/ledgers/new",
   login: "/login",
   merchants: "/merchants",
   merchantsNew: "/merchants/new",

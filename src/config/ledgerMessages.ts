@@ -6,13 +6,6 @@ export const ledgerPageMessages = {
   loading: "账本数据加载中",
 } as const;
 
-export const ledgerCreatePageMessages = {
-  title: "创建新账本",
-  subtitle: "创建后将自动准备默认账户和分类，你可以马上开始记账。",
-  back: "返回",
-  loading: "账本创建页面加载中",
-} as const;
-
 export const ledgerSettingsPageMessages = {
   title: "账本设置",
   subtitle: "管理账本信息与成员设置",
@@ -20,7 +13,7 @@ export const ledgerSettingsPageMessages = {
   loading: "账本设置加载中",
 } as const;
 
-/** 账本基本信息字段（创建账本页与创建账本向导第 1 步共用）。 */
+/** 账本基本信息字段（创建账本向导第 1 步）。 */
 export const ledgerBasicInfoFieldMessages = {
   clearLedgerName: "清空账本名称",
   colorHelper: "将用于成员标识与记录展示",

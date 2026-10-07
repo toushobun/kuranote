@@ -17,6 +17,8 @@ import type {
   CurrentLedgerStateAction,
 } from "types/ledgers";
 
+import { createLedgerSetupWizardLauncherActionMocks } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+
 import { LedgersActionStateTemplate } from "./LedgersActionState";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
@@ -47,6 +49,7 @@ function renderTemplate(action: CurrentLedgerStateAction) {
     <LedgersActionStateTemplate
       currentLedgerId="00000000-0000-4000-8000-000000000001"
       ledgers={ledgers}
+      setupWizardActions={createLedgerSetupWizardLauncherActionMocks()}
       switchResult={null}
       updateCurrentLedgerAction={action}
     />,

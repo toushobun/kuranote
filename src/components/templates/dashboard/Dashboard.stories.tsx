@@ -5,18 +5,34 @@ import {
   createDashboardViewData,
   createNoLedgerDashboardViewData,
 } from "@/test/mocks/dashboard";
+import {
+  createLedgerSetupWizardLauncherStoryActions,
+  ledgerSetupWizardStoryDecorators,
+} from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import type { UserThemeKey } from "theme/userThemeTokens";
 import type { DashboardViewData } from "types/dashboard";
+import type { LedgerSetupInProgressSummary } from "types/ledgers";
 
 import { DashboardTemplate } from "./Dashboard";
 
 const dashboardData = createDashboardViewData();
 const noLedgerDashboardData = createNoLedgerDashboardViewData();
+const setupProgress = createLedgerSetupProgressFixture({
+  name: "我们家",
+  step: 3,
+});
+const setupInProgress: LedgerSetupInProgressSummary = {
+  name: setupProgress.setup.name,
+  step: setupProgress.setup.step,
+};
+const setupWizardActions = createLedgerSetupWizardLauncherStoryActions();
 
 function renderWithTheme(
   themeKey: UserThemeKey,
   data: DashboardViewData = dashboardData,
+  continueSetup: LedgerSetupInProgressSummary | null = null,
 ) {
   return function ThemedDashboardTemplate() {
     return (
@@ -24,7 +40,15 @@ function renderWithTheme(
         data-user-theme={themeKey}
         style={getUserThemeCssVariables(themeKey) as CSSProperties}
       >
-        <DashboardTemplate data={data} />
+        <DashboardTemplate
+          data={data}
+          setupInProgress={continueSetup}
+          setupWizardActions={
+            continueSetup
+              ? createLedgerSetupWizardLauncherStoryActions(setupProgress)
+              : setupWizardActions
+          }
+        />
       </div>
     );
   };
@@ -35,7 +59,10 @@ const meta = {
   component: DashboardTemplate,
   args: {
     data: dashboardData,
+    setupWizardActions,
   },
+  // 无账本时可以打开创建账本向导。
+  decorators: ledgerSetupWizardStoryDecorators,
 } satisfies Meta<typeof DashboardTemplate>;
 
 export default meta;
@@ -100,4 +127,22 @@ export const NoLedgerDeepSeaStarlight: Story = {
 export const NoLedgerFlameRed: Story = {
   name: "无账本 / 烈焰赤红",
   render: renderWithTheme("flameRed", noLedgerDashboardData),
+};
+
+export const ContinueSetupDefault: Story = {
+  name: "继续创建 / 琥珀暖阳",
+  render: renderWithTheme(
+    "amberWarmth",
+    noLedgerDashboardData,
+    setupInProgress,
+  ),
+};
+
+export const ContinueSetupLavenderDream: Story = {
+  name: "继续创建 / 薰衣草梦境",
+  render: renderWithTheme(
+    "lavenderDream",
+    noLedgerDashboardData,
+    setupInProgress,
+  ),
 };

@@ -28,11 +28,13 @@ function getResumeStep(progress: LedgerSetupProgress | null) {
 }
 
 type UseLedgerSetupWizardOptions = {
+  initialNotice?: string | null;
   initialProgress: LedgerSetupProgress | null;
   onClose: () => void;
 };
 
 export function useLedgerSetupWizard({
+  initialNotice = null,
   initialProgress,
   onClose,
 }: UseLedgerSetupWizardOptions) {
@@ -43,9 +45,9 @@ export function useLedgerSetupWizard({
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   // 步骤保存中：锁定「×」与关闭，避免保存过程中关闭向导。
   const [busy, setBusy] = useState(false);
-  // 向导顶部的提示：恢复到其他创建中账本时说明本次填写的内容未保存，
+  // 向导顶部的提示：打开时已有创建中账本、恢复到其他创建中账本时说明本次填写的内容未保存，
   // 预设内容已更新时说明需要重新确认。
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(initialNotice);
   // 创建中账本已在其他页面完成或不存在：没有可稍后继续的进度。
   const [setupUnavailable, setSetupUnavailable] = useState(false);
   // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
