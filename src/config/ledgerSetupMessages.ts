@@ -67,6 +67,26 @@ export const ledgerSetupAccountsMessages = {
   title: "你平时用哪些方式付钱？",
 } as const;
 
+/** 第 3 步「商家」。商家标签名与商家名取自预设模板，不在此重复。 */
+export const ledgerSetupMerchantsMessages = {
+  checklist: {
+    groupCheckboxLabel: (tagName: string) => `选择「${tagName}」的全部商家`,
+    groupSelectedCount: (selected: number, total: number) =>
+      `已选 ${selected} / ${total} 家`,
+    selectAll: "全选",
+    selectNone: "全不选",
+  },
+  description: "为你准备了常用商家，按分类勾选即可，展开可逐个调整",
+  nextWithCount: (count: number) => `下一步 · 已选 ${count} 家`,
+  noTemplate: {
+    description: "可以跳过此步，之后在商家管理中添加",
+    title: "暂无该币种的预设商家",
+  },
+  selectAll: "全部选择",
+  selectNone: "全不选",
+  title: "挑选常去的商家",
+} as const;
+
 /** 仅非生产环境可访问的向导预览页（#395 实施拆分第 8 项移除）。 */
 export const ledgerSetupPreviewPageMessages = {
   description:
