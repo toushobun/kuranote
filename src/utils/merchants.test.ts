@@ -8,6 +8,7 @@ import {
 import {
   filterMerchantsByKeyword,
   getMerchantInitial,
+  getWebsiteDisplayDomain,
   normalizeSearchText,
   resolveMerchantDisplayName,
 } from "utils/merchants";
@@ -88,5 +89,24 @@ describe("filterMerchantsByKeyword", () => {
 
   it("空搜索词返回原列表", () => {
     expect(filterMerchantsByKeyword(merchants, "  ")).toBe(merchants);
+  });
+});
+
+describe("getWebsiteDisplayDomain", () => {
+  it("去掉协议、www. 与末尾路径", () => {
+    expect(getWebsiteDisplayDomain("https://www.skylark.co.jp/gusto/")).toBe(
+      "skylark.co.jp",
+    );
+  });
+
+  it("没有 www. 的域名原样返回", () => {
+    expect(getWebsiteDisplayDomain("https://jp.mercari.com/")).toBe(
+      "jp.mercari.com",
+    );
+  });
+
+  it("没有 URL 或无法解析时返回 null", () => {
+    expect(getWebsiteDisplayDomain(null)).toBeNull();
+    expect(getWebsiteDisplayDomain("not a url")).toBeNull();
   });
 });

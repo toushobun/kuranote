@@ -68,7 +68,9 @@ describe("LedgerSetupWizard", () => {
       });
 
       expectCurrentStep("商家");
-      expect(screen.getByText("该步骤将在后续版本实现")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "挑选常去的商家" }),
+      ).toBeInTheDocument();
     });
 
     it("可以通过上一步 / 下一步在步骤之间切换", async () => {

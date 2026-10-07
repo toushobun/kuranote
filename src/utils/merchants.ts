@@ -69,3 +69,17 @@ export function filterMerchantsByKeyword(
     return matchedByName || matchedByAlias;
   });
 }
+
+/**
+ * 从官网 URL 取得用于显示的域名：去掉协议、「www.」与路径。
+ * 例：`https://www.skylark.co.jp/gusto/` → `skylark.co.jp`。无法解析时返回 null。
+ */
+export function getWebsiteDisplayDomain(websiteUrl: string | null) {
+  if (!websiteUrl) return null;
+
+  try {
+    return new URL(websiteUrl).hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}

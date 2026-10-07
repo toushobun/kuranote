@@ -17,9 +17,9 @@ import {
 import {
   clickCloseWizard,
   clickNext,
-  clickPrevious,
   createSaveDraftMock,
   getCurrentStepItem,
+  goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import {
@@ -186,17 +186,13 @@ describe("LedgerSetupAccountsStep", () => {
       saveDraft,
     });
 
-    // 从第 4 步恢复后返回第 3 步、第 2 步。
-    clickPrevious();
-    clickPrevious();
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("账户"));
+    // 从第 4 步恢复后返回第 3 步、第 2 步（第 3 步返回时也会保存草稿）。
+    await goPreviousTo("商家");
+    await goPreviousTo("账户");
     fireEvent.click(getAccountCheckbox("现金"));
-    clickPrevious();
+    await goPreviousTo("基本信息");
 
-    await waitFor(() =>
-      expect(getCurrentStepItem()).toHaveTextContent("基本信息"),
-    );
-    expect(getSavedInput(saveDraft)).toMatchObject({
+    expect(saveDraft.mock.lastCall?.[0]).toMatchObject({
       draft: { accounts: { items: [], skipped: false } },
       step: 4,
     });
@@ -213,9 +209,8 @@ describe("LedgerSetupAccountsStep", () => {
     fireEvent.click(getAccountCheckbox("PayPay"));
     clickNext();
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
-    clickPrevious();
+    await goPreviousTo("账户");
 
-    expect(getCurrentStepItem()).toHaveTextContent("账户");
     expect(screen.queryByRole("checkbox", { name: "PayPay" })).toBeNull();
     expect(getAccountCheckbox("现金")).toBeChecked();
   });
