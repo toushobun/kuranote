@@ -19,3 +19,14 @@ export const ledgerSettingsPageMessages = {
   backToLedgers: "返回账本管理",
   loading: "账本设置加载中",
 } as const;
+
+/** 账本基本信息字段（创建账本页与创建账本向导第 1 步共用）。 */
+export const ledgerBasicInfoFieldMessages = {
+  clearLedgerName: "清空账本名称",
+  colorHelper: "将用于成员标识与记录展示",
+  colorLabel: "我的个性色",
+  currencyLabel: "默认货币",
+  displayNameHelper: "这是你在当前账本中的显示昵称",
+  displayNameLabel: "我的显示名",
+  ledgerNameLabel: "账本名称",
+} as const;

@@ -69,6 +69,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
         getMemberCounts: vi.fn(),
       },
       settingsService: { getView: vi.fn(), update: vi.fn() },
+      setupService: {} as RequestContainer["ledger"]["setupService"],
       ...overrides,
     },
     merchant: {} as RequestContainer["merchant"],

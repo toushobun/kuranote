@@ -24,6 +24,7 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
+import { isThemeColorKey } from "theme/themeColorTokens";
 
 export type LedgerSetupRpcErrorCode =
   | LedgerCreateErrorCode
@@ -49,7 +50,10 @@ export type CompleteLedgerSetupInput = {
 };
 
 /** 数据库中的创建中账本。草稿为保存时的原样（各部分可能缺失），由 Service 补全。 */
-export type LedgerSetupRecord = Omit<LedgerSetup, "draft"> & {
+export type LedgerSetupRecord = Omit<
+  LedgerSetup,
+  "draft" | "hasTemplateSelections"
+> & {
   storedDraft: StoredLedgerSetupDraft;
 };
 
@@ -88,7 +92,8 @@ const ledgerSetupRpcErrorMap = {
 export interface LedgerSetupRepository {
   complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
   create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
-  findCurrentUserSetupLedger(): Promise<LedgerSetupRecord | null>;
+  /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
+  findCurrentUserSetupLedger(userId: string): Promise<LedgerSetupRecord | null>;
   saveDraft(input: SaveLedgerSetupDraftInput): Promise<LedgerSetupWriteResult>;
   updateBasicInfo(
     input: UpdateLedgerSetupBasicInfoInput,
@@ -155,7 +160,7 @@ export function createSupabaseLedgerSetupRepository(
       return { ledgerId: data, ok: true };
     },
 
-    async findCurrentUserSetupLedger() {
+    async findCurrentUserSetupLedger(userId) {
       const { data, error } = await supabase.rpc(
         "get_current_user_setup_ledger",
       );
@@ -186,8 +191,41 @@ export function createSupabaseLedgerSetupRepository(
         );
       }
 
+      // owner 是创建中账本的 active 成员，可按 RLS 读取自己的显示设置。
+      const displaySettingResult = await supabase
+        .from("ledger_member_display_setting")
+        .select("display_name, display_color")
+        .eq("ledger_id", row.ledger_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (displaySettingResult.error) {
+        logger.error("[ledger] failed to load ledger setup display setting", {
+          databaseCode: displaySettingResult.error.code,
+          ledgerId: row.ledger_id,
+        });
+        throw toRepositoryError(
+          "ledger_setup_load_failed",
+          ledgerSetupLoadErrorMessages.loadFailed,
+        );
+      }
+
+      // 创建中账本在创建时必定写入 owner 的显示设置；缺失或个性色不合法时视为数据异常。
+      const displaySetting = displaySettingResult.data;
+      if (!displaySetting || !isThemeColorKey(displaySetting.display_color)) {
+        logger.error("[ledger] invalid ledger setup display setting", {
+          ledgerId: row.ledger_id,
+        });
+        throw toRepositoryError(
+          "ledger_setup_load_failed",
+          ledgerSetupLoadErrorMessages.loadFailed,
+        );
+      }
+
       return {
         baseCurrency: row.base_currency,
+        displayColor: displaySetting.display_color,
+        displayName: displaySetting.display_name,
         id: row.ledger_id,
         name: row.ledger_name,
         step: row.setup_step,

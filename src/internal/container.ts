@@ -29,6 +29,7 @@ import { createSupabaseLedgerInvitePreviewRepository } from "internal/ledger/rep
 import { createSupabaseLedgerPlaceholderMemberRepository } from "internal/ledger/repository/ledgerPlaceholderMemberRepository";
 import { createSupabaseLedgerRepository } from "internal/ledger/repository/ledgerRepository";
 import { createSupabaseLedgerSettingsRepository } from "internal/ledger/repository/ledgerSettingsRepository";
+import { createSupabaseLedgerSetupRepository } from "internal/ledger/repository/ledgerSetupRepository";
 import { createCurrentLedgerService } from "internal/ledger/service/currentLedgerService";
 import { createLedgerAccessService } from "internal/ledger/service/ledgerAccessService";
 import { createLedgerInvitePreviewService } from "internal/ledger/service/ledgerInvitePreviewService";
@@ -36,6 +37,7 @@ import { createLedgerInviteService } from "internal/ledger/service/ledgerInviteS
 import { createLedgerPlaceholderMemberService } from "internal/ledger/service/ledgerPlaceholderMemberService";
 import { createLedgerService } from "internal/ledger/service/ledgerService";
 import { createLedgerSettingsService } from "internal/ledger/service/ledgerSettingsService";
+import { createLedgerSetupService } from "internal/ledger/service/ledgerSetupService";
 import { createSupabaseMerchantRepository } from "internal/merchant/repository/merchantRepository";
 import {
   createMerchantService,
@@ -78,6 +80,7 @@ export type RequestContainer = {
       typeof createCurrentLedgerService
     >;
     readonly settingsService: ReturnType<typeof createLedgerSettingsService>;
+    readonly setupService: ReturnType<typeof createLedgerSetupService>;
     readonly inviteService: ReturnType<typeof createLedgerInviteService>;
     readonly placeholderMemberService: ReturnType<
       typeof createLedgerPlaceholderMemberService
@@ -387,6 +390,15 @@ export function createRequestContainer(
           service: createLedgerService({ ledgerRepository }),
           settingsService: createLedgerSettingsService({
             ledgerSettingsRepository: getLedgerSettingsRepository(),
+          }),
+          setupService: createLedgerSetupService({
+            currentUserId: dependencies.auth.isAuthenticated
+              ? dependencies.auth.userId
+              : null,
+            ledgerSetupRepository: createSupabaseLedgerSetupRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
           }),
         };
       }

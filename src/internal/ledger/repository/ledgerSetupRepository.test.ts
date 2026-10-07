@@ -34,8 +34,17 @@ const basicInfo = {
   ledgerName: "家庭账本",
 };
 
-function createRepository(rpcResponse: Partial<SupabaseMockResponse> = {}) {
-  const supabase = createSupabaseMock({ rpcResponse });
+const userId = "00000000-0000-4000-8000-000000000031";
+
+const displaySettingResponse = {
+  data: { display_color: "amber", display_name: "淞文" },
+};
+
+function createRepository(
+  rpcResponse: Partial<SupabaseMockResponse> = {},
+  queryResponses: Partial<SupabaseMockResponse>[] = [],
+) {
+  const supabase = createSupabaseMock({ queryResponses, rpcResponse });
   const logger: Logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
 
   return {
@@ -104,37 +113,79 @@ describe("createSupabaseLedgerSetupRepository.create", () => {
   });
 });
 
-describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () => {
-  it("把 RPC 行转换为创建中账本", async () => {
-    const { repository, supabase } = createRepository({
-      data: [
-        {
-          base_currency: "JPY",
-          ledger_id: ledgerId,
-          ledger_name: "家庭账本",
-          setup_draft: {
-            accounts: [],
-            features: { specialStatusEnabled: true },
-          },
-          setup_step: 3,
-        },
-      ],
-    });
+const setupRow = {
+  base_currency: "JPY",
+  ledger_id: ledgerId,
+  ledger_name: "家庭账本",
+  setup_draft: {
+    accounts: [],
+    features: { specialStatusEnabled: true },
+  },
+  setup_step: 3,
+};
 
-    await expect(repository.findCurrentUserSetupLedger()).resolves.toEqual({
+describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () => {
+  it("把 RPC 行与当前用户的显示设置转换为创建中账本", async () => {
+    const { repository, supabase } = createRepository({ data: [setupRow] }, [
+      displaySettingResponse,
+    ]);
+
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).resolves.toEqual({
       baseCurrency: "JPY",
+      displayColor: "amber",
+      displayName: "淞文",
       id: ledgerId,
       name: "家庭账本",
       step: 3,
       storedDraft: { features: { specialStatusEnabled: true } },
     });
     expect(supabase.rpc).toHaveBeenCalledWith("get_current_user_setup_ledger");
+    expect(supabase.queries[0]).toMatchObject({
+      calls: [
+        { args: ["display_name, display_color"], method: "select" },
+        { args: ["ledger_id", ledgerId], method: "eq" },
+        { args: ["user_id", userId], method: "eq" },
+        { args: [], method: "maybeSingle" },
+      ],
+      table: "ledger_member_display_setting",
+    });
+  });
+
+  it("显示设置查询失败时抛出读取失败", async () => {
+    const { repository } = createRepository({ data: [setupRow] }, [
+      { error: { code: "XX000", message: "private" } },
+    ]);
+
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).rejects.toMatchObject({
+      code: "ledger_setup_load_failed",
+      message: ledgerSetupLoadErrorMessages.loadFailed,
+    });
+  });
+
+  it.each([
+    ["显示设置缺失", { data: null }],
+    [
+      "个性色不是可选值",
+      { data: { display_color: "unknown", display_name: "淞文" } },
+    ],
+  ])("%s时视为数据异常", async (_label, response) => {
+    const { repository } = createRepository({ data: [setupRow] }, [response]);
+
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).rejects.toMatchObject({ code: "ledger_setup_load_failed" });
   });
 
   it("没有创建中账本时返回 null", async () => {
     const { repository } = createRepository({ data: [] });
 
-    await expect(repository.findCurrentUserSetupLedger()).resolves.toBeNull();
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).resolves.toBeNull();
   });
 
   it("查询失败时不伪装为没有创建中账本", async () => {
@@ -142,12 +193,12 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
       error: { code: "XX000", message: "private" },
     });
 
-    await expect(repository.findCurrentUserSetupLedger()).rejects.toMatchObject(
-      {
-        code: "ledger_setup_load_failed",
-        message: ledgerSetupLoadErrorMessages.loadFailed,
-      },
-    );
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).rejects.toMatchObject({
+      code: "ledger_setup_load_failed",
+      message: ledgerSetupLoadErrorMessages.loadFailed,
+    });
   });
 
   it.each([
@@ -160,9 +211,9 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
       ],
     });
 
-    await expect(repository.findCurrentUserSetupLedger()).rejects.toMatchObject(
-      { code: "ledger_setup_load_failed" },
-    );
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).rejects.toMatchObject({ code: "ledger_setup_load_failed" });
   });
 });
 

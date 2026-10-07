@@ -4,6 +4,10 @@ import {
   type LedgerSetupTemplate,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import {
+  ledgerCreateErrorCodes,
+  ledgerCreateErrorMessages,
+} from "internal/ledger/errors/ledgerCreate";
+import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   type LedgerSetupErrorCode,
@@ -25,12 +29,14 @@ import {
 } from "internal/ledger/util/ledgerSetupDraft";
 import {
   AppError,
+  AuthenticationError,
   ConflictError,
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
 
 type LedgerSetupServiceDependencies = {
+  currentUserId: string | null;
   ledgerSetupRepository: LedgerSetupRepository;
 };
 
@@ -93,6 +99,8 @@ function toLedgerSetup({ storedDraft, ...setup }: LedgerSetupRecord) {
   return {
     ...setup,
     draft: resolveLedgerSetupDraft(storedDraft, setup.baseCurrency),
+    hasTemplateSelections:
+      storedDraft.accounts !== undefined || storedDraft.merchants !== undefined,
   } satisfies LedgerSetup;
 }
 
@@ -101,10 +109,19 @@ function toLedgerSetup({ storedDraft, ...setup }: LedgerSetupRecord) {
  * 按登录用户校验；Service 负责草稿与模板的业务校验、payload 生成与错误语义转换。
  */
 export function createLedgerSetupService({
+  currentUserId,
   ledgerSetupRepository,
 }: LedgerSetupServiceDependencies): LedgerSetupService {
   async function findSetup() {
-    const record = await ledgerSetupRepository.findCurrentUserSetupLedger();
+    if (!currentUserId) {
+      throw new AuthenticationError(
+        ledgerCreateErrorCodes.authRequired,
+        ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
+      );
+    }
+
+    const record =
+      await ledgerSetupRepository.findCurrentUserSetupLedger(currentUserId);
     return record ? toLedgerSetup(record) : null;
   }
 

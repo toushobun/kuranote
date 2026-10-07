@@ -205,6 +205,18 @@ describe("createRequestContainer", () => {
     expect(typeof container.ledger.inviteService.accept).toBe("function");
   });
 
+  it("提供 ledger.setupService 的向导读写方法", () => {
+    const container = createRequestContainer(createDependenciesStub());
+
+    expect(typeof container.ledger.setupService.create).toBe("function");
+    expect(typeof container.ledger.setupService.getCurrentUserSetup).toBe(
+      "function",
+    );
+    expect(typeof container.ledger.setupService.updateBasicInfo).toBe(
+      "function",
+    );
+  });
+
   it("提供 ledger.invitePreviewService.load 方法", () => {
     const container = createRequestContainer(createDependenciesStub());
 

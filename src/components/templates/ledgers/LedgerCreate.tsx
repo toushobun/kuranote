@@ -2,21 +2,13 @@
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
-import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
-import CurrencyExchangeRoundedIcon from "@mui/icons-material/CurrencyExchangeRounded";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useRef, useState, type ReactNode } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
@@ -24,16 +16,17 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerCreatePageMessages } from "config/ledgerMessages";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
+import {
+  LedgerBasicInfoFields,
+  type LedgerBasicInfoValues,
+} from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { designTokens } from "theme/theme";
-import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
-import {
-  ledgerCurrencyOptions,
-  ledgerMemberColorOptions,
-  type LedgerCreateActionState,
-  type LedgerCreateStateAction,
+import type {
+  LedgerCreateActionState,
+  LedgerCreateStateAction,
 } from "types/ledgers";
 
 const ledgerCreateText = {
@@ -44,14 +37,8 @@ const ledgerCreateText = {
     "创建后会自动切换到这个账本",
   ],
   automaticTitle: "系统会自动为你准备",
-  colorHelper: "将用于成员标识与记录展示",
-  colorLabel: "我的个性色",
   create: "创建账本",
-  currencyLabel: "默认货币",
-  displayNameHelper: "这是你在当前账本中的显示昵称",
-  displayNameLabel: "我的显示名",
   errorTitle: "账本创建失败",
-  ledgerNameLabel: "账本名称",
 } as const;
 
 const initialLedgerCreateActionState: LedgerCreateActionState = {};
@@ -70,18 +57,7 @@ export function LedgerCreateTemplate({
     createLedgerAction,
     initialLedgerCreateActionState,
   );
-  const [ledgerName, setLedgerName] = useState(defaults.ledgerName);
-  const [baseCurrency, setBaseCurrency] = useState(defaults.baseCurrency);
-  const [displayName, setDisplayName] = useState(defaults.displayName);
-  const [displayColor, setDisplayColor] = useState<ThemeColorKey>(
-    defaults.displayColor,
-  );
-  const ledgerNameInputRef = useRef<HTMLInputElement>(null);
-
-  function clearLedgerName() {
-    setLedgerName("");
-    ledgerNameInputRef.current?.focus();
-  }
+  const [values, setValues] = useState<LedgerBasicInfoValues>(defaults);
 
   return (
     <SettingsPageLayout
@@ -91,138 +67,7 @@ export function LedgerCreateTemplate({
     >
       <Stack component="form" action={formAction} spacing={1.6} sx={formSx}>
         <SoftCard sx={formCardSx}>
-          <Stack spacing={2.1}>
-            <CreateField
-              htmlFor="create-ledger-name"
-              label={ledgerCreateText.ledgerNameLabel}
-            >
-              <TextField
-                autoComplete="off"
-                fullWidth
-                id="create-ledger-name"
-                inputRef={ledgerNameInputRef}
-                name="ledgerName"
-                onChange={(event) => setLedgerName(event.target.value)}
-                required
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 100,
-                  },
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="清空账本名称"
-                          edge="end"
-                          onClick={clearLedgerName}
-                          size="small"
-                          type="button"
-                        >
-                          <ClearRoundedIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                    startAdornment: (
-                      <FieldIconAdornment>
-                        <HomeRoundedIcon />
-                      </FieldIconAdornment>
-                    ),
-                  },
-                }}
-                value={ledgerName}
-              />
-            </CreateField>
-
-            <CreateField
-              label={ledgerCreateText.currencyLabel}
-              labelId="create-ledger-currency-label"
-            >
-              <TextField
-                fullWidth
-                id="create-ledger-currency"
-                name="baseCurrency"
-                onChange={(event) => setBaseCurrency(event.target.value)}
-                required
-                select
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <FieldIconAdornment>
-                        <CurrencyExchangeRoundedIcon />
-                      </FieldIconAdornment>
-                    ),
-                  },
-                  select: {
-                    labelId: "create-ledger-currency-label",
-                  },
-                }}
-                value={baseCurrency}
-              >
-                {ledgerCurrencyOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </CreateField>
-
-            <CreateField
-              helperText={ledgerCreateText.displayNameHelper}
-              htmlFor="create-ledger-display-name"
-              label={ledgerCreateText.displayNameLabel}
-            >
-              <TextField
-                autoComplete="name"
-                fullWidth
-                id="create-ledger-display-name"
-                name="memberDisplayName"
-                onChange={(event) => setDisplayName(event.target.value)}
-                required
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 100,
-                  },
-                  input: {
-                    startAdornment: (
-                      <FieldIconAdornment>
-                        <PersonRoundedIcon />
-                      </FieldIconAdornment>
-                    ),
-                  },
-                }}
-                value={displayName}
-              />
-            </CreateField>
-
-            <Stack spacing={1.1}>
-              <Typography component="p" sx={fieldLabelSx}>
-                {ledgerCreateText.colorLabel}
-              </Typography>
-              <input
-                name="memberDisplayColor"
-                type="hidden"
-                value={displayColor}
-              />
-              <Stack
-                aria-label={ledgerCreateText.colorLabel}
-                direction="row"
-                role="radiogroup"
-                sx={colorPickerSx}
-              >
-                {ledgerMemberColorOptions.map((colorKey) => (
-                  <ColorRadio
-                    checked={colorKey === displayColor}
-                    colorKey={colorKey}
-                    key={colorKey}
-                    onChange={setDisplayColor}
-                  />
-                ))}
-              </Stack>
-              <Typography color="text.secondary" variant="body2">
-                {ledgerCreateText.colorHelper}
-              </Typography>
-            </Stack>
-          </Stack>
+          <LedgerBasicInfoFields onChange={setValues} values={values} />
         </SoftCard>
 
         <SoftCard sx={automaticCardSx}>
@@ -280,83 +125,6 @@ export function LedgerCreateTemplate({
   );
 }
 
-function CreateField({
-  children,
-  helperText,
-  htmlFor,
-  label,
-  labelId,
-}: {
-  children: ReactNode;
-  helperText?: string;
-  htmlFor?: string;
-  label: string;
-  labelId?: string;
-}) {
-  return (
-    <Stack spacing={0.9}>
-      {htmlFor ? (
-        <Typography
-          component="label"
-          htmlFor={htmlFor}
-          id={labelId}
-          sx={fieldLabelSx}
-        >
-          {label}
-        </Typography>
-      ) : (
-        <Typography component="span" id={labelId} sx={fieldLabelSx}>
-          {label}
-        </Typography>
-      )}
-      {children}
-      {helperText ? (
-        <Typography color="text.secondary" variant="body2">
-          {helperText}
-        </Typography>
-      ) : null}
-    </Stack>
-  );
-}
-
-function FieldIconAdornment({ children }: { children: ReactNode }) {
-  return (
-    <InputAdornment position="start">
-      <Box sx={fieldIconSx}>{children}</Box>
-    </InputAdornment>
-  );
-}
-
-function ColorRadio({
-  checked,
-  colorKey,
-  onChange,
-}: {
-  checked: boolean;
-  colorKey: ThemeColorKey;
-  onChange: (colorKey: ThemeColorKey) => void;
-}) {
-  const colorToken = themeColorTokens[colorKey];
-
-  return (
-    <Box component="label" sx={colorOptionLabelSx}>
-      <input
-        aria-label={colorToken.label}
-        checked={checked}
-        form=""
-        name="memberDisplayColorOption"
-        onChange={() => onChange(colorKey)}
-        style={visuallyHiddenInputStyle}
-        type="radio"
-        value={colorKey}
-      />
-      <Box component="span" sx={colorSwatchSx(colorToken.accent)}>
-        <CheckRoundedIcon />
-      </Box>
-    </Box>
-  );
-}
-
 function CreateSubmitButton() {
   const { pending } = useFormStatus();
 
@@ -379,78 +147,6 @@ const formCardSx = {
   borderRadius: `${designTokens.radius.xl}px`,
   p: { xs: 1.6, sm: 2 },
 };
-
-const fieldLabelSx = {
-  color: "text.primary",
-  fontSize: 16,
-  fontWeight: 900,
-};
-
-const fieldIconSx = {
-  alignItems: "center",
-  bgcolor: "var(--user-theme-icon-badge-bg)",
-  borderRadius: "50%",
-  color: "var(--user-theme-icon-badge-color)",
-  display: "inline-flex",
-  height: 38,
-  justifyContent: "center",
-  width: 38,
-  "& .MuiSvgIcon-root": {
-    fontSize: 23,
-  },
-};
-
-const colorPickerSx = {
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: { xs: 1.2, sm: 1.45 },
-};
-
-const colorOptionLabelSx = {
-  cursor: "pointer",
-  display: "inline-flex",
-  position: "relative",
-  "& input:focus-visible + span": {
-    outline: "3px solid",
-    outlineColor: "primary.light",
-    outlineOffset: 3,
-  },
-  "& input:checked + span": {
-    borderColor: "var(--user-theme-action-text)",
-    boxShadow: "0 0 0 3px var(--user-theme-icon-badge-bg)",
-    transform: "scale(1.06)",
-  },
-  "& input:checked + span .MuiSvgIcon-root": {
-    opacity: 1,
-  },
-};
-
-const visuallyHiddenInputStyle = {
-  height: 1,
-  opacity: 0,
-  position: "absolute",
-  width: 1,
-} as const;
-
-function colorSwatchSx(accent: string) {
-  return {
-    alignItems: "center",
-    bgcolor: accent,
-    border: "3px solid",
-    borderColor: "transparent",
-    borderRadius: "50%",
-    color: "common.white",
-    display: "inline-flex",
-    height: 44,
-    justifyContent: "center",
-    transition: "transform 160ms ease, box-shadow 160ms ease",
-    width: 44,
-    "& .MuiSvgIcon-root": {
-      fontSize: 24,
-      opacity: 0,
-    },
-  } as const;
-}
 
 const automaticCardSx = {
   bgcolor: "var(--user-theme-card-bg)",
