@@ -29,6 +29,15 @@ export type {
   LedgerPlaceholderMemberQueryService,
 } from "internal/ledger/service/ledgerPlaceholderMemberService";
 export {
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+  type LedgerSetupErrorCode,
+} from "internal/ledger/errors/ledgerSetup";
+export type {
+  LedgerSetup,
+  LedgerSetupDraft,
+} from "internal/ledger/entity/ledgerSetup";
+export {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,
   type LedgerSettingsErrorCode,

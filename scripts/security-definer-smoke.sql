@@ -599,3 +599,4 @@ $$;
 rollback;
 
 \ir security-definer-smoke-issue-598.sql
+\ir security-definer-smoke-issue-395.sql

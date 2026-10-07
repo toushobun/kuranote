@@ -223,3 +223,134 @@ describe("current ledger 数据边界", () => {
     );
   });
 });
+
+describe("创建中账本数据边界", () => {
+  const smokeSql = readFileSync(
+    join(process.cwd(), "scripts/security-definer-smoke.sql"),
+    "utf8",
+  );
+
+  it("ledger 记录创建状态、步骤与草稿，并约束状态一致", () => {
+    expect(schemaSql).toContain(
+      `"setup_status" "text" DEFAULT 'completed'::"text" NOT NULL`,
+    );
+    expect(schemaSql).toContain(`"setup_step" smallint`);
+    expect(schemaSql).toContain(`"setup_draft" "jsonb"`);
+    expect(schemaSql).toContain(`CONSTRAINT "ledger_setup_status_check"`);
+    expect(schemaSql).toContain(`CONSTRAINT "ledger_setup_state_check"`);
+    expect(schemaSql).toContain(`"public"."ledger_setup_draft_max_bytes"()`);
+  });
+
+  it("每个用户最多一个未归档的创建中账本", () => {
+    expect(schemaSql).toContain(
+      `CREATE UNIQUE INDEX "ledger_owner_in_progress_setup_key" ON "public"."ledger" USING "btree" ("owner_user_id") WHERE (("setup_status" = 'in_progress'::"text") AND (NOT "is_archived"));`,
+    );
+  });
+
+  it("current ledger 不能指向创建中账本", () => {
+    expect(getFunctionSql("validate_app_user_current_ledger")).toContain(
+      "l.setup_status = 'completed'",
+    );
+  });
+
+  it.each(["current_user_can_manage_ledger", "current_user_can_write_ledger"])(
+    "业务权限函数 %s 只对已完成创建的账本放行",
+    (functionName) => {
+      expect(getFunctionSql(functionName)).toContain(
+        "public.ledger_setup_is_completed(p_ledger_id)",
+      );
+    },
+  );
+
+  it.each([
+    "create_ledger_invite_v2",
+    "list_pending_ledger_invites",
+    "revoke_ledger_invite",
+    "lock_ledger_placeholder_management",
+    "create_merchant_tag",
+    "create_merchant_with_tags",
+    "enforce_ledger_management_permission",
+  ])("邀请 / 待邀请成员 / 基础数据入口 %s 经过业务管理权限函数", (name) => {
+    expect(getFunctionSql(name)).toContain("current_user_can_manage_ledger(");
+  });
+
+  it("账本列表 RPC 排除创建中账本", () => {
+    expect(getFunctionSql("list_current_user_ledger_display_names")).toContain(
+      "l.setup_status = 'completed'",
+    );
+  });
+
+  it("创建中账本只创建账本、owner 成员与成员设置，不初始化默认数据也不切换当前账本", () => {
+    const functionSql = getFunctionSql("create_ledger_setup");
+
+    expect(functionSql).toContain("'in_progress'");
+    expect(functionSql).toContain("insert into public.ledger_member");
+    expect(functionSql).toContain(
+      "insert into public.ledger_member_display_setting",
+    );
+    expect(functionSql).toContain("ledger_setup_in_progress_exists");
+    expect(functionSql).not.toContain("initialize_ledger_default_data");
+    expect(functionSql).not.toContain("current_ledger_id");
+  });
+
+  it("既有账本创建流程不写创建状态，沿用默认值 completed", () => {
+    expect(getFunctionSql("create_ledger_with_owner")).not.toContain(
+      "setup_status",
+    );
+    expect(getFunctionSql("create_ledger_with_owner_settings")).not.toContain(
+      "setup_status",
+    );
+  });
+
+  it("创建状态列只能由向导 RPC 在事务内放行后修改", () => {
+    const guardSql = getFunctionSql("guard_ledger_setup_state");
+
+    expect(guardSql).toContain("app.allow_ledger_setup_update");
+    expect(guardSql).toContain("old.setup_status = 'completed'");
+    expect(schemaSql).toContain(
+      `CREATE OR REPLACE TRIGGER "ledger_guard_setup_state" BEFORE UPDATE OF "setup_status", "setup_step", "setup_draft" ON "public"."ledger"`,
+    );
+
+    for (const functionName of [
+      "save_ledger_setup_draft",
+      "update_ledger_setup_basic_info",
+    ]) {
+      const functionSql = getFunctionSql(functionName);
+
+      expect(functionSql).toContain(
+        "public.lock_current_user_setup_ledger(p_ledger_id)",
+      );
+      expect(functionSql).toContain(
+        "set_config('app.allow_ledger_setup_update', 'false', true)",
+      );
+    }
+  });
+
+  it("向导 RPC 只授权给 authenticated，内部函数不对客户端开放", () => {
+    for (const signature of [
+      `"create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text")`,
+      `"save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb")`,
+      `"get_current_user_setup_ledger"()`,
+    ]) {
+      expect(schemaSql).toContain(
+        `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
+      );
+      expect(schemaSql).not.toContain(
+        `GRANT ALL ON FUNCTION "public".${signature} TO "anon";`,
+      );
+    }
+
+    for (const signature of [
+      `"ledger_setup_is_completed"("p_ledger_id" "uuid")`,
+      `"lock_current_user_setup_ledger"("p_ledger_id" "uuid")`,
+    ]) {
+      expect(schemaSql).not.toContain(
+        `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
+      );
+    }
+  });
+
+  it("数据库烟雾测试覆盖创建中账本的 RPC 与边界", () => {
+    expect(smokeSql).toContain("\\ir security-definer-smoke-issue-395.sql");
+  });
+});

@@ -1,6 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
+import { ledgerSetupStatuses } from "internal/ledger/entity/ledgerSetup";
 import {
   ledgerSettingsErrorCodes,
   ledgerSettingsLoadErrorMessages,
@@ -143,6 +144,7 @@ export function createSupabaseLedgerSettingsRepository(
         .select("id")
         .eq("id", ledgerId)
         .eq("is_archived", false)
+        .eq("setup_status", ledgerSetupStatuses.completed)
         .maybeSingle();
 
       if (error) {

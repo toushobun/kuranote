@@ -41,7 +41,8 @@ const validationErrorCodes = new Set<LedgerCreateErrorCode>([
   ledgerCreateErrorCodes.nameTooLong,
 ]);
 
-function toAppError(code: LedgerCreateErrorCode): AppError {
+/** 账本基本信息相关错误码转换为应用错误。创建中账本的向导 Service 共用。 */
+export function toLedgerCreateAppError(code: LedgerCreateErrorCode): AppError {
   const message = ledgerCreateErrorMessages[code];
 
   if (code === ledgerCreateErrorCodes.authRequired) {
@@ -75,7 +76,7 @@ export function createLedgerService({
       const result = await ledgerRepository.create(input);
 
       if (!result.ok) {
-        throw toAppError(result.code);
+        throw toLedgerCreateAppError(result.code);
       }
     },
 

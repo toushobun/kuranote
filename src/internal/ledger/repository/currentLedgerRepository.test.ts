@@ -257,3 +257,53 @@ describe("createSupabaseCurrentLedgerRepository", () => {
     });
   });
 });
+
+describe("createSupabaseCurrentLedgerRepository 创建中账本边界", () => {
+  const completedFilter = { args: ["setup_status", "completed"], method: "eq" };
+
+  it("getContext 的账本列表只读取已完成创建的账本", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { data: [{ current_ledger_id: ledgerId }] },
+        { data: [{ ledger_id: ledgerId, role: "owner" }] },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.getContext(userId, "user@example.com"),
+    ).resolves.toMatchObject({ currentLedger: null, ledgers: [] });
+    expect(supabase.queries[2].table).toBe("ledger");
+    expect(supabase.queries[2].calls).toContainEqual(completedFilter);
+  });
+
+  it("findAccessibleLedger 只返回已完成创建的账本", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: { role: "owner" } }, { data: null }],
+    });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(
+      repository.findAccessibleLedger(ledgerId, userId),
+    ).resolves.toBeNull();
+    expect(supabase.queries[1].calls).toContainEqual(completedFilter);
+  });
+
+  it("isLedgerActive 把创建中账本视为不可切换", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ data: null }] });
+    const repository = createSupabaseCurrentLedgerRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    await expect(repository.isLedgerActive(ledgerId)).resolves.toBe(false);
+    expect(supabase.queries[0].calls).toContainEqual(completedFilter);
+  });
+});

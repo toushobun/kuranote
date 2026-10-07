@@ -1713,6 +1713,130 @@ $$;
 ALTER FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_ledger_id uuid;
+    v_constraint text;
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    perform public.validate_ledger_setup_basic_info(
+        p_name,
+        p_base_currency,
+        p_display_name,
+        p_display_color
+    );
+
+    if not public.current_app_user_is_active() then
+        raise exception 'user_inactive'
+            using errcode = '42501', detail = 'user_inactive';
+    end if;
+
+    begin
+        insert into public.ledger (
+            name,
+            base_currency,
+            owner_user_id,
+            setup_status,
+            setup_step,
+            setup_draft,
+            created_by,
+            updated_by
+        )
+        values (
+            btrim(p_name),
+            upper(btrim(p_base_currency)),
+            v_user_id,
+            'in_progress',
+            2,
+            '{}'::jsonb,
+            v_user_id,
+            v_user_id
+        )
+        returning id into v_ledger_id;
+    exception when unique_violation then
+        get stacked diagnostics v_constraint = constraint_name;
+        if v_constraint = 'ledger_owner_in_progress_setup_key' then
+            raise exception 'ledger_setup_in_progress_exists'
+                using errcode = '23505', detail = 'ledger_setup_in_progress_exists';
+        end if;
+        raise;
+    end;
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
+
+    insert into public.ledger_member (
+        ledger_id,
+        user_id,
+        role,
+        status,
+        invited_by,
+        invited_at,
+        joined_at,
+        created_by,
+        updated_by
+    )
+    values (
+        v_ledger_id,
+        v_user_id,
+        'owner',
+        'active',
+        v_user_id,
+        now(),
+        now(),
+        v_user_id,
+        v_user_id
+    );
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
+
+    insert into public.ledger_member_display_setting (
+        ledger_id,
+        user_id,
+        display_name,
+        display_color,
+        created_by,
+        updated_by
+    ) values (
+        v_ledger_id,
+        v_user_id,
+        btrim(p_display_name),
+        btrim(p_display_color),
+        v_user_id,
+        v_user_id
+    )
+    on conflict (ledger_id, user_id)
+    do update set
+        display_name = excluded.display_name,
+        display_color = excluded.display_color,
+        updated_by = v_user_id;
+
+    return v_ledger_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ledger_setup_draft_max_bytes"() RETURNS integer
+    LANGUAGE "sql" IMMUTABLE PARALLEL SAFE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select 65536;
+$$;
+
+
+ALTER FUNCTION "public"."ledger_setup_draft_max_bytes"() OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."ledger" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
@@ -1726,9 +1850,14 @@ CREATE TABLE IF NOT EXISTS "public"."ledger" (
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "transaction_item_special_status_enabled" boolean DEFAULT false NOT NULL,
+    "setup_status" "text" DEFAULT 'completed'::"text" NOT NULL,
+    "setup_step" smallint,
+    "setup_draft" "jsonb",
     CONSTRAINT "ledger_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "ledger_base_currency_check" CHECK (("base_currency" ~ '^[A-Z]{3}$'::"text")),
-    CONSTRAINT "ledger_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100)))
+    CONSTRAINT "ledger_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
+    CONSTRAINT "ledger_setup_state_check" CHECK (((("setup_status" = 'completed'::"text") AND ("setup_step" IS NULL) AND ("setup_draft" IS NULL)) OR (("setup_status" = 'in_progress'::"text") AND (("setup_step" >= 1) AND ("setup_step" <= 5)) AND ("setup_draft" IS NOT NULL) AND ("jsonb_typeof"("setup_draft") = 'object'::"text") AND ("octet_length"(("setup_draft")::"text") <= "public"."ledger_setup_draft_max_bytes"())))),
+    CONSTRAINT "ledger_setup_status_check" CHECK (("setup_status" = ANY (ARRAY['in_progress'::"text", 'completed'::"text"])))
 );
 
 
@@ -2402,7 +2531,8 @@ CREATE OR REPLACE FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_i
     select public.current_user_has_ledger_role(
         p_ledger_id,
         array['owner', 'admin']::text[]
-    );
+    )
+    and public.ledger_setup_is_completed(p_ledger_id);
 $$;
 
 
@@ -2465,7 +2595,8 @@ CREATE OR REPLACE FUNCTION "public"."current_user_can_write_ledger"("p_ledger_id
     select public.current_user_has_ledger_role(
         p_ledger_id,
         array['owner', 'admin', 'member']::text[]
-    );
+    )
+    and public.ledger_setup_is_completed(p_ledger_id);
 $$;
 
 
@@ -2567,6 +2698,12 @@ begin
     if tg_table_name = 'account'
        and tg_op = 'UPDATE'
        and current_setting('app.allow_account_balance_update', true) = 'true' then
+        return new;
+    end if;
+
+    if tg_table_name = 'ledger'
+       and tg_op = 'UPDATE'
+       and current_setting('app.allow_ledger_setup_update', true) = 'true' then
         return new;
     end if;
 
@@ -3012,6 +3149,28 @@ $$;
 ALTER FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "base_currency" "text", "setup_step" smallint, "setup_draft" "jsonb")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select
+        l.id,
+        l.name,
+        l.base_currency,
+        l.setup_step,
+        l.setup_draft
+    from public.ledger l
+    where l.owner_user_id = auth.uid()
+      and l.setup_status = 'in_progress'
+      and l.is_archived = false
+      and public.current_user_has_ledger_role(l.id, array['owner']::text[])
+    limit 1;
+$$;
+
+
+ALTER FUNCTION "public"."get_current_user_setup_ledger"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") RETURNS TABLE("invite_status" "text", "ledger_name" "text", "inviter_name" "text", "invite_role" "text", "is_placeholder_bound" boolean, "placeholder_display_name" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3171,6 +3330,35 @@ $$;
 
 
 ALTER FUNCTION "public"."guard_balance_adjustment_record"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_ledger_setup_state"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if new.setup_status is not distinct from old.setup_status
+       and new.setup_step is not distinct from old.setup_step
+       and new.setup_draft is not distinct from old.setup_draft then
+        return new;
+    end if;
+
+    if old.setup_status = 'completed' then
+        raise exception 'ledger_setup_not_in_progress'
+            using errcode = '55000', detail = 'ledger_setup_not_in_progress';
+    end if;
+
+    if current_setting('app.allow_ledger_setup_update', true) is distinct from 'true' then
+        raise exception 'permission_denied'
+            using errcode = '42501', detail = 'permission_denied';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."guard_ledger_setup_state"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
@@ -3734,6 +3922,22 @@ $$;
 ALTER FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select exists (
+        select 1
+        from public.ledger l
+        where l.id = p_ledger_id
+          and l.setup_status = 'completed'
+    );
+$$;
+
+
+ALTER FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."list_current_user_ledger_display_names"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "display_name" "text")
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3754,6 +3958,7 @@ CREATE OR REPLACE FUNCTION "public"."list_current_user_ledger_display_names"() R
       and lm.status = 'active'
       and au.status = 'active'
       and l.is_archived = false
+      and l.setup_status = 'completed'
     order by lm.joined_at asc nulls last, lm.created_at asc, lm.ledger_id asc;
 $$;
 
@@ -4355,6 +4560,46 @@ $$;
 
 
 ALTER FUNCTION "public"."lock_account_holder_placeholders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_placeholder_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."lock_current_user_setup_ledger"("p_ledger_id" "uuid") RETURNS "public"."ledger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_ledger public.ledger;
+begin
+    if v_user_id is null then
+        raise exception 'auth_required'
+            using errcode = '42501', detail = 'auth_required';
+    end if;
+
+    select l.*
+      into v_ledger
+      from public.ledger l
+     where l.id = p_ledger_id
+       and l.is_archived = false
+     for update;
+
+    if not found
+       or v_ledger.owner_user_id <> v_user_id
+       or not public.current_user_has_ledger_role(p_ledger_id, array['owner']::text[]) then
+        raise exception 'ledger_setup_not_found'
+            using errcode = 'P0002', detail = 'ledger_setup_not_found';
+    end if;
+
+    if v_ledger.setup_status <> 'in_progress' then
+        raise exception 'ledger_setup_not_in_progress'
+            using errcode = '55000', detail = 'ledger_setup_not_in_progress';
+    end if;
+
+    return v_ledger;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."lock_current_user_setup_ledger"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") RETURNS "void"
@@ -5417,6 +5662,44 @@ $$;
 ALTER FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    perform public.lock_current_user_setup_ledger(p_ledger_id);
+
+    if p_step is null or p_step < 1 or p_step > 5 then
+        raise exception 'ledger_setup_step_invalid'
+            using errcode = '22023', detail = 'ledger_setup_step_invalid';
+    end if;
+
+    if p_draft is null or jsonb_typeof(p_draft) <> 'object' then
+        raise exception 'ledger_setup_draft_invalid'
+            using errcode = '22023', detail = 'ledger_setup_draft_invalid';
+    end if;
+
+    if octet_length(p_draft::text) > public.ledger_setup_draft_max_bytes() then
+        raise exception 'ledger_setup_draft_too_large'
+            using errcode = '22023', detail = 'ledger_setup_draft_too_large';
+    end if;
+
+    perform set_config('app.allow_ledger_setup_update', 'true', true);
+
+    update public.ledger
+       set setup_step = p_step,
+           setup_draft = p_draft,
+           updated_by = auth.uid()
+     where id = p_ledger_id;
+
+    perform set_config('app.allow_ledger_setup_update', 'false', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_account_initial_current_balance"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -6067,6 +6350,59 @@ $$;
 
 
 ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+begin
+    perform public.lock_current_user_setup_ledger(p_ledger_id);
+
+    perform public.validate_ledger_setup_basic_info(
+        p_name,
+        p_base_currency,
+        p_display_name,
+        p_display_color
+    );
+
+    perform set_config('app.allow_ledger_setup_update', 'true', true);
+
+    update public.ledger
+       set name = btrim(p_name),
+           base_currency = upper(btrim(p_base_currency)),
+           updated_by = v_user_id
+     where id = p_ledger_id;
+
+    perform set_config('app.allow_ledger_setup_update', 'false', true);
+
+    insert into public.ledger_member_display_setting (
+        ledger_id,
+        user_id,
+        display_name,
+        display_color,
+        created_by,
+        updated_by
+    ) values (
+        p_ledger_id,
+        v_user_id,
+        btrim(p_display_name),
+        btrim(p_display_color),
+        v_user_id,
+        v_user_id
+    )
+    on conflict (ledger_id, user_id)
+    do update set
+        display_name = excluded.display_name,
+        display_color = excluded.display_color,
+        updated_by = v_user_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") RETURNS "void"
@@ -7270,6 +7606,7 @@ begin
           and lm.ledger_id = new.current_ledger_id
           and lm.status = 'active'
           and l.is_archived = false
+          and l.setup_status = 'completed'
     ) then
         raise exception 'current_ledger_id_invalid' using errcode = '42501';
     end if;
@@ -7379,6 +7716,62 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
+    LANGUAGE "plpgsql" IMMUTABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if p_name is null or btrim(p_name) = '' then
+        raise exception 'ledger_name_required'
+            using errcode = '22023', detail = 'ledger_name_required';
+    end if;
+
+    if length(btrim(p_name)) > 100 then
+        raise exception 'ledger_name_too_long'
+            using errcode = '22023', detail = 'ledger_name_too_long';
+    end if;
+
+    if p_base_currency is null
+       or upper(btrim(p_base_currency)) not in (
+           'CNY', 'JPY', 'USD', 'EUR', 'GBP', 'KRW', 'THB'
+       ) then
+        raise exception 'currency_invalid'
+            using errcode = '22023', detail = 'currency_invalid';
+    end if;
+
+    if p_display_name is null or btrim(p_display_name) = '' then
+        raise exception 'display_name_required'
+            using errcode = '22023', detail = 'display_name_required';
+    end if;
+
+    if length(btrim(p_display_name)) > 100 then
+        raise exception 'display_name_too_long'
+            using errcode = '22023', detail = 'display_name_too_long';
+    end if;
+
+    if p_display_color is null
+       or btrim(p_display_color) not in (
+           'jade',
+           'aqua',
+           'sky',
+           'indigo',
+           'lavender',
+           'magenta',
+           'sakura',
+           'rose',
+           'amber',
+           'lime'
+       ) then
+        raise exception 'display_color_invalid'
+            using errcode = '22023', detail = 'display_color_invalid';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_mutation"() RETURNS "trigger"
@@ -8921,6 +9314,10 @@ CREATE INDEX "ledger_member_user_id_idx" ON "public"."ledger_member" USING "btre
 
 
 
+CREATE UNIQUE INDEX "ledger_owner_in_progress_setup_key" ON "public"."ledger" USING "btree" ("owner_user_id") WHERE (("setup_status" = 'in_progress'::"text") AND (NOT "is_archived"));
+
+
+
 CREATE INDEX "ledger_owner_user_id_idx" ON "public"."ledger" USING "btree" ("owner_user_id");
 
 
@@ -9086,6 +9483,10 @@ CREATE OR REPLACE TRIGGER "category_set_updated_at" BEFORE UPDATE ON "public"."c
 
 
 CREATE OR REPLACE TRIGGER "category_validate_parent" BEFORE INSERT OR UPDATE ON "public"."category" FOR EACH ROW EXECUTE FUNCTION "public"."validate_category_parent"();
+
+
+
+CREATE OR REPLACE TRIGGER "ledger_guard_setup_state" BEFORE UPDATE OF "setup_status", "setup_step", "setup_draft" ON "public"."ledger" FOR EACH ROW EXECUTE FUNCTION "public"."guard_ledger_setup_state"();
 
 
 
@@ -9989,6 +10390,17 @@ GRANT ALL ON FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" 
 
 
 
+REVOKE ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."ledger_setup_draft_max_bytes"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ledger_setup_draft_max_bytes"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."ledger_setup_draft_max_bytes"() TO "service_role";
+
+
+
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger" TO "service_role";
 
@@ -10095,6 +10507,11 @@ GRANT ALL ON FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id"
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_current_user_setup_ledger"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_current_user_setup_ledger"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_ledger_invite_preview"("p_token" "text") TO "authenticated";
@@ -10113,6 +10530,10 @@ REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_record"() FROM PUBLIC;
 
 
 
+REVOKE ALL ON FUNCTION "public"."guard_ledger_setup_state"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -10127,6 +10548,10 @@ GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "servi
 
 
 REVOKE ALL ON FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid") FROM PUBLIC;
 
 
 
@@ -10156,6 +10581,10 @@ GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries_with_special_st
 
 
 REVOKE ALL ON FUNCTION "public"."lock_account_holder_placeholders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_placeholder_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."lock_current_user_setup_ledger"("p_ledger_id" "uuid") FROM PUBLIC;
 
 
 
@@ -10228,6 +10657,11 @@ GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_i
 
 
 
+REVOKE ALL ON FUNCTION "public"."save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_alias_id" "uuid") TO "authenticated";
 
@@ -10259,6 +10693,11 @@ GRANT ALL ON FUNCTION "public"."update_current_user_display_name"("p_display_nam
 
 REVOKE ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
 
 
 
@@ -10295,6 +10734,10 @@ GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid
 
 
 REVOKE ALL ON FUNCTION "public"."validate_account_holder_active_member"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
 
 
 

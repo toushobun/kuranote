@@ -246,6 +246,26 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 `placeholder_member_followups.test.sql` 在真实 Supabase 上覆盖签名与授权不变、removed 成员 / 停用用户持有 + 提交无持有人保留、非活跃持有 + 提交成员或占位替换、active 成员与占位持有照常删除、经余额调整 RPC 调用行为一致、名称投影与持有行一致，以及绑定邀请预览对 invited / active / removed / 非成员和历史匿名邀请的结果。
 
+## Issue #395：创建中账本与向导草稿
+
+`ledger` 新增 `setup_status`（`in_progress` / `completed`）、`setup_step`、`setup_draft`。新增与修改的 SECURITY DEFINER 函数继续固定 `search_path = pg_catalog, pg_temp`，应用对象使用完整 schema 限定名，操作人只取 `auth.uid()`。
+
+| 函数                                                       | 变更与权限边界                                                                                                                                                                                 |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `current_user_can_manage_ledger(uuid)`                     | 签名与授权不变；在原角色判断之外要求账本 `setup_status = 'completed'`。经由它的 RLS、trigger 与 RPC（账户、商家、分类、预算、商家标签、邀请、待邀请成员、ledger 行更新等）统一拒绝创建中账本。 |
+| `current_user_can_write_ledger(uuid)`                      | 签名与授权不变；同样要求 completed，交易 RPC 与交易表 trigger 拒绝创建中账本。                                                                                                                 |
+| `ledger_setup_is_completed(uuid)`                          | 新增内部辅助函数，仅由上述两个权限函数调用；撤销 PUBLIC、anon、authenticated、service_role 的 EXECUTE。                                                                                        |
+| `enforce_ledger_management_permission()`                   | 新增 `ledger` 表 UPDATE 的 `app.allow_ledger_setup_update` 窄分支，只供向导 RPC 更新创建中账本的 ledger 行本身；其他表及判断不变。                                                             |
+| `lock_current_user_setup_ledger(uuid)`                     | 新增内部函数：锁定 ledger 行，只接受当前用户为 owner 的未归档创建中账本（否则 `ledger_setup_not_found` / `ledger_setup_not_in_progress`）；撤销全部客户端及 service_role 的 EXECUTE。          |
+| `create_ledger_setup(text,text,text,text)`                 | 新增 RPC，仅授予 authenticated。创建创建中账本、owner 成员与成员显示设置；不初始化默认数据，不修改当前账本。部分唯一索引冲突精确转换为 `ledger_setup_in_progress_exists`。                     |
+| `update_ledger_setup_basic_info(uuid,text,text,text,text)` | 新增 RPC，仅授予 authenticated。经 `lock_current_user_setup_ledger` 校验后更新账本名、默认货币与当前用户的显示设置。                                                                           |
+| `save_ledger_setup_draft(uuid,integer,jsonb)`              | 新增 RPC，仅授予 authenticated。经 `lock_current_user_setup_ledger` 校验后保存步骤（1～5）与 JSON object 草稿，大小上限由 `ledger_setup_draft_max_bytes()` 统一定义。                          |
+| `get_current_user_setup_ledger()`                          | 新增 RPC，仅授予 authenticated。只返回当前用户作为 active owner 的未归档创建中账本。                                                                                                           |
+
+`setup_status` / `setup_step` / `setup_draft` 由 SECURITY INVOKER trigger `guard_ledger_setup_state` 保护：completed 账本不可回到创建中；其他修改只有在事务内打开 `app.allow_ledger_setup_update` 时才允许。该 GUC 只由上述 SECURITY DEFINER RPC 在完成 owner 与状态校验后设置，并在更新后立即关闭。
+
+后续完成写入 RPC 需要在同一事务内写入默认分类、账户、商家等业务数据，再将账本标记为 completed。由于写入时账本仍为 in_progress，权限函数会拒绝，完成写入 RPC 必须以 SECURITY DEFINER 身份自行校验 owner 与创建中状态，并以事务内 GUC 放行对应 trigger，不得放宽 `current_user_can_manage_ledger` / `current_user_can_write_ledger` 本身。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：
@@ -272,6 +292,7 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 - `create_ledger_invite_v2`（未绑定待邀请成员时返回 `placeholder_required`）、`get_ledger_invite_preview`、`accept_ledger_invite` 的 pgcrypto 绑定邀请与认领链路。
 - 普通 member 直接修改商家时，`enforce_ledger_management_permission` 必须以 `42501` 拒绝。
 - #598 / #606 的 `apply_transaction_item_links`、`validate_linked_transaction_item_mutation`、`prevent_disable_special_status_with_active_items`、`clear_transaction_item_income_links` 由 `scripts/security-definer-smoke-issue-598.sql` 持续验证报销关联、单目标退款关联、冻结、关闭开关防线与受控清理。
+- #395 的向导 RPC 与创建中账本边界（不可设为当前账本、拒绝业务写入与邀请、列表排除、状态列保护）由 `scripts/security-definer-smoke-issue-395.sql` 持续验证。
 
 基础 smoke 数据在同一事务中创建并 `ROLLBACK`；#598 / #606 smoke 同样使用独立事务回滚。基础路径已在 PR #494 的数据库验证中实际执行通过，关联路径由当前 schema snapshot check 持续验证。
 

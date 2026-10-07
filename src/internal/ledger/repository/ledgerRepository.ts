@@ -22,7 +22,7 @@ export type CreateLedgerResult =
   | { ok: true }
   | { ok: false; code: LedgerCreateErrorCode };
 
-const createLedgerRpcErrorMap = {
+export const createLedgerRpcErrorMap = {
   auth_required: ledgerCreateErrorCodes.authRequired,
   currency_invalid: ledgerCreateErrorCodes.currencyInvalid,
   display_color_invalid: ledgerCreateErrorCodes.displayColorInvalid,
