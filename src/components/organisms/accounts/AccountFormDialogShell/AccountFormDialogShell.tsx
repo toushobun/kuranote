@@ -27,6 +27,8 @@ type AccountFormDialogShellProps = {
   illustrationSlot?: ReactNode;
   onClose: () => void;
   open: boolean;
+  /** 弹层标题元素的 ID，作为弹层的无障碍名称。 */
+  titleId?: string;
 };
 
 const BottomSheetTransition = forwardRef<unknown, SlideProps>(
@@ -40,9 +42,11 @@ export function AccountFormDialogShell({
   illustrationSlot,
   onClose,
   open,
+  titleId,
 }: AccountFormDialogShellProps) {
   return (
     <Dialog
+      aria-labelledby={titleId}
       disableEnforceFocus
       fullWidth
       maxWidth="xs"

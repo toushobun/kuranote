@@ -9,8 +9,8 @@ import {
 } from "internal/ledger";
 import {
   clickNext,
-  clickPrevious,
   getCurrentStepItem,
+  goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import {
@@ -105,7 +105,7 @@ describe("LedgerSetupBasicInfoStep", () => {
       submitBasicInfo: submit,
     });
 
-    clickPrevious();
+    await goPreviousTo("基本信息");
     clickNext();
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));

@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 
+import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
+import {
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+} from "internal/ledger";
 import type { LedgerSetupProgress } from "types/ledgers";
 
 import {
@@ -31,20 +36,27 @@ export function useLedgerSetupWizard({
 }: UseLedgerSetupWizardOptions) {
   const [progress, setProgress] = useState(initialProgress);
   const [step, setStep] = useState(() => getResumeStep(initialProgress));
+  // 进度被服务端重新读取的内容替换时递增，使当前步骤按新进度重新初始化。
+  const [progressRevision, setProgressRevision] = useState(0);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
-  // 提交第 1 步时发现已有其他创建中账本、向导切换到该账本后，提示用户本次填写的内容未保存。
-  const [restoredNoticeOpen, setRestoredNoticeOpen] = useState(false);
+  // 步骤保存中：锁定「×」与关闭，避免保存过程中关闭向导。
+  const [busy, setBusy] = useState(false);
+  // 向导顶部的提示：恢复到其他创建中账本时说明本次填写的内容未保存，
+  // 预设内容已更新时说明需要重新确认。
+  const [notice, setNotice] = useState<string | null>(null);
 
   // 账本已创建（创建中）且尚未完成写入时，进度已保存在服务端，关闭前提示可稍后继续。
   const needsCloseConfirm =
     progress !== null && step <= ledgerSetupLastDraftStep;
 
   return {
+    busy,
     closeConfirmOpen,
     currentStep: ledgerSetupWizardSteps[step - 1],
     isLastStep: step === stepCount,
+    notice,
     progress,
-    restoredNoticeOpen,
+    progressRevision,
     step,
     closeLater() {
       setCloseConfirmOpen(false);
@@ -53,8 +65,8 @@ export function useLedgerSetupWizard({
     continueSetup() {
       setCloseConfirmOpen(false);
     },
-    dismissRestoredNotice() {
-      setRestoredNoticeOpen(false);
+    dismissNotice() {
+      setNotice(null);
     },
     goNext() {
       setStep((current) => clampStep(current + 1));
@@ -62,7 +74,14 @@ export function useLedgerSetupWizard({
     goPrevious() {
       setStep((current) => clampStep(current - 1));
     },
+    refreshProgress(nextProgress: LedgerSetupProgress) {
+      setProgress(nextProgress);
+      setProgressRevision((current) => current + 1);
+      setNotice(ledgerSetupWizardMessages.templateUpdatedNotice);
+    },
     requestClose() {
+      if (busy) return;
+
       if (needsCloseConfirm) {
         setCloseConfirmOpen(true);
         return;
@@ -73,8 +92,11 @@ export function useLedgerSetupWizard({
     restoreProgress(nextProgress: LedgerSetupProgress) {
       setProgress(nextProgress);
       setStep(getResumeStep(nextProgress));
-      setRestoredNoticeOpen(true);
+      setNotice(
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+      );
     },
+    setBusy,
     updateProgress: setProgress,
   };
 }

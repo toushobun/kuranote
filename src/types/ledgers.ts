@@ -3,6 +3,7 @@ import type {
   LedgerCreateDefaults,
   LedgerPlaceholderMemberSummary,
   LedgerSetup,
+  LedgerSetupDraft,
   LedgerSetupTemplate,
 } from "internal/ledger";
 import type { LedgerCurrency } from "internal/ledger";
@@ -120,6 +121,30 @@ export type LedgerSetupBasicInfoStateAction = (
   previousState: LedgerSetupBasicInfoActionState,
   formData: FormData,
 ) => Promise<LedgerSetupBasicInfoActionState>;
+
+/** 保存向导草稿的输入。服务端重新校验账本 ID、步骤与草稿内容。 */
+export type SaveLedgerSetupDraftInput = {
+  draft: LedgerSetupDraft;
+  ledgerId: string;
+  /** 保存后记录的 ledger.setup_step（恢复向导时回到该步骤）。 */
+  step: number;
+};
+
+export type LedgerSetupDraftActionState = ActionState & {
+  /** 同一类型下有同名账户：由步骤在对应账户处提示，不显示失败弹框。 */
+  accountNameDuplicate?: boolean;
+  /**
+   * 预设模板已更新或默认货币已变更，草稿未保存：progress 为重新读取的进度，
+   * 向导用它替换状态并提示用户重新确认。
+   */
+  outdated?: boolean;
+  /** 保存成功，或 outdated 时，重新读取的最新进度。 */
+  progress?: LedgerSetupProgress;
+};
+
+export type LedgerSetupDraftSaveAction = (
+  input: SaveLedgerSetupDraftInput,
+) => Promise<LedgerSetupDraftActionState>;
 
 export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 

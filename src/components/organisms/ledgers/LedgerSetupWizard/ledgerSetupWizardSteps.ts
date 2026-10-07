@@ -1,4 +1,5 @@
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
+import { LedgerSetupAccountsStep } from "organisms/ledgers/LedgerSetupAccountsStep/LedgerSetupAccountsStep";
 import { LedgerSetupBasicInfoStep } from "organisms/ledgers/LedgerSetupBasicInfoStep/LedgerSetupBasicInfoStep";
 
 import { LedgerSetupPlaceholderStep } from "./LedgerSetupPlaceholderStep";
@@ -18,7 +19,7 @@ export const ledgerSetupWizardSteps: readonly LedgerSetupWizardStepDefinition[] 
       label: stepLabels.basicInfo,
     },
     {
-      Component: LedgerSetupPlaceholderStep,
+      Component: LedgerSetupAccountsStep,
       key: "accounts",
       label: stepLabels.accounts,
     },

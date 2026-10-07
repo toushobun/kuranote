@@ -9,10 +9,12 @@ import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSet
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type {
   LedgerSetupBasicInfoStateAction,
+  LedgerSetupDraftSaveAction,
   LedgerSetupWizardView,
 } from "types/ledgers";
 
 type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
+  saveDraftAction: LedgerSetupDraftSaveAction;
   submitBasicInfoAction: LedgerSetupBasicInfoStateAction;
 };
 
@@ -23,6 +25,7 @@ type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
 export function LedgerSetupPreviewTemplate({
   defaults,
   progress,
+  saveDraftAction,
   submitBasicInfoAction,
 }: LedgerSetupPreviewTemplateProps) {
   const router = useRouter();
@@ -43,7 +46,10 @@ export function LedgerSetupPreviewTemplate({
       </PrimaryActionButton>
       {open ? (
         <LedgerSetupWizard
-          actions={{ submitBasicInfo: submitBasicInfoAction }}
+          actions={{
+            saveDraft: saveDraftAction,
+            submitBasicInfo: submitBasicInfoAction,
+          }}
           defaults={defaults}
           onClose={closeWizard}
           open

@@ -23,7 +23,10 @@ const meta = {
     ),
   ],
   args: {
-    actions: { submitBasicInfo: async (state) => state },
+    actions: {
+      saveDraft: async () => ({}),
+      submitBasicInfo: async (state) => state,
+    },
     defaults: {
       baseCurrency: "JPY",
       displayColor: "amber",
@@ -53,6 +56,7 @@ export const ValidationError: Story = {
   name: "校验错误",
   args: {
     actions: {
+      saveDraft: async () => ({}),
       submitBasicInfo: async () => ({
         error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
         errorKey: "storybook-error",
@@ -67,7 +71,10 @@ export const ValidationError: Story = {
 export const Submitting: Story = {
   name: "提交中",
   args: {
-    actions: { submitBasicInfo: () => new Promise(() => {}) },
+    actions: {
+      saveDraft: async () => ({}),
+      submitBasicInfo: () => new Promise(() => {}),
+    },
   },
   play: async ({ canvasElement }) => {
     await clickNext(canvasElement);

@@ -1,6 +1,9 @@
 "use server";
 
-import { createRequestContainer } from "internal/container";
+import {
+  createRequestContainer,
+  type RequestContainer,
+} from "internal/container";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { readLedgerSetupProgress } from "internal/ledger/adapter/next/loadLedgerSetupWizard";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
@@ -9,12 +12,18 @@ import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   ledgerSetupWriteErrorMessages,
+  type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
 import { validateLedgerSetupBasicInfoForm } from "internal/ledger/schema/ledgerSetupBasicInfoForm";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
-import type { LedgerSetupBasicInfoActionState } from "types/ledgers";
+import type {
+  LedgerSetupBasicInfoActionState,
+  LedgerSetupDraftActionState,
+  SaveLedgerSetupDraftInput,
+} from "types/ledgers";
+import { isUuid } from "utils/formData";
 
 const validationErrorMessages = {
   ...ledgerCreateErrorMessages,
@@ -24,22 +33,47 @@ const validationErrorMessages = {
 function createActionErrorState(
   error: unknown,
   fallbackMessage: string,
-): LedgerSetupBasicInfoActionState {
+  logMessage: string,
+) {
   if (error instanceof AppError) {
     return createErrorState(error.message);
   }
 
-  console.error("[ledger] ledger setup basic info action failed unexpectedly", {
+  console.error(logMessage, {
     errorName: error instanceof Error ? error.name : "unknown",
   });
   return createErrorState(fallbackMessage);
 }
 
-function isInProgressExistsError(error: unknown) {
-  return (
-    error instanceof AppError &&
-    error.code === ledgerSetupErrorCodes.inProgressExists
+function hasLedgerSetupErrorCode(
+  error: unknown,
+  ...codes: LedgerSetupErrorCode[]
+) {
+  return error instanceof AppError && codes.some((code) => code === error.code);
+}
+
+function createNotFoundError() {
+  return new NotFoundError(
+    ledgerSetupErrorCodes.notFound,
+    ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
   );
+}
+
+type SetupService = RequestContainer["ledger"]["setupService"];
+
+/** 写入后重新读取进度。读取不到说明该账本已在其他页面完成或被移除。 */
+async function readProgressAfterWrite(setupService: SetupService) {
+  const progress = await readLedgerSetupProgress(setupService);
+  if (!progress) throw createNotFoundError();
+  return progress;
+}
+
+/** Server Action 的参数来自客户端，账本 ID 在服务端重新校验。 */
+function parseDraftLedgerId(input: unknown): string | null {
+  if (typeof input !== "object" || input === null) return null;
+
+  const { ledgerId } = input as { ledgerId?: unknown };
+  return typeof ledgerId === "string" && isUuid(ledgerId) ? ledgerId : null;
 }
 
 /**
@@ -75,7 +109,11 @@ export async function submitLedgerSetupBasicInfo(
         await setupService.create(basicInfo);
       }
     } catch (error) {
-      if (!isInProgressExistsError(error)) throw error;
+      if (
+        !hasLedgerSetupErrorCode(error, ledgerSetupErrorCodes.inProgressExists)
+      ) {
+        throw error;
+      }
 
       const existing = await readLedgerSetupProgress(setupService);
       if (!existing) throw error;
@@ -83,19 +121,81 @@ export async function submitLedgerSetupBasicInfo(
       return { progress: existing, restored: true };
     }
 
-    const progress = await readLedgerSetupProgress(setupService);
-
-    // 写入成功后立即读取不到，说明该账本已在其他页面完成或被移除。
-    if (!progress) {
-      throw new NotFoundError(
-        ledgerSetupErrorCodes.notFound,
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
-      );
-    }
+    const progress = await readProgressAfterWrite(setupService);
 
     revalidateLedgerMutation();
     return { progress };
   } catch (error) {
-    return createActionErrorState(error, fallbackMessage);
+    return createActionErrorState(
+      error,
+      fallbackMessage,
+      "[ledger] ledger setup basic info action failed unexpectedly",
+    );
+  }
+}
+
+/**
+ * 保存向导第 2 步以后的草稿与 setup_step。成功后返回重新读取的进度。
+ * 预设模板已更新或默认货币已变更时不保存，返回重新读取的进度（outdated），
+ * 由向导替换状态并提示重新确认；同类型账户重名时由步骤在对应账户处提示。
+ */
+export async function saveLedgerSetupDraft(
+  input: SaveLedgerSetupDraftInput,
+): Promise<LedgerSetupDraftActionState> {
+  await getCurrentLedgerContext();
+  const ledgerId = parseDraftLedgerId(input);
+
+  if (!ledgerId) {
+    return createErrorState(
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+    );
+  }
+
+  try {
+    const dependencies = await createServerRequestDependencies();
+    const setupService =
+      createRequestContainer(dependencies).ledger.setupService;
+
+    try {
+      // step 与 draft 由 Service 按草稿 Schema 重新校验。
+      await setupService.saveDraft({
+        draft: input.draft,
+        ledgerId,
+        step: input.step,
+      });
+    } catch (error) {
+      if (
+        !hasLedgerSetupErrorCode(
+          error,
+          ledgerSetupErrorCodes.templateOutdated,
+          ledgerSetupErrorCodes.currencyMismatch,
+        )
+      ) {
+        throw error;
+      }
+
+      return {
+        outdated: true,
+        progress: await readProgressAfterWrite(setupService),
+      };
+    }
+
+    const progress = await readProgressAfterWrite(setupService);
+
+    revalidateLedgerMutation();
+    return { progress };
+  } catch (error) {
+    const state = createActionErrorState(
+      error,
+      ledgerSetupWriteErrorMessages.draftSaveFailed,
+      "[ledger] ledger setup draft action failed unexpectedly",
+    );
+
+    return hasLedgerSetupErrorCode(
+      error,
+      ledgerSetupErrorCodes.accountNameDuplicate,
+    )
+      ? { ...state, accountNameDuplicate: true }
+      : state;
   }
 }

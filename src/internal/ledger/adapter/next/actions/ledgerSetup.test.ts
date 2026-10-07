@@ -19,9 +19,15 @@ import {
   createLedgerSetupProgressFixture,
   ledgerSetupFixtureId,
 } from "test/mocks/ledgerSetup";
-import type { LedgerSetupBasicInfoActionState } from "types/ledgers";
+import type {
+  LedgerSetupBasicInfoActionState,
+  SaveLedgerSetupDraftInput,
+} from "types/ledgers";
 
-import { submitLedgerSetupBasicInfo } from "./ledgerSetup";
+import {
+  saveLedgerSetupDraft,
+  submitLedgerSetupBasicInfo,
+} from "./ledgerSetup";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
@@ -30,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserSetup: vi.fn(),
   getTemplate: vi.fn(),
   revalidateLedgerMutation: vi.fn(),
+  saveDraft: vi.fn(),
   updateBasicInfo: vi.fn(),
 }));
 
@@ -52,6 +59,7 @@ vi.mock("internal/container", () => ({
         create: mocks.create,
         getCurrentUserSetup: mocks.getCurrentUserSetup,
         getTemplate: mocks.getTemplate,
+        saveDraft: mocks.saveDraft,
         updateBasicInfo: mocks.updateBasicInfo,
       },
     },
@@ -87,7 +95,7 @@ function runAction(formData: FormData) {
 }
 
 function expectErrorState(
-  state: LedgerSetupBasicInfoActionState,
+  state: Pick<LedgerSetupBasicInfoActionState, "error" | "errorKey">,
   message: string,
 ) {
   expect(state).toEqual({ error: message, errorKey: expect.any(String) });
@@ -104,6 +112,7 @@ beforeEach(() => {
   });
   mocks.create.mockResolvedValue({ ledgerId: ledgerSetupFixtureId });
   mocks.updateBasicInfo.mockResolvedValue(undefined);
+  mocks.saveDraft.mockResolvedValue(undefined);
   mocks.getCurrentUserSetup.mockResolvedValue(progress.setup);
   mocks.getTemplate.mockReturnValue(null);
 });
@@ -253,5 +262,141 @@ describe("submitLedgerSetupBasicInfo", () => {
       "NEXT_REDIRECT:/login",
     );
     expect(mocks.createDependencies).not.toHaveBeenCalled();
+  });
+});
+
+describe("saveLedgerSetupDraft", () => {
+  const draftInput: SaveLedgerSetupDraftInput = {
+    draft: progress.setup.draft,
+    ledgerId: ledgerSetupFixtureId,
+    step: 3,
+  };
+
+  function createSetupError(
+    code: (typeof ledgerSetupErrorCodes)[keyof typeof ledgerSetupErrorCodes],
+  ) {
+    const message = ledgerSetupErrorMessages[code];
+    return code === ledgerSetupErrorCodes.accountNameDuplicate
+      ? new ValidationError(code, message)
+      : new ConflictError(code, message);
+  }
+
+  it("保存草稿与步骤后返回重新读取的进度", async () => {
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expect(mocks.saveDraft).toHaveBeenCalledWith(draftInput);
+    expect(state).toEqual({ progress });
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
+  });
+
+  it.each([
+    ["非 UUID", { ...draftInput, ledgerId: "invalid" }],
+    ["缺失", { draft: draftInput.draft, step: 3 }],
+  ])("账本 ID %s时返回不存在文案且不调用 Service", async (_label, input) => {
+    const state = await saveLedgerSetupDraft(
+      input as SaveLedgerSetupDraftInput,
+    );
+
+    expectErrorState(
+      state,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+    );
+    expect(mocks.createDependencies).not.toHaveBeenCalled();
+    expect(mocks.saveDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ledgerSetupErrorCodes.draftInvalid,
+    ledgerSetupErrorCodes.stepInvalid,
+    ledgerSetupErrorCodes.draftTooLarge,
+    ledgerSetupErrorCodes.notInProgress,
+  ])("草稿校验或保存失败（%s）时返回对应安全文案", async (code) => {
+    mocks.saveDraft.mockRejectedValue(createSetupError(code));
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expectErrorState(state, ledgerSetupErrorMessages[code]);
+    expect(state).not.toHaveProperty("accountNameDuplicate");
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("同类型账户重名时返回重名标记与对应文案", async () => {
+    mocks.saveDraft.mockRejectedValue(
+      createSetupError(ledgerSetupErrorCodes.accountNameDuplicate),
+    );
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expect(state).toEqual({
+      accountNameDuplicate: true,
+      error:
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate],
+      errorKey: expect.any(String),
+    });
+  });
+
+  it.each([
+    ledgerSetupErrorCodes.templateOutdated,
+    ledgerSetupErrorCodes.currencyMismatch,
+  ])("%s 时重新读取进度并返回 outdated，不作为失败", async (code) => {
+    mocks.saveDraft.mockRejectedValue(createSetupError(code));
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expect(state).toEqual({ outdated: true, progress });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("预设内容已更新但重新读取不到创建中账本时返回不存在文案", async () => {
+    mocks.saveDraft.mockRejectedValue(
+      createSetupError(ledgerSetupErrorCodes.templateOutdated),
+    );
+    mocks.getCurrentUserSetup.mockResolvedValue(null);
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expectErrorState(
+      state,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+    );
+  });
+
+  it("保存后读取不到创建中账本时返回不存在文案", async () => {
+    mocks.getCurrentUserSetup.mockResolvedValue(null);
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expectErrorState(
+      state,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+    );
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("未知异常记录安全日志并返回草稿保存失败的通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.saveDraft.mockRejectedValue(new Error("database unavailable"));
+
+    const state = await saveLedgerSetupDraft(draftInput);
+
+    expectErrorState(state, ledgerSetupWriteErrorMessages.draftSaveFailed);
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger setup draft action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.getCurrentLedgerContext.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(saveLedgerSetupDraft(draftInput)).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.saveDraft).not.toHaveBeenCalled();
   });
 });
