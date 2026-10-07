@@ -7,6 +7,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
+import type { ReactNode } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { SoftCard } from "atoms/ui/SoftCard";
@@ -30,8 +31,16 @@ const refundPreviewChips = [
   },
 ] as const;
 
+const defaultDisabledDescription =
+  "如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。";
+
 type LedgerSpecialStatusSettingProps = {
   canEdit?: boolean;
+  /**
+   * 关闭状态下开关下方的说明。默认说明只适用于已有账本；
+   * 创建账本向导中尚无明细，传入 null 不显示。
+   */
+  disabledDescription?: ReactNode;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
   onRetry?: () => void;
@@ -40,6 +49,7 @@ type LedgerSpecialStatusSettingProps = {
 
 export function LedgerSpecialStatusSetting({
   canEdit = true,
+  disabledDescription = defaultDisabledDescription,
   enabled,
   onChange,
   onRetry,
@@ -123,11 +133,11 @@ export function LedgerSpecialStatusSetting({
                   />
                 ))}
               </Stack>
-            ) : (
+            ) : disabledDescription ? (
               <Typography color="text.secondary" variant="body2">
-                如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。
+                {disabledDescription}
               </Typography>
-            )}
+            ) : null}
 
             {!canEdit ? (
               <Typography color="text.secondary" variant="caption">

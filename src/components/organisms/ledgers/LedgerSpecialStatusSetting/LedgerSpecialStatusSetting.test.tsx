@@ -42,6 +42,21 @@ describe("LedgerSpecialStatusSetting", () => {
     ).toBeInTheDocument();
   });
 
+  it("关闭状态说明传入 null 时不显示", () => {
+    render(
+      <LedgerSpecialStatusSetting
+        disabledDescription={null}
+        enabled={false}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/将无法关闭/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "启用特殊状态" }),
+    ).not.toBeChecked();
+  });
+
   it("错误时显示反馈并允许重试", () => {
     const onRetry = vi.fn();
     render(

@@ -15,6 +15,8 @@ function renderTemplate() {
   render(
     <ConfirmDialogTestProviders>
       <LedgerSetupPreviewTemplate
+        completeSetupAction={async () => ({ completed: true })}
+        defaultRootCategoryNames={[]}
         defaults={{
           baseCurrency: "JPY",
           displayColor: "amber",

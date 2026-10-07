@@ -42,7 +42,7 @@ function renderDraftSave({
   const { result } = renderHook(() =>
     useLedgerSetupDraftSave({
       ...callbacks,
-      actions: { saveDraft, submitBasicInfo: vi.fn() },
+      actions: { completeSetup: vi.fn(), saveDraft, submitBasicInfo: vi.fn() },
       progress,
       step,
     }),

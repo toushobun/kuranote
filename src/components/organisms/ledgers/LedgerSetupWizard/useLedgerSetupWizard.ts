@@ -44,10 +44,12 @@ export function useLedgerSetupWizard({
   // 向导顶部的提示：恢复到其他创建中账本时说明本次填写的内容未保存，
   // 预设内容已更新时说明需要重新确认。
   const [notice, setNotice] = useState<string | null>(null);
+  // 创建中账本已在其他页面完成或不存在：没有可稍后继续的进度。
+  const [setupUnavailable, setSetupUnavailable] = useState(false);
 
   // 账本已创建（创建中）且尚未完成写入时，进度已保存在服务端，关闭前提示可稍后继续。
   const needsCloseConfirm =
-    progress !== null && step <= ledgerSetupLastDraftStep;
+    progress !== null && !setupUnavailable && step <= ledgerSetupLastDraftStep;
 
   return {
     busy,
@@ -70,6 +72,20 @@ export function useLedgerSetupWizard({
     },
     goNext() {
       setStep((current) => clampStep(current + 1));
+    },
+    // 只允许跳到完成写入前可编辑的步骤（确认一览之前），不跳到确认一览自身或完成后的步骤。
+    goToStep(target: number) {
+      if (
+        !Number.isInteger(target) ||
+        target < 1 ||
+        target >= ledgerSetupLastDraftStep
+      ) {
+        return;
+      }
+      setStep(target);
+    },
+    markSetupUnavailable() {
+      setSetupUnavailable(true);
     },
     goPrevious() {
       setStep((current) => clampStep(current - 1));

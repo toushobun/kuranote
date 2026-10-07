@@ -6,35 +6,23 @@ import {
   ledgerCreateErrorMessages,
 } from "internal/ledger";
 import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import {
+  createLedgerSetupWizardStoryActions,
+  ledgerSetupWizardStoryArgs,
+  ledgerSetupWizardStoryDecorators,
+} from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
 
 // 第 1 步依赖向导骨架提供的步骤回调，因此在向导中展示。
 const meta = {
   title: "Organisms/Ledgers/LedgerSetupBasicInfoStep",
   component: LedgerSetupWizard,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
-    ),
-  ],
+  decorators: ledgerSetupWizardStoryDecorators,
   args: {
     actions: {
-      saveDraft: async () => ({}),
+      ...createLedgerSetupWizardStoryActions(null),
       submitBasicInfo: async (state) => state,
     },
-    defaults: {
-      baseCurrency: "JPY",
-      displayColor: "amber",
-      displayName: "DENG SONGWEN",
-      ledgerName: "家庭账本",
-    },
-    onClose: () => {},
-    open: true,
+    ...ledgerSetupWizardStoryArgs,
     progress: null,
   },
   parameters: { viewport: { defaultViewport: "mobile2" } },
@@ -56,7 +44,7 @@ export const ValidationError: Story = {
   name: "校验错误",
   args: {
     actions: {
-      saveDraft: async () => ({}),
+      ...createLedgerSetupWizardStoryActions(null),
       submitBasicInfo: async () => ({
         error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
         errorKey: "storybook-error",
@@ -72,7 +60,7 @@ export const Submitting: Story = {
   name: "提交中",
   args: {
     actions: {
-      saveDraft: async () => ({}),
+      ...createLedgerSetupWizardStoryActions(null),
       submitBasicInfo: () => new Promise(() => {}),
     },
   },

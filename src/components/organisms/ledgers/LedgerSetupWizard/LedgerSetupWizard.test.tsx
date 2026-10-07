@@ -7,6 +7,7 @@ import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import {
   clickCloseWizard,
   clickNext,
+  completeSetupAndWait,
   createSaveDraftMock,
   getCurrentStepItem,
   getLedgerSetupWizardDialog,
@@ -105,15 +106,17 @@ describe("LedgerSetupWizard", () => {
       expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
     });
 
-    it("最后一步的占位内容不能继续前进", () => {
+    it("完成创建后的占位步骤不能返回上一步，也不能继续前进", async () => {
       renderLedgerSetupWizard({
         progress: createLedgerSetupProgressFixture({ step: 5 }),
       });
 
-      clickNext();
+      await completeSetupAndWait();
 
-      expectCurrentStep("邀请");
       expect(screen.getByRole("button", { name: "下一步" })).toBeDisabled();
+      expect(
+        screen.queryByRole("button", { name: "上一步" }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -184,12 +187,25 @@ describe("LedgerSetupWizard", () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it("邀请步骤（账本已完成）直接关闭", () => {
+    it("确认一览（账本尚未完成）关闭时需要确认", () => {
       const { onClose } = renderLedgerSetupWizard({
         progress: createLedgerSetupProgressFixture({ step: 5 }),
       });
 
-      clickNext();
+      clickCloseWizard();
+
+      expect(
+        screen.getByRole("dialog", { name: "稍后再继续？" }),
+      ).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("完成创建后进入邀请步骤（账本已完成），关闭时直接关闭", async () => {
+      const { onClose } = renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 5 }),
+      });
+
+      await completeSetupAndWait();
       clickCloseWizard();
 
       expect(onClose).toHaveBeenCalledTimes(1);

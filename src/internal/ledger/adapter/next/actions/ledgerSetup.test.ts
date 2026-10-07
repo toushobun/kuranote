@@ -10,9 +10,11 @@ import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   ledgerSetupWriteErrorMessages,
+  type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
 import {
   ConflictError,
+  NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
@@ -20,16 +22,19 @@ import {
   ledgerSetupFixtureId,
 } from "test/mocks/ledgerSetup";
 import type {
+  CompleteLedgerSetupInput,
   LedgerSetupBasicInfoActionState,
   SaveLedgerSetupDraftInput,
 } from "types/ledgers";
 
 import {
+  completeLedgerSetup,
   saveLedgerSetupDraft,
   submitLedgerSetupBasicInfo,
 } from "./ledgerSetup";
 
 const mocks = vi.hoisted(() => ({
+  complete: vi.fn(),
   create: vi.fn(),
   createDependencies: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
@@ -56,6 +61,7 @@ vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
     ledger: {
       setupService: {
+        complete: mocks.complete,
         create: mocks.create,
         getCurrentUserSetup: mocks.getCurrentUserSetup,
         getTemplate: mocks.getTemplate,
@@ -94,6 +100,20 @@ function runAction(formData: FormData) {
   return submitLedgerSetupBasicInfo({}, formData);
 }
 
+/** 与 ledgerSetupService 相同语义的应用错误。 */
+function createSetupError(code: LedgerSetupErrorCode) {
+  const message = ledgerSetupErrorMessages[code];
+
+  if (code === ledgerSetupErrorCodes.notFound) {
+    return new NotFoundError(code, message);
+  }
+
+  return code === ledgerSetupErrorCodes.accountNameDuplicate ||
+    code === ledgerSetupErrorCodes.payloadInvalid
+    ? new ValidationError(code, message)
+    : new ConflictError(code, message);
+}
+
 function expectErrorState(
   state: Pick<LedgerSetupBasicInfoActionState, "error" | "errorKey">,
   message: string,
@@ -113,6 +133,7 @@ beforeEach(() => {
   mocks.create.mockResolvedValue({ ledgerId: ledgerSetupFixtureId });
   mocks.updateBasicInfo.mockResolvedValue(undefined);
   mocks.saveDraft.mockResolvedValue(undefined);
+  mocks.complete.mockResolvedValue(undefined);
   mocks.getCurrentUserSetup.mockResolvedValue(progress.setup);
   mocks.getTemplate.mockReturnValue(null);
 });
@@ -272,15 +293,6 @@ describe("saveLedgerSetupDraft", () => {
     step: 3,
   };
 
-  function createSetupError(
-    code: (typeof ledgerSetupErrorCodes)[keyof typeof ledgerSetupErrorCodes],
-  ) {
-    const message = ledgerSetupErrorMessages[code];
-    return code === ledgerSetupErrorCodes.accountNameDuplicate
-      ? new ValidationError(code, message)
-      : new ConflictError(code, message);
-  }
-
   it("保存草稿与步骤后返回重新读取的进度", async () => {
     const state = await saveLedgerSetupDraft(draftInput);
 
@@ -398,5 +410,126 @@ describe("saveLedgerSetupDraft", () => {
       "NEXT_REDIRECT:/login",
     );
     expect(mocks.saveDraft).not.toHaveBeenCalled();
+  });
+});
+
+describe("completeLedgerSetup", () => {
+  const completeInput: CompleteLedgerSetupInput = {
+    ledgerId: ledgerSetupFixtureId,
+  };
+
+  it("完成写入后刷新依赖当前账本的页面并返回成功", async () => {
+    const state = await completeLedgerSetup(completeInput);
+
+    expect(mocks.complete).toHaveBeenCalledWith(ledgerSetupFixtureId);
+    expect(state).toEqual({ completed: true });
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
+  });
+
+  it.each([
+    ["非 UUID", { ledgerId: "invalid" }],
+    ["缺失", {}],
+  ])(
+    "账本 ID %s时返回不存在文案与 notFound，且不调用 Service",
+    async (_label, input) => {
+      const state = await completeLedgerSetup(
+        input as CompleteLedgerSetupInput,
+      );
+
+      expect(state).toEqual({
+        error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+        errorKey: expect.any(String),
+        notFound: true,
+      });
+      expect(mocks.createDependencies).not.toHaveBeenCalled();
+      expect(mocks.complete).not.toHaveBeenCalled();
+    },
+  );
+
+  it("创建中账本已完成或不存在时返回不存在文案与 notFound", async () => {
+    mocks.complete.mockRejectedValue(
+      createSetupError(ledgerSetupErrorCodes.notFound),
+    );
+
+    const state = await completeLedgerSetup(completeInput);
+
+    expect(state).toEqual({
+      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      errorKey: expect.any(String),
+      notFound: true,
+    });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ledgerSetupErrorCodes.templateOutdated,
+    ledgerSetupErrorCodes.currencyMismatch,
+  ])("%s 时重新读取进度并返回 outdated，不作为失败", async (code) => {
+    mocks.complete.mockRejectedValue(createSetupError(code));
+
+    const state = await completeLedgerSetup(completeInput);
+
+    expect(state).toEqual({ outdated: true, progress });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("预设内容已更新但重新读取不到创建中账本时返回 notFound", async () => {
+    mocks.complete.mockRejectedValue(
+      createSetupError(ledgerSetupErrorCodes.templateOutdated),
+    );
+    mocks.getCurrentUserSetup.mockResolvedValue(null);
+
+    const state = await completeLedgerSetup(completeInput);
+
+    expect(state).toEqual({
+      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      errorKey: expect.any(String),
+      notFound: true,
+    });
+  });
+
+  it.each([
+    ledgerSetupErrorCodes.accountNameDuplicate,
+    ledgerSetupErrorCodes.payloadInvalid,
+    ledgerSetupErrorCodes.notInProgress,
+  ])("完成写入被拒（%s）时返回对应安全文案", async (code) => {
+    mocks.complete.mockRejectedValue(createSetupError(code));
+
+    const state = await completeLedgerSetup(completeInput);
+
+    expectErrorState(state, ledgerSetupErrorMessages[code]);
+    expect(state).not.toHaveProperty("notFound");
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("未知异常记录安全日志并返回完成失败的通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.complete.mockRejectedValue(new Error("database unavailable"));
+
+    const state = await completeLedgerSetup(completeInput);
+
+    expectErrorState(state, ledgerSetupWriteErrorMessages.completeFailed);
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger setup complete action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "database unavailable",
+    );
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.getCurrentLedgerContext.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(completeLedgerSetup(completeInput)).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.complete).not.toHaveBeenCalled();
   });
 });

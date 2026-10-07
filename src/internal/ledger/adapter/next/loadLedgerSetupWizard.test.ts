@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentLedgerContext: vi.fn(),
   getCurrentUserSetup: vi.fn(),
   getTemplate: vi.fn(),
+  listDefaultRootCategoryNames: vi.fn(),
 }));
 
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
@@ -32,6 +33,7 @@ vi.mock("internal/container", () => ({
       setupService: {
         getCurrentUserSetup: mocks.getCurrentUserSetup,
         getTemplate: mocks.getTemplate,
+        listDefaultRootCategoryNames: mocks.listDefaultRootCategoryNames,
       },
     },
   }),
@@ -46,6 +48,7 @@ const defaults = {
 
 const progress = createLedgerSetupProgressFixture();
 const template = { currency: "JPY", version: 1 };
+const defaultRootCategoryNames = ["💰 工资收入", "🍽️ 饮食"];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,6 +61,9 @@ beforeEach(() => {
   mocks.getCreateDefaults.mockResolvedValue({ defaults });
   mocks.getCurrentUserSetup.mockResolvedValue(progress.setup);
   mocks.getTemplate.mockReturnValue(template);
+  mocks.listDefaultRootCategoryNames.mockResolvedValue(
+    defaultRootCategoryNames,
+  );
 });
 
 describe("readLedgerSetupProgress", () => {
@@ -85,8 +91,9 @@ describe("readLedgerSetupProgress", () => {
 });
 
 describe("loadLedgerSetupWizard", () => {
-  it("返回第 1 步默认值与创建中账本进度", async () => {
+  it("返回第 1 步默认值、创建中账本进度与默认大分类", async () => {
     await expect(loadLedgerSetupWizard()).resolves.toEqual({
+      defaultRootCategoryNames,
       defaults,
       progress: { setup: progress.setup, template },
     });
@@ -101,5 +108,13 @@ describe("loadLedgerSetupWizard", () => {
     mocks.getCurrentUserSetup.mockRejectedValue(new Error("load failed"));
 
     await expect(loadLedgerSetupWizard()).rejects.toThrow("load failed");
+  });
+
+  it("默认大分类读取失败时不吞掉异常", async () => {
+    mocks.listDefaultRootCategoryNames.mockRejectedValue(
+      new Error("categories failed"),
+    );
+
+    await expect(loadLedgerSetupWizard()).rejects.toThrow("categories failed");
   });
 });

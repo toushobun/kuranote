@@ -31,8 +31,9 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
     "预设内容已更新，请重新打开创建向导后再选择。",
 };
 
-/** 创建中账本读取查询失败时的文案。 */
+/** 创建中账本与向导数据读取查询失败时的文案。 */
 export const ledgerSetupLoadErrorMessages = {
+  defaultCategoriesLoadFailed: "默认分类加载失败，请稍后重试。",
   loadFailed: "创建中的账本加载失败，请稍后重试。",
 } as const;
 

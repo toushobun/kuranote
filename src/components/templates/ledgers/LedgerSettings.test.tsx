@@ -105,6 +105,26 @@ describe("LedgerSettingsTemplate", () => {
     expect(within(container).queryByText("危险操作")).not.toBeInTheDocument();
   });
 
+  it("明细特殊状态关闭时仍显示已有账本的关闭说明", () => {
+    renderWithUserTheme(
+      <LedgerSettingsTemplate
+        {...view}
+        errorMessage={null}
+        inviteAction={inviteAction}
+        updateLedgerSettingsAction={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(
+      screen.getByRole("switch", { name: "启用特殊状态" }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByText(
+        "如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("点击成员后显示成员设置弹窗", () => {
     renderWithUserTheme(
       <LedgerSettingsTemplate

@@ -36,6 +36,11 @@ export const Disabled: Story = {
   },
 };
 
+export const WithoutDisabledDescription: Story = {
+  name: "不显示关闭说明（创建账本向导）",
+  args: { disabledDescription: null, enabled: false },
+};
+
 export const MemberReadonly: Story = {
   name: "普通成员只读",
   args: { canEdit: false },

@@ -919,4 +919,78 @@ begin
 end;
 $$;
 
+-- 默认分类只在 ledger_default_categories() 中维护一份：
+-- /ledgers/new 与完成写入创建的分类与抽出前完全一致，向导 RPC 返回的大分类与实际写入一致。
+-- 指纹为抽出前 initialize_ledger_default_categories 写入结果（101 个分类）的 md5。
+create function pg_temp.default_category_fingerprint(p_ledger_id uuid)
+returns text
+language sql
+as $$
+    select md5(string_agg(
+        format('%s|%s|%s|%s|%s|%s', c.type, coalesce(parent.name, ''), c.name, c.icon_name, c.color, c.sort_order),
+        E'\n'
+        order by c.type, coalesce(parent.name, ''), c.sort_order, c.name
+    ))
+    from public.category c
+    left join public.category parent on parent.id = c.parent_id
+    where c.ledger_id = p_ledger_id;
+$$;
+
+do $$
+declare
+    v_owner_id uuid := '39500000-0000-4000-8000-000000000021';
+    v_legacy_ledger_id uuid;
+    v_setup_ledger_id uuid;
+    v_expected_fingerprint constant text := '71bbe68f984544d84827496605aef755';
+    v_rpc_roots text;
+    v_written_roots text;
+begin
+    perform pg_temp.create_test_user(v_owner_id, 'ledger-default-categories@example.invalid');
+    perform pg_temp.sign_in(v_owner_id);
+
+    select (public.create_ledger_with_owner_settings('Legacy Categories', 'JPY', 'Owner', 'jade')).id
+      into v_legacy_ledger_id;
+
+    select public.create_ledger_setup('Setup Categories', 'USD', 'Owner', 'sky')
+      into v_setup_ledger_id;
+    perform public.complete_ledger_setup(
+        v_setup_ledger_id,
+        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+    );
+
+    if (select count(*) from public.category where ledger_id = v_legacy_ledger_id) <> 101
+       or (select count(*) from public.category where ledger_id = v_legacy_ledger_id and parent_id is null) <> 12
+       or pg_temp.default_category_fingerprint(v_legacy_ledger_id) is distinct from v_expected_fingerprint then
+        raise exception '/ledgers/new default categories changed';
+    end if;
+
+    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 101
+       or pg_temp.default_category_fingerprint(v_setup_ledger_id) is distinct from v_expected_fingerprint then
+        raise exception 'complete_ledger_setup default categories changed';
+    end if;
+
+    select string_agg(format('%s|%s', r.name, r.sort_order), E'\n' order by r.sort_order)
+      into v_rpc_roots
+      from public.get_ledger_default_root_categories() r;
+    select string_agg(format('%s|%s', c.name, c.sort_order), E'\n' order by c.sort_order)
+      into v_written_roots
+      from public.category c
+     where c.ledger_id = v_setup_ledger_id
+       and c.parent_id is null;
+
+    if v_rpc_roots is null or v_rpc_roots is distinct from v_written_roots then
+        raise exception 'get_ledger_default_root_categories must match written root categories';
+    end if;
+
+    -- 只读 RPC 只授予 authenticated；默认分类定义与初始化函数不对客户端开放。
+    if not has_function_privilege('authenticated', 'public.get_ledger_default_root_categories()', 'execute')
+       or has_function_privilege('anon', 'public.get_ledger_default_root_categories()', 'execute')
+       or has_function_privilege('authenticated', 'public.ledger_default_categories()', 'execute')
+       or has_function_privilege('anon', 'public.ledger_default_categories()', 'execute')
+       or has_function_privilege('authenticated', 'public.initialize_ledger_default_categories(uuid, uuid)', 'execute') then
+        raise exception 'default category function privileges smoke test failed';
+    end if;
+end;
+$$;
+
 rollback;

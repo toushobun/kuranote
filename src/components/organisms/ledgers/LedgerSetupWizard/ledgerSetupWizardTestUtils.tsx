@@ -8,9 +8,13 @@ import {
 import { expect, vi, type Mock } from "vitest";
 
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
-import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
+import {
+  createLedgerSetupProgressFixture,
+  ledgerSetupDefaultRootCategoryNamesFixture,
+} from "test/mocks/ledgerSetup";
 import type {
   LedgerSetupBasicInfoStateAction,
+  LedgerSetupCompleteAction,
   LedgerSetupDraftSaveAction,
   LedgerSetupProgress,
 } from "types/ledgers";
@@ -25,6 +29,7 @@ export const ledgerSetupWizardTestDefaults = {
 };
 
 type RenderLedgerSetupWizardOptions = {
+  completeSetup?: Mock<LedgerSetupCompleteAction>;
   progress?: LedgerSetupProgress | null;
   saveDraft?: Mock<LedgerSetupDraftSaveAction>;
   submitBasicInfo?: LedgerSetupBasicInfoStateAction;
@@ -39,8 +44,16 @@ export function createSaveDraftMock(
   }));
 }
 
+/** 第一次保存草稿时的参数。 */
+export function getSavedInput(saveDraft: Mock<LedgerSetupDraftSaveAction>) {
+  return saveDraft.mock.calls[0][0];
+}
+
 /** 创建账本向导测试共用的渲染：提供 ConfirmDialog / 用户主题 Provider，并返回回调 mock。 */
 export function renderLedgerSetupWizard({
+  completeSetup = vi.fn<LedgerSetupCompleteAction>(async () => ({
+    completed: true,
+  })),
   progress = null,
   saveDraft = createSaveDraftMock(progress ?? undefined),
   submitBasicInfo = vi.fn(async () => ({})),
@@ -50,7 +63,8 @@ export function renderLedgerSetupWizard({
   render(
     <ConfirmDialogTestProviders>
       <LedgerSetupWizard
-        actions={{ saveDraft, submitBasicInfo }}
+        actions={{ completeSetup, saveDraft, submitBasicInfo }}
+        defaultRootCategoryNames={ledgerSetupDefaultRootCategoryNamesFixture}
         defaults={ledgerSetupWizardTestDefaults}
         onClose={onClose}
         open
@@ -59,7 +73,7 @@ export function renderLedgerSetupWizard({
     </ConfirmDialogTestProviders>,
   );
 
-  return { onClose, saveDraft, submitBasicInfo };
+  return { completeSetup, onClose, saveDraft, submitBasicInfo };
 }
 
 export function getLedgerSetupWizardDialog() {
@@ -92,4 +106,14 @@ export async function goPreviousTo(stepLabel: string) {
 
 export function clickCloseWizard() {
   fireEvent.click(screen.getByRole("button", { name: "关闭创建账本向导" }));
+}
+
+export function clickCompleteSetup() {
+  fireEvent.click(screen.getByRole("button", { name: "完成创建" }));
+}
+
+/** 在确认一览点击「完成创建」并等待进入邀请步骤。 */
+export async function completeSetupAndWait() {
+  clickCompleteSetup();
+  await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("邀请"));
 }

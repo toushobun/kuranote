@@ -332,6 +332,7 @@ describe("创建中账本数据边界", () => {
       `"save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb")`,
       `"get_current_user_setup_ledger"()`,
       `"complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb")`,
+      `"get_ledger_default_root_categories"()`,
     ]) {
       expect(schemaSql).toContain(
         `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
@@ -350,11 +351,27 @@ describe("创建中账本数据边界", () => {
       `"bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid")`,
       `"upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text")`,
       `"initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid")`,
+      `"ledger_default_categories"()`,
     ]) {
       expect(schemaSql).not.toContain(
         `GRANT ALL ON FUNCTION "public".${signature} TO "authenticated";`,
       );
     }
+  });
+
+  it("默认分类只在 ledger_default_categories 中维护一份，初始化与向导读取都基于它", () => {
+    const initializeSql = getFunctionSql(
+      "initialize_ledger_default_categories",
+    );
+    const rootCategoriesSql = getFunctionSql(
+      "get_ledger_default_root_categories",
+    );
+
+    expect(initializeSql).toContain("public.ledger_default_categories()");
+    expect(initializeSql).not.toContain("values");
+    expect(rootCategoriesSql).toContain("public.ledger_default_categories()");
+    expect(rootCategoriesSql).toContain("d.parent_name is null");
+    expect(rootCategoriesSql).not.toContain("public.category");
   });
 
   it("完成写入 RPC 校验 owner 与创建中状态，事务内放行写入后立即关闭", () => {
