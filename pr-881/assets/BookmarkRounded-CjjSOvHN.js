@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{t as n}from"./createSvgIcon-Chjh82-e.js";import{t as r}from"./createSvgIcon-C16R7Rzo.js";var i,a,o=e((()=>{r(),i=t(),a=n((0,i.jsx)(`path`,{d:`M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2`}),`BookmarkRounded`)}));export{o as n,a as t};
