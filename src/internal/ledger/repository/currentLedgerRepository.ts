@@ -5,6 +5,7 @@ import type {
   CurrentLedgerContext,
   CurrentLedgerRole,
 } from "internal/ledger/entity/currentLedger";
+import { ledgerSetupStatuses } from "internal/ledger/entity/ledgerSetup";
 import {
   currentLedgerErrorCodes,
   currentLedgerLoadErrorMessages,
@@ -152,7 +153,8 @@ export function createSupabaseCurrentLedgerRepository(
           "id, name, base_currency, transaction_item_special_status_enabled",
         )
         .in("id", ledgerIds)
-        .eq("is_archived", false);
+        .eq("is_archived", false)
+        .eq("setup_status", ledgerSetupStatuses.completed);
       type LedgerRows = QueryData<typeof ledgerQuery>;
 
       const { data: ledgerData, error: ledgerError } = await ledgerQuery;
@@ -242,6 +244,7 @@ export function createSupabaseCurrentLedgerRepository(
         )
         .eq("id", ledgerId)
         .eq("is_archived", false)
+        .eq("setup_status", ledgerSetupStatuses.completed)
         .maybeSingle();
 
       if (ledgerError) {
@@ -298,6 +301,7 @@ export function createSupabaseCurrentLedgerRepository(
         .select("id")
         .eq("id", ledgerId)
         .eq("is_archived", false)
+        .eq("setup_status", ledgerSetupStatuses.completed)
         .maybeSingle();
 
       if (error) {

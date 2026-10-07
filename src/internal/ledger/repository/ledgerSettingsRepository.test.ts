@@ -82,6 +82,19 @@ describe("createSupabaseLedgerSettingsRepository.isLedgerActive", () => {
 
     await expect(repository.isLedgerActive(ledgerId)).resolves.toBe(false);
   });
+
+  it("只把已完成创建的账本视为可访问", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ data: null }] });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await expect(repository.isLedgerActive(ledgerId)).resolves.toBe(false);
+    expect(supabase.queries[0].calls).toContainEqual({
+      args: ["setup_status", "completed"],
+      method: "eq",
+    });
+  });
 });
 
 describe("createSupabaseLedgerSettingsRepository.listActiveMembers", () => {

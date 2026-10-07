@@ -356,6 +356,7 @@ describe("getCurrentLedgerContext", () => {
         },
         { args: ["id", ["ledger-2", "ledger-1"]], method: "in" },
         { args: ["is_archived", false], method: "eq" },
+        { args: ["setup_status", "completed"], method: "eq" },
       ],
       table: "ledger",
     });

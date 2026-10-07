@@ -219,6 +219,7 @@ jobs:
             scripts/check-security-definer-search-path-cases.mjs \
             scripts/security-definer-smoke.sql \
             scripts/security-definer-smoke-issue-598.sql \
+            scripts/security-definer-smoke-issue-395.sql \
             .supabase-version \
             package.json \
             .github/workflows/ci.yml; then
