@@ -16,12 +16,18 @@ function renderTemplate() {
     <ConfirmDialogTestProviders>
       <LedgerSetupPreviewTemplate
         completeSetupAction={async () => ({ completed: true })}
+        createInviteAction={async (state) => state}
         defaultRootCategoryNames={[]}
         defaults={{
           baseCurrency: "JPY",
           displayColor: "amber",
           displayName: "淞文",
           ledgerName: "家庭账本",
+        }}
+        loadInviteMembersAction={async () => ({})}
+        placeholderMemberActions={{
+          delete: async (state) => state,
+          rename: async (state) => state,
         }}
         progress={null}
         saveDraftAction={async () => ({})}

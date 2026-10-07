@@ -15,8 +15,18 @@ vi.mock("internal/ledger/adapter/next/loadLedgerSetupWizard", () => ({
   loadLedgerSetupWizard: mocks.loadLedgerSetupWizard,
 }));
 
+vi.mock("internal/ledger/adapter/next/actions/ledgerInvite", () => ({
+  createLedgerSetupInvite: vi.fn(),
+}));
+
+vi.mock("internal/ledger/adapter/next/actions/ledgerPlaceholderMember", () => ({
+  deleteLedgerPlaceholderMember: vi.fn(),
+  renameLedgerPlaceholderMember: vi.fn(),
+}));
+
 vi.mock("internal/ledger/adapter/next/actions/ledgerSetup", () => ({
   completeLedgerSetup: vi.fn(),
+  loadLedgerSetupInviteMembers: vi.fn(),
   saveLedgerSetupDraft: vi.fn(),
   submitLedgerSetupBasicInfo: vi.fn(),
 }));
@@ -71,5 +81,11 @@ describe("LedgerSetupPreviewRoute", () => {
     expect(mocks.loadLedgerSetupWizard).toHaveBeenCalledTimes(1);
     expect(element.props).toMatchObject(view);
     expect(element.props.completeSetupAction).toEqual(expect.any(Function));
+    expect(element.props.createInviteAction).toEqual(expect.any(Function));
+    expect(element.props.loadInviteMembersAction).toEqual(expect.any(Function));
+    expect(element.props.placeholderMemberActions).toEqual({
+      delete: expect.any(Function),
+      rename: expect.any(Function),
+    });
   });
 });

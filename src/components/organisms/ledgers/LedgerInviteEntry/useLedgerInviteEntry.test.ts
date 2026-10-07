@@ -138,6 +138,52 @@ describe("useLedgerInviteEntry", () => {
     });
   });
 
+  it("Action 状态返回新链接时打开草稿显示链接，同一 successKey 只消费一次", () => {
+    const { result, rerender } = renderHook(
+      ({ successKey }) =>
+        useLedgerInviteEntry({
+          actionState: {
+            createdInvite: {
+              placeholderId: "placeholder-1",
+              role: "admin",
+              token: "state-token",
+            },
+            operation: "invite",
+            successKey,
+          },
+          initialToken: null,
+        }),
+      { initialProps: { successKey: "success-1" } },
+    );
+
+    expect(result.current.created).toBe(true);
+    expect(result.current.draftOpen).toBe(true);
+    expect(result.current.draftToken).toBe("state-token");
+    expect(result.current.draftPlaceholderId).toBe("placeholder-1");
+    expect(result.current.draftRole).toBe("admin");
+
+    act(() => result.current.closeDraft());
+    rerender({ successKey: "success-1" });
+    expect(result.current.draftOpen).toBe(false);
+  });
+
+  it("Action 状态返回撤销成功时关闭邀请详情并显示撤销反馈", () => {
+    const { result, rerender } = renderHook(
+      ({ successKey }: { successKey?: string }) =>
+        useLedgerInviteEntry({
+          actionState: successKey ? { operation: "revoke", successKey } : {},
+          initialToken: null,
+        }),
+      { initialProps: {} },
+    );
+
+    act(() => result.current.selectInvite(pendingInvite));
+    rerender({ successKey: "success-1" });
+
+    expect(result.current.revoked).toBe(true);
+    expect(result.current.selectedInvite).toBeNull();
+  });
+
   it("复制链接成功和失败时切换对应反馈", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {

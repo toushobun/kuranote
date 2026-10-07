@@ -22,9 +22,10 @@ describe("ledgerSetupErrorMessages", () => {
 });
 
 describe("ledgerSetupLoadErrorMessages", () => {
-  it("返回创建中账本与默认分类读取失败提示", () => {
+  it("返回创建中账本、默认分类与邀请成员读取失败提示", () => {
     expect(ledgerSetupLoadErrorMessages).toEqual({
       defaultCategoriesLoadFailed: "默认分类加载失败，请稍后重试。",
+      inviteMembersLoadFailed: "邀请成员加载失败，请稍后重试。",
       loadFailed: "创建中的账本加载失败，请稍后重试。",
     });
   });

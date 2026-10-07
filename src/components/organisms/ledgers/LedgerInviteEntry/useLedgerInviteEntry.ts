@@ -44,6 +44,7 @@ export function useLedgerInviteEntry({
   const [created, setCreated] = useState(false);
   const [revoked, setRevoked] = useState(false);
   const consumedErrorKeysRef = useRef(new Set<string>());
+  const consumedSuccessKeysRef = useRef(new Set<string>());
 
   const resetTransientFeedback = useCallback(() => {
     setCopied(false);
@@ -52,6 +53,30 @@ export function useLedgerInviteEntry({
     setRevoked(false);
     setManagementError(null);
   }, []);
+
+  // 生成链接成功：打开草稿显示新链接。账本设置页经 fragment、创建账本向导经 Action 状态传入。
+  const showCreatedInvite = useCallback(
+    (token: string, placeholderId: string | null, role: string | null) => {
+      resetTransientFeedback();
+      setDraftToken(token);
+      setDraftPlaceholderId(placeholderId);
+      setDraftOpen(true);
+      setSelectedInvite(null);
+      setRevokeConfirmOpen(false);
+      setCreated(true);
+      if (isLedgerInviteRole(role)) {
+        setDraftRole(role);
+      }
+    },
+    [resetTransientFeedback],
+  );
+
+  const showRevoked = useCallback(() => {
+    resetTransientFeedback();
+    setSelectedInvite(null);
+    setRevokeConfirmOpen(false);
+    setRevoked(true);
+  }, [resetTransientFeedback]);
 
   useEffect(() => {
     function consumeActionResult() {
@@ -64,24 +89,13 @@ export function useLedgerInviteEntry({
       const inviteResult = url.searchParams.get("inviteResult");
 
       if (hashToken) {
-        resetTransientFeedback();
-        setDraftToken(hashToken);
-        setDraftPlaceholderId(hashPlaceholderId || null);
-        setDraftOpen(true);
-        setSelectedInvite(null);
-        setRevokeConfirmOpen(false);
-        setCreated(true);
-      }
-
-      if (isLedgerInviteRole(hashRole)) {
+        showCreatedInvite(hashToken, hashPlaceholderId || null, hashRole);
+      } else if (isLedgerInviteRole(hashRole)) {
         setDraftRole(hashRole);
       }
 
       if (inviteResult === "revoked") {
-        resetTransientFeedback();
-        setSelectedInvite(null);
-        setRevokeConfirmOpen(false);
-        setRevoked(true);
+        showRevoked();
         url.searchParams.delete("inviteResult");
       }
 
@@ -97,7 +111,26 @@ export function useLedgerInviteEntry({
       window.removeEventListener("hashchange", consumeActionResult);
       window.removeEventListener("popstate", consumeActionResult);
     };
-  }, [resetTransientFeedback]);
+  }, [showCreatedInvite, showRevoked]);
+
+  // 不跳转页面的 Action（创建账本向导）成功时通过状态返回结果，每个 successKey 只消费一次。
+  useEffect(() => {
+    if (!actionState.successKey) return;
+    if (consumedSuccessKeysRef.current.has(actionState.successKey)) return;
+    consumedSuccessKeysRef.current.add(actionState.successKey);
+
+    const { createdInvite } = actionState;
+    if (createdInvite) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 返回新成功状态时同步展示本次结果。
+      showCreatedInvite(
+        createdInvite.token,
+        createdInvite.placeholderId,
+        createdInvite.role,
+      );
+    } else if (actionState.operation === "revoke") {
+      showRevoked();
+    }
+  }, [actionState, showCreatedInvite, showRevoked]);
 
   useEffect(() => {
     if (!actionState.error || !actionState.errorKey) return;

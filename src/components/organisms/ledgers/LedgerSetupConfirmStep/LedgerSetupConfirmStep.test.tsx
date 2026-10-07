@@ -5,8 +5,6 @@ import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   ledgerSetupWriteErrorMessages,
-  type LedgerSetupDraft,
-  type LedgerSetupTemplate,
 } from "internal/ledger";
 import {
   clickCloseWizard,
@@ -15,58 +13,21 @@ import {
   getCurrentStepItem,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
-import {
-  createLedgerSetupProgressFixture,
-  ledgerSetupMerchantTemplateFixture,
-} from "test/mocks/ledgerSetup";
+import { createLedgerSetupConfirmProgressFixture } from "test/mocks/ledgerSetup";
 import type {
   LedgerSetupCompleteAction,
   LedgerSetupCompleteActionState,
   LedgerSetupDraftSaveAction,
 } from "types/ledgers";
 
-type DraftOverrides = {
-  [Key in keyof LedgerSetupDraft]?: LedgerSetupDraft[Key];
-};
-
-function createConfirmProgress(
-  draft: DraftOverrides = {},
-  template: LedgerSetupTemplate | null = ledgerSetupMerchantTemplateFixture,
-) {
-  const base = createLedgerSetupProgressFixture();
-  return createLedgerSetupProgressFixture(
-    {
-      draft: {
-        ...base.setup.draft,
-        accounts: {
-          items: [
-            { name: "现金", type: "cash" },
-            { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
-          ],
-          skipped: false,
-        },
-        features: { specialStatusEnabled: true },
-        // 超市 2 家、餐饮 1 家，Apple / Amazon 为多标签商家。
-        merchants: {
-          selectedKeys: ["aeon", "seiyu", "mcdonalds", "apple", "amazon"],
-          skipped: false,
-        },
-        ...draft,
-      },
-      step: 5,
-    },
-    template,
-  );
-}
-
 /** 渲染停在第 5 步「确认一览」的向导。 */
 function renderConfirmStep({
   completeSetup,
-  progress = createConfirmProgress(),
+  progress = createLedgerSetupConfirmProgressFixture(),
   saveDraft,
 }: {
   completeSetup?: Mock<LedgerSetupCompleteAction>;
-  progress?: ReturnType<typeof createConfirmProgress>;
+  progress?: ReturnType<typeof createLedgerSetupConfirmProgressFixture>;
   saveDraft?: Mock<LedgerSetupDraftSaveAction>;
 } = {}) {
   return renderLedgerSetupWizard({ completeSetup, progress, saveDraft });
@@ -168,7 +129,7 @@ describe("LedgerSetupConfirmStep", () => {
       [false, "报销与退款状态 · 未开启"],
     ])("功能显示特殊状态开关（%s）", (specialStatusEnabled, text) => {
       renderConfirmStep({
-        progress: createConfirmProgress({
+        progress: createLedgerSetupConfirmProgressFixture({
           features: { specialStatusEnabled },
         }),
       });
@@ -185,7 +146,9 @@ describe("LedgerSetupConfirmStep", () => {
       ],
       ["0 个", { items: [], skipped: false }],
     ])("账户%s时显示已跳过样式与提示", (_label, accounts) => {
-      renderConfirmStep({ progress: createConfirmProgress({ accounts }) });
+      renderConfirmStep({
+        progress: createLedgerSetupConfirmProgressFixture({ accounts }),
+      });
 
       const card = getCard(/^账户/);
       expect(card).toHaveTextContent("已跳过");
@@ -198,17 +161,17 @@ describe("LedgerSetupConfirmStep", () => {
     it.each([
       [
         "跳过",
-        createConfirmProgress({
+        createLedgerSetupConfirmProgressFixture({
           merchants: { selectedKeys: ["aeon"], skipped: true },
         }),
       ],
       [
         "0 家",
-        createConfirmProgress({
+        createLedgerSetupConfirmProgressFixture({
           merchants: { selectedKeys: [], skipped: false },
         }),
       ],
-      ["无模板币种", createConfirmProgress({}, null)],
+      ["无模板币种", createLedgerSetupConfirmProgressFixture({}, null)],
     ])("商家%s时显示已跳过样式与提示", (_label, progress) => {
       renderConfirmStep({ progress });
 
@@ -256,7 +219,7 @@ describe("LedgerSetupConfirmStep", () => {
 
   describe("完成创建", () => {
     it("完成写入成功后进入邀请步骤，关闭时不再提示稍后继续", async () => {
-      const progress = createConfirmProgress();
+      const progress = createLedgerSetupConfirmProgressFixture();
       const { completeSetup, onClose } = renderConfirmStep({ progress });
 
       await completeSetupAndWait();
@@ -300,7 +263,7 @@ describe("LedgerSetupConfirmStep", () => {
     });
 
     it("预设内容已更新时重新读取进度、显示提示条并停留在确认一览", async () => {
-      const refreshed = createConfirmProgress({
+      const refreshed = createLedgerSetupConfirmProgressFixture({
         merchants: { selectedKeys: ["aeon"], skipped: false },
       });
       const completeSetup = vi.fn<LedgerSetupCompleteAction>(async () => ({

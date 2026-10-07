@@ -2,6 +2,11 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
+import {
+  ledgerInviteErrorCodes,
+  ledgerInviteErrorMessages,
+} from "internal/ledger/errors/ledgerInvite";
 import {
   ledgerCreateErrorCodes,
   ledgerCreateErrorMessages,
@@ -9,10 +14,12 @@ import {
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  ledgerSetupLoadErrorMessages,
   ledgerSetupWriteErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
 import {
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -29,6 +36,7 @@ import type {
 
 import {
   completeLedgerSetup,
+  loadLedgerSetupInviteMembers,
   saveLedgerSetupDraft,
   submitLedgerSetupBasicInfo,
 } from "./ledgerSetup";
@@ -40,6 +48,8 @@ const mocks = vi.hoisted(() => ({
   getCurrentLedgerContext: vi.fn(),
   getCurrentUserSetup: vi.fn(),
   getTemplate: vi.fn(),
+  listPendingInvites: vi.fn(),
+  listUnclaimedPlaceholders: vi.fn(),
   revalidateLedgerMutation: vi.fn(),
   saveDraft: vi.fn(),
   updateBasicInfo: vi.fn(),
@@ -60,6 +70,10 @@ vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
 vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
     ledger: {
+      inviteService: { listPending: mocks.listPendingInvites },
+      placeholderMemberService: {
+        listUnclaimed: mocks.listUnclaimedPlaceholders,
+      },
       setupService: {
         complete: mocks.complete,
         create: mocks.create,
@@ -531,5 +545,120 @@ describe("completeLedgerSetup", () => {
       "NEXT_REDIRECT:/login",
     );
     expect(mocks.complete).not.toHaveBeenCalled();
+  });
+});
+
+describe("loadLedgerSetupInviteMembers", () => {
+  const userId = "00000000-0000-4000-8000-000000000031";
+  const input = { ledgerId: ledgerSetupFixtureId };
+  const pendingInvites = [
+    {
+      createdAt: "2026-10-07T01:00:00.000Z",
+      id: "invite-1",
+      placeholderId: "placeholder-1",
+      role: "member" as const,
+      token: "a".repeat(64),
+    },
+  ];
+  const placeholderMembers = [
+    {
+      displayName: "奶奶",
+      id: "placeholder-1",
+    },
+  ];
+
+  it("成功时用账本设置页相同的 Service 读取待接受邀请与待邀请成员", async () => {
+    mocks.listPendingInvites.mockResolvedValue(pendingInvites);
+    mocks.listUnclaimedPlaceholders.mockResolvedValue(placeholderMembers);
+
+    const state = await loadLedgerSetupInviteMembers(input);
+
+    expect(state).toEqual({ members: { pendingInvites, placeholderMembers } });
+    expect(mocks.listPendingInvites).toHaveBeenCalledWith({
+      ledgerId: ledgerSetupFixtureId,
+      userId,
+    });
+    expect(mocks.listUnclaimedPlaceholders).toHaveBeenCalledWith({
+      ledgerId: ledgerSetupFixtureId,
+      userId,
+    });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["非 UUID", { ledgerId: "not-a-uuid" }],
+    ["缺少账本 ID", {}],
+  ])(
+    "账本 ID 不合法（%s）时返回无法访问的文案，不调用 Service",
+    async (_label, value) => {
+      const state = await loadLedgerSetupInviteMembers(value as typeof input);
+
+      expectErrorState(state, ledgerAccessErrorMessages.ledgerInaccessible);
+      expect(mocks.listPendingInvites).not.toHaveBeenCalled();
+      expect(mocks.listUnclaimedPlaceholders).not.toHaveBeenCalled();
+    },
+  );
+
+  it("权限不足时返回 Service 的安全文案", async () => {
+    const message =
+      ledgerInviteErrorMessages[ledgerInviteErrorCodes.permissionDenied];
+    mocks.listPendingInvites.mockRejectedValue(
+      new AuthorizationError(ledgerInviteErrorCodes.permissionDenied, message),
+    );
+    mocks.listUnclaimedPlaceholders.mockResolvedValue([]);
+
+    const state = await loadLedgerSetupInviteMembers(input);
+
+    expectErrorState(state, message);
+  });
+
+  it("账本不存在或无法访问时返回 Service 的安全文案", async () => {
+    mocks.listPendingInvites.mockResolvedValue([]);
+    mocks.listUnclaimedPlaceholders.mockRejectedValue(
+      new NotFoundError(
+        "ledger_invalid",
+        ledgerAccessErrorMessages.ledgerInaccessible,
+      ),
+    );
+
+    const state = await loadLedgerSetupInviteMembers(input);
+
+    expectErrorState(state, ledgerAccessErrorMessages.ledgerInaccessible);
+  });
+
+  it("未知异常记录安全日志并返回读取失败的通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.listPendingInvites.mockRejectedValue(
+      new Error("database unavailable"),
+    );
+    mocks.listUnclaimedPlaceholders.mockResolvedValue([]);
+
+    const state = await loadLedgerSetupInviteMembers(input);
+
+    expectErrorState(
+      state,
+      ledgerSetupLoadErrorMessages.inviteMembersLoadFailed,
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger setup invite members action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "database unavailable",
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.getCurrentLedgerContext.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(loadLedgerSetupInviteMembers(input)).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.listPendingInvites).not.toHaveBeenCalled();
   });
 });

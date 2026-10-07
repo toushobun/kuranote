@@ -167,9 +167,41 @@ export type LedgerSetupCompleteAction = (
   input: CompleteLedgerSetupInput,
 ) => Promise<LedgerSetupCompleteActionState>;
 
+/** 读取向导第 6 步「邀请成员」数据的输入。服务端重新校验账本 ID 与权限。 */
+export type LoadLedgerSetupInviteMembersInput = {
+  ledgerId: string;
+};
+
+/** 向导第 6 步展示的待邀请成员与待接受邀请（与账本设置页读取的数据相同）。 */
+export type LedgerSetupInviteMembers = {
+  pendingInvites: PendingLedgerInvite[];
+  placeholderMembers: LedgerPlaceholderMemberSummary[];
+};
+
+export type LedgerSetupInviteMembersActionState = ActionState & {
+  members?: LedgerSetupInviteMembers;
+};
+
+export type LedgerSetupInviteMembersLoadAction = (
+  input: LoadLedgerSetupInviteMembersInput,
+) => Promise<LedgerSetupInviteMembersActionState>;
+
 export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 
+/** 生成成功的邀请链接：只用于页面反馈（在哪一行展示新链接），绑定事实以列表为准。 */
+export type CreatedLedgerInvite = {
+  placeholderId: string;
+  /** 与 fragment 相同，由页面按 isLedgerInviteRole 校验后使用。 */
+  role: string;
+  token: string;
+};
+
 export type LedgerInviteActionState = ActionState & {
+  /**
+   * 不跳转页面的邀请 Action（创建账本向导）生成链接成功时返回；
+   * 账本设置页的 Action 成功后跳转并通过 fragment 传递，不使用此字段。
+   */
+  createdInvite?: CreatedLedgerInvite;
   operation?: LedgerInviteActionOperation;
 };
 

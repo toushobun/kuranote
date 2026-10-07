@@ -7,10 +7,12 @@ import {
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
 import { readLedgerSetupProgress } from "internal/ledger/adapter/next/loadLedgerSetupWizard";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
+import { ledgerAccessErrorMessages } from "internal/ledger/errors/ledgerAccess";
 import { ledgerCreateErrorMessages } from "internal/ledger/errors/ledgerCreate";
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  ledgerSetupLoadErrorMessages,
   ledgerSetupWriteErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
@@ -23,6 +25,8 @@ import type {
   LedgerSetupBasicInfoActionState,
   LedgerSetupCompleteActionState,
   LedgerSetupDraftActionState,
+  LedgerSetupInviteMembersActionState,
+  LoadLedgerSetupInviteMembersInput,
   SaveLedgerSetupDraftInput,
 } from "types/ledgers";
 import { isUuid } from "utils/formData";
@@ -261,4 +265,40 @@ export async function completeLedgerSetup(
   // 完成写入已切换当前账本：与切换 / 创建账本相同，失效依赖当前账本的页面。
   revalidateLedgerMutation();
   return { completed: true };
+}
+
+/**
+ * 向导第 6 步「邀请成员」：读取新账本（已完成）的待邀请成员与待接受邀请。
+ * 与账本设置页使用同一组 Service 调用，权限（管理者才能读取邀请）由 Service 校验。
+ * 向导是客户端弹框，邀请 / 改名 / 删除后由步骤再次调用以刷新列表。
+ */
+export async function loadLedgerSetupInviteMembers(
+  input: LoadLedgerSetupInviteMembersInput,
+): Promise<LedgerSetupInviteMembersActionState> {
+  const { userId } = await getCurrentLedgerContext();
+  const ledgerId = parseLedgerId(input);
+
+  if (!ledgerId) {
+    return createErrorState(ledgerAccessErrorMessages.ledgerInaccessible);
+  }
+
+  try {
+    const dependencies = await createServerRequestDependencies();
+    const container = createRequestContainer(dependencies);
+    const [pendingInvites, placeholderMembers] = await Promise.all([
+      container.ledger.inviteService.listPending({ ledgerId, userId }),
+      container.ledger.placeholderMemberService.listUnclaimed({
+        ledgerId,
+        userId,
+      }),
+    ]);
+
+    return { members: { pendingInvites, placeholderMembers } };
+  } catch (error) {
+    return createActionErrorState(
+      error,
+      ledgerSetupLoadErrorMessages.inviteMembersLoadFailed,
+      "[ledger] ledger setup invite members action failed unexpectedly",
+    );
+  }
 }

@@ -16,7 +16,10 @@ import type {
   LedgerSetupDraftSaveAction,
 } from "types/ledgers";
 
-import { createSaveDraftMock } from "./ledgerSetupWizardTestUtils";
+import {
+  createLedgerSetupWizardActionMocks,
+  createSaveDraftMock,
+} from "./ledgerSetupWizardTestUtils";
 import { useLedgerSetupDraftSave } from "./useLedgerSetupDraftSave";
 
 const progress = createLedgerSetupProgressFixture({ step: 3 });
@@ -42,7 +45,7 @@ function renderDraftSave({
   const { result } = renderHook(() =>
     useLedgerSetupDraftSave({
       ...callbacks,
-      actions: { completeSetup: vi.fn(), saveDraft, submitBasicInfo: vi.fn() },
+      actions: { ...createLedgerSetupWizardActionMocks(), saveDraft },
       progress,
       step,
     }),

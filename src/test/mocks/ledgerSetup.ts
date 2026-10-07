@@ -1,4 +1,8 @@
-import type { LedgerSetup, LedgerSetupTemplate } from "internal/ledger";
+import type {
+  LedgerSetup,
+  LedgerSetupDraft,
+  LedgerSetupTemplate,
+} from "internal/ledger";
 import type { LedgerSetupProgress } from "types/ledgers";
 
 export const ledgerSetupFixtureId = "00000000-0000-4000-8000-000000000001";
@@ -200,4 +204,42 @@ export function createLedgerSetupProgressFixture(
     },
     template,
   };
+}
+
+type LedgerSetupDraftOverrides = {
+  [Key in keyof LedgerSetupDraft]?: LedgerSetupDraft[Key];
+};
+
+/**
+ * 停在第 5 步「确认一览」的进度：账户 2 个；商家 5 家（超市 2 家、餐饮 1 家，
+ * Apple / Amazon 为多标签商家，去重后共 5 家）；功能开启。
+ */
+export function createLedgerSetupConfirmProgressFixture(
+  draft: LedgerSetupDraftOverrides = {},
+  template: LedgerSetupTemplate | null = ledgerSetupMerchantTemplateFixture,
+) {
+  const base = createLedgerSetupProgressFixture();
+  return createLedgerSetupProgressFixture(
+    {
+      draft: {
+        ...base.setup.draft,
+        accounts: {
+          items: [
+            { name: "现金", type: "cash" },
+            { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
+          ],
+          skipped: false,
+        },
+        features: { specialStatusEnabled: true },
+        // 超市 2 家、餐饮 1 家，Apple / Amazon 为多标签商家。
+        merchants: {
+          selectedKeys: ["aeon", "seiyu", "mcdonalds", "apple", "amazon"],
+          skipped: false,
+        },
+        ...draft,
+      },
+      step: 5,
+    },
+    template,
+  );
 }

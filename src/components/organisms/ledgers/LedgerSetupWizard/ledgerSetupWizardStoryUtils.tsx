@@ -3,7 +3,10 @@ import type { Decorator } from "@storybook/nextjs-vite";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { ledgerSetupDefaultRootCategoryNamesFixture } from "test/mocks/ledgerSetup";
 import { UserThemeProvider } from "theme/UserThemeProvider";
-import type { LedgerSetupProgress } from "types/ledgers";
+import type {
+  LedgerSetupInviteMembers,
+  LedgerSetupProgress,
+} from "types/ledgers";
 
 import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
 
@@ -18,14 +21,31 @@ export const ledgerSetupWizardStoryDecorators: Decorator[] = [
   ),
 ];
 
-/** 各 Server Action 立即成功：保存与提交返回指定进度，完成创建返回成功。 */
+/**
+ * 各 Server Action 立即成功：保存与提交返回指定进度，完成创建返回成功，
+ * 第 6 步读取返回指定的待邀请成员（默认为空）。
+ */
 export function createLedgerSetupWizardStoryActions(
   progress: LedgerSetupProgress | null,
+  {
+    inviteMembers = { pendingInvites: [], placeholderMembers: [] },
+  }: {
+    inviteMembers?: LedgerSetupInviteMembers;
+  } = {},
 ): LedgerSetupWizardActions {
   const state = progress ? { progress } : {};
+  const placeholderMemberAction = async () => ({
+    successKey: crypto.randomUUID(),
+  });
 
   return {
     completeSetup: async () => ({ completed: true }),
+    createInvite: async () => ({}),
+    loadInviteMembers: async () => ({ members: inviteMembers }),
+    placeholderMemberActions: {
+      delete: placeholderMemberAction,
+      rename: placeholderMemberAction,
+    },
     saveDraft: async () => state,
     submitBasicInfo: async () => state,
   };

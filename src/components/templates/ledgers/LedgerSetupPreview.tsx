@@ -8,14 +8,20 @@ import { ledgerSetupPreviewPageMessages } from "config/ledgerSetupMessages";
 import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type {
+  LedgerInviteStateAction,
+  LedgerPlaceholderMemberActions,
   LedgerSetupBasicInfoStateAction,
   LedgerSetupCompleteAction,
   LedgerSetupDraftSaveAction,
+  LedgerSetupInviteMembersLoadAction,
   LedgerSetupWizardView,
 } from "types/ledgers";
 
 type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
   completeSetupAction: LedgerSetupCompleteAction;
+  createInviteAction: LedgerInviteStateAction;
+  loadInviteMembersAction: LedgerSetupInviteMembersLoadAction;
+  placeholderMemberActions: LedgerPlaceholderMemberActions;
   saveDraftAction: LedgerSetupDraftSaveAction;
   submitBasicInfoAction: LedgerSetupBasicInfoStateAction;
 };
@@ -26,8 +32,11 @@ type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
  */
 export function LedgerSetupPreviewTemplate({
   completeSetupAction,
+  createInviteAction,
   defaultRootCategoryNames,
   defaults,
+  loadInviteMembersAction,
+  placeholderMemberActions,
   progress,
   saveDraftAction,
   submitBasicInfoAction,
@@ -52,6 +61,9 @@ export function LedgerSetupPreviewTemplate({
         <LedgerSetupWizard
           actions={{
             completeSetup: completeSetupAction,
+            createInvite: createInviteAction,
+            loadInviteMembers: loadInviteMembersAction,
+            placeholderMemberActions,
             saveDraft: saveDraftAction,
             submitBasicInfo: submitBasicInfoAction,
           }}
