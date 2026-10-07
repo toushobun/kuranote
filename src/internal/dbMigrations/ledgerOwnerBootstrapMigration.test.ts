@@ -32,20 +32,26 @@ function extractSchemaFunction(functionName: string): string {
 const finalCreateLedgerFunction = extractSchemaFunction(
   "create_ledger_with_owner",
 );
+const finalBootstrapFunction = extractSchemaFunction(
+  "bootstrap_ledger_owner_member",
+);
 const finalMemberPermissionFunction = extractSchemaFunction(
   "enforce_ledger_member_management_permission",
 );
 
 describe("首次账本所有者 bootstrap migration", () => {
-  it("最终 schema 只允许账本创建函数临时开启 bootstrap", () => {
-    const enableIndex = finalCreateLedgerFunction.indexOf(
+  it("最终 schema 只允许账本创建共用的 bootstrap 函数临时开启 bootstrap", () => {
+    const enableIndex = finalBootstrapFunction.indexOf(
       "set_config('app.allow_ledger_owner_bootstrap', 'true', true)",
     );
-    const ownerInsertIndex = finalCreateLedgerFunction.indexOf(
+    const ownerInsertIndex = finalBootstrapFunction.indexOf(
       "insert into public.ledger_member",
     );
-    const disableIndex = finalCreateLedgerFunction.indexOf(
+    const disableIndex = finalBootstrapFunction.indexOf(
       "set_config('app.allow_ledger_owner_bootstrap', 'false', true)",
+    );
+    const bootstrapCallIndex = finalCreateLedgerFunction.indexOf(
+      "public.bootstrap_ledger_owner_member(v_ledger.id, v_user_id)",
     );
     const initializeIndex = finalCreateLedgerFunction.indexOf(
       "initialize_ledger_default_data",
@@ -54,7 +60,16 @@ describe("首次账本所有者 bootstrap migration", () => {
     expect(enableIndex).toBeGreaterThan(-1);
     expect(ownerInsertIndex).toBeGreaterThan(enableIndex);
     expect(disableIndex).toBeGreaterThan(ownerInsertIndex);
-    expect(initializeIndex).toBeGreaterThan(disableIndex);
+    expect(bootstrapCallIndex).toBeGreaterThan(-1);
+    expect(initializeIndex).toBeGreaterThan(bootstrapCallIndex);
+    expect(
+      schemaSnapshot.match(
+        /set_config\('app\.allow_ledger_owner_bootstrap', 'true', true\)/g,
+      ),
+    ).toHaveLength(1);
+    expect(schemaSnapshot).not.toContain(
+      'GRANT ALL ON FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") TO "authenticated";',
+    );
     expect(finalMemberPermissionFunction).toContain(
       "current_setting('app.allow_ledger_owner_bootstrap', true) = 'true'",
     );

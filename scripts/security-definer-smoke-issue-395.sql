@@ -525,4 +525,398 @@ begin
 end;
 $$;
 
+-- 完成写入 RPC（实施拆分第 2 项）：成功写入、跳过、非法 payload、权限、GUC、货币变更清空草稿。
+create function pg_temp.completion_payload()
+returns jsonb
+language sql
+as $$
+    select '{
+        "accounts": [
+            {"type": "cash", "name": "现金"},
+            {"type": "bank", "name": " 楽天銀行 "},
+            {"type": "e_money", "name": "楽天銀行"}
+        ],
+        "merchantTags": [
+            {"key": "ecommerce", "name": "电商", "icon": "📦"},
+            {"key": "subscription", "name": "订阅服务", "icon": "🎬"}
+        ],
+        "merchants": [
+            {
+                "name": "Amazon",
+                "websiteUrl": "https://www.amazon.co.jp/",
+                "tagKeys": ["ecommerce", "subscription"],
+                "aliases": [
+                    {"alias": "亚马逊", "locale": "zh"},
+                    {"alias": "Prime Video", "locale": "en"}
+                ]
+            },
+            {
+                "name": "水道局",
+                "websiteUrl": null,
+                "tagKeys": [],
+                "aliases": [{"alias": "自来水", "locale": "zh"}]
+            }
+        ],
+        "specialStatusEnabled": true
+    }'::jsonb;
+$$;
+
+create function pg_temp.assert_setup_untouched(p_label text, p_ledger_id uuid)
+returns void
+language plpgsql
+as $$
+begin
+    if exists (select 1 from public.category where ledger_id = p_ledger_id)
+       or exists (select 1 from public.account where ledger_id = p_ledger_id)
+       or exists (select 1 from public.merchant where ledger_id = p_ledger_id)
+       or exists (select 1 from public.merchant_tags where ledger_id = p_ledger_id)
+       or not exists (
+           select 1
+           from public.ledger l
+           where l.id = p_ledger_id
+             and l.setup_status = 'in_progress'
+             and l.transaction_item_special_status_enabled = false
+       ) then
+        raise exception '% left data behind', p_label;
+    end if;
+end;
+$$;
+
+do $$
+declare
+    v_owner_id uuid := '39500000-0000-4000-8000-000000000011';
+    v_other_id uuid := '39500000-0000-4000-8000-000000000012';
+    v_previous_ledger_id uuid;
+    v_setup_ledger_id uuid;
+    v_skip_ledger_id uuid;
+    v_amazon_id uuid;
+    v_count integer;
+    v_invalid jsonb;
+    v_category_id uuid;
+    v_account_id uuid;
+    v_placeholder_id uuid;
+    v_token text;
+    v_draft jsonb := '{
+        "templateCurrency": "JPY",
+        "templateVersion": 1,
+        "accounts": {"skipped": false, "items": [{"type": "cash", "name": "现金"}]},
+        "merchants": {"skipped": false, "selectedKeys": ["amazon"]},
+        "features": {"specialStatusEnabled": true}
+    }'::jsonb;
+begin
+    perform pg_temp.create_test_user(v_owner_id, 'ledger-complete-owner@example.invalid');
+    perform pg_temp.create_test_user(v_other_id, 'ledger-complete-other@example.invalid');
+    perform pg_temp.sign_in(v_owner_id);
+
+    -- 既有 /ledgers/new 流程行为不变：completed、默认分类 / 商家 / 别名 / 标签与现金账户。
+    select (public.create_ledger_with_owner_settings(' Previous ', ' jpy ', ' Owner ', 'jade')).id
+      into v_previous_ledger_id;
+
+    if not exists (
+        select 1
+        from public.ledger l
+        join public.app_user au on au.current_ledger_id = l.id and au.id = v_owner_id
+        join public.ledger_member_display_setting lds
+          on lds.ledger_id = l.id and lds.user_id = v_owner_id
+        where l.id = v_previous_ledger_id
+          and l.name = 'Previous'
+          and l.base_currency = 'JPY'
+          and l.setup_status = 'completed'
+          and lds.display_name = 'Owner'
+          and lds.display_color = 'jade'
+       )
+       or (select count(*) from public.category where ledger_id = v_previous_ledger_id) <> 101
+       or (select count(*) from public.merchant where ledger_id = v_previous_ledger_id) <> 55
+       or (select count(*) from public.merchant_tags where ledger_id = v_previous_ledger_id) <> 8
+       or (
+           select count(*)
+           from public.merchant_alias ma
+           join public.merchant m on m.id = ma.merchant_id
+           where m.ledger_id = v_previous_ledger_id
+       ) <> 110
+       or not exists (
+           select 1
+           from public.account a
+           join public.account_holder h on h.account_id = a.id and h.user_id = v_owner_id
+           where a.ledger_id = v_previous_ledger_id
+             and a.name = '现金'
+             and a.type = 'cash'
+             and a.currency = 'JPY'
+       ) then
+        raise exception 'create_ledger_with_owner_settings behavior changed';
+    end if;
+
+    perform pg_temp.expect_error(
+        'create_ledger_with_owner_settings invalid color',
+        $sql$select public.create_ledger_with_owner_settings('Name', 'JPY', 'Owner', 'unknown')$sql$,
+        '22023',
+        'display_color_invalid'
+    );
+
+    select public.create_ledger_setup('Wizard Ledger', 'JPY', 'Wizard Owner', 'sky')
+      into v_setup_ledger_id;
+
+    -- 草稿的模板币种必须与账本默认货币一致。
+    perform public.save_ledger_setup_draft(v_setup_ledger_id, 4, v_draft);
+    perform pg_temp.expect_error(
+        'save_ledger_setup_draft currency mismatch',
+        format(
+            'select public.save_ledger_setup_draft(%L, 4, %L::jsonb)',
+            v_setup_ledger_id,
+            v_draft || '{"templateCurrency": "USD"}'::jsonb
+        ),
+        '22023',
+        'ledger_setup_draft_currency_mismatch'
+    );
+
+    -- 货币不变时草稿不动。
+    perform public.update_ledger_setup_basic_info(
+        v_setup_ledger_id, 'Wizard Renamed', 'JPY', 'Wizard Owner', 'sky'
+    );
+    if (select setup_draft from public.ledger where id = v_setup_ledger_id) <> v_draft then
+        raise exception 'update_ledger_setup_basic_info must keep draft when currency unchanged';
+    end if;
+
+    -- 货币变化时清空与模板相关的部分，保留其他内容。
+    perform public.update_ledger_setup_basic_info(
+        v_setup_ledger_id, 'Wizard Renamed', 'USD', 'Wizard Owner', 'sky'
+    );
+    if (select setup_draft from public.ledger where id = v_setup_ledger_id)
+       <> '{"features": {"specialStatusEnabled": true}}'::jsonb then
+        raise exception 'update_ledger_setup_basic_info must reset template draft when currency changed';
+    end if;
+
+    perform public.update_ledger_setup_basic_info(
+        v_setup_ledger_id, 'Wizard Ledger', 'JPY', 'Wizard Owner', 'sky'
+    );
+
+    -- 非法 payload 被拒且不留任何数据。
+    foreach v_invalid in array array[
+        null,
+        '[]'::jsonb,
+        pg_temp.completion_payload() - 'specialStatusEnabled',
+        jsonb_set(pg_temp.completion_payload(), '{accounts,0,name}', to_jsonb(repeat('x', 101))),
+        jsonb_set(pg_temp.completion_payload(), '{accounts,0,type}', '"other"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{accounts,1}', '{"type": "cash", "name": "现金 "}'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{accounts,2,type}', '"bank"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "missing"]'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "ecommerce"]'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,1,name}', '" amazon "'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,websiteUrl}', '"http://www.amazon.co.jp/"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,aliases,1,alias}', '"亚马逊"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,aliases,0,locale}', '"z"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchantTags,1,key}', '"ecommerce"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchantTags,0,icon}', to_jsonb(repeat('x', 33))),
+        jsonb_set(
+            pg_temp.completion_payload(),
+            '{merchants}',
+            (select jsonb_agg(jsonb_build_object(
+                'name', 'M' || i, 'websiteUrl', null, 'tagKeys', '[]'::jsonb, 'aliases', '[]'::jsonb
+            )) from generate_series(1, 201) i)
+        )
+    ]
+    loop
+        perform pg_temp.expect_error(
+            'complete_ledger_setup invalid payload ' || coalesce(left(v_invalid::text, 60), 'null'),
+            format('select public.complete_ledger_setup(%L, %L::jsonb)', v_setup_ledger_id, v_invalid),
+            '22023',
+            'ledger_setup_payload_invalid'
+        );
+        perform pg_temp.assert_setup_untouched('complete_ledger_setup invalid payload', v_setup_ledger_id);
+    end loop;
+
+    -- completed 账本、其他用户、未登录调用被拒。
+    perform pg_temp.expect_error(
+        'complete_ledger_setup completed ledger',
+        format('select public.complete_ledger_setup(%L, %L::jsonb)', v_previous_ledger_id, pg_temp.completion_payload()),
+        '55000',
+        'ledger_setup_not_in_progress'
+    );
+
+    perform pg_temp.sign_in(v_other_id);
+    perform pg_temp.expect_error(
+        'complete_ledger_setup other user',
+        format('select public.complete_ledger_setup(%L, %L::jsonb)', v_setup_ledger_id, pg_temp.completion_payload()),
+        'P0002',
+        'ledger_setup_not_found'
+    );
+
+    perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
+    perform pg_temp.expect_error(
+        'complete_ledger_setup unauthenticated',
+        format('select public.complete_ledger_setup(%L, %L::jsonb)', v_setup_ledger_id, pg_temp.completion_payload()),
+        '42501',
+        'auth_required'
+    );
+    perform pg_temp.assert_setup_untouched('complete_ledger_setup rejected caller', v_setup_ledger_id);
+
+    -- 未经完成写入 RPC 时，GUC 只设为其他账本也无法放行业务写入。
+    perform pg_temp.sign_in(v_owner_id);
+    perform pg_catalog.set_config('app.ledger_setup_completion_ledger_id', v_previous_ledger_id::text, true);
+    perform pg_temp.expect_error(
+        'completion guc for another ledger',
+        format(
+            'insert into public.category (ledger_id, name, type, created_by, updated_by) values (%L, %L, %L, %L, %L)',
+            v_setup_ledger_id,
+            'Bypass Category',
+            'expense',
+            v_owner_id,
+            v_owner_id
+        ),
+        '42501'
+    );
+    perform pg_catalog.set_config('app.ledger_setup_completion_ledger_id', '', true);
+
+    -- 完成写入成功。
+    perform public.complete_ledger_setup(v_setup_ledger_id, pg_temp.completion_payload());
+
+    if not exists (
+        select 1
+        from public.ledger l
+        join public.app_user au on au.current_ledger_id = l.id and au.id = v_owner_id
+        where l.id = v_setup_ledger_id
+          and l.setup_status = 'completed'
+          and l.setup_step is null
+          and l.setup_draft is null
+          and l.transaction_item_special_status_enabled = true
+    ) then
+        raise exception 'complete_ledger_setup ledger status smoke test failed';
+    end if;
+
+    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 101 then
+        raise exception 'complete_ledger_setup default categories smoke test failed';
+    end if;
+
+    select count(*)
+      into v_count
+      from public.account a
+      join public.account_holder h
+        on h.account_id = a.id
+       and h.ledger_id = a.ledger_id
+       and h.user_id = v_owner_id
+       and h.role = 'owner'
+     where a.ledger_id = v_setup_ledger_id
+       and a.currency = 'JPY'
+       and a.initial_balance = 0
+       and a.current_balance = 0
+       and (a.name, a.type, a.sort_order) in (
+           ('现金', 'cash', 0),
+           ('楽天銀行', 'bank', 1),
+           ('楽天銀行', 'e_money', 2)
+       );
+    if v_count <> 3
+       or (select count(*) from public.account where ledger_id = v_setup_ledger_id) <> 3 then
+        raise exception 'complete_ledger_setup accounts smoke test failed';
+    end if;
+
+    if (select count(*) from public.merchant_tags where ledger_id = v_setup_ledger_id) <> 2
+       or not exists (
+           select 1 from public.merchant_tags
+           where ledger_id = v_setup_ledger_id and name = '订阅服务' and icon = '🎬' and sort_order = 1
+       ) then
+        raise exception 'complete_ledger_setup merchant tags smoke test failed';
+    end if;
+
+    select id
+      into v_amazon_id
+      from public.merchant
+     where ledger_id = v_setup_ledger_id
+       and name = 'Amazon'
+       and website_url = 'https://www.amazon.co.jp/';
+
+    if v_amazon_id is null
+       or (select count(*) from public.merchant where ledger_id = v_setup_ledger_id) <> 2
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_setup_ledger_id and name = '水道局' and website_url is null
+       )
+       or (
+           select count(*)
+           from public.merchant_tag_links link
+           join public.merchant_tags t on t.id = link.tag_id
+           where link.merchant_id = v_amazon_id
+             and t.name in ('电商', '订阅服务')
+       ) <> 2
+       or (
+           select count(*)
+           from public.merchant_alias
+           where merchant_id = v_amazon_id
+             and (alias, locale) in (('亚马逊', 'zh'), ('Prime Video', 'en'))
+       ) <> 2 then
+        raise exception 'complete_ledger_setup merchants smoke test failed';
+    end if;
+
+    -- GUC 在 RPC 结束后不再生效。
+    if coalesce(current_setting('app.ledger_setup_completion_ledger_id', true), '') <> ''
+       or current_setting('app.allow_ledger_setup_update', true) is distinct from 'false' then
+        raise exception 'complete_ledger_setup must reset GUC';
+    end if;
+
+    -- 完成后权限函数恢复正常：可记账、可邀请。
+    if not public.current_user_can_manage_ledger(v_setup_ledger_id)
+       or not public.current_user_can_write_ledger(v_setup_ledger_id) then
+        raise exception 'completed ledger permission smoke test failed';
+    end if;
+
+    select id into v_category_id
+      from public.category
+     where ledger_id = v_setup_ledger_id and type = 'expense' and parent_id is not null
+     order by sort_order, id
+     limit 1;
+    select id into v_account_id
+      from public.account
+     where ledger_id = v_setup_ledger_id and type = 'cash';
+
+    perform public.create_transaction(
+        v_setup_ledger_id,
+        'expense',
+        pg_catalog.now(),
+        jsonb_build_array(jsonb_build_object('amount', '100', 'categoryId', v_category_id::text)),
+        v_account_id,
+        v_amazon_id,
+        'Completed ledger smoke'
+    );
+
+    v_placeholder_id := public.create_ledger_placeholder_member(v_setup_ledger_id, 'Completed Placeholder');
+    select invite.token
+      into v_token
+      from public.create_ledger_invite_v2(v_setup_ledger_id, 'member', v_placeholder_id) invite;
+    if v_token is null then
+        raise exception 'completed ledger invite smoke test failed';
+    end if;
+
+    -- 再次完成被拒（账本已 completed）。
+    perform pg_temp.expect_error(
+        'complete_ledger_setup twice',
+        format('select public.complete_ledger_setup(%L, %L::jsonb)', v_setup_ledger_id, pg_temp.completion_payload()),
+        '55000',
+        'ledger_setup_not_in_progress'
+    );
+
+    -- 跳过账户与商家时也能完成。
+    perform pg_temp.sign_in(v_other_id);
+    select public.create_ledger_setup('Skipped Ledger', 'USD', 'Other', 'lime')
+      into v_skip_ledger_id;
+    perform public.complete_ledger_setup(
+        v_skip_ledger_id,
+        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+    );
+
+    if not exists (
+        select 1
+        from public.ledger l
+        join public.app_user au on au.current_ledger_id = l.id and au.id = v_other_id
+        where l.id = v_skip_ledger_id
+          and l.setup_status = 'completed'
+          and l.transaction_item_special_status_enabled = false
+       )
+       or (select count(*) from public.category where ledger_id = v_skip_ledger_id) <> 101
+       or exists (select 1 from public.account where ledger_id = v_skip_ledger_id)
+       or exists (select 1 from public.merchant where ledger_id = v_skip_ledger_id)
+       or exists (select 1 from public.merchant_tags where ledger_id = v_skip_ledger_id) then
+        raise exception 'complete_ledger_setup skipped smoke test failed';
+    end if;
+end;
+$$;
+
 rollback;

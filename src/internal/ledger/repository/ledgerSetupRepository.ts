@@ -1,7 +1,8 @@
-import type {
-  LedgerSetup,
-  LedgerSetupDraft,
-} from "internal/ledger/entity/ledgerSetup";
+import {
+  ledgerCurrencies,
+  type LedgerCurrency,
+} from "internal/ledger/entity/ledgerCurrency";
+import type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
 import type { LedgerCreateErrorCode } from "internal/ledger/errors/ledgerCreate";
 import {
   ledgerSetupErrorCodes,
@@ -13,7 +14,12 @@ import {
   createLedgerRpcErrorMap,
   type CreateLedgerInput,
 } from "internal/ledger/repository/ledgerRepository";
-import { ledgerSetupDraftSchema } from "internal/ledger/schema/ledgerSetupDraft";
+import {
+  parseStoredLedgerSetupDraft,
+  type LedgerSetupDraft,
+  type StoredLedgerSetupDraft,
+} from "internal/ledger/schema/ledgerSetupDraft";
+import type { LedgerSetupCompletionPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -37,6 +43,16 @@ export type SaveLedgerSetupDraftInput = {
   step: number;
 };
 
+export type CompleteLedgerSetupInput = {
+  ledgerId: string;
+  payload: LedgerSetupCompletionPayload;
+};
+
+/** 数据库中的创建中账本。草稿为保存时的原样（各部分可能缺失），由 Service 补全。 */
+export type LedgerSetupRecord = Omit<LedgerSetup, "draft"> & {
+  storedDraft: StoredLedgerSetupDraft;
+};
+
 export type UpdateLedgerSetupBasicInfoInput = CreateLedgerInput & {
   ledgerId: string;
 };
@@ -49,13 +65,19 @@ type LedgerSetupRow = {
   setup_step: number;
 };
 
+function isLedgerCurrency(value: string): value is LedgerCurrency {
+  return (ledgerCurrencies as readonly string[]).includes(value);
+}
+
 const ledgerSetupRpcErrorMap = {
   ...createLedgerRpcErrorMap,
+  ledger_setup_draft_currency_mismatch: ledgerSetupErrorCodes.currencyMismatch,
   ledger_setup_draft_invalid: ledgerSetupErrorCodes.draftInvalid,
   ledger_setup_draft_too_large: ledgerSetupErrorCodes.draftTooLarge,
   ledger_setup_in_progress_exists: ledgerSetupErrorCodes.inProgressExists,
   ledger_setup_not_found: ledgerSetupErrorCodes.notFound,
   ledger_setup_not_in_progress: ledgerSetupErrorCodes.notInProgress,
+  ledger_setup_payload_invalid: ledgerSetupErrorCodes.payloadInvalid,
   ledger_setup_step_invalid: ledgerSetupErrorCodes.stepInvalid,
 } as const satisfies Readonly<Record<string, LedgerSetupRpcErrorCode>>;
 
@@ -64,8 +86,9 @@ const ledgerSetupRpcErrorMap = {
  * owner 与创建中状态由数据库按 auth.uid() 校验。
  */
 export interface LedgerSetupRepository {
+  complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
   create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
-  findCurrentUserSetupLedger(): Promise<LedgerSetup | null>;
+  findCurrentUserSetupLedger(): Promise<LedgerSetupRecord | null>;
   saveDraft(input: SaveLedgerSetupDraftInput): Promise<LedgerSetupWriteResult>;
   updateBasicInfo(
     input: UpdateLedgerSetupBasicInfoInput,
@@ -77,6 +100,29 @@ export function createSupabaseLedgerSetupRepository(
   logger: Logger,
 ): LedgerSetupRepository {
   return {
+    async complete({ ledgerId, payload }) {
+      const { error } = await supabase.rpc("complete_ledger_setup", {
+        p_ledger_id: ledgerId,
+        p_payload: payload,
+      });
+
+      if (error) {
+        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
+        if (code) return { code, ok: false };
+
+        logger.error("[ledger] failed to complete ledger setup", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "ledger_setup_complete_failed",
+          ledgerSetupWriteErrorMessages.completeFailed,
+        );
+      }
+
+      return { ok: true };
+    },
+
     async create(input) {
       const { data, error } = await supabase.rpc("create_ledger_setup", {
         p_base_currency: input.baseCurrency,
@@ -128,10 +174,10 @@ export function createSupabaseLedgerSetupRepository(
       const row = rows[0];
       if (!row) return null;
 
-      // 数据库约束保证创建中账本的草稿为 JSON object；不符合时视为数据异常。
-      const draft = ledgerSetupDraftSchema.safeParse(row.setup_draft);
-      if (!draft.success) {
-        logger.error("[ledger] invalid ledger setup draft", {
+      // 数据库约束保证创建中账本的草稿为 JSON object、默认货币为可选值；不符合时视为数据异常。
+      const storedDraft = parseStoredLedgerSetupDraft(row.setup_draft);
+      if (!storedDraft || !isLedgerCurrency(row.base_currency)) {
+        logger.error("[ledger] invalid ledger setup row", {
           ledgerId: row.ledger_id,
         });
         throw toRepositoryError(
@@ -142,10 +188,10 @@ export function createSupabaseLedgerSetupRepository(
 
       return {
         baseCurrency: row.base_currency,
-        draft: draft.data,
         id: row.ledger_id,
         name: row.ledger_name,
         step: row.setup_step,
+        storedDraft,
       };
     },
 

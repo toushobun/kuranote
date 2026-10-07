@@ -1,3 +1,6 @@
+import type { LedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
+import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+
 /** 账本创建状态。取值与 ledger.setup_status 的 check 约束一致。 */
 export const ledgerSetupStatuses = {
   completed: "completed",
@@ -10,12 +13,29 @@ export const ledgerSetupStepRange = { max: 5, min: 1 } as const;
 /** 草稿大小上限（字节）。与 public.ledger_setup_draft_max_bytes() 一致。 */
 export const ledgerSetupDraftMaxBytes = 65536;
 
-/** 向导草稿。本阶段只约定为 JSON object，内容结构由后续步骤定义。 */
-export type LedgerSetupDraft = Record<string, unknown>;
+/**
+ * 向导草稿与完成写入的条数、长度上限。长度与 account、merchant、merchant_alias、
+ * merchant_tags 的 check 约束一致，条数与 complete_ledger_setup 的 payload 校验一致。
+ */
+export const ledgerSetupLimits = {
+  accountNameMaxLength: 100,
+  aliasLocaleMaxLength: 20,
+  aliasLocaleMinLength: 2,
+  aliasMaxLength: 100,
+  maxAccounts: 50,
+  maxMerchantAliases: 20,
+  maxMerchantTagKeys: 20,
+  maxMerchantTags: 50,
+  maxMerchants: 200,
+  merchantNameMaxLength: 100,
+  merchantTagIconMaxLength: 32,
+  merchantTagNameMaxLength: 100,
+  templateKeyMaxLength: 100,
+} as const;
 
-/** 当前用户的创建中账本。 */
+/** 当前用户的创建中账本。草稿已按账本当前默认货币的模板补全与校正。 */
 export type LedgerSetup = {
-  baseCurrency: string;
+  baseCurrency: LedgerCurrency;
   draft: LedgerSetupDraft;
   id: string;
   name: string;

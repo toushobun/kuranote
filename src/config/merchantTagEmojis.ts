@@ -34,6 +34,24 @@ export const merchantTagEmojiOptions = [
   },
   { emoji: "🛍️", groupId: "retail", keywords: ["购物", "零售"], label: "购物" },
   {
+    emoji: "💊",
+    groupId: "retail",
+    keywords: ["药妆", "药店", "医药"],
+    label: "药妆店",
+  },
+  {
+    emoji: "👕",
+    groupId: "retail",
+    keywords: ["服饰", "服装", "衣服"],
+    label: "服饰",
+  },
+  {
+    emoji: "🔌",
+    groupId: "retail",
+    keywords: ["家电", "数码", "电器"],
+    label: "家电数码",
+  },
+  {
     emoji: "🍽️",
     groupId: "food",
     keywords: ["餐饮", "吃饭", "外卖"],
@@ -75,6 +93,24 @@ export const merchantTagEmojiOptions = [
     groupId: "service",
     keywords: ["生活", "住房", "水电燃气"],
     label: "生活",
+  },
+  {
+    emoji: "🎬",
+    groupId: "service",
+    keywords: ["订阅", "影音", "会员"],
+    label: "订阅服务",
+  },
+  {
+    emoji: "⚡",
+    groupId: "service",
+    keywords: ["水电燃气", "电费", "燃气费"],
+    label: "水电燃气",
+  },
+  {
+    emoji: "🏛️",
+    groupId: "service",
+    keywords: ["政府", "公共服务", "税费"],
+    label: "政府公共服务",
   },
   {
     emoji: "💡",

@@ -836,6 +836,44 @@ COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '
 
 
 
+CREATE OR REPLACE FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
+
+    insert into public.ledger_member (
+        ledger_id,
+        user_id,
+        role,
+        status,
+        invited_by,
+        invited_at,
+        joined_at,
+        created_by,
+        updated_by
+    )
+    values (
+        p_ledger_id,
+        p_user_id,
+        'owner',
+        'active',
+        p_user_id,
+        now(),
+        now(),
+        p_user_id,
+        p_user_id
+    );
+
+    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS numeric
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -989,6 +1027,162 @@ $$;
 
 
 ALTER FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_user_id uuid := auth.uid();
+    v_ledger public.ledger;
+    v_item record;
+    v_account_id uuid;
+    v_merchant_id uuid;
+    v_tag_id uuid;
+    v_tag_ids jsonb := '{}'::jsonb;
+begin
+    v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
+
+    perform public.validate_ledger_setup_completion_payload(p_payload);
+
+    perform set_config('app.ledger_setup_completion_ledger_id', p_ledger_id::text, true);
+
+    perform public.initialize_ledger_default_categories(p_ledger_id, v_user_id);
+
+    for v_item in
+        select a.v, a.ordinality
+        from jsonb_array_elements(p_payload -> 'accounts') with ordinality a(v, ordinality)
+        order by a.ordinality
+    loop
+        insert into public.account (
+            ledger_id,
+            name,
+            type,
+            currency,
+            initial_balance,
+            sort_order,
+            created_by,
+            updated_by
+        ) values (
+            p_ledger_id,
+            btrim(v_item.v ->> 'name'),
+            v_item.v ->> 'type',
+            v_ledger.base_currency,
+            0,
+            v_item.ordinality - 1,
+            v_user_id,
+            v_user_id
+        )
+        returning id into v_account_id;
+
+        insert into public.account_holder (
+            ledger_id,
+            account_id,
+            user_id,
+            role,
+            created_by,
+            updated_by
+        ) values (
+            p_ledger_id,
+            v_account_id,
+            v_user_id,
+            'owner',
+            v_user_id,
+            v_user_id
+        );
+    end loop;
+
+    for v_item in
+        select t.v, t.ordinality
+        from jsonb_array_elements(p_payload -> 'merchantTags') with ordinality t(v, ordinality)
+        order by t.ordinality
+    loop
+        insert into public.merchant_tags (
+            ledger_id,
+            name,
+            icon,
+            sort_order,
+            created_by
+        ) values (
+            p_ledger_id,
+            btrim(v_item.v ->> 'name'),
+            v_item.v ->> 'icon',
+            v_item.ordinality - 1,
+            v_user_id
+        )
+        returning id into v_tag_id;
+
+        v_tag_ids := v_tag_ids || jsonb_build_object(v_item.v ->> 'key', v_tag_id);
+    end loop;
+
+    for v_item in
+        select m.v, m.ordinality
+        from jsonb_array_elements(p_payload -> 'merchants') with ordinality m(v, ordinality)
+        order by m.ordinality
+    loop
+        insert into public.merchant (
+            ledger_id,
+            name,
+            website_url,
+            sort_order,
+            created_by,
+            updated_by
+        ) values (
+            p_ledger_id,
+            btrim(v_item.v ->> 'name'),
+            v_item.v ->> 'websiteUrl',
+            v_item.ordinality - 1,
+            v_user_id,
+            v_user_id
+        )
+        returning id into v_merchant_id;
+
+        insert into public.merchant_alias (
+            merchant_id,
+            alias,
+            locale,
+            sort_order,
+            created_by,
+            updated_by
+        )
+        select
+            v_merchant_id,
+            btrim(a.v ->> 'alias'),
+            nullif(btrim(a.v ->> 'locale'), ''),
+            a.ordinality - 1,
+            v_user_id,
+            v_user_id
+        from jsonb_array_elements(v_item.v -> 'aliases') with ordinality a(v, ordinality);
+
+        insert into public.merchant_tag_links (merchant_id, tag_id)
+        select v_merchant_id, (v_tag_ids ->> k.tag_key)::uuid
+        from jsonb_array_elements_text(v_item.v -> 'tagKeys') k(tag_key);
+    end loop;
+
+    perform set_config('app.ledger_setup_completion_ledger_id', '', true);
+
+    perform set_config('app.allow_ledger_setup_update', 'true', true);
+
+    update public.ledger
+       set transaction_item_special_status_enabled = (p_payload ->> 'specialStatusEnabled')::boolean,
+           setup_status = 'completed',
+           setup_step = null,
+           setup_draft = null,
+           updated_by = v_user_id
+     where id = p_ledger_id;
+
+    perform set_config('app.allow_ledger_setup_update', 'false', true);
+
+    update public.app_user
+       set current_ledger_id = p_ledger_id,
+           updated_by = v_user_id
+     where id = v_user_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
@@ -1727,7 +1921,7 @@ begin
             using errcode = '42501', detail = 'auth_required';
     end if;
 
-    perform public.validate_ledger_setup_basic_info(
+    perform public.validate_ledger_basic_info(
         p_name,
         p_base_currency,
         p_display_name,
@@ -1770,53 +1964,14 @@ begin
         raise;
     end;
 
-    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
+    perform public.bootstrap_ledger_owner_member(v_ledger_id, v_user_id);
 
-    insert into public.ledger_member (
-        ledger_id,
-        user_id,
-        role,
-        status,
-        invited_by,
-        invited_at,
-        joined_at,
-        created_by,
-        updated_by
-    )
-    values (
+    perform public.upsert_ledger_member_display_setting(
         v_ledger_id,
         v_user_id,
-        'owner',
-        'active',
-        v_user_id,
-        now(),
-        now(),
-        v_user_id,
-        v_user_id
+        p_display_name,
+        p_display_color
     );
-
-    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
-
-    insert into public.ledger_member_display_setting (
-        ledger_id,
-        user_id,
-        display_name,
-        display_color,
-        created_by,
-        updated_by
-    ) values (
-        v_ledger_id,
-        v_user_id,
-        btrim(p_display_name),
-        btrim(p_display_color),
-        v_user_id,
-        v_user_id
-    )
-    on conflict (ledger_id, user_id)
-    do update set
-        display_name = excluded.display_name,
-        display_color = excluded.display_color,
-        updated_by = v_user_id;
 
     return v_ledger_id;
 end;
@@ -1905,32 +2060,7 @@ begin
     )
     returning * into v_ledger;
 
-    perform set_config('app.allow_ledger_owner_bootstrap', 'true', true);
-
-    insert into public.ledger_member (
-        ledger_id,
-        user_id,
-        role,
-        status,
-        invited_by,
-        invited_at,
-        joined_at,
-        created_by,
-        updated_by
-    )
-    values (
-        v_ledger.id,
-        v_user_id,
-        'owner',
-        'active',
-        v_user_id,
-        now(),
-        now(),
-        v_user_id,
-        v_user_id
-    );
-
-    perform set_config('app.allow_ledger_owner_bootstrap', 'false', true);
+    perform public.bootstrap_ledger_owner_member(v_ledger.id, v_user_id);
 
     perform public.initialize_ledger_default_data(v_ledger.id, v_user_id);
 
@@ -1964,76 +2094,24 @@ begin
             using errcode = '42501', detail = 'auth_required';
     end if;
 
-    if p_name is null or btrim(p_name) = '' then
-        raise exception 'ledger_name_required'
-            using errcode = '22023', detail = 'ledger_name_required';
-    end if;
-
-    if length(btrim(p_name)) > 100 then
-        raise exception 'ledger_name_too_long'
-            using errcode = '22023', detail = 'ledger_name_too_long';
-    end if;
-
-    if p_base_currency is null
-       or upper(btrim(p_base_currency)) not in (
-           'CNY', 'JPY', 'USD', 'EUR', 'GBP', 'KRW', 'THB'
-       ) then
-        raise exception 'currency_invalid'
-            using errcode = '22023', detail = 'currency_invalid';
-    end if;
-
-    if p_display_name is null or btrim(p_display_name) = '' then
-        raise exception 'display_name_required'
-            using errcode = '22023', detail = 'display_name_required';
-    end if;
-
-    if length(btrim(p_display_name)) > 100 then
-        raise exception 'display_name_too_long'
-            using errcode = '22023', detail = 'display_name_too_long';
-    end if;
-
-    if p_display_color is null
-       or btrim(p_display_color) not in (
-           'jade',
-           'aqua',
-           'sky',
-           'indigo',
-           'lavender',
-           'magenta',
-           'sakura',
-           'rose',
-           'amber',
-           'lime'
-       ) then
-        raise exception 'display_color_invalid'
-            using errcode = '22023', detail = 'display_color_invalid';
-    end if;
+    perform public.validate_ledger_basic_info(
+        p_name,
+        p_base_currency,
+        p_display_name,
+        p_display_color
+    );
 
     v_ledger = public.create_ledger_with_owner(
         btrim(p_name),
         upper(btrim(p_base_currency))
     );
 
-    insert into public.ledger_member_display_setting (
-        ledger_id,
-        user_id,
-        display_name,
-        display_color,
-        created_by,
-        updated_by
-    ) values (
+    perform public.upsert_ledger_member_display_setting(
         v_ledger.id,
         v_user_id,
-        btrim(p_display_name),
-        btrim(p_display_color),
-        v_user_id,
-        v_user_id
-    )
-    on conflict (ledger_id, user_id)
-    do update set
-        display_name = excluded.display_name,
-        display_color = excluded.display_color,
-        updated_by = v_user_id;
+        p_display_name,
+        p_display_color
+    );
 
     insert into public.account (
         ledger_id,
@@ -2748,6 +2826,12 @@ begin
     v_row := case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end;
     v_ledger_id := nullif(v_row ->> v_ledger_field, '')::uuid;
 
+    if tg_op = 'INSERT'
+       and tg_table_name in ('account', 'account_holder', 'category', 'merchant', 'merchant_tags')
+       and public.ledger_setup_completion_allows_insert(v_ledger_id) then
+        return new;
+    end if;
+
     if v_ledger_id is null or not public.current_user_can_manage_ledger(v_ledger_id) then
         raise exception 'permission_denied' using errcode = '42501';
     end if;
@@ -2882,6 +2966,10 @@ begin
       from public.merchant m
      where m.id = v_merchant_id;
 
+    if tg_op = 'INSERT' and public.ledger_setup_completion_allows_insert(v_ledger_id) then
+        return new;
+    end if;
+
     if v_ledger_id is null or not public.current_user_can_manage_ledger(v_ledger_id) then
         raise exception 'permission_denied' using errcode = '42501';
     end if;
@@ -2917,6 +3005,10 @@ begin
     select m.ledger_id into v_ledger_id
     from public.merchant m
     where m.id = v_merchant_id;
+
+    if tg_op = 'INSERT' and public.ledger_setup_completion_allows_insert(v_ledger_id) then
+        return new;
+    end if;
 
     if v_ledger_id is null
        or not public.current_user_can_manage_ledger(v_ledger_id) then
@@ -3390,6 +3482,212 @@ $$;
 ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_root record;
+    v_child record;
+    v_parent_id uuid;
+begin
+    for v_root in
+        select *
+        from (
+            values
+            ('income', '💰 工资收入', '💰', '#D1FAE5', 10),
+        ('income', '💸 其他收入', '💸', '#DBEAFE', 20),
+        ('expense', '🍽️ 饮食', '🍽️', '#FEE2E2', 30),
+        ('expense', '🏠 住房', '🏠', '#FEF3C7', 40),
+        ('expense', '🚃 出行', '🚃', '#A5F3FC', 50),
+        ('expense', '👗 穿衣', '👗', '#E9D5FF', 60),
+        ('expense', '🎮 玩耍', '🎮', '#FCE7F3', 70),
+        ('expense', '💊 医疗', '💊', '#FED7AA', 80),
+        ('expense', '📚 教育', '📚', '#BFDBFE', 90),
+        ('expense', '📱 通讯', '📱', '#DDD6FE', 100),
+        ('expense', '🤝 人情', '🤝', '#BBF7D0', 110),
+        ('expense', '💴 金融', '💴', '#FDE68A', 120)
+        ) as default_root(category_type, name, icon_name, color, sort_order)
+    loop
+        insert into public.category (
+            ledger_id,
+            parent_id,
+            type,
+            name,
+            icon_name,
+            color,
+            sort_order,
+            created_by,
+            updated_by
+        )
+        select
+            p_ledger_id,
+            null,
+            v_root.category_type,
+            v_root.name,
+            v_root.icon_name,
+            v_root.color,
+            v_root.sort_order,
+            p_user_id,
+            p_user_id
+        where not exists (
+            select 1
+            from public.category c
+            where c.ledger_id = p_ledger_id
+              and c.parent_id is null
+              and c.type = v_root.category_type
+              and c.is_archived = false
+              and lower(c.name) = lower(v_root.name)
+        );
+    end loop;
+
+    for v_child in
+        select *
+        from (
+            values
+            ('income', '💰 工资收入', '💴 工资', '💴', '#D1FAE5', 10),
+        ('income', '💰 工资收入', '🎁 奖金', '🎁', '#D1FAE5', 20),
+        ('income', '💰 工资收入', '💼 职务手当', '💼', '#D1FAE5', 30),
+        ('income', '💰 工资收入', '📄 公司报销', '📄', '#D1FAE5', 40),
+        ('income', '💰 工资收入', '🏅 资格手当', '🏅', '#D1FAE5', 50),
+        ('income', '💰 工资收入', '🏠 住房手当', '🏠', '#D1FAE5', 60),
+        ('income', '💰 工资收入', '🚃 通勤手当', '🚃', '#D1FAE5', 70),
+        ('income', '💰 工资收入', '💒 结婚手当', '💒', '#D1FAE5', 80),
+        ('income', '💸 其他收入', '📈 理财收益', '📈', '#DBEAFE', 10),
+        ('income', '💸 其他收入', '💼 活动返现', '💼', '#DBEAFE', 20),
+        ('income', '💸 其他收入', '📄 报销', '📄', '#DBEAFE', 30),
+        ('income', '💸 其他收入', '💰 其他收入', '💰', '#DBEAFE', 40),
+        ('income', '💸 其他收入', '🔑 退押金', '🔑', '#DBEAFE', 50),
+        ('income', '💸 其他收入', '💴 現金還元', '💴', '#DBEAFE', 60),
+        ('income', '💸 其他收入', '🏦 利息スーパーフウツ', '🏦', '#DBEAFE', 70),
+        ('income', '💸 其他收入', '🎁 デビットキャンペン', '🎁', '#DBEAFE', 80),
+        ('income', '💸 其他收入', '🏛️ 退税', '🏛️', '#DBEAFE', 90),
+        ('expense', '🍽️ 饮食', '🥬 做饭食材/调料', '🥬', '#FEE2E2', 10),
+        ('expense', '🍽️ 饮食', '🍱 便当', '🍱', '#FEE2E2', 20),
+        ('expense', '🍽️ 饮食', '🍜 外食', '🍜', '#FEE2E2', 30),
+        ('expense', '🍽️ 饮食', '🍎 水果', '🍎', '#FEE2E2', 40),
+        ('expense', '🍽️ 饮食', '🍿 零食', '🍿', '#FEE2E2', 50),
+        ('expense', '🍽️ 饮食', '🧃 饮料', '🧃', '#FEE2E2', 60),
+        ('expense', '🍽️ 饮食', '🛵 外卖', '🛵', '#FEE2E2', 70),
+        ('expense', '🏠 住房', '🏠 房租', '🏠', '#FEF3C7', 10),
+        ('expense', '🏠 住房', '🏢 物业费', '🏢', '#FEF3C7', 20),
+        ('expense', '🏠 住房', '💧 水', '💧', '#FEF3C7', 30),
+        ('expense', '🏠 住房', '⚡ 电', '⚡', '#FEF3C7', 40),
+        ('expense', '🏠 住房', '🔥 煤气', '🔥', '#FEF3C7', 50),
+        ('expense', '🏠 住房', '🧴 日常用品', '🧴', '#FEF3C7', 60),
+        ('expense', '🏠 住房', '🛋️ 家具', '🛋️', '#FEF3C7', 70),
+        ('expense', '🏠 住房', '📺 家电', '📺', '#FEF3C7', 80),
+        ('expense', '🏠 住房', '🔧 人工费', '🔧', '#FEF3C7', 90),
+        ('expense', '🏠 住房', '🏫 宿舍费', '🏫', '#FEF3C7', 100),
+        ('expense', '🚃 出行', '🚃 JR地铁公交', '🚃', '#A5F3FC', 10),
+        ('expense', '🚃 出行', '🚄 高铁大巴新干线', '🚄', '#A5F3FC', 20),
+        ('expense', '🚃 出行', '✈️ 飞机票', '✈️', '#A5F3FC', 30),
+        ('expense', '🚃 出行', '🚢 船票', '🚢', '#A5F3FC', 40),
+        ('expense', '🚃 出行', '🚕 打车', '🚕', '#A5F3FC', 50),
+        ('expense', '🚃 出行', '🚗 租车', '🚗', '#A5F3FC', 60),
+        ('expense', '🚃 出行', '⛽ 油费', '⛽', '#A5F3FC', 70),
+        ('expense', '🚃 出行', '🛣️ 过路费', '🛣️', '#A5F3FC', 80),
+        ('expense', '🚃 出行', '🅿️ 停车费', '🅿️', '#A5F3FC', 90),
+        ('expense', '🚃 出行', '🔩 保养', '🔩', '#A5F3FC', 100),
+        ('expense', '🚃 出行', '🚲 共享单车', '🚲', '#A5F3FC', 110),
+        ('expense', '🚃 出行', '🛠️ 自行车用品', '🛠️', '#A5F3FC', 120),
+        ('expense', '👗 穿衣', '👕 上衣', '👕', '#E9D5FF', 10),
+        ('expense', '👗 穿衣', '👖 下裤', '👖', '#E9D5FF', 20),
+        ('expense', '👗 穿衣', '👟 鞋子', '👟', '#E9D5FF', 30),
+        ('expense', '👗 穿衣', '🩲 内衣裤', '🩲', '#E9D5FF', 40),
+        ('expense', '👗 穿衣', '💍 饰品', '💍', '#E9D5FF', 50),
+        ('expense', '👗 穿衣', '💇 美容美发', '💇', '#E9D5FF', 60),
+        ('expense', '👗 穿衣', '💄 化妆品', '💄', '#E9D5FF', 70),
+        ('expense', '👗 穿衣', '🧴 护肤品', '🧴', '#E9D5FF', 80),
+        ('expense', '🎮 玩耍', '🎮 游戏', '🎮', '#FCE7F3', 10),
+        ('expense', '🎮 玩耍', '🎁 纪念品', '🎁', '#FCE7F3', 20),
+        ('expense', '🎮 玩耍', '🎣 钓鱼', '🎣', '#FCE7F3', 30),
+        ('expense', '🎮 玩耍', '🎫 门票', '🎫', '#FCE7F3', 40),
+        ('expense', '🎮 玩耍', '🎤 KTV', '🎤', '#FCE7F3', 50),
+        ('expense', '🎮 玩耍', '🗺️ 旅行服务费', '🗺️', '#FCE7F3', 60),
+        ('expense', '🎮 玩耍', '🏨 酒店费', '🏨', '#FCE7F3', 70),
+        ('expense', '🎮 玩耍', '💒 结婚', '💒', '#FCE7F3', 80),
+        ('expense', '🎮 玩耍', '💱 换汇手续费', '💱', '#FCE7F3', 90),
+        ('expense', '💊 医疗', '💊 药费', '💊', '#FED7AA', 10),
+        ('expense', '💊 医疗', '🏥 检查费', '🏥', '#FED7AA', 20),
+        ('expense', '💊 医疗', '💉 治疗费', '💉', '#FED7AA', 30),
+        ('expense', '💊 医疗', '🌿 保健品', '🌿', '#FED7AA', 40),
+        ('expense', '📚 教育', '💻 网课', '💻', '#BFDBFE', 10),
+        ('expense', '📚 教育', '📖 资料费', '📖', '#BFDBFE', 20),
+        ('expense', '📚 教育', '🖨️ 打印费', '🖨️', '#BFDBFE', 30),
+        ('expense', '📚 教育', '🎓 学费报名费', '🎓', '#BFDBFE', 40),
+        ('expense', '📱 通讯', '📲 APP订阅费', '📲', '#DDD6FE', 10),
+        ('expense', '📱 通讯', '☎️ 话费', '☎️', '#DDD6FE', 20),
+        ('expense', '📱 通讯', '🌐 网费', '🌐', '#DDD6FE', 30),
+        ('expense', '📱 通讯', '📦 快递费', '📦', '#DDD6FE', 40),
+        ('expense', '📱 通讯', '📱 电子数码', '📱', '#DDD6FE', 50),
+        ('expense', '🤝 人情', '🎁 份子钱', '🎁', '#BBF7D0', 10),
+        ('expense', '🤝 人情', '🎀 特产', '🎀', '#BBF7D0', 20),
+        ('expense', '🤝 人情', '🪙 小费', '🪙', '#BBF7D0', 30),
+        ('expense', '💴 金融', '💴 厚生年金', '💴', '#FDE68A', 10),
+        ('expense', '💴 金融', '💴 国民年金', '💴', '#FDE68A', 20),
+        ('expense', '💴 金融', '🏥 健康保险', '🏥', '#FDE68A', 30),
+        ('expense', '💴 金融', '📋 雇佣保险', '📋', '#FDE68A', 40),
+        ('expense', '💴 金融', '🏛️ 个人所得税', '🏛️', '#FDE68A', 50),
+        ('expense', '💴 金融', '👶 子育支援金', '👶', '#FDE68A', 60),
+        ('expense', '💴 金融', '🚲 自行车保险', '🚲', '#FDE68A', 70),
+        ('expense', '💴 金融', '⚠️ 罚款', '⚠️', '#FDE68A', 80),
+        ('expense', '💴 金融', '🗾 故乡纳税', '🗾', '#FDE68A', 90),
+        ('expense', '💴 金融', '🏦 办事手续费', '🏦', '#FDE68A', 100)
+        ) as default_child(category_type, parent_name, name, icon_name, color, sort_order)
+    loop
+        select c.id
+        into v_parent_id
+        from public.category c
+        where c.ledger_id = p_ledger_id
+          and c.parent_id is null
+          and c.type = v_child.category_type
+          and c.is_archived = false
+          and lower(c.name) = lower(v_child.parent_name)
+        limit 1;
+
+        if v_parent_id is null then
+            raise exception 'default_parent_category_missing' using errcode = '22023';
+        end if;
+
+        insert into public.category (
+            ledger_id,
+            parent_id,
+            type,
+            name,
+            icon_name,
+            color,
+            sort_order,
+            created_by,
+            updated_by
+        )
+        select
+            p_ledger_id,
+            v_parent_id,
+            v_child.category_type,
+            v_child.name,
+            v_child.icon_name,
+            v_child.color,
+            v_child.sort_order,
+            p_user_id,
+            p_user_id
+        where not exists (
+            select 1
+            from public.category c
+            where c.ledger_id = p_ledger_id
+              and c.parent_id = v_parent_id
+              and c.type = v_child.category_type
+              and c.is_archived = false
+              and lower(c.name) = lower(v_child.name)
+        );
+    end loop;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3433,10 +3731,6 @@ CREATE OR REPLACE FUNCTION "public"."initialize_ledger_default_data_without_merc
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-declare
-    v_root record;
-    v_child record;
-    v_parent_id uuid;
 begin
     if p_ledger_id is null then
         raise exception 'ledger_id_required' using errcode = '22023';
@@ -3682,196 +3976,7 @@ begin
           and lower(ma.alias) = lower(default_alias.alias)
     );
 
-    for v_root in
-        select *
-        from (
-            values
-            ('income', '💰 工资收入', '💰', '#D1FAE5', 10),
-        ('income', '💸 其他收入', '💸', '#DBEAFE', 20),
-        ('expense', '🍽️ 饮食', '🍽️', '#FEE2E2', 30),
-        ('expense', '🏠 住房', '🏠', '#FEF3C7', 40),
-        ('expense', '🚃 出行', '🚃', '#A5F3FC', 50),
-        ('expense', '👗 穿衣', '👗', '#E9D5FF', 60),
-        ('expense', '🎮 玩耍', '🎮', '#FCE7F3', 70),
-        ('expense', '💊 医疗', '💊', '#FED7AA', 80),
-        ('expense', '📚 教育', '📚', '#BFDBFE', 90),
-        ('expense', '📱 通讯', '📱', '#DDD6FE', 100),
-        ('expense', '🤝 人情', '🤝', '#BBF7D0', 110),
-        ('expense', '💴 金融', '💴', '#FDE68A', 120)
-        ) as default_root(category_type, name, icon_name, color, sort_order)
-    loop
-        insert into public.category (
-            ledger_id,
-            parent_id,
-            type,
-            name,
-            icon_name,
-            color,
-            sort_order,
-            created_by,
-            updated_by
-        )
-        select
-            p_ledger_id,
-            null,
-            v_root.category_type,
-            v_root.name,
-            v_root.icon_name,
-            v_root.color,
-            v_root.sort_order,
-            p_user_id,
-            p_user_id
-        where not exists (
-            select 1
-            from public.category c
-            where c.ledger_id = p_ledger_id
-              and c.parent_id is null
-              and c.type = v_root.category_type
-              and c.is_archived = false
-              and lower(c.name) = lower(v_root.name)
-        );
-    end loop;
-
-    for v_child in
-        select *
-        from (
-            values
-            ('income', '💰 工资收入', '💴 工资', '💴', '#D1FAE5', 10),
-        ('income', '💰 工资收入', '🎁 奖金', '🎁', '#D1FAE5', 20),
-        ('income', '💰 工资收入', '💼 职务手当', '💼', '#D1FAE5', 30),
-        ('income', '💰 工资收入', '📄 公司报销', '📄', '#D1FAE5', 40),
-        ('income', '💰 工资收入', '🏅 资格手当', '🏅', '#D1FAE5', 50),
-        ('income', '💰 工资收入', '🏠 住房手当', '🏠', '#D1FAE5', 60),
-        ('income', '💰 工资收入', '🚃 通勤手当', '🚃', '#D1FAE5', 70),
-        ('income', '💰 工资收入', '💒 结婚手当', '💒', '#D1FAE5', 80),
-        ('income', '💸 其他收入', '📈 理财收益', '📈', '#DBEAFE', 10),
-        ('income', '💸 其他收入', '💼 活动返现', '💼', '#DBEAFE', 20),
-        ('income', '💸 其他收入', '📄 报销', '📄', '#DBEAFE', 30),
-        ('income', '💸 其他收入', '💰 其他收入', '💰', '#DBEAFE', 40),
-        ('income', '💸 其他收入', '🔑 退押金', '🔑', '#DBEAFE', 50),
-        ('income', '💸 其他收入', '💴 現金還元', '💴', '#DBEAFE', 60),
-        ('income', '💸 其他收入', '🏦 利息スーパーフウツ', '🏦', '#DBEAFE', 70),
-        ('income', '💸 其他收入', '🎁 デビットキャンペン', '🎁', '#DBEAFE', 80),
-        ('income', '💸 其他收入', '🏛️ 退税', '🏛️', '#DBEAFE', 90),
-        ('expense', '🍽️ 饮食', '🥬 做饭食材/调料', '🥬', '#FEE2E2', 10),
-        ('expense', '🍽️ 饮食', '🍱 便当', '🍱', '#FEE2E2', 20),
-        ('expense', '🍽️ 饮食', '🍜 外食', '🍜', '#FEE2E2', 30),
-        ('expense', '🍽️ 饮食', '🍎 水果', '🍎', '#FEE2E2', 40),
-        ('expense', '🍽️ 饮食', '🍿 零食', '🍿', '#FEE2E2', 50),
-        ('expense', '🍽️ 饮食', '🧃 饮料', '🧃', '#FEE2E2', 60),
-        ('expense', '🍽️ 饮食', '🛵 外卖', '🛵', '#FEE2E2', 70),
-        ('expense', '🏠 住房', '🏠 房租', '🏠', '#FEF3C7', 10),
-        ('expense', '🏠 住房', '🏢 物业费', '🏢', '#FEF3C7', 20),
-        ('expense', '🏠 住房', '💧 水', '💧', '#FEF3C7', 30),
-        ('expense', '🏠 住房', '⚡ 电', '⚡', '#FEF3C7', 40),
-        ('expense', '🏠 住房', '🔥 煤气', '🔥', '#FEF3C7', 50),
-        ('expense', '🏠 住房', '🧴 日常用品', '🧴', '#FEF3C7', 60),
-        ('expense', '🏠 住房', '🛋️ 家具', '🛋️', '#FEF3C7', 70),
-        ('expense', '🏠 住房', '📺 家电', '📺', '#FEF3C7', 80),
-        ('expense', '🏠 住房', '🔧 人工费', '🔧', '#FEF3C7', 90),
-        ('expense', '🏠 住房', '🏫 宿舍费', '🏫', '#FEF3C7', 100),
-        ('expense', '🚃 出行', '🚃 JR地铁公交', '🚃', '#A5F3FC', 10),
-        ('expense', '🚃 出行', '🚄 高铁大巴新干线', '🚄', '#A5F3FC', 20),
-        ('expense', '🚃 出行', '✈️ 飞机票', '✈️', '#A5F3FC', 30),
-        ('expense', '🚃 出行', '🚢 船票', '🚢', '#A5F3FC', 40),
-        ('expense', '🚃 出行', '🚕 打车', '🚕', '#A5F3FC', 50),
-        ('expense', '🚃 出行', '🚗 租车', '🚗', '#A5F3FC', 60),
-        ('expense', '🚃 出行', '⛽ 油费', '⛽', '#A5F3FC', 70),
-        ('expense', '🚃 出行', '🛣️ 过路费', '🛣️', '#A5F3FC', 80),
-        ('expense', '🚃 出行', '🅿️ 停车费', '🅿️', '#A5F3FC', 90),
-        ('expense', '🚃 出行', '🔩 保养', '🔩', '#A5F3FC', 100),
-        ('expense', '🚃 出行', '🚲 共享单车', '🚲', '#A5F3FC', 110),
-        ('expense', '🚃 出行', '🛠️ 自行车用品', '🛠️', '#A5F3FC', 120),
-        ('expense', '👗 穿衣', '👕 上衣', '👕', '#E9D5FF', 10),
-        ('expense', '👗 穿衣', '👖 下裤', '👖', '#E9D5FF', 20),
-        ('expense', '👗 穿衣', '👟 鞋子', '👟', '#E9D5FF', 30),
-        ('expense', '👗 穿衣', '🩲 内衣裤', '🩲', '#E9D5FF', 40),
-        ('expense', '👗 穿衣', '💍 饰品', '💍', '#E9D5FF', 50),
-        ('expense', '👗 穿衣', '💇 美容美发', '💇', '#E9D5FF', 60),
-        ('expense', '👗 穿衣', '💄 化妆品', '💄', '#E9D5FF', 70),
-        ('expense', '👗 穿衣', '🧴 护肤品', '🧴', '#E9D5FF', 80),
-        ('expense', '🎮 玩耍', '🎮 游戏', '🎮', '#FCE7F3', 10),
-        ('expense', '🎮 玩耍', '🎁 纪念品', '🎁', '#FCE7F3', 20),
-        ('expense', '🎮 玩耍', '🎣 钓鱼', '🎣', '#FCE7F3', 30),
-        ('expense', '🎮 玩耍', '🎫 门票', '🎫', '#FCE7F3', 40),
-        ('expense', '🎮 玩耍', '🎤 KTV', '🎤', '#FCE7F3', 50),
-        ('expense', '🎮 玩耍', '🗺️ 旅行服务费', '🗺️', '#FCE7F3', 60),
-        ('expense', '🎮 玩耍', '🏨 酒店费', '🏨', '#FCE7F3', 70),
-        ('expense', '🎮 玩耍', '💒 结婚', '💒', '#FCE7F3', 80),
-        ('expense', '🎮 玩耍', '💱 换汇手续费', '💱', '#FCE7F3', 90),
-        ('expense', '💊 医疗', '💊 药费', '💊', '#FED7AA', 10),
-        ('expense', '💊 医疗', '🏥 检查费', '🏥', '#FED7AA', 20),
-        ('expense', '💊 医疗', '💉 治疗费', '💉', '#FED7AA', 30),
-        ('expense', '💊 医疗', '🌿 保健品', '🌿', '#FED7AA', 40),
-        ('expense', '📚 教育', '💻 网课', '💻', '#BFDBFE', 10),
-        ('expense', '📚 教育', '📖 资料费', '📖', '#BFDBFE', 20),
-        ('expense', '📚 教育', '🖨️ 打印费', '🖨️', '#BFDBFE', 30),
-        ('expense', '📚 教育', '🎓 学费报名费', '🎓', '#BFDBFE', 40),
-        ('expense', '📱 通讯', '📲 APP订阅费', '📲', '#DDD6FE', 10),
-        ('expense', '📱 通讯', '☎️ 话费', '☎️', '#DDD6FE', 20),
-        ('expense', '📱 通讯', '🌐 网费', '🌐', '#DDD6FE', 30),
-        ('expense', '📱 通讯', '📦 快递费', '📦', '#DDD6FE', 40),
-        ('expense', '📱 通讯', '📱 电子数码', '📱', '#DDD6FE', 50),
-        ('expense', '🤝 人情', '🎁 份子钱', '🎁', '#BBF7D0', 10),
-        ('expense', '🤝 人情', '🎀 特产', '🎀', '#BBF7D0', 20),
-        ('expense', '🤝 人情', '🪙 小费', '🪙', '#BBF7D0', 30),
-        ('expense', '💴 金融', '💴 厚生年金', '💴', '#FDE68A', 10),
-        ('expense', '💴 金融', '💴 国民年金', '💴', '#FDE68A', 20),
-        ('expense', '💴 金融', '🏥 健康保险', '🏥', '#FDE68A', 30),
-        ('expense', '💴 金融', '📋 雇佣保险', '📋', '#FDE68A', 40),
-        ('expense', '💴 金融', '🏛️ 个人所得税', '🏛️', '#FDE68A', 50),
-        ('expense', '💴 金融', '👶 子育支援金', '👶', '#FDE68A', 60),
-        ('expense', '💴 金融', '🚲 自行车保险', '🚲', '#FDE68A', 70),
-        ('expense', '💴 金融', '⚠️ 罚款', '⚠️', '#FDE68A', 80),
-        ('expense', '💴 金融', '🗾 故乡纳税', '🗾', '#FDE68A', 90),
-        ('expense', '💴 金融', '🏦 办事手续费', '🏦', '#FDE68A', 100)
-        ) as default_child(category_type, parent_name, name, icon_name, color, sort_order)
-    loop
-        select c.id
-        into v_parent_id
-        from public.category c
-        where c.ledger_id = p_ledger_id
-          and c.parent_id is null
-          and c.type = v_child.category_type
-          and c.is_archived = false
-          and lower(c.name) = lower(v_child.parent_name)
-        limit 1;
-
-        if v_parent_id is null then
-            raise exception 'default_parent_category_missing' using errcode = '22023';
-        end if;
-
-        insert into public.category (
-            ledger_id,
-            parent_id,
-            type,
-            name,
-            icon_name,
-            color,
-            sort_order,
-            created_by,
-            updated_by
-        )
-        select
-            p_ledger_id,
-            v_parent_id,
-            v_child.category_type,
-            v_child.name,
-            v_child.icon_name,
-            v_child.color,
-            v_child.sort_order,
-            p_user_id,
-            p_user_id
-        where not exists (
-            select 1
-            from public.category c
-            where c.ledger_id = p_ledger_id
-              and c.parent_id = v_parent_id
-              and c.type = v_child.category_type
-              and c.is_archived = false
-              and lower(c.name) = lower(v_child.name)
-        );
-    end loop;
+    perform public.initialize_ledger_default_categories(p_ledger_id, p_user_id);
 end;
 $$;
 
@@ -3920,6 +4025,26 @@ $$;
 
 
 ALTER FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ledger_setup_completion_allows_insert"("p_ledger_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select p_ledger_id is not null
+       and p_ledger_id::text = nullif(current_setting('app.ledger_setup_completion_ledger_id', true), '')
+       and exists (
+           select 1
+           from public.ledger l
+           where l.id = p_ledger_id
+             and l.owner_user_id = auth.uid()
+             and l.setup_status = 'in_progress'
+             and l.is_archived = false
+       );
+$$;
+
+
+ALTER FUNCTION "public"."ledger_setup_completion_allows_insert"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid") RETURNS boolean
@@ -5666,8 +5791,10 @@ CREATE OR REPLACE FUNCTION "public"."save_ledger_setup_draft"("p_ledger_id" "uui
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
+declare
+    v_ledger public.ledger;
 begin
-    perform public.lock_current_user_setup_ledger(p_ledger_id);
+    v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
 
     if p_step is null or p_step < 1 or p_step > 5 then
         raise exception 'ledger_setup_step_invalid'
@@ -5682,6 +5809,12 @@ begin
     if octet_length(p_draft::text) > public.ledger_setup_draft_max_bytes() then
         raise exception 'ledger_setup_draft_too_large'
             using errcode = '22023', detail = 'ledger_setup_draft_too_large';
+    end if;
+
+    if p_draft ? 'templateCurrency'
+       and p_draft ->> 'templateCurrency' is distinct from v_ledger.base_currency then
+        raise exception 'ledger_setup_draft_currency_mismatch'
+            using errcode = '22023', detail = 'ledger_setup_draft_currency_mismatch';
     end if;
 
     perform set_config('app.allow_ledger_setup_update', 'true', true);
@@ -6358,46 +6491,45 @@ CREATE OR REPLACE FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_i
     AS $$
 declare
     v_user_id uuid := auth.uid();
+    v_ledger public.ledger;
+    v_currency text;
 begin
-    perform public.lock_current_user_setup_ledger(p_ledger_id);
+    v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
 
-    perform public.validate_ledger_setup_basic_info(
+    perform public.validate_ledger_basic_info(
         p_name,
         p_base_currency,
         p_display_name,
         p_display_color
     );
 
+    v_currency := upper(btrim(p_base_currency));
+
     perform set_config('app.allow_ledger_setup_update', 'true', true);
 
     update public.ledger
        set name = btrim(p_name),
-           base_currency = upper(btrim(p_base_currency)),
+           base_currency = v_currency,
+           setup_draft = case
+               when v_ledger.base_currency = v_currency then setup_draft
+               else setup_draft - array[
+                   'templateCurrency',
+                   'templateVersion',
+                   'accounts',
+                   'merchants'
+               ]::text[]
+           end,
            updated_by = v_user_id
      where id = p_ledger_id;
 
     perform set_config('app.allow_ledger_setup_update', 'false', true);
 
-    insert into public.ledger_member_display_setting (
-        ledger_id,
-        user_id,
-        display_name,
-        display_color,
-        created_by,
-        updated_by
-    ) values (
+    perform public.upsert_ledger_member_display_setting(
         p_ledger_id,
         v_user_id,
-        btrim(p_display_name),
-        btrim(p_display_color),
-        v_user_id,
-        v_user_id
-    )
-    on conflict (ledger_id, user_id)
-    do update set
-        display_name = excluded.display_name,
-        display_color = excluded.display_color,
-        updated_by = v_user_id;
+        p_display_name,
+        p_display_color
+    );
 end;
 $$;
 
@@ -7549,6 +7681,38 @@ $$;
 ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    insert into public.ledger_member_display_setting (
+        ledger_id,
+        user_id,
+        display_name,
+        display_color,
+        created_by,
+        updated_by
+    ) values (
+        p_ledger_id,
+        p_user_id,
+        btrim(p_display_name),
+        btrim(p_display_color),
+        p_user_id,
+        p_user_id
+    )
+    on conflict (ledger_id, user_id)
+    do update set
+        display_name = excluded.display_name,
+        display_color = excluded.display_color,
+        updated_by = p_user_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."validate_account_holder_active_member"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -7691,34 +7855,7 @@ $$;
 ALTER FUNCTION "public"."validate_category_parent"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."validate_ledger_member_display_setting_member"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-begin
-    perform 1
-    from public.ledger_member lm
-    join public.app_user au
-      on au.id = lm.user_id
-    where lm.ledger_id = new.ledger_id
-      and lm.user_id = new.user_id
-      and lm.status = 'active'
-      and au.status = 'active'
-    for update of lm;
-
-    if not found then
-        raise exception 'member display setting target must be an active ledger member';
-    end if;
-
-    return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."validate_ledger_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
     LANGUAGE "plpgsql" IMMUTABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -7771,7 +7908,182 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."validate_ledger_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_ledger_member_display_setting_member"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    perform 1
+    from public.ledger_member lm
+    join public.app_user au
+      on au.id = lm.user_id
+    where lm.ledger_id = new.ledger_id
+      and lm.user_id = new.user_id
+      and lm.status = 'active'
+      and au.status = 'active'
+    for update of lm;
+
+    if not found then
+        raise exception 'member display setting target must be an active ledger member';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") RETURNS "void"
+    LANGUAGE "plpgsql" IMMUTABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if p_payload is null
+       or jsonb_typeof(p_payload) <> 'object'
+       or jsonb_typeof(p_payload -> 'accounts') is distinct from 'array'
+       or jsonb_typeof(p_payload -> 'merchantTags') is distinct from 'array'
+       or jsonb_typeof(p_payload -> 'merchants') is distinct from 'array'
+       or jsonb_typeof(p_payload -> 'specialStatusEnabled') is distinct from 'boolean'
+       or jsonb_array_length(p_payload -> 'accounts') > 50
+       or jsonb_array_length(p_payload -> 'merchantTags') > 50
+       or jsonb_array_length(p_payload -> 'merchants') > 200 then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+
+    -- 账户：类型枚举、名称长度；同一类型内名称（忽略大小写）不重复。
+    -- 向导中账户的币种与持有人都相同，因此与 account_active_name_unique 的范围一致。
+    if exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'accounts') a(v)
+           where jsonb_typeof(a.v) <> 'object'
+              or jsonb_typeof(a.v -> 'type') is distinct from 'string'
+              or jsonb_typeof(a.v -> 'name') is distinct from 'string'
+              or a.v ->> 'type' not in ('cash', 'bank', 'credit_card', 'e_money')
+              or length(btrim(a.v ->> 'name')) not between 1 and 100
+       )
+       or (
+           select count(*)
+           from (
+               select distinct lower(btrim(a.v ->> 'name')), a.v ->> 'type'
+               from jsonb_array_elements(p_payload -> 'accounts') a(v)
+           ) distinct_accounts
+       ) <> jsonb_array_length(p_payload -> 'accounts') then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+
+    -- 商家标签：key / 名称 / icon 长度；key 与名称（忽略大小写）不重复。
+    if exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchantTags') t(v)
+           where jsonb_typeof(t.v) <> 'object'
+              or jsonb_typeof(t.v -> 'key') is distinct from 'string'
+              or jsonb_typeof(t.v -> 'name') is distinct from 'string'
+              or jsonb_typeof(t.v -> 'icon') is distinct from 'string'
+              or length(t.v ->> 'key') not between 1 and 100
+              or length(btrim(t.v ->> 'name')) not between 1 and 100
+              or length(t.v ->> 'icon') not between 1 and 32
+       )
+       or (
+           select count(distinct t.v ->> 'key')
+           from jsonb_array_elements(p_payload -> 'merchantTags') t(v)
+       ) <> jsonb_array_length(p_payload -> 'merchantTags')
+       or (
+           select count(distinct lower(btrim(t.v ->> 'name')))
+           from jsonb_array_elements(p_payload -> 'merchantTags') t(v)
+       ) <> jsonb_array_length(p_payload -> 'merchantTags') then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+
+    -- 商家：名称长度、官网 URL（https、长度）、别名与标签引用；名称（忽略大小写）不重复。
+    if exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+           where jsonb_typeof(m.v) <> 'object'
+              or jsonb_typeof(m.v -> 'name') is distinct from 'string'
+              or length(btrim(m.v ->> 'name')) not between 1 and 100
+              or jsonb_typeof(m.v -> 'websiteUrl') not in ('string', 'null')
+              or (
+                  jsonb_typeof(m.v -> 'websiteUrl') = 'string'
+                  and (
+                      m.v ->> 'websiteUrl' !~ '^https://'
+                      or length(m.v ->> 'websiteUrl') > 2048
+                  )
+              )
+              or jsonb_typeof(m.v -> 'tagKeys') is distinct from 'array'
+              or jsonb_typeof(m.v -> 'aliases') is distinct from 'array'
+              or jsonb_array_length(m.v -> 'tagKeys') > 20
+              or jsonb_array_length(m.v -> 'aliases') > 20
+       )
+       or (
+           select count(distinct lower(btrim(m.v ->> 'name')))
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+       ) <> jsonb_array_length(p_payload -> 'merchants') then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+
+    -- 标签引用：必须是字符串、存在于 merchantTags 中，且同一商家内不重复。
+    if exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+           cross join lateral jsonb_array_elements(m.v -> 'tagKeys') k(v)
+           where jsonb_typeof(k.v) <> 'string'
+              or not exists (
+                  select 1
+                  from jsonb_array_elements(p_payload -> 'merchantTags') t(v)
+                  where t.v ->> 'key' = k.v #>> '{}'
+              )
+       )
+       or exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+           where (
+               select count(distinct k.v)
+               from jsonb_array_elements(m.v -> 'tagKeys') k(v)
+           ) <> jsonb_array_length(m.v -> 'tagKeys')
+       ) then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+
+    -- 别名：长度与 locale 符合 merchant_alias 的约束；同一商家内（忽略大小写）不重复。
+    if exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+           cross join lateral jsonb_array_elements(m.v -> 'aliases') a(v)
+           where jsonb_typeof(a.v) <> 'object'
+              or jsonb_typeof(a.v -> 'alias') is distinct from 'string'
+              or length(btrim(a.v ->> 'alias')) not between 1 and 100
+              or jsonb_typeof(a.v -> 'locale') not in ('string', 'null')
+              or (
+                  jsonb_typeof(a.v -> 'locale') = 'string'
+                  and length(btrim(a.v ->> 'locale')) not between 2 and 20
+              )
+       )
+       or exists (
+           select 1
+           from jsonb_array_elements(p_payload -> 'merchants') m(v)
+           where (
+               select count(distinct lower(btrim(a.v ->> 'alias')))
+               from jsonb_array_elements(m.v -> 'aliases') a(v)
+           ) <> jsonb_array_length(m.v -> 'aliases')
+       ) then
+        raise exception 'ledger_setup_payload_invalid'
+            using errcode = '22023', detail = 'ledger_setup_payload_invalid';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_linked_transaction_item_mutation"() RETURNS "trigger"
@@ -10348,11 +10660,20 @@ REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() F
 
 
 
+REVOKE ALL ON FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") FROM PUBLIC;
 
 
 
 REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") TO "authenticated";
 
 
 
@@ -10534,6 +10855,10 @@ REVOKE ALL ON FUNCTION "public"."guard_ledger_setup_state"() FROM PUBLIC;
 
 
 
+REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -10548,6 +10873,10 @@ GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "servi
 
 
 REVOKE ALL ON FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."ledger_setup_completion_allows_insert"("p_ledger_id" "uuid") FROM PUBLIC;
 
 
 
@@ -10733,11 +11062,19 @@ GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid
 
 
 
+REVOKE ALL ON FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."validate_account_holder_active_member"() FROM PUBLIC;
 
 
 
-REVOKE ALL ON FUNCTION "public"."validate_ledger_setup_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."validate_ledger_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") FROM PUBLIC;
 
 
 

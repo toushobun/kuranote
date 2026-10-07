@@ -9,6 +9,7 @@ import {
   ledgerSetupWriteErrorMessages,
 } from "internal/ledger/errors/ledgerSetup";
 import { createSupabaseLedgerSetupRepository } from "internal/ledger/repository/ledgerSetupRepository";
+import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   createSupabaseMock,
@@ -16,6 +17,15 @@ import {
 } from "test/supabaseMock";
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
+
+const draft = createDefaultLedgerSetupDraft("JPY");
+
+const payload = {
+  accounts: [{ name: "现金", type: "cash" as const }],
+  merchantTags: [],
+  merchants: [],
+  specialStatusEnabled: false,
+};
 
 const basicInfo = {
   baseCurrency: "JPY",
@@ -102,7 +112,10 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
           base_currency: "JPY",
           ledger_id: ledgerId,
           ledger_name: "家庭账本",
-          setup_draft: { accounts: [] },
+          setup_draft: {
+            accounts: [],
+            features: { specialStatusEnabled: true },
+          },
           setup_step: 3,
         },
       ],
@@ -110,10 +123,10 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
 
     await expect(repository.findCurrentUserSetupLedger()).resolves.toEqual({
       baseCurrency: "JPY",
-      draft: { accounts: [] },
       id: ledgerId,
       name: "家庭账本",
       step: 3,
+      storedDraft: { features: { specialStatusEnabled: true } },
     });
     expect(supabase.rpc).toHaveBeenCalledWith("get_current_user_setup_ledger");
   });
@@ -137,16 +150,13 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
     );
   });
 
-  it("草稿不是 object 时视为数据异常", async () => {
+  it.each([
+    ["草稿不是 object", { base_currency: "JPY", setup_draft: [] }],
+    ["默认货币不是可选值", { base_currency: "XXX", setup_draft: {} }],
+  ])("%s时视为数据异常", async (_label, row) => {
     const { repository } = createRepository({
       data: [
-        {
-          base_currency: "JPY",
-          ledger_id: ledgerId,
-          ledger_name: "家庭账本",
-          setup_draft: [],
-          setup_step: 2,
-        },
+        { ...row, ledger_id: ledgerId, ledger_name: "家庭账本", setup_step: 2 },
       ],
     });
 
@@ -161,10 +171,10 @@ describe("createSupabaseLedgerSetupRepository.saveDraft", () => {
     const { repository, supabase } = createRepository();
 
     await expect(
-      repository.saveDraft({ draft: { merchants: [] }, ledgerId, step: 4 }),
+      repository.saveDraft({ draft, ledgerId, step: 4 }),
     ).resolves.toEqual({ ok: true });
     expect(supabase.rpc).toHaveBeenCalledWith("save_ledger_setup_draft", {
-      p_draft: { merchants: [] },
+      p_draft: draft,
       p_ledger_id: ledgerId,
       p_step: 4,
     });
@@ -176,13 +186,17 @@ describe("createSupabaseLedgerSetupRepository.saveDraft", () => {
     ["ledger_setup_step_invalid", ledgerSetupErrorCodes.stepInvalid],
     ["ledger_setup_draft_invalid", ledgerSetupErrorCodes.draftInvalid],
     ["ledger_setup_draft_too_large", ledgerSetupErrorCodes.draftTooLarge],
+    [
+      "ledger_setup_draft_currency_mismatch",
+      ledgerSetupErrorCodes.currencyMismatch,
+    ],
   ] as const)("RPC details 返回 %s 时映射为 %s", async (details, code) => {
     const { repository } = createRepository({
       error: { details, message: "业务错误" },
     });
 
     await expect(
-      repository.saveDraft({ draft: {}, ledgerId, step: 2 }),
+      repository.saveDraft({ draft, ledgerId, step: 2 }),
     ).resolves.toEqual({ code, ok: false });
   });
 
@@ -192,7 +206,7 @@ describe("createSupabaseLedgerSetupRepository.saveDraft", () => {
     });
 
     await expect(
-      repository.saveDraft({ draft: {}, ledgerId, step: 2 }),
+      repository.saveDraft({ draft, ledgerId, step: 2 }),
     ).rejects.toMatchObject({
       code: "ledger_setup_draft_save_failed",
       message: ledgerSetupWriteErrorMessages.draftSaveFailed,
@@ -243,5 +257,52 @@ describe("createSupabaseLedgerSetupRepository.updateBasicInfo", () => {
       code: "ledger_setup_basic_info_update_failed",
       message: ledgerSetupWriteErrorMessages.basicInfoUpdateFailed,
     });
+  });
+});
+
+describe("createSupabaseLedgerSetupRepository.complete", () => {
+  it("调用 complete_ledger_setup 提交 payload", async () => {
+    const { repository, supabase } = createRepository();
+
+    await expect(repository.complete({ ledgerId, payload })).resolves.toEqual({
+      ok: true,
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith("complete_ledger_setup", {
+      p_ledger_id: ledgerId,
+      p_payload: payload,
+    });
+  });
+
+  it.each([
+    ["ledger_setup_not_found", ledgerSetupErrorCodes.notFound],
+    ["ledger_setup_not_in_progress", ledgerSetupErrorCodes.notInProgress],
+    ["ledger_setup_payload_invalid", ledgerSetupErrorCodes.payloadInvalid],
+    ["auth_required", ledgerCreateErrorCodes.authRequired],
+  ] as const)("RPC details 返回 %s 时映射为 %s", async (details, code) => {
+    const { repository } = createRepository({
+      error: { details, message: "业务错误" },
+    });
+
+    await expect(repository.complete({ ledgerId, payload })).resolves.toEqual({
+      code,
+      ok: false,
+    });
+  });
+
+  it("未知错误时记录日志并转换为安全 RepositoryError", async () => {
+    const { logger, repository } = createRepository({
+      error: { code: "XX000", message: "private" },
+    });
+
+    await expect(
+      repository.complete({ ledgerId, payload }),
+    ).rejects.toMatchObject({
+      code: "ledger_setup_complete_failed",
+      message: ledgerSetupWriteErrorMessages.completeFailed,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[ledger] failed to complete ledger setup",
+      { databaseCode: "XX000", ledgerId },
+    );
   });
 });
