@@ -1,8 +1,10 @@
+import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import {
+  ActionPromptDialog,
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -117,6 +119,23 @@ export const CustomConfirmation: Story = {
       onConfirm={() => undefined}
       open
       title="继续这个操作？"
+    />
+  ),
+};
+
+export const ActionPrompt: Story = {
+  name: "主按钮 + 文字按钮提示",
+  render: () => (
+    <ActionPromptDialog
+      description="目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。"
+      icon={<BookmarkRoundedIcon />}
+      onClose={() => undefined}
+      onPrimary={() => undefined}
+      onSecondary={() => undefined}
+      open
+      primaryLabel="继续创建"
+      secondaryLabel="稍后再说"
+      title="稍后再继续？"
     />
   ),
 };

@@ -16,6 +16,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useId, useState, type ReactNode } from "react";
 
+import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { useUserTheme } from "theme/UserThemeProvider";
 import { designTokens } from "theme/theme";
 import type { UserThemeKey } from "theme/userThemeTokens";
@@ -284,6 +285,85 @@ export function DeleteConfirmationDialog({
   );
 }
 
+export type ActionPromptDialogProps = {
+  description?: ReactNode;
+  /** 标题上方的图标，显示在主题色圆形底座中。 */
+  icon?: ReactNode;
+  /** 点击背景或按 Esc 时调用；应等同于不改变现状的选项。 */
+  onClose: () => void;
+  onPrimary: () => void;
+  onSecondary: () => void;
+  open: boolean;
+  primaryLabel: ReactNode;
+  secondaryLabel: ReactNode;
+  title: ReactNode;
+};
+
+/**
+ * 「主按钮 + 文字按钮」上下排列的提示对话框，用于推荐选项明确的非破坏性选择
+ * （例如「继续创建 / 稍后再说」）。破坏性操作的二次确认使用 useConfirmDialog()。
+ */
+export function ActionPromptDialog({
+  description,
+  icon,
+  onClose,
+  onPrimary,
+  onSecondary,
+  open,
+  primaryLabel,
+  secondaryLabel,
+  title,
+}: ActionPromptDialogProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+
+  return (
+    <Dialog
+      aria-describedby={description ? descriptionId : undefined}
+      aria-labelledby={titleId}
+      fullWidth
+      maxWidth="xs"
+      onClose={onClose}
+      open={open}
+      slotProps={{ paper: { sx: dialogPaperSx } }}
+    >
+      <DialogContent sx={confirmationContentSx}>
+        {icon ? (
+          <Box aria-hidden="true" sx={promptIconSx}>
+            {icon}
+          </Box>
+        ) : null}
+        <DialogTitle component="h2" id={titleId} sx={confirmationTitleSx}>
+          {title}
+        </DialogTitle>
+        {description ? (
+          <Typography
+            color="text.secondary"
+            component="div"
+            id={descriptionId}
+            sx={confirmationDescriptionSx}
+          >
+            {description}
+          </Typography>
+        ) : null}
+      </DialogContent>
+      <DialogActions sx={promptActionsSx}>
+        <PrimaryActionButton fullWidth onClick={onPrimary}>
+          {primaryLabel}
+        </PrimaryActionButton>
+        <Button
+          fullWidth
+          onClick={onSecondary}
+          sx={promptSecondaryButtonSx}
+          variant="text"
+        >
+          {secondaryLabel}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 function feedbackSnackbarSx(
   bottomOffset?: string,
   aboveModal = false,
@@ -395,6 +475,38 @@ const confirmationDescriptionSx = {
   lineHeight: 1.8,
   mt: 1,
   textAlign: "center",
+};
+
+const promptIconSx = {
+  alignItems: "center",
+  bgcolor: "var(--user-theme-icon-badge-bg)",
+  borderRadius: "50%",
+  color: "var(--user-theme-icon-badge-color)",
+  display: "inline-flex",
+  height: 64,
+  justifyContent: "center",
+  mb: 1.5,
+  width: 64,
+  "& .MuiSvgIcon-root": {
+    fontSize: 32,
+  },
+};
+
+const promptActionsSx = {
+  flexDirection: "column",
+  gap: 0.5,
+  px: 3,
+  pb: 2.5,
+  pt: 2,
+  "& > :not(style) ~ :not(style)": {
+    ml: 0,
+  },
+};
+
+const promptSecondaryButtonSx = {
+  color: "text.secondary",
+  fontWeight: 700,
+  minHeight: 44,
 };
 
 const confirmationActionsSx = {

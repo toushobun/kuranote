@@ -7,6 +7,7 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 import { designTokens, theme } from "theme/theme";
 
 import {
+  ActionPromptDialog,
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -270,6 +271,61 @@ describe("ConfirmationDialog", () => {
     expect(screen.getByTestId("custom-illustration")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "继续" })).toBeInTheDocument();
+  });
+});
+
+describe("ActionPromptDialog", () => {
+  function renderPrompt() {
+    const handlers = {
+      onClose: vi.fn(),
+      onPrimary: vi.fn(),
+      onSecondary: vi.fn(),
+    };
+
+    render(
+      <ThemeProvider theme={theme}>
+        <ActionPromptDialog
+          {...handlers}
+          description="进度已保存。"
+          icon={<span data-testid="prompt-icon" />}
+          open
+          primaryLabel="继续创建"
+          secondaryLabel="稍后再说"
+          title="稍后再继续？"
+        />
+      </ThemeProvider>,
+    );
+
+    return handlers;
+  }
+
+  it("显示图标、标题、正文以及上下排列的主按钮与文字按钮", () => {
+    renderPrompt();
+
+    const dialog = screen.getByRole("dialog", { name: "稍后再继续？" });
+    expect(dialog).toHaveAccessibleDescription("进度已保存。");
+    expect(screen.getByTestId("prompt-icon")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["继续创建", "稍后再说"]);
+    expect(screen.getByRole("button", { name: "继续创建" })).toHaveClass(
+      "MuiButton-contained",
+    );
+    expect(screen.getByRole("button", { name: "稍后再说" })).toHaveClass(
+      "MuiButton-text",
+    );
+  });
+
+  it("主按钮、文字按钮与 Esc 分别触发各自回调", () => {
+    const handlers = renderPrompt();
+
+    fireEvent.click(screen.getByRole("button", { name: "继续创建" }));
+    fireEvent.click(screen.getByRole("button", { name: "稍后再说" }));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+
+    expect(handlers.onPrimary).toHaveBeenCalledTimes(1);
+    expect(handlers.onSecondary).toHaveBeenCalledTimes(1);
+    expect(handlers.onClose).toHaveBeenCalledTimes(1);
   });
 });
 

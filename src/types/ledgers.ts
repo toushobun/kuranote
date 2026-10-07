@@ -1,6 +1,9 @@
 import type {
   CurrentLedgerRole,
+  LedgerCreateDefaults,
   LedgerPlaceholderMemberSummary,
+  LedgerSetup,
+  LedgerSetupTemplate,
 } from "internal/ledger";
 import type { LedgerCurrency } from "internal/ledger";
 import {
@@ -94,6 +97,29 @@ export type LedgerCreateStateAction = (
   previousState: LedgerCreateActionState,
   formData: FormData,
 ) => Promise<LedgerCreateActionState>;
+
+/** 创建账本向导的进度：创建中账本与其默认货币对应的预设模板（无模板时为 null）。 */
+export type LedgerSetupProgress = {
+  setup: LedgerSetup;
+  template: LedgerSetupTemplate | null;
+};
+
+/** 打开创建账本向导所需的数据。尚未创建账本时 progress 为 null。 */
+export type LedgerSetupWizardView = LedgerCreateDefaults & {
+  progress: LedgerSetupProgress | null;
+};
+
+export type LedgerSetupBasicInfoActionState = ActionState & {
+  /** 提交成功，或已存在创建中账本时，重新读取的最新进度。 */
+  progress?: LedgerSetupProgress;
+  /** 已存在其他创建中账本，progress 为该账本：向导恢复到该账本而不是进入下一步。 */
+  restored?: boolean;
+};
+
+export type LedgerSetupBasicInfoStateAction = (
+  previousState: LedgerSetupBasicInfoActionState,
+  formData: FormData,
+) => Promise<LedgerSetupBasicInfoActionState>;
 
 export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 

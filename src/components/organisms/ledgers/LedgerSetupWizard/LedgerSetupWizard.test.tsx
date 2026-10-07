@@ -1,0 +1,199 @@
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { mockMatchMedia } from "test/matchMedia";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
+
+import {
+  clickCloseWizard,
+  clickNext,
+  clickPrevious,
+  getCurrentStepItem,
+  getLedgerSetupWizardDialog,
+  renderLedgerSetupWizard,
+} from "./ledgerSetupWizardTestUtils";
+
+let restoreMatchMedia: (() => void) | null = null;
+
+afterEach(() => {
+  restoreMatchMedia?.();
+  restoreMatchMedia = null;
+});
+
+function expectCurrentStep(label: string) {
+  expect(getCurrentStepItem()).toHaveTextContent(label);
+}
+
+describe("LedgerSetupWizard", () => {
+  describe("响应式", () => {
+    it("移动端（xs）全屏显示", async () => {
+      restoreMatchMedia = mockMatchMedia(true);
+      renderLedgerSetupWizard();
+
+      await waitFor(() => {
+        expect(getLedgerSetupWizardDialog()).toHaveClass(
+          "MuiDialog-paperFullScreen",
+        );
+      });
+    });
+
+    it("桌面端（sm 以上）显示为常规弹框", () => {
+      restoreMatchMedia = mockMatchMedia(false);
+      renderLedgerSetupWizard();
+
+      expect(getLedgerSetupWizardDialog()).not.toHaveClass(
+        "MuiDialog-paperFullScreen",
+      );
+    });
+  });
+
+  describe("步骤", () => {
+    it("尚未创建账本时从第 1 步开始，只有下一步按钮", () => {
+      renderLedgerSetupWizard();
+
+      expect(
+        screen.getByRole("heading", { name: "创建账本" }),
+      ).toBeInTheDocument();
+      expectCurrentStep("基本信息");
+      expect(screen.getByText("先给账本起个名字吧")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "上一步" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("已有创建中账本时恢复到上次的步骤", () => {
+      renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 3 }),
+      });
+
+      expectCurrentStep("商家");
+      expect(screen.getByText("该步骤将在后续版本实现")).toBeInTheDocument();
+    });
+
+    it("可以通过上一步 / 下一步在步骤之间切换", () => {
+      renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 2 }),
+      });
+
+      expectCurrentStep("账户");
+      clickNext();
+      expectCurrentStep("商家");
+      clickPrevious();
+      clickPrevious();
+      expectCurrentStep("基本信息");
+      expect(screen.getByLabelText("账本名称")).toHaveValue("家庭账本");
+    });
+
+    it("第 1 步提交成功后进入第 2 步，返回第 1 步时显示保存后的内容", async () => {
+      const progress = createLedgerSetupProgressFixture({
+        name: "旅行账本",
+      });
+      renderLedgerSetupWizard({
+        submitBasicInfo: vi.fn(async () => ({ progress })),
+      });
+
+      fireEvent.change(screen.getByLabelText("账本名称"), {
+        target: { value: "旅行账本" },
+      });
+      clickNext();
+
+      await waitFor(() => expectCurrentStep("账户"));
+      clickPrevious();
+      expectCurrentStep("基本信息");
+      expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
+    });
+
+    it("最后一步的占位内容不能继续前进", () => {
+      renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 5 }),
+      });
+
+      clickNext();
+
+      expectCurrentStep("邀请");
+      expect(screen.getByRole("button", { name: "下一步" })).toBeDisabled();
+    });
+  });
+
+  describe("关闭", () => {
+    it("第 1 步且尚未创建账本时直接关闭", () => {
+      const { onClose } = renderLedgerSetupWizard();
+
+      clickCloseWizard();
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole("dialog", { name: "稍后再继续？" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("已创建账本时显示稍后再继续的确认", () => {
+      const { onClose } = renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 2 }),
+      });
+
+      clickCloseWizard();
+
+      const prompt = screen.getByRole("dialog", { name: "稍后再继续？" });
+      expect(prompt).toHaveAccessibleDescription(
+        "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。",
+      );
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("返回第 1 步时也需要确认，因为账本已创建", () => {
+      renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 2 }),
+      });
+
+      clickPrevious();
+      clickCloseWizard();
+
+      expect(
+        screen.getByRole("dialog", { name: "稍后再继续？" }),
+      ).toBeInTheDocument();
+    });
+
+    it("选择继续创建时留在向导", async () => {
+      const { onClose } = renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 2 }),
+      });
+
+      clickCloseWizard();
+      fireEvent.click(screen.getByRole("button", { name: "继续创建" }));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("dialog", { name: "稍后再继续？" }),
+        ).not.toBeInTheDocument();
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      expectCurrentStep("账户");
+    });
+
+    it("选择稍后再说时关闭向导", () => {
+      const { onClose } = renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 2 }),
+      });
+
+      clickCloseWizard();
+      fireEvent.click(screen.getByRole("button", { name: "稍后再说" }));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("邀请步骤（账本已完成）直接关闭", () => {
+      const { onClose } = renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({ step: 5 }),
+      });
+
+      clickNext();
+      clickCloseWizard();
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole("dialog", { name: "稍后再继续？" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+});

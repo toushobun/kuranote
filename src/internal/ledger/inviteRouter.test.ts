@@ -61,6 +61,7 @@ function containerWithAccept(
         {} as RequestContainer["ledger"]["placeholderMemberService"],
       service: {} as RequestContainer["ledger"]["service"],
       settingsService: {} as RequestContainer["ledger"]["settingsService"],
+      setupService: {} as RequestContainer["ledger"]["setupService"],
     },
     merchant: {} as RequestContainer["merchant"],
     statistics: {} as RequestContainer["statistics"],
