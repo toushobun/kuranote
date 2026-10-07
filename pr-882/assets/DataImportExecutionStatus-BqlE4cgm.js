@@ -1,0 +1,52 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";import{t as r}from"./jsx-runtime-Dwpk6tgA.js";import{A as i,H as a,V as o,_t as s,a as c,at as l,dt as u,ht as d,k as f,nt as p,ot as m,r as ee,rt as h,s as g,t as _,ut as te}from"./DefaultPropsProvider-mjs6pdIw.js";import{i as v,n as ne,r as re,t as y}from"./capitalize-Bi6DXC2p.js";import{i as b,o as ie,t as x}from"./utils-DIk0ymYl.js";import{n as ae,t as S}from"./createSimplePaletteValueFilter-88pE_DMp.js";import{n as C,t as oe}from"./Stack-Blj2xom2.js";import{n as w,t as se}from"./Box-DKrMJ2_w.js";import{n as T,t as ce}from"./Typography-CWKirwdW.js";import{n as le,t as ue}from"./Button-DJTTRrLP.js";import{n as E,t as de}from"./Alert-BY9krwdh.js";import{n as fe,t as pe}from"./SectionCard-pwEyDfLL.js";import{n as me,t as he}from"./DownloadRounded-Dcaz2Zec.js";import{s as ge,t as _e}from"./dataImport-CJm74xoa.js";import{f as ve,r as D}from"./dataImportExportMessages-BUrT_G60.js";function ye(e){return m(`MuiLinearProgress`,e)}var O=t((()=>{p(),l(),h(`MuiLinearProgress`,[`root`,`colorPrimary`,`colorSecondary`,`determinate`,`indeterminate`,`buffer`,`query`,`dashed`,`bar`,`bar1`,`bar2`])})),k,A,j,M,N,P,F,I,L,R,z,B,V,H,U,W,G,be=t((()=>{k=e(n(),1),u(),f(),o(),c(),re(),ae(),_(),ne(),ie(),O(),A=r(),j=4,M={},N=s`
+  0% {
+    left: -35%;
+    right: 100%;
+  }
+
+  60% {
+    left: 100%;
+    right: -90%;
+  }
+
+  100% {
+    left: 100%;
+    right: -90%;
+  }
+`,P=typeof N==`string`?null:d`
+        animation: ${N} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+      `,F=s`
+  0% {
+    left: -200%;
+    right: 100%;
+  }
+
+  60% {
+    left: 107%;
+    right: -8%;
+  }
+
+  100% {
+    left: 107%;
+    right: -8%;
+  }
+`,I=typeof F==`string`?null:d`
+        animation: ${F} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
+      `,L=s`
+  0% {
+    opacity: 1;
+    background-position: 0 -23px;
+  }
+
+  60% {
+    opacity: 0;
+    background-position: 0 -23px;
+  }
+
+  100% {
+    opacity: 1;
+    background-position: -200px -23px;
+  }
+`,R=typeof L==`string`?null:d`
+        animation: ${L} 3s infinite linear;
+      `,z=e=>{let{classes:t,variant:n,color:r}=e;return i({root:[`root`,`color${y(r)}`,n],dashed:[`dashed`],bar1:[`bar`,`bar1`],bar2:[`bar`,`bar2`,n===`buffer`&&`color${y(r)}`]},ye,t)},B=(e,t)=>e.vars?e.vars.palette.LinearProgress[`${t}Bg`]:e.palette.mode===`light`?e.lighten(e.palette[t].main,.62):e.darken(e.palette[t].main,.5),V=g(`span`,{name:`MuiLinearProgress`,slot:`Root`,overridesResolver:(e,t)=>{let{ownerState:n}=e;return[t.root,t[`color${y(n.color)}`],t[n.variant]]}})(v(({theme:e})=>({position:`relative`,overflow:`hidden`,display:`block`,height:4,zIndex:0,"@media print":{colorAdjust:`exact`},variants:[...Object.entries(e.palette).filter(S()).map(([t])=>({props:{color:t},style:{backgroundColor:B(e,t)}})),{props:({ownerState:e})=>e.color===`inherit`&&e.variant!==`buffer`,style:{"&::before":{content:`""`,position:`absolute`,left:0,top:0,right:0,bottom:0,backgroundColor:`currentColor`,opacity:.3}}},{props:{variant:`buffer`},style:{backgroundColor:`transparent`}},{props:{variant:`query`},style:{transform:`rotate(180deg)`}}]}))),H=g(`span`,{name:`MuiLinearProgress`,slot:`Dashed`})(v(({theme:e})=>({position:`absolute`,marginTop:0,height:`100%`,width:`100%`,backgroundSize:`10px 10px`,backgroundPosition:`0 -23px`,variants:[{props:{color:`inherit`},style:{opacity:.3,backgroundImage:`radial-gradient(currentColor 0%, currentColor 16%, transparent 42%)`}},...Object.entries(e.palette).filter(S()).map(([t])=>{let n=B(e,t);return{props:{color:t},style:{backgroundImage:`radial-gradient(${n} 0%, ${n} 16%, transparent 42%)`}}})]})),R||{animation:`${L} 3s infinite linear`},v(({theme:e})=>x(e,{animation:`none`})||M)),U=g(`span`,{name:`MuiLinearProgress`,slot:`Bar1`,overridesResolver:(e,t)=>[t.bar,t.bar1]})(v(({theme:e})=>{let t=x(e,{animation:`none`,left:`30%`,right:`auto`,width:`40%`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...b(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[{props:{color:`inherit`},style:{backgroundColor:`currentColor`}},...Object.entries(e.palette).filter(S()).map(([t])=>({props:{color:t},style:{backgroundColor:(e.vars||e).palette[t].main}})),{props:{variant:`determinate`},style:{...b(e,`transform`,{duration:`.${j}s`,easing:`linear`})}},{props:{variant:`buffer`},style:{zIndex:1,...b(e,`transform`,{duration:`.${j}s`,easing:`linear`})}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:P||{animation:`${N} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),W=g(`span`,{name:`MuiLinearProgress`,slot:`Bar2`,overridesResolver:(e,t)=>[t.bar,t.bar2]})(v(({theme:e})=>{let t=x(e,{animation:`none`,display:`none`});return{width:`100%`,position:`absolute`,left:0,bottom:0,top:0,...b(e,`transform`,{duration:`0.2s`,easing:`linear`}),transformOrigin:`left`,variants:[...Object.entries(e.palette).filter(S()).map(([t])=>({props:{color:t},style:{"--LinearProgressBar2-barColor":(e.vars||e).palette[t].main}})),{props:({ownerState:e})=>e.variant!==`buffer`&&e.color!==`inherit`,style:{backgroundColor:`var(--LinearProgressBar2-barColor, currentColor)`}},{props:({ownerState:e})=>e.variant!==`buffer`&&e.color===`inherit`,style:{backgroundColor:`currentColor`}},{props:{color:`inherit`},style:{opacity:.3}},...Object.entries(e.palette).filter(S()).map(([t])=>({props:{color:t,variant:`buffer`},style:{backgroundColor:B(e,t),...b(e,`transform`,{duration:`.${j}s`,easing:`linear`})}})),{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:{width:`auto`}},{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:I||{animation:`${F} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite`}},...t?[{props:({ownerState:e})=>e.variant===`indeterminate`||e.variant===`query`,style:t}]:[]]}})),G=k.forwardRef(function(e,t){let n=ee({props:e,name:`MuiLinearProgress`}),{className:r,color:i=`primary`,max:o,min:s,value:c,valueBuffer:l,variant:u=`indeterminate`,...d}=n,f={...n,color:i,variant:u},p=s??0,m=o??100,h=z(f),g=a(),_={},v={bar1:{},bar2:{}};if((u===`determinate`||u===`buffer`)&&c!==void 0){let e=m-p,t=(c-p)/e*100-100;g&&(t=-t),v.bar1.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`,_[`aria-valuenow`]=c,_[`aria-valuemin`]=p,_[`aria-valuemax`]=m}if(u===`buffer`&&l!==void 0){let e=m-p,t=(l-p)/e*100-100;g&&(t=-t),v.bar2.transform=e>0?`translateX(${t}%)`:`translateX(-100%)`}return(0,A.jsxs)(V,{className:te(h.root,r),ownerState:f,role:`progressbar`,..._,ref:t,...d,children:[u===`buffer`?(0,A.jsx)(H,{className:h.dashed,ownerState:f}):null,(0,A.jsx)(U,{className:h.bar1,ownerState:f,style:v.bar1}),u===`determinate`?null:(0,A.jsx)(W,{className:h.bar2,ownerState:f,style:v.bar2})]})})})),xe=t((()=>{be(),O(),O()}));function Se(e,t){let n=t>0?t:2**-52,r=q*(1-Math.exp(-3.5*e/n));return Math.min(q,Math.max(0,r))}function Ce(e){let t=Se(e.elapsedMs,e.estimatedDurationMs);return e.confirmedProcessed+e.pendingBatchSize*t}function we(e,t){return Y*e+(1-Y)*t}function K(e,t){return t===0?0:Math.min(100,e/t*100)}var q,J,Y,X=t((()=>{q=.95,J=1e4,Y=.5}));function Z({displayProgress:e,isDownloading:t=!1,onDownload:n,result:r,status:i}){let a=D,o=r.details.filter(e=>e.status===`failed`),s=r.details.filter(e=>e.status===`duplicate`),c=r.details.filter(e=>e.status===`holderMissing`);return(0,$.jsx)(pe,{children:(0,$.jsxs)(C,{spacing:2,children:[(0,$.jsxs)(w,{children:[(0,$.jsx)(T,{sx:{fontWeight:700},children:i===`importing`?a.progressTitle:a.completedTitle}),i===`importing`?(0,$.jsx)(T,{sx:{color:`text.secondary`,mt:.5},variant:`body2`,children:a.keepPageOpenHint}):null]}),i===`importing`?(0,$.jsx)(G,{"aria-label":a.progressTitle,value:e??K(r.processedCount,r.totalCount),variant:`determinate`}):null,i===`completed`?(0,$.jsxs)(C,{direction:{xs:`column`,sm:`row`},spacing:1,children:[(0,$.jsx)(E,{severity:`success`,children:a.successCount(r.successCount)}),r.failureCount>0?(0,$.jsx)(E,{severity:`error`,children:a.failureCount(r.failureCount)}):null,r.duplicateCount>0?(0,$.jsx)(E,{severity:`warning`,children:a.duplicateCount(r.duplicateCount)}):null,r.holderMissingCount>0?(0,$.jsx)(E,{severity:`warning`,children:a.holderMissingCount(r.holderMissingCount)}):null,r.createdPlaceholderCount>0?(0,$.jsx)(E,{severity:`info`,children:a.createdPlaceholderCount(r.createdPlaceholderCount)}):null]}):null,i===`completed`&&o.length>0?(0,$.jsx)(Q,{items:o,title:a.failedDetailTitle}):null,i===`completed`&&s.length>0?(0,$.jsx)(Q,{items:s,title:a.duplicateDetailTitle}):null,i===`completed`&&c.length>0?(0,$.jsx)(Q,{items:c,title:a.holderMissingDetailTitle}):null,i===`completed`&&n?(0,$.jsx)(le,{disabled:t,onClick:n,startIcon:(0,$.jsx)(he,{}),sx:{alignSelf:`flex-start`},variant:`outlined`,children:t?a.downloadingButton:a.downloadButton}):null]})})}function Q({items:e,title:t}){return(0,$.jsxs)(C,{spacing:1,children:[(0,$.jsx)(T,{sx:{fontWeight:700},variant:`body2`,children:t}),(0,$.jsx)(C,{component:`ul`,spacing:1,sx:{listStyle:`none`,m:0,p:0},children:e.map((e,t)=>(0,$.jsxs)(w,{component:`li`,children:[(0,$.jsxs)(T,{sx:{fontWeight:600},variant:`body2`,children:[`[`,ge[e.sheet],`]`,` `,D.detailRows(e.rowNumbers)]}),(0,$.jsx)(T,{sx:{color:`text.secondary`},variant:`body2`,children:e.content}),(0,$.jsx)(T,{variant:`body2`,children:e.reason})]},`${e.sheet}-${e.rowNumbers.join(`-`)}-${t}`))})]})}var $,Te=t((()=>{$=r(),me(),de(),se(),ue(),xe(),oe(),ce(),ve(),_e(),fe(),X(),Z.__docgenInfo={description:``,methods:[],displayName:`DataImportExecutionStatus`,props:{displayProgress:{required:!1,tsType:{name:`number`},description:`进度条展示值（0–100，可为预测值）；不传时按真实处理进度展示。`},isDownloading:{required:!1,tsType:{name:`boolean`},description:``,defaultValue:{value:`false`,computed:!1}},onDownload:{required:!1,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``},result:{required:!0,tsType:{name:`ImportExecutionResult`},description:``},status:{required:!0,tsType:{name:`union`,raw:`"completed" | "importing"`,elements:[{name:`literal`,value:`"completed"`},{name:`literal`,value:`"importing"`}]},description:``}}}}));export{J as a,X as i,Te as n,K as o,Ce as r,we as s,Z as t};
