@@ -1,6 +1,8 @@
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
 import { LedgerSetupAccountsStep } from "organisms/ledgers/LedgerSetupAccountsStep/LedgerSetupAccountsStep";
 import { LedgerSetupBasicInfoStep } from "organisms/ledgers/LedgerSetupBasicInfoStep/LedgerSetupBasicInfoStep";
+import { LedgerSetupConfirmStep } from "organisms/ledgers/LedgerSetupConfirmStep/LedgerSetupConfirmStep";
+import { LedgerSetupFeaturesStep } from "organisms/ledgers/LedgerSetupFeaturesStep/LedgerSetupFeaturesStep";
 import { LedgerSetupMerchantsStep } from "organisms/ledgers/LedgerSetupMerchantsStep/LedgerSetupMerchantsStep";
 
 import { LedgerSetupPlaceholderStep } from "./LedgerSetupPlaceholderStep";
@@ -30,12 +32,12 @@ export const ledgerSetupWizardSteps: readonly LedgerSetupWizardStepDefinition[] 
       label: stepLabels.merchants,
     },
     {
-      Component: LedgerSetupPlaceholderStep,
+      Component: LedgerSetupFeaturesStep,
       key: "features",
       label: stepLabels.features,
     },
     {
-      Component: LedgerSetupPlaceholderStep,
+      Component: LedgerSetupConfirmStep,
       key: "confirm",
       label: stepLabels.confirm,
     },

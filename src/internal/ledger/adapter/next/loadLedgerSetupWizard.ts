@@ -20,20 +20,25 @@ export async function readLedgerSetupProgress(
     : null;
 }
 
-/** 创建账本向导的初始数据：第 1 步的默认值与当前用户的创建中账本进度。 */
+/**
+ * 创建账本向导的初始数据：第 1 步的默认值、当前用户的创建中账本进度，
+ * 以及确认一览展示的默认大分类。默认大分类与账本无关、不随向导操作变化，
+ * 因此在打开向导时与其他数据并行读取一次，确认一览无需再单独请求。
+ */
 export async function loadLedgerSetupWizard(): Promise<LedgerSetupWizardView> {
   // redirect() 属于页面边界，未登录时由 currentLedger 解析跳转登录页。
   const { currentLedger, email, userId } = await getCurrentLedgerContext();
   const dependencies = await createServerRequestDependencies();
   const container = createRequestContainer(dependencies);
-  const [{ defaults }, progress] = await Promise.all([
+  const [{ defaults }, progress, defaultRootCategoryNames] = await Promise.all([
     container.ledger.service.getCreateDefaults({
       email,
       inheritedCurrency: currentLedger?.baseCurrency,
       userId,
     }),
     readLedgerSetupProgress(container.ledger.setupService),
+    container.ledger.setupService.listDefaultRootCategoryNames(),
   ]);
 
-  return { defaults, progress };
+  return { defaultRootCategoryNames, defaults, progress };
 }

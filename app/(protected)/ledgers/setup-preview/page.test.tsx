@@ -16,6 +16,7 @@ vi.mock("internal/ledger/adapter/next/loadLedgerSetupWizard", () => ({
 }));
 
 vi.mock("internal/ledger/adapter/next/actions/ledgerSetup", () => ({
+  completeLedgerSetup: vi.fn(),
   saveLedgerSetupDraft: vi.fn(),
   submitLedgerSetupBasicInfo: vi.fn(),
 }));
@@ -27,6 +28,7 @@ vi.mock("templates/ledgers/LedgerSetupPreview", () => ({
 import LedgerSetupPreviewRoute from "./page";
 
 const view = {
+  defaultRootCategoryNames: ["💰 工资收入"],
   defaults: {
     baseCurrency: "JPY",
     displayColor: "amber",
@@ -68,5 +70,6 @@ describe("LedgerSetupPreviewRoute", () => {
     expect(mocks.notFound).not.toHaveBeenCalled();
     expect(mocks.loadLedgerSetupWizard).toHaveBeenCalledTimes(1);
     expect(element.props).toMatchObject(view);
+    expect(element.props.completeSetupAction).toEqual(expect.any(Function));
   });
 });

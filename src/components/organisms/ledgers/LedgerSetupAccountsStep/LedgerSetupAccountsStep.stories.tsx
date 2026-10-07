@@ -2,13 +2,15 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
 import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import {
+  createLedgerSetupWizardStoryActions,
+  ledgerSetupWizardStoryArgs,
+  ledgerSetupWizardStoryDecorators,
+} from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
 import {
   createLedgerSetupProgressFixture,
   ledgerSetupTemplateFixture,
 } from "test/mocks/ledgerSetup";
-import { UserThemeProvider } from "theme/UserThemeProvider";
-import type { LedgerSetupProgress } from "types/ledgers";
 
 const defaultProgress = createLedgerSetupProgressFixture(
   {},
@@ -39,36 +41,14 @@ const multipleAccountsProgress = createLedgerSetupProgressFixture(
   ledgerSetupTemplateFixture,
 );
 
-function createActions(progress: LedgerSetupProgress) {
-  return {
-    saveDraft: async () => ({ progress }),
-    submitBasicInfo: async () => ({ progress }),
-  };
-}
-
 // 第 2 步依赖向导骨架提供的步骤回调与进度，因此在向导中展示。
 const meta = {
   title: "Organisms/Ledgers/LedgerSetupAccountsStep",
   component: LedgerSetupWizard,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
-    ),
-  ],
+  decorators: ledgerSetupWizardStoryDecorators,
   args: {
-    actions: createActions(defaultProgress),
-    defaults: {
-      baseCurrency: "JPY",
-      displayColor: "amber",
-      displayName: "DENG SONGWEN",
-      ledgerName: "家庭账本",
-    },
-    onClose: () => {},
-    open: true,
+    actions: createLedgerSetupWizardStoryActions(defaultProgress),
+    ...ledgerSetupWizardStoryArgs,
     progress: defaultProgress,
   },
   parameters: { viewport: { defaultViewport: "mobile2" } },
@@ -84,7 +64,7 @@ export const Default: Story = {
 export const MultipleAccounts: Story = {
   name: "多个账户（含已取消勾选）",
   args: {
-    actions: createActions(multipleAccountsProgress),
+    actions: createLedgerSetupWizardStoryActions(multipleAccountsProgress),
     progress: multipleAccountsProgress,
   },
   play: async ({ canvasElement }) => {
@@ -112,7 +92,7 @@ export const Saving: Story = {
   name: "保存中",
   args: {
     actions: {
-      ...createActions(defaultProgress),
+      ...createLedgerSetupWizardStoryActions(defaultProgress),
       saveDraft: () => new Promise(() => {}),
     },
   },

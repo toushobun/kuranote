@@ -16,6 +16,8 @@ import {
   clickPrevious,
   createSaveDraftMock,
   getCurrentStepItem,
+  getSavedInput,
+  goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import {
@@ -67,11 +69,6 @@ function getTagCheckbox(tagName: string) {
 
 function expectNextLabel(label: string) {
   expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
-}
-
-/** 第一次保存草稿时的参数。 */
-function getSavedInput(saveDraft: Mock<LedgerSetupDraftSaveAction>) {
-  return saveDraft.mock.calls[0][0];
 }
 
 describe("LedgerSetupMerchantsStep", () => {
@@ -231,9 +228,8 @@ describe("LedgerSetupMerchantsStep", () => {
     fireEvent.click(getTagCheckbox("家电数码"));
     fireEvent.click(screen.getByRole("button", { name: "跳过此步" }));
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("功能"));
-    clickPrevious();
+    await goPreviousTo("商家");
 
-    expect(getCurrentStepItem()).toHaveTextContent("商家");
     expect(getTagCheckbox("家电数码")).toBeChecked();
     expectNextLabel("下一步 · 已选 2 家");
   });

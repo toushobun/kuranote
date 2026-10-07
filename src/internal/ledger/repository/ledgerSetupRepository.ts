@@ -61,6 +61,11 @@ export type UpdateLedgerSetupBasicInfoInput = CreateLedgerInput & {
   ledgerId: string;
 };
 
+type LedgerDefaultRootCategoryRow = {
+  name: string;
+  sort_order: number;
+};
+
 type LedgerSetupRow = {
   base_currency: string;
   ledger_id: string;
@@ -94,6 +99,8 @@ export interface LedgerSetupRepository {
   create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
   findCurrentUserSetupLedger(userId: string): Promise<LedgerSetupRecord | null>;
+  /** 完成写入时将自动创建的大分类名称（按排序）。默认分类只在数据库中维护。 */
+  listDefaultRootCategoryNames(): Promise<string[]>;
   saveDraft(input: SaveLedgerSetupDraftInput): Promise<LedgerSetupWriteResult>;
   updateBasicInfo(
     input: UpdateLedgerSetupBasicInfoInput,
@@ -231,6 +238,30 @@ export function createSupabaseLedgerSetupRepository(
         step: row.setup_step,
         storedDraft,
       };
+    },
+
+    async listDefaultRootCategoryNames() {
+      const { data, error } = await supabase.rpc(
+        "get_ledger_default_root_categories",
+      );
+
+      if (error) {
+        logger.error("[ledger] failed to load default root categories", {
+          databaseCode: error.code,
+        });
+        throw toRepositoryError(
+          "ledger_default_categories_load_failed",
+          ledgerSetupLoadErrorMessages.defaultCategoriesLoadFailed,
+        );
+      }
+
+      const rows: LedgerDefaultRootCategoryRow[] = Array.isArray(data)
+        ? data
+        : [];
+
+      return [...rows]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(({ name }) => name);
     },
 
     async saveDraft({ draft, ledgerId, step }) {

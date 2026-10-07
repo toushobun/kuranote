@@ -87,6 +87,51 @@ export const ledgerSetupMerchantsMessages = {
   title: "挑选常去的商家",
 } as const;
 
+/** 第 4 步「功能」。功能开关本身的文案由 LedgerSpecialStatusSetting 提供。 */
+export const ledgerSetupFeaturesMessages = {
+  description: "可以随时在账本设置中开启或关闭",
+  title: "需要这些功能吗？",
+} as const;
+
+/** 第 5 步「确认一览」。账户名、商家标签与分类名取自草稿、模板与默认分类，不在此重复。 */
+export const ledgerSetupConfirmMessages = {
+  accounts: {
+    skippedDescription: "记账前需要先添加账户",
+    title: "账户",
+    titleWithCount: (count: number) => `账户（${count}）`,
+  },
+  basicInfo: {
+    colorLabel: (colorLabel: string) => `个性色：${colorLabel}`,
+    title: "基本信息",
+  },
+  categories: {
+    description: "按默认创建，之后可在分类管理中调整",
+    more: (count: number) => `等 ${count} 个`,
+    showAllLabel: (count: number) => `展开全部 ${count} 个分类`,
+    title: "分类（自动创建）",
+  },
+  complete: "完成创建",
+  completeErrorTitle: "账本创建失败",
+  completing: "创建中",
+  description: (ledgerName: string) => `以下内容将添加到「${ledgerName}」`,
+  edit: "修改",
+  editLabel: (sectionTitle: string) => `修改${sectionTitle}`,
+  features: {
+    disabled: "未开启",
+    enabled: "已开启",
+    specialStatus: "报销与退款状态",
+    title: "功能",
+  },
+  merchants: {
+    skippedDescription: "记账前需要先添加商家",
+    tagCountLabel: (tagName: string, count: number) => `${tagName} ${count} 家`,
+    title: "商家",
+    titleWithCount: (count: number) => `商家（${count} 家）`,
+  },
+  skipped: "已跳过",
+  title: "确认一下，马上就好",
+} as const;
+
 /** 仅非生产环境可访问的向导预览页（#395 实施拆分第 8 项移除）。 */
 export const ledgerSetupPreviewPageMessages = {
   description:

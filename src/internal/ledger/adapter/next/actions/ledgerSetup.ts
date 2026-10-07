@@ -19,7 +19,9 @@ import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
 import type {
+  CompleteLedgerSetupInput,
   LedgerSetupBasicInfoActionState,
+  LedgerSetupCompleteActionState,
   LedgerSetupDraftActionState,
   SaveLedgerSetupDraftInput,
 } from "types/ledgers";
@@ -69,7 +71,7 @@ async function readProgressAfterWrite(setupService: SetupService) {
 }
 
 /** Server Action 的参数来自客户端，账本 ID 在服务端重新校验。 */
-function parseDraftLedgerId(input: unknown): string | null {
+function parseLedgerId(input: unknown): string | null {
   if (typeof input !== "object" || input === null) return null;
 
   const { ledgerId } = input as { ledgerId?: unknown };
@@ -143,7 +145,7 @@ export async function saveLedgerSetupDraft(
   input: SaveLedgerSetupDraftInput,
 ): Promise<LedgerSetupDraftActionState> {
   await getCurrentLedgerContext();
-  const ledgerId = parseDraftLedgerId(input);
+  const ledgerId = parseLedgerId(input);
 
   if (!ledgerId) {
     return createErrorState(
@@ -198,4 +200,65 @@ export async function saveLedgerSetupDraft(
       ? { ...state, accountNameDuplicate: true }
       : state;
   }
+}
+
+/**
+ * 向导第 5 步「完成创建」：按数据库中的草稿在同一事务内写入默认数据，
+ * 将账本标记为已完成并切换为当前账本。成功后刷新依赖当前账本的页面，由向导进入下一步。
+ * 预设内容已更新或默认货币已变更时不写入，返回重新读取的进度（outdated）；
+ * 创建中账本已在其他页面完成或不存在时返回 notFound，由向导提示后关闭。
+ */
+export async function completeLedgerSetup(
+  input: CompleteLedgerSetupInput,
+): Promise<LedgerSetupCompleteActionState> {
+  await getCurrentLedgerContext();
+  const ledgerId = parseLedgerId(input);
+
+  if (!ledgerId) {
+    return {
+      ...createErrorState(
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      ),
+      notFound: true,
+    };
+  }
+
+  try {
+    const dependencies = await createServerRequestDependencies();
+    const setupService =
+      createRequestContainer(dependencies).ledger.setupService;
+
+    try {
+      await setupService.complete(ledgerId);
+    } catch (error) {
+      if (
+        !hasLedgerSetupErrorCode(
+          error,
+          ledgerSetupErrorCodes.templateOutdated,
+          ledgerSetupErrorCodes.currencyMismatch,
+        )
+      ) {
+        throw error;
+      }
+
+      return {
+        outdated: true,
+        progress: await readProgressAfterWrite(setupService),
+      };
+    }
+  } catch (error) {
+    const state = createActionErrorState(
+      error,
+      ledgerSetupWriteErrorMessages.completeFailed,
+      "[ledger] ledger setup complete action failed unexpectedly",
+    );
+
+    return hasLedgerSetupErrorCode(error, ledgerSetupErrorCodes.notFound)
+      ? { ...state, notFound: true }
+      : state;
+  }
+
+  // 完成写入已切换当前账本：与切换 / 创建账本相同，失效依赖当前账本的页面。
+  revalidateLedgerMutation();
+  return { completed: true };
 }

@@ -217,6 +217,52 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
   });
 });
 
+describe("createSupabaseLedgerSetupRepository.listDefaultRootCategoryNames", () => {
+  it("调用 get_ledger_default_root_categories 并按排序返回大分类名称", async () => {
+    const { repository, supabase } = createRepository({
+      data: [
+        { name: "🍽️ 饮食", sort_order: 30 },
+        { name: "💰 工资收入", sort_order: 10 },
+        { name: "💸 其他收入", sort_order: 20 },
+      ],
+    });
+
+    await expect(repository.listDefaultRootCategoryNames()).resolves.toEqual([
+      "💰 工资收入",
+      "💸 其他收入",
+      "🍽️ 饮食",
+    ]);
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      "get_ledger_default_root_categories",
+    );
+  });
+
+  it("没有返回行时返回空数组", async () => {
+    const { repository } = createRepository({ data: null });
+
+    await expect(repository.listDefaultRootCategoryNames()).resolves.toEqual(
+      [],
+    );
+  });
+
+  it("查询失败时记录日志并转换为安全 RepositoryError", async () => {
+    const { logger, repository } = createRepository({
+      error: { code: "XX000", details: "unexpected", message: "private" },
+    });
+
+    await expect(
+      repository.listDefaultRootCategoryNames(),
+    ).rejects.toMatchObject({
+      code: "ledger_default_categories_load_failed",
+      message: ledgerSetupLoadErrorMessages.defaultCategoriesLoadFailed,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[ledger] failed to load default root categories",
+      { databaseCode: "XX000" },
+    );
+  });
+});
+
 describe("createSupabaseLedgerSetupRepository.saveDraft", () => {
   it("调用 save_ledger_setup_draft 保存步骤与草稿", async () => {
     const { repository, supabase } = createRepository();

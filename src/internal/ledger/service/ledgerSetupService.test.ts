@@ -58,6 +58,7 @@ function createRepository(
     complete: vi.fn(async () => ({ ok: true as const })),
     create: vi.fn(async () => ({ ledgerId, ok: true as const })),
     findCurrentUserSetupLedger: vi.fn(async () => null),
+    listDefaultRootCategoryNames: vi.fn(async () => []),
     saveDraft: vi.fn(async () => ({ ok: true as const })),
     updateBasicInfo: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
@@ -209,6 +210,40 @@ describe("createLedgerSetupService.getTemplate", () => {
 
     expect(service.getTemplate("JPY")).toBe(getLedgerSetupTemplate("JPY"));
     expect(service.getTemplate("USD")).toBeNull();
+  });
+});
+
+describe("createLedgerSetupService.listDefaultRootCategoryNames", () => {
+  it("返回 Repository 读取的默认大分类名称", async () => {
+    const ledgerSetupRepository = createRepository({
+      listDefaultRootCategoryNames: vi.fn(async () => [
+        "💰 工资收入",
+        "🍽️ 饮食",
+      ]),
+    });
+    const service = createLedgerSetupService({
+      currentUserId: userId,
+      ledgerSetupRepository,
+    });
+
+    await expect(service.listDefaultRootCategoryNames()).resolves.toEqual([
+      "💰 工资收入",
+      "🍽️ 饮食",
+    ]);
+  });
+
+  it("读取失败时不吞掉 Repository 错误", async () => {
+    const error = new Error("load failed");
+    const service = createLedgerSetupService({
+      currentUserId: userId,
+      ledgerSetupRepository: createRepository({
+        listDefaultRootCategoryNames: vi.fn(async () => {
+          throw error;
+        }),
+      }),
+    });
+
+    await expect(service.listDefaultRootCategoryNames()).rejects.toBe(error);
   });
 });
 

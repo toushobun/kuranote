@@ -19,6 +19,7 @@ import {
   clickNext,
   createSaveDraftMock,
   getCurrentStepItem,
+  getSavedInput,
   goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
@@ -64,11 +65,6 @@ function getAccountCheckbox(name: string) {
 function openAddSheet(typeLabel: string) {
   fireEvent.click(screen.getByRole("button", { name: `添加${typeLabel}` }));
   return getAccountAddSheet(typeLabel);
-}
-
-/** 第一次保存草稿时的参数。 */
-function getSavedInput(saveDraft: Mock<LedgerSetupDraftSaveAction>) {
-  return saveDraft.mock.calls[0][0];
 }
 
 describe("LedgerSetupAccountsStep", () => {

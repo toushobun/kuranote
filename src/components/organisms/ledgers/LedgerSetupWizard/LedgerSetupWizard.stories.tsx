@@ -2,10 +2,13 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { LedgerSetupWizard } from "./LedgerSetupWizard";
+import {
+  createLedgerSetupWizardStoryActions,
+  ledgerSetupWizardStoryArgs,
+  ledgerSetupWizardStoryDecorators,
+} from "./ledgerSetupWizardStoryUtils";
 
 const setupProgress = createLedgerSetupProgressFixture({
   displayName: "DENG SONGWEN",
@@ -14,28 +17,10 @@ const setupProgress = createLedgerSetupProgressFixture({
 const meta = {
   title: "Organisms/Ledgers/LedgerSetupWizard",
   component: LedgerSetupWizard,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
-    ),
-  ],
+  decorators: ledgerSetupWizardStoryDecorators,
   args: {
-    actions: {
-      saveDraft: async () => ({ progress: setupProgress }),
-      submitBasicInfo: async () => ({ progress: setupProgress }),
-    },
-    defaults: {
-      baseCurrency: "JPY",
-      displayColor: "amber",
-      displayName: "DENG SONGWEN",
-      ledgerName: "家庭账本",
-    },
-    onClose: () => {},
-    open: true,
+    actions: createLedgerSetupWizardStoryActions(setupProgress),
+    ...ledgerSetupWizardStoryArgs,
     progress: null,
   },
 } satisfies Meta<typeof LedgerSetupWizard>;

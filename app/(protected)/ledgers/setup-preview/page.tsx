@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import {
+  completeLedgerSetup,
   saveLedgerSetupDraft,
   submitLedgerSetupBasicInfo,
 } from "internal/ledger/adapter/next/actions/ledgerSetup";
@@ -24,6 +25,7 @@ export default async function LedgerSetupPreviewRoute() {
   return (
     <LedgerSetupPreviewTemplate
       {...view}
+      completeSetupAction={completeLedgerSetup}
       saveDraftAction={saveLedgerSetupDraft}
       submitBasicInfoAction={submitLedgerSetupBasicInfo}
     />

@@ -159,6 +159,22 @@ export const ledgerSetupMerchantDefaultSelectedKeys = [
   "mercari",
 ];
 
+/** 数据库默认分类中的大分类名称（按排序），与 get_ledger_default_root_categories 的返回一致。 */
+export const ledgerSetupDefaultRootCategoryNamesFixture = [
+  "💰 工资收入",
+  "💸 其他收入",
+  "🍽️ 饮食",
+  "🏠 住房",
+  "🚃 出行",
+  "👗 穿衣",
+  "🎮 玩耍",
+  "💊 医疗",
+  "📚 教育",
+  "📱 通讯",
+  "🤝 人情",
+  "💴 金融",
+];
+
 /** 创建账本向导测试共用的创建中账本进度。草稿只保留测试需要的最小内容。 */
 export function createLedgerSetupProgressFixture(
   overrides: Partial<LedgerSetup> = {},

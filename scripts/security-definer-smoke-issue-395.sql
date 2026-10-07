@@ -919,4 +919,107 @@ begin
 end;
 $$;
 
+-- 默认分类只在 ledger_default_categories() 中维护一份：
+-- /ledgers/new 与完成写入创建的分类与抽出前完全一致，向导 RPC 返回的大分类与实际写入一致。
+-- 指纹：每个分类按「type|父分类名|名称|icon|color|sort_order」拼成一行，
+-- 按同样的列以 COLLATE "C"（码位顺序）排序后用换行连接，取 md5。
+-- 排序必须固定为 "C"：数据库默认排序规则（本地 C.UTF-8、Supabase 的 ICU / en_US 等）
+-- 对 emoji 与中文名称的顺序不同，会让同样的数据得到不同的指纹。
+-- 期望值为抽出前（main）initialize_ledger_default_categories 写入结果（101 个分类）的指纹。
+create function pg_temp.default_category_fingerprint(p_ledger_id uuid)
+returns text
+language sql
+as $$
+    select md5(string_agg(
+        format('%s|%s|%s|%s|%s|%s', c.type, coalesce(parent.name, ''), c.name, c.icon_name, c.color, c.sort_order),
+        E'\n'
+        order by
+            c.type collate "C",
+            coalesce(parent.name, '') collate "C",
+            c.sort_order,
+            c.name collate "C"
+    ))
+    from public.category c
+    left join public.category parent on parent.id = c.parent_id
+    where c.ledger_id = p_ledger_id;
+$$;
+
+-- 分别断言分类总数、大分类数与指纹，失败时报出实际值。
+create function pg_temp.assert_default_categories(p_label text, p_ledger_id uuid)
+returns void
+language plpgsql
+as $$
+declare
+    v_expected_fingerprint constant text := '71bbe68f984544d84827496605aef755';
+    v_total integer;
+    v_roots integer;
+    v_fingerprint text;
+begin
+    select count(*), count(*) filter (where parent_id is null)
+      into v_total, v_roots
+      from public.category
+     where ledger_id = p_ledger_id;
+    v_fingerprint := pg_temp.default_category_fingerprint(p_ledger_id);
+
+    if v_total <> 101 then
+        raise exception '% default category count changed: expected 101, got %', p_label, v_total;
+    end if;
+    if v_roots <> 12 then
+        raise exception '% default root category count changed: expected 12, got %', p_label, v_roots;
+    end if;
+    if v_fingerprint is distinct from v_expected_fingerprint then
+        raise exception '% default category fingerprint changed: expected %, got %',
+            p_label, v_expected_fingerprint, v_fingerprint;
+    end if;
+end;
+$$;
+
+do $$
+declare
+    v_owner_id uuid := '39500000-0000-4000-8000-000000000021';
+    v_legacy_ledger_id uuid;
+    v_setup_ledger_id uuid;
+    v_rpc_roots text;
+    v_written_roots text;
+begin
+    perform pg_temp.create_test_user(v_owner_id, 'ledger-default-categories@example.invalid');
+    perform pg_temp.sign_in(v_owner_id);
+
+    select (public.create_ledger_with_owner_settings('Legacy Categories', 'JPY', 'Owner', 'jade')).id
+      into v_legacy_ledger_id;
+
+    select public.create_ledger_setup('Setup Categories', 'USD', 'Owner', 'sky')
+      into v_setup_ledger_id;
+    perform public.complete_ledger_setup(
+        v_setup_ledger_id,
+        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+    );
+
+    perform pg_temp.assert_default_categories('/ledgers/new', v_legacy_ledger_id);
+    perform pg_temp.assert_default_categories('complete_ledger_setup', v_setup_ledger_id);
+
+    select string_agg(format('%s|%s', r.name, r.sort_order), E'\n' order by r.sort_order)
+      into v_rpc_roots
+      from public.get_ledger_default_root_categories() r;
+    select string_agg(format('%s|%s', c.name, c.sort_order), E'\n' order by c.sort_order)
+      into v_written_roots
+      from public.category c
+     where c.ledger_id = v_setup_ledger_id
+       and c.parent_id is null;
+
+    if v_rpc_roots is null or v_rpc_roots is distinct from v_written_roots then
+        raise exception 'get_ledger_default_root_categories must match written root categories';
+    end if;
+
+    -- 只读 RPC 只授予 authenticated；默认分类定义与初始化函数不对客户端开放。
+    if not has_function_privilege('authenticated', 'public.get_ledger_default_root_categories()', 'execute')
+       or has_function_privilege('anon', 'public.get_ledger_default_root_categories()', 'execute')
+       or has_function_privilege('authenticated', 'public.ledger_default_categories()', 'execute')
+       or has_function_privilege('anon', 'public.ledger_default_categories()', 'execute')
+       or has_function_privilege('authenticated', 'public.initialize_ledger_default_categories(uuid, uuid)', 'execute') then
+        raise exception 'default category function privileges smoke test failed';
+    end if;
+end;
+$$;
+
 rollback;

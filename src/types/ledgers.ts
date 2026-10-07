@@ -107,6 +107,8 @@ export type LedgerSetupProgress = {
 
 /** 打开创建账本向导所需的数据。尚未创建账本时 progress 为 null。 */
 export type LedgerSetupWizardView = LedgerCreateDefaults & {
+  /** 完成创建时将自动创建的大分类名称（按排序），确认一览展示用。 */
+  defaultRootCategoryNames: string[];
   progress: LedgerSetupProgress | null;
 };
 
@@ -145,6 +147,25 @@ export type LedgerSetupDraftActionState = ActionState & {
 export type LedgerSetupDraftSaveAction = (
   input: SaveLedgerSetupDraftInput,
 ) => Promise<LedgerSetupDraftActionState>;
+
+/** 完成创建的输入。服务端重新校验账本 ID，完成内容只取自数据库中的草稿。 */
+export type CompleteLedgerSetupInput = {
+  ledgerId: string;
+};
+
+export type LedgerSetupCompleteActionState = ActionState & {
+  /** 完成写入成功：账本已完成并切换为当前账本。 */
+  completed?: boolean;
+  /** 创建中账本已在其他页面完成或不存在：向导无法继续，只能关闭。 */
+  notFound?: boolean;
+  /** 预设模板已更新或默认货币已变更，未写入：progress 为重新读取的进度。 */
+  outdated?: boolean;
+  progress?: LedgerSetupProgress;
+};
+
+export type LedgerSetupCompleteAction = (
+  input: CompleteLedgerSetupInput,
+) => Promise<LedgerSetupCompleteActionState>;
 
 export type LedgerInviteActionOperation = "create" | "invite" | "revoke";
 

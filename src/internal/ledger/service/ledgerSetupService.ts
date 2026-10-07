@@ -58,6 +58,8 @@ export type LedgerSetupService = {
   getCurrentUserSetup(): Promise<LedgerSetup | null>;
   /** 按币种返回预设模板；该币种没有模板时返回 null。 */
   getTemplate(currency: string): LedgerSetupTemplate | null;
+  /** 完成创建时将自动创建的大分类名称（按排序），供确认一览展示。 */
+  listDefaultRootCategoryNames(): Promise<string[]>;
   saveDraft(input: SaveLedgerSetupDraftCommand): Promise<void>;
   updateBasicInfo(input: UpdateLedgerSetupBasicInfoInput): Promise<void>;
 };
@@ -167,6 +169,10 @@ export function createLedgerSetupService({
 
     getTemplate(currency) {
       return getLedgerSetupTemplate(currency);
+    },
+
+    listDefaultRootCategoryNames() {
+      return ledgerSetupRepository.listDefaultRootCategoryNames();
     },
 
     async saveDraft({ draft, ledgerId, step }) {

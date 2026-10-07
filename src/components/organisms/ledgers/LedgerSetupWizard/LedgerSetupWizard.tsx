@@ -27,6 +27,8 @@ const closeConfirmMessages = ledgerSetupWizardMessages.closeConfirm;
 
 type LedgerSetupWizardProps = {
   actions: LedgerSetupWizardActions;
+  /** 确认一览展示的默认大分类名称（按排序）。 */
+  defaultRootCategoryNames: readonly string[];
   defaults: LedgerBasicInfoValues;
   onClose: () => void;
   open: boolean;
@@ -40,6 +42,7 @@ type LedgerSetupWizardProps = {
  */
 export function LedgerSetupWizard({
   actions,
+  defaultRootCategoryNames,
   defaults,
   onClose,
   open,
@@ -94,15 +97,18 @@ export function LedgerSetupWizard({
         </Box>
         <StepComponent
           actions={actions}
+          defaultRootCategoryNames={defaultRootCategoryNames}
           defaults={defaults}
           isLastStep={wizard.isLastStep}
           key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
           onBusyChange={wizard.setBusy}
+          onGoToStep={wizard.goToStep}
           onNext={wizard.goNext}
           onPrevious={wizard.goPrevious}
           onProgressChange={wizard.updateProgress}
           onProgressRefresh={wizard.refreshProgress}
           onRestore={wizard.restoreProgress}
+          onSetupUnavailable={wizard.markSetupUnavailable}
           progress={wizard.progress}
           step={wizard.step}
           stepLabel={label}

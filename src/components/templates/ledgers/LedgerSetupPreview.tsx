@@ -9,11 +9,13 @@ import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSet
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type {
   LedgerSetupBasicInfoStateAction,
+  LedgerSetupCompleteAction,
   LedgerSetupDraftSaveAction,
   LedgerSetupWizardView,
 } from "types/ledgers";
 
 type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
+  completeSetupAction: LedgerSetupCompleteAction;
   saveDraftAction: LedgerSetupDraftSaveAction;
   submitBasicInfoAction: LedgerSetupBasicInfoStateAction;
 };
@@ -23,6 +25,8 @@ type LedgerSetupPreviewTemplateProps = LedgerSetupWizardView & {
  * 打开页面即显示向导；关闭后刷新数据，重新打开时从最新进度恢复。
  */
 export function LedgerSetupPreviewTemplate({
+  completeSetupAction,
+  defaultRootCategoryNames,
   defaults,
   progress,
   saveDraftAction,
@@ -47,9 +51,11 @@ export function LedgerSetupPreviewTemplate({
       {open ? (
         <LedgerSetupWizard
           actions={{
+            completeSetup: completeSetupAction,
             saveDraft: saveDraftAction,
             submitBasicInfo: submitBasicInfoAction,
           }}
+          defaultRootCategoryNames={defaultRootCategoryNames}
           defaults={defaults}
           onClose={closeWizard}
           open

@@ -5,11 +5,13 @@ import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { LedgerSetupStepLayout } from "./LedgerSetupStepLayout";
 import type { LedgerSetupWizardStepProps } from "./ledgerSetupWizardStepTypes";
 
-/** 尚未实现的步骤的占位内容（#395 实施拆分第 6～7 项替换）。 */
+/**
+ * 尚未实现的步骤的占位内容（#395 实施拆分第 7 项替换）。
+ * 目前只用于完成写入后的步骤：账本已完成，不能返回上一步，因此不显示「上一步」。
+ */
 export function LedgerSetupPlaceholderStep({
   isLastStep,
   onNext,
-  onPrevious,
   stepLabel,
 }: LedgerSetupWizardStepProps) {
   return (
@@ -20,10 +22,6 @@ export function LedgerSetupPlaceholderStep({
             disabled: isLastStep,
             label: ledgerSetupWizardMessages.next,
             onClick: onNext,
-          }}
-          previous={{
-            label: ledgerSetupWizardMessages.previous,
-            onClick: onPrevious,
           }}
         />
       }
