@@ -31,6 +31,7 @@ export type {
 export {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  ledgerSetupWriteErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
 export {

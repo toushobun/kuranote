@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 
-import type { LedgerSetupDraft } from "internal/ledger";
+import {
+  ledgerSetupWriteErrorMessages,
+  type LedgerSetupDraft,
+} from "internal/ledger";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
 import type { ActionState } from "types/actions";
-import type { LedgerSetupProgress } from "types/ledgers";
+import type {
+  LedgerSetupDraftActionState,
+  LedgerSetupProgress,
+} from "types/ledgers";
 
 import type { LedgerSetupWizardStepProps } from "./ledgerSetupWizardStepTypes";
 
@@ -63,16 +70,20 @@ export function useLedgerSetupDraftSave({
     onBusyChange(true);
     setAccountNameDuplicateError(null);
 
-    const state = await actions
-      .saveDraft({
+    let state: LedgerSetupDraftActionState;
+    try {
+      state = await actions.saveDraft({
         draft,
         ledgerId: progress.setup.id,
         step: getSetupStepToSave(direction, step, progress.setup.step),
-      })
-      .finally(() => {
-        setIsSaving(false);
-        onBusyChange(false);
       });
+    } catch {
+      // 网络断开等导致 Server Action 本身调用失败：显示通用的保存失败提示，不切换步骤。
+      state = createErrorState(ledgerSetupWriteErrorMessages.draftSaveFailed);
+    } finally {
+      setIsSaving(false);
+      onBusyChange(false);
+    }
 
     if (state.progress) {
       if (state.outdated) {

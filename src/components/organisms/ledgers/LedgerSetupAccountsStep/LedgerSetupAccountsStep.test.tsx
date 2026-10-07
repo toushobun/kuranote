@@ -4,6 +4,7 @@ import { describe, expect, it, vi, type Mock } from "vitest";
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  ledgerSetupWriteErrorMessages,
   type LedgerSetupDraftAccount,
   type LedgerSetupTemplate,
 } from "internal/ledger";
@@ -255,6 +256,26 @@ describe("LedgerSetupAccountsStep", () => {
     expect(alert).toHaveTextContent("创建进度保存失败");
     expect(alert).toHaveTextContent(message);
     expect(getCurrentStepItem()).toHaveTextContent("账户");
+  });
+
+  it("saveDraft 抛出异常（网络断开等）时显示失败提示且不切换步骤", async () => {
+    renderAccountsStep({
+      saveDraft: vi.fn<LedgerSetupDraftSaveAction>(async () => {
+        throw new Error("network error");
+      }),
+    });
+
+    clickNext();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("创建进度保存失败");
+    expect(alert).toHaveTextContent(
+      ledgerSetupWriteErrorMessages.draftSaveFailed,
+    );
+    expect(getCurrentStepItem()).toHaveTextContent("账户");
+    expect(
+      screen.getByRole("button", { name: "下一步 · 已选 1 个" }),
+    ).toBeEnabled();
   });
 
   it("预设内容已更新时用重新读取的进度刷新列表，并在顶部提示重新确认", async () => {
