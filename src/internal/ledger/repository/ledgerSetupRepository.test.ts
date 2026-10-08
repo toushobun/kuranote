@@ -414,7 +414,6 @@ describe("createSupabaseLedgerSetupRepository.abandon", () => {
   });
   it.each([
     ["auth_required", ledgerCreateErrorCodes.authRequired],
-    ["ledger_setup_owner_required", ledgerSetupErrorCodes.ownerRequired],
     ["ledger_setup_not_found", ledgerSetupErrorCodes.notFound],
     ["ledger_setup_not_in_progress", ledgerSetupErrorCodes.notInProgress],
     ["ledger_setup_has_members", ledgerSetupErrorCodes.hasMembers],

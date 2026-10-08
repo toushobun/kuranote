@@ -30,7 +30,6 @@ import {
 import {
   AppError,
   AuthenticationError,
-  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -82,9 +81,6 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
   }
 
   const message = ledgerSetupErrorMessages[code];
-
-  if (code === ledgerSetupErrorCodes.ownerRequired)
-    return new AuthorizationError(code, message);
 
   if (code === ledgerSetupErrorCodes.notFound) {
     return new NotFoundError(code, message);

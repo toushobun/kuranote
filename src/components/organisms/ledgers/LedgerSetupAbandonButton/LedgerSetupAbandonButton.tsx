@@ -11,6 +11,7 @@ import { useAbandonLedgerSetup } from "./useAbandonLedgerSetup";
 export function LedgerSetupAbandonButton(props: {
   action: LedgerSetupAbandonAction;
   disabled?: boolean;
+  size?: "small" | "medium" | "large";
   ledgerId: string;
   ledgerName: string;
   onSuccess: () => void;
@@ -24,6 +25,7 @@ export function LedgerSetupAbandonButton(props: {
   return (
     <>
       <Button
+        size={props.size}
         color="error"
         disabled={props.disabled || flow.pending}
         onClick={() => void flow.abandon()}

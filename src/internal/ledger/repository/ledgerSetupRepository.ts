@@ -83,7 +83,6 @@ const ledgerSetupRpcErrorMap = {
   ledger_setup_draft_currency_mismatch: ledgerSetupErrorCodes.currencyMismatch,
   ledger_setup_draft_invalid: ledgerSetupErrorCodes.draftInvalid,
   ledger_setup_draft_too_large: ledgerSetupErrorCodes.draftTooLarge,
-  ledger_setup_owner_required: ledgerSetupErrorCodes.ownerRequired,
   ledger_setup_has_members: ledgerSetupErrorCodes.hasMembers,
   ledger_setup_has_transactions: ledgerSetupErrorCodes.hasTransactions,
   ledger_setup_in_progress_exists: ledgerSetupErrorCodes.inProgressExists,

@@ -48,13 +48,6 @@ function appThatThrows(error: unknown) {
 describe("errorHandlingMiddleware", () => {
   it.each([
     [
-      new AuthorizationError(
-        ledgerSetupErrorCodes.ownerRequired,
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
-      ),
-      403,
-    ],
-    [
       new ConflictError(
         ledgerSetupErrorCodes.hasMembers,
         ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],

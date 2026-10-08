@@ -92,6 +92,6 @@ npm run db:schema:snapshot:check
 | ledger_invite                                                     | CASCADE  | 任意邀请存在即拒绝（包括历史邀请）                                           |
 | transaction_record                                                | RESTRICT | 存在交易即拒绝；同时检查 transaction_item（通过 record 关联账本）            |
 | transaction_item_refund_link、transaction_item_reimbursement_link | CASCADE  | 存在关联即拒绝，不允许隐式清理交易                                           |
-| app_user.current_ledger_id                                        | SET NULL | 不更新指针；若异常数据指向创建中账本则拒绝                                   |
+| app_user.current_ledger_id                                        | SET NULL | 不更新指针；现有约束只允许指向已完成账本，创建中账本无法成为当前账本         |
 
 创建阶段只写入账本、owner 成员与显示设置；完成创建在同一事务内写入业务数据，失败整体回滚，因此放弃创建无需清理业务表。整个清理事务失败时全部回滚。新增 ledger 外键时必须同步审查此 RPC 和行为测试。

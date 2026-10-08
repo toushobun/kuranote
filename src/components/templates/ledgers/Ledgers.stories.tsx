@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
@@ -76,6 +77,18 @@ export const SetupInProgress: Story = {
     setupWizardActions:
       createLedgerSetupWizardLauncherStoryActions(setupProgress),
   },
+};
+
+export const SetupInProgressMobile: Story = {
+  ...SetupInProgress,
+  name: "创建中账本（360px 手机宽度）",
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 360, maxWidth: "100%" }}>
+        <Story />
+      </Box>
+    ),
+  ],
 };
 
 export const SwitchSucceeded: Story = {

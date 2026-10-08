@@ -43,7 +43,7 @@ select ok(not has_function_privilege('authenticated', 'public.ledger_setup_aband
 select is(pg_temp.err(pg_temp.abandon_sql()), '42501:auth_required', '未登录拒绝且 detail 稳定');
 select pg_temp.act(2);
 set local role authenticated;
-select is(pg_temp.err(pg_temp.abandon_sql()), '42501:ledger_setup_owner_required', '非 owner 拒绝');
+select is(pg_temp.err(pg_temp.abandon_sql()), 'P0002:ledger_setup_not_found', '非 owner 拒绝');
 select pg_temp.act(1);
 select is(pg_temp.err(pg_temp.abandon_sql(2)), '55000:ledger_setup_not_in_progress', 'completed 拒绝');
 select is(pg_temp.err(pg_temp.abandon_sql(99)), 'P0002:ledger_setup_not_found', '不存在拒绝');
@@ -90,7 +90,7 @@ delete from public.transaction_record where ledger_id = pg_temp.lid(1);
 update public.ledger set is_archived = true, archived_at = now() where id = pg_temp.lid(1);
 select pg_temp.act(1);
 set local role authenticated;
-select is(pg_temp.err(pg_temp.abandon_sql()), '55000:ledger_setup_not_in_progress', '归档账本拒绝');
+select is(pg_temp.err(pg_temp.abandon_sql()), 'P0002:ledger_setup_not_found', '归档账本与不存在统一拒绝');
 reset role;
 select pg_temp.act(null);
 update public.ledger set is_archived = false, archived_at = null where id = pg_temp.lid(1);

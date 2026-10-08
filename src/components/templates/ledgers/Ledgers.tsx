@@ -355,45 +355,50 @@ function LedgerSetupInProgressItem({
       disablePadding
       sx={inProgressItemCardSx}
     >
-      <Stack direction="row" spacing={1.25} sx={inProgressItemContentSx}>
-        <Box sx={inProgressItemIconBoxSx}>
-          <MenuBookRoundedIcon fontSize="small" />
-        </Box>
+      <Stack spacing={0.5} sx={{ p: dataItemCardPadding }}>
+        <Stack direction="row" spacing={1.25} sx={inProgressItemContentSx}>
+          <Box sx={inProgressItemIconBoxSx}>
+            <MenuBookRoundedIcon fontSize="small" />
+          </Box>
 
-        <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-            <Typography component="p" noWrap sx={ledgerItemNameSx}>
-              {setup.name}
+          <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+              <Typography component="p" noWrap sx={ledgerItemNameSx}>
+                {setup.name}
+              </Typography>
+              <Chip
+                label={ledgerSetupEntryMessages.inProgressLabel}
+                size="small"
+                sx={inProgressChipSx}
+              />
+            </Stack>
+
+            <Typography color="text.secondary" variant="body2">
+              {progress.description}
             </Typography>
-            <Chip
-              label={ledgerSetupEntryMessages.inProgressLabel}
-              size="small"
-              sx={inProgressChipSx}
-            />
           </Stack>
 
-          <Typography color="text.secondary" variant="body2">
-            {progress.description}
-          </Typography>
+          <Button
+            disabled={busy}
+            aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
+            endIcon={<ChevronRightRoundedIcon />}
+            onClick={onContinue}
+            size="small"
+            sx={continueButtonSx}
+          >
+            {ledgerSetupEntryMessages.continue}
+          </Button>
         </Stack>
-
-        <Button
-          disabled={busy}
-          aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
-          endIcon={<ChevronRightRoundedIcon />}
-          onClick={onContinue}
-          size="small"
-          sx={continueButtonSx}
-        >
-          {ledgerSetupEntryMessages.continue}
-        </Button>
-        <LedgerSetupAbandonButton
-          onBusyChange={setBusy}
-          action={abandonAction}
-          ledgerId={setup.id}
-          ledgerName={setup.name}
-          onSuccess={onAbandoned}
-        />
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <LedgerSetupAbandonButton
+            size="small"
+            onBusyChange={setBusy}
+            action={abandonAction}
+            ledgerId={setup.id}
+            ledgerName={setup.name}
+            onSuccess={onAbandoned}
+          />
+        </Box>
       </Stack>
     </DataItemCard>
   );
@@ -674,8 +679,6 @@ const inProgressItemCardSx = {
 
 const inProgressItemContentSx = {
   alignItems: "center",
-  minHeight: 76,
-  p: dataItemCardPadding,
   "& > :not(:last-child)": {
     opacity: 0.8,
   },

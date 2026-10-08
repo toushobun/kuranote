@@ -761,17 +761,17 @@ describe("abandonLedgerSetup", () => {
     });
     expect(mocks.abandon).not.toHaveBeenCalled();
   });
-  it("权限失败保留安全文案且不刷新", async () => {
+  it("目标不存在或不可访问时保留安全文案且不刷新", async () => {
     mocks.abandon.mockRejectedValue(
-      new AuthorizationError(
-        ledgerSetupErrorCodes.ownerRequired,
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
+      new NotFoundError(
+        ledgerSetupErrorCodes.notFound,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
       ),
     );
     expect(
       await abandonLedgerSetup({ ledgerId: ledgerSetupFixtureId }),
     ).toMatchObject({
-      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
+      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
       errorKey: expect.any(String),
     });
     expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();

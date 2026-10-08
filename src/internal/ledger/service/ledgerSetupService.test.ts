@@ -18,7 +18,6 @@ import { createLedgerSetupService } from "internal/ledger/service/ledgerSetupSer
 import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
 import {
   AuthenticationError,
-  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -622,11 +621,6 @@ describe("createLedgerSetupService.abandon", () => {
       ledgerCreateErrorCodes.authRequired,
       AuthenticationError,
       ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
-    ],
-    [
-      ledgerSetupErrorCodes.ownerRequired,
-      AuthorizationError,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
     ],
     [
       ledgerSetupErrorCodes.notFound,

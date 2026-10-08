@@ -210,24 +210,10 @@ language plpgsql security definer
 set search_path = pg_catalog, pg_temp
 as $$
 declare
-    v_user_id uuid := auth.uid();
     v_ledger public.ledger;
 begin
-    if v_user_id is null then
-        raise exception 'auth_required' using errcode = '42501', detail = 'auth_required';
-    end if;
-    select l.* into v_ledger from public.ledger l where l.id = p_ledger_id for update;
-    if not found then
-        raise exception 'ledger_setup_not_found' using errcode = 'P0002', detail = 'ledger_setup_not_found';
-    end if;
-    if v_ledger.owner_user_id <> v_user_id
-       or not public.current_user_has_ledger_role(p_ledger_id, array['owner']::text[]) then
-        raise exception 'ledger_setup_owner_required' using errcode = '42501', detail = 'ledger_setup_owner_required';
-    end if;
-    if v_ledger.setup_status <> 'in_progress' or v_ledger.is_archived then
-        raise exception 'ledger_setup_not_in_progress' using errcode = '55000', detail = 'ledger_setup_not_in_progress';
-    end if;
-    if exists (select 1 from public.ledger_member where ledger_id = p_ledger_id and user_id <> v_user_id)
+    v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
+    if exists (select 1 from public.ledger_member where ledger_id = p_ledger_id and user_id <> v_ledger.owner_user_id)
        or exists (select 1 from public.ledger_placeholder_member where ledger_id = p_ledger_id)
        or exists (select 1 from public.ledger_invite where ledger_id = p_ledger_id) then
         raise exception 'ledger_setup_has_members' using errcode = '55000', detail = 'ledger_setup_has_members';
@@ -237,10 +223,6 @@ begin
        or exists (select 1 from public.transaction_item_refund_link where ledger_id = p_ledger_id)
        or exists (select 1 from public.transaction_item_reimbursement_link where ledger_id = p_ledger_id) then
         raise exception 'ledger_setup_has_transactions' using errcode = '55000', detail = 'ledger_setup_has_transactions';
-    end if;
-    -- 创建中账本不能被设为当前账本；异常历史指针也拒绝删除，避免 SET NULL 改动指针。
-    if exists (select 1 from public.app_user where current_ledger_id = p_ledger_id) then
-        raise exception 'ledger_setup_not_in_progress' using errcode = '55000', detail = 'ledger_setup_not_in_progress';
     end if;
     perform set_config('app.ledger_setup_abandonment_ledger_id', p_ledger_id::text, true);
     -- 草稿随 ledger 本体删除；只清理创建阶段实际写入的成员设置与 owner 成员。

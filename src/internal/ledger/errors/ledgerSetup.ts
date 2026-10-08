@@ -1,5 +1,4 @@
 export const ledgerSetupErrorCodes = {
-  ownerRequired: "setup_owner_required",
   hasMembers: "setup_has_members",
   hasTransactions: "setup_has_transactions",
   accountNameDuplicate: "setup_account_name_duplicate",
@@ -18,7 +17,6 @@ export type LedgerSetupErrorCode =
   (typeof ledgerSetupErrorCodes)[keyof typeof ledgerSetupErrorCodes];
 
 export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
-  [ledgerSetupErrorCodes.ownerRequired]: "只有账本所有者可以放弃创建。",
   [ledgerSetupErrorCodes.hasMembers]:
     "该账本已有其他成员或邀请，无法放弃创建。",
   [ledgerSetupErrorCodes.hasTransactions]: "该账本已有交易数据，无法放弃创建。",
